@@ -69,6 +69,9 @@ type BoolVar = FieldVar;
 declare const Snarky: {
   /**
    * witness `sizeInFields` field element variables
+   *
+   * Note: this is called "exists" because in a proof, you use it like this:
+   * > "I prove that there exists x, such that (some statement)"
    */
   exists(
     sizeInFields: number,
@@ -110,7 +113,7 @@ declare const Snarky: {
     /**
      * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
      */
-    scale(x: FieldVar, c: FieldConst): FieldVar;
+    scale(c: FieldConst, x: FieldVar): FieldVar;
     /**
      * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
      */
@@ -152,14 +155,13 @@ declare const Snarky: {
      */
     fromBits(bits: MlArray<BoolVar>): FieldVar;
     /**
-     * returns x truncated to the lowest `length` bits
-     * => can be used to assert that x fits in `length` bits.
+     * returns x truncated to the lowest `16 * lengthDiv16` bits
+     * => can be used to assert that x fits in `16 * lengthDiv16` bits.
      *
      * more efficient than `toBits()` because it uses the EC_endoscalar gate;
      * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
-     * `length` has to be a multiple of 16
      */
-    truncateToBits(length: number, x: FieldVar): FieldVar;
+    truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
     /**
      * returns a new witness from an AST
      * (implemented with toConstantAndTerms)

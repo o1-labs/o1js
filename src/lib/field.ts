@@ -64,12 +64,12 @@ const FieldVar = {
     return [FieldType.Add, x, y];
   },
   // TODO: handle (special) constants
-  scale(x: FieldVar, c: FieldConst): FieldVar {
+  scale(c: FieldConst, x: FieldVar): FieldVar {
     return [FieldType.Scale, c, x];
   },
-  [0]: [0, FieldConst[0]] satisfies ConstantFieldVar,
-  [1]: [0, FieldConst[1]] satisfies ConstantFieldVar,
-  [-1]: [0, FieldConst[-1]] satisfies ConstantFieldVar,
+  [0]: [FieldType.Constant, FieldConst[0]] satisfies ConstantFieldVar,
+  [1]: [FieldType.Constant, FieldConst[1]] satisfies ConstantFieldVar,
+  [-1]: [FieldType.Constant, FieldConst[-1]] satisfies ConstantFieldVar,
 };
 
 type ConstantField = Field & { value: ConstantFieldVar };
@@ -124,7 +124,7 @@ class Field {
       this.value = x.value;
       return;
     }
-    // fieldVar
+    // FieldVar
     if (Array.isArray(x)) {
       this.value = x;
       return;
@@ -193,7 +193,7 @@ class Field {
   }
 
   /**
-   * Serialize the {@link Field} to a bigint, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the {@link Field} to a bigint, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *
    * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the bigint representation of the {@link Field}. Use the operation only during debugging.
    *
@@ -211,7 +211,7 @@ class Field {
   }
 
   /**
-   * Serialize the {@link Field} to a string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the {@link Field} to a string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *
    * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the {@link Field}. Use the operation only during debugging.
    *
@@ -312,7 +312,7 @@ class Field {
       return new Field(Fp.negate(this.toBigInt()));
     }
     // return new AST node Scale(-1, x)
-    let z = Snarky.field.scale(this.value, FieldConst[-1]);
+    let z = Snarky.field.scale(FieldConst[-1], this.value);
     return new Field(z);
   }
 
@@ -368,11 +368,11 @@ class Field {
     }
     // if one of the factors is constant, return Scale AST node
     if (isConstant(y)) {
-      let z = Snarky.field.scale(this.value, Field.#toConst(y));
+      let z = Snarky.field.scale(Field.#toConst(y), this.value);
       return new Field(z);
     }
     if (this.isConstant()) {
-      let z = Snarky.field.scale(y.value, this.value[1]);
+      let z = Snarky.field.scale(this.value[1], y.value);
       return new Field(z);
     }
     // create a new witness for z = x*y
@@ -385,7 +385,10 @@ class Field {
   }
 
   /**
-   * [Modular inverse](https://en.wikipedia.org/wiki/Modular_multiplicative_inverse) of this {@link Field} element. Equivalent to 1 divided by this {@link Field}, in the sense of modular arithmetic.
+   * [Modular inverse](https://en.wikipedia.org/wiki/Modular_multiplicative_inverse) of this {@link Field} element.
+   * Equivalent to 1 divided by this {@link Field}, in the sense of modular arithmetic.
+   *
+   * Proves that this Field is non-zero, or throws a "Division by zero" error.
    *
    * @example
    * ```ts
@@ -416,6 +419,8 @@ class Field {
 
   /**
    * Divide another "field-like" value through this {@link Field}.
+   *
+   * Proves that the denominator is non-zero, or throws a "Division by zero" error.
    *
    * @example
    * ```ts
@@ -480,15 +485,17 @@ class Field {
   /**
    * Take the square root of this {@link Field} element.
    *
+   * Proves that the Field element has a square root in the finite field, or throws if it doesn't.
+   *
    * @example
    * ```ts
-   * const someField = Field(42);
-   * const squareRoot = someField.sqrt();
-   *
-   * squareRoot.mul(squareRoot).assertEquals(someField); // This statement is always true regardless of the value of `someField`
+   * let z = x.sqrt();
+   * z.mul(z).assertEquals(x); // true for every `x`
    * ```
    *
-   * **Warning**: This is a modular square root. See `div()` method for more details.
+   * **Warning**: This is a modular square root, which is any number z that satisfies z*z = x (mod p).
+   * Note that, if a square root z exists, there also exists a second one, -z (which is different if z != 0).
+   * Therefore, this method leaves an adversarial prover the choice between two different values to return.
    *
    * @return A {@link Field} element equivalent to the square root of the {@link Field} element.
    */
@@ -533,7 +540,7 @@ class Field {
     Snarky.field.assertMul(
       z,
       this.value,
-      Snarky.field.add(FieldVar[1], Snarky.field.scale(b, FieldConst[-1]))
+      Snarky.field.add(FieldVar[1], Snarky.field.scale(FieldConst[-1], b))
     );
     // ^^^ these prove that b = Bool(x === 0):
     // if x = 0, the 2nd equation implies b = 1
@@ -578,7 +585,10 @@ class Field {
     // TODO: support all bit lengths
     let maxLength = Fp.sizeInBits - 2;
     asProver(() => {
-      let actualLength = this.toBigInt().toString(2).length;
+      let actualLength = Math.max(
+        this.toBigInt().toString(2).length,
+        new Field(y).toBigInt().toString(2).length
+      );
       if (actualLength > maxLength)
         throw Error(
           `Provable comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
@@ -599,6 +609,9 @@ class Field {
    * ```ts
    * Field(2).lessThan(3).assertEquals(Bool(true));
    * ```
+   *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behavior when used with negative inputs or modular division.
    *
@@ -627,6 +640,9 @@ class Field {
    * Field(3).lessThanOrEqual(3).assertEquals(Bool(true));
    * ```
    *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
@@ -654,6 +670,9 @@ class Field {
    * Field(5).greaterThan(3).assertEquals(Bool(true));
    * ```
    *
+   * **Warning**: Comparison methods currently only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
@@ -679,6 +698,9 @@ class Field {
    * Field(3).greaterThanOrEqual(3).assertEquals(Bool(true));
    * ```
    *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
@@ -701,6 +723,9 @@ class Field {
    * See {@link Field.lessThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -727,6 +752,9 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
@@ -752,6 +780,9 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
@@ -765,6 +796,9 @@ class Field {
    * See {@link Field.greaterThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -785,7 +819,6 @@ class Field {
    * ```ts
    * x.assertNotEquals(0, "expect x to be non-zero");
    * ```
-   *
    */
   assertNotEquals(y: Field | bigint | number | string, message?: string) {
     try {
@@ -840,6 +873,7 @@ class Field {
    * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link Field} element.
    *
    * If you use the optional `length` argument, proves that the field element fits in `length` bits.
+   * The `length` has to be between 0 and 255 and the method throws if it isn't.
    *
    * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
    * which by default is 255 bits. Prefer to pass a smaller `length` if possible.
@@ -865,7 +899,8 @@ class Field {
 
   /**
    * Convert a bit array into a {@link Field} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
-   * The function fails if the element cannot fit given too many bits. Note that a {@link Field} element can be 255 bits at most.
+   *
+   * The method throws if the given bits do not fit in a single Field element. A Field element can be at most 255 bits.
    *
    * **Important**: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link Field} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link Field} will be a variable as well.
    *
@@ -891,22 +926,31 @@ class Field {
   }
 
   /**
-   * Create a new {@link Field} element from the first `numBits` of this {@link Field} element.
-   * As {@link Field} elements are represented using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness), the resulting {@link Field} element will equal the original one if the variable fits in `numBits` bits.
+   * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
    *
-   * @param numBits - The number of bits to take from this {@link Field} element.
+   * The `length` has to be a multiple of 16, and has to be between 0 and 255, otherwise the method throws.
    *
-   * @return A {@link Field} element that is equal to the `numBits` of this {@link Field} element.
+   * As {@link Field} elements are represented using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness),
+   * the resulting {@link Field} element will equal the original one if it fits in `length` bits.
+   *
+   * @param length - The number of bits to take from this {@link Field} element.
+   *
+   * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
    */
   rangeCheckHelper(length: number) {
     Field.#checkBitLength('Field.rangeCheckHelper()', length);
+    if (length % 16 !== 0)
+      throw Error(
+        'Field.rangeCheckHelper(): `length` has to be a multiple of 16.'
+      );
+    let lengthDiv16 = length / 16;
     if (this.isConstant()) {
       let bits = Fp.toBits(this.toBigInt())
         .slice(0, length)
         .concat(Array(Fp.sizeInBits - length).fill(false));
       return new Field(Fp.fromBits(bits));
     }
-    let x = Snarky.field.truncateToBits(length, this.value);
+    let x = Snarky.field.truncateToBits16(lengthDiv16, this.value);
     return new Field(x);
   }
 
@@ -1034,7 +1078,7 @@ class Field {
   // ProvableExtended<Field>
 
   /**
-   * Serialize the {@link Field} to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the {@link Field} to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *
    * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Use the operation only during debugging.
    *
@@ -1051,7 +1095,7 @@ class Field {
   }
 
   /**
-   * Serialize the given {@link Field} element to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the given {@link Field} element to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *
    * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Use the operation only during debugging.
    *
