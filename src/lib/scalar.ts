@@ -32,6 +32,10 @@ class Scalar {
     return new Scalar(bits, scalar);
   }
 
+  static fromBits(bits: Bool[]) {
+    return Scalar.fromFields(bits.map((b) => b.toField()));
+  }
+
   // operations on constant scalars
 
   #assertConstant(name: string): Fq {
@@ -130,6 +134,10 @@ That means it can't be called in a @method or similar environment, and there's n
    * Part of the {@link Provable} interface.
    *
    * Serialize a {@link Scalar} into an array of {@link Field} elements.
+   *
+   * **Warning**: This function is for internal usage. It returns 255 field elements
+   * which represent the Scalar in a shifted, bitwise format.
+   * The fields are not constrained to be boolean.
    */
   static toFields(x: Scalar) {
     return x.bits.map((b) => new Field(b));
@@ -140,6 +148,8 @@ That means it can't be called in a @method or similar environment, and there's n
    *
    * **Warning**: This function is for internal usage. It returns 255 field elements
    * which represent the Scalar in a shifted, bitwise format.
+   * The fields are not constrained to be boolean.
+   *
    * Check out {@link Scalar.toFieldsCompressed} for a user-friendly serialization
    * that can be used outside proofs.
    */
@@ -183,7 +193,7 @@ That means it can't be called in a @method or similar environment, and there's n
     /* It is not necessary to boolean constrain the bits of a scalar for the following
      reasons:
 
-     The only type-safe functions which can be called with a scalar value are
+     The only provable methods which can be called with a scalar value are
 
      - if
      - assertEqual
