@@ -1293,7 +1293,7 @@ module Snarky = struct
     let add x y = Field.add x y
 
     (** scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant; handles c=0,1 *)
-    let scale x c = Field.scale x c
+    let scale c x = Field.scale x c
 
     (** witnesses z = x*y and constrains it with [assert_r1cs]; handles constants *)
     let mul x y = Field.mul x y
@@ -1326,17 +1326,15 @@ module Snarky = struct
 
     let from_bits bits = Array.to_list bits |> Field.project
 
-    (** returns x truncated to the lowest [length] bits
-       => can be used to assert that x fits in [length] bits.
+    (** returns x truncated to the lowest [16 * length_div_16] bits
+       => can be used to assert that x fits in [16 * length_div_16] bits.
 
        more efficient than [to_bits] because it uses the [EC_endoscalar] gate;
        does 16 bits per row (vs 1 bits per row that you can do with generic gates).
-       [length] has to be a multiple of 16
     *)
-    let truncate_to_bits (length : int) x =
-      assert (length mod 16 = 0) ;
+    let truncate_to_bits16 (length_div_16 : int) x =
       let _a, _b, x0 =
-        Pickles.Scalar_challenge.to_field_checked' ~num_bits:length
+        Pickles.Scalar_challenge.to_field_checked' ~num_bits:(length_div_16 * 16)
           (module Impl)
           { inner = x }
       in
@@ -1428,7 +1426,7 @@ let snarky =
 
         method fromBits = Snarky.Field.from_bits
 
-        method truncateToBits = Snarky.Field.truncate_to_bits
+        method truncateToBits16 = Snarky.Field.truncate_to_bits16
 
         method seal = Snarky.Field.seal
 
