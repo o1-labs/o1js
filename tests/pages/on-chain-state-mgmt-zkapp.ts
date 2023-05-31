@@ -88,7 +88,7 @@ export class OnChainStateMgmtZkAppPage {
       `Updating zkApp State from ${actualValue} to ${expectedValue}`
     );
     await expect(this.eventsContainer).toContainText(
-      `zkApp State Update failure: assert_equal: ${nextValue} != ${expectedValue}`
+      `zkApp State Update failure: Field.assertEquals(): ${nextValue} != ${expectedValue}`
     );
     await expect(this.zkAppStateContainer).toHaveText(actualValue);
   }

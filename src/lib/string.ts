@@ -1,4 +1,4 @@
-import { Bool, Field } from '../snarky.js';
+import { Bool, Field } from '../lib/core.js';
 import { arrayProp, CircuitValue, prop } from './circuit_value.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './hash.js';

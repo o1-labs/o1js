@@ -154,7 +154,7 @@ export class Voting_ extends SmartContract {
     // the check happens here because we want to see if the other contract returns a value
     // if exists is true, that means the member already exists within the accumulated state
     // if its false, its a new entry
-    exists.assertEquals(false);
+    exists.assertFalse('Member already exists!');
   }
 
   /**
@@ -175,7 +175,7 @@ export class Voting_ extends SmartContract {
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
-    ).assertTrue();
+    ).assertTrue('Outside of election period!');
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount

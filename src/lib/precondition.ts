@@ -1,4 +1,4 @@
-import { Bool, Field } from '../snarky.js';
+import { Bool, Field } from './core.js';
 import { circuitValueEquals } from './circuit_value.js';
 import { Provable } from './provable.js';
 import * as Mina from './mina.js';

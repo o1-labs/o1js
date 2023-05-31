@@ -1,13 +1,13 @@
 import { Types } from '../bindings/mina-transaction/types.js';
 import {
   Bool,
-  Field,
   Gate,
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
   ProvablePure,
 } from '../snarky.js';
+import { Field } from './core.js';
 import {
   AccountUpdate,
   AccountUpdatesLayout,
@@ -51,20 +51,22 @@ import {
   emptyValue,
   GenericArgument,
   getPreviousProofsForProver,
-  inAnalyze,
-  inCompile,
-  inProver,
   isAsFields,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
   Proof,
-  snarkContext,
   sortMethodArguments,
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
+import {
+  inAnalyze,
+  inCompile,
+  inProver,
+  snarkContext,
+} from './provable-context.js';
 
 // external API
 export {
@@ -169,8 +171,6 @@ function wrapMethod(
       }
     });
 
-    // TODO: the callback case is actually more similar to the composability
-    // case below, should reconcile with that to get the same callData hashing
     let insideContract = smartContractContext.get();
     if (!insideContract) {
       return smartContractContext.runWith<SmartContractContext, any>(

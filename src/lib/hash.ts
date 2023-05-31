@@ -1,6 +1,6 @@
 import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
-import { Poseidon as Poseidon_, Field } from '../snarky.js';
-import { inCheckedComputation } from './proof_system.js';
+import { Poseidon as Poseidon_ } from '../snarky.js';
+import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
 
@@ -23,7 +23,7 @@ class Sponge {
   private sponge: unknown;
 
   constructor() {
-    let isChecked = inCheckedComputation();
+    let isChecked = Provable.inCheckedComputation();
     this.sponge = Poseidon_.spongeCreate(isChecked);
   }
 

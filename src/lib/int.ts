@@ -1,4 +1,4 @@
-import { Field, Bool } from '../snarky.js';
+import { Field, Bool } from './core.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';

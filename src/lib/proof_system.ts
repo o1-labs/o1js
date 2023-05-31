@@ -4,7 +4,8 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Bool, Field, ProvablePure, Pickles, Poseidon } from '../snarky.js';
+import { Bool, ProvablePure, Pickles, Poseidon } from '../snarky.js';
+import { Field } from './core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
@@ -13,8 +14,8 @@ import {
   provablePure,
   toConstant,
 } from './circuit_value.js';
-import { Context } from './global-context.js';
 import { Provable } from './provable.js';
+import { snarkContext } from './provable-context.js';
 
 // public API
 export {
@@ -44,28 +45,9 @@ export {
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   isAsFields,
-  snarkContext,
   Prover,
-  inProver,
-  inCompile,
-  inAnalyze,
-  inCheckedComputation,
-  inCompileMode,
   dummyBase64Proof,
 };
-
-// global circuit-related context
-type SnarkContext = {
-  witnesses?: unknown[];
-  proverData?: any;
-  inProver?: boolean;
-  inCompile?: boolean;
-  inCheckedComputation?: boolean;
-  inAnalyze?: boolean;
-  inRunAndCheck?: boolean;
-  inWitnessBlock?: boolean;
-};
-let snarkContext = Context.create<SnarkContext>({ default: {} });
 
 type Undefined = undefined;
 const Undefined: ProvablePureExtended<undefined, null> =
@@ -800,25 +782,6 @@ function Prover<ProverData>() {
       return snarkContext.get().proverData;
     },
   };
-}
-
-function inProver() {
-  return !!snarkContext.get().inProver;
-}
-function inCheckedComputation() {
-  let ctx = snarkContext.get();
-  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
-}
-function inCompile() {
-  return !!snarkContext.get().inCompile;
-}
-function inAnalyze() {
-  return !!snarkContext.get().inAnalyze;
-}
-
-function inCompileMode() {
-  let ctx = snarkContext.get();
-  return !!ctx.inCompile || !!ctx.inAnalyze;
 }
 
 // helper types

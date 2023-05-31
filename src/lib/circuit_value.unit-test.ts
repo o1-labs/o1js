@@ -1,4 +1,4 @@
-import { Field, isReady, shutdown } from '../snarky.js';
+import { isReady, shutdown } from '../snarky.js';
 import { provable, Struct } from './circuit_value.js';
 import { UInt32 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -8,6 +8,7 @@ import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 import { State, state } from './state.js';
 import { AccountUpdate } from './account_update.js';
 import { Provable } from './provable.js';
+import { Field } from './core.js';
 
 await isReady;
 
