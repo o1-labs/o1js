@@ -2,11 +2,10 @@ import { ProvablePure } from '../snarky.js';
 import { Field } from './core.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { test, Random } from './testing/property.js';
-import { deepEqual } from 'node:assert/strict';
+import { deepEqual, throws } from 'node:assert/strict';
 import { Provable } from './provable.js';
 import { Binable } from '../bindings/lib/binable.js';
 import { ProvableExtended } from './circuit_value.js';
-import { throws } from 'node:assert';
 import { FieldType } from './field.js';
 
 // types
@@ -33,6 +32,27 @@ test(Random.field, Random.json.field, (x, y, assert) => {
   assert(z.toString() === y);
   deepEqual(Field.fromJSON(y), z);
   assert(z.toJSON() === y);
+});
+
+// handles small numbers
+test(Random.nat(1000), (n, assert) => {
+  assert(Field(n).toString() === String(n));
+});
+// handles large numbers 2^31 <= x < 2^53
+test(Random.int(2 ** 31, Number.MAX_SAFE_INTEGER), (n, assert) => {
+  assert(Field(n).toString() === String(n));
+});
+// handles negative numbers
+test(Random.uint32, (n) => {
+  deepEqual(Field(-n), Field(n).neg());
+});
+// throws on fractional numbers
+test.negative(Random.int(-10, 10), Random.fraction(1), (x, f) => {
+  Field(x + f);
+});
+// correctly overflows the field
+test(Random.field, Random.int(-5, 5), (x, k) => {
+  deepEqual(Field(x + BigInt(k) * Field.ORDER), Field(x));
 });
 
 // special generator
