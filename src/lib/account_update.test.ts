@@ -100,6 +100,22 @@ describe('AccountUpdate', () => {
     expect(TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
     expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
+
+  it('does not throw an error if private key is missing unless if .send is executed', async () => {
+    let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+    Mina.setActiveInstance(Local);
+
+    const feePayerKey = Local.testAccounts[0].privateKey;
+    const feePayer = Local.testAccounts[0].publicKey;
+
+    let tx = await Mina.transaction(feePayer, () => {
+      let accountUpdate = AccountUpdate.fundNewAccount(feePayer);
+    });
+    tx.sign();
+    await expect(tx.send()).rejects.toThrow(
+      'Check signature: Invalid signature on fee payer for key'
+    );
+  });
 });
 
 // to check that we got something that looks like a Field
