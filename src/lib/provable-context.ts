@@ -1,6 +1,7 @@
 import { Context } from './global-context.js';
 import { Gate, JsonGate, Snarky } from '../snarky.js';
 import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
+import { prettifyStacktrace } from './errors.js';
 
 // internal API
 export {
@@ -67,6 +68,8 @@ function runAndCheck(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     Snarky.runAndCheck(f);
+  } catch (error) {
+    throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }
@@ -76,6 +79,8 @@ function runUnchecked(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     Snarky.runUnchecked(f);
+  } catch (error) {
+    throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }
@@ -90,6 +95,8 @@ function constraintSystem<T>(f: () => T) {
     });
     let { gates, publicInputSize } = gatesFromJson(json);
     return { rows, digest, result: result! as T, gates, publicInputSize };
+  } catch (error) {
+    throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }

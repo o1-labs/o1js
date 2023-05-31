@@ -2,6 +2,7 @@ export {
   CatchAndPrettifyStacktraceForAllMethods,
   CatchAndPrettifyStacktrace,
   prettifyStacktrace,
+  prettifyStacktracePromise,
   assert,
 };
 
@@ -40,6 +41,15 @@ function CatchAndPrettifyStacktraceForAllMethods<
       Object.defineProperty(constructor.prototype, propertyName, descriptor);
     }
   }
+  // do the same thing for static methods
+  for (let [propertyName, descriptor] of Object.entries(
+    Object.getOwnPropertyDescriptors(constructor)
+  )) {
+    if (descriptor && typeof descriptor.value === 'function') {
+      CatchAndPrettifyStacktrace(constructor, propertyName, descriptor);
+      Object.defineProperty(constructor, propertyName, descriptor);
+    }
+  }
 }
 
 /**
@@ -62,11 +72,7 @@ function CatchAndPrettifyStacktrace(
       const result = originalMethod.apply(this, args);
       return handleResult(result);
     } catch (error) {
-      const prettyStacktrace = prettifyStacktrace(error);
-      if (prettyStacktrace && error instanceof Error) {
-        error.stack = prettyStacktrace;
-      }
-      throw error;
+      throw prettifyStacktrace(error);
     }
   };
 }
@@ -83,11 +89,7 @@ function CatchAndPrettifyStacktrace(
 function handleResult(result: any) {
   if (result instanceof Promise) {
     return result.catch((error: Error) => {
-      const prettyStacktrace = prettifyStacktrace(error);
-      if (prettyStacktrace && error instanceof Error) {
-        error.stack = prettyStacktrace;
-      }
-      throw error;
+      throw prettifyStacktrace(error);
     });
   }
   return result;
@@ -106,10 +108,11 @@ const lineRemovalKeywords = [
  * Prettifies the stack trace of an error by removing unwanted lines and trimming paths.
  *
  * @param error - The error object with a stack trace to prettify.
- * @returns The prettified stack trace as a string or undefined if the error is not an instance of Error or has no stack trace.
+ * @returns The same error with the prettified stack trace
  */
-function prettifyStacktrace(error: unknown): string | undefined {
-  if (!(error instanceof Error) || !error.stack) return undefined;
+function prettifyStacktrace(error: unknown) {
+  error = unwrapMlException(error);
+  if (!(error instanceof Error) || !error.stack) return error;
 
   const stacktrace = error.stack;
   const stacktraceLines = stacktrace.split('\n');
@@ -125,7 +128,23 @@ function prettifyStacktrace(error: unknown): string | undefined {
     const trimmedLine = trimPaths(stacktraceLines[i]);
     newStacktrace.push(trimmedLine);
   }
-  return newStacktrace.join('\n');
+  error.stack = newStacktrace.join('\n');
+  return error;
+}
+
+async function prettifyStacktracePromise<T>(result: Promise<T>): Promise<T> {
+  try {
+    return await result;
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  }
+}
+
+function unwrapMlException<E extends unknown>(error: E) {
+  if (error instanceof Error) return error;
+  // ocaml exception re-thrown from JS
+  if (Array.isArray(error) && error[2] instanceof Error) return error[2];
+  return error;
 }
 
 /**
