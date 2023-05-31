@@ -298,19 +298,11 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      try {
-        let { zkappCommand, proofs } = await addMissingProofs(
-          self.transaction,
-          {
-            proofsEnabled,
-          }
-        );
-        self.transaction = zkappCommand;
-        return proofs;
-      } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
-      }
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+        proofsEnabled,
+      });
+      self.transaction = zkappCommand;
+      return proofs;
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -326,8 +318,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       try {
         return await sendTransaction(self);
       } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
+        throw prettifyStacktrace(error);
       }
     },
   };
@@ -1093,8 +1084,7 @@ function transaction(
     }
     return activeInstance.transaction(sender, f);
   } catch (error) {
-    if (error instanceof Error) error.stack = prettifyStacktrace(error);
-    throw error;
+    throw prettifyStacktrace(error);
   }
 }
 
