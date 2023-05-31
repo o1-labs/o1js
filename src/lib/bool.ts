@@ -1,13 +1,13 @@
-import { Field } from './field.js';
+import { Field, FieldVar } from './field.js';
 
 class Bool {
-  value: Field;
+  value: FieldVar;
 
   constructor(x: Bool | boolean) {
     if (x instanceof Bool) {
       this.value = x.value;
     } else {
-      this.value = new Field(x ? 1n : 0n);
+      this.value = FieldVar.constant(x ? 1n : 0n);
     }
   }
 
