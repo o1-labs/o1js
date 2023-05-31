@@ -32,18 +32,6 @@ class Scalar {
     return new Scalar(bits, scalar);
   }
 
-  /**
-   * Serialize this Scalar to Field elements. Part of the {@link Provable} interface.
-   *
-   * **Warning**: This function is for internal usage. It returns 255 field elements
-   * which represent the Scalar in a shifted, bitwise format.
-   * Check out {@link Scalar.toFieldsCompressed} for a user-friendly serialization
-   * that can be used outside proofs.
-   */
-  toFields(): Field[] {
-    return this.bits.map((b) => new Field(b));
-  }
-
   // operations on constant scalars
 
   #assertConstant(name: string): Fq {
@@ -53,24 +41,6 @@ class Scalar {
 That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
       );
     return this.constantValue;
-  }
-
-  /**
-   * Serialize a Scalar into a Field element plus one bit, where the bit is represented as a Bool.
-   *
-   * **Warning**: This method is not available for provable code.
-   *
-   * Note: Since the Scalar field is slightly larger than the base Field, an additional high bit
-   * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
-   */
-  toFieldsCompressed(): { field: Field; highBit: Bool } {
-    let s = this.#assertConstant('toFieldsCompressed');
-    let lowBitSize = BigInt(Fq.sizeInBits - 1);
-    let lowBitMask = (1n << lowBitSize) - 1n;
-    return {
-      field: new Field(s & lowBitMask),
-      highBit: Bool(s >> lowBitSize === 1n),
-    };
   }
 
   /**
@@ -133,6 +103,97 @@ That means it can't be called in a @method or similar environment, and there's n
     if (z === undefined) throw Error('Scalar.div(): Division by zero');
     return Scalar.fromBigint(z);
   }
+
+  /**
+   * Serialize a Scalar into a Field element plus one bit, where the bit is represented as a Bool.
+   *
+   * **Warning**: This method is not available for provable code.
+   *
+   * Note: Since the Scalar field is slightly larger than the base Field, an additional high bit
+   * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
+   */
+  toFieldsCompressed(): { field: Field; highBit: Bool } {
+    let s = this.#assertConstant('toFieldsCompressed');
+    let lowBitSize = BigInt(Fq.sizeInBits - 1);
+    let lowBitMask = (1n << lowBitSize) - 1n;
+    return {
+      field: new Field(s & lowBitMask),
+      highBit: Bool(s >> lowBitSize === 1n),
+    };
+  }
+
+  // internal stuff
+
+  // Provable<Scalar>
+
+  /**
+   * Part of the {@link Provable} interface.
+   *
+   * Serialize a {@link Scalar} into an array of {@link Field} elements.
+   */
+  static toFields(x: Scalar) {
+    return x.bits.map((b) => new Field(b));
+  }
+
+  /**
+   * Serialize this Scalar to Field elements.
+   *
+   * **Warning**: This function is for internal usage. It returns 255 field elements
+   * which represent the Scalar in a shifted, bitwise format.
+   * Check out {@link Scalar.toFieldsCompressed} for a user-friendly serialization
+   * that can be used outside proofs.
+   */
+  toFields(): Field[] {
+    return Scalar.toFields(this);
+  }
+
+  /**
+   * Part of the {@link Provable} interface.
+   *
+   * Serialize a {@link Scalar} into its auxiliary data, which are empty.
+   */
+  static toAuxiliary() {
+    return [];
+  }
+
+  /**
+   * Part of the {@link Provable} interface.
+   *
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
+  static fromFields(fields: Field[]): Scalar {
+    return new Scalar(fields.map((x) => x.value));
+  }
+
+  /**
+   * Part of the {@link Provable} interface.
+   *
+   * Returns the size of this type in {@link Field} elements.
+   */
+  static sizeInFields(): number {
+    return Fq.sizeInBits;
+  }
+
+  /**
+   * Part of the {@link Provable} interface.
+   *
+   * Does nothing.
+   */
+  static check() {
+    /* It is not necessary to boolean constrain the bits of a scalar for the following
+     reasons:
+
+     The only type-safe functions which can be called with a scalar value are
+
+     - if
+     - assertEqual
+     - equal
+     - Group.scale
+
+     The only one of these whose behavior depends on the bit values of the input scalars
+     is Group.scale, and that function boolean constrains the scalar input itself.
+     */
+  }
 }
 
 function toConstantScalar(bits: BoolVar[]): Fq | undefined {
@@ -145,6 +206,7 @@ function toConstantScalar(bits: BoolVar[]): Fq | undefined {
   let sShifted = Fq.fromBits(constantBits);
   return unshift(sShifted);
 }
+
 function toBits(constantValue: Fq): BoolVar[] {
   return Fq.toBits(shift(constantValue)).map((b) =>
     FieldVar.constant(BigInt(b))
