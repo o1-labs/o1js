@@ -3,6 +3,7 @@ import { defineBinable } from '../bindings/lib/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Scalar, Group } from '../snarky.js';
 import { Field as InternalField } from './field.js';
+import { Scalar as InternalScalar } from './scalar.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { mod } from '../bindings/crypto/finite_field.js';
 
@@ -43,6 +44,10 @@ export { Field, Bool, Scalar, Group };
  */
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
+
+// TODO
+// const Scalar = toFunctionConstructor(InternalScalar);
+// type Scalar = InternalScalar;
 
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
