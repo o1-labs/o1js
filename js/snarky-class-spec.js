@@ -197,6 +197,7 @@ export default [
     name: 'Snarky',
     props: [
       { name: 'exists', type: 'function' },
+      { name: 'existsVar', type: 'function' },
       {
         name: 'asProver',
         type: 'function',
@@ -212,6 +213,10 @@ export default [
       {
         name: 'constraintSystem',
         type: 'function',
+      },
+      {
+        name: 'field',
+        type: 'object',
       },
       {
         name: 'circuit',

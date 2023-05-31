@@ -1249,11 +1249,11 @@ end
 module Snarky = struct
   let typ (size_in_fields : int) = Typ.array ~length:size_in_fields Field.typ
 
-  let exists (size_in_fields : int)
-      (compute : unit -> field_class Js.t Js.js_array Js.t) =
-    Impl.exists (typ size_in_fields) ~compute:(fun () ->
-        compute () |> Js.to_array |> Array.map ~f:of_js_field_unchecked )
-    |> Array.map ~f:to_js_field |> Js.array
+  let exists (size_in_fields : int) (compute : unit -> Field.Constant.t array) =
+    Impl.exists (typ size_in_fields) ~compute
+
+  let exists_var (compute : unit -> Field.Constant.t) =
+    Impl.exists Field.typ ~compute
 
   let as_prover = Impl.as_prover
 
@@ -1287,6 +1287,64 @@ module Snarky = struct
       val json =
         Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
     end
+
+  module Field = struct
+    (** add x, y to get a new AST node Add(x, y); handles if x, y are constants *)
+    let add x y = Field.add x y
+
+    (** scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant; handles c=0,1 *)
+    let scale c x = Field.scale x c
+
+    (** witnesses z = x*y and constrains it with [assert_r1cs]; handles constants *)
+    let mul x y = Field.mul x y
+
+    (** evaluates a CVar by unfolding the AST and reading Vars from a list of public input + aux values *)
+    let read_var (x : Field.t) = As_prover.read_var x
+
+    (** x === y without handling of constants *)
+    let assert_equal x y = Impl.assert_ (Impl.Constraint.equal x y)
+
+    (** x*y === z without handling of constants *)
+    let assert_mul x y z = Impl.assert_ (Impl.Constraint.r1cs x y z)
+
+    (** x*x === y without handling of constants *)
+    let assert_square x y = Impl.assert_ (Impl.Constraint.square x y)
+
+    (** x*x === x without handling of constants *)
+    let assert_boolean x = Impl.assert_ (Impl.Constraint.boolean x)
+
+    (** check x < y and x <= y.
+        this is used in all comparisons, including with assert *)
+    let compare (bit_length : int) x y =
+      let ({ less; less_or_equal } : Field.comparison_result) =
+        Field.compare ~bit_length x y
+      in
+      (less, less_or_equal)
+
+    let to_bits (length : int) x =
+      Field.choose_preimage_var ~length x |> Array.of_list
+
+    let from_bits bits = Array.to_list bits |> Field.project
+
+    (** returns x truncated to the lowest [16 * length_div_16] bits
+       => can be used to assert that x fits in [16 * length_div_16] bits.
+
+       more efficient than [to_bits] because it uses the [EC_endoscalar] gate;
+       does 16 bits per row (vs 1 bits per row that you can do with generic gates).
+    *)
+    let truncate_to_bits16 (length_div_16 : int) x =
+      let _a, _b, x0 =
+        Pickles.Scalar_challenge.to_field_checked' ~num_bits:(length_div_16 * 16)
+          (module Impl)
+          { inner = x }
+      in
+      x0
+
+    (* can be implemented with Field.to_constant_and_terms *)
+    let seal x = Pickles.Util.seal (module Impl) x
+
+    let to_constant_and_terms x = Field.to_constant_and_terms x
+  end
 
   module Circuit = struct
     module Main = struct
@@ -1334,6 +1392,8 @@ let snarky =
   object%js
     method exists = Snarky.exists
 
+    method existsVar = Snarky.exists_var
+
     method asProver = Snarky.as_prover
 
     method runAndCheck = Snarky.run_and_check
@@ -1341,6 +1401,37 @@ let snarky =
     method runUnchecked = Snarky.run_unchecked
 
     method constraintSystem = Snarky.constraint_system
+
+    val field =
+      object%js
+        method add = Snarky.Field.add
+
+        method scale = Snarky.Field.scale
+
+        method mul = Snarky.Field.mul
+
+        method readVar = Snarky.Field.read_var
+
+        method assertEqual = Snarky.Field.assert_equal
+
+        method assertMul = Snarky.Field.assert_mul
+
+        method assertSquare = Snarky.Field.assert_square
+
+        method assertBoolean = Snarky.Field.assert_boolean
+
+        method compare = Snarky.Field.compare
+
+        method toBits = Snarky.Field.to_bits
+
+        method fromBits = Snarky.Field.from_bits
+
+        method truncateToBits16 = Snarky.Field.truncate_to_bits16
+
+        method seal = Snarky.Field.seal
+
+        method toConstantAndTerms = Snarky.Field.to_constant_and_terms
+      end
 
     val circuit =
       object%js

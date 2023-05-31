@@ -4,9 +4,8 @@ import { testPoseidonLegacyFp } from './test_vectors/poseidonLegacy.js';
 import { expect } from 'expect';
 import { bigIntToBytes } from './bigint-helpers.js';
 import { test, Random } from '../../lib/testing/property.js';
-import { Fp } from './finite_field.js';
 import { Poseidon as SnarkyPoseidon } from '../../lib/hash.js';
-import { Field } from '../../snarky.js';
+import { Field } from '../../lib/core.js';
 
 let testVectors = testPoseidonKimchiFp.test_vectors;
 
@@ -31,7 +30,6 @@ for (let i = 0; i < testVectors.length; i++) {
 console.log('poseidon implementation matches the test vectors! 🎉');
 
 test(Random.array(Random.field, Random.nat(20)), (xs) => {
-
   let g1 = Poseidon.hashToGroup(xs);
   let g2 = SnarkyPoseidon.hashToGroup(xs.map(Field));
 
@@ -41,7 +39,6 @@ test(Random.array(Random.field, Random.nat(20)), (xs) => {
   expect(g1?.y.x0).toEqual(g2.y.x0.toBigInt());
   expect(g1?.y.x1).toEqual(g2.y.x1.toBigInt());
 });
-
 
 console.log('poseidon hashToGroup implementations match! 🎉');
 
