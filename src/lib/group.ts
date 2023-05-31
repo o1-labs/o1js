@@ -15,6 +15,10 @@ class Group {
 
   static generator: Group;
 
+  static #toTuple(g: Group): [0, FieldVar, FieldVar] {
+    return [0, g.x.value, g.y.value];
+  }
+
   constructor({
     x,
     y,
@@ -89,10 +93,7 @@ class Group {
         });
       }
     } else {
-      let [, x, y] = Snarky.group.add(
-        [0, x1.value, y1.value],
-        [0, x2.value, y2.value]
-      );
+      let [, x, y] = Snarky.group.add(Group.#toTuple(this), Group.#toTuple(p));
       return new Group({
         x,
         y,
@@ -112,7 +113,23 @@ class Group {
     });
   }
 
-  scale(p: Scalar) {}
+  scale(s: Scalar) {
+    let fields = s.toFields();
+    if (
+      this.x.isConstant() &&
+      this.y.isConstant() &&
+      fields.every((f) => f.isConstant())
+    ) {
+      console.log('constant');
+      // TODO: constant implementation
+    } else {
+      let [, x, y] = Snarky.group.scale(Group.#toTuple(this), [
+        0,
+        ...fields.map((f) => f.value).reverse(),
+      ]);
+      return new Group({ x, y });
+    }
+  }
 
   assertEquals(p: Group, message?: string) {
     this.equals(p).assertTrue(message);
@@ -189,13 +206,12 @@ class Group {
 
   static check(g: Group) {
     console.log('its running check');
-    let { x, y } = g;
     try {
-      Snarky.group.onCurve([0, x.value, y.value]);
+      Snarky.group.onCurve(Group.#toTuple(g));
     } catch (err) {
       throw withMessage(
         err,
-        `Element (x: ${x}, y: ${y}) is not an element of the group.`
+        `Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`
       );
     }
   }
