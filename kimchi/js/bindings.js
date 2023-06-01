@@ -559,11 +559,7 @@ var caml_fq_vector_of_rust = function (v) {
 // Provides: free_finalization_registry
 var free_finalization_registry =
     new joo_global_object.FinalizationRegistry(function (instance_representative) {
-        try {
-            instance_representative.free();
-        } catch (err) {
-            console.warn(err)
-        }
+        instance_representative.free();
     });
 
 // Provides: free_on_finalize
