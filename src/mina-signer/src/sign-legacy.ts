@@ -23,7 +23,9 @@ export {
   delegationFromJson,
   commonFromJson,
   PaymentJson,
+  PaymentJsonV1,
   DelegationJson,
+  DelegationJsonV1,
   CommonJson,
   Tag,
   UserCommand,
@@ -160,13 +162,13 @@ const legacyTokenId = [true, ...Array<boolean>(63).fill(false)];
 
 function paymentFromJson({
   common,
-  body: { source, receiver, amount },
+  body: { receiver, amount },
 }: PaymentJson): UserCommand {
   return {
     common: commonFromJson(common),
     body: {
       tag: 'Payment',
-      source: PublicKey.fromJSON(source),
+      source: PublicKey.fromJSON(common.feePayer),
       receiver: PublicKey.fromJSON(receiver),
       amount: UInt64.fromJSON(amount),
     },
@@ -175,13 +177,13 @@ function paymentFromJson({
 
 function delegationFromJson({
   common,
-  body: { delegator, newDelegate },
+  body: { newDelegate },
 }: DelegationJson): UserCommand {
   return {
     common: commonFromJson(common),
     body: {
       tag: 'StakeDelegation',
-      source: PublicKey.fromJSON(delegator),
+      source: PublicKey.fromJSON(common.feePayer),
       receiver: PublicKey.fromJSON(newDelegate),
       amount: UInt64(0),
     },
@@ -267,12 +269,10 @@ type Common = {
 };
 
 type Payment = {
-  source: PublicKey;
   receiver: PublicKey;
   amount: UInt64;
 };
 type Delegation = {
-  delegator: PublicKey;
   newDelegate: PublicKey;
 };
 
@@ -287,6 +287,14 @@ type CommonJson = {
 type PaymentJson = {
   common: CommonJson;
   body: {
+    receiver: Json.PublicKey;
+    amount: Json.UInt64;
+  };
+};
+
+type PaymentJsonV1 = {
+  common: CommonJson;
+  body: {
     source: Json.PublicKey;
     receiver: Json.PublicKey;
     amount: Json.UInt64;
@@ -294,6 +302,13 @@ type PaymentJson = {
 };
 
 type DelegationJson = {
+  common: CommonJson;
+  body: {
+    newDelegate: Json.PublicKey;
+  };
+};
+
+type DelegationJsonV1 = {
   common: CommonJson;
   body: {
     delegator: Json.PublicKey;

@@ -23,7 +23,6 @@ const common = record({
 const payment = record<PaymentJson>({
   common,
   body: record({
-    source: Random.json.publicKey,
     receiver: Random.json.publicKey,
     amount: Random.json.uint64,
   }),
@@ -36,7 +35,6 @@ const signedPayment = record<SignedLegacy<PaymentJson>>({
 const delegation = record<DelegationJson>({
   common,
   body: record({
-    delegator: Random.json.publicKey,
     newDelegate: Random.json.publicKey,
   }),
 });

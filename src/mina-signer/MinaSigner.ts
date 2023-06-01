@@ -197,7 +197,7 @@ class Client {
     let signature = signPayment(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
-        body: { source: from, receiver: to, amount },
+        body: { receiver: to, amount },
       },
       privateKey,
       this.network
@@ -225,7 +225,7 @@ class Client {
     return verifyPayment(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
-        body: { source: from, receiver: to, amount },
+        body: { receiver: to, amount },
       },
       signature,
       publicKey,
@@ -253,7 +253,7 @@ class Client {
     let signature = signStakeDelegation(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
-        body: { newDelegate: to, delegator: from },
+        body: { newDelegate: to },
       },
       privateKey,
       this.network
@@ -280,7 +280,7 @@ class Client {
     return verifyStakeDelegation(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
-        body: { newDelegate: to, delegator: from },
+        body: { newDelegate: to },
       },
       signature,
       publicKey,
@@ -305,7 +305,7 @@ class Client {
         signature,
         data: {
           common: { fee, feePayer: from, nonce, validUntil, memo },
-          body: { source: from, receiver: to, amount },
+          body: { receiver: to, amount },
         },
       },
       options
@@ -328,7 +328,7 @@ class Client {
         signature,
         data: {
           common: { fee, feePayer: from, nonce, validUntil, memo },
-          body: { newDelegate: to, delegator: from },
+          body: { newDelegate: to },
         },
       },
       options

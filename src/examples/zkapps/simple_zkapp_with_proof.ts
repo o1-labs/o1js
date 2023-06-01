@@ -11,6 +11,7 @@ import {
   ZkappPublicInput,
   SelfProof,
   verify,
+  Empty,
 } from 'snarkyjs';
 
 await isReady;
@@ -32,7 +33,7 @@ class NotSoSimpleZkapp extends SmartContract {
 
   @method update(
     y: Field,
-    oldProof: SelfProof<ZkappPublicInput>,
+    oldProof: SelfProof<ZkappPublicInput, Empty>,
     trivialProof: TrivialProof
   ) {
     oldProof.verify();

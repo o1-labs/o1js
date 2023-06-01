@@ -15,9 +15,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/a632313a...HEAD)
 
-> No unreleased changes yet
+### Changes
+
+- New decorator `CatchAndPrettifyStacktrace` for printing better stack traces thrown from SnarkyJS https://github.com/o1-labs/snarkyjs/pull/890
+  - Cleans up stack traces by filtering out extra details, making them more readable
+
+## [0.10.1](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...a632313a)
+
+### Changes
+
+- Allow ZkPrograms to return their public output https://github.com/o1-labs/snarkyjs/pull/874 https://github.com/o1-labs/snarkyjs/pull/876
+  - new option `ZkProgram({ publicOutput?: Provable<any>, ... })`; `publicOutput` has to match the _return type_ of all ZkProgram methods.
+  - the `publicInput` option becomes optional; if not provided, methods no longer expect the public input as first argument
+  - full usage example: https://github.com/o1-labs/snarkyjs/blob/f95cf2903e97292df9e703b74ee1fc3825df826d/src/examples/program.ts
 
 ## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...bcc666f2)
 
