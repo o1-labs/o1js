@@ -366,14 +366,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'privateKeyToString',
-        type: 'function',
-      },
-      {
-        name: 'privateKeyOfString',
-        type: 'function',
-      },
-      {
         name: 'fieldToBase58',
         type: 'function',
       },
@@ -445,6 +437,10 @@ export default [
   {
     name: 'Test',
     props: [
+      {
+        name: 'encoding',
+        type: 'object',
+      },
       {
         name: 'transactionHash',
         type: 'object',

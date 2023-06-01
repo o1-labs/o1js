@@ -2305,12 +2305,6 @@ module Ledger = struct
     |> Signature_lib.Public_key.Compressed.of_base58_check_exn
     |> To_js.public_key
 
-  let private_key_to_string (sk : Other_impl.field) : Js.js_string Js.t =
-    sk |> Signature_lib.Private_key.to_base58_check |> Js.string
-
-  let private_key_of_string (sk_base58 : Js.js_string Js.t) : Other_impl.field =
-    sk_base58 |> Js.to_string |> Signature_lib.Private_key.of_base58_check_exn
-
   let field_to_base58 (field : field_class Js.t) : Js.js_string Js.t =
     field |> of_js_field |> to_unchecked |> Mina_base.Account_id.Digest.of_field
     |> Mina_base.Account_id.Digest.to_string |> Js.string
@@ -2552,8 +2546,6 @@ module Ledger = struct
 
     static_method "publicKeyToString" public_key_to_string ;
     static_method "publicKeyOfString" public_key_of_string ;
-    static_method "privateKeyToString" private_key_to_string ;
-    static_method "privateKeyOfString" private_key_of_string ;
 
     (* these are implemented in JS, but kept here for consistency tests *)
     static_method "fieldToBase58" field_to_base58 ;
@@ -2685,6 +2677,17 @@ module Ledger = struct
     method_ "applyJsonTransaction" apply_json_transaction
 end
 
+module Test = struct
+  module Encoding = struct
+    let private_key_to_base58 (sk : Other_impl.field) : Js.js_string Js.t =
+      sk |> Signature_lib.Private_key.to_base58_check |> Js.string
+
+    let private_key_of_base58 (sk_base58 : Js.js_string Js.t) : Other_impl.field
+        =
+      sk_base58 |> Js.to_string |> Signature_lib.Private_key.of_base58_check_exn
+  end
+end
+
 let test =
   let module Signed_command = Mina_base.Signed_command in
   let module Signed_command_payload = Mina_base.Signed_command_payload in
@@ -2692,8 +2695,16 @@ let test =
     let open Ppx_deriving_yojson_runtime.Result in
     match result with Ok c -> c | Error e -> failwith ("not ok: " ^ e)
   in
+
   let keypair () = Signature_lib.Keypair.create () in
   object%js
+    val encoding =
+      object%js
+        method privateKeyToBase58 = Test.Encoding.private_key_to_base58
+
+        method privateKeyOfBase58 = Test.Encoding.private_key_of_base58
+      end
+
     val transactionHash =
       object%js
         method hashPayment (command : Js.js_string Js.t) =
