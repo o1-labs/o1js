@@ -11,4 +11,4 @@
  (action
   (progn
    (run chmod -R +w ../../../../../crypto/proof-systems/ .)
-   (run /bin/sh %{script} poseidonKimchi.ts poseidonLegacy.ts))))
+   (run %{script} poseidonKimchi.ts poseidonLegacy.ts))))
