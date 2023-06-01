@@ -17,7 +17,6 @@ import {
   Permissions,
   Actions,
   SetOrKeep,
-  signJsonTransaction,
   smartContractContext,
   TokenId,
   ZkappCommand,
@@ -72,7 +71,6 @@ export {
   SmartContract,
   method,
   DeployArgs,
-  signFeePayer,
   declareMethods,
   Callback,
   Account,
@@ -1525,31 +1523,6 @@ function Account(address: PublicKey, tokenId?: Field) {
   } else {
     return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
   }
-}
-
-function signFeePayer(
-  transactionJson: string,
-  feePayerKey: PrivateKey | string,
-  {
-    transactionFee = 0 as number | string,
-    feePayerNonce = undefined as number | string | undefined,
-    memo: feePayerMemo = undefined as string | undefined,
-  }
-) {
-  let zkappCommand: Types.Json.ZkappCommand = JSON.parse(transactionJson);
-  if (typeof feePayerKey === 'string')
-    feePayerKey = PrivateKey.fromBase58(feePayerKey);
-  let senderAddress = feePayerKey.toPublicKey();
-  if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
-    feePayerNonce = senderAccount.nonce.toString();
-  }
-  if (feePayerMemo) zkappCommand.memo = Ledger.memoToBase58(feePayerMemo);
-  zkappCommand.feePayer.body.nonce = `${feePayerNonce}`;
-  zkappCommand.feePayer.body.publicKey =
-    Ledger.publicKeyToString(senderAddress);
-  zkappCommand.feePayer.body.fee = `${transactionFee}`;
-  return signJsonTransaction(JSON.stringify(zkappCommand), feePayerKey);
 }
 
 // alternative API which can replace decorators, works in pure JS
