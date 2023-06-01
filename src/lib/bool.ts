@@ -93,8 +93,12 @@ class Bool {
     this.assertEquals(true, message);
   }
 
-  //TODO
-  assertFalse(message?: string) {}
+  assertFalse(message?: string) {
+    if (this.isConstant() && this.toBoolean()) {
+      throw Error(`Bool.assertFalse(): ${this} != ${false}`);
+    }
+    this.assertEquals(false, message);
+  }
 
   // TODO
   equals(y: Bool | boolean) {}
