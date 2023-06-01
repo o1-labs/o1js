@@ -1,17 +1,24 @@
-import { Ledger } from '../../snarky.js';
+import { Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
-import { Scalar, ScalarConst } from '../scalar.js';
 import { PrivateKey } from '../signature.js';
+import { Ml } from './conversion.js';
 import { expect } from 'expect';
 
 // PrivateKey.toBase58, fromBase58
 
-test(Random.scalar, (s) => {
+test(Random.privateKey, (s) => {
+  // private key to/from bigint
+  let sk = PrivateKey.fromBigInt(s);
+  expect(sk.toBigInt()).toEqual(s);
+
+  let skMl = Ml.fromPrivateKey(sk);
+
   // toBase58 - check consistency with ml
-  let ml = Ledger.privateKeyToString(ScalarConst.fromBigint(s));
-  let js = PrivateKey.fromObject({ s: Scalar.from(s) }).toBase58();
+  let ml = Test.encoding.privateKeyToBase58(skMl);
+  let js = sk.toBase58();
   expect(js).toEqual(ml);
 
   // fromBase58 - check consistency with where we started
-  expect(PrivateKey.fromBase58(js).s.toBigInt()).toEqual(s);
+  expect(PrivateKey.fromBase58(js)).toEqual(sk);
+  expect(Test.encoding.privateKeyOfBase58(ml)).toEqual(skMl);
 });
