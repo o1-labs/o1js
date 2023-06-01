@@ -4,10 +4,11 @@ import { Bool as B } from '../provable/field-bigint.js';
 
 export { BoolVar };
 
-type ConstantBoolVar = [FieldType.Constant, FieldConst];
-
 // same representation, but use a different name to communicate intent / constraints
 type BoolVar = FieldVar;
+
+type ConstantBoolVar = [FieldType.Constant, FieldConst];
+type ConstantBool = Bool & { value: ConstantBoolVar };
 
 class Bool {
   value: BoolVar;
@@ -123,4 +124,12 @@ class Bool {
 
 function areUint8ArraysEqual(x: Uint8Array, y: Uint8Array) {
   return x.length === y.length && x.every((v, i) => v === y[i]);
+}
+
+function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
+  let type = typeof x;
+  if (type === 'boolean') {
+    return true;
+  }
+  return (x as Bool).isConstant();
 }
