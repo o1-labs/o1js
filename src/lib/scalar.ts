@@ -37,8 +37,9 @@ class Scalar {
    *
    * If the input is too large, it is reduced modulo the scalar field size.
    */
-  static from(x: Scalar | bigint | number | string) {
+  static from(x: Scalar | Uint8Array | bigint | number | string) {
     if (x instanceof Scalar) return x;
+    if (x instanceof Uint8Array) x = ScalarConst.toBigint(x);
     let scalar = Fq(x);
     let bits = toBits(scalar);
     return new Scalar(bits, scalar);
