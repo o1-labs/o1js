@@ -350,14 +350,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'signFeePayer',
-        type: 'function',
-      },
-      {
-        name: 'signOtherAccountUpdate',
-        type: 'function',
-      },
-      {
         name: 'publicKeyToString',
         type: 'function',
       },

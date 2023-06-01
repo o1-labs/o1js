@@ -2145,32 +2145,6 @@ module Ledger = struct
     p |> account_update_of_json |> Account_update.digest |> Field.constant
     |> to_js_field
 
-  type account_update_index = Fee_payer | Other_account_update of int
-
-  let transaction_commitment
-      ({ fee_payer; account_updates; memo } as tx : Zkapp_command.t)
-      (account_update_index : account_update_index) =
-    let commitment = Zkapp_command.commitment tx in
-    let full_commitment =
-      Zkapp_command.Transaction_commitment.create_complete commitment
-        ~memo_hash:(Mina_base.Signed_command_memo.hash memo)
-        ~fee_payer_hash:
-          (Zkapp_command.Digest.Account_update.create
-             (Account_update.of_fee_payer fee_payer) )
-    in
-    let use_full_commitment =
-      match account_update_index with
-      | Fee_payer ->
-          true
-      | Other_account_update i ->
-          (List.nth_exn
-             (Zkapp_command.Call_forest.to_account_updates account_updates)
-             i )
-            .body
-            .use_full_commitment
-    in
-    if use_full_commitment then full_commitment else commitment
-
   let transaction_commitments (tx_json : Js.js_string Js.t) =
     let tx =
       Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
@@ -2219,34 +2193,6 @@ module Ledger = struct
 
   let dummy_signature () =
     Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
-
-  let sign_account_update (tx_json : Js.js_string Js.t) (key : Other_impl.field)
-      (account_update_index : account_update_index) =
-    let tx =
-      Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
-    in
-    let signature =
-      Signature_lib.Schnorr.Chunked.sign key
-        (Random_oracle.Input.Chunked.field
-           (transaction_commitment tx account_update_index) )
-    in
-    ( match account_update_index with
-    | Fee_payer ->
-        { tx with fee_payer = { tx.fee_payer with authorization = signature } }
-    | Other_account_update i ->
-        { tx with
-          account_updates =
-            Zkapp_command.Call_forest.mapi tx.account_updates
-              ~f:(fun i' (p : Account_update.t) ->
-                if i' = i then { p with authorization = Signature signature }
-                else p )
-        } )
-    |> Zkapp_command.to_json |> Yojson.Safe.to_string |> Js.string
-
-  let sign_fee_payer tx_json key = sign_account_update tx_json key Fee_payer
-
-  let sign_other_account_update tx_json key i =
-    sign_account_update tx_json key (Other_account_update i)
 
   let check_account_update_signatures zkapp_command =
     let ({ fee_payer; account_updates; memo } : Zkapp_command.t) =
@@ -2541,8 +2487,6 @@ module Ledger = struct
     static_method "zkappPublicInput" zkapp_public_input ;
     static_method "signFieldElement" sign_field_element ;
     static_method "dummySignature" dummy_signature ;
-    static_method "signFeePayer" sign_fee_payer ;
-    static_method "signOtherAccountUpdate" sign_other_account_update ;
 
     static_method "publicKeyToString" public_key_to_string ;
     static_method "publicKeyOfString" public_key_of_string ;
