@@ -45,8 +45,12 @@ class Bool {
   // TODO
   toField() {}
 
-  // TODO
-  not() {}
+  not(): Bool {
+    if (this.isConstant()) {
+      return new Bool(!this.toBoolean());
+    }
+    return new Bool(Snarky.bool.not(this.value));
+  }
 
   // TODO
   and(y: Bool | boolean) {}
