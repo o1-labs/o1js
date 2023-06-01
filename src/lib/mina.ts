@@ -19,13 +19,14 @@ import {
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Proof, snarkContext, verify } from './proof_system.js';
+import { Empty, Proof, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
-import { invalidTransactionError } from './errors.js';
+import { invalidTransactionError } from './mina/errors.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
+import { prettifyStacktrace } from './errors.js';
 
 export {
   createTransaction,
@@ -94,7 +95,7 @@ type Transaction = {
    *
    * This can take some time.
    */
-  prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
+  prove(): Promise<(Proof<ZkappPublicInput, Empty> | undefined)[]>;
   /**
    * Sends the {@link Transaction} to the network.
    */
@@ -297,11 +298,19 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
-        proofsEnabled,
-      });
-      self.transaction = zkappCommand;
-      return proofs;
+      try {
+        let { zkappCommand, proofs } = await addMissingProofs(
+          self.transaction,
+          {
+            proofsEnabled,
+          }
+        );
+        self.transaction = zkappCommand;
+        return proofs;
+      } catch (error) {
+        if (error instanceof Error) error.stack = prettifyStacktrace(error);
+        throw error;
+      }
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -314,7 +323,12 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return Fetch.sendZkappQuery(self.toJSON());
     },
     async send() {
-      return await sendTransaction(self);
+      try {
+        return await sendTransaction(self);
+      } catch (error) {
+        if (error instanceof Error) error.stack = prettifyStacktrace(error);
+        throw error;
+      }
     },
   };
   return self;
@@ -1069,14 +1083,19 @@ function transaction(
 ): Promise<Transaction> {
   let sender: DeprecatedFeePayerSpec;
   let f: () => void;
-  if (fOrUndefined !== undefined) {
-    sender = senderOrF as DeprecatedFeePayerSpec;
-    f = fOrUndefined;
-  } else {
-    sender = undefined;
-    f = senderOrF as () => void;
+  try {
+    if (fOrUndefined !== undefined) {
+      sender = senderOrF as DeprecatedFeePayerSpec;
+      f = fOrUndefined;
+    } else {
+      sender = undefined;
+      f = senderOrF as () => void;
+    }
+    return activeInstance.transaction(sender, f);
+  } catch (error) {
+    if (error instanceof Error) error.stack = prettifyStacktrace(error);
+    throw error;
   }
-  return activeInstance.transaction(sender, f);
 }
 
 /**
@@ -1299,6 +1318,7 @@ async function verifyAccountUpdate(
         maxProofsVerified: 2,
         proof: accountUpdate.authorization.proof!,
         publicInput: publicInputFields.map((f) => f.toString()),
+        publicOutput: [],
       });
 
       let verificationKey = account.zkapp?.verificationKey?.data!;

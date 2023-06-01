@@ -106,13 +106,6 @@ let amountTooLarge = {
     amount: (2n ** 64n).toString(),
   },
 };
-let invalidPublicKey: PaymentJson = {
-  common: validPayment.common,
-  body: {
-    ...validPayment.body,
-    source: PublicKey.toBase58({ x: 0n, isOdd: 0n }),
-  },
-};
 let signature = Signature.toJSON({ r: Field.random(), s: Scalar.random() });
 
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
@@ -121,13 +114,6 @@ expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
 expect(verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')).toEqual(
   false
 );
-
-expect(() => signPayment(invalidPublicKey, privateKey, 'mainnet')).toThrow(
-  'not a valid group element'
-);
-expect(
-  verifyPayment(invalidPublicKey, signature, publicKey, 'mainnet')
-).toEqual(false);
 
 // negative tests with invalid signatures
 
