@@ -22,7 +22,9 @@ class Scalar {
   value: MlArray<BoolVar>;
   constantValue?: ScalarConst;
 
-  constructor(bits: MlArray<BoolVar>, constantValue?: Fq) {
+  static ORDER = Fq.modulus;
+
+  private constructor(bits: MlArray<BoolVar>, constantValue?: Fq) {
     this.value = bits;
     constantValue ??= toConstantScalar(bits);
     if (constantValue !== undefined) {
@@ -60,6 +62,8 @@ class Scalar {
     return this.#assertConstant('toBigInt');
   }
 
+  // TODO: fix this API. we should represent "shifted status" internally and use
+  // and use shifted Group.scale only if the scalar bits representation is shifted
   /**
    * Creates a data structure from an array of serialized {@link Bool}.
    *
@@ -152,6 +156,16 @@ That means it can't be called in a @method or similar environment, and there's n
     let z = Fq.div(x, y0);
     if (z === undefined) throw Error('Scalar.div(): Division by zero');
     return Scalar.from(z);
+  }
+
+  shift() {
+    let x = this.#assertConstant('shift');
+    return Scalar.from(shift(x));
+  }
+
+  unshift() {
+    let x = this.#assertConstant('unshift');
+    return Scalar.from(unshift(x));
   }
 
   /**
@@ -280,6 +294,10 @@ That means it can't be called in a @method or similar environment, and there's n
 }
 
 function toConstantScalar([, ...bits]: MlArray<BoolVar>): Fq | undefined {
+  if (bits.length !== Fq.sizeInBits)
+    throw Error(
+      `Scalar: expected bits array of length ${Fq.sizeInBits}, got ${bits.length}`
+    );
   let constantBits = Array<boolean>(bits.length);
   for (let i = 0; i < bits.length; i++) {
     let bool = bits[i];

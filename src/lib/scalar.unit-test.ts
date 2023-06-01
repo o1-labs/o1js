@@ -1,40 +1,29 @@
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { Field, FieldVar } from './field.js';
-import { Scalar, ScalarConst, shift } from './scalar.js';
+import { Scalar, shift, unshift } from './scalar.js';
 import { Provable } from './provable.js';
-import { MlArray, Scalar as ScalarSnarky } from '../snarky.js';
+import { Bool, MlArray } from '../snarky.js';
+import assert from 'assert';
 
-let scalarShift = Fq(1n + 2n ** 255n);
-let oneHalf = Fq.inverse(2n)!;
-
-// types
 Scalar satisfies Provable<Scalar>;
 
-// let s0 = Fq.random();
-// let bits = Fq.toBits(shift(s0)).map((b) => FieldVar.constant(BigInt(b)));
+let x = Field.random().toBigInt();
 
-// let s = new Scalar(bits);
-
-// console.log(s0 === s.toBigInt());
-// console.log(s.bits);
-
-let h0 = new Field(
-  14402037339225697224364383372940415733563435755837035364105242770332943848092n
-);
+let h0 = new Field(unshift(x));
 let bits = h0.toBits();
 let bitsRaw = [
   0,
   ...bits.map((x) => x.toField().value),
 ] satisfies MlArray<FieldVar>;
-console.log(bits.length);
-let h1 = new Scalar(bitsRaw);
-let h2 = new ScalarSnarky(bitsRaw);
-console.log(ScalarConst.toBigint(h1.constantValue!));
-console.log(ScalarConst.toBigint(h2.constantValue!));
 
-let h3 = Scalar.fromFields(Scalar.toFields(h1));
-console.log(ScalarConst.toBigint(h3.constantValue!));
+let h1 = new (Scalar as any)(bitsRaw);
+let h2 = Scalar.fromFields(Scalar.toFields(h1));
+let h3 = Scalar.from(x);
 
-function printBits([, ...bits]: [0, ...[0, Uint8Array][]]) {
-  console.log(bits.map((b) => b[1][0]).join(' '));
-}
+assert(h1.toBigInt() === x);
+assert(h2.toBigInt() === x);
+assert(h3.toBigInt() === x);
+
+let bits_ = Fq.toBits(unshift(x)).map((b) => Bool(b));
+let s = Scalar.fromBits(bits_);
+assert(x === s.toBigInt());

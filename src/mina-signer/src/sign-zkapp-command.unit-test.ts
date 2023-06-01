@@ -1,11 +1,6 @@
 import { expect } from 'expect';
-import {
-  isReady,
-  Ledger,
-  Bool as BoolSnarky,
-  Scalar as ScalarSnarky,
-  shutdown,
-} from '../../snarky.js';
+import { isReady, Ledger, shutdown } from '../../snarky.js';
+import { Scalar as ScalarSnarky } from '../../lib/core.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -116,7 +111,7 @@ test(Random.accountUpdate, (accountUpdate) => {
 test(Random.json.privateKey, (feePayerKeyBase58) => {
   let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
   let feePayerKeySnarky = PrivateKeySnarky.fromBase58(feePayerKeyBase58);
-  let feePayerCompressed = ScalarSnarky.toFieldsCompressed(feePayerKeySnarky.s);
+  let feePayerCompressed = feePayerKeySnarky.s.toFieldsCompressed();
   expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
   expect(PrivateKey.toBase58(feePayerKey)).toEqual(feePayerKeyBase58);
 });
