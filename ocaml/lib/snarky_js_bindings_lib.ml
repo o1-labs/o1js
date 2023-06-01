@@ -1940,8 +1940,6 @@ let pickles =
   end
 
 module Ledger = struct
-  type private_key = < s : scalar_class Js.t Js.prop > Js.t
-
   type public_key =
     < x : field_class Js.t Js.readonly_prop
     ; isOdd : bool_class Js.t Js.readonly_prop >
@@ -2051,12 +2049,6 @@ module Ledger = struct
     { x = to_unchecked pk##.x##.value
     ; is_odd = bool_to_unchecked pk##.isOdd##.value
     }
-
-  let private_key (key : private_key) : Signature_lib.Private_key.t =
-    Js.Optdef.case
-      key##.s##.constantValue
-      (fun () -> failwith "invalid scalar")
-      Fn.id
 
   let token_id_checked (token : field_class Js.t) =
     token |> of_js_field |> Mina_base.Token_id.Checked.of_field
@@ -2216,26 +2208,25 @@ module Ledger = struct
           (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
     end
 
-  let sign_field_element (x : field_class Js.t) (key : private_key)
+  let sign_field_element (x : field_class Js.t) (key : Other_impl.field)
       (is_mainnet : bool Js.t) =
     let network_id =
       Mina_signature_kind.(if Js.to_bool is_mainnet then Mainnet else Testnet)
     in
-    Signature_lib.Schnorr.Chunked.sign ~signature_kind:network_id
-      (private_key key)
+    Signature_lib.Schnorr.Chunked.sign ~signature_kind:network_id key
       (Random_oracle.Input.Chunked.field (x |> of_js_field |> to_unchecked))
     |> Mina_base.Signature.to_base58_check |> Js.string
 
   let dummy_signature () =
     Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
 
-  let sign_account_update (tx_json : Js.js_string Js.t) (key : private_key)
+  let sign_account_update (tx_json : Js.js_string Js.t) (key : Other_impl.field)
       (account_update_index : account_update_index) =
     let tx =
       Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
     in
     let signature =
-      Signature_lib.Schnorr.Chunked.sign (private_key key)
+      Signature_lib.Schnorr.Chunked.sign key
         (Random_oracle.Input.Chunked.field
            (transaction_commitment tx account_update_index) )
     in
@@ -2314,8 +2305,8 @@ module Ledger = struct
     |> Signature_lib.Public_key.Compressed.of_base58_check_exn
     |> To_js.public_key
 
-  let private_key_to_string (sk : private_key) : Js.js_string Js.t =
-    sk |> private_key |> Signature_lib.Private_key.to_base58_check |> Js.string
+  let private_key_to_string (sk : Other_impl.field) : Js.js_string Js.t =
+    sk |> Signature_lib.Private_key.to_base58_check |> Js.string
 
   let private_key_of_string (sk_base58 : Js.js_string Js.t) : Other_impl.field =
     sk_base58 |> Js.to_string |> Signature_lib.Private_key.of_base58_check_exn
