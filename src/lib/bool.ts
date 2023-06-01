@@ -72,8 +72,19 @@ class Bool {
     return new Bool(Snarky.bool.or_(this.value, Bool.#toVar(y)));
   }
 
-  // TODO
-  assertEquals(y: Bool | boolean, message?: string) {}
+  assertEquals(y: Bool | boolean, message?: string) {
+    try {
+      if (this.isConstant() && isConstant(y)) {
+        if (this.toBoolean() !== toBoolean(y)) {
+          throw Error(`Bool.assertEquals(): ${this} != ${y}`);
+        }
+        return;
+      }
+      Snarky.bool.assertEqual(this.value, Bool.#toVar(y));
+    } catch (err) {
+      throw withMessage(err, message);
+    }
+  }
 
   //TODO
   assertTrue(message?: string) {}
@@ -152,4 +163,11 @@ function toBoolean(x: boolean | Bool): boolean {
     return x;
   }
   return (x as Bool).toBoolean();
+}
+
+// TODO: This is duplicated
+function withMessage(error: unknown, message?: string) {
+  if (message === undefined || !(error instanceof Error)) return error;
+  error.message = `${message}\n${error.message}`;
+  return error;
 }
