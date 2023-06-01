@@ -1,7 +1,7 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
 import type { BoolVar } from './lib/bool.js';
-import type { Scalar } from './lib/scalar.js';
+import type { Scalar, ScalarConst } from './lib/scalar.js';
 // export { Field };
 export { SnarkyField };
 export {
@@ -1482,7 +1482,7 @@ declare class Ledger {
   static publicKeyToString(publicKey: PublicKey_): string;
   static publicKeyOfString(publicKeyBase58: string): PublicKey_;
   static privateKeyToString(privateKey: { s: Scalar }): string;
-  static privateKeyOfString(privateKeyBase58: string): Scalar;
+  static privateKeyOfString(privateKeyBase58: string): ScalarConst;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
 

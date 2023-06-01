@@ -18,6 +18,10 @@ export { PrivateKey, PublicKey, Signature };
 class PrivateKey extends CircuitValue {
   @prop s: Scalar;
 
+  constructor(s: Scalar) {
+    super(s);
+  }
+
   /**
    * You can use this method to generate a private key. You can then obtain
    * the associated public key via {@link toPublicKey}. And generate signatures
@@ -55,7 +59,7 @@ class PrivateKey extends CircuitValue {
    */
   static fromBase58(privateKeyBase58: string) {
     let scalar = Ledger.privateKeyOfString(privateKeyBase58);
-    return new PrivateKey(scalar);
+    return new PrivateKey(Scalar.from(scalar));
   }
 
   /**
