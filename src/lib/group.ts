@@ -146,7 +146,20 @@ class Group {
   }
 
   assertEquals(g: Group, message?: string) {
-    this.equals(g).assertTrue(message);
+    let { x: x1, y: y1 } = this;
+    let { x: x2, y: y2 } = g;
+
+    /*
+      with exn -> (
+        ignore (log_and_raise_error_with_message ~exn ~msg) ;
+        try Field.Assert.equal y1 y2
+        with exn -> log_and_raise_error_with_message ~exn ~msg ) ) ;
+    */
+    try {
+      x1.assertEquals(x2, message);
+    } catch {
+      y1.assertEquals(y2, message);
+    }
   }
 
   equals(g: Group) {
