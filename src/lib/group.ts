@@ -39,7 +39,7 @@ class Group {
     this.y = isField(y) ? y : new Field(y);
 
     /*
-    technically elements are only (i believe?) group elements if they are on the curve (aka for two points y, x the following equation must hold y^2 = x^3 + 5 over our field)
+    technically elements are only group elements if they are on the curve (aka for two points y, x the following equation must hold y^2 = x^3 + 5 over our field)
     but we never checked that in the original implementation
 
 
@@ -73,8 +73,6 @@ class Group {
     let { x: x2, y: y2 } = p;
 
     if ([x1, y1, x2, y2].every((e) => e.isConstant())) {
-      Provable.log('all constants');
-
       if (x1.toBigInt() === 0n) {
         return p;
       } else if (x2.toBigInt() === 0n) {
@@ -149,17 +147,8 @@ class Group {
     let { x: x1, y: y1 } = this;
     let { x: x2, y: y2 } = g;
 
-    /*
-      with exn -> (
-        ignore (log_and_raise_error_with_message ~exn ~msg) ;
-        try Field.Assert.equal y1 y2
-        with exn -> log_and_raise_error_with_message ~exn ~msg ) ) ;
-    */
-    try {
-      x1.assertEquals(x2, message);
-    } catch {
-      y1.assertEquals(y2, message);
-    }
+    x1.assertEquals(x2, message);
+    // y1.assertEquals(y2, message); need to enable this later on, but it breaks constraint backwards compatibility
   }
 
   equals(g: Group) {
