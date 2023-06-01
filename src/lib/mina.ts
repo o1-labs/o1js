@@ -298,19 +298,11 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      try {
-        let { zkappCommand, proofs } = await addMissingProofs(
-          self.transaction,
-          {
-            proofsEnabled,
-          }
-        );
-        self.transaction = zkappCommand;
-        return proofs;
-      } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
-      }
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+        proofsEnabled,
+      });
+      self.transaction = zkappCommand;
+      return proofs;
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -326,8 +318,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       try {
         return await sendTransaction(self);
       } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
+        throw prettifyStacktrace(error);
       }
     },
   };
@@ -1093,8 +1084,7 @@ function transaction(
     }
     return activeInstance.transaction(sender, f);
   } catch (error) {
-    if (error instanceof Error) error.stack = prettifyStacktrace(error);
-    throw error;
+    throw prettifyStacktrace(error);
   }
 }
 
@@ -1257,6 +1247,14 @@ async function verifyAccountUpdate(
 
   let { commitment, fullCommitment } = transactionCommitments;
 
+  // check if addMissingSignatures failed to include a signature
+  // due to a missing private key
+  if (accountUpdate.authorization === Ledger.dummySignature()) {
+    let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
+    throw Error(
+      `verifyAccountUpdate: Detected a missing signature for (${pk}), private key was missing.`
+    );
+  }
   // we are essentially only checking if the update is empty or an actual update
   function includesChange<T extends {}>(
     val: T | string | null | (string | null)[]

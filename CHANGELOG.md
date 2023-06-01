@@ -47,6 +47,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix running SnarkyJS in Node.js on Windows https://github.com/o1-labs/snarkyjs-bindings/pull/19 [@wizicer](https://github.com/wizicer)
 - Fix error reporting from GraphQL requests https://github.com/o1-labs/snarkyjs/pull/919
+- Resolved an `Out of Memory error` experienced on iOS devices (iPhones and iPads) during the initialization of the WASM memory https://github.com/o1-labs/snarkyjs-bindings/pull/26
 - Fix `field.greaterThan()` and other comparison methods outside provable code https://github.com/o1-labs/snarkyjs/issues/858 https://github.com/o1-labs/snarkyjs/pull/902
 - Fix `field.assertBool()` https://github.com/o1-labs/snarkyjs/issues/469 https://github.com/o1-labs/snarkyjs/pull/902
 - Fix `Field(bigint)` where `bigint` is larger than the field modulus https://github.com/o1-labs/snarkyjs/issues/432 https://github.com/o1-labs/snarkyjs/pull/902

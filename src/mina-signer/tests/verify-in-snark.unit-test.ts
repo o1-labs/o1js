@@ -60,12 +60,9 @@ let invalidSignature = Signature.fromBase58(invalidSigned.signature);
 invalidSignature.verify(publicKey, fieldsSnarky).assertFalse();
 
 // can't verify in snark
-let error = await MyProgram.verifySignature(
-  null,
-  invalidSignature,
-  fieldsSnarky
-).catch((err) => err); // the error is an array...
-expect(error[2].message).toContain('Constraint unsatisfied');
+await expect(() =>
+  MyProgram.verifySignature(null, invalidSignature, fieldsSnarky)
+).rejects.toThrow('Constraint unsatisfied');
 
 // negative test - try to verify a different message
 
@@ -76,7 +73,6 @@ wrongFields[0] = wrongFields[0].add(1);
 signature.verify(publicKey, wrongFields).assertFalse();
 
 // can't verify in snark
-error = await MyProgram.verifySignature(null, signature, wrongFields).catch(
-  (err) => err
-); // the error is an array...
-expect(error[2].message).toContain('Constraint unsatisfied');
+await expect(() =>
+  MyProgram.verifySignature(null, signature, wrongFields)
+).rejects.toThrow('Constraint unsatisfied');

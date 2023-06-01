@@ -24,7 +24,7 @@ import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
-import { assert, prettifyStacktrace } from './errors.js';
+import { assert } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -969,12 +969,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * be (can be) authorized by a signature.
    */
   requireSignature() {
-    try {
-      this.sign();
-    } catch (error) {
-      if (error instanceof Error) error.stack = prettifyStacktrace(error);
-      throw error;
-    }
+    this.sign();
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
@@ -1871,10 +1866,11 @@ function addMissingSignatures(
         pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
       if (i === -1) {
-        let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
-        throw Error(
-          `addMissingSignatures: Cannot add signature for fee payer (${pk}), private key is missing.`
-        );
+        // private key is missing, but we are not throwing an error here
+        // there is a change signature will be added by the wallet
+        // if not, error will be thrown by verifyAccountUpdate
+        // while .send() execution
+        return { body, authorization: Ledger.dummySignature() }
       }
       privateKey = additionalKeys[i];
     }
@@ -1892,10 +1888,14 @@ function addMissingSignatures(
       let i = additionalPublicKeys.findIndex((pk) =>
         pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
-      if (i === -1)
-        throw Error(
-          `addMissingSignatures: Cannot add signature for ${accountUpdate.publicKey.toBase58()}, private key is missing.`
-        );
+      if (i === -1) {
+        // private key is missing, but we are not throwing an error here
+        // there is a change signature will be added by the wallet
+        // if not, error will be thrown by verifyAccountUpdate
+        // while .send() execution
+        Authorization.setSignature(accountUpdate, Ledger.dummySignature());
+        return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
+      }
       privateKey = additionalKeys[i];
     }
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
@@ -1989,23 +1989,26 @@ async function addMissingProofs(
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, { proof }]] = await zkAppProver.run(
+    let { proof } = await zkAppProver.run(
       [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
       { transaction: zkappCommand, accountUpdate, index },
-      () =>
-        memoizationContext.runWithAsync(
-          { memoized, currentIndex: 0, blindingValue },
-          async () => {
-            try {
-              return await provers[i](publicInputFields, previousProofs);
-            } catch (err) {
-              console.error(
-                `Error when proving ${ZkappClass.name}.${methodName}()`
-              );
-              throw err;
-            }
-          }
-        )
+      async () => {
+        let id = memoizationContext.enter({
+          memoized,
+          currentIndex: 0,
+          blindingValue,
+        });
+        try {
+          return await provers[i](publicInputFields, previousProofs);
+        } catch (err) {
+          console.error(
+            `Error when proving ${ZkappClass.name}.${methodName}()`
+          );
+          throw err;
+        } finally {
+          memoizationContext.leave(id);
+        }
+      }
     );
     Authorization.setProof(
       accountUpdate,

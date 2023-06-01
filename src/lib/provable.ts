@@ -28,7 +28,12 @@ import {
 export { Provable };
 
 // internal API
-export { memoizationContext, memoizeWitness, getBlindingValue };
+export {
+  memoizationContext,
+  MemoizationContext,
+  memoizeWitness,
+  getBlindingValue,
+};
 
 // TODO move type declaration here
 /**
@@ -432,11 +437,12 @@ function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {
   return aux ?? type.toAuxiliary?.() ?? [];
 }
 
-let memoizationContext = Context.create<{
+type MemoizationContext = {
   memoized: { fields: Field[]; aux: any[] }[];
   currentIndex: number;
   blindingValue: Field;
-}>();
+};
+let memoizationContext = Context.create<MemoizationContext>();
 
 /**
  * Like Provable.witness, but memoizes the witness during transaction construction
