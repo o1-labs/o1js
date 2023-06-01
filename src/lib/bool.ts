@@ -12,12 +12,16 @@ type BoolVar = FieldVar;
 class Bool {
   value: BoolVar;
 
-  constructor(x: boolean | Bool) {
+  constructor(x: boolean | Bool | BoolVar) {
     if (Bool.#isBool(x)) {
       this.value = x.value;
-    } else {
-      this.value = FieldVar.constant(B(x));
+      return;
     }
+    if (Array.isArray(x)) {
+      this.value = x;
+      return;
+    }
+    this.value = FieldVar.constant(B(x));
   }
 
   isConstant(): this is { value: ConstantBoolVar } {
