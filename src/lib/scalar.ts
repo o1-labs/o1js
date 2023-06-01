@@ -2,7 +2,7 @@ import { Snarky, Provable, Bool } from '../snarky.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { Field, FieldConst, FieldVar } from './field.js';
 
-export { Scalar, ScalarConst, unshift };
+export { Scalar, ScalarConst, unshift, shift };
 
 type BoolVar = FieldVar;
 type ScalarConst = Uint8Array;
@@ -20,11 +20,14 @@ let oneHalf = Fq.inverse(2n)!;
  */
 class Scalar {
   bits: BoolVar[];
-  constantValue?: Fq;
+  constantValue?: ScalarConst;
 
   constructor(bits: BoolVar[], constantValue?: Fq) {
     this.bits = bits;
-    this.constantValue = constantValue ?? toConstantScalar(bits);
+    constantValue ??= toConstantScalar(bits);
+    if (constantValue !== undefined) {
+      this.constantValue = ScalarConst.fromBigint(constantValue);
+    }
   }
 
   /**
@@ -44,6 +47,10 @@ class Scalar {
    */
   static fromBigint(x: bigint) {
     return Scalar.from(x);
+  }
+
+  toBigInt() {
+    return this.#assertConstant('toBigInt');
   }
 
   /**
@@ -71,7 +78,7 @@ class Scalar {
         `Scalar.${name}() is not available in provable code.
 That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
       );
-    return this.constantValue;
+    return ScalarConst.toBigint(this.constantValue);
   }
 
   /**
