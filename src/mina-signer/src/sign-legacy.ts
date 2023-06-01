@@ -148,7 +148,7 @@ function commonToInputLegacy({
     HashInputLegacy.bits(legacyTokenId),
     PublicKey.toInputLegacy(feePayer),
     HashInputLegacy.bits(UInt32.toBits(nonce)),
-    HashInputLegacy.bits(UInt32.toBits(validUntil)),
+    HashInputLegacy.bits(UInt32.toBits(validUntil.value)),
     HashInputLegacy.bits(Memo.toBits(memo)),
   ].reduce(HashInputLegacy.append);
 }
@@ -190,12 +190,12 @@ function delegationFromJson({
   };
 }
 
-function commonFromJson(c: CommonJson) {
+function commonFromJson(c: CommonJson): Common {
   return {
     fee: UInt64.fromJSON(c.fee),
     feePayer: PublicKey.fromJSON(c.feePayer),
     nonce: UInt32.fromJSON(c.nonce),
-    validUntil: UInt32.fromJSON(c.validUntil),
+    validUntil: { type: 'SinceGenesis', value: UInt32.fromJSON(c.validUntil) },
     // TODO: this might need to be fromBase58
     memo: Memo.fromString(c.memo),
   };
@@ -264,7 +264,7 @@ type Common = {
   fee: UInt64;
   feePayer: PublicKey;
   nonce: UInt32;
-  validUntil: UInt32;
+  validUntil: { type: 'SinceGenesis'; value: UInt32 };
   memo: string;
 };
 
