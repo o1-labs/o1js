@@ -5,7 +5,7 @@ export { SnarkyField };
 export {
   Bool,
   Group,
-  Scalar,
+  SnarkyScalar,
   ProvablePure,
   Provable,
   Poseidon,
@@ -1233,9 +1233,9 @@ type Gate = {
 };
 
 /**
- * Represents a {@link Scalar}.
+ * Represents a {@link SnarkyScalar}.
  */
-declare class Scalar {
+declare class SnarkyScalar {
   value: MlArray<BoolVar>;
   constantValue?: Uint8Array;
   constructor(bits: MlArray<BoolVar>, constantValue?: Uint8Array);
@@ -1245,7 +1245,7 @@ declare class Scalar {
    *
    * WARNING: This function is for internal usage by the proof system. It returns 255 field elements
    * which represent the Scalar in a shifted, bitwise format.
-   * Check out {@link Scalar.toFieldsCompressed} for a user-friendly serialization that can be used outside proofs.
+   * Check out {@link SnarkyScalar.toFieldsCompressed} for a user-friendly serialization that can be used outside proofs.
    */
   toFields(): Field[];
 
@@ -1255,37 +1255,37 @@ declare class Scalar {
    * Note: Since the Scalar field is slightly larger than the base Field, an additional high bit
    * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
    */
-  static toFieldsCompressed(s: Scalar): { field: Field; highBit: Bool };
+  static toFieldsCompressed(s: SnarkyScalar): { field: Field; highBit: Bool };
 
   /**
    * Negate a scalar field element.
    * Can only be called outside of circuit execution
    */
-  neg(): Scalar;
+  neg(): SnarkyScalar;
 
   /**
    * Add scalar field elements.
    * Can only be called outside of circuit execution
    */
-  add(y: Scalar): Scalar;
+  add(y: SnarkyScalar): SnarkyScalar;
 
   /**
    * Subtract scalar field elements.
    * Can only be called outside of circuit execution
    */
-  sub(y: Scalar): Scalar;
+  sub(y: SnarkyScalar): SnarkyScalar;
 
   /**
    * Multiply scalar field elements.
    * Can only be called outside of circuit execution
    */
-  mul(y: Scalar): Scalar;
+  mul(y: SnarkyScalar): SnarkyScalar;
 
   /**
    * Divide scalar field elements.
    * Can only be called outside of circuit execution
    */
-  div(y: Scalar): Scalar;
+  div(y: SnarkyScalar): SnarkyScalar;
 
   /**
    * Serializes this Scalar to a string
@@ -1293,17 +1293,17 @@ declare class Scalar {
   toJSON(): string;
 
   /**
-   * Static method to serialize a {@link Scalar} into an array of {@link Field} elements.
+   * Static method to serialize a {@link SnarkyScalar} into an array of {@link Field} elements.
    */
-  static toFields(x: Scalar): Field[];
+  static toFields(x: SnarkyScalar): Field[];
   /**
-   * Static method to serialize a {@link Scalar} into its auxiliary data.
+   * Static method to serialize a {@link SnarkyScalar} into its auxiliary data.
    */
-  static toAuxiliary(x?: Scalar): [];
+  static toAuxiliary(x?: SnarkyScalar): [];
   /**
    * Creates a data structure from an array of serialized {@link Field} elements.
    */
-  static fromFields(fields: Field[]): Scalar;
+  static fromFields(fields: Field[]): SnarkyScalar;
   /**
    * Returns the size of this type.
    */
@@ -1311,28 +1311,28 @@ declare class Scalar {
   /**
    * Creates a data structure from an array of serialized {@link Bool}.
    */
-  static fromBits(bits: Bool[]): Scalar;
+  static fromBits(bits: Bool[]): SnarkyScalar;
   /**
-   * Returns a random {@link Scalar}.
+   * Returns a random {@link SnarkyScalar}.
    * Randomness can not be proven inside a circuit!
    */
-  static random(): Scalar;
+  static random(): SnarkyScalar;
   /**
-   * Serialize a {@link Scalar} to a JSON string.
+   * Serialize a {@link SnarkyScalar} to a JSON string.
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
-  static toJSON(x: Scalar): string;
+  static toJSON(x: SnarkyScalar): string;
   /**
-   * Deserialize a JSON structure into a {@link Scalar}.
+   * Deserialize a JSON structure into a {@link SnarkyScalar}.
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
-  static fromJSON(x: string | number | boolean): Scalar;
+  static fromJSON(x: string | number | boolean): SnarkyScalar;
   /**
-   * Create a constant {@link Scalar} from a bigint.
+   * Create a constant {@link SnarkyScalar} from a bigint.
    * If the bigint is too large, it is reduced modulo the scalar field order.
    */
-  static fromBigInt(s: bigint): Scalar;
-  static check(x: Scalar): void;
+  static fromBigInt(s: bigint): SnarkyScalar;
+  static check(x: SnarkyScalar): void;
 }
 
 // TODO: Add this when OCaml bindings are implemented:
@@ -1365,9 +1365,9 @@ declare class Group {
   neg(): Group;
 
   /**
-   * Scales this {@link Group} element using a {@link Scalar}.
+   * Scales this {@link Group} element using a {@link SnarkyScalar}.
    */
-  scale(y: Scalar): Group;
+  scale(y: SnarkyScalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
   /**
@@ -1409,9 +1409,9 @@ declare class Group {
   static neg(x: Group): Group;
 
   /**
-   * Scales this {@link Group} element using a {@link Scalar}.
+   * Scales this {@link Group} element using a {@link SnarkyScalar}.
    */
-  static scale(x: Group, y: Scalar): Group;
+  static scale(x: Group, y: SnarkyScalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
 
   /**
@@ -1542,7 +1542,7 @@ declare class Ledger {
    */
   static signFieldElement(
     messageHash: Field,
-    privateKey: { s: Scalar },
+    privateKey: { s: SnarkyScalar },
     isMainnet: boolean
   ): string;
 
@@ -1554,14 +1554,14 @@ declare class Ledger {
   /**
    * Signs a transaction as the fee payer.
    */
-  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
+  static signFeePayer(txJson: string, privateKey: { s: SnarkyScalar }): string;
 
   /**
    * Signs an account update.
    */
   static signOtherAccountUpdate(
     txJson: string,
-    privateKey: { s: Scalar },
+    privateKey: { s: SnarkyScalar },
     i: number
   ): string;
 
@@ -1571,8 +1571,8 @@ declare class Ledger {
 
   static publicKeyToString(publicKey: PublicKey_): string;
   static publicKeyOfString(publicKeyBase58: string): PublicKey_;
-  static privateKeyToString(privateKey: { s: Scalar }): string;
-  static privateKeyOfString(privateKeyBase58: string): Scalar;
+  static privateKeyToString(privateKey: { s: SnarkyScalar }): string;
+  static privateKeyOfString(privateKeyBase58: string): SnarkyScalar;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
 

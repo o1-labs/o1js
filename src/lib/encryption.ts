@@ -1,5 +1,5 @@
-import { Group, Scalar } from '../snarky.js';
-import { Field } from './core.js';
+import { Group } from '../snarky.js';
+import { Field, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
 import { Provable } from './provable.js';
 import { PrivateKey, PublicKey } from './signature.js';

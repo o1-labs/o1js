@@ -1,5 +1,5 @@
 import { Group, Bool, Ledger } from '../snarky.js';
-import { Field } from './core.js';
+import { Field, Scalar } from './core.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
 import { hashWithPrefix } from './hash.js';
 import {
@@ -8,7 +8,6 @@ import {
 } from '../mina-signer/src/signature.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { prefixes } from '../bindings/crypto/constants.js';
-import { Scalar } from './scalar.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
