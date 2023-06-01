@@ -6,7 +6,10 @@ import {
   deriveNonce,
   Signature as SignatureBigint,
 } from '../mina-signer/src/signature.js';
-import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
+import {
+  Scalar as ScalarBigint,
+  PrivateKey as PrivateKeyBigint,
+} from '../provable/curve-bigint.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 
 // external API
@@ -58,7 +61,7 @@ class PrivateKey extends CircuitValue {
    * @returns a {@link PrivateKey}.
    */
   static fromBase58(privateKeyBase58: string) {
-    let scalar = Ledger.privateKeyOfString(privateKeyBase58);
+    let scalar = PrivateKeyBigint.fromBase58(privateKeyBase58);
     return new PrivateKey(Scalar.from(scalar));
   }
 
@@ -76,7 +79,7 @@ class PrivateKey extends CircuitValue {
    * @returns a base58 encoded string
    */
   static toBase58(privateKey: { s: Scalar }) {
-    return Ledger.privateKeyToString(privateKey);
+    return PrivateKeyBigint.toBase58(privateKey.s.toBigInt());
   }
 }
 

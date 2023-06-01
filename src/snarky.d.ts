@@ -1439,7 +1439,7 @@ declare class Ledger {
    */
   static signFieldElement(
     messageHash: Field,
-    privateKey: { s: Scalar },
+    privateKey: ScalarConst,
     isMainnet: boolean
   ): string;
 
@@ -1451,14 +1451,14 @@ declare class Ledger {
   /**
    * Signs a transaction as the fee payer.
    */
-  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
+  static signFeePayer(txJson: string, privateKey: ScalarConst): string;
 
   /**
    * Signs an account update.
    */
   static signOtherAccountUpdate(
     txJson: string,
-    privateKey: { s: Scalar },
+    privateKey: ScalarConst,
     i: number
   ): string;
 
@@ -1468,7 +1468,7 @@ declare class Ledger {
 
   static publicKeyToString(publicKey: PublicKey_): string;
   static publicKeyOfString(publicKeyBase58: string): PublicKey_;
-  static privateKeyToString(privateKey: { s: Scalar }): string;
+  static privateKeyToString(privateKey: ScalarConst): string;
   static privateKeyOfString(privateKeyBase58: string): ScalarConst;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;

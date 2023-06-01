@@ -15,6 +15,7 @@ import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
 import { p } from '../../bindings/crypto/finite_field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { HashInput } from '../../bindings/lib/provable-bigint.js';
+import { Ml } from '../../lib/ml/conversion.js';
 
 await isReady;
 
@@ -37,8 +38,16 @@ function checkConsistentSingle(
   expect(okTestnetMainnet).toEqual(false);
   expect(okMainnetMainnet).toEqual(true);
   // consistent with OCaml
-  let actualTest = Ledger.signFieldElement(FieldSnarky(msg), keySnarky, false);
-  let actualMain = Ledger.signFieldElement(FieldSnarky(msg), keySnarky, true);
+  let actualTest = Ledger.signFieldElement(
+    FieldSnarky(msg),
+    Ml.fromPrivateKey(keySnarky),
+    false
+  );
+  let actualMain = Ledger.signFieldElement(
+    FieldSnarky(msg),
+    Ml.fromPrivateKey(keySnarky),
+    true
+  );
   expect(Signature.toBase58(sigTest)).toEqual(actualTest);
   expect(Signature.toBase58(sigMain)).toEqual(actualMain);
 }
