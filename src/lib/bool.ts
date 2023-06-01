@@ -65,8 +65,12 @@ class Bool {
     return new Bool(Snarky.bool.and_(this.value, Bool.#toVar(y)));
   }
 
-  // TODO
-  or(y: Bool | boolean) {}
+  or(y: Bool | boolean): Bool {
+    if (this.isConstant() && isConstant(y)) {
+      return new Bool(this.toBoolean() || toBoolean(y));
+    }
+    return new Bool(Snarky.bool.or_(this.value, Bool.#toVar(y)));
+  }
 
   // TODO
   assertEquals(y: Bool | boolean, message?: string) {}
