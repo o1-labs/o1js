@@ -43,6 +43,7 @@ import {
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { Pickles } from '../../snarky.js';
+import { Ml } from '../../lib/ml/conversion.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -216,12 +217,12 @@ test(
     let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
     let sigTestnetOcaml = Ledger.signFieldElement(
       ocamlCommitments.fullCommitment,
-      feePayerKeySnarky,
+      Ml.fromPrivateKey(feePayerKeySnarky),
       false
     );
     let sigMainnetOcaml = Ledger.signFieldElement(
       ocamlCommitments.fullCommitment,
-      feePayerKeySnarky,
+      Ml.fromPrivateKey(feePayerKeySnarky),
       true
     );
     expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);

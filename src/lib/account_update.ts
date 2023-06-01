@@ -25,6 +25,7 @@ import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
+import { Ml } from './ml/conversion.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1870,11 +1871,15 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        return { body, authorization: Ledger.dummySignature() }
+        return { body, authorization: Ledger.dummySignature() };
       }
       privateKey = additionalKeys[i];
     }
-    let signature = Ledger.signFieldElement(fullCommitment, privateKey, false);
+    let signature = Ledger.signFieldElement(
+      fullCommitment,
+      Ml.fromPrivateKey(privateKey),
+      false
+    );
     return { body, authorization: signature };
   }
 
@@ -1894,7 +1899,9 @@ function addMissingSignatures(
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
         Authorization.setSignature(accountUpdate, Ledger.dummySignature());
-        return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
+        return accountUpdate as AccountUpdate & {
+          lazyAuthorization: undefined;
+        };
       }
       privateKey = additionalKeys[i];
     }
@@ -1903,7 +1910,7 @@ function addMissingSignatures(
       : commitment;
     let signature = Ledger.signFieldElement(
       transactionCommitment,
-      privateKey,
+      Ml.fromPrivateKey(privateKey),
       false
     );
     Authorization.setSignature(accountUpdate, signature);
@@ -2059,7 +2066,10 @@ function signJsonTransaction(
   let feePayer = zkappCommand.feePayer;
   if (feePayer.body.publicKey === publicKey) {
     zkappCommand = JSON.parse(
-      Ledger.signFeePayer(JSON.stringify(zkappCommand), privateKey)
+      Ledger.signFeePayer(
+        JSON.stringify(zkappCommand),
+        Ml.fromPrivateKey(privateKey)
+      )
     );
   }
   for (let i = 0; i < zkappCommand.accountUpdates.length; i++) {
@@ -2071,7 +2081,7 @@ function signJsonTransaction(
       zkappCommand = JSON.parse(
         Ledger.signOtherAccountUpdate(
           JSON.stringify(zkappCommand),
-          privateKey,
+          Ml.fromPrivateKey(privateKey),
           i
         )
       );

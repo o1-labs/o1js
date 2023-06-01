@@ -15,6 +15,8 @@ const ScalarConst = {
 let scalarShift = Fq(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
+type ConstantScalar = Scalar & { constantValue: ScalarConst };
+
 /**
  * Represents a {@link Scalar}.
  */
@@ -45,11 +47,11 @@ class Scalar {
     return new Scalar(bits, scalar);
   }
 
-  toConstant() {
-    if (this.constantValue !== undefined) return this;
+  toConstant(): ConstantScalar {
+    if (this.constantValue !== undefined) return this as ConstantScalar;
     let [, ...bits] = this.value;
     let constBits = bits.map((b) => FieldVar.constant(Snarky.field.readVar(b)));
-    return new Scalar([0, ...constBits]);
+    return new Scalar([0, ...constBits]) as ConstantScalar;
   }
 
   /**
