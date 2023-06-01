@@ -47,6 +47,13 @@ class Scalar {
     return new Scalar(bits, scalar);
   }
 
+  /**
+   * Convert this {@link Scalar} into a constant if it isn't already.
+   *
+   * If the scalar is a variable, this only works inside `asProver` or `witness` blocks.
+   *
+   * See {@link FieldVar} for an explanation of constants vs. variables.
+   */
   toConstant(): ConstantScalar {
     if (this.constantValue !== undefined) return this as ConstantScalar;
     let [, ...bits] = this.value;
@@ -61,6 +68,9 @@ class Scalar {
     return Scalar.from(x);
   }
 
+  /**
+   * Convert this {@link Scalar} into a bigint
+   */
   toBigInt() {
     return this.#assertConstant('toBigInt');
   }
@@ -161,11 +171,11 @@ That means it can't be called in a @method or similar environment, and there's n
     return Scalar.from(z);
   }
 
+  // TODO don't leak 'shifting' to the user and remove these methods
   shift() {
     let x = this.#assertConstant('shift');
     return Scalar.from(shift(x));
   }
-
   unshift() {
     let x = this.#assertConstant('unshift');
     return Scalar.from(unshift(x));
