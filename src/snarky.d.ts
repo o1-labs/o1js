@@ -177,6 +177,18 @@ declare const Snarky: {
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
   };
 
+  bool: {
+    not(x: BoolVar): BoolVar;
+
+    and_(x: BoolVar, y: BoolVar): BoolVar;
+
+    or_(x: BoolVar, y: BoolVar): BoolVar;
+
+    assertEqual(x: BoolVar, y: BoolVar): void;
+
+    readVar(x: BoolVar): FieldConst;
+  };
+
   /**
    * The circuit API is a low level interface to create zero-knowledge proofs
    */
