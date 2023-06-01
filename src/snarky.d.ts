@@ -17,7 +17,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate };
+export { Snarky, Test, JsonGate, MlArray };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -1236,6 +1236,10 @@ type Gate = {
  * Represents a {@link Scalar}.
  */
 declare class Scalar {
+  value: MlArray<BoolVar>;
+  constantValue?: Uint8Array;
+  constructor(bits: MlArray<BoolVar>, constantValue?: Uint8Array);
+
   /**
    * Serialize this Scalar to Field elements.
    *
