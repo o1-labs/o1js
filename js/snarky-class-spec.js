@@ -315,43 +315,6 @@ export default [
     ],
   },
   {
-    name: 'Scalar',
-    props: [
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'sizeInFields',
-        type: 'function',
-      },
-      {
-        name: 'fromFields',
-        type: 'function',
-      },
-      {
-        name: 'random',
-        type: 'function',
-      },
-      {
-        name: 'fromBits',
-        type: 'function',
-      },
-      {
-        name: 'toJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromJSON',
-        type: 'function',
-      },
-      {
-        name: 'check',
-        type: 'function',
-      },
-    ],
-  },
-  {
     name: 'Ledger',
     props: [
       {
