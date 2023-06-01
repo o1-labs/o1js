@@ -41,10 +41,6 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
-// TODO
-// const Scalar = toFunctionConstructor(InternalScalar);
-// type Scalar = InternalScalar;
-
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
 ): Class & ((...args: InferArgs<Class>) => InferReturn<Class>) {
