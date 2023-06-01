@@ -492,10 +492,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'circuitDigest',
-        type: 'function',
-      },
-      {
         name: 'verify',
         type: 'function',
       },
