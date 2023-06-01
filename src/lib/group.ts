@@ -4,6 +4,7 @@ import { Bool, Snarky, Group as SnarkyGroup } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
+
 export { Group as NewGroup };
 
 /**
@@ -21,6 +22,10 @@ class Group {
 
   static #fromAffine({ x, y }: { x: bigint; y: bigint; infinity: boolean }) {
     return new Group({ x, y });
+  }
+
+  #isConstant() {
+    return this.x.isConstant() && this.y.isConstant();
   }
 
   constructor({
@@ -80,12 +85,12 @@ class Group {
           Pallas.fromAffine({
             x: x1.toBigInt(),
             y: y1.toBigInt(),
-            infinity: x1.toBigInt() === 1n && y1.toBigInt() === 1n,
+            infinity: x1.toBigInt() === 0n && y1.toBigInt() === 0n,
           }),
           Pallas.fromAffine({
             x: x2.toBigInt(),
             y: y2.toBigInt(),
-            infinity: x2.toBigInt() === 1n && y2.toBigInt() === 1n,
+            infinity: x2.toBigInt() === 0n && y2.toBigInt() === 0n,
           })
         );
 
@@ -140,15 +145,25 @@ class Group {
     }
   }
 
-  assertEquals(p: Group, message?: string) {
-    this.equals(p).assertTrue(message);
+  assertEquals(g: Group, message?: string) {
+    this.equals(g).assertTrue(message);
   }
 
-  equals(p: Group) {
-    let { x: x1, y: y1 } = p;
-    let { x: x2, y: y2 } = this;
+  equals(g: Group) {
+    let { x: x1, y: y1 } = this;
+    let { x: x2, y: y2 } = g;
 
-    return x1.equals(x2).and(y1.equals(y2));
+    if (this.#isConstant() && g.#isConstant()) {
+      /*
+    let equal_x = x1.equals(x2);
+    let equal_y = y1.equals(y2);
+    return equal_x.and(equal_y);*/
+
+      let z = Snarky.group.equals(Group.#toTuple(this), Group.#toTuple(g));
+      return Bool.Unsafe.ofField(new Field(z));
+    } else {
+      return Bool(x1.equals(x2).and(y1.equals(y2)));
+    }
   }
 
   toJSON(): {

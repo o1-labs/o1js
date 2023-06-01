@@ -188,6 +188,11 @@ declare const Snarky: {
       p: MlTuple<FieldVar, FieldVar>,
       s: MlArray<BoolVar>
     ): MlTuple<FieldVar, FieldVar>;
+
+    equals(
+      p1: MlTuple<FieldVar, FieldVar>,
+      p2: MlTuple<FieldVar, FieldVar>
+    ): BoolVar;
   };
 
   /**
