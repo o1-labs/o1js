@@ -1,9 +1,9 @@
 import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
-import { Bool, Scalar, Group } from '../snarky.js';
+import { Bool, Scalar } from '../snarky.js';
 import { Field as InternalField } from './field.js';
-//import { Group as InternalGroup } from './group.js';
+import { Group as InternalGroup } from './group.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { mod } from '../bindings/crypto/finite_field.js';
 
@@ -21,9 +21,9 @@ type Field = InternalField;
 /**
  * An element of a Group.
  */
-/* const Group = toFunctionConstructor(InternalGroup);
+const Group = toFunctionConstructor(InternalGroup);
 type Group = InternalGroup;
- */
+
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
 ): Class & ((...args: InferArgs<Class>) => InferReturn<Class>) {

@@ -4,7 +4,7 @@ import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 
-export { Group as NewGroup };
+export { Group };
 
 /**
  * An element of a Group
