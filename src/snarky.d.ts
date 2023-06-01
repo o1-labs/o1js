@@ -1,12 +1,12 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
 import type { BoolVar } from './lib/bool.js';
+import type { Scalar } from './lib/scalar.js';
 // export { Field };
 export { SnarkyField };
 export {
   Bool,
   Group,
-  SnarkyScalar,
   ProvablePure,
   Provable,
   Poseidon,
@@ -1245,109 +1245,6 @@ type Gate = {
   coeffs: string[];
 };
 
-/**
- * Represents a {@link SnarkyScalar}.
- */
-declare class SnarkyScalar {
-  value: MlArray<BoolVar>;
-  constantValue?: Uint8Array;
-  constructor(bits: MlArray<BoolVar>, constantValue?: Uint8Array);
-
-  /**
-   * Serialize this Scalar to Field elements.
-   *
-   * WARNING: This function is for internal usage by the proof system. It returns 255 field elements
-   * which represent the Scalar in a shifted, bitwise format.
-   * Check out {@link SnarkyScalar.toFieldsCompressed} for a user-friendly serialization that can be used outside proofs.
-   */
-  toFields(): Field[];
-
-  /**
-   * Serialize a Scalar into a Field element plus one bit, where the bit is represented as a Bool.
-   *
-   * Note: Since the Scalar field is slightly larger than the base Field, an additional high bit
-   * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
-   */
-  static toFieldsCompressed(s: SnarkyScalar): { field: Field; highBit: Bool };
-
-  /**
-   * Negate a scalar field element.
-   * Can only be called outside of circuit execution
-   */
-  neg(): SnarkyScalar;
-
-  /**
-   * Add scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  add(y: SnarkyScalar): SnarkyScalar;
-
-  /**
-   * Subtract scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  sub(y: SnarkyScalar): SnarkyScalar;
-
-  /**
-   * Multiply scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  mul(y: SnarkyScalar): SnarkyScalar;
-
-  /**
-   * Divide scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  div(y: SnarkyScalar): SnarkyScalar;
-
-  /**
-   * Serializes this Scalar to a string
-   */
-  toJSON(): string;
-
-  /**
-   * Static method to serialize a {@link SnarkyScalar} into an array of {@link Field} elements.
-   */
-  static toFields(x: SnarkyScalar): Field[];
-  /**
-   * Static method to serialize a {@link SnarkyScalar} into its auxiliary data.
-   */
-  static toAuxiliary(x?: SnarkyScalar): [];
-  /**
-   * Creates a data structure from an array of serialized {@link Field} elements.
-   */
-  static fromFields(fields: Field[]): SnarkyScalar;
-  /**
-   * Returns the size of this type.
-   */
-  static sizeInFields(): number;
-  /**
-   * Creates a data structure from an array of serialized {@link Bool}.
-   */
-  static fromBits(bits: Bool[]): SnarkyScalar;
-  /**
-   * Returns a random {@link SnarkyScalar}.
-   * Randomness can not be proven inside a circuit!
-   */
-  static random(): SnarkyScalar;
-  /**
-   * Serialize a {@link SnarkyScalar} to a JSON string.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
-   */
-  static toJSON(x: SnarkyScalar): string;
-  /**
-   * Deserialize a JSON structure into a {@link SnarkyScalar}.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
-   */
-  static fromJSON(x: string | number | boolean): SnarkyScalar;
-  /**
-   * Create a constant {@link SnarkyScalar} from a bigint.
-   * If the bigint is too large, it is reduced modulo the scalar field order.
-   */
-  static fromBigInt(s: bigint): SnarkyScalar;
-  static check(x: SnarkyScalar): void;
-}
-
 // TODO: Add this when OCaml bindings are implemented:
 // declare class EndoScalar {
 //   static toFields(x: Scalar): Field[];
@@ -1378,9 +1275,9 @@ declare class Group {
   neg(): Group;
 
   /**
-   * Scales this {@link Group} element using a {@link SnarkyScalar}.
+   * Scales this {@link Group} element using a {@link Scalar}.
    */
-  scale(y: SnarkyScalar): Group;
+  scale(y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
   /**
@@ -1422,9 +1319,9 @@ declare class Group {
   static neg(x: Group): Group;
 
   /**
-   * Scales this {@link Group} element using a {@link SnarkyScalar}.
+   * Scales this {@link Group} element using a {@link Scalar}.
    */
-  static scale(x: Group, y: SnarkyScalar): Group;
+  static scale(x: Group, y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
 
   /**
@@ -1555,7 +1452,7 @@ declare class Ledger {
    */
   static signFieldElement(
     messageHash: Field,
-    privateKey: { s: SnarkyScalar },
+    privateKey: { s: Scalar },
     isMainnet: boolean
   ): string;
 
@@ -1567,14 +1464,14 @@ declare class Ledger {
   /**
    * Signs a transaction as the fee payer.
    */
-  static signFeePayer(txJson: string, privateKey: { s: SnarkyScalar }): string;
+  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
 
   /**
    * Signs an account update.
    */
   static signOtherAccountUpdate(
     txJson: string,
-    privateKey: { s: SnarkyScalar },
+    privateKey: { s: Scalar },
     i: number
   ): string;
 
@@ -1584,8 +1481,8 @@ declare class Ledger {
 
   static publicKeyToString(publicKey: PublicKey_): string;
   static publicKeyOfString(publicKeyBase58: string): PublicKey_;
-  static privateKeyToString(privateKey: { s: SnarkyScalar }): string;
-  static privateKeyOfString(privateKeyBase58: string): SnarkyScalar;
+  static privateKeyToString(privateKey: { s: Scalar }): string;
+  static privateKeyOfString(privateKeyBase58: string): Scalar;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
 
