@@ -6,6 +6,11 @@ import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 
 export { Group };
 
+type FieldLike = FieldVar | Field | number | string | bigint;
+type GroupLike = {
+  x: FieldLike;
+  y: FieldLike;
+};
 /**
  * An element of a Group
  */
@@ -17,22 +22,37 @@ class Group {
    * The generator `g` of the Group.
    */
   static get generator() {
-    return new Group({
-      x: Pallas.one.x,
-      y: Pallas.one.y,
-    });
+    return new Group(Pallas.one.x, Pallas.one.y);
   }
 
   /**
    * Coerces anything group-like to a {@link Group}.
    */
-  constructor({
-    x,
-    y,
-  }: {
+  constructor(g: {
     x: FieldVar | Field | number | string | bigint;
     y: FieldVar | Field | number | string | bigint;
-  }) {
+  });
+  /**
+   * Coerces anything group-like to a {@link Group}.
+   */
+  constructor(
+    x: FieldVar | Field | number | string | bigint,
+    y: FieldVar | Field | number | string | bigint
+  );
+  constructor(
+    arg1: GroupLike | FieldLike,
+    arg2: FieldLike | undefined = undefined
+  ) {
+    let x, y: FieldLike;
+
+    if (isGroupLike(arg1)) {
+      x = arg1.x;
+      y = arg1.y;
+    } else {
+      x = arg1 as FieldLike;
+      y = arg2 as FieldLike;
+    }
+
     this.x = isField(x) ? x : new Field(x);
     this.y = isField(y) ? y : new Field(y);
 
@@ -118,10 +138,7 @@ class Group {
       }
     } else {
       let [, x, y] = Snarky.group.add(Group.#toTuple(this), Group.#toTuple(g));
-      return new Group({
-        x,
-        y,
-      });
+      return new Group(x, y);
     }
   }
 
@@ -137,10 +154,7 @@ class Group {
    */
   neg() {
     let { x, y } = this;
-    return new Group({
-      x,
-      y: y.neg(),
-    });
+    return new Group(x, y.neg());
   }
 
   /**
@@ -176,7 +190,7 @@ class Group {
         0,
         ...fields.map((f) => f.value).reverse(),
       ]);
-      return new Group({ x, y });
+      return new Group(x, y);
     }
   }
 
@@ -330,7 +344,7 @@ class Group {
    * Deserializes a {@link Group} element from a list of field elements.
    */
   static fromFields([x, y]: Field[]) {
-    return new Group({ x, y });
+    return new Group(x, y);
   }
 
   /**
@@ -363,7 +377,7 @@ class Group {
     x: string | number | bigint | Field | FieldVar;
     y: string | number | bigint | Field | FieldVar;
   }) {
-    return new Group({ x, y });
+    return new Group(x, y);
   }
 
   /**
@@ -388,4 +402,8 @@ class Group {
   static onCurve(g: Group) {
     return g.onCurve();
   }
+}
+
+function isGroupLike(x: GroupLike | FieldLike): x is GroupLike {
+  return (x as GroupLike).x !== undefined && (x as GroupLike).y !== undefined;
 }
