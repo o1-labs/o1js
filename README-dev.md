@@ -47,3 +47,15 @@ To see the test running in a web browser, go to `http://localhost:8000/`.
   npm run test:e2e
   npm run e2e:show-report
   ```
+
+## Branch Compatibility
+
+SnarkyJS is mostly used to write Mina Smart Contract and needs to be compatible with the latest Berkeley testnet (or soon Mainnet), therefor in order to build SnarkyJS from the [Mina repository](https://github.com/MinaProtocol/mina) and make changes to its core, such as the OCaml-bindings in the [snarkyjs-bindings repository](https://github.com/o1-labs/snarkyjs-bindings), all while maintaining compatibility between all repositories, you should follow a certain pattern.
+
+The following branches are compatible:
+
+| repository | mina -> snarkyjs -> snarkyjs-bindings |
+| ---------- | ------------------------------------- |
+| branches   | rampup -> main -> main                |
+|            | berkeley -> berkeley -> berkeley      |
+|            | develop -> develop -> develop         |
