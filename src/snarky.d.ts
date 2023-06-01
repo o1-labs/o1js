@@ -1468,8 +1468,7 @@ declare class Ledger {
 
   static publicKeyToString(publicKey: PublicKey_): string;
   static publicKeyOfString(publicKeyBase58: string): PublicKey_;
-  static privateKeyToString(privateKey: ScalarConst): string;
-  static privateKeyOfString(privateKeyBase58: string): ScalarConst;
+
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
 
@@ -1513,6 +1512,10 @@ declare class Ledger {
 }
 
 declare const Test: {
+  encoding: {
+    privateKeyToBase58(privateKey: ScalarConst): string;
+    privateKeyOfBase58(privateKeyBase58: string): ScalarConst;
+  };
   transactionHash: {
     examplePayment(): string;
     serializePayment(payment: string): { data: Uint8Array };

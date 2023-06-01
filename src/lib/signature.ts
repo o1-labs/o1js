@@ -47,6 +47,20 @@ class PrivateKey extends CircuitValue {
   }
 
   /**
+   * Convert this {@link PrivateKey} to a bigint
+   */
+  toBigInt() {
+    return this.s.toBigInt();
+  }
+
+  /**
+   * Create a {@link PrivateKey} from a bigint
+   */
+  static fromBigInt(sk: PrivateKeyBigint) {
+    return new PrivateKey(Scalar.from(sk));
+  }
+
+  /**
    * Derives the associated public key.
    *
    * @returns a {@link PublicKey}.
