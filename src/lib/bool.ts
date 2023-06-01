@@ -43,6 +43,11 @@ class Bool {
     return x instanceof Bool;
   }
 
+  static #toVar(x: boolean | Bool): BoolVar {
+    if (Bool.#isBool(x)) return x.value;
+    return FieldVar.constant(B(x));
+  }
+
   // TODO
   toField() {}
 
@@ -53,8 +58,12 @@ class Bool {
     return new Bool(Snarky.bool.not(this.value));
   }
 
-  // TODO
-  and(y: Bool | boolean) {}
+  and(y: Bool | boolean): Bool {
+    if (this.isConstant() && isConstant(y)) {
+      return new Bool(this.toBoolean() && toBoolean(y));
+    }
+    return new Bool(Snarky.bool.and_(this.value, Bool.#toVar(y)));
+  }
 
   // TODO
   or(y: Bool | boolean) {}
@@ -132,4 +141,11 @@ function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
     return true;
   }
   return (x as Bool).isConstant();
+}
+
+function toBoolean(x: boolean | Bool): boolean {
+  if (typeof x === 'boolean') {
+    return x;
+  }
+  return (x as Bool).toBoolean();
 }
