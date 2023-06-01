@@ -100,8 +100,12 @@ class Bool {
     this.assertEquals(false, message);
   }
 
-  // TODO
-  equals(y: Bool | boolean) {}
+  equals(y: Bool | boolean): Bool {
+    if (this.isConstant() && isConstant(y)) {
+      return new Bool(this.toBoolean() === toBoolean(y));
+    }
+    return new Bool(Snarky.bool.equals(this.value, Bool.#toVar(y)));
+  }
 
   // TODO
   sizeInFields() {}
