@@ -41,7 +41,6 @@ export {
   ZkappCommand,
   addMissingSignatures,
   addMissingProofs,
-  signJsonTransaction,
   ZkappStateLength,
   Events,
   Actions,
@@ -2048,44 +2047,4 @@ async function addMissingProofs(
     zkappCommand: { feePayer, accountUpdates: accountUpdatesProved, memo },
     proofs,
   };
-}
-
-/**
- * Sign all accountUpdates of a transaction which belong to the account
- * determined by [[ `privateKey` ]].
- * @returns the modified transaction JSON
- */
-function signJsonTransaction(
-  transactionJson: string,
-  privateKey: PrivateKey | string
-) {
-  if (typeof privateKey === 'string')
-    privateKey = PrivateKey.fromBase58(privateKey);
-  let publicKey = privateKey.toPublicKey().toBase58();
-  let zkappCommand: Types.Json.ZkappCommand = JSON.parse(transactionJson);
-  let feePayer = zkappCommand.feePayer;
-  if (feePayer.body.publicKey === publicKey) {
-    zkappCommand = JSON.parse(
-      Ledger.signFeePayer(
-        JSON.stringify(zkappCommand),
-        Ml.fromPrivateKey(privateKey)
-      )
-    );
-  }
-  for (let i = 0; i < zkappCommand.accountUpdates.length; i++) {
-    let accountUpdate = zkappCommand.accountUpdates[i];
-    if (
-      accountUpdate.body.publicKey === publicKey &&
-      accountUpdate.authorization.proof === null
-    ) {
-      zkappCommand = JSON.parse(
-        Ledger.signOtherAccountUpdate(
-          JSON.stringify(zkappCommand),
-          Ml.fromPrivateKey(privateKey),
-          i
-        )
-      );
-    }
-  }
-  return JSON.stringify(zkappCommand);
 }

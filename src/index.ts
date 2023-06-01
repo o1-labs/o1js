@@ -25,7 +25,6 @@ export {
   SmartContract,
   method,
   DeployArgs,
-  signFeePayer,
   declareMethods,
   Account,
   VerificationKey,

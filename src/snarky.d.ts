@@ -1461,20 +1461,6 @@ declare class Ledger {
    */
   static dummySignature(): string;
 
-  /**
-   * Signs a transaction as the fee payer.
-   */
-  static signFeePayer(txJson: string, privateKey: ScalarConst): string;
-
-  /**
-   * Signs an account update.
-   */
-  static signOtherAccountUpdate(
-    txJson: string,
-    privateKey: ScalarConst,
-    i: number
-  ): string;
-
   static customTokenId(publicKey: PublicKey_, tokenId: Field): Field;
   static customTokenIdChecked(publicKey: PublicKey_, tokenId: Field): Field;
   static createTokenAccount(publicKey: PublicKey_, tokenId: Field): string;
