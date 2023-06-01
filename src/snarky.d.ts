@@ -1,5 +1,6 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
+import type { BoolVar } from './lib/bool.js';
 // export { Field };
 export { SnarkyField };
 export {
@@ -58,8 +59,6 @@ declare namespace Snarky {
   type VerificationKey = unknown;
   type Proof = unknown;
 }
-// same representation, but use a different name to communicate intent / constraints
-type BoolVar = FieldVar;
 
 /**
  * Internal interface to snarky-ml

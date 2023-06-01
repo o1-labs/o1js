@@ -1,7 +1,16 @@
-import { Field, FieldVar } from './field.js';
+import { Snarky } from '../snarky.js';
+import { Field, FieldConst, FieldType, FieldVar } from './field.js';
+import { Bool as B } from '../provable/field-bigint.js';
+
+export { BoolVar };
+
+type ConstantBoolVar = [FieldType.Constant, FieldConst];
+
+// same representation, but use a different name to communicate intent / constraints
+type BoolVar = FieldVar;
 
 class Bool {
-  value: FieldVar;
+  value: BoolVar;
 
   constructor(x: Bool | boolean) {
     if (x instanceof Bool) {
