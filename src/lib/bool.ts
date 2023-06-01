@@ -12,12 +12,30 @@ type BoolVar = FieldVar;
 class Bool {
   value: BoolVar;
 
-  constructor(x: Bool | boolean) {
-    if (x instanceof Bool) {
+  constructor(x: boolean | Bool) {
+    if (Bool.#isBool(x)) {
       this.value = x.value;
     } else {
-      this.value = FieldVar.constant(x ? 1n : 0n);
+      this.value = FieldVar.constant(B(x));
     }
+  }
+
+  isConstant(): this is { value: ConstantBoolVar } {
+    return this.value[0] === FieldType.Constant;
+  }
+
+  toBoolean(): boolean {
+    let value;
+    if (this.isConstant()) {
+      value = this.value[1];
+    } else {
+      value = Snarky.bool.readVar(this.value);
+    }
+    return areUint8ArraysEqual(value, FieldConst.fromBigint(1n));
+  }
+
+  static #isBool(x: boolean | Bool | BoolVar): x is Bool {
+    return x instanceof Bool;
   }
 
   // TODO
@@ -56,9 +74,6 @@ class Bool {
   // TODO
   toJSON() {}
 
-  // TODO
-  toBoolean() {}
-
   static toField(x: Bool | boolean) {}
 
   static Unsafe: {
@@ -96,4 +111,8 @@ class Bool {
   static fromJSON(x: boolean) {}
 
   static check(x: Bool) {}
+}
+
+function areUint8ArraysEqual(x: Uint8Array, y: Uint8Array) {
+  return x.length === y.length && x.every((v, i) => v === y[i]);
 }
