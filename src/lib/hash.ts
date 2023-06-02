@@ -47,7 +47,10 @@ const Poseidon = {
   hashToGroup(input: Field[]) {
     let isChecked = !input.every((x) => x.isConstant());
     // y = sqrt(y^2)
-    let { x, y } = Poseidon_.hashToGroup(input, isChecked);
+    let { x: xv, y: yv } = Poseidon_.hashToGroup(input, isChecked);
+
+    let x = Field(xv);
+    let y = Field(yv);
 
     let x0 = Provable.witness(Field, () => {
       // the even root of y^2 will become x0, so the APIs are uniform
