@@ -44,11 +44,15 @@ class Group {
 
       let x_bigint = this.x.toBigInt();
       let y_bigint = this.y.toBigInt();
+
       let onCurve =
         add(mul(x_bigint, mul(x_bigint, x_bigint)), Pallas.b) ===
         square(y_bigint);
+
       if (!onCurve) {
-        throw Error(`${{ x_bigint, y_bigint }} is not a valid group element`);
+        throw Error(
+          `(x: ${x_bigint}, y: ${y_bigint}) is not a valid group element`
+        );
       }
     }
   }
@@ -76,24 +80,6 @@ class Group {
       y: this.y.toBigInt(),
       infinity: false,
     });
-  }
-
-  /**
-   * Return a {@link Bool} if the Group element is on the Pallas curve.
-   * It checks that the Weierstrass equation `y^2 = x^3 + 5` is satisfied.
-   */
-  onCurve() {
-    if (this.#isConstant()) {
-      const { add, mul, square } = Fp;
-      let y = this.y.toBigInt();
-      let x = this.x.toBigInt();
-      return Bool(add(mul(x, mul(x, x)), Pallas.b) === square(y));
-    } else {
-      let { x, y } = this;
-      // x^3 + 5 === y^2
-      let x3 = x.square().mul(x);
-      return x3.add(Pallas.b).equals(y.square());
-    }
   }
 
   /**
@@ -370,14 +356,6 @@ class Group {
         `Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`
       );
     }
-  }
-
-  /**
-   * Return a {@link Bool} if a Group element is on the Pallas curve.
-   * It checks that the Weierstrass equation `y^2 = x^3 + 5` is satisfied.
-   */
-  static onCurve(g: Group) {
-    return g.onCurve();
   }
 }
 

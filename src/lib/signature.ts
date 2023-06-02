@@ -101,7 +101,7 @@ class PublicKey extends CircuitValue {
       .toField()
       .mul(someY)
       .add(isTheRightY.not().toField().mul(someY.neg()));
-    return new Group(x, y);
+    return new Group({ x, y });
   }
 
   /**
