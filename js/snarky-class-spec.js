@@ -262,63 +262,6 @@ export default [
     ],
   },
   {
-    name: 'Group',
-    props: [
-      {
-        name: 'generator',
-        type: 'object',
-      },
-      {
-        name: 'add',
-        type: 'function',
-      },
-      {
-        name: 'sub',
-        type: 'function',
-      },
-      {
-        name: 'neg',
-        type: 'function',
-      },
-      {
-        name: 'scale',
-        type: 'function',
-      },
-      {
-        name: 'assertEqual',
-        type: 'function',
-      },
-      {
-        name: 'equal',
-        type: 'function',
-      },
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'fromFields',
-        type: 'function',
-      },
-      {
-        name: 'sizeInFields',
-        type: 'function',
-      },
-      {
-        name: 'check',
-        type: 'function',
-      },
-      {
-        name: 'toJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromJSON',
-        type: 'function',
-      },
-    ],
-  },
-  {
     name: 'Scalar',
     props: [
       {
