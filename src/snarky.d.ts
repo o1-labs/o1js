@@ -1366,7 +1366,7 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
-  hashToGroup(input: Field[], isChecked: boolean): { x: FieldVar; y: FieldVar };
+  hashToGroup(input: Field[], isChecked: boolean): MlTuple<FieldVar, FieldVar>;
   prefixes: Record<
     | 'event'
     | 'events'
