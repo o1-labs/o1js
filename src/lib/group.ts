@@ -166,7 +166,11 @@ class Group {
    * ```
    */
   scale(s: Scalar | number | bigint) {
-    let scalar = s instanceof Scalar ? s : Scalar.fromBigInt(BigInt(s));
+    // instanceof doesnt work for some reason
+    let scalar =
+      typeof s === 'bigint' || typeof s === 'number'
+        ? Scalar.fromBigInt(BigInt(s))
+        : s;
     let fields = scalar.toFields();
 
     if (
@@ -223,6 +227,8 @@ class Group {
     let { x: x2, y: y2 } = g;
 
     if (this.#isConstant() && g.#isConstant()) {
+      return Bool(x1.equals(x2).and(y1.equals(y2)));
+    } else {
       /*
     let equal_x = x1.equals(x2);
     let equal_y = y1.equals(y2);
@@ -230,8 +236,6 @@ class Group {
 
       let z = Snarky.group.equals(Group.#toTuple(this), Group.#toTuple(g));
       return Bool.Unsafe.ofField(new Field(z));
-    } else {
-      return Bool(x1.equals(x2).and(y1.equals(y2)));
     }
   }
 
@@ -334,7 +338,7 @@ class Group {
    *
    * Returns an empty array.
    */
-  static toAuxiliary() {
+  static toAuxiliary(g?: Group) {
     return [];
   }
 
@@ -384,7 +388,6 @@ class Group {
    * Checks that a {@link Group} element is constraint properly by checking that the element is on the curve.
    */
   static check(g: Group) {
-    console.log('its running check');
     try {
       Snarky.group.onCurve(Group.#toTuple(g));
     } catch (err) {
