@@ -20,6 +20,7 @@ import {
   state,
   UInt32,
   TokenId,
+  Provable,
 } from 'snarkyjs';
 
 export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
@@ -67,7 +68,7 @@ function createDex({
 
       // // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
-      let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
+      let xSafe = Provable.if(isXZero, UInt64.one, dexXBalance);
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
       isDyCorrect.or(isXZero).assertTrue();
 
@@ -514,7 +515,7 @@ let tokenIds = {
 function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
   let myTokenId = accountUpdate.body.tokenId;
   let myBalance = Int64.fromObject(accountUpdate.body.balanceChange);
-  let balance = Circuit.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
+  let balance = Provable.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
   for (let child of accountUpdate.children.accountUpdates) {
     balance = balance.add(balanceSum(child, tokenId));
   }

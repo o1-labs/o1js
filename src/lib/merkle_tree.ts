@@ -6,6 +6,7 @@ import { CircuitValue, arrayProp } from './circuit_value.js';
 import { Circuit } from './circuit.js';
 import { Poseidon } from './hash.js';
 import { Bool, Field } from './core.js';
+import { Provable } from './provable.js';
 
 // external API
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };
@@ -220,7 +221,7 @@ class BaseMerkleWitness extends CircuitValue {
     let n = this.height();
 
     for (let i = 1; i < n; ++i) {
-      index = Circuit.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
+      index = Provable.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
       powerOfTwo = powerOfTwo.mul(2);
     }
 
@@ -243,8 +244,8 @@ function MerkleWitness(height: number): typeof BaseMerkleWitness {
 }
 
 function maybeSwapBad(b: Bool, x: Field, y: Field): [Field, Field] {
-  const x_ = Circuit.if(b, x, y); // y + b*(x - y)
-  const y_ = Circuit.if(b, y, x); // x + b*(y - x)
+  const x_ = Provable.if(b, x, y); // y + b*(x - y)
+  const y_ = Provable.if(b, y, x); // x + b*(y - x)
   return [x_, y_];
 }
 

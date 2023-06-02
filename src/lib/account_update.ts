@@ -1,12 +1,12 @@
 import {
   cloneCircuitValue,
   FlexibleProvable,
-  memoizationContext,
-  memoizeWitness,
   provable,
   provablePure,
 } from './circuit_value.js';
-import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
+import { memoizationContext, memoizeWitness, Provable } from './provable.js';
+import { Field, Bool } from './core.js';
+import { Ledger, Pickles } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -14,13 +14,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import {
-  dummyBase64Proof,
-  Empty,
-  inCheckedComputation,
-  Proof,
-  Prover,
-} from './proof_system.js';
+import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
@@ -30,7 +24,7 @@ import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
-import { assert, prettifyStacktrace } from './errors.js';
+import { assert } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -446,7 +440,7 @@ const Body = {
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
-      body.mayUseToken = Circuit.if(
+      body.mayUseToken = Provable.if(
         tokenId.equals(TokenId.default),
         AccountUpdate.MayUseToken.type,
         AccountUpdate.MayUseToken.No,
@@ -975,12 +969,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * be (can be) authorized by a signature.
    */
   requireSignature() {
-    try {
-      this.sign();
-    } catch (error) {
-      if (error instanceof Error) error.stack = prettifyStacktrace(error);
-      throw error;
-    }
+    this.sign();
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
@@ -994,8 +983,8 @@ class AccountUpdate implements Types.AccountUpdate {
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
     // in this case, we also have to set a nonce precondition
-    let lower = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
-    let upper = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
+    let lower = Provable.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
+    let upper = Provable.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
     this.body.preconditions.account.nonce.isSome = doIncrementNonce;
     this.body.preconditions.account.nonce.value.lower = lower;
     this.body.preconditions.account.nonce.value.upper = upper;
@@ -1084,7 +1073,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // consistency between JS & OCaml hashing on *every single account update
     // proof* we create. It will give us 100% confidence that the two
     // implementations are equivalent, and catch regressions quickly
-    if (inCheckedComputation()) {
+    if (Provable.inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
@@ -1302,7 +1291,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate: accountUpdateType,
       result: type as any,
     });
-    return Circuit.witness(combinedType, compute);
+    return Provable.witness(combinedType, compute);
   }
 
   static witnessChildren(
@@ -1575,10 +1564,10 @@ const CallForest = {
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return Circuit.witness(Field, () => CallForest.hashChildrenBase(update));
+      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals' && inCheckedComputation()) {
+    if (callsType.type === 'Equals' && Provable.inCheckedComputation()) {
       calls.assertEquals(callsType.value);
     }
     return calls;
@@ -1597,7 +1586,7 @@ const CallForest = {
         stackHash,
       ]);
       // skip accountUpdate if it's a dummy
-      stackHash = Circuit.if(accountUpdate.isDummy(), stackHash, newHash);
+      stackHash = Provable.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
   },
@@ -1615,10 +1604,10 @@ const CallForest = {
     let withCallers: WithCallers[] = [];
     for (let update of updates) {
       let { mayUseToken } = update.body;
-      let caller = Circuit.if(
+      let caller = Provable.if(
         mayUseToken.parentsOwnToken,
         context.self,
-        Circuit.if(
+        Provable.if(
           mayUseToken.inheritFromParent,
           context.caller,
           TokenId.default
@@ -1806,7 +1795,7 @@ const Authorization = {
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
-    let hash = Circuit.witness(Field, () => {
+    let hash = Provable.witness(Field, () => {
       let proverData = zkAppProver.getData();
       let isProver = proverData !== undefined;
       assert(
@@ -1877,10 +1866,11 @@ function addMissingSignatures(
         pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
       if (i === -1) {
-        let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
-        throw Error(
-          `addMissingSignatures: Cannot add signature for fee payer (${pk}), private key is missing.`
-        );
+        // private key is missing, but we are not throwing an error here
+        // there is a change signature will be added by the wallet
+        // if not, error will be thrown by verifyAccountUpdate
+        // while .send() execution
+        return { body, authorization: Ledger.dummySignature() }
       }
       privateKey = additionalKeys[i];
     }
@@ -1898,10 +1888,14 @@ function addMissingSignatures(
       let i = additionalPublicKeys.findIndex((pk) =>
         pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
-      if (i === -1)
-        throw Error(
-          `addMissingSignatures: Cannot add signature for ${accountUpdate.publicKey.toBase58()}, private key is missing.`
-        );
+      if (i === -1) {
+        // private key is missing, but we are not throwing an error here
+        // there is a change signature will be added by the wallet
+        // if not, error will be thrown by verifyAccountUpdate
+        // while .send() execution
+        Authorization.setSignature(accountUpdate, Ledger.dummySignature());
+        return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
+      }
       privateKey = additionalKeys[i];
     }
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
@@ -1995,23 +1989,26 @@ async function addMissingProofs(
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, { proof }]] = await zkAppProver.run(
+    let { proof } = await zkAppProver.run(
       [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
       { transaction: zkappCommand, accountUpdate, index },
-      () =>
-        memoizationContext.runWithAsync(
-          { memoized, currentIndex: 0, blindingValue },
-          async () => {
-            try {
-              return await provers[i](publicInputFields, previousProofs);
-            } catch (err) {
-              console.error(
-                `Error when proving ${ZkappClass.name}.${methodName}()`
-              );
-              throw err;
-            }
-          }
-        )
+      async () => {
+        let id = memoizationContext.enter({
+          memoized,
+          currentIndex: 0,
+          blindingValue,
+        });
+        try {
+          return await provers[i](publicInputFields, previousProofs);
+        } catch (err) {
+          console.error(
+            `Error when proving ${ZkappClass.name}.${methodName}()`
+          );
+          throw err;
+        } finally {
+          memoizationContext.leave(id);
+        }
+      }
     );
     Authorization.setProof(
       accountUpdate,

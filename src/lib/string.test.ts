@@ -1,7 +1,7 @@
 import {
   Bool,
   Character,
-  Circuit,
+  Provable,
   CircuitString,
   Field,
   shutdown,
@@ -22,7 +22,7 @@ describe('Circuit String', () => {
       );
       expect(str.equals(same_str)).toEqual(Bool(true));
 
-      Circuit.runAndCheck(() => {
+      Provable.runAndCheck(() => {
         const str = CircuitString.fromString(
           'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
         );
@@ -38,14 +38,14 @@ describe('Circuit String', () => {
       const not_same_str = CircuitString.fromString('size');
       expect(str.equals(not_same_str)).toEqual(Bool(false));
 
-      Circuit.runAndCheck(() => {
-        const str = Circuit.witness(CircuitString, () => {
+      Provable.runAndCheck(() => {
+        const str = Provable.witness(CircuitString, () => {
           return CircuitString.fromString('Your size');
         });
-        const not_same_str = Circuit.witness(CircuitString, () => {
+        const not_same_str = Provable.witness(CircuitString, () => {
           return CircuitString.fromString('size');
         });
-        Circuit.asProver(() => {
+        Provable.asProver(() => {
           expect(str.equals(not_same_str).toBoolean()).toEqual(false);
         });
       });
@@ -62,7 +62,7 @@ describe('Circuit String', () => {
       );
       expect(str.contains(contained_str)).toEqual(new Bool(true));
 
-      Circuit.runAndCheck(() => {
+      Provable.runAndCheck(() => {
         const str = CircuitString.fromString(
           'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
         );
@@ -78,7 +78,7 @@ describe('Circuit String', () => {
       const not_contained_str = CircuitString.fromString('defhij');
       expect(str.contains(not_contained_str)).toEqual(new Bool(false));
 
-      Circuit.runAndCheck(() => {
+      Provable.runAndCheck(() => {
         const str = CircuitString.fromString('abcdefghijklmnop');
         const not_contained_str = CircuitString.fromString('defhij');
         expect(str.contains(not_contained_str)).toEqual(new Bool(false));
@@ -91,7 +91,7 @@ describe('Circuit String', () => {
         const contained_str = CircuitString.fromString('ab');
         expect(str.contains(contained_str)).toEqual(new Bool(true));
 
-        Circuit.runAndCheck(() => {
+        Provable.runAndCheck(() => {
           const str = CircuitString8.fromString('abcd');
           const contained_str = CircuitString.fromString('ab');
           expect(str.contains(contained_str)).toEqual(new Bool(true));
@@ -103,7 +103,7 @@ describe('Circuit String', () => {
         const contained_str = CircuitString8.fromString('ab');
         expect(str.contains(contained_str)).toEqual(new Bool(true));
 
-        Circuit.runAndCheck(() => {
+        Provable.runAndCheck(() => {
           const str = CircuitString.fromString('abcd');
           const contained_str = CircuitString8.fromString('ab');
           expect(str.contains(contained_str)).toEqual(new Bool(true));
@@ -119,7 +119,7 @@ describe('Circuit String', () => {
       const str = CircuitString.fromString(js_str);
       expect(str.toString()).toBe(js_str);
 
-      Circuit.runAndCheck(() => {
+      Provable.runAndCheck(() => {
         const js_str =
           'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth';
         const str = CircuitString.fromString(js_str);
@@ -137,7 +137,7 @@ describe('Circuit String', () => {
         'Everything we see is a perspective'
       );
 
-      Circuit.runAndCheck(() => {
+      Provable.runAndCheck(() => {
         const str = CircuitString.fromString(
           'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
         );
@@ -154,7 +154,7 @@ describe('Circuit String', () => {
       const str2 = CircuitString.fromString('efgh');
       expect(str1.append(str2).toString()).toBe('abcdefgh');
 
-      Circuit.runAndCheck(() => {
+      Provable.runAndCheck(() => {
         const str1 = CircuitString.fromString('abcd');
         const str2 = CircuitString.fromString('efgh');
         expect(str1.append(str2).toString()).toBe('abcdefgh');
@@ -165,8 +165,8 @@ describe('Circuit String', () => {
   /*   describe('CircuitString8', () => {
     test('cannot create more than 8 chars', () => {
       expect(() => {
-        Circuit.runAndCheck(() => {
-          Circuit.witness(CircuitString8, () => {
+        Provable.runAndCheck(() => {
+          Provable.witness(CircuitString8, () => {
             return CircuitString8.fromString('More than eight chars');
           });
         });
@@ -177,8 +177,8 @@ describe('Circuit String', () => {
   describe('with invalid input', () => {
     test.skip('cannot use a character out of range', () => {
       expect(() => {
-        Circuit.runAndCheck(() => {
-          const str = Circuit.witness(CircuitString, () => {
+        Provable.runAndCheck(() => {
+          const str = Provable.witness(CircuitString, () => {
             return CircuitString.fromCharacters([
               new Character(Field(100)),
               new Character(Field(10000)),

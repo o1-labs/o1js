@@ -295,6 +295,7 @@ const Random = Object.assign(Random_, {
   withHardCoded,
   dependent,
   apply,
+  reject,
   dice: Object.assign(dice, { ofSize: diceOfSize() }),
   field,
   bool,
