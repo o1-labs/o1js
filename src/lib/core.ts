@@ -79,7 +79,6 @@ function withMessage(error: unknown, message?: string) {
 
 Bool.toAuxiliary = () => [];
 Scalar.toAuxiliary = () => [];
-Group.toAuxiliary = () => [];
 
 Bool.toInput = function (x) {
   return { packed: [[x.toField(), 1] as [Field, number]] };

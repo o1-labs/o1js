@@ -11,8 +11,9 @@ type GroupLike = {
   x: FieldLike;
   y: FieldLike;
 };
+
 /**
- * An element of a Group
+ * Represents a point with x and y coordinates on an elliptic curve.
  */
 class Group {
   x: Field;
