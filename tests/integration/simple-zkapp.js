@@ -39,7 +39,7 @@ class NotSoSimpleZkapp extends SmartContract {
   update(y) {
     let x = this.x.get();
     this.x.assertEquals(x);
-    y.assertGt(0);
+    y.assertGreaterThan(0);
     this.x.set(x.add(y));
   }
 
