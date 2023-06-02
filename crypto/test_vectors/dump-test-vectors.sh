@@ -1,12 +1,11 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -e
 
-DIR=$(pwd)
-cd ../../../../../crypto/proof-systems/poseidon/export_test_vectors
+pushd ../../../../../crypto/proof-systems/poseidon/export_test_vectors
   cargo run -p export_test_vectors -- b10 kimchi ../../../../snarkyjs/src/bindings/crypto/test_vectors/testVectors.json
   cargo run -p export_test_vectors -- b10 legacy ../../../../snarkyjs/src/bindings/crypto/test_vectors/testVectorsLegacy.json
-cd $DIR
+popd $DIR
 
 echo "// @gen this file is generated - don't edit it directly" > $1 
 echo "export { testPoseidonKimchiFp };" >> $1
