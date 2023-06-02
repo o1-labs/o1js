@@ -72,16 +72,16 @@ class Group {
   }
 
   // helpers
-  static #toTuple(g: Group): [0, FieldVar, FieldVar] {
-    return [0, g.x.value, g.y.value];
-  }
-
   static #fromAffine({ x, y }: { x: bigint; y: bigint; infinity: boolean }) {
     return new Group({ x, y });
   }
 
   static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
     return this.#fromAffine(Pallas.toAffine({ x, y, z }));
+  }
+
+  #toTuple(): [0, FieldVar, FieldVar] {
+    return [0, this.x.value, this.y.value];
   }
 
   #isConstant() {
@@ -133,7 +133,7 @@ class Group {
         return Group.#fromProjective(g_proj);
       }
     } else {
-      let [, x, y] = Snarky.group.add(Group.#toTuple(this), Group.#toTuple(g));
+      let [, x, y] = Snarky.group.add(this.#toTuple(), g.#toTuple());
       return new Group(x, y);
     }
   }
@@ -172,7 +172,7 @@ class Group {
       let g_proj = Pallas.scale(this.#toAffine(), BigInt(scalar.toJSON()));
       return Group.#fromProjective(g_proj);
     } else {
-      let [, x, y] = Snarky.group.scale(Group.#toTuple(this), [
+      let [, x, y] = Snarky.group.scale(this.#toTuple(), [
         0,
         ...fields.map((f) => f.value).reverse(),
       ]);
@@ -216,7 +216,7 @@ class Group {
     let equal_y = y1.equals(y2);
     return equal_x.and(equal_y);*/
 
-      let z = Snarky.group.equals(Group.#toTuple(this), Group.#toTuple(g));
+      let z = Snarky.group.equals(this.#toTuple(), g.#toTuple());
       return Bool.Unsafe.ofField(new Field(z));
     }
   }
@@ -371,7 +371,7 @@ class Group {
    */
   static check(g: Group) {
     try {
-      Snarky.group.onCurve(Group.#toTuple(g));
+      Snarky.group.onCurve(g.#toTuple());
     } catch (err) {
       throw withMessage(
         err,
