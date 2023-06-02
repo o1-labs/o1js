@@ -13,7 +13,7 @@ type GroupLike = {
 };
 
 /**
- * Represents a point with x and y coordinates on an elliptic curve.
+ * An element of a Group.
  */
 class Group {
   x: Field;
@@ -80,8 +80,20 @@ class Group {
     return new Group({ x, y });
   }
 
+  static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
+    return this.#fromAffine(Pallas.toAffine({ x, y, z }));
+  }
+
   #isConstant() {
     return this.x.isConstant() && this.y.isConstant();
+  }
+
+  #toAffine() {
+    return Pallas.fromAffine({
+      x: this.x.toBigInt(),
+      y: this.y.toBigInt(),
+      infinity: false,
+    });
   }
 
   /**
@@ -89,15 +101,13 @@ class Group {
    * It checks that the Weierstrass equation `y^2 = x^3 + 5` is satisfied.
    */
   onCurve() {
-    if (this.x.isConstant() && this.y.isConstant()) {
+    if (this.#isConstant()) {
       const { add, mul, square } = Fp;
       let y = this.y.toBigInt();
       let x = this.x.toBigInt();
       return Bool(add(mul(x, mul(x, x)), Pallas.b) === square(y));
     } else {
-      let y = this.y;
-      let x = this.x;
-
+      let { x, y } = this;
       // x^3 + 5 === y^2
       let x3 = x.square().mul(x);
       return x3.add(Pallas.b).equals(y.square());
@@ -113,29 +123,14 @@ class Group {
    * ```
    */
   add(g: Group) {
-    let { x: x1, y: y1 } = this;
-    let { x: x2, y: y2 } = g;
-
-    if ([x1, y1, x2, y2].every((e) => e.isConstant())) {
-      if (x1.toBigInt() === 0n) {
+    if (this.#isConstant() && g.#isConstant()) {
+      if (this.x.toBigInt() === 0n) {
         return g;
-      } else if (x2.toBigInt() === 0n) {
+      } else if (g.x.toBigInt() === 0n) {
         return this;
       } else {
-        let g_proj = Pallas.add(
-          Pallas.fromAffine({
-            x: x1.toBigInt(),
-            y: y1.toBigInt(),
-            infinity: false,
-          }),
-          Pallas.fromAffine({
-            x: x2.toBigInt(),
-            y: y2.toBigInt(),
-            infinity: false,
-          })
-        );
-
-        return Group.#fromAffine(Pallas.toAffine(g_proj));
+        let g_proj = Pallas.add(this.#toAffine(), g.#toAffine());
+        return Group.#fromProjective(g_proj);
       }
     } else {
       let [, x, y] = Snarky.group.add(Group.#toTuple(this), Group.#toTuple(g));
@@ -167,29 +162,15 @@ class Group {
    * ```
    */
   scale(s: Scalar | number | bigint) {
-    // instanceof doesnt work for some reason
     let scalar =
       typeof s === 'bigint' || typeof s === 'number'
         ? Scalar.fromBigInt(BigInt(s))
         : s;
     let fields = scalar.toFields();
 
-    if (
-      this.x.isConstant() &&
-      this.y.isConstant() &&
-      fields.every((f) => f.isConstant())
-    ) {
-      let { x, y } = this;
-
-      let g_proj = Pallas.scale(
-        Pallas.fromAffine({
-          x: x.toBigInt(),
-          y: y.toBigInt(),
-          infinity: x.toBigInt() === 1n && y.toBigInt() === 1n,
-        }),
-        BigInt(scalar.toJSON())
-      );
-      return Group.#fromAffine(Pallas.toAffine(g_proj));
+    if (this.#isConstant() && fields.every((f) => f.isConstant())) {
+      let g_proj = Pallas.scale(this.#toAffine(), BigInt(scalar.toJSON()));
+      return Group.#fromProjective(g_proj);
     } else {
       let [, x, y] = Snarky.group.scale(Group.#toTuple(this), [
         0,
@@ -224,10 +205,10 @@ class Group {
    * ```
    */
   equals(g: Group) {
-    let { x: x1, y: y1 } = this;
-    let { x: x2, y: y2 } = g;
-
     if (this.#isConstant() && g.#isConstant()) {
+      let { x: x1, y: y1 } = this;
+      let { x: x2, y: y2 } = g;
+
       return Bool(x1.equals(x2).and(y1.equals(y2)));
     } else {
       /*
