@@ -39,17 +39,9 @@ class Bool {
     return areUint8ArraysEqual(value, FieldConst.fromBigint(1n));
   }
 
-  static #isBool(x: boolean | Bool | BoolVar): x is Bool {
-    return x instanceof Bool;
+  toField() {
+    return new Field(this.value);
   }
-
-  static #toVar(x: boolean | Bool): BoolVar {
-    if (Bool.#isBool(x)) return x.value;
-    return FieldVar.constant(B(x));
-  }
-
-  // TODO
-  toField() {}
 
   not(): Bool {
     if (this.isConstant()) {
@@ -107,47 +99,86 @@ class Bool {
     return new Bool(Snarky.bool.equals(this.value, Bool.#toVar(y)));
   }
 
-  // TODO
-  sizeInFields() {}
+  sizeInFields(): number {
+    return 1;
+  }
 
-  // TODO
-  toFields() {}
+  toFields(): Field[] {
+    return [new Field(this.value)];
+  }
 
-  // TODO
-  toString() {}
+  toString(): string {
+    return this.toBoolean().toString();
+  }
 
-  // TODO
-  toJSON() {}
+  toJSON() {
+    return this.toString();
+  }
 
-  static toField(x: Bool | boolean) {}
+  static #isBool(x: boolean | Bool | BoolVar): x is Bool {
+    return x instanceof Bool;
+  }
 
-  static Unsafe: {
-    /**
-     * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
-     * as it assumes that the field element is either 1 or 0
-     * (which might not be true).
-     * @param x a {@link Field}
-     */
-    ofField(x: Field | number | string | boolean): Bool;
-  };
+  static #toVar(x: boolean | Bool): BoolVar {
+    if (Bool.#isBool(x)) return x.value;
+    return FieldVar.constant(B(x));
+  }
 
-  static not(x: Bool | boolean) {}
+  static toField(x: Bool | boolean): Field {
+    return new Field(Bool.#toVar(x));
+  }
 
-  static and(x: Bool | boolean, y: Bool | boolean) {}
+  static not(x: Bool | boolean): Bool {
+    if (Bool.#isBool(x)) {
+      return x.not();
+    }
+    return new Bool(!x);
+  }
 
-  static or(x: Bool | boolean, y: Bool | boolean) {}
+  static and(x: Bool | boolean, y: Bool | boolean): Bool {
+    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+      return x.and(y);
+    }
+    return new Bool(x && y);
+  }
 
-  static assertEqual(x: Bool | boolean, y: Bool | boolean) {}
+  static or(x: Bool | boolean, y: Bool | boolean): Bool {
+    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+      return x.or(y);
+    }
+    return new Bool(x || y);
+  }
 
-  static equal(x: Bool | boolean, y: Bool | boolean) {}
+  static assertEqual(x: Bool | boolean, y: Bool | boolean) {
+    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+      x.assertEquals(y);
+      return;
+    }
+    if (x !== y) {
+      throw Error(`Bool.assertEqual(): ${x} != ${y}`);
+    }
+  }
+
+  static equal(x: Bool | boolean, y: Bool | boolean): Bool {
+    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+      return x.equals(y);
+    }
+    return new Bool(x === y);
+  }
 
   static count(x: Bool | boolean[]) {}
 
-  static sizeInFields() {}
+  static sizeInFields() {
+    return 1;
+  }
 
-  static toFields(x: Bool) {}
+  static toFields(x: Bool): Field[] {
+    return [new Field(x.value)];
+  }
 
-  static toAuxiliary(x?: Bool) {}
+  static toAuxiliary(x?: Bool): [] {
+    return [];
+  }
 
   static fromFields(fields: Field[]) {}
 
