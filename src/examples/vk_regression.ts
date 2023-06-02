@@ -73,6 +73,36 @@ async function checkVk(contracts: typeof ConstraintSystems) {
       verificationKey: { data, hash },
     } = await c.compile();
 
+    let methodData = c.analyzeMethods();
+
+    for (const methodKey in methodData) {
+      let actualMethod = methodData[methodKey];
+      let expectedMethod = ref.methods[methodKey];
+
+      if (actualMethod.digest !== expectedMethod.digest) {
+        errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
+  Actual
+    ${JSON.stringify(
+      {
+        digest: actualMethod.digest,
+        rows: actualMethod.rows,
+      },
+      undefined,
+      2
+    )}
+  \n
+  Expected
+    ${JSON.stringify(
+      {
+        digest: expectedMethod.digest,
+        rows: expectedMethod.rows,
+      },
+      undefined,
+      2
+    )}`;
+      }
+    }
+
     if (data !== vk.data || hash.toString() !== vk.hash) {
       errorStack += `\n\nRegression test for contract ${
         c.name
