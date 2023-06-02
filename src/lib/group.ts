@@ -57,18 +57,18 @@ class Group {
     this.x = isField(x) ? x : new Field(x);
     this.y = isField(y) ? y : new Field(y);
 
-    /*
-    technically elements are only group elements if they are on the curve (aka for two points y, x the following equation must hold y^2 = x^3 + 5 over our field)
-    but we never checked that in the original implementation
+    if (this.#isConstant()) {
+      const { add, mul, square } = Fp;
 
-
-    const { add, mul, sqrt, square } = Fp;
-
-    let onCurve = add(mul(xx, mul(xx, xx)), Pallas.b) === square(yy);
-    if (!onCurve) {
-      throw Error(`${{ xx, yy }} is not a valid group element`);
+      let x_bigint = this.x.toBigInt();
+      let y_bigint = this.y.toBigInt();
+      let onCurve =
+        add(mul(x_bigint, mul(x_bigint, x_bigint)), Pallas.b) ===
+        square(y_bigint);
+      if (!onCurve) {
+        throw Error(`${{ x_bigint, y_bigint }} is not a valid group element`);
+      }
     }
-    */
   }
 
   // helpers
