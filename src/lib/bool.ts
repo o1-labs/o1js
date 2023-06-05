@@ -41,7 +41,7 @@ class Bool {
     return FieldConst.equal(value, FieldConst.fromBigint(1n));
   }
 
-  toField() {
+  toField(): Field {
     return new Field(this.value);
   }
 
@@ -66,7 +66,7 @@ class Bool {
     return new Bool(Snarky.bool.or_(this.value, Bool.#toVar(y)));
   }
 
-  assertEquals(y: Bool | boolean, message?: string) {
+  assertEquals(y: Bool | boolean, message?: string): void {
     try {
       if (this.isConstant() && isConstant(y)) {
         if (this.toBoolean() !== toBoolean(y)) {
@@ -80,14 +80,14 @@ class Bool {
     }
   }
 
-  assertTrue(message?: string) {
+  assertTrue(message?: string): void {
     if (this.isConstant() && !this.toBoolean()) {
       throw Error(`Bool.assertTrue(): ${this} != ${true}`);
     }
     this.assertEquals(true, message);
   }
 
-  assertFalse(message?: string) {
+  assertFalse(message?: string): void {
     if (this.isConstant() && this.toBoolean()) {
       throw Error(`Bool.assertFalse(): ${this} != ${false}`);
     }
@@ -113,8 +113,8 @@ class Bool {
     return this.toBoolean().toString();
   }
 
-  toJSON() {
-    return this.toString();
+  toJSON(): boolean {
+    return this.toBoolean();
   }
 
   static #isBool(x: boolean | Bool | BoolVar): x is Bool {
@@ -151,7 +151,7 @@ class Bool {
     return new Bool(x || y);
   }
 
-  static assertEqual(x: Bool | boolean, y: Bool | boolean) {
+  static assertEqual(x: Bool | boolean, y: Bool | boolean): void {
     if (Bool.#isBool(x) && Bool.#isBool(y)) {
       x.assertEquals(y);
       return;
@@ -168,8 +168,6 @@ class Bool {
     return new Bool(x === y);
   }
 
-  static count(x: Bool | boolean[]) {}
-
   static toFields(x: Bool): Field[] {
     return [new Field(x.value)];
   }
@@ -178,24 +176,22 @@ class Bool {
     return [];
   }
 
-  static fromFields(fields: Field[]) {
+  static fromFields(fields: Field[]): Bool {
     if (fields.length !== 1) {
       throw Error(`Bool.fromFields(): expected 1 field, got ${fields.length}`);
     }
     return new Bool(fields[0].value);
   }
 
-  static toJSON(x: Bool) {
-    return x.toString();
+  static toJSON(x: Bool): boolean {
+    return x.toBoolean();
   }
 
-  static fromJSON(b: boolean) {
+  static fromJSON(b: boolean): Bool {
     return new Bool(b);
   }
 
-  static check(x: Bool) {}
-
-  static toInput(x: Bool) {
+  static toInput(x: Bool): { packed: [Field, number][] } {
     return { packed: [[x.toField(), 1] as [Field, number]] };
   }
 
@@ -221,10 +217,12 @@ class Bool {
   }
 
   // TODO
-  static count(x: Bool | boolean[]) {}
+  static count(x: Bool | boolean[]): Field {
+    return new Field(0);
+  }
 
   // TODO
-  static check(x: Bool) {}
+  static check(x: Bool): void {}
 
   static Unsafe = {
     ofField(x: Field | number | string | boolean): Bool {
