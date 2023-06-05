@@ -7,12 +7,8 @@ import {
   verify,
   verifyFieldElement,
 } from './signature.js';
-import {
-  isReady,
-  Ledger,
-  Field as FieldSnarky,
-  shutdown,
-} from '../../snarky.js';
+import { isReady, Ledger, shutdown } from '../../snarky.js';
+import { Field as FieldSnarky } from '../../lib/core.js';
 import { Field } from '../../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';

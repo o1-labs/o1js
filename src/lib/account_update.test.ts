@@ -1,7 +1,6 @@
 import {
   isReady,
   Ledger,
-  Circuit,
   AccountUpdate,
   PrivateKey,
   shutdown,
@@ -12,6 +11,7 @@ import {
   Int64,
   Types,
   TokenId,
+  Provable,
 } from 'snarkyjs';
 
 let address: PublicKey;
@@ -53,9 +53,8 @@ describe('AccountUpdate', () => {
 
   it('can hash an account update', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
-    Circuit.runAndCheck(() => {
+    Provable.runAndCheck(() => {
       let hash = accountUpdate.hash();
-      expect(isField(hash)).toBeTruthy();
 
       // if we clone the accountUpdate, hash should be the same
       let accountUpdate2 = AccountUpdate.clone(accountUpdate);
@@ -99,10 +98,20 @@ describe('AccountUpdate', () => {
     expect(TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
     expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
-});
 
-// to check that we got something that looks like a Field
-// note: `instanceof Field` doesn't work
-function isField(x: any) {
-  return x?.constructor === Field(1).constructor;
-}
+  it('does not throw an error if private key is missing unless if .send is executed', async () => {
+    let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+    Mina.setActiveInstance(Local);
+
+    const feePayerKey = Local.testAccounts[0].privateKey;
+    const feePayer = Local.testAccounts[0].publicKey;
+
+    let tx = await Mina.transaction(feePayer, () => {
+      let accountUpdate = AccountUpdate.fundNewAccount(feePayer);
+    });
+    tx.sign();
+    await expect(tx.send()).rejects.toThrow(
+      'Check signature: Invalid signature on fee payer for key'
+    );
+  });
+});

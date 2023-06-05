@@ -11,6 +11,7 @@ import {
   Mina,
   AccountUpdate,
   Circuit,
+  Provable,
 } from 'snarkyjs';
 
 class Foo extends SmartContract {
@@ -29,7 +30,7 @@ class Foo extends SmartContract {
 
 class Bar extends SmartContract {
   @method call() {
-    Circuit.log('Bar');
+    Provable.log('Bar');
   }
 }
 
@@ -59,7 +60,7 @@ await tx.prove();
 await tx.sign([deployerKey, zkAppPrivateKey]).send();
 
 const fooVerificationKey = Mina.getAccount(zkAppAddress).zkapp?.verificationKey;
-Circuit.log('original verification key', fooVerificationKey);
+Provable.log('original verification key', fooVerificationKey);
 
 // update verification key
 
@@ -75,4 +76,4 @@ const updatedVerificationKey =
   Mina.getAccount(zkAppAddress).zkapp?.verificationKey;
 
 // should be different from Foo
-Circuit.log('updated verification key', updatedVerificationKey);
+Provable.log('updated verification key', updatedVerificationKey);

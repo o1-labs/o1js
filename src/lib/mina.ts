@@ -1,4 +1,4 @@
-import { Circuit, Ledger } from '../snarky.js';
+import { Ledger } from '../snarky.js';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -15,7 +15,6 @@ import {
   Actions,
   Events,
 } from './account_update.js';
-
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
@@ -26,6 +25,7 @@ import { invalidTransactionError } from './mina/errors.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
+import { Provable } from './provable.js';
 import { prettifyStacktrace } from './errors.js';
 
 export {
@@ -208,9 +208,9 @@ function createTransaction(
 
   // run circuit
   // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
-  // SmartContract.analyzeMethods, which would be running its methods again inside `Circuit.constraintSystem`, which
-  // would throw an error when nested inside `Circuit.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
-  // and retry `Circuit.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
+  // SmartContract.analyzeMethods, which would be running its methods again inside `Provable.constraintSystem`, which
+  // would throw an error when nested inside `Provable.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
+  // and retry `Provable.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
   // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
     let err: any;
@@ -218,9 +218,9 @@ function createTransaction(
       if (err !== undefined) err.bootstrap();
       try {
         if (fetchMode === 'test') {
-          Circuit.runUnchecked(() => {
+          Provable.runUnchecked(() => {
             f();
-            Circuit.asProver(() => {
+            Provable.asProver(() => {
               let tx = currentTransaction.get();
               tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
                 toConstant(AccountUpdate, a)
@@ -298,19 +298,11 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      try {
-        let { zkappCommand, proofs } = await addMissingProofs(
-          self.transaction,
-          {
-            proofsEnabled,
-          }
-        );
-        self.transaction = zkappCommand;
-        return proofs;
-      } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
-      }
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+        proofsEnabled,
+      });
+      self.transaction = zkappCommand;
+      return proofs;
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -326,8 +318,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       try {
         return await sendTransaction(self);
       } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
+        throw prettifyStacktrace(error);
       }
     },
   };
@@ -1093,8 +1084,7 @@ function transaction(
     }
     return activeInstance.transaction(sender, f);
   } catch (error) {
-    if (error instanceof Error) error.stack = prettifyStacktrace(error);
-    throw error;
+    throw prettifyStacktrace(error);
   }
 }
 
@@ -1257,6 +1247,14 @@ async function verifyAccountUpdate(
 
   let { commitment, fullCommitment } = transactionCommitments;
 
+  // check if addMissingSignatures failed to include a signature
+  // due to a missing private key
+  if (accountUpdate.authorization === Ledger.dummySignature()) {
+    let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
+    throw Error(
+      `verifyAccountUpdate: Detected a missing signature for (${pk}), private key was missing.`
+    );
+  }
   // we are essentially only checking if the update is empty or an actual update
   function includesChange<T extends {}>(
     val: T | string | null | (string | null)[]
