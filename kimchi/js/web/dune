@@ -18,6 +18,7 @@
   flags.sexp)
  (deps
   ../../wasm/Cargo.toml
+  ../../wasm/Cargo.lock
   (source_tree ../../wasm/src)
   (source_tree ../../wasm/.cargo/config)
   (source_tree ../../../../../../crypto/proof-systems))
