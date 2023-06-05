@@ -1,6 +1,7 @@
 import { defineBinable } from '../bindings/lib/binable.js';
 import { Group } from '../snarky.js';
 import { Field as InternalField } from './field.js';
+import { Bool } from '../snarky.js';
 import { Bool as InternalBool } from './bool.js';
 import { Scalar } from './scalar.js';
 
@@ -42,8 +43,9 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
-const Bool = toFunctionConstructor(InternalBool);
-type Bool = InternalBool;
+// TODO: Remove "2" from the name after defining new class properly
+const Bool2 = toFunctionConstructor(InternalBool);
+type Bool2 = InternalBool;
 
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
@@ -62,17 +64,3 @@ type InferReturn<T> = T extends new (...args: any) => infer Return
 
 // patching ocaml classes
 Group.toAuxiliary = () => [];
-
-// binable
-const BoolBinable = defineBinable({
-  toBytes(b: Bool) {
-    return [Number(b.toBoolean())];
-  },
-  readBytes(bytes, offset) {
-    return [Bool(!!bytes[offset]), offset + 1];
-  },
-});
-Bool.toBytes = BoolBinable.toBytes;
-Bool.fromBytes = BoolBinable.fromBytes;
-Bool.readBytes = BoolBinable.readBytes;
-Bool.sizeInBytes = () => 1;

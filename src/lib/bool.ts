@@ -1,8 +1,10 @@
 import { Snarky } from '../snarky.js';
 import { Field, FieldConst, FieldType, FieldVar } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
+import { defineBinable, type Binable } from '../bindings/lib/binable.js';
+import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
 
-export { BoolVar };
+export { BoolVar, Bool };
 
 // same representation, but use a different name to communicate intent / constraints
 type BoolVar = FieldVar;
@@ -168,10 +170,6 @@ class Bool {
 
   static count(x: Bool | boolean[]) {}
 
-  static sizeInFields() {
-    return 1;
-  }
-
   static toFields(x: Bool): Field[] {
     return [new Field(x.value)];
   }
@@ -191,7 +189,37 @@ class Bool {
   static toInput(x: Bool) {
     return { packed: [[x.toField(), 1] as [Field, number]] };
   }
+
+  static toBytes(b: Bool): number[] {
+    return BoolBinable.toBytes(b);
+  }
+  static fromBytes(bytes: number[]): Bool {
+    return BoolBinable.fromBytes(bytes);
+  }
+  static readBytes<N extends number>(
+    bytes: number[],
+    offset: NonNegativeInteger<N>
+  ): [value: Bool, offset: number] {
+    return BoolBinable.readBytes(bytes, offset);
+  }
+
+  static sizeInFields() {
+    return 1;
+  }
+
+  static sizeInBytes() {
+    return 1;
+  }
 }
+
+const BoolBinable = defineBinable({
+  toBytes(b: Bool) {
+    return [Number(b.toBoolean())];
+  },
+  readBytes(bytes, offset) {
+    return [new Bool(!!bytes[offset]), offset + 1];
+  },
+});
 
 function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
   let type = typeof x;
