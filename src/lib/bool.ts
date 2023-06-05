@@ -180,9 +180,13 @@ class Bool {
 
   static fromFields(fields: Field[]) {}
 
-  static toJSON(x: Bool) {}
+  static toJSON(x: Bool) {
+    return x.toString();
+  }
 
-  static fromJSON(x: boolean) {}
+  static fromJSON(b: boolean) {
+    return new Bool(b);
+  }
 
   static check(x: Bool) {}
 
