@@ -61,8 +61,6 @@ type InferReturn<T> = T extends new (...args: any) => infer Return
   : never;
 
 // patching ocaml classes
-
-Bool.toAuxiliary = () => [];
 Group.toAuxiliary = () => [];
 
 // binable
