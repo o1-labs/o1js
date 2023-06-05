@@ -187,6 +187,10 @@ class Bool {
   static fromJSON(x: boolean) {}
 
   static check(x: Bool) {}
+
+  static toInput(x: Bool) {
+    return { packed: [[x.toField(), 1] as [Field, number]] };
+  }
 }
 
 function isConstant(x: boolean | Bool): x is boolean | ConstantBool {

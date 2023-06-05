@@ -1,6 +1,7 @@
 import { defineBinable } from '../bindings/lib/binable.js';
-import { Bool, Group } from '../snarky.js';
+import { Group } from '../snarky.js';
 import { Field as InternalField } from './field.js';
+import { Bool as InternalBool } from './bool.js';
 import { Scalar } from './scalar.js';
 
 export { Field, Bool, Scalar, Group };
@@ -41,6 +42,9 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
+const Bool = toFunctionConstructor(InternalBool);
+type Bool = InternalBool;
+
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
 ): Class & ((...args: InferArgs<Class>) => InferReturn<Class>) {
@@ -60,10 +64,6 @@ type InferReturn<T> = T extends new (...args: any) => infer Return
 
 Bool.toAuxiliary = () => [];
 Group.toAuxiliary = () => [];
-
-Bool.toInput = function (x) {
-  return { packed: [[x.toField(), 1] as [Field, number]] };
-};
 
 // binable
 const BoolBinable = defineBinable({
