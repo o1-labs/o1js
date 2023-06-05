@@ -712,15 +712,6 @@ let () =
       | s ->
           failwith ("Bool.fromJSON: expected boolean, got " ^ s) )
 
-class type scalar_class =
-  object
-    method value : Boolean.var array Js.prop
-
-    method constantValue : Other_impl.Field.Constant.t Js.Optdef.t Js.prop
-
-    method toJSON : < .. > Js.t Js.meth
-  end
-
 let array_iter t1 ~f =
   for i = 0 to t1##.length - 1 do
     f (array_get_exn t1 i)
