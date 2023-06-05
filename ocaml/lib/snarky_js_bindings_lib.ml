@@ -1355,8 +1355,6 @@ module Snarky = struct
 
     let assert_equal x y = Boolean.Assert.(x = y)
 
-    let read_var x = As_prover.read Boolean.typ x
-
     let equals x y = Boolean.equal x y
   end
 
@@ -1456,8 +1454,6 @@ let snarky =
         method or_ = Snarky.Bool.or_
 
         method assertEqual = Snarky.Bool.assert_equal
-
-        method readVar = Snarky.Bool.read_var
 
         method equals = Snarky.Bool.equals
       end
