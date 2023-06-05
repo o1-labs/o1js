@@ -2,7 +2,6 @@ import { Types } from '../bindings/mina-transaction/types.js';
 import {
   Bool,
   Gate,
-  Ledger,
   Pickles,
   Poseidon as Poseidon_,
   ProvablePure,
@@ -36,7 +35,7 @@ import {
 import { Circuit } from './circuit.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
-import { Poseidon } from './hash.js';
+import { Poseidon, hashConstant } from './hash.js';
 import { UInt32, UInt64 } from './int.js';
 import * as Mina from './mina.js';
 import {
@@ -431,7 +430,7 @@ function wrapMethod(
           result,
           constantBlindingValue
         );
-        accountUpdate.body.callData = Poseidon_.hash(callDataFields, false);
+        accountUpdate.body.callData = hashConstant(callDataFields);
 
         if (!Authorization.hasAny(accountUpdate)) {
           Authorization.setLazyProof(
@@ -715,9 +714,8 @@ class SmartContract {
   static digest() {
     // TODO: this should use the method digests in a deterministic order!
     let methodData = this.analyzeMethods();
-    let hash = Poseidon_.hash(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
-      false
+    let hash = hashConstant(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
   }

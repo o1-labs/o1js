@@ -1,7 +1,8 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
-import type { Scalar, ScalarConst } from './lib/scalar.js';
-// export { Field };
+import type { ScalarConst } from './lib/scalar.js';
+import type { MlArray, MlTuple, MlList, MlOption } from './lib/ml/base.js';
+
 export { SnarkyField };
 export {
   Bool,
@@ -45,12 +46,6 @@ declare interface ProvablePure<T> extends Provable<T> {
   sizeInFields(): number;
   check: (x: T) => void;
 }
-
-// ocaml types
-type MlTuple<X, Y> = [0, X, Y];
-type MlArray<T> = [0, ...T[]];
-type MlList<T> = [0, T, 0 | MlList<T>];
-type MlOption<T> = 0 | [0, T];
 
 declare namespace Snarky {
   type Keypair = unknown;
@@ -1261,13 +1256,16 @@ type Gate = {
 // }
 
 declare const Poseidon: {
-  hash(input: Field[], isChecked: boolean): Field;
+  hash(input: MlArray<FieldVar>, isChecked: boolean): FieldVar;
   update(
-    state: [Field, Field, Field],
-    input: Field[],
+    state: MlArray<FieldVar>,
+    input: MlArray<FieldVar>,
     isChecked: boolean
-  ): [Field, Field, Field];
-  hashToGroup(input: Field[], isChecked: boolean): MlTuple<FieldVar, FieldVar>;
+  ): [0, FieldVar, FieldVar, FieldVar];
+  hashToGroup(
+    input: MlArray<FieldVar>,
+    isChecked: boolean
+  ): MlTuple<FieldVar, FieldVar>;
   prefixes: Record<
     | 'event'
     | 'events'
@@ -1279,8 +1277,8 @@ declare const Poseidon: {
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
-  spongeAbsorb(sponge: unknown, x: Field): void;
-  spongeSqueeze(sponge: unknown): Field;
+  spongeAbsorb(sponge: unknown, x: FieldVar): void;
+  spongeSqueeze(sponge: unknown): FieldVar;
 };
 
 // these types should be implemented by corresponding snarkyjs classes

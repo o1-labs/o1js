@@ -4,7 +4,7 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Bool, ProvablePure, Pickles, Poseidon } from '../snarky.js';
+import { Bool, ProvablePure, Pickles } from '../snarky.js';
 import { Field } from './core.js';
 import {
   FlexibleProvable,
@@ -17,6 +17,7 @@ import {
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
+import { hashConstant } from './hash.js';
 
 // public API
 export {
@@ -339,9 +340,8 @@ function ZkProgram<
     let methodData = methodIntfs.map((methodEntry, i) =>
       analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
     );
-    let hash = Poseidon.hash(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
-      false
+    let hash = hashConstant(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
   }

@@ -5,8 +5,17 @@ import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
 import { withMessage } from './core.js';
+import { MlArray } from './ml/base.js';
 
-export { Field, ConstantField, FieldType, FieldVar, FieldConst, isField };
+export {
+  Field,
+  ConstantField,
+  FieldType,
+  FieldVar,
+  FieldConst,
+  isField,
+  MlFieldArray,
+};
 
 const SnarkyFieldConstructor = SnarkyField(1).constructor;
 
@@ -1218,6 +1227,15 @@ const FieldBinable = defineBinable({
     ];
   },
 });
+
+const MlFieldArray = {
+  to(arr: Field[]): MlArray<FieldVar> {
+    return MlArray.to(arr.map((x) => x.value));
+  },
+  from([, ...arr]: MlArray<FieldVar>) {
+    return arr.map((x) => new Field(x));
+  },
+};
 
 function isField(x: unknown): x is Field {
   return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
