@@ -48,6 +48,14 @@ class Scalar {
   }
 
   /**
+   * Check whether this {@link Scalar} is a hard-coded constant in the constraint system.
+   * If a {@link Scalar} is constructed outside provable code, it is a constant.
+   */
+  isConstant(): this is Scalar & { constantValue: ScalarConst } {
+    return this.constantValue !== undefined;
+  }
+
+  /**
    * Convert this {@link Scalar} into a constant if it isn't already.
    *
    * If the scalar is a variable, this only works inside `asProver` or `witness` blocks.

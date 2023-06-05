@@ -1,5 +1,6 @@
-import { Scalar, withMessage } from './core.js';
+import { withMessage } from './core.js';
 import { Field, FieldVar, isField } from './field.js';
+import { Scalar } from './scalar.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
@@ -130,20 +131,15 @@ class Group {
    * ```
    */
   scale(s: Scalar | number | bigint) {
-    let scalar =
-      typeof s === 'bigint' || typeof s === 'number'
-        ? Scalar.fromBigInt(BigInt(s))
-        : s;
-    let fields = scalar.toFields();
+    let scalar = Scalar.from(s);
 
-    if (this.#isConstant() && fields.every((f) => f.isConstant())) {
-      let g_proj = Pallas.scale(this.#toAffine(), BigInt(scalar.toJSON()));
+    if (this.#isConstant() && scalar.isConstant()) {
+      let g_proj = Pallas.scale(this.#toAffine(), scalar.toBigInt());
       return Group.#fromProjective(g_proj);
     } else {
-      let [, x, y] = Snarky.group.scale(this.#toTuple(), [
-        0,
-        ...fields.map((f) => f.value).reverse(),
-      ]);
+      let [, ...bits] = scalar.value;
+      bits.reverse();
+      let [, x, y] = Snarky.group.scale(this.#toTuple(), [0, ...bits]);
       return new Group({ x, y });
     }
   }
