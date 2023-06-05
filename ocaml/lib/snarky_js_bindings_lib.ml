@@ -733,21 +733,16 @@ type sponge =
   | Checked of Poseidon_sponge_checked.t
   | Unchecked of Poseidon_sponge.t
 
-let hash_array (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
-    =
-  let input = Array.map (Js.to_array xs) ~f:of_js_field in
-  if Js.to_bool is_checked then Random_oracle.Checked.hash input
-  else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
+let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
+  if Js.to_bool is_checked then Random_oracle.Checked.hash xs
+  else Random_oracle.hash (Array.map ~f:to_unchecked xs) |> Field.constant
 
 let poseidon =
   object%js
     (* this could be removed eventually since it's easily implemented using `update` *)
-    method hash (xs : field_class Js.t Js.js_array Js.t)
-        (is_checked : bool Js.t) : field_class Js.t =
-      to_js_field (hash_array xs is_checked)
+    method hash input is_checked = hash_array input is_checked
 
-    method hashToGroup (xs : field_class Js.t Js.js_array Js.t)
-        (is_checked : bool Js.t) =
+    method hashToGroup (xs : Field.t array) (is_checked : bool Js.t) =
       let input = hash_array xs is_checked in
       let digest =
         if Js.to_bool is_checked then
@@ -758,45 +753,36 @@ let poseidon =
       in
       digest
 
-    method update (state : field_class Js.t Js.js_array Js.t)
-        (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
-        : field_class Js.t Js.js_array Js.t =
-      let state : Field.t Random_oracle.State.t =
-        Array.map (Js.to_array state) ~f:of_js_field |> Obj.magic
-      in
-      let input = Array.map (Js.to_array xs) ~f:of_js_field in
-      let new_state : field_class Js.t array =
-        ( if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
-        else
-          Random_oracle.update
-            ~state:(Random_oracle.State.map ~f:to_unchecked state)
-            (Array.map ~f:to_unchecked input)
-          |> Random_oracle.State.map ~f:Field.constant )
-        |> Random_oracle.State.map ~f:to_js_field
-        |> Obj.magic
-      in
-      new_state |> Js.array
+    method update (state : Field.t Random_oracle.State.t)
+        (input : Field.t array) (is_checked : bool Js.t)
+        : Field.t Random_oracle.State.t =
+      if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
+      else
+        Random_oracle.update
+          ~state:(Random_oracle.State.map ~f:to_unchecked state)
+          (Array.map ~f:to_unchecked input)
+        |> Random_oracle.State.map ~f:Field.constant
 
     (* returns a "sponge" that stays opaque to JS *)
-    method spongeCreate (is_checked : bool Js.t) =
+    method spongeCreate (is_checked : bool Js.t) : sponge =
       if Js.to_bool is_checked then
         Checked
           (Poseidon_sponge_checked.create ?init:None sponge_params_checked)
       else Unchecked (Poseidon_sponge.create ?init:None sponge_params)
 
-    method spongeAbsorb (sponge : sponge) field : unit =
+    method spongeAbsorb (sponge : sponge) (field : Field.t) : unit =
       match sponge with
       | Checked s ->
-          Poseidon_sponge_checked.absorb s (of_js_field field)
+          Poseidon_sponge_checked.absorb s field
       | Unchecked s ->
-          Poseidon_sponge.absorb s (to_unchecked @@ of_js_field field)
+          Poseidon_sponge.absorb s (to_unchecked @@ field)
 
-    method spongeSqueeze (sponge : sponge) =
+    method spongeSqueeze (sponge : sponge) : Field.t =
       match sponge with
       | Checked s ->
-          Poseidon_sponge_checked.squeeze s |> to_js_field
+          Poseidon_sponge_checked.squeeze s
       | Unchecked s ->
-          Poseidon_sponge.squeeze s |> Field.constant |> to_js_field
+          Poseidon_sponge.squeeze s |> Field.constant
 
     val prefixes =
       let open Hash_prefixes in
