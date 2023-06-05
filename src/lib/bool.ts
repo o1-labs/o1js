@@ -176,7 +176,7 @@ class Bool {
     return [new Field(x.value)];
   }
 
-  static toAuxiliary(x?: Bool): [] {
+  static toAuxiliary(_?: Bool): [] {
     return [];
   }
 
