@@ -1,5 +1,5 @@
-import { Group, Bool, Ledger } from '../snarky.js';
-import { Field, Scalar } from './core.js';
+import { Group, Ledger } from '../snarky.js';
+import { Field, Scalar, Bool } from './core.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
 import { hashWithPrefix } from './hash.js';
 import {

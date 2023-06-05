@@ -1,6 +1,6 @@
 import { Snarky, SnarkyField, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Bool } from '../snarky.js';
+import { Bool } from './core.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';

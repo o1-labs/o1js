@@ -1,7 +1,5 @@
-import { defineBinable } from '../bindings/lib/binable.js';
 import { Group } from '../snarky.js';
 import { Field as InternalField } from './field.js';
-import { Bool } from '../snarky.js';
 import { Bool as InternalBool } from './bool.js';
 import { Scalar } from './scalar.js';
 
@@ -43,9 +41,8 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
-// TODO: Remove "2" from the name after defining new class properly
-const Bool2 = toFunctionConstructor(InternalBool);
-type Bool2 = InternalBool;
+const Bool = toFunctionConstructor(InternalBool);
+type Bool = InternalBool;
 
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
