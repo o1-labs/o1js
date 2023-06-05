@@ -219,6 +219,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.add` on the instance instead
+   *
    * Adds a {@link Group} element to another one.
    */
   static add(g1: Group, g2: Group) {
@@ -226,6 +228,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.sub` on the instance instead
+   *
    * Subtracts a {@link Group} element from another one.
    */
   static sub(g1: Group, g2: Group) {
@@ -233,6 +237,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.neg` on the instance instead
+   *
    * Negates a {@link Group} element. Under the hood, it simply negates the `y` coordinate and leaves the `x` coordinate as is.
    *
    * ```typescript
@@ -244,6 +250,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.scale` on the instance instead
+   *
    * Elliptic curve scalar multiplication. Scales a {@link Group} element `n`-times by itself, where `n` is the {@link Scalar}.
    *
    * ```typescript
@@ -256,6 +264,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.assertEqual` on the instance instead.
+   *
    * Assert that two {@link Group} elements are equal to another.
    * Throws an error if the assertion fails.
    *
@@ -268,6 +278,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.equals` on the instance instead.
+   *
    * Checks if a {@link Group} element is equal to another {@link Group} element.
    * Returns a {@link Bool}.
    *
