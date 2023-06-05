@@ -1,12 +1,15 @@
-import { Bool, Scalar, Ledger } from '../snarky.js';
-import { Field, Group } from './core.js';
+import { Bool, Ledger } from '../snarky.js';
+import { Field, Group, Scalar } from './core.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
 } from '../mina-signer/src/signature.js';
-import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
+import {
+  Scalar as ScalarBigint,
+  PrivateKey as PrivateKeyBigint,
+} from '../provable/curve-bigint.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 
 // external API
@@ -17,6 +20,10 @@ export { PrivateKey, PublicKey, Signature };
  */
 class PrivateKey extends CircuitValue {
   @prop s: Scalar;
+
+  constructor(s: Scalar) {
+    super(s);
+  }
 
   /**
    * You can use this method to generate a private key. You can then obtain
@@ -40,6 +47,20 @@ class PrivateKey extends CircuitValue {
   }
 
   /**
+   * Convert this {@link PrivateKey} to a bigint
+   */
+  toBigInt() {
+    return this.s.toBigInt();
+  }
+
+  /**
+   * Create a {@link PrivateKey} from a bigint
+   */
+  static fromBigInt(sk: PrivateKeyBigint) {
+    return new PrivateKey(Scalar.from(sk));
+  }
+
+  /**
    * Derives the associated public key.
    *
    * @returns a {@link PublicKey}.
@@ -54,8 +75,8 @@ class PrivateKey extends CircuitValue {
    * @returns a {@link PrivateKey}.
    */
   static fromBase58(privateKeyBase58: string) {
-    let scalar = Ledger.privateKeyOfString(privateKeyBase58);
-    return new PrivateKey(scalar);
+    let scalar = PrivateKeyBigint.fromBase58(privateKeyBase58);
+    return new PrivateKey(Scalar.from(scalar));
   }
 
   /**
@@ -72,7 +93,7 @@ class PrivateKey extends CircuitValue {
    * @returns a base58 encoded string
    */
   static toBase58(privateKey: { s: Scalar }) {
-    return Ledger.privateKeyToString(privateKey);
+    return PrivateKeyBigint.toBase58(privateKey.s.toBigInt());
   }
 }
 

@@ -22,6 +22,12 @@ function constFromBigint(x: Fp) {
 const FieldConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
+  equal(x: FieldConst, y: FieldConst) {
+    for (let i = 0, n = Fp.sizeInBytes(); i < n; i++) {
+      if (x[i] !== y[i]) return false;
+    }
+    return true;
+  },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
   [-1]: constFromBigint(Fp(-1n)),
@@ -59,6 +65,9 @@ const FieldVar = {
   constant(x: bigint | FieldConst): ConstantFieldVar {
     let x0 = typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
     return [FieldType.Constant, x0];
+  },
+  isConstant(x: FieldVar): x is ConstantFieldVar {
+    return x[0] === FieldType.Constant;
   },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
