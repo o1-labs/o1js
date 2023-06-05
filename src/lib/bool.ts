@@ -219,6 +219,26 @@ class Bool {
   static sizeInBytes() {
     return 1;
   }
+
+  // TODO
+  static count(x: Bool | boolean[]) {}
+
+  // TODO
+  static check(x: Bool) {}
+
+  static Unsafe = {
+    ofField(x: Field | number | string | boolean): Bool {
+      if (typeof x === 'number') {
+        return new Bool(x === 1);
+      } else if (typeof x === 'string') {
+        return new Bool(x === '1');
+      } else if (typeof x === 'boolean') {
+        return new Bool(x);
+      } else {
+        return new Bool(x.value);
+      }
+    },
+  };
 }
 
 const BoolBinable = defineBinable({
