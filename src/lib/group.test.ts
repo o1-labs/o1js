@@ -29,18 +29,8 @@ describe('group', () => {
       it('g+g does not throw', () => {
         expect(() => {
           Provable.runAndCheck(() => {
-            const x = Provable.witness(Group, () =>
-              Group({
-                x: -1,
-                y: 2,
-              })
-            );
-            const y = Provable.witness(Group, () =>
-              Group({
-                x: -1,
-                y: 2,
-              })
-            );
+            const x = Provable.witness(Group, () => g);
+            const y = Provable.witness(Group, () => g);
             x.add(y);
           });
         }).not.toThrow();
@@ -228,6 +218,31 @@ describe('group', () => {
         const x = Group.fromJSON({ x: -1, y: 2 });
         expect(x).toEqual(g);
       });
+    });
+  });
+
+  describe('Variable/Constant circuit equality ', () => {
+    it('add', () => {
+      Provable.runAndCheck(() => {
+        let y = Provable.witness(Group, () => g).add(
+          Provable.witness(Group, () => Group.generator)
+        );
+        let z = g.add(Group.generator);
+        y.assertEquals(z);
+      });
+    });
+    it('sub', () => {
+      let y = Provable.witness(Group, () => g).sub(
+        Provable.witness(Group, () => Group.generator)
+      );
+      let z = g.sub(Group.generator);
+      y.assertEquals(z);
+    });
+    it('sub', () => {
+      let y = Provable.witness(Group, () => g).assertEquals(
+        Provable.witness(Group, () => g)
+      );
+      let z = g.assertEquals(g);
     });
   });
 });

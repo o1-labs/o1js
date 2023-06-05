@@ -9,9 +9,6 @@ import { mod } from '../bindings/crypto/finite_field.js';
 
 export { Field, Bool, Scalar, Group };
 
-// internal
-export { withMessage };
-
 /**
  * A {@link Field} is an element of a prime order [finite field](https://en.wikipedia.org/wiki/Finite_field).
  * Every other provable type is built using the {@link Field} type.
@@ -68,12 +65,6 @@ type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
 type InferReturn<T> = T extends new (...args: any) => infer Return
   ? Return
   : never;
-
-function withMessage(error: unknown, message?: string) {
-  if (message === undefined || !(error instanceof Error)) return error;
-  error.message = `${message}\n${error.message}`;
-  return error;
-}
 
 // patching ocaml classes
 
