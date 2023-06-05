@@ -34,7 +34,7 @@ class Bool {
     if (this.isConstant()) {
       value = this.value[1];
     } else {
-      value = Snarky.bool.readVar(this.value);
+      value = Snarky.field.readVar(this.value);
     }
     return FieldConst.equal(value, FieldConst.fromBigint(1n));
   }
