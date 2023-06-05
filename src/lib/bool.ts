@@ -178,7 +178,12 @@ class Bool {
     return [];
   }
 
-  static fromFields(fields: Field[]) {}
+  static fromFields(fields: Field[]) {
+    if (fields.length !== 1) {
+      throw Error(`Bool.fromFields(): expected 1 field, got ${fields.length}`);
+    }
+    return new Bool(fields[0].value);
+  }
 
   static toJSON(x: Bool) {
     return x.toString();
