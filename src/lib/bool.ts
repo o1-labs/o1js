@@ -36,7 +36,7 @@ class Bool {
     } else {
       value = Snarky.bool.readVar(this.value);
     }
-    return areUint8ArraysEqual(value, FieldConst.fromBigint(1n));
+    return FieldConst.equal(value, FieldConst.fromBigint(1n));
   }
 
   toField() {
@@ -187,10 +187,6 @@ class Bool {
   static fromJSON(x: boolean) {}
 
   static check(x: Bool) {}
-}
-
-function areUint8ArraysEqual(x: Uint8Array, y: Uint8Array) {
-  return x.length === y.length && x.every((v, i) => v === y[i]);
 }
 
 function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
