@@ -1,8 +1,8 @@
-import { Circuit, Field, Bool } from '../snarky.js';
+import { Field, Bool } from './core.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
-import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
+import { Provable } from './provable.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -10,7 +10,6 @@ export { UInt32, UInt64, Int64, Sign };
 /**
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
  */
-@CatchAndPrettifyStacktraceForAllMethods
 class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
@@ -59,7 +58,7 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    return Circuit.if(
+    return Provable.if(
       this.greaterThan(UInt64.from(max)),
       UInt32.from(max),
       new UInt32(this.value)
@@ -136,7 +135,7 @@ class UInt64 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Circuit.witness(
+    let q = Provable.witness(
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
@@ -374,7 +373,6 @@ class UInt64 extends CircuitValue {
 /**
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
  */
-@CatchAndPrettifyStacktraceForAllMethods
 class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
@@ -480,7 +478,7 @@ class UInt32 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Circuit.witness(
+    let q = Provable.witness(
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
@@ -709,7 +707,6 @@ class UInt32 extends CircuitValue {
   }
 }
 
-@CatchAndPrettifyStacktraceForAllMethods
 class Sign extends CircuitValue {
   @prop value: Field; // +/- 1
 
@@ -758,7 +755,6 @@ type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
 /**
  * A 64 bit signed integer with values ranging from -18,446,744,073,709,551,615 to 18,446,744,073,709,551,615.
  */
-@CatchAndPrettifyStacktraceForAllMethods
 class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
   // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
@@ -844,7 +840,7 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   // --- circuit-compatible operations below ---
   // the assumption here is that all Int64 values that appear in a circuit are already checked as valid
-  // this is because Circuit.witness calls .check, which calls .check on each prop, i.e. UInt64 and Sign
+  // this is because Provable.witness calls .check, which calls .check on each prop, i.e. UInt64 and Sign
   // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
   /**
    * Static method to create a {@link Int64} with value `0`.
@@ -878,7 +874,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     // constant case - just return unchecked value
     if (x.isConstant()) return Int64.fromFieldUnchecked(x);
     // variable case - create a new checked witness and prove consistency with original field
-    let xInt = Circuit.witness(Int64, () => Int64.fromFieldUnchecked(x));
+    let xInt = Provable.witness(Int64, () => Int64.fromFieldUnchecked(x));
     xInt.toField().assertEquals(x); // sign(x) * |x| === x
     return xInt;
   }
@@ -935,7 +931,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Circuit.if(this.isPositive(), rest, y_.value.sub(rest));
+    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest));
   }
 

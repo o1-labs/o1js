@@ -1,12 +1,8 @@
-import {
-  HashInput,
-  provable,
-  ProvableExtended,
-  Struct,
-} from './circuit_value.js';
-import { Poseidon as Poseidon_, Field, Bool, Circuit } from '../snarky.js';
-import { inCheckedComputation } from './proof_system.js';
+import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
+import { Poseidon as Poseidon_ } from '../snarky.js';
+import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
+import { Provable } from './provable.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -27,7 +23,7 @@ class Sponge {
   private sponge: unknown;
 
   constructor() {
-    let isChecked = inCheckedComputation();
+    let isChecked = Provable.inCheckedComputation();
     this.sponge = Poseidon_.spongeCreate(isChecked);
   }
 
@@ -53,7 +49,7 @@ const Poseidon = {
     // y = sqrt(y^2)
     let { x, y } = Poseidon_.hashToGroup(input, isChecked);
 
-    let x0 = Circuit.witness(Field, () => {
+    let x0 = Provable.witness(Field, () => {
       // the even root of y^2 will become x0, so the APIs are uniform
       let isEven = y.toBigInt() % 2n === 0n;
 
