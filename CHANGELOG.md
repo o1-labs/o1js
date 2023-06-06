@@ -15,7 +15,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/a632313a...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/3fbd9678e...HEAD)
+
+> no unreleased changes yet
+
+## [0.11.0](https://github.com/o1-labs/snarkyjs/compare/a632313a...3fbd9678e)
 
 ### Breaking changes
 
@@ -54,6 +58,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Fix `field.assertBool()` https://github.com/o1-labs/snarkyjs/issues/469 https://github.com/o1-labs/snarkyjs/pull/902
 - Fix `Field(bigint)` where `bigint` is larger than the field modulus https://github.com/o1-labs/snarkyjs/issues/432 https://github.com/o1-labs/snarkyjs/pull/902
   - The new behaviour is to use the modular residual of the input
+- No longer fail on missing signature in `tx.send()`. This fixes the flow of deploying a zkApp from a UI via a wallet https://github.com/o1-labs/snarkyjs/pull/931 [@marekyggdrasil](https://github.com/marekyggdrasil)
 
 ## [0.10.1](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...a632313a)
 
