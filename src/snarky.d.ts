@@ -1426,25 +1426,22 @@ declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type Statement = { input: Field[]; output: Field[] };
-  type ProofWithStatement = {
-    publicInput: Field[];
-    publicOutput: Field[];
-    proof: Proof;
-  };
+  type Statement = MlTuple<MlArray<FieldVar>, MlArray<FieldVar>>; // (publicInput, publicOutput)
+  type StatementConst = MlTuple<MlArray<FieldConst>, MlArray<FieldConst>>; // (publicInput, publicOutput)
   type Rule = {
     identifier: string;
-    main: (publicInput: Field[]) => {
-      publicOutput: Field[];
-      previousStatements: Statement[];
-      shouldVerify: Bool[];
+    main: (publicInput: MlArray<FieldVar>) => {
+      publicOutput: MlArray<FieldVar>;
+      previousStatements: MlArray<Statement>;
+      shouldVerify: MlArray<BoolVar>;
     };
-    proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
+    proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
+  // returns (publicOutput, proof)
   type Prover = (
-    publicInput: Field[],
-    previousProofs: Proof[]
-  ) => Promise<{ publicOutput: Field[]; proof: Proof }>;
+    publicInput: MlArray<FieldConst>,
+    previousProofs: MlArray<Proof>
+  ) => Promise<MlTuple<MlArray<FieldConst>, Proof>>;
 }
 
 declare const Pickles: {
@@ -1470,20 +1467,20 @@ declare const Pickles: {
    * 4) let (wrap_pk, wrap_vk) -> log_wrap -> Snarky_log.Constraints.log -> constraint_count (yes, a second time)
    */
   compile: (
-    rules: Pickles.Rule[],
+    rules: MlArray<Pickles.Rule>,
     signature: { publicInputSize: number; publicOutputSize: number }
   ) => {
-    provers: Pickles.Prover[];
+    provers: MlArray<Pickles.Prover>;
     verify: (
-      statement: Pickles.Statement,
+      statement: Pickles.StatementConst,
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
-    getVerificationKeyArtifact: () => { data: string; hash: string };
+    getVerificationKey: () => { data: string; hash: string };
   };
 
   verify(
-    statement: Pickles.Statement,
+    statement: Pickles.StatementConst,
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;

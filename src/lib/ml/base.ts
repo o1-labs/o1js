@@ -17,3 +17,20 @@ const MlArray = {
     return arr;
   },
 };
+
+const MlTuple = Object.assign(
+  function MlTuple<X, Y>(x: X, y: Y): MlTuple<X, Y> {
+    return [0, x, y];
+  },
+  {
+    from<X, Y>([, x, y]: MlTuple<X, Y>): [X, Y] {
+      return [x, y];
+    },
+    first<X>(t: MlTuple<X, unknown>): X {
+      return t[1];
+    },
+    second<Y>(t: MlTuple<unknown, Y>): Y {
+      return t[2];
+    },
+  }
+);

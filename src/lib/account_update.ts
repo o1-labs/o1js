@@ -26,6 +26,8 @@ import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 import { Ml } from './ml/conversion.js';
+import { MlFieldConstArray } from './field.js';
+import { MlArray } from './ml/base.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -64,11 +66,12 @@ let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,
 });
 
-let zkAppProver = Prover<{
+type ZkappProverData = {
   transaction: ZkappCommand;
   accountUpdate: AccountUpdate;
   index: number;
-}>();
+};
+let zkAppProver = Prover<ZkappProverData>();
 
 type AuthRequired = Types.Json.AuthRequired;
 
@@ -1763,6 +1766,10 @@ const ZkappCommand = {
   },
 };
 
+type AccountUpdateProved = AccountUpdate & {
+  lazyAuthorization?: LazySignature;
+};
+
 const Authorization = {
   hasLazyProof(accountUpdate: AccountUpdate) {
     return accountUpdate.lazyAuthorization?.kind === 'lazy-proof';
@@ -1775,9 +1782,10 @@ const Authorization = {
     accountUpdate.authorization = { signature };
     accountUpdate.lazyAuthorization = undefined;
   },
-  setProof(accountUpdate: AccountUpdate, proof: string) {
+  setProof(accountUpdate: AccountUpdate, proof: string): AccountUpdateProved {
     accountUpdate.authorization = { proof };
     accountUpdate.lazyAuthorization = undefined;
+    return accountUpdate as AccountUpdateProved;
   },
   setLazySignature(
     accountUpdate: AccountUpdate,
@@ -1953,93 +1961,17 @@ async function addMissingProofs(
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
 }> {
-  type AccountUpdateProved = AccountUpdate & {
-    lazyAuthorization?: LazySignature;
-  };
-
-  async function addProof(index: number, accountUpdate: AccountUpdate) {
-    accountUpdate = AccountUpdate.clone(accountUpdate);
-
-    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
-      return {
-        accountUpdateProved: accountUpdate as AccountUpdateProved,
-        proof: undefined,
-      };
-    }
-    if (!proofsEnabled) {
-      Authorization.setProof(accountUpdate, await dummyBase64Proof());
-      return {
-        accountUpdateProved: accountUpdate as AccountUpdateProved,
-        proof: undefined,
-      };
-    }
-    let {
-      methodName,
-      args,
-      previousProofs,
-      ZkappClass,
-      memoized,
-      blindingValue,
-    } = accountUpdate.lazyAuthorization;
-    let publicInput = accountUpdate.toPublicInput();
-    let publicInputFields = ZkappPublicInput.toFields(publicInput);
-    if (ZkappClass._provers === undefined)
-      throw Error(
-        `Cannot prove execution of ${methodName}(), no prover found. ` +
-          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
-      );
-    let provers = ZkappClass._provers;
-    let methodError =
-      `Error when computing proofs: Method ${methodName} not found. ` +
-      `Make sure your environment supports decorators, and annotate with \`@method ${methodName}\`.`;
-    if (ZkappClass._methods === undefined) throw Error(methodError);
-    let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
-    if (i === -1) throw Error(methodError);
-    let { proof } = await zkAppProver.run(
-      [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
-      { transaction: zkappCommand, accountUpdate, index },
-      async () => {
-        let id = memoizationContext.enter({
-          memoized,
-          currentIndex: 0,
-          blindingValue,
-        });
-        try {
-          return await provers[i](publicInputFields, previousProofs);
-        } catch (err) {
-          console.error(
-            `Error when proving ${ZkappClass.name}.${methodName}()`
-          );
-          throw err;
-        } finally {
-          memoizationContext.leave(id);
-        }
-      }
-    );
-    Authorization.setProof(
-      accountUpdate,
-      Pickles.proofToBase64Transaction(proof)
-    );
-    let maxProofsVerified = ZkappClass._maxProofsVerified!;
-    const Proof = ZkappClass.Proof();
-    return {
-      accountUpdateProved: accountUpdate as AccountUpdateProved,
-      proof: new Proof({
-        publicInput,
-        publicOutput: undefined,
-        proof,
-        maxProofsVerified,
-      }),
-    };
-  }
-
   let { feePayer, accountUpdates, memo } = zkappCommand;
   // compute proofs serially. in parallel would clash with our global variable
   // hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput, Empty> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
-    let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
+    let { accountUpdateProved, proof } = await addProof(
+      zkappCommand,
+      i,
+      proofsEnabled
+    );
     accountUpdatesProved.push(accountUpdateProved);
     proofs.push(proof);
   }
@@ -2047,4 +1979,101 @@ async function addMissingProofs(
     zkappCommand: { feePayer, accountUpdates: accountUpdatesProved, memo },
     proofs,
   };
+}
+
+async function addProof(
+  transaction: ZkappCommand,
+  index: number,
+  proofsEnabled: boolean
+) {
+  let accountUpdate = transaction.accountUpdates[index];
+  accountUpdate = AccountUpdate.clone(accountUpdate);
+
+  if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
+    return {
+      accountUpdateProved: accountUpdate as AccountUpdateProved,
+      proof: undefined,
+    };
+  }
+  if (!proofsEnabled) {
+    Authorization.setProof(accountUpdate, await dummyBase64Proof());
+    return {
+      accountUpdateProved: accountUpdate as AccountUpdateProved,
+      proof: undefined,
+    };
+  }
+
+  let lazyProof: LazyProof = accountUpdate.lazyAuthorization;
+  let prover = getZkappProver(lazyProof);
+  let proverData = { transaction, accountUpdate, index };
+  let proof = await createZkappProof(prover, lazyProof, proverData);
+
+  let accountUpdateProved = Authorization.setProof(
+    accountUpdate,
+    Pickles.proofToBase64Transaction(proof.proof)
+  );
+  return { accountUpdateProved, proof };
+}
+
+async function createZkappProof(
+  prover: Pickles.Prover,
+  {
+    methodName,
+    args,
+    previousProofs,
+    ZkappClass,
+    memoized,
+    blindingValue,
+  }: LazyProof,
+  { transaction, accountUpdate, index }: ZkappProverData
+): Promise<Proof<ZkappPublicInput, Empty>> {
+  let publicInput = accountUpdate.toPublicInput();
+  let publicInputFields = MlFieldConstArray.to(
+    ZkappPublicInput.toFields(publicInput)
+  );
+
+  let [, , proof] = await zkAppProver.run(
+    [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+    { transaction, accountUpdate, index },
+    async () => {
+      let id = memoizationContext.enter({
+        memoized,
+        currentIndex: 0,
+        blindingValue,
+      });
+      try {
+        return await prover(publicInputFields, MlArray.to(previousProofs));
+      } catch (err) {
+        console.error(`Error when proving ${ZkappClass.name}.${methodName}()`);
+        throw err;
+      } finally {
+        memoizationContext.leave(id);
+      }
+    }
+  );
+
+  let maxProofsVerified = ZkappClass._maxProofsVerified!;
+  const Proof = ZkappClass.Proof();
+  return new Proof({
+    publicInput,
+    publicOutput: undefined,
+    proof,
+    maxProofsVerified,
+  });
+}
+
+function getZkappProver({ methodName, ZkappClass }: LazyProof) {
+  if (ZkappClass._provers === undefined)
+    throw Error(
+      `Cannot prove execution of ${methodName}(), no prover found. ` +
+        `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+    );
+  let provers = ZkappClass._provers;
+  let methodError =
+    `Error when computing proofs: Method ${methodName} not found. ` +
+    `Make sure your environment supports decorators, and annotate with \`@method ${methodName}\`.`;
+  if (ZkappClass._methods === undefined) throw Error(methodError);
+  let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
+  if (i === -1) throw Error(methodError);
+  return provers[i];
 }
