@@ -42,7 +42,7 @@ class Bool {
   }
 
   toField(): Field {
-    return new Field(this.value);
+    return Bool.toField(this);
   }
 
   not(): Bool {
@@ -106,7 +106,7 @@ class Bool {
   }
 
   toFields(): Field[] {
-    return [new Field(this.value)];
+    return Bool.toFields(this);
   }
 
   toString(): string {
@@ -169,7 +169,7 @@ class Bool {
   }
 
   static toFields(x: Bool): Field[] {
-    return [new Field(x.value)];
+    return [Bool.toField(x)];
   }
 
   static toAuxiliary(_?: Bool): [] {
