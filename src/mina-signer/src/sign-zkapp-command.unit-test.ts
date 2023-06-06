@@ -163,7 +163,7 @@ test(
     let feePayerAddress = PrivateKey.toPublicKey(feePayerKey);
 
     let { feePayer, memo: memoBase58 } = zkappCommand;
-    feePayer.authorization = Ledger.dummySignature();
+    feePayer.authorization = Signature.toBase58(Signature.dummy());
     let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
 
     // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
@@ -215,13 +215,13 @@ test(
     // signature
     let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
     let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
-    let sigTestnetOcaml = Ledger.signFieldElement(
-      ocamlCommitments.fullCommitment,
+    let sigTestnetOcaml = Test.signature.signFieldElement(
+      Ml.toFieldConst(ocamlCommitments.fullCommitment),
       Ml.fromPrivateKey(feePayerKeySnarky),
       false
     );
-    let sigMainnetOcaml = Ledger.signFieldElement(
-      ocamlCommitments.fullCommitment,
+    let sigMainnetOcaml = Test.signature.signFieldElement(
+      Ml.toFieldConst(ocamlCommitments.fullCommitment),
       Ml.fromPrivateKey(feePayerKeySnarky),
       true
     );

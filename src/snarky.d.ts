@@ -1335,20 +1335,6 @@ declare class Ledger {
     accountUpdateIndex: number
   ): { accountUpdate: Field; calls: Field };
 
-  /**
-   * Signs a {@link Field} element.
-   */
-  static signFieldElement(
-    messageHash: Field,
-    privateKey: ScalarConst,
-    isMainnet: boolean
-  ): string;
-
-  /**
-   * Returns a dummy signature.
-   */
-  static dummySignature(): string;
-
   static customTokenId(publicKey: MlPublicKey, tokenId: Field): Field;
   static customTokenIdChecked(publicKey: MlPublicKeyVar, tokenId: Field): Field;
   static createTokenAccount(publicKey: MlPublicKey, tokenId: Field): string;
@@ -1399,6 +1385,20 @@ declare const Test: {
     tokenIdOfBase58(fieldBase58: string): FieldConst;
     memoToBase58(memoString: string): string;
     memoHashBase58(memoBase58: string): FieldConst;
+  };
+  signature: {
+    /**
+     * Signs a {@link Field} element.
+     */
+    signFieldElement(
+      messageHash: FieldConst,
+      privateKey: ScalarConst,
+      isMainnet: boolean
+    ): string;
+    /**
+     * Returns a dummy signature.
+     */
+    dummySignature(): string;
   };
   transactionHash: {
     examplePayment(): string;

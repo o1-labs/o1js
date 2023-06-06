@@ -2,6 +2,7 @@ import { Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
 import { Field, Bool } from '../core.js';
 import { PrivateKey, PublicKey } from '../signature.js';
+import { dummySignature } from '../account_update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
 
@@ -40,3 +41,8 @@ test(Random.publicKey, (pk0) => {
   expect(PublicKey.fromBase58(js)).toEqual(pk);
   expect(Test.encoding.publicKeyOfBase58(ml)).toEqual(pkMl);
 });
+
+// dummy signature
+let js = dummySignature();
+let ml = Test.signature.dummySignature();
+expect(js).toEqual(ml);

@@ -14,6 +14,7 @@ import {
   Authorization,
   Actions,
   Events,
+  dummySignature,
 } from './account_update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
@@ -28,6 +29,7 @@ import { TransactionCost, TransactionLimits } from './mina/constants.js';
 import { Provable } from './provable.js';
 import { prettifyStacktrace } from './errors.js';
 import { Ml } from './ml/conversion.js';
+import { verifyZkappCommandSignature } from 'src/mina-signer/src/sign-zkapp-command.js';
 
 export {
   createTransaction,
@@ -1250,7 +1252,7 @@ async function verifyAccountUpdate(
 
   // check if addMissingSignatures failed to include a signature
   // due to a missing private key
-  if (accountUpdate.authorization === Ledger.dummySignature()) {
+  if (accountUpdate.authorization === dummySignature()) {
     let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
     throw Error(
       `verifyAccountUpdate: Detected a missing signature for (${pk}), private key was missing.`

@@ -11,6 +11,7 @@ import { MlTuple, MlBool } from './base.js';
 export { Ml };
 
 const Ml = {
+  toFieldConst,
   fromScalar,
   toScalar,
   fromPrivateKey,
@@ -20,6 +21,10 @@ const Ml = {
   fromPublicKeyVar,
   toPublicKeyVar,
 };
+
+function toFieldConst(x: Field) {
+  return x.toConstant().value[1];
+}
 
 function fromScalar(s: Scalar) {
   return s.toConstant().constantValue;

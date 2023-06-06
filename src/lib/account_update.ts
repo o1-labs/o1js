@@ -28,6 +28,7 @@ import { assert } from './errors.js';
 import { Ml } from './ml/conversion.js';
 import { MlFieldConstArray } from './field.js';
 import { MlArray } from './ml/base.js';
+import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -53,6 +54,7 @@ export {
   AccountUpdatesLayout,
   zkAppProver,
   SmartContractContext,
+  dummySignature,
 };
 
 const ZkappStateLength = 8;
@@ -1003,7 +1005,7 @@ class AccountUpdate implements Types.AccountUpdate {
     privateKey?: PrivateKey
   ) {
     feePayer.body.nonce = this.getNonce(feePayer);
-    feePayer.authorization = Ledger.dummySignature();
+    feePayer.authorization = dummySignature();
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
@@ -1108,14 +1110,14 @@ class AccountUpdate implements Types.AccountUpdate {
     let body = FeePayerBody.keepAll(address, nonce);
     return {
       body,
-      authorization: Ledger.dummySignature(),
+      authorization: dummySignature(),
       lazyAuthorization: { kind: 'lazy-signature' },
     };
   }
 
   static dummyFeePayer(): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
-    return { body, authorization: Ledger.dummySignature() };
+    return { body, authorization: dummySignature() };
   }
 
   /**
@@ -1881,16 +1883,16 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        return { body, authorization: Ledger.dummySignature() };
+        return { body, authorization: dummySignature() };
       }
       privateKey = additionalKeys[i];
     }
-    let signature = Ledger.signFieldElement(
-      fullCommitment,
-      Ml.fromPrivateKey(privateKey),
-      false
+    let signature = signFieldElement(
+      fullCommitment.toBigInt(),
+      privateKey.toBigInt(),
+      'testnet'
     );
-    return { body, authorization: signature };
+    return { body, authorization: Signature.toBase58(signature) };
   }
 
   function addSignature(accountUpdate: AccountUpdate) {
@@ -1908,7 +1910,7 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        Authorization.setSignature(accountUpdate, Ledger.dummySignature());
+        Authorization.setSignature(accountUpdate, dummySignature());
         return accountUpdate as AccountUpdate & {
           lazyAuthorization: undefined;
         };
@@ -1918,12 +1920,12 @@ function addMissingSignatures(
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;
-    let signature = Ledger.signFieldElement(
-      transactionCommitment,
-      Ml.fromPrivateKey(privateKey),
-      false
+    let signature = signFieldElement(
+      transactionCommitment.toBigInt(),
+      privateKey.toBigInt(),
+      'testnet'
     );
-    Authorization.setSignature(accountUpdate, signature);
+    Authorization.setSignature(accountUpdate, Signature.toBase58(signature));
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
   }
   let { feePayer, accountUpdates, memo } = zkappCommand;
@@ -1932,6 +1934,10 @@ function addMissingSignatures(
     accountUpdates: accountUpdates.map(addSignature),
     memo,
   };
+}
+
+function dummySignature() {
+  return Signature.toBase58(Signature.dummy());
 }
 
 /**
