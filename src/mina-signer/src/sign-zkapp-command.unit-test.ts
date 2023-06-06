@@ -1,6 +1,5 @@
 import { expect } from 'expect';
 import { isReady, Ledger, shutdown } from '../../snarky.js';
-import { Scalar as ScalarSnarky } from '../../lib/core.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -284,8 +283,11 @@ function inputFromOcaml({
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
   if (a.body.update.verificationKey.isSome === 1n) {
-    let { data, hash } = Pickles.dummyVerificationKey();
-    a.body.update.verificationKey.value = { data, hash: Field(hash) };
+    let [, data, hash] = Pickles.dummyVerificationKey();
+    a.body.update.verificationKey.value = {
+      data,
+      hash: Field.fromBytes([...hash]),
+    };
   } else {
     a.body.update.verificationKey.value = { data: '', hash: Field(0) };
   }

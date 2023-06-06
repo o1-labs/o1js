@@ -1476,7 +1476,10 @@ declare const Pickles: {
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
-    getVerificationKey: () => { data: string; hash: string };
+    /**
+     * @returns (base64 vk, hash)
+     */
+    getVerificationKey: () => MlTuple<string, FieldConst>;
   };
 
   verify(
@@ -1486,7 +1489,10 @@ declare const Pickles: {
   ): Promise<boolean>;
 
   dummyBase64Proof: () => string;
-  dummyVerificationKey: () => { data: string; hash: string };
+  /**
+   * @returns (base64 vk, hash)
+   */
+  dummyVerificationKey: () => MlTuple<string, FieldConst>;
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (

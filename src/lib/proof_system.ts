@@ -528,7 +528,8 @@ async function compileProgram(
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
-        let verificationKey = getVerificationKey();
+        let [, data, hash] = getVerificationKey();
+        let verificationKey = { data, hash: Field(hash) };
         return { verificationKey, provers: MlArray.from(provers), verify, tag };
       })
     );

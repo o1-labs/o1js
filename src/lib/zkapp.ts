@@ -32,7 +32,6 @@ import {
   Struct,
   toConstant,
 } from './circuit_value.js';
-import { Circuit } from './circuit.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
 import { Poseidon, hashConstant } from './hash.js';
@@ -739,10 +738,12 @@ class SmartContract {
     zkappKey?: PrivateKey;
   } = {}) {
     let accountUpdate = this.newSelf();
-    verificationKey ??= (this.constructor as any)._verificationKey;
+    verificationKey ??= (this.constructor as typeof SmartContract)
+      ._verificationKey;
     if (verificationKey === undefined) {
       if (!Mina.getProofsEnabled()) {
-        verificationKey = Pickles.dummyVerificationKey();
+        let [, data, hash] = Pickles.dummyVerificationKey();
+        verificationKey = { data, hash: Field(hash) };
       } else {
         throw Error(
           `\`${this.constructor.name}.deploy()\` was called but no verification key was found.\n` +
@@ -751,7 +752,7 @@ class SmartContract {
       }
     }
     let { hash: hash_, data } = verificationKey;
-    let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
+    let hash = Field.from(hash_);
     accountUpdate.account.verificationKey.set({ hash, data });
     accountUpdate.account.permissions.set(Permissions.default());
     accountUpdate.sign(zkappKey);
