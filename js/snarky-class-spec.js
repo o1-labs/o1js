@@ -297,19 +297,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'fieldToBase58',
-        type: 'function',
-      },
-      {
-        name: 'fieldOfBase58',
-        type: 'function',
-      },
-      {
-        name: 'memoToBase58',
-        type: 'function',
-      },
-      { name: 'memoHashBase58', type: 'function' },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },

@@ -1919,23 +1919,6 @@ module Ledger = struct
         | Proof _ | None_given ->
             () )
 
-  let field_to_base58 (field : field_class Js.t) : Js.js_string Js.t =
-    field |> of_js_field |> to_unchecked |> Mina_base.Account_id.Digest.of_field
-    |> Mina_base.Account_id.Digest.to_string |> Js.string
-
-  let field_of_base58 (field : Js.js_string Js.t) : field_class Js.t =
-    to_js_field @@ Field.constant @@ Mina_base.Account_id.Digest.to_field_unsafe
-    @@ Mina_base.Account_id.Digest.of_string @@ Js.to_string field
-
-  let memo_to_base58 (memo : Js.js_string Js.t) : Js.js_string Js.t =
-    Js.string @@ Mina_base.Signed_command_memo.to_base58_check
-    @@ Mina_base.Signed_command_memo.create_from_string_exn @@ Js.to_string memo
-
-  let memo_hash_base58 (memo_base58 : Js.js_string Js.t) : field_class Js.t =
-    memo_base58 |> Js.to_string
-    |> Mina_base.Signed_command_memo.of_base58_check_exn
-    |> Mina_base.Signed_command_memo.hash |> to_js_field_unchecked
-
   (* low-level building blocks for encoding *)
   let binary_string_to_base58_check bin_string (version_byte : int) :
       Js.js_string Js.t =
@@ -2157,12 +2140,6 @@ module Ledger = struct
     static_method "dummySignature" dummy_signature ;
 
     (* these are implemented in JS, but kept here for consistency tests *)
-    static_method "fieldToBase58" field_to_base58 ;
-    static_method "fieldOfBase58" field_of_base58 ;
-
-    static_method "memoToBase58" memo_to_base58 ;
-    static_method "memoHashBase58" memo_hash_base58 ;
-
     static_method "checkAccountUpdateSignature" check_account_update_signature ;
 
     let version_bytes =
@@ -2301,6 +2278,24 @@ module Test = struct
     let private_key_of_base58 (sk_base58 : Js.js_string Js.t) : Other_impl.field
         =
       sk_base58 |> Js.to_string |> Signature_lib.Private_key.of_base58_check_exn
+
+    let token_id_to_base58 (field : Impl.field) : Js.js_string Js.t =
+      field |> Mina_base.Account_id.Digest.of_field
+      |> Mina_base.Account_id.Digest.to_string |> Js.string
+
+    let token_id_of_base58 (field : Js.js_string Js.t) : Impl.field =
+      Mina_base.Account_id.Digest.to_field_unsafe
+      @@ Mina_base.Account_id.Digest.of_string @@ Js.to_string field
+
+    let memo_to_base58 (memo : Js.js_string Js.t) : Js.js_string Js.t =
+      Js.string @@ Mina_base.Signed_command_memo.to_base58_check
+      @@ Mina_base.Signed_command_memo.create_from_string_exn
+      @@ Js.to_string memo
+
+    let memo_hash_base58 (memo_base58 : Js.js_string Js.t) : Impl.field =
+      memo_base58 |> Js.to_string
+      |> Mina_base.Signed_command_memo.of_base58_check_exn
+      |> Mina_base.Signed_command_memo.hash
   end
 end
 
@@ -2323,6 +2318,14 @@ let test =
         method privateKeyToBase58 = Test.Encoding.private_key_to_base58
 
         method privateKeyOfBase58 = Test.Encoding.private_key_of_base58
+
+        method tokenIdToBase58 = Test.Encoding.token_id_to_base58
+
+        method tokenIdOfBase58 = Test.Encoding.token_id_of_base58
+
+        method memoToBase58 = Test.Encoding.memo_to_base58
+
+        method memoHashBase58 = Test.Encoding.memo_hash_base58
       end
 
     val transactionHash =
