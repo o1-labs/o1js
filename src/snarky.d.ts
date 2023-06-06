@@ -78,7 +78,7 @@ declare interface Provable<T> {
 }
 
 /**
- * `ProvablePure<T>` is a special kind of {@link Provable} interface, where the "auxiliary" (non-provable) data is empty. This means the type only consists of field elements, in that sense it is "pure".
+ * `ProvablePure<T>` is a special kind of {@link Provable} interface, where the "auxiliary" (non-provable) data is empty. This means the type consists only of field elements, in that sense it is "pure".
  * Any element on the interface `ProvablePure<T>` is also an element of the interface `Provable<T>` where the "auxilary" data is empty.
  * 
  * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
