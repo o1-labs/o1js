@@ -1560,14 +1560,9 @@ let pickles_compile (choices : pickles_rule_js array)
 
     method getVerificationKey =
       let vk = Pickles.Side_loaded.Verification_key.of_compiled tag in
-      object%js
-        val data =
-          Pickles.Side_loaded.Verification_key.to_base64 vk |> Js.string
-
-        val hash =
-          Mina_base.Zkapp_account.digest_vk vk
-          |> Field.Constant.to_string |> Js.string
-      end
+      let data = Pickles.Side_loaded.Verification_key.to_base64 vk in
+      let hash = Mina_base.Zkapp_account.digest_vk vk in
+      (data |> Js.string, hash)
   end
 
 module Proof0 = Pickles.Proof.Make (Pickles_types.Nat.N0) (Pickles_types.Nat.N0)
@@ -1620,13 +1615,9 @@ let dummy_base64_proof () =
 
 let dummy_verification_key () =
   let vk = Pickles.Side_loaded.Verification_key.dummy in
-  object%js
-    val data = Pickles.Side_loaded.Verification_key.to_base64 vk |> Js.string
-
-    val hash =
-      Mina_base.Zkapp_account.digest_vk vk
-      |> Field.Constant.to_string |> Js.string
-  end
+  let data = Pickles.Side_loaded.Verification_key.to_base64 vk in
+  let hash = Mina_base.Zkapp_account.digest_vk vk in
+  (data |> Js.string, hash)
 
 let pickles =
   object%js
