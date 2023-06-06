@@ -3,6 +3,10 @@ import { Field, FieldVar, isField } from './field.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { Provable } from './provable.js';
+import { copyFileSync } from 'fs';
+import { sendZkappQuery } from './fetch.js';
+import { SlowBuffer } from 'buffer';
 
 export { Group };
 
@@ -95,7 +99,63 @@ class Group {
         return Group.#fromProjective(g_proj);
       }
     } else {
-      let [, x, y] = Snarky.group.add(this.#toTuple(), g.#toTuple());
+      /*       let [, x, y] = Snarky.group.add(this.#toTuple(), g.#toTuple());
+      return new Group({ x, y }); */
+      const check_finite = true;
+
+      let x1 = this.x.seal();
+      let y1 = this.y.seal();
+
+      let x2 = g.x.seal();
+      let y2 = g.y.seal();
+
+      let zero = new Field(0);
+
+      let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
+
+      let inf = check_finite
+        ? zero
+        : Provable.witness(Field, () =>
+            x1.equals(x2).and(y1.equals(y2).not()).toField()
+          );
+
+      let inf_z = Provable.witness(Field, () => {
+        if (y1.equals(y2).toBoolean()) return zero;
+        else if (x1.equals(x2)) return y2.sub(y1).inv();
+        else return zero;
+      });
+
+      let x21_inv = Provable.witness(Field, () => {
+        if (x1.equals(x2).toBoolean()) return zero;
+        else return x2.sub(x1).inv();
+      });
+
+      let s = Provable.witness(Field, () => {
+        if (x1.equals(x2).toBoolean()) {
+          let x1_squared = x1.square();
+          return x1_squared.add(x1_squared).add(x1_squared).div(y1.add(y1));
+        } else return y2.sub(y1).div(x2.sub(x1));
+      });
+
+      let x3 = Provable.witness(Field, () => {
+        return s.square().sub(x1.add(x2));
+      });
+
+      let y3 = Provable.witness(Field, () => {
+        return s.mul(x1.sub(x3)).sub(y1);
+      });
+
+      let [, x, y] = Snarky.group.ecadd(
+        this.#toTuple(),
+        g.#toTuple(),
+        Group.from(x3, y3).#toTuple(),
+        inf.value,
+        same_x.value,
+        s.value,
+        inf_z.value,
+        x21_inv.value
+      );
+
       return new Group({ x, y });
     }
   }

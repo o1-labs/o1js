@@ -51,6 +51,7 @@ type MlTuple<X, Y> = [0, X, Y];
 type MlArray<T> = [0, ...T[]];
 type MlList<T> = [0, T, 0 | MlList<T>];
 type MlOption<T> = 0 | [0, T];
+type MlGroup = MlTuple<FieldVar, FieldVar>;
 
 declare namespace Snarky {
   type Keypair = unknown;
@@ -180,22 +181,24 @@ declare const Snarky: {
     /**
      * Addition of two group elements, handles only variables.
      */
-    add(
-      p1: MlTuple<FieldVar, FieldVar>,
-      p2: MlTuple<FieldVar, FieldVar>
-    ): MlTuple<FieldVar, FieldVar>;
+    add(p1: MlGroup, p2: MlGroup): MlGroup;
 
-    assertOnCurve(p1: MlTuple<FieldVar, FieldVar>): void;
+    ecadd(
+      p1: MlGroup,
+      p2: MlGroup,
+      p3: MlGroup,
+      inf: FieldVar,
+      same_x: FieldVar,
+      slope: FieldVar,
+      inf_z: FieldVar,
+      x21_inv: FieldVar
+    ): MlGroup;
 
-    scale(
-      p: MlTuple<FieldVar, FieldVar>,
-      s: MlArray<BoolVar>
-    ): MlTuple<FieldVar, FieldVar>;
+    assertOnCurve(p1: MlGroup): void;
 
-    equals(
-      p1: MlTuple<FieldVar, FieldVar>,
-      p2: MlTuple<FieldVar, FieldVar>
-    ): BoolVar;
+    scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
+
+    equals(p1: MlGroup, p2: MlGroup): BoolVar;
   };
 
   /**
