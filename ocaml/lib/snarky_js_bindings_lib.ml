@@ -1123,6 +1123,18 @@ module Snarky = struct
     (** p1 + p2; handles variables *)
     let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
 
+    let ec_add p1 p2 p3 inf same_x slope inf_z x21_inv =
+      let open Impl in
+      with_label "Elliptic Curve Addition" (fun () ->
+          assert_
+            { annotation = Some __LOC__
+            ; basic =
+                Kimchi_backend_common.Plonk_constraint_system.Plonk_constraint.T
+                  (EC_add_complete
+                     { p1; p2; p3; inf; same_x; slope; inf_z; x21_inv } )
+            } ;
+          p3 )
+
     let assert_on_curve p =
       Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
 
@@ -1226,6 +1238,8 @@ let snarky =
     val group =
       object%js
         method add = Snarky.Group.add
+
+        method ecadd = Snarky.Group.ec_add
 
         method assertOnCurve = Snarky.Group.assert_on_curve
 
