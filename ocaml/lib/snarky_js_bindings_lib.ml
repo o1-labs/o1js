@@ -1129,6 +1129,11 @@ module Snarky = struct
     let scale p (scalar_bits : Boolean.var array) =
       Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
         (Shifted_value scalar_bits)
+
+    let equals
+        ((x1, y1) : Impl.field Snarky_backendless.Cvar.t Tuple_lib.Double.t)
+        ((x2, y2) : Impl.field Snarky_backendless.Cvar.t Tuple_lib.Double.t) =
+      Boolean.all [ Impl.Field.equal x1 x2; Impl.Field.equal y1 y2 ]
   end
 
   module Circuit = struct
@@ -1225,6 +1230,8 @@ let snarky =
         method assertOnCurve = Snarky.Group.assert_on_curve
 
         method scale = Snarky.Group.scale
+
+        method equals = Snarky.Group.equals
       end
 
     val circuit =
