@@ -1766,7 +1766,7 @@ const ZkappCommand = {
     return { feePayer, accountUpdates, memo };
   },
   toJSON({ feePayer, accountUpdates, memo }: ZkappCommand) {
-    memo = Memo.toBase58(memo);
+    memo = Memo.toBase58(Memo.fromString(memo));
     return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
   },
 };
