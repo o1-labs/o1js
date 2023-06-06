@@ -4,7 +4,6 @@ import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
-import { withMessage } from './core.js';
 import { MlArray } from './ml/base.js';
 
 // external API
@@ -19,6 +18,7 @@ export {
   isField,
   MlFieldArray,
   MlFieldConstArray,
+  withMessage,
 };
 
 const SnarkyFieldConstructor = SnarkyField(1).constructor;
@@ -1279,4 +1279,10 @@ function toFp(x: bigint | number | string | Field): Fp {
     return Fp(x as bigint | number | string);
   }
   return (x as Field).toBigInt();
+}
+
+function withMessage(error: unknown, message?: string) {
+  if (message === undefined || !(error instanceof Error)) return error;
+  error.message = `${message}\n${error.message}`;
+  return error;
 }

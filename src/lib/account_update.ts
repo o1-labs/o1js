@@ -606,7 +606,10 @@ const TokenId = {
     if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
       return Ledger.customTokenId(Ml.fromPublicKey(tokenOwner), parentTokenId);
     } else {
-      return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
+      return Ledger.customTokenIdChecked(
+        Ml.fromPublicKeyVar(tokenOwner),
+        parentTokenId
+      );
     }
   },
 };

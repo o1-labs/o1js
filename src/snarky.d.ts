@@ -1,7 +1,13 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
 import type { ScalarConst } from './lib/scalar.js';
-import type { MlArray, MlTuple, MlList, MlOption } from './lib/ml/base.js';
+import type {
+  MlArray,
+  MlTuple,
+  MlList,
+  MlOption,
+  MlBool,
+} from './lib/ml/base.js';
 
 export { SnarkyField };
 export {
@@ -1279,8 +1285,7 @@ declare const Poseidon: {
   spongeSqueeze(sponge: unknown): FieldVar;
 };
 
-type MlBoolean = 0 | 1;
-type MlPublicKey = MlTuple<FieldConst, MlBoolean>;
+type MlPublicKey = MlTuple<FieldConst, MlBool>;
 type MlPublicKeyVar = MlTuple<FieldVar, BoolVar>;
 
 /**

@@ -1,5 +1,4 @@
-import { withMessage } from './core.js';
-import { Field, FieldVar, isField } from './field.js';
+import { Field, FieldVar, isField, withMessage } from './field.js';
 import { Scalar } from './scalar.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
