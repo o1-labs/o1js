@@ -873,6 +873,8 @@ module Snarky = struct
     end
 
   module Field = struct
+    type t = Field.t
+
     (** add x, y to get a new AST node Add(x, y); handles if x, y are constants *)
     let add x y = Field.add x y
 
@@ -931,6 +933,8 @@ module Snarky = struct
   end
 
   module Group = struct
+    type t = Pickles.Step_main_inputs.Inner_curve.t
+
     (** p1 + p2; handles variables *)
     let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
 
@@ -940,16 +944,14 @@ module Snarky = struct
       Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
         (Shifted_value scalar_bits)
 
-    let equals
-        ((x1, y1) : Impl.field Snarky_backendless.Cvar.t Tuple_lib.Double.t)
-        ((x2, y2) : Impl.field Snarky_backendless.Cvar.t Tuple_lib.Double.t) =
+    let equals ((x1, y1) : t) ((x2, y2) : t) =
       Boolean.all [ Impl.Field.equal x1 x2; Impl.Field.equal y1 y2 ]
   end
 
   module Circuit = struct
     module Main = struct
-      let of_js (main : public_input_js -> unit) =
-        let main' public_input () = main (Public_input.to_js public_input) in
+      let of_js (main : Field.t array -> unit) =
+        let main' public_input () = main public_input in
         main'
     end
 
@@ -969,11 +971,9 @@ module Snarky = struct
         ~f:(fun { Impl.Proof_inputs.auxiliary_inputs; public_inputs } () ->
           Backend.Proof.create pk ~auxiliary:auxiliary_inputs
             ~primary:public_inputs )
-        (Main.of_js main)
-        (Public_input.Constant.of_js public_input)
+        (Main.of_js main) public_input
 
-    let verify public_input_js proof vk =
-      let public_input = Public_input.Constant.of_js public_input_js in
+    let verify public_input proof vk =
       let public_input_vec = Backend.Field.Vector.create () in
       Array.iter public_input ~f:(fun x ->
           Backend.Field.Vector.emplace_back public_input_vec x ) ;
