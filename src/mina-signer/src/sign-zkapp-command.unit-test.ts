@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { isReady, Ledger, shutdown } from '../../snarky.js';
+import { isReady, Ledger, shutdown, Test } from '../../snarky.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -43,6 +43,7 @@ import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { Pickles } from '../../snarky.js';
 import { Ml } from '../../lib/ml/conversion.js';
+import { FieldConst } from '../../lib/field.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -121,7 +122,7 @@ let memoGenerator = withHardCoded(Random.json.memoString, 'hello world');
 test(memoGenerator, (memoString) => {
   let memo = Memo.fromString(memoString);
   let memoBase58 = Memo.toBase58(memo);
-  let memoBase581 = Ledger.memoToBase58(memoString);
+  let memoBase581 = Test.encoding.memoToBase58(memoString);
   expect(memoBase58).toEqual(memoBase581);
   let memoRecovered = Memo.fromBase58(memoBase58);
   expect(memoRecovered).toEqual(memo);
@@ -184,8 +185,8 @@ test(
 
     let memo = Memo.fromBase58(memoBase58);
     let memoHash = Memo.hash(memo);
-    let memoHashSnarky = Ledger.memoHashBase58(memoBase58);
-    expect(memoHash).toEqual(memoHashSnarky.toBigInt());
+    let memoHashSnarky = Test.encoding.memoHashBase58(memoBase58);
+    expect(memoHash).toEqual(FieldConst.toBigint(memoHashSnarky));
 
     let feePayerAccountUpdate = accountUpdateFromFeePayer(feePayer);
     let feePayerJson = AccountUpdate.toJSON(feePayerAccountUpdate);

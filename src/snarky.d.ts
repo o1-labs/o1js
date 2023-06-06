@@ -1353,12 +1353,6 @@ declare class Ledger {
   static customTokenIdChecked(publicKey: MlPublicKeyVar, tokenId: Field): Field;
   static createTokenAccount(publicKey: MlPublicKey, tokenId: Field): string;
 
-  static fieldToBase58(field: Field): string;
-  static fieldOfBase58(fieldBase58: string): Field;
-
-  static memoToBase58(memoString: string): string;
-  static memoHashBase58(memoBase58: string): Field;
-
   static checkAccountUpdateSignature(
     updateJson: string,
     commitment: Field
@@ -1401,6 +1395,10 @@ declare const Test: {
     publicKeyOfBase58(publicKeyBase58: string): MlPublicKey;
     privateKeyToBase58(privateKey: ScalarConst): string;
     privateKeyOfBase58(privateKeyBase58: string): ScalarConst;
+    tokenIdToBase58(field: FieldConst): string;
+    tokenIdOfBase58(fieldBase58: string): FieldConst;
+    memoToBase58(memoString: string): string;
+    memoHashBase58(memoBase58: string): FieldConst;
   };
   transactionHash: {
     examplePayment(): string;

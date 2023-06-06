@@ -1764,7 +1764,7 @@ const ZkappCommand = {
     return { feePayer, accountUpdates, memo };
   },
   toJSON({ feePayer, accountUpdates, memo }: ZkappCommand) {
-    memo = Ledger.memoToBase58(memo);
+    memo = Memo.toBase58(memo);
     return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
   },
 };
