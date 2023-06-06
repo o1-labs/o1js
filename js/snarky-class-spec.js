@@ -125,6 +125,75 @@ export default [
     ],
   },
   {
+    name: 'Bool',
+    props: [
+      {
+        name: 'true',
+        type: 'object',
+      },
+      {
+        name: 'false',
+        type: 'object',
+      },
+      {
+        name: 'toField',
+        type: 'function',
+      },
+      {
+        name: 'Unsafe',
+        type: 'object',
+      },
+      {
+        name: 'not',
+        type: 'function',
+      },
+      {
+        name: 'and',
+        type: 'function',
+      },
+      {
+        name: 'or',
+        type: 'function',
+      },
+      {
+        name: 'assertEqual',
+        type: 'function',
+      },
+      {
+        name: 'equal',
+        type: 'function',
+      },
+      {
+        name: 'count',
+        type: 'function',
+      },
+      {
+        name: 'sizeInFields',
+        type: 'function',
+      },
+      {
+        name: 'toFields',
+        type: 'function',
+      },
+      {
+        name: 'fromFields',
+        type: 'function',
+      },
+      {
+        name: 'check',
+        type: 'function',
+      },
+      {
+        name: 'toJSON',
+        type: 'function',
+      },
+      {
+        name: 'fromJSON',
+        type: 'function',
+      },
+    ],
+  },
+  {
     name: 'Snarky',
     props: [
       { name: 'exists', type: 'function' },
