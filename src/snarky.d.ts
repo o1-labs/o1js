@@ -44,7 +44,7 @@ declare interface Provable<T> {
   toAuxiliary: (value?: T) => any[];
 
   /**
-   * A function that return an element of type `T` from the given provable and "auxilary" data.
+   * A function that returns an element of type `T` from the given provable and "auxilary" data.
    * 
    * **Important**: For any element of type `T`, this function is the reverse operation of calling {@link toFields} and {@link toAuxilary} methods on an element of type `T`.
    * 
