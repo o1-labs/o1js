@@ -289,14 +289,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'signFieldElement',
-        type: 'function',
-      },
-      {
-        name: 'dummySignature',
-        type: 'function',
-      },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
@@ -357,6 +349,10 @@ export default [
     props: [
       {
         name: 'encoding',
+        type: 'object',
+      },
+      {
+        name: 'signature',
         type: 'object',
       },
       {

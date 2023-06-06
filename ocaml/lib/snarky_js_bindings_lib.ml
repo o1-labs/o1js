@@ -1859,18 +1859,6 @@ module Ledger = struct
           (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
     end
 
-  let sign_field_element (x : field_class Js.t) (key : Other_impl.field)
-      (is_mainnet : bool Js.t) =
-    let network_id =
-      Mina_signature_kind.(if Js.to_bool is_mainnet then Mainnet else Testnet)
-    in
-    Signature_lib.Schnorr.Chunked.sign ~signature_kind:network_id key
-      (Random_oracle.Input.Chunked.field (x |> of_js_field |> to_unchecked))
-    |> Mina_base.Signature.to_base58_check |> Js.string
-
-  let dummy_signature () =
-    Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
-
   let check_account_update_signatures zkapp_command =
     let ({ fee_payer; account_updates; memo } : Zkapp_command.t) =
       zkapp_command
@@ -2136,8 +2124,6 @@ module Ledger = struct
 
     static_method "transactionCommitments" transaction_commitments ;
     static_method "zkappPublicInput" zkapp_public_input ;
-    static_method "signFieldElement" sign_field_element ;
-    static_method "dummySignature" dummy_signature ;
 
     (* these are implemented in JS, but kept here for consistency tests *)
     static_method "checkAccountUpdateSignature" check_account_update_signature ;
@@ -2297,6 +2283,20 @@ module Test = struct
       |> Mina_base.Signed_command_memo.of_base58_check_exn
       |> Mina_base.Signed_command_memo.hash
   end
+
+  module Signature = struct
+    let sign_field_element (x : Impl.field) (key : Other_impl.field)
+        (is_mainnet : bool Js.t) =
+      let network_id =
+        Mina_signature_kind.(if Js.to_bool is_mainnet then Mainnet else Testnet)
+      in
+      Signature_lib.Schnorr.Chunked.sign ~signature_kind:network_id key
+        (Random_oracle.Input.Chunked.field x)
+      |> Mina_base.Signature.to_base58_check |> Js.string
+
+    let dummy_signature () =
+      Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
+  end
 end
 
 let test =
@@ -2326,6 +2326,13 @@ let test =
         method memoToBase58 = Test.Encoding.memo_to_base58
 
         method memoHashBase58 = Test.Encoding.memo_hash_base58
+      end
+
+    val signature =
+      object%js
+        method signFieldElement = Test.Signature.sign_field_element
+
+        method dummySignature = Test.Signature.dummy_signature
       end
 
     val transactionHash =
