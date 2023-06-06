@@ -22,7 +22,7 @@ let _console_dir s : unit =
 let raise_error s =
   Js.Js_error.(raise_ @@ of_error (new%js Js.error_constr (Js.string s)))
 
-let raise_errorf fmt = Core_kernel.ksprintf raise_error fmt
+let _raise_errorf fmt = Core_kernel.ksprintf raise_error fmt
 
 external raise_exn_js : exn -> Js.js_string Js.t -> 'a = "custom_reraise_exn"
 
@@ -803,31 +803,6 @@ let poseidon =
       end
   end
 
-(* conversion of field arrays *)
-
-type public_input_js = field_class Js.t Js.js_array Js.t
-
-module Public_input = struct
-  type t = Field.t array
-
-  let to_constant (t : t) = Array.map ~f:to_unchecked t
-
-  let to_js (t : t) : public_input_js = Array.map ~f:to_js_field t |> Js.array
-
-  let of_js (a : public_input_js) : t =
-    Js.to_array a |> Array.map ~f:of_js_field
-
-  module Constant = struct
-    type t = Field.Constant.t array
-
-    let to_js (t : t) : public_input_js =
-      Array.map ~f:to_js_field_unchecked t |> Js.array
-
-    let of_js (a : public_input_js) : t =
-      Js.to_array a |> Array.map ~f:of_js_field_unchecked
-  end
-end
-
 (* light-weight wrapper around snarky-ml core *)
 
 module Snarky = struct
@@ -1063,30 +1038,21 @@ let snarky =
 
 (* helpers for pickles_compile *)
 
+module Public_input = struct
+  type t = Field.t array
+
+  module Constant = struct
+    type t = Field.Constant.t array
+  end
+end
+
 type 'a statement = 'a array * 'a array
-
-type statement_js =
-  < input : public_input_js Js.readonly_prop
-  ; output : public_input_js Js.readonly_prop >
-  Js.t
-
-type 'proof public_output_with_proof_js =
-  < publicOutput : public_input_js Js.readonly_prop
-  ; proof : 'proof Js.readonly_prop >
-  Js.t
 
 module Statement = struct
   type t = Field.t statement
 
-  let of_js (s : statement_js) : t =
-    (Public_input.of_js s##.input, Public_input.of_js s##.output)
-
   module Constant = struct
     type t = Field.Constant.t statement
-
-    let of_js (s : statement_js) : t =
-      ( Public_input.Constant.of_js s##.input
-      , Public_input.Constant.of_js s##.output )
   end
 end
 
@@ -1095,14 +1061,10 @@ let public_input_typ (i : int) = Typ.array ~length:i Field.typ
 let statement_typ (input_size : int) (output_size : int) =
   Typ.(array ~length:input_size Field.typ * array ~length:output_size Field.typ)
 
-let to_js_proof
-    ((public_output, (), proof) : Public_input.Constant.t * unit * 'proof) :
-    'proof public_output_with_proof_js =
-  object%js
-    val proof = proof
-
-    val publicOutput = Public_input.Constant.to_js public_output
-  end
+type ('prev_proof, 'proof) js_prover =
+     Public_input.Constant.t
+  -> 'prev_proof array
+  -> (Public_input.Constant.t * 'proof) Promise_js_helpers.js_promise
 
 let dummy_constraints =
   let module Inner_curve = Kimchi_pasta.Pasta.Pallas in
@@ -1133,16 +1095,15 @@ let dummy_constraints =
 type pickles_rule_js =
   < identifier : Js.js_string Js.t Js.prop
   ; main :
-      (   public_input_js
-       -> < publicOutput : public_input_js Js.prop
-          ; previousStatements : statement_js Js.js_array Js.t Js.prop
-          ; shouldVerify : bool_class Js.t Js.js_array Js.t Js.prop >
+      (   Public_input.t
+       -> < publicOutput : Public_input.t Js.prop
+          ; previousStatements : Statement.t array Js.prop
+          ; shouldVerify : Boolean.var array Js.prop >
           Js.t )
       Js.prop
   ; proofsToVerify :
       < isSelf : bool Js.t Js.prop ; tag : Js.Unsafe.any Js.t Js.prop > Js.t
-      Js.js_array
-      Js.t
+      array
       Js.prop >
   Js.t
 
@@ -1163,13 +1124,7 @@ module Choices = struct
       let rec get_tags (Prevs prevs) index =
         if index < 0 then Prevs prevs
         else
-          let js_tag =
-            Js.Optdef.get (Js.array_get js_prevs index) (fun () ->
-                raise_errorf
-                  "proofsToVerify array is sparse; the entry at index %i is \
-                   missing"
-                  index )
-          in
+          let js_tag = Array.get js_prevs index in
           (* We introduce new opaque types to make sure that the type in the tag
              doesn't escape into the environment or have other ill effects.
           *)
@@ -1194,7 +1149,7 @@ module Choices = struct
           let prevs ~self : _ H4.T(Pickles.Tag).t = tag ~self :: prevs ~self in
           get_tags (Prevs prevs) (index - 1)
       in
-      get_tags (Prevs (fun ~self:_ -> [])) (js_prevs##.length - 1)
+      get_tags (Prevs (fun ~self:_ -> [])) (Array.length js_prevs - 1)
   end
 
   module Inductive_rule = struct
@@ -1238,23 +1193,18 @@ module Choices = struct
         type prev_vars prev_values widths heights.
            int
         -> (prev_vars, prev_values, widths, heights) H4.T(Pickles.Tag).t
-        -> bool_class Js.t Js.js_array Js.t
+        -> Boolean.var array
         -> prev_vars H1.T(E01(Pickles.Inductive_rule.B)).t =
      fun index tags should_verifys_js ->
       match tags with
       | [] ->
           []
       | _ :: tags ->
-          let js_bool =
-            Js.Optdef.get (Js.array_get should_verifys_js index) (fun () ->
-                raise_errorf
-                  "Returned array is sparse; the entry at index %i is missing"
-                  index )
-          in
+          let js_bool = Array.get should_verifys_js index in
           let should_verifys =
             should_verifys (index + 1) tags should_verifys_js
           in
-          js_bool##.value :: should_verifys
+          js_bool :: should_verifys
 
     let should_verifys tags should_verifys_js =
       should_verifys 0 tags should_verifys_js
@@ -1285,22 +1235,17 @@ module Choices = struct
              Pickles.Tag.t
         -> int
         -> (prev_vars, prev_values, widths, heights) H4.T(Pickles.Tag).t
-        -> statement_js Js.js_array Js.t
+        -> Statement.t array
         -> prev_vars H1.T(Id).t =
      fun ~public_input_size ~public_output_size ~self i tags statements ->
       match tags with
       | [] ->
           []
       | tag :: tags ->
-          let statement_js =
-            Js.Optdef.get (Js.array_get statements i) (fun () ->
-                raise_errorf
-                  "Returned array is sparse; the entry at index %i is missing" i )
-          in
           let (Typ typ) =
             get_typ ~public_input_size ~public_output_size tag self
           in
-          let input, output = Statement.of_js statement_js in
+          let input, output = Array.get statements i in
           let fields = Array.concat [ input; output ] in
           let aux = typ.constraint_system_auxiliary () in
           let statement = typ.var_of_fields (fields, aux) in
@@ -1343,8 +1288,8 @@ module Choices = struct
           ; main =
               (fun { public_input } ->
                 dummy_constraints () ;
-                let result = rule##.main (Public_input.to_js public_input) in
-                let public_output = Public_input.of_js result##.publicOutput in
+                let result = rule##.main public_input in
+                let public_output = result##.publicOutput in
                 let previous_proofs_should_verify =
                   should_verifys prevs result##.shouldVerify
                 in
@@ -1443,20 +1388,16 @@ module Choices = struct
         t =
       if index < 0 then Choices rules
       else
-        let js_rule =
-          Js.Optdef.get (Js.array_get js_rules index) (fun () ->
-              raise_errorf
-                "Rules array is sparse; the entry at index %i is missing" index )
-        in
         let (Rule rule) =
-          Inductive_rule.create ~public_input_size ~public_output_size js_rule
+          Inductive_rule.create ~public_input_size ~public_output_size
+            (Array.get js_rules index)
         in
         let rules ~self : _ H4_6.T(Pickles.Inductive_rule).t =
           rule ~self :: rules ~self
         in
         get_rules (Choices rules) (index - 1)
     in
-    get_rules (Choices (fun ~self:_ -> [])) (js_rules##.length - 1)
+    get_rules (Choices (fun ~self:_ -> [])) (Array.length js_rules - 1)
 end
 
 type proof = (Pickles_types.Nat.N0.n, Pickles_types.Nat.N0.n) Pickles.Proof.t
@@ -1536,16 +1477,15 @@ let constraint_constants =
   ; fork = None
   }
 
-let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
+let pickles_compile (choices : pickles_rule_js array)
     (signature :
       < publicInputSize : int Js.prop ; publicOutputSize : int Js.prop > Js.t )
     =
   (* translate number of branches and recursively verified proofs from JS *)
-  let branches = choices##.length in
+  let branches = Array.length choices in
   let max_proofs =
-    let choices = choices |> Js.to_array |> Array.to_list in
-    List.map choices ~f:(fun c ->
-        c##.proofsToVerify |> Js.to_array |> Array.length )
+    let choices = choices |> Array.to_list in
+    List.map choices ~f:(fun c -> c##.proofsToVerify |> Array.length)
     |> List.max_elt ~compare |> Option.value ~default:0
   in
   let (module Branches) = nat_module branches in
@@ -1573,13 +1513,9 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
 
   (* translate returned prover and verify functions to JS *)
   let module Proof = (val p) in
-  let to_js_prover prover =
-    let prove (public_input_js : public_input_js)
-        (prevs_js : 'prev_proof Js.js_array Js.t) =
-      let prevs = Js.to_array prevs_js in
-      let public_input =
-        Public_input.(public_input_js |> of_js |> to_constant)
-      in
+  let to_js_prover prover : ('prev_proof, Proof.t) js_prover =
+    let prove (public_input : Public_input.Constant.t)
+        (prevs : 'prev_proof array) =
       let handler (Snarky_backendless.Request.With { request; respond }) =
         match request with
         | Choices.Inductive_rule.Get_prev_proof i ->
@@ -1588,7 +1524,8 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
             respond Unhandled
       in
       prover ?handler:(Some handler) public_input
-      |> Promise.map ~f:to_js_proof |> Promise_js_helpers.to_js
+      |> Promise.map ~f:(fun (output, _, proof) -> (output, proof))
+      |> Promise_js_helpers.to_js
     in
     prove
   in
@@ -1600,19 +1537,16 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
          , Public_input.Constant.t
          , (Public_input.Constant.t * unit * Proof.t) Promise.t )
          Pickles.Provers.t
-      -> (   public_input_js
-          -> 'prev_proof Js.js_array Js.t
-          -> Proof.t public_output_with_proof_js Promise_js_helpers.js_promise
-         )
-         list = function
+      -> ('prev_proof, Proof.t) js_prover list = function
     | [] ->
         []
     | p :: ps ->
         to_js_prover p :: to_js_provers ps
   in
-  let provers = provers |> to_js_provers |> Array.of_list |> Js.array in
-  let verify (statement : statement_js) (proof : _ Pickles.Proof.t) =
-    let statement = Statement.Constant.of_js statement in
+  let provers : (_, Proof.t) js_prover array =
+    provers |> to_js_provers |> Array.of_list
+  in
+  let verify (statement : Statement.Constant.t) (proof : _ Pickles.Proof.t) =
     Proof.verify_promise [ (statement, proof) ]
     |> Promise.map ~f:(fun x -> Js.bool (Or_error.is_ok x))
     |> Promise_js_helpers.to_js
@@ -1624,17 +1558,16 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
 
     val tag = Obj.magic tag
 
-    val getVerificationKeyArtifact =
-      fun () ->
-        let vk = Pickles.Side_loaded.Verification_key.of_compiled tag in
-        object%js
-          val data =
-            Pickles.Side_loaded.Verification_key.to_base64 vk |> Js.string
+    method getVerificationKey =
+      let vk = Pickles.Side_loaded.Verification_key.of_compiled tag in
+      object%js
+        val data =
+          Pickles.Side_loaded.Verification_key.to_base64 vk |> Js.string
 
-          val hash =
-            Mina_base.Zkapp_account.digest_vk vk
-            |> Field.Constant.to_string |> Js.string
-        end
+        val hash =
+          Mina_base.Zkapp_account.digest_vk vk
+          |> Field.Constant.to_string |> Js.string
+      end
   end
 
 module Proof0 = Pickles.Proof.Make (Pickles_types.Nat.N0) (Pickles_types.Nat.N0)
@@ -1663,11 +1596,10 @@ let proof_of_base64 str i : some_proof =
   | _ ->
       failwith "invalid proof index"
 
-let verify (statement : statement_js) (proof : proof) (vk : Js.js_string Js.t) =
-  let statement = Statement.Constant.of_js statement in
-  let typ =
-    statement_typ (Array.length (fst statement)) (Array.length (snd statement))
-  in
+let verify (statement : Statement.Constant.t) (proof : proof)
+    (vk : Js.js_string Js.t) =
+  let i, o = statement in
+  let typ = statement_typ (Array.length i) (Array.length o) in
   let proof = Pickles.Side_loaded.Proof.of_proof proof in
   let vk =
     match Pickles.Side_loaded.Verification_key.of_base64 (Js.to_string vk) with
