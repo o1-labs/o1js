@@ -297,14 +297,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'publicKeyToString',
-        type: 'function',
-      },
-      {
-        name: 'publicKeyOfString',
-        type: 'function',
-      },
-      {
         name: 'fieldToBase58',
         type: 'function',
       },
