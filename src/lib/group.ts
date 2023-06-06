@@ -4,9 +4,6 @@ import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
-import { copyFileSync } from 'fs';
-import { sendZkappQuery } from './fetch.js';
-import { SlowBuffer } from 'buffer';
 
 export { Group };
 
