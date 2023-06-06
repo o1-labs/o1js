@@ -48,6 +48,7 @@ declare interface ProvablePure<T> extends Provable<T> {
 }
 
 declare namespace Snarky {
+  type Main = (publicInput: MlArray<FieldVar>) => void;
   type Keypair = unknown;
   type VerificationKey = unknown;
   type Proof = unknown;
@@ -200,18 +201,15 @@ declare const Snarky: {
     /**
      * Generates a proving key and a verification key for the provable function `main`
      */
-    compile(
-      main: (publicInput: Field[]) => void,
-      publicInputSize: number
-    ): Snarky.Keypair;
+    compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
      */
     prove(
-      main: (publicInput: Field[]) => void,
+      main: Snarky.Main,
       publicInputSize: number,
-      publicInput: Field[],
+      publicInput: MlArray<FieldConst>,
       keypair: Snarky.Keypair
     ): Snarky.Proof;
 
@@ -219,7 +217,7 @@ declare const Snarky: {
      * Verifies a proof using the public input, the proof and the verification key of the circuit.
      */
     verify(
-      publicInput: Field[],
+      publicInput: MlArray<FieldConst>,
       proof: Snarky.Proof,
       verificationKey: Snarky.VerificationKey
     ): boolean;
