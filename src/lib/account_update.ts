@@ -604,7 +604,7 @@ const TokenId = {
   },
   derive(tokenOwner: PublicKey, parentTokenId = Field(1)) {
     if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
-      return Ledger.customTokenId(tokenOwner, parentTokenId);
+      return Ledger.customTokenId(Ml.fromPublicKey(tokenOwner), parentTokenId);
     } else {
       return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
     }

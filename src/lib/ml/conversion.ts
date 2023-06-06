@@ -2,8 +2,11 @@
  * this file contains conversion functions between JS and OCaml
  */
 
+import type { MlPublicKey } from '../../snarky.js';
+import { Bool, Field } from '../core.js';
 import { Scalar, ScalarConst } from '../scalar.js';
-import { PrivateKey } from '../signature.js';
+import { PrivateKey, PublicKey } from '../signature.js';
+import { MlTuple } from './base.js';
 
 export { Ml };
 
@@ -12,6 +15,8 @@ const Ml = {
   toScalar,
   fromPrivateKey,
   toPrivateKey,
+  fromPublicKey,
+  toPublicKey,
 };
 
 function fromScalar(s: Scalar) {
@@ -26,4 +31,15 @@ function fromPrivateKey(sk: PrivateKey) {
 }
 function toPrivateKey(sk: ScalarConst) {
   return new PrivateKey(Scalar.from(sk));
+}
+
+function fromPublicKey(pk: PublicKey): MlPublicKey {
+  return MlTuple(pk.x.value, pk.isOdd.toField().value);
+}
+function toPublicKey([, x, isOdd]: MlPublicKey): PublicKey {
+  return PublicKey.from({
+    x: Field(x),
+    // TODO
+    isOdd: Bool.Unsafe.ofField(Field(isOdd)),
+  });
 }

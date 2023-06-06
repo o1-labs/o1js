@@ -1,5 +1,5 @@
 import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
-import { MlArray, Poseidon as Poseidon_ } from '../snarky.js';
+import { Poseidon as Poseidon_ } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';

@@ -17,7 +17,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate, MlArray };
+export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -1279,8 +1279,9 @@ declare const Poseidon: {
   spongeSqueeze(sponge: unknown): FieldVar;
 };
 
-// these types should be implemented by corresponding snarkyjs classes
-type PublicKey_ = { x: Field; isOdd: Bool };
+type MlBoolean = 0 | 1;
+type MlPublicKey = MlTuple<FieldConst, MlBoolean>;
+type MlPublicKeyVar = MlTuple<FieldVar, BoolVar>;
 
 /**
  * Represents the Mina ledger.
@@ -1290,13 +1291,13 @@ declare class Ledger {
    * Creates a fresh ledger.
    */
   static create(
-    genesisAccounts: Array<{ publicKey: PublicKey_; balance: string }>
+    genesisAccounts: Array<{ publicKey: MlPublicKey; balance: string }>
   ): Ledger;
 
   /**
    * Adds an account and its balance to the ledger.
    */
-  addAccount(publicKey: PublicKey_, balance: string): void;
+  addAccount(publicKey: MlPublicKey, balance: string): void;
 
   /**
    * Applies a JSON transaction to the ledger.
@@ -1310,7 +1311,7 @@ declare class Ledger {
   /**
    * Returns an account.
    */
-  getAccount(publicKey: PublicKey_, tokenId: Field): JsonAccount | undefined;
+  getAccount(publicKey: MlPublicKey, tokenId: Field): JsonAccount | undefined;
 
   /**
    * Returns the commitment of a JSON transaction.
@@ -1343,12 +1344,9 @@ declare class Ledger {
    */
   static dummySignature(): string;
 
-  static customTokenId(publicKey: PublicKey_, tokenId: Field): Field;
-  static customTokenIdChecked(publicKey: PublicKey_, tokenId: Field): Field;
-  static createTokenAccount(publicKey: PublicKey_, tokenId: Field): string;
-
-  static publicKeyToString(publicKey: PublicKey_): string;
-  static publicKeyOfString(publicKeyBase58: string): PublicKey_;
+  static customTokenId(publicKey: MlPublicKey, tokenId: Field): Field;
+  static customTokenIdChecked(publicKey: MlPublicKeyVar, tokenId: Field): Field;
+  static createTokenAccount(publicKey: MlPublicKey, tokenId: Field): string;
 
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
@@ -1394,6 +1392,8 @@ declare class Ledger {
 
 declare const Test: {
   encoding: {
+    publicKeyToBase58(publicKey: MlPublicKey): string;
+    publicKeyOfBase58(publicKeyBase58: string): MlPublicKey;
     privateKeyToBase58(privateKey: ScalarConst): string;
     privateKeyOfBase58(privateKeyBase58: string): ScalarConst;
   };

@@ -27,6 +27,7 @@ import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
 import { Provable } from './provable.js';
 import { prettifyStacktrace } from './errors.js';
+import { Ml } from './ml/conversion.js';
 
 export {
   createTransaction,
@@ -380,8 +381,8 @@ function LocalBlockchain({
 
   let networkState = defaultNetworkState();
 
-  function addAccount(pk: PublicKey, balance: string) {
-    ledger.addAccount(pk, balance);
+  function addAccount(publicKey: PublicKey, balance: string) {
+    ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
   }
 
   let testAccounts: {
@@ -420,13 +421,13 @@ function LocalBlockchain({
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return !!ledger.getAccount(publicKey, tokenId);
+      return !!ledger.getAccount(Ml.fromPublicKey(publicKey), tokenId);
     },
     getAccount(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let accountJson = ledger.getAccount(publicKey, tokenId);
+      let accountJson = ledger.getAccount(Ml.fromPublicKey(publicKey), tokenId);
       if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
@@ -448,7 +449,7 @@ function LocalBlockchain({
 
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = ledger.getAccount(
-          update.body.publicKey,
+          Ml.fromPublicKey(update.body.publicKey),
           update.body.tokenId
         );
         if (accountJson) {
