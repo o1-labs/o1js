@@ -96,15 +96,10 @@ class Group {
         return Group.#fromProjective(g_proj);
       }
     } else {
-      /*       let [, x, y] = Snarky.group.add(this.#toTuple(), g.#toTuple());
-      return new Group({ x, y }); */
       const check_finite = true;
 
-      let x1 = this.x.seal();
-      let y1 = this.y.seal();
-
-      let x2 = g.x.seal();
-      let y2 = g.y.seal();
+      const { x: x1, y: y1 } = this;
+      const { x: x2, y: y2 } = g;
 
       let zero = new Field(0);
 
@@ -143,8 +138,8 @@ class Group {
       });
 
       let [, x, y] = Snarky.group.ecadd(
-        this.#toTuple(),
-        g.#toTuple(),
+        Group.from(x1.seal(), y1.seal()).#toTuple(),
+        Group.from(x2.seal(), y2.seal()).#toTuple(),
         Group.from(x3, y3).#toTuple(),
         inf.value,
         same_x.value,

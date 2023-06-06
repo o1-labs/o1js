@@ -179,10 +179,8 @@ declare const Snarky: {
 
   group: {
     /**
-     * Addition of two group elements, handles only variables.
+     * Low-level Elliptic Curve Addition gate.
      */
-    add(p1: MlGroup, p2: MlGroup): MlGroup;
-
     ecadd(
       p1: MlGroup,
       p2: MlGroup,
