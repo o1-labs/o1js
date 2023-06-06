@@ -307,9 +307,6 @@ let to_unchecked (x : Field.t) =
 
 let of_js_field_unchecked (x : field_class Js.t) = to_unchecked @@ of_js_field x
 
-let bool_to_unchecked (x : Boolean.var) =
-  (x :> Field.t) |> to_unchecked |> Field.Constant.(equal one)
-
 let () =
   let method_ name (f : field_class Js.t -> _) = method_ field_class name f in
   let to_string (x : Field.t) =
@@ -1639,12 +1636,11 @@ let pickles =
         |> Pickles.Side_loaded.Proof.to_base64 |> Js.string
   end
 
-module Ledger = struct
-  type public_key =
-    < x : field_class Js.t Js.readonly_prop
-    ; isOdd : bool_class Js.t Js.readonly_prop >
-    Js.t
+type public_key = Signature_lib.Public_key.Compressed.t
 
+type public_key_checked = Signature_lib.Public_key.Compressed.var
+
+module Ledger = struct
   let ledger_class : < .. > Js.t =
     Js.Unsafe.eval_string {js|(function(v) { this.value = v; return this })|js}
 
@@ -1741,15 +1737,6 @@ module Ledger = struct
   let create_new_account_exn (t : L.t) account_id account =
     L.create_new_account t account_id account |> Or_error.ok_exn
 
-  let public_key_checked (pk : public_key) :
-      Signature_lib.Public_key.Compressed.var =
-    { x = pk##.x##.value; is_odd = pk##.isOdd##.value }
-
-  let public_key (pk : public_key) : Signature_lib.Public_key.Compressed.t =
-    { x = to_unchecked pk##.x##.value
-    ; is_odd = bool_to_unchecked pk##.isOdd##.value
-    }
-
   let token_id_checked (token : field_class Js.t) =
     token |> of_js_field |> Mina_base.Token_id.Checked.of_field
 
@@ -1760,12 +1747,11 @@ module Ledger = struct
     Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
     |> Field.constant |> to_js_field
 
-  let account_id_checked pk token =
-    Mina_base.Account_id.Checked.create (public_key_checked pk)
-      (token_id_checked token)
+  let account_id_checked (pk : public_key_checked) token =
+    Mina_base.Account_id.Checked.create pk (token_id_checked token)
 
-  let account_id pk token =
-    Mina_base.Account_id.create (public_key pk) (token_id token)
+  let account_id (pk : public_key) token =
+    Mina_base.Account_id.create pk (token_id token)
 
   module Checked = struct
     let fields_to_hash
@@ -1806,15 +1792,6 @@ module Ledger = struct
     json |> Yojson.Safe.to_string |> Js.string
 
   module To_js = struct
-    let public_key (pk : Signature_lib.Public_key.Compressed.t) : public_key =
-      object%js
-        val x = to_js_field_unchecked pk.x
-
-        val isOdd =
-          new%js bool_constr
-            (As_bool.of_boolean @@ Boolean.var_of_value pk.is_odd)
-      end
-
     let option (transform : 'a -> 'b) (x : 'a option) =
       Js.Optdef.option (Option.map x ~f:transform)
   end
@@ -1941,15 +1918,6 @@ module Ledger = struct
               s p.body.public_key commitment
         | Proof _ | None_given ->
             () )
-
-  let public_key_to_string (pk : public_key) : Js.js_string Js.t =
-    pk |> public_key |> Signature_lib.Public_key.Compressed.to_base58_check
-    |> Js.string
-
-  let public_key_of_string (pk_base58 : Js.js_string Js.t) : public_key =
-    pk_base58 |> Js.to_string
-    |> Signature_lib.Public_key.Compressed.of_base58_check_exn
-    |> To_js.public_key
 
   let field_to_base58 (field : field_class Js.t) : Js.js_string Js.t =
     field |> of_js_field |> to_unchecked |> Mina_base.Account_id.Digest.of_field
@@ -2188,9 +2156,6 @@ module Ledger = struct
     static_method "signFieldElement" sign_field_element ;
     static_method "dummySignature" dummy_signature ;
 
-    static_method "publicKeyToString" public_key_to_string ;
-    static_method "publicKeyOfString" public_key_of_string ;
-
     (* these are implemented in JS, but kept here for consistency tests *)
     static_method "fieldToBase58" field_to_base58 ;
     static_method "fieldOfBase58" field_of_base58 ;
@@ -2323,6 +2288,13 @@ end
 
 module Test = struct
   module Encoding = struct
+    let public_key_to_base58 (pk : public_key) : Js.js_string Js.t =
+      pk |> Signature_lib.Public_key.Compressed.to_base58_check |> Js.string
+
+    let public_key_of_base58 (pk_base58 : Js.js_string Js.t) : public_key =
+      pk_base58 |> Js.to_string
+      |> Signature_lib.Public_key.Compressed.of_base58_check_exn
+
     let private_key_to_base58 (sk : Other_impl.field) : Js.js_string Js.t =
       sk |> Signature_lib.Private_key.to_base58_check |> Js.string
 
@@ -2344,6 +2316,10 @@ let test =
   object%js
     val encoding =
       object%js
+        method publicKeyToBase58 = Test.Encoding.public_key_to_base58
+
+        method publicKeyOfBase58 = Test.Encoding.public_key_of_base58
+
         method privateKeyToBase58 = Test.Encoding.private_key_to_base58
 
         method privateKeyOfBase58 = Test.Encoding.private_key_of_base58
