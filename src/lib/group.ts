@@ -6,12 +6,6 @@ import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 
 export { Group };
 
-type FieldLike = FieldVar | Field | number | string | bigint;
-type GroupLike = {
-  x: FieldLike;
-  y: FieldLike;
-};
-
 /**
  * An element of a Group.
  */
