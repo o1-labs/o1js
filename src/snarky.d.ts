@@ -3,7 +3,7 @@ import type { Field, FieldConst, FieldVar } from './lib/field.js';
 import { type BoolVar, Bool } from './lib/bool.js';
 import type { Scalar, ScalarConst } from './lib/scalar.js';
 // export { Field };
-export { SnarkyField };
+export { SnarkyField, SnarkyBool };
 export {
   Bool,
   Group,
@@ -1062,8 +1062,8 @@ declare class SnarkyField {
  *
  * Use [[assertEquals]] to enforce the value of a Bool.
  */
-declare function BoolOld(x: Bool | boolean): Bool;
-declare class BoolOld {
+declare function SnarkyBool(x: Bool | boolean): Bool;
+declare class SnarkyBool {
   constructor(x: Bool | boolean);
 
   /**

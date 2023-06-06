@@ -4,7 +4,7 @@ import { proxyClasses } from './bindings/js/proxy.js';
 
 export {
   Field as SnarkyField,
-  Bool,
+  Bool as SnarkyBool,
   Snarky,
   Poseidon,
   Group,

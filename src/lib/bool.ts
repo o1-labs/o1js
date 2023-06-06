@@ -1,7 +1,7 @@
-import { Snarky } from '../snarky.js';
+import { Snarky, SnarkyBool } from '../snarky.js';
 import { Field, FieldConst, FieldType, FieldVar } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
-import { defineBinable, type Binable } from '../bindings/lib/binable.js';
+import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
 
 export { BoolVar, Bool };
@@ -11,6 +11,8 @@ type BoolVar = FieldVar;
 
 type ConstantBoolVar = [FieldType.Constant, FieldConst];
 type ConstantBool = Bool & { value: ConstantBoolVar };
+
+const SnarkyBoolConstructor = SnarkyBool(true).constructor;
 
 class Bool {
   value: BoolVar;
@@ -118,7 +120,7 @@ class Bool {
   }
 
   static #isBool(x: boolean | Bool | BoolVar): x is Bool {
-    return x instanceof Bool;
+    return x instanceof Bool || (x as any) instanceof SnarkyBoolConstructor;
   }
 
   static #toVar(x: boolean | Bool): BoolVar {
