@@ -113,7 +113,7 @@ class Group {
 
       let inf_z = Provable.witness(Field, () => {
         if (y1.equals(y2).toBoolean()) return zero;
-        else if (x1.equals(x2)) return y2.sub(y1).inv();
+        else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
         else return zero;
       });
 
