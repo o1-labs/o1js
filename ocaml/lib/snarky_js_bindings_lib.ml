@@ -2332,7 +2332,7 @@ let test =
       object%js
         method signFieldElement = Test.Signature.sign_field_element
 
-        method dummySignature = Test.Signature.dummy_signature
+        val dummySignature = Test.Signature.dummy_signature
       end
 
     val transactionHash =
