@@ -195,8 +195,6 @@ declare const Snarky: {
     assertOnCurve(p1: MlGroup): void;
 
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
-
-    equals(p1: MlGroup, p2: MlGroup): BoolVar;
   };
 
   /**

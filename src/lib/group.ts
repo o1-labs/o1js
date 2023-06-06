@@ -207,7 +207,7 @@ class Group {
     let { x: x2, y: y2 } = g;
 
     x1.assertEquals(x2, message);
-    // y1.assertEquals(y2, message); need to enable this later on, but it breaks constraint backwards compatibility
+    y1.assertEquals(y2, message);
   }
 
   /**
@@ -219,15 +219,10 @@ class Group {
    * ```
    */
   equals(g: Group) {
-    if (this.#isConstant() && g.#isConstant()) {
-      let { x: x1, y: y1 } = this;
-      let { x: x2, y: y2 } = g;
+    let { x: x1, y: y1 } = this;
+    let { x: x2, y: y2 } = g;
 
-      return Bool(x1.equals(x2).and(y1.equals(y2)));
-    } else {
-      let z = Snarky.group.equals(this.#toTuple(), g.#toTuple());
-      return Bool.Unsafe.ofField(new Field(z));
-    }
+    return x1.equals(x2).and(y1.equals(y2));
   }
 
   /**
