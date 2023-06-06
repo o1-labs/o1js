@@ -221,8 +221,9 @@ class Bool {
     return new Field(0);
   }
 
-  // TODO
-  static check(x: Bool): void {}
+  static check(x: Bool): void {
+    Snarky.field.assertBoolean(x.value);
+  }
 
   static Unsafe = {
     ofField(x: Field | number | string | boolean): Bool {
