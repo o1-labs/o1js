@@ -223,6 +223,10 @@ export default [
         type: 'object',
       },
       {
+        name: 'bool',
+        type: 'object',
+      },
+      {
         name: 'circuit',
         type: 'object',
       },
