@@ -1,6 +1,6 @@
 import { Context } from './global-context.js';
 import { Gate, JsonGate, Snarky } from '../snarky.js';
-import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
+import { parseHexString } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 
 // internal API
@@ -105,12 +105,8 @@ function constraintSystem<T>(f: () => T) {
 // helpers
 
 function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
-  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
-    let coeffs = [];
-    for (let coefficient of byteCoeffs) {
-      let arr = new Uint8Array(coefficient);
-      coeffs.push(bytesToBigInt(arr).toString());
-    }
+  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: hexCoeffs }) => {
+    let coeffs = hexCoeffs.map(hex => parseHexString(hex).toString());
     return { type: typ, wires, coeffs };
   });
   return { publicInputSize: cs.public_input_size, gates };
