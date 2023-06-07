@@ -46,21 +46,12 @@ module Typ = Impl.Typ
 external prover_to_json :
   Kimchi_bindings.Protocol.Index.Fp.t -> Js.js_string Js.t = "prover_to_json"
 
-let array_get_exn xs i =
-  Js.Optdef.get (Js.array_get xs i) (fun () ->
-      raise_error (sprintf "array_get_exn: index=%d, length=%d" i xs##.length) )
-
 let method_ class_ (name : string) (f : _ Js.t -> _) =
   let prototype = Js.Unsafe.get class_ (Js.string "prototype") in
   Js.Unsafe.set prototype (Js.string name) (Js.wrap_meth_callback f)
 
 let to_unchecked (x : Field.t) =
   match x with Constant y -> y | y -> Impl.As_prover.read_var y
-
-let array_iter t1 ~f =
-  for i = 0 to t1##.length - 1 do
-    f (array_get_exn t1 i)
-  done
 
 module Poseidon_sponge_checked =
   Sponge.Make_sponge (Pickles.Step_main_inputs.Sponge.Permutation)
@@ -1276,15 +1267,8 @@ module Ledger = struct
     let a : Mina_base.Account.t = Mina_base.Account.create account_id balance in
     create_new_account_exn l account_id a
 
-  let create
-      (genesis_accounts :
-        < publicKey : public_key Js.prop ; balance : Js.js_string Js.t Js.prop >
-        Js.t
-        Js.js_array
-        Js.t ) : ledger_class Js.t =
+  let create () : ledger_class Js.t =
     let l = L.empty ~depth:20 () in
-    array_iter genesis_accounts ~f:(fun a ->
-        add_account_exn l a##.publicKey (Js.to_string a##.balance) ) ;
     new%js ledger_constr l
 
   let account_to_json =
