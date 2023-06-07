@@ -235,16 +235,15 @@ class Bool {
 
   static Unsafe = {
     ofField(x: Field | number | string | boolean): Bool {
-      return SnarkyBool.Unsafe.ofField(x);
-      // if (typeof x === 'number') {
-      //   return new Bool(x === 1);
-      // } else if (typeof x === 'string') {
-      //   return new Bool(x === '1');
-      // } else if (typeof x === 'boolean') {
-      //   return new Bool(x);
-      // } else {
-      //   return new Bool(x.value);
-      // }
+      if (typeof x === 'number') {
+        return new Bool(x === 1);
+      } else if (typeof x === 'string') {
+        return new Bool(x === '1');
+      } else if (typeof x === 'boolean') {
+        return new Bool(x);
+      } else {
+        return new Bool(x.value);
+      }
     },
   };
 }

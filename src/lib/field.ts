@@ -975,7 +975,9 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    if (this.isConstant()) return this;
+    // TODO: this is just commented for constraint equivalence with the old version
+    // uncomment to sometimes save constraints
+    // if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
     return new Field(x);
   }
