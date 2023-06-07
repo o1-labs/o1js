@@ -1,7 +1,8 @@
-import { Snarky, Provable, Bool } from '../snarky.js';
+import { Snarky, Provable } from '../snarky.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { Field, FieldConst, FieldVar } from './field.js';
 import { MlArray } from './ml/base.js';
+import { Bool } from './bool.js';
 
 export { Scalar, ScalarConst, unshift, shift };
 
@@ -204,7 +205,7 @@ That means it can't be called in a @method or similar environment, and there's n
     let lowBitMask = (1n << lowBitSize) - 1n;
     return {
       field: new Field(s & lowBitMask),
-      highBit: Bool(s >> lowBitSize === 1n),
+      highBit: new Bool(s >> lowBitSize === 1n),
     };
   }
 
