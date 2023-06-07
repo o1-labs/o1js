@@ -4,7 +4,7 @@ import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
 
-export { BoolVar, Bool };
+export { BoolVar, Bool, isBool };
 
 // same representation, but use a different name to communicate intent / constraints
 type BoolVar = FieldVar;
@@ -235,15 +235,16 @@ class Bool {
 
   static Unsafe = {
     ofField(x: Field | number | string | boolean): Bool {
-      if (typeof x === 'number') {
-        return new Bool(x === 1);
-      } else if (typeof x === 'string') {
-        return new Bool(x === '1');
-      } else if (typeof x === 'boolean') {
-        return new Bool(x);
-      } else {
-        return new Bool(x.value);
-      }
+      return SnarkyBool.Unsafe.ofField(x);
+      // if (typeof x === 'number') {
+      //   return new Bool(x === 1);
+      // } else if (typeof x === 'string') {
+      //   return new Bool(x === '1');
+      // } else if (typeof x === 'boolean') {
+      //   return new Bool(x);
+      // } else {
+      //   return new Bool(x.value);
+      // }
     },
   };
 }
@@ -266,6 +267,10 @@ function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
     return x.toField().isConstant();
   }
   return x.isConstant();
+}
+
+function isBool(x: unknown) {
+  return x instanceof Bool || (x as any) instanceof SnarkyBoolConstructor;
 }
 
 function toBoolean(x: boolean | Bool): boolean {

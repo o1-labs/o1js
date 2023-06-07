@@ -1,11 +1,10 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
-import { type BoolVar, Bool } from './lib/bool.js';
+import type { BoolVar, Bool } from './lib/bool.js';
 import type { Scalar, ScalarConst } from './lib/scalar.js';
 // export { Field };
 export { SnarkyField, SnarkyBool };
 export {
-  Bool,
   Group,
   ProvablePure,
   Provable,
