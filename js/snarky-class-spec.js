@@ -319,43 +319,6 @@ export default [
     ],
   },
   {
-    name: 'Scalar',
-    props: [
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'sizeInFields',
-        type: 'function',
-      },
-      {
-        name: 'fromFields',
-        type: 'function',
-      },
-      {
-        name: 'random',
-        type: 'function',
-      },
-      {
-        name: 'fromBits',
-        type: 'function',
-      },
-      {
-        name: 'toJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromJSON',
-        type: 'function',
-      },
-      {
-        name: 'check',
-        type: 'function',
-      },
-    ],
-  },
-  {
     name: 'Ledger',
     props: [
       {
@@ -391,27 +354,11 @@ export default [
         type: 'function',
       },
       {
-        name: 'signFeePayer',
-        type: 'function',
-      },
-      {
-        name: 'signOtherAccountUpdate',
-        type: 'function',
-      },
-      {
         name: 'publicKeyToString',
         type: 'function',
       },
       {
         name: 'publicKeyOfString',
-        type: 'function',
-      },
-      {
-        name: 'privateKeyToString',
-        type: 'function',
-      },
-      {
-        name: 'privateKeyOfString',
         type: 'function',
       },
       {
@@ -486,6 +433,10 @@ export default [
   {
     name: 'Test',
     props: [
+      {
+        name: 'encoding',
+        type: 'object',
+      },
       {
         name: 'transactionHash',
         type: 'object',
