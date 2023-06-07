@@ -297,15 +297,8 @@ let to_js_bigint =
 
 let to_js_field x : field_class Js.t = new%js field_constr (As_field.of_field x)
 
-let of_js_field (x : field_class Js.t) : Field.t = x##.value
-
-let to_js_field_unchecked x : field_class Js.t =
-  x |> Field.constant |> to_js_field
-
 let to_unchecked (x : Field.t) =
   match x with Constant y -> y | y -> Impl.As_prover.read_var y
-
-let of_js_field_unchecked (x : field_class Js.t) = to_unchecked @@ of_js_field x
 
 let () =
   let method_ name (f : field_class Js.t -> _) = method_ field_class name f in
@@ -1737,15 +1730,14 @@ module Ledger = struct
   let create_new_account_exn (t : L.t) account_id account =
     L.create_new_account t account_id account |> Or_error.ok_exn
 
-  let token_id_checked (token : field_class Js.t) =
-    token |> of_js_field |> Mina_base.Token_id.Checked.of_field
+  let token_id_checked (token : Field.t) =
+    token |> Mina_base.Token_id.Checked.of_field
 
-  let token_id (token : field_class Js.t) : Mina_base.Token_id.t =
-    token |> of_js_field_unchecked |> Mina_base.Token_id.of_field
+  let token_id (token : Impl.field) : Mina_base.Token_id.t =
+    token |> Mina_base.Token_id.of_field
 
-  let default_token_id_js =
+  let default_token_id =
     Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
-    |> Field.constant |> to_js_field
 
   let account_id_checked (pk : public_key_checked) token =
     Mina_base.Account_id.Checked.create pk (token_id_checked token)
@@ -1756,40 +1748,23 @@ module Ledger = struct
   module Checked = struct
     let fields_to_hash
         (typ : ('var, 'value, Field.Constant.t, _) Impl.Internal_Basic.Typ.typ)
-        (digest : 'var -> Field.t) (fields : field_class Js.t Js.js_array Js.t)
-        =
-      let fields = fields |> Js.to_array |> Array.map ~f:of_js_field in
+        (digest : 'var -> Field.t) (fields : Field.t array) =
       let (Typ typ) = typ in
       let variable =
         typ.var_of_fields (fields, typ.constraint_system_auxiliary ())
       in
-      digest variable |> to_js_field
+      digest variable
   end
 
   (* helper function to check whether the fields we produce from JS are correct *)
   let fields_of_json
       (typ : ('var, 'value, Field.Constant.t, 'tmp) Impl.Internal_Basic.Typ.typ)
-      of_json (json : Js.js_string Js.t) : field_class Js.t Js.js_array Js.t =
+      of_json (json : Js.js_string Js.t) : Impl.field array =
     let json = json |> Js.to_string |> Yojson.Safe.from_string in
     let value = of_json json in
     let (Typ typ) = typ in
     let fields, _ = typ.value_to_fields value in
-    Js.array
-    @@ Array.map ~f:(fun x -> x |> Field.constant |> to_js_field) fields
-
-  (* TODO: need to construct `aux` in JS, which has some extra data needed for `value_of_fields`  *)
-  let fields_to_json
-      (typ : ('var, 'value, Field.Constant.t, _) Impl.Internal_Basic.Typ.typ)
-      to_json (fields : field_class Js.t Js.js_array Js.t) aux :
-      Js.js_string Js.t =
-    let fields =
-      fields |> Js.to_array
-      |> Array.map ~f:(fun x -> x |> of_js_field |> to_unchecked)
-    in
-    let (Typ typ) = typ in
-    let value = typ.value_of_fields (fields, Obj.magic aux) in
-    let json = to_json value in
-    json |> Yojson.Safe.to_string |> Js.string
+    fields
 
   module To_js = struct
     let option (transform : 'a -> 'b) (x : 'a option) =
@@ -1819,8 +1794,7 @@ module Ledger = struct
     (account_update_of_json, account_update_to_json)
 
   let hash_account_update (p : Js.js_string Js.t) =
-    p |> account_update_of_json |> Account_update.digest |> Field.constant
-    |> to_js_field
+    p |> account_update_of_json |> Account_update.digest
 
   let transaction_commitments (tx_json : Js.js_string Js.t) =
     let tx =
@@ -1835,12 +1809,12 @@ module Ledger = struct
         ~fee_payer_hash
     in
     object%js
-      val commitment = to_js_field_unchecked commitment
+      val commitment = commitment
 
-      val fullCommitment = to_js_field_unchecked full_commitment
+      val fullCommitment = full_commitment
 
       (* for testing *)
-      val feePayerHash = to_js_field_unchecked (fee_payer_hash :> Impl.field)
+      val feePayerHash = (fee_payer_hash :> Impl.field)
     end
 
   let zkapp_public_input (tx_json : Js.js_string Js.t)
@@ -1851,12 +1825,10 @@ module Ledger = struct
     let account_update = List.nth_exn tx.account_updates account_update_index in
     object%js
       val accountUpdate =
-        to_js_field_unchecked
-          (account_update.elt.account_update_digest :> Impl.field)
+        (account_update.elt.account_update_digest :> Impl.field)
 
       val calls =
-        to_js_field_unchecked
-          (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
+        (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
     end
 
   let check_account_update_signatures zkapp_command =
@@ -1929,7 +1901,7 @@ module Ledger = struct
     base58 |> Js.to_string |> B58.decode_exn
 
   let add_account_exn (l : L.t) pk (balance : string) =
-    let account_id = account_id pk default_token_id_js in
+    let account_id = account_id pk default_token_id in
     let bal_u64 = Unsigned.UInt64.of_string balance in
     let balance = Currency.Balance.of_uint64 bal_u64 in
     let a : Mina_base.Account.t = Mina_base.Account.create account_id balance in
@@ -1958,7 +1930,7 @@ module Ledger = struct
     in
     to_json
 
-  let get_account l (pk : public_key) (token : field_class Js.t) :
+  let get_account l (pk : public_key) (token : Impl.field) :
       Js.Unsafe.any Js.optdef =
     let loc = L.location_of_account l##.value (account_id pk token) in
     let account = Option.bind loc ~f:(L.get l##.value) in
@@ -2020,7 +1992,7 @@ module Ledger = struct
       network_state
 
   let check_account_update_signature (account_update_json : Js.js_string Js.t)
-      (x : field_class Js.t) =
+      (x : Impl.field) =
     let account_update = account_update_of_json account_update_json in
     let check_signature s pk msg =
       match Signature_lib.Public_key.decompress pk with
@@ -2035,8 +2007,7 @@ module Ledger = struct
     let isValid =
       match account_update.authorization with
       | Signature s ->
-          check_signature s account_update.body.public_key
-            (x |> of_js_field |> to_unchecked)
+          check_signature s account_update.body.public_key x
       | Proof _ | None_given ->
           false
     in
@@ -2049,63 +2020,16 @@ module Ledger = struct
   let custom_token_id_checked pk token =
     Mina_base.Account_id.Checked.derive_token_id
       ~owner:(account_id_checked pk token)
-    |> Mina_base.Account_id.Digest.Checked.to_field_unsafe |> to_js_field
+    |> Mina_base.Account_id.Digest.Checked.to_field_unsafe
 
   let custom_token_id_unchecked pk token =
     Mina_base.Account_id.derive_token_id ~owner:(account_id pk token)
-    |> Mina_base.Token_id.to_field_unsafe |> to_js_field_unchecked
+    |> Mina_base.Token_id.to_field_unsafe
 
-  type random_oracle_input_js =
-    < fields : field_class Js.t Js.js_array Js.t Js.readonly_prop
-    ; packed :
-        < field : field_class Js.t Js.readonly_prop
-        ; size : int Js.readonly_prop >
-        Js.t
-        Js.js_array
-        Js.t
-        Js.readonly_prop >
-    Js.t
+  type random_oracle_input = Impl.field Random_oracle_input.Chunked.t
 
-  let random_oracle_input_to_js
-      (input : Impl.field Random_oracle_input.Chunked.t) :
-      random_oracle_input_js =
-    let fields =
-      input.field_elements |> Array.map ~f:to_js_field_unchecked |> Js.array
-    in
-    let packed =
-      input.packeds
-      |> Array.map ~f:(fun (field, size) ->
-             object%js
-               val field = to_js_field_unchecked field
-
-               val size = size
-             end )
-      |> Js.array
-    in
-    object%js
-      val fields = fields
-
-      val packed = packed
-    end
-
-  let pack_input (input : random_oracle_input_js) :
-      field_class Js.t Js.js_array Js.t =
-    let field_elements =
-      input##.fields |> Js.to_array |> Array.map ~f:of_js_field_unchecked
-    in
-    let packeds =
-      input##.packed |> Js.to_array
-      |> Array.map ~f:(fun packed ->
-             let field = packed##.field |> of_js_field_unchecked in
-             let size = packed##.size in
-             (field, size) )
-    in
-    let input : Impl.field Random_oracle_input.Chunked.t =
-      { field_elements; packeds }
-    in
+  let pack_input (input : random_oracle_input) : Impl.field array =
     Random_oracle.pack_input input
-    |> Array.map ~f:to_js_field_unchecked
-    |> Js.array
 
   (* global *)
 
@@ -2156,75 +2080,71 @@ module Ledger = struct
       end ) ;
 
     static_method "hashAccountUpdateFromJson" hash_account_update ;
-    static_method "hashAccountUpdateFromFields"
-      (Checked.fields_to_hash
-         (Mina_base.Account_update.Body.typ ())
-         Mina_base.Account_update.Checked.digest ) ;
+
+    let hash_account_update_from_fields =
+      Checked.fields_to_hash
+        (Mina_base.Account_update.Body.typ ())
+        Mina_base.Account_update.Checked.digest
+    in
+    static_method "hashAccountUpdateFromFields" hash_account_update_from_fields ;
 
     (* TODO this is for debugging, maybe remove later *)
     let body_deriver =
       Mina_base.Account_update.Body.Graphql_repr.deriver
       @@ Fields_derivers_zkapps.o ()
     in
-    let body_to_json value =
-      value
-      |> Account_update.Body.to_graphql_repr ~call_depth:0
-      |> Fields_derivers_zkapps.to_json body_deriver
-    in
     let body_of_json json =
       json
       |> Fields_derivers_zkapps.of_json body_deriver
       |> Account_update.Body.of_graphql_repr
     in
-    static_method "fieldsToJson"
-      (fields_to_json (Mina_base.Account_update.Body.typ ()) body_to_json) ;
     static_method "fieldsOfJson"
       (fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json) ;
 
     (* hash inputs for various account_update subtypes *)
     (* TODO: this is for testing against JS impl, remove eventually *)
-    let timing_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let timing_input (json : Js.js_string Js.t) : random_oracle_input =
       let deriver = Account_update.Update.Timing_info.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Account_update.Update.Timing_info.to_input value in
-      random_oracle_input_to_js input
+      input
     in
-    let permissions_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let permissions_input (json : Js.js_string Js.t) : random_oracle_input =
       let deriver = Mina_base.Permissions.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Mina_base.Permissions.to_input value in
-      random_oracle_input_to_js input
+      input
     in
-    let update_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let update_input (json : Js.js_string Js.t) : random_oracle_input =
       let deriver = Account_update.Update.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Account_update.Update.to_input value in
-      random_oracle_input_to_js input
+      input
     in
     let account_precondition_input (json : Js.js_string Js.t) :
-        random_oracle_input_js =
+        random_oracle_input =
       let deriver = Mina_base.Zkapp_precondition.Account.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Mina_base.Zkapp_precondition.Account.to_input value in
-      random_oracle_input_to_js input
+      input
     in
     let network_precondition_input (json : Js.js_string Js.t) :
-        random_oracle_input_js =
+        random_oracle_input =
       let deriver = Mina_base.Zkapp_precondition.Protocol_state.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Mina_base.Zkapp_precondition.Protocol_state.to_input value in
-      random_oracle_input_to_js input
+      input
     in
-    let body_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let body_input (json : Js.js_string Js.t) : random_oracle_input =
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = body_of_json json in
       let input = Account_update.Body.to_input value in
-      random_oracle_input_to_js input
+      input
     in
 
     static "hashInputFromJson"
