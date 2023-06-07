@@ -26,9 +26,10 @@ import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 import { Ml } from './ml/conversion.js';
-import { FieldConst, MlFieldConstArray } from './field.js';
+import { FieldConst } from './field.js';
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
+import { MlFieldConstArray } from './ml/fields.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };

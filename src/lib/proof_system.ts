@@ -19,7 +19,7 @@ import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlTuple } from './ml/base.js';
-import { MlFieldArray, MlFieldConstArray } from './field.js';
+import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 
 // public API
 export {

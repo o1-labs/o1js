@@ -3,13 +3,15 @@
  */
 
 import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
+import { HashInput } from '../circuit_value.js';
 import { Bool, Field } from '../core.js';
 import { FieldConst, FieldVar } from '../field.js';
 import { Scalar, ScalarConst } from '../scalar.js';
 import { PrivateKey, PublicKey } from '../signature.js';
-import { MlTuple, MlBool } from './base.js';
+import { MlTuple, MlBool, MlArray } from './base.js';
+import { MlFieldConstArray } from './fields.js';
 
-export { Ml };
+export { Ml, MlHashInput };
 
 const Ml = {
   constFromField,
@@ -28,6 +30,32 @@ const Ml = {
 
   fromPublicKeyVar,
   toPublicKeyVar,
+};
+
+type MlHashInput = [
+  flag: 0,
+  field_elements: MlArray<FieldConst>,
+  packed: MlArray<MlTuple<FieldConst, number>>
+];
+
+const MlHashInput = {
+  to({ fields = [], packed = [] }: HashInput): MlHashInput {
+    return [
+      0,
+      MlFieldConstArray.to(fields),
+      MlArray.to(
+        packed.map(([field, size]) => [0, Ml.constFromField(field), size])
+      ),
+    ];
+  },
+  from([, fields, packed]: MlHashInput): HashInput {
+    return {
+      fields: MlFieldConstArray.from(fields),
+      packed: MlArray.from(packed).map(
+        ([, field, size]) => [Field(field), size] as [Field, number]
+      ),
+    };
+  },
 };
 
 function constFromField(x: Field): FieldConst {

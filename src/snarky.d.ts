@@ -8,6 +8,7 @@ import type {
   MlOption,
   MlBool,
 } from './lib/ml/base.js';
+import type { MlHashInput } from './lib/ml/conversion.js';
 
 export { SnarkyField };
 export {
@@ -23,7 +24,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar, OcamlInput };
+export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -1357,13 +1358,13 @@ declare class Ledger {
   static hashAccountUpdateFromJson(json: string): FieldConst;
 
   static hashInputFromJson: {
-    packInput(input: OcamlInput): MlArray<FieldConst>;
-    timing(json: String): OcamlInput;
-    permissions(json: String): OcamlInput;
-    update(json: String): OcamlInput;
-    accountPrecondition(json: String): OcamlInput;
-    networkPrecondition(json: String): OcamlInput;
-    body(json: String): OcamlInput;
+    packInput(input: MlHashInput): MlArray<FieldConst>;
+    timing(json: String): MlHashInput;
+    permissions(json: String): MlHashInput;
+    update(json: String): MlHashInput;
+    accountPrecondition(json: String): MlHashInput;
+    networkPrecondition(json: String): MlHashInput;
+    body(json: String): MlHashInput;
   };
 
   // low-level encoding helpers
@@ -1423,11 +1424,6 @@ declare const Test: {
  * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
  */
 type MlBytes = { t: number; c: string; l: number };
-type OcamlInput = [
-  flag: 0,
-  field_elements: MlArray<FieldConst>,
-  packed: MlArray<MlTuple<FieldConst, number>>
-];
 
 /**
  * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.

@@ -1,13 +1,5 @@
 import { expect } from 'expect';
-import {
-  isReady,
-  Ledger,
-  shutdown,
-  Test,
-  OcamlInput,
-  Pickles,
-} from '../../snarky.js';
-import { Field as FieldSnarky } from '../../lib/core.js';
+import { isReady, Ledger, shutdown, Test, Pickles } from '../../snarky.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -49,9 +41,8 @@ import {
 } from './signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
-import { Ml } from '../../lib/ml/conversion.js';
-import { FieldConst, MlFieldConstArray } from '../../lib/field.js';
-import { MlArray } from '../../lib/ml/base.js';
+import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
+import { FieldConst } from '../../lib/field.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -79,7 +70,7 @@ expect(AccountUpdate.toJSON(dummy)).toEqual(
 );
 
 let dummyInput = AccountUpdate.toInput(dummy);
-let dummyInputSnarky = inputFromOcaml(
+let dummyInputSnarky = MlHashInput.from(
   Ledger.hashInputFromJson.body(
     JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
   )
@@ -200,7 +191,7 @@ test(
     let feePayerJson = AccountUpdate.toJSON(feePayerAccountUpdate);
 
     let feePayerInput = AccountUpdate.toInput(feePayerAccountUpdate);
-    let feePayerInput1 = inputFromOcaml(
+    let feePayerInput1 = MlHashInput.from(
       Ledger.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
     );
     expect(stringify(feePayerInput.fields)).toEqual(
@@ -279,28 +270,6 @@ test(
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();
-
-// function inputFromOcaml({
-//   fields,
-//   packed,
-// }: {
-//   fields: string[];
-//   packed: { field: string; size: number }[];
-// }) {
-//   return {
-//     fields,
-//     packed: packed.map(({ field, size }) => [field, size] as [string, number]),
-//   };
-// }
-
-function inputFromOcaml([, fields, packed]: OcamlInput) {
-  return {
-    fields: MlFieldConstArray.from(fields),
-    packed: MlArray.from(packed).map(
-      ([, field, size]) => [FieldSnarky(field), size] as [FieldSnarky, number]
-    ),
-  };
-}
 
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid

@@ -3,7 +3,7 @@ import { Poseidon as Poseidon_ } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
-import { MlFieldArray } from './field.js';
+import { MlFieldArray } from './ml/fields.js';
 
 // external API
 export { Poseidon, TokenSymbol };
