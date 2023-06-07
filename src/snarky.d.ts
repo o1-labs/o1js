@@ -305,9 +305,7 @@ declare class Ledger {
   /**
    * Creates a fresh ledger.
    */
-  static create(
-    genesisAccounts: Array<{ publicKey: MlPublicKey; balance: string }>
-  ): Ledger;
+  static create(): Ledger;
 
   /**
    * Adds an account and its balance to the ledger.
