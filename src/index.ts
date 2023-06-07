@@ -1,4 +1,4 @@
-export { ProvablePure, Ledger, isReady, shutdown } from './snarky.js';
+export { ProvablePure, Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
@@ -97,3 +97,16 @@ namespace Experimental {
 }
 
 Error.stackTraceLimit = 1000;
+
+// deprecated stuff
+export { isReady, shutdown };
+
+/**
+ * @deprecated `await isReady` is no longer needed. Remove it from your code.
+ */
+let isReady = Promise.resolve();
+
+/**
+ * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
+ */
+function shutdown() {}
