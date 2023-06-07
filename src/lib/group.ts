@@ -167,7 +167,7 @@ class Group {
       let { x: x1, y: y1 } = this;
       let { x: x2, y: y2 } = g;
 
-      return new Bool(x1.equals(x2).and(y1.equals(y2)));
+      return x1.equals(x2).and(y1.equals(y2));
     } else {
       let z = Snarky.group.equals(this.#toTuple(), g.#toTuple());
       return Bool.Unsafe.ofField(new Field(z));
