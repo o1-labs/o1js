@@ -83,17 +83,25 @@ class Bool {
   }
 
   assertTrue(message?: string): void {
-    if (this.isConstant() && !this.toBoolean()) {
-      throw Error(`Bool.assertTrue(): ${this} != ${true}`);
+    try {
+      if (this.isConstant() && !this.toBoolean()) {
+        throw Error(`Bool.assertTrue(): ${this} != ${true}`);
+      }
+      this.assertEquals(true);
+    } catch (err) {
+      throw withMessage(err, message);
     }
-    this.assertEquals(true, message);
   }
 
   assertFalse(message?: string): void {
-    if (this.isConstant() && this.toBoolean()) {
-      throw Error(`Bool.assertFalse(): ${this} != ${false}`);
+    try {
+      if (this.isConstant() && this.toBoolean()) {
+        throw Error(`Bool.assertFalse(): ${this} != ${false}`);
+      }
+      this.assertEquals(false);
+    } catch (err) {
+      throw withMessage(err, message);
     }
-    this.assertEquals(false, message);
   }
 
   equals(y: Bool | boolean): Bool {
