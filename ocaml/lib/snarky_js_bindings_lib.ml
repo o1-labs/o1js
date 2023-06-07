@@ -1745,17 +1745,6 @@ module Ledger = struct
   let account_id (pk : public_key) token =
     Mina_base.Account_id.create pk (token_id token)
 
-  module Checked = struct
-    let fields_to_hash
-        (typ : ('var, 'value, Field.Constant.t, _) Impl.Internal_Basic.Typ.typ)
-        (digest : 'var -> Field.t) (fields : Field.t array) =
-      let (Typ typ) = typ in
-      let variable =
-        typ.var_of_fields (fields, typ.constraint_system_auxiliary ())
-      in
-      digest variable
-  end
-
   (* helper function to check whether the fields we produce from JS are correct *)
   let fields_of_json
       (typ : ('var, 'value, Field.Constant.t, 'tmp) Impl.Internal_Basic.Typ.typ)
@@ -2080,13 +2069,6 @@ module Ledger = struct
       end ) ;
 
     static_method "hashAccountUpdateFromJson" hash_account_update ;
-
-    let hash_account_update_from_fields =
-      Checked.fields_to_hash
-        (Mina_base.Account_update.Body.typ ())
-        Mina_base.Account_update.Checked.digest
-    in
-    static_method "hashAccountUpdateFromFields" hash_account_update_from_fields ;
 
     (* TODO this is for debugging, maybe remove later *)
     let body_deriver =

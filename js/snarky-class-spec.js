@@ -297,10 +297,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'hashAccountUpdateFromFields',
-        type: 'function',
-      },
-      {
         name: 'hashAccountUpdateFromJson',
         type: 'function',
       },
