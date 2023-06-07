@@ -11,16 +11,7 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
-export {
-  ProvablePure,
-  Provable,
-  Poseidon,
-  Ledger,
-  isReady,
-  shutdown,
-  Pickles,
-  Gate,
-};
+export { ProvablePure, Provable, Ledger, isReady, shutdown, Pickles, Gate };
 
 // internal
 export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
@@ -247,6 +238,38 @@ declare const Snarky: {
       getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
     };
   };
+
+  poseidon: {
+    hash(input: MlArray<FieldVar>, isChecked: boolean): FieldVar;
+
+    update(
+      state: MlArray<FieldVar>,
+      input: MlArray<FieldVar>,
+      isChecked: boolean
+    ): [0, FieldVar, FieldVar, FieldVar];
+
+    hashToGroup(
+      input: MlArray<FieldVar>,
+      isChecked: boolean
+    ): MlTuple<FieldVar, FieldVar>;
+
+    sponge: {
+      create(isChecked: boolean): unknown;
+      absorb(sponge: unknown, x: FieldVar): void;
+      squeeze(sponge: unknown): FieldVar;
+    };
+
+    prefixes: Record<
+      | 'event'
+      | 'events'
+      | 'sequenceEvents'
+      | 'body'
+      | 'accountUpdateCons'
+      | 'accountUpdateNode'
+      | 'zkappMemo',
+      string
+    >;
+  };
 };
 
 type JsonGate = {
@@ -268,32 +291,6 @@ type Gate = {
 //   static fromFields(fields: Field[]): Scalar;
 //   static sizeInFields(): number;
 // }
-
-declare const Poseidon: {
-  hash(input: MlArray<FieldVar>, isChecked: boolean): FieldVar;
-  update(
-    state: MlArray<FieldVar>,
-    input: MlArray<FieldVar>,
-    isChecked: boolean
-  ): [0, FieldVar, FieldVar, FieldVar];
-  hashToGroup(
-    input: MlArray<FieldVar>,
-    isChecked: boolean
-  ): MlTuple<FieldVar, FieldVar>;
-  prefixes: Record<
-    | 'event'
-    | 'events'
-    | 'sequenceEvents'
-    | 'body'
-    | 'accountUpdateCons'
-    | 'accountUpdateNode'
-    | 'zkappMemo',
-    string
-  >;
-  spongeCreate(isChecked: boolean): unknown;
-  spongeAbsorb(sponge: unknown, x: FieldVar): void;
-  spongeSqueeze(sponge: unknown): FieldVar;
-};
 
 type MlPublicKey = MlTuple<FieldConst, MlBool>;
 type MlPublicKeyVar = MlTuple<FieldVar, BoolVar>;

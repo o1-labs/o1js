@@ -1,10 +1,5 @@
 import { Types } from '../bindings/mina-transaction/types.js';
-import {
-  Gate,
-  Pickles,
-  Poseidon as Poseidon_,
-  ProvablePure,
-} from '../snarky.js';
+import { Gate, Pickles, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,
