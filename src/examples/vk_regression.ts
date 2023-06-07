@@ -1,11 +1,14 @@
 import fs from 'fs';
-import { isReady, shutdown, SmartContract } from 'snarkyjs';
+import { isReady, shutdown, SmartContract, VerificationKey } from 'snarkyjs';
 import { Voting_ } from './zkapps/voting/voting.js';
 import { Membership_ } from './zkapps/voting/membership.js';
 import { HelloWorld } from './zkapps/hello_world/hello_world.js';
 import { TokenContract, createDex } from './zkapps/dex/dex.js';
 
 await isReady;
+
+// toggle this for quick iteration when debugging vk regressions
+const skipVerificationKeys = false;
 
 // usage ./run ./src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json
 let dump = process.argv[4] === '--dump';
@@ -85,7 +88,8 @@ async function dumpVk(contracts: typeof Contracts) {
   for await (const c of contracts) {
     let data = c.analyzeMethods();
     let digest = c.digest();
-    let { verificationKey } = await c.compile();
+    let verificationKey: VerificationKey | undefined;
+    if (!skipVerificationKeys) ({ verificationKey } = await c.compile());
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
@@ -95,8 +99,8 @@ async function dumpVk(contracts: typeof Contracts) {
         ])
       ),
       verificationKey: {
-        data: verificationKey.data,
-        hash: verificationKey.hash.toString(),
+        data: verificationKey?.data ?? '',
+        hash: verificationKey?.hash.toString() ?? '0',
       },
     };
   }
