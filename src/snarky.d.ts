@@ -179,9 +179,9 @@ declare const Snarky: {
   bool: {
     not(x: BoolVar): BoolVar;
 
-    and_(x: BoolVar, y: BoolVar): BoolVar;
+    and(x: BoolVar, y: BoolVar): BoolVar;
 
-    or_(x: BoolVar, y: BoolVar): BoolVar;
+    or(x: BoolVar, y: BoolVar): BoolVar;
 
     equals(x: BoolVar, y: BoolVar): BoolVar;
 
