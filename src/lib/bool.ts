@@ -252,11 +252,14 @@ const BoolBinable = defineBinable({
 });
 
 function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
-  let type = typeof x;
-  if (type === 'boolean') {
+  if (typeof x === 'boolean') {
     return true;
   }
-  return (x as Bool).isConstant();
+  // TODO: remove when we get rid of old Bool
+  if (x instanceof SnarkyBoolConstructor) {
+    return x.toField().isConstant();
+  }
+  return x.isConstant();
 }
 
 function toBoolean(x: boolean | Bool): boolean {
