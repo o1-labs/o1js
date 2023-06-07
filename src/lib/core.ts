@@ -1,8 +1,6 @@
-import { defineBinable } from '../bindings/lib/binable.js';
-import { sizeInBits } from '../provable/field-bigint.js';
-import { Bool } from '../snarky.js';
 import { Field as InternalField } from './field.js';
 import { Group as InternalGroup } from './group.js';
+import { Bool as InternalBool } from './bool.js';
 import { Scalar } from './scalar.js';
 
 export { Field, Bool, Scalar, Group };
@@ -43,6 +41,9 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
+const Bool = toFunctionConstructor(InternalBool);
+type Bool = InternalBool;
+
 /**
  * An element of a Group.
  */
@@ -63,25 +64,3 @@ type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
 type InferReturn<T> = T extends new (...args: any) => infer Return
   ? Return
   : never;
-
-// patching ocaml classes
-
-Bool.toAuxiliary = () => [];
-
-Bool.toInput = function (x) {
-  return { packed: [[x.toField(), 1] as [Field, number]] };
-};
-
-// binable
-const BoolBinable = defineBinable({
-  toBytes(b: Bool) {
-    return [Number(b.toBoolean())];
-  },
-  readBytes(bytes, offset) {
-    return [Bool(!!bytes[offset]), offset + 1];
-  },
-});
-Bool.toBytes = BoolBinable.toBytes;
-Bool.fromBytes = BoolBinable.fromBytes;
-Bool.readBytes = BoolBinable.readBytes;
-Bool.sizeInBytes = () => 1;
