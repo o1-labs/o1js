@@ -139,7 +139,7 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
   );
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
-  expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
+  expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
 });
 
 // invalid zkapp transactions
@@ -181,7 +181,9 @@ test(
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
     let commitment = callForestHash(callForest);
-    expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
+    expect(commitment).toEqual(
+      FieldConst.toBigint(ocamlCommitments.commitment)
+    );
 
     let memo = Memo.fromBase58(memoBase58);
     let memoHash = Memo.hash(memo);
@@ -203,25 +205,29 @@ test(
     );
 
     let feePayerDigest = feePayerHash(feePayer);
-    expect(feePayerDigest).toEqual(ocamlCommitments.feePayerHash.toBigInt());
+    expect(feePayerDigest).toEqual(
+      FieldConst.toBigint(ocamlCommitments.feePayerHash)
+    );
 
     let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
       memoHash,
       feePayerDigest,
       commitment,
     ]);
-    expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
+    expect(fullCommitment).toEqual(
+      FieldConst.toBigint(ocamlCommitments.fullCommitment)
+    );
 
     // signature
     let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
     let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
     let sigTestnetOcaml = Test.signature.signFieldElement(
-      Ml.toFieldConst(ocamlCommitments.fullCommitment),
+      ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
       false
     );
     let sigMainnetOcaml = Test.signature.signFieldElement(
-      Ml.toFieldConst(ocamlCommitments.fullCommitment),
+      ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
       true
     );

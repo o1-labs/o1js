@@ -26,7 +26,7 @@ import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 import { Ml } from './ml/conversion.js';
-import { MlFieldConstArray } from './field.js';
+import { FieldConst, MlFieldConstArray } from './field.js';
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 
@@ -604,13 +604,20 @@ const TokenId = {
   get default() {
     return Field(1);
   },
-  derive(tokenOwner: PublicKey, parentTokenId = Field(1)) {
+  derive(tokenOwner: PublicKey, parentTokenId = Field(1)): Field {
     if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
-      return Ledger.customTokenId(Ml.fromPublicKey(tokenOwner), parentTokenId);
+      return Field(
+        Ledger.customTokenId(
+          Ml.fromPublicKey(tokenOwner),
+          Ml.constFromField(parentTokenId)
+        )
+      );
     } else {
-      return Ledger.customTokenIdChecked(
-        Ml.fromPublicKeyVar(tokenOwner),
-        parentTokenId
+      return Field(
+        Ledger.customTokenIdChecked(
+          Ml.fromPublicKeyVar(tokenOwner),
+          Ml.varFromField(parentTokenId)
+        )
       );
     }
   },
@@ -1073,7 +1080,7 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 
-  hash() {
+  hash(): Field {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
     // TODO: there's no reason anymore to use two different hashing methods here!
     // -- the "inCheckedComputation" branch works in all circumstances now
@@ -1086,7 +1093,7 @@ class AccountUpdate implements Types.AccountUpdate {
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
       let json = Types.AccountUpdate.toJSON(this);
-      return Ledger.hashAccountUpdateFromJson(JSON.stringify(json));
+      return Field(Ledger.hashAccountUpdateFromJson(JSON.stringify(json)));
     }
   }
 
@@ -1866,9 +1873,12 @@ function addMissingSignatures(
   additionalKeys = [] as PrivateKey[]
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
-  let { commitment, fullCommitment } = Ledger.transactionCommitments(
+  let commitments = Ledger.transactionCommitments(
     JSON.stringify(ZkappCommand.toJSON(zkappCommand))
   );
+  let commitment = FieldConst.toBigint(commitments.commitment);
+  let fullCommitment = FieldConst.toBigint(commitments.fullCommitment);
+
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =
       cloneCircuitValue(accountUpdate);
@@ -1888,7 +1898,7 @@ function addMissingSignatures(
       privateKey = additionalKeys[i];
     }
     let signature = signFieldElement(
-      fullCommitment.toBigInt(),
+      fullCommitment,
       privateKey.toBigInt(),
       'testnet'
     );
@@ -1921,7 +1931,7 @@ function addMissingSignatures(
       ? fullCommitment
       : commitment;
     let signature = signFieldElement(
-      transactionCommitment.toBigInt(),
+      transactionCommitment,
       privateKey.toBigInt(),
       'testnet'
     );

@@ -23,7 +23,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
+export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar, OcamlInput };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -1316,15 +1316,18 @@ declare class Ledger {
   /**
    * Returns an account.
    */
-  getAccount(publicKey: MlPublicKey, tokenId: Field): JsonAccount | undefined;
+  getAccount(
+    publicKey: MlPublicKey,
+    tokenId: FieldConst
+  ): JsonAccount | undefined;
 
   /**
    * Returns the commitment of a JSON transaction.
    */
   static transactionCommitments(txJson: string): {
-    commitment: Field;
-    fullCommitment: Field;
-    feePayerHash: Field;
+    commitment: FieldConst;
+    fullCommitment: FieldConst;
+    feePayerHash: FieldConst;
   };
 
   /**
@@ -1333,23 +1336,28 @@ declare class Ledger {
   static zkappPublicInput(
     txJson: string,
     accountUpdateIndex: number
-  ): { accountUpdate: Field; calls: Field };
+  ): { accountUpdate: FieldConst; calls: FieldConst };
 
-  static customTokenId(publicKey: MlPublicKey, tokenId: Field): Field;
-  static customTokenIdChecked(publicKey: MlPublicKeyVar, tokenId: Field): Field;
-  static createTokenAccount(publicKey: MlPublicKey, tokenId: Field): string;
+  static customTokenId(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
+  static customTokenIdChecked(
+    publicKey: MlPublicKeyVar,
+    tokenId: FieldVar
+  ): FieldVar;
+  static createTokenAccount(
+    publicKey: MlPublicKey,
+    tokenId: FieldConst
+  ): string;
 
   static checkAccountUpdateSignature(
     updateJson: string,
-    commitment: Field
+    commitment: FieldConst
   ): boolean;
 
-  static fieldsOfJson(json: string): Field[];
-  static hashAccountUpdateFromFields(fields: Field[]): Field;
-  static hashAccountUpdateFromJson(json: string): Field;
+  static fieldsOfJson(json: string): MlArray<FieldConst>;
+  static hashAccountUpdateFromJson(json: string): FieldConst;
 
   static hashInputFromJson: {
-    packInput(input: OcamlInput): Field[];
+    packInput(input: OcamlInput): MlArray<FieldConst>;
     timing(json: String): OcamlInput;
     permissions(json: String): OcamlInput;
     update(json: String): OcamlInput;
@@ -1415,7 +1423,11 @@ declare const Test: {
  * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
  */
 type MlBytes = { t: number; c: string; l: number };
-type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
+type OcamlInput = [
+  flag: 0,
+  field_elements: MlArray<FieldConst>,
+  packed: MlArray<MlTuple<FieldConst, number>>
+];
 
 /**
  * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.

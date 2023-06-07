@@ -29,7 +29,7 @@ import { TransactionCost, TransactionLimits } from './mina/constants.js';
 import { Provable } from './provable.js';
 import { prettifyStacktrace } from './errors.js';
 import { Ml } from './ml/conversion.js';
-import { verifyZkappCommandSignature } from 'src/mina-signer/src/sign-zkapp-command.js';
+import { FieldConst } from './field.js';
 
 export {
   createTransaction,
@@ -423,13 +423,19 @@ function LocalBlockchain({
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return !!ledger.getAccount(Ml.fromPublicKey(publicKey), tokenId);
+      return !!ledger.getAccount(
+        Ml.fromPublicKey(publicKey),
+        Ml.constFromField(tokenId)
+      );
     },
     getAccount(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let accountJson = ledger.getAccount(Ml.fromPublicKey(publicKey), tokenId);
+      let accountJson = ledger.getAccount(
+        Ml.fromPublicKey(publicKey),
+        Ml.constFromField(tokenId)
+      );
       if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
@@ -452,7 +458,7 @@ function LocalBlockchain({
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = ledger.getAccount(
           Ml.fromPublicKey(update.body.publicKey),
-          update.body.tokenId
+          Ml.constFromField(update.body.tokenId)
         );
         if (accountJson) {
           let account = Account.fromJSON(accountJson);
@@ -1229,8 +1235,8 @@ async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
   transactionCommitments: {
-    commitment: Field;
-    fullCommitment: Field;
+    commitment: FieldConst;
+    fullCommitment: FieldConst;
   },
   proofsEnabled: boolean
 ): Promise<void> {

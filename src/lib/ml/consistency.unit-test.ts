@@ -5,6 +5,8 @@ import { PrivateKey, PublicKey } from '../signature.js';
 import { dummySignature } from '../account_update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
+import { TokenId } from '../base58-encodings.js';
+import { FieldConst } from '../field.js';
 
 // PrivateKey.toBase58, fromBase58
 
@@ -46,3 +48,16 @@ test(Random.publicKey, (pk0) => {
 let js = dummySignature();
 let ml = Test.signature.dummySignature();
 expect(js).toEqual(ml);
+
+// token id to/from base58
+
+test(Random.field, (x) => {
+  let js = TokenId.toBase58(Field(x));
+  let ml = Test.encoding.tokenIdToBase58(FieldConst.fromBigint(x));
+  expect(js).toEqual(ml);
+
+  expect(TokenId.fromBase58(js).toBigInt()).toEqual(x);
+});
+
+let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
+expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');

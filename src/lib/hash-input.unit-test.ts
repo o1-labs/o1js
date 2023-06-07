@@ -16,6 +16,10 @@ import {
 } from '../bindings/mina-transaction/gen/transaction.js';
 import { packToFields } from './hash.js';
 import { Random, test } from './testing/property.js';
+import { OcamlInput } from '../snarky.js';
+import { MlArray } from './ml/base.js';
+import { MlFieldConstArray } from './field.js';
+import { Ml } from './ml/conversion.js';
 
 await isReady;
 
@@ -97,7 +101,7 @@ shutdown();
 
 function testInput<T, TJson>(
   Module: ProvableExtended<T, TJson>,
-  toInputOcaml: (json: string) => InputOcaml,
+  toInputOcaml: (json: string) => OcamlInput,
   value: T
 ) {
   let json = Module.toJSON(value);
@@ -110,7 +114,9 @@ function testInput<T, TJson>(
   let ok1 = JSON.stringify(input2) === JSON.stringify(input1);
   expect(JSON.stringify(input2)).toEqual(JSON.stringify(input1));
   // console.log('ok?', ok1);
-  let fields1 = Ledger.hashInputFromJson.packInput(inputToOcaml(input1));
+  let fields1 = MlFieldConstArray.from(
+    Ledger.hashInputFromJson.packInput(inputToOcaml(input1))
+  );
   let fields2 = packToFields(input2);
   let ok2 = JSON.stringify(fields1) === JSON.stringify(fields2);
   // console.log('packed ok?', ok2);
@@ -120,21 +126,12 @@ function testInput<T, TJson>(
   }
 }
 
-type InputOcaml = {
-  fields: Field[];
-  packed: { field: Field; size: number }[];
-};
-
-function inputFromOcaml({
-  fields,
-  packed,
-}: {
-  fields: Field[];
-  packed: { field: Field; size: number }[];
-}) {
+function inputFromOcaml([, fields, packed]: OcamlInput) {
   return {
-    fields,
-    packed: packed.map(({ field, size }) => [field, size] as [Field, number]),
+    fields: MlFieldConstArray.from(fields),
+    packed: MlArray.from(packed).map(
+      ([, field, size]) => [Field(field), size] as [Field, number]
+    ),
   };
 }
 function inputToOcaml({
@@ -143,11 +140,14 @@ function inputToOcaml({
 }: {
   fields: Field[];
   packed: [field: Field, size: number][];
-}) {
-  return {
-    fields,
-    packed: packed.map(([field, size]) => ({ field, size })),
-  };
+}): OcamlInput {
+  return [
+    0,
+    MlFieldConstArray.to(fields),
+    MlArray.to(
+      packed.map(([field, size]) => [0, Ml.constFromField(field), size])
+    ),
+  ];
 }
 
 function fixVerificationKey(accountUpdate: Json.AccountUpdate) {

@@ -4,6 +4,7 @@
 
 import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
 import { Bool, Field } from '../core.js';
+import { FieldConst, FieldVar } from '../field.js';
 import { Scalar, ScalarConst } from '../scalar.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { MlTuple, MlBool } from './base.js';
@@ -11,19 +12,35 @@ import { MlTuple, MlBool } from './base.js';
 export { Ml };
 
 const Ml = {
-  toFieldConst,
+  constFromField,
+  constToField,
+  varFromField,
+  varToField,
+
   fromScalar,
   toScalar,
+
   fromPrivateKey,
   toPrivateKey,
+
   fromPublicKey,
   toPublicKey,
+
   fromPublicKeyVar,
   toPublicKeyVar,
 };
 
-function toFieldConst(x: Field) {
+function constFromField(x: Field): FieldConst {
   return x.toConstant().value[1];
+}
+function constToField(x: FieldConst): Field {
+  return Field(x);
+}
+function varFromField(x: Field): FieldVar {
+  return x.value;
+}
+function varToField(x: FieldVar): Field {
+  return Field(x);
 }
 
 function fromScalar(s: Scalar) {
