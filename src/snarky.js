@@ -3,8 +3,6 @@ import snarkySpec from './bindings/js/snarky-class-spec.js';
 import { proxyClasses } from './bindings/js/proxy.js';
 
 export {
-  Field as SnarkyField,
-  Bool as SnarkyBool,
   Snarky,
   Poseidon,
   Ledger,
@@ -20,7 +18,7 @@ let isItReady = () => isReadyBoolean;
 
 function shutdown() {}
 
-let { Field, Bool, Snarky, Poseidon, Ledger, Pickles, Test } = proxyClasses(
+let { Snarky, Poseidon, Ledger, Pickles, Test } = proxyClasses(
   getSnarky,
   isItReady,
   snarkySpec
