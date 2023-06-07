@@ -34,13 +34,13 @@ class Bool {
   }
 
   toBoolean(): boolean {
-    let value;
+    let value: FieldConst;
     if (this.isConstant()) {
       value = this.value[1];
     } else {
       value = Snarky.field.readVar(this.value);
     }
-    return FieldConst.equal(value, FieldConst.fromBigint(1n));
+    return FieldConst.equal(value, FieldConst[1]);
   }
 
   toField(): Field {
@@ -148,34 +148,32 @@ class Bool {
   }
 
   static and(x: Bool | boolean, y: Bool | boolean): Bool {
-    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+    if (Bool.#isBool(x)) {
       return x.and(y);
     }
-    return new Bool(x && y);
+    return new Bool(x).and(y);
   }
 
   static or(x: Bool | boolean, y: Bool | boolean): Bool {
-    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+    if (Bool.#isBool(x)) {
       return x.or(y);
     }
-    return new Bool(x || y);
+    return new Bool(x).or(y);
   }
 
-  static assertEqual(x: Bool | boolean, y: Bool | boolean): void {
-    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+  static assertEqual(x: Bool, y: Bool | boolean): void {
+    if (Bool.#isBool(x)) {
       x.assertEquals(y);
       return;
     }
-    if (x !== y) {
-      throw Error(`Bool.assertEqual(): ${x} != ${y}`);
-    }
+    new Bool(x).assertEquals(y);
   }
 
   static equal(x: Bool | boolean, y: Bool | boolean): Bool {
-    if (Bool.#isBool(x) && Bool.#isBool(y)) {
+    if (Bool.#isBool(x)) {
       return x.equals(y);
     }
-    return new Bool(x === y);
+    return new Bool(x).equals(y);
   }
 
   static toFields(x: Bool): Field[] {
