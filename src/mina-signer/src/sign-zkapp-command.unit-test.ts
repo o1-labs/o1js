@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { isReady, Ledger, shutdown, Test, Pickles } from '../../snarky.js';
+import { Ledger, Test, Pickles } from '../../snarky.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -50,8 +50,6 @@ import { FieldConst } from '../../lib/field.js';
 };
 let { parse, stringify } = JSON;
 const toJSON = (x: any) => parse(stringify(x));
-
-await isReady;
 
 // public key roundtrip & consistency w/ OCaml serialization
 test(Random.json.publicKey, (publicKeyBase58) => {
@@ -269,7 +267,6 @@ test(
 );
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
-shutdown();
 
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid

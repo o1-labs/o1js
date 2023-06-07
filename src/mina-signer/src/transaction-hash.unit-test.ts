@@ -1,4 +1,4 @@
-import { Ledger, shutdown, Test } from '../../snarky.js';
+import { Ledger, Test } from '../../snarky.js';
 import {
   Common,
   hashPayment,
@@ -148,8 +148,6 @@ test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) => {
   // => make invalid signatures fail independently
   Signature.fromJSON(delegation.signature);
 });
-
-shutdown();
 
 function paymentToOcaml({
   data: {

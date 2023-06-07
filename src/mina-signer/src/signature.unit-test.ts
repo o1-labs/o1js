@@ -7,7 +7,7 @@ import {
   verify,
   verifyFieldElement,
 } from './signature.js';
-import { isReady, Ledger, shutdown, Test } from '../../snarky.js';
+import { Ledger, Test } from '../../snarky.js';
 import { Field as FieldSnarky } from '../../lib/core.js';
 import { Field } from '../../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
@@ -17,8 +17,6 @@ import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-b
 import { HashInput } from '../../bindings/lib/provable-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
-
-await isReady;
 
 // check consistency with OCaml, where we expose the function to sign 1 field element with "testnet"
 function checkConsistentSingle(
@@ -134,5 +132,3 @@ for (let i = 0; i < 10; i++) {
 console.log(
   "signatures are consistent or verify / don't verify as expected! 🎉"
 );
-
-shutdown();

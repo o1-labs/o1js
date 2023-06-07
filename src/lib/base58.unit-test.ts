@@ -1,9 +1,7 @@
 import { fromBase58Check, toBase58Check } from './base58.js';
-import { Ledger, isReady, shutdown } from '../snarky.js';
+import { Ledger } from '../snarky.js';
 import { expect } from 'expect';
 import { test, Random, withHardCoded } from './testing/property.js';
-
-await isReady;
 
 let bytes = withHardCoded(
   Random.bytes(Random.nat(100)),
@@ -40,5 +38,3 @@ expect(() => fromBase58Check('AhgX24Hr3u', 1)).toThrow('invalid checksum');
 expect(() => fromBase58Check('AhgX24Hr3v', 2)).toThrow(
   '2 does not match encoded version byte 1'
 );
-
-shutdown();
