@@ -36,38 +36,9 @@ export default [
         name: 'circuit',
         type: 'object',
       },
-    ],
-  },
-  {
-    name: 'Poseidon',
-    props: [
       {
-        name: 'hash',
-        type: 'function',
-      },
-      {
-        name: 'update',
-        type: 'function',
-      },
-      {
-        name: 'prefixes',
+        name: 'poseidon',
         type: 'object',
-      },
-      {
-        name: 'spongeCreate',
-        type: 'function',
-      },
-      {
-        name: 'spongeAbsorb',
-        type: 'function',
-      },
-      {
-        name: 'spongeSqueeze',
-        type: 'function',
-      },
-      {
-        name: 'hashToGroup',
-        type: 'function',
       },
     ],
   },

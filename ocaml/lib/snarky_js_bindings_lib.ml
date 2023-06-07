@@ -53,92 +53,6 @@ let method_ class_ (name : string) (f : _ Js.t -> _) =
 let to_unchecked (x : Field.t) =
   match x with Constant y -> y | y -> Impl.As_prover.read_var y
 
-module Poseidon_sponge_checked =
-  Sponge.Make_sponge (Pickles.Step_main_inputs.Sponge.Permutation)
-module Poseidon_sponge =
-  Sponge.Make_sponge (Sponge.Poseidon (Pickles.Tick_field_sponge.Inputs))
-
-let sponge_params_checked =
-  Sponge.Params.(
-    map pasta_p_kimchi ~f:(Fn.compose Field.constant Field.Constant.of_string))
-
-let sponge_params =
-  Sponge.Params.(map pasta_p_kimchi ~f:Field.Constant.of_string)
-
-type sponge =
-  | Checked of Poseidon_sponge_checked.t
-  | Unchecked of Poseidon_sponge.t
-
-let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
-  if Js.to_bool is_checked then Random_oracle.Checked.hash xs
-  else Random_oracle.hash (Array.map ~f:to_unchecked xs) |> Field.constant
-
-let poseidon =
-  object%js
-    (* this could be removed eventually since it's easily implemented using `update` *)
-    method hash input is_checked = hash_array input is_checked
-
-    method hashToGroup (xs : Field.t array) (is_checked : bool Js.t) =
-      let input = hash_array xs is_checked in
-      let digest =
-        if Js.to_bool is_checked then
-          Snark_params.Group_map.Checked.to_group input
-        else
-          let x, y = Snark_params.Group_map.to_group (to_unchecked input) in
-          (Field.constant @@ x, Field.constant @@ y)
-      in
-      digest
-
-    method update (state : Field.t Random_oracle.State.t)
-        (input : Field.t array) (is_checked : bool Js.t)
-        : Field.t Random_oracle.State.t =
-      if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
-      else
-        Random_oracle.update
-          ~state:(Random_oracle.State.map ~f:to_unchecked state)
-          (Array.map ~f:to_unchecked input)
-        |> Random_oracle.State.map ~f:Field.constant
-
-    (* returns a "sponge" that stays opaque to JS *)
-    method spongeCreate (is_checked : bool Js.t) : sponge =
-      if Js.to_bool is_checked then
-        Checked
-          (Poseidon_sponge_checked.create ?init:None sponge_params_checked)
-      else Unchecked (Poseidon_sponge.create ?init:None sponge_params)
-
-    method spongeAbsorb (sponge : sponge) (field : Field.t) : unit =
-      match sponge with
-      | Checked s ->
-          Poseidon_sponge_checked.absorb s field
-      | Unchecked s ->
-          Poseidon_sponge.absorb s (to_unchecked @@ field)
-
-    method spongeSqueeze (sponge : sponge) : Field.t =
-      match sponge with
-      | Checked s ->
-          Poseidon_sponge_checked.squeeze s
-      | Unchecked s ->
-          Poseidon_sponge.squeeze s |> Field.constant
-
-    val prefixes =
-      let open Hash_prefixes in
-      object%js
-        val event = Js.string (zkapp_event :> string)
-
-        val events = Js.string (zkapp_events :> string)
-
-        val sequenceEvents = Js.string (zkapp_actions :> string)
-
-        val body = Js.string (zkapp_body :> string)
-
-        val accountUpdateCons = Js.string (account_update_cons :> string)
-
-        val accountUpdateNode = Js.string (account_update_node :> string)
-
-        val zkappMemo = Js.string (zkapp_memo :> string)
-      end
-  end
-
 (* light-weight wrapper around snarky-ml core *)
 
 module Snarky = struct
@@ -309,6 +223,94 @@ module Snarky = struct
         (Impl.Keypair.pk t).index |> prover_to_json |> json_parse
     end
   end
+
+  module Poseidon = struct
+    let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
+      if Js.to_bool is_checked then Random_oracle.Checked.hash xs
+      else
+        Random_oracle.hash (Array.map ~f:to_unchecked xs) |> Impl.Field.constant
+
+    (* this could be removed eventually since it's easily implemented using `update` *)
+    let hash input is_checked = hash_array input is_checked
+
+    let update (state : Field.t Random_oracle.State.t) (input : Field.t array)
+        (is_checked : bool Js.t) : Field.t Random_oracle.State.t =
+      if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
+      else
+        Random_oracle.update
+          ~state:(Random_oracle.State.map ~f:to_unchecked state)
+          (Array.map ~f:to_unchecked input)
+        |> Random_oracle.State.map ~f:Impl.Field.constant
+
+    let hash_to_group (xs : Field.t array) (is_checked : bool Js.t) =
+      let input = hash_array xs is_checked in
+      let digest =
+        if Js.to_bool is_checked then
+          Snark_params.Group_map.Checked.to_group input
+        else
+          let x, y = Snark_params.Group_map.to_group (to_unchecked input) in
+          (Impl.Field.constant @@ x, Impl.Field.constant @@ y)
+      in
+      digest
+
+    (* sponge *)
+
+    module Poseidon_sponge_checked =
+      Sponge.Make_sponge (Pickles.Step_main_inputs.Sponge.Permutation)
+    module Poseidon_sponge =
+      Sponge.Make_sponge (Sponge.Poseidon (Pickles.Tick_field_sponge.Inputs))
+
+    let sponge_params_checked =
+      Sponge.Params.(
+        map pasta_p_kimchi
+          ~f:(Fn.compose Impl.Field.constant Impl.Field.Constant.of_string))
+
+    let sponge_params =
+      Sponge.Params.(map pasta_p_kimchi ~f:Impl.Field.Constant.of_string)
+
+    type sponge =
+      | Checked of Poseidon_sponge_checked.t
+      | Unchecked of Poseidon_sponge.t
+
+    (* returns a "sponge" that stays opaque to JS *)
+    let sponge_create (is_checked : bool Js.t) : sponge =
+      if Js.to_bool is_checked then
+        Checked
+          (Poseidon_sponge_checked.create ?init:None sponge_params_checked)
+      else Unchecked (Poseidon_sponge.create ?init:None sponge_params)
+
+    let sponge_absorb (sponge : sponge) (field : Field.t) : unit =
+      match sponge with
+      | Checked s ->
+          Poseidon_sponge_checked.absorb s field
+      | Unchecked s ->
+          Poseidon_sponge.absorb s (to_unchecked @@ field)
+
+    let sponge_squeeze (sponge : sponge) : Field.t =
+      match sponge with
+      | Checked s ->
+          Poseidon_sponge_checked.squeeze s
+      | Unchecked s ->
+          Poseidon_sponge.squeeze s |> Impl.Field.constant
+
+    let prefixes =
+      let open Hash_prefixes in
+      object%js
+        val event = Js.string (zkapp_event :> string)
+
+        val events = Js.string (zkapp_events :> string)
+
+        val sequenceEvents = Js.string (zkapp_actions :> string)
+
+        val body = Js.string (zkapp_body :> string)
+
+        val accountUpdateCons = Js.string (account_update_cons :> string)
+
+        val accountUpdateNode = Js.string (account_update_node :> string)
+
+        val zkappMemo = Js.string (zkapp_memo :> string)
+      end
+  end
 end
 
 let snarky =
@@ -394,6 +396,26 @@ let snarky =
 
             method getConstraintSystemJSON = Snarky.Circuit.Keypair.get_cs_json
           end
+      end
+
+    val poseidon =
+      object%js
+        method hash = Snarky.Poseidon.hash
+
+        method update = Snarky.Poseidon.update
+
+        method hashToGroup = Snarky.Poseidon.hash_to_group
+
+        val sponge =
+          object%js
+            method create = Snarky.Poseidon.sponge_create
+
+            method absorb = Snarky.Poseidon.sponge_absorb
+
+            method squeeze = Snarky.Poseidon.sponge_squeeze
+          end
+
+        val prefixes = Snarky.Poseidon.prefixes
       end
   end
 
@@ -1664,7 +1686,6 @@ let test =
 (* export stuff *)
 
 let export () =
-  Js.export "Poseidon" poseidon ;
   Js.export "Snarky" snarky ;
   Js.export "Ledger" Ledger.ledger_class ;
   Js.export "Pickles" pickles ;
@@ -1675,8 +1696,7 @@ let export_global () =
     Js.Unsafe.(
       let i = inject in
       obj
-        [| ("Poseidon", i poseidon)
-         ; ("Snarky", i snarky)
+        [| ("Snarky", i snarky)
          ; ("Ledger", i Ledger.ledger_class)
          ; ("Pickles", i pickles)
          ; ("Test", i test)
