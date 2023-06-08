@@ -352,8 +352,6 @@ declare class Ledger {
     commitment: FieldConst
   ): boolean;
 
-  static fieldsOfJson(json: string): MlArray<FieldConst>;
-
   // low-level encoding helpers
   static encoding: {
     toBase58(s: MlBytes, versionByte: number): string;
@@ -398,6 +396,9 @@ declare const Test: {
     dummySignature(): string;
   };
 
+  fieldsFromJson: {
+    accountUpdate(json: string): MlArray<FieldConst>;
+  };
   hashFromJson: {
     accountUpdate(json: string): FieldConst;
   };
