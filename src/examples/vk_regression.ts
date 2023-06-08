@@ -1,22 +1,39 @@
 import fs from 'fs';
-import { isReady, shutdown, SmartContract } from 'snarkyjs';
 import { Voting_ } from './zkapps/voting/voting.js';
 import { Membership_ } from './zkapps/voting/membership.js';
 import { HelloWorld } from './zkapps/hello_world/hello_world.js';
 import { TokenContract, createDex } from './zkapps/dex/dex.js';
-
-await isReady;
+import { GroupCS } from './primitive_constraint_system.js';
 
 // usage ./run ./src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
-const Contracts: (typeof SmartContract)[] = [
+type MinimumConstraintSystem = {
+  analyzeMethods(): Record<
+    string,
+    {
+      rows: number;
+      digest: string;
+    }
+  >;
+  compile(): Promise<{
+    verificationKey: {
+      hash: { toString(): string };
+      data: string;
+    };
+  }>;
+  digest(): string;
+  name: string;
+};
+
+const ConstraintSystems: MinimumConstraintSystem[] = [
   Voting_,
   Membership_,
   HelloWorld,
   TokenContract,
   createDex().Dex,
+  GroupCS,
 ];
 
 let filePath = jsonPath ? jsonPath : './src/examples/regression_test.json';
@@ -41,7 +58,7 @@ try {
   }
 }
 
-async function checkVk(contracts: typeof Contracts) {
+async function checkVk(contracts: typeof ConstraintSystems) {
   let errorStack = '';
 
   for await (const c of contracts) {
@@ -55,6 +72,36 @@ async function checkVk(contracts: typeof Contracts) {
     let {
       verificationKey: { data, hash },
     } = await c.compile();
+
+    let methodData = c.analyzeMethods();
+
+    for (const methodKey in methodData) {
+      let actualMethod = methodData[methodKey];
+      let expectedMethod = ref.methods[methodKey];
+
+      if (actualMethod.digest !== expectedMethod.digest) {
+        errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
+  Actual
+    ${JSON.stringify(
+      {
+        digest: actualMethod.digest,
+        rows: actualMethod.rows,
+      },
+      undefined,
+      2
+    )}
+  \n
+  Expected
+    ${JSON.stringify(
+      {
+        digest: expectedMethod.digest,
+        rows: expectedMethod.rows,
+      },
+      undefined,
+      2
+    )}`;
+      }
+    }
 
     if (data !== vk.data || hash.toString() !== vk.hash) {
       errorStack += `\n\nRegression test for contract ${
@@ -80,7 +127,7 @@ but expected was
   }
 }
 
-async function dumpVk(contracts: typeof Contracts) {
+async function dumpVk(contracts: typeof ConstraintSystems) {
   let newEntries: typeof RegressionJson = {};
   for await (const c of contracts) {
     let data = c.analyzeMethods();
@@ -104,7 +151,5 @@ async function dumpVk(contracts: typeof Contracts) {
   fs.writeFileSync(filePath, JSON.stringify(newEntries, undefined, 2));
 }
 
-if (dump) await dumpVk(Contracts);
-else await checkVk(Contracts);
-
-shutdown();
+if (dump) await dumpVk(ConstraintSystems);
+else await checkVk(ConstraintSystems);

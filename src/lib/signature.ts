@@ -1,5 +1,5 @@
-import { Group, Bool, Scalar, Ledger } from '../snarky.js';
-import { Field } from './core.js';
+import { Bool, Scalar, Ledger } from '../snarky.js';
+import { Field, Group } from './core.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
 import { hashWithPrefix } from './hash.js';
 import {
@@ -101,7 +101,7 @@ class PublicKey extends CircuitValue {
       .toField()
       .mul(someY)
       .add(isTheRightY.not().toField().mul(someY.neg()));
-    return new Group(x, y);
+    return new Group({ x, y });
   }
 
   /**

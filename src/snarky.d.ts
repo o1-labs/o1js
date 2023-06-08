@@ -4,7 +4,6 @@ import type { Field, FieldConst, FieldVar } from './lib/field.js';
 export { SnarkyField };
 export {
   Bool,
-  Group,
   Scalar,
   ProvablePure,
   Provable,
@@ -175,6 +174,28 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
+  };
+
+  group: {
+    /**
+     * Addition of two group elements, handles only variables.
+     */
+    add(
+      p1: MlTuple<FieldVar, FieldVar>,
+      p2: MlTuple<FieldVar, FieldVar>
+    ): MlTuple<FieldVar, FieldVar>;
+
+    assertOnCurve(p1: MlTuple<FieldVar, FieldVar>): void;
+
+    scale(
+      p: MlTuple<FieldVar, FieldVar>,
+      s: MlArray<BoolVar>
+    ): MlTuple<FieldVar, FieldVar>;
+
+    equals(
+      p1: MlTuple<FieldVar, FieldVar>,
+      p2: MlTuple<FieldVar, FieldVar>
+    ): BoolVar;
   };
 
   /**
@@ -1338,122 +1359,6 @@ declare class Scalar {
 //   static sizeInFields(): number;
 // }
 
-/**
- * Represents a point with x and y coordinates on an elliptic curve.
- */
-declare class Group {
-  x: Field;
-  y: Field;
-
-  /**
-   * Adds two {@link Group} elements together.
-   */
-  add(y: Group): Group;
-
-  /**
-   * Subtracts one {@link Group} element from the other.
-   */
-  sub(y: Group): Group;
-
-  /**
-   * Negates this {@link Group} elements and returns a new instance.
-   */
-  neg(): Group;
-
-  /**
-   * Scales this {@link Group} element using a {@link Scalar}.
-   */
-  scale(y: Scalar): Group;
-  // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
-
-  /**
-   * Asserts that two {@link Group} elements are equal.
-   */
-  assertEquals(y: Group, message?: string): void;
-
-  /**
-   * Checks if two {@link Group} elements are equal.
-   */
-  equals(y: Group): Bool;
-
-  /**
-   * Returns the JSON representation of this {@link Group} element.
-   */
-  toJSON(): { x: string; y: string };
-
-  constructor(args: {
-    x: Field | number | string | boolean;
-    y: Field | number | string | boolean;
-  });
-  constructor(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  );
-
-  static generator: Group;
-  /**
-   * Adds two {@link Group} elements together.
-   */
-  static add(x: Group, y: Group): Group;
-  /**
-   * Subtracts one {@link Group} element from the other.
-   */
-  static sub(x: Group, y: Group): Group;
-  /**
-   * Negates a {@link Group} elements and returns a new instance.
-   */
-  static neg(x: Group): Group;
-
-  /**
-   * Scales this {@link Group} element using a {@link Scalar}.
-   */
-  static scale(x: Group, y: Scalar): Group;
-  // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
-
-  /**
-   * Asserts that two {@link Group} elements are equal.
-   */
-  static assertEqual(x: Group, y: Group): void;
-
-  /**
-   * Checks if two {@link Group} elements are equal.
-   */
-  static equal(x: Group, y: Group): Bool;
-  /**
-   * Static method to serialize a {@link Group} into an array of {@link Field} elements.
-   */
-  static toFields(x: Group): Field[];
-  /**
-   * Static method to serialize a {@link Group} into its auxiliary data.
-   */
-  static toAuxiliary(x?: Group): [];
-  /**
-   * Creates a data structure from an array of serialized {@link Field} elements.
-   */
-  static fromFields(fields: Field[]): Group;
-  /**
-   * Returns the size of this type.
-   */
-  static sizeInFields(): number;
-  /**
-   * Serialize a {@link Group} to a JSON string.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Group.
-   */
-  static toJSON(x: Group): { x: string; y: string };
-  /**
-   * Deserialize a JSON structure into a {@link Group}.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Group.
-   */
-  static fromJSON({
-    x,
-    y,
-  }: {
-    x: string | number;
-    y: string | number;
-  }): Group | null;
-  static check(g: Group): void;
-}
-
 declare const Poseidon: {
   hash(input: Field[], isChecked: boolean): Field;
   update(
@@ -1461,13 +1366,7 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
-  hashToGroup(
-    input: Field[],
-    isChecked: boolean
-  ): {
-    x: Field;
-    y: Field;
-  };
+  hashToGroup(input: Field[], isChecked: boolean): MlTuple<FieldVar, FieldVar>;
   prefixes: Record<
     | 'event'
     | 'events'
