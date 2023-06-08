@@ -3,6 +3,7 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
+  Struct,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
@@ -603,6 +604,11 @@ type LazyProof = {
   blindingValue: Field;
 };
 
+const AccountId = provable(
+  { tokenOwner: PublicKey, parentTokenId: Field },
+  { customObjectKeys: ['tokenOwner', 'parentTokenId'] }
+);
+
 const TokenId = {
   ...Types.TokenId,
   ...Base58TokenId,
@@ -610,21 +616,8 @@ const TokenId = {
     return Field(1);
   },
   derive(tokenOwner: PublicKey, parentTokenId = Field(1)): Field {
-    if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
-      return Field(
-        Ledger.customTokenId(
-          Ml.fromPublicKey(tokenOwner),
-          Ml.constFromField(parentTokenId)
-        )
-      );
-    } else {
-      return Field(
-        Ledger.customTokenIdChecked(
-          Ml.fromPublicKeyVar(tokenOwner),
-          Ml.varFromField(parentTokenId)
-        )
-      );
-    }
+    let input = AccountId.toInput({ tokenOwner, parentTokenId });
+    return hashWithPrefix(prefixes.deriveTokenId, packToFields(input));
   },
 };
 

@@ -1,12 +1,12 @@
-import { Test } from '../../snarky.js';
+import { Ledger, Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
 import { Field, Bool } from '../core.js';
 import { PrivateKey, PublicKey } from '../signature.js';
-import { dummySignature } from '../account_update.js';
+import { TokenId, dummySignature } from '../account_update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
-import { TokenId } from '../base58-encodings.js';
 import { FieldConst } from '../field.js';
+import { Provable } from '../provable.js';
 
 // PrivateKey.toBase58, fromBase58
 
@@ -61,3 +61,55 @@ test(Random.field, (x) => {
 
 let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
 expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
+
+// derive token id
+
+let randomTokenId = Random.oneOf(Random.field, TokenId.default.toBigInt());
+
+// - non provable
+
+test(Random.publicKey, randomTokenId, (publicKey, field) => {
+  let tokenOwner = PublicKey.from({
+    x: Field(publicKey.x),
+    isOdd: Bool(!!publicKey.isOdd),
+  });
+  let parentTokenId = Field(field);
+
+  let js = TokenId.derive(tokenOwner, parentTokenId);
+  let ml = Field(
+    Test.tokenId.derive(
+      Ml.fromPublicKey(tokenOwner),
+      Ml.constFromField(parentTokenId)
+    )
+  );
+  expect(js).toEqual(ml);
+});
+
+// - provable
+
+test(Random.publicKey, randomTokenId, (publicKey, field) => {
+  let tokenOwner = PublicKey.from({
+    x: Field(publicKey.x),
+    isOdd: Bool(!!publicKey.isOdd),
+  });
+  let parentTokenId = Field(field);
+
+  Provable.runAndCheck(() => {
+    tokenOwner = Provable.witness(PublicKey, () => tokenOwner);
+    parentTokenId = Provable.witness(Field, () => parentTokenId);
+
+    let js = TokenId.derive(tokenOwner, parentTokenId);
+    let ml = Field(
+      Test.tokenId.deriveChecked(
+        Ml.fromPublicKeyVar(tokenOwner),
+        Ml.varFromField(parentTokenId)
+      )
+    );
+
+    expect(js.isConstant()).toEqual(false);
+    expect(ml.isConstant()).toEqual(false);
+    Provable.asProver(() => expect(js.toBigInt()).toEqual(ml.toBigInt()));
+  });
+
+  expect(js).toEqual(ml);
+});

@@ -319,12 +319,6 @@ declare class Ledger {
     publicKey: MlPublicKey,
     tokenId: FieldConst
   ): JsonAccount | undefined;
-
-  static customTokenId(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
-  static customTokenIdChecked(
-    publicKey: MlPublicKeyVar,
-    tokenId: FieldVar
-  ): FieldVar;
 }
 
 declare const Test: {
@@ -342,6 +336,12 @@ declare const Test: {
     tokenIdOfBase58(fieldBase58: string): FieldConst;
     memoToBase58(memoString: string): string;
     memoHashBase58(memoBase58: string): FieldConst;
+  };
+
+  tokenId: {
+    // derive custom token ids
+    derive(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
+    deriveChecked(publicKey: MlPublicKeyVar, tokenId: FieldVar): FieldVar;
   };
 
   signature: {
