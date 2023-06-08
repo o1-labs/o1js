@@ -356,16 +356,6 @@ declare class Ledger {
   static encoding: {
     toBase58(s: MlBytes, versionByte: number): string;
     ofBase58(base58: string, versionByte: number): MlBytes;
-    versionBytes: Record<
-      | 'tokenIdKey'
-      | 'receiptChainHash'
-      | 'ledgerHash'
-      | 'epochSeed'
-      | 'stateHash'
-      | 'publicKey'
-      | 'userCommandMemo',
-      number
-    >;
   };
 }
 
