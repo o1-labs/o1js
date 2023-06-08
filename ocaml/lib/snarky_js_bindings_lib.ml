@@ -1008,6 +1008,9 @@ type public_key = Signature_lib.Public_key.Compressed.t
 
 type public_key_checked = Signature_lib.Public_key.Compressed.var
 
+module Account_update = Mina_base.Account_update
+module Zkapp_command = Mina_base.Zkapp_command
+
 module Ledger = struct
   let ledger_class : < .. > Js.t =
     Js.Unsafe.eval_string {js|(function(v) { this.value = v; return this })|js}
@@ -1135,9 +1138,6 @@ module Ledger = struct
       Js.Optdef.option (Option.map x ~f:transform)
   end
 
-  module Account_update = Mina_base.Account_update
-  module Zkapp_command = Mina_base.Zkapp_command
-
   let account_update_of_json, _account_update_to_json =
     let deriver =
       Account_update.Graphql_repr.deriver
@@ -1156,9 +1156,6 @@ module Ledger = struct
       |> Yojson.Safe.to_string |> Js.string
     in
     (account_update_of_json, account_update_to_json)
-
-  let hash_account_update (p : Js.js_string Js.t) =
-    p |> account_update_of_json |> Account_update.digest
 
   let transaction_commitments (tx_json : Js.js_string Js.t) =
     let tx =
@@ -1436,8 +1433,6 @@ module Ledger = struct
          val versionBytes = version_bytes
       end ) ;
 
-    static_method "hashAccountUpdateFromJson" hash_account_update ;
-
     (* TODO this is for debugging, maybe remove later *)
     let body_deriver =
       Mina_base.Account_update.Body.Graphql_repr.deriver
@@ -1556,6 +1551,30 @@ module Test = struct
       |> Mina_base.Signed_command_memo.hash
   end
 
+  let account_update_of_json, _account_update_to_json =
+    let deriver =
+      Account_update.Graphql_repr.deriver
+      @@ Fields_derivers_zkapps.Derivers.o ()
+    in
+    let account_update_of_json (account_update : Js.js_string Js.t) :
+        Account_update.t =
+      Fields_derivers_zkapps.of_json deriver
+        (account_update |> Js.to_string |> Yojson.Safe.from_string)
+      |> Account_update.of_graphql_repr
+    in
+    let account_update_to_json (account_update : Account_update.t) :
+        Js.js_string Js.t =
+      Fields_derivers_zkapps.to_json deriver
+        (Account_update.to_graphql_repr account_update ~call_depth:0)
+      |> Yojson.Safe.to_string |> Js.string
+    in
+    (account_update_of_json, account_update_to_json)
+
+  module Hash = struct
+    let hash_account_update (p : Js.js_string Js.t) =
+      p |> account_update_of_json |> Account_update.digest
+  end
+
   module Signature = struct
     let sign_field_element (x : Impl.field) (key : Other_impl.field)
         (is_mainnet : bool Js.t) =
@@ -1598,6 +1617,11 @@ let test =
         method memoToBase58 = Test.Encoding.memo_to_base58
 
         method memoHashBase58 = Test.Encoding.memo_hash_base58
+      end
+
+    val hash =
+      object%js
+        method hashAccountUpdateFromJson = Test.Hash.hash_account_update
       end
 
     val signature =
