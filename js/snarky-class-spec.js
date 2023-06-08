@@ -77,14 +77,6 @@ export default [
         name: 'fieldsOfJson',
         type: 'function',
       },
-      {
-        name: 'hashAccountUpdateFromJson',
-        type: 'function',
-      },
-      {
-        name: 'hashInputFromJson',
-        type: 'object',
-      },
       { name: 'encoding', type: 'object' },
     ],
   },
@@ -130,6 +122,14 @@ export default [
       },
       {
         name: 'signature',
+        type: 'object',
+      },
+      {
+        name: 'hashFromJson',
+        type: 'object',
+      },
+      {
+        name: 'hashInputFromJson',
         type: 'object',
       },
       {

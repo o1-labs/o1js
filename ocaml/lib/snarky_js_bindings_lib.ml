@@ -1380,11 +1380,6 @@ module Ledger = struct
     Mina_base.Account_id.derive_token_id ~owner:(account_id pk token)
     |> Mina_base.Token_id.to_field_unsafe
 
-  type random_oracle_input = Impl.field Random_oracle_input.Chunked.t
-
-  let pack_input (input : random_oracle_input) : Impl.field array =
-    Random_oracle.pack_input input
-
   (* global *)
 
   let () =
@@ -1446,69 +1441,6 @@ module Ledger = struct
     static_method "fieldsOfJson"
       (fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json) ;
 
-    (* hash inputs for various account_update subtypes *)
-    (* TODO: this is for testing against JS impl, remove eventually *)
-    let timing_input (json : Js.js_string Js.t) : random_oracle_input =
-      let deriver = Account_update.Update.Timing_info.deriver in
-      let json = json |> Js.to_string |> Yojson.Safe.from_string in
-      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
-      let input = Account_update.Update.Timing_info.to_input value in
-      input
-    in
-    let permissions_input (json : Js.js_string Js.t) : random_oracle_input =
-      let deriver = Mina_base.Permissions.deriver in
-      let json = json |> Js.to_string |> Yojson.Safe.from_string in
-      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
-      let input = Mina_base.Permissions.to_input value in
-      input
-    in
-    let update_input (json : Js.js_string Js.t) : random_oracle_input =
-      let deriver = Account_update.Update.deriver in
-      let json = json |> Js.to_string |> Yojson.Safe.from_string in
-      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
-      let input = Account_update.Update.to_input value in
-      input
-    in
-    let account_precondition_input (json : Js.js_string Js.t) :
-        random_oracle_input =
-      let deriver = Mina_base.Zkapp_precondition.Account.deriver in
-      let json = json |> Js.to_string |> Yojson.Safe.from_string in
-      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
-      let input = Mina_base.Zkapp_precondition.Account.to_input value in
-      input
-    in
-    let network_precondition_input (json : Js.js_string Js.t) :
-        random_oracle_input =
-      let deriver = Mina_base.Zkapp_precondition.Protocol_state.deriver in
-      let json = json |> Js.to_string |> Yojson.Safe.from_string in
-      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
-      let input = Mina_base.Zkapp_precondition.Protocol_state.to_input value in
-      input
-    in
-    let body_input (json : Js.js_string Js.t) : random_oracle_input =
-      let json = json |> Js.to_string |> Yojson.Safe.from_string in
-      let value = body_of_json json in
-      let input = Account_update.Body.to_input value in
-      input
-    in
-
-    static "hashInputFromJson"
-      (object%js
-         val packInput = pack_input
-
-         val timing = timing_input
-
-         val permissions = permissions_input
-
-         val accountPrecondition = account_precondition_input
-
-         val networkPrecondition = network_precondition_input
-
-         val update = update_input
-
-         val body = body_input
-      end ) ;
-
     method_ "getAccount" get_account ;
     method_ "addAccount" add_account ;
     method_ "applyJsonTransaction" apply_json_transaction
@@ -1551,6 +1483,7 @@ module Test = struct
       |> Mina_base.Signed_command_memo.hash
   end
 
+  (* deriver *)
   let account_update_of_json, _account_update_to_json =
     let deriver =
       Account_update.Graphql_repr.deriver
@@ -1570,10 +1503,14 @@ module Test = struct
     in
     (account_update_of_json, account_update_to_json)
 
-  module Hash = struct
-    let hash_account_update (p : Js.js_string Js.t) =
-      p |> account_update_of_json |> Account_update.digest
-  end
+  let body_deriver =
+    Mina_base.Account_update.Body.Graphql_repr.deriver
+    @@ Fields_derivers_zkapps.o ()
+
+  let body_of_json json =
+    json
+    |> Fields_derivers_zkapps.of_json body_deriver
+    |> Account_update.Body.of_graphql_repr
 
   module Signature = struct
     let sign_field_element (x : Impl.field) (key : Other_impl.field)
@@ -1587,6 +1524,62 @@ module Test = struct
 
     let dummy_signature () =
       Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
+  end
+
+  module Hash = struct
+    let account_update (p : Js.js_string Js.t) =
+      p |> account_update_of_json |> Account_update.digest
+  end
+
+  module Hash_input = struct
+    type random_oracle_input = Impl.field Random_oracle_input.Chunked.t
+
+    let pack_input (input : random_oracle_input) : Impl.field array =
+      Random_oracle.pack_input input
+
+    (* hash inputs for various account_update subtypes *)
+    let timing_input (json : Js.js_string Js.t) : random_oracle_input =
+      let deriver = Account_update.Update.Timing_info.deriver in
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
+      let input = Account_update.Update.Timing_info.to_input value in
+      input
+
+    let permissions_input (json : Js.js_string Js.t) : random_oracle_input =
+      let deriver = Mina_base.Permissions.deriver in
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
+      let input = Mina_base.Permissions.to_input value in
+      input
+
+    let update_input (json : Js.js_string Js.t) : random_oracle_input =
+      let deriver = Account_update.Update.deriver in
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
+      let input = Account_update.Update.to_input value in
+      input
+
+    let account_precondition_input (json : Js.js_string Js.t) :
+        random_oracle_input =
+      let deriver = Mina_base.Zkapp_precondition.Account.deriver in
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
+      let input = Mina_base.Zkapp_precondition.Account.to_input value in
+      input
+
+    let network_precondition_input (json : Js.js_string Js.t) :
+        random_oracle_input =
+      let deriver = Mina_base.Zkapp_precondition.Protocol_state.deriver in
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
+      let input = Mina_base.Zkapp_precondition.Protocol_state.to_input value in
+      input
+
+    let body_input (json : Js.js_string Js.t) : random_oracle_input =
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = body_of_json json in
+      let input = Account_update.Body.to_input value in
+      input
   end
 end
 
@@ -1619,16 +1612,34 @@ let test =
         method memoHashBase58 = Test.Encoding.memo_hash_base58
       end
 
-    val hash =
-      object%js
-        method hashAccountUpdateFromJson = Test.Hash.hash_account_update
-      end
-
     val signature =
       object%js
         method signFieldElement = Test.Signature.sign_field_element
 
         val dummySignature = Test.Signature.dummy_signature
+      end
+
+    val hashFromJson =
+      object%js
+        method accountUpdate = Test.Hash.account_update
+      end
+
+    val hashInputFromJson =
+      let open Test.Hash_input in
+      object%js
+        val packInput = pack_input
+
+        val timing = timing_input
+
+        val permissions = permissions_input
+
+        val accountPrecondition = account_precondition_input
+
+        val networkPrecondition = network_precondition_input
+
+        val update = update_input
+
+        val body = body_input
       end
 
     val transactionHash =
