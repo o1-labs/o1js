@@ -61,10 +61,6 @@ export default [
         name: 'createTokenAccount',
         type: 'function',
       },
-      {
-        name: 'transactionCommitments',
-        type: 'function',
-      },
     ],
   },
   {

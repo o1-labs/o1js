@@ -1128,27 +1128,6 @@ module Ledger = struct
       Js.Optdef.option (Option.map x ~f:transform)
   end
 
-  let transaction_commitments (tx_json : Js.js_string Js.t) =
-    let tx =
-      Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
-    in
-    let commitment = Zkapp_command.commitment tx in
-    let fee_payer = Account_update.of_fee_payer tx.fee_payer in
-    let fee_payer_hash = Zkapp_command.Digest.Account_update.create fee_payer in
-    let full_commitment =
-      Zkapp_command.Transaction_commitment.create_complete commitment
-        ~memo_hash:(Mina_base.Signed_command_memo.hash tx.memo)
-        ~fee_payer_hash
-    in
-    object%js
-      val commitment = commitment
-
-      val fullCommitment = full_commitment
-
-      (* for testing *)
-      val feePayerHash = (fee_payer_hash :> Impl.field)
-    end
-
   let check_account_update_signatures zkapp_command =
     let ({ fee_payer; account_updates; memo } : Zkapp_command.t) =
       zkapp_command
@@ -1306,8 +1285,6 @@ module Ledger = struct
     static_method "createTokenAccount" create_token_account ;
     static_method "create" create ;
 
-    static_method "transactionCommitments" transaction_commitments ;
-
     method_ "getAccount" get_account ;
     method_ "addAccount" add_account ;
     method_ "applyJsonTransaction" apply_json_transaction
@@ -1434,6 +1411,28 @@ module Test = struct
   module Hash = struct
     let account_update (p : Js.js_string Js.t) =
       p |> account_update_of_json |> Account_update.digest
+
+    let transaction_commitments (tx_json : Js.js_string Js.t) =
+      let tx =
+        Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
+      in
+      let commitment = Zkapp_command.commitment tx in
+      let fee_payer = Account_update.of_fee_payer tx.fee_payer in
+      let fee_payer_hash =
+        Zkapp_command.Digest.Account_update.create fee_payer
+      in
+      let full_commitment =
+        Zkapp_command.Transaction_commitment.create_complete commitment
+          ~memo_hash:(Mina_base.Signed_command_memo.hash tx.memo)
+          ~fee_payer_hash
+      in
+      object%js
+        val commitment = commitment
+
+        val fullCommitment = full_commitment
+
+        val feePayerHash = (fee_payer_hash :> Impl.field)
+      end
 
     let zkapp_public_input (tx_json : Js.js_string Js.t)
         (account_update_index : int) =
@@ -1611,6 +1610,8 @@ let test =
     val hashFromJson =
       object%js
         method accountUpdate = Test.Hash.account_update
+
+        method transactionCommitments = Test.Hash.transaction_commitments
 
         method zkappPublicInput = Test.Hash.zkapp_public_input
       end
