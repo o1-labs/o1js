@@ -1128,25 +1128,6 @@ module Ledger = struct
       Js.Optdef.option (Option.map x ~f:transform)
   end
 
-  let account_update_of_json, _account_update_to_json =
-    let deriver =
-      Account_update.Graphql_repr.deriver
-      @@ Fields_derivers_zkapps.Derivers.o ()
-    in
-    let account_update_of_json (account_update : Js.js_string Js.t) :
-        Account_update.t =
-      Fields_derivers_zkapps.of_json deriver
-        (account_update |> Js.to_string |> Yojson.Safe.from_string)
-      |> Account_update.of_graphql_repr
-    in
-    let account_update_to_json (account_update : Account_update.t) :
-        Js.js_string Js.t =
-      Fields_derivers_zkapps.to_json deriver
-        (Account_update.to_graphql_repr account_update ~call_depth:0)
-      |> Yojson.Safe.to_string |> Js.string
-    in
-    (account_update_of_json, account_update_to_json)
-
   let transaction_commitments (tx_json : Js.js_string Js.t) =
     let tx =
       Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
@@ -1300,27 +1281,6 @@ module Ledger = struct
       (Js.to_string account_creation_fee)
       network_state
 
-  let check_account_update_signature (account_update_json : Js.js_string Js.t)
-      (x : Impl.field) =
-    let account_update = account_update_of_json account_update_json in
-    let check_signature s pk msg =
-      match Signature_lib.Public_key.decompress pk with
-      | None ->
-          false
-      | Some pk_ ->
-          Signature_lib.Schnorr.Chunked.verify s
-            (Kimchi_pasta.Pasta.Pallas.of_affine pk_)
-            (Random_oracle_input.Chunked.field msg)
-    in
-    let is_valid =
-      match account_update.authorization with
-      | Signature s ->
-          check_signature s account_update.body.public_key x
-      | Proof _ | None_given ->
-          false
-    in
-    Js.bool is_valid
-
   let create_token_account pk token =
     account_id pk token |> Mina_base.Account_id.public_key
     |> Signature_lib.Public_key.Compressed.to_string |> Js.string
@@ -1347,9 +1307,6 @@ module Ledger = struct
     static_method "create" create ;
 
     static_method "transactionCommitments" transaction_commitments ;
-
-    (* these are implemented in JS, but kept here for consistency tests *)
-    static_method "checkAccountUpdateSignature" check_account_update_signature ;
 
     method_ "getAccount" get_account ;
     method_ "addAccount" add_account ;

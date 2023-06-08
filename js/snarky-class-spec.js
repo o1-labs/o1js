@@ -65,10 +65,6 @@ export default [
         name: 'transactionCommitments',
         type: 'function',
       },
-      {
-        name: 'checkAccountUpdateSignature',
-        type: 'function',
-      },
     ],
   },
   {
