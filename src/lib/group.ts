@@ -58,6 +58,7 @@ class Group {
     if (this.#isConstant()) {
       // we also check the zero element (1, 1) here
       if (this.x.equals(1).and(this.y.equals(1)).toBoolean()) return;
+
       const { add, mul, square } = Fp;
 
       let x_bigint = this.x.toBigInt();
@@ -212,8 +213,10 @@ class Group {
    */
   neg() {
     let { x, y } = this;
+
     // negation of zero is zero
-    return Provable.if(this.#isZero(), this, new Group({ x, y: y.neg() }));
+    let y_ = Provable.if(this.#isZero(), new Field(1), y.neg());
+    return new Group({ x, y: y_ });
   }
 
   /**
@@ -232,6 +235,7 @@ class Group {
     let fields = scalar.toFields();
 
     if (this.#isConstant() && fields.every((f) => f.isConstant())) {
+      if (this.#isZero()) return this;
       let g_proj = Pallas.scale(this.#toProjective(), BigInt(scalar.toJSON()));
       return Group.#fromProjective(g_proj);
     } else {
