@@ -1,30 +1,46 @@
-import {
-  shutdown,
-  isReady,
-  Field,
-  Bool,
-  Circuit,
-  Group,
-  Scalar,
-  Provable,
-} from 'snarkyjs';
+import { Bool, Group, Scalar, Provable } from 'snarkyjs';
 
 describe('group', () => {
   let g = Group({
     x: -1,
     y: 2,
   });
-  beforeAll(async () => {
-    await isReady;
-  });
-
-  afterAll(async () => {
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
 
   describe('Inside circuit', () => {
+    describe('group membership', () => {
+      it('valid element does not throw', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            Provable.witness(Group, () => g);
+          });
+        }).not.toThrow();
+      });
+
+      it('valid element does not throw', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            Provable.witness(Group, () => Group.generator);
+          });
+        }).not.toThrow();
+      });
+
+      it('Group.zero element does not throw', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            Provable.witness(Group, () => Group.zero);
+          });
+        }).not.toThrow();
+      });
+
+      it('invalid group element throws', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            Provable.witness(Group, () => Group({ x: 2, y: 2 }));
+          });
+        }).toThrow();
+      });
+    });
+
     describe('add', () => {
       it('g+g does not throw', () => {
         expect(() => {
@@ -32,6 +48,46 @@ describe('group', () => {
             const x = Provable.witness(Group, () => g);
             const y = Provable.witness(Group, () => g);
             x.add(y);
+          });
+        }).not.toThrow();
+      });
+
+      it('g+zero = g', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => g);
+            const zero = Provable.witness(Group, () => Group.zero);
+            x.add(zero).assertEquals(x);
+          });
+        }).not.toThrow();
+      });
+
+      it('zero+g = g', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => g);
+            const zero = Provable.witness(Group, () => Group.zero);
+            zero.add(x).assertEquals(x);
+          });
+        }).not.toThrow();
+      });
+
+      it('g+(-g) = zero', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => g);
+            const zero = Provable.witness(Group, () => Group.zero);
+            x.add(x.neg()).assertEquals(zero);
+          });
+        }).not.toThrow();
+      });
+
+      it('(-g)+g = zero', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => g);
+            const zero = Provable.witness(Group, () => Group.zero);
+            x.neg().add(x).assertEquals(zero);
           });
         }).not.toThrow();
       });
@@ -49,6 +105,26 @@ describe('group', () => {
           });
         }).not.toThrow();
       });
+
+      it('g-zero = g', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => g);
+            const zero = Provable.witness(Group, () => Group.zero);
+            x.sub(zero).assertEquals(x);
+          });
+        }).not.toThrow();
+      });
+
+      it('zero-g = g', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => g);
+            const zero = Provable.witness(Group, () => Group.zero);
+            zero.sub(x).assertEquals(x);
+          });
+        }).not.toThrow();
+      });
     });
 
     describe('neg', () => {
@@ -57,6 +133,15 @@ describe('group', () => {
           Provable.runAndCheck(() => {
             const x = Provable.witness(Group, () => g);
             x.neg();
+          });
+        }).not.toThrow();
+      });
+
+      it('neg(zero) = zero', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const zero = Provable.witness(Group, () => Group.zero);
+            zero.neg().assertEquals(zero);
           });
         }).not.toThrow();
       });
@@ -92,6 +177,16 @@ describe('group', () => {
             const left = g.scale(y).scale(x);
             const right = g.scale(y.mul(x));
             left.assertEquals(right);
+          });
+        }).not.toThrow();
+      });
+
+      it('s*zero = zero', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const s = Scalar.fromJSON(2)!;
+            const zero = Provable.witness(Group, () => Group.zero);
+            zero.scale(s).assertEquals(zero);
           });
         }).not.toThrow();
       });
@@ -161,6 +256,13 @@ describe('group', () => {
           g.neg();
         }).not.toThrow();
       });
+
+      it('zero.neg = zero', () => {
+        expect(() => {
+          const zero = Group.zero;
+          zero.neg().assertEquals(zero);
+        }).not.toThrow();
+      });
     });
 
     describe('add', () => {
@@ -169,12 +271,54 @@ describe('group', () => {
           g.add(g);
         }).not.toThrow();
       });
+
+      it('g + zero = g', () => {
+        expect(() => {
+          const zero = Group.zero;
+          g.add(zero).assertEquals(g);
+        }).not.toThrow();
+      });
+
+      it('zero + g = g', () => {
+        expect(() => {
+          const zero = Group.zero;
+          zero.add(g).assertEquals(g);
+        }).not.toThrow();
+      });
+
+      it('g + (-g) = zero', () => {
+        expect(() => {
+          const zero = Group.zero;
+          g.add(g.neg()).assertEquals(zero);
+        }).not.toThrow();
+      });
+
+      it('(-g) + g = zero', () => {
+        expect(() => {
+          const zero = Group.zero;
+          g.neg().add(g).assertEquals(zero);
+        }).not.toThrow();
+      });
     });
 
     describe('sub', () => {
       it('generator-(-1,2) does not throw', () => {
         expect(() => {
           Group.generator.sub(g);
+        }).not.toThrow();
+      });
+
+      it('g - zero = g', () => {
+        expect(() => {
+          const zero = Group.zero;
+          g.sub(zero).assertEquals(g);
+        }).not.toThrow();
+      });
+
+      it('zero - g = g', () => {
+        expect(() => {
+          const zero = Group.zero;
+          zero.sub(g).assertEquals(g);
         }).not.toThrow();
       });
     });
@@ -200,6 +344,12 @@ describe('group', () => {
         const left = g.scale(y).scale(x);
         const right = g.scale(y.mul(x));
         expect(left).toEqual(right);
+      });
+
+      it('zero * s = zero', () => {
+        const s = Scalar.fromJSON(2)!;
+        const zero = Group.zero;
+        zero.scale(s).assertEquals(zero);
       });
     });
 
@@ -231,6 +381,7 @@ describe('group', () => {
         y.assertEquals(z);
       });
     });
+
     it('sub', () => {
       let y = Provable.witness(Group, () => g).sub(
         Provable.witness(Group, () => Group.generator)
@@ -238,11 +389,12 @@ describe('group', () => {
       let z = g.sub(Group.generator);
       y.assertEquals(z);
     });
+
     it('sub', () => {
       let y = Provable.witness(Group, () => g).assertEquals(
         Provable.witness(Group, () => g)
       );
-      let z = g.assertEquals(g);
+      g.assertEquals(g);
     });
   });
 });

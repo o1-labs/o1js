@@ -19,7 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
-- Method `equals` and `assertEquals` on `Group` now generate a different set of constraints. This breaks deployed contracts, because the circuit changed. https://github.com/o1-labs/snarkyjs/pull/967
+- `Group` operations now generate a different set of constraints. This breaks deployed contracts, because the circuit changed. https://github.com/o1-labs/snarkyjs/pull/967
 
 ## [0.11.0](https://github.com/o1-labs/snarkyjs/compare/a632313a...3fbd9678e)
 

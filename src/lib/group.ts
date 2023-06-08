@@ -235,7 +235,8 @@ class Group {
     let fields = scalar.toFields();
 
     if (this.#isConstant() && fields.every((f) => f.isConstant())) {
-      if (this.#isZero()) return this;
+      if (this.#isZero().toBoolean()) return this;
+
       let g_proj = Pallas.scale(this.#toProjective(), BigInt(scalar.toJSON()));
       return Group.#fromProjective(g_proj);
     } else {
