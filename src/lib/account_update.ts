@@ -8,7 +8,11 @@ import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
 import { Ledger, Pickles, Test } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
-import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
+import {
+  Types,
+  TypesBigint,
+  toJSONEssential,
+} from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -26,10 +30,10 @@ import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 import { Ml } from './ml/conversion.js';
-import { FieldConst } from './field.js';
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
+import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1874,11 +1878,9 @@ function addMissingSignatures(
   additionalKeys = [] as PrivateKey[]
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
-  let commitments = Ledger.transactionCommitments(
-    JSON.stringify(ZkappCommand.toJSON(zkappCommand))
+  let { commitment, fullCommitment } = transactionCommitments(
+    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand))
   );
-  let commitment = FieldConst.toBigint(commitments.commitment);
-  let fullCommitment = FieldConst.toBigint(commitments.fullCommitment);
 
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =

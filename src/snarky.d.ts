@@ -320,15 +320,6 @@ declare class Ledger {
     tokenId: FieldConst
   ): JsonAccount | undefined;
 
-  /**
-   * Returns the commitment of a JSON transaction.
-   */
-  static transactionCommitments(txJson: string): {
-    commitment: FieldConst;
-    fullCommitment: FieldConst;
-    feePayerHash: FieldConst;
-  };
-
   static customTokenId(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
   static customTokenIdChecked(
     publicKey: MlPublicKeyVar,
@@ -377,6 +368,14 @@ declare const Test: {
   };
   hashFromJson: {
     accountUpdate(json: string): FieldConst;
+    /**
+     * Returns the commitment of a JSON transaction.
+     */
+    transactionCommitments(txJson: string): {
+      commitment: FieldConst;
+      fullCommitment: FieldConst;
+      feePayerHash: FieldConst;
+    };
     /**
      * Returns the public input of a zkApp transaction.
      */
