@@ -546,6 +546,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "iana-time-zone"
@@ -589,6 +592,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "internal-tracing"
+version = "0.1.0"
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -624,6 +631,7 @@ dependencies = [
  "disjoint-set",
  "groupmap",
  "hex",
+ "internal-tracing",
  "itertools",
  "mina-curves",
  "mina-poseidon",
@@ -904,6 +912,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rayon",
+ "rmp-serde",
  "serde",
  "serde_with 1.14.0",
  "thiserror",

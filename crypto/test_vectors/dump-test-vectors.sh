@@ -3,8 +3,8 @@
 set -e
 
 pushd ../../../../../crypto/proof-systems/poseidon/export_test_vectors
-  cargo run -p export_test_vectors -- b10 kimchi ../../../../snarkyjs/src/bindings/crypto/test_vectors/testVectors.json
-  cargo run -p export_test_vectors -- b10 legacy ../../../../snarkyjs/src/bindings/crypto/test_vectors/testVectorsLegacy.json
+  cargo run -p export_test_vectors -- hex kimchi ../../../../snarkyjs/src/bindings/crypto/test_vectors/testVectors.json
+  cargo run -p export_test_vectors -- hex legacy ../../../../snarkyjs/src/bindings/crypto/test_vectors/testVectorsLegacy.json
 popd
 
 echo "// @gen this file is generated - don't edit it directly" > $1 
