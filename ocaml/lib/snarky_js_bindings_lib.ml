@@ -1132,9 +1132,6 @@ module Snarky = struct
             } ;
           p3 )
 
-    let assert_on_curve p =
-      Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
-
     let scale p (scalar_bits : Boolean.var array) =
       Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
         (Shifted_value scalar_bits)
@@ -1229,15 +1226,9 @@ let snarky =
 
     val group =
       object%js
-        method add = Snarky.Group.add
-
         method ecadd = Snarky.Group.ec_add
 
-        method assertOnCurve = Snarky.Group.assert_on_curve
-
         method scale = Snarky.Group.scale
-
-        method equals = Snarky.Group.equals
       end
 
     val circuit =

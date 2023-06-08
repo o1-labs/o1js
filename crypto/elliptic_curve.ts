@@ -1,4 +1,4 @@
-import { FiniteField, Fp, inverse, mod, p, q } from "./finite_field.js";
+import { FiniteField, Fp, inverse, mod, p, q } from './finite_field.js';
 export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMapPallas };
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
@@ -22,8 +22,9 @@ const vestaEndoScalar =
 const pallasEndoScalar =
   26005156700822196841419187675678338661165322343552424574062261873906994770353n;
 
-// the b in y^2 = x^3 + b
+// the b and a in y^2 = x^3 + ax + b
 const b = 5n;
+const a = 0n;
 
 const projectiveZero = { x: 1n, y: 1n, z: 0n };
 
@@ -153,7 +154,7 @@ function projectiveAdd(g: GroupProjective, h: GroupProjective, p: bigint) {
     if (S1 === S2) return projectiveDouble(g, p);
     // if S1 = -S2, the points are inverse, so return zero
     if (mod(S1 + S2, p) === 0n) return projectiveZero;
-    throw Error("projectiveAdd: invalid point");
+    throw Error('projectiveAdd: invalid point');
   }
   // I = (2*H)^2
   let I = mod((H * H) << 2n, p);
@@ -262,7 +263,8 @@ function createCurveProjective(
   generator: GroupProjective,
   endoBase: bigint,
   endoScalar: bigint,
-  b: bigint
+  b: bigint,
+  a: bigint
 ) {
   return {
     zero: projectiveZero,
@@ -270,6 +272,7 @@ function createCurveProjective(
     endoBase,
     endoScalar,
     b,
+    a,
 
     equal(g: GroupProjective, h: GroupProjective) {
       return projectiveEqual(g, h, p);
@@ -310,12 +313,14 @@ const Pallas = createCurveProjective(
   pallasGeneratorProjective,
   pallasEndoBase,
   pallasEndoScalar,
-  b
+  b,
+  a
 );
 const Vesta = createCurveProjective(
   q,
   vestaGeneratorProjective,
   vestaEndoBase,
   vestaEndoScalar,
-  b
+  b,
+  a
 );
