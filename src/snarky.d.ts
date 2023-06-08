@@ -325,10 +325,6 @@ declare class Ledger {
     publicKey: MlPublicKeyVar,
     tokenId: FieldVar
   ): FieldVar;
-  static createTokenAccount(
-    publicKey: MlPublicKey,
-    tokenId: FieldConst
-  ): string;
 }
 
 declare const Test: {
