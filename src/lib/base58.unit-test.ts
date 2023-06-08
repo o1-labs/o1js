@@ -1,5 +1,5 @@
 import { fromBase58Check, toBase58Check } from './base58.js';
-import { Ledger } from '../snarky.js';
+import { Test } from '../snarky.js';
 import { expect } from 'expect';
 import { test, Random, withHardCoded } from './testing/property.js';
 
@@ -12,7 +12,7 @@ let version = Random.nat(100);
 test(bytes, version, (bytes, version, assert) => {
   let binaryString = String.fromCharCode(...bytes);
   let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-  let base58Ocaml = Ledger.encoding.toBase58(ocamlBytes, version);
+  let base58Ocaml = Test.encoding.toBase58(ocamlBytes, version);
 
   // check consistency with OCaml result
   let base58 = toBase58Check(bytes, version);

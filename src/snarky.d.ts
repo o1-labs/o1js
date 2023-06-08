@@ -351,16 +351,15 @@ declare class Ledger {
     updateJson: string,
     commitment: FieldConst
   ): boolean;
-
-  // low-level encoding helpers
-  static encoding: {
-    toBase58(s: MlBytes, versionByte: number): string;
-    ofBase58(base58: string, versionByte: number): MlBytes;
-  };
 }
 
 declare const Test: {
   encoding: {
+    // arbitrary base58Check encoding
+    toBase58(s: MlBytes, versionByte: number): string;
+    ofBase58(base58: string, versionByte: number): MlBytes;
+
+    // base58 encoding of some transaction types
     publicKeyToBase58(publicKey: MlPublicKey): string;
     publicKeyOfBase58(publicKeyBase58: string): MlPublicKey;
     privateKeyToBase58(privateKey: ScalarConst): string;
