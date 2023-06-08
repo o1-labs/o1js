@@ -179,10 +179,15 @@ class Group {
       let gIsZero = g.#isZero();
       let thisIsZero = this.#isZero();
 
+      // if either one is the negation of the other, we just return the zero element since g + (-g) = 0 - but the OCaml implementation doesn't pick that up
+      let isNegation = g.neg().equals(this);
+
+      let isNewElement = gIsZero.or(thisIsZero).not().and(isNegation.not());
+
       return Provable.switch(
-        [gIsZero, thisIsZero, gIsZero.or(thisIsZero).not()],
+        [gIsZero, thisIsZero, isNewElement, isNegation],
         Group,
-        [this, g, new Group({ x, y })]
+        [this, g, new Group({ x, y }), Group.zero]
       );
     }
   }
