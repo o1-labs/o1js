@@ -1391,31 +1391,11 @@ module Ledger = struct
     (* these are implemented in JS, but kept here for consistency tests *)
     static_method "checkAccountUpdateSignature" check_account_update_signature ;
 
-    let version_bytes =
-      let open Base58_check.Version_bytes in
-      object%js
-        val tokenIdKey = Char.to_int token_id_key
-
-        val receiptChainHash = Char.to_int receipt_chain_hash
-
-        val ledgerHash = Char.to_int ledger_hash
-
-        val epochSeed = Char.to_int epoch_seed
-
-        val stateHash = Char.to_int state_hash
-
-        val publicKey = Char.to_int non_zero_curve_point_compressed
-
-        val userCommandMemo = Char.to_int user_command_memo
-      end
-    in
     static "encoding"
       (object%js
          val toBase58 = binary_string_to_base58_check
 
          val ofBase58 = binary_string_of_base58_check
-
-         val versionBytes = version_bytes
       end ) ;
 
     method_ "getAccount" get_account ;
