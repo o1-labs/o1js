@@ -353,7 +353,6 @@ declare class Ledger {
   ): boolean;
 
   static fieldsOfJson(json: string): MlArray<FieldConst>;
-  static hashAccountUpdateFromJson(json: string): FieldConst;
 
   static hashInputFromJson: {
     packInput(input: MlHashInput): MlArray<FieldConst>;
@@ -392,6 +391,9 @@ declare const Test: {
     tokenIdOfBase58(fieldBase58: string): FieldConst;
     memoToBase58(memoString: string): string;
     memoHashBase58(memoBase58: string): FieldConst;
+  };
+  hash: {
+    hashAccountUpdateFromJson(json: string): FieldConst;
   };
   signature: {
     /**
