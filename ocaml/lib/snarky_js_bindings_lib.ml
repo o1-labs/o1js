@@ -1230,27 +1230,6 @@ module Ledger = struct
         | Proof _ | None_given ->
             () )
 
-  (* low-level building blocks for encoding *)
-  let binary_string_to_base58_check bin_string (version_byte : int) :
-      Js.js_string Js.t =
-    let module T = struct
-      let version_byte = Char.of_int_exn version_byte
-
-      let description = "any"
-    end in
-    let module B58 = Base58_check.Make (T) in
-    bin_string |> B58.encode |> Js.string
-
-  let binary_string_of_base58_check (base58 : Js.js_string Js.t)
-      (version_byte : int) =
-    let module T = struct
-      let version_byte = Char.of_int_exn version_byte
-
-      let description = "any"
-    end in
-    let module B58 = Base58_check.Make (T) in
-    base58 |> Js.to_string |> B58.decode_exn
-
   let add_account_exn (l : L.t) pk (balance : string) =
     let account_id = account_id pk default_token_id in
     let bal_u64 = Unsigned.UInt64.of_string balance in
@@ -1347,15 +1326,14 @@ module Ledger = struct
             (Kimchi_pasta.Pasta.Pallas.of_affine pk_)
             (Random_oracle_input.Chunked.field msg)
     in
-
-    let isValid =
+    let is_valid =
       match account_update.authorization with
       | Signature s ->
           check_signature s account_update.body.public_key x
       | Proof _ | None_given ->
           false
     in
-    Js.bool isValid
+    Js.bool is_valid
 
   let create_token_account pk token =
     account_id pk token |> Mina_base.Account_id.public_key
@@ -1370,10 +1348,7 @@ module Ledger = struct
     Mina_base.Account_id.derive_token_id ~owner:(account_id pk token)
     |> Mina_base.Token_id.to_field_unsafe
 
-  (* global *)
-
   let () =
-    let static name thing = Js.Unsafe.set ledger_class (Js.string name) thing in
     let static_method name f =
       Js.Unsafe.set ledger_class (Js.string name) (Js.wrap_callback f)
     in
@@ -1391,13 +1366,6 @@ module Ledger = struct
     (* these are implemented in JS, but kept here for consistency tests *)
     static_method "checkAccountUpdateSignature" check_account_update_signature ;
 
-    static "encoding"
-      (object%js
-         val toBase58 = binary_string_to_base58_check
-
-         val ofBase58 = binary_string_of_base58_check
-      end ) ;
-
     method_ "getAccount" get_account ;
     method_ "addAccount" add_account ;
     method_ "applyJsonTransaction" apply_json_transaction
@@ -1407,6 +1375,28 @@ end
 
 module Test = struct
   module Encoding = struct
+    (* arbitrary base58_check encoding *)
+    let binary_string_to_base58_check bin_string (version_byte : int) :
+        Js.js_string Js.t =
+      let module T = struct
+        let version_byte = Char.of_int_exn version_byte
+
+        let description = "any"
+      end in
+      let module B58 = Base58_check.Make (T) in
+      bin_string |> B58.encode |> Js.string
+
+    let binary_string_of_base58_check (base58 : Js.js_string Js.t)
+        (version_byte : int) =
+      let module T = struct
+        let version_byte = Char.of_int_exn version_byte
+
+        let description = "any"
+      end in
+      let module B58 = Base58_check.Make (T) in
+      base58 |> Js.to_string |> B58.decode_exn
+
+    (* base58 encoding of some transaction types *)
     let public_key_to_base58 (pk : public_key) : Js.js_string Js.t =
       pk |> Signature_lib.Public_key.Compressed.to_base58_check |> Js.string
 
@@ -1568,6 +1558,10 @@ let test =
   object%js
     val encoding =
       object%js
+        val toBase58 = Test.Encoding.binary_string_to_base58_check
+
+        val ofBase58 = Test.Encoding.binary_string_of_base58_check
+
         method publicKeyToBase58 = Test.Encoding.public_key_to_base58
 
         method publicKeyOfBase58 = Test.Encoding.public_key_of_base58

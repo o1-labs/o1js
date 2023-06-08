@@ -73,7 +73,6 @@ export default [
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
-      { name: 'encoding', type: 'object' },
     ],
   },
   {
