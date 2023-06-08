@@ -338,11 +338,6 @@ declare class Ledger {
     publicKey: MlPublicKey,
     tokenId: FieldConst
   ): string;
-
-  static checkAccountUpdateSignature(
-    updateJson: string,
-    commitment: FieldConst
-  ): boolean;
 }
 
 declare const Test: {
