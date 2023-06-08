@@ -292,24 +292,6 @@ module Snarky = struct
           Poseidon_sponge_checked.squeeze s
       | Unchecked s ->
           Poseidon_sponge.squeeze s |> Impl.Field.constant
-
-    let prefixes =
-      let open Hash_prefixes in
-      object%js
-        val event = Js.string (zkapp_event :> string)
-
-        val events = Js.string (zkapp_events :> string)
-
-        val sequenceEvents = Js.string (zkapp_actions :> string)
-
-        val body = Js.string (zkapp_body :> string)
-
-        val accountUpdateCons = Js.string (account_update_cons :> string)
-
-        val accountUpdateNode = Js.string (account_update_node :> string)
-
-        val zkappMemo = Js.string (zkapp_memo :> string)
-      end
   end
 end
 
@@ -414,8 +396,6 @@ let snarky =
 
             method squeeze = Snarky.Poseidon.sponge_squeeze
           end
-
-        val prefixes = Snarky.Poseidon.prefixes
       end
   end
 
@@ -1022,6 +1002,8 @@ let pickles =
         |> Pickles.Side_loaded.Proof.to_base64 |> Js.string
   end
 
+(* Ledger - local mina transaction logic for tests *)
+
 type public_key = Signature_lib.Public_key.Compressed.t
 
 type public_key_checked = Signature_lib.Public_key.Compressed.var
@@ -1536,6 +1518,8 @@ module Ledger = struct
     method_ "addAccount" add_account ;
     method_ "applyJsonTransaction" apply_json_transaction
 end
+
+(* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 
 module Test = struct
   module Encoding = struct
