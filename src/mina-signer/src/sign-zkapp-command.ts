@@ -23,6 +23,8 @@ export { signZkappCommand, verifyZkappCommandSignature };
 
 // internal API
 export {
+  transactionCommitments,
+  verifyAccountUpdateSignature,
   accountUpdatesToCallForest,
   callForestHash,
   accountUpdateHash,
@@ -86,6 +88,22 @@ function verifyZkappCommandSignature(
     if (!ok) return false;
   }
   return ok;
+}
+
+function verifyAccountUpdateSignature(
+  update: AccountUpdate,
+  transactionCommitments: { commitment: bigint; fullCommitment: bigint },
+  networkId: NetworkId
+) {
+  if (update.authorization.signature === undefined) return false;
+
+  let publicKey = update.body.publicKey;
+  let { useFullCommitment } = update.body;
+  let { commitment, fullCommitment } = transactionCommitments;
+  let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+
+  let signature = Signature.fromBase58(update.authorization.signature);
+  return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
 }
 
 function transactionCommitments(zkappCommand: ZkappCommand) {
