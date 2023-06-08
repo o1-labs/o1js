@@ -57,10 +57,6 @@ export default [
         name: 'customTokenIdChecked',
         type: 'function',
       },
-      {
-        name: 'createTokenAccount',
-        type: 'function',
-      },
     ],
   },
   {

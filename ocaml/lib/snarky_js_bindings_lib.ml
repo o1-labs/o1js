@@ -1108,20 +1108,15 @@ module Ledger = struct
   let create_new_account_exn (t : L.t) account_id account =
     L.create_new_account t account_id account |> Or_error.ok_exn
 
-  let token_id_checked (token : Field.t) =
-    token |> Mina_base.Token_id.Checked.of_field
-
-  let token_id (token : Impl.field) : Mina_base.Token_id.t =
-    token |> Mina_base.Token_id.of_field
-
   let default_token_id =
     Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
 
   let account_id_checked (pk : public_key_checked) token =
-    Mina_base.Account_id.Checked.create pk (token_id_checked token)
+    Mina_base.Account_id.Checked.create pk
+      (Mina_base.Token_id.Checked.of_field token)
 
   let account_id (pk : public_key) token =
-    Mina_base.Account_id.create pk (token_id token)
+    Mina_base.Account_id.create pk (Mina_base.Token_id.of_field token)
 
   module To_js = struct
     let option (transform : 'a -> 'b) (x : 'a option) =
@@ -1191,11 +1186,7 @@ module Ledger = struct
     let deriver = Mina_base.Account.deriver @@ Fields_derivers_zkapps.o () in
     let to_json' = Fields_derivers_zkapps.to_json deriver in
     let to_json (account : Mina_base.Account.t) : Js.Unsafe.any =
-      let str = account |> to_json' |> Yojson.Safe.to_string |> Js.string in
-      let json =
-        Js.Unsafe.(fun_call global ##. JSON##.parse [| inject str |])
-      in
-      json
+      account |> to_json' |> Yojson.Safe.to_string |> Js.string |> json_parse
     in
     to_json
 
@@ -1260,10 +1251,6 @@ module Ledger = struct
       (Js.to_string account_creation_fee)
       network_state
 
-  let create_token_account pk token =
-    account_id pk token |> Mina_base.Account_id.public_key
-    |> Signature_lib.Public_key.Compressed.to_string |> Js.string
-
   let custom_token_id_checked pk token =
     Mina_base.Account_id.Checked.derive_token_id
       ~owner:(account_id_checked pk token)
@@ -1282,7 +1269,6 @@ module Ledger = struct
     in
     static_method "customTokenId" custom_token_id_unchecked ;
     static_method "customTokenIdChecked" custom_token_id_checked ;
-    static_method "createTokenAccount" create_token_account ;
     static_method "create" create ;
 
     method_ "getAccount" get_account ;
