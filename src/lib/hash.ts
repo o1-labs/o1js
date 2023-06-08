@@ -12,7 +12,6 @@ export { Poseidon, TokenSymbol };
 export {
   HashInput,
   Hash,
-  prefixes,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
@@ -101,15 +100,6 @@ function hashConstant(input: Field[]) {
 
 const Hash = createHashHelpers(Field, Poseidon);
 let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
-
-const prefixes: typeof Snarky.poseidon.prefixes = new Proxy({} as any, {
-  // hack bc Snarky.poseidon.prefixes is not available at start-up
-  get(_target, prop) {
-    return Snarky.poseidon.prefixes[
-      prop as keyof typeof Snarky.poseidon.prefixes
-    ] as string;
-  },
-});
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {

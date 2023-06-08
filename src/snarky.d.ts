@@ -263,17 +263,6 @@ declare const Snarky: {
       absorb(sponge: unknown, x: FieldVar): void;
       squeeze(sponge: unknown): FieldVar;
     };
-
-    prefixes: Record<
-      | 'event'
-      | 'events'
-      | 'sequenceEvents'
-      | 'body'
-      | 'accountUpdateCons'
-      | 'accountUpdateNode'
-      | 'zkappMemo',
-      string
-    >;
   };
 };
 
