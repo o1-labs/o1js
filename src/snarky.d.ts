@@ -185,7 +185,7 @@ declare const Snarky: {
       p2: MlTuple<FieldVar, FieldVar>
     ): MlTuple<FieldVar, FieldVar>;
 
-    onCurve(p1: MlTuple<FieldVar, FieldVar>): void;
+    assertOnCurve(p1: MlTuple<FieldVar, FieldVar>): void;
 
     scale(
       p: MlTuple<FieldVar, FieldVar>,
