@@ -1,11 +1,6 @@
 import { expect } from 'expect';
-import {
-  isReady,
-  Ledger,
-  Bool as BoolSnarky,
-  Scalar as ScalarSnarky,
-  shutdown,
-} from '../../snarky.js';
+import { isReady, Ledger, shutdown } from '../../snarky.js';
+import { Scalar as ScalarSnarky } from '../../lib/core.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -48,6 +43,7 @@ import {
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { Pickles } from '../../snarky.js';
+import { Ml } from '../../lib/ml/conversion.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -116,7 +112,7 @@ test(Random.accountUpdate, (accountUpdate) => {
 test(Random.json.privateKey, (feePayerKeyBase58) => {
   let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
   let feePayerKeySnarky = PrivateKeySnarky.fromBase58(feePayerKeyBase58);
-  let feePayerCompressed = ScalarSnarky.toFieldsCompressed(feePayerKeySnarky.s);
+  let feePayerCompressed = feePayerKeySnarky.s.toFieldsCompressed();
   expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
   expect(PrivateKey.toBase58(feePayerKey)).toEqual(feePayerKeyBase58);
 });
@@ -221,12 +217,12 @@ test(
     let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
     let sigTestnetOcaml = Ledger.signFieldElement(
       ocamlCommitments.fullCommitment,
-      feePayerKeySnarky,
+      Ml.fromPrivateKey(feePayerKeySnarky),
       false
     );
     let sigMainnetOcaml = Ledger.signFieldElement(
       ocamlCommitments.fullCommitment,
-      feePayerKeySnarky,
+      Ml.fromPrivateKey(feePayerKeySnarky),
       true
     );
     expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
