@@ -25,6 +25,9 @@ class Group {
 
   /**
    * Unique representation of the `zero` element of the Group (the identity element of addition in this Group).
+   *
+   * **Note**: The `zero` element is represented as `(1, 1)`.
+   *
    * ```typescript
    * // g + -g = 0
    * g.add(g.neg()).assertEquals(zero);
