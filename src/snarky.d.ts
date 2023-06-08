@@ -329,14 +329,6 @@ declare class Ledger {
     feePayerHash: FieldConst;
   };
 
-  /**
-   * Returns the public input of a zkApp transaction.
-   */
-  static zkappPublicInput(
-    txJson: string,
-    accountUpdateIndex: number
-  ): { accountUpdate: FieldConst; calls: FieldConst };
-
   static customTokenId(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
   static customTokenIdChecked(
     publicKey: MlPublicKeyVar,
@@ -390,6 +382,13 @@ declare const Test: {
   };
   hashFromJson: {
     accountUpdate(json: string): FieldConst;
+    /**
+     * Returns the public input of a zkApp transaction.
+     */
+    zkappPublicInput(
+      txJson: string,
+      accountUpdateIndex: number
+    ): { accountUpdate: FieldConst; calls: FieldConst };
   };
   hashInputFromJson: {
     packInput(input: MlHashInput): MlArray<FieldConst>;

@@ -80,7 +80,7 @@ function createAccountUpdate() {
     let accountUpdate = AccountUpdate.create(address);
     accountUpdate.approve(AccountUpdate.create(otherAddress));
   });
-  let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
+  let publicInputOcaml = Test.hashFromJson.zkappPublicInput(tx.toJSON(), 0);
 
   expect(publicInput).toEqual({
     accountUpdate: Field(publicInputOcaml.accountUpdate),
