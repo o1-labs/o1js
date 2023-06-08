@@ -8,6 +8,7 @@ import type {
   MlList,
   MlOption,
   MlBool,
+  MlBytes,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
@@ -135,7 +136,7 @@ declare const Snarky: {
       bitLength: number,
       x: FieldVar,
       y: FieldVar
-    ): [flag: 0, less: BoolVar, lessOrEqual: BoolVar];
+    ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
     /**
      *
      */
@@ -164,7 +165,11 @@ declare const Snarky: {
      */
     toConstantAndTerms(
       x: FieldVar
-    ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
+    ): [
+      _: 0,
+      constant: MlOption<FieldConst>,
+      terms: MlList<MlTuple<FieldConst, number>>
+    ];
   };
 
   bool: {
@@ -292,8 +297,8 @@ type Gate = {
 //   static sizeInFields(): number;
 // }
 
-type MlPublicKey = MlTuple<FieldConst, MlBool>;
-type MlPublicKeyVar = MlTuple<FieldVar, BoolVar>;
+type MlPublicKey = [_: 0, x: FieldConst, isOdd: MlBool];
+type MlPublicKeyVar = [_: 0, x: FieldVar, isOdd: BoolVar];
 
 /**
  * Represents the Mina ledger.
@@ -423,30 +428,22 @@ declare const Test: {
   };
 };
 
-/**
- * js_of_ocaml representation of a byte array,
- * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
- */
-type MlBytes = { t: number; c: string; l: number };
-
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type Statement = MlTuple<MlArray<FieldVar>, MlArray<FieldVar>>; // (publicInput, publicOutput)
-  type StatementConst = MlTuple<MlArray<FieldConst>, MlArray<FieldConst>>; // (publicInput, publicOutput)
+  type Statement<F> = [_: 0, publicInput: MlArray<F>, publicOutput: MlArray<F>];
   type Rule = {
     identifier: string;
     main: (publicInput: MlArray<FieldVar>) => {
       publicOutput: MlArray<FieldVar>;
-      previousStatements: MlArray<Statement>;
+      previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
     };
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
-  // returns (publicOutput, proof)
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
-  ) => Promise<MlTuple<MlArray<FieldConst>, Proof>>;
+  ) => Promise<[_: 0, publicOutput: MlArray<FieldConst>, proof: Proof]>;
 }
 
 declare const Pickles: {
@@ -477,18 +474,18 @@ declare const Pickles: {
   ) => {
     provers: MlArray<Pickles.Prover>;
     verify: (
-      statement: Pickles.StatementConst,
+      statement: Pickles.Statement<FieldConst>,
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => MlTuple<string, FieldConst>;
+    getVerificationKey: () => [_: 0, data: string, hash: FieldConst];
   };
 
   verify(
-    statement: Pickles.StatementConst,
+    statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;
@@ -497,7 +494,7 @@ declare const Pickles: {
   /**
    * @returns (base64 vk, hash)
    */
-  dummyVerificationKey: () => MlTuple<string, FieldConst>;
+  dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (

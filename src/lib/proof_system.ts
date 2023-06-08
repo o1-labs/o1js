@@ -20,6 +20,7 @@ import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
+import { FieldConst, FieldVar } from './field.js';
 
 // public API
 export {
@@ -138,7 +139,7 @@ async function verify(
   verificationKey: string
 ) {
   let picklesProof: Pickles.Proof;
-  let statement: Pickles.StatementConst;
+  let statement: Pickles.Statement<FieldConst>;
   if (typeof proof.proof === 'string') {
     // json proof
     [, picklesProof] = Pickles.proofOfBase64(
@@ -254,7 +255,7 @@ function ZkProgram<
     | {
         provers: Pickles.Prover[];
         verify: (
-          statement: Pickles.StatementConst,
+          statement: Pickles.Statement<FieldConst>,
           proof: Pickles.Proof
         ) => Promise<boolean>;
       }
@@ -547,7 +548,7 @@ async function compileProgram(
   );
   // wrap verify
   let wrappedVerify = async function picklesVerify(
-    statement: Pickles.StatementConst,
+    statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof
   ) {
     return prettifyStacktracePromise(
@@ -588,7 +589,7 @@ function picklesRuleFromFunction(
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: Proof<any, any>[] = [];
-    let previousStatements: Pickles.Statement[] = [];
+    let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
