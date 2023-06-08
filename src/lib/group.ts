@@ -2,7 +2,7 @@ import { Scalar } from './core.js';
 import { Field, FieldVar, isField } from './field.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { GroupMapPallas, Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
 
 export { Group };
@@ -65,9 +65,9 @@ class Group {
         square(y_bigint);
 
       if (!onCurve) {
-        /*         throw Error(
+        throw Error(
           `(x: ${x_bigint}, y: ${y_bigint}) is not a valid group element`
-        ); */
+        );
       }
     }
   }
