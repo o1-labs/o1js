@@ -1,16 +1,10 @@
-import { Field, FieldVar, isField, withMessage } from './field.js';
+import { Field, FieldVar, isField } from './field.js';
 import { Scalar } from './scalar.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 
 export { Group };
-
-type FieldLike = FieldVar | Field | number | string | bigint;
-type GroupLike = {
-  x: FieldLike;
-  y: FieldLike;
-};
 
 /**
  * An element of a Group.
@@ -74,7 +68,7 @@ class Group {
     return this.x.isConstant() && this.y.isConstant();
   }
 
-  #toAffine() {
+  #toProjective() {
     return Pallas.fromAffine({
       x: this.x.toBigInt(),
       y: this.y.toBigInt(),
@@ -86,7 +80,7 @@ class Group {
    * Adds this {@link Group} element to another {@link Group} element.
    *
    * ```ts
-   * let g1 = Group({ x: 1, y: 1})
+   * let g1 = Group({ x: -1, y: 2})
    * let g2 = g1.add(g1)
    * ```
    */
@@ -97,7 +91,7 @@ class Group {
       } else if (g.x.toBigInt() === 0n) {
         return this;
       } else {
-        let g_proj = Pallas.add(this.#toAffine(), g.#toAffine());
+        let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
         return Group.#fromProjective(g_proj);
       }
     } else {
@@ -133,7 +127,7 @@ class Group {
     let scalar = Scalar.from(s);
 
     if (this.#isConstant() && scalar.isConstant()) {
-      let g_proj = Pallas.scale(this.#toAffine(), scalar.toBigInt());
+      let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
       return Group.#fromProjective(g_proj);
     } else {
       let [, ...bits] = scalar.value;
@@ -174,11 +168,6 @@ class Group {
 
       return Bool(x1.equals(x2).and(y1.equals(y2)));
     } else {
-      /*
-    let equal_x = x1.equals(x2);
-    let equal_y = y1.equals(y2);
-    return equal_x.and(equal_y);*/
-
       let z = Snarky.group.equals(this.#toTuple(), g.#toTuple());
       return Bool.Unsafe.ofField(new Field(z));
     }
@@ -219,6 +208,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.add` on the instance instead
+   *
    * Adds a {@link Group} element to another one.
    */
   static add(g1: Group, g2: Group) {
@@ -226,6 +217,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.sub` on the instance instead
+   *
    * Subtracts a {@link Group} element from another one.
    */
   static sub(g1: Group, g2: Group) {
@@ -233,6 +226,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.neg` on the instance instead
+   *
    * Negates a {@link Group} element. Under the hood, it simply negates the `y` coordinate and leaves the `x` coordinate as is.
    *
    * ```typescript
@@ -244,6 +239,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.scale` on the instance instead
+   *
    * Elliptic curve scalar multiplication. Scales a {@link Group} element `n`-times by itself, where `n` is the {@link Scalar}.
    *
    * ```typescript
@@ -256,6 +253,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.assertEqual` on the instance instead.
+   *
    * Assert that two {@link Group} elements are equal to another.
    * Throws an error if the assertion fails.
    *
@@ -268,6 +267,8 @@ class Group {
   }
 
   /**
+   * @deprecated Please use the method `.equals` on the instance instead.
+   *
    * Checks if a {@link Group} element is equal to another {@link Group} element.
    * Returns a {@link Bool}.
    *
@@ -344,16 +345,12 @@ class Group {
    */
   static check(g: Group) {
     try {
-      Snarky.group.onCurve(g.#toTuple());
-    } catch (err) {
-      throw withMessage(
-        err,
-        `Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`
-      );
+      Snarky.group.assertOnCurve(g.#toTuple());
+    } catch (error) {
+      if (!(error instanceof Error)) return error;
+      throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${
+        error.message
+      }`;
     }
   }
-}
-
-function isGroupLike(x: GroupLike | FieldLike): x is GroupLike {
-  return (x as GroupLike).x !== undefined && (x as GroupLike).y !== undefined;
 }
