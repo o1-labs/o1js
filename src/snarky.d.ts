@@ -192,8 +192,6 @@ declare const Snarky: {
       x21_inv: FieldVar
     ): MlGroup;
 
-    assertOnCurve(p1: MlGroup): void;
-
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 

@@ -7,6 +7,8 @@ import { Provable } from './provable.js';
 
 export { Group };
 
+const checkFinite = true;
+
 /**
  * An element of a Group.
  */
@@ -19,6 +21,22 @@ class Group {
    */
   static get generator() {
     return new Group({ x: Pallas.one.x, y: Pallas.one.y });
+  }
+
+  /**
+   * The `zero` element of the Group (the identity element of addition in this Group).
+   * ```typescript
+   * // g + -g = 0
+   * g.add(g.neg()).assertEquals(zero);
+   * // g + 0 = g
+   * g.add(zero).assertEquals(g);
+   * ```
+   */
+  static get zero() {
+    return new Group({
+      x: 0,
+      y: 0,
+    });
   }
 
   /**
@@ -96,8 +114,6 @@ class Group {
         return Group.#fromProjective(g_proj);
       }
     } else {
-      const check_finite = true;
-
       const { x: x1, y: y1 } = this;
       const { x: x2, y: y2 } = g;
 
@@ -105,7 +121,7 @@ class Group {
 
       let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
 
-      let inf = check_finite
+      let inf = checkFinite
         ? zero
         : Provable.witness(Field, () =>
             x1.equals(x2).and(y1.equals(y2).not()).toField()
@@ -397,7 +413,13 @@ class Group {
    */
   static check(g: Group) {
     try {
-      Snarky.group.assertOnCurve(g.#toTuple());
+      const { x, y } = g;
+
+      let x2 = x.square();
+      let x3 = x2.mul(x);
+      let ax = x.mul(Pallas.a); // this will obviously be 0, but just for the sake of correctness
+
+      Snarky.field.assertSquare(y.value, x3.add(ax).add(Pallas.b).value);
     } catch (error) {
       if (!(error instanceof Error)) return error;
       throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${
