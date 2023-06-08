@@ -1094,7 +1094,7 @@ class AccountUpdate implements Types.AccountUpdate {
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
       let json = Types.AccountUpdate.toJSON(this);
-      return Field(Test.hash.hashAccountUpdateFromJson(JSON.stringify(json)));
+      return Field(Test.hashFromJson.accountUpdate(JSON.stringify(json)));
     }
   }
 

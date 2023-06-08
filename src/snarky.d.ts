@@ -354,16 +354,6 @@ declare class Ledger {
 
   static fieldsOfJson(json: string): MlArray<FieldConst>;
 
-  static hashInputFromJson: {
-    packInput(input: MlHashInput): MlArray<FieldConst>;
-    timing(json: String): MlHashInput;
-    permissions(json: String): MlHashInput;
-    update(json: String): MlHashInput;
-    accountPrecondition(json: String): MlHashInput;
-    networkPrecondition(json: String): MlHashInput;
-    body(json: String): MlHashInput;
-  };
-
   // low-level encoding helpers
   static encoding: {
     toBase58(s: MlBytes, versionByte: number): string;
@@ -392,9 +382,7 @@ declare const Test: {
     memoToBase58(memoString: string): string;
     memoHashBase58(memoBase58: string): FieldConst;
   };
-  hash: {
-    hashAccountUpdateFromJson(json: string): FieldConst;
-  };
+
   signature: {
     /**
      * Signs a {@link Field} element.
@@ -409,6 +397,20 @@ declare const Test: {
      */
     dummySignature(): string;
   };
+
+  hashFromJson: {
+    accountUpdate(json: string): FieldConst;
+  };
+  hashInputFromJson: {
+    packInput(input: MlHashInput): MlArray<FieldConst>;
+    timing(json: String): MlHashInput;
+    permissions(json: String): MlHashInput;
+    update(json: String): MlHashInput;
+    accountPrecondition(json: String): MlHashInput;
+    networkPrecondition(json: String): MlHashInput;
+    body(json: String): MlHashInput;
+  };
+
   transactionHash: {
     examplePayment(): string;
     serializePayment(payment: string): { data: Uint8Array };

@@ -69,7 +69,7 @@ expect(AccountUpdate.toJSON(dummy)).toEqual(
 
 let dummyInput = AccountUpdate.toInput(dummy);
 let dummyInputSnarky = MlHashInput.from(
-  Ledger.hashInputFromJson.body(
+  Test.hashInputFromJson.body(
     JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
   )
 );
@@ -190,7 +190,7 @@ test(
 
     let feePayerInput = AccountUpdate.toInput(feePayerAccountUpdate);
     let feePayerInput1 = MlHashInput.from(
-      Ledger.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
+      Test.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
     );
     expect(stringify(feePayerInput.fields)).toEqual(
       stringify(feePayerInput1.fields)
