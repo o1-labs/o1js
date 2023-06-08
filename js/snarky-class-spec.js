@@ -66,10 +66,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'zkappPublicInput',
-        type: 'function',
-      },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },

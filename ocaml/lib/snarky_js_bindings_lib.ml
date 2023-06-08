@@ -1168,20 +1168,6 @@ module Ledger = struct
       val feePayerHash = (fee_payer_hash :> Impl.field)
     end
 
-  let zkapp_public_input (tx_json : Js.js_string Js.t)
-      (account_update_index : int) =
-    let tx =
-      Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
-    in
-    let account_update = List.nth_exn tx.account_updates account_update_index in
-    object%js
-      val accountUpdate =
-        (account_update.elt.account_update_digest :> Impl.field)
-
-      val calls =
-        (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
-    end
-
   let check_account_update_signatures zkapp_command =
     let ({ fee_payer; account_updates; memo } : Zkapp_command.t) =
       zkapp_command
@@ -1361,7 +1347,6 @@ module Ledger = struct
     static_method "create" create ;
 
     static_method "transactionCommitments" transaction_commitments ;
-    static_method "zkappPublicInput" zkapp_public_input ;
 
     (* these are implemented in JS, but kept here for consistency tests *)
     static_method "checkAccountUpdateSignature" check_account_update_signature ;
@@ -1492,6 +1477,22 @@ module Test = struct
   module Hash = struct
     let account_update (p : Js.js_string Js.t) =
       p |> account_update_of_json |> Account_update.digest
+
+    let zkapp_public_input (tx_json : Js.js_string Js.t)
+        (account_update_index : int) =
+      let tx =
+        Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
+      in
+      let account_update =
+        List.nth_exn tx.account_updates account_update_index
+      in
+      object%js
+        val accountUpdate =
+          (account_update.elt.account_update_digest :> Impl.field)
+
+        val calls =
+          (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
+      end
   end
 
   module Hash_input = struct
@@ -1594,6 +1595,8 @@ let test =
     val hashFromJson =
       object%js
         method accountUpdate = Test.Hash.account_update
+
+        method zkappPublicInput = Test.Hash.zkapp_public_input
       end
 
     val hashInputFromJson =
