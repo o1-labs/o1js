@@ -1123,16 +1123,6 @@ module Ledger = struct
   let account_id (pk : public_key) token =
     Mina_base.Account_id.create pk (token_id token)
 
-  (* helper function to check whether the fields we produce from JS are correct *)
-  let fields_of_json
-      (typ : ('var, 'value, Field.Constant.t, 'tmp) Impl.Internal_Basic.Typ.typ)
-      of_json (json : Js.js_string Js.t) : Impl.field array =
-    let json = json |> Js.to_string |> Yojson.Safe.from_string in
-    let value = of_json json in
-    let (Typ typ) = typ in
-    let fields, _ = typ.value_to_fields value in
-    fields
-
   module To_js = struct
     let option (transform : 'a -> 'b) (x : 'a option) =
       Js.Optdef.option (Option.map x ~f:transform)
@@ -1428,19 +1418,6 @@ module Ledger = struct
          val versionBytes = version_bytes
       end ) ;
 
-    (* TODO this is for debugging, maybe remove later *)
-    let body_deriver =
-      Mina_base.Account_update.Body.Graphql_repr.deriver
-      @@ Fields_derivers_zkapps.o ()
-    in
-    let body_of_json json =
-      json
-      |> Fields_derivers_zkapps.of_json body_deriver
-      |> Account_update.Body.of_graphql_repr
-    in
-    static_method "fieldsOfJson"
-      (fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json) ;
-
     method_ "getAccount" get_account ;
     method_ "addAccount" add_account ;
     method_ "applyJsonTransaction" apply_json_transaction
@@ -1524,6 +1501,22 @@ module Test = struct
 
     let dummy_signature () =
       Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
+  end
+
+  module To_fields = struct
+    (* helper function to check whether the fields we produce from JS are correct *)
+    let fields_of_json
+        (typ :
+          ('var, 'value, Field.Constant.t, 'tmp) Impl.Internal_Basic.Typ.typ )
+        of_json (json : Js.js_string Js.t) : Impl.field array =
+      let json = json |> Js.to_string |> Yojson.Safe.from_string in
+      let value = of_json json in
+      let (Typ typ) = typ in
+      let fields, _ = typ.value_to_fields value in
+      fields
+
+    let account_update =
+      fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json
   end
 
   module Hash = struct
@@ -1617,6 +1610,11 @@ let test =
         method signFieldElement = Test.Signature.sign_field_element
 
         val dummySignature = Test.Signature.dummy_signature
+      end
+
+    val fieldsFromJson =
+      object%js
+        method accountUpdate = Test.To_fields.account_update
       end
 
     val hashFromJson =

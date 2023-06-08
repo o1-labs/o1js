@@ -73,10 +73,6 @@ export default [
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
-      {
-        name: 'fieldsOfJson',
-        type: 'function',
-      },
       { name: 'encoding', type: 'object' },
     ],
   },
@@ -122,6 +118,10 @@ export default [
       },
       {
         name: 'signature',
+        type: 'object',
+      },
+      {
+        name: 'fieldsFromJson',
         type: 'object',
       },
       {
