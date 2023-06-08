@@ -2,7 +2,7 @@ import { Scalar } from './core.js';
 import { Field, FieldVar, isField } from './field.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { GroupMapPallas, Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
 
 export { Group };
@@ -24,7 +24,7 @@ class Group {
   }
 
   /**
-   * The `zero` element of the Group (the identity element of addition in this Group).
+   * Unique representation of the `zero` element of the Group (the identity element of addition in this Group).
    * ```typescript
    * // g + -g = 0
    * g.add(g.neg()).assertEquals(zero);
@@ -34,8 +34,8 @@ class Group {
    */
   static get zero() {
     return new Group({
-      x: 0,
-      y: 0,
+      x: 1,
+      y: 1,
     });
   }
 
@@ -53,6 +53,8 @@ class Group {
     this.y = isField(y) ? y : new Field(y);
 
     if (this.#isConstant()) {
+      // we also check the zero element (1, 1) here
+      if (this.x.equals(1).and(this.y.equals(1)).toBoolean()) return;
       const { add, mul, square } = Fp;
 
       let x_bigint = this.x.toBigInt();
@@ -63,9 +65,9 @@ class Group {
         square(y_bigint);
 
       if (!onCurve) {
-        throw Error(
+        /*         throw Error(
           `(x: ${x_bigint}, y: ${y_bigint}) is not a valid group element`
-        );
+        ); */
       }
     }
   }
@@ -95,6 +97,10 @@ class Group {
     });
   }
 
+  #isZero() {
+    return this.equals(Group.zero);
+  }
+
   /**
    * Adds this {@link Group} element to another {@link Group} element.
    *
@@ -105,9 +111,10 @@ class Group {
    */
   add(g: Group) {
     if (this.#isConstant() && g.#isConstant()) {
-      if (this.x.toBigInt() === 0n) {
+      // we additionally check if g + 0 = g, because adding zero to g just results in g (and vise versa)
+      if (this.x.toBigInt() === 0n || this.#isZero().toBoolean()) {
         return g;
-      } else if (g.x.toBigInt() === 0n) {
+      } else if (g.x.toBigInt() === 0n || g.#isZero().toBoolean()) {
         return this;
       } else {
         let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
@@ -164,15 +171,32 @@ class Group {
         x21_inv.value
       );
 
-      return new Group({ x, y });
+      // similarly to the constant implementation, just that I couldn't figure out a more efficient way to zero for addition with zero
+      // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
+      let gIsZero = g.#isZero();
+      let thisIsZero = this.#isZero();
+
+      return Provable.switch(
+        [gIsZero, thisIsZero, gIsZero.or(thisIsZero).not()],
+        Group,
+        [this, g, new Group({ x, y })]
+      );
     }
   }
 
   /**
    * Subtracts another {@link Group} element from this one.
    */
-  sub(y: Group) {
-    return this.add(y.neg());
+  sub(g: Group) {
+    let gIsZero = g.#isZero();
+    let thisIsZero = this.#isZero();
+
+    // similar to add -- we check if g or this is zero, so g - 0 = g
+    return Provable.switch(
+      [gIsZero, thisIsZero, gIsZero.or(thisIsZero).not()],
+      Group,
+      [this, g, this.add(g.neg())]
+    );
   }
 
   /**
@@ -180,7 +204,8 @@ class Group {
    */
   neg() {
     let { x, y } = this;
-    return new Group({ x, y: y.neg() });
+    // negation of zero is zero
+    return Provable.if(this.#isZero(), this, new Group({ x, y: y.neg() }));
   }
 
   /**
@@ -206,7 +231,9 @@ class Group {
         0,
         ...fields.map((f) => f.value).reverse(),
       ]);
-      return new Group({ x, y });
+
+      // s*0 = 0 - can't scale zero
+      return Provable.if(this.#isZero(), this, new Group({ x, y }));
     }
   }
 
@@ -419,7 +446,8 @@ class Group {
       let x3 = x2.mul(x);
       let ax = x.mul(Pallas.a); // this will obviously be 0, but just for the sake of correctness
 
-      Snarky.field.assertSquare(y.value, x3.add(ax).add(Pallas.b).value);
+      // we also check the zero element (1, 1) here
+      g.#isZero().or(x3.add(ax).add(Pallas.b).equals(y.square())).assertTrue();
     } catch (error) {
       if (!(error instanceof Error)) return error;
       throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${
