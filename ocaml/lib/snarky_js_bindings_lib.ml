@@ -74,8 +74,6 @@ module As_field = struct
 
   let of_field (x : Impl.Field.t) : t = Obj.magic x
 
-  let of_field_obj (x : field_class Js.t) : t = Obj.magic x
-
   let of_number_exn (value : t) : Impl.Field.t =
     let number : Js.number Js.t = Obj.magic value in
     let float = Js.float_of_number number in
@@ -716,37 +714,6 @@ let () =
       | s ->
           failwith ("Bool.fromJSON: expected boolean, got " ^ s) )
 
-type coords = < x : As_field.t Js.prop ; y : As_field.t Js.prop > Js.t
-
-let group_class : < .. > Js.t =
-  let f =
-    Js.Unsafe.eval_string
-      {js|
-      (function(toFieldObj) {
-        return function() {
-          var err = 'Group constructor expects either 2 arguments (x, y) or a single argument object { x, y }';
-          if (arguments.length == 1) {
-            var t = arguments[0];
-            if (t.x === undefined || t.y === undefined) {
-              throw (Error(err));
-            } else {
-              this.x = toFieldObj(t.x);
-              this.y = toFieldObj(t.y);
-            }
-          } else if (arguments.length == 2) {
-            this.x = toFieldObj(arguments[0]);
-            this.y = toFieldObj(arguments[1]);
-          } else {
-            throw (Error(err));
-          }
-          return this;
-        }
-      })
-      |js}
-  in
-  Js.Unsafe.fun_call f
-    [| Js.Unsafe.inject (Js.wrap_callback As_field.to_field_obj) |]
-
 class type scalar_class =
   object
     method value : Boolean.var array Js.prop
@@ -755,69 +722,6 @@ class type scalar_class =
 
     method toJSON : < .. > Js.t Js.meth
   end
-
-class type endo_scalar_class =
-  object
-    method value : Boolean.var list Js.prop
-  end
-
-module As_group = struct
-  (* { x: as_field, y : as_field } | group_class *)
-  type t
-
-  class type group_class =
-    object
-      method x : field_class Js.t Js.prop
-
-      method y : field_class Js.t Js.prop
-
-      method add : group_class Js.t -> group_class Js.t Js.meth
-
-      method add_ : t -> group_class Js.t Js.meth
-
-      method sub_ : t -> group_class Js.t Js.meth
-
-      method neg : group_class Js.t Js.meth
-
-      method scale : scalar_class Js.t -> group_class Js.t Js.meth
-
-      method endoScale : endo_scalar_class Js.t -> group_class Js.t Js.meth
-
-      method assertEquals : t -> unit Js.meth
-
-      method equals : t -> bool_class Js.t Js.meth
-
-      method toJSON : < .. > Js.t Js.meth
-
-      method toFields : field_class Js.t Js.js_array Js.t Js.meth
-    end
-
-  let group_constr : (As_field.t -> As_field.t -> group_class Js.t) Js.constr =
-    Obj.magic group_class
-
-  let to_coords (t : t) : coords = Obj.magic t
-
-  let value (t : t) =
-    let t = to_coords t in
-    (As_field.value t##.x, As_field.value t##.y)
-
-  let of_group_obj (t : group_class Js.t) : t = Obj.magic t
-
-  let to_group_obj (t : t) : group_class Js.t =
-    if Js.instanceof (Obj.magic t) group_constr then Obj.magic t
-    else
-      let t = to_coords t in
-      new%js group_constr t##.x t##.y
-end
-
-class type group_class = As_group.group_class
-
-let group_constr = As_group.group_constr
-
-let to_js_group (x : Impl.Field.t) (y : Impl.Field.t) : group_class Js.t =
-  new%js group_constr
-    (As_field.of_field_obj (to_js_field x))
-    (As_field.of_field_obj (to_js_field y))
 
 let scalar_shift =
   Pickles_types.Shifted_value.Type1.Shift.create (module Other_backend.Field)
@@ -983,137 +887,6 @@ let () =
       | _ ->
           Js.Opt.empty )
 
-let () =
-  let mk (x, y) : group_class Js.t =
-    new%js group_constr (As_field.of_field x) (As_field.of_field y)
-  in
-  let method_ name (f : group_class Js.t -> _) = method_ group_class name f in
-  let static name x = Js.Unsafe.set group_class (Js.string name) x in
-  let static_method name f = static name (Js.wrap_callback f) in
-  let constant (x, y) = mk Field.(constant x, constant y) in
-  method_ "add"
-    (fun (p1 : group_class Js.t) (p2 : As_group.t) : group_class Js.t ->
-      let p1, p2 =
-        (As_group.value (As_group.of_group_obj p1), As_group.value p2)
-      in
-      match (p1, p2) with
-      | (Constant x1, Constant y1), (Constant x2, Constant y2) ->
-          constant
-            (Pickles.Step_main_inputs.Inner_curve.Constant.( + ) (x1, y1)
-               (x2, y2) )
-      | _ ->
-          Pickles.Step_main_inputs.Ops.add_fast p1 p2 |> mk ) ;
-  method_ "neg" (fun (p1 : group_class Js.t) : group_class Js.t ->
-      Pickles.Step_main_inputs.Inner_curve.negate
-        (As_group.value (As_group.of_group_obj p1))
-      |> mk ) ;
-  method_ "sub"
-    (fun (p1 : group_class Js.t) (p2 : As_group.t) : group_class Js.t ->
-      p1##add (As_group.to_group_obj p2)##neg ) ;
-  method_ "scale"
-    (fun (p1 : group_class Js.t) (s : scalar_class Js.t) : group_class Js.t ->
-      match
-        ( As_group.(value (of_group_obj p1))
-        , Js.Optdef.to_option s##.constantValue )
-      with
-      | (Constant x, Constant y), Some s ->
-          Pickles.Step_main_inputs.Inner_curve.Constant.scale (x, y) s
-          |> constant
-      | _ ->
-          let bits = Array.copy s##.value in
-          (* Have to convert LSB -> MSB *)
-          Array.rev_inplace bits ;
-          Pickles.Step_main_inputs.Ops.scale_fast_msb_bits
-            (As_group.value (As_group.of_group_obj p1))
-            (Shifted_value bits)
-          |> mk ) ;
-  (* TODO
-     method_ "endoScale"
-       (fun (p1 : group_class Js.t) (s : endo_scalar_class Js.t) : group_class Js.t
-       ->
-         Sc.endo
-           (As_group.value (As_group.of_group_obj p1))
-           (Scalar_challenge s##.value)
-         |> mk) ; *)
-  arg_optdef_arg_method group_class "assertEquals"
-    (fun
-      (p1 : group_class Js.t)
-      (p2 : As_group.t)
-      (msg : Js.js_string Js.t Js.Optdef.t)
-      :
-      unit
-    ->
-      let x1, y1 = As_group.value (As_group.of_group_obj p1) in
-      let x2, y2 = As_group.value p2 in
-      try Field.Assert.equal x1 x2
-      with exn -> (
-        ignore (log_and_raise_error_with_message ~exn ~msg) ;
-        try Field.Assert.equal y1 y2
-        with exn -> log_and_raise_error_with_message ~exn ~msg ) ) ;
-
-  method_ "equals"
-    (fun (p1 : group_class Js.t) (p2 : As_group.t) : bool_class Js.t ->
-      let x1, y1 = As_group.value (As_group.of_group_obj p1) in
-      let x2, y2 = As_group.value p2 in
-      new%js bool_constr
-        (As_bool.of_boolean
-           (Boolean.all [ Field.equal x1 x2; Field.equal y1 y2 ]) ) ) ;
-  static "generator"
-    (mk Pickles.Step_main_inputs.Inner_curve.one : group_class Js.t) ;
-  static_method "add"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##add_ p2 ) ;
-  static_method "sub"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##sub_ p2 ) ;
-  static_method "sub"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##sub_ p2 ) ;
-  static_method "neg" (fun (p1 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##neg ) ;
-  static_method "scale"
-    (fun (p1 : As_group.t) (s : scalar_class Js.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##scale s ) ;
-  static_method "assertEqual" (fun (p1 : As_group.t) (p2 : As_group.t) : unit ->
-      (As_group.to_group_obj p1)##assertEquals p2 ) ;
-  static_method "equal"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : bool_class Js.t ->
-      (As_group.to_group_obj p1)##equals p2 ) ;
-  method_ "toFields"
-    (fun (p1 : group_class Js.t) : field_class Js.t Js.js_array Js.t ->
-      let arr = singleton_array p1##.x in
-      arr##push p1##.y |> ignore ;
-      arr ) ;
-  static_method "toFields" (fun (p1 : group_class Js.t) -> p1##toFields) ;
-  static_method "fromFields" (fun (xs : field_class Js.t Js.js_array Js.t) ->
-      array_check_length xs 2 ;
-      new%js group_constr
-        (As_field.of_field_obj (array_get_exn xs 0))
-        (As_field.of_field_obj (array_get_exn xs 1)) ) ;
-  static_method "sizeInFields" (fun () : int -> 2) ;
-  static_method "check" (fun (p : group_class Js.t) : unit ->
-      Pickles.Step_main_inputs.Inner_curve.assert_on_curve
-        Field.((p##.x##.value :> t), (p##.y##.value :> t)) ) ;
-  method_ "toJSON" (fun (p : group_class Js.t) : < .. > Js.t ->
-      object%js
-        val x = (Obj.magic field_class)##toJSON p##.x
-
-        val y = (Obj.magic field_class)##toJSON p##.y
-      end ) ;
-  static_method "toJSON" (fun (p : group_class Js.t) : < .. > Js.t -> p##toJSON) ;
-  static_method "fromJSON"
-    (fun (value : Js.Unsafe.any) : group_class Js.t Js.Opt.t ->
-      let get field_name =
-        Js.Optdef.case
-          (Js.Unsafe.get value (Js.string field_name))
-          (fun () -> Js.Opt.empty)
-          (fun x -> field_class##fromJSON x)
-      in
-      Js.Opt.bind (get "x") (fun x ->
-          Js.Opt.map (get "y") (fun y ->
-              new%js group_constr
-                (As_field.of_field_obj x) (As_field.of_field_obj y) ) ) )
-
 let array_iter t1 ~f =
   for i = 0 to t1##.length - 1 do
     f (array_get_exn t1 i)
@@ -1158,7 +931,7 @@ let poseidon =
           let x, y = Snark_params.Group_map.to_group (to_unchecked input) in
           (Field.constant @@ x, Field.constant @@ y)
       in
-      to_js_group (fst digest) (snd digest)
+      digest
 
     method update (state : field_class Js.t Js.js_array Js.t)
         (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
@@ -1346,6 +1119,23 @@ module Snarky = struct
     let to_constant_and_terms x = Field.to_constant_and_terms x
   end
 
+  module Group = struct
+    (** p1 + p2; handles variables *)
+    let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
+
+    let assert_on_curve p =
+      Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
+
+    let scale p (scalar_bits : Boolean.var array) =
+      Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
+        (Shifted_value scalar_bits)
+
+    let equals
+        ((x1, y1) : Impl.field Snarky_backendless.Cvar.t Tuple_lib.Double.t)
+        ((x2, y2) : Impl.field Snarky_backendless.Cvar.t Tuple_lib.Double.t) =
+      Boolean.all [ Impl.Field.equal x1 x2; Impl.Field.equal y1 y2 ]
+  end
+
   module Circuit = struct
     module Main = struct
       let of_js (main : public_input_js -> unit) =
@@ -1431,6 +1221,17 @@ let snarky =
         method seal = Snarky.Field.seal
 
         method toConstantAndTerms = Snarky.Field.to_constant_and_terms
+      end
+
+    val group =
+      object%js
+        method add = Snarky.Group.add
+
+        method assertOnCurve = Snarky.Group.assert_on_curve
+
+        method scale = Snarky.Group.scale
+
+        method equals = Snarky.Group.equals
       end
 
     val circuit =
@@ -2939,7 +2740,6 @@ let export () =
   Js.export "Field" field_class ;
   Js.export "Scalar" scalar_class ;
   Js.export "Bool" bool_class ;
-  Js.export "Group" group_class ;
   Js.export "Poseidon" poseidon ;
   Js.export "Snarky" snarky ;
   Js.export "Ledger" Ledger.ledger_class ;
@@ -2954,7 +2754,6 @@ let export_global () =
         [| ("Field", i field_class)
          ; ("Scalar", i scalar_class)
          ; ("Bool", i bool_class)
-         ; ("Group", i group_class)
          ; ("Poseidon", i poseidon)
          ; ("Snarky", i snarky)
          ; ("Ledger", i Ledger.ledger_class)
