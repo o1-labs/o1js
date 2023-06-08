@@ -1545,17 +1545,76 @@ module Test = struct
       let input = Account_update.Body.to_input value in
       input
   end
+
+  module Transaction_hash = struct
+    module Signed_command = Mina_base.Signed_command
+    module Signed_command_payload = Mina_base.Signed_command_payload
+
+    let ok_exn result =
+      let open Ppx_deriving_yojson_runtime.Result in
+      match result with Ok c -> c | Error e -> failwith ("not ok: " ^ e)
+
+    let keypair () = Signature_lib.Keypair.create ()
+
+    let hash_payment (command : Js.js_string Js.t) =
+      let command : Signed_command.t =
+        command |> Js.to_string |> Yojson.Safe.from_string
+        |> Signed_command.of_yojson |> ok_exn
+      in
+      Mina_transaction.Transaction_hash.(
+        command |> hash_signed_command |> to_base58_check |> Js.string)
+
+    let hash_payment_v1 (command : Js.js_string Js.t) =
+      let command : Signed_command.t_v1 =
+        command |> Js.to_string |> Yojson.Safe.from_string
+        |> Signed_command.Stable.V1.of_yojson |> ok_exn
+      in
+      let b58 = Signed_command.to_base58_check_v1 command in
+      Mina_transaction.Transaction_hash.(
+        b58 |> digest_string |> to_base58_check)
+      |> Js.string
+
+    let serialize_common (command : Js.js_string Js.t) =
+      let command : Signed_command_payload.Common.t =
+        command |> Js.to_string |> Yojson.Safe.from_string
+        |> Signed_command_payload.Common.of_yojson |> ok_exn
+      in
+      Binable.to_bigstring
+        (module Signed_command_payload.Common.Stable.Latest)
+        command
+
+    let serialize_payment (command : Js.js_string Js.t) =
+      let command : Signed_command.t =
+        command |> Js.to_string |> Yojson.Safe.from_string
+        |> Signed_command.of_yojson |> ok_exn
+      in
+      Binable.to_bigstring (module Signed_command.Stable.Latest) command
+
+    let serialize_payment_v1 (command : Js.js_string Js.t) =
+      let command : Signed_command.t_v1 =
+        command |> Js.to_string |> Yojson.Safe.from_string
+        |> Signed_command.Stable.V1.of_yojson |> ok_exn
+      in
+      Signed_command.to_base58_check_v1 command |> Js.string
+
+    let example_payment =
+      let kp = keypair () in
+      let payload : Signed_command_payload.t =
+        { Signed_command_payload.dummy with
+          body =
+            Payment
+              { Mina_base.Payment_payload.dummy with
+                source_pk = Signature_lib.Public_key.compress kp.public_key
+              }
+        }
+      in
+      let payment = Signed_command.sign kp payload in
+      (payment :> Signed_command.t)
+      |> Signed_command.to_yojson |> Yojson.Safe.to_string |> Js.string
+  end
 end
 
 let test =
-  let module Signed_command = Mina_base.Signed_command in
-  let module Signed_command_payload = Mina_base.Signed_command_payload in
-  let ok_exn result =
-    let open Ppx_deriving_yojson_runtime.Result in
-    match result with Ok c -> c | Error e -> failwith ("not ok: " ^ e)
-  in
-
-  let keypair () = Signature_lib.Keypair.create () in
   object%js
     val encoding =
       object%js
@@ -1618,62 +1677,19 @@ let test =
       end
 
     val transactionHash =
+      let open Test.Transaction_hash in
       object%js
-        method hashPayment (command : Js.js_string Js.t) =
-          let command : Signed_command.t =
-            command |> Js.to_string |> Yojson.Safe.from_string
-            |> Signed_command.of_yojson |> ok_exn
-          in
-          Mina_transaction.Transaction_hash.(
-            command |> hash_signed_command |> to_base58_check |> Js.string)
+        method hashPayment = hash_payment
 
-        method hashPaymentV1 (command : Js.js_string Js.t) =
-          let command : Signed_command.t_v1 =
-            command |> Js.to_string |> Yojson.Safe.from_string
-            |> Signed_command.Stable.V1.of_yojson |> ok_exn
-          in
-          let b58 = Signed_command.to_base58_check_v1 command in
-          Mina_transaction.Transaction_hash.(
-            b58 |> digest_string |> to_base58_check)
-          |> Js.string
+        method hashPaymentV1 = hash_payment_v1
 
-        method serializeCommon (command : Js.js_string Js.t) =
-          let command : Signed_command_payload.Common.t =
-            command |> Js.to_string |> Yojson.Safe.from_string
-            |> Signed_command_payload.Common.of_yojson |> ok_exn
-          in
-          Binable.to_bigstring
-            (module Signed_command_payload.Common.Stable.Latest)
-            command
+        method serializeCommon = serialize_common
 
-        method serializePayment (command : Js.js_string Js.t) =
-          let command : Signed_command.t =
-            command |> Js.to_string |> Yojson.Safe.from_string
-            |> Signed_command.of_yojson |> ok_exn
-          in
-          Binable.to_bigstring (module Signed_command.Stable.Latest) command
+        method serializePayment = serialize_payment
 
-        method serializePaymentV1 (command : Js.js_string Js.t) =
-          let command : Signed_command.t_v1 =
-            command |> Js.to_string |> Yojson.Safe.from_string
-            |> Signed_command.Stable.V1.of_yojson |> ok_exn
-          in
-          Signed_command.to_base58_check_v1 command |> Js.string
+        method serializePaymentV1 = serialize_payment_v1
 
-        method examplePayment =
-          let kp = keypair () in
-          let payload : Signed_command_payload.t =
-            { Signed_command_payload.dummy with
-              body =
-                Payment
-                  { Mina_base.Payment_payload.dummy with
-                    source_pk = Signature_lib.Public_key.compress kp.public_key
-                  }
-            }
-          in
-          let payment = Signed_command.sign kp payload in
-          (payment :> Signed_command.t)
-          |> Signed_command.to_yojson |> Yojson.Safe.to_string |> Js.string
+        method examplePayment = example_payment
       end
   end
 
