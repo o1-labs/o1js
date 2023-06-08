@@ -55,6 +55,9 @@ class PrivateKey extends CircuitValue {
 
   /**
    * Create a {@link PrivateKey} from a bigint
+   *
+   * **Warning**: Private keys should be sampled from secure randomness with sufficient entropy.
+   * Be careful that you don't use this method to create private keys that were sampled insecurely.
    */
   static fromBigInt(sk: PrivateKeyBigint) {
     return new PrivateKey(Scalar.from(sk));
