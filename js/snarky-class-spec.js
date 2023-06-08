@@ -49,14 +49,6 @@ export default [
         name: 'create',
         type: 'function',
       },
-      {
-        name: 'customTokenId',
-        type: 'function',
-      },
-      {
-        name: 'customTokenIdChecked',
-        type: 'function',
-      },
     ],
   },
   {
@@ -97,6 +89,10 @@ export default [
     props: [
       {
         name: 'encoding',
+        type: 'object',
+      },
+      {
+        name: 'tokenId',
         type: 'object',
       },
       {

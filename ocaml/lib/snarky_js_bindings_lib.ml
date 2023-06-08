@@ -1006,8 +1006,6 @@ let pickles =
 
 type public_key = Signature_lib.Public_key.Compressed.t
 
-type public_key_checked = Signature_lib.Public_key.Compressed.var
-
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
 
@@ -1110,10 +1108,6 @@ module Ledger = struct
 
   let default_token_id =
     Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
-
-  let account_id_checked (pk : public_key_checked) token =
-    Mina_base.Account_id.Checked.create pk
-      (Mina_base.Token_id.Checked.of_field token)
 
   let account_id (pk : public_key) token =
     Mina_base.Account_id.create pk (Mina_base.Token_id.of_field token)
@@ -1251,15 +1245,6 @@ module Ledger = struct
       (Js.to_string account_creation_fee)
       network_state
 
-  let custom_token_id_checked pk token =
-    Mina_base.Account_id.Checked.derive_token_id
-      ~owner:(account_id_checked pk token)
-    |> Mina_base.Account_id.Digest.Checked.to_field_unsafe
-
-  let custom_token_id_unchecked pk token =
-    Mina_base.Account_id.derive_token_id ~owner:(account_id pk token)
-    |> Mina_base.Token_id.to_field_unsafe
-
   let () =
     let static_method name f =
       Js.Unsafe.set ledger_class (Js.string name) (Js.wrap_callback f)
@@ -1267,8 +1252,6 @@ module Ledger = struct
     let method_ name (f : ledger_class Js.t -> _) =
       method_ ledger_class name f
     in
-    static_method "customTokenId" custom_token_id_unchecked ;
-    static_method "customTokenIdChecked" custom_token_id_checked ;
     static_method "create" create ;
 
     method_ "getAccount" get_account ;
@@ -1335,6 +1318,23 @@ module Test = struct
       |> Mina_base.Signed_command_memo.hash
   end
 
+  module Token_id = struct
+    let derive pk token =
+      let account_id =
+        Mina_base.Account_id.create pk (Mina_base.Token_id.of_field token)
+      in
+      Mina_base.Account_id.derive_token_id ~owner:account_id
+      |> Mina_base.Token_id.to_field_unsafe
+
+    let derive_checked pk token =
+      let account_id =
+        Mina_base.Account_id.Checked.create pk
+          (Mina_base.Token_id.Checked.of_field token)
+      in
+      Mina_base.Account_id.Checked.derive_token_id ~owner:account_id
+      |> Mina_base.Account_id.Digest.Checked.to_field_unsafe
+  end
+
   (* deriver *)
   let account_update_of_json, _account_update_to_json =
     let deriver =
@@ -1394,7 +1394,7 @@ module Test = struct
       fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json
   end
 
-  module Hash = struct
+  module Hash_from_json = struct
     let account_update (p : Js.js_string Js.t) =
       p |> account_update_of_json |> Account_update.digest
 
@@ -1581,6 +1581,13 @@ let test =
         method memoHashBase58 = Test.Encoding.memo_hash_base58
       end
 
+    val tokenId =
+      object%js
+        method derive = Test.Token_id.derive
+
+        method deriveChecked = Test.Token_id.derive_checked
+      end
+
     val signature =
       object%js
         method signFieldElement = Test.Signature.sign_field_element
@@ -1595,11 +1602,12 @@ let test =
 
     val hashFromJson =
       object%js
-        method accountUpdate = Test.Hash.account_update
+        method accountUpdate = Test.Hash_from_json.account_update
 
-        method transactionCommitments = Test.Hash.transaction_commitments
+        method transactionCommitments =
+          Test.Hash_from_json.transaction_commitments
 
-        method zkappPublicInput = Test.Hash.zkapp_public_input
+        method zkappPublicInput = Test.Hash_from_json.zkapp_public_input
       end
 
     val hashInputFromJson =
