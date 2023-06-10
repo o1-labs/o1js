@@ -160,8 +160,8 @@ describe('group', () => {
       it('x*g+y*g = (x+y)*g', () => {
         expect(() => {
           Provable.runAndCheck(() => {
-            const x = Scalar.fromJSON(2)!;
-            const y = Scalar.fromJSON(3)!;
+            const x = Scalar.from(2);
+            const y = Scalar.from(3);
             const left = g.scale(x).add(g.scale(y));
             const right = g.scale(x.add(y));
             left.assertEquals(right);
@@ -172,8 +172,8 @@ describe('group', () => {
       it('x*(y*g) = (x*y)*g', () => {
         expect(() => {
           Provable.runAndCheck(() => {
-            const x = Scalar.fromJSON(2)!;
-            const y = Scalar.fromJSON(3)!;
+            const x = Scalar.from(2);
+            const y = Scalar.from(3);
             const left = g.scale(y).scale(x);
             const right = g.scale(y.mul(x));
             left.assertEquals(right);
@@ -331,16 +331,16 @@ describe('group', () => {
       });
 
       it('x*g+y*g = (x+y)*g', () => {
-        const x = Scalar.fromJSON(2)!;
-        const y = Scalar.fromJSON(3)!;
+        const x = Scalar.from(2);
+        const y = Scalar.from(3);
         const left = g.scale(x).add(g.scale(y));
         const right = g.scale(x.add(y));
         expect(left).toEqual(right);
       });
 
       it('x*(y*g) = (x*y)*g', () => {
-        const x = Scalar.fromJSON(2)!;
-        const y = Scalar.fromJSON(3)!;
+        const x = Scalar.from(2);
+        const y = Scalar.from(3);
         const left = g.scale(y).scale(x);
         const right = g.scale(y.mul(x));
         expect(left).toEqual(right);

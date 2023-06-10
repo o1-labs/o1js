@@ -1,10 +1,10 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
+import type { Scalar, ScalarConst } from './lib/scalar.js';
 // export { Field };
 export { SnarkyField };
 export {
   Bool,
-  Scalar,
   ProvablePure,
   Provable,
   Poseidon,
@@ -16,7 +16,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate };
+export { Snarky, Test, JsonGate, MlArray };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -1250,105 +1250,6 @@ type Gate = {
   coeffs: string[];
 };
 
-/**
- * Represents a {@link Scalar}.
- */
-declare class Scalar {
-  /**
-   * Serialize this Scalar to Field elements.
-   *
-   * WARNING: This function is for internal usage by the proof system. It returns 255 field elements
-   * which represent the Scalar in a shifted, bitwise format.
-   * Check out {@link Scalar.toFieldsCompressed} for a user-friendly serialization that can be used outside proofs.
-   */
-  toFields(): Field[];
-
-  /**
-   * Serialize a Scalar into a Field element plus one bit, where the bit is represented as a Bool.
-   *
-   * Note: Since the Scalar field is slightly larger than the base Field, an additional high bit
-   * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
-   */
-  static toFieldsCompressed(s: Scalar): { field: Field; highBit: Bool };
-
-  /**
-   * Negate a scalar field element.
-   * Can only be called outside of circuit execution
-   */
-  neg(): Scalar;
-
-  /**
-   * Add scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  add(y: Scalar): Scalar;
-
-  /**
-   * Subtract scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  sub(y: Scalar): Scalar;
-
-  /**
-   * Multiply scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  mul(y: Scalar): Scalar;
-
-  /**
-   * Divide scalar field elements.
-   * Can only be called outside of circuit execution
-   */
-  div(y: Scalar): Scalar;
-
-  /**
-   * Serializes this Scalar to a string
-   */
-  toJSON(): string;
-
-  /**
-   * Static method to serialize a {@link Scalar} into an array of {@link Field} elements.
-   */
-  static toFields(x: Scalar): Field[];
-  /**
-   * Static method to serialize a {@link Scalar} into its auxiliary data.
-   */
-  static toAuxiliary(x?: Scalar): [];
-  /**
-   * Creates a data structure from an array of serialized {@link Field} elements.
-   */
-  static fromFields(fields: Field[]): Scalar;
-  /**
-   * Returns the size of this type.
-   */
-  static sizeInFields(): number;
-  /**
-   * Creates a data structure from an array of serialized {@link Bool}.
-   */
-  static fromBits(bits: Bool[]): Scalar;
-  /**
-   * Returns a random {@link Scalar}.
-   * Randomness can not be proven inside a circuit!
-   */
-  static random(): Scalar;
-  /**
-   * Serialize a {@link Scalar} to a JSON string.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
-   */
-  static toJSON(x: Scalar): string;
-  /**
-   * Deserialize a JSON structure into a {@link Scalar}.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
-   */
-  static fromJSON(x: string | number | boolean): Scalar;
-  /**
-   * Create a constant {@link Scalar} from a bigint.
-   * If the bigint is too large, it is reduced modulo the scalar field order.
-   */
-  static fromBigInt(s: bigint): Scalar;
-  static check(x: Scalar): void;
-}
-
 // TODO: Add this when OCaml bindings are implemented:
 // declare class EndoScalar {
 //   static toFields(x: Scalar): Field[];
@@ -1434,7 +1335,7 @@ declare class Ledger {
    */
   static signFieldElement(
     messageHash: Field,
-    privateKey: { s: Scalar },
+    privateKey: ScalarConst,
     isMainnet: boolean
   ): string;
 
@@ -1443,28 +1344,13 @@ declare class Ledger {
    */
   static dummySignature(): string;
 
-  /**
-   * Signs a transaction as the fee payer.
-   */
-  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
-
-  /**
-   * Signs an account update.
-   */
-  static signOtherAccountUpdate(
-    txJson: string,
-    privateKey: { s: Scalar },
-    i: number
-  ): string;
-
   static customTokenId(publicKey: PublicKey_, tokenId: Field): Field;
   static customTokenIdChecked(publicKey: PublicKey_, tokenId: Field): Field;
   static createTokenAccount(publicKey: PublicKey_, tokenId: Field): string;
 
   static publicKeyToString(publicKey: PublicKey_): string;
   static publicKeyOfString(publicKeyBase58: string): PublicKey_;
-  static privateKeyToString(privateKey: { s: Scalar }): string;
-  static privateKeyOfString(privateKeyBase58: string): Scalar;
+
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
 
@@ -1508,6 +1394,10 @@ declare class Ledger {
 }
 
 declare const Test: {
+  encoding: {
+    privateKeyToBase58(privateKey: ScalarConst): string;
+    privateKeyOfBase58(privateKeyBase58: string): ScalarConst;
+  };
   transactionHash: {
     examplePayment(): string;
     serializePayment(payment: string): { data: Uint8Array };

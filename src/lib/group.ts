@@ -1,5 +1,5 @@
-import { Scalar } from './core.js';
 import { Field, FieldVar, isField } from './field.js';
+import { Scalar } from './scalar.js';
 import { Bool, Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
@@ -223,25 +223,16 @@ class Group {
    * ```
    */
   scale(s: Scalar | number | bigint) {
-    let scalar =
-      typeof s === 'bigint' || typeof s === 'number'
-        ? Scalar.fromBigInt(BigInt(s))
-        : s;
-    let fields = scalar.toFields();
+    let scalar = Scalar.from(s);
 
-    if (this.#isConstant() && fields.every((f) => f.isConstant())) {
-      if (this.#isZero().toBoolean()) return this;
-
-      let g_proj = Pallas.scale(this.#toProjective(), BigInt(scalar.toJSON()));
+    if (this.#isConstant() && scalar.isConstant()) {
+      let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
       return Group.#fromProjective(g_proj);
     } else {
-      let [, x, y] = Snarky.group.scale(this.#toTuple(), [
-        0,
-        ...fields.map((f) => f.value).reverse(),
-      ]);
-
-      // s*0 = 0 - can't scale zero
-      return Provable.if(this.#isZero(), this, new Group({ x, y }));
+      let [, ...bits] = scalar.value;
+      bits.reverse();
+      let [, x, y] = Snarky.group.scale(this.#toTuple(), [0, ...bits]);
+      return new Group({ x, y });
     }
   }
 
