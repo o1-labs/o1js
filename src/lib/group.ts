@@ -26,7 +26,7 @@ class Group {
   /**
    * Unique representation of the `zero` element of the Group (the identity element of addition in this Group).
    *
-   * **Note**: The `zero` element is represented as `(1, 1)`.
+   * **Note**: The `zero` element is represented as `(0, 0)`.
    *
    * ```typescript
    * // g + -g = 0
@@ -37,8 +37,8 @@ class Group {
    */
   static get zero() {
     return new Group({
-      x: 1,
-      y: 1,
+      x: 0,
+      y: 0,
     });
   }
 
@@ -57,7 +57,7 @@ class Group {
 
     if (this.#isConstant()) {
       // we also check the zero element (1, 1) here
-      if (this.x.equals(1).and(this.y.equals(1)).toBoolean()) return;
+      if (this.x.equals(0).toBoolean()) return;
 
       const { add, mul, square } = Fp;
 
@@ -102,7 +102,7 @@ class Group {
   }
 
   #isZero() {
-    return this.equals(Group.zero);
+    return this.x.equals(0);
   }
 
   /**
@@ -116,13 +116,18 @@ class Group {
   add(g: Group) {
     if (this.#isConstant() && g.#isConstant()) {
       // we additionally check if g + 0 = g, because adding zero to g just results in g (and vise versa)
-      if (this.x.toBigInt() === 0n || this.#isZero().toBoolean()) {
+      if (this.#isZero().toBoolean()) {
         return g;
-      } else if (g.x.toBigInt() === 0n || g.#isZero().toBoolean()) {
+      } else if (g.#isZero().toBoolean()) {
         return this;
       } else {
         let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
-        return Group.#fromProjective(g_proj);
+
+        // in the JS code, zero is denoted with (1, 1) - but here we want to convert it to (0, 0) (its less constraints that way)
+        let isZero = g_proj.x === 1n && g_proj.y === 1n;
+        return isZero
+          ? new Group({ x: 0, y: 0 })
+          : Group.#fromProjective(g_proj);
       }
     } else {
       const { x: x1, y: y1 } = this;
@@ -197,15 +202,7 @@ class Group {
    * Subtracts another {@link Group} element from this one.
    */
   sub(g: Group) {
-    let gIsZero = g.#isZero();
-    let thisIsZero = this.#isZero();
-
-    // similar to add -- we check if g or this is zero, so g - 0 = g
-    return Provable.switch(
-      [gIsZero, thisIsZero, gIsZero.or(thisIsZero).not()],
-      Group,
-      [this, g, this.add(g.neg())]
-    );
+    return this.add(g.neg());
   }
 
   /**
@@ -214,9 +211,7 @@ class Group {
   neg() {
     let { x, y } = this;
 
-    // negation of zero is zero
-    let y_ = Provable.if(this.#isZero(), new Field(1), y.neg());
-    return new Group({ x, y: y_ });
+    return new Group({ x, y: y.neg() });
   }
 
   /**
@@ -459,7 +454,7 @@ class Group {
       let x3 = x2.mul(x);
       let ax = x.mul(Pallas.a); // this will obviously be 0, but just for the sake of correctness
 
-      // we also check the zero element (1, 1) here
+      // we also check the zero element (0, 0) here
       g.#isZero().or(x3.add(ax).add(Pallas.b).equals(y.square())).assertTrue();
     } catch (error) {
       if (!(error instanceof Error)) return error;
