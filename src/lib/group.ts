@@ -56,7 +56,7 @@ class Group {
     this.y = isField(y) ? y : new Field(y);
 
     if (this.#isConstant()) {
-      // we also check the zero element (1, 1) here
+      // we also check the zero element (0, 0) here
       if (this.x.equals(0).toBoolean()) return;
 
       const { add, mul, square } = Fp;
@@ -102,6 +102,7 @@ class Group {
   }
 
   #isZero() {
+    // only the zero element can have x = 0, there are no other (valid) group elements with x = 0
     return this.x.equals(0);
   }
 
@@ -115,7 +116,7 @@ class Group {
    */
   add(g: Group) {
     if (this.#isConstant() && g.#isConstant()) {
-      // we additionally check if g + 0 = g, because adding zero to g just results in g (and vise versa)
+      // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
       if (this.#isZero().toBoolean()) {
         return g;
       } else if (g.#isZero().toBoolean()) {
@@ -123,7 +124,7 @@ class Group {
       } else {
         let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
 
-        // in the JS code, zero is denoted with (1, 1) - but here we want to convert it to (0, 0) (its less constraints that way)
+        // in the JS code, zero is denoted with (1, 1) - but here we want to convert it to (0, 0) (it saves constraints in the in-circuit implementation that way)
         let isZero = g_proj.x === 1n && g_proj.y === 1n;
         return isZero
           ? new Group({ x: 0, y: 0 })
@@ -227,7 +228,9 @@ class Group {
 
     if (this.#isConstant() && scalar.isConstant()) {
       let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
-      return Group.#fromProjective(g_proj);
+      // in the JS code, zero is denoted with (1, 1) - but here we want to convert it to (0, 0) (its less constraints that way)
+      let isZero = g_proj.x === 1n && g_proj.y === 1n;
+      return isZero ? new Group({ x: 0, y: 0 }) : Group.#fromProjective(g_proj);
     } else {
       let [, ...bits] = scalar.value;
       bits.reverse();

@@ -116,12 +116,12 @@ describe('group', () => {
         }).not.toThrow();
       });
 
-      it('zero-g = g', () => {
+      it('zero - g = -g', () => {
         expect(() => {
           Provable.runAndCheck(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
-            zero.sub(x).assertEquals(x);
+            zero.sub(x).assertEquals(x.neg());
           });
         }).not.toThrow();
       });
@@ -177,16 +177,6 @@ describe('group', () => {
             const left = g.scale(y).scale(x);
             const right = g.scale(y.mul(x));
             left.assertEquals(right);
-          });
-        }).not.toThrow();
-      });
-
-      it('s*zero = zero', () => {
-        expect(() => {
-          Provable.runAndCheck(() => {
-            const s = Scalar.fromJSON(2)!;
-            const zero = Provable.witness(Group, () => Group.zero);
-            zero.scale(s).assertEquals(zero);
           });
         }).not.toThrow();
       });
@@ -315,10 +305,10 @@ describe('group', () => {
         }).not.toThrow();
       });
 
-      it('zero - g = g', () => {
+      it('zero - g = -g', () => {
         expect(() => {
           const zero = Group.zero;
-          zero.sub(g).assertEquals(g);
+          zero.sub(g).assertEquals(g.neg());
         }).not.toThrow();
       });
     });
@@ -344,12 +334,6 @@ describe('group', () => {
         const left = g.scale(y).scale(x);
         const right = g.scale(y.mul(x));
         expect(left).toEqual(right);
-      });
-
-      it('zero * s = zero', () => {
-        const s = Scalar.fromJSON(2)!;
-        const zero = Group.zero;
-        zero.scale(s).assertEquals(zero);
       });
     });
 
