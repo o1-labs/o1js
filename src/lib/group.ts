@@ -181,7 +181,7 @@ class Group {
         x21_inv.value
       );
 
-      // similarly to the constant implementation, just that I couldn't figure out a more efficient way to zero for addition with zero
+      // similarly to the constant implementation, we check if either operand is zero
       // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
       let gIsZero = g.#isZero();
       let thisIsZero = this.#isZero();
