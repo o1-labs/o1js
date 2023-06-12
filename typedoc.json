@@ -1,0 +1,15 @@
+{
+	"name": "SnarkyJS",
+	"plugin": ["typedoc-plugin-markdown", "typedoc-plugin-merge-modules"],
+	"out": "snarkyjs-reference",
+	"cleanOutputDir": true,
+	"githubPages": false,
+	"exclude": [
+		"src/bindings/**/*",
+		"dist/**/*",
+		"src/mina-signer/**/*",
+		"src/examples/**/*"
+	],
+	"entryPoints": ["src"],
+	"entryPointStrategy": "expand",
+}
