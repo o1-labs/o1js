@@ -538,11 +538,12 @@ class Field {
   xor(y: Field | bigint | number | string, length: number) {
     if (this.isConstant() && isConstant(y)) {
       let y_ = toFp(y);
-      if (y_ > 2 ** length - 1 || this.toBigInt() > 2 ** length - 1) {
-        throw Error('Does not fit into bits');
+      let thisBigint = this.toBigInt();
+      if (y_ > 2 ** length - 1 || thisBigint > 2 ** length - 1) {
+        throw Error(`${y} and ${thisBigint} need to fit into ${length} bit.`);
       }
 
-      return new Field(y_ ^ this.toBigInt());
+      return new Field(y_ ^ thisBigint);
     } else {
       return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
     }
