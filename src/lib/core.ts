@@ -43,6 +43,17 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
+/**
+ * A boolean value. You can use it like this:
+ *
+ * ```
+ * const x = new Bool(true);
+ * ```
+ *
+ * You can also combine multiple booleans via [[`not`]], [[`and`]], [[`or`]].
+ *
+ * Use [[assertEquals]] to enforce the value of a Bool.
+ */
 const Bool = toFunctionConstructor(InternalBool);
 type Bool = InternalBool;
 
