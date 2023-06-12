@@ -1,6 +1,7 @@
-import { Snarky, Provable, MlArray } from '../snarky.js';
+import { Snarky, Provable } from '../snarky.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { Field, FieldConst, FieldVar } from './field.js';
+import { MlArray } from './ml/base.js';
 import { Bool } from './core.js';
 
 export { Scalar, ScalarConst, unshift, shift };
@@ -46,6 +47,14 @@ class Scalar {
     let scalar = Fq(x);
     let bits = toBits(scalar);
     return new Scalar(bits, scalar);
+  }
+
+  /**
+   * Check whether this {@link Scalar} is a hard-coded constant in the constraint system.
+   * If a {@link Scalar} is constructed outside provable code, it is a constant.
+   */
+  isConstant(): this is Scalar & { constantValue: ScalarConst } {
+    return this.constantValue !== undefined;
   }
 
   /**

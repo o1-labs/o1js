@@ -1,6 +1,8 @@
-import { Group } from '../snarky.js';
+import { defineBinable } from '../bindings/lib/binable.js';
+import { sizeInBits } from '../provable/field-bigint.js';
 import { Field as InternalField } from './field.js';
 import { Bool as InternalBool } from './bool.js';
+import { Group as InternalGroup } from './group.js';
 import { Scalar } from './scalar.js';
 
 export { Field, Bool, Scalar, Group };
@@ -44,6 +46,12 @@ type Field = InternalField;
 const Bool = toFunctionConstructor(InternalBool);
 type Bool = InternalBool;
 
+/**
+ * An element of a Group.
+ */
+const Group = toFunctionConstructor(InternalGroup);
+type Group = InternalGroup;
+
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
 ): Class & ((...args: InferArgs<Class>) => InferReturn<Class>) {
@@ -58,6 +66,3 @@ type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
 type InferReturn<T> = T extends new (...args: any) => infer Return
   ? Return
   : never;
-
-// patching ocaml classes
-Group.toAuxiliary = () => [];

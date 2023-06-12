@@ -1,6 +1,5 @@
 import { expect } from 'expect';
-import { isReady, Ledger, shutdown } from '../../snarky.js';
-import { Scalar as ScalarSnarky } from '../../lib/core.js';
+import { isReady, Ledger, shutdown, Test, Pickles } from '../../snarky.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -42,8 +41,8 @@ import {
 } from './signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
-import { Pickles } from '../../snarky.js';
-import { Ml } from '../../lib/ml/conversion.js';
+import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
+import { FieldConst } from '../../lib/field.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -71,11 +70,9 @@ expect(AccountUpdate.toJSON(dummy)).toEqual(
 );
 
 let dummyInput = AccountUpdate.toInput(dummy);
-let dummyInputSnarky = inputFromOcaml(
-  toJSON(
-    Ledger.hashInputFromJson.body(
-      JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
-    )
+let dummyInputSnarky = MlHashInput.from(
+  Ledger.hashInputFromJson.body(
+    JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
   )
 );
 expect(stringify(dummyInput.fields)).toEqual(
@@ -122,7 +119,7 @@ let memoGenerator = withHardCoded(Random.json.memoString, 'hello world');
 test(memoGenerator, (memoString) => {
   let memo = Memo.fromString(memoString);
   let memoBase58 = Memo.toBase58(memo);
-  let memoBase581 = Ledger.memoToBase58(memoString);
+  let memoBase581 = Test.encoding.memoToBase58(memoString);
   expect(memoBase58).toEqual(memoBase581);
   let memoRecovered = Memo.fromBase58(memoBase58);
   expect(memoRecovered).toEqual(memo);
@@ -139,7 +136,7 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
   );
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
-  expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
+  expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
 });
 
 // invalid zkapp transactions
@@ -163,7 +160,7 @@ test(
     let feePayerAddress = PrivateKey.toPublicKey(feePayerKey);
 
     let { feePayer, memo: memoBase58 } = zkappCommand;
-    feePayer.authorization = Ledger.dummySignature();
+    feePayer.authorization = Signature.toBase58(Signature.dummy());
     let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
 
     // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
@@ -181,19 +178,21 @@ test(
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
     let commitment = callForestHash(callForest);
-    expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
+    expect(commitment).toEqual(
+      FieldConst.toBigint(ocamlCommitments.commitment)
+    );
 
     let memo = Memo.fromBase58(memoBase58);
     let memoHash = Memo.hash(memo);
-    let memoHashSnarky = Ledger.memoHashBase58(memoBase58);
-    expect(memoHash).toEqual(memoHashSnarky.toBigInt());
+    let memoHashSnarky = Test.encoding.memoHashBase58(memoBase58);
+    expect(memoHash).toEqual(FieldConst.toBigint(memoHashSnarky));
 
     let feePayerAccountUpdate = accountUpdateFromFeePayer(feePayer);
     let feePayerJson = AccountUpdate.toJSON(feePayerAccountUpdate);
 
     let feePayerInput = AccountUpdate.toInput(feePayerAccountUpdate);
-    let feePayerInput1 = inputFromOcaml(
-      toJSON(Ledger.hashInputFromJson.body(JSON.stringify(feePayerJson.body)))
+    let feePayerInput1 = MlHashInput.from(
+      Ledger.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
     );
     expect(stringify(feePayerInput.fields)).toEqual(
       stringify(feePayerInput1.fields)
@@ -203,24 +202,28 @@ test(
     );
 
     let feePayerDigest = feePayerHash(feePayer);
-    expect(feePayerDigest).toEqual(ocamlCommitments.feePayerHash.toBigInt());
+    expect(feePayerDigest).toEqual(
+      FieldConst.toBigint(ocamlCommitments.feePayerHash)
+    );
 
     let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
       memoHash,
       feePayerDigest,
       commitment,
     ]);
-    expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
+    expect(fullCommitment).toEqual(
+      FieldConst.toBigint(ocamlCommitments.fullCommitment)
+    );
 
     // signature
     let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
     let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
-    let sigTestnetOcaml = Ledger.signFieldElement(
+    let sigTestnetOcaml = Test.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
       false
     );
-    let sigMainnetOcaml = Ledger.signFieldElement(
+    let sigMainnetOcaml = Test.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
       true
@@ -268,24 +271,14 @@ test(
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();
 
-function inputFromOcaml({
-  fields,
-  packed,
-}: {
-  fields: string[];
-  packed: { field: string; size: number }[];
-}) {
-  return {
-    fields,
-    packed: packed.map(({ field, size }) => [field, size] as [string, number]),
-  };
-}
-
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
   if (a.body.update.verificationKey.isSome === 1n) {
-    let { data, hash } = Pickles.dummyVerificationKey();
-    a.body.update.verificationKey.value = { data, hash: Field(hash) };
+    let [, data, hash] = Pickles.dummyVerificationKey();
+    a.body.update.verificationKey.value = {
+      data,
+      hash: Field.fromBytes([...hash]),
+    };
   } else {
     a.body.update.verificationKey.value = { data: '', hash: Field(0) };
   }

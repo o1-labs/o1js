@@ -4,8 +4,13 @@ import { Bool } from './core.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
+import { MlArray } from './ml/base.js';
 
-export { Field, ConstantField, FieldType, FieldVar, FieldConst, isField };
+// external API
+export { Field };
+
+// internal API
+export { ConstantField, FieldType, FieldVar, FieldConst, isField, withMessage };
 
 const SnarkyFieldConstructor = SnarkyField(1).constructor;
 
@@ -128,7 +133,7 @@ class Field {
   /**
    * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a Field.
    */
-  constructor(x: bigint | number | string | Field | FieldVar) {
+  constructor(x: bigint | number | string | Field | FieldVar | FieldConst) {
     if (Field.#isField(x)) {
       this.value = x.value;
       return;
@@ -138,12 +143,19 @@ class Field {
       this.value = x;
       return;
     }
+    // FieldConst
+    if (x instanceof Uint8Array) {
+      this.value = FieldVar.constant(x);
+      return;
+    }
     // TODO this should handle common values efficiently by reading from a lookup table
     this.value = FieldVar.constant(Fp(x));
   }
 
   // helpers
-  static #isField(x: bigint | number | string | Field | FieldVar): x is Field {
+  static #isField(
+    x: bigint | number | string | Field | FieldVar | FieldConst
+  ): x is Field {
     return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
   }
   static #toConst(x: bigint | number | string | ConstantField): FieldConst {
@@ -198,7 +210,7 @@ class Field {
     if (this.isConstant()) return this;
     // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
     let value = Snarky.field.readVar(this.value);
-    return new Field(FieldVar.constant(value)) as ConstantField;
+    return new Field(value) as ConstantField;
   }
 
   /**

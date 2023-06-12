@@ -7,7 +7,6 @@ export {
   Bool as SnarkyBool,
   Snarky,
   Poseidon,
-  Group,
   Ledger,
   shutdown,
   isReady,
@@ -21,5 +20,8 @@ let isItReady = () => isReadyBoolean;
 
 function shutdown() {}
 
-let { Field, Bool, Snarky, Poseidon, Group, Ledger, Pickles, Test } =
-  proxyClasses(getSnarky, isItReady, snarkySpec);
+let { Field, Bool, Snarky, Poseidon, Ledger, Pickles, Test } = proxyClasses(
+  getSnarky,
+  isItReady,
+  snarkySpec
+);

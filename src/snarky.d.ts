@@ -2,10 +2,18 @@ import type { Account as JsonAccount } from './bindings/mina-transaction/gen/tra
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
 import type { BoolVar, Bool } from './lib/bool.js';
 import type { Scalar, ScalarConst } from './lib/scalar.js';
-// export { Field };
+import type { ScalarConst } from './lib/scalar.js';
+import type {
+  MlArray,
+  MlTuple,
+  MlList,
+  MlOption,
+  MlBool,
+} from './lib/ml/base.js';
+import type { MlHashInput } from './lib/ml/conversion.js';
+
 export { SnarkyField, SnarkyBool };
 export {
-  Group,
   ProvablePure,
   Provable,
   Poseidon,
@@ -17,7 +25,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate, MlArray };
+export { Snarky, Test, JsonGate, MlArray, MlPublicKey, MlPublicKeyVar };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -47,13 +55,8 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (x: T) => void;
 }
 
-// ocaml types
-type MlTuple<X, Y> = [0, X, Y];
-type MlArray<T> = [0, ...T[]];
-type MlList<T> = [0, T, 0 | MlList<T>];
-type MlOption<T> = 0 | [0, T];
-
 declare namespace Snarky {
+  type Main = (publicInput: MlArray<FieldVar>) => void;
   type Keypair = unknown;
   type VerificationKey = unknown;
   type Proof = unknown;
@@ -187,6 +190,28 @@ declare const Snarky: {
     assertEqual(x: BoolVar, y: BoolVar): void;
   };
 
+  group: {
+    /**
+     * Addition of two group elements, handles only variables.
+     */
+    add(
+      p1: MlTuple<FieldVar, FieldVar>,
+      p2: MlTuple<FieldVar, FieldVar>
+    ): MlTuple<FieldVar, FieldVar>;
+
+    assertOnCurve(p1: MlTuple<FieldVar, FieldVar>): void;
+
+    scale(
+      p: MlTuple<FieldVar, FieldVar>,
+      s: MlArray<BoolVar>
+    ): MlTuple<FieldVar, FieldVar>;
+
+    equals(
+      p1: MlTuple<FieldVar, FieldVar>,
+      p2: MlTuple<FieldVar, FieldVar>
+    ): BoolVar;
+  };
+
   /**
    * The circuit API is a low level interface to create zero-knowledge proofs
    */
@@ -194,18 +219,15 @@ declare const Snarky: {
     /**
      * Generates a proving key and a verification key for the provable function `main`
      */
-    compile(
-      main: (publicInput: Field[]) => void,
-      publicInputSize: number
-    ): Snarky.Keypair;
+    compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
      */
     prove(
-      main: (publicInput: Field[]) => void,
+      main: Snarky.Main,
       publicInputSize: number,
-      publicInput: Field[],
+      publicInput: MlArray<FieldConst>,
       keypair: Snarky.Keypair
     ): Snarky.Proof;
 
@@ -213,7 +235,7 @@ declare const Snarky: {
      * Verifies a proof using the public input, the proof and the verification key of the circuit.
      */
     verify(
-      publicInput: Field[],
+      publicInput: MlArray<FieldConst>,
       proof: Snarky.Proof,
       verificationKey: Snarky.VerificationKey
     ): boolean;
@@ -1249,136 +1271,17 @@ type Gate = {
 //   static sizeInFields(): number;
 // }
 
-/**
- * Represents a point with x and y coordinates on an elliptic curve.
- */
-declare class Group {
-  x: Field;
-  y: Field;
-
-  /**
-   * Adds two {@link Group} elements together.
-   */
-  add(y: Group): Group;
-
-  /**
-   * Subtracts one {@link Group} element from the other.
-   */
-  sub(y: Group): Group;
-
-  /**
-   * Negates this {@link Group} elements and returns a new instance.
-   */
-  neg(): Group;
-
-  /**
-   * Scales this {@link Group} element using a {@link Scalar}.
-   */
-  scale(y: Scalar): Group;
-  // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
-
-  /**
-   * Asserts that two {@link Group} elements are equal.
-   */
-  assertEquals(y: Group, message?: string): void;
-
-  /**
-   * Checks if two {@link Group} elements are equal.
-   */
-  equals(y: Group): Bool;
-
-  /**
-   * Returns the JSON representation of this {@link Group} element.
-   */
-  toJSON(): { x: string; y: string };
-
-  constructor(args: {
-    x: Field | number | string | boolean;
-    y: Field | number | string | boolean;
-  });
-  constructor(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  );
-
-  static generator: Group;
-  /**
-   * Adds two {@link Group} elements together.
-   */
-  static add(x: Group, y: Group): Group;
-  /**
-   * Subtracts one {@link Group} element from the other.
-   */
-  static sub(x: Group, y: Group): Group;
-  /**
-   * Negates a {@link Group} elements and returns a new instance.
-   */
-  static neg(x: Group): Group;
-
-  /**
-   * Scales this {@link Group} element using a {@link Scalar}.
-   */
-  static scale(x: Group, y: Scalar): Group;
-  // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
-
-  /**
-   * Asserts that two {@link Group} elements are equal.
-   */
-  static assertEqual(x: Group, y: Group): void;
-
-  /**
-   * Checks if two {@link Group} elements are equal.
-   */
-  static equal(x: Group, y: Group): Bool;
-  /**
-   * Static method to serialize a {@link Group} into an array of {@link Field} elements.
-   */
-  static toFields(x: Group): Field[];
-  /**
-   * Static method to serialize a {@link Group} into its auxiliary data.
-   */
-  static toAuxiliary(x?: Group): [];
-  /**
-   * Creates a data structure from an array of serialized {@link Field} elements.
-   */
-  static fromFields(fields: Field[]): Group;
-  /**
-   * Returns the size of this type.
-   */
-  static sizeInFields(): number;
-  /**
-   * Serialize a {@link Group} to a JSON string.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Group.
-   */
-  static toJSON(x: Group): { x: string; y: string };
-  /**
-   * Deserialize a JSON structure into a {@link Group}.
-   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Group.
-   */
-  static fromJSON({
-    x,
-    y,
-  }: {
-    x: string | number;
-    y: string | number;
-  }): Group | null;
-  static check(g: Group): void;
-}
-
 declare const Poseidon: {
-  hash(input: Field[], isChecked: boolean): Field;
+  hash(input: MlArray<FieldVar>, isChecked: boolean): FieldVar;
   update(
-    state: [Field, Field, Field],
-    input: Field[],
+    state: MlArray<FieldVar>,
+    input: MlArray<FieldVar>,
     isChecked: boolean
-  ): [Field, Field, Field];
+  ): [0, FieldVar, FieldVar, FieldVar];
   hashToGroup(
-    input: Field[],
+    input: MlArray<FieldVar>,
     isChecked: boolean
-  ): {
-    x: Field;
-    y: Field;
-  };
+  ): MlTuple<FieldVar, FieldVar>;
   prefixes: Record<
     | 'event'
     | 'events'
@@ -1390,12 +1293,12 @@ declare const Poseidon: {
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
-  spongeAbsorb(sponge: unknown, x: Field): void;
-  spongeSqueeze(sponge: unknown): Field;
+  spongeAbsorb(sponge: unknown, x: FieldVar): void;
+  spongeSqueeze(sponge: unknown): FieldVar;
 };
 
-// these types should be implemented by corresponding snarkyjs classes
-type PublicKey_ = { x: Field; isOdd: Bool };
+type MlPublicKey = MlTuple<FieldConst, MlBool>;
+type MlPublicKeyVar = MlTuple<FieldVar, BoolVar>;
 
 /**
  * Represents the Mina ledger.
@@ -1405,13 +1308,13 @@ declare class Ledger {
    * Creates a fresh ledger.
    */
   static create(
-    genesisAccounts: Array<{ publicKey: PublicKey_; balance: string }>
+    genesisAccounts: Array<{ publicKey: MlPublicKey; balance: string }>
   ): Ledger;
 
   /**
    * Adds an account and its balance to the ledger.
    */
-  addAccount(publicKey: PublicKey_, balance: string): void;
+  addAccount(publicKey: MlPublicKey, balance: string): void;
 
   /**
    * Applies a JSON transaction to the ledger.
@@ -1425,15 +1328,18 @@ declare class Ledger {
   /**
    * Returns an account.
    */
-  getAccount(publicKey: PublicKey_, tokenId: Field): JsonAccount | undefined;
+  getAccount(
+    publicKey: MlPublicKey,
+    tokenId: FieldConst
+  ): JsonAccount | undefined;
 
   /**
    * Returns the commitment of a JSON transaction.
    */
   static transactionCommitments(txJson: string): {
-    commitment: Field;
-    fullCommitment: Field;
-    feePayerHash: Field;
+    commitment: FieldConst;
+    fullCommitment: FieldConst;
+    feePayerHash: FieldConst;
   };
 
   /**
@@ -1442,52 +1348,34 @@ declare class Ledger {
   static zkappPublicInput(
     txJson: string,
     accountUpdateIndex: number
-  ): { accountUpdate: Field; calls: Field };
+  ): { accountUpdate: FieldConst; calls: FieldConst };
 
-  /**
-   * Signs a {@link Field} element.
-   */
-  static signFieldElement(
-    messageHash: Field,
-    privateKey: ScalarConst,
-    isMainnet: boolean
+  static customTokenId(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
+  static customTokenIdChecked(
+    publicKey: MlPublicKeyVar,
+    tokenId: FieldVar
+  ): FieldVar;
+  static createTokenAccount(
+    publicKey: MlPublicKey,
+    tokenId: FieldConst
   ): string;
-
-  /**
-   * Returns a dummy signature.
-   */
-  static dummySignature(): string;
-
-  static customTokenId(publicKey: PublicKey_, tokenId: Field): Field;
-  static customTokenIdChecked(publicKey: PublicKey_, tokenId: Field): Field;
-  static createTokenAccount(publicKey: PublicKey_, tokenId: Field): string;
-
-  static publicKeyToString(publicKey: PublicKey_): string;
-  static publicKeyOfString(publicKeyBase58: string): PublicKey_;
-
-  static fieldToBase58(field: Field): string;
-  static fieldOfBase58(fieldBase58: string): Field;
-
-  static memoToBase58(memoString: string): string;
-  static memoHashBase58(memoBase58: string): Field;
 
   static checkAccountUpdateSignature(
     updateJson: string,
-    commitment: Field
+    commitment: FieldConst
   ): boolean;
 
-  static fieldsOfJson(json: string): Field[];
-  static hashAccountUpdateFromFields(fields: Field[]): Field;
-  static hashAccountUpdateFromJson(json: string): Field;
+  static fieldsOfJson(json: string): MlArray<FieldConst>;
+  static hashAccountUpdateFromJson(json: string): FieldConst;
 
   static hashInputFromJson: {
-    packInput(input: OcamlInput): Field[];
-    timing(json: String): OcamlInput;
-    permissions(json: String): OcamlInput;
-    update(json: String): OcamlInput;
-    accountPrecondition(json: String): OcamlInput;
-    networkPrecondition(json: String): OcamlInput;
-    body(json: String): OcamlInput;
+    packInput(input: MlHashInput): MlArray<FieldConst>;
+    timing(json: String): MlHashInput;
+    permissions(json: String): MlHashInput;
+    update(json: String): MlHashInput;
+    accountPrecondition(json: String): MlHashInput;
+    networkPrecondition(json: String): MlHashInput;
+    body(json: String): MlHashInput;
   };
 
   // low-level encoding helpers
@@ -1509,8 +1397,28 @@ declare class Ledger {
 
 declare const Test: {
   encoding: {
+    publicKeyToBase58(publicKey: MlPublicKey): string;
+    publicKeyOfBase58(publicKeyBase58: string): MlPublicKey;
     privateKeyToBase58(privateKey: ScalarConst): string;
     privateKeyOfBase58(privateKeyBase58: string): ScalarConst;
+    tokenIdToBase58(field: FieldConst): string;
+    tokenIdOfBase58(fieldBase58: string): FieldConst;
+    memoToBase58(memoString: string): string;
+    memoHashBase58(memoBase58: string): FieldConst;
+  };
+  signature: {
+    /**
+     * Signs a {@link Field} element.
+     */
+    signFieldElement(
+      messageHash: FieldConst,
+      privateKey: ScalarConst,
+      isMainnet: boolean
+    ): string;
+    /**
+     * Returns a dummy signature.
+     */
+    dummySignature(): string;
   };
   transactionHash: {
     examplePayment(): string;
@@ -1527,7 +1435,6 @@ declare const Test: {
  * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
  */
 type MlBytes = { t: number; c: string; l: number };
-type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
  * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
@@ -1541,25 +1448,22 @@ declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type Statement = { input: Field[]; output: Field[] };
-  type ProofWithStatement = {
-    publicInput: Field[];
-    publicOutput: Field[];
-    proof: Proof;
-  };
+  type Statement = MlTuple<MlArray<FieldVar>, MlArray<FieldVar>>; // (publicInput, publicOutput)
+  type StatementConst = MlTuple<MlArray<FieldConst>, MlArray<FieldConst>>; // (publicInput, publicOutput)
   type Rule = {
     identifier: string;
-    main: (publicInput: Field[]) => {
-      publicOutput: Field[];
-      previousStatements: Statement[];
-      shouldVerify: Bool[];
+    main: (publicInput: MlArray<FieldVar>) => {
+      publicOutput: MlArray<FieldVar>;
+      previousStatements: MlArray<Statement>;
+      shouldVerify: MlArray<BoolVar>;
     };
-    proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
+    proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
+  // returns (publicOutput, proof)
   type Prover = (
-    publicInput: Field[],
-    previousProofs: Proof[]
-  ) => Promise<{ publicOutput: Field[]; proof: Proof }>;
+    publicInput: MlArray<FieldConst>,
+    previousProofs: MlArray<Proof>
+  ) => Promise<MlTuple<MlArray<FieldConst>, Proof>>;
 }
 
 declare const Pickles: {
@@ -1585,26 +1489,32 @@ declare const Pickles: {
    * 4) let (wrap_pk, wrap_vk) -> log_wrap -> Snarky_log.Constraints.log -> constraint_count (yes, a second time)
    */
   compile: (
-    rules: Pickles.Rule[],
+    rules: MlArray<Pickles.Rule>,
     signature: { publicInputSize: number; publicOutputSize: number }
   ) => {
-    provers: Pickles.Prover[];
+    provers: MlArray<Pickles.Prover>;
     verify: (
-      statement: Pickles.Statement,
+      statement: Pickles.StatementConst,
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
-    getVerificationKeyArtifact: () => { data: string; hash: string };
+    /**
+     * @returns (base64 vk, hash)
+     */
+    getVerificationKey: () => MlTuple<string, FieldConst>;
   };
 
   verify(
-    statement: Pickles.Statement,
+    statement: Pickles.StatementConst,
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;
 
   dummyBase64Proof: () => string;
-  dummyVerificationKey: () => { data: string; hash: string };
+  /**
+   * @returns (base64 vk, hash)
+   */
+  dummyVerificationKey: () => MlTuple<string, FieldConst>;
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (

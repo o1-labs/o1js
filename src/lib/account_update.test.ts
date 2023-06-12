@@ -10,7 +10,6 @@ import {
   Experimental,
   Int64,
   Types,
-  TokenId,
   Provable,
 } from 'snarkyjs';
 
@@ -29,7 +28,8 @@ describe('AccountUpdate', () => {
   it('can convert account update to fields consistently', () => {
     // convert accountUpdate to fields in OCaml, going via AccountUpdate.of_json
     let json = JSON.stringify(accountUpdate.toJSON().body);
-    let fields1 = Ledger.fieldsOfJson(json);
+    let [, ...fields1_] = Ledger.fieldsOfJson(json);
+    let fields1 = fields1_.map(Field);
     // convert accountUpdate to fields in pure JS, leveraging generated code
     let fields2 = Types.AccountUpdate.toFields(accountUpdate);
 
@@ -81,7 +81,10 @@ describe('AccountUpdate', () => {
     });
     let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
 
-    expect(publicInputOcaml).toEqual(publicInput);
+    expect(publicInput).toEqual({
+      accountUpdate: Field(publicInputOcaml.accountUpdate),
+      calls: Field(publicInputOcaml.calls),
+    });
   });
 
   it('creates the right empty sequence state', () => {
@@ -92,22 +95,14 @@ describe('AccountUpdate', () => {
     );
   });
 
-  it('encodes token ids correctly', () => {
-    let x = Field.random();
-    let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
-    expect(TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
-    expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
-  });
-
   it('does not throw an error if private key is missing unless if .send is executed', async () => {
     let Local = Mina.LocalBlockchain({ proofsEnabled: false });
     Mina.setActiveInstance(Local);
 
-    const feePayerKey = Local.testAccounts[0].privateKey;
     const feePayer = Local.testAccounts[0].publicKey;
 
     let tx = await Mina.transaction(feePayer, () => {
-      let accountUpdate = AccountUpdate.fundNewAccount(feePayer);
+      AccountUpdate.fundNewAccount(feePayer);
     });
     tx.sign();
     await expect(tx.send()).rejects.toThrow(
