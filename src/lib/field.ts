@@ -542,7 +542,7 @@ class Field {
         throw Error('Does not fit into bits');
       }
 
-      return new Field(Fp(y_ ^ this.toBigInt()));
+      return new Field(y_ ^ this.toBigInt());
     } else {
       return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
     }
