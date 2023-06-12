@@ -219,6 +219,10 @@ export default [
         type: 'object',
       },
       {
+        name: 'bool',
+        type: 'object',
+      },
+      {
         name: 'group',
         type: 'object',
       },
