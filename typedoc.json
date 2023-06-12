@@ -5,11 +5,10 @@
 	"cleanOutputDir": true,
 	"githubPages": false,
 	"exclude": [
-		"src/bindings/**/*",
 		"dist/**/*",
 		"src/mina-signer/**/*",
 		"src/examples/**/*"
 	],
-	"entryPoints": ["src"],
-	"entryPointStrategy": "expand",
+	"entryPoints": ["src/index.ts", "src/snarky.d.ts", "src/lib/field.ts", "src/lib/group.ts", "src/lib/bool.ts"],
+	"entryPointStrategy": "resolve",
 }
