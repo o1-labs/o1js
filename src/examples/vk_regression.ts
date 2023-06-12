@@ -1,5 +1,4 @@
 import fs from 'fs';
-import { isReady, shutdown, SmartContract, VerificationKey } from 'snarkyjs';
 import { Voting_ } from './zkapps/voting/voting.js';
 import { Membership_ } from './zkapps/voting/membership.js';
 import { HelloWorld } from './zkapps/hello_world/hello_world.js';
@@ -136,7 +135,9 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
   for await (const c of contracts) {
     let data = c.analyzeMethods();
     let digest = c.digest();
-    let verificationKey: VerificationKey | undefined;
+    let verificationKey:
+      | { data: string; hash: { toString(): string } }
+      | undefined;
     if (!skipVerificationKeys) ({ verificationKey } = await c.compile());
     newEntries[c.name] = {
       digest,
