@@ -175,6 +175,8 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
+
+    xor(left: FieldVar, right: FieldVar, length: number): FieldVar;
   };
 
   /**

@@ -518,6 +518,18 @@ class Field {
     return new Field(z);
   }
 
+  xor(a: Field, length: number) {
+    // the gate actually also handles constants
+    if (this.isConstant() && a.isConstant()) {
+      if (a.toBigInt() > 2 ** length - 1 || this.toBigInt() > 2 ** length - 1) {
+        throw Error('Does not fit into bits');
+      }
+      return new Field(Fp(a.toBigInt() ^ this.toBigInt()));
+    } else {
+      return new Field(Snarky.field.xor(this.value, a.value, length));
+    }
+  }
+
   /**
    * @deprecated use `x.equals(0)` which is equivalent
    */
