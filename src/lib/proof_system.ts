@@ -4,8 +4,8 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Bool, ProvablePure, Pickles } from '../snarky.js';
-import { Field } from './core.js';
+import { ProvablePure, Pickles } from '../snarky.js';
+import { Field, Bool } from './core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,

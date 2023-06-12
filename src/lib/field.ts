@@ -1,10 +1,9 @@
 import { Snarky, SnarkyField, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
-import { MlArray } from './ml/base.js';
+import { Bool } from './bool.js';
 
 // external API
 export { Field };
@@ -544,7 +543,7 @@ class Field {
    */
   isZero() {
     if (this.isConstant()) {
-      return Bool(this.toBigInt() === 0n);
+      return new Bool(this.toBigInt() === 0n);
     }
     // create witnesses z = 1/x, or z=0 if x=0,
     // and b = 1 - zx
@@ -647,7 +646,7 @@ class Field {
    */
   lessThan(y: Field | bigint | number | string): Bool {
     if (this.isConstant() && isConstant(y)) {
-      return Bool(this.toBigInt() < toFp(y));
+      return new Bool(this.toBigInt() < toFp(y));
     }
     return this.#compare(Field.#toVar(y)).less;
   }
@@ -677,7 +676,7 @@ class Field {
    */
   lessThanOrEqual(y: Field | bigint | number | string): Bool {
     if (this.isConstant() && isConstant(y)) {
-      return Bool(this.toBigInt() <= toFp(y));
+      return new Bool(this.toBigInt() <= toFp(y));
     }
     return this.#compare(Field.#toVar(y)).lessOrEqual;
   }
@@ -910,9 +909,9 @@ class Field {
       if (length !== undefined) {
         if (bits.slice(length).some((bit) => bit))
           throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-        return bits.slice(0, length).map(Bool);
+        return bits.slice(0, length).map((b) => new Bool(b));
       }
-      return bits.map(Bool);
+      return bits.map((b) => new Bool(b));
     }
     let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
     return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
@@ -987,7 +986,9 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    if (this.isConstant()) return this;
+    // TODO: this is just commented for constraint equivalence with the old version
+    // uncomment to sometimes save constraints
+    // if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
     return new Field(x);
   }

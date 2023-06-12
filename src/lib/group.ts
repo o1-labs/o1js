@@ -1,8 +1,9 @@
 import { Field, FieldVar, isField } from './field.js';
 import { Scalar } from './scalar.js';
-import { Bool, Snarky } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { Bool } from './bool.js';
 
 export { Group };
 
@@ -166,7 +167,7 @@ class Group {
       let { x: x1, y: y1 } = this;
       let { x: x2, y: y2 } = g;
 
-      return Bool(x1.equals(x2).and(y1.equals(y2)));
+      return x1.equals(x2).and(y1.equals(y2));
     } else {
       let z = Snarky.group.equals(this.#toTuple(), g.#toTuple());
       return Bool.Unsafe.ofField(new Field(z));

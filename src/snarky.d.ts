@@ -1,5 +1,6 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 import type { Field, FieldConst, FieldVar } from './lib/field.js';
+import type { BoolVar, Bool } from './lib/bool.js';
 import type { ScalarConst } from './lib/scalar.js';
 import type {
   MlArray,
@@ -10,9 +11,8 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
-export { SnarkyField };
+export { SnarkyField, SnarkyBool };
 export {
-  Bool,
   ProvablePure,
   Provable,
   Poseidon,
@@ -24,7 +24,7 @@ export {
 };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
+export { Snarky, Test, JsonGate, MlArray, MlPublicKey, MlPublicKeyVar };
 
 /**
  * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -60,8 +60,6 @@ declare namespace Snarky {
   type VerificationKey = unknown;
   type Proof = unknown;
 }
-// same representation, but use a different name to communicate intent / constraints
-type BoolVar = FieldVar;
 
 /**
  * Internal interface to snarky-ml
@@ -177,6 +175,18 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
+  };
+
+  bool: {
+    not(x: BoolVar): BoolVar;
+
+    and(x: BoolVar, y: BoolVar): BoolVar;
+
+    or(x: BoolVar, y: BoolVar): BoolVar;
+
+    equals(x: BoolVar, y: BoolVar): BoolVar;
+
+    assertEqual(x: BoolVar, y: BoolVar): void;
   };
 
   group: {
@@ -1072,8 +1082,8 @@ declare class SnarkyField {
  *
  * Use [[assertEquals]] to enforce the value of a Bool.
  */
-declare function Bool(x: Bool | boolean): Bool;
-declare class Bool {
+declare function SnarkyBool(x: Bool | boolean): Bool;
+declare class SnarkyBool {
   constructor(x: Bool | boolean);
 
   /**
