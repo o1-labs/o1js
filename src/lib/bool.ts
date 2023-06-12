@@ -3,6 +3,7 @@ import { Field, FieldConst, FieldType, FieldVar } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
+import { asProver } from './provable-context.js';
 
 export { BoolVar, Bool, isBool };
 
@@ -316,20 +317,19 @@ class Bool {
   static Unsafe = {
     /**
      * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
-     * as it assumes that the field element is either 1 or 0
-     * (which might not be true).
+     * as it assumes that the field element is either 0 or 1 (which might not be true).
+     *
+     * Only use this with constants or if you have already constrained the Field element to be 0 or 1.
+     *
      * @param x a {@link Field}
      */
-    ofField(x: Field | number | string | boolean): Bool {
-      if (typeof x === 'number') {
-        return new Bool(x === 1);
-      } else if (typeof x === 'string') {
-        return new Bool(x === '1');
-      } else if (typeof x === 'boolean') {
-        return new Bool(x);
-      } else {
-        return new Bool(x.value);
-      }
+    ofField(x: Field) {
+      asProver(() => {
+        let x0 = x.toBigInt();
+        if (x0 !== 0n && x0 !== 1n)
+          throw Error(`Bool.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);
+      });
+      return new Bool(x.value);
     },
   };
 
