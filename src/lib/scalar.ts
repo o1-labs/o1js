@@ -1,6 +1,7 @@
-import { Snarky, Provable, Bool, MlArray } from '../snarky.js';
+import { Snarky, Provable, Bool } from '../snarky.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { Field, FieldConst, FieldVar } from './field.js';
+import { MlArray } from './ml/base.js';
 
 export { Scalar, ScalarConst, unshift, shift };
 

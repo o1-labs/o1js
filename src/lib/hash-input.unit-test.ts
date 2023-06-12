@@ -2,7 +2,6 @@ import {
   isReady,
   AccountUpdate,
   Types,
-  Field,
   Ledger,
   Permissions,
   shutdown,
@@ -16,6 +15,8 @@ import {
 } from '../bindings/mina-transaction/gen/transaction.js';
 import { packToFields } from './hash.js';
 import { Random, test } from './testing/property.js';
+import { MlHashInput } from './ml/conversion.js';
+import { MlFieldConstArray } from './ml/fields.js';
 
 await isReady;
 
@@ -97,12 +98,12 @@ shutdown();
 
 function testInput<T, TJson>(
   Module: ProvableExtended<T, TJson>,
-  toInputOcaml: (json: string) => InputOcaml,
+  toInputOcaml: (json: string) => MlHashInput,
   value: T
 ) {
   let json = Module.toJSON(value);
   // console.log('json', json);
-  let input1 = inputFromOcaml(toInputOcaml(JSON.stringify(json)));
+  let input1 = MlHashInput.from(toInputOcaml(JSON.stringify(json)));
   let input2 = Module.toInput(value);
   // console.log('snarkyjs', JSON.stringify(input2));
   // console.log();
@@ -110,7 +111,9 @@ function testInput<T, TJson>(
   let ok1 = JSON.stringify(input2) === JSON.stringify(input1);
   expect(JSON.stringify(input2)).toEqual(JSON.stringify(input1));
   // console.log('ok?', ok1);
-  let fields1 = Ledger.hashInputFromJson.packInput(inputToOcaml(input1));
+  let fields1 = MlFieldConstArray.from(
+    Ledger.hashInputFromJson.packInput(MlHashInput.to(input1))
+  );
   let fields2 = packToFields(input2);
   let ok2 = JSON.stringify(fields1) === JSON.stringify(fields2);
   // console.log('packed ok?', ok2);
@@ -118,36 +121,6 @@ function testInput<T, TJson>(
   if (!ok1 || !ok2) {
     throw Error('inconsistent toInput');
   }
-}
-
-type InputOcaml = {
-  fields: Field[];
-  packed: { field: Field; size: number }[];
-};
-
-function inputFromOcaml({
-  fields,
-  packed,
-}: {
-  fields: Field[];
-  packed: { field: Field; size: number }[];
-}) {
-  return {
-    fields,
-    packed: packed.map(({ field, size }) => [field, size] as [Field, number]),
-  };
-}
-function inputToOcaml({
-  fields,
-  packed,
-}: {
-  fields: Field[];
-  packed: [field: Field, size: number][];
-}) {
-  return {
-    fields,
-    packed: packed.map(([field, size]) => ({ field, size })),
-  };
 }
 
 function fixVerificationKey(accountUpdate: Json.AccountUpdate) {

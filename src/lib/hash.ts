@@ -3,6 +3,7 @@ import { Poseidon as Poseidon_ } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
+import { MlFieldArray } from './ml/fields.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -17,6 +18,7 @@ export {
   salt,
   packToFields,
   emptyReceiptChainHash,
+  hashConstant,
 };
 
 class Sponge {
@@ -28,11 +30,11 @@ class Sponge {
   }
 
   absorb(x: Field) {
-    Poseidon_.spongeAbsorb(this.sponge, x);
+    Poseidon_.spongeAbsorb(this.sponge, x.value);
   }
 
-  squeeze() {
-    return Poseidon_.spongeSqueeze(this.sponge);
+  squeeze(): Field {
+    return Field(Poseidon_.spongeSqueeze(this.sponge));
   }
 }
 
@@ -41,13 +43,14 @@ const Poseidon = {
     let isChecked = !input.every((x) => x.isConstant());
     // this is the same:
     // return Poseidon_.update(this.initialState, input, isChecked)[0];
-    return Poseidon_.hash(input, isChecked);
+    let digest = Poseidon_.hash(MlFieldArray.to(input), isChecked);
+    return Field(digest);
   },
 
   hashToGroup(input: Field[]) {
     let isChecked = !input.every((x) => x.isConstant());
     // y = sqrt(y^2)
-    let [, xv, yv] = Poseidon_.hashToGroup(input, isChecked);
+    let [, xv, yv] = Poseidon_.hashToGroup(MlFieldArray.to(input), isChecked);
 
     let x = Field(xv);
     let y = Field(yv);
@@ -73,7 +76,12 @@ const Poseidon = {
     let isChecked = !(
       state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())
     );
-    return Poseidon_.update(state, input, isChecked);
+    let newState = Poseidon_.update(
+      MlFieldArray.to(state),
+      MlFieldArray.to(input),
+      isChecked
+    );
+    return MlFieldArray.from(newState) as [Field, Field, Field];
   },
 
   initialState(): [Field, Field, Field] {
@@ -82,6 +90,11 @@ const Poseidon = {
 
   Sponge,
 };
+
+function hashConstant(input: Field[]) {
+  let digest = Poseidon_.hash(MlFieldArray.to(input), false);
+  return Field(digest);
+}
 
 const Hash = createHashHelpers(Field, Poseidon);
 let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;

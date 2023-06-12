@@ -1,14 +1,15 @@
-import { Bool, Ledger } from '../snarky.js';
-import { Field, Group, Scalar } from './core.js';
+import { Field, Bool, Group, Scalar } from './core.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
 } from '../mina-signer/src/signature.js';
+import { Bool as BoolBigint } from '../provable/field-bigint.js';
 import {
   Scalar as ScalarBigint,
   PrivateKey as PrivateKeyBigint,
+  PublicKey as PublicKeyBigint,
 } from '../provable/curve-bigint.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 
@@ -175,9 +176,10 @@ class PublicKey extends CircuitValue {
    * @returns a {@link PublicKey}
    */
   static fromBase58(publicKeyBase58: string) {
-    let pk = Ledger.publicKeyOfString(publicKeyBase58);
-    return PublicKey.from(pk);
+    let { x, isOdd } = PublicKeyBigint.fromBase58(publicKeyBase58);
+    return PublicKey.from({ x: Field(x), isOdd: Bool(!!isOdd) });
   }
+
   /**
    * Encodes a {@link PublicKey} in base58 format.
    * @returns a base58 encoded {@link PublicKey}
@@ -185,14 +187,18 @@ class PublicKey extends CircuitValue {
   toBase58() {
     return PublicKey.toBase58(this);
   }
-  // static version, to operate on non-class versions of this type
+
   /**
    * Static method to encode a {@link PublicKey} into base58 format.
    * @returns a base58 encoded {@link PublicKey}
    */
-  static toBase58(publicKey: PublicKey) {
-    return Ledger.publicKeyToString(publicKey);
+  static toBase58({ x, isOdd }: PublicKey) {
+    return PublicKeyBigint.toBase58({
+      x: x.toBigInt(),
+      isOdd: BoolBigint(isOdd.toBoolean()),
+    });
   }
+
   /**
    * Serializes a {@link PublicKey} into its JSON representation.
    * @returns a JSON string
@@ -200,6 +206,7 @@ class PublicKey extends CircuitValue {
   static toJSON(publicKey: PublicKey) {
     return publicKey.toBase58();
   }
+
   /**
    * Deserializes a JSON string into a {@link PublicKey}.
    * @returns a JSON string
