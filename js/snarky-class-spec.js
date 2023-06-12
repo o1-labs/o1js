@@ -223,6 +223,10 @@ export default [
         type: 'object',
       },
       {
+        name: 'group',
+        type: 'object',
+      },
+      {
         name: 'circuit',
         type: 'object',
       },
@@ -262,63 +266,6 @@ export default [
     ],
   },
   {
-    name: 'Group',
-    props: [
-      {
-        name: 'generator',
-        type: 'object',
-      },
-      {
-        name: 'add',
-        type: 'function',
-      },
-      {
-        name: 'sub',
-        type: 'function',
-      },
-      {
-        name: 'neg',
-        type: 'function',
-      },
-      {
-        name: 'scale',
-        type: 'function',
-      },
-      {
-        name: 'assertEqual',
-        type: 'function',
-      },
-      {
-        name: 'equal',
-        type: 'function',
-      },
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'fromFields',
-        type: 'function',
-      },
-      {
-        name: 'sizeInFields',
-        type: 'function',
-      },
-      {
-        name: 'check',
-        type: 'function',
-      },
-      {
-        name: 'toJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromJSON',
-        type: 'function',
-      },
-    ],
-  },
-  {
     name: 'Ledger',
     props: [
       {
@@ -346,44 +293,11 @@ export default [
         type: 'function',
       },
       {
-        name: 'signFieldElement',
-        type: 'function',
-      },
-      {
-        name: 'dummySignature',
-        type: 'function',
-      },
-      {
-        name: 'publicKeyToString',
-        type: 'function',
-      },
-      {
-        name: 'publicKeyOfString',
-        type: 'function',
-      },
-      {
-        name: 'fieldToBase58',
-        type: 'function',
-      },
-      {
-        name: 'fieldOfBase58',
-        type: 'function',
-      },
-      {
-        name: 'memoToBase58',
-        type: 'function',
-      },
-      { name: 'memoHashBase58', type: 'function' },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
       {
         name: 'fieldsOfJson',
-        type: 'function',
-      },
-      {
-        name: 'hashAccountUpdateFromFields',
         type: 'function',
       },
       {
@@ -435,6 +349,10 @@ export default [
     props: [
       {
         name: 'encoding',
+        type: 'object',
+      },
+      {
+        name: 'signature',
         type: 'object',
       },
       {

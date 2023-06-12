@@ -1297,6 +1297,31 @@ module.exports.caml_pasta_fq_plonk_verifier_index_deep_copy = function(x) {
 };
 
 /**
+* @param {number} num_threads
+* @param {string} worker_source
+* @returns {Promise<any>}
+*/
+module.exports.initThreadPool = function(num_threads, worker_source) {
+    const ret = wasm.initThreadPool(num_threads, addHeapObject(worker_source));
+    return takeObject(ret);
+};
+
+/**
+* @returns {Promise<any>}
+*/
+module.exports.exitThreadPool = function() {
+    const ret = wasm.exitThreadPool();
+    return takeObject(ret);
+};
+
+/**
+* @param {number} receiver
+*/
+module.exports.wbg_rayon_start_worker = function(receiver) {
+    wasm.wbg_rayon_start_worker(receiver);
+};
+
+/**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
 * @param {string} path
@@ -1659,31 +1684,6 @@ module.exports.caml_pasta_fq_plonk_proof_deep_copy = function(x) {
     var ptr0 = x.__destroy_into_raw();
     const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
     return WasmFqProverProof.__wrap(ret);
-};
-
-/**
-* @param {number} num_threads
-* @param {string} worker_source
-* @returns {Promise<any>}
-*/
-module.exports.initThreadPool = function(num_threads, worker_source) {
-    const ret = wasm.initThreadPool(num_threads, addHeapObject(worker_source));
-    return takeObject(ret);
-};
-
-/**
-* @returns {Promise<any>}
-*/
-module.exports.exitThreadPool = function() {
-    const ret = wasm.exitThreadPool();
-    return takeObject(ret);
-};
-
-/**
-* @param {number} receiver
-*/
-module.exports.wbg_rayon_start_worker = function(receiver) {
-    wasm.wbg_rayon_start_worker(receiver);
 };
 
 /**

@@ -405,6 +405,20 @@ export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierI
 */
 export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
 /**
+* @param {number} num_threads
+* @param {string} worker_source
+* @returns {Promise<any>}
+*/
+export function initThreadPool(num_threads: number, worker_source: string): Promise<any>;
+/**
+* @returns {Promise<any>}
+*/
+export function exitThreadPool(): Promise<any>;
+/**
+* @param {number} receiver
+*/
+export function wbg_rayon_start_worker(receiver: number): void;
+/**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
 * @param {string} path
@@ -537,20 +551,6 @@ export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
 * @returns {WasmFqProverProof}
 */
 export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
-/**
-* @param {number} num_threads
-* @param {string} worker_source
-* @returns {Promise<any>}
-*/
-export function initThreadPool(num_threads: number, worker_source: string): Promise<any>;
-/**
-* @returns {Promise<any>}
-*/
-export function exitThreadPool(): Promise<any>;
-/**
-* @param {number} receiver
-*/
-export function wbg_rayon_start_worker(receiver: number): void;
 /**
 * @param {string} s
 * @param {number} _len

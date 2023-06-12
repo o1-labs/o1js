@@ -22,7 +22,7 @@ let _console_dir s : unit =
 let raise_error s =
   Js.Js_error.(raise_ @@ of_error (new%js Js.error_constr (Js.string s)))
 
-let raise_errorf fmt = Core_kernel.ksprintf raise_error fmt
+let _raise_errorf fmt = Core_kernel.ksprintf raise_error fmt
 
 external raise_exn_js : exn -> Js.js_string Js.t -> 'a = "custom_reraise_exn"
 
@@ -73,8 +73,6 @@ module As_field = struct
   type t
 
   let of_field (x : Impl.Field.t) : t = Obj.magic x
-
-  let of_field_obj (x : field_class Js.t) : t = Obj.magic x
 
   let of_number_exn (value : t) : Impl.Field.t =
     let number : Js.number Js.t = Obj.magic value in
@@ -299,18 +297,8 @@ let to_js_bigint =
 
 let to_js_field x : field_class Js.t = new%js field_constr (As_field.of_field x)
 
-let of_js_field (x : field_class Js.t) : Field.t = x##.value
-
-let to_js_field_unchecked x : field_class Js.t =
-  x |> Field.constant |> to_js_field
-
 let to_unchecked (x : Field.t) =
   match x with Constant y -> y | y -> Impl.As_prover.read_var y
-
-let of_js_field_unchecked (x : field_class Js.t) = to_unchecked @@ of_js_field x
-
-let bool_to_unchecked (x : Boolean.var) =
-  (x :> Field.t) |> to_unchecked |> Field.Constant.(equal one)
 
 let () =
   let method_ name (f : field_class Js.t -> _) = method_ field_class name f in
@@ -714,240 +702,6 @@ let () =
       | s ->
           failwith ("Bool.fromJSON: expected boolean, got " ^ s) )
 
-type coords = < x : As_field.t Js.prop ; y : As_field.t Js.prop > Js.t
-
-let group_class : < .. > Js.t =
-  let f =
-    Js.Unsafe.eval_string
-      {js|
-      (function(toFieldObj) {
-        return function() {
-          var err = 'Group constructor expects either 2 arguments (x, y) or a single argument object { x, y }';
-          if (arguments.length == 1) {
-            var t = arguments[0];
-            if (t.x === undefined || t.y === undefined) {
-              throw (Error(err));
-            } else {
-              this.x = toFieldObj(t.x);
-              this.y = toFieldObj(t.y);
-            }
-          } else if (arguments.length == 2) {
-            this.x = toFieldObj(arguments[0]);
-            this.y = toFieldObj(arguments[1]);
-          } else {
-            throw (Error(err));
-          }
-          return this;
-        }
-      })
-      |js}
-  in
-  Js.Unsafe.fun_call f
-    [| Js.Unsafe.inject (Js.wrap_callback As_field.to_field_obj) |]
-
-class type scalar_class =
-  object
-    method value : Boolean.var array Js.prop
-
-    method constantValue : Other_impl.Field.Constant.t Js.Optdef.t Js.prop
-
-    method toJSON : < .. > Js.t Js.meth
-  end
-
-class type endo_scalar_class =
-  object
-    method value : Boolean.var list Js.prop
-  end
-
-module As_group = struct
-  (* { x: as_field, y : as_field } | group_class *)
-  type t
-
-  class type group_class =
-    object
-      method x : field_class Js.t Js.prop
-
-      method y : field_class Js.t Js.prop
-
-      method add : group_class Js.t -> group_class Js.t Js.meth
-
-      method add_ : t -> group_class Js.t Js.meth
-
-      method sub_ : t -> group_class Js.t Js.meth
-
-      method neg : group_class Js.t Js.meth
-
-      method scale : scalar_class Js.t -> group_class Js.t Js.meth
-
-      method endoScale : endo_scalar_class Js.t -> group_class Js.t Js.meth
-
-      method assertEquals : t -> unit Js.meth
-
-      method equals : t -> bool_class Js.t Js.meth
-
-      method toJSON : < .. > Js.t Js.meth
-
-      method toFields : field_class Js.t Js.js_array Js.t Js.meth
-    end
-
-  let group_constr : (As_field.t -> As_field.t -> group_class Js.t) Js.constr =
-    Obj.magic group_class
-
-  let to_coords (t : t) : coords = Obj.magic t
-
-  let value (t : t) =
-    let t = to_coords t in
-    (As_field.value t##.x, As_field.value t##.y)
-
-  let of_group_obj (t : group_class Js.t) : t = Obj.magic t
-
-  let to_group_obj (t : t) : group_class Js.t =
-    if Js.instanceof (Obj.magic t) group_constr then Obj.magic t
-    else
-      let t = to_coords t in
-      new%js group_constr t##.x t##.y
-end
-
-class type group_class = As_group.group_class
-
-let group_constr = As_group.group_constr
-
-let to_js_group (x : Impl.Field.t) (y : Impl.Field.t) : group_class Js.t =
-  new%js group_constr
-    (As_field.of_field_obj (to_js_field x))
-    (As_field.of_field_obj (to_js_field y))
-
-let () =
-  let mk (x, y) : group_class Js.t =
-    new%js group_constr (As_field.of_field x) (As_field.of_field y)
-  in
-  let method_ name (f : group_class Js.t -> _) = method_ group_class name f in
-  let static name x = Js.Unsafe.set group_class (Js.string name) x in
-  let static_method name f = static name (Js.wrap_callback f) in
-  let constant (x, y) = mk Field.(constant x, constant y) in
-  method_ "add"
-    (fun (p1 : group_class Js.t) (p2 : As_group.t) : group_class Js.t ->
-      let p1, p2 =
-        (As_group.value (As_group.of_group_obj p1), As_group.value p2)
-      in
-      match (p1, p2) with
-      | (Constant x1, Constant y1), (Constant x2, Constant y2) ->
-          constant
-            (Pickles.Step_main_inputs.Inner_curve.Constant.( + ) (x1, y1)
-               (x2, y2) )
-      | _ ->
-          Pickles.Step_main_inputs.Ops.add_fast p1 p2 |> mk ) ;
-  method_ "neg" (fun (p1 : group_class Js.t) : group_class Js.t ->
-      Pickles.Step_main_inputs.Inner_curve.negate
-        (As_group.value (As_group.of_group_obj p1))
-      |> mk ) ;
-  method_ "sub"
-    (fun (p1 : group_class Js.t) (p2 : As_group.t) : group_class Js.t ->
-      p1##add (As_group.to_group_obj p2)##neg ) ;
-  method_ "scale"
-    (fun (p1 : group_class Js.t) (s : scalar_class Js.t) : group_class Js.t ->
-      match
-        ( As_group.(value (of_group_obj p1))
-        , Js.Optdef.to_option s##.constantValue )
-      with
-      | (Constant x, Constant y), Some s ->
-          Pickles.Step_main_inputs.Inner_curve.Constant.scale (x, y) s
-          |> constant
-      | _ ->
-          let bits = Array.copy s##.value in
-          (* Have to convert LSB -> MSB *)
-          Array.rev_inplace bits ;
-          Pickles.Step_main_inputs.Ops.scale_fast_msb_bits
-            (As_group.value (As_group.of_group_obj p1))
-            (Shifted_value bits)
-          |> mk ) ;
-  (* TODO
-     method_ "endoScale"
-       (fun (p1 : group_class Js.t) (s : endo_scalar_class Js.t) : group_class Js.t
-       ->
-         Sc.endo
-           (As_group.value (As_group.of_group_obj p1))
-           (Scalar_challenge s##.value)
-         |> mk) ; *)
-  arg_optdef_arg_method group_class "assertEquals"
-    (fun
-      (p1 : group_class Js.t)
-      (p2 : As_group.t)
-      (msg : Js.js_string Js.t Js.Optdef.t)
-      :
-      unit
-    ->
-      let x1, y1 = As_group.value (As_group.of_group_obj p1) in
-      let x2, y2 = As_group.value p2 in
-      try Field.Assert.equal x1 x2
-      with exn -> (
-        ignore (log_and_raise_error_with_message ~exn ~msg) ;
-        try Field.Assert.equal y1 y2
-        with exn -> log_and_raise_error_with_message ~exn ~msg ) ) ;
-
-  method_ "equals"
-    (fun (p1 : group_class Js.t) (p2 : As_group.t) : bool_class Js.t ->
-      let x1, y1 = As_group.value (As_group.of_group_obj p1) in
-      let x2, y2 = As_group.value p2 in
-      new%js bool_constr
-        (As_bool.of_boolean
-           (Boolean.all [ Field.equal x1 x2; Field.equal y1 y2 ]) ) ) ;
-  static "generator"
-    (mk Pickles.Step_main_inputs.Inner_curve.one : group_class Js.t) ;
-  static_method "add"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##add_ p2 ) ;
-  static_method "sub"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##sub_ p2 ) ;
-  static_method "sub"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##sub_ p2 ) ;
-  static_method "neg" (fun (p1 : As_group.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##neg ) ;
-  static_method "scale"
-    (fun (p1 : As_group.t) (s : scalar_class Js.t) : group_class Js.t ->
-      (As_group.to_group_obj p1)##scale s ) ;
-  static_method "assertEqual" (fun (p1 : As_group.t) (p2 : As_group.t) : unit ->
-      (As_group.to_group_obj p1)##assertEquals p2 ) ;
-  static_method "equal"
-    (fun (p1 : As_group.t) (p2 : As_group.t) : bool_class Js.t ->
-      (As_group.to_group_obj p1)##equals p2 ) ;
-  method_ "toFields"
-    (fun (p1 : group_class Js.t) : field_class Js.t Js.js_array Js.t ->
-      let arr = singleton_array p1##.x in
-      arr##push p1##.y |> ignore ;
-      arr ) ;
-  static_method "toFields" (fun (p1 : group_class Js.t) -> p1##toFields) ;
-  static_method "fromFields" (fun (xs : field_class Js.t Js.js_array Js.t) ->
-      array_check_length xs 2 ;
-      new%js group_constr
-        (As_field.of_field_obj (array_get_exn xs 0))
-        (As_field.of_field_obj (array_get_exn xs 1)) ) ;
-  static_method "sizeInFields" (fun () : int -> 2) ;
-  static_method "check" (fun (p : group_class Js.t) : unit ->
-      Pickles.Step_main_inputs.Inner_curve.assert_on_curve
-        Field.((p##.x##.value :> t), (p##.y##.value :> t)) ) ;
-  method_ "toJSON" (fun (p : group_class Js.t) : < .. > Js.t ->
-      object%js
-        val x = (Obj.magic field_class)##toJSON p##.x
-
-        val y = (Obj.magic field_class)##toJSON p##.y
-      end ) ;
-  static_method "toJSON" (fun (p : group_class Js.t) : < .. > Js.t -> p##toJSON) ;
-  static_method "fromJSON"
-    (fun (value : Js.Unsafe.any) : group_class Js.t Js.Opt.t ->
-      let get field_name =
-        Js.Optdef.case
-          (Js.Unsafe.get value (Js.string field_name))
-          (fun () -> Js.Opt.empty)
-          (fun x -> field_class##fromJSON x)
-      in
-      Js.Opt.bind (get "x") (fun x ->
-          Js.Opt.map (get "y") (fun y ->
-              new%js group_constr
-                (As_field.of_field_obj x) (As_field.of_field_obj y) ) ) )
-
 let array_iter t1 ~f =
   for i = 0 to t1##.length - 1 do
     f (array_get_exn t1 i)
@@ -969,21 +723,16 @@ type sponge =
   | Checked of Poseidon_sponge_checked.t
   | Unchecked of Poseidon_sponge.t
 
-let hash_array (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
-    =
-  let input = Array.map (Js.to_array xs) ~f:of_js_field in
-  if Js.to_bool is_checked then Random_oracle.Checked.hash input
-  else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
+let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
+  if Js.to_bool is_checked then Random_oracle.Checked.hash xs
+  else Random_oracle.hash (Array.map ~f:to_unchecked xs) |> Field.constant
 
 let poseidon =
   object%js
     (* this could be removed eventually since it's easily implemented using `update` *)
-    method hash (xs : field_class Js.t Js.js_array Js.t)
-        (is_checked : bool Js.t) : field_class Js.t =
-      to_js_field (hash_array xs is_checked)
+    method hash input is_checked = hash_array input is_checked
 
-    method hashToGroup (xs : field_class Js.t Js.js_array Js.t)
-        (is_checked : bool Js.t) =
+    method hashToGroup (xs : Field.t array) (is_checked : bool Js.t) =
       let input = hash_array xs is_checked in
       let digest =
         if Js.to_bool is_checked then
@@ -992,47 +741,38 @@ let poseidon =
           let x, y = Snark_params.Group_map.to_group (to_unchecked input) in
           (Field.constant @@ x, Field.constant @@ y)
       in
-      to_js_group (fst digest) (snd digest)
+      digest
 
-    method update (state : field_class Js.t Js.js_array Js.t)
-        (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
-        : field_class Js.t Js.js_array Js.t =
-      let state : Field.t Random_oracle.State.t =
-        Array.map (Js.to_array state) ~f:of_js_field |> Obj.magic
-      in
-      let input = Array.map (Js.to_array xs) ~f:of_js_field in
-      let new_state : field_class Js.t array =
-        ( if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
-        else
-          Random_oracle.update
-            ~state:(Random_oracle.State.map ~f:to_unchecked state)
-            (Array.map ~f:to_unchecked input)
-          |> Random_oracle.State.map ~f:Field.constant )
-        |> Random_oracle.State.map ~f:to_js_field
-        |> Obj.magic
-      in
-      new_state |> Js.array
+    method update (state : Field.t Random_oracle.State.t)
+        (input : Field.t array) (is_checked : bool Js.t)
+        : Field.t Random_oracle.State.t =
+      if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
+      else
+        Random_oracle.update
+          ~state:(Random_oracle.State.map ~f:to_unchecked state)
+          (Array.map ~f:to_unchecked input)
+        |> Random_oracle.State.map ~f:Field.constant
 
     (* returns a "sponge" that stays opaque to JS *)
-    method spongeCreate (is_checked : bool Js.t) =
+    method spongeCreate (is_checked : bool Js.t) : sponge =
       if Js.to_bool is_checked then
         Checked
           (Poseidon_sponge_checked.create ?init:None sponge_params_checked)
       else Unchecked (Poseidon_sponge.create ?init:None sponge_params)
 
-    method spongeAbsorb (sponge : sponge) field : unit =
+    method spongeAbsorb (sponge : sponge) (field : Field.t) : unit =
       match sponge with
       | Checked s ->
-          Poseidon_sponge_checked.absorb s (of_js_field field)
+          Poseidon_sponge_checked.absorb s field
       | Unchecked s ->
-          Poseidon_sponge.absorb s (to_unchecked @@ of_js_field field)
+          Poseidon_sponge.absorb s (to_unchecked @@ field)
 
-    method spongeSqueeze (sponge : sponge) =
+    method spongeSqueeze (sponge : sponge) : Field.t =
       match sponge with
       | Checked s ->
-          Poseidon_sponge_checked.squeeze s |> to_js_field
+          Poseidon_sponge_checked.squeeze s
       | Unchecked s ->
-          Poseidon_sponge.squeeze s |> Field.constant |> to_js_field
+          Poseidon_sponge.squeeze s |> Field.constant
 
     val prefixes =
       let open Hash_prefixes in
@@ -1052,31 +792,6 @@ let poseidon =
         val zkappMemo = Js.string (zkapp_memo :> string)
       end
   end
-
-(* conversion of field arrays *)
-
-type public_input_js = field_class Js.t Js.js_array Js.t
-
-module Public_input = struct
-  type t = Field.t array
-
-  let to_constant (t : t) = Array.map ~f:to_unchecked t
-
-  let to_js (t : t) : public_input_js = Array.map ~f:to_js_field t |> Js.array
-
-  let of_js (a : public_input_js) : t =
-    Js.to_array a |> Array.map ~f:of_js_field
-
-  module Constant = struct
-    type t = Field.Constant.t array
-
-    let to_js (t : t) : public_input_js =
-      Array.map ~f:to_js_field_unchecked t |> Js.array
-
-    let of_js (a : public_input_js) : t =
-      Js.to_array a |> Array.map ~f:of_js_field_unchecked
-  end
-end
 
 (* light-weight wrapper around snarky-ml core *)
 
@@ -1123,6 +838,8 @@ module Snarky = struct
     end
 
   module Field = struct
+    type t = Field.t
+
     (** add x, y to get a new AST node Add(x, y); handles if x, y are constants *)
     let add x y = Field.add x y
 
@@ -1192,10 +909,27 @@ module Snarky = struct
     let equals x y = Boolean.equal x y
   end
 
+  module Group = struct
+    type t = Pickles.Step_main_inputs.Inner_curve.t
+
+    (** p1 + p2; handles variables *)
+    let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
+
+    let assert_on_curve p =
+      Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
+
+    let scale p (scalar_bits : Boolean.var array) =
+      Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
+        (Shifted_value scalar_bits)
+
+    let equals ((x1, y1) : t) ((x2, y2) : t) =
+      Boolean.all [ Impl.Field.equal x1 x2; Impl.Field.equal y1 y2 ]
+  end
+
   module Circuit = struct
     module Main = struct
-      let of_js (main : public_input_js -> unit) =
-        let main' public_input () = main (Public_input.to_js public_input) in
+      let of_js (main : Field.t array -> unit) =
+        let main' public_input () = main public_input in
         main'
     end
 
@@ -1215,11 +949,9 @@ module Snarky = struct
         ~f:(fun { Impl.Proof_inputs.auxiliary_inputs; public_inputs } () ->
           Backend.Proof.create pk ~auxiliary:auxiliary_inputs
             ~primary:public_inputs )
-        (Main.of_js main)
-        (Public_input.Constant.of_js public_input)
+        (Main.of_js main) public_input
 
-    let verify public_input_js proof vk =
-      let public_input = Public_input.Constant.of_js public_input_js in
+    let verify public_input proof vk =
       let public_input_vec = Backend.Field.Vector.create () in
       Array.iter public_input ~f:(fun x ->
           Backend.Field.Vector.emplace_back public_input_vec x ) ;
@@ -1292,6 +1024,17 @@ let snarky =
         method equals = Snarky.Bool.equals
       end
 
+    val group =
+      object%js
+        method add = Snarky.Group.add
+
+        method assertOnCurve = Snarky.Group.assert_on_curve
+
+        method scale = Snarky.Group.scale
+
+        method equals = Snarky.Group.equals
+      end
+
     val circuit =
       object%js
         method compile = Snarky.Circuit.compile
@@ -1311,30 +1054,21 @@ let snarky =
 
 (* helpers for pickles_compile *)
 
+module Public_input = struct
+  type t = Field.t array
+
+  module Constant = struct
+    type t = Field.Constant.t array
+  end
+end
+
 type 'a statement = 'a array * 'a array
-
-type statement_js =
-  < input : public_input_js Js.readonly_prop
-  ; output : public_input_js Js.readonly_prop >
-  Js.t
-
-type 'proof public_output_with_proof_js =
-  < publicOutput : public_input_js Js.readonly_prop
-  ; proof : 'proof Js.readonly_prop >
-  Js.t
 
 module Statement = struct
   type t = Field.t statement
 
-  let of_js (s : statement_js) : t =
-    (Public_input.of_js s##.input, Public_input.of_js s##.output)
-
   module Constant = struct
     type t = Field.Constant.t statement
-
-    let of_js (s : statement_js) : t =
-      ( Public_input.Constant.of_js s##.input
-      , Public_input.Constant.of_js s##.output )
   end
 end
 
@@ -1343,14 +1077,10 @@ let public_input_typ (i : int) = Typ.array ~length:i Field.typ
 let statement_typ (input_size : int) (output_size : int) =
   Typ.(array ~length:input_size Field.typ * array ~length:output_size Field.typ)
 
-let to_js_proof
-    ((public_output, (), proof) : Public_input.Constant.t * unit * 'proof) :
-    'proof public_output_with_proof_js =
-  object%js
-    val proof = proof
-
-    val publicOutput = Public_input.Constant.to_js public_output
-  end
+type ('prev_proof, 'proof) js_prover =
+     Public_input.Constant.t
+  -> 'prev_proof array
+  -> (Public_input.Constant.t * 'proof) Promise_js_helpers.js_promise
 
 let dummy_constraints =
   let module Inner_curve = Kimchi_pasta.Pasta.Pallas in
@@ -1381,16 +1111,15 @@ let dummy_constraints =
 type pickles_rule_js =
   < identifier : Js.js_string Js.t Js.prop
   ; main :
-      (   public_input_js
-       -> < publicOutput : public_input_js Js.prop
-          ; previousStatements : statement_js Js.js_array Js.t Js.prop
-          ; shouldVerify : bool_class Js.t Js.js_array Js.t Js.prop >
+      (   Public_input.t
+       -> < publicOutput : Public_input.t Js.prop
+          ; previousStatements : Statement.t array Js.prop
+          ; shouldVerify : Boolean.var array Js.prop >
           Js.t )
       Js.prop
   ; proofsToVerify :
       < isSelf : bool Js.t Js.prop ; tag : Js.Unsafe.any Js.t Js.prop > Js.t
-      Js.js_array
-      Js.t
+      array
       Js.prop >
   Js.t
 
@@ -1411,13 +1140,7 @@ module Choices = struct
       let rec get_tags (Prevs prevs) index =
         if index < 0 then Prevs prevs
         else
-          let js_tag =
-            Js.Optdef.get (Js.array_get js_prevs index) (fun () ->
-                raise_errorf
-                  "proofsToVerify array is sparse; the entry at index %i is \
-                   missing"
-                  index )
-          in
+          let js_tag = Array.get js_prevs index in
           (* We introduce new opaque types to make sure that the type in the tag
              doesn't escape into the environment or have other ill effects.
           *)
@@ -1442,7 +1165,7 @@ module Choices = struct
           let prevs ~self : _ H4.T(Pickles.Tag).t = tag ~self :: prevs ~self in
           get_tags (Prevs prevs) (index - 1)
       in
-      get_tags (Prevs (fun ~self:_ -> [])) (js_prevs##.length - 1)
+      get_tags (Prevs (fun ~self:_ -> [])) (Array.length js_prevs - 1)
   end
 
   module Inductive_rule = struct
@@ -1486,23 +1209,18 @@ module Choices = struct
         type prev_vars prev_values widths heights.
            int
         -> (prev_vars, prev_values, widths, heights) H4.T(Pickles.Tag).t
-        -> bool_class Js.t Js.js_array Js.t
+        -> Boolean.var array
         -> prev_vars H1.T(E01(Pickles.Inductive_rule.B)).t =
      fun index tags should_verifys_js ->
       match tags with
       | [] ->
           []
       | _ :: tags ->
-          let js_bool =
-            Js.Optdef.get (Js.array_get should_verifys_js index) (fun () ->
-                raise_errorf
-                  "Returned array is sparse; the entry at index %i is missing"
-                  index )
-          in
+          let js_bool = Array.get should_verifys_js index in
           let should_verifys =
             should_verifys (index + 1) tags should_verifys_js
           in
-          js_bool##.value :: should_verifys
+          js_bool :: should_verifys
 
     let should_verifys tags should_verifys_js =
       should_verifys 0 tags should_verifys_js
@@ -1533,22 +1251,17 @@ module Choices = struct
              Pickles.Tag.t
         -> int
         -> (prev_vars, prev_values, widths, heights) H4.T(Pickles.Tag).t
-        -> statement_js Js.js_array Js.t
+        -> Statement.t array
         -> prev_vars H1.T(Id).t =
      fun ~public_input_size ~public_output_size ~self i tags statements ->
       match tags with
       | [] ->
           []
       | tag :: tags ->
-          let statement_js =
-            Js.Optdef.get (Js.array_get statements i) (fun () ->
-                raise_errorf
-                  "Returned array is sparse; the entry at index %i is missing" i )
-          in
           let (Typ typ) =
             get_typ ~public_input_size ~public_output_size tag self
           in
-          let input, output = Statement.of_js statement_js in
+          let input, output = Array.get statements i in
           let fields = Array.concat [ input; output ] in
           let aux = typ.constraint_system_auxiliary () in
           let statement = typ.var_of_fields (fields, aux) in
@@ -1591,8 +1304,8 @@ module Choices = struct
           ; main =
               (fun { public_input } ->
                 dummy_constraints () ;
-                let result = rule##.main (Public_input.to_js public_input) in
-                let public_output = Public_input.of_js result##.publicOutput in
+                let result = rule##.main public_input in
+                let public_output = result##.publicOutput in
                 let previous_proofs_should_verify =
                   should_verifys prevs result##.shouldVerify
                 in
@@ -1691,20 +1404,16 @@ module Choices = struct
         t =
       if index < 0 then Choices rules
       else
-        let js_rule =
-          Js.Optdef.get (Js.array_get js_rules index) (fun () ->
-              raise_errorf
-                "Rules array is sparse; the entry at index %i is missing" index )
-        in
         let (Rule rule) =
-          Inductive_rule.create ~public_input_size ~public_output_size js_rule
+          Inductive_rule.create ~public_input_size ~public_output_size
+            (Array.get js_rules index)
         in
         let rules ~self : _ H4_6.T(Pickles.Inductive_rule).t =
           rule ~self :: rules ~self
         in
         get_rules (Choices rules) (index - 1)
     in
-    get_rules (Choices (fun ~self:_ -> [])) (js_rules##.length - 1)
+    get_rules (Choices (fun ~self:_ -> [])) (Array.length js_rules - 1)
 end
 
 type proof = (Pickles_types.Nat.N0.n, Pickles_types.Nat.N0.n) Pickles.Proof.t
@@ -1784,16 +1493,15 @@ let constraint_constants =
   ; fork = None
   }
 
-let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
+let pickles_compile (choices : pickles_rule_js array)
     (signature :
       < publicInputSize : int Js.prop ; publicOutputSize : int Js.prop > Js.t )
     =
   (* translate number of branches and recursively verified proofs from JS *)
-  let branches = choices##.length in
+  let branches = Array.length choices in
   let max_proofs =
-    let choices = choices |> Js.to_array |> Array.to_list in
-    List.map choices ~f:(fun c ->
-        c##.proofsToVerify |> Js.to_array |> Array.length )
+    let choices = choices |> Array.to_list in
+    List.map choices ~f:(fun c -> c##.proofsToVerify |> Array.length)
     |> List.max_elt ~compare |> Option.value ~default:0
   in
   let (module Branches) = nat_module branches in
@@ -1821,13 +1529,9 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
 
   (* translate returned prover and verify functions to JS *)
   let module Proof = (val p) in
-  let to_js_prover prover =
-    let prove (public_input_js : public_input_js)
-        (prevs_js : 'prev_proof Js.js_array Js.t) =
-      let prevs = Js.to_array prevs_js in
-      let public_input =
-        Public_input.(public_input_js |> of_js |> to_constant)
-      in
+  let to_js_prover prover : ('prev_proof, Proof.t) js_prover =
+    let prove (public_input : Public_input.Constant.t)
+        (prevs : 'prev_proof array) =
       let handler (Snarky_backendless.Request.With { request; respond }) =
         match request with
         | Choices.Inductive_rule.Get_prev_proof i ->
@@ -1836,7 +1540,8 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
             respond Unhandled
       in
       prover ?handler:(Some handler) public_input
-      |> Promise.map ~f:to_js_proof |> Promise_js_helpers.to_js
+      |> Promise.map ~f:(fun (output, _, proof) -> (output, proof))
+      |> Promise_js_helpers.to_js
     in
     prove
   in
@@ -1848,19 +1553,16 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
          , Public_input.Constant.t
          , (Public_input.Constant.t * unit * Proof.t) Promise.t )
          Pickles.Provers.t
-      -> (   public_input_js
-          -> 'prev_proof Js.js_array Js.t
-          -> Proof.t public_output_with_proof_js Promise_js_helpers.js_promise
-         )
-         list = function
+      -> ('prev_proof, Proof.t) js_prover list = function
     | [] ->
         []
     | p :: ps ->
         to_js_prover p :: to_js_provers ps
   in
-  let provers = provers |> to_js_provers |> Array.of_list |> Js.array in
-  let verify (statement : statement_js) (proof : _ Pickles.Proof.t) =
-    let statement = Statement.Constant.of_js statement in
+  let provers : (_, Proof.t) js_prover array =
+    provers |> to_js_provers |> Array.of_list
+  in
+  let verify (statement : Statement.Constant.t) (proof : _ Pickles.Proof.t) =
     Proof.verify_promise [ (statement, proof) ]
     |> Promise.map ~f:(fun x -> Js.bool (Or_error.is_ok x))
     |> Promise_js_helpers.to_js
@@ -1872,17 +1574,11 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
 
     val tag = Obj.magic tag
 
-    val getVerificationKeyArtifact =
-      fun () ->
-        let vk = Pickles.Side_loaded.Verification_key.of_compiled tag in
-        object%js
-          val data =
-            Pickles.Side_loaded.Verification_key.to_base64 vk |> Js.string
-
-          val hash =
-            Mina_base.Zkapp_account.digest_vk vk
-            |> Field.Constant.to_string |> Js.string
-        end
+    method getVerificationKey =
+      let vk = Pickles.Side_loaded.Verification_key.of_compiled tag in
+      let data = Pickles.Side_loaded.Verification_key.to_base64 vk in
+      let hash = Mina_base.Zkapp_account.digest_vk vk in
+      (data |> Js.string, hash)
   end
 
 module Proof0 = Pickles.Proof.Make (Pickles_types.Nat.N0) (Pickles_types.Nat.N0)
@@ -1911,11 +1607,10 @@ let proof_of_base64 str i : some_proof =
   | _ ->
       failwith "invalid proof index"
 
-let verify (statement : statement_js) (proof : proof) (vk : Js.js_string Js.t) =
-  let statement = Statement.Constant.of_js statement in
-  let typ =
-    statement_typ (Array.length (fst statement)) (Array.length (snd statement))
-  in
+let verify (statement : Statement.Constant.t) (proof : proof)
+    (vk : Js.js_string Js.t) =
+  let i, o = statement in
+  let typ = statement_typ (Array.length i) (Array.length o) in
   let proof = Pickles.Side_loaded.Proof.of_proof proof in
   let vk =
     match Pickles.Side_loaded.Verification_key.of_base64 (Js.to_string vk) with
@@ -1936,13 +1631,9 @@ let dummy_base64_proof () =
 
 let dummy_verification_key () =
   let vk = Pickles.Side_loaded.Verification_key.dummy in
-  object%js
-    val data = Pickles.Side_loaded.Verification_key.to_base64 vk |> Js.string
-
-    val hash =
-      Mina_base.Zkapp_account.digest_vk vk
-      |> Field.Constant.to_string |> Js.string
-  end
+  let data = Pickles.Side_loaded.Verification_key.to_base64 vk in
+  let hash = Mina_base.Zkapp_account.digest_vk vk in
+  (data |> Js.string, hash)
 
 let pickles =
   object%js
@@ -1964,12 +1655,11 @@ let pickles =
         |> Pickles.Side_loaded.Proof.to_base64 |> Js.string
   end
 
-module Ledger = struct
-  type public_key =
-    < x : field_class Js.t Js.readonly_prop
-    ; isOdd : bool_class Js.t Js.readonly_prop >
-    Js.t
+type public_key = Signature_lib.Public_key.Compressed.t
 
+type public_key_checked = Signature_lib.Public_key.Compressed.var
+
+module Ledger = struct
   let ledger_class : < .. > Js.t =
     Js.Unsafe.eval_string {js|(function(v) { this.value = v; return this })|js}
 
@@ -2066,80 +1756,32 @@ module Ledger = struct
   let create_new_account_exn (t : L.t) account_id account =
     L.create_new_account t account_id account |> Or_error.ok_exn
 
-  let public_key_checked (pk : public_key) :
-      Signature_lib.Public_key.Compressed.var =
-    { x = pk##.x##.value; is_odd = pk##.isOdd##.value }
+  let token_id_checked (token : Field.t) =
+    token |> Mina_base.Token_id.Checked.of_field
 
-  let public_key (pk : public_key) : Signature_lib.Public_key.Compressed.t =
-    { x = to_unchecked pk##.x##.value
-    ; is_odd = bool_to_unchecked pk##.isOdd##.value
-    }
+  let token_id (token : Impl.field) : Mina_base.Token_id.t =
+    token |> Mina_base.Token_id.of_field
 
-  let token_id_checked (token : field_class Js.t) =
-    token |> of_js_field |> Mina_base.Token_id.Checked.of_field
-
-  let token_id (token : field_class Js.t) : Mina_base.Token_id.t =
-    token |> of_js_field_unchecked |> Mina_base.Token_id.of_field
-
-  let default_token_id_js =
+  let default_token_id =
     Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
-    |> Field.constant |> to_js_field
 
-  let account_id_checked pk token =
-    Mina_base.Account_id.Checked.create (public_key_checked pk)
-      (token_id_checked token)
+  let account_id_checked (pk : public_key_checked) token =
+    Mina_base.Account_id.Checked.create pk (token_id_checked token)
 
-  let account_id pk token =
-    Mina_base.Account_id.create (public_key pk) (token_id token)
-
-  module Checked = struct
-    let fields_to_hash
-        (typ : ('var, 'value, Field.Constant.t, _) Impl.Internal_Basic.Typ.typ)
-        (digest : 'var -> Field.t) (fields : field_class Js.t Js.js_array Js.t)
-        =
-      let fields = fields |> Js.to_array |> Array.map ~f:of_js_field in
-      let (Typ typ) = typ in
-      let variable =
-        typ.var_of_fields (fields, typ.constraint_system_auxiliary ())
-      in
-      digest variable |> to_js_field
-  end
+  let account_id (pk : public_key) token =
+    Mina_base.Account_id.create pk (token_id token)
 
   (* helper function to check whether the fields we produce from JS are correct *)
   let fields_of_json
       (typ : ('var, 'value, Field.Constant.t, 'tmp) Impl.Internal_Basic.Typ.typ)
-      of_json (json : Js.js_string Js.t) : field_class Js.t Js.js_array Js.t =
+      of_json (json : Js.js_string Js.t) : Impl.field array =
     let json = json |> Js.to_string |> Yojson.Safe.from_string in
     let value = of_json json in
     let (Typ typ) = typ in
     let fields, _ = typ.value_to_fields value in
-    Js.array
-    @@ Array.map ~f:(fun x -> x |> Field.constant |> to_js_field) fields
-
-  (* TODO: need to construct `aux` in JS, which has some extra data needed for `value_of_fields`  *)
-  let fields_to_json
-      (typ : ('var, 'value, Field.Constant.t, _) Impl.Internal_Basic.Typ.typ)
-      to_json (fields : field_class Js.t Js.js_array Js.t) aux :
-      Js.js_string Js.t =
-    let fields =
-      fields |> Js.to_array
-      |> Array.map ~f:(fun x -> x |> of_js_field |> to_unchecked)
-    in
-    let (Typ typ) = typ in
-    let value = typ.value_of_fields (fields, Obj.magic aux) in
-    let json = to_json value in
-    json |> Yojson.Safe.to_string |> Js.string
+    fields
 
   module To_js = struct
-    let public_key (pk : Signature_lib.Public_key.Compressed.t) : public_key =
-      object%js
-        val x = to_js_field_unchecked pk.x
-
-        val isOdd =
-          new%js bool_constr
-            (As_bool.of_boolean @@ Boolean.var_of_value pk.is_odd)
-      end
-
     let option (transform : 'a -> 'b) (x : 'a option) =
       Js.Optdef.option (Option.map x ~f:transform)
   end
@@ -2167,8 +1809,7 @@ module Ledger = struct
     (account_update_of_json, account_update_to_json)
 
   let hash_account_update (p : Js.js_string Js.t) =
-    p |> account_update_of_json |> Account_update.digest |> Field.constant
-    |> to_js_field
+    p |> account_update_of_json |> Account_update.digest
 
   let transaction_commitments (tx_json : Js.js_string Js.t) =
     let tx =
@@ -2183,12 +1824,12 @@ module Ledger = struct
         ~fee_payer_hash
     in
     object%js
-      val commitment = to_js_field_unchecked commitment
+      val commitment = commitment
 
-      val fullCommitment = to_js_field_unchecked full_commitment
+      val fullCommitment = full_commitment
 
       (* for testing *)
-      val feePayerHash = to_js_field_unchecked (fee_payer_hash :> Impl.field)
+      val feePayerHash = (fee_payer_hash :> Impl.field)
     end
 
   let zkapp_public_input (tx_json : Js.js_string Js.t)
@@ -2199,25 +1840,11 @@ module Ledger = struct
     let account_update = List.nth_exn tx.account_updates account_update_index in
     object%js
       val accountUpdate =
-        to_js_field_unchecked
-          (account_update.elt.account_update_digest :> Impl.field)
+        (account_update.elt.account_update_digest :> Impl.field)
 
       val calls =
-        to_js_field_unchecked
-          (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
+        (Zkapp_command.Call_forest.hash account_update.elt.calls :> Impl.field)
     end
-
-  let sign_field_element (x : field_class Js.t) (key : Other_impl.field)
-      (is_mainnet : bool Js.t) =
-    let network_id =
-      Mina_signature_kind.(if Js.to_bool is_mainnet then Mainnet else Testnet)
-    in
-    Signature_lib.Schnorr.Chunked.sign ~signature_kind:network_id key
-      (Random_oracle.Input.Chunked.field (x |> of_js_field |> to_unchecked))
-    |> Mina_base.Signature.to_base58_check |> Js.string
-
-  let dummy_signature () =
-    Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
 
   let check_account_update_signatures zkapp_command =
     let ({ fee_payer; account_updates; memo } : Zkapp_command.t) =
@@ -2267,32 +1894,6 @@ module Ledger = struct
         | Proof _ | None_given ->
             () )
 
-  let public_key_to_string (pk : public_key) : Js.js_string Js.t =
-    pk |> public_key |> Signature_lib.Public_key.Compressed.to_base58_check
-    |> Js.string
-
-  let public_key_of_string (pk_base58 : Js.js_string Js.t) : public_key =
-    pk_base58 |> Js.to_string
-    |> Signature_lib.Public_key.Compressed.of_base58_check_exn
-    |> To_js.public_key
-
-  let field_to_base58 (field : field_class Js.t) : Js.js_string Js.t =
-    field |> of_js_field |> to_unchecked |> Mina_base.Account_id.Digest.of_field
-    |> Mina_base.Account_id.Digest.to_string |> Js.string
-
-  let field_of_base58 (field : Js.js_string Js.t) : field_class Js.t =
-    to_js_field @@ Field.constant @@ Mina_base.Account_id.Digest.to_field_unsafe
-    @@ Mina_base.Account_id.Digest.of_string @@ Js.to_string field
-
-  let memo_to_base58 (memo : Js.js_string Js.t) : Js.js_string Js.t =
-    Js.string @@ Mina_base.Signed_command_memo.to_base58_check
-    @@ Mina_base.Signed_command_memo.create_from_string_exn @@ Js.to_string memo
-
-  let memo_hash_base58 (memo_base58 : Js.js_string Js.t) : field_class Js.t =
-    memo_base58 |> Js.to_string
-    |> Mina_base.Signed_command_memo.of_base58_check_exn
-    |> Mina_base.Signed_command_memo.hash |> to_js_field_unchecked
-
   (* low-level building blocks for encoding *)
   let binary_string_to_base58_check bin_string (version_byte : int) :
       Js.js_string Js.t =
@@ -2315,7 +1916,7 @@ module Ledger = struct
     base58 |> Js.to_string |> B58.decode_exn
 
   let add_account_exn (l : L.t) pk (balance : string) =
-    let account_id = account_id pk default_token_id_js in
+    let account_id = account_id pk default_token_id in
     let bal_u64 = Unsigned.UInt64.of_string balance in
     let balance = Currency.Balance.of_uint64 bal_u64 in
     let a : Mina_base.Account.t = Mina_base.Account.create account_id balance in
@@ -2344,7 +1945,7 @@ module Ledger = struct
     in
     to_json
 
-  let get_account l (pk : public_key) (token : field_class Js.t) :
+  let get_account l (pk : public_key) (token : Impl.field) :
       Js.Unsafe.any Js.optdef =
     let loc = L.location_of_account l##.value (account_id pk token) in
     let account = Option.bind loc ~f:(L.get l##.value) in
@@ -2406,7 +2007,7 @@ module Ledger = struct
       network_state
 
   let check_account_update_signature (account_update_json : Js.js_string Js.t)
-      (x : field_class Js.t) =
+      (x : Impl.field) =
     let account_update = account_update_of_json account_update_json in
     let check_signature s pk msg =
       match Signature_lib.Public_key.decompress pk with
@@ -2421,8 +2022,7 @@ module Ledger = struct
     let isValid =
       match account_update.authorization with
       | Signature s ->
-          check_signature s account_update.body.public_key
-            (x |> of_js_field |> to_unchecked)
+          check_signature s account_update.body.public_key x
       | Proof _ | None_given ->
           false
     in
@@ -2435,63 +2035,16 @@ module Ledger = struct
   let custom_token_id_checked pk token =
     Mina_base.Account_id.Checked.derive_token_id
       ~owner:(account_id_checked pk token)
-    |> Mina_base.Account_id.Digest.Checked.to_field_unsafe |> to_js_field
+    |> Mina_base.Account_id.Digest.Checked.to_field_unsafe
 
   let custom_token_id_unchecked pk token =
     Mina_base.Account_id.derive_token_id ~owner:(account_id pk token)
-    |> Mina_base.Token_id.to_field_unsafe |> to_js_field_unchecked
+    |> Mina_base.Token_id.to_field_unsafe
 
-  type random_oracle_input_js =
-    < fields : field_class Js.t Js.js_array Js.t Js.readonly_prop
-    ; packed :
-        < field : field_class Js.t Js.readonly_prop
-        ; size : int Js.readonly_prop >
-        Js.t
-        Js.js_array
-        Js.t
-        Js.readonly_prop >
-    Js.t
+  type random_oracle_input = Impl.field Random_oracle_input.Chunked.t
 
-  let random_oracle_input_to_js
-      (input : Impl.field Random_oracle_input.Chunked.t) :
-      random_oracle_input_js =
-    let fields =
-      input.field_elements |> Array.map ~f:to_js_field_unchecked |> Js.array
-    in
-    let packed =
-      input.packeds
-      |> Array.map ~f:(fun (field, size) ->
-             object%js
-               val field = to_js_field_unchecked field
-
-               val size = size
-             end )
-      |> Js.array
-    in
-    object%js
-      val fields = fields
-
-      val packed = packed
-    end
-
-  let pack_input (input : random_oracle_input_js) :
-      field_class Js.t Js.js_array Js.t =
-    let field_elements =
-      input##.fields |> Js.to_array |> Array.map ~f:of_js_field_unchecked
-    in
-    let packeds =
-      input##.packed |> Js.to_array
-      |> Array.map ~f:(fun packed ->
-             let field = packed##.field |> of_js_field_unchecked in
-             let size = packed##.size in
-             (field, size) )
-    in
-    let input : Impl.field Random_oracle_input.Chunked.t =
-      { field_elements; packeds }
-    in
+  let pack_input (input : random_oracle_input) : Impl.field array =
     Random_oracle.pack_input input
-    |> Array.map ~f:to_js_field_unchecked
-    |> Js.array
 
   (* global *)
 
@@ -2510,19 +2063,8 @@ module Ledger = struct
 
     static_method "transactionCommitments" transaction_commitments ;
     static_method "zkappPublicInput" zkapp_public_input ;
-    static_method "signFieldElement" sign_field_element ;
-    static_method "dummySignature" dummy_signature ;
-
-    static_method "publicKeyToString" public_key_to_string ;
-    static_method "publicKeyOfString" public_key_of_string ;
 
     (* these are implemented in JS, but kept here for consistency tests *)
-    static_method "fieldToBase58" field_to_base58 ;
-    static_method "fieldOfBase58" field_of_base58 ;
-
-    static_method "memoToBase58" memo_to_base58 ;
-    static_method "memoHashBase58" memo_hash_base58 ;
-
     static_method "checkAccountUpdateSignature" check_account_update_signature ;
 
     let version_bytes =
@@ -2553,75 +2095,64 @@ module Ledger = struct
       end ) ;
 
     static_method "hashAccountUpdateFromJson" hash_account_update ;
-    static_method "hashAccountUpdateFromFields"
-      (Checked.fields_to_hash
-         (Mina_base.Account_update.Body.typ ())
-         Mina_base.Account_update.Checked.digest ) ;
 
     (* TODO this is for debugging, maybe remove later *)
     let body_deriver =
       Mina_base.Account_update.Body.Graphql_repr.deriver
       @@ Fields_derivers_zkapps.o ()
     in
-    let body_to_json value =
-      value
-      |> Account_update.Body.to_graphql_repr ~call_depth:0
-      |> Fields_derivers_zkapps.to_json body_deriver
-    in
     let body_of_json json =
       json
       |> Fields_derivers_zkapps.of_json body_deriver
       |> Account_update.Body.of_graphql_repr
     in
-    static_method "fieldsToJson"
-      (fields_to_json (Mina_base.Account_update.Body.typ ()) body_to_json) ;
     static_method "fieldsOfJson"
       (fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json) ;
 
     (* hash inputs for various account_update subtypes *)
     (* TODO: this is for testing against JS impl, remove eventually *)
-    let timing_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let timing_input (json : Js.js_string Js.t) : random_oracle_input =
       let deriver = Account_update.Update.Timing_info.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Account_update.Update.Timing_info.to_input value in
-      random_oracle_input_to_js input
+      input
     in
-    let permissions_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let permissions_input (json : Js.js_string Js.t) : random_oracle_input =
       let deriver = Mina_base.Permissions.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Mina_base.Permissions.to_input value in
-      random_oracle_input_to_js input
+      input
     in
-    let update_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let update_input (json : Js.js_string Js.t) : random_oracle_input =
       let deriver = Account_update.Update.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Account_update.Update.to_input value in
-      random_oracle_input_to_js input
+      input
     in
     let account_precondition_input (json : Js.js_string Js.t) :
-        random_oracle_input_js =
+        random_oracle_input =
       let deriver = Mina_base.Zkapp_precondition.Account.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Mina_base.Zkapp_precondition.Account.to_input value in
-      random_oracle_input_to_js input
+      input
     in
     let network_precondition_input (json : Js.js_string Js.t) :
-        random_oracle_input_js =
+        random_oracle_input =
       let deriver = Mina_base.Zkapp_precondition.Protocol_state.deriver in
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = Fields_derivers_zkapps.(of_json (deriver @@ o ()) json) in
       let input = Mina_base.Zkapp_precondition.Protocol_state.to_input value in
-      random_oracle_input_to_js input
+      input
     in
-    let body_input (json : Js.js_string Js.t) : random_oracle_input_js =
+    let body_input (json : Js.js_string Js.t) : random_oracle_input =
       let json = json |> Js.to_string |> Yojson.Safe.from_string in
       let value = body_of_json json in
       let input = Account_update.Body.to_input value in
-      random_oracle_input_to_js input
+      input
     in
 
     static "hashInputFromJson"
@@ -2648,12 +2179,51 @@ end
 
 module Test = struct
   module Encoding = struct
+    let public_key_to_base58 (pk : public_key) : Js.js_string Js.t =
+      pk |> Signature_lib.Public_key.Compressed.to_base58_check |> Js.string
+
+    let public_key_of_base58 (pk_base58 : Js.js_string Js.t) : public_key =
+      pk_base58 |> Js.to_string
+      |> Signature_lib.Public_key.Compressed.of_base58_check_exn
+
     let private_key_to_base58 (sk : Other_impl.field) : Js.js_string Js.t =
       sk |> Signature_lib.Private_key.to_base58_check |> Js.string
 
     let private_key_of_base58 (sk_base58 : Js.js_string Js.t) : Other_impl.field
         =
       sk_base58 |> Js.to_string |> Signature_lib.Private_key.of_base58_check_exn
+
+    let token_id_to_base58 (field : Impl.field) : Js.js_string Js.t =
+      field |> Mina_base.Account_id.Digest.of_field
+      |> Mina_base.Account_id.Digest.to_string |> Js.string
+
+    let token_id_of_base58 (field : Js.js_string Js.t) : Impl.field =
+      Mina_base.Account_id.Digest.to_field_unsafe
+      @@ Mina_base.Account_id.Digest.of_string @@ Js.to_string field
+
+    let memo_to_base58 (memo : Js.js_string Js.t) : Js.js_string Js.t =
+      Js.string @@ Mina_base.Signed_command_memo.to_base58_check
+      @@ Mina_base.Signed_command_memo.create_from_string_exn
+      @@ Js.to_string memo
+
+    let memo_hash_base58 (memo_base58 : Js.js_string Js.t) : Impl.field =
+      memo_base58 |> Js.to_string
+      |> Mina_base.Signed_command_memo.of_base58_check_exn
+      |> Mina_base.Signed_command_memo.hash
+  end
+
+  module Signature = struct
+    let sign_field_element (x : Impl.field) (key : Other_impl.field)
+        (is_mainnet : bool Js.t) =
+      let network_id =
+        Mina_signature_kind.(if Js.to_bool is_mainnet then Mainnet else Testnet)
+      in
+      Signature_lib.Schnorr.Chunked.sign ~signature_kind:network_id key
+        (Random_oracle.Input.Chunked.field x)
+      |> Mina_base.Signature.to_base58_check |> Js.string
+
+    let dummy_signature () =
+      Mina_base.Signature.(dummy |> to_base58_check) |> Js.string
   end
 end
 
@@ -2669,9 +2239,28 @@ let test =
   object%js
     val encoding =
       object%js
+        method publicKeyToBase58 = Test.Encoding.public_key_to_base58
+
+        method publicKeyOfBase58 = Test.Encoding.public_key_of_base58
+
         method privateKeyToBase58 = Test.Encoding.private_key_to_base58
 
         method privateKeyOfBase58 = Test.Encoding.private_key_of_base58
+
+        method tokenIdToBase58 = Test.Encoding.token_id_to_base58
+
+        method tokenIdOfBase58 = Test.Encoding.token_id_of_base58
+
+        method memoToBase58 = Test.Encoding.memo_to_base58
+
+        method memoHashBase58 = Test.Encoding.memo_hash_base58
+      end
+
+    val signature =
+      object%js
+        method signFieldElement = Test.Signature.sign_field_element
+
+        val dummySignature = Test.Signature.dummy_signature
       end
 
     val transactionHash =
@@ -2739,7 +2328,6 @@ let test =
 let export () =
   Js.export "Field" field_class ;
   Js.export "Bool" bool_class ;
-  Js.export "Group" group_class ;
   Js.export "Poseidon" poseidon ;
   Js.export "Snarky" snarky ;
   Js.export "Ledger" Ledger.ledger_class ;
@@ -2753,7 +2341,6 @@ let export_global () =
       obj
         [| ("Field", i field_class)
          ; ("Bool", i bool_class)
-         ; ("Group", i group_class)
          ; ("Poseidon", i poseidon)
          ; ("Snarky", i snarky)
          ; ("Ledger", i Ledger.ledger_class)
