@@ -177,6 +177,8 @@ declare const Snarky: {
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
 
     xor(left: FieldVar, right: FieldVar, length: number): FieldVar;
+
+    rot64(word: FieldVar, bits: number, rotation_direction: boolean): FieldVar;
   };
 
   /**

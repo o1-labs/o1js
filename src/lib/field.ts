@@ -550,6 +550,24 @@ class Field {
   }
 
   /**
+   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   *
+   * *Note:* You can not rotate {@link Field} elements that exceed 64 bits.
+   *
+   * ```typescript
+   * let a = Field(12);
+   * let b = a.rot(2, true);  // left rotation by 2 bit
+   * c.assertEquals(20);
+   * ```
+   *
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction (true) left or (false) right rotation direction.
+   */
+  rot64(bits: number, direction: boolean = true) {
+    return new Field(Snarky.field.rot64(this.value, bits, direction));
+  }
+
+  /**
    * @deprecated use `x.equals(0)` which is equivalent
    */
   isZero() {
