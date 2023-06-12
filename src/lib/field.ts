@@ -518,16 +518,37 @@ class Field {
     return new Field(z);
   }
 
-  xor(a: Field, length: number) {
+  /**
+   * Bitwise XOR gate on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * The `length` parameter lets you define how many bits should be compared.
+   *
+   * *Note:* Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
+   * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
+   *
+   * ```typescript
+   * let a = Field(5);    // ... 000101
+   * let b = Field(3);    // ... 000011
+   *
+   * let c = a.xor(b);    // ... 000110
+   * c.assertEquals(6);
+   * ```
+   */
+  xor(y: Field | bigint | number | string, length: number) {
     // the gate actually also handles constants
-    if (this.isConstant() && a.isConstant()) {
-      if (a.toBigInt() > 2 ** length - 1 || this.toBigInt() > 2 ** length - 1) {
+    return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
+
+    /*     if (this.isConstant() && isConstant(y)) {
+      let y_ = toFp(y);
+      if (y_ > 2 ** length - 1 || this.toBigInt() > 2 ** length - 1) {
         throw Error('Does not fit into bits');
       }
-      return new Field(Fp(a.toBigInt() ^ this.toBigInt()));
+
+      return new Field(Fp(y_ ^ this.toBigInt()));
     } else {
-      return new Field(Snarky.field.xor(this.value, a.value, length));
-    }
+      return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
+    } */
   }
 
   /**
