@@ -309,11 +309,6 @@ class Bool {
     return 1;
   }
 
-  // TODO
-  static count(x: Bool | boolean[]): Field {
-    return new Field(0);
-  }
-
   static check(x: Bool): void {
     Snarky.field.assertBoolean(x.value);
   }
