@@ -536,10 +536,7 @@ class Field {
    * ```
    */
   xor(y: Field | bigint | number | string, length: number) {
-    // the gate actually also handles constants
-    return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
-
-    /*     if (this.isConstant() && isConstant(y)) {
+    if (this.isConstant() && isConstant(y)) {
       let y_ = toFp(y);
       if (y_ > 2 ** length - 1 || this.toBigInt() > 2 ** length - 1) {
         throw Error('Does not fit into bits');
@@ -548,7 +545,7 @@ class Field {
       return new Field(Fp(y_ ^ this.toBigInt()));
     } else {
       return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
-    } */
+    }
   }
 
   /**
