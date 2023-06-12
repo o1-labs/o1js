@@ -289,44 +289,11 @@ export default [
         type: 'function',
       },
       {
-        name: 'signFieldElement',
-        type: 'function',
-      },
-      {
-        name: 'dummySignature',
-        type: 'function',
-      },
-      {
-        name: 'publicKeyToString',
-        type: 'function',
-      },
-      {
-        name: 'publicKeyOfString',
-        type: 'function',
-      },
-      {
-        name: 'fieldToBase58',
-        type: 'function',
-      },
-      {
-        name: 'fieldOfBase58',
-        type: 'function',
-      },
-      {
-        name: 'memoToBase58',
-        type: 'function',
-      },
-      { name: 'memoHashBase58', type: 'function' },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
       {
         name: 'fieldsOfJson',
-        type: 'function',
-      },
-      {
-        name: 'hashAccountUpdateFromFields',
         type: 'function',
       },
       {
@@ -378,6 +345,10 @@ export default [
     props: [
       {
         name: 'encoding',
+        type: 'object',
+      },
+      {
+        name: 'signature',
         type: 'object',
       },
       {
