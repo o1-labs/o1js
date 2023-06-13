@@ -49,26 +49,6 @@ export default [
         name: 'create',
         type: 'function',
       },
-      {
-        name: 'customTokenId',
-        type: 'function',
-      },
-      {
-        name: 'customTokenIdChecked',
-        type: 'function',
-      },
-      {
-        name: 'createTokenAccount',
-        type: 'function',
-      },
-      {
-        name: 'transactionCommitments',
-        type: 'function',
-      },
-      {
-        name: 'checkAccountUpdateSignature',
-        type: 'function',
-      },
     ],
   },
   {
@@ -109,6 +89,10 @@ export default [
     props: [
       {
         name: 'encoding',
+        type: 'object',
+      },
+      {
+        name: 'tokenId',
         type: 'object',
       },
       {

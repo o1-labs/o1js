@@ -1007,8 +1007,6 @@ let pickles =
 
 type public_key = Signature_lib.Public_key.Compressed.t
 
-type public_key_checked = Signature_lib.Public_key.Compressed.var
-
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
 
@@ -1109,65 +1107,16 @@ module Ledger = struct
   let create_new_account_exn (t : L.t) account_id account =
     L.create_new_account t account_id account |> Or_error.ok_exn
 
-  let token_id_checked (token : Field.t) =
-    token |> Mina_base.Token_id.Checked.of_field
-
-  let token_id (token : Impl.field) : Mina_base.Token_id.t =
-    token |> Mina_base.Token_id.of_field
-
   let default_token_id =
     Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
 
-  let account_id_checked (pk : public_key_checked) token =
-    Mina_base.Account_id.Checked.create pk (token_id_checked token)
-
   let account_id (pk : public_key) token =
-    Mina_base.Account_id.create pk (token_id token)
+    Mina_base.Account_id.create pk (Mina_base.Token_id.of_field token)
 
   module To_js = struct
     let option (transform : 'a -> 'b) (x : 'a option) =
       Js.Optdef.option (Option.map x ~f:transform)
   end
-
-  let account_update_of_json, _account_update_to_json =
-    let deriver =
-      Account_update.Graphql_repr.deriver
-      @@ Fields_derivers_zkapps.Derivers.o ()
-    in
-    let account_update_of_json (account_update : Js.js_string Js.t) :
-        Account_update.t =
-      Fields_derivers_zkapps.of_json deriver
-        (account_update |> Js.to_string |> Yojson.Safe.from_string)
-      |> Account_update.of_graphql_repr
-    in
-    let account_update_to_json (account_update : Account_update.t) :
-        Js.js_string Js.t =
-      Fields_derivers_zkapps.to_json deriver
-        (Account_update.to_graphql_repr account_update ~call_depth:0)
-      |> Yojson.Safe.to_string |> Js.string
-    in
-    (account_update_of_json, account_update_to_json)
-
-  let transaction_commitments (tx_json : Js.js_string Js.t) =
-    let tx =
-      Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
-    in
-    let commitment = Zkapp_command.commitment tx in
-    let fee_payer = Account_update.of_fee_payer tx.fee_payer in
-    let fee_payer_hash = Zkapp_command.Digest.Account_update.create fee_payer in
-    let full_commitment =
-      Zkapp_command.Transaction_commitment.create_complete commitment
-        ~memo_hash:(Mina_base.Signed_command_memo.hash tx.memo)
-        ~fee_payer_hash
-    in
-    object%js
-      val commitment = commitment
-
-      val fullCommitment = full_commitment
-
-      (* for testing *)
-      val feePayerHash = (fee_payer_hash :> Impl.field)
-    end
 
   let check_account_update_signatures zkapp_command =
     let ({ fee_payer; account_updates; memo } : Zkapp_command.t) =
@@ -1232,11 +1181,7 @@ module Ledger = struct
     let deriver = Mina_base.Account.deriver @@ Fields_derivers_zkapps.o () in
     let to_json' = Fields_derivers_zkapps.to_json deriver in
     let to_json (account : Mina_base.Account.t) : Js.Unsafe.any =
-      let str = account |> to_json' |> Yojson.Safe.to_string |> Js.string in
-      let json =
-        Js.Unsafe.(fun_call global ##. JSON##.parse [| inject str |])
-      in
-      json
+      account |> to_json' |> Yojson.Safe.to_string |> Js.string |> json_parse
     in
     to_json
 
@@ -1301,40 +1246,6 @@ module Ledger = struct
       (Js.to_string account_creation_fee)
       network_state
 
-  let check_account_update_signature (account_update_json : Js.js_string Js.t)
-      (x : Impl.field) =
-    let account_update = account_update_of_json account_update_json in
-    let check_signature s pk msg =
-      match Signature_lib.Public_key.decompress pk with
-      | None ->
-          false
-      | Some pk_ ->
-          Signature_lib.Schnorr.Chunked.verify s
-            (Kimchi_pasta.Pasta.Pallas.of_affine pk_)
-            (Random_oracle_input.Chunked.field msg)
-    in
-    let is_valid =
-      match account_update.authorization with
-      | Signature s ->
-          check_signature s account_update.body.public_key x
-      | Proof _ | None_given ->
-          false
-    in
-    Js.bool is_valid
-
-  let create_token_account pk token =
-    account_id pk token |> Mina_base.Account_id.public_key
-    |> Signature_lib.Public_key.Compressed.to_string |> Js.string
-
-  let custom_token_id_checked pk token =
-    Mina_base.Account_id.Checked.derive_token_id
-      ~owner:(account_id_checked pk token)
-    |> Mina_base.Account_id.Digest.Checked.to_field_unsafe
-
-  let custom_token_id_unchecked pk token =
-    Mina_base.Account_id.derive_token_id ~owner:(account_id pk token)
-    |> Mina_base.Token_id.to_field_unsafe
-
   let () =
     let static_method name f =
       Js.Unsafe.set ledger_class (Js.string name) (Js.wrap_callback f)
@@ -1342,15 +1253,7 @@ module Ledger = struct
     let method_ name (f : ledger_class Js.t -> _) =
       method_ ledger_class name f
     in
-    static_method "customTokenId" custom_token_id_unchecked ;
-    static_method "customTokenIdChecked" custom_token_id_checked ;
-    static_method "createTokenAccount" create_token_account ;
     static_method "create" create ;
-
-    static_method "transactionCommitments" transaction_commitments ;
-
-    (* these are implemented in JS, but kept here for consistency tests *)
-    static_method "checkAccountUpdateSignature" check_account_update_signature ;
 
     method_ "getAccount" get_account ;
     method_ "addAccount" add_account ;
@@ -1416,6 +1319,23 @@ module Test = struct
       |> Mina_base.Signed_command_memo.hash
   end
 
+  module Token_id = struct
+    let derive pk token =
+      let account_id =
+        Mina_base.Account_id.create pk (Mina_base.Token_id.of_field token)
+      in
+      Mina_base.Account_id.derive_token_id ~owner:account_id
+      |> Mina_base.Token_id.to_field_unsafe
+
+    let derive_checked pk token =
+      let account_id =
+        Mina_base.Account_id.Checked.create pk
+          (Mina_base.Token_id.Checked.of_field token)
+      in
+      Mina_base.Account_id.Checked.derive_token_id ~owner:account_id
+      |> Mina_base.Account_id.Digest.Checked.to_field_unsafe
+  end
+
   (* deriver *)
   let account_update_of_json, _account_update_to_json =
     let deriver =
@@ -1475,9 +1395,31 @@ module Test = struct
       fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json
   end
 
-  module Hash = struct
+  module Hash_from_json = struct
     let account_update (p : Js.js_string Js.t) =
       p |> account_update_of_json |> Account_update.digest
+
+    let transaction_commitments (tx_json : Js.js_string Js.t) =
+      let tx =
+        Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
+      in
+      let commitment = Zkapp_command.commitment tx in
+      let fee_payer = Account_update.of_fee_payer tx.fee_payer in
+      let fee_payer_hash =
+        Zkapp_command.Digest.Account_update.create fee_payer
+      in
+      let full_commitment =
+        Zkapp_command.Transaction_commitment.create_complete commitment
+          ~memo_hash:(Mina_base.Signed_command_memo.hash tx.memo)
+          ~fee_payer_hash
+      in
+      object%js
+        val commitment = commitment
+
+        val fullCommitment = full_commitment
+
+        val feePayerHash = (fee_payer_hash :> Impl.field)
+      end
 
     let zkapp_public_input (tx_json : Js.js_string Js.t)
         (account_update_index : int) =
@@ -1640,6 +1582,13 @@ let test =
         method memoHashBase58 = Test.Encoding.memo_hash_base58
       end
 
+    val tokenId =
+      object%js
+        method derive = Test.Token_id.derive
+
+        method deriveChecked = Test.Token_id.derive_checked
+      end
+
     val signature =
       object%js
         method signFieldElement = Test.Signature.sign_field_element
@@ -1654,9 +1603,12 @@ let test =
 
     val hashFromJson =
       object%js
-        method accountUpdate = Test.Hash.account_update
+        method accountUpdate = Test.Hash_from_json.account_update
 
-        method zkappPublicInput = Test.Hash.zkapp_public_input
+        method transactionCommitments =
+          Test.Hash_from_json.transaction_commitments
+
+        method zkappPublicInput = Test.Hash_from_json.zkapp_public_input
       end
 
     val hashInputFromJson =
