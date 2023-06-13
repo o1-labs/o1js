@@ -1,199 +1,5 @@
 export default [
   {
-    name: 'Field',
-    props: [
-      {
-        name: 'one',
-        type: 'object',
-      },
-      {
-        name: 'zero',
-        type: 'object',
-      },
-      {
-        name: 'minusOne',
-        type: 'object',
-      },
-      {
-        name: 'ORDER',
-        type: 'bigint',
-      },
-      {
-        name: 'random',
-        type: 'function',
-      },
-      {
-        name: 'add',
-        type: 'function',
-      },
-      {
-        name: 'sub',
-        type: 'function',
-      },
-      {
-        name: 'mul',
-        type: 'function',
-      },
-      {
-        name: 'div',
-        type: 'function',
-      },
-      {
-        name: 'neg',
-        type: 'function',
-      },
-      {
-        name: 'inv',
-        type: 'function',
-      },
-      {
-        name: 'square',
-        type: 'function',
-      },
-      {
-        name: 'sqrt',
-        type: 'function',
-      },
-      {
-        name: 'toString',
-        type: 'function',
-      },
-      {
-        name: 'sizeInFields',
-        type: 'function',
-      },
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'fromFields',
-        type: 'function',
-      },
-      {
-        name: 'assertEqual',
-        type: 'function',
-      },
-      {
-        name: 'assertBool',
-        type: 'function',
-      },
-      {
-        name: 'assertBoolean',
-        type: 'function',
-      },
-      {
-        name: 'isZero',
-        type: 'function',
-      },
-      {
-        name: 'fromBits',
-        type: 'function',
-      },
-      {
-        name: 'toBits',
-        type: 'function',
-      },
-      {
-        name: 'equal',
-        type: 'function',
-      },
-      {
-        name: 'toJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromNumber',
-        type: 'function',
-      },
-      {
-        name: 'fromString',
-        type: 'function',
-      },
-      {
-        name: 'fromBigInt',
-        type: 'function',
-      },
-      {
-        name: 'check',
-        type: 'function',
-      },
-    ],
-  },
-  {
-    name: 'Bool',
-    props: [
-      {
-        name: 'true',
-        type: 'object',
-      },
-      {
-        name: 'false',
-        type: 'object',
-      },
-      {
-        name: 'toField',
-        type: 'function',
-      },
-      {
-        name: 'Unsafe',
-        type: 'object',
-      },
-      {
-        name: 'not',
-        type: 'function',
-      },
-      {
-        name: 'and',
-        type: 'function',
-      },
-      {
-        name: 'or',
-        type: 'function',
-      },
-      {
-        name: 'assertEqual',
-        type: 'function',
-      },
-      {
-        name: 'equal',
-        type: 'function',
-      },
-      {
-        name: 'count',
-        type: 'function',
-      },
-      {
-        name: 'sizeInFields',
-        type: 'function',
-      },
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'fromFields',
-        type: 'function',
-      },
-      {
-        name: 'check',
-        type: 'function',
-      },
-      {
-        name: 'toJSON',
-        type: 'function',
-      },
-      {
-        name: 'fromJSON',
-        type: 'function',
-      },
-    ],
-  },
-  {
     name: 'Snarky',
     props: [
       { name: 'exists', type: 'function' },
@@ -230,38 +36,9 @@ export default [
         name: 'circuit',
         type: 'object',
       },
-    ],
-  },
-  {
-    name: 'Poseidon',
-    props: [
       {
-        name: 'hash',
-        type: 'function',
-      },
-      {
-        name: 'update',
-        type: 'function',
-      },
-      {
-        name: 'prefixes',
+        name: 'poseidon',
         type: 'object',
-      },
-      {
-        name: 'spongeCreate',
-        type: 'function',
-      },
-      {
-        name: 'spongeAbsorb',
-        type: 'function',
-      },
-      {
-        name: 'spongeSqueeze',
-        type: 'function',
-      },
-      {
-        name: 'hashToGroup',
-        type: 'function',
       },
     ],
   },
@@ -289,26 +66,9 @@ export default [
         type: 'function',
       },
       {
-        name: 'zkappPublicInput',
-        type: 'function',
-      },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
-      {
-        name: 'fieldsOfJson',
-        type: 'function',
-      },
-      {
-        name: 'hashAccountUpdateFromJson',
-        type: 'function',
-      },
-      {
-        name: 'hashInputFromJson',
-        type: 'object',
-      },
-      { name: 'encoding', type: 'object' },
     ],
   },
   {
@@ -353,6 +113,18 @@ export default [
       },
       {
         name: 'signature',
+        type: 'object',
+      },
+      {
+        name: 'fieldsFromJson',
+        type: 'object',
+      },
+      {
+        name: 'hashFromJson',
+        type: 'object',
+      },
+      {
+        name: 'hashInputFromJson',
         type: 'object',
       },
       {
