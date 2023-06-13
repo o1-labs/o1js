@@ -142,6 +142,7 @@ function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
 }
 
 function accountUpdateHash(update: AccountUpdate) {
+  assertAuthorizationKindValid(update);
   let input = AccountUpdate.toInput(update);
   let fields = packToFields(input);
   return hashWithPrefix(prefixes.body, fields);
@@ -210,4 +211,17 @@ function isCallDepthValid(zkappCommand: ZkappCommand) {
     current = callDepth;
   }
   return true;
+}
+
+function assertAuthorizationKindValid(accountUpdate: AccountUpdate) {
+  let { isSigned, isProved, verificationKeyHash } =
+    accountUpdate.body.authorizationKind;
+  if (isProved && isSigned)
+    throw Error(
+      'Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.'
+    );
+  if (!isProved && verificationKeyHash !== 0n)
+    throw Error(
+      `Invalid authorization kind: If \`isProved\` is false, verification key hash must be 0, got ${verificationKeyHash}`
+    );
 }

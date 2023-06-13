@@ -1804,6 +1804,7 @@ const Authorization = {
     signature ??= {};
     accountUpdate.body.authorizationKind.isSigned = Bool(true);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
+    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
@@ -1861,6 +1862,7 @@ const Authorization = {
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
+    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },
