@@ -264,7 +264,24 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
+
+  foreignField: {
+    assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
+    add(
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+    mul(
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+  };
 };
+
+type ForeignFieldVar = unknown;
+type ForeignFieldConst = unknown;
 
 type JsonGate = {
   typ: string;
