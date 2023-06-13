@@ -49,15 +49,19 @@ function createNullifier(message: Field[], sk: PrivateKey): Nullifier {
   const s = Fq.add(r, Fq.mul(sk, c));
 
   return {
-    publicKey: pk,
+    publicKey: toString(pk),
     private: {
-      c,
-      g_r,
-      h_m_pk_r,
+      c: c.toString(),
+      g_r: toString(g_r),
+      h_m_pk_r: toString(h_m_pk_r),
     },
     public: {
-      nullifier,
+      nullifier: toString(nullifier),
       s: s.toString(),
     },
   };
+}
+
+function toString({ x, y }: Group): { x: string; y: string } {
+  return { x: x.toString(), y: y.toString() };
 }
