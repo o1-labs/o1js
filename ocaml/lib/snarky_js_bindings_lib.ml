@@ -175,7 +175,8 @@ module Snarky = struct
     (** p1 + p2; handles variables *)
     let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
 
-    let on_curve p = Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
+    let assert_on_curve p =
+      Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
 
     let scale p (scalar_bits : Boolean.var array) =
       Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
@@ -357,7 +358,7 @@ let snarky =
       object%js
         method add = Snarky.Group.add
 
-        method onCurve = Snarky.Group.on_curve
+        method assertOnCurve = Snarky.Group.assert_on_curve
 
         method scale = Snarky.Group.scale
 

@@ -25,11 +25,11 @@ export default [
         type: 'object',
       },
       {
-        name: 'group',
+        name: 'bool',
         type: 'object',
       },
       {
-        name: 'bool',
+        name: 'group',
         type: 'object',
       },
       {
