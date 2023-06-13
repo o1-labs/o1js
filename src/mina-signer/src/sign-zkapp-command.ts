@@ -23,6 +23,8 @@ export { signZkappCommand, verifyZkappCommandSignature };
 
 // internal API
 export {
+  transactionCommitments,
+  verifyAccountUpdateSignature,
   accountUpdatesToCallForest,
   callForestHash,
   accountUpdateHash,
@@ -88,6 +90,21 @@ function verifyZkappCommandSignature(
   return ok;
 }
 
+function verifyAccountUpdateSignature(
+  update: AccountUpdate,
+  transactionCommitments: { commitment: bigint; fullCommitment: bigint },
+  networkId: NetworkId
+) {
+  if (update.authorization.signature === undefined) return false;
+
+  let { publicKey, useFullCommitment } = update.body;
+  let { commitment, fullCommitment } = transactionCommitments;
+  let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+  let signature = Signature.fromBase58(update.authorization.signature);
+
+  return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
+}
+
 function transactionCommitments(zkappCommand: ZkappCommand) {
   if (!isCallDepthValid(zkappCommand)) {
     throw Error('zkapp command: invalid call depth');
@@ -125,6 +142,7 @@ function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
 }
 
 function accountUpdateHash(update: AccountUpdate) {
+  assertAuthorizationKindValid(update);
   let input = AccountUpdate.toInput(update);
   let fields = packToFields(input);
   return hashWithPrefix(prefixes.body, fields);
@@ -193,4 +211,17 @@ function isCallDepthValid(zkappCommand: ZkappCommand) {
     current = callDepth;
   }
   return true;
+}
+
+function assertAuthorizationKindValid(accountUpdate: AccountUpdate) {
+  let { isSigned, isProved, verificationKeyHash } =
+    accountUpdate.body.authorizationKind;
+  if (isProved && isSigned)
+    throw Error(
+      'Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.'
+    );
+  if (!isProved && verificationKeyHash !== 0n)
+    throw Error(
+      `Invalid authorization kind: If \`isProved\` is false, verification key hash must be 0, got ${verificationKeyHash}`
+    );
 }

@@ -1,4 +1,4 @@
-import { Ledger, shutdown, Test } from '../../snarky.js';
+import { Ledger, Test } from '../../snarky.js';
 import {
   Common,
   hashPayment,
@@ -92,7 +92,7 @@ test(
     let ocamlPaymentV1 = JSON.stringify(paymentToOcamlV1(payment));
     let ocamlBase58V1 = Test.transactionHash.serializePaymentV1(ocamlPaymentV1);
     let v1Bytes0 = stringToBytesOcaml(
-      Ledger.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
+      Test.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
     );
     let paymentV1Body = userCommandToV1(paymentFromJson(payment.data));
     let paymentV1 = {
@@ -112,7 +112,7 @@ test(
     let ocamlDelegationV1 = JSON.stringify(delegationToOcamlV1(delegation));
     ocamlBase58V1 = Test.transactionHash.serializePaymentV1(ocamlDelegationV1);
     v1Bytes0 = stringToBytesOcaml(
-      Ledger.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
+      Test.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
     );
     let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
     let delegationV1 = {
@@ -150,8 +150,6 @@ test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) => {
   // => make invalid signatures fail independently
   Signature.fromJSON(delegation.signature);
 });
-
-shutdown();
 
 function paymentToOcaml({
   data: {

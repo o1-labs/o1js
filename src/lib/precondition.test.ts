@@ -10,6 +10,7 @@ import {
   method,
   PublicKey,
   Bool,
+  Field,
 } from 'snarkyjs';
 
 class MyContract extends SmartContract {
@@ -185,8 +186,9 @@ describe('preconditions', () => {
   });
 
   it('unsatisfied assertEquals should be rejected (public key)', async () => {
+    let publicKey = PublicKey.from({ x: Field(-1), isOdd: Bool(false) });
     let tx = await Mina.transaction(feePayer, () => {
-      zkapp.account.delegate.assertEquals(PublicKey.empty());
+      zkapp.account.delegate.assertEquals(publicKey);
       AccountUpdate.attachToTransaction(zkapp.self);
     });
     await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
