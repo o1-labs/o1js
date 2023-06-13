@@ -97,12 +97,11 @@ function verifyAccountUpdateSignature(
 ) {
   if (update.authorization.signature === undefined) return false;
 
-  let publicKey = update.body.publicKey;
-  let { useFullCommitment } = update.body;
+  let { publicKey, useFullCommitment } = update.body;
   let { commitment, fullCommitment } = transactionCommitments;
   let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
-
   let signature = Signature.fromBase58(update.authorization.signature);
+
   return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
 }
 
