@@ -4,10 +4,12 @@ on:
     branches:
       - main
       - berkeley
+      - develop
   pull_request:
     branches:
       - main
       - berkeley
+      - develop
   workflow_dispatch: {}
 
 jobs:

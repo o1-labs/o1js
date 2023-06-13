@@ -3,6 +3,7 @@ import { Field, FieldConst, FieldType, FieldVar } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
+import { asProver } from './provable-context.js';
 
 export { BoolVar, Bool, isBool };
 
@@ -12,6 +13,17 @@ type BoolVar = FieldVar;
 type ConstantBoolVar = [FieldType.Constant, FieldConst];
 type ConstantBool = Bool & { value: ConstantBoolVar };
 
+/**
+ * A boolean value. You can use it like this:
+ *
+ * ```
+ * const x = new Bool(true);
+ * ```
+ *
+ * You can also combine multiple booleans via [[`not`]], [[`and`]], [[`or`]].
+ *
+ * Use [[assertEquals]] to enforce the value of a Bool.
+ */
 class Bool {
   value: BoolVar;
 
@@ -31,20 +43,16 @@ class Bool {
     return this.value[0] === FieldType.Constant;
   }
 
-  toBoolean(): boolean {
-    let value: FieldConst;
-    if (this.isConstant()) {
-      value = this.value[1];
-    } else {
-      value = Snarky.field.readVar(this.value);
-    }
-    return FieldConst.equal(value, FieldConst[1]);
-  }
-
+  /**
+   * Converts a {@link Bool} to a {@link Field}. `false` becomes 0 and `true` becomes 1.
+   */
   toField(): Field {
     return Bool.toField(this);
   }
 
+  /**
+   * @returns a new {@link Bool} that is the negation of this {@link Bool}.
+   */
   not(): Bool {
     if (this.isConstant()) {
       return new Bool(!this.toBoolean());
@@ -52,6 +60,11 @@ class Bool {
     return new Bool(Snarky.bool.not(this.value));
   }
 
+  /**
+   * @param y A {@link Bool} to AND with this {@link Bool}.
+   * @returns a new {@link Bool} that is set to true only if
+   * this {@link Bool} and `y` are also true.
+   */
   and(y: Bool | boolean): Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() && toBoolean(y));
@@ -59,6 +72,11 @@ class Bool {
     return new Bool(Snarky.bool.and(this.value, Bool.#toVar(y)));
   }
 
+  /**
+   * @param y a {@link Bool} to OR with this {@link Bool}.
+   * @returns a new {@link Bool} that is set to true if either
+   * this {@link Bool} or `y` is true.
+   */
   or(y: Bool | boolean): Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() || toBoolean(y));
@@ -66,6 +84,10 @@ class Bool {
     return new Bool(Snarky.bool.or(this.value, Bool.#toVar(y)));
   }
 
+  /**
+   * Proves that this {@link Bool} is equal to `y`.
+   * @param y a {@link Bool}.
+   */
   assertEquals(y: Bool | boolean, message?: string): void {
     try {
       if (this.isConstant() && isConstant(y)) {
@@ -80,6 +102,9 @@ class Bool {
     }
   }
 
+  /**
+   * Proves that this {@link Bool} is `true`.
+   */
   assertTrue(message?: string): void {
     try {
       if (this.isConstant() && !this.toBoolean()) {
@@ -91,6 +116,9 @@ class Bool {
     }
   }
 
+  /**
+   * Proves that this {@link Bool} is `false`.
+   */
   assertFalse(message?: string): void {
     try {
       if (this.isConstant() && this.toBoolean()) {
@@ -102,6 +130,10 @@ class Bool {
     }
   }
 
+  /**
+   * Returns true if this {@link Bool} is equal to `y`.
+   * @param y a {@link Bool}.
+   */
   equals(y: Bool | boolean): Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() === toBoolean(y));
@@ -109,35 +141,57 @@ class Bool {
     return new Bool(Snarky.bool.equals(this.value, Bool.#toVar(y)));
   }
 
+  /**
+   * Returns the size of this type.
+   */
   sizeInFields(): number {
     return 1;
   }
 
+  /**
+   * Serializes this {@link Bool} into {@link Field} elements.
+   */
   toFields(): Field[] {
     return Bool.toFields(this);
   }
 
+  /**
+   * Serialize the {@link Bool} to a string, e.g. for printing.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   toString(): string {
     return this.toBoolean().toString();
   }
 
+  /**
+   * Serialize the {@link Bool} to a JSON string.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   toJSON(): boolean {
     return this.toBoolean();
   }
 
-  static #isBool(x: boolean | Bool | BoolVar): x is Bool {
-    return x instanceof Bool;
-  }
-
-  static #toVar(x: boolean | Bool): BoolVar {
-    if (Bool.#isBool(x)) return x.value;
-    return FieldVar.constant(B(x));
+  /**
+   * This converts the {@link Bool} to a javascript [[boolean]].
+   * This can only be called on non-witness values.
+   */
+  toBoolean(): boolean {
+    let value: FieldConst;
+    if (this.isConstant()) {
+      value = this.value[1];
+    } else {
+      value = Snarky.field.readVar(this.value);
+    }
+    return FieldConst.equal(value, FieldConst[1]);
   }
 
   static toField(x: Bool | boolean): Field {
     return new Field(Bool.#toVar(x));
   }
 
+  /**
+   * Boolean negation.
+   */
   static not(x: Bool | boolean): Bool {
     if (Bool.#isBool(x)) {
       return x.not();
@@ -145,6 +199,9 @@ class Bool {
     return new Bool(!x);
   }
 
+  /**
+   * Boolean AND operation.
+   */
   static and(x: Bool | boolean, y: Bool | boolean): Bool {
     if (Bool.#isBool(x)) {
       return x.and(y);
@@ -152,6 +209,9 @@ class Bool {
     return new Bool(x).and(y);
   }
 
+  /**
+   * Boolean OR operation.
+   */
   static or(x: Bool | boolean, y: Bool | boolean): Bool {
     if (Bool.#isBool(x)) {
       return x.or(y);
@@ -159,6 +219,9 @@ class Bool {
     return new Bool(x).or(y);
   }
 
+  /**
+   * Asserts if both {@link Bool} are equal.
+   */
   static assertEqual(x: Bool, y: Bool | boolean): void {
     if (Bool.#isBool(x)) {
       x.assertEquals(y);
@@ -167,6 +230,9 @@ class Bool {
     new Bool(x).assertEquals(y);
   }
 
+  /**
+   * Checks two {@link Bool} for equality.
+   */
   static equal(x: Bool | boolean, y: Bool | boolean): Bool {
     if (Bool.#isBool(x)) {
       return x.equals(y);
@@ -174,14 +240,23 @@ class Bool {
     return new Bool(x).equals(y);
   }
 
+  /**
+   * Static method to serialize a {@link Bool} into an array of {@link Field} elements.
+   */
   static toFields(x: Bool): Field[] {
     return [Bool.toField(x)];
   }
 
+  /**
+   * Static method to serialize a {@link Bool} into its auxiliary data.
+   */
   static toAuxiliary(_?: Bool): [] {
     return [];
   }
 
+  /**
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
   static fromFields(fields: Field[]): Bool {
     if (fields.length !== 1) {
       throw Error(`Bool.fromFields(): expected 1 field, got ${fields.length}`);
@@ -189,12 +264,27 @@ class Bool {
     return new Bool(fields[0].value);
   }
 
+  /**
+   * Serialize a {@link Bool} to a JSON string.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static toJSON(x: Bool): boolean {
     return x.toBoolean();
   }
 
+  /**
+   * Deserialize a JSON structure into a {@link Bool}.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static fromJSON(b: boolean): Bool {
     return new Bool(b);
+  }
+
+  /**
+   * Returns the size of this type.
+   */
+  static sizeInFields() {
+    return 1;
   }
 
   static toInput(x: Bool): { packed: [Field, number][] } {
@@ -204,9 +294,11 @@ class Bool {
   static toBytes(b: Bool): number[] {
     return BoolBinable.toBytes(b);
   }
+
   static fromBytes(bytes: number[]): Bool {
     return BoolBinable.fromBytes(bytes);
   }
+
   static readBytes<N extends number>(
     bytes: number[],
     offset: NonNegativeInteger<N>
@@ -214,17 +306,8 @@ class Bool {
     return BoolBinable.readBytes(bytes, offset);
   }
 
-  static sizeInFields() {
-    return 1;
-  }
-
   static sizeInBytes() {
     return 1;
-  }
-
-  // TODO
-  static count(x: Bool | boolean[]): Field {
-    return new Field(0);
   }
 
   static check(x: Bool): void {
@@ -232,18 +315,32 @@ class Bool {
   }
 
   static Unsafe = {
-    ofField(x: Field | number | string | boolean): Bool {
-      if (typeof x === 'number') {
-        return new Bool(x === 1);
-      } else if (typeof x === 'string') {
-        return new Bool(x === '1');
-      } else if (typeof x === 'boolean') {
-        return new Bool(x);
-      } else {
-        return new Bool(x.value);
-      }
+    /**
+     * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
+     * as it assumes that the field element is either 0 or 1 (which might not be true).
+     *
+     * Only use this with constants or if you have already constrained the Field element to be 0 or 1.
+     *
+     * @param x a {@link Field}
+     */
+    ofField(x: Field) {
+      asProver(() => {
+        let x0 = x.toBigInt();
+        if (x0 !== 0n && x0 !== 1n)
+          throw Error(`Bool.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);
+      });
+      return new Bool(x.value);
     },
   };
+
+  static #isBool(x: boolean | Bool | BoolVar): x is Bool {
+    return x instanceof Bool;
+  }
+
+  static #toVar(x: boolean | Bool): BoolVar {
+    if (Bool.#isBool(x)) return x.value;
+    return FieldVar.constant(B(x));
+  }
 }
 
 const BoolBinable = defineBinable({

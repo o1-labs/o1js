@@ -1,6 +1,6 @@
 import { Field as InternalField } from './field.js';
-import { Group as InternalGroup } from './group.js';
 import { Bool as InternalBool } from './bool.js';
+import { Group as InternalGroup } from './group.js';
 import { Scalar } from './scalar.js';
 
 export { Field, Bool, Scalar, Group };
@@ -41,6 +41,17 @@ export { Field, Bool, Scalar, Group };
 const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
+/**
+ * A boolean value. You can use it like this:
+ *
+ * ```
+ * const x = new Bool(true);
+ * ```
+ *
+ * You can also combine multiple booleans via [[`not`]], [[`and`]], [[`or`]].
+ *
+ * Use [[assertEquals]] to enforce the value of a Bool.
+ */
 const Bool = toFunctionConstructor(InternalBool);
 type Bool = InternalBool;
 
