@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { isReady, Ledger, shutdown, Test, Pickles } from '../../snarky.js';
+import { Ledger, Test, Pickles } from '../../snarky.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
@@ -51,8 +51,6 @@ import { FieldConst } from '../../lib/field.js';
 let { parse, stringify } = JSON;
 const toJSON = (x: any) => parse(stringify(x));
 
-await isReady;
-
 // public key roundtrip & consistency w/ OCaml serialization
 test(Random.json.publicKey, (publicKeyBase58) => {
   let pkSnarky = PublicKeySnarky.fromBase58(publicKeyBase58);
@@ -71,7 +69,7 @@ expect(AccountUpdate.toJSON(dummy)).toEqual(
 
 let dummyInput = AccountUpdate.toInput(dummy);
 let dummyInputSnarky = MlHashInput.from(
-  Ledger.hashInputFromJson.body(
+  Test.hashInputFromJson.body(
     JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
   )
 );
@@ -192,7 +190,7 @@ test(
 
     let feePayerInput = AccountUpdate.toInput(feePayerAccountUpdate);
     let feePayerInput1 = MlHashInput.from(
-      Ledger.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
+      Test.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
     );
     expect(stringify(feePayerInput.fields)).toEqual(
       stringify(feePayerInput1.fields)
@@ -269,7 +267,6 @@ test(
 );
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
-shutdown();
 
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid

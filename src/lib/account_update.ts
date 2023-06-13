@@ -6,7 +6,7 @@ import {
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
-import { Ledger, Pickles } from '../snarky.js';
+import { Ledger, Pickles, Test } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -1094,7 +1094,7 @@ class AccountUpdate implements Types.AccountUpdate {
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
       let json = Types.AccountUpdate.toJSON(this);
-      return Field(Ledger.hashAccountUpdateFromJson(JSON.stringify(json)));
+      return Field(Test.hashFromJson.accountUpdate(JSON.stringify(json)));
     }
   }
 

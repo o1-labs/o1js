@@ -1,4 +1,4 @@
-import { Snarky, SnarkyField, Provable } from '../snarky.js';
+import { Snarky, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
@@ -10,8 +10,6 @@ export { Field };
 
 // internal API
 export { ConstantField, FieldType, FieldVar, FieldConst, isField, withMessage };
-
-const SnarkyFieldConstructor = SnarkyField(1).constructor;
 
 type FieldConst = Uint8Array;
 
@@ -155,7 +153,7 @@ class Field {
   static #isField(
     x: bigint | number | string | Field | FieldVar | FieldConst
   ): x is Field {
-    return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+    return x instanceof Field;
   }
   static #toConst(x: bigint | number | string | ConstantField): FieldConst {
     if (Field.#isField(x)) return x.value[1];
@@ -1232,7 +1230,7 @@ const FieldBinable = defineBinable({
 });
 
 function isField(x: unknown): x is Field {
-  return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+  return x instanceof Field;
 }
 
 function isConstant(

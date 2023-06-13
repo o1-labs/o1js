@@ -1,5 +1,3 @@
-import { defineBinable } from '../bindings/lib/binable.js';
-import { sizeInBits } from '../provable/field-bigint.js';
 import { Field as InternalField } from './field.js';
 import { Bool as InternalBool } from './bool.js';
 import { Group as InternalGroup } from './group.js';

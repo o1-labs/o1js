@@ -2,7 +2,6 @@ import {
   isReady,
   AccountUpdate,
   Types,
-  Ledger,
   Permissions,
   shutdown,
   ProvableExtended,
@@ -17,6 +16,9 @@ import { packToFields } from './hash.js';
 import { Random, test } from './testing/property.js';
 import { MlHashInput } from './ml/conversion.js';
 import { MlFieldConstArray } from './ml/fields.js';
+import { Test } from '../snarky.js';
+
+let { hashInputFromJson } = Test;
 
 await isReady;
 
@@ -51,22 +53,22 @@ test(Random.json.accountUpdate, (accountUpdateJson) => {
 
   // timing
   let timing = accountUpdate.body.update.timing.value;
-  testInput(Timing, Ledger.hashInputFromJson.timing, timing);
+  testInput(Timing, hashInputFromJson.timing, timing);
 
   // permissions
   let permissions = accountUpdate.body.update.permissions.value;
-  testInput(Permissions_, Ledger.hashInputFromJson.permissions, permissions);
+  testInput(Permissions_, hashInputFromJson.permissions, permissions);
 
   // update
   // TODO non ascii strings in zkapp uri and token symbol fail
   let update = accountUpdate.body.update;
-  testInput(Update, Ledger.hashInputFromJson.update, update);
+  testInput(Update, hashInputFromJson.update, update);
 
   // account precondition
   let account = accountUpdate.body.preconditions.account;
   testInput(
     AccountPrecondition,
-    Ledger.hashInputFromJson.accountPrecondition,
+    hashInputFromJson.accountPrecondition,
     account
   );
 
@@ -74,19 +76,19 @@ test(Random.json.accountUpdate, (accountUpdateJson) => {
   let network = accountUpdate.body.preconditions.network;
   testInput(
     NetworkPrecondition,
-    Ledger.hashInputFromJson.networkPrecondition,
+    hashInputFromJson.networkPrecondition,
     network
   );
 
   // body
   let body = accountUpdate.body;
-  testInput(Body, Ledger.hashInputFromJson.body, body);
+  testInput(Body, hashInputFromJson.body, body);
 
   // accountUpdate (should be same as body)
   testInput(
     Types.AccountUpdate,
     (accountUpdateJson) =>
-      Ledger.hashInputFromJson.body(
+      hashInputFromJson.body(
         JSON.stringify(JSON.parse(accountUpdateJson).body)
       ),
     accountUpdate
@@ -112,7 +114,7 @@ function testInput<T, TJson>(
   expect(JSON.stringify(input2)).toEqual(JSON.stringify(input1));
   // console.log('ok?', ok1);
   let fields1 = MlFieldConstArray.from(
-    Ledger.hashInputFromJson.packInput(MlHashInput.to(input1))
+    hashInputFromJson.packInput(MlHashInput.to(input1))
   );
   let fields2 = packToFields(input2);
   let ok2 = JSON.stringify(fields1) === JSON.stringify(fields2);

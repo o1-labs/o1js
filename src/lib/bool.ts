@@ -1,8 +1,9 @@
-import { Snarky, SnarkyBool } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Field, FieldConst, FieldType, FieldVar } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
+import { asProver } from './provable-context.js';
 
 export { BoolVar, Bool, isBool };
 
@@ -11,8 +12,6 @@ type BoolVar = FieldVar;
 
 type ConstantBoolVar = [FieldType.Constant, FieldConst];
 type ConstantBool = Bool & { value: ConstantBoolVar };
-
-const SnarkyBoolConstructor = SnarkyBool(true).constructor;
 
 /**
  * A boolean value. You can use it like this:
@@ -311,11 +310,6 @@ class Bool {
     return 1;
   }
 
-  // TODO
-  static count(x: Bool | boolean[]): Field {
-    return new Field(0);
-  }
-
   static check(x: Bool): void {
     Snarky.field.assertBoolean(x.value);
   }
@@ -323,25 +317,24 @@ class Bool {
   static Unsafe = {
     /**
      * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
-     * as it assumes that the field element is either 1 or 0
-     * (which might not be true).
+     * as it assumes that the field element is either 0 or 1 (which might not be true).
+     *
+     * Only use this with constants or if you have already constrained the Field element to be 0 or 1.
+     *
      * @param x a {@link Field}
      */
-    ofField(x: Field | number | string | boolean): Bool {
-      if (typeof x === 'number') {
-        return new Bool(x === 1);
-      } else if (typeof x === 'string') {
-        return new Bool(x === '1');
-      } else if (typeof x === 'boolean') {
-        return new Bool(x);
-      } else {
-        return new Bool(x.value);
-      }
+    ofField(x: Field) {
+      asProver(() => {
+        let x0 = x.toBigInt();
+        if (x0 !== 0n && x0 !== 1n)
+          throw Error(`Bool.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);
+      });
+      return new Bool(x.value);
     },
   };
 
   static #isBool(x: boolean | Bool | BoolVar): x is Bool {
-    return x instanceof Bool || (x as any) instanceof SnarkyBoolConstructor;
+    return x instanceof Bool;
   }
 
   static #toVar(x: boolean | Bool): BoolVar {
@@ -363,15 +356,12 @@ function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
   if (typeof x === 'boolean') {
     return true;
   }
-  // TODO: remove when we get rid of old Bool
-  if (x instanceof SnarkyBoolConstructor) {
-    return x.toField().isConstant();
-  }
+
   return x.isConstant();
 }
 
 function isBool(x: unknown) {
-  return x instanceof Bool || (x as any) instanceof SnarkyBoolConstructor;
+  return x instanceof Bool;
 }
 
 function toBoolean(x: boolean | Bool): boolean {

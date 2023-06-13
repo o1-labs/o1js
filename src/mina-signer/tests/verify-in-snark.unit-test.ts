@@ -1,4 +1,3 @@
-import { isReady } from '../../snarky.js';
 import { Field } from '../../lib/core.js';
 import { ZkProgram } from '../../lib/proof_system.js';
 import Client from '../MinaSigner.js';
@@ -18,7 +17,6 @@ let ok = client.verifyFields(signed);
 expect(ok).toEqual(true);
 
 // sign with snarkyjs and check that we get the same signature
-await isReady;
 let fieldsSnarky = fields.map(Field);
 let privateKeySnarky = PrivateKey.fromBase58(privateKey);
 let signatureSnarky = Signature.create(privateKeySnarky, fieldsSnarky);

@@ -379,7 +379,7 @@ function LocalBlockchain({
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
 
-  const ledger = Ledger.create([]);
+  const ledger = Ledger.create();
 
   let networkState = defaultNetworkState();
 
