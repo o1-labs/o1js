@@ -91,6 +91,15 @@ describe('group', () => {
           });
         }).not.toThrow();
       });
+
+      it('zero + zero = zero', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const zero = Provable.witness(Group, () => Group.zero);
+            zero.add(zero).assertEquals(zero);
+          });
+        }).not.toThrow();
+      });
     });
 
     describe('sub', () => {
@@ -122,6 +131,15 @@ describe('group', () => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             zero.sub(x).assertEquals(x.neg());
+          });
+        }).not.toThrow();
+      });
+
+      it('zero - zero = zero', () => {
+        expect(() => {
+          Provable.runAndCheck(() => {
+            const zero = Provable.witness(Group, () => Group.zero);
+            zero.sub(zero).assertEquals(zero);
           });
         }).not.toThrow();
       });
@@ -289,6 +307,13 @@ describe('group', () => {
           g.neg().add(g).assertEquals(zero);
         }).not.toThrow();
       });
+
+      it('zero + zero = zero', () => {
+        expect(() => {
+          const zero = Group.zero;
+          zero.add(zero).assertEquals(zero);
+        }).not.toThrow();
+      });
     });
 
     describe('sub', () => {
@@ -309,6 +334,13 @@ describe('group', () => {
         expect(() => {
           const zero = Group.zero;
           zero.sub(g).assertEquals(g.neg());
+        }).not.toThrow();
+      });
+
+      it('zero - zero = -zero', () => {
+        expect(() => {
+          const zero = Group.zero;
+          zero.sub(zero).assertEquals(zero);
         }).not.toThrow();
       });
     });

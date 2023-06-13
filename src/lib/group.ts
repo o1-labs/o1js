@@ -7,8 +7,6 @@ import { Provable } from './provable.js';
 
 export { Group };
 
-const checkFinite = true;
-
 /**
  * An element of a Group.
  */
@@ -57,7 +55,7 @@ class Group {
 
     if (this.#isConstant()) {
       // we also check the zero element (0, 0) here
-      if (this.x.equals(0).toBoolean()) return;
+      if (this.x.equals(0).and(this.y.equals(0)).toBoolean()) return;
 
       const { add, mul, square } = Fp;
 
@@ -77,8 +75,16 @@ class Group {
   }
 
   // helpers
-  static #fromAffine({ x, y }: { x: bigint; y: bigint; infinity: boolean }) {
-    return new Group({ x, y });
+  static #fromAffine({
+    x,
+    y,
+    infinity,
+  }: {
+    x: bigint;
+    y: bigint;
+    infinity: boolean;
+  }) {
+    return infinity ? Group.zero : new Group({ x, y });
   }
 
   static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
@@ -101,7 +107,10 @@ class Group {
     });
   }
 
-  #isZero() {
+  /**
+   * Checks if this element is the `zero` element `{x: 0, y: 0}`.
+   */
+  isZero() {
     // only the zero element can have x = 0, there are no other (valid) group elements with x = 0
     return this.x.equals(0);
   }
@@ -117,18 +126,13 @@ class Group {
   add(g: Group) {
     if (this.#isConstant() && g.#isConstant()) {
       // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
-      if (this.#isZero().toBoolean()) {
+      if (this.isZero().toBoolean()) {
         return g;
-      } else if (g.#isZero().toBoolean()) {
+      } else if (g.isZero().toBoolean()) {
         return this;
       } else {
         let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
-
-        // in the JS code, zero is denoted with (1, 1) - but here we want to convert it to (0, 0) (it saves constraints in the in-circuit implementation that way)
-        let isZero = g_proj.x === 1n && g_proj.y === 1n;
-        return isZero
-          ? new Group({ x: 0, y: 0 })
-          : Group.#fromProjective(g_proj);
+        return Group.#fromProjective(g_proj);
       }
     } else {
       const { x: x1, y: y1 } = this;
@@ -138,11 +142,9 @@ class Group {
 
       let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
 
-      let inf = checkFinite
-        ? zero
-        : Provable.witness(Field, () =>
-            x1.equals(x2).and(y1.equals(y2).not()).toField()
-          );
+      let inf = Provable.witness(Bool, () =>
+        x1.equals(x2).and(y1.equals(y2).not())
+      );
 
       let inf_z = Provable.witness(Field, () => {
         if (y1.equals(y2).toBoolean()) return zero;
@@ -174,7 +176,7 @@ class Group {
         Group.from(x1.seal(), y1.seal()).#toTuple(),
         Group.from(x2.seal(), y2.seal()).#toTuple(),
         Group.from(x3, y3).#toTuple(),
-        inf.value,
+        inf.toField().value,
         same_x.value,
         s.value,
         inf_z.value,
@@ -183,19 +185,17 @@ class Group {
 
       // similarly to the constant implementation, we check if either operand is zero
       // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
-      let gIsZero = g.#isZero();
-      let thisIsZero = this.#isZero();
+      let gIsZero = g.isZero();
+      let thisIsZero = this.isZero();
 
-      // if either one is the negation of the other, we just return the zero element since g + (-g) = 0 - but the OCaml implementation doesn't pick that up
-      let isNegation = g.neg().equals(this);
+      let isNewElement = gIsZero.or(thisIsZero).not().and(inf.not());
 
-      let isNewElement = gIsZero.or(thisIsZero).not().and(isNegation.not());
-
-      return Provable.switch(
-        [gIsZero, thisIsZero, isNewElement, isNegation],
-        Group,
-        [this, g, new Group({ x, y }), Group.zero]
-      );
+      return Provable.switch([gIsZero, thisIsZero, isNewElement, inf], Group, [
+        this,
+        g,
+        new Group({ x, y }),
+        Group.zero,
+      ]);
     }
   }
 
@@ -228,9 +228,7 @@ class Group {
 
     if (this.#isConstant() && scalar.isConstant()) {
       let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
-      // in the JS code, zero is denoted with (1, 1) - but here we want to convert it to (0, 0) (its less constraints that way)
-      let isZero = g_proj.x === 1n && g_proj.y === 1n;
-      return isZero ? new Group({ x: 0, y: 0 }) : Group.#fromProjective(g_proj);
+      return Group.#fromProjective(g_proj);
     } else {
       let [, ...bits] = scalar.value;
       bits.reverse();
@@ -449,7 +447,9 @@ class Group {
       let ax = x.mul(Pallas.a); // this will obviously be 0, but just for the sake of correctness
 
       // we also check the zero element (0, 0) here
-      g.#isZero().or(x3.add(ax).add(Pallas.b).equals(y.square())).assertTrue();
+      let isZero = x.equals(0).and(y.equals(0));
+
+      isZero.or(x3.add(ax).add(Pallas.b).equals(y.square())).assertTrue();
     } catch (error) {
       if (!(error instanceof Error)) return error;
       throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${
