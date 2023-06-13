@@ -11,6 +11,10 @@ import type {
   MlBytes,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
+import type {
+  MlForeignFieldVar,
+  MlForeignFieldConst,
+} from './lib/foreign-field.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
@@ -266,22 +270,19 @@ declare const Snarky: {
   };
 
   foreignField: {
-    assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
+    assertValidElement(x: MlForeignFieldVar, p: MlForeignFieldConst): void;
     add(
-      x: ForeignFieldVar,
-      y: ForeignFieldVar,
-      p: ForeignFieldConst
-    ): ForeignFieldVar;
+      x: MlForeignFieldVar,
+      y: MlForeignFieldVar,
+      p: MlForeignFieldConst
+    ): MlForeignFieldVar;
     mul(
-      x: ForeignFieldVar,
-      y: ForeignFieldVar,
-      p: ForeignFieldConst
-    ): ForeignFieldVar;
+      x: MlForeignFieldVar,
+      y: MlForeignFieldVar,
+      p: MlForeignFieldConst
+    ): MlForeignFieldVar;
   };
 };
-
-type ForeignFieldVar = unknown;
-type ForeignFieldConst = unknown;
 
 type JsonGate = {
   typ: string;
