@@ -309,6 +309,10 @@ module Snarky = struct
           let v0, v1, v2 = multi_range in
           Range_check.multi (module Impl) v0 v1 v2 )
 
+    let add_all_constraints _external_checks =
+      (* TODO *)
+      ()
+
     (* high-level API of self-contained methods which do all necessary checks *)
 
     let assert_valid_element (x : t) (p : t_const) : unit =
@@ -318,6 +322,12 @@ module Snarky = struct
 
     let add (x : t) (y : t) (p : t_const) : t =
       FF.add (module Impl) ~full:true x y p
+
+    let mul (x : t) (y : t) (p : t_const) : t =
+      let external_checks = FF.External_checks.create (module Impl) in
+      let z = FF.mul (module Impl) external_checks x y p in
+      add_all_constraints external_checks ;
+      z
   end
 end
 
@@ -425,10 +435,13 @@ let snarky =
       end
 
     val foreignField =
+      let open Snarky.Foreign_field in
       object%js
-        val add = Snarky.Foreign_field.add
+        val assertValidElement = assert_valid_element
 
-        val assertValidElement = Snarky.Foreign_field.assert_valid_element
+        val add = add
+
+        val mul = mul
       end
   end
 
