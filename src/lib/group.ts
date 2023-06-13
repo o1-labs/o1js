@@ -188,14 +188,26 @@ class Group {
       let gIsZero = g.isZero();
       let thisIsZero = this.isZero();
 
-      let isNewElement = gIsZero.or(thisIsZero).not().and(inf.not());
+      let bothZero = gIsZero.and(thisIsZero);
 
-      return Provable.switch([gIsZero, thisIsZero, isNewElement, inf], Group, [
-        this,
-        g,
-        new Group({ x, y }),
-        Group.zero,
-      ]);
+      let onlyGisZero = gIsZero.and(thisIsZero.not());
+      let onlyThisIsZero = thisIsZero.and(gIsZero.not());
+
+      let isNegation = inf;
+
+      let isNewElement = bothZero
+        .not()
+        .and(isNegation.not())
+        .and(onlyThisIsZero.not())
+        .and(onlyGisZero.not());
+
+      const zero_g = Group.zero;
+
+      return Provable.switch(
+        [bothZero, onlyGisZero, onlyThisIsZero, isNegation, isNewElement],
+        Group,
+        [zero_g, this, g, zero_g, new Group({ x, y })]
+      );
     }
   }
 
