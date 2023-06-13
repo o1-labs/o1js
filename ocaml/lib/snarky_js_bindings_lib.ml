@@ -294,6 +294,31 @@ module Snarky = struct
       | Unchecked s ->
           Poseidon_sponge.squeeze s |> Impl.Field.constant
   end
+
+  module Foreign_field = struct
+    module FF = Kimchi_gadgets.Foreign_field
+    module Range_check = Kimchi_gadgets.Range_check
+
+    type t = Impl.field FF.Element.Standard.t
+
+    type t_const = Impl.field FF.Element.Standard.limbs_type
+
+    let add_range_checks external_checks =
+      List.iter (FF.External_checks.multi_ranges external_checks)
+        ~f:(fun multi_range ->
+          let v0, v1, v2 = multi_range in
+          Range_check.multi (module Impl) v0 v1 v2 )
+
+    (* high-level API of self-contained methods which do all necessary checks *)
+
+    let assert_valid_element (x : t) (p : t_const) : unit =
+      let external_checks = FF.External_checks.create (module Impl) in
+      let _ = FF.valid_element (module Impl) external_checks x p in
+      add_range_checks external_checks
+
+    let add (x : t) (y : t) (p : t_const) : t =
+      FF.add (module Impl) ~full:true x y p
+  end
 end
 
 let snarky =
@@ -397,6 +422,13 @@ let snarky =
 
             method squeeze = Snarky.Poseidon.sponge_squeeze
           end
+      end
+
+    val foreignField =
+      object%js
+        val add = Snarky.Foreign_field.add
+
+        val assertValidElement = Snarky.Foreign_field.assert_valid_element
       end
   end
 
