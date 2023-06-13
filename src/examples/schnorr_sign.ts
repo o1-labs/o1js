@@ -30,11 +30,11 @@ export class Main extends Circuit {
   @circuitMain
   static main(w: Witness, @public_ newAcc: Group) {
     let H = new Group({ x: -1, y: 2 });
-    let r: Scalar = Circuit.witness(Scalar, () => w.r);
+    let r: Scalar = Provable.witness(Scalar, () => w.r);
     let mask = H.scale(r);
-    let prevAcc: Group = Circuit.witness(Group, () => w.acc);
+    let prevAcc: Group = Provable.witness(Group, () => w.acc);
     let pubKey = Group.generator; // TODO: some literal group element
-    let signature = Circuit.witness<Signature>(Signature, () => w.signature);
+    let signature = Provable.witness<Signature>(Signature, () => w.signature);
     //signature.verify(pubKey, [prevAcc.x, prevAcc.y, signature.r]).assertEquals(true);
     prevAcc.add(mask).assertEquals(newAcc);
   }

@@ -1,4 +1,3 @@
-import { Circuit, Field, isReady, shutdown } from '../snarky.js';
 import { provable, Struct } from './circuit_value.js';
 import { UInt32 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -7,8 +6,8 @@ import { method, SmartContract } from './zkapp.js';
 import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 import { State, state } from './state.js';
 import { AccountUpdate } from './account_update.js';
-
-await isReady;
+import { Provable } from './provable.js';
+import { Field } from './core.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },
@@ -61,14 +60,14 @@ let restored = type.fromFields(fields, aux);
 expect(JSON.stringify(restored)).toEqual(original);
 
 // check
-Circuit.runAndCheck(() => {
+Provable.runAndCheck(() => {
   type.check(value);
 });
 
 // should fail `check` if `check` of subfields doesn't pass
 expect(() =>
-  Circuit.runAndCheck(() => {
-    let x = Circuit.witness(type, () => ({
+  Provable.runAndCheck(() => {
+    let x = Provable.witness(type, () => ({
       ...value,
       uint: [
         UInt32.zero,
@@ -112,7 +111,7 @@ class MyContract extends SmartContract {
     if (value.other === targetString) gotTargetString = true;
     value.uint[0].assertEquals(UInt32.zero);
 
-    Circuit.asProver(() => {
+    Provable.asProver(() => {
       let err = 'wrong value in prover';
       if (tuple[1] !== targetString) throw Error(err);
 
@@ -154,5 +153,3 @@ await tx.prove();
 expect(gotTargetString).toEqual(true);
 
 console.log('provable types work as expected! 🎉');
-
-shutdown();

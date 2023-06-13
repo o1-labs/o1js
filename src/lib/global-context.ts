@@ -39,10 +39,34 @@ function create<C>(
       allowsNesting: options.allowsNesting ?? true,
       get: () => get(t),
       has: () => t.data.length !== 0,
-      runWith: <C0 extends C, R>(context: C0, func: (context: C0) => R) =>
-        runWith<any, R>(t, context, func),
-      runWithAsync: <R>(context: C, func: (context: C) => Promise<R>) =>
-        runWithAsync(t, context, func),
+      runWith<C0 extends C, Result>(
+        context: C0,
+        func: (context: C0) => Result
+      ): [C0, Result] {
+        let id = enter(t, context);
+        let result: Result;
+        let resultContext: C;
+        try {
+          result = func(context);
+        } finally {
+          resultContext = leave(t, id);
+        }
+        return [resultContext as C0, result];
+      },
+      async runWithAsync<Result>(
+        context: C,
+        func: (context: C) => Promise<Result>
+      ): Promise<[C, Result]> {
+        let id = enter(t, context);
+        let result: Result;
+        let resultContext: C;
+        try {
+          result = await func(context);
+        } finally {
+          resultContext = leave(t, id);
+        }
+        return [resultContext, result];
+      },
       enter: (context: C) => enter(t, context),
       leave: (id: Context.id) => leave(t, id),
       id: () => {
@@ -75,38 +99,6 @@ function get<C>(t: Context.t<C>): C {
   if (t.data.length === 0) throw Error(contextConflictMessage);
   let current = t.data[t.data.length - 1];
   return current.context;
-}
-
-function runWith<C, Result>(
-  t: Context.t<C>,
-  context: C,
-  func: (context: C) => Result
-): [C, Result] {
-  let id = enter(t, context);
-  let result: Result;
-  let resultContext: C;
-  try {
-    result = func(context);
-  } finally {
-    resultContext = leave(t, id);
-  }
-  return [resultContext, result];
-}
-
-async function runWithAsync<C, Result>(
-  t: Context.t<C>,
-  context: C,
-  func: (context: C) => Promise<Result>
-): Promise<[C, Result]> {
-  let id = enter(t, context);
-  let result: Result;
-  let resultContext: C;
-  try {
-    result = await func(context);
-  } finally {
-    resultContext = leave(t, id);
-  }
-  return [resultContext, result];
 }
 
 let contextConflictMessage =

@@ -1,5 +1,6 @@
-import { Group, Field, Scalar, Circuit } from '../snarky.js';
+import { Field, Scalar, Group } from './core.js';
 import { Poseidon } from './hash.js';
+import { Provable } from './provable.js';
 import { PrivateKey, PublicKey } from './signature.js';
 
 export { encrypt, decrypt };
@@ -14,7 +15,7 @@ type CipherText = {
  */
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
   // key exchange
-  let privateKey = Circuit.witness(Scalar, () => Scalar.random());
+  let privateKey = Provable.witness(Scalar, () => Scalar.random());
   let publicKey = Group.generator.scale(privateKey);
   let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
 

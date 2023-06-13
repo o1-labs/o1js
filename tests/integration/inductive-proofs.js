@@ -17,7 +17,7 @@ let MaxProofsVerifiedZero = Experimental.ZkProgram({
       privateInputs: [],
 
       method(publicInput) {
-        publicInput.assertEquals(Field.zero);
+        publicInput.assertEquals(Field(0));
       },
     },
   },
@@ -31,7 +31,7 @@ let MaxProofsVerifiedOne = Experimental.ZkProgram({
       privateInputs: [],
 
       method(publicInput) {
-        publicInput.assertEquals(Field.zero);
+        publicInput.assertEquals(Field(0));
       },
     },
 
@@ -54,7 +54,7 @@ let MaxProofsVerifiedTwo = Experimental.ZkProgram({
       privateInputs: [],
 
       method(publicInput) {
-        publicInput.assertEquals(Field.zero);
+        publicInput.assertEquals(Field(0));
       },
     },
 

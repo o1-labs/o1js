@@ -8,15 +8,12 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   Bool,
   PublicKey,
 } from 'snarkyjs';
 import { getProfiler } from './profiler.js';
 
 const doProofs = true;
-
-await isReady;
 
 const beforeGenesis = UInt64.from(Date.now());
 
@@ -25,8 +22,8 @@ class SimpleZkapp extends SmartContract {
 
   events = { update: Field, payout: UInt64, payoutReceiver: PublicKey };
 
-  @method init(zkappKey: PrivateKey) {
-    super.init(zkappKey);
+  @method init() {
+    super.init();
     this.x.set(initialState);
   }
 

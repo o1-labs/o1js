@@ -1,13 +1,13 @@
-import { Field, ProvablePure } from '../snarky.js';
-import { circuitArray, FlexibleProvablePure } from './circuit_value.js';
-import { Circuit } from './circuit.js';
+import { ProvablePure } from '../snarky.js';
+import { FlexibleProvablePure } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
 import { fetchAccount } from './fetch.js';
-import { inCheckedComputation, inProver } from './proof_system.js';
 import { SmartContract } from './zkapp.js';
 import { Account } from './mina/account.js';
+import { Provable } from './provable.js';
+import { Field } from '../lib/core.js';
 
 // external API
 export { State, state, declareState };
@@ -240,16 +240,16 @@ function createState<T>(): InternalStateType<T> {
         this._contract.cachedVariable !== undefined &&
         // `inCheckedComputation() === true` here always implies being inside a wrapped smart contract method,
         // which will ensure that the cache is cleaned up before & after each method run.
-        inCheckedComputation()
+        Provable.inCheckedComputation()
       ) {
         this._contract.wasRead = true;
         return this._contract.cachedVariable;
       }
       let layout = getLayoutPosition(this._contract);
       let contract = this._contract;
-      let inProver_ = inProver();
-      let stateFieldsType = circuitArray(Field, layout.length);
-      let stateAsFields = Circuit.witness(stateFieldsType, () => {
+      let inProver_ = Provable.inProver();
+      let stateFieldsType = Provable.Array(Field, layout.length);
+      let stateAsFields = Provable.witness(stateFieldsType, () => {
         let account: Account;
         try {
           account = Mina.getAccount(
@@ -282,7 +282,8 @@ function createState<T>(): InternalStateType<T> {
       });
 
       let state = this._contract.stateType.fromFields(stateAsFields);
-      if (inCheckedComputation()) this._contract.stateType.check?.(state);
+      if (Provable.inCheckedComputation())
+        this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
       return state;

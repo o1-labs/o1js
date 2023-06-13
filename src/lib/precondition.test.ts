@@ -10,6 +10,7 @@ import {
   method,
   PublicKey,
   Bool,
+  Field,
 } from 'snarkyjs';
 
 class MyContract extends SmartContract {
@@ -57,11 +58,7 @@ describe('preconditions', () => {
   });
 
   it('get without constraint should throw during compile', async () => {
-    let err = await MyContract.compile().catch((err) => err);
-    // TODO: err is an Array thrown from OCaml -.-
-    // which is also why expect(..).rejects.toThrow doesn't work
-    expect(err[2]).toBeInstanceOf(Error);
-    expect(err[2].message).toContain('precondition');
+    await expect(() => MyContract.compile()).rejects.toThrow('precondition');
   });
 
   it('get + assertEquals should not throw', async () => {
@@ -189,8 +186,9 @@ describe('preconditions', () => {
   });
 
   it('unsatisfied assertEquals should be rejected (public key)', async () => {
+    let publicKey = PublicKey.from({ x: Field(-1), isOdd: Bool(false) });
     let tx = await Mina.transaction(feePayer, () => {
-      zkapp.account.delegate.assertEquals(PublicKey.empty());
+      zkapp.account.delegate.assertEquals(publicKey);
       AccountUpdate.attachToTransaction(zkapp.self);
     });
     await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);

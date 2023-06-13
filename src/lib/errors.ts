@@ -1,105 +1,266 @@
-import { Types } from '../bindings/mina-transaction/types.js';
-import { TokenId } from './account_update.js';
-import { Int64 } from './int.js';
-
-export { invalidTransactionError, Bug, assert };
-
-const ErrorHandlers = {
-  Invalid_fee_excess({
-    transaction: { accountUpdates },
-    isFeePayer,
-    accountCreationFee,
-  }: ErrorHandlerArgs) {
-    // TODO: handle fee payer for Invalid_fee_excess?
-    if (isFeePayer) return;
-
-    let balances = accountUpdates.map(({ body }) => {
-      if (body.tokenId.equals(TokenId.default).toBoolean()) {
-        return Number(Int64.fromObject(body.balanceChange).toString()) * 1e-9;
-      }
-    });
-    let sum = balances.reduce((a = 0, b = 0) => a + b) ?? 0;
-    return `Invalid fee excess.
-This means that balance changes in your transaction do not sum up to the amount of fees needed.
-Here's the list of balance changes:
-
-${balances
-  .map((balance, i) => {
-    return `Account update #${i + 1}) ${
-      balance === undefined
-        ? 'not a MINA account'
-        : `${balance.toFixed(2)} MINA`
-    }`;
-  })
-  .join(`\n`)}
-
-Total change: ${sum.toFixed(2)} MINA
-
-If there are no new accounts created in your transaction, then this sum should be equal to 0.00 MINA.
-If you are creating new accounts -- by updating accounts that didn't exist yet --
-then keep in mind the ${(Number(accountCreationFee) * 1e-9).toFixed(
-      2
-    )} MINA account creation fee, and make sure that the sum equals
-${(-Number(accountCreationFee) * 1e-9).toFixed(
-  2
-)} times the number of newly created accounts.`;
-  },
+export {
+  CatchAndPrettifyStacktraceForAllMethods,
+  CatchAndPrettifyStacktrace,
+  prettifyStacktrace,
+  prettifyStacktracePromise,
+  assert,
 };
 
-type ErrorHandlerArgs = {
-  transaction: Types.ZkappCommand;
-  accountUpdateIndex: number;
-  isFeePayer: boolean;
-  accountCreationFee: string | number;
-};
+/**
+ * A class decorator that applies the CatchAndPrettifyStacktrace decorator function
+ * to all methods of the target class.
+ *
+ * @param constructor - The target class constructor.
+ */
+function CatchAndPrettifyStacktraceForAllMethods<
+  T extends { new (...args: any[]): {} }
+>(constructor: T) {
+  // Iterate through all properties (including methods) of the class prototype
+  for (const propertyName of Object.getOwnPropertyNames(
+    constructor.prototype
+  )) {
+    // Skip the constructor
+    if (propertyName === 'constructor') continue;
 
-function invalidTransactionError(
-  transaction: Types.ZkappCommand,
-  errors: string[][][],
-  additionalContext: { accountCreationFee: string | number }
-): string {
-  let errorMessages = [];
-  let rawErrors = JSON.stringify(errors);
+    // Get the property descriptor
+    const descriptor = Object.getOwnPropertyDescriptor(
+      constructor.prototype,
+      propertyName
+    );
 
-  // handle errors for fee payer
-  let errorsForFeePayer = errors[0];
-  for (let [error] of errorsForFeePayer) {
-    let message = ErrorHandlers[error as keyof typeof ErrorHandlers]?.({
-      transaction,
-      accountUpdateIndex: NaN,
-      isFeePayer: true,
-      ...additionalContext,
-    });
-    if (message) errorMessages.push(message);
-  }
+    // Check if the property is a method
+    if (descriptor && typeof descriptor.value === 'function') {
+      // Apply the CatchAndPrettifyStacktrace decorator to the method
+      CatchAndPrettifyStacktrace(
+        constructor.prototype,
+        propertyName,
+        descriptor
+      );
 
-  // handle errors for each account update
-  let n = transaction.accountUpdates.length;
-  for (let i = 0; i < n; i++) {
-    let errorsForUpdate = errors[i + 1];
-    for (let [error] of errorsForUpdate) {
-      let message = ErrorHandlers[error as keyof typeof ErrorHandlers]?.({
-        transaction,
-        accountUpdateIndex: i,
-        isFeePayer: false,
-        ...additionalContext,
-      });
-      if (message) errorMessages.push(message);
+      // Update the method descriptor
+      Object.defineProperty(constructor.prototype, propertyName, descriptor);
     }
   }
+  // do the same thing for static methods
+  for (let [propertyName, descriptor] of Object.entries(
+    Object.getOwnPropertyDescriptors(constructor)
+  )) {
+    if (descriptor && typeof descriptor.value === 'function') {
+      CatchAndPrettifyStacktrace(constructor, propertyName, descriptor);
+      Object.defineProperty(constructor, propertyName, descriptor);
+    }
+  }
+}
 
-  if (errorMessages.length > 1) {
-    return [
-      'There were multiple errors when applying your transaction:',
-      ...errorMessages.map((msg, i) => `${i + 1}.) ${msg}`),
-      `Raw list of errors: ${rawErrors}`,
-    ].join('\n\n');
+/**
+ * A decorator function that wraps the target method with error handling logic.
+ * It catches errors thrown by the method, prettifies the stack trace, and then
+ * rethrows the error with the updated stack trace.
+ *
+ * @param _target - The target object.
+ * @param _propertyName - The name of the property being decorated.
+ * @param descriptor - The property descriptor of the target method.
+ */
+function CatchAndPrettifyStacktrace(
+  _target: any,
+  _propertyName: string,
+  descriptor: PropertyDescriptor
+) {
+  const originalMethod = descriptor.value;
+  descriptor.value = function (...args: any[]) {
+    try {
+      const result = originalMethod.apply(this, args);
+      return handleResult(result);
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    }
+  };
+}
+
+/**
+ * Handles the result of a function call, wrapping a Promise with error handling logic
+ * that prettifies the stack trace before rethrowing the error. For non-Promise results,
+ * the function returns the result unchanged. This function is intended for internal usage
+ * and not exposed to users.
+ *
+ * @param result - The result of the function call, which can be a Promise or any other value.
+ * @returns A Promise with error handling logic for prettifying the stack trace, or the original result if it's not a Promise.
+ */
+function handleResult(result: any) {
+  if (result instanceof Promise) {
+    return result.catch((error: Error) => {
+      throw prettifyStacktrace(error);
+    });
   }
-  if (errorMessages.length === 1) {
-    return `${errorMessages[0]}\n\nRaw list of errors: ${rawErrors}`;
+  return result;
+}
+
+/**
+ * A list of keywords used to filter out unwanted lines from the error stack trace.
+ */
+const lineRemovalKeywords = [
+  'snarky_js_node.bc.cjs',
+  '/builtin/',
+  'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace (covers both class and method decorator)
+] as const;
+
+/**
+ * Prettifies the stack trace of an error by removing unwanted lines and trimming paths.
+ *
+ * @param error - The error object with a stack trace to prettify.
+ * @returns The same error with the prettified stack trace
+ */
+function prettifyStacktrace(error: unknown) {
+  error = unwrapMlException(error);
+  if (!(error instanceof Error) || !error.stack) return error;
+
+  const stacktrace = error.stack;
+  const stacktraceLines = stacktrace.split('\n');
+  const newStacktrace: string[] = [];
+
+  for (let i = 0; i < stacktraceLines.length; i++) {
+    const shouldRemoveLine = lineRemovalKeywords.some((lineToRemove) =>
+      stacktraceLines[i].includes(lineToRemove)
+    );
+    if (shouldRemoveLine) {
+      continue;
+    }
+    const trimmedLine = trimPaths(stacktraceLines[i]);
+    newStacktrace.push(trimmedLine);
   }
-  // fallback if we don't have a good error message yet
-  return rawErrors;
+  error.stack = newStacktrace.join('\n');
+  return error;
+}
+
+async function prettifyStacktracePromise<T>(result: Promise<T>): Promise<T> {
+  try {
+    return await result;
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  }
+}
+
+function unwrapMlException<E extends unknown>(error: E) {
+  if (error instanceof Error) return error;
+  // ocaml exception re-thrown from JS
+  if (Array.isArray(error) && error[2] instanceof Error) return error[2];
+  return error;
+}
+
+/**
+ * Trims paths in the stack trace line based on whether it includes 'snarkyjs' or 'opam'.
+ *
+ * @param stacktracePath - The stack trace line containing the path to trim.
+ * @returns The trimmed stack trace line.
+ */
+function trimPaths(stacktracePath: string) {
+  const includesSnarkyJS = stacktracePath.includes('snarkyjs');
+  if (includesSnarkyJS) {
+    return trimSnarkyJSPath(stacktracePath);
+  }
+
+  const includesOpam = stacktracePath.includes('opam');
+  if (includesOpam) {
+    return trimOpamPath(stacktracePath);
+  }
+
+  const includesWorkspace = stacktracePath.includes('workspace_root');
+  if (includesWorkspace) {
+    return trimWorkspacePath(stacktracePath);
+  }
+
+  return stacktracePath;
+}
+
+/**
+ * Trims the 'snarkyjs' portion of the stack trace line's path.
+ *
+ * @param stacktraceLine - The stack trace line containing the 'snarkyjs' path to trim.
+ * @returns The stack trace line with the trimmed 'snarkyjs' path.
+ */
+function trimSnarkyJSPath(stacktraceLine: string) {
+  const fullPath = getDirectoryPath(stacktraceLine);
+  if (!fullPath) {
+    return stacktraceLine;
+  }
+  const snarkyJSIndex = fullPath.indexOf('snarkyjs');
+  if (snarkyJSIndex === -1) {
+    return stacktraceLine;
+  }
+
+  // Grab the text before the parentheses as the prefix
+  const prefix = stacktraceLine.slice(0, stacktraceLine.indexOf('(') + 1);
+  // Grab the text including and after the snarkyjs path
+  const updatedPath = fullPath.slice(snarkyJSIndex);
+  return `${prefix}${updatedPath})`;
+}
+
+/**
+ * Trims the 'opam' portion of the stack trace line's path.
+ *
+ * @param stacktraceLine - The stack trace line containing the 'opam' path to trim.
+ * @returns The stack trace line with the trimmed 'opam' path.
+ */
+function trimOpamPath(stacktraceLine: string) {
+  const fullPath = getDirectoryPath(stacktraceLine);
+  if (!fullPath) {
+    return stacktraceLine;
+  }
+  const opamIndex = fullPath.indexOf('opam');
+  if (opamIndex === -1) {
+    return stacktraceLine;
+  }
+
+  const updatedPathArray = fullPath.slice(opamIndex).split('/');
+  const libIndex = updatedPathArray.lastIndexOf('lib');
+  if (libIndex === -1) {
+    return stacktraceLine;
+  }
+
+  // Grab the text before the parentheses as the prefix
+  const prefix = stacktraceLine.slice(0, stacktraceLine.indexOf('(') + 1);
+  // Grab the text including and after the opam path, removing the lib directory
+  const trimmedPath = updatedPathArray.slice(libIndex + 1);
+  // Add the ocaml directory to the beginning of the path
+  trimmedPath.unshift('ocaml');
+  return `${prefix}${trimmedPath.join('/')})`;
+}
+
+/**
+ * Trims the 'workspace_root' portion of the stack trace line's path.
+ *
+ * @param stacktraceLine - The stack trace line containing the 'workspace_root' path to trim.
+ * @returns The stack trace line with the trimmed 'workspace_root' path.
+ */
+function trimWorkspacePath(stacktraceLine: string) {
+  const fullPath = getDirectoryPath(stacktraceLine);
+  if (!fullPath) {
+    return stacktraceLine;
+  }
+  const workspaceIndex = fullPath.indexOf('workspace_root');
+  if (workspaceIndex === -1) {
+    return stacktraceLine;
+  }
+
+  const updatedPathArray = fullPath.slice(workspaceIndex).split('/');
+  const prefix = stacktraceLine.slice(0, stacktraceLine.indexOf('(') + 1);
+  const trimmedPath = updatedPathArray.slice(workspaceIndex);
+  return `${prefix}${trimmedPath.join('/')})`;
+}
+
+/**
+ * Extracts the directory path from a stack trace line.
+ *
+ * @param stacktraceLine - The stack trace line to extract the path from.
+ * @returns The extracted directory path or undefined if not found.
+ */
+function getDirectoryPath(stacktraceLine: string) {
+  // Regex to match the path inside the parentheses (e.g. (/home/../snarkyjs/../*.ts))
+  const fullPathRegex = /\(([^)]+)\)/;
+  const matchedPaths = stacktraceLine.match(fullPathRegex);
+  if (matchedPaths) {
+    return matchedPaths[1];
+  }
 }
 
 /**

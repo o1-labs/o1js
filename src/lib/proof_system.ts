@@ -4,15 +4,8 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import {
-  Bool,
-  Field,
-  ProvablePure,
-  Pickles,
-  Circuit,
-  Poseidon,
-  Provable,
-} from '../snarky.js';
+import { ProvablePure, Pickles } from '../snarky.js';
+import { Field, Bool } from './core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
@@ -21,7 +14,13 @@ import {
   provablePure,
   toConstant,
 } from './circuit_value.js';
-import { Context } from './global-context.js';
+import { Provable } from './provable.js';
+import { assert, prettifyStacktracePromise } from './errors.js';
+import { snarkContext } from './provable-context.js';
+import { hashConstant } from './hash.js';
+import { MlArray, MlTuple } from './ml/base.js';
+import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
+import { FieldConst, FieldVar } from './field.js';
 
 // public API
 export {
@@ -51,28 +50,9 @@ export {
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   isAsFields,
-  snarkContext,
   Prover,
-  inProver,
-  inCompile,
-  inAnalyze,
-  inCheckedComputation,
-  inCompileMode,
   dummyBase64Proof,
 };
-
-// global circuit-related context
-type SnarkContext = {
-  witnesses?: unknown[];
-  proverData?: any;
-  inProver?: boolean;
-  inCompile?: boolean;
-  inCheckedComputation?: boolean;
-  inAnalyze?: boolean;
-  inRunAndCheck?: boolean;
-  inWitnessBlock?: boolean;
-};
-let snarkContext = Context.create<SnarkContext>({ default: {} });
 
 type Undefined = undefined;
 const Undefined: ProvablePureExtended<undefined, null> =
@@ -159,28 +139,32 @@ async function verify(
   verificationKey: string
 ) {
   let picklesProof: Pickles.Proof;
-  let statement: Pickles.Statement;
+  let statement: Pickles.Statement<FieldConst>;
   if (typeof proof.proof === 'string') {
     // json proof
     [, picklesProof] = Pickles.proofOfBase64(
       proof.proof,
       proof.maxProofsVerified
     );
-    statement = {
-      input: (proof as JsonProof).publicInput.map(Field),
-      output: (proof as JsonProof).publicOutput.map(Field),
-    };
+    let input = MlFieldConstArray.to(
+      (proof as JsonProof).publicInput.map(Field)
+    );
+    let output = MlFieldConstArray.to(
+      (proof as JsonProof).publicOutput.map(Field)
+    );
+    statement = MlTuple(input, output);
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
-    statement = {
-      input: type.input.toFields(proof.publicInput),
-      output: type.output.toFields(proof.publicOutput),
-    };
+    let input = toFieldConsts(type.input, proof.publicInput);
+    let output = toFieldConsts(type.output, proof.publicOutput);
+    statement = MlTuple(input, output);
   }
-  return withThreadPool(() =>
-    Pickles.verify(statement, picklesProof, verificationKey)
+  return prettifyStacktracePromise(
+    withThreadPool(() =>
+      Pickles.verify(statement, picklesProof, verificationKey)
+    )
   );
 }
 
@@ -271,7 +255,7 @@ function ZkProgram<
     | {
         provers: Pickles.Prover[];
         verify: (
-          statement: Pickles.Statement,
+          statement: Pickles.Statement<FieldConst>,
           proof: Pickles.Proof
         ) => Promise<boolean>;
       }
@@ -304,15 +288,20 @@ function ZkProgram<
             `Try calling \`await program.compile()\` first, this will cache provers in the background.`
         );
       }
-      let publicInputFields = publicInputType.toFields(publicInput);
-      let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
+      let publicInputFields = toFieldConsts(publicInputType, publicInput);
+      let previousProofs = MlArray.to(
+        getPreviousProofsForProver(args, methodIntfs[i])
+      );
 
-      let [, { proof, publicOutput: publicOutputFields }] =
-        await snarkContext.runWithAsync(
-          { witnesses: args, inProver: true },
-          () => picklesProver!(publicInputFields, previousProofs)
-        );
-      let publicOutput = publicOutputType.fromFields(publicOutputFields);
+      let id = snarkContext.enter({ witnesses: args, inProver: true });
+      let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
+      try {
+        result = await picklesProver(publicInputFields, previousProofs);
+      } finally {
+        snarkContext.leave(id);
+      }
+      let [publicOutputFields, proof] = MlTuple.from(result);
+      let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
         static publicOutputType = publicOutputType;
@@ -347,10 +336,10 @@ function ZkProgram<
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
       );
     }
-    let statement = {
-      input: publicInputType.toFields(proof.publicInput),
-      output: publicOutputType.toFields(proof.publicOutput),
-    };
+    let statement = MlTuple(
+      toFieldConsts(publicInputType, proof.publicInput),
+      toFieldConsts(publicOutputType, proof.publicOutput)
+    );
     return compileOutput.verify(statement, proof.proof);
   }
 
@@ -358,9 +347,8 @@ function ZkProgram<
     let methodData = methodIntfs.map((methodEntry, i) =>
       analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
     );
-    let hash = Poseidon.hash(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
-      false
+    let hash = hashConstant(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
   }
@@ -526,36 +514,46 @@ async function compileProgram(
       methodEntry
     )
   );
-  let { verificationKey, provers, verify, tag } = await withThreadPool(
-    async () => {
-      let [, { getVerificationKeyArtifact, provers, verify, tag }] =
-        snarkContext.runWith({ inCompile: true }, () =>
-          Pickles.compile(rules, {
+  let { verificationKey, provers, verify, tag } =
+    await prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let result: ReturnType<typeof Pickles.compile>;
+        let id = snarkContext.enter({ inCompile: true });
+        try {
+          result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
-          })
-        );
-      CompiledTag.store(proofSystemTag, tag);
-      let verificationKey = getVerificationKeyArtifact();
-      return { verificationKey, provers, verify, tag };
-    }
-  );
+          });
+        } finally {
+          snarkContext.leave(id);
+        }
+        let { getVerificationKey, provers, verify, tag } = result;
+        CompiledTag.store(proofSystemTag, tag);
+        let [, data, hash] = getVerificationKey();
+        let verificationKey = { data, hash: Field(hash) };
+        return { verificationKey, provers: MlArray.from(provers), verify, tag };
+      })
+    );
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
       async function picklesProver(
-        publicInput: Field[],
-        previousProofs: Pickles.Proof[]
+        publicInput: MlFieldConstArray,
+        previousProofs: MlArray<Pickles.Proof>
       ) {
-        return withThreadPool(() => prover(publicInput, previousProofs));
+        return prettifyStacktracePromise(
+          withThreadPool(() => prover(publicInput, previousProofs))
+        );
       }
   );
   // wrap verify
   let wrappedVerify = async function picklesVerify(
-    statement: Pickles.Statement,
+    statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof
   ) {
-    return withThreadPool(() => verify(statement, proof));
+    return prettifyStacktracePromise(
+      withThreadPool(() => verify(statement, proof))
+    );
   };
   return {
     verificationKey,
@@ -570,7 +568,7 @@ function analyzeMethod<T>(
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
-  return Circuit.constraintSystem(() => {
+  return Provable.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
     if (publicInputType === Undefined || publicInputType === Void)
@@ -580,24 +578,25 @@ function analyzeMethod<T>(
 }
 
 function picklesRuleFromFunction(
-  publicInputType: ProvablePure<any>,
-  publicOutputType: ProvablePure<any>,
+  publicInputType: ProvablePure<unknown>,
+  publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
-  function main(publicInput: Field[]): ReturnType<Pickles.Rule['main']> {
-    let { witnesses: argsWithoutPublicInput } = snarkContext.get();
+  function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
+    let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
+    assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: Proof<any, any>[] = [];
-    let previousStatements: Pickles.Statement[] = [];
+    let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
-        finalArgs[i] = argsWithoutPublicInput
-          ? Circuit.witness(type, () => argsWithoutPublicInput?.[i])
-          : emptyWitness(type);
+        finalArgs[i] = Provable.witness(type, () => {
+          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+        });
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
         let type = getStatementType(Proof);
@@ -607,15 +606,14 @@ function picklesRuleFromFunction(
           publicOutput: emptyValue(type.output),
         };
         let { proof, publicInput, publicOutput } = proof_;
-        publicInput = Circuit.witness(type.input, () => publicInput);
-        publicOutput = Circuit.witness(type.output, () => publicOutput);
+        publicInput = Provable.witness(type.input, () => publicInput);
+        publicOutput = Provable.witness(type.output, () => publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
-        previousStatements.push({
-          input: type.input.toFields(publicInput),
-          output: type.output.toFields(publicOutput),
-        });
+        let input = toFieldVars(type.input, publicInput);
+        let output = toFieldVars(type.output, publicOutput);
+        previousStatements.push(MlTuple(input, output));
       } else if (arg.type === 'generic') {
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
@@ -624,15 +622,18 @@ function picklesRuleFromFunction(
     if (publicInputType === Undefined || publicInputType === Void) {
       result = func(...finalArgs);
     } else {
-      result = func(publicInputType.fromFields(publicInput), ...finalArgs);
+      let input = fromFieldVars(publicInputType, publicInput);
+      result = func(input, ...finalArgs);
     }
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
     return {
-      publicOutput,
-      previousStatements,
-      shouldVerify: proofs.map((proof) => proof.shouldVerify),
+      publicOutput: MlFieldArray.to(publicOutput),
+      previousStatements: MlArray.to(previousStatements),
+      shouldVerify: MlArray.to(
+        proofs.map((proof) => proof.shouldVerify.toField().value)
+      ),
     };
   }
 
@@ -656,7 +657,11 @@ function picklesRuleFromFunction(
       return { isSelf: false, tag: compiledTag };
     }
   });
-  return { identifier: methodName, main, proofsToVerify };
+  return {
+    identifier: methodName,
+    main,
+    proofsToVerify: MlArray.to(proofsToVerify),
+  };
 }
 
 function synthesizeMethodArguments(
@@ -745,7 +750,7 @@ function emptyValue<T>(type: Provable<T>) {
 
 function emptyWitness<T>(type: FlexibleProvable<T>): T;
 function emptyWitness<T>(type: Provable<T>) {
-  return Circuit.witness(type, () => emptyValue(type));
+  return Provable.witness(type, () => emptyValue(type));
 }
 
 function getStatementType<
@@ -766,6 +771,20 @@ function getStatementType<
     input: Proof.publicInputType as any,
     output: Proof.publicOutputType as any,
   };
+}
+
+function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
+  return type.fromFields(MlFieldArray.from(fields));
+}
+function toFieldVars<T>(type: ProvablePure<T>, value: T) {
+  return MlFieldArray.to(type.toFields(value));
+}
+
+function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
+  return type.fromFields(MlFieldConstArray.from(fields));
+}
+function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
+  return MlFieldConstArray.to(type.toFields(value));
 }
 
 ZkProgram.Proof = function <
@@ -798,33 +817,17 @@ function Prover<ProverData>() {
       proverData: ProverData,
       callback: () => Promise<Result>
     ) {
-      return snarkContext.runWithAsync(
-        { witnesses, proverData, inProver: true },
-        callback
-      );
+      let id = snarkContext.enter({ witnesses, proverData, inProver: true });
+      try {
+        return await callback();
+      } finally {
+        snarkContext.leave(id);
+      }
     },
     getData(): ProverData {
       return snarkContext.get().proverData;
     },
   };
-}
-
-function inProver() {
-  return !!snarkContext.get().inProver;
-}
-function inCompile() {
-  return !!snarkContext.get().inCompile;
-}
-function inAnalyze() {
-  return !!snarkContext.get().inAnalyze;
-}
-function inCheckedComputation() {
-  let ctx = snarkContext.get();
-  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
-}
-function inCompileMode() {
-  let ctx = snarkContext.get();
-  return !!ctx.inCompile || !!ctx.inAnalyze;
 }
 
 // helper types
@@ -883,6 +886,8 @@ type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : InferProvable<A>;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
+
+type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 
 /**
  * helper to get property type from an object, in place of `T[Key]`

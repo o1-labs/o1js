@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field } from '../snarky.js';
+import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -339,7 +339,7 @@ function getCachedNetwork(graphqlEndpoint = networkConfig.minaEndpoint) {
 function getCachedActions(
   publicKey: PublicKey,
   tokenId: Field,
-  graphqlEndpoint = networkConfig.minaEndpoint
+  graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
   return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.actions;
@@ -1086,7 +1086,17 @@ async function checkResponseStatus(
         undefined,
         {
           statusCode: response.status,
-          statusText: jsonResponse.errors,
+          statusText: jsonResponse.errors
+            .map((error: any) => error.message)
+            .join('\n'),
+        } as FetchError,
+      ];
+    } else if (jsonResponse.data === undefined) {
+      return [
+        undefined,
+        {
+          statusCode: response.status,
+          statusText: `GraphQL response data is undefined`,
         } as FetchError,
       ];
     }

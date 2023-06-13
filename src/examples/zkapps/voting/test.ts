@@ -300,10 +300,10 @@ export async function testSet(
       }
     }
 
-    if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 3) {
+    if (sequenceOverflowSet.voterContract.reducer.getActions().length < 3) {
       throw Error(
         `Did not emit expected actions! Only emitted ${
-          sequenceOverflowSet.voterContract.reducer.getActions({}).length
+          sequenceOverflowSet.voterContract.reducer.getActions().length
         }`
       );
     }
@@ -387,7 +387,7 @@ export async function testSet(
       feePayer
     );
 
-    if (voterContract.reducer.getActions({}).length !== 1) {
+    if (voterContract.reducer.getActions().length !== 1) {
       throw Error(
         'Should have emitted 1 event after registering only one valid voter'
       );
@@ -468,10 +468,10 @@ export async function testSet(
         voting.voterRegistration(newVoter1);
       },
       feePayer,
-      'assert_equal'
+      'Member already exists!'
     );
 
-    if (voterContract.reducer.getActions({}).length !== 1) {
+    if (voterContract.reducer.getActions().length !== 1) {
       throw Error(
         'Should have emitted 1 event after registering only one valid voter'
       );
@@ -540,8 +540,8 @@ export async function testSet(
       feePayer
     );
 
-    let numberOfEvents = candidateContract.reducer.getActions({}).length;
-    if (candidateContract.reducer.getActions({}).length !== 2) {
+    let numberOfEvents = candidateContract.reducer.getActions().length;
+    if (candidateContract.reducer.getActions().length !== 2) {
       throw Error(
         `Should have emitted 2 event after registering 2 candidates. ${numberOfEvents} emitted`
       );
@@ -636,10 +636,8 @@ export async function testSet(
     );
     Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
 
-    let previousEventsVoter = voterContract.reducer.getActions({}).length;
-    let previousEventsCandidate = candidateContract.reducer.getActions(
-      {}
-    ).length;
+    let previousEventsVoter = voterContract.reducer.getActions().length;
+    let previousEventsCandidate = candidateContract.reducer.getActions().length;
 
     let lateCandidate = Member.from(
       PrivateKey.random().toPublicKey(),
@@ -654,7 +652,7 @@ export async function testSet(
         voting.candidateRegistration(lateCandidate);
       },
       feePayer,
-      'assert_equal'
+      'Outside of election period!'
     );
 
     console.log(
@@ -674,15 +672,14 @@ export async function testSet(
         voting.voterRegistration(lateVoter);
       },
       feePayer,
-      'assert_equal'
+      'Outside of election period!'
     );
 
-    if (previousEventsVoter !== voterContract.reducer.getActions({}).length) {
+    if (previousEventsVoter !== voterContract.reducer.getActions().length) {
       throw Error('events emitted but should not have been');
     }
     if (
-      previousEventsCandidate !==
-      candidateContract.reducer.getActions({}).length
+      previousEventsCandidate !== candidateContract.reducer.getActions().length
     ) {
       throw Error('events emitted but should not have been');
     }
@@ -784,7 +781,7 @@ export async function testSet(
 
     vote(0n, votesStore, candidatesStore);
 
-    numberOfEvents = voting.reducer.getActions({}).length;
+    numberOfEvents = voting.reducer.getActions().length;
     if (numberOfEvents !== 1) {
       throw Error('Should have emitted 1 event after voting for a candidate');
     }
@@ -825,7 +822,7 @@ export async function testSet(
         voting.vote(fakeCandidate, votersStore.get(0n)!);
       },
       feePayer,
-      'assert_equal'
+      'Member is not a candidate!'
     );
 
     console.log('unregistered voter attempting to vote');
@@ -842,7 +839,7 @@ export async function testSet(
         voting.vote(fakeVoter, votersStore.get(0n)!);
       },
       feePayer,
-      'assert_equal'
+      'Member is not a candidate!'
     );
 
     console.log('attempting to vote for voter...');
@@ -854,7 +851,7 @@ export async function testSet(
         voting.vote(voter, votersStore.get(0n)!);
       },
       feePayer,
-      'assert_equal'
+      'Member is not a candidate!'
     );
 
     /*
@@ -934,7 +931,7 @@ export async function testSet(
         voting.voterRegistration(voter);
       },
       feePayer,
-      'assert_equal'
+      'Outside of election period!'
     );
 
     console.log('attempting to register candidate after election has ended');
@@ -951,7 +948,7 @@ export async function testSet(
         voting.candidateRegistration(candidate);
       },
       feePayer,
-      'assert_equal'
+      'Outside of election period!'
     );
   }
 
