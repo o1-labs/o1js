@@ -1,7 +1,13 @@
 import { Snarky } from '../snarky.js';
 import { mod, inverse } from '../bindings/crypto/finite_field.js';
 import { Tuple } from '../bindings/lib/binable.js';
-import { Field, FieldConst, FieldVar, withMessage } from './field.js';
+import {
+  Field,
+  FieldConst,
+  FieldVar,
+  checkBitLength,
+  withMessage,
+} from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 
@@ -27,6 +33,8 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
   if (p <= 0) {
     throw Error(`ForeignField: expected modulus to be positive, got ${p}`);
   }
+
+  let sizeInBits = p.toString(2).length;
 
   class ForeignField {
     static modulus = p;
@@ -156,6 +164,35 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
         return new Bool(this.toBigInt() === toFp(y));
       }
       return Provable.equal(ForeignField, this, ForeignField.from(y));
+    }
+
+    // bit packing
+
+    toBits(length = sizeInBits) {
+      checkBitLength('ForeignField.toBits()', length, sizeInBits);
+      let [l0, l1, l2] = this.toFields();
+      let limbSize = Number(limbBits);
+      let xBits = l0.toBits(Math.min(length, limbSize));
+      length -= limbSize;
+      if (length <= 0) return xBits;
+      let yBits = l1.toBits(Math.min(length, limbSize));
+      length -= limbSize;
+      if (length <= 0) return [...xBits, ...yBits];
+      let zBits = l2.toBits(Math.min(length, limbSize));
+      return [...xBits, ...yBits, ...zBits];
+    }
+
+    static fromBits(bits: Bool[]) {
+      let length = bits.length;
+      checkBitLength('ForeignField.fromBits()', length, sizeInBits);
+      let limbSize = Number(limbBits);
+      let l0 = Field.fromBits(bits.slice(0 * limbSize, 1 * limbSize));
+      let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
+      let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
+      let x = ForeignField.fromFields([l0, l1, l2]);
+      // TODO: this is inefficient, l0, l1 are already range-checked
+      if (length === sizeInBits) x.assertValidElement();
+      return x;
     }
 
     // Provable<ForeignField>
