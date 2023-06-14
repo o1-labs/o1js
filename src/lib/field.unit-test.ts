@@ -55,6 +55,22 @@ test(Random.field, Random.int(-5, 5), (x, k) => {
   deepEqual(Field(x + BigInt(k) * Field.ORDER), Field(x));
 });
 
+// AND with some common and odd lengths
+[2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
+  test(Random.field, Random.field, (x_, y_, assert) => {
+    let x = x_ % BigInt(length);
+    let y = y_ % BigInt(length);
+    let r1 = Fp.and(x, y);
+
+    Provable.runAndCheck(() => {
+      let x_witness = Provable.witness(Field, () => Field(x));
+      let y_witness = Provable.witness(Field, () => Field(y));
+      let r2 = x_witness.and(y_witness, length);
+      Provable.asProver(() => assert(r1 === r2.toBigInt()));
+    });
+  });
+});
+
 // special generator
 let SmallField = Random.reject(
   Random.field,
