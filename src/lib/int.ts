@@ -203,6 +203,24 @@ class UInt64 extends CircuitValue {
   }
 
   /**
+   * Bitwise AND gate on {@link UInt64}. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * An AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   *
+   * @example
+   * ```ts
+   * let a = UInt64(5);    // ... 000101
+   * let b = UInt64(3);    // ... 000011
+   *
+   * let c = a.and(b);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(y: UInt64) {
+    return new UInt64(this.value.and(y.value, UInt64.NUM_BITS));
+  }
+
+  /**
    * @deprecated Use {@link lessThanOrEqual} instead.
    *
    * Checks if a {@link UInt64} is less than or equal to another one.
