@@ -540,10 +540,10 @@ class Field {
       let y_ = toFp(y);
       let thisBigint = this.toBigInt();
       if (y_ > 2 ** length - 1 || thisBigint > 2 ** length - 1) {
-        throw Error(`${y} and ${thisBigint} need to fit into ${length} bit.`);
+        throw Error(`${y} and ${thisBigint} need to fit into ${length} bits.`);
       }
 
-      return new Field(y_ ^ thisBigint);
+      return new Field(Fp.xor(thisBigint, y_));
     } else {
       return new Field(Snarky.field.xor(this.value, Field.#toVar(y), length));
     }
@@ -564,7 +564,11 @@ class Field {
    * @param direction (true) left or (false) right rotation direction.
    */
   rot64(bits: number, direction: boolean = true) {
-    return new Field(Snarky.field.rot64(this.value, bits, direction));
+    if (this.isConstant()) {
+      return new Field(Fp.rot64(this.toBigInt(), bits, direction));
+    } else {
+      return new Field(Snarky.field.rot64(this.value, bits, direction));
+    }
   }
 
   /**

@@ -34,6 +34,39 @@ test(Random.field, Random.json.field, (x, y, assert) => {
   assert(z.toJSON() === y);
 });
 
+// rotation
+test(
+  Random.uint64,
+  Random.nat(64),
+  Random.boolean,
+  (x, n, direction, assert) => {
+    let z = Field(x);
+
+    let r1 = Fp.rot64(BigInt(x), n, direction);
+
+    Provable.runAndCheck(() => {
+      let r2 = Provable.witness(Field, () => z).rot64(n, direction);
+      Provable.asProver(() => assert(r1 === r2.toBigInt()));
+    });
+  }
+);
+
+// XOR with some common and odd lengths
+[2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
+  test(Random.field, Random.field, (x_, y_, assert) => {
+    let x = x_ % BigInt(length);
+    let y = y_ % BigInt(length);
+    let z = Field(x);
+
+    let r1 = Fp.xor(BigInt(x), BigInt(y));
+
+    Provable.runAndCheck(() => {
+      let r2 = Provable.witness(Field, () => z).xor(y, length);
+      Provable.asProver(() => assert(r1 === r2.toBigInt()));
+    });
+  });
+});
+
 // handles small numbers
 test(Random.nat(1000), (n, assert) => {
   assert(Field(n).toString() === String(n));
