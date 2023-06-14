@@ -4,7 +4,7 @@ import { ForeignField, createForeignField, limbBits } from './foreign-field.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
 import { createEquivalenceTesters, throwError } from './testing/equivalent.js';
-import { Random } from './testing/random.js';
+import { test, Random } from './testing/property.js';
 
 let ForeignScalar = createForeignField(Fq.modulus);
 
@@ -18,6 +18,12 @@ let scalar = new ForeignScalar(s0);
 
 expect(scalar.value).toEqual([0, FieldVar[1], FieldVar[1], FieldVar[1]]);
 expect(scalar.toBigInt()).toEqual(s0);
+
+test(Random.scalar, (x0, assert) => {
+  let x = new ForeignScalar(x0);
+  assert(x.toBigInt() === x0);
+  assert(x.isConstant());
+});
 
 // test equivalence of in-SNARK and out-of-SNARK operations
 
