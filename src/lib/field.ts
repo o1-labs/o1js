@@ -538,7 +538,6 @@ class Field {
    * c.assertEquals(1);
    * ```
    */
-
   and(
     y: Field | bigint | number | string,
     length: number = Fp.sizeInBits
