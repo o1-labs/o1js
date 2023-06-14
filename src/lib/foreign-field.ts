@@ -1,14 +1,15 @@
 import { Snarky } from '../snarky.js';
 import { mod, inverse } from '../bindings/crypto/finite_field.js';
 import { Tuple } from '../bindings/lib/binable.js';
-import { Field, FieldConst, FieldVar } from './field.js';
+import { Field, FieldConst, FieldVar, withMessage } from './field.js';
 import { Provable } from './provable.js';
+import { Bool } from './bool.js';
 
 // external API
 export { createForeignField, ForeignField };
 
 // internal API
-export { ForeignFieldVar, ForeignFieldConst };
+export { ForeignFieldVar, ForeignFieldConst, limbBits };
 
 const limbBits = 88n;
 
@@ -128,9 +129,33 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       // check that x * z === 1
       // TODO: range checks added by `mul` on `one` are unnecessary, since we already assert that `one` equals 1
       let one = Snarky.foreignField.mul(this.value, z.value, pMl);
-      Provable.assertEqual(new ForeignField(one), new ForeignField(1));
+      new ForeignField(one).assertEquals(new ForeignField(1));
 
       return z;
+    }
+
+    // convenience methods
+
+    assertEquals(y: ForeignField | bigint | number, message?: string) {
+      try {
+        if (this.isConstant() && isConstant(y)) {
+          let x = this.toBigInt();
+          let y0 = toFp(y);
+          if (x !== y0) {
+            throw Error(`ForeignField.assertEquals(): ${x} != ${y0}`);
+          }
+        }
+        return Provable.assertEqual(ForeignField, this, ForeignField.from(y));
+      } catch (err) {
+        throw withMessage(err, message);
+      }
+    }
+
+    equals(y: ForeignField | bigint | number) {
+      if (this.isConstant() && isConstant(y)) {
+        return new Bool(this.toBigInt() === toFp(y));
+      }
+      return Provable.equal(ForeignField, this, ForeignField.from(y));
     }
 
     // Provable<ForeignField>
