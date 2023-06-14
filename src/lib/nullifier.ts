@@ -1,14 +1,9 @@
-import {
-  Poseidon,
-  PublicKey,
-  Field,
-  Group,
-  Struct,
-  MerkleMapWitness,
-  Scalar,
-} from 'snarkyjs';
 import type { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
-import { scaleShifted } from './signature.js';
+import { Struct } from './circuit_value.js';
+import { Field, Group, Scalar } from './core.js';
+import { Poseidon } from './hash.js';
+import { MerkleMapWitness } from './merkle_map.js';
+import { PublicKey, scaleShifted } from './signature.js';
 
 export { Nullifier };
 
