@@ -28,6 +28,7 @@ export {
   BinableInt64,
   BinableUint32,
   BinableUint64,
+  Tuple,
 };
 
 type Binable<T> = {
@@ -190,8 +191,8 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
   return defineBinable({
     toBytes(en) {
       let i = typeToIndex[en.type];
-      let type = types[i];
-      if ('value' in type) {
+      let type: { type: string; value?: Binable<any> } = types[i];
+      if (type.value !== undefined) {
         let binable = type.value;
         return [i, ...binable.toBytes((en as any).value)];
       }
