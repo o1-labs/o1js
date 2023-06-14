@@ -1,6 +1,13 @@
 import { Types } from '../bindings/mina-transaction/types.js';
-import { Gate, Pickles, ProvablePure } from '../snarky.js';
-import { Field, Bool } from './core.js';
+import {
+  Bool,
+  Gate,
+  Ledger,
+  Pickles,
+  Poseidon as Poseidon_,
+  ProvablePure,
+} from '../snarky.js';
+import { Field } from './core.js';
 import {
   AccountUpdate,
   AccountUpdatesLayout,
@@ -10,6 +17,7 @@ import {
   Permissions,
   Actions,
   SetOrKeep,
+  signJsonTransaction,
   smartContractContext,
   TokenId,
   ZkappCommand,
@@ -26,9 +34,10 @@ import {
   Struct,
   toConstant,
 } from './circuit_value.js';
+import { Circuit } from './circuit.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
-import { Poseidon, hashConstant } from './hash.js';
+import { Poseidon } from './hash.js';
 import { UInt32, UInt64 } from './int.js';
 import * as Mina from './mina.js';
 import {
@@ -63,6 +72,7 @@ export {
   SmartContract,
   method,
   DeployArgs,
+  signFeePayer,
   declareMethods,
   Callback,
   Account,
@@ -423,7 +433,7 @@ function wrapMethod(
           result,
           constantBlindingValue
         );
-        accountUpdate.body.callData = hashConstant(callDataFields);
+        accountUpdate.body.callData = Poseidon_.hash(callDataFields, false);
 
         if (!Authorization.hasAny(accountUpdate)) {
           Authorization.setLazyProof(
@@ -707,8 +717,9 @@ class SmartContract {
   static digest() {
     // TODO: this should use the method digests in a deterministic order!
     let methodData = this.analyzeMethods();
-    let hash = hashConstant(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
+    let hash = Poseidon_.hash(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
+      false
     );
     return hash.toBigInt().toString(16);
   }
@@ -732,12 +743,10 @@ class SmartContract {
     zkappKey?: PrivateKey;
   } = {}) {
     let accountUpdate = this.newSelf();
-    verificationKey ??= (this.constructor as typeof SmartContract)
-      ._verificationKey;
+    verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey === undefined) {
       if (!Mina.getProofsEnabled()) {
-        let [, data, hash] = Pickles.dummyVerificationKey();
-        verificationKey = { data, hash: Field(hash) };
+        verificationKey = Pickles.dummyVerificationKey();
       } else {
         throw Error(
           `\`${this.constructor.name}.deploy()\` was called but no verification key was found.\n` +
@@ -746,7 +755,7 @@ class SmartContract {
       }
     }
     let { hash: hash_, data } = verificationKey;
-    let hash = Field.from(hash_);
+    let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
     accountUpdate.account.verificationKey.set({ hash, data });
     accountUpdate.account.permissions.set(Permissions.default());
     accountUpdate.sign(zkappKey);
@@ -1516,6 +1525,31 @@ function Account(address: PublicKey, tokenId?: Field) {
   } else {
     return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
   }
+}
+
+function signFeePayer(
+  transactionJson: string,
+  feePayerKey: PrivateKey | string,
+  {
+    transactionFee = 0 as number | string,
+    feePayerNonce = undefined as number | string | undefined,
+    memo: feePayerMemo = undefined as string | undefined,
+  }
+) {
+  let zkappCommand: Types.Json.ZkappCommand = JSON.parse(transactionJson);
+  if (typeof feePayerKey === 'string')
+    feePayerKey = PrivateKey.fromBase58(feePayerKey);
+  let senderAddress = feePayerKey.toPublicKey();
+  if (feePayerNonce === undefined) {
+    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
+    feePayerNonce = senderAccount.nonce.toString();
+  }
+  if (feePayerMemo) zkappCommand.memo = Ledger.memoToBase58(feePayerMemo);
+  zkappCommand.feePayer.body.nonce = `${feePayerNonce}`;
+  zkappCommand.feePayer.body.publicKey =
+    Ledger.publicKeyToString(senderAddress);
+  zkappCommand.feePayer.body.fee = `${transactionFee}`;
+  return signJsonTransaction(JSON.stringify(zkappCommand), feePayerKey);
 }
 
 // alternative API which can replace decorators, works in pure JS

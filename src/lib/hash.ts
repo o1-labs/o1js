@@ -1,9 +1,8 @@
 import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
-import { Snarky } from '../snarky.js';
+import { Poseidon as Poseidon_ } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
-import { MlFieldArray } from './ml/fields.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -12,12 +11,12 @@ export { Poseidon, TokenSymbol };
 export {
   HashInput,
   Hash,
+  prefixes,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
   packToFields,
   emptyReceiptChainHash,
-  hashConstant,
 };
 
 class Sponge {
@@ -25,15 +24,15 @@ class Sponge {
 
   constructor() {
     let isChecked = Provable.inCheckedComputation();
-    this.sponge = Snarky.poseidon.sponge.create(isChecked);
+    this.sponge = Poseidon_.spongeCreate(isChecked);
   }
 
   absorb(x: Field) {
-    Snarky.poseidon.sponge.absorb(this.sponge, x.value);
+    Poseidon_.spongeAbsorb(this.sponge, x);
   }
 
-  squeeze(): Field {
-    return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
+  squeeze() {
+    return Poseidon_.spongeSqueeze(this.sponge);
   }
 }
 
@@ -41,21 +40,14 @@ const Poseidon = {
   hash(input: Field[]) {
     let isChecked = !input.every((x) => x.isConstant());
     // this is the same:
-    // return Snarky.poseidon.update(this.initialState, input, isChecked)[0];
-    let digest = Snarky.poseidon.hash(MlFieldArray.to(input), isChecked);
-    return Field(digest);
+    // return Poseidon_.update(this.initialState, input, isChecked)[0];
+    return Poseidon_.hash(input, isChecked);
   },
 
   hashToGroup(input: Field[]) {
     let isChecked = !input.every((x) => x.isConstant());
     // y = sqrt(y^2)
-    let [, xv, yv] = Snarky.poseidon.hashToGroup(
-      MlFieldArray.to(input),
-      isChecked
-    );
-
-    let x = Field(xv);
-    let y = Field(yv);
+    let { x, y } = Poseidon_.hashToGroup(input, isChecked);
 
     let x0 = Provable.witness(Field, () => {
       // the even root of y^2 will become x0, so the APIs are uniform
@@ -78,12 +70,7 @@ const Poseidon = {
     let isChecked = !(
       state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())
     );
-    let newState = Snarky.poseidon.update(
-      MlFieldArray.to(state),
-      MlFieldArray.to(input),
-      isChecked
-    );
-    return MlFieldArray.from(newState) as [Field, Field, Field];
+    return Poseidon_.update(state, input, isChecked);
   },
 
   initialState(): [Field, Field, Field] {
@@ -93,13 +80,17 @@ const Poseidon = {
   Sponge,
 };
 
-function hashConstant(input: Field[]) {
-  let digest = Snarky.poseidon.hash(MlFieldArray.to(input), false);
-  return Field(digest);
-}
-
 const Hash = createHashHelpers(Field, Poseidon);
 let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
+
+const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
+  // hack bc Poseidon_.prefixes is not available at start-up
+  get(_target, prop) {
+    return Poseidon_.prefixes[
+      prop as keyof typeof Poseidon_.prefixes
+    ] as string;
+  },
+});
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {

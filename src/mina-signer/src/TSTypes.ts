@@ -4,8 +4,6 @@ import type { SignatureJson } from './signature.js';
 export type UInt32 = number | bigint | string;
 export type UInt64 = number | bigint | string;
 
-export type Field = number | bigint | string;
-
 export type PublicKey = string;
 export type PrivateKey = string;
 export type Signature = SignatureJson;
@@ -70,21 +68,3 @@ export type Signed<T> = {
 };
 
 export type SignedAny = SignedLegacy<SignableData> | Signed<ZkappCommand>;
-
-export type Group = {
-  x: Field;
-  y: Field;
-};
-
-export type Nullifier = {
-  publicKey: Group;
-  public: {
-    nullifier: Group;
-    s: Field;
-  };
-  private: {
-    c: Field;
-    g_r: Group;
-    h_m_pk_r: Group;
-  };
-};

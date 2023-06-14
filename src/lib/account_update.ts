@@ -3,17 +3,12 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
-  Struct,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
-import { Ledger, Pickles, Test } from '../snarky.js';
+import { Ledger, Pickles } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
-import {
-  Types,
-  TypesBigint,
-  toJSONEssential,
-} from '../bindings/mina-transaction/types.js';
+import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -30,11 +25,6 @@ import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
-import { Ml } from './ml/conversion.js';
-import { MlArray } from './ml/base.js';
-import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
-import { MlFieldConstArray } from './ml/fields.js';
-import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -50,6 +40,7 @@ export {
   ZkappCommand,
   addMissingSignatures,
   addMissingProofs,
+  signJsonTransaction,
   ZkappStateLength,
   Events,
   Actions,
@@ -60,7 +51,6 @@ export {
   AccountUpdatesLayout,
   zkAppProver,
   SmartContractContext,
-  dummySignature,
 };
 
 const ZkappStateLength = 8;
@@ -74,12 +64,11 @@ let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,
 });
 
-type ZkappProverData = {
+let zkAppProver = Prover<{
   transaction: ZkappCommand;
   accountUpdate: AccountUpdate;
   index: number;
-};
-let zkAppProver = Prover<ZkappProverData>();
+}>();
 
 type AuthRequired = Types.Json.AuthRequired;
 
@@ -604,20 +593,18 @@ type LazyProof = {
   blindingValue: Field;
 };
 
-const AccountId = provable(
-  { tokenOwner: PublicKey, parentTokenId: Field },
-  { customObjectKeys: ['tokenOwner', 'parentTokenId'] }
-);
-
 const TokenId = {
   ...Types.TokenId,
   ...Base58TokenId,
   get default() {
     return Field(1);
   },
-  derive(tokenOwner: PublicKey, parentTokenId = Field(1)): Field {
-    let input = AccountId.toInput({ tokenOwner, parentTokenId });
-    return hashWithPrefix(prefixes.deriveTokenId, packToFields(input));
+  derive(tokenOwner: PublicKey, parentTokenId = Field(1)) {
+    if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
+      return Ledger.customTokenId(tokenOwner, parentTokenId);
+    } else {
+      return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
+    }
   },
 };
 
@@ -1010,7 +997,7 @@ class AccountUpdate implements Types.AccountUpdate {
     privateKey?: PrivateKey
   ) {
     feePayer.body.nonce = this.getNonce(feePayer);
-    feePayer.authorization = dummySignature();
+    feePayer.authorization = Ledger.dummySignature();
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
@@ -1078,7 +1065,7 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 
-  hash(): Field {
+  hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
     // TODO: there's no reason anymore to use two different hashing methods here!
     // -- the "inCheckedComputation" branch works in all circumstances now
@@ -1091,7 +1078,7 @@ class AccountUpdate implements Types.AccountUpdate {
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
       let json = Types.AccountUpdate.toJSON(this);
-      return Field(Test.hashFromJson.accountUpdate(JSON.stringify(json)));
+      return Ledger.hashAccountUpdateFromJson(JSON.stringify(json));
     }
   }
 
@@ -1115,14 +1102,14 @@ class AccountUpdate implements Types.AccountUpdate {
     let body = FeePayerBody.keepAll(address, nonce);
     return {
       body,
-      authorization: dummySignature(),
+      authorization: Ledger.dummySignature(),
       lazyAuthorization: { kind: 'lazy-signature' },
     };
   }
 
   static dummyFeePayer(): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
-    return { body, authorization: dummySignature() };
+    return { body, authorization: Ledger.dummySignature() };
   }
 
   /**
@@ -1771,13 +1758,9 @@ const ZkappCommand = {
     return { feePayer, accountUpdates, memo };
   },
   toJSON({ feePayer, accountUpdates, memo }: ZkappCommand) {
-    memo = Memo.toBase58(Memo.fromString(memo));
+    memo = Ledger.memoToBase58(memo);
     return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
   },
-};
-
-type AccountUpdateProved = AccountUpdate & {
-  lazyAuthorization?: LazySignature;
 };
 
 const Authorization = {
@@ -1792,10 +1775,9 @@ const Authorization = {
     accountUpdate.authorization = { signature };
     accountUpdate.lazyAuthorization = undefined;
   },
-  setProof(accountUpdate: AccountUpdate, proof: string): AccountUpdateProved {
+  setProof(accountUpdate: AccountUpdate, proof: string) {
     accountUpdate.authorization = { proof };
     accountUpdate.lazyAuthorization = undefined;
-    return accountUpdate as AccountUpdateProved;
   },
   setLazySignature(
     accountUpdate: AccountUpdate,
@@ -1804,7 +1786,6 @@ const Authorization = {
     signature ??= {};
     accountUpdate.body.authorizationKind.isSigned = Bool(true);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
@@ -1862,7 +1843,6 @@ const Authorization = {
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },
@@ -1873,10 +1853,9 @@ function addMissingSignatures(
   additionalKeys = [] as PrivateKey[]
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
-  let { commitment, fullCommitment } = transactionCommitments(
-    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand))
+  let { commitment, fullCommitment } = Ledger.transactionCommitments(
+    JSON.stringify(ZkappCommand.toJSON(zkappCommand))
   );
-
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =
       cloneCircuitValue(accountUpdate);
@@ -1891,16 +1870,12 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        return { body, authorization: dummySignature() };
+        return { body, authorization: Ledger.dummySignature() }
       }
       privateKey = additionalKeys[i];
     }
-    let signature = signFieldElement(
-      fullCommitment,
-      privateKey.toBigInt(),
-      'testnet'
-    );
-    return { body, authorization: Signature.toBase58(signature) };
+    let signature = Ledger.signFieldElement(fullCommitment, privateKey, false);
+    return { body, authorization: signature };
   }
 
   function addSignature(accountUpdate: AccountUpdate) {
@@ -1918,22 +1893,20 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        Authorization.setSignature(accountUpdate, dummySignature());
-        return accountUpdate as AccountUpdate & {
-          lazyAuthorization: undefined;
-        };
+        Authorization.setSignature(accountUpdate, Ledger.dummySignature());
+        return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
       }
       privateKey = additionalKeys[i];
     }
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;
-    let signature = signFieldElement(
+    let signature = Ledger.signFieldElement(
       transactionCommitment,
-      privateKey.toBigInt(),
-      'testnet'
+      privateKey,
+      false
     );
-    Authorization.setSignature(accountUpdate, Signature.toBase58(signature));
+    Authorization.setSignature(accountUpdate, signature);
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
   }
   let { feePayer, accountUpdates, memo } = zkappCommand;
@@ -1942,10 +1915,6 @@ function addMissingSignatures(
     accountUpdates: accountUpdates.map(addSignature),
     memo,
   };
-}
-
-function dummySignature() {
-  return Signature.toBase58(Signature.dummy());
 }
 
 /**
@@ -1978,17 +1947,93 @@ async function addMissingProofs(
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
 }> {
+  type AccountUpdateProved = AccountUpdate & {
+    lazyAuthorization?: LazySignature;
+  };
+
+  async function addProof(index: number, accountUpdate: AccountUpdate) {
+    accountUpdate = AccountUpdate.clone(accountUpdate);
+
+    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
+      return {
+        accountUpdateProved: accountUpdate as AccountUpdateProved,
+        proof: undefined,
+      };
+    }
+    if (!proofsEnabled) {
+      Authorization.setProof(accountUpdate, await dummyBase64Proof());
+      return {
+        accountUpdateProved: accountUpdate as AccountUpdateProved,
+        proof: undefined,
+      };
+    }
+    let {
+      methodName,
+      args,
+      previousProofs,
+      ZkappClass,
+      memoized,
+      blindingValue,
+    } = accountUpdate.lazyAuthorization;
+    let publicInput = accountUpdate.toPublicInput();
+    let publicInputFields = ZkappPublicInput.toFields(publicInput);
+    if (ZkappClass._provers === undefined)
+      throw Error(
+        `Cannot prove execution of ${methodName}(), no prover found. ` +
+          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+      );
+    let provers = ZkappClass._provers;
+    let methodError =
+      `Error when computing proofs: Method ${methodName} not found. ` +
+      `Make sure your environment supports decorators, and annotate with \`@method ${methodName}\`.`;
+    if (ZkappClass._methods === undefined) throw Error(methodError);
+    let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
+    if (i === -1) throw Error(methodError);
+    let { proof } = await zkAppProver.run(
+      [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+      { transaction: zkappCommand, accountUpdate, index },
+      async () => {
+        let id = memoizationContext.enter({
+          memoized,
+          currentIndex: 0,
+          blindingValue,
+        });
+        try {
+          return await provers[i](publicInputFields, previousProofs);
+        } catch (err) {
+          console.error(
+            `Error when proving ${ZkappClass.name}.${methodName}()`
+          );
+          throw err;
+        } finally {
+          memoizationContext.leave(id);
+        }
+      }
+    );
+    Authorization.setProof(
+      accountUpdate,
+      Pickles.proofToBase64Transaction(proof)
+    );
+    let maxProofsVerified = ZkappClass._maxProofsVerified!;
+    const Proof = ZkappClass.Proof();
+    return {
+      accountUpdateProved: accountUpdate as AccountUpdateProved,
+      proof: new Proof({
+        publicInput,
+        publicOutput: undefined,
+        proof,
+        maxProofsVerified,
+      }),
+    };
+  }
+
   let { feePayer, accountUpdates, memo } = zkappCommand;
   // compute proofs serially. in parallel would clash with our global variable
   // hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput, Empty> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
-    let { accountUpdateProved, proof } = await addProof(
-      zkappCommand,
-      i,
-      proofsEnabled
-    );
+    let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);
     proofs.push(proof);
   }
@@ -1998,99 +2043,39 @@ async function addMissingProofs(
   };
 }
 
-async function addProof(
-  transaction: ZkappCommand,
-  index: number,
-  proofsEnabled: boolean
+/**
+ * Sign all accountUpdates of a transaction which belong to the account
+ * determined by [[ `privateKey` ]].
+ * @returns the modified transaction JSON
+ */
+function signJsonTransaction(
+  transactionJson: string,
+  privateKey: PrivateKey | string
 ) {
-  let accountUpdate = transaction.accountUpdates[index];
-  accountUpdate = AccountUpdate.clone(accountUpdate);
-
-  if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
-    return {
-      accountUpdateProved: accountUpdate as AccountUpdateProved,
-      proof: undefined,
-    };
-  }
-  if (!proofsEnabled) {
-    Authorization.setProof(accountUpdate, await dummyBase64Proof());
-    return {
-      accountUpdateProved: accountUpdate as AccountUpdateProved,
-      proof: undefined,
-    };
-  }
-
-  let lazyProof: LazyProof = accountUpdate.lazyAuthorization;
-  let prover = getZkappProver(lazyProof);
-  let proverData = { transaction, accountUpdate, index };
-  let proof = await createZkappProof(prover, lazyProof, proverData);
-
-  let accountUpdateProved = Authorization.setProof(
-    accountUpdate,
-    Pickles.proofToBase64Transaction(proof.proof)
-  );
-  return { accountUpdateProved, proof };
-}
-
-async function createZkappProof(
-  prover: Pickles.Prover,
-  {
-    methodName,
-    args,
-    previousProofs,
-    ZkappClass,
-    memoized,
-    blindingValue,
-  }: LazyProof,
-  { transaction, accountUpdate, index }: ZkappProverData
-): Promise<Proof<ZkappPublicInput, Empty>> {
-  let publicInput = accountUpdate.toPublicInput();
-  let publicInputFields = MlFieldConstArray.to(
-    ZkappPublicInput.toFields(publicInput)
-  );
-
-  let [, , proof] = await zkAppProver.run(
-    [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
-    { transaction, accountUpdate, index },
-    async () => {
-      let id = memoizationContext.enter({
-        memoized,
-        currentIndex: 0,
-        blindingValue,
-      });
-      try {
-        return await prover(publicInputFields, MlArray.to(previousProofs));
-      } catch (err) {
-        console.error(`Error when proving ${ZkappClass.name}.${methodName}()`);
-        throw err;
-      } finally {
-        memoizationContext.leave(id);
-      }
-    }
-  );
-
-  let maxProofsVerified = ZkappClass._maxProofsVerified!;
-  const Proof = ZkappClass.Proof();
-  return new Proof({
-    publicInput,
-    publicOutput: undefined,
-    proof,
-    maxProofsVerified,
-  });
-}
-
-function getZkappProver({ methodName, ZkappClass }: LazyProof) {
-  if (ZkappClass._provers === undefined)
-    throw Error(
-      `Cannot prove execution of ${methodName}(), no prover found. ` +
-        `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+  if (typeof privateKey === 'string')
+    privateKey = PrivateKey.fromBase58(privateKey);
+  let publicKey = privateKey.toPublicKey().toBase58();
+  let zkappCommand: Types.Json.ZkappCommand = JSON.parse(transactionJson);
+  let feePayer = zkappCommand.feePayer;
+  if (feePayer.body.publicKey === publicKey) {
+    zkappCommand = JSON.parse(
+      Ledger.signFeePayer(JSON.stringify(zkappCommand), privateKey)
     );
-  let provers = ZkappClass._provers;
-  let methodError =
-    `Error when computing proofs: Method ${methodName} not found. ` +
-    `Make sure your environment supports decorators, and annotate with \`@method ${methodName}\`.`;
-  if (ZkappClass._methods === undefined) throw Error(methodError);
-  let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
-  if (i === -1) throw Error(methodError);
-  return provers[i];
+  }
+  for (let i = 0; i < zkappCommand.accountUpdates.length; i++) {
+    let accountUpdate = zkappCommand.accountUpdates[i];
+    if (
+      accountUpdate.body.publicKey === publicKey &&
+      accountUpdate.authorization.proof === null
+    ) {
+      zkappCommand = JSON.parse(
+        Ledger.signOtherAccountUpdate(
+          JSON.stringify(zkappCommand),
+          privateKey,
+          i
+        )
+      );
+    }
+  }
+  return JSON.stringify(zkappCommand);
 }

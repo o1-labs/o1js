@@ -1,4 +1,5 @@
 import {
+  Ledger,
   isReady,
   method,
   Mina,
@@ -13,7 +14,6 @@ import {
   Permissions,
   DeployArgs,
   VerificationKey,
-  TokenId,
 } from 'snarkyjs';
 
 await isReady;
@@ -177,7 +177,7 @@ await tx.prove();
 await tx.send();
 
 console.log(
-  `zkAppC's balance for tokenId: ${TokenId.toBase58(tokenId)}`,
+  `zkAppC's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,
   Mina.getBalance(zkAppCAddress, tokenId).value.toBigInt()
 );
 
@@ -198,7 +198,7 @@ await tx.prove();
 await tx.send();
 
 console.log(
-  `tokenAccount1's balance for tokenId: ${TokenId.toBase58(tokenId)}`,
+  `tokenAccount1's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,
   Mina.getBalance(tokenAccount1, tokenId).value.toBigInt()
 );
 

@@ -1,4 +1,5 @@
 import { Circuit, circuitMain } from './circuit.js';
+import { isReady, shutdown } from '../snarky.js';
 import { UInt64, UInt32 } from './int.js';
 import { expect } from 'expect';
 import { Provable } from './provable.js';
@@ -13,6 +14,8 @@ class Primitives extends Circuit {
     x32.div(4).assertEquals(UInt32.from(3));
   }
 }
+
+await isReady;
 
 let keypair = await Primitives.generateKeypair();
 let proof = await Primitives.prove([], [], keypair);
