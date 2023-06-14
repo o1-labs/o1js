@@ -25,7 +25,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     throw Error(`ForeignField: expected modulus to be positive, got ${p}`);
   }
 
-  return class ForeignField {
+  class ForeignField {
     static modulus = p;
     value: MlForeignFieldVar;
 
@@ -42,8 +42,14 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
         return;
       }
       // constant
-      let x0 = mod(BigInt(x), p);
-      this.value = MlForeignFieldVar.fromBigint(x0);
+      this.value = MlForeignFieldVar.fromBigint(mod(BigInt(x), p));
+    }
+
+    static from(
+      x: ForeignField | MlForeignFieldVar | bigint | number | string
+    ) {
+      if (x instanceof ForeignField) return x;
+      return new ForeignField(x);
     }
 
     isConstant() {
@@ -53,6 +59,17 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     toBigInt() {
       return MlForeignFieldVar.toBigint(this.value);
+    }
+
+    // arithmetic with full constraints, for safe use
+
+    add(y: ForeignField | bigint | number) {
+      if (this.isConstant() && isConstant(y)) {
+        let z = mod(this.toBigInt() + toFp(y), p);
+        return new ForeignField(z);
+      }
+      let z = Snarky.foreignField.add(this.value, toVar(y), pMl);
+      return new ForeignField(z);
     }
 
     // Provable<ForeignField>
@@ -80,7 +97,24 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       if (x.isConstant() || unsafe) return;
       Snarky.foreignField.assertValidElement(x.value, pMl);
     }
-  };
+  }
+
+  function toFp(x: bigint | string | number | ForeignField) {
+    if (x instanceof ForeignField) return x.toBigInt();
+    return mod(BigInt(x), p);
+  }
+  function toVar(
+    x: bigint | number | string | ForeignField
+  ): MlForeignFieldVar {
+    if (x instanceof ForeignField) return x.value;
+    return MlForeignFieldVar.fromBigint(mod(BigInt(x), p));
+  }
+  function isConstant(x: bigint | number | string | ForeignField) {
+    if (x instanceof ForeignField) return x.isConstant();
+    return true;
+  }
+
+  return ForeignField;
 }
 
 // helpers
