@@ -16,6 +16,9 @@ import { prefixes } from '../bindings/crypto/constants.js';
 // external API
 export { PrivateKey, PublicKey, Signature };
 
+// internal API
+export { scaleShifted };
+
 /**
  * A signing key. You can generate one via {@link PrivateKey.random}.
  */

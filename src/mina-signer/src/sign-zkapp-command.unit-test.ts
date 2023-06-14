@@ -129,7 +129,7 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
 
   assert(isCallDepthValid(zkappCommand));
   let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
-  let ocamlCommitments = Ledger.transactionCommitments(
+  let ocamlCommitments = Test.hashFromJson.transactionCommitments(
     JSON.stringify(zkappCommandJson)
   );
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
@@ -171,7 +171,7 @@ test(
     expect(recoveredZkappCommand).toEqual(zkappCommand);
 
     // tx commitment
-    let ocamlCommitments = Ledger.transactionCommitments(
+    let ocamlCommitments = Test.hashFromJson.transactionCommitments(
       JSON.stringify(zkappCommandJson)
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
