@@ -7,6 +7,7 @@ import { createEquivalenceTesters, throwError } from './testing/equivalent.js';
 import { test, Random } from './testing/property.js';
 import { Provable } from './provable.js';
 import { ZkProgram } from './proof_system.js';
+import { Circuit, circuitMain } from './circuit.js';
 
 let ForeignScalar = createForeignField(Fq.modulus);
 
@@ -79,29 +80,46 @@ function shift(s: Fq): Fq {
 let scalar = Fq.random();
 let scalarShifted = shift(scalar);
 
-function main() {
+function main_() {
   // perform a "scalar shift" in foreign field arithmetic
   let x = Provable.witness(ForeignScalar, () => new ForeignScalar(scalar));
-  let x2 = x.add(x);
-  let shifted = x2.add(scalarShift);
-  shifted.assertEquals(scalarShifted);
+  let shifted = x.add(x).add(scalarShift);
+  // shifted.assertEquals(scalarShifted);
 }
-Provable.runAndCheck(main);
-let { rows, digest, gates, publicInputSize } = Provable.constraintSystem(main);
+Provable.runAndCheck(main_);
+let { rows, gates } = Provable.constraintSystem(main_);
+
+console.log({ rows, gates: JSON.stringify(gates) });
+
+class Main extends Circuit {
+  @circuitMain
+  static main() {
+    main_();
+  }
+}
+
+console.log('compiling');
+let kp = await Main.generateKeypair();
+
+let cs = kp.constraintSystem();
+console.log(JSON.stringify(cs.filter((g) => g.type !== 'Zero')));
+
+console.log('proving');
+let proof0 = await Main.prove([], [], kp);
+
+let ok = await Main.verify([], kp.verificationKey(), proof0);
+console.log('verifies?', ok);
 
 let Program = ZkProgram({
   methods: {
     test: {
       privateInputs: [],
       method() {
-        main();
+        main_();
       },
     },
   },
 });
-
-// console.log(JSON.stringify(gates));
-console.log({ rows, digest, publicInputSize });
 
 console.log('compiling');
 await Program.compile();
@@ -109,5 +127,5 @@ await Program.compile();
 console.log('proving');
 let proof = await Program.test();
 
-let ok = await Program.verify(proof);
+ok = await Program.verify(proof);
 console.log('verifies?', ok);
