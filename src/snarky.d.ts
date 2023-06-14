@@ -12,8 +12,8 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
-  MlForeignFieldVar,
-  MlForeignFieldConst,
+  ForeignFieldVar,
+  ForeignFieldConst,
 } from './lib/foreign-field.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
@@ -270,17 +270,22 @@ declare const Snarky: {
   };
 
   foreignField: {
-    assertValidElement(x: MlForeignFieldVar, p: MlForeignFieldConst): void;
+    assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
     add(
-      x: MlForeignFieldVar,
-      y: MlForeignFieldVar,
-      p: MlForeignFieldConst
-    ): MlForeignFieldVar;
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+    sub(
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
     mul(
-      x: MlForeignFieldVar,
-      y: MlForeignFieldVar,
-      p: MlForeignFieldConst
-    ): MlForeignFieldVar;
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
   };
 };
 
