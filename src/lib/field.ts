@@ -539,7 +539,10 @@ class Field {
    * ```
    */
 
-  and(y: Field | bigint | number | string, length: number): Field {
+  and(
+    y: Field | bigint | number | string,
+    length: number = Fp.sizeInBits
+  ): Field {
     if (this.isConstant() && isConstant(y)) {
       let y_ = toFp(y);
       let thisBigint = this.toBigInt();
