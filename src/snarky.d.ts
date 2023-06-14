@@ -176,7 +176,7 @@ declare const Snarky: {
       x: FieldVar
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
 
-    band(left: FieldVar, right: FieldVar, length: number): FieldVar;
+    and(left: FieldVar, right: FieldVar, length: number): FieldVar;
   };
 
   /**

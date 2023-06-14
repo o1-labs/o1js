@@ -546,7 +546,7 @@ class Field {
       }
       return new Field(Fp.and(thisBigint, y_));
     } else {
-      return new Field(Snarky.field.band(this.value, Field.#toVar(y), length));
+      return new Field(Snarky.field.and(this.value, Field.#toVar(y), length));
     }
   }
 
