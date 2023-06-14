@@ -537,7 +537,7 @@ class Field {
    * ```
    */
 
-  and(y: Field | bigint | number | string, length: number) {
+  and(y: Field | bigint | number | string, length: number): Field {
     if (this.isConstant() && isConstant(y)) {
       let y_ = toFp(y);
       let thisBigint = this.toBigInt();
