@@ -2,12 +2,11 @@ import { ProvablePure } from '../snarky.js';
 import { FieldVar } from './field.js';
 import { ForeignField, createForeignField, limbBits } from './foreign-field.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
-import { Scalar } from './scalar.js';
 import { expect } from 'expect';
 import { createEquivalenceTesters, throwError } from './testing/equivalent.js';
 import { Random } from './testing/random.js';
 
-let ForeignScalar = createForeignField(Scalar.ORDER);
+let ForeignScalar = createForeignField(Fq.modulus);
 
 // types
 ForeignScalar satisfies ProvablePure<ForeignField>;
