@@ -522,9 +522,11 @@ class Field {
    * Bitwise XOR gate on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
    * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
    *
-   * The `length` parameter lets you define how many bits should be compared.
+   * The `length` parameter lets you define how many bits should be compared. By default it is set to `32`.
    *
-   * *Note:* Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
    * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
    *
    * ```typescript
@@ -535,7 +537,7 @@ class Field {
    * c.assertEquals(6);
    * ```
    */
-  xor(y: Field | bigint | number | string, length: number) {
+  xor(y: Field | bigint | number | string, length: number = 32) {
     if (this.isConstant() && isConstant(y)) {
       let y_ = toFp(y);
       let thisBigint = this.toBigInt();
@@ -551,8 +553,9 @@ class Field {
 
   /**
    * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   * `direction` is a boolean, defining the direction of the rotation - `left - true` and `right = false`
    *
-   * *Note:* You can not rotate {@link Field} elements that exceed 64 bits.
+   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits.
    *
    * ```typescript
    * let a = Field(12);
