@@ -5,6 +5,8 @@ import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
 import { createEquivalenceTesters, throwError } from './testing/equivalent.js';
 import { test, Random } from './testing/property.js';
+import { Provable } from './provable.js';
+import { ZkProgram } from './proof_system.js';
 
 let ForeignScalar = createForeignField(Fq.modulus);
 
@@ -12,12 +14,13 @@ let ForeignScalar = createForeignField(Fq.modulus);
 ForeignScalar satisfies ProvablePure<ForeignField>;
 
 // basic constructor / IO
+{
+  let s0 = 1n + ((1n + (1n << limbBits)) << limbBits);
+  let scalar = new ForeignScalar(s0);
 
-let s0 = 1n + ((1n + (1n << limbBits)) << limbBits);
-let scalar = new ForeignScalar(s0);
-
-expect(scalar.value).toEqual([0, FieldVar[1], FieldVar[1], FieldVar[1]]);
-expect(scalar.toBigInt()).toEqual(s0);
+  expect(scalar.value).toEqual([0, FieldVar[1], FieldVar[1], FieldVar[1]]);
+  expect(scalar.toBigInt()).toEqual(s0);
+}
 
 test(Random.scalar, (x0, assert) => {
   let x = new ForeignScalar(x0);
@@ -63,3 +66,48 @@ equivalent1(
   (x) => x,
   Random.scalar
 );
+
+// shift
+
+let scalarShift = Fq(1n + 2n ** 255n);
+let oneHalf = Fq.inverse(2n)!;
+
+function shift(s: Fq): Fq {
+  return Fq.add(Fq.add(s, s), scalarShift);
+}
+
+let scalar = Fq.random();
+let scalarShifted = shift(scalar);
+
+function main() {
+  // perform a "scalar shift" in foreign field arithmetic
+  let x = Provable.witness(ForeignScalar, () => new ForeignScalar(scalar));
+  let x2 = x.add(x);
+  let shifted = x2.add(scalarShift);
+  shifted.assertEquals(scalarShifted);
+}
+Provable.runAndCheck(main);
+let { rows, digest, gates, publicInputSize } = Provable.constraintSystem(main);
+
+let Program = ZkProgram({
+  methods: {
+    test: {
+      privateInputs: [],
+      method() {
+        main();
+      },
+    },
+  },
+});
+
+// console.log(JSON.stringify(gates));
+console.log({ rows, digest, publicInputSize });
+
+console.log('compiling');
+await Program.compile();
+
+console.log('proving');
+let proof = await Program.test();
+
+let ok = await Program.verify(proof);
+console.log('verifies?', ok);
