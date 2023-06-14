@@ -11,7 +11,8 @@ let prefixes = {
   "zkappMemo": "MinaZkappMemo*******",
   "signatureMainnet": "MinaSignatureMainnet",
   "signatureTestnet": "CodaSignature*******",
-  "zkappUri": "MinaZkappUri********"
+  "zkappUri": "MinaZkappUri********",
+  "deriveTokenId": "MinaDeriveTokenId***"
 };
 let versionBytes = {
   "tokenIdKey": 28,
