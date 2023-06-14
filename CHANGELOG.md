@@ -33,6 +33,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Add `field.assertNotEquals()` to assert that a field element does not equal some value https://github.com/o1-labs/snarkyjs/pull/902
   - More efficient than `field.equals(x).assertFalse()`
 - Add `scalar.toConstant()`, `scalar.toBigInt()`, `Scalar.from()`, `privateKey.toBigInt()`, `PrivateKey.fromBigInt()` https://github.com/o1-labs/snarkyjs/pull/935
+- `Poseidon.hashToGroup` enables hashing to a group https://github.com/o1-labs/snarkyjs/pull/887
+- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
+  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
 
 ### Changed
 
