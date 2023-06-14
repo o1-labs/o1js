@@ -1,7 +1,7 @@
 import { Snarky } from '../snarky.js';
 import { mod } from '../bindings/crypto/finite_field.js';
 import { Tuple } from '../bindings/lib/binable.js';
-import { FieldConst, FieldVar } from './field.js';
+import { Field, FieldConst, FieldVar } from './field.js';
 
 // external API
 export { createForeignField, ForeignField };
@@ -57,6 +57,23 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     // Provable<ForeignField>
 
+    static toFields(x: ForeignField) {
+      let [, ...limbs] = x.value;
+      return limbs.map((x) => new Field(x));
+    }
+    static toAuxiliary(): [] {
+      return [];
+    }
+    static sizeInFields() {
+      return 3;
+    }
+
+    static fromFields(fields: Field[]) {
+      let fieldVars = fields.map((x) => x.value);
+      let limbs = arrayToTuple(fieldVars, 3, 'ForeignField.fromFields()');
+      return new ForeignField([0, ...limbs]);
+    }
+
     static check(x: ForeignField) {
       // if the `unsafe` flag is set, we don't add any constraints when creating a new variable
       // this means a user has to take care of proper constraining themselves
@@ -103,9 +120,33 @@ function from3Limbs(limbs: [bigint, bigint, bigint]): bigint {
   return l0 + ((l1 + (l2 << limbBits)) << limbBits);
 }
 
-function mapTuple<A, B, T extends Tuple<A>>(
+function mapTuple<T extends Tuple<any>, B>(
   tuple: T,
-  f: (a: A) => B
+  f: (a: T[number]) => B
 ): { [i in keyof T]: B } {
   return tuple.map(f) as any;
+}
+
+// awesome tuple type that has the length as generic parameter
+
+type TupleN<T, N extends number> = N extends N
+  ? number extends N
+    ? T[]
+    : _TupleOf<T, N, []>
+  : never;
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
+  ? R
+  : _TupleOf<T, N, [T, ...R]>;
+
+function arrayToTuple<N extends number, E = unknown>(
+  arr: E[],
+  size: N,
+  name: string
+): TupleN<E, N> {
+  if (arr.length !== size) {
+    throw Error(
+      `${name}: expected array of length ${size}, got length ${arr.length}`
+    );
+  }
+  return arr as any;
 }

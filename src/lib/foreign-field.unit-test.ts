@@ -1,12 +1,12 @@
+import { ProvablePure } from '../snarky.js';
 import { ForeignField, createForeignField } from './foreign-field.js';
-import { Provable } from './provable.js';
 import { Scalar } from './scalar.js';
 import { expect } from 'expect';
 
 let ForeignScalar = createForeignField(Scalar.ORDER);
 
 // types
-// ForeignScalar satisfies Provable<ForeignField>;
+ForeignScalar satisfies ProvablePure<ForeignField>;
 
 // basic constructor / IO
 let scalar = new ForeignScalar(1n << 88n);
