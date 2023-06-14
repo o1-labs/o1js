@@ -70,6 +70,14 @@ const FieldVar = {
   isConstant(x: FieldVar): x is ConstantFieldVar {
     return x[0] === FieldType.Constant;
   },
+  toConstant(x: FieldVar): FieldConst {
+    if (FieldVar.isConstant(x)) return x[1];
+    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
+    return Snarky.field.readVar(x);
+  },
+  toBigint(x: FieldVar) {
+    return FieldConst.toBigint(FieldVar.toConstant(x));
+  },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
     return [FieldType.Add, x, y];
