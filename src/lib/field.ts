@@ -518,6 +518,19 @@ class Field {
     return new Field(z);
   }
 
+  and(y: Field | bigint | number | string, length: number) {
+    if (this.isConstant() && isConstant(y)) {
+      let y_ = toFp(y);
+      let thisBigint = this.toBigInt();
+      if (y_ > 2 ** length - 1 || thisBigint > 2 ** length - 1) {
+        throw Error(`${y} and ${thisBigint} need to fit into ${length} bits.`);
+      }
+      return new Field(Fp.and(thisBigint, y_));
+    } else {
+      return new Field(Snarky.field.band(this.value, Field.#toVar(y), length));
+    }
+  }
+
   /**
    * @deprecated use `x.equals(0)` which is equivalent
    */
