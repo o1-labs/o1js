@@ -2,9 +2,6 @@ import { Bool, Field } from './core.js';
 import { maybeSwap, maybeSwapBad } from './merkle_tree.js';
 import { Random, test } from './testing/property.js';
 import { expect } from 'expect';
-import { isReady, shutdown } from '../snarky.js';
-
-await isReady;
 
 test(Random.bool, Random.field, Random.field, (b, x, y) => {
   let [x0, y0] = maybeSwap(Bool(!!b), Field(x), Field(y));
@@ -23,5 +20,3 @@ test(Random.bool, Random.field, Random.field, (b, x, y) => {
     expect(y0.toBigInt()).toEqual(x);
   }
 });
-
-shutdown();

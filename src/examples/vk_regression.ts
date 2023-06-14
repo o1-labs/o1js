@@ -5,6 +5,9 @@ import { HelloWorld } from './zkapps/hello_world/hello_world.js';
 import { TokenContract, createDex } from './zkapps/dex/dex.js';
 import { GroupCS } from './primitive_constraint_system.js';
 
+// toggle this for quick iteration when debugging vk regressions
+const skipVerificationKeys = false;
+
 // usage ./run ./src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
@@ -132,7 +135,10 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
   for await (const c of contracts) {
     let data = c.analyzeMethods();
     let digest = c.digest();
-    let { verificationKey } = await c.compile();
+    let verificationKey:
+      | { data: string; hash: { toString(): string } }
+      | undefined;
+    if (!skipVerificationKeys) ({ verificationKey } = await c.compile());
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
@@ -142,8 +148,8 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
         ])
       ),
       verificationKey: {
-        data: verificationKey.data,
-        hash: verificationKey.hash.toString(),
+        data: verificationKey?.data ?? '',
+        hash: verificationKey?.hash.toString() ?? '0',
       },
     };
   }
