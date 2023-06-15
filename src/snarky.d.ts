@@ -26,7 +26,7 @@ export { Snarky, Test, JsonGate };
  */
 declare interface Provable<T> {
   /**
-   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that made up the provable data of `value`.
+   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
    * 
    * @param value - the element of type `T` to generate the {@link Field} array from.
    * 
