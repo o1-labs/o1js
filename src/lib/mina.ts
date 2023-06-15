@@ -14,6 +14,7 @@ import {
   Authorization,
   Actions,
   Events,
+  dummySignature,
 } from './account_update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
@@ -22,11 +23,16 @@ import { Empty, Proof, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './mina/errors.js';
-import { Types } from '../bindings/mina-transaction/types.js';
+import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
 import { Provable } from './provable.js';
 import { prettifyStacktrace } from './errors.js';
+import { Ml } from './ml/conversion.js';
+import {
+  transactionCommitments,
+  verifyAccountUpdateSignature,
+} from '../mina-signer/src/sign-zkapp-command.js';
 
 export {
   createTransaction,
@@ -298,19 +304,11 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      try {
-        let { zkappCommand, proofs } = await addMissingProofs(
-          self.transaction,
-          {
-            proofsEnabled,
-          }
-        );
-        self.transaction = zkappCommand;
-        return proofs;
-      } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
-      }
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+        proofsEnabled,
+      });
+      self.transaction = zkappCommand;
+      return proofs;
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -326,8 +324,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       try {
         return await sendTransaction(self);
       } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
-        throw error;
+        throw prettifyStacktrace(error);
       }
     },
   };
@@ -385,12 +382,12 @@ function LocalBlockchain({
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
 
-  const ledger = Ledger.create([]);
+  const ledger = Ledger.create();
 
   let networkState = defaultNetworkState();
 
-  function addAccount(pk: PublicKey, balance: string) {
-    ledger.addAccount(pk, balance);
+  function addAccount(publicKey: PublicKey, balance: string) {
+    ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
   }
 
   let testAccounts: {
@@ -429,13 +426,19 @@ function LocalBlockchain({
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return !!ledger.getAccount(publicKey, tokenId);
+      return !!ledger.getAccount(
+        Ml.fromPublicKey(publicKey),
+        Ml.constFromField(tokenId)
+      );
     },
     getAccount(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let accountJson = ledger.getAccount(publicKey, tokenId);
+      let accountJson = ledger.getAccount(
+        Ml.fromPublicKey(publicKey),
+        Ml.constFromField(tokenId)
+      );
       if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
@@ -449,16 +452,17 @@ function LocalBlockchain({
     async sendTransaction(txn: Transaction): Promise<TransactionId> {
       txn.sign();
 
-      let commitments = Ledger.transactionCommitments(
-        JSON.stringify(ZkappCommand.toJSON(txn.transaction))
+      let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
+      let commitments = transactionCommitments(
+        TypesBigint.ZkappCommand.fromJSON(zkappCommandJson)
       );
 
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = ledger.getAccount(
-          update.body.publicKey,
-          update.body.tokenId
+          Ml.fromPublicKey(update.body.publicKey),
+          Ml.constFromField(update.body.tokenId)
         );
         if (accountJson) {
           let account = Account.fromJSON(accountJson);
@@ -471,7 +475,6 @@ function LocalBlockchain({
         }
       }
 
-      let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(zkappCommandJson),
@@ -1093,8 +1096,7 @@ function transaction(
     }
     return activeInstance.transaction(sender, f);
   } catch (error) {
-    if (error instanceof Error) error.stack = prettifyStacktrace(error);
-    throw error;
+    throw prettifyStacktrace(error);
   }
 }
 
@@ -1235,10 +1237,7 @@ function defaultNetworkState(): NetworkValue {
 async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
-  transactionCommitments: {
-    commitment: Field;
-    fullCommitment: Field;
-  },
+  transactionCommitments: { commitment: bigint; fullCommitment: bigint },
   proofsEnabled: boolean
 ): Promise<void> {
   // check that that top-level updates have mayUseToken = No
@@ -1255,8 +1254,14 @@ async function verifyAccountUpdate(
 
   let perm = account.permissions;
 
-  let { commitment, fullCommitment } = transactionCommitments;
-
+  // check if addMissingSignatures failed to include a signature
+  // due to a missing private key
+  if (accountUpdate.authorization === dummySignature()) {
+    let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
+    throw Error(
+      `verifyAccountUpdate: Detected a missing signature for (${pk}), private key was missing.`
+    );
+  }
   // we are essentially only checking if the update is empty or an actual update
   function includesChange<T extends {}>(
     val: T | string | null | (string | null)[]
@@ -1299,7 +1304,8 @@ async function verifyAccountUpdate(
     }
   }
 
-  const update = accountUpdate.toJSON().body.update;
+  let accountUpdateJson = accountUpdate.toJSON();
+  const update = accountUpdateJson.body.update;
 
   let errorTrace = '';
 
@@ -1335,15 +1341,12 @@ async function verifyAccountUpdate(
   }
 
   if (accountUpdate.authorization.signature) {
-    let txC = accountUpdate.body.useFullCommitment.toBoolean()
-      ? fullCommitment
-      : commitment;
-
-    // checking permissions and authorization for each party individually
+    // checking permissions and authorization for each account update individually
     try {
-      isValidSignature = Ledger.checkAccountUpdateSignature(
-        JSON.stringify(accountUpdate.toJSON()),
-        txC
+      isValidSignature = verifyAccountUpdateSignature(
+        TypesBigint.AccountUpdate.fromJSON(accountUpdateJson),
+        transactionCommitments,
+        'testnet'
       );
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;

@@ -1,7 +1,7 @@
 {
   "name": "snarkyjs",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/snarkyjs/",
   "keywords": [
@@ -52,6 +52,7 @@
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
+    "build:docs": "npx typedoc",
     "serve:web": "cp src/bindings/compiled/web_bindings/server.js src/bindings/compiled/web_bindings/index.html src/examples/simple_zkapp.js dist/web && node dist/web/server.js",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
@@ -90,6 +91,8 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
     "typedoc": "^0.24.6",
+    "typedoc-plugin-markdown": "^3.15.3",
+    "typedoc-plugin-merge-modules": "^5.0.1",
     "typescript": "^4.9.5"
   },
   "dependencies": {

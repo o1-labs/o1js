@@ -1,4 +1,3 @@
-import { Field, isReady, shutdown } from '../snarky.js';
 import { provable, Struct } from './circuit_value.js';
 import { UInt32 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -8,8 +7,7 @@ import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 import { State, state } from './state.js';
 import { AccountUpdate } from './account_update.js';
 import { Provable } from './provable.js';
-
-await isReady;
+import { Field } from './core.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },
@@ -155,5 +153,3 @@ await tx.prove();
 expect(gotTargetString).toEqual(true);
 
 console.log('provable types work as expected! 🎉');
-
-shutdown();

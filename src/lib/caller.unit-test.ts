@@ -1,9 +1,6 @@
-import { isReady } from '../snarky.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import * as Mina from './mina.js';
 import { expect } from 'expect';
-
-await isReady;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);

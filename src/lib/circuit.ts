@@ -1,8 +1,9 @@
-import { snarkContext } from './proof_system.js';
 import { ProvablePure, Snarky } from '../snarky.js';
-import { Field } from './core.js';
+import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Provable, gatesFromJson } from './provable.js';
+import { Provable } from './provable.js';
+import { snarkContext, gatesFromJson } from './provable-context.js';
+import { prettifyStacktrace, prettifyStacktracePromise } from './errors.js';
 
 // external API
 export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };
@@ -22,10 +23,12 @@ class Circuit {
   static generateKeypair() {
     let main = mainFromCircuitData(this._main);
     let publicInputSize = this._main.publicInputType.sizeInFields();
-    return withThreadPool(async () => {
-      let keypair = Snarky.circuit.compile(main, publicInputSize);
-      return new Keypair(keypair);
-    });
+    return prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let keypair = Snarky.circuit.compile(main, publicInputSize);
+        return new Keypair(keypair);
+      })
+    );
   }
 
   /**
@@ -40,15 +43,17 @@ class Circuit {
     let main = mainFromCircuitData(this._main, privateInput);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
-    return withThreadPool(async () => {
-      let proof = Snarky.circuit.prove(
-        main,
-        publicInputSize,
-        publicInputFields,
-        keypair.value
-      );
-      return new Proof(proof);
-    });
+    return prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let proof = Snarky.circuit.prove(
+          main,
+          publicInputSize,
+          MlFieldConstArray.to(publicInputFields),
+          keypair.value
+        );
+        return new Proof(proof);
+      })
+    );
   }
 
   /**
@@ -66,11 +71,13 @@ class Circuit {
     proof: Proof
   ) {
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
-    return withThreadPool(async () =>
-      Snarky.circuit.verify(
-        publicInputFields,
-        proof.value,
-        verificationKey.value
+    return prettifyStacktracePromise(
+      withThreadPool(async () =>
+        Snarky.circuit.verify(
+          MlFieldConstArray.to(publicInputFields),
+          proof.value,
+          verificationKey.value
+        )
       )
     );
   }
@@ -154,9 +161,13 @@ class Keypair {
    * ```
    */
   constraintSystem() {
-    return gatesFromJson(
-      Snarky.circuit.keypair.getConstraintSystemJSON(this.value)
-    ).gates;
+    try {
+      return gatesFromJson(
+        Snarky.circuit.keypair.getConstraintSystemJSON(this.value)
+      ).gates;
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    }
   }
 }
 
@@ -200,11 +211,13 @@ type CircuitData<P, W> = {
 function mainFromCircuitData<P, W>(
   data: CircuitData<P, W>,
   privateInput?: W
-): (publicInput: Field[]) => void {
-  return function main(publicInputFields: Field[]) {
+): Snarky.Main {
+  return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
-      let publicInput = data.publicInputType.fromFields(publicInputFields);
+      let publicInput = data.publicInputType.fromFields(
+        MlFieldArray.from(publicInputFields)
+      );
       let privateInput_ = Provable.witness(
         data.privateInputType,
         () => privateInput as W
