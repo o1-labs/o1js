@@ -37,7 +37,7 @@ declare interface Provable<T> {
    /**
    * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that made up the "auxilary" (non-provable) data of `value`.
    * 
-   * @param value - the element of type `T` to generate the auxilary data array from, optional. If not provided, an empty array is returned.
+   * @param value - the element of type `T` to generate the auxiliary data array from, optional. If not provided, a default value for auxiliary data is returned.
    * 
    * @return An array of any type describing how this `T` element is made up of "auxilary" (non-provable) data.
    */
