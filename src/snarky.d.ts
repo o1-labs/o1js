@@ -35,7 +35,7 @@ declare interface Provable<T> {
   toFields: (value: T) => Field[];
 
    /**
-   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that made up the "auxilary" (non-provable) data of `value`.
+   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxilary" (non-provable) data of `value`.
    * 
    * @param value - the element of type `T` to generate the auxiliary data array from, optional. If not provided, a default value for auxiliary data is returned.
    * 
@@ -85,7 +85,7 @@ declare interface Provable<T> {
  */
 declare interface ProvablePure<T> extends Provable<T> {
   /**
-   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that made up the provable data of `value`.
+   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
    * 
    * @param value - the element of type `T` to generate the {@link Field} array from.
    * 
@@ -94,10 +94,10 @@ declare interface ProvablePure<T> extends Provable<T> {
   toFields: (value: T) => Field[];
 
    /**
-   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that made up the "auxilary" (non-provable) data of `value`.
-   * As any element of the interface `ProvablePure<T>` includes no "auxilary" data by definition, this function always return an empty array.
+   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxilary" (non-provable) data of `value`.
+   * As any element of the interface `ProvablePure<T>` includes no "auxilary" data by definition, this function always returns a default value.
    * 
-   * @param value - the element of type `T` to generate the auxilary data array from, optional. If not provided, an empty array is returned.
+   * @param value - the element of type `T` to generate the auxilary data array from, optional. If not provided, a default value for auxiliary data is returned.
    * 
    * @return An empty array, as any element of the interface `ProvablePure<T>` includes no "auxilary" data by definition.
    */
@@ -119,14 +119,12 @@ declare interface ProvablePure<T> extends Provable<T> {
    * 
    * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
    * 
-   * **Beware**: Calling the statement `x.sizeInFields()` is equivalent to `x.toFields().length`.
-   * 
    * @return A `number` representing the size of the `T` type in terms of {@link Field} type.
    */
   sizeInFields(): number;
 
   /**
-   * Assert some statements on the chain to check if `value` element is a valid member of type `T`.
+   * Add assertions to the proof to check if `value` is a valid member of type `T`.
    * This function does not return anything, rather creates any number of assertions on the chain to prove `value` is a valid member of the type `T`.
    * 
    * For instance, calling check function on the type {@link Bool} asserts that the value of the element is either 1 or 0.
