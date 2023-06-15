@@ -60,8 +60,6 @@ declare interface Provable<T> {
    * 
    * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
    * 
-   * **Beware**: Calling the statement `x.sizeInFields()` is equivalent to `x.toFields().length`.
-   * 
    * @return A `number` representing the size of the `T` type in terms of {@link Field} type.
    */
   sizeInFields(): number;
