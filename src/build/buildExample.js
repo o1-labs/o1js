@@ -16,7 +16,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
   return importedModule;
 }
 
-async function build(srcPath) {
+async function build(srcPath, isWeb = false) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
 
   let outfile = srcPath.replace('.ts', '.tmp.js');
@@ -30,7 +30,9 @@ async function build(srcPath) {
     target: 'esnext',
     resolveExtensions: ['.node.js', '.ts', '.js'],
     logLevel: 'error',
-    plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
+    plugins: isWeb
+      ? [typescriptPlugin(tsConfig)]
+      : [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
   });
 
   let absPath = path.resolve('.', outfile);
