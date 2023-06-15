@@ -53,7 +53,7 @@ const defaultHeaders = {
 const server = http.createServer(async (req, res) => {
   let file = '.' + req.url;
   if (file === './') file = './index.html';
-  console.log('serving', file);
+  // console.log('serving', file);
 
   let content;
   if (file === './index.html') content = indexHtml;
@@ -84,5 +84,3 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`Server is running on: http://localhost:${port}`);
 });
-
-server.on('close', () => {});

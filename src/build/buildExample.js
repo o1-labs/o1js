@@ -25,7 +25,7 @@ async function build(srcPath, isWeb = false) {
     entryPoints: [srcPath],
     bundle: true,
     format: 'esm',
-    platform: 'node',
+    platform: isWeb ? 'node' : 'browser',
     outfile,
     target: 'esnext',
     resolveExtensions: ['.node.js', '.ts', '.js'],
