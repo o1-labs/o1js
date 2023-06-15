@@ -5,9 +5,9 @@ import { Circuit, Field, Provable, circuitMain, Experimental } from 'snarkyjs';
 let { ZkProgram } = Experimental;
 
 // parameters
-// let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
-let nMuls = 1 << 5;
-let withPickles = false;
+let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
+// let nMuls = 1 << 5;
+let withPickles = true;
 
 // the circuit: multiply a number with itself n times
 let xConst = Field.random();
