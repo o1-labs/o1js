@@ -67,8 +67,8 @@ declare interface Provable<T> {
   sizeInFields(): number;
 
   /**
-   * Assert some statements on the chain to check if `value` element is a valid member of type `T`.
-   * This function does not return anything, rather it creates any number of assertions on the chain to prove `value` is a valid member of the type `T`.
+   * Add assertions to the proof to check if `value` is a valid member of type `T`.
+   * This function does not return anything, instead it creates any number of assertions to prove that `value` is a valid member of the type `T`.
    * 
    * For instance, calling check function on the type {@link Bool} asserts that the value of the element is either 1 or 0.
    * 
