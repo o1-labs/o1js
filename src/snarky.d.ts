@@ -266,7 +266,11 @@ declare const Snarky: {
   };
 
   sha: {
-    keccak(message: MlArray<FieldVar>): MlArray<FieldVar>;
+    create(
+      message: MlArray<FieldVar>,
+      nist: boolean,
+      length: number
+    ): MlArray<FieldVar>;
 
     fieldBytesFromHex(hex: string): MlArray<FieldVar>;
   };

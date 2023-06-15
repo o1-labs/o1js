@@ -1,7 +1,17 @@
 export { ProvablePure, Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
-export { Poseidon, TokenSymbol, SHA } from './lib/hash.js';
+export {
+  Poseidon,
+  TokenSymbol,
+  Sha3_224,
+  Sha3_256,
+  Sha3_385,
+  Sha3_512,
+  Keccak,
+} from './lib/hash.js';
 export * from './lib/signature.js';
+export { hexToFieldBytes, fieldBytesFromHex } from './lib/encoding.js';
+
 export {
   CircuitValue,
   ProvableExtended,

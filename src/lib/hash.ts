@@ -6,7 +6,15 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 
 // external API
-export { Poseidon, TokenSymbol, SHA };
+export {
+  Poseidon,
+  TokenSymbol,
+  Sha3_224,
+  Sha3_256,
+  Sha3_385,
+  Sha3_512,
+  Keccak,
+};
 
 // internal API
 export {
@@ -20,15 +28,20 @@ export {
   hashConstant,
 };
 
-const SHA = {
-  keccak(message: Field[]) {
-    return Snarky.sha.keccak([0, ...message.map((f) => f.value)]).map(Field);
-  },
-
-  hexToFields(hex: string) {
-    return Snarky.sha.fieldBytesFromHex(hex).map(Field);
-  },
-};
+function buildSha(length: 224 | 256 | 385 | 512, nist: boolean) {
+  return {
+    hash(message: Field[]) {
+      return Snarky.sha
+        .create([0, ...message.map((f) => f.value)], nist, length)
+        .map(Field);
+    },
+  };
+}
+const Sha3_224 = buildSha(224, true);
+const Sha3_256 = buildSha(256, true);
+const Sha3_385 = buildSha(385, true);
+const Sha3_512 = buildSha(512, true);
+const Keccak = buildSha(256, false);
 
 class Sponge {
   private sponge: unknown;
