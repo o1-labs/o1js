@@ -125,7 +125,7 @@ declare interface ProvablePure<T> extends Provable<T> {
 
   /**
    * Add assertions to the proof to check if `value` is a valid member of type `T`.
-   * This function does not return anything, rather creates any number of assertions on the chain to prove `value` is a valid member of the type `T`.
+   * This function does not return anything, rather creates any number of assertions on the proof to prove `value` is a valid member of the type `T`.
    *
    * For instance, calling check function on the type {@link Bool} asserts that the value of the element is either 1 or 0.
    *
