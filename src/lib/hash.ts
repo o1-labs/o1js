@@ -6,7 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 
 // external API
-export { Poseidon, TokenSymbol };
+export { Poseidon, TokenSymbol, SHA };
 
 // internal API
 export {
@@ -18,6 +18,16 @@ export {
   packToFields,
   emptyReceiptChainHash,
   hashConstant,
+};
+
+const SHA = {
+  keccak(message: Field[]) {
+    return Snarky.sha.keccak([0, ...message.map((f) => f.value)]).map(Field);
+  },
+
+  hexToFields(hex: string) {
+    return Snarky.sha.fieldBytesFromHex(hex).map(Field);
+  },
 };
 
 class Sponge {

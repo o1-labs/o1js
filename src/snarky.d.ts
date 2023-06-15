@@ -264,6 +264,12 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
+
+  sha: {
+    keccak(message: MlArray<FieldVar>): MlArray<FieldVar>;
+
+    fieldBytesFromHex(hex: string): MlArray<FieldVar>;
+  };
 };
 
 type JsonGate = {
