@@ -1,5 +1,5 @@
 import { ProvablePure, Snarky } from '../snarky.js';
-import { Field } from './core.js';
+import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable } from './provable.js';
 import { snarkContext, gatesFromJson } from './provable-context.js';
@@ -48,7 +48,7 @@ class Circuit {
         let proof = Snarky.circuit.prove(
           main,
           publicInputSize,
-          publicInputFields,
+          MlFieldConstArray.to(publicInputFields),
           keypair.value
         );
         return new Proof(proof);
@@ -74,7 +74,7 @@ class Circuit {
     return prettifyStacktracePromise(
       withThreadPool(async () =>
         Snarky.circuit.verify(
-          publicInputFields,
+          MlFieldConstArray.to(publicInputFields),
           proof.value,
           verificationKey.value
         )
@@ -211,11 +211,13 @@ type CircuitData<P, W> = {
 function mainFromCircuitData<P, W>(
   data: CircuitData<P, W>,
   privateInput?: W
-): (publicInput: Field[]) => void {
-  return function main(publicInputFields: Field[]) {
+): Snarky.Main {
+  return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
-      let publicInput = data.publicInputType.fromFields(publicInputFields);
+      let publicInput = data.publicInputType.fromFields(
+        MlFieldArray.from(publicInputFields)
+      );
       let privateInput_ = Provable.witness(
         data.privateInputType,
         () => privateInput as W
