@@ -25,11 +25,13 @@ describe('scalar', () => {
         });
       });
 
-      describe('fromFields', () => {
-        it('should return a Scalar', () => {
+      describe('toFields / fromFields', () => {
+        it('should return the same', () => {
           expect(() => {
+            let s0 = Scalar.random();
             Provable.runAndCheck(() => {
-              Provable.witness(Scalar, () => Scalar.fromFields([Field(1)]));
+              let s1 = Provable.witness(Scalar, () => s0);
+              Provable.assertEqual(Scalar.fromFields(s1.toFields()), s0);
             });
           }).not.toThrow();
         });
@@ -39,21 +41,15 @@ describe('scalar', () => {
         it('should return a Scalar', () => {
           expect(() => {
             Provable.runAndCheck(() => {
-              Provable.witness(Scalar, () => Scalar.fromBits([Bool(true)]));
+              Provable.witness(Scalar, () =>
+                Scalar.fromBits(Field.random().toBits())
+              );
             });
           }).not.toThrow();
         });
       });
 
       describe('random', () => {
-        it('should not crash', () => {
-          expect(() => {
-            Provable.runAndCheck(() => {
-              Provable.witness(Scalar, () => Scalar.random());
-            });
-          }).not.toThrow();
-        });
-
         it('two different calls should be different', () => {
           Provable.runAndCheck(() => {
             const x = Provable.witness(Scalar, () => Scalar.random());
@@ -65,39 +61,23 @@ describe('scalar', () => {
     });
 
     describe('Outside circuit', () => {
-      describe('toFields', () => {
-        it('should return an array of Fields', () => {
-          expect(() => {
-            const x = Scalar.random();
-            const fieldArr = x.toFields();
-            expect(Array.isArray(fieldArr)).toBe(true);
-          }).not.toThrow();
-        });
-      });
-
-      describe('fromFields', () => {
-        it('should return a Scalar', () => {
-          expect(() => {
-            Scalar.fromFields([Field(1)]);
-          }).not.toThrow();
+      describe('toFields / fromFields', () => {
+        it('roundtrip works', () => {
+          let x = Scalar.random();
+          expect(Scalar.fromFields(x.toFields())).toEqual(x);
         });
       });
 
       describe('fromBits', () => {
-        it('should return a Scalar', () => {
-          expect(() => {
-            Scalar.fromBits([Bool(true)]);
-          }).not.toThrow();
+        it('should return a shifted scalar', () => {
+          let x = Field.random();
+          let bits_ = x.toBits();
+          let s = Scalar.fromBits(bits_).unshift();
+          expect(x.toBigInt()).toEqual(s.toBigInt());
         });
       });
 
       describe('random', () => {
-        it('should not crash', () => {
-          expect(() => {
-            Scalar.random();
-          }).not.toThrow();
-        });
-
         it('two different calls should be different', () => {
           expect(Scalar.random()).not.toEqual(Scalar.random());
         });
@@ -115,138 +95,128 @@ describe('scalar', () => {
         });
 
         it('fromJSON(1) should be 1', () => {
-          expect(Scalar.fromJSON(1)!.toJSON()).toEqual('1');
+          expect(Scalar.from(1).toJSON()).toEqual('1');
         });
 
-        it('fromJSON(true) should be 1', () => {
-          expect(Scalar.fromJSON(true)!.toJSON()).toEqual('1');
-        });
-
-        it('fromJSON(false) should be 0', () => {
-          expect(Scalar.fromJSON(false)!.toJSON()).toEqual('0');
+        it('fromJSON(0n) should be 1', () => {
+          expect(Scalar.from(0n).toJSON()).toEqual('0');
         });
       });
 
       describe('neg', () => {
         it('neg(1)=-1', () => {
-          const x = Scalar.fromJSON(1)!;
-          expect(x.neg().toJSON()).toEqual(
-            '28948022309329048855892746252171976963363056481941647379679742748393362948096'
-          );
+          const x = Scalar.from(1);
+          expect(x.neg().toBigInt()).toEqual(Scalar.ORDER - 1n);
         });
 
         it('neg(-1)=1', () => {
-          const x = Scalar.fromJSON(-1)!;
-          expect(x.neg().toJSON()).toEqual(
-            '28948022309329048855892746252171976963363056481941647379661296004319653396482'
-          );
+          const x = Scalar.from(-1);
+          expect(x.neg().toJSON()).toEqual('1');
         });
 
         it('neg(0)=0', () => {
-          const x = Scalar.fromJSON(0)!;
+          const x = Scalar.from(0);
           expect(x.neg().toJSON()).toEqual('0');
         });
       });
 
       describe('add', () => {
         it('1+1=2', () => {
-          const x = Scalar.fromJSON(1)!;
-          const y = Scalar.fromJSON(1)!;
+          const x = Scalar.from(1);
+          const y = Scalar.from(1);
           expect(x.add(y).toJSON()).toEqual('2');
         });
 
         it('5000+5000=10000', () => {
-          const x = Scalar.fromJSON(5000)!;
-          const y = Scalar.fromJSON(5000)!;
+          const x = Scalar.from(5000);
+          const y = Scalar.from(5000);
           expect(x.add(y).toJSON()).toEqual('10000');
         });
 
         it('((2^64/2)+(2^64/2)) adds to 2^64', () => {
           const v = (1n << 64n) - 2n;
-          const x = Scalar.fromJSON(String(v / 2n))!;
-          const y = Scalar.fromJSON(String(v / 2n))!;
+          const x = Scalar.fromJSON(String(v / 2n));
+          const y = Scalar.fromJSON(String(v / 2n));
           expect(x.add(y).toJSON()).toEqual(String(v));
         });
       });
 
       describe('sub', () => {
         it('1-1=0', () => {
-          const x = Scalar.fromJSON(1)!;
-          const y = Scalar.fromJSON(1)!;
+          const x = Scalar.from(1);
+          const y = Scalar.from(1);
           expect(x.sub(y).toJSON()).toEqual('0');
         });
 
         it('10000-5000=5000', () => {
-          const x = Scalar.fromJSON(10000)!;
-          const y = Scalar.fromJSON(5000)!;
+          const x = Scalar.from(10000);
+          const y = Scalar.from(5000);
           expect(x.sub(y).toJSON()).toEqual('5000');
         });
 
-        // Expected: "-1" Received: "28948022309329048855892746252171976963363056481941647379679742748393362948096"
-        it.skip('0-1=-1', () => {
-          const x = Scalar.fromJSON(0)!;
-          const y = Scalar.fromJSON(1)!;
-          expect(x.sub(y).toJSON()).toEqual('-1');
+        it('0-1=-1', () => {
+          const x = Scalar.from(0);
+          const y = Scalar.from(1);
+          expect(x.sub(y).toBigInt()).toEqual(Scalar.ORDER - 1n);
         });
 
-        // Expected: "2" Received: "28948022309329048855892746252171976963363056481941647379661296004319653396483"
-        it.skip('1-(-1)=2', () => {
-          const x = Scalar.fromJSON(1)!;
-          const y = Scalar.fromJSON(-1)!;
-          expect(x.sub(y).toJSON()).toEqual('2');
+        it('1-(-1)=2', () => {
+          const x = Scalar.from(1);
+          const y = Scalar.from(-1);
+          expect(x.sub(y).toBigInt()).toEqual(2n);
         });
       });
 
       describe('mul', () => {
         it('1x2=2', () => {
-          const x = Scalar.fromJSON(1)!;
-          const y = Scalar.fromJSON(2)!;
+          const x = Scalar.from(1);
+          const y = Scalar.from(2);
           expect(x.mul(y).toJSON()).toEqual('2');
         });
 
         it('1x0=0', () => {
-          const x = Scalar.fromJSON(1)!;
-          const y = Scalar.fromJSON(0)!;
+          const x = Scalar.from(1);
+          const y = Scalar.from(0);
           expect(x.mul(y).toJSON()).toEqual('0');
         });
 
         it('1000x1000=1000000', () => {
-          const x = Scalar.fromJSON(1000)!;
-          const y = Scalar.fromJSON(1000)!;
+          const x = Scalar.from(1000);
+          const y = Scalar.from(1000);
           expect(x.mul(y).toJSON()).toEqual('1000000');
         });
 
         it('(2^64-1)x1=(2^64-1)', () => {
           const v = (1n << 64n) - 1n;
-          const x = Scalar.fromJSON(String(v))!;
-          const y = Scalar.fromJSON(1)!;
+          const x = Scalar.from(String(v));
+          const y = Scalar.from(1);
           expect(x.mul(y).toJSON()).toEqual(String(v));
         });
       });
 
       describe('div', () => {
         it('2/1=2', () => {
-          const x = Scalar.fromJSON(2)!;
-          const y = Scalar.fromJSON(1)!;
+          const x = Scalar.from(2);
+          const y = Scalar.from(1);
           expect(x.div(y).toJSON()).toEqual('2');
         });
 
         it('0/1=0', () => {
-          const x = Scalar.fromJSON(0)!;
-          const y = Scalar.fromJSON(1)!;
+          const x = Scalar.from(0);
+          const y = Scalar.from(1);
           expect(x.div(y).toJSON()).toEqual('0');
         });
 
         it('2000/1000=2', () => {
-          const x = Scalar.fromJSON(2000)!;
-          const y = Scalar.fromJSON(1000)!;
+          const x = Scalar.from(2000);
+          const y = Scalar.from(1000);
           expect(x.div(y).toJSON()).toEqual('2');
         });
 
         it('(2^64-1)/1=(2^64-1)', () => {
           const v = (1n << 64n) - 1n;
-          const x = Scalar.fromJSON(String(v))!;
-          const y = Scalar.fromJSON(1)!;
+          const x = Scalar.from(String(v));
+          const y = Scalar.from(1);
           expect(x.div(y).toJSON()).toEqual(String(v));
         });
       });

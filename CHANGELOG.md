@@ -26,11 +26,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Rewrite of `Provable.if()` causes breaking changes to all deployed contracts https://github.com/o1-labs/snarkyjs/pull/889
 - Remove all deprecated methods and properties on `Field` https://github.com/o1-labs/snarkyjs/pull/902
 - The `Field(x)` constructor and other Field methods no longer accept a `boolean` as input. Instead, you can now pass in a `bigint` to all Field methods. https://github.com/o1-labs/snarkyjs/pull/902
+- Remove redundant `signFeePayer()` method https://github.com/o1-labs/snarkyjs/pull/935
 
 ### Added
 
 - Add `field.assertNotEquals()` to assert that a field element does not equal some value https://github.com/o1-labs/snarkyjs/pull/902
   - More efficient than `field.equals(x).assertFalse()`
+- Add `scalar.toConstant()`, `scalar.toBigInt()`, `Scalar.from()`, `privateKey.toBigInt()`, `PrivateKey.fromBigInt()` https://github.com/o1-labs/snarkyjs/pull/935
+- `Poseidon.hashToGroup` enables hashing to a group https://github.com/o1-labs/snarkyjs/pull/887
+- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
+  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
 
 ### Changed
 
