@@ -32,7 +32,11 @@ async function build(srcPath, isWeb = false) {
     logLevel: 'error',
     plugins: isWeb
       ? [typescriptPlugin(tsConfig)]
-      : [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
+      : [
+          typescriptPlugin(tsConfig),
+          makeNodeModulesExternal(),
+          makeJsooExternal(),
+        ],
   });
 
   let absPath = path.resolve('.', outfile);
@@ -101,6 +105,22 @@ function makeNodeModulesExternal() {
         path,
         external: true,
       }));
+    },
+  };
+}
+
+function makeJsooExternal() {
+  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
+  return {
+    name: 'plugin-external',
+    setup(build) {
+      build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => {
+        filePath = filePath.replace('_node_bindings', 'node_bindings');
+        return {
+          path: path.resolve(resolveDir, filePath),
+          external: true,
+        };
+      });
     },
   };
 }
