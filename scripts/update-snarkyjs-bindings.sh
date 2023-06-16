@@ -16,7 +16,7 @@ $DIR_PATH/build-snarkyjs-node.sh
 
 chmod -R 777 "$NODE_BINDINGS"
 
-BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
+BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/bindings/compiled/_node_bindings/
 cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$NODE_BINDINGS"/snarky_js_node.bc.cjs
 cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$NODE_BINDINGS"/snarky_js_node.bc.map
 cp "$BINDINGS_PATH"/plonk_wasm* "$NODE_BINDINGS"/
