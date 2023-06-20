@@ -1,4 +1,4 @@
-import * as wasm from '../compiled/node_bindings/plonk_wasm.js';
+import * as wasm from '../compiled/node_bindings/plonk_wasm.cjs';
 
 export { WasmModule, getWasm, getSnarky, withThreadPool };
 
