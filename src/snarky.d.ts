@@ -134,6 +134,8 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (value: T) => void;
 }
 
+type MlGroup = MlTuple<FieldVar, FieldVar>;
+
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
   type Keypair = unknown;
@@ -275,24 +277,20 @@ declare const Snarky: {
 
   group: {
     /**
-     * Addition of two group elements, handles only variables.
+     * Low-level Elliptic Curve Addition gate.
      */
-    add(
-      p1: MlTuple<FieldVar, FieldVar>,
-      p2: MlTuple<FieldVar, FieldVar>
-    ): MlTuple<FieldVar, FieldVar>;
+    ecadd(
+      p1: MlGroup,
+      p2: MlGroup,
+      p3: MlGroup,
+      inf: FieldVar,
+      same_x: FieldVar,
+      slope: FieldVar,
+      inf_z: FieldVar,
+      x21_inv: FieldVar
+    ): MlGroup;
 
-    assertOnCurve(p1: MlTuple<FieldVar, FieldVar>): void;
-
-    scale(
-      p: MlTuple<FieldVar, FieldVar>,
-      s: MlArray<BoolVar>
-    ): MlTuple<FieldVar, FieldVar>;
-
-    equals(
-      p1: MlTuple<FieldVar, FieldVar>,
-      p2: MlTuple<FieldVar, FieldVar>
-    ): BoolVar;
+    scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 
   /**

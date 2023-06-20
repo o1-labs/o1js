@@ -140,24 +140,24 @@
     "digest": "Group Primitive",
     "methods": {
       "add": {
-        "rows": 6,
-        "digest": "ef763443bed39d397cb02e683ea9a877"
+        "rows": 33,
+        "digest": "0cc19b3dc379f8706aedfd731f08145f"
       },
       "sub": {
-        "rows": 6,
-        "digest": "329c0221e60d62aaf26ee1631f3f3c5a"
+        "rows": 34,
+        "digest": "ff55b39b569856e1c2025cae39d19e38"
       },
       "scale": {
-        "rows": 106,
-        "digest": "1296dd40b232fb0bc4cd908d47fd88a9"
+        "rows": 114,
+        "digest": "17d1f373892d2c437dc9ce340e17e3d6"
       },
       "equals": {
-        "rows": 27,
-        "digest": "adbcdc756d41853e24612e50b99be285"
+        "rows": 42,
+        "digest": "8d5ab248aa4602e6f77a8ab1015615df"
       },
       "assertions": {
-        "rows": 4,
-        "digest": "8750eb002126017bc297e7b63d4429b9"
+        "rows": 20,
+        "digest": "f4be74b3b20a0f3c3279f0def39c6b35"
       }
     },
     "verificationKey": {
