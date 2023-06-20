@@ -38,12 +38,14 @@ dune b $SNARKY_JS_PATH/src/bindings/mina-transaction/gen/js-layout.ts \
  $SNARKY_JS_PATH/src/bindings/crypto/test_vectors/poseidonKimchi.ts \
 || exit 1
 
-BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/bindings/compiled/_node_bindings/
+BINDINGS_PATH="$SNARKY_JS_PATH"/src/bindings/compiled/_node_bindings/
 mkdir -p "$BINDINGS_PATH"
 chmod -R 777 "$BINDINGS_PATH"
 cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$BINDINGS_PATH"
 mv -f $BINDINGS_PATH/plonk_wasm.js $BINDINGS_PATH/plonk_wasm.cjs
+mv -f $BINDINGS_PATH/plonk_wasm.d.ts $BINDINGS_PATH/plonk_wasm.d.cts
 cp $BUILD_PATH/snarky_js_node*.js "$BINDINGS_PATH"
+cp $SNARKY_JS_PATH/src/bindings/compiled/node_bindings/snarky_js_node.bc.d.cts $BINDINGS_PATH/
 cp "_build/snarky_js_node.bc.map" "$BINDINGS_PATH"/snarky_js_node.bc.map
 mv -f $BINDINGS_PATH/snarky_js_node.bc.js $BINDINGS_PATH/snarky_js_node.bc.cjs
 sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' $BINDINGS_PATH/snarky_js_node.bc.cjs
