@@ -84,7 +84,7 @@ let MaxProofsVerifiedTwo = Experimental.ZkProgram({
     },
   },
 });
-tic('compiling three programs..');
+tic('compiling three programs');
 await MaxProofsVerifiedZero.compile();
 await MaxProofsVerifiedOne.compile();
 await MaxProofsVerifiedTwo.compile();
@@ -102,7 +102,7 @@ async function testRecursion(
 
   let ProofClass = Experimental.ZkProgram.Proof(Program);
 
-  tic('executing base case..');
+  tic('executing base case');
   let initialProof = await Program.baseCase(Field(0));
   toc();
   initialProof = testJsonRoundtrip(ProofClass, initialProof);
@@ -118,7 +118,7 @@ async function testRecursion(
   let p1, p2;
   if (initialProof.maxProofsVerified === 0) return;
 
-  tic('executing mergeOne..');
+  tic('executing mergeOne');
   p1 = await Program.mergeOne(Field(1), initialProof);
   toc();
   p1 = testJsonRoundtrip(ProofClass, p1);
@@ -131,7 +131,7 @@ async function testRecursion(
   }
 
   if (initialProof.maxProofsVerified === 1) return;
-  tic('executing mergeTwo..');
+  tic('executing mergeTwo');
   p2 = await Program.mergeTwo(Field(2), initialProof, p1);
   toc();
   p2 = testJsonRoundtrip(ProofClass, p2);
