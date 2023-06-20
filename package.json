@@ -48,7 +48,7 @@
     "make": "make -C ../../.. snarkyjs",
     "make:no-types": "npm run clean && make -C ../../.. snarkyjs_no_types",
     "bindings": "cd ../../.. && ./scripts/update-snarkyjs-bindings.sh && cd src/lib/snarkyjs",
-    "build": "rimraf ./src/bindings/compiled/_node_bindings && cp -r src/bindings/compiled/node_bindings src/bindings/compiled/_node_bindings && rimraf ./dist/node && npx tsc -p tsconfig.node.json && node src/build/copy-to-dist.js && node src/build/buildNode.js",
+    "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/buildNode.js",
     "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",

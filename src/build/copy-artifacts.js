@@ -2,7 +2,7 @@
 import { copyFromTo } from './utils.js';
 
 await copyFromTo(
-  ['src/snarky.d.ts', 'src/bindings/compiled/_node_bindings'],
-  'src',
-  'dist/node'
+  ['src/bindings/compiled/node_bindings/'],
+  'node_bindings',
+  '_node_bindings'
 );
