@@ -193,7 +193,7 @@ function emptyReceiptChainHash() {
   return emptyHashWithPrefix('CodaReceiptEmpty');
 }
 
-function buildSHA(length: 224 | 256 | 385 | 512, nist: boolean) {
+function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
     hash(message: Field[]) {
       return Snarky.sha
@@ -212,7 +212,7 @@ const Hash = {
 
   SHA256: buildSHA(256, true).hash,
 
-  SHA385: buildSHA(385, true).hash,
+  SHA384: buildSHA(384, true).hash,
 
   SHA512: buildSHA(512, true).hash,
 
