@@ -244,6 +244,16 @@ declare const Snarky: {
     };
   };
 
+  sha: {
+    create(
+      message: MlArray<FieldVar>,
+      nist: boolean,
+      length: number
+    ): MlArray<FieldVar>;
+
+    fieldBytesFromHex(hex: string): MlArray<FieldVar>;
+  };
+
   poseidon: {
     hash(input: MlArray<FieldVar>, isChecked: boolean): FieldVar;
 
