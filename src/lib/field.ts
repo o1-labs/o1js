@@ -2,8 +2,9 @@ import { Snarky, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
-import { asProver } from './provable-context.js';
+import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
+import { assert } from './errors.js';
 
 // external API
 export { Field };
@@ -204,10 +205,23 @@ class Field {
    * @return A constant {@link Field} element equivalent to this {@link Field} element.
    */
   toConstant(): ConstantField {
+    // if this is a constant, return it
     if (this.isConstant()) return this;
-    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
-    let value = Snarky.field.readVar(this.value);
-    return new Field(value) as ConstantField;
+
+    // a non-constant can only appear inside a checked computation. everything else is a bug.
+    assert(
+      inCheckedComputation(),
+      'variables only exist inside checked computations'
+    );
+
+    // if we are inside an asProver or witness block, read the variable's value and return it as constant
+    if (Snarky.run.inProverBlock()) {
+      let value = Snarky.field.readVar(this.value);
+      return new Field(value) as ConstantField;
+    }
+
+    // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
+    throw Error("Can't evaluate prover code outside an as_prover block 🧌");
   }
 
   /**
