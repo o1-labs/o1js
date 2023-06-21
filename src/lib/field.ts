@@ -10,7 +10,15 @@ import { assert } from './errors.js';
 export { Field };
 
 // internal API
-export { ConstantField, FieldType, FieldVar, FieldConst, isField, withMessage };
+export {
+  ConstantField,
+  FieldType,
+  FieldVar,
+  FieldConst,
+  isField,
+  withMessage,
+  readVarMessage,
+};
 
 type FieldConst = Uint8Array;
 
@@ -208,19 +216,7 @@ class Field {
     }
 
     // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
-    throw Error(`x.${name}() was called on a variable x in provable code.
-This is not supported, because variables in provable code represent an abstract computation,
-which only has actual values attached during proving, but not during compiling the prover key.
-
-Also, reading out JS values means that whatever you're doing with those values will no longer be
-linked to the original variable in the proof, which makes this pattern prone to security holes.
-
-You can check whether your field element is a variable or a constant using x.isConstant().
-
-To inspect values for debugging, use Provable.log(x). For more advanced use cases,
-there is \'Provable.asProver(() => { ... })\` which allows you to use x.${name}() inside the callback.
-Warning: whatever happens inside asProver() will not be part of the zk proof.
-`);
+    throw Error(readVarMessage(name, 'x', 'field element'));
   }
 
   /**
@@ -1285,4 +1281,24 @@ function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
+}
+
+function readVarMessage(
+  methodName: string,
+  varName: string,
+  varDescription: string
+) {
+  return `${varName}.${methodName}() was called on a variable ${varDescription} \`${varName}\` in provable code.
+This is not supported, because variables represent an abstract computation, 
+which only carries actual values during proving, but not during compiling.
+
+Also, reading out JS values means that whatever you're doing with those values will no longer be
+linked to the original variable in the proof, which makes this pattern prone to security holes.
+
+You can check whether your ${varDescription} is a variable or a constant using ${varName}.isConstant().
+
+To inspect values for debugging, use Provable.log(${varName}). For more advanced use cases,
+there is \`Provable.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
+Warning: whatever happens inside asProver() will not be part of the zk proof.
+`;
 }
