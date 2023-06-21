@@ -6,7 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 
 // external API
-export { Poseidon, TokenSymbol };
+export { Poseidon, TokenSymbol, Hash };
 
 // internal API
 export {
@@ -192,3 +192,29 @@ class TokenSymbol extends Struct(TokenSymbolPure) {
 function emptyReceiptChainHash() {
   return emptyHashWithPrefix('CodaReceiptEmpty');
 }
+
+function buildSHA(length: 224 | 256 | 385 | 512, nist: boolean) {
+  return {
+    hash(message: Field[]) {
+      return Snarky.sha
+        .create([0, ...message.map((f) => f.value)], nist, length)
+        .map(Field);
+    },
+  };
+}
+
+const Hash = {
+  default: Poseidon.hash,
+
+  Poseidon: Poseidon.hash,
+
+  SHA224: buildSHA(224, true).hash,
+
+  SHA256: buildSHA(256, true).hash,
+
+  SHA385: buildSHA(385, true).hash,
+
+  SHA512: buildSHA(512, true).hash,
+
+  Keccack256: buildSHA(256, false).hash,
+};
