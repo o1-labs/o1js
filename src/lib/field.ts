@@ -191,20 +191,7 @@ class Field {
     return this.value[0] === FieldType.Constant;
   }
 
-  /**
-   * Create a {@link Field} element equivalent to this {@link Field} element's value,
-   * but is a constant.
-   * See {@link Field.isConstant} for more information about what is a constant {@link Field}.
-   *
-   * @example
-   * ```ts
-   * const someField = Field(42);
-   * someField.toConstant().assertEquals(someField); // Always true
-   * ```
-   *
-   * @return A constant {@link Field} element equivalent to this {@link Field} element.
-   */
-  toConstant(): ConstantField {
+  #toConstant(name: string): ConstantField {
     // if this is a constant, return it
     if (this.isConstant()) return this;
 
@@ -221,7 +208,36 @@ class Field {
     }
 
     // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
-    throw Error("Can't evaluate prover code outside an as_prover block 🧌");
+    throw Error(`x.${name}() was called on a variable x in provable code.
+This is not supported, because variables in provable code represent an abstract computation,
+which only has actual values attached during proving, but not during compiling the prover key.
+
+Also, reading out JS values means that whatever you're doing with those values will no longer be
+linked to the original variable in the proof, which makes this pattern prone to security holes.
+
+You can check whether your field element is a variable or a constant using x.isConstant().
+
+To inspect values for debugging, use Provable.log(x). For more advanced use cases,
+there is \'Provable.asProver(() => { ... })\` which allows you to use x.${name}() inside the callback.
+Warning: whatever happens inside asProver() will not be part of the zk proof.
+`);
+  }
+
+  /**
+   * Create a {@link Field} element equivalent to this {@link Field} element's value,
+   * but is a constant.
+   * See {@link Field.isConstant} for more information about what is a constant {@link Field}.
+   *
+   * @example
+   * ```ts
+   * const someField = Field(42);
+   * someField.toConstant().assertEquals(someField); // Always true
+   * ```
+   *
+   * @return A constant {@link Field} element equivalent to this {@link Field} element.
+   */
+  toConstant(): ConstantField {
+    return this.#toConstant('toConstant');
   }
 
   /**
@@ -238,7 +254,7 @@ class Field {
    * @return A bigint equivalent to the bigint representation of the Field.
    */
   toBigInt() {
-    let x = this.toConstant();
+    let x = this.#toConstant('toBigInt');
     return FieldConst.toBigint(x.value[1]);
   }
 
@@ -256,7 +272,7 @@ class Field {
    * @return A string equivalent to the string representation of the Field.
    */
   toString() {
-    return this.toBigInt().toString();
+    return this.#toConstant('toString').toBigInt().toString();
   }
 
   /**
@@ -1125,7 +1141,7 @@ class Field {
    * @return A string equivalent to the JSON representation of the {@link Field}.
    */
   toJSON() {
-    return this.toString();
+    return this.#toConstant('toJSON').toString();
   }
 
   /**
@@ -1186,7 +1202,7 @@ class Field {
    *
    */
   static toBytes(x: Field) {
-    return FieldBinable.toBytes(x);
+    return [...x.#toConstant('toBytes').value[1]];
   }
 
   /**
@@ -1229,7 +1245,7 @@ class Field {
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return [...t.toConstant().value[1]];
+    return Field.toBytes(t);
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
