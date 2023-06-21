@@ -58,7 +58,7 @@ function inCompileMode() {
 
 function asProver(f: () => void) {
   if (inCheckedComputation()) {
-    Snarky.asProver(f);
+    Snarky.run.asProver(f);
   } else {
     f();
   }
@@ -67,7 +67,7 @@ function asProver(f: () => void) {
 function runAndCheck(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
-    Snarky.runAndCheck(f);
+    Snarky.run.runAndCheck(f);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
@@ -78,7 +78,7 @@ function runAndCheck(f: () => void) {
 function runUnchecked(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
-    Snarky.runUnchecked(f);
+    Snarky.run.runUnchecked(f);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
@@ -90,7 +90,7 @@ function constraintSystem<T>(f: () => T) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
     let result: T;
-    let { rows, digest, json } = Snarky.constraintSystem(() => {
+    let { rows, digest, json } = Snarky.run.constraintSystem(() => {
       result = f();
     });
     let { gates, publicInputSize } = gatesFromJson(json);
