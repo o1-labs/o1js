@@ -1,5 +1,11 @@
 import { Snarky } from '../snarky.js';
-import { Field, FieldConst, FieldType, FieldVar } from './field.js';
+import {
+  Field,
+  FieldConst,
+  FieldType,
+  FieldVar,
+  readVarMessage,
+} from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from 'src/bindings/crypto/non-negative.js';
@@ -179,8 +185,10 @@ class Bool {
     let value: FieldConst;
     if (this.isConstant()) {
       value = this.value[1];
-    } else {
+    } else if (Snarky.run.inProverBlock()) {
       value = Snarky.field.readVar(this.value);
+    } else {
+      throw Error(readVarMessage('toBoolean', 'b', 'Bool'));
     }
     return FieldConst.equal(value, FieldConst[1]);
   }
@@ -368,7 +376,7 @@ function toBoolean(x: boolean | Bool): boolean {
   if (typeof x === 'boolean') {
     return x;
   }
-  return (x as Bool).toBoolean();
+  return x.toBoolean();
 }
 
 // TODO: This is duplicated

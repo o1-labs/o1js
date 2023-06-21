@@ -18,6 +18,7 @@ export {
   isField,
   withMessage,
   readVarMessage,
+  toConstantField,
 };
 
 type FieldConst = Uint8Array;
@@ -200,23 +201,7 @@ class Field {
   }
 
   #toConstant(name: string): ConstantField {
-    // if this is a constant, return it
-    if (this.isConstant()) return this;
-
-    // a non-constant can only appear inside a checked computation. everything else is a bug.
-    assert(
-      inCheckedComputation(),
-      'variables only exist inside checked computations'
-    );
-
-    // if we are inside an asProver or witness block, read the variable's value and return it as constant
-    if (Snarky.run.inProverBlock()) {
-      let value = Snarky.field.readVar(this.value);
-      return new Field(value) as ConstantField;
-    }
-
-    // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
-    throw Error(readVarMessage(name, 'x', 'field element'));
+    return toConstantField(this, name, 'x', 'field element');
   }
 
   /**
@@ -1281,6 +1266,31 @@ function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
+}
+
+function toConstantField(
+  x: Field,
+  methodName: string,
+  varName: string,
+  varDescription: string
+): ConstantField {
+  // if this is a constant, return it
+  if (x.isConstant()) return x;
+
+  // a non-constant can only appear inside a checked computation. everything else is a bug.
+  assert(
+    inCheckedComputation(),
+    'variables only exist inside checked computations'
+  );
+
+  // if we are inside an asProver or witness block, read the variable's value and return it as constant
+  if (Snarky.run.inProverBlock()) {
+    let value = Snarky.field.readVar(x.value);
+    return new Field(value) as ConstantField;
+  }
+
+  // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
+  throw Error(readVarMessage(methodName, varName, varDescription));
 }
 
 function readVarMessage(
