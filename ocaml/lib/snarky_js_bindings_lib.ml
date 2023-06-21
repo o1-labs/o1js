@@ -64,38 +64,42 @@ module Snarky = struct
   let exists_var (compute : unit -> Field.Constant.t) =
     Impl.exists Field.typ ~compute
 
-  let as_prover = Impl.as_prover
+  module Run = struct
+    let as_prover = Impl.as_prover
 
-  let run_and_check (f : unit -> unit) =
-    try
-      Impl.run_and_check_exn (fun () ->
-          f () ;
-          fun () -> () )
-    with exn -> raise_exn exn
+    let in_prover_block () = As_prover.in_prover_block () |> Js.bool
 
-  let run_unchecked (f : unit -> unit) =
-    try
-      Impl.run_and_check_exn (fun () ->
-          Snarky_backendless.Snark0.set_eval_constraints false ;
-          f () ;
-          Snarky_backendless.Snark0.set_eval_constraints true ;
-          fun () -> () )
-    with exn -> raise_exn exn
+    let run_and_check (f : unit -> unit) =
+      try
+        Impl.run_and_check_exn (fun () ->
+            f () ;
+            fun () -> () )
+      with exn -> raise_exn exn
 
-  let constraint_system (main : unit -> unit) =
-    let cs =
-      Impl.constraint_system ~input_typ:Impl.Typ.unit ~return_typ:Impl.Typ.unit
-        (fun () -> main)
-    in
-    object%js
-      val rows = Backend.R1CS_constraint_system.get_rows_len cs
+    let run_unchecked (f : unit -> unit) =
+      try
+        Impl.run_and_check_exn (fun () ->
+            Snarky_backendless.Snark0.set_eval_constraints false ;
+            f () ;
+            Snarky_backendless.Snark0.set_eval_constraints true ;
+            fun () -> () )
+      with exn -> raise_exn exn
 
-      val digest =
-        Backend.R1CS_constraint_system.digest cs |> Md5.to_hex |> Js.string
+    let constraint_system (main : unit -> unit) =
+      let cs =
+        Impl.constraint_system ~input_typ:Impl.Typ.unit
+          ~return_typ:Impl.Typ.unit (fun () -> main)
+      in
+      object%js
+        val rows = Backend.R1CS_constraint_system.get_rows_len cs
 
-      val json =
-        Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
-    end
+        val digest =
+          Backend.R1CS_constraint_system.digest cs |> Md5.to_hex |> Js.string
+
+        val json =
+          Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
+      end
+  end
 
   module Field = struct
     type t = Field.t
@@ -303,13 +307,19 @@ let snarky =
 
     method existsVar = Snarky.exists_var
 
-    method asProver = Snarky.as_prover
+    val run =
+      let open Snarky.Run in
+      object%js
+        method asProver = as_prover
 
-    method runAndCheck = Snarky.run_and_check
+        val inProverBlock = in_prover_block
 
-    method runUnchecked = Snarky.run_unchecked
+        method runAndCheck = run_and_check
 
-    method constraintSystem = Snarky.constraint_system
+        method runUnchecked = run_unchecked
+
+        method constraintSystem = constraint_system
+      end
 
     val field =
       object%js
