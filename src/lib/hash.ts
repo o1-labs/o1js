@@ -4,6 +4,8 @@ import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
+import { UInt8 } from './int.js';
+import { isField } from './field.js';
 
 // external API
 export { Poseidon, TokenSymbol, Hash };
@@ -195,10 +197,21 @@ function emptyReceiptChainHash() {
 
 function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
-    hash(message: Field[]) {
-      return Snarky.sha
-        .create([0, ...message.map((f) => f.value)], nist, length)
-        .map(Field);
+    hash(message: (Field | UInt8)[]) {
+      if (message.length === 0) {
+        throw Error('SHA hash of empty message');
+      }
+
+      const values = message.map((f) => {
+        if (isField(f)) {
+          // Make sure that the field is exactly a byte.
+          f.toBits(8);
+          return f.value;
+        }
+        return f.value.value;
+      });
+
+      return Snarky.sha.create([0, ...values], nist, length).map(Field);
     },
   };
 }
