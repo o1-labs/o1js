@@ -1,11 +1,11 @@
 import { Field, Bool } from './core.js';
-import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
+import { AnyConstructor, CircuitValue, Struct, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
 
 // external API
-export { UInt32, UInt64, Int64, Sign };
+export { UInt8, UInt32, UInt64, Int64, Sign };
 
 /**
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
@@ -957,5 +957,20 @@ class Int64 extends CircuitValue implements BalanceChange {
    */
   isPositive() {
     return this.sgn.isPositive();
+  }
+}
+
+class UInt8 extends Struct({
+  value: Field,
+}) {
+  constructor(x: number | Field) {
+    super({ value: Field(x) });
+
+    // Make sure that the Field element that is exactly a byte
+    this.value.toBits(8);
+  }
+
+  check() {
+    this.value.toBits(8);
   }
 }
