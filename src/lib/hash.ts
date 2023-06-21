@@ -11,7 +11,7 @@ export { Poseidon, TokenSymbol };
 // internal API
 export {
   HashInput,
-  Hash,
+  HashHelpers,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
@@ -98,8 +98,8 @@ function hashConstant(input: Field[]) {
   return Field(digest);
 }
 
-const Hash = createHashHelpers(Field, Poseidon);
-let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { salt, emptyHashWithPrefix, hashWithPrefix } = HashHelpers;
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {
