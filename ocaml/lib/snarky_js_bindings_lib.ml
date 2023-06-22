@@ -64,38 +64,42 @@ module Snarky = struct
   let exists_var (compute : unit -> Field.Constant.t) =
     Impl.exists Field.typ ~compute
 
-  let as_prover = Impl.as_prover
+  module Run = struct
+    let as_prover = Impl.as_prover
 
-  let run_and_check (f : unit -> unit) =
-    try
-      Impl.run_and_check_exn (fun () ->
-          f () ;
-          fun () -> () )
-    with exn -> raise_exn exn
+    let in_prover_block () = As_prover.in_prover_block () |> Js.bool
 
-  let run_unchecked (f : unit -> unit) =
-    try
-      Impl.run_and_check_exn (fun () ->
-          Snarky_backendless.Snark0.set_eval_constraints false ;
-          f () ;
-          Snarky_backendless.Snark0.set_eval_constraints true ;
-          fun () -> () )
-    with exn -> raise_exn exn
+    let run_and_check (f : unit -> unit) =
+      try
+        Impl.run_and_check_exn (fun () ->
+            f () ;
+            fun () -> () )
+      with exn -> raise_exn exn
 
-  let constraint_system (main : unit -> unit) =
-    let cs =
-      Impl.constraint_system ~input_typ:Impl.Typ.unit ~return_typ:Impl.Typ.unit
-        (fun () -> main)
-    in
-    object%js
-      val rows = Backend.R1CS_constraint_system.get_rows_len cs
+    let run_unchecked (f : unit -> unit) =
+      try
+        Impl.run_and_check_exn (fun () ->
+            Snarky_backendless.Snark0.set_eval_constraints false ;
+            f () ;
+            Snarky_backendless.Snark0.set_eval_constraints true ;
+            fun () -> () )
+      with exn -> raise_exn exn
 
-      val digest =
-        Backend.R1CS_constraint_system.digest cs |> Md5.to_hex |> Js.string
+    let constraint_system (main : unit -> unit) =
+      let cs =
+        Impl.constraint_system ~input_typ:Impl.Typ.unit
+          ~return_typ:Impl.Typ.unit (fun () -> main)
+      in
+      object%js
+        val rows = Backend.R1CS_constraint_system.get_rows_len cs
 
-      val json =
-        Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
-    end
+        val digest =
+          Backend.R1CS_constraint_system.digest cs |> Md5.to_hex |> Js.string
+
+        val json =
+          Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
+      end
+  end
 
   module Field = struct
     type t = Field.t
@@ -170,20 +174,21 @@ module Snarky = struct
   end
 
   module Group = struct
-    type t = Pickles.Step_main_inputs.Inner_curve.t
-
-    (** p1 + p2; handles variables *)
-    let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
-
-    let assert_on_curve p =
-      Pickles.Step_main_inputs.Inner_curve.assert_on_curve p
+    let ec_add p1 p2 p3 inf same_x slope inf_z x21_inv =
+      let open Impl in
+      with_label "Elliptic Curve Addition" (fun () ->
+          assert_
+            { annotation = Some __LOC__
+            ; basic =
+                Kimchi_backend_common.Plonk_constraint_system.Plonk_constraint.T
+                  (EC_add_complete
+                     { p1; p2; p3; inf; same_x; slope; inf_z; x21_inv } )
+            } ;
+          p3 )
 
     let scale p (scalar_bits : Boolean.var array) =
       Pickles.Step_main_inputs.Ops.scale_fast_msb_bits p
         (Shifted_value scalar_bits)
-
-    let equals ((x1, y1) : t) ((x2, y2) : t) =
-      Boolean.all [ Impl.Field.equal x1 x2; Impl.Field.equal y1 y2 ]
   end
 
   module Circuit = struct
@@ -302,13 +307,19 @@ let snarky =
 
     method existsVar = Snarky.exists_var
 
-    method asProver = Snarky.as_prover
+    val run =
+      let open Snarky.Run in
+      object%js
+        method asProver = as_prover
 
-    method runAndCheck = Snarky.run_and_check
+        val inProverBlock = in_prover_block
 
-    method runUnchecked = Snarky.run_unchecked
+        method runAndCheck = run_and_check
 
-    method constraintSystem = Snarky.constraint_system
+        method runUnchecked = run_unchecked
+
+        method constraintSystem = constraint_system
+      end
 
     val field =
       object%js
@@ -356,13 +367,9 @@ let snarky =
 
     val group =
       object%js
-        method add = Snarky.Group.add
-
-        method assertOnCurve = Snarky.Group.assert_on_curve
+        method ecadd = Snarky.Group.ec_add
 
         method scale = Snarky.Group.scale
-
-        method equals = Snarky.Group.equals
       end
 
     val circuit =

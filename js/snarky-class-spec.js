@@ -5,20 +5,8 @@ export default [
       { name: 'exists', type: 'function' },
       { name: 'existsVar', type: 'function' },
       {
-        name: 'asProver',
-        type: 'function',
-      },
-      {
-        name: 'runAndCheck',
-        type: 'function',
-      },
-      {
-        name: 'runUnchecked',
-        type: 'function',
-      },
-      {
-        name: 'constraintSystem',
-        type: 'function',
+        name: 'run',
+        type: 'object',
       },
       {
         name: 'field',
