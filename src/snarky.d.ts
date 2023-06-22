@@ -163,25 +163,35 @@ declare const Snarky: {
    * witness a single field element variable
    */
   existsVar(compute: () => FieldConst): FieldVar;
+
   /**
-   * Runs code as a prover.
+   * APIs that have to do with running provable code
    */
-  asProver(f: () => void): void;
-  /**
-   * Runs code and checks its correctness.
-   */
-  runAndCheck(f: () => void): void;
-  /**
-   * Runs code in prover mode, without checking correctness.
-   */
-  runUnchecked(f: () => void): void;
-  /**
-   * Returns information about the constraint system in the callback function.
-   */
-  constraintSystem(f: () => void): {
-    rows: number;
-    digest: string;
-    json: JsonConstraintSystem;
+  run: {
+    /**
+     * Runs code as a prover.
+     */
+    asProver(f: () => void): void;
+    /**
+     * Check whether we are inside an asProver or exists block
+     */
+    inProverBlock(): boolean;
+    /**
+     * Runs code and checks its correctness.
+     */
+    runAndCheck(f: () => void): void;
+    /**
+     * Runs code in prover mode, without checking correctness.
+     */
+    runUnchecked(f: () => void): void;
+    /**
+     * Returns information about the constraint system in the callback function.
+     */
+    constraintSystem(f: () => void): {
+      rows: number;
+      digest: string;
+      json: JsonConstraintSystem;
+    };
   };
 
   /**

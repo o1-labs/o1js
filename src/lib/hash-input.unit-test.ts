@@ -107,11 +107,13 @@ function testInput<T, TJson>(
   // console.log('json', json);
   let input1 = MlHashInput.from(toInputOcaml(JSON.stringify(json)));
   let input2 = Module.toInput(value);
-  // console.log('snarkyjs', JSON.stringify(input2));
+  let input1Json = JSON.stringify(input1);
+  let input2Json = JSON.stringify(input2);
+  // console.log('snarkyjs', input2Json);
   // console.log();
-  // console.log('protocol', JSON.stringify(input1));
-  let ok1 = JSON.stringify(input2) === JSON.stringify(input1);
-  expect(JSON.stringify(input2)).toEqual(JSON.stringify(input1));
+  // console.log('protocol', input1Json);
+  let ok1 = input1Json === input2Json;
+  expect(input2Json).toEqual(input1Json);
   // console.log('ok?', ok1);
   let fields1 = MlFieldConstArray.from(
     hashInputFromJson.packInput(MlHashInput.to(input1))

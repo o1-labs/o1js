@@ -6,6 +6,9 @@ import { Bool } from './bool.js';
 
 export { Scalar, ScalarConst, unshift, shift };
 
+// internal API
+export { constantScalarToBigint };
+
 type BoolVar = FieldVar;
 type ScalarConst = Uint8Array;
 
@@ -106,18 +109,8 @@ class Scalar {
 
   // operations on constant scalars
 
-  // TODO: this is a static method so that it works on ml scalars as well
-  static #assertConstantStatic(x: Scalar, name: string): Fq {
-    if (x.constantValue === undefined)
-      throw Error(
-        `Scalar.${name}() is not available in provable code.
-That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
-      );
-    return ScalarConst.toBigint(x.constantValue);
-  }
-
   #assertConstant(name: string) {
-    return Scalar.#assertConstantStatic(this, name);
+    return constantScalarToBigint(this, `Scalar.${name}`);
   }
 
   /**
@@ -138,7 +131,7 @@ That means it can't be called in a @method or similar environment, and there's n
    */
   add(y: Scalar) {
     let x = this.#assertConstant('add');
-    let y0 = Scalar.#assertConstantStatic(y, 'add');
+    let y0 = y.#assertConstant('add');
     let z = Fq.add(x, y0);
     return Scalar.from(z);
   }
@@ -150,7 +143,7 @@ That means it can't be called in a @method or similar environment, and there's n
    */
   sub(y: Scalar) {
     let x = this.#assertConstant('sub');
-    let y0 = Scalar.#assertConstantStatic(y, 'sub');
+    let y0 = y.#assertConstant('sub');
     let z = Fq.sub(x, y0);
     return Scalar.from(z);
   }
@@ -162,7 +155,7 @@ That means it can't be called in a @method or similar environment, and there's n
    */
   mul(y: Scalar) {
     let x = this.#assertConstant('mul');
-    let y0 = Scalar.#assertConstantStatic(y, 'mul');
+    let y0 = y.#assertConstant('mul');
     let z = Fq.mul(x, y0);
     return Scalar.from(z);
   }
@@ -175,7 +168,7 @@ That means it can't be called in a @method or similar environment, and there's n
    */
   div(y: Scalar) {
     let x = this.#assertConstant('div');
-    let y0 = Scalar.#assertConstantStatic(y, 'div');
+    let y0 = y.#assertConstant('div');
     let z = Fq.div(x, y0);
     if (z === undefined) throw Error('Scalar.div(): Division by zero');
     return Scalar.from(z);
@@ -296,7 +289,7 @@ That means it can't be called in a @method or similar environment, and there's n
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static toJSON(x: Scalar) {
-    let s = Scalar.#assertConstantStatic(x, 'toJSON');
+    let s = x.#assertConstant('toJSON');
     return s.toString();
   }
 
@@ -359,4 +352,13 @@ function constToBigint(x: ScalarConst): Fq {
 }
 function constFromBigint(x: Fq) {
   return Uint8Array.from(Fq.toBytes(x));
+}
+
+function constantScalarToBigint(s: Scalar, name: string) {
+  if (s.constantValue === undefined)
+    throw Error(
+      `${name}() is not available in provable code.
+That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
+    );
+  return ScalarConst.toBigint(s.constantValue);
 }
