@@ -1,13 +1,15 @@
 import { ProvablePure } from '../snarky.js';
+import { Group } from './core.js';
 import { FieldVar } from './field.js';
 import { ForeignField, createForeignField, limbBits } from './foreign-field.js';
-import { Scalar as Fq } from '../provable/curve-bigint.js';
+import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
 import { createEquivalenceTesters, throwError } from './testing/equivalent.js';
 import { test, Random } from './testing/property.js';
 import { Provable } from './provable.js';
 import { ZkProgram } from './proof_system.js';
 import { Circuit, circuitMain } from './circuit.js';
+import { Scalar } from './scalar.js';
 
 let ForeignScalar = createForeignField(Fq.modulus);
 
@@ -68,29 +70,66 @@ equivalent1(
   Random.scalar
 );
 
-// shift
+// scalar shift in foreign field arithmetic vs in the exponent
 
 let scalarShift = Fq(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
-function shift(s: Fq): Fq {
-  return Fq.add(Fq.add(s, s), scalarShift);
+function unshift(s: ForeignField) {
+  return s.sub(scalarShift).mul(oneHalf);
+}
+function scaleShifted(point: Group, shiftedScalar: Scalar) {
+  let oneHalfGroup = point.scale(oneHalf);
+  let shiftGroup = oneHalfGroup.scale(scalarShift);
+  return oneHalfGroup.scale(shiftedScalar).sub(shiftGroup);
 }
 
-let scalar = Fq.random();
-let scalarShifted = shift(scalar);
+let scalarBigint = Fq.random();
+let pointBigint = G.scale(G.generatorMina, scalarBigint);
 
-function main_() {
-  // perform a "scalar shift" in foreign field arithmetic
-  let x = Provable.witness(ForeignScalar, () => new ForeignScalar(scalar));
-  let shifted = x.add(x).add(scalarShift);
-  // shifted.assertEquals(scalarShifted);
+// perform a "scalar unshift" in foreign field arithmetic,
+// then convert to scalar from bits (which shifts it back) and scale a point by the scalar
+function main0() {
+  let ffScalar = Provable.witness(
+    ForeignScalar,
+    () => new ForeignScalar(scalarBigint)
+  );
+  let bitsUnshifted = unshift(ffScalar).toBits();
+  let scalar = Scalar.fromBits(bitsUnshifted);
+
+  let generator = Provable.witness(Group, () => Group.generator);
+  let point = generator.scale(scalar);
+  point.assertEquals(Group(pointBigint));
 }
-Provable.runAndCheck(main_);
-let { rows, gates } = Provable.constraintSystem(main_);
 
-console.log({ rows, gates: JSON.stringify(gates) });
+// go directly from foreign scalar to scalar and perform a shifted scale
+// = same end result as main0
+function main1() {
+  let ffScalar = Provable.witness(
+    ForeignScalar,
+    () => new ForeignScalar(scalarBigint)
+  );
+  let bits = ffScalar.toBits();
+  let scalarShifted = Scalar.fromBits(bits);
 
+  let generator = Provable.witness(Group, () => Group.generator);
+  let point = scaleShifted(generator, scalarShifted);
+  point.assertEquals(Group(pointBigint));
+}
+
+// check provable and non-provable versions are correct
+main0();
+main1();
+Provable.runAndCheck(main0);
+Provable.runAndCheck(main1);
+
+// using foreign field arithmetic should result in much fewer constraints
+let { rows: rows0 } = Provable.constraintSystem(main0);
+let { rows: rows1 } = Provable.constraintSystem(main1);
+expect(rows0 + 100).toBeLessThan(rows1);
+
+// TODO: add when proving works
+/* 
 class Main extends Circuit {
   @circuitMain
   static main() {
@@ -129,3 +168,4 @@ let proof = await Program.test();
 
 ok = await Program.verify(proof);
 console.log('verifies?', ok);
+ */
