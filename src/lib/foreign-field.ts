@@ -40,6 +40,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     static modulus = p;
     value: ForeignFieldVar;
 
+    /**
+     * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
+     *
+     * ```ts
+     * let x = new ForeignField(5);
+     * ```
+     */
     constructor(x: ForeignField | ForeignFieldVar | bigint | number | string) {
       if (x instanceof ForeignField) {
         this.value = x.value;
@@ -54,16 +61,32 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       this.value = ForeignFieldVar.fromBigint(mod(BigInt(x), p));
     }
 
+    /**
+     * Coerce the input to a {@link ForeignField}.
+     */
     static from(x: ForeignField | ForeignFieldVar | bigint | number | string) {
       if (x instanceof ForeignField) return x;
       return new ForeignField(x);
     }
 
+    /**
+     * Checks whether this field element is a constant.
+     *
+     * See {@link FieldVar} tp understand constants vs variables.
+     */
     isConstant() {
       let [, ...limbs] = this.value;
       return limbs.every(FieldVar.isConstant);
     }
 
+    /**
+     * Convert this field element to a constant.
+     *
+     * See {@link FieldVar} tp understand constants vs variables.
+     *
+     * **Warning**: This function is only useful in `Provable.witness()` or `Provable.asProver()` blocks,
+     * that is, in situations where the prover computes a value outside provable code.
+     */
     toConstant(): ForeignField {
       let [, ...limbs] = this.value;
       let constantLimbs = mapTuple(limbs, (l) =>
@@ -72,10 +95,17 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return new ForeignField([0, ...constantLimbs]);
     }
 
+    /**
+     * Convert this field element to a bigint.
+     */
     toBigInt() {
       return ForeignFieldVar.toBigint(this.value);
     }
 
+    /**
+     * Assert that this field element lies in the range [0, p),
+     * where p is the foreign field modulus.
+     */
     assertValidElement() {
       if (this.isConstant()) return;
       Snarky.foreignField.assertValidElement(this.value, pMl);
@@ -83,6 +113,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     // arithmetic with full constraints, for safe use
 
+    /**
+     * Finite field addition
+     *
+     * ```ts
+     * x.add(2); // x + 2 mod p
+     * ```
+     */
     add(y: ForeignField | bigint | number) {
       if (this.isConstant() && isConstant(y)) {
         let z = mod(this.toBigInt() + toFp(y), p);
@@ -92,6 +129,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return new ForeignField(z);
     }
 
+    /**
+     * Finite field negation
+     *
+     * ```ts
+     * x.neg(); // -x mod p = p - x
+     * ```
+     */
     neg() {
       if (this.isConstant()) {
         let x = this.toBigInt();
@@ -102,6 +146,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return new ForeignField(z);
     }
 
+    /**
+     * Finite field subtraction
+     *
+     * ```ts
+     * x.sub(1); // x - 1 mod p
+     * ```
+     */
     sub(y: ForeignField | bigint | number) {
       if (this.isConstant() && isConstant(y)) {
         let z = mod(this.toBigInt() - toFp(y), p);
@@ -111,6 +162,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return new ForeignField(z);
     }
 
+    /**
+     * Finite field multiplication
+     *
+     * ```ts
+     * x.mul(y); // x*y mod p
+     * ```
+     */
     mul(y: ForeignField | bigint | number) {
       if (this.isConstant() && isConstant(y)) {
         let z = mod(this.toBigInt() * toFp(y), p);
@@ -120,6 +178,14 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return new ForeignField(z);
     }
 
+    /**
+     * Multiplicative inverse in the finite field
+     *
+     * ```ts
+     * let z = x.inv(); // 1/x mod p
+     * z.mul(x).assertEquals(1);
+     * ```
+     */
     inv(): ForeignField {
       if (this.isConstant()) {
         let z = inverse(this.toBigInt(), p);
@@ -144,6 +210,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     // convenience methods
 
+    /**
+     * Assert equality with a ForeignField-like value
+     *
+     * ```ts
+     * x.assertEquals(0, "x is zero");
+     * ```
+     */
     assertEquals(y: ForeignField | bigint | number, message?: string) {
       try {
         if (this.isConstant() && isConstant(y)) {
@@ -159,6 +232,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       }
     }
 
+    /**
+     * Check equality with a ForeignField-like value
+     *
+     * ```ts
+     * let isXZero = x.equals(0);
+     * ```
+     */
     equals(y: ForeignField | bigint | number) {
       if (this.isConstant() && isConstant(y)) {
         return new Bool(this.toBigInt() === toFp(y));
@@ -168,6 +248,11 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     // bit packing
 
+    /**
+     * Unpack a field element to its bits, as a `Bool[]` array.
+     *
+     * This method is provable!
+     */
     toBits(length = sizeInBits) {
       checkBitLength('ForeignField.toBits()', length, sizeInBits);
       let [l0, l1, l2] = this.toFields();
@@ -182,6 +267,11 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return [...xBits, ...yBits, ...zBits];
     }
 
+    /**
+     * Create a field element from its bits, as a `Bool[]` array.
+     *
+     * This method is provable!
+     */
     static fromBits(bits: Bool[]) {
       let length = bits.length;
       checkBitLength('ForeignField.fromBits()', length, sizeInBits);
@@ -197,27 +287,52 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     // Provable<ForeignField>
 
+    /**
+     * `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
+     */
     static toFields(x: ForeignField) {
       let [, ...limbs] = x.value;
       return limbs.map((x) => new Field(x));
     }
+
+    /**
+     * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
+     */
     toFields() {
       return ForeignField.toFields(this);
     }
 
+    /**
+     * `Provable<ForeignField>.toAuxiliary`, see {@link Provable.toAuxiliary}
+     */
     static toAuxiliary(): [] {
       return [];
     }
+    /**
+     * `Provable<ForeignField>.sizeInFields`, see {@link Provable.sizeInFields}
+     */
     static sizeInFields() {
       return 3;
     }
 
+    /**
+     * `Provable<ForeignField>.fromFields`, see {@link Provable.fromFields}
+     */
     static fromFields(fields: Field[]) {
       let fieldVars = fields.map((x) => x.value);
       let limbs = arrayToTuple(fieldVars, 3, 'ForeignField.fromFields()');
       return new ForeignField([0, ...limbs]);
     }
 
+    /**
+     * `Provable<ForeignField>.check`, see {@link Provable.check}
+     *
+     * This will check that the field element is in the range [0, p),
+     * where p is the foreign field modulus.
+     *
+     * Exception: If {@link createForeignField} is called with `{ unsafe: true }`,
+     * we don't check that field elements are valid by default.
+     */
     static check(x: ForeignField) {
       // if the `unsafe` flag is set, we don't add any constraints when creating a new variable
       // this means a user has to take care of proper constraining themselves
