@@ -6,6 +6,8 @@ import {
   provablePure,
   HashInput,
   NonMethods,
+} from '../bindings/lib/provable-snarky.js';
+import type {
   InferJson,
   InferProvable,
   InferredProvable,

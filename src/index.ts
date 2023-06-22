@@ -1,20 +1,23 @@
-export { ProvablePure, Ledger } from './snarky.js';
+export type { ProvablePure } from './snarky.js';
+export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export { createForeignField, ForeignField } from './lib/foreign-field.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
+export type {
+  ProvableExtended,
+  FlexibleProvable,
+  FlexibleProvablePure,
+  InferProvable,
+} from './lib/circuit_value.js';
 export {
   CircuitValue,
-  ProvableExtended,
   prop,
   arrayProp,
   matrixProp,
   provable,
   provablePure,
   Struct,
-  FlexibleProvable,
-  FlexibleProvablePure,
-  InferProvable,
 } from './lib/circuit_value.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
@@ -22,21 +25,22 @@ export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export * as Mina from './lib/mina.js';
+export type { DeployArgs } from './lib/zkapp.js';
 export {
   SmartContract,
   method,
-  DeployArgs,
   declareMethods,
   Account,
   VerificationKey,
   Reducer,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
+
+export type { JsonProof } from './lib/proof_system.js';
 export {
   Proof,
   SelfProof,
   verify,
-  JsonProof,
   Empty,
   Undefined,
   Void,
@@ -50,13 +54,13 @@ export {
   ZkappPublicInput,
 } from './lib/account_update.js';
 
+export type { TransactionStatus } from './lib/fetch.js';
 export {
   fetchAccount,
   fetchLastBlock,
   fetchTransactionStatus,
   checkZkappTransaction,
   fetchEvents,
-  TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
   setGraphqlEndpoints,
