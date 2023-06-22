@@ -304,33 +304,12 @@ module Snarky = struct
 
     type t_const = Impl.field FF.Element.Standard.limbs_type
 
-    let add_range_checks external_checks =
-      List.iter (External_checks.multi_ranges external_checks)
-        ~f:(fun multi_range ->
-          let v0, v1, v2 = multi_range in
-          Range_check.multi (module Impl) v0 v1 v2 )
-
-    let add_mul_constraints external_checks p =
-      (* bounds *)
-      List.iter (External_checks.bounds external_checks) ~f:(fun product ->
-          let limbs = FF.Element.Standard.of_limbs product in
-          let _ = FF.valid_element (module Impl) external_checks limbs p in
-          () ) ;
-      (* multi_ranges *)
-      add_range_checks external_checks ;
-      (* compact multi ranges *)
-      List.iter (External_checks.compact_multi_ranges external_checks)
-        ~f:(fun compact_multi_range ->
-          let v01, v2 = compact_multi_range in
-          Range_check.compact_multi (module Impl) v01 v2 ;
-          () )
-
     (* high-level API of self-contained methods which do all necessary checks *)
 
     let assert_valid_element (x : t) (p : t_const) : unit =
       let external_checks = External_checks.create (module Impl) in
       let _ = FF.valid_element (module Impl) external_checks x p in
-      add_range_checks external_checks
+      FF.constrain_external_checks (module Impl) external_checks p
 
     let add (x : t) (y : t) (p : t_const) : t =
       FF.add (module Impl) ~full:true x y p
@@ -341,7 +320,7 @@ module Snarky = struct
     let mul (x : t) (y : t) (p : t_const) : t =
       let external_checks = External_checks.create (module Impl) in
       let z = FF.mul (module Impl) external_checks x y p in
-      add_mul_constraints external_checks p ;
+      FF.constrain_external_checks (module Impl) external_checks p ;
       z
   end
 end
