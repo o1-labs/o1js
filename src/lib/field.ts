@@ -1300,7 +1300,7 @@ which only carries actual values during proving, but not during compiling.
 Also, reading out JS values means that whatever you're doing with those values will no longer be
 linked to the original variable in the proof, which makes this pattern prone to security holes.
 
-You can check whether your ${varDescription} is a variable or a constant using ${varName}.isConstant().
+You can check whether your ${varDescription} is a variable or a constant by using ${varName}.isConstant().
 
 To inspect values for debugging, use Provable.log(${varName}). For more advanced use cases,
 there is \`Provable.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
