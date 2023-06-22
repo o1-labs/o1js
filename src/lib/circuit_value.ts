@@ -470,7 +470,6 @@ function cloneCircuitValue<T>(obj: T): T {
     return obj;
   }
   if (obj.constructor?.name.includes('AccountUpdate')) {
-    console.log('cloning', obj.constructor.name);
     return (obj as any).constructor.clone(obj);
   }
 
