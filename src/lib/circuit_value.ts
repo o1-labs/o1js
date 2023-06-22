@@ -456,6 +456,7 @@ function isPrimitive(obj: any) {
   for (let P of primitives) {
     if (obj instanceof P) return true;
   }
+  return false;
 }
 
 function cloneCircuitValue<T>(obj: T): T {
