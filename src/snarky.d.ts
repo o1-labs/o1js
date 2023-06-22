@@ -134,6 +134,8 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (value: T) => void;
 }
 
+type MlGroup = MlTuple<FieldVar, FieldVar>;
+
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
   type Keypair = unknown;
@@ -161,25 +163,35 @@ declare const Snarky: {
    * witness a single field element variable
    */
   existsVar(compute: () => FieldConst): FieldVar;
+
   /**
-   * Runs code as a prover.
+   * APIs that have to do with running provable code
    */
-  asProver(f: () => void): void;
-  /**
-   * Runs code and checks its correctness.
-   */
-  runAndCheck(f: () => void): void;
-  /**
-   * Runs code in prover mode, without checking correctness.
-   */
-  runUnchecked(f: () => void): void;
-  /**
-   * Returns information about the constraint system in the callback function.
-   */
-  constraintSystem(f: () => void): {
-    rows: number;
-    digest: string;
-    json: JsonConstraintSystem;
+  run: {
+    /**
+     * Runs code as a prover.
+     */
+    asProver(f: () => void): void;
+    /**
+     * Check whether we are inside an asProver or exists block
+     */
+    inProverBlock(): boolean;
+    /**
+     * Runs code and checks its correctness.
+     */
+    runAndCheck(f: () => void): void;
+    /**
+     * Runs code in prover mode, without checking correctness.
+     */
+    runUnchecked(f: () => void): void;
+    /**
+     * Returns information about the constraint system in the callback function.
+     */
+    constraintSystem(f: () => void): {
+      rows: number;
+      digest: string;
+      json: JsonConstraintSystem;
+    };
   };
 
   /**
@@ -275,24 +287,20 @@ declare const Snarky: {
 
   group: {
     /**
-     * Addition of two group elements, handles only variables.
+     * Low-level Elliptic Curve Addition gate.
      */
-    add(
-      p1: MlTuple<FieldVar, FieldVar>,
-      p2: MlTuple<FieldVar, FieldVar>
-    ): MlTuple<FieldVar, FieldVar>;
+    ecadd(
+      p1: MlGroup,
+      p2: MlGroup,
+      p3: MlGroup,
+      inf: FieldVar,
+      same_x: FieldVar,
+      slope: FieldVar,
+      inf_z: FieldVar,
+      x21_inv: FieldVar
+    ): MlGroup;
 
-    assertOnCurve(p1: MlTuple<FieldVar, FieldVar>): void;
-
-    scale(
-      p: MlTuple<FieldVar, FieldVar>,
-      s: MlArray<BoolVar>
-    ): MlTuple<FieldVar, FieldVar>;
-
-    equals(
-      p1: MlTuple<FieldVar, FieldVar>,
-      p2: MlTuple<FieldVar, FieldVar>
-    ): BoolVar;
+    scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 
   /**

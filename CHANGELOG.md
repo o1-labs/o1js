@@ -17,7 +17,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/3fbd9678e...HEAD)
 
-> no unreleased changes yet
+### Breaking changes
+
+- `Group` operations now generate a different set of constraints. This breaks deployed contracts, because the circuit changed. https://github.com/o1-labs/snarkyjs/pull/967
+
+### Changed
+
+- Improve error message `Can't evaluate prover code outside an as_prover block` https://github.com/o1-labs/snarkyjs/pull/998
 
 ## [0.11.0](https://github.com/o1-labs/snarkyjs/compare/a632313a...3fbd9678e)
 
