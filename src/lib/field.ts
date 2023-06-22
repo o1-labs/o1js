@@ -1183,7 +1183,7 @@ class Field {
    *
    */
   static toBytes(x: Field) {
-    return [...x.#toConstant('toBytes').value[1]];
+    return FieldBinable.toBytes(x);
   }
 
   /**
@@ -1226,17 +1226,12 @@ class Field {
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return Field.toBytes(t);
+    return [...toConstantField(t, 'toBytes').value[1]];
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
-    return [
-      Object.assign(Object.create(new Field(1).constructor.prototype), {
-        value: [0, uint8array],
-      }) as Field,
-      offset + 32,
-    ];
+    return [new Field(uint8array), offset + 32];
   },
 });
 
@@ -1271,8 +1266,8 @@ function withMessage(error: unknown, message?: string) {
 function toConstantField(
   x: Field,
   methodName: string,
-  varName: string,
-  varDescription: string
+  varName = 'x',
+  varDescription = 'field element'
 ): ConstantField {
   // if this is a constant, return it
   if (x.isConstant()) return x;
