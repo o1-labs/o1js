@@ -1,5 +1,4 @@
 import {
-  Ledger,
   AccountUpdate,
   PrivateKey,
   Field,
