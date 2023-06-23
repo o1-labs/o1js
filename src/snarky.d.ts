@@ -12,7 +12,7 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, Rollup };
 
 // internal
 export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
@@ -264,6 +264,11 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
+};
+
+declare const Rollup: {
+  vk(): void;
+  step(): void;
 };
 
 type JsonGate = {

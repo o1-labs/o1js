@@ -1,4 +1,4 @@
-export { ProvablePure, Ledger } from './snarky.js';
+export { ProvablePure, Ledger, Rollup } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
