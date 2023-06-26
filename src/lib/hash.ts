@@ -198,10 +198,6 @@ function emptyReceiptChainHash() {
 function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
     hash(message: (Field | UInt8)[]) {
-      if (message.length === 0) {
-        throw Error('SHA hash of empty message');
-      }
-
       const values = message.map((f) => {
         if (isField(f)) {
           // Make sure that the field is exactly a byte.
