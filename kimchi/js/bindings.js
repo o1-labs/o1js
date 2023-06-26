@@ -1,6 +1,7 @@
 /* global joo_global_object, plonk_wasm, caml_js_to_bool, caml_jsstring_of_string,
     caml_string_of_jsstring
-    caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length
+    caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length,
+    UInt64, caml_int64_of_int32
 */
 
 // Provides: caml_bytes_of_uint8array
@@ -999,8 +1000,7 @@ var caml_fp_srs_batch_accumulator_check = function (srs, comms, chals) {
 var caml_fp_srs_batch_accumulator_generate = function (srs, comms, chals) {
     var rust_chals = caml_fp_vector_to_rust(chals);
     var rust_comms = plonk_wasm.caml_fp_srs_batch_accumulator_generate(srs, comms, rust_chals);
-    var rust_comms = caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGVesta, rust_affine_to_caml_affine, false);
-    return ok;
+    return caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGVesta, rust_affine_to_caml_affine, false);
 };
 
 // Provides: caml_fp_srs_h
@@ -1081,8 +1081,7 @@ var caml_fq_srs_batch_accumulator_check = function (srs, comms, chals) {
 var caml_fq_srs_batch_accumulator_generate = function (srs, comms, chals) {
     var rust_chals = caml_fq_vector_to_rust(chals);
     var rust_comms = plonk_wasm.caml_fq_srs_batch_accumulator_generate(srs, comms, rust_chals);
-    var rust_comms = caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGPallas, rust_affine_to_caml_affine, false);
-    return ok;
+    return caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGPallas, rust_affine_to_caml_affine, false);
 };
 
 // Provides: caml_fq_srs_h
