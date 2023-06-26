@@ -190,7 +190,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Finite field subtraction
-     *
+     * @example
      * ```ts
      * x.sub(1); // x - 1 mod p
      * ```
