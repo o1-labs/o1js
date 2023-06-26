@@ -5,7 +5,6 @@ import { accountUpdateExample } from '../src/test-vectors/accountUpdate.js';
 import { expect } from 'expect';
 import { Transaction } from '../../lib/mina.js';
 import { PrivateKey } from '../../lib/signature.js';
-import { isReady, shutdown } from '../../snarky.js';
 import { Signature } from '../src/signature.js';
 
 const client = new Client({ network: 'testnet' });
@@ -85,7 +84,6 @@ expect(
 ).toBe(0.002);
 
 // same transaction signed with snarkyjs (OCaml implementation) gives the same result
-await isReady;
 
 let transactionJson = {
   ...exampleZkappCommand,
@@ -113,5 +111,3 @@ expect(
   zkappCommand.data.zkappCommand.accountUpdates[1].authorization.signature
 ).toEqual(tx.transaction.accountUpdates[1].authorization.signature);
 expect(JSON.stringify(zkappCommand.data.zkappCommand)).toEqual(tx.toJSON());
-
-shutdown();

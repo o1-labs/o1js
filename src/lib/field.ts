@@ -1,13 +1,15 @@
-import { Snarky, SnarkyField, Provable } from '../snarky.js';
+import { Snarky, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
+import { Bool } from './bool.js';
 
-export { Field, ConstantField, FieldType, FieldVar, FieldConst, isField };
+// external API
+export { Field };
 
-const SnarkyFieldConstructor = SnarkyField(1).constructor;
+// internal API
+export { ConstantField, FieldType, FieldVar, FieldConst, isField, withMessage };
 
 type FieldConst = Uint8Array;
 
@@ -21,6 +23,12 @@ function constFromBigint(x: Fp) {
 const FieldConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
+  equal(x: FieldConst, y: FieldConst) {
+    for (let i = 0, n = Fp.sizeInBytes(); i < n; i++) {
+      if (x[i] !== y[i]) return false;
+    }
+    return true;
+  },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
   [-1]: constFromBigint(Fp(-1n)),
@@ -58,6 +66,9 @@ const FieldVar = {
   constant(x: bigint | FieldConst): ConstantFieldVar {
     let x0 = typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
     return [FieldType.Constant, x0];
+  },
+  isConstant(x: FieldVar): x is ConstantFieldVar {
+    return x[0] === FieldType.Constant;
   },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
@@ -119,7 +130,7 @@ class Field {
   /**
    * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a Field.
    */
-  constructor(x: bigint | number | string | Field | FieldVar) {
+  constructor(x: bigint | number | string | Field | FieldVar | FieldConst) {
     if (Field.#isField(x)) {
       this.value = x.value;
       return;
@@ -129,13 +140,20 @@ class Field {
       this.value = x;
       return;
     }
+    // FieldConst
+    if (x instanceof Uint8Array) {
+      this.value = FieldVar.constant(x);
+      return;
+    }
     // TODO this should handle common values efficiently by reading from a lookup table
     this.value = FieldVar.constant(Fp(x));
   }
 
   // helpers
-  static #isField(x: bigint | number | string | Field | FieldVar): x is Field {
-    return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+  static #isField(
+    x: bigint | number | string | Field | FieldVar | FieldConst
+  ): x is Field {
+    return x instanceof Field;
   }
   static #toConst(x: bigint | number | string | ConstantField): FieldConst {
     if (Field.#isField(x)) return x.value[1];
@@ -189,7 +207,7 @@ class Field {
     if (this.isConstant()) return this;
     // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
     let value = Snarky.field.readVar(this.value);
-    return new Field(FieldVar.constant(value)) as ConstantField;
+    return new Field(value) as ConstantField;
   }
 
   /**
@@ -560,7 +578,7 @@ class Field {
    */
   isZero() {
     if (this.isConstant()) {
-      return Bool(this.toBigInt() === 0n);
+      return new Bool(this.toBigInt() === 0n);
     }
     // create witnesses z = 1/x, or z=0 if x=0,
     // and b = 1 - zx
@@ -663,7 +681,7 @@ class Field {
    */
   lessThan(y: Field | bigint | number | string): Bool {
     if (this.isConstant() && isConstant(y)) {
-      return Bool(this.toBigInt() < toFp(y));
+      return new Bool(this.toBigInt() < toFp(y));
     }
     return this.#compare(Field.#toVar(y)).less;
   }
@@ -693,7 +711,7 @@ class Field {
    */
   lessThanOrEqual(y: Field | bigint | number | string): Bool {
     if (this.isConstant() && isConstant(y)) {
-      return Bool(this.toBigInt() <= toFp(y));
+      return new Bool(this.toBigInt() <= toFp(y));
     }
     return this.#compare(Field.#toVar(y)).lessOrEqual;
   }
@@ -926,9 +944,9 @@ class Field {
       if (length !== undefined) {
         if (bits.slice(length).some((bit) => bit))
           throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-        return bits.slice(0, length).map(Bool);
+        return bits.slice(0, length).map((b) => new Bool(b));
       }
-      return bits.map(Bool);
+      return bits.map((b) => new Bool(b));
     }
     let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
     return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
@@ -1003,7 +1021,9 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    if (this.isConstant()) return this;
+    // TODO: this is just commented for constraint equivalence with the old version
+    // uncomment to sometimes save constraints
+    // if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
     return new Field(x);
   }
@@ -1247,7 +1267,7 @@ const FieldBinable = defineBinable({
 });
 
 function isField(x: unknown): x is Field {
-  return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+  return x instanceof Field;
 }
 
 function isConstant(

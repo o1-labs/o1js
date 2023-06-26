@@ -1,9 +1,7 @@
-import { isReady, shutdown } from '../../snarky.js';
 import { Field } from '../../lib/core.js';
 import { ZkProgram } from '../../lib/proof_system.js';
 import Client from '../MinaSigner.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
-import { provablePure } from '../../lib/circuit_value.js';
 import { expect } from 'expect';
 import { Provable } from '../../lib/provable.js';
 
@@ -19,7 +17,6 @@ let ok = client.verifyFields(signed);
 expect(ok).toEqual(true);
 
 // sign with snarkyjs and check that we get the same signature
-await isReady;
 let fieldsSnarky = fields.map(Field);
 let privateKeySnarky = PrivateKey.fromBase58(privateKey);
 let signatureSnarky = Signature.create(privateKeySnarky, fieldsSnarky);
@@ -28,17 +25,17 @@ expect(signatureSnarky.toBase58()).toEqual(signed.signature);
 // verify out-of-snark with snarkyjs
 let publicKey = privateKeySnarky.toPublicKey();
 let signature = Signature.fromBase58(signed.signature);
+Provable.assertEqual(Signature, signature, signatureSnarky);
 signature.verify(publicKey, fieldsSnarky).assertTrue();
 
 // verify in-snark with snarkyjs
 const Message = Provable.Array(Field, fields.length);
 
 const MyProgram = ZkProgram({
-  publicInput: provablePure(null),
   methods: {
     verifySignature: {
       privateInputs: [Signature, Message],
-      method(_: null, signature: Signature, message: Field[]) {
+      method(signature: Signature, message: Field[]) {
         signature.verify(publicKey, message).assertTrue();
       },
     },
@@ -46,7 +43,7 @@ const MyProgram = ZkProgram({
 });
 
 await MyProgram.compile();
-let proof = await MyProgram.verifySignature(null, signature, fieldsSnarky);
+let proof = await MyProgram.verifySignature(signature, fieldsSnarky);
 ok = await MyProgram.verify(proof);
 expect(ok).toEqual(true);
 
@@ -61,7 +58,7 @@ invalidSignature.verify(publicKey, fieldsSnarky).assertFalse();
 
 // can't verify in snark
 await expect(() =>
-  MyProgram.verifySignature(null, invalidSignature, fieldsSnarky)
+  MyProgram.verifySignature(invalidSignature, fieldsSnarky)
 ).rejects.toThrow('Constraint unsatisfied');
 
 // negative test - try to verify a different message
@@ -74,5 +71,5 @@ signature.verify(publicKey, wrongFields).assertFalse();
 
 // can't verify in snark
 await expect(() =>
-  MyProgram.verifySignature(null, signature, wrongFields)
+  MyProgram.verifySignature(signature, wrongFields)
 ).rejects.toThrow('Constraint unsatisfied');

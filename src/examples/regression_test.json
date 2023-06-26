@@ -135,5 +135,34 @@
       "data": "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",
       "hash": "22927084896663477016096997193081299898252315402907206057377208440233983904154"
     }
+  },
+  "Group Primitive": {
+    "digest": "Group Primitive",
+    "methods": {
+      "add": {
+        "rows": 6,
+        "digest": "ef763443bed39d397cb02e683ea9a877"
+      },
+      "sub": {
+        "rows": 6,
+        "digest": "329c0221e60d62aaf26ee1631f3f3c5a"
+      },
+      "scale": {
+        "rows": 106,
+        "digest": "1296dd40b232fb0bc4cd908d47fd88a9"
+      },
+      "equals": {
+        "rows": 27,
+        "digest": "adbcdc756d41853e24612e50b99be285"
+      },
+      "assertions": {
+        "rows": 4,
+        "digest": "8750eb002126017bc297e7b63d4429b9"
+      }
+    },
+    "verificationKey": {
+      "data": "",
+      "hash": ""
+    }
   }
 }

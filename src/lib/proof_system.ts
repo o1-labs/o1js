@@ -4,8 +4,8 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Bool, ProvablePure, Pickles, Poseidon } from '../snarky.js';
-import { Field } from './core.js';
+import { ProvablePure, Pickles } from '../snarky.js';
+import { Field, Bool } from './core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
@@ -17,6 +17,10 @@ import {
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
+import { hashConstant } from './hash.js';
+import { MlArray, MlTuple } from './ml/base.js';
+import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
+import { FieldConst, FieldVar } from './field.js';
 
 // public API
 export {
@@ -135,25 +139,27 @@ async function verify(
   verificationKey: string
 ) {
   let picklesProof: Pickles.Proof;
-  let statement: Pickles.Statement;
+  let statement: Pickles.Statement<FieldConst>;
   if (typeof proof.proof === 'string') {
     // json proof
     [, picklesProof] = Pickles.proofOfBase64(
       proof.proof,
       proof.maxProofsVerified
     );
-    statement = {
-      input: (proof as JsonProof).publicInput.map(Field),
-      output: (proof as JsonProof).publicOutput.map(Field),
-    };
+    let input = MlFieldConstArray.to(
+      (proof as JsonProof).publicInput.map(Field)
+    );
+    let output = MlFieldConstArray.to(
+      (proof as JsonProof).publicOutput.map(Field)
+    );
+    statement = MlTuple(input, output);
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
-    statement = {
-      input: type.input.toFields(proof.publicInput),
-      output: type.output.toFields(proof.publicOutput),
-    };
+    let input = toFieldConsts(type.input, proof.publicInput);
+    let output = toFieldConsts(type.output, proof.publicOutput);
+    statement = MlTuple(input, output);
   }
   return prettifyStacktracePromise(
     withThreadPool(() =>
@@ -249,7 +255,7 @@ function ZkProgram<
     | {
         provers: Pickles.Prover[];
         verify: (
-          statement: Pickles.Statement,
+          statement: Pickles.Statement<FieldConst>,
           proof: Pickles.Proof
         ) => Promise<boolean>;
       }
@@ -282,8 +288,10 @@ function ZkProgram<
             `Try calling \`await program.compile()\` first, this will cache provers in the background.`
         );
       }
-      let publicInputFields = publicInputType.toFields(publicInput);
-      let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
+      let publicInputFields = toFieldConsts(publicInputType, publicInput);
+      let previousProofs = MlArray.to(
+        getPreviousProofsForProver(args, methodIntfs[i])
+      );
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
@@ -292,8 +300,8 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let { proof } = result;
-      let publicOutput = publicOutputType.fromFields(result.publicOutput);
+      let [publicOutputFields, proof] = MlTuple.from(result);
+      let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
         static publicOutputType = publicOutputType;
@@ -328,10 +336,10 @@ function ZkProgram<
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
       );
     }
-    let statement = {
-      input: publicInputType.toFields(proof.publicInput),
-      output: publicOutputType.toFields(proof.publicOutput),
-    };
+    let statement = MlTuple(
+      toFieldConsts(publicInputType, proof.publicInput),
+      toFieldConsts(publicOutputType, proof.publicOutput)
+    );
     return compileOutput.verify(statement, proof.proof);
   }
 
@@ -339,9 +347,8 @@ function ZkProgram<
     let methodData = methodIntfs.map((methodEntry, i) =>
       analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
     );
-    let hash = Poseidon.hash(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
-      false
+    let hash = hashConstant(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
   }
@@ -513,25 +520,26 @@ async function compileProgram(
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
         try {
-          result = Pickles.compile(rules, {
+          result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
           });
         } finally {
           snarkContext.leave(id);
         }
-        let { getVerificationKeyArtifact, provers, verify, tag } = result;
+        let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
-        let verificationKey = getVerificationKeyArtifact();
-        return { verificationKey, provers, verify, tag };
+        let [, data, hash] = getVerificationKey();
+        let verificationKey = { data, hash: Field(hash) };
+        return { verificationKey, provers: MlArray.from(provers), verify, tag };
       })
     );
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
       async function picklesProver(
-        publicInput: Field[],
-        previousProofs: Pickles.Proof[]
+        publicInput: MlFieldConstArray,
+        previousProofs: MlArray<Pickles.Proof>
       ) {
         return prettifyStacktracePromise(
           withThreadPool(() => prover(publicInput, previousProofs))
@@ -540,7 +548,7 @@ async function compileProgram(
   );
   // wrap verify
   let wrappedVerify = async function picklesVerify(
-    statement: Pickles.Statement,
+    statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof
   ) {
     return prettifyStacktracePromise(
@@ -570,18 +578,18 @@ function analyzeMethod<T>(
 }
 
 function picklesRuleFromFunction(
-  publicInputType: ProvablePure<any>,
-  publicOutputType: ProvablePure<any>,
+  publicInputType: ProvablePure<unknown>,
+  publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
-  function main(publicInput: Field[]): ReturnType<Pickles.Rule['main']> {
+  function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: Proof<any, any>[] = [];
-    let previousStatements: Pickles.Statement[] = [];
+    let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
@@ -603,10 +611,9 @@ function picklesRuleFromFunction(
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
-        previousStatements.push({
-          input: type.input.toFields(publicInput),
-          output: type.output.toFields(publicOutput),
-        });
+        let input = toFieldVars(type.input, publicInput);
+        let output = toFieldVars(type.output, publicOutput);
+        previousStatements.push(MlTuple(input, output));
       } else if (arg.type === 'generic') {
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
@@ -615,15 +622,18 @@ function picklesRuleFromFunction(
     if (publicInputType === Undefined || publicInputType === Void) {
       result = func(...finalArgs);
     } else {
-      result = func(publicInputType.fromFields(publicInput), ...finalArgs);
+      let input = fromFieldVars(publicInputType, publicInput);
+      result = func(input, ...finalArgs);
     }
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
     return {
-      publicOutput,
-      previousStatements,
-      shouldVerify: proofs.map((proof) => proof.shouldVerify),
+      publicOutput: MlFieldArray.to(publicOutput),
+      previousStatements: MlArray.to(previousStatements),
+      shouldVerify: MlArray.to(
+        proofs.map((proof) => proof.shouldVerify.toField().value)
+      ),
     };
   }
 
@@ -647,7 +657,11 @@ function picklesRuleFromFunction(
       return { isSelf: false, tag: compiledTag };
     }
   });
-  return { identifier: methodName, main, proofsToVerify };
+  return {
+    identifier: methodName,
+    main,
+    proofsToVerify: MlArray.to(proofsToVerify),
+  };
 }
 
 function synthesizeMethodArguments(
@@ -757,6 +771,20 @@ function getStatementType<
     input: Proof.publicInputType as any,
     output: Proof.publicOutputType as any,
   };
+}
+
+function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
+  return type.fromFields(MlFieldArray.from(fields));
+}
+function toFieldVars<T>(type: ProvablePure<T>, value: T) {
+  return MlFieldArray.to(type.toFields(value));
+}
+
+function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
+  return type.fromFields(MlFieldConstArray.from(fields));
+}
+function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
+  return MlFieldConstArray.to(type.toFields(value));
 }
 
 ZkProgram.Proof = function <

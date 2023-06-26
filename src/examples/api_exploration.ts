@@ -30,15 +30,12 @@ console.assert(x0.equals(x1).toBoolean());
 x1 = Field(37);
 console.assert(x0.equals(x1).toBoolean());
 
-// When initializing with booleans, true corresponds to the field element 1, and false corresponds to 0
-const b = Field(true);
-console.assert(b.equals(Field(1)).toBoolean());
-
 /* You can perform arithmetic operations on field elements.
    The arithmetic methods can take any "fieldy" values as inputs: 
    Field, number, string, or boolean 
 */
-const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(false);
+const b = Field(1);
+const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(0);
 
 /* Field elements can be converted to their full, little endian binary representation. */
 let bits: Bool[] = z.toBits();
