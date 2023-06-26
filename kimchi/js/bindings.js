@@ -1,6 +1,7 @@
 /* global joo_global_object, plonk_wasm, caml_js_to_bool, caml_jsstring_of_string,
     caml_string_of_jsstring
-    caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length
+    caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length,
+    UInt64, caml_int64_of_int32
 */
 
 // Provides: caml_bytes_of_uint8array
