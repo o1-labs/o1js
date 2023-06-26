@@ -545,8 +545,9 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       let y_ = toFp(y);
       let thisBigint = this.toBigInt();
-      if (y_ > 2 ** length - 1 || thisBigint > 2 ** length - 1) {
-        throw Error(`${y} and ${thisBigint} need to fit into ${length} bits.`);
+      let max = 1n << BigInt(length);
+      if (y_ >= max || thisBigint >= max) {
+        throw Error(`${y} and ${thisBigint} need to fit into ${max} bits.`);
       }
       return new Field(Fp.and(thisBigint, y_));
     } else {
