@@ -24,6 +24,45 @@ type ForeignFieldVar = MlForeignField<FieldVar>;
 type ForeignFieldConst = MlForeignField<FieldConst>;
 type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
 
+/**
+ * Create a class representing a prime order finite field, which is different from the native {@link Field}.
+ *
+ * ```ts
+ * const SmallField = createForeignField(17n); // the finite field F_17
+ * ```
+ *
+ * `createForeignField(p)` takes the prime modulus `p` of the finite field as input, as a bigint.
+ * We support prime moduli up to a size of XXX bits. TODO
+ *
+ * The returned {@link ForeignField} class supports arithmetic modulo `p` (addition and multiplication),
+ * as well as helper methods like `assertEquals()` and `equals()`.
+ *
+ * _Advanced usage:_
+ *
+ * Internally, a foreign field element is represented as three native field elements, each of which
+ * represents a limb of 88 bits. Therefore, being a valid foreign field element means that all 3 limbs
+ * fit in 88 bits, and the foreign field element altogether is smaller than the modulus p.
+ * With default parameters, new `ForeignField` elements introduced in provable code are automatically
+ * constrained to be valid on creation.
+ *
+ * However, optimized code may want to forgo these automatic checks because in some
+ * situations they are redundant. Skipping automatic validity checks can be done
+ * by passing the `unsafe: true` flag:
+ *
+ * ```ts
+ * class UnsafeField extends createForeignField(17n, { unsafe: true }) {}
+ * ```
+ *
+ * You then often need to manually add validity checks:
+ * ```ts
+ * let x: UnsafeField;
+ * x.assertValidElement(); // prove that x is a valid foreign field element
+ * ```
+ *
+ * @param modulus the modulus of the finite field you are instantiating
+ * @param options
+ * - `unsafe: boolean` determines whether `ForeignField` elements are constrained to be valid on creation.
+ */
 function createForeignField(modulus: bigint, { unsafe = false } = {}) {
   const p = modulus;
   const pMl = ForeignFieldConst.fromBigint(p);
@@ -82,7 +121,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     /**
      * Convert this field element to a constant.
      *
-     * See {@link FieldVar} tp understand constants vs variables.
+     * See {@link FieldVar} to understand constants vs variables.
      *
      * **Warning**: This function is only useful in `Provable.witness()` or `Provable.asProver()` blocks,
      * that is, in situations where the prover computes a value outside provable code.

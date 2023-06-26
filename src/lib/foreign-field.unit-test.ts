@@ -11,10 +11,19 @@ import { ZkProgram } from './proof_system.js';
 import { Circuit, circuitMain } from './circuit.js';
 import { Scalar } from './scalar.js';
 
-let ForeignScalar = createForeignField(Fq.modulus);
+// toy example - F_17
+
+class SmallField extends createForeignField(17n) {}
+let x = new SmallField(16);
+x.assertEquals(-1); // 16 = -1 (mod 17)
+x.mul(x).assertEquals(1); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
+
+// real example - foreign field arithmetic in the Pallas scalar field
+
+class ForeignScalar extends createForeignField(Fq.modulus) {}
 
 // types
-ForeignScalar satisfies ProvablePure<ForeignField>;
+ForeignScalar satisfies ProvablePure<ForeignScalar>;
 
 // basic constructor / IO
 {
