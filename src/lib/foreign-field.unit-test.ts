@@ -18,6 +18,12 @@ let x = new SmallField(16);
 x.assertEquals(-1); // 16 = -1 (mod 17)
 x.mul(x).assertEquals(1); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
 
+// invalid example - modulus too large
+
+expect(() => createForeignField(1n << 260n)).toThrow(
+  'modulus exceeds the max supported size'
+);
+
 // real example - foreign field arithmetic in the Pallas scalar field
 
 class ForeignScalar extends createForeignField(Fq.modulus) {}

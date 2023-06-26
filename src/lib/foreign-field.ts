@@ -1,5 +1,5 @@
 import { Snarky } from '../snarky.js';
-import { mod, inverse } from '../bindings/crypto/finite_field.js';
+import { mod, inverse, Fp } from '../bindings/crypto/finite_field.js';
 import { Tuple } from '../bindings/lib/binable.js';
 import {
   Field,
@@ -32,7 +32,7 @@ type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
  * ```
  *
  * `createForeignField(p)` takes the prime modulus `p` of the finite field as input, as a bigint.
- * We support prime moduli up to a size of XXX bits. TODO
+ * We support prime moduli up to a size of 259 bits.
  *
  * The returned {@link ForeignField} class supports arithmetic modulo `p` (addition and multiplication),
  * as well as helper methods like `assertEquals()` and `equals()`.
@@ -67,10 +67,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
   const p = modulus;
   const pMl = ForeignFieldConst.fromBigint(p);
 
-  // TODO check that p has valid size
-  // also, maybe check that p is a prime? or does that unnecessarily limit use cases?
   if (p <= 0) {
     throw Error(`ForeignField: expected modulus to be positive, got ${p}`);
+  }
+  if (p > foreignFieldMax) {
+    throw Error(
+      `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`
+    );
   }
 
   let sizeInBits = p.toString(2).length;
@@ -229,8 +232,12 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       if (this.isConstant()) {
         let z = inverse(this.toBigInt(), p);
         if (z === undefined) {
-          // TODO: if we allow p to be non-prime, change this error message
-          throw Error('ForeignField.inv(): division by zero');
+          if (this.toBigInt() === 0n) {
+            throw Error('ForeignField.inv(): division by zero');
+          } else {
+            // in case this is used with non-prime moduli
+            throw Error('ForeignField.inv(): inverse does not exist');
+          }
         }
         return new ForeignField(z);
       }
@@ -319,7 +326,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
       let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
       let x = ForeignField.fromFields([l0, l1, l2]);
-      // TODO: this is inefficient, l0, l1 are already range-checked
+      // TODO: can this be made more efficient? since the limbs are already range-checked
       if (length === sizeInBits) x.assertValidElement();
       return x;
     }
@@ -397,7 +404,14 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
 // helpers
 
-let limbMax = (1n << limbBits) - 1n;
+const limbMax = (1n << limbBits) - 1n;
+
+// the max foreign field modulus is f_max = floor(sqrt(p * 2^t)), where t = 3*limbBits = 264 and p is the native modulus
+// see RFC: https://github.com/o1-labs/proof-systems/blob/1fdb1fd1d112f9d4ee095dbb31f008deeb8150b0/book/src/rfcs/foreign_field_mul.md
+// since p = 2^254 + eps for both Pasta fields with eps small, a fairly tight lower bound is
+// f_max >= sqrt(2^254 * 2^264) = 2^259
+const foreignFieldMaxBits = (BigInt(Fp.sizeInBits - 1) + 3n * limbBits) / 2n;
+const foreignFieldMax = 1n << foreignFieldMaxBits;
 
 const ForeignFieldConst = {
   fromBigint(x: bigint): ForeignFieldConst {
