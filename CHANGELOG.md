@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/3fbd9678e...HEAD)
 
-> no unreleased changes yet
+### Added
+
+- Added bitwise `AND` operation support for native field elements. https://github.com/o1-labs/snarkyjs/pull/988
 
 ## [0.11.0](https://github.com/o1-labs/snarkyjs/compare/a632313a...3fbd9678e)
 
