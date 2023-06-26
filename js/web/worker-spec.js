@@ -108,5 +108,13 @@ function workerSpec(wasm) {
       ],
       res: bool,
     },
+    caml_fp_srs_lagrange_commitment: {
+      args: [wasm.WasmFpSrs, undefined /* number */, undefined /* number */],
+      res: wasm.WasmFpPolyComm,
+    },
+    caml_fq_srs_lagrange_commitment: {
+      args: [wasm.WasmFqSrs, undefined /* number */, undefined /* number */],
+      res: wasm.WasmFqPolyComm,
+    },
   };
 }

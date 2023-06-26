@@ -9,7 +9,7 @@ export {
   GenericHashInput,
   primitiveTypes,
   primitiveTypeMap,
-  Empty,
+  EmptyNull,
   EmptyUndefined,
   EmptyVoid,
 };
@@ -65,7 +65,7 @@ const undefinedType = {
 
 let primitiveTypes = new Set(['number', 'string', 'null']);
 
-function Empty<Field>(): GenericProvableExtended<null, null, Field> &
+function EmptyNull<Field>(): GenericProvableExtended<null, null, Field> &
   GenericProvablePure<null, Field> {
   return emptyType;
 }
