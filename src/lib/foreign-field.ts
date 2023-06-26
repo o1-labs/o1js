@@ -84,7 +84,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
-     *
+     * @example
      * ```ts
      * let x = new ForeignField(5);
      * ```
@@ -114,7 +114,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     /**
      * Checks whether this field element is a constant.
      *
-     * See {@link FieldVar} tp understand constants vs variables.
+     * See {@link FieldVar} to understand constants vs variables.
      */
     isConstant() {
       let [, ...limbs] = this.value;
@@ -126,7 +126,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
      *
      * See {@link FieldVar} to understand constants vs variables.
      *
-     * **Warning**: This function is only useful in `Provable.witness()` or `Provable.asProver()` blocks,
+     * **Warning**: This function is only useful in {@link Provable.witness} or {@link Provable.asProver} blocks,
      * that is, in situations where the prover computes a value outside provable code.
      */
     toConstant(): ForeignField {
@@ -157,7 +157,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Finite field addition
-     *
+     * @example
      * ```ts
      * x.add(2); // x + 2 mod p
      * ```
@@ -173,7 +173,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Finite field negation
-     *
+     * @example
      * ```ts
      * x.neg(); // -x mod p = p - x
      * ```
@@ -206,7 +206,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Finite field multiplication
-     *
+     * @example
      * ```ts
      * x.mul(y); // x*y mod p
      * ```
@@ -222,7 +222,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Multiplicative inverse in the finite field
-     *
+     * @example
      * ```ts
      * let z = x.inv(); // 1/x mod p
      * z.mul(x).assertEquals(1);
@@ -258,7 +258,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Assert equality with a ForeignField-like value
-     *
+     * @example
      * ```ts
      * x.assertEquals(0, "x is zero");
      * ```
@@ -280,7 +280,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
 
     /**
      * Check equality with a ForeignField-like value
-     *
+     * @example
      * ```ts
      * let isXZero = x.equals(0);
      * ```
@@ -295,7 +295,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     // bit packing
 
     /**
-     * Unpack a field element to its bits, as a `Bool[]` array.
+     * Unpack a field element to its bits, as a {@link Bool}[] array.
      *
      * This method is provable!
      */
@@ -376,7 +376,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
      * This will check that the field element is in the range [0, p),
      * where p is the foreign field modulus.
      *
-     * Exception: If {@link createForeignField} is called with `{ unsafe: true }`,
+     * **Exception**: If {@link createForeignField} is called with `{ unsafe: true }`,
      * we don't check that field elements are valid by default.
      */
     static check(x: ForeignField) {
