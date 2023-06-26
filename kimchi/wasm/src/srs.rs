@@ -133,14 +133,13 @@ macro_rules! impl_srs {
                 let x_domain = EvaluationDomain::<$F>::new(domain_size as usize).ok_or_else(|| {
                     JsValue::from_str("caml_pasta_fp_urs_lagrange_commitment")
                 })?;
-
-                {
+                crate::rayon::run_in_pool(|| {
                     // We're single-threaded, so it's safe to grab this pointer as mutable.
                     // Do not try this at home.
                     let ptr: &mut poly_commitment::srs::SRS<$G> =
                         unsafe { &mut *(std::sync::Arc::as_ptr(&srs) as *mut _) };
                     ptr.add_lagrange_basis(x_domain);
-                }
+                });
 
                 Ok(srs.lagrange_bases[&x_domain.size()][i as usize].clone().into())
             }

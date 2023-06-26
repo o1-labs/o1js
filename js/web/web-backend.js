@@ -18,7 +18,9 @@ let init = wasm.default;
 let worker;
 
 async function initSnarkyJS() {
-  let { memory } = await init();
+  const memory = allocateWasmMemoryForUserAgent(window.navigator.userAgent);
+  await init(undefined, memory);
+
   let module = init.__wbindgen_wasm_module;
   let numWorkers = await getEfficientNumWorkers();
 
@@ -161,4 +163,21 @@ async function workerCall(worker, type, message) {
   let promise = waitForMessage(worker, id);
   worker.postMessage({ type, id, message });
   return (await promise).result;
+}
+
+function allocateWasmMemoryForUserAgent(userAgent) {
+  const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
+  if (isIOSDevice) {
+    return new WebAssembly.Memory({
+      initial: 19,
+      maximum: 16384, // 1 GiB
+      shared: true,
+    });
+  } else {
+    return new WebAssembly.Memory({
+      initial: 19,
+      maximum: 65536, // 4 GiB
+      shared: true,
+    });
+  }
 }

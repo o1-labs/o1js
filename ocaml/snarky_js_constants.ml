@@ -15,6 +15,7 @@ let prefixes =
     ; ("signatureMainnet", `String (signature_mainnet :> string))
     ; ("signatureTestnet", `String (signature_testnet :> string))
     ; ("zkappUri", `String (zkapp_uri :> string))
+    ; ("deriveTokenId", `String (derive_token_id :> string))
     ]
 
 let version_bytes =
