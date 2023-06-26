@@ -57,9 +57,10 @@ test(Random.field, Random.int(-5, 5), (x, k) => {
 
 // AND with some common and odd lengths
 [2, 4, 8, 16, 32, 64, 3, 5, 10, 15, Fp.sizeInBits].forEach((length) => {
+  let modulus = 1n << BigInt(length);
   test(Random.field, Random.field, (x_, y_, assert) => {
-    let x = x_ % BigInt(length);
-    let y = y_ % BigInt(length);
+    let x = x_ & (modulus - 1n);
+    let y = y_ & (modulus - 1n);
     let r1 = Fp.and(x, y);
 
     Provable.runAndCheck(() => {
