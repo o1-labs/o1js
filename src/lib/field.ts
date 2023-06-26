@@ -547,7 +547,7 @@ class Field {
       let thisBigint = this.toBigInt();
       let max = 1n << BigInt(length);
       if (y_ >= max || thisBigint >= max) {
-        throw Error(`${y} and ${thisBigint} need to fit into ${max} bits.`);
+        throw Error(`${y} and ${thisBigint} need to fit into ${length} bits.`);
       }
       return new Field(Fp.and(thisBigint, y_));
     } else {
