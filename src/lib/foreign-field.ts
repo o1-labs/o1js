@@ -467,8 +467,9 @@ function mapTuple<T extends Tuple<any>, B>(
   return tuple.map(f) as any;
 }
 
-// awesome tuple type that has the length as generic parameter
-
+/**
+ * tuple type that has the length as generic parameter
+ */
 type TupleN<T, N extends number> = N extends N
   ? number extends N
     ? T[]
@@ -478,6 +479,9 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
   ? R
   : _TupleOf<T, N, [T, ...R]>;
 
+/**
+ * Type-safe way of converting an array to a fixed-length tuple (same JS representation, but different TS type)
+ */
 function arrayToTuple<N extends number, E = unknown>(
   arr: E[],
   size: N,
