@@ -55,8 +55,7 @@ const Poseidon = {
 
     let newState = Snarky.poseidon.update(
       MlFieldArray.to(state),
-      MlFieldArray.to(input),
-      true
+      MlFieldArray.to(input)
     );
     return MlFieldArray.from(newState) as [Field, Field, Field];
   },
@@ -73,7 +72,7 @@ const Poseidon = {
     }
 
     // y = sqrt(y^2)
-    let [, xv, yv] = Snarky.poseidon.hashToGroup(MlFieldArray.to(input), true);
+    let [, xv, yv] = Snarky.poseidon.hashToGroup(MlFieldArray.to(input));
 
     let x = Field(xv);
     let y = Field(yv);

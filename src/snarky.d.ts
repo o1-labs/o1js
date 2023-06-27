@@ -342,18 +342,12 @@ declare const Snarky: {
   };
 
   poseidon: {
-    hash(input: MlArray<FieldVar>, isChecked: boolean): FieldVar;
-
     update(
       state: MlArray<FieldVar>,
-      input: MlArray<FieldVar>,
-      isChecked: boolean
+      input: MlArray<FieldVar>
     ): [0, FieldVar, FieldVar, FieldVar];
 
-    hashToGroup(
-      input: MlArray<FieldVar>,
-      isChecked: boolean
-    ): MlTuple<FieldVar, FieldVar>;
+    hashToGroup(input: MlArray<FieldVar>): MlTuple<FieldVar, FieldVar>;
 
     sponge: {
       create(isChecked: boolean): unknown;
@@ -439,6 +433,10 @@ declare const Test: {
     // derive custom token ids
     derive(publicKey: MlPublicKey, tokenId: FieldConst): FieldConst;
     deriveChecked(publicKey: MlPublicKeyVar, tokenId: FieldVar): FieldVar;
+  };
+
+  poseidon: {
+    hashToGroup(input: MlArray<FieldConst>): MlTuple<FieldConst, FieldConst>;
   };
 
   signature: {
