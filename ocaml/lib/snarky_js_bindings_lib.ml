@@ -8,14 +8,6 @@ module Boolean = Impl.Boolean
 module As_prover = Impl.As_prover
 module Typ = Impl.Typ
 
-(* helper functions *)
-
-external prover_to_json :
-  Kimchi_bindings.Protocol.Index.Fp.t -> Js.js_string Js.t = "prover_to_json"
-
-let to_unchecked (x : Field.t) =
-  match x with Constant y -> y | y -> Impl.As_prover.read_var y
-
 (* light-weight wrapper around snarky-ml core *)
 
 module Snarky = struct
@@ -189,12 +181,19 @@ module Snarky = struct
     module Keypair = struct
       let get_vk t = Impl.Keypair.vk t
 
+      external prover_to_json :
+        Kimchi_bindings.Protocol.Index.Fp.t -> Js.js_string Js.t
+        = "prover_to_json"
+
       let get_cs_json t =
         (Impl.Keypair.pk t).index |> prover_to_json |> Util.json_parse
     end
   end
 
   module Poseidon = struct
+    let to_unchecked (x : Field.t) =
+      match x with Constant y -> y | y -> Impl.As_prover.read_var y
+
     let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
       if Js.to_bool is_checked then Random_oracle.Checked.hash xs
       else
@@ -371,14 +370,12 @@ let snarky =
       end
   end
 
-(* Ledger - local mina transaction logic for tests *)
+(* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 
 type public_key = Signature_lib.Public_key.Compressed.t
 
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
-
-(* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 
 module Test = struct
   module Encoding = struct

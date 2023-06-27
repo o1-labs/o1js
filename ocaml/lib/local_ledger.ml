@@ -12,17 +12,13 @@ module Typ = Impl.Typ
 
 type public_key = Signature_lib.Public_key.Compressed.t
 
-let method_ class_ (name : string) (f : _ Js.t -> _) =
-  let prototype = Js.Unsafe.get class_ (Js.string "prototype") in
-  Js.Unsafe.set prototype (Js.string name) (Js.wrap_meth_callback f)
-
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
 
 let ledger_class : < .. > Js.t =
   Js.Unsafe.eval_string {js|(function(v) { this.value = v; return this })|js}
 
-module L : Mina_base.Ledger_intf.S = struct
+module Ledger : Mina_base.Ledger_intf.S = struct
   module Account = Mina_base.Account
   module Account_id = Mina_base.Account_id
   module Ledger_hash = Mina_base.Ledger_hash
@@ -103,15 +99,15 @@ module L : Mina_base.Ledger_intf.S = struct
   let apply_mask (t : t) ~(masked : t) = t := !masked
 end
 
-module T = Mina_transaction_logic.Make (L)
+module Transaction_logic = Mina_transaction_logic.Make (Ledger)
 
-type ledger_class = < value : L.t Js.prop >
+type ledger_class = < value : Ledger.t Js.prop >
 
-let ledger_constr : (L.t -> ledger_class Js.t) Js.constr =
+let ledger_constr : (Ledger.t -> ledger_class Js.t) Js.constr =
   Obj.magic ledger_class
 
-let create_new_account_exn (t : L.t) account_id account =
-  L.create_new_account t account_id account |> Or_error.ok_exn
+let create_new_account_exn (t : Ledger.t) account_id account =
+  Ledger.create_new_account t account_id account |> Or_error.ok_exn
 
 let default_token_id =
   Mina_base.Token_id.default |> Mina_base.Token_id.to_field_unsafe
@@ -171,7 +167,7 @@ let check_account_update_signatures zkapp_command =
       | Proof _ | None_given ->
           () )
 
-let add_account_exn (l : L.t) pk (balance : string) =
+let add_account_exn (l : Ledger.t) pk (balance : string) =
   let account_id = account_id pk default_token_id in
   let bal_u64 = Unsigned.UInt64.of_string balance in
   let balance = Currency.Balance.of_uint64 bal_u64 in
@@ -179,7 +175,7 @@ let add_account_exn (l : L.t) pk (balance : string) =
   create_new_account_exn l account_id a
 
 let create () : ledger_class Js.t =
-  let l = L.empty ~depth:20 () in
+  let l = Ledger.empty ~depth:20 () in
   new%js ledger_constr l
 
 let account_to_json =
@@ -192,8 +188,8 @@ let account_to_json =
 
 let get_account l (pk : public_key) (token : Impl.field) :
     Js.Unsafe.any Js.optdef =
-  let loc = L.location_of_account l##.value (account_id pk token) in
-  let account = Option.bind loc ~f:(L.get l##.value) in
+  let loc = Ledger.location_of_account l##.value (account_id pk token) in
+  let account = Option.bind loc ~f:(Ledger.get l##.value) in
   To_js.option account_to_json account
 
 let add_account l (pk : public_key) (balance : Js.js_string Js.t) =
@@ -215,7 +211,7 @@ let apply_zkapp_command_transaction l (txn : Zkapp_command.t)
   check_account_update_signatures txn ;
   let ledger = l##.value in
   let application_result =
-    T.apply_zkapp_command_unchecked
+    Transaction_logic.apply_zkapp_command_unchecked
       ~global_slot:network_state.global_slot_since_genesis
       ~state_view:network_state
       ~constraint_constants:
@@ -231,8 +227,7 @@ let apply_zkapp_command_transaction l (txn : Zkapp_command.t)
     | Error err ->
         Util.raise_error (Error.to_string_hum err)
   in
-  let T.Transaction_applied.Zkapp_command_applied.{ command; _ } = applied in
-  match command.status with
+  match applied.command.status with
   | Applied ->
       ()
   | Failed failures ->
@@ -250,6 +245,10 @@ let apply_json_transaction l (tx_json : Js.js_string Js.t)
   apply_zkapp_command_transaction l txn
     (Js.to_string account_creation_fee)
     network_state
+
+let method_ class_ (name : string) (f : _ Js.t -> _) =
+  let prototype = Js.Unsafe.get class_ (Js.string "prototype") in
+  Js.Unsafe.set prototype (Js.string name) (Js.wrap_meth_callback f)
 
 let () =
   let static_method name f =
