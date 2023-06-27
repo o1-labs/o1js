@@ -32,7 +32,7 @@ Provable.runAndCheck(() => {
 
 console.log('Running default hash test');
 Provable.runAndCheck(() => {
-  let digest = Hash.default([Field(1), Field(1), Field(2)]);
+  let digest = Hash.hash([Field(1), Field(1), Field(2)]);
   Provable.log(digest);
 });
 

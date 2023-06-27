@@ -206,7 +206,7 @@ function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
 }
 
 const Hash = {
-  default: Poseidon.hash,
+  hash: Poseidon.hash,
 
   Poseidon: Poseidon,
 
