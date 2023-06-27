@@ -2,6 +2,8 @@ use ark_poly::EvaluationDomain;
 
 use crate::gate_vector::fq::WasmGateVector;
 use crate::srs::fq::WasmFqSrs as WasmSrs;
+use crate::wasm_vector::fq::*;
+use kimchi::circuits::lookup::tables::LookupTable;
 use kimchi::circuits::{constraints::ConstraintSystem, gate::CircuitGate};
 use kimchi::linearization::expr_linearization;
 use kimchi::prover_index::ProverIndex;
@@ -21,6 +23,32 @@ use wasm_bindgen::prelude::*;
 /// Boxed so that we don't store large proving indexes in the OCaml heap.
 #[wasm_bindgen]
 pub struct WasmPastaFqPlonkIndex(#[wasm_bindgen(skip)] pub Box<ProverIndex<GAffine>>);
+
+#[wasm_bindgen]
+pub struct WasmPastaFqLookupTable {
+    #[wasm_bindgen(skip)]
+    pub id: i32,
+    #[wasm_bindgen(skip)]
+    pub data: WasmVecVecFq,
+}
+
+impl From<WasmPastaFqLookupTable> for LookupTable<Fq> {
+    fn from(wasm_lt: WasmPastaFqLookupTable) -> LookupTable<Fq> {
+        LookupTable {
+            id: wasm_lt.id.into(),
+            data: wasm_lt.data.0,
+        }
+    }
+}
+
+// JS constructor for js/bindings.js
+#[wasm_bindgen]
+impl WasmPastaFqLookupTable {
+    #[wasm_bindgen(constructor)]
+    pub fn new(id: i32, data: WasmVecVecFq) -> WasmPastaFqLookupTable {
+        WasmPastaFqLookupTable { id, data }
+    }
+}
 
 //
 // CamlPastaFqPlonkIndex methods
