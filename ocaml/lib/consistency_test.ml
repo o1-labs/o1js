@@ -1,12 +1,8 @@
 open Core_kernel
-module Backend = Kimchi_backend.Pasta.Vesta_based_plonk
+module Js = Js_of_ocaml.Js
 module Impl = Pickles.Impls.Step
 module Other_impl = Pickles.Impls.Wrap
-module Js = Js_of_ocaml.Js
 module Field = Impl.Field
-module Boolean = Impl.Boolean
-module As_prover = Impl.As_prover
-module Typ = Impl.Typ
 
 (* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 

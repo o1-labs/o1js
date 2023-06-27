@@ -1,8 +1,7 @@
 open Core_kernel
+module Js = Js_of_ocaml.Js
 module Backend = Kimchi_backend.Pasta.Vesta_based_plonk
 module Impl = Pickles.Impls.Step
-module Other_impl = Pickles.Impls.Wrap
-module Js = Js_of_ocaml.Js
 module Field = Impl.Field
 module Boolean = Impl.Boolean
 module As_prover = Impl.As_prover
@@ -192,7 +191,7 @@ module Snarky = struct
 
   module Poseidon = struct
     let to_unchecked (x : Field.t) =
-      match x with Constant y -> y | y -> Impl.As_prover.read_var y
+      match x with Constant y -> y | y -> As_prover.read_var y
 
     let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
       if Js.to_bool is_checked then Random_oracle.Checked.hash xs
