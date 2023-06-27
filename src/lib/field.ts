@@ -540,7 +540,7 @@ class Field {
    * Bitwise AND gate on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
    * An AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
    *
-   * The `length` parameter lets you define how many bits should be compared. It defaults to the size of the field in bits ({@link Fp.sizeInBits}).
+   * The `length` parameter lets you define how many bits to compare. It defaults to the size of the field in bits ({@link Fp.sizeInBits}).
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
    *
