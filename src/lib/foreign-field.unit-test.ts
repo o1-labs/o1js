@@ -1,6 +1,6 @@
 import { ProvablePure } from '../snarky.js';
 import { Group } from './core.js';
-import { FieldVar } from './field.js';
+import { Field, FieldVar } from './field.js';
 import { ForeignField, createForeignField, limbBits } from './foreign-field.js';
 import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
@@ -83,6 +83,88 @@ equivalent1(
   },
   (x) => x,
   Random.scalar
+);
+
+// test random sum chains up to length 20
+
+test(
+  Random.array(
+    Random.record({
+      scalar: Random.scalar,
+      operation: Random.oneOf<[1, -1]>(1, -1),
+    }),
+    Random.nat(20)
+  ),
+  (sumSpec) => {
+    if (sumSpec.length === 0) return;
+
+    let scalars = sumSpec.map((s) => s.scalar);
+    let operations = sumSpec.slice(1).map((s) => s.operation);
+    let functions = operations.map((op) => (op === 1 ? Fq.add : Fq.sub));
+
+    // compute sum on bigints
+    let sum = scalars.reduce(
+      (sum, s, i) => (i === 0 ? s : functions[i - 1](sum, s)),
+      0n
+    );
+
+    // check that the expected sum is computed in provable code
+
+    function main() {
+      let scalarVars = scalars.map((s) =>
+        Provable.witness(ForeignScalar, () => new ForeignScalar(s))
+      );
+      let z = ForeignScalar.sum(scalarVars, operations);
+      Provable.asProver(() => expect(z.toBigInt()).toEqual(sum));
+    }
+
+    Provable.runAndCheck(main);
+
+    // check that the expected gates are created
+
+    let expectedGateTypes: GateType[] = [];
+
+    let boundsCheck: GateType[] = [
+      'ForeignFieldAdd',
+      'Zero',
+      'RangeCheck0',
+      'RangeCheck0',
+      'RangeCheck1',
+      'Zero',
+    ];
+
+    // for every witnessed scalar, add gates for the bounds check
+    scalars.forEach(() => expectedGateTypes.push(...boundsCheck));
+
+    // now, add as many ForeignFieldAdd gates as there are additions
+    operations.forEach(() => expectedGateTypes.push('ForeignFieldAdd'));
+
+    // add a final bound check for the result
+    expectedGateTypes.push(...boundsCheck);
+
+    // compute the actual gates
+    let { gates } = Provable.constraintSystem(main);
+
+    // split out all generic gates
+    let generics = gates.filter((g) => g.type === 'Generic');
+    gates = gates.filter((g) => g.type !== 'Generic');
+    let gateTypes = gates.map((g) => g.type);
+
+    // check that gates without generics are as expected
+    expect(gateTypes).toEqual(expectedGateTypes);
+
+    // check that generic gates correspond to adding one of the constants 0, 1 and 2^88 (the limb size)
+    let allowedConstants = new Set([0n, 1n, 1n << 88n]);
+    let ok = generics.every(({ coeffs: [left, right, out, mul, constant] }) => {
+      let isConstantGate =
+        ((left === '0' && right === '1') || (left === '1' && right === '0')) &&
+        out === '0' &&
+        mul === '0';
+      let constantValue = Field.ORDER - BigInt(constant);
+      return isConstantGate && allowedConstants.has(constantValue);
+    });
+    expect(ok).toBe(true);
+  }
 );
 
 // scalar shift in foreign field arithmetic vs in the exponent
@@ -184,3 +266,10 @@ let proof = await Program.test();
 ok = await Program.verify(proof);
 console.log('verifies?', ok);
  */
+
+type GateType =
+  | 'Zero'
+  | 'Generic'
+  | 'RangeCheck0'
+  | 'RangeCheck1'
+  | 'ForeignFieldAdd';
