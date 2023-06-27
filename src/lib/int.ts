@@ -965,12 +965,14 @@ class UInt8 extends Struct({
 }) {
   constructor(x: number | Field) {
     super({ value: Field(x) });
-
-    // Make sure that the Field element that is exactly a byte
-    this.value.toBits(8);
+    this.value.toBits(8); // Make sure that the Field element that is exactly a byte
   }
 
   check() {
     this.value.toBits(8);
+  }
+
+  fromFields(xs: Field[]): UInt8[] {
+    return xs.map((x) => new UInt8(x));
   }
 }
