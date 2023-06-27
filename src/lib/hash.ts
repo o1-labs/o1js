@@ -197,10 +197,10 @@ function emptyReceiptChainHash() {
 
 function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
-    hash(message: UInt8[]) {
+    hash(message: UInt8[]): UInt8[] {
       return Snarky.sha
         .create([0, ...message.map((f) => f.value.value)], nist, length)
-        .map(Field);
+        .map((f) => new UInt8(Field(f)));
     },
   };
 }
