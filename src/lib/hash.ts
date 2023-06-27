@@ -208,15 +208,15 @@ function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
 const Hash = {
   default: Poseidon.hash,
 
-  Poseidon: Poseidon.hash,
+  Poseidon: Poseidon,
 
-  SHA224: buildSHA(224, true).hash,
+  SHA224: buildSHA(224, true),
 
-  SHA256: buildSHA(256, true).hash,
+  SHA256: buildSHA(256, true),
 
-  SHA384: buildSHA(384, true).hash,
+  SHA384: buildSHA(384, true),
 
-  SHA512: buildSHA(512, true).hash,
+  SHA512: buildSHA(512, true),
 
-  Keccack256: buildSHA(256, false).hash,
+  Keccack256: buildSHA(256, false),
 };
