@@ -197,17 +197,10 @@ function emptyReceiptChainHash() {
 
 function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
-    hash(message: (Field | UInt8)[]) {
-      const values = message.map((f) => {
-        if (isField(f)) {
-          // Make sure that the field is exactly a byte.
-          f.toBits(8);
-          return f.value;
-        }
-        return f.value.value;
-      });
-
-      return Snarky.sha.create([0, ...values], nist, length).map(Field);
+    hash(message: UInt8[]) {
+      return Snarky.sha
+        .create([0, ...message.map((f) => f.value.value)], nist, length)
+        .map(Field);
     },
   };
 }
