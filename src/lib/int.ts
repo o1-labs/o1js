@@ -3,7 +3,7 @@ import { AnyConstructor, CircuitValue, Struct, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import { Snarky } from 'src/snarky.js';
+import { Snarky } from '../snarky.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -980,4 +980,20 @@ class UInt8 extends Struct({
   static fromHex(xs: string): UInt8[] {
     return Snarky.sha.fieldBytesFromHex(xs).map((x) => new UInt8(Field(x)));
   }
+  static toHex(xs: UInt8[]): string {
+    return xs
+      .map((x) => x.value)
+      .map((value) => byteArrayToHex(Field.toBytes(value)))
+      .join('');
+  }
+}
+
+// TODO: Move to more appropriate place?
+function byteArrayToHex(byteArray: number[]): string {
+  return byteArray
+    .map((byte) => {
+      const hexValue = byte.toString(16).padStart(2, '0');
+      return hexValue === '00' ? '' : hexValue;
+    })
+    .join('');
 }
