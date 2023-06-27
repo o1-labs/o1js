@@ -190,38 +190,18 @@ module Snarky = struct
   end
 
   module Poseidon = struct
-    let to_unchecked (x : Field.t) =
-      match x with Constant y -> y | y -> As_prover.read_var y
+    let update (state : Field.t Random_oracle.State.t) (input : Field.t array) :
+        Field.t Random_oracle.State.t =
+      Random_oracle.Checked.update ~state input
 
-    let hash_array (xs : Field.t array) (is_checked : bool Js.t) : Field.t =
-      if Js.to_bool is_checked then Random_oracle.Checked.hash xs
-      else
-        Random_oracle.hash (Array.map ~f:to_unchecked xs) |> Impl.Field.constant
-
-    (* this could be removed eventually since it's easily implemented using `update` *)
-    let hash input is_checked = hash_array input is_checked
-
-    let update (state : Field.t Random_oracle.State.t) (input : Field.t array)
-        (is_checked : bool Js.t) : Field.t Random_oracle.State.t =
-      if Js.to_bool is_checked then Random_oracle.Checked.update ~state input
-      else
-        Random_oracle.update
-          ~state:(Random_oracle.State.map ~f:to_unchecked state)
-          (Array.map ~f:to_unchecked input)
-        |> Random_oracle.State.map ~f:Impl.Field.constant
-
-    let hash_to_group (xs : Field.t array) (is_checked : bool Js.t) =
-      let input = hash_array xs is_checked in
-      let digest =
-        if Js.to_bool is_checked then
-          Snark_params.Group_map.Checked.to_group input
-        else
-          let x, y = Snark_params.Group_map.to_group (to_unchecked input) in
-          (Impl.Field.constant @@ x, Impl.Field.constant @@ y)
-      in
-      digest
+    let hash_to_group (xs : Field.t array) =
+      let input = Random_oracle.Checked.hash xs in
+      Snark_params.Group_map.Checked.to_group input
 
     (* sponge *)
+
+    let to_unchecked (x : Field.t) =
+      match x with Constant y -> y | y -> As_prover.read_var y
 
     module Poseidon_sponge_checked =
       Sponge.Make_sponge (Pickles.Step_main_inputs.Sponge.Permutation)
@@ -352,8 +332,6 @@ let snarky =
 
     val poseidon =
       object%js
-        method hash = Snarky.Poseidon.hash
-
         method update = Snarky.Poseidon.update
 
         method hashToGroup = Snarky.Poseidon.hash_to_group
