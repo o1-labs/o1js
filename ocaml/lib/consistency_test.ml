@@ -112,6 +112,12 @@ let body_of_json =
   in
   body_of_json
 
+module Poseidon = struct
+  let hash_to_group (xs : Impl.field array) =
+    let input = Random_oracle.hash xs in
+    Snark_params.Group_map.to_group input
+end
+
 module Signature = struct
   let sign_field_element (x : Impl.field) (key : Other_impl.field)
       (is_mainnet : bool Js.t) =
@@ -328,6 +334,11 @@ let test =
         method derive = Token_id.derive
 
         method deriveChecked = Token_id.derive_checked
+      end
+
+    val poseidon =
+      object%js
+        val hashToGroup = Poseidon.hash_to_group
       end
 
     val signature =
