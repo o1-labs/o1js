@@ -30,6 +30,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Improve error message `Can't evaluate prover code outside an as_prover block` https://github.com/o1-labs/snarkyjs/pull/998
 
+### Fixed
+
+- Fix unsupported use of `window` when running SnarkyJS in workers https://github.com/o1-labs/snarkyjs/pull/1002
+
 ## [0.11.0](https://github.com/o1-labs/snarkyjs/compare/a632313a...3fbd9678e)
 
 ### Breaking changes
