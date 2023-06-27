@@ -10,6 +10,7 @@ import {
 } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
+import { MlArray } from './ml/base.js';
 
 // external API
 export { createForeignField, ForeignField };
@@ -81,6 +82,8 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
   class ForeignField {
     static modulus = p;
     value: ForeignFieldVar;
+
+    static #zero = new ForeignField(0);
 
     /**
      * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
@@ -163,12 +166,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
      * ```
      */
     add(y: ForeignField | bigint | number) {
-      if (this.isConstant() && isConstant(y)) {
-        let z = mod(this.toBigInt() + toFp(y), p);
-        return new ForeignField(z);
-      }
-      let z = Snarky.foreignField.add(this.value, toVar(y), pMl);
-      return new ForeignField(z);
+      return ForeignField.sum([this, y], [1]);
     }
 
     /**
@@ -179,13 +177,7 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
      * ```
      */
     neg() {
-      if (this.isConstant()) {
-        let x = this.toBigInt();
-        let z = x === 0n ? 0n : p - x;
-        return new ForeignField(z);
-      }
-      let z = Snarky.foreignField.sub(ForeignFieldVar[0], this.value, pMl);
-      return new ForeignField(z);
+      return ForeignField.sum([ForeignField.#zero, this], [-1]);
     }
 
     /**
@@ -196,11 +188,44 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
      * ```
      */
     sub(y: ForeignField | bigint | number) {
-      if (this.isConstant() && isConstant(y)) {
-        let z = mod(this.toBigInt() - toFp(y), p);
-        return new ForeignField(z);
+      return ForeignField.sum([this, y], [-1]);
+    }
+
+    /**
+     * Sum (or difference) of multiple finite field elements.
+     *
+     * @example
+     * ```ts
+     * let z = ForeignField.sum([3, 2, 1], [-1, 1]); // 3 - 2 + 1
+     * z.assertEquals(2);
+     * ```
+     *
+     * This method expects a list of ForeignField-like values, `x0,...,xn`,
+     * and a list of "operations" `op1,...,opn` where every op is 1 or -1 (plus or minus),
+     * and returns
+     *
+     * `x0 + op1*x1 + ... + opn*xn`
+     *
+     * where the sum is computed in finite field arithmetic.
+     *
+     * **Important:** For more than two summands, this is significantly more efficient
+     * than chaining calls to {@link ForeignField.add} and {@link ForeignField.sub}.
+     *
+     */
+    static sum(xs: (ForeignField | bigint | number)[], operations: (1 | -1)[]) {
+      if (xs.every(isConstant)) {
+        let sum = xs.reduce((sum: bigint, x, i): bigint => {
+          if (i === 0) return toFp(x);
+          return sum + BigInt(operations[i - 1]) * toFp(x);
+        }, 0n);
+        // note: we don't reduce mod p because the constructor does that
+        return new ForeignField(sum);
       }
-      let z = Snarky.foreignField.sub(this.value, toVar(y), pMl);
+      let fields = MlArray.to(xs.map(toVar));
+      let opModes = MlArray.to(
+        operations.map((op) => (op === 1 ? OpMode.Add : OpMode.Sub))
+      );
+      let z = Snarky.foreignField.sumChain(fields, opModes, pMl);
       return new ForeignField(z);
     }
 
@@ -400,6 +425,11 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
   }
 
   return ForeignField;
+}
+
+enum OpMode {
+  Add,
+  Sub,
 }
 
 // helpers

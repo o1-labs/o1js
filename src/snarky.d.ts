@@ -271,14 +271,9 @@ declare const Snarky: {
 
   foreignField: {
     assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
-    add(
-      x: ForeignFieldVar,
-      y: ForeignFieldVar,
-      p: ForeignFieldConst
-    ): ForeignFieldVar;
-    sub(
-      x: ForeignFieldVar,
-      y: ForeignFieldVar,
+    sumChain(
+      xs: MlArray<ForeignFieldVar>,
+      ops: MlArray<0 | 1>,
       p: ForeignFieldConst
     ): ForeignFieldVar;
     mul(
