@@ -4,6 +4,8 @@ import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
+import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
+import { assert } from './errors.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -39,20 +41,39 @@ class Sponge {
 
 const Poseidon = {
   hash(input: Field[]) {
-    let isChecked = !input.every((x) => x.isConstant());
-    // this is the same:
-    // return Snarky.poseidon.update(this.initialState, input, isChecked)[0];
-    let digest = Snarky.poseidon.hash(MlFieldArray.to(input), isChecked);
-    return Field(digest);
+    if (isConstant(input)) {
+      return Field(PoseidonBigint.hash(toBigints(input)));
+    }
+    return Poseidon.update(this.initialState(), input)[0];
+  },
+
+  update(state: [Field, Field, Field], input: Field[]) {
+    if (isConstant(state) && isConstant(input)) {
+      let newState = PoseidonBigint.update(toBigints(state), toBigints(input));
+      return newState.map(Field);
+    }
+
+    let newState = Snarky.poseidon.update(
+      MlFieldArray.to(state),
+      MlFieldArray.to(input),
+      true
+    );
+    return MlFieldArray.from(newState) as [Field, Field, Field];
   },
 
   hashToGroup(input: Field[]) {
-    let isChecked = !input.every((x) => x.isConstant());
+    if (isConstant(input)) {
+      let result = PoseidonBigint.hashToGroup(toBigints(input));
+      assert(result !== undefined, 'hashToGroup works on all inputs');
+      let { x, y } = result!;
+      return {
+        x: Field(x),
+        y: { x0: Field(y.x0), x1: Field(y.x1) },
+      };
+    }
+
     // y = sqrt(y^2)
-    let [, xv, yv] = Snarky.poseidon.hashToGroup(
-      MlFieldArray.to(input),
-      isChecked
-    );
+    let [, xv, yv] = Snarky.poseidon.hashToGroup(MlFieldArray.to(input), true);
 
     let x = Field(xv);
     let y = Field(yv);
@@ -74,18 +95,6 @@ const Poseidon = {
     return { x, y: { x0, x1 } };
   },
 
-  update(state: [Field, Field, Field], input: Field[]) {
-    let isChecked = !(
-      state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())
-    );
-    let newState = Snarky.poseidon.update(
-      MlFieldArray.to(state),
-      MlFieldArray.to(input),
-      isChecked
-    );
-    return MlFieldArray.from(newState) as [Field, Field, Field];
-  },
-
   initialState(): [Field, Field, Field] {
     return [Field(0), Field(0), Field(0)];
   },
@@ -94,8 +103,7 @@ const Poseidon = {
 };
 
 function hashConstant(input: Field[]) {
-  let digest = Snarky.poseidon.hash(MlFieldArray.to(input), false);
-  return Field(digest);
+  return Field(PoseidonBigint.hash(toBigints(input)));
 }
 
 const Hash = createHashHelpers(Field, Poseidon);
@@ -191,4 +199,11 @@ class TokenSymbol extends Struct(TokenSymbolPure) {
 
 function emptyReceiptChainHash() {
   return emptyHashWithPrefix('CodaReceiptEmpty');
+}
+
+function isConstant(fields: Field[]) {
+  return fields.every((x) => x.isConstant());
+}
+function toBigints(fields: Field[]) {
+  return fields.map((x) => x.toBigInt());
 }
