@@ -9,6 +9,7 @@ use std::convert::TryInto;
 use wasm_bindgen::prelude::*;
 // use std::sync::Arc;
 // use poly_commitment::srs::SRS;
+use kimchi::circuits::lookup::runtime_tables::RuntimeTable;
 // use kimchi::index::{expr_linearization, VerifierIndex as DlogVerifierIndex};
 // use ark_poly::{EvaluationDomain, Radix2EvaluationDomain as Domain};
 use ark_ec::AffineCurve;
@@ -518,6 +519,30 @@ macro_rules! impl_proof {
                     let (proof, _public_input) = self.into();
                     let serialized = rmp_serde::to_vec(&proof).unwrap();
                     base64::encode(serialized)
+                }
+            }
+
+            #[wasm_bindgen]
+            pub struct [<Wasm $field_name:camel RuntimeTable>] {
+                id: i32,
+                data: WasmFlatVector<$WasmF>
+            }
+            type WasmRuntimeTable = [<Wasm $field_name:camel RuntimeTable>];
+
+            #[wasm_bindgen]
+            impl [<Wasm $field_name:camel RuntimeTable>] {
+                #[wasm_bindgen(constructor)]
+                pub fn new(id: i32, data: WasmFlatVector<$WasmF>) -> WasmRuntimeTable {
+                    WasmRuntimeTable {id, data}
+                }
+            }
+
+            impl From<[<Wasm $field_name:camel RuntimeTable>]> for RuntimeTable<$F> {
+                fn from(wasm_rt: WasmRuntimeTable) -> RuntimeTable<$F> {
+                    RuntimeTable {
+                        id: wasm_rt.id.into(),
+                        data: wasm_rt.data.into_iter().map(Into::into).collect()
+                    }
                 }
             }
 
