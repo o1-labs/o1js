@@ -21,6 +21,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `Group` operations now generate a different set of constraints. This breaks deployed contracts, because the circuit changed. https://github.com/o1-labs/snarkyjs/pull/967
 
+### Added
+
+- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
+  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
+
 ### Changed
 
 - Improve error message `Can't evaluate prover code outside an as_prover block` https://github.com/o1-labs/snarkyjs/pull/998
@@ -40,8 +45,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - More efficient than `field.equals(x).assertFalse()`
 - Add `scalar.toConstant()`, `scalar.toBigInt()`, `Scalar.from()`, `privateKey.toBigInt()`, `PrivateKey.fromBigInt()` https://github.com/o1-labs/snarkyjs/pull/935
 - `Poseidon.hashToGroup` enables hashing to a group https://github.com/o1-labs/snarkyjs/pull/887
-- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
-  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
 
 ### Changed
 
