@@ -1011,8 +1011,8 @@ class UInt8 extends Struct({
       .join('');
   }
 
-  static toJSON(xs: UInt8): string {
-    return xs.value.toString();
+  toJSON(): string {
+    return this.value.toString();
   }
 
   static MAXINT() {
