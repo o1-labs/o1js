@@ -39,9 +39,9 @@ The `main` branch contains the development version of the code.
 To contribute directly to this project repo, follow these steps to get your changes in the `main` branch as quickly as possible.
 
 1. Create a new issue for your proposed changes or use an existing issue if a relevant one exists.
-1. Write a request for comment (RFC) to outline your proposed changes and motivation, like this [example RFC](https://github.com/o1-labs/snarkyjs/issues/233). Describe your objective and why the change is useful, how it works, and so on.
+1. Write a [request for comment (RFC)](https://github.com/o1-labs/rfcs) to outline your proposed changes and motivation. Be sure to use the template to describe your objective and why the change is useful, how it works, and so on. Take a look at these example RFCs: [SnarkyJS SHA/Keccak](https://github.com/o1-labs/rfcs/pull/9) and [Tokens RFC](https://github.com/o1-labs/snarkyjs/issues/233).
 
-   Note: If you are proposing a smaller change your RFC will be smaller, and that's ok! :)
+   Note: If you are proposing a smaller change, your RFC will be smaller, and that's ok! :)
 
 1. One of the codebase maintainers reviews your RFC and works with you until it is approved.
 1. After your RFC proposal is approved, fork the repository and implement your changes.
