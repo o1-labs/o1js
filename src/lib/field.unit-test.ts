@@ -42,10 +42,13 @@ test(
   (x, n, direction, assert) => {
     let z = Field(x);
 
-    let r1 = Fp.rot64(BigInt(x), n, direction);
+    let r1 = Fp.rot64(x, n, direction);
 
     Provable.runAndCheck(() => {
-      let r2 = Provable.witness(Field, () => z).rot64(n, direction);
+      let r2 = Provable.witness(Field, () => z).rot64(
+        n,
+        direction ? 'left' : 'right'
+      );
       Provable.asProver(() => assert(r1 === r2.toBigInt()));
     });
   }
@@ -54,8 +57,9 @@ test(
 // XOR with some common and odd lengths
 [2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
   test(Random.field, Random.field, (x_, y_, assert) => {
-    let x = x_ % BigInt(length);
-    let y = y_ % BigInt(length);
+    let modulus = 1n << BigInt(length);
+    let x = x_ % modulus;
+    let y = y_ % modulus;
     let z = Field(x);
 
     let r1 = Fp.xor(BigInt(x), BigInt(y));

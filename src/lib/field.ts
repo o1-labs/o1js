@@ -522,7 +522,7 @@ class Field {
    * Bitwise XOR gate on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
    * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
    *
-   * The `length` parameter lets you define how many bits should be compared. By default it is set to `32`.
+   * The `length` parameter lets you define how many bits should be compared. By default it is set to `32`. The output is not constrained to the length.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
    *
@@ -539,9 +539,10 @@ class Field {
    */
   xor(y: Field | bigint | number | string, length: number = 32) {
     if (this.isConstant() && isConstant(y)) {
+      let max = 1n << BigInt(length);
       let y_ = toFp(y);
       let thisBigint = this.toBigInt();
-      if (y_ > 2 ** length - 1 || thisBigint > 2 ** length - 1) {
+      if (y_ >= max || thisBigint >= max) {
         throw Error(`${y} and ${thisBigint} need to fit into ${length} bits.`);
       }
 
@@ -553,24 +554,26 @@ class Field {
 
   /**
    * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
-   * `direction` is a boolean, defining the direction of the rotation - `left - true` and `right = false`
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
    *
-   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits.
+   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
    *
    * ```typescript
    * let a = Field(12);
-   * let b = a.rot(2, true);  // left rotation by 2 bit
+   * let b = a.rot(2, 'left');  // left rotation by 2 bit
    * c.assertEquals(20);
    * ```
    *
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction (true) left or (false) right rotation direction.
    */
-  rot64(bits: number, direction: boolean = true) {
+  rot64(bits: number, direction: 'left' | 'right' = 'left') {
     if (this.isConstant()) {
-      return new Field(Fp.rot64(this.toBigInt(), bits, direction));
+      return new Field(Fp.rot64(this.toBigInt(), bits, direction === 'left'));
     } else {
-      return new Field(Snarky.field.rot64(this.value, bits, direction));
+      return new Field(
+        Snarky.field.rot64(this.value, bits, direction === 'left')
+      );
     }
   }
 

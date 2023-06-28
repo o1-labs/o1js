@@ -3,7 +3,6 @@ import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import { dir } from 'console';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -220,8 +219,7 @@ class UInt64 extends CircuitValue {
 
   /**
    * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
-   * `direction` is a boolean, defining the direction of the rotation - `left - true` and `right = false`
-   *
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
    * ```typescript
    * let a = UInt64.from(12);
    * let b = a.rot(2, true);  // left rotation by 2 bit
@@ -231,7 +229,7 @@ class UInt64 extends CircuitValue {
    * @param bits amount of bits to rotate this {@link UInt64} element with.
    * @param direction (true) left or (false) right rotation direction.
    */
-  rot64(bits: number, direction: boolean = true) {
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
     return new UInt64(this.value.rot64(bits, direction));
   }
 
@@ -529,6 +527,38 @@ class UInt32 extends CircuitValue {
 
     return { quotient: q_, rest: r_ };
   }
+
+  /**
+   * Bitwise XOR gate on {@link UInt32} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal. It applies XOR to all 32 bits of the elements.
+   * ```typescript
+   * let a = UInt32.from(5);    // ... 000101
+   * let b = UInt32.from(3);    // ... 000011
+   *
+   * let c = a.xor(b);    // ... 000110
+   * c.assertEquals(6);
+   * ```
+   */
+  xor(y: UInt32) {
+    return new UInt32(this.value.xor(y.value, UInt32.NUM_BITS));
+  }
+
+  /**
+   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
+   * ```typescript
+   * let a = UInt32.from(12);
+   * let b = a.rot(2, true);  // left rotation by 2 bit
+   * c.assertEquals(20);
+   * ```
+   *
+   * @param bits amount of bits to rotate this {@link UInt64} element with.
+   * @param direction (true) left or (false) right rotation direction.
+   */
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
+    return new UInt32(this.value.rot64(bits, direction));
+  }
+
   /**
    * Integer division.
    *
