@@ -13,10 +13,10 @@ function checkDigestHexConversion(digest: UInt8[]) {
   Provable.asProver(() => {
     const hex = UInt8.toHex(digest);
     const expected = UInt8.fromHex(hex);
-    Provable.log(hex, digest, expected);
     if (equals(digest, expected)) {
       console.log('✅ Digest matches');
     } else {
+      Provable.log(`hex: ${hex}\ndigest: ${digest}\nexpected:${expected}`);
       console.log('❌ Digest does not match');
     }
   });

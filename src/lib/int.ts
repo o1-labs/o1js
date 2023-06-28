@@ -980,20 +980,12 @@ class UInt8 extends Struct({
   static fromHex(xs: string): UInt8[] {
     return Snarky.sha.fieldBytesFromHex(xs).map((x) => new UInt8(Field(x)));
   }
+
   static toHex(xs: UInt8[]): string {
     return xs
       .map((x) => x.value)
-      .map((value) => byteArrayToHex(Field.toBytes(value)))
+      .map((f) => Field.toBytes(f)[0].toString(16).padStart(2, '0'))
+      .slice(1)
       .join('');
   }
-}
-
-// TODO: Move to more appropriate place?
-function byteArrayToHex(byteArray: number[]): string {
-  return byteArray
-    .map((byte) => {
-      const hexValue = byte.toString(16).padStart(2, '0');
-      return hexValue === '00' ? '' : hexValue;
-    })
-    .join('');
 }
