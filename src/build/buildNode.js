@@ -64,7 +64,12 @@ function makeJsooExternal() {
     name: 'plugin-external',
     setup(build) {
       build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => ({
-        path: path.resolve(resolveDir, filePath),
+        path:
+          './' +
+          path.relative(
+            path.resolve('.', 'dist/node'),
+            path.resolve(resolveDir, filePath)
+          ),
         external: true,
       }));
     },
