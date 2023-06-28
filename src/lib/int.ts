@@ -981,6 +981,108 @@ class UInt8 extends Struct({
     return new UInt8(1);
   }
 
+  add(y: UInt8 | number) {
+    if (isUInt8(y)) {
+      return new UInt8(this.value.add(y.value));
+    }
+    let y_ = new UInt8(y);
+    return new UInt8(this.value.add(y_.value));
+  }
+
+  sub(y: UInt8 | number) {
+    if (isUInt8(y)) {
+      return new UInt8(this.value.sub(y.value));
+    }
+    let y_ = new UInt8(y);
+    return new UInt8(this.value.sub(y_.value));
+  }
+
+  mul(y: UInt8 | number) {
+    if (isUInt8(y)) {
+      return new UInt8(this.value.mul(y.value));
+    }
+    let y_ = new UInt8(y);
+    return new UInt8(this.value.mul(y_.value));
+  }
+
+  div(y: UInt8 | number) {
+    if (isUInt8(y)) {
+      return this.divMod(y).quotient;
+    }
+    let y_ = new UInt8(y);
+    return this.divMod(y_).quotient;
+  }
+
+  mod(y: UInt8 | number) {
+    if (isUInt8(y)) {
+      return this.divMod(y).rest;
+    }
+    let y_ = new UInt8(y);
+    return this.divMod(y_).rest;
+  }
+
+  divMod(y: UInt8 | number) {
+    let x = this.value;
+    let y_ = new UInt8(y).value;
+
+    if (this.value.isConstant() && y_.isConstant()) {
+      let xn = x.toBigInt();
+      let yn = y_.toBigInt();
+      let q = xn / yn;
+      let r = xn - q * yn;
+      return {
+        quotient: new UInt8(Field(q)),
+        rest: new UInt8(Field(r)),
+      };
+    }
+
+    y_ = y_.seal();
+
+    let q = Provable.witness(
+      Field,
+      () => new Field(x.toBigInt() / y_.toBigInt())
+    );
+
+    q.rangeCheckHelper(UInt8.NUM_BITS).assertEquals(q);
+
+    // TODO: Could be a bit more efficient
+    let r = x.sub(q.mul(y_)).seal();
+    r.rangeCheckHelper(UInt8.NUM_BITS).assertEquals(r);
+
+    let r_ = new UInt8(r);
+    let q_ = new UInt8(q);
+
+    r_.assertLessThan(new UInt8(y_));
+
+    return { quotient: q_, rest: r_ };
+  }
+
+  lessThanOrEqual(y: UInt8) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() <= y.value.toBigInt());
+    } else {
+      let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
+      let xMinusYFits = xMinusY
+        .rangeCheckHelper(UInt8.NUM_BITS)
+        .equals(xMinusY);
+      let yMinusXFits = yMinusX
+        .rangeCheckHelper(UInt8.NUM_BITS)
+        .equals(yMinusX);
+      xMinusYFits.or(yMinusXFits).assertEquals(true);
+      // x <= y if y - x fits in 64 bits
+      return yMinusXFits;
+    }
+  }
+
+  lessThan(y: UInt8) {
+    return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
+  }
+
+  assertLessThan(y: UInt8, message?: string) {
+    this.lessThan(y).assertEquals(true, message);
+  }
+
   toString() {
     return this.value.toString();
   }
@@ -1049,4 +1151,8 @@ class UInt8 extends Struct({
     x.toBits(UInt8.NUM_BITS);
     return x;
   }
+}
+
+function isUInt8(x: unknown): x is UInt8 {
+  return x instanceof UInt8;
 }
