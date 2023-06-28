@@ -84,6 +84,10 @@ export default [
         type: 'object',
       },
       {
+        name: 'poseidon',
+        type: 'object',
+      },
+      {
         name: 'signature',
         type: 'object',
       },
