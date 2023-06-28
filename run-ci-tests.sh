@@ -41,7 +41,7 @@ case $TEST_TYPE in
 
     "CommonJS test" )
       echo "Testing CommonJS version";
-      node src/example/commonjs
+      node src/examples/commonjs.cjs
       ;;
 
     * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"; exit 1 ;;
