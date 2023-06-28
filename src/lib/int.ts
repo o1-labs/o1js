@@ -966,7 +966,9 @@ class UInt8 extends Struct({
 }) {
   static NUM_BITS = 8;
 
-  constructor(x: number | bigint | Field) {
+  constructor(x: number | bigint | Field | UInt8) {
+    if (x instanceof UInt8) return x;
+
     super({ value: Field(x) });
     this.value.toBits(UInt8.NUM_BITS); // Make sure that the Field element that is exactly a byte
   }
@@ -1013,10 +1015,6 @@ class UInt8 extends Struct({
 
   isConstant() {
     return this.value.isConstant();
-  }
-
-  toConstant() {
-    return this.value.toConstant();
   }
 
   static fromHex(xs: string): UInt8[] {
