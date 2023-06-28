@@ -39,5 +39,10 @@ case $TEST_TYPE in
       echo "Running Regression checks"
       ./run ./src/examples/vk_regression.ts --bundle ;;
 
+    "CommonJS test" )
+      echo "Testing CommonJS version";
+      node src/example/commonjs
+      ;;
+
     * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"; exit 1 ;;
 esac
