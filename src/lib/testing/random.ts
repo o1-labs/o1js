@@ -63,6 +63,7 @@ function sample<T>(rng: Random<T>, size: number) {
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const bool = map(boolean, Bool);
+const uint8 = biguintWithInvalid(8);
 const uint32 = biguintWithInvalid(32);
 const uint64 = biguintWithInvalid(64);
 
@@ -115,6 +116,7 @@ type Generators = {
 const Generators: Generators = {
   Field: field,
   Bool: bool,
+  UInt8: uint8,
   UInt32: uint32,
   UInt64: uint64,
   Sign: sign,
@@ -181,17 +183,21 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint64Json = toString(
-  oneOf(uint64.invalid, nonInteger, nonNumericString)
+const invalidUint8Json = toString(
+  oneOf(uint8.invalid, nonInteger, nonNumericString)
 );
 const invalidUint32Json = toString(
   oneOf(uint32.invalid, nonInteger, nonNumericString)
 );
+const invalidUint64Json = toString(
+  oneOf(uint64.invalid, nonInteger, nonNumericString)
+);
 
 // some json versions of those types
 let json_ = {
-  uint64: { ...toString(uint64), invalid: invalidUint64Json },
+  uint8: { ...toString(uint8), invalid: invalidUint8Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
+  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -215,6 +221,7 @@ type JsonGenerators = {
 const JsonGenerators: JsonGenerators = {
   Field: json_.field,
   Bool: boolean,
+  UInt8: json_.uint8,
   UInt32: json_.uint32,
   UInt64: json_.uint64,
   Sign: withInvalidRandomString(map(sign, Sign.toJSON)),
@@ -299,6 +306,7 @@ const Random = Object.assign(Random_, {
   dice: Object.assign(dice, { ofSize: diceOfSize() }),
   field,
   bool,
+  uint8,
   uint32,
   uint64,
   privateKey,
