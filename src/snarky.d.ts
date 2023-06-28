@@ -9,12 +9,14 @@ import type {
   MlOption,
   MlBool,
   MlBytes,
+  MlBigint,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
   ForeignFieldVar,
   ForeignFieldConst,
 } from './lib/foreign-field.js';
+import type { ForeignCurveVar, MlCurveParams } from './lib/foreign-curve.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
@@ -281,6 +283,18 @@ declare const Snarky: {
       y: ForeignFieldVar,
       p: ForeignFieldConst
     ): ForeignFieldVar;
+
+    bigintToMl(x: bigint): MlBigint;
+
+    curve: {
+      create(params: MlCurveParams): unknown;
+      // paramsToVars()
+      add(
+        g: ForeignCurveVar,
+        h: ForeignCurveVar,
+        curveParams: unknown
+      ): ForeignCurveVar;
+    };
   };
 };
 

@@ -1,7 +1,9 @@
+import { Snarky } from '../../snarky.js';
+
 /**
  * This module contains basic methods for interacting with OCaml
  */
-export { MlArray, MlTuple, MlList, MlOption, MlBool, MlBytes };
+export { MlArray, MlTuple, MlList, MlOption, MlBool, MlBytes, MlBigint };
 
 // ocaml types
 
@@ -50,6 +52,23 @@ const MlBool = Object.assign(
   {
     from(b: MlBool) {
       return !!b;
+    },
+  }
+);
+
+/**
+ * zarith_stubs_js representation of a bigint / Zarith.t, which
+ * is what Snarky_backendless.Backend_extended.Bignum_bigint.t is under the hood
+ */
+type MlBigint = number | { value: bigint; caml_custom: '_z' };
+
+const MlBigint = Object.assign(
+  function MlBigint(x: bigint): MlBigint {
+    return Snarky.foreignField.bigintToMl(x);
+  },
+  {
+    from(x: MlBigint) {
+      return typeof x === 'number' ? BigInt(x) : x.value;
     },
   }
 );
