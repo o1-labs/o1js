@@ -1083,6 +1083,41 @@ class UInt8 extends Struct({
     this.lessThan(y).assertEquals(true, message);
   }
 
+  assertLessThanOrEqual(y: UInt8, message?: string) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      let x0 = this.value.toBigInt();
+      let y0 = y.value.toBigInt();
+      if (x0 > y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
+      }
+      return;
+    }
+    let yMinusX = y.value.sub(this.value).seal();
+    yMinusX.rangeCheckHelper(UInt8.NUM_BITS).assertEquals(yMinusX, message);
+  }
+
+  greaterThan(y: UInt8) {
+    return y.lessThan(this);
+  }
+
+  greaterThanOrEqual(y: UInt8) {
+    return this.lessThan(y).not();
+  }
+
+  assertGreaterThan(y: UInt8, message?: string) {
+    y.assertLessThan(this, message);
+  }
+
+  assertGreaterThanOrEqual(y: UInt8, message?: string) {
+    y.assertLessThanOrEqual(this, message);
+  }
+
+  assertEquals(y: number | bigint | UInt8, message?: string) {
+    let y_ = new UInt8(y);
+    this.toField().assertEquals(y_.toField(), message);
+  }
+
   toString() {
     return this.value.toString();
   }
