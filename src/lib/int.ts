@@ -979,6 +979,18 @@ class UInt8 extends Struct({
     return new UInt8(1);
   }
 
+  toString() {
+    return this.value.toString();
+  }
+
+  toBigInt() {
+    return this.value.toBigInt();
+  }
+
+  toField() {
+    return this.value;
+  }
+
   check() {
     this.value.toBits(UInt8.NUM_BITS);
   }
@@ -997,5 +1009,9 @@ class UInt8 extends Struct({
       .map((f) => Field.toBytes(f)[0].toString(16).padStart(2, '0'))
       .slice(1)
       .join('');
+  }
+
+  static toJSON(xs: UInt8): string {
+    return xs.value.toString();
   }
 }
