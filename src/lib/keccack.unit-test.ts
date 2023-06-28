@@ -18,3 +18,8 @@ test(Random.uint8, Random.json.uint8, (x, y, assert) => {
   assert(z.toString() === y);
   assert(z.toJSON() === y);
 });
+
+// handles all numbers up to 2^8
+test(Random.nat(255), (n, assert) => {
+  assert(new UInt8(n).toString() === String(n));
+});
