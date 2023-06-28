@@ -4,10 +4,8 @@ module Impl = Pickles.Impls.Step
 module Field = Impl.Field
 module Boolean = Impl.Boolean
 
-module Snarky : sig
-  module Poseidon : sig
-    type sponge
-  end
+module Poseidon : sig
+  type sponge
 end
 
 val snarky :
@@ -92,9 +90,9 @@ val snarky :
               * Impl.field Snarky_backendless.Cvar.t )
           Js.meth
       ; sponge :
-          < absorb : (Snarky.Poseidon.sponge -> Field.t -> unit) Js.meth
-          ; create : (bool Js.t -> Snarky.Poseidon.sponge) Js.meth
-          ; squeeze : (Snarky.Poseidon.sponge -> Field.t) Js.meth >
+          < absorb : (Poseidon.sponge -> Field.t -> unit) Js.meth
+          ; create : (bool Js.t -> Poseidon.sponge) Js.meth
+          ; squeeze : (Poseidon.sponge -> Field.t) Js.meth >
           Js.t
           Js.readonly_prop >
       Js.t
