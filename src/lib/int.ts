@@ -966,7 +966,7 @@ class UInt8 extends Struct({
 }) {
   static NUM_BITS = 8;
 
-  constructor(x: number | bigint | Field | UInt8) {
+  constructor(x: number | bigint | string | Field | UInt8) {
     if (x instanceof UInt8) return x;
 
     super({ value: Field(x) });
