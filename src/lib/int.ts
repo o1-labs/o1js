@@ -999,6 +999,18 @@ class UInt8 extends Struct({
     return xs.map((x) => new UInt8(x));
   }
 
+  toJSON(): string {
+    return this.value.toString();
+  }
+
+  toUInt32(): UInt32 {
+    return new UInt32(this.value);
+  }
+
+  toUInt64(): UInt64 {
+    return new UInt64(this.value);
+  }
+
   static fromHex(xs: string): UInt8[] {
     return Snarky.sha.fieldBytesFromHex(xs).map((x) => new UInt8(Field(x)));
   }
