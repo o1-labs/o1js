@@ -1006,11 +1006,15 @@ class UInt8 extends Struct({
   }
 
   toUInt32(): UInt32 {
-    return new UInt32(this.value);
+    let uint32 = new UInt32(this.value);
+    UInt32.check(uint32);
+    return uint32;
   }
 
   toUInt64(): UInt64 {
-    return new UInt64(this.value);
+    let uint64 = new UInt64(this.value);
+    UInt64.check(uint64);
+    return uint64;
   }
 
   isConstant() {
