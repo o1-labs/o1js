@@ -63,22 +63,10 @@ function makeJsooExternal() {
   return {
     name: 'plugin-external',
     setup(build) {
-      build.onResolve({ filter: isJsoo }, ({ path }) => ({
-        path: path.replace('../../', './').replace('../', './'),
+      build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => ({
+        path: path.resolve(resolveDir, filePath),
         external: true,
       }));
     },
   };
-}
-
-function execPromise(cmd) {
-  return new Promise((res, rej) =>
-    exec(cmd, (err, stdout) => {
-      if (err) {
-        console.log(stdout);
-        return rej(err);
-      }
-      res(stdout);
-    })
-  );
 }

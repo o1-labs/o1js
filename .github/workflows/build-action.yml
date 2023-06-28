@@ -27,6 +27,7 @@ jobs:
             'Voting integration tests',
             'Unit tests',
             'Verification Key Regression Check',
+            'CommonJS test',
           ]
     steps:
       - name: Checkout Repository
