@@ -23,3 +23,9 @@ test(Random.uint8, Random.json.uint8, (x, y, assert) => {
 test(Random.nat(255), (n, assert) => {
   assert(new UInt8(n).toString() === String(n));
 });
+
+// throws on negative numbers
+test.negative(Random.int(-10, -1), (x) => new UInt8(x));
+
+// throws on numbers >= 2^8
+test.negative(Random.uint8.invalid, (x) => new UInt8(x));
