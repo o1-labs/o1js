@@ -1969,9 +1969,6 @@ export interface InitOutput {
   readonly __wbg_set_wasmgvesta_y: (a: number, b: number, c: number) => void;
   readonly caml_pallas_affine_one: () => number;
   readonly caml_vesta_affine_one: () => number;
-  readonly __wbg_wasmgvesta_free: (a: number) => void;
-  readonly __wbg_get_wasmgvesta_infinity: (a: number) => number;
-  readonly __wbg_set_wasmgvesta_infinity: (a: number, b: number) => void;
   readonly caml_pallas_one: () => number;
   readonly caml_pallas_add: (a: number, b: number) => number;
   readonly caml_pallas_sub: (a: number, b: number) => number;
@@ -2002,6 +1999,9 @@ export interface InitOutput {
   readonly caml_pasta_fp_poseidon_block_cipher: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_poseidon_block_cipher: (a: number, b: number, c: number) => void;
   readonly caml_vesta_affine_deep_copy: (a: number) => number;
+  readonly __wbg_wasmgvesta_free: (a: number) => void;
+  readonly __wbg_get_wasmgvesta_infinity: (a: number) => number;
+  readonly __wbg_set_wasmgvesta_infinity: (a: number, b: number) => void;
   readonly __wbg_wasmgatewires_free: (a: number) => void;
   readonly __wbg_get_wasmgatewires_0: (a: number) => number;
   readonly __wbg_set_wasmgatewires_0: (a: number, b: number) => void;
@@ -2362,6 +2362,7 @@ export interface InitOutput {
   readonly wasmfqopeningproof_sg: (a: number) => number;
   readonly wasmfqproverproof_set_prev_challenges_scalars: (a: number, b: number) => void;
   readonly __wbg_get_wasmfqoracles_o: (a: number) => number;
+  readonly fq_oracles_dummy: () => number;
   readonly __wbg_wasmfqoracles_free: (a: number) => void;
   readonly wasmfqplonkverificationevals_set_generic_comm: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_z_comm: (a: number, b: number) => void;
@@ -2380,7 +2381,6 @@ export interface InitOutput {
   readonly wasmfqprovercommitments_z_comm: (a: number) => number;
   readonly wasmfqopeningproof_set_sg: (a: number, b: number) => void;
   readonly __wbg_set_wasmfqoracles_o: (a: number, b: number) => void;
-  readonly fq_oracles_dummy: () => number;
   readonly __wbg_wasmfqopeningproof_free: (a: number) => void;
   readonly wasmfqplonkverificationevals_set_psm_comm: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_t_comm: (a: number, b: number) => void;

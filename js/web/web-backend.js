@@ -18,7 +18,7 @@ let init = wasm.default;
 let worker;
 
 async function initSnarkyJS() {
-  const memory = allocateWasmMemoryForUserAgent(window.navigator.userAgent);
+  const memory = allocateWasmMemoryForUserAgent(navigator.userAgent);
   await init(undefined, memory);
 
   let module = init.__wbindgen_wasm_module;
