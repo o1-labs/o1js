@@ -1023,11 +1023,20 @@ class UInt8 extends Struct({
       .join('');
   }
 
-  toJSON(): string {
-    return this.value.toString();
-  }
-
   static MAXINT() {
     return new UInt8(255);
+  }
+
+  static from(x: UInt64 | UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt64 || x instanceof UInt32 || x instanceof UInt8)
+      x = x.value;
+
+    return new this(this.checkConstant(Field(x)));
+  }
+
+  private static checkConstant(x: Field) {
+    if (!x.isConstant()) return x;
+    x.toBits(UInt8.NUM_BITS);
+    return x;
   }
 }
