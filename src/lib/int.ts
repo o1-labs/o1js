@@ -1011,6 +1011,10 @@ class UInt8 extends Struct({
     return new UInt64(this.value);
   }
 
+  isConstant() {
+    return this.value.isConstant();
+  }
+
   static fromHex(xs: string): UInt8[] {
     return Snarky.sha.fieldBytesFromHex(xs).map((x) => new UInt8(Field(x)));
   }
