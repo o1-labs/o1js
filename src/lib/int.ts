@@ -971,6 +971,14 @@ class UInt8 extends Struct({
     this.value.toBits(UInt8.NUM_BITS); // Make sure that the Field element that is exactly a byte
   }
 
+  static get zero() {
+    return new UInt8(0);
+  }
+
+  static get one() {
+    return new UInt8(1);
+  }
+
   check() {
     this.value.toBits(UInt8.NUM_BITS);
   }
