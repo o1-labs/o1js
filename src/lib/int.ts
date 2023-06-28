@@ -964,13 +964,15 @@ class Int64 extends CircuitValue implements BalanceChange {
 class UInt8 extends Struct({
   value: Field,
 }) {
-  constructor(x: number | Field) {
+  static NUM_BITS = 8;
+
+  constructor(x: number | bigint | Field) {
     super({ value: Field(x) });
-    this.value.toBits(8); // Make sure that the Field element that is exactly a byte
+    this.value.toBits(UInt8.NUM_BITS); // Make sure that the Field element that is exactly a byte
   }
 
   check() {
-    this.value.toBits(8);
+    this.value.toBits(UInt8.NUM_BITS);
   }
 
   fromFields(xs: Field[]): UInt8[] {
