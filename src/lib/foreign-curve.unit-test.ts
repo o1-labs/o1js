@@ -25,11 +25,11 @@ function main() {
   Provable.assertEqual(Vesta, h0, new Vesta(h));
 
   h0.assertOnCurve();
-  // TODO causes infinite loop
+  // TODO super slow
   // h0.checkSubgroup();
 
   let scalar0 = Provable.witness(Field, () => new Field(scalar)).toBits();
-  // TODO causes infinite loop
+  // TODO super slow
   // let p0 = h0.scale(scalar0);
   // Provable.assertEqual(Vesta, p0, new Vesta(p));
 }
