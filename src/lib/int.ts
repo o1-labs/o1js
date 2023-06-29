@@ -539,6 +539,28 @@ class UInt32 extends CircuitValue {
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
     return new UInt32(z);
   }
+
+  /**
+   * Bitwise NOT gate on {@link UInt32} elements. Equivalent to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * @example
+   * ```ts
+   * let a = UInt32.from(5);    // ... 000101
+   * let b = a.not();           // ... 111010
+   *
+   * b.assertEquals(-6);
+   * ```
+   */
+
+  not() {
+    return new UInt32(this.value.not(UInt32.NUM_BITS));
+  }
+
   /**
    * @deprecated Use {@link lessThanOrEqual} instead.
    *
