@@ -537,6 +537,29 @@ class Field {
   }
 
   /**
+   * Bitwise NOT gate on {@link Field} elements. Equivalent to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * The `length` parameter lets you define how many bits to compare. It
+   * defaults to the size of the field in bits ({@link Fp.sizeInBits}).
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional * * *
+   *   constraints.
+   *
+   * @example
+   * ```ts
+   * let a = Field(5);    // ... 000101
+   * let b = a.not();     // ... 111010
+   *
+   * b.assertEquals(-6);
+   * ```
+   */
+
+  /**
    * @deprecated use `x.equals(0)` which is equivalent
    */
   isZero() {
