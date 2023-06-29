@@ -16,7 +16,11 @@ import type {
   ForeignFieldVar,
   ForeignFieldConst,
 } from './lib/foreign-field.js';
-import type { ForeignCurveVar, MlCurveParams } from './lib/foreign-curve.js';
+import type {
+  ForeignCurveVar,
+  MlCurveParams,
+  MlCurveParamsWithIa,
+} from './lib/foreign-curve.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
@@ -285,16 +289,15 @@ declare const Snarky: {
     ): ForeignFieldVar;
 
     bigintToMl(x: bigint): MlBigint;
-
-    curve: {
-      create(params: MlCurveParams): unknown;
-      // paramsToVars()
-      add(
-        g: ForeignCurveVar,
-        h: ForeignCurveVar,
-        curveParams: unknown
-      ): ForeignCurveVar;
-    };
+  };
+  foreignCurve: {
+    create(params: MlCurveParams): MlCurveParamsWithIa;
+    paramsToVars(params: MlCurveParamsWithIa): unknown;
+    add(
+      g: ForeignCurveVar,
+      h: ForeignCurveVar,
+      curveParams: unknown
+    ): ForeignCurveVar;
   };
 };
 

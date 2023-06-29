@@ -11,7 +11,12 @@ import { MlBigint } from './ml/base.js';
 export { createForeignCurve };
 
 // internal API
-export { ForeignCurveVar, ForeignCurveConst, MlCurveParams };
+export {
+  ForeignCurveVar,
+  ForeignCurveConst,
+  MlCurveParams,
+  MlCurveParamsWithIa,
+};
 
 type MlAffine<F> = [_: 0, x: F, y: F];
 type ForeignCurveVar = MlAffine<ForeignFieldVar>;
@@ -21,7 +26,16 @@ type AffineBigint = { x: bigint; y: bigint };
 type Affine = { x: ForeignField; y: ForeignField };
 
 function createForeignCurve(curve: CurveParams) {
-  const curveMl = MlCurveParams(curve);
+  const curveMl = Snarky.foreignCurve.create(MlCurveParams(curve));
+  let curveMlVar: unknown | undefined;
+  function getParams(name: string): unknown {
+    if (curveMlVar === undefined) {
+      throw Error(
+        `ForeignCurve.${name}(): You must call ForeignCurve.initialize() once per provable method to use ForeignCurve.`
+      );
+    }
+    return curveMlVar;
+  }
 
   class BaseField extends createForeignField(curve.modulus) {}
   class ScalarField extends createForeignField(curve.order) {}
@@ -51,8 +65,13 @@ function createForeignCurve(curve: CurveParams) {
       this.y = BaseField.from(y);
     }
 
+    static initialize() {
+      curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
+    }
+
     add(h: ForeignCurve) {
-      let p = Snarky.foreignField.curve.add(toMl(this), toMl(h), curveMl);
+      let curve = getParams('add');
+      let p = Snarky.foreignCurve.add(toMl(this), toMl(h), curve);
       return new ForeignCurve(p);
     }
 
@@ -103,6 +122,15 @@ type MlCurveParams = [
   a: MlBigint,
   b: MlBigint,
   gen: MlBigintPoint
+];
+type MlCurveParamsWithIa = [
+  _: 0,
+  modulus: MlBigint,
+  order: MlBigint,
+  a: MlBigint,
+  b: MlBigint,
+  gen: MlBigintPoint,
+  ia: [_: 0, acc: MlBigintPoint, neg_acc: MlBigintPoint]
 ];
 
 function MlCurveParams(params: CurveParams): MlCurveParams {

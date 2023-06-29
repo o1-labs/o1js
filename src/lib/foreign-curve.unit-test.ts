@@ -16,6 +16,21 @@ let gPlusOne = VestaBigint.toAffine(
   VestaBigint.add(VestaBigint.fromAffine(g), VestaBigint.one)
 );
 
-// Provable.runAndCheck(() => {
-//   let g0 = Provable.witness(Vesta, () => new Vesta(g));
-// });
+function main() {
+  Vesta.initialize();
+  let g0 = new Vesta(g);
+  g0.add(new Vesta(VestaBigint.one));
+  // let g0 = Provable.witness(Vesta, () => new Vesta(g));
+}
+
+Provable.runAndCheck(main);
+let { gates, rows } = Provable.constraintSystem(main);
+
+let types: Record<string, number> = {};
+
+for (let gate of gates) {
+  types[gate.type] ??= 0;
+  types[gate.type]++;
+}
+
+console.log(types);
