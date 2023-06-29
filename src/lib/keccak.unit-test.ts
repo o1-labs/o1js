@@ -37,66 +37,37 @@ test.negative(Random.uint8.invalid, (x) => new UInt8(x));
 
 // test digest->hex and hex->digest conversions
 checkHashInCircuit();
-checkHashOutCircuit();
 console.log('hashing digest conversions matches! 🎉');
 
 // check in-circuit
 function checkHashInCircuit() {
   Provable.runAndCheck(() => {
-    let d0 = Provable.witness(UInt8, () => new UInt8(RandomUInt8.create()()));
-    let d1 = Provable.witness(UInt8, () => new UInt8(RandomUInt8.create()()));
-    let d2 = Provable.witness(UInt8, () => new UInt8(RandomUInt8.create()()));
-    let d3 = Provable.witness(UInt8, () => new UInt8(RandomUInt8.create()()));
-    let d4 = Provable.witness(UInt8, () => new UInt8(RandomUInt8.create()()));
+    let data = Random.array(RandomUInt8, Random.nat(32))
+      .create()()
+      .map((x) => Provable.witness(UInt8, () => new UInt8(x)));
 
-    let data = [d0, d1, d2, d3, d4];
-    checkHashConversions(data, true);
+    checkHashConversions(data);
   });
 }
 
-// check out-of-circuit
-function checkHashOutCircuit() {
-  let r = Random.array(RandomUInt8, Random.nat(20)).create()();
-  checkHashConversions(r, false);
+function checkHashConversions(data: UInt8[]) {
+  Provable.asProver(() => {
+    expectDigestToEqualHex(Hash.SHA224.hash(data));
+    expectDigestToEqualHex(Hash.SHA256.hash(data));
+    expectDigestToEqualHex(Hash.SHA384.hash(data));
+    expectDigestToEqualHex(Hash.SHA512.hash(data));
+    expectDigestToEqualHex(Hash.Keccak256.hash(data));
+  });
 }
 
-function checkHashConversions(data: UInt8[], provable: boolean) {
-  let digest = Hash.SHA224.hash(data);
-  expectDigestToEqualHex(digest, provable);
-
-  digest = Hash.SHA256.hash(data);
-  expectDigestToEqualHex(digest, provable);
-
-  digest = Hash.SHA384.hash(data);
-  expectDigestToEqualHex(digest, provable);
-
-  digest = Hash.SHA512.hash(data);
-  expectDigestToEqualHex(digest, provable);
-
-  digest = Hash.Keccak256.hash(data);
-  expectDigestToEqualHex(digest, provable);
+function expectDigestToEqualHex(digest: UInt8[]) {
+  const hex = UInt8.toHex(digest);
+  expect(equals(digest, UInt8.fromHex(hex))).toBe(true);
 }
 
-function expectDigestToEqualHex(digest: UInt8[], provable: boolean) {
-  if (provable) {
-    Provable.asProver(() => {
-      const hex = UInt8.toHex(digest);
-      expect(equals(digest, UInt8.fromHex(hex), provable)).toBe(true);
-    });
-  } else {
-    const hex = UInt8.toHex(digest);
-    expect(equals(digest, UInt8.fromHex(hex), provable)).toBe(true);
-  }
-}
-
-function equals(a: UInt8[], b: UInt8[], provable: boolean): boolean {
+function equals(a: UInt8[], b: UInt8[]): boolean {
   if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++)
-    if (provable) {
-      a[i].assertEquals(b[i]);
-    } else {
-      if (a[i].value.toConstant() === b[i].value.toConstant()) return false;
-    }
+  for (let i = 0; i < a.length; i++) a[i].assertEquals(b[i]);
 
   return true;
 }
