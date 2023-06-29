@@ -2,9 +2,7 @@ import { Field, Provable, Hash, UInt8 } from 'snarkyjs';
 
 function equals(a: UInt8[], b: UInt8[]): boolean {
   if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++)
-    if (a[i].value.toConstant() === b[i].value.toConstant()) return false;
-
+  for (let i = 0; i < a.length; i++) a[i].assertEquals(b[i]);
   return true;
 }
 
