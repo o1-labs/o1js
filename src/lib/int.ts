@@ -1037,17 +1037,13 @@ class UInt8 extends Struct({
     }
 
     y_ = y_.seal();
-
     let q = Provable.witness(
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    q.rangeCheckHelper(UInt8.NUM_BITS).assertEquals(q);
-
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    r.rangeCheckHelper(UInt8.NUM_BITS).assertEquals(r);
 
     let r_ = new UInt8(r);
     let q_ = new UInt8(q);
@@ -1061,17 +1057,7 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
-      let xMinusY = this.value.sub(y.value).seal();
-      let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt8.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt8.NUM_BITS)
-        .equals(yMinusX);
-      xMinusYFits.or(yMinusXFits).assertEquals(true);
-      // x <= y if y - x fits in 64 bits
-      return yMinusXFits;
+      return this.value.lessThanOrEqual(y.value);
     }
   }
 
@@ -1093,8 +1079,7 @@ class UInt8 extends Struct({
       }
       return;
     }
-    let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt8.NUM_BITS).assertEquals(yMinusX, message);
+    return this.lessThanOrEqual(y).assertEquals(true, message);
   }
 
   greaterThan(y: UInt8) {
@@ -1174,9 +1159,15 @@ class UInt8 extends Struct({
     return new UInt8(255);
   }
 
-  static from(x: UInt64 | UInt32 | Field | number | string | bigint) {
+  static from(
+    x: UInt64 | UInt32 | Field | number | string | bigint | number[]
+  ) {
     if (x instanceof UInt64 || x instanceof UInt32 || x instanceof UInt8)
       x = x.value;
+
+    if (Array.isArray(x)) {
+      return new this(Field.fromBytes(x));
+    }
 
     return new this(this.checkConstant(Field(x)));
   }

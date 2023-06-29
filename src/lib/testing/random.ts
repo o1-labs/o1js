@@ -116,7 +116,6 @@ type Generators = {
 const Generators: Generators = {
   Field: field,
   Bool: bool,
-  UInt8: uint8,
   UInt32: uint32,
   UInt64: uint64,
   Sign: sign,
@@ -195,7 +194,6 @@ const invalidUint64Json = toString(
 
 // some json versions of those types
 let json_ = {
-  uint8: { ...toString(uint8), invalid: invalidUint8Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
   uint64: { ...toString(uint64), invalid: invalidUint64Json },
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
@@ -221,7 +219,6 @@ type JsonGenerators = {
 const JsonGenerators: JsonGenerators = {
   Field: json_.field,
   Bool: boolean,
-  UInt8: json_.uint8,
   UInt32: json_.uint32,
   UInt64: json_.uint64,
   Sign: withInvalidRandomString(map(sign, Sign.toJSON)),

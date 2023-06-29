@@ -5,7 +5,7 @@ import { Provable } from './provable.js';
 import { expect } from 'expect';
 
 // Test constructor
-test(Random.uint8, Random.json.uint8, (x, y, assert) => {
+test(Random.uint8, Random.uint8, (x, y, assert) => {
   let z = new UInt8(x);
   assert(z instanceof UInt8);
   assert(z.toBigInt() === x);
@@ -18,8 +18,8 @@ test(Random.uint8, Random.json.uint8, (x, y, assert) => {
 
   z = new UInt8(y);
   assert(z instanceof UInt8);
-  assert(z.toString() === y);
-  assert(z.toJSON() === y);
+  assert(z.toString() === y.toString());
+  assert(z.toJSON() === y.toString());
 });
 
 // handles all numbers up to 2^8
