@@ -298,6 +298,15 @@ declare const Snarky: {
       h: ForeignCurveVar,
       curveParams: unknown
     ): ForeignCurveVar;
+    double(g: ForeignCurveVar, curveParams: unknown): ForeignCurveVar;
+    negate(g: ForeignCurveVar, curveParams: unknown): ForeignCurveVar;
+    assertOnCurve(g: ForeignCurveVar, curveParams: unknown): undefined;
+    scale(
+      g: ForeignCurveVar,
+      scalar: MlArray<BoolVar>,
+      curveParams: unknown
+    ): ForeignCurveVar;
+    checkSubgroup(g: ForeignCurveVar, curveParams: unknown): undefined;
   };
 };
 
