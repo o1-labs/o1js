@@ -1219,6 +1219,32 @@ var caml_fq_plonk_gate_to_rust = function (gate) {
   );
 };
 
+// Provides: caml_fp_lookup_table_to_rust
+// Requires: plonk_wasm, caml_fp_vector_of_rust
+var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
+  // removing 1 for the 0 used by jsoo to represent values.
+  var lt_len = caml_lookup_table.data.length - 1;
+  var data = new plonk_wasm.WasmVecVecFp(lt_len);
+  for (var i = 1; i < caml_lookup_table.data.length; i++) {
+    data.push(caml_fp_vector_of_rust(caml_lookup_table.data.get(i - 1)));
+  }
+  var res = new mk_class(caml_lookup_table.id, data);
+  return res;
+};
+
+// Provides: caml_fq_lookup_table_to_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust
+var caml_fq_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
+  // removing 1 for the 0 used by jsoo to represent values.
+  var lt_len = caml_lookup_table.data.length - 1;
+  var data = new plonk_wasm.WasmVecVecFq(lt_len);
+  for (var i = 1; i < caml_lookup_table.data.length; i++) {
+    data.push(caml_fq_vector_to_rust(caml_lookup_table.data.get(i - 1)));
+  }
+  var res = new mk_class(caml_lookup_table.id, data);
+  return res;
+};
+
 // Provides: caml_pasta_fp_plonk_gate_vector_create
 // Requires: plonk_wasm, free_on_finalize
 var caml_pasta_fp_plonk_gate_vector_create = function () {
