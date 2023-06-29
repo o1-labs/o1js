@@ -1,39 +1,46 @@
 import { createForeignCurve } from './foreign-curve.js';
 import { Fp, Fq } from '../bindings/crypto/finite_field.js';
-import { Vesta as VestaBigint } from '../bindings/crypto/elliptic_curve.js';
+import { Vesta as V } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
+import { Field } from './field.js';
 
 class Vesta extends createForeignCurve({
   modulus: Fq.modulus,
   order: Fp.modulus,
   a: 0n,
-  b: VestaBigint.b,
-  gen: VestaBigint.one,
+  b: V.b,
+  gen: V.one,
 }) {}
 
 let g = { x: Fq.negate(1n), y: 2n, infinity: false };
-let gPlusOne = VestaBigint.toAffine(
-  VestaBigint.add(VestaBigint.fromAffine(g), VestaBigint.one)
-);
-
-// new Vesta(g).add(Vesta.generator);
+let h = V.toAffine(V.negate(V.double(V.add(V.fromAffine(g), V.one))));
+let scalar = Field.random().toBigInt();
+let p = V.toAffine(V.scale(V.fromAffine(h), scalar));
 
 function main() {
   Vesta.initialize();
   let g0 = Provable.witness(Vesta, () => new Vesta(g));
   let one = Provable.witness(Vesta, () => Vesta.generator);
-  let gPlusOne0 = g0.add(one);
-  Provable.assertEqual(Vesta, gPlusOne0, new Vesta(gPlusOne));
+  let h0 = g0.add(one).double().negate();
+  Provable.assertEqual(Vesta, h0, new Vesta(h));
+
+  h0.assertOnCurve();
+  // TODO causes infinite loop
+  // h0.checkSubgroup();
+
+  let scalar0 = Provable.witness(Field, () => new Field(scalar)).toBits();
+  // TODO causes infinite loop
+  // let p0 = h0.scale(scalar0);
+  // Provable.assertEqual(Vesta, p0, new Vesta(p));
 }
 
 Provable.runAndCheck(main);
 let { gates } = Provable.constraintSystem(main);
 
-let types: Record<string, number> = {};
-
+let gateTypes: Record<string, number> = {};
 for (let gate of gates) {
-  types[gate.type] ??= 0;
-  types[gate.type]++;
+  gateTypes[gate.type] ??= 0;
+  gateTypes[gate.type]++;
 }
 
-console.log(types);
+console.log(gateTypes);

@@ -1,4 +1,5 @@
 import { Snarky } from '../snarky.js';
+import { Bool } from './bool.js';
 import { Struct } from './circuit_value.js';
 import {
   ForeignField,
@@ -6,7 +7,7 @@ import {
   ForeignFieldVar,
   createForeignField,
 } from './foreign-field.js';
-import { MlBigint } from './ml/base.js';
+import { MlArray, MlBigint } from './ml/base.js';
 
 // external API
 export { createForeignCurve };
@@ -77,6 +78,39 @@ function createForeignCurve(curve: CurveParams) {
       let curve = getParams('add');
       let p = Snarky.foreignCurve.add(toMl(this), toMl(h), curve);
       return new ForeignCurve(p);
+    }
+
+    double() {
+      let curve = getParams('double');
+      let p = Snarky.foreignCurve.double(toMl(this), curve);
+      return new ForeignCurve(p);
+    }
+
+    negate() {
+      let curve = getParams('negate');
+      let p = Snarky.foreignCurve.negate(toMl(this), curve);
+      return new ForeignCurve(p);
+    }
+
+    assertOnCurve() {
+      let curve = getParams('assertOnCurve');
+      Snarky.foreignCurve.assertOnCurve(toMl(this), curve);
+    }
+
+    // TODO wrap this in a `Scalar` type which is a Bool array under the hood?
+    scale(scalar: Bool[]) {
+      let curve = getParams('scale');
+      let p = Snarky.foreignCurve.scale(
+        toMl(this),
+        MlArray.to(scalar.map((s) => s.value)),
+        curve
+      );
+      return new ForeignCurve(p);
+    }
+
+    checkSubgroup() {
+      let curve = getParams('checkSubgroup');
+      Snarky.foreignCurve.checkSubgroup(toMl(this), curve);
     }
 
     static BaseField = BaseField;
