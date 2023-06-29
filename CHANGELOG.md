@@ -15,9 +15,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/3fbd9678e...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/544489609...HEAD)
 
-> no unreleased changes yet
+> No unreleased changes yet
+
+## [0.11.3](https://github.com/o1-labs/snarkyjs/compare/2d2af219c...544489609)
+
+### Fixed
+
+- Fix commonJS version of SnarkyJS, again https://github.com/o1-labs/snarkyjs/pull/1006
+
+## [0.11.2](https://github.com/o1-labs/snarkyjs/compare/c549e02fa...2d2af219c)
+
+### Fixed
+
+- Fix commonJS version of SnarkyJS https://github.com/o1-labs/snarkyjs/pull/1005
+
+## [0.11.1](https://github.com/o1-labs/snarkyjs/compare/3fbd9678e...c549e02fa)
+
+### Breaking changes
+
+- `Group` operations now generate a different set of constraints. This breaks deployed contracts, because the circuit changed. https://github.com/o1-labs/snarkyjs/pull/967
+
+### Added
+
+- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
+  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
+
+### Changed
+
+- Improve error message `Can't evaluate prover code outside an as_prover block` https://github.com/o1-labs/snarkyjs/pull/998
+
+### Fixed
+
+- Fix unsupported use of `window` when running SnarkyJS in workers https://github.com/o1-labs/snarkyjs/pull/1002
 
 ## [0.11.0](https://github.com/o1-labs/snarkyjs/compare/a632313a...3fbd9678e)
 
@@ -34,8 +65,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - More efficient than `field.equals(x).assertFalse()`
 - Add `scalar.toConstant()`, `scalar.toBigInt()`, `Scalar.from()`, `privateKey.toBigInt()`, `PrivateKey.fromBigInt()` https://github.com/o1-labs/snarkyjs/pull/935
 - `Poseidon.hashToGroup` enables hashing to a group https://github.com/o1-labs/snarkyjs/pull/887
-- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
-  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
 
 ### Changed
 
