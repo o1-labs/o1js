@@ -171,7 +171,7 @@ declare const Snarky: {
       terms: MlList<MlTuple<FieldConst, number>>
     ];
 
-    not(left: FieldVar, right: FieldVar, length: number): FieldVar;
+    not(left: FieldVar, length: number): FieldVar;
   };
 
   bool: {

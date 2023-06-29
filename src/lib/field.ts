@@ -568,6 +568,8 @@ class Field {
       }
 
       return new Field(Fp.not(thisBigint));
+    } else {
+      return new Field(Snarky.field.not(this.value, length));
     }
   }
 
