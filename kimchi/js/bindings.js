@@ -2280,10 +2280,11 @@ var caml_pasta_fp_proof_of_rust = function (x) {
 };
 
 // Provides: caml_pasta_fp_plonk_proof_create
-// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_array_to_rust_vector, rust_affine_of_caml_affine, caml_pasta_fp_proof_of_rust
+// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_array_to_rust_vector, rust_affine_of_caml_affine, caml_pasta_fp_proof_of_rust, caml_fp_runtime_table_to_rust
 var caml_pasta_fp_plonk_proof_create = function (
   index,
   witness_cols,
+  caml_runtime_tables,
   prev_challenges,
   prev_sgs
 ) {
@@ -2293,6 +2294,11 @@ var caml_pasta_fp_plonk_proof_create = function (
   }
   witness_cols = w;
   prev_challenges = caml_fp_vector_to_rust(prev_challenges);
+  var wasm_runtime_tables = caml_array_to_rust_vector(
+    caml_runtime_tables,
+    caml_fp_runtime_table_to_rust,
+    plonk_wasm.WasmFpRuntimeTable
+  );
   prev_sgs = caml_array_to_rust_vector(
     prev_sgs,
     rust_affine_of_caml_affine,
@@ -2301,6 +2307,7 @@ var caml_pasta_fp_plonk_proof_create = function (
   var res = plonk_wasm.caml_pasta_fp_plonk_proof_create(
     index,
     witness_cols,
+    wasm_runtime_tables,
     prev_challenges,
     prev_sgs
   );
@@ -2518,10 +2525,11 @@ var caml_pasta_fq_proof_of_rust = function (x) {
 };
 
 // Provides: caml_pasta_fq_plonk_proof_create
-// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_array_to_rust_vector, rust_affine_of_caml_affine, caml_pasta_fq_proof_of_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_array_to_rust_vector, rust_affine_of_caml_affine, caml_pasta_fq_proof_of_rust, caml_fq_runtime_table_to_rust
 var caml_pasta_fq_plonk_proof_create = function (
   index,
   witness_cols,
+  caml_runtime_tables,
   prev_challenges,
   prev_sgs
 ) {
@@ -2531,6 +2539,11 @@ var caml_pasta_fq_plonk_proof_create = function (
   }
   witness_cols = w;
   prev_challenges = caml_fq_vector_to_rust(prev_challenges);
+  var wasm_runtime_tables = caml_array_to_rust_vector(
+    caml_runtime_tables,
+    caml_fq_runtime_table_to_rust,
+    plonk_wasm.WasmFqRuntimeTable
+  );
   prev_sgs = caml_array_to_rust_vector(
     prev_sgs,
     rust_affine_of_caml_affine,
@@ -2539,6 +2552,7 @@ var caml_pasta_fq_plonk_proof_create = function (
   var res = plonk_wasm.caml_pasta_fq_plonk_proof_create(
     index,
     witness_cols,
+    wasm_runtime_tables,
     prev_challenges,
     prev_sgs
   );
