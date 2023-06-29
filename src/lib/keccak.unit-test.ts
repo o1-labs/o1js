@@ -26,14 +26,14 @@ test(Random.uint8, Random.uint8, (x, y, assert) => {
 
 // handles all numbers up to 2^8
 test(Random.nat(255), (n, assert) => {
-  assert(new UInt8(n).toString() === String(n));
+  assert(UInt8.from(n).toString() === String(n));
 });
 
 // throws on negative numbers
-test.negative(Random.int(-10, -1), (x) => new UInt8(x));
+test.negative(Random.int(-10, -1), (x) => UInt8.from(x));
 
 // throws on numbers >= 2^8
-test.negative(Random.uint8.invalid, (x) => new UInt8(x));
+test.negative(Random.uint8.invalid, (x) => UInt8.from(x));
 
 // test digest->hex and hex->digest conversions
 checkHashInCircuit();
@@ -44,7 +44,7 @@ function checkHashInCircuit() {
   Provable.runAndCheck(() => {
     let data = Random.array(RandomUInt8, Random.nat(32))
       .create()()
-      .map((x) => Provable.witness(UInt8, () => new UInt8(x)));
+      .map((x) => Provable.witness(UInt8, () => UInt8.from(x)));
 
     checkHashConversions(data);
   });
