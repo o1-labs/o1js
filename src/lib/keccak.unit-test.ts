@@ -73,7 +73,7 @@ function checkHashConversions(data: UInt8[], provable: boolean) {
   digest = Hash.SHA512.hash(data);
   expectDigestToEqualHex(digest, provable);
 
-  digest = Hash.Keccack256.hash(data);
+  digest = Hash.Keccak256.hash(data);
   expectDigestToEqualHex(digest, provable);
 }
 

@@ -218,5 +218,5 @@ const Hash = {
 
   SHA512: buildSHA(512, true),
 
-  Keccack256: buildSHA(256, false),
+  Keccak256: buildSHA(256, false),
 };

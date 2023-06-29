@@ -47,9 +47,9 @@ Provable.runAndCheck(() => {
   checkDigestHexConversion(digest);
 });
 
-console.log('Running keccack hash test');
+console.log('Running keccak hash test');
 Provable.runAndCheck(() => {
-  let digest = Hash.Keccack256.hash([new UInt8(1), new UInt8(2), new UInt8(3)]);
+  let digest = Hash.Keccak256.hash([new UInt8(1), new UInt8(2), new UInt8(3)]);
   checkDigestHexConversion(digest);
 });
 
