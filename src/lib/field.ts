@@ -558,6 +558,18 @@ class Field {
    * b.assertEquals(-6);
    * ```
    */
+  not(length: number) {
+    if (this.isConstant()) {
+      let max = 1n << BigInt(length);
+      let thisBigint = this.toBigInt();
+
+      if (thisBigint >= max) {
+        throw Error(`${thisBigint} need to fit into ${length} bits.`);
+      }
+
+      return new Field(Fp.not(thisBigint));
+    }
+  }
 
   /**
    * @deprecated use `x.equals(0)` which is equivalent
