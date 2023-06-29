@@ -1,4 +1,4 @@
-import { Field, Group, Poseidon, Provable, Scalar } from 'snarkyjs';
+import { Field, Group, Provable, Scalar, Hash, UInt8 } from 'snarkyjs';
 
 function mock(obj: { [K: string]: (...args: any) => void }, name: string) {
   let methodKeys = Object.keys(obj);
@@ -63,4 +63,49 @@ const GroupMock = {
   },
 };
 
+const HashMock = {
+  SHA224() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(UInt8, () => UInt8.from(x))
+    );
+    Hash.SHA224.hash(xs);
+  },
+
+  SHA256() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(UInt8, () => UInt8.from(x))
+    );
+    Hash.SHA256.hash(xs);
+  },
+
+  SHA384() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(UInt8, () => UInt8.from(x))
+    );
+    Hash.SHA384.hash(xs);
+  },
+
+  SHA512() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(UInt8, () => UInt8.from(x))
+    );
+    Hash.SHA512.hash(xs);
+  },
+
+  Keccak256() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(UInt8, () => UInt8.from(x))
+    );
+    Hash.Keccak256.hash(xs);
+  },
+
+  Poseidon() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(Field, () => Field(x))
+    );
+    Hash.Poseidon.hash(xs);
+  },
+};
+
 export const GroupCS = mock(GroupMock, 'Group Primitive');
+export const HashCS = mock(HashMock, 'SHA Primitive');
