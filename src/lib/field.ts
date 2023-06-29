@@ -558,7 +558,7 @@ class Field {
    * b.assertEquals(-6);
    * ```
    */
-  not(length: number) {
+  not(length: number = 32) {
     if (this.isConstant()) {
       let max = 1n << BigInt(length);
       let thisBigint = this.toBigInt();
