@@ -6,13 +6,9 @@ import {
   state,
   State,
   method,
-  PrivateKey,
   Permissions,
   Struct,
 } from 'snarkyjs';
-
-export const adminPrivateKey = PrivateKey.random();
-export const adminPublicKey = adminPrivateKey.toPublicKey();
 
 let initialCommitment: Field = Field(0);
 

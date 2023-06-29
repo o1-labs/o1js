@@ -1156,7 +1156,7 @@ class UInt8 extends Struct({
   }
 
   static MAXINT() {
-    return new UInt8(255);
+    return new UInt8(1 << (this.NUM_BITS - 1));
   }
 
   static from(

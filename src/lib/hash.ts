@@ -199,8 +199,8 @@ function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
     hash(message: UInt8[]): UInt8[] {
       return Snarky.sha
-        .create([0, ...message.map((f) => f.value.value)], nist, length)
-        .map((f) => new UInt8(Field(f)));
+        .create([0, ...message.map((f) => f.toField().value)], nist, length)
+        .map((f) => UInt8.from(Field(f)));
     },
   };
 }
