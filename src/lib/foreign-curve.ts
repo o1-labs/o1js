@@ -1,4 +1,5 @@
 import { Snarky } from '../snarky.js';
+import { Struct } from './circuit_value.js';
 import {
   ForeignField,
   ForeignFieldConst,
@@ -25,6 +26,8 @@ type ForeignCurveConst = MlAffine<ForeignFieldConst>;
 type AffineBigint = { x: bigint; y: bigint };
 type Affine = { x: ForeignField; y: ForeignField };
 
+type ForeignFieldClass = ReturnType<typeof createForeignField>;
+
 function createForeignCurve(curve: CurveParams) {
   const curveMl = Snarky.foreignCurve.create(MlCurveParams(curve));
   let curveMlVar: unknown | undefined;
@@ -44,10 +47,11 @@ function createForeignCurve(curve: CurveParams) {
     return [0, x.value, y.value];
   }
 
-  class ForeignCurve implements Affine {
-    x: BaseField;
-    y: BaseField;
+  // this is necessary to simplify the type of ForeignCurve, to avoid
+  // TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize.
+  const Affine: Struct<Affine> = Struct({ x: BaseField, y: BaseField });
 
+  class ForeignCurve extends Affine {
     constructor(
       g:
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
@@ -56,18 +60,18 @@ function createForeignCurve(curve: CurveParams) {
       // ForeignCurveVar
       if (Array.isArray(g)) {
         let [, x, y] = g;
-        this.x = new BaseField(x);
-        this.y = new BaseField(y);
+        super({ x: new BaseField(x), y: new BaseField(y) });
         return;
       }
       let { x, y } = g;
-      this.x = BaseField.from(x);
-      this.y = BaseField.from(y);
+      super({ x: BaseField.from(x), y: BaseField.from(y) });
     }
 
     static initialize() {
       curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
     }
+
+    static generator = new ForeignCurve(curve.gen);
 
     add(h: ForeignCurve) {
       let curve = getParams('add');
