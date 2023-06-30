@@ -1,6 +1,7 @@
 import { createEcdsa } from './foreign-ecdsa.js';
 import { secp256k1Params } from './foreign-curve-params.js';
 import { createForeignCurve } from './foreign-curve.js';
+import { Provable } from './provable.js';
 
 class Secp256k1 extends createForeignCurve(secp256k1Params) {}
 
@@ -18,4 +19,29 @@ let signature = EthSignature.fromHex(
 let msgHash =
   0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn;
 
-signature.verify(msgHash, publicKey);
+console.time('ecdsa verify (witness gen / check)');
+Provable.runAndCheck(() => {
+  Secp256k1.initialize();
+  let signature0 = Provable.witness(EthSignature, () => signature);
+
+  signature0.verify(msgHash, publicKey);
+});
+console.timeEnd('ecdsa verify (witness gen / check)');
+
+console.time('ecdsa verify (build constraint system)');
+let cs = Provable.constraintSystem(() => {
+  Secp256k1.initialize();
+  let signature0 = Provable.witness(EthSignature, () => signature);
+
+  signature0.verify(msgHash, publicKey);
+});
+console.timeEnd('ecdsa verify (build constraint system)');
+
+let gateTypes: Record<string, number> = {};
+gateTypes['Total rows'] = cs.rows;
+for (let gate of cs.gates) {
+  gateTypes[gate.type] ??= 0;
+  gateTypes[gate.type]++;
+}
+
+console.log(gateTypes);
