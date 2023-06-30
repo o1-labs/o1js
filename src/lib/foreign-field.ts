@@ -409,6 +409,21 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       // this means a user has to take care of proper constraining themselves
       if (!unsafe) x.assertValidElement();
     }
+
+    /**
+     * Convert foreign field element to JSON
+     */
+    static toJSON(x: ForeignField) {
+      return x.toBigInt().toString();
+    }
+
+    /**
+     * Convert foreign field element from JSON
+     */
+    static fromJSON(x: string) {
+      // TODO be more strict about allowed values
+      return new ForeignField(x);
+    }
   }
 
   function toFp(x: bigint | string | number | ForeignField) {

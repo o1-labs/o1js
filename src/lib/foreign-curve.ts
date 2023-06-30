@@ -11,7 +11,7 @@ import { MlBigint } from './ml/base.js';
 import { MlBoolArray } from './ml/fields.js';
 
 // external API
-export { createForeignCurve };
+export { createForeignCurve, CurveParams };
 
 // internal API
 export {
@@ -19,6 +19,7 @@ export {
   ForeignCurveConst,
   MlCurveParams,
   MlCurveParamsWithIa,
+  ForeignCurveClass,
 };
 
 type MlAffine<F> = [_: 0, x: F, y: F];
@@ -27,6 +28,8 @@ type ForeignCurveConst = MlAffine<ForeignFieldConst>;
 
 type AffineBigint = { x: bigint; y: bigint };
 type Affine = { x: ForeignField; y: ForeignField };
+
+type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
 
 function createForeignCurve(curve: CurveParams) {
   const curveMl = Snarky.foreignCurve.create(MlCurveParams(curve));
@@ -51,7 +54,7 @@ function createForeignCurve(curve: CurveParams) {
   // TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize.
   const Affine: Struct<Affine> = Struct({ x: BaseField, y: BaseField });
 
-  class ForeignCurve extends Affine {
+  return class ForeignCurve extends Affine {
     constructor(
       g:
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
@@ -128,9 +131,7 @@ function createForeignCurve(curve: CurveParams) {
 
     static BaseField = BaseField;
     static ScalarField = ScalarField;
-  }
-
-  return ForeignCurve;
+  };
 }
 
 /**
