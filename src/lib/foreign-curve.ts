@@ -67,15 +67,29 @@ function createForeignCurve(curve: CurveParams) {
       super({ x: BaseField.from(x), y: BaseField.from(y) });
     }
 
+    static from(
+      g:
+        | ForeignCurve
+        | { x: BaseField | bigint | number; y: BaseField | bigint | number }
+    ) {
+      if (g instanceof ForeignCurve) return g;
+      return new ForeignCurve(g);
+    }
+
     static initialize() {
       curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
     }
 
     static generator = new ForeignCurve(curve.gen);
 
-    add(h: ForeignCurve) {
+    add(
+      h:
+        | ForeignCurve
+        | { x: BaseField | bigint | number; y: BaseField | bigint | number }
+    ) {
+      let h_ = ForeignCurve.from(h);
       let curve = getParams('add');
-      let p = Snarky.foreignCurve.add(toMl(this), toMl(h), curve);
+      let p = Snarky.foreignCurve.add(toMl(this), toMl(h_), curve);
       return new ForeignCurve(p);
     }
 
