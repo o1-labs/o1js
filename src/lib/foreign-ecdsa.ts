@@ -34,15 +34,24 @@ function createEcdsa(
   class Scalar extends Curve.ScalarField {}
   class BaseField extends Curve.BaseField {}
 
-  const Signature: Struct<Signature> = Struct({ r: Scalar, s: Scalar });
+  const Signature: Struct<Signature> & (new (value: Signature) => Signature) =
+    Struct({ r: Scalar, s: Scalar });
 
-  return class EcdsaSignature extends Signature {
+  class EcdsaSignature extends Signature {
     from({ r, s }: { r: Scalar | bigint; s: Scalar | bigint }): EcdsaSignature {
       return new EcdsaSignature({ r: Scalar.from(r), s: Scalar.from(s) });
     }
 
-    // TODO
-    fromHex({ r, s }: { r: string; s: string }): EcdsaSignature {
+    fromHex(rawSignature: string): EcdsaSignature {
+      let prefix = rawSignature.slice(0, 2);
+      let signature = rawSignature.slice(2, 130);
+      if (prefix !== '0x' || signature.length < 128) {
+        throw Error(
+          `${signatureName}.fromHex(): Invalid signature, expected hex string 0x... of length at least 130.`
+        );
+      }
+      let r = BigInt(`0x${signature.slice(0, 64)}`);
+      let s = BigInt(`0x${signature.slice(64)}`);
       return new EcdsaSignature({ r: Scalar.from(r), s: Scalar.from(s) });
     }
 
@@ -64,5 +73,7 @@ function createEcdsa(
     }
 
     static dummy = new EcdsaSignature({ r: new Scalar(1), s: new Scalar(1) });
-  };
+  }
+
+  return EcdsaSignature;
 }
