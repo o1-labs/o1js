@@ -1,7 +1,10 @@
 use ark_poly::EvaluationDomain;
+use kimchi::circuits::lookup::runtime_tables::RuntimeTableCfg;
 
+use crate::arkworks::WasmPastaFp;
 use crate::gate_vector::fp::WasmGateVector;
 use crate::srs::fp::WasmFpSrs as WasmSrs;
+use crate::wasm_flat_vector::WasmFlatVector;
 use crate::wasm_vector::fp::*;
 use kimchi::circuits::lookup::tables::LookupTable;
 use kimchi::circuits::{constraints::ConstraintSystem, gate::CircuitGate};
@@ -53,7 +56,38 @@ impl WasmPastaFpLookupTable {
     }
 }
 
-//
+// Runtime table config
+
+#[wasm_bindgen]
+pub struct WasmPastaFpRuntimeTableCfg {
+    #[wasm_bindgen(skip)]
+    pub id: i32,
+    #[wasm_bindgen(skip)]
+    pub first_column: WasmFlatVector<WasmPastaFp>,
+}
+
+// JS constructor for js/bindings.js
+#[wasm_bindgen]
+impl WasmPastaFpRuntimeTableCfg {
+    #[wasm_bindgen(constructor)]
+    pub fn new(id: i32, first_column: WasmFlatVector<WasmPastaFp>) -> Self {
+        Self { id, first_column }
+    }
+}
+
+impl From<WasmPastaFpRuntimeTableCfg> for RuntimeTableCfg<Fp> {
+    fn from(wasm_rt_table_cfg: WasmPastaFpRuntimeTableCfg) -> Self {
+        Self {
+            id: wasm_rt_table_cfg.id,
+            first_column: wasm_rt_table_cfg
+                .first_column
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
 // CamlPastaFpPlonkIndex methods
 //
 
