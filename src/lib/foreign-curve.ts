@@ -79,15 +79,15 @@ function createForeignCurve(curve: CurveParams) {
 
     static #curveMlVar: unknown | undefined;
     static initialize() {
-      this.#curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
+      ForeignCurve.#curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
     }
     static _getParams(name: string): unknown {
-      if (this.#curveMlVar === undefined) {
+      if (ForeignCurve.#curveMlVar === undefined) {
         throw Error(
-          `${name}(): You must call ${curveName}.initialize() once per provable method to use ${curveName}.`
+          `${name}(): You must call ${this.name}.initialize() once per provable method to use ${curveName}.`
         );
       }
-      return this.#curveMlVar;
+      return ForeignCurve.#curveMlVar;
     }
 
     static generator = new ForeignCurve(curve.gen);
@@ -98,31 +98,33 @@ function createForeignCurve(curve: CurveParams) {
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
     ) {
       let h_ = ForeignCurve.from(h);
-      let curve = ForeignCurve._getParams(`${curveName}.add`);
+      let curve = ForeignCurve._getParams(`${this.constructor.name}.add`);
       let p = Snarky.foreignCurve.add(toMl(this), toMl(h_), curve);
       return new ForeignCurve(p);
     }
 
     double() {
-      let curve = ForeignCurve._getParams(`${curveName}.double`);
+      let curve = ForeignCurve._getParams(`${this.constructor.name}.double`);
       let p = Snarky.foreignCurve.double(toMl(this), curve);
       return new ForeignCurve(p);
     }
 
     negate() {
-      let curve = ForeignCurve._getParams(`${curveName}.negate`);
+      let curve = ForeignCurve._getParams(`${this.constructor.name}.negate`);
       let p = Snarky.foreignCurve.negate(toMl(this), curve);
       return new ForeignCurve(p);
     }
 
     assertOnCurve() {
-      let curve = ForeignCurve._getParams(`${curveName}.assertOnCurve`);
+      let curve = ForeignCurve._getParams(
+        `${this.constructor.name}.assertOnCurve`
+      );
       Snarky.foreignCurve.assertOnCurve(toMl(this), curve);
     }
 
     // TODO wrap this in a `Scalar` type which is a Bool array under the hood?
     scale(scalar: Bool[]) {
-      let curve = ForeignCurve._getParams(`${curveName}.scale`);
+      let curve = ForeignCurve._getParams(`${this.constructor.name}.scale`);
       let p = Snarky.foreignCurve.scale(
         toMl(this),
         MlBoolArray.to(scalar),

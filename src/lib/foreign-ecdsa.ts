@@ -1,5 +1,4 @@
-import { Snarky } from 'src/snarky.js';
-import { Bool } from './bool.js';
+import { Snarky } from '../snarky.js';
 import { Struct } from './circuit_value.js';
 import {
   CurveParams,
@@ -24,10 +23,7 @@ function signatureToMl({ r, s }: Signature): ForeignSignatureVar {
   return [0, r.value, s.value];
 }
 
-function createEcdsa(
-  curve: CurveParams | ForeignCurveClass,
-  signatureName = 'EcdsaSignature'
-) {
+function createEcdsa(curve: CurveParams | ForeignCurveClass) {
   let Curve0: ForeignCurveClass =
     'gen' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
@@ -38,16 +34,24 @@ function createEcdsa(
     Struct({ r: Scalar, s: Scalar });
 
   class EcdsaSignature extends Signature {
-    from({ r, s }: { r: Scalar | bigint; s: Scalar | bigint }): EcdsaSignature {
+    static Curve = Curve0;
+
+    static from({
+      r,
+      s,
+    }: {
+      r: Scalar | bigint;
+      s: Scalar | bigint;
+    }): EcdsaSignature {
       return new EcdsaSignature({ r: Scalar.from(r), s: Scalar.from(s) });
     }
 
-    fromHex(rawSignature: string): EcdsaSignature {
+    static fromHex(rawSignature: string): EcdsaSignature {
       let prefix = rawSignature.slice(0, 2);
       let signature = rawSignature.slice(2, 130);
       if (prefix !== '0x' || signature.length < 128) {
         throw Error(
-          `${signatureName}.fromHex(): Invalid signature, expected hex string 0x... of length at least 130.`
+          `${this.constructor.name}.fromHex(): Invalid signature, expected hex string 0x... of length at least 130.`
         );
       }
       let r = BigInt(`0x${signature.slice(0, 64)}`);
@@ -59,7 +63,7 @@ function createEcdsa(
       msgHash: Scalar | bigint,
       publicKey: Curve | { x: BaseField | bigint; y: BaseField | bigint }
     ): void {
-      let curve = Curve._getParams(`${signatureName}.verify`);
+      let curve = Curve0._getParams(`${this.constructor.name}.verify`);
       let signatureMl = signatureToMl(this);
       let msgHashMl = Scalar.from(msgHash).value;
       let publicKeyMl = affineToMl(Curve.from(publicKey));
@@ -67,7 +71,7 @@ function createEcdsa(
     }
 
     static check(signature: { r: Scalar; s: Scalar }) {
-      let curve = Curve._getParams(`${signatureName}.check`);
+      let curve = Curve0._getParams(`${this.constructor.name}.check`);
       let signatureMl = signatureToMl(signature);
       Snarky.ecdsa.assertValidSignature(signatureMl, curve);
     }
