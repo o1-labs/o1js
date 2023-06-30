@@ -974,56 +974,36 @@ class UInt8 extends Struct({
   }
 
   static get zero() {
-    return new UInt8(0);
+    return UInt8.from(0);
   }
 
   static get one() {
-    return new UInt8(1);
+    return UInt8.from(1);
   }
 
   add(y: UInt8 | number) {
-    if (isUInt8(y)) {
-      return new UInt8(this.value.add(y.value));
-    }
-    let y_ = new UInt8(y);
-    return new UInt8(this.value.add(y_.value));
+    return UInt8.from(this.value.add(UInt8.from(y).value));
   }
 
   sub(y: UInt8 | number) {
-    if (isUInt8(y)) {
-      return new UInt8(this.value.sub(y.value));
-    }
-    let y_ = new UInt8(y);
-    return new UInt8(this.value.sub(y_.value));
+    return UInt8.from(this.value.sub(UInt8.from(y).value));
   }
 
   mul(y: UInt8 | number) {
-    if (isUInt8(y)) {
-      return new UInt8(this.value.mul(y.value));
-    }
-    let y_ = new UInt8(y);
-    return new UInt8(this.value.mul(y_.value));
+    return UInt8.from(this.value.mul(UInt8.from(y).value));
   }
 
   div(y: UInt8 | number) {
-    if (isUInt8(y)) {
-      return this.divMod(y).quotient;
-    }
-    let y_ = new UInt8(y);
-    return this.divMod(y_).quotient;
+    return this.divMod(y).quotient;
   }
 
   mod(y: UInt8 | number) {
-    if (isUInt8(y)) {
-      return this.divMod(y).rest;
-    }
-    let y_ = new UInt8(y);
-    return this.divMod(y_).rest;
+    return this.divMod(y).rest;
   }
 
   divMod(y: UInt8 | number) {
     let x = this.value;
-    let y_ = new UInt8(y).value;
+    let y_ = UInt8.from(y).value;
 
     if (this.value.isConstant() && y_.isConstant()) {
       let xn = x.toBigInt();
@@ -1031,8 +1011,8 @@ class UInt8 extends Struct({
       let q = xn / yn;
       let r = xn - q * yn;
       return {
-        quotient: new UInt8(Field(q)),
-        rest: new UInt8(Field(r)),
+        quotient: UInt8.from(Field(q)),
+        rest: UInt8.from(Field(r)),
       };
     }
 
@@ -1045,11 +1025,10 @@ class UInt8 extends Struct({
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
 
-    let r_ = new UInt8(r);
-    let q_ = new UInt8(q);
+    let r_ = UInt8.from(r);
+    let q_ = UInt8.from(q);
 
-    r_.assertLessThan(new UInt8(y_));
-
+    r_.assertLessThan(UInt8.from(y_));
     return { quotient: q_, rest: r_ };
   }
 
@@ -1156,7 +1135,7 @@ class UInt8 extends Struct({
   }
 
   static MAXINT() {
-    return new UInt8(1 << (this.NUM_BITS - 1));
+    return new UInt8(Field((1n << BigInt(this.NUM_BITS)) - 1n));
   }
 
   static from(
