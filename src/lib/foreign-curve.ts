@@ -7,7 +7,8 @@ import {
   ForeignFieldVar,
   createForeignField,
 } from './foreign-field.js';
-import { MlArray, MlBigint } from './ml/base.js';
+import { MlBigint } from './ml/base.js';
+import { MlBoolArray } from './ml/fields.js';
 
 // external API
 export { createForeignCurve };
@@ -26,8 +27,6 @@ type ForeignCurveConst = MlAffine<ForeignFieldConst>;
 
 type AffineBigint = { x: bigint; y: bigint };
 type Affine = { x: ForeignField; y: ForeignField };
-
-type ForeignFieldClass = ReturnType<typeof createForeignField>;
 
 function createForeignCurve(curve: CurveParams) {
   const curveMl = Snarky.foreignCurve.create(MlCurveParams(curve));
@@ -102,7 +101,7 @@ function createForeignCurve(curve: CurveParams) {
       let curve = getParams('scale');
       let p = Snarky.foreignCurve.scale(
         toMl(this),
-        MlArray.to(scalar.map((s) => s.value)),
+        MlBoolArray.to(scalar),
         curve
       );
       return new ForeignCurve(p);
@@ -162,12 +161,7 @@ type MlCurveParams = [
   gen: MlBigintPoint
 ];
 type MlCurveParamsWithIa = [
-  _: 0,
-  modulus: MlBigint,
-  order: MlBigint,
-  a: MlBigint,
-  b: MlBigint,
-  gen: MlBigintPoint,
+  ...params: MlCurveParams,
   ia: [_: 0, acc: MlBigintPoint, neg_acc: MlBigintPoint]
 ];
 
