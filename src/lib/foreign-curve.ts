@@ -20,6 +20,7 @@ export {
   MlCurveParams,
   MlCurveParamsWithIa,
   ForeignCurveClass,
+  toMl as affineToMl,
 };
 
 type MlAffine<F> = [_: 0, x: F, y: F];
@@ -29,26 +30,18 @@ type ForeignCurveConst = MlAffine<ForeignFieldConst>;
 type AffineBigint = { x: bigint; y: bigint };
 type Affine = { x: ForeignField; y: ForeignField };
 
+function toMl({ x, y }: Affine): ForeignCurveVar {
+  return [0, x.value, y.value];
+}
+
 type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
 
 function createForeignCurve(curve: CurveParams) {
   const curveMl = Snarky.foreignCurve.create(MlCurveParams(curve));
-  let curveMlVar: unknown | undefined;
-  function getParams(name: string): unknown {
-    if (curveMlVar === undefined) {
-      throw Error(
-        `ForeignCurve.${name}(): You must call ForeignCurve.initialize() once per provable method to use ForeignCurve.`
-      );
-    }
-    return curveMlVar;
-  }
+  const curveName = curve.name;
 
   class BaseField extends createForeignField(curve.modulus) {}
   class ScalarField extends createForeignField(curve.order) {}
-
-  function toMl({ x, y }: Affine): ForeignCurveVar {
-    return [0, x.value, y.value];
-  }
 
   // this is necessary to simplify the type of ForeignCurve, to avoid
   // TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize.
@@ -60,14 +53,19 @@ function createForeignCurve(curve: CurveParams) {
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
         | ForeignCurveVar
     ) {
+      let x_: BaseField;
+      let y_: BaseField;
       // ForeignCurveVar
       if (Array.isArray(g)) {
         let [, x, y] = g;
-        super({ x: new BaseField(x), y: new BaseField(y) });
-        return;
+        x_ = new BaseField(x);
+        y_ = new BaseField(y);
+      } else {
+        let { x, y } = g;
+        x_ = BaseField.from(x);
+        y_ = BaseField.from(y);
       }
-      let { x, y } = g;
-      super({ x: BaseField.from(x), y: BaseField.from(y) });
+      super({ x: x_, y: y_ });
     }
 
     static from(
@@ -79,8 +77,17 @@ function createForeignCurve(curve: CurveParams) {
       return new ForeignCurve(g);
     }
 
+    static #curveMlVar: unknown | undefined;
     static initialize() {
-      curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
+      this.#curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
+    }
+    static _getParams(name: string): unknown {
+      if (this.#curveMlVar === undefined) {
+        throw Error(
+          `${name}(): You must call ${curveName}.initialize() once per provable method to use ${curveName}.`
+        );
+      }
+      return this.#curveMlVar;
     }
 
     static generator = new ForeignCurve(curve.gen);
@@ -91,31 +98,31 @@ function createForeignCurve(curve: CurveParams) {
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
     ) {
       let h_ = ForeignCurve.from(h);
-      let curve = getParams('add');
+      let curve = ForeignCurve._getParams(`${curveName}.add`);
       let p = Snarky.foreignCurve.add(toMl(this), toMl(h_), curve);
       return new ForeignCurve(p);
     }
 
     double() {
-      let curve = getParams('double');
+      let curve = ForeignCurve._getParams(`${curveName}.double`);
       let p = Snarky.foreignCurve.double(toMl(this), curve);
       return new ForeignCurve(p);
     }
 
     negate() {
-      let curve = getParams('negate');
+      let curve = ForeignCurve._getParams(`${curveName}.negate`);
       let p = Snarky.foreignCurve.negate(toMl(this), curve);
       return new ForeignCurve(p);
     }
 
     assertOnCurve() {
-      let curve = getParams('assertOnCurve');
+      let curve = ForeignCurve._getParams(`${curveName}.assertOnCurve`);
       Snarky.foreignCurve.assertOnCurve(toMl(this), curve);
     }
 
     // TODO wrap this in a `Scalar` type which is a Bool array under the hood?
     scale(scalar: Bool[]) {
-      let curve = getParams('scale');
+      let curve = ForeignCurve._getParams(`${curveName}.scale`);
       let p = Snarky.foreignCurve.scale(
         toMl(this),
         MlBoolArray.to(scalar),
@@ -125,7 +132,7 @@ function createForeignCurve(curve: CurveParams) {
     }
 
     checkSubgroup() {
-      let curve = getParams('checkSubgroup');
+      let curve = ForeignCurve._getParams(`${curveName}.checkSubgroup`);
       Snarky.foreignCurve.checkSubgroup(toMl(this), curve);
     }
 
@@ -139,6 +146,10 @@ function createForeignCurve(curve: CurveParams) {
  * y^2 = x^3 + ax + b
  */
 type CurveParams = {
+  /**
+   * Human-friendly name for the curve
+   */
+  name: string;
   /**
    * Base field modulus
    */

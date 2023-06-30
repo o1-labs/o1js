@@ -1,16 +1,11 @@
 import { createForeignCurve } from './foreign-curve.js';
-import { Fp, Fq } from '../bindings/crypto/finite_field.js';
+import { Fq } from '../bindings/crypto/finite_field.js';
 import { Vesta as V } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
 import { Field } from './field.js';
+import { vestaParams } from './foreign-curve-params.js';
 
-class Vesta extends createForeignCurve({
-  modulus: Fq.modulus,
-  order: Fp.modulus,
-  a: 0n,
-  b: V.b,
-  gen: V.one,
-}) {}
+class Vesta extends createForeignCurve(vestaParams) {}
 
 let g = { x: Fq.negate(1n), y: 2n, infinity: false };
 let h = V.toAffine(V.negate(V.double(V.add(V.fromAffine(g), V.one))));

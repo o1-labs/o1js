@@ -21,6 +21,7 @@ import type {
   MlCurveParams,
   MlCurveParamsWithIa,
 } from './lib/foreign-curve.js';
+import type { ForeignSignatureVar } from './lib/foreign-ecdsa.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
@@ -290,6 +291,7 @@ declare const Snarky: {
 
     bigintToMl(x: bigint): MlBigint;
   };
+
   foreignCurve: {
     create(params: MlCurveParams): MlCurveParamsWithIa;
     paramsToVars(params: MlCurveParamsWithIa): unknown;
@@ -300,13 +302,27 @@ declare const Snarky: {
     ): ForeignCurveVar;
     double(g: ForeignCurveVar, curveParams: unknown): ForeignCurveVar;
     negate(g: ForeignCurveVar, curveParams: unknown): ForeignCurveVar;
-    assertOnCurve(g: ForeignCurveVar, curveParams: unknown): undefined;
+    assertOnCurve(g: ForeignCurveVar, curveParams: unknown): void;
     scale(
       g: ForeignCurveVar,
       scalar: MlArray<BoolVar>,
       curveParams: unknown
     ): ForeignCurveVar;
-    checkSubgroup(g: ForeignCurveVar, curveParams: unknown): undefined;
+    checkSubgroup(g: ForeignCurveVar, curveParams: unknown): void;
+  };
+
+  ecdsa: {
+    verify(
+      signature: ForeignSignatureVar,
+      msgHash: ForeignFieldVar,
+      publicKey: ForeignCurveVar,
+      curveParams: unknown
+    ): void;
+
+    assertValidSignature(
+      signature: ForeignSignatureVar,
+      curveParams: unknown
+    ): void;
   };
 };
 
