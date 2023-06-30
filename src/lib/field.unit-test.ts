@@ -55,6 +55,21 @@ test(Random.field, Random.int(-5, 5), (x, k) => {
   deepEqual(Field(x + BigInt(k) * Field.ORDER), Field(x));
 });
 
+// NOT with some common and odd lengths
+[2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
+  test(Random.field, Random.field, (x_, _, assert) => {
+    let modulus = 1n << BigInt(length);
+    let x = x_ % modulus;
+    let r1 = Fp.not(BigInt(x));
+
+    Provable.runAndCheck(() => {
+      let x_witness = Provable.witness(Field, () => Field(x));
+      let r2 = x_witness.not(length);
+      Provable.asProver(() => assert(r1 === r2.toBigInt()));
+    });
+  });
+});
+
 // special generator
 let SmallField = Random.reject(
   Random.field,
