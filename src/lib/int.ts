@@ -1465,18 +1465,6 @@ class UInt8 extends Struct({
     return this.value.isConstant();
   }
 
-  static fromHex(xs: string): UInt8[] {
-    return Snarky.sha.fieldBytesFromHex(xs).map((x) => UInt8.from(Field(x)));
-  }
-
-  static toHex(xs: UInt8[]): string {
-    return xs
-      .map((x) => x.value)
-      .map((f) => Field.toBytes(f)[0].toString(16).padStart(2, '0'))
-      .slice(1)
-      .join('');
-  }
-
   /**
    * Creates a {@link UInt8} with a value of 255.
    */

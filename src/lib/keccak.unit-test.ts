@@ -61,8 +61,8 @@ function checkHashConversions(data: UInt8[]) {
 }
 
 function expectDigestToEqualHex(digest: UInt8[]) {
-  const hex = UInt8.toHex(digest);
-  expect(equals(digest, UInt8.fromHex(hex))).toBe(true);
+  const hex = Hash.toHex(digest);
+  expect(equals(digest, Hash.fromHex(hex))).toBe(true);
 }
 
 function equals(a: UInt8[], b: UInt8[]): boolean {
