@@ -1125,9 +1125,12 @@ class UInt8 extends Struct({
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
+    // TODO: Need to range check `q`
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
+
+    // TODO: Need to range check `r`
 
     let r_ = UInt8.from(r);
     let q_ = UInt8.from(q);
@@ -1157,6 +1160,7 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
+      // TODO: Need more efficient range checking
       return this.value.lessThanOrEqual(y.value);
     }
   }
@@ -1223,6 +1227,7 @@ class UInt8 extends Struct({
       }
       return;
     }
+    // TODO: Need more efficient range checking
     return this.lessThanOrEqual(value).assertEquals(true, message);
   }
 
