@@ -961,11 +961,21 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 }
 
+/**
+ * A 8 bit unsigned integer with values ranging from 0 to 255.
+ */
 class UInt8 extends Struct({
   value: Field,
 }) {
   static NUM_BITS = 8;
 
+  /**
+   * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a {@link UInt8}.
+   * The max value of a {@link UInt8} is `2^8 - 1 = 255`.
+   *
+   *
+   * **Warning**: Cannot overflow past 255, an error is thrown if the result is greater than 255.
+   */
   constructor(x: number | bigint | string | Field | UInt8) {
     if (x instanceof UInt8) return x;
 
@@ -973,37 +983,131 @@ class UInt8 extends Struct({
     this.value.toBits(UInt8.NUM_BITS); // Make sure that the Field element that is exactly a byte
   }
 
+  /**
+   * Static method to create a {@link UInt8} with value `0`.
+   */
   static get zero() {
     return UInt8.from(0);
   }
 
+  /**
+   * Static method to create a {@link UInt8} with value `1`.
+   */
   static get one() {
     return UInt8.from(1);
   }
 
-  add(y: UInt8 | number) {
-    return UInt8.from(this.value.add(UInt8.from(y).value));
+  /**
+   * Add a {@link UInt8} value to another {@link UInt8} element.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(3);
+   * const sum = x.add(UInt8.from(5));
+   *
+   * sum.assertEquals(UInt8.from(8));
+   * ```
+   *
+   * **Warning**: This operation cannot overflow past 255, an error is thrown if the result is greater than 255.
+   *
+   * @param value - a {@link UInt8} value to add to the {@link UInt8}.
+   *
+   * @return A {@link UInt8} element that is the sum of the two values.
+   */
+  add(value: UInt8 | number) {
+    return UInt8.from(this.value.add(UInt8.from(value).value));
   }
 
-  sub(y: UInt8 | number) {
-    return UInt8.from(this.value.sub(UInt8.from(y).value));
+  /**
+   * Subtract a {@link UInt8} value by another {@link UInt8} element.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(8);
+   * const difference = x.sub(UInt8.from(5));
+   *
+   * difference.assertEquals(UInt8.from(3));
+   * ```
+   *
+   * @param value - a {@link UInt8} value to subtract from the {@link UInt8}.
+   *
+   * @return A {@link UInt8} element that is the difference of the two values.
+   */
+  sub(value: UInt8 | number) {
+    return UInt8.from(this.value.sub(UInt8.from(value).value));
   }
 
-  mul(y: UInt8 | number) {
-    return UInt8.from(this.value.mul(UInt8.from(y).value));
+  /**
+   * Multiply a {@link UInt8} value by another {@link UInt8} element.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(3);
+   * const product = x.mul(UInt8.from(5));
+   *
+   * product.assertEquals(UInt8.from(15));
+   * ```
+   *
+   * **Warning**: This operation cannot overflow past 255, an error is thrown if the result is greater than 255.
+   *
+   * @param value - a {@link UInt8} value to multiply with the {@link UInt8}.
+   *
+   * @return A {@link UInt8} element that is the product of the two values.
+   */
+  mul(value: UInt8 | number) {
+    return UInt8.from(this.value.mul(UInt8.from(value).value));
   }
 
-  div(y: UInt8 | number) {
-    return this.divMod(y).quotient;
+  /**
+   * Divide a {@link UInt8} value by another {@link UInt8} element.
+   *
+   * Proves that the denominator is non-zero, or throws a "Division by zero" error.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(6);
+   * const quotient = x.div(UInt8.from(3));
+   *
+   * quotient.assertEquals(UInt8.from(2));
+   * ```
+   *
+   * @param value - a {@link UInt8} value to divide with the {@link UInt8}.
+   *
+   * @return A {@link UInt8} element that is the division of the two values.
+   */
+  div(value: UInt8 | number) {
+    return this.divMod(value).quotient;
   }
 
-  mod(y: UInt8 | number) {
-    return this.divMod(y).rest;
+  /**
+   * Get the remainder a {@link UInt8} value of division of another {@link UInt8} element.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(50);
+   * const mod = x.mod(UInt8.from(30));
+   *
+   * mod.assertEquals(UInt8.from(18));
+   * ```
+   *
+   * @param value - a {@link UInt8} to get the modulus with another {@link UInt8}.
+   *
+   * @return A {@link UInt8} element that is the modulus of the two values.
+   */
+  mod(value: UInt8 | number) {
+    return this.divMod(value).rest;
   }
 
-  divMod(y: UInt8 | number) {
+  /**
+   * Get the quotient and remainder of a {@link UInt8} value divided by another {@link UInt8} element.
+   *
+   * @param value - a {@link UInt8} to get the quotient and remainder of another {@link UInt8}.
+   *
+   * @return The quotient and remainder of the two values.
+   */
+  divMod(value: UInt8 | number) {
     let x = this.value;
-    let y_ = UInt8.from(y).value;
+    let y_ = UInt8.from(value).value;
 
     if (this.value.isConstant() && y_.isConstant()) {
       let xn = x.toBigInt();
@@ -1032,6 +1136,23 @@ class UInt8 extends Struct({
     return { quotient: q_, rest: r_ };
   }
 
+  /**
+   * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
+   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(3).lessThanOrEqual(UInt8.from(5)).assertEquals(Bool(true));
+   * ```
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   *
+   * @param value - the {@link UInt8} value to compare with this {@link UInt8}.
+   *
+   * @return A {@link Bool} representing if this {@link UInt8} is less than or equal another {@link UInt8} value.
+   */
   lessThanOrEqual(y: UInt8) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
@@ -1040,90 +1161,307 @@ class UInt8 extends Struct({
     }
   }
 
-  lessThan(y: UInt8) {
-    return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
+  /**
+   * Check if this {@link UInt8} is less than another {@link UInt8} value.
+   * Returns a {@link Bool}, which is a provable type and can be used prove to the validity of this statement.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(2).lessThan(UInt8.from(3)).assertEquals(Bool(true));
+   * ```
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare with this {@link UInt8}.
+   *
+   * @return A {@link Bool} representing if this {@link UInt8} is less than another {@link UInt8} value.
+   */
+  lessThan(value: UInt8) {
+    return this.lessThanOrEqual(value).and(
+      this.value.equals(value.value).not()
+    );
   }
 
-  assertLessThan(y: UInt8, message?: string) {
-    this.lessThan(y).assertEquals(true, message);
+  /**
+   * Assert that this {@link UInt8} is less than another {@link UInt8} value.
+   * Calling this function is equivalent to `UInt8(...).lessThan(...).assertEquals(Bool(true))`.
+   * See {@link UInt8.lessThan} for more details.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThan(value: UInt8, message?: string) {
+    this.lessThan(value).assertEquals(true, message);
   }
 
-  assertLessThanOrEqual(y: UInt8, message?: string) {
-    if (this.value.isConstant() && y.value.isConstant()) {
+  /**
+   * Assert that this {@link UInt8} is less than or equal to another {@link UInt8} value.
+   * Calling this function is equivalent to `UInt8(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
+   * See {@link UInt8.lessThanOrEqual} for more details.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThanOrEqual(value: UInt8, message?: string) {
+    if (this.value.isConstant() && value.value.isConstant()) {
       let x0 = this.value.toBigInt();
-      let y0 = y.value.toBigInt();
+      let y0 = value.value.toBigInt();
       if (x0 > y0) {
         if (message !== undefined) throw Error(message);
         throw Error(`UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
       }
       return;
     }
-    return this.lessThanOrEqual(y).assertEquals(true, message);
+    return this.lessThanOrEqual(value).assertEquals(true, message);
   }
 
-  greaterThan(y: UInt8) {
-    return y.lessThan(this);
+  /**
+   * Check if this {@link UInt8} is greater than another {@link UInt8} value.
+   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(5).greaterThan(UInt8.from(3)).assertEquals(Bool(true));
+   * ```
+   *
+   * **Warning**: Comparison methods currently only support Field elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare with this {@link UInt8}.
+   *
+   * @return A {@link Bool} representing if this {@link UInt8} is greater than another {@link UInt8} value.
+   */
+  greaterThan(value: UInt8) {
+    return value.lessThan(this);
   }
 
-  greaterThanOrEqual(y: UInt8) {
-    return this.lessThan(y).not();
+  /**
+   * Check if this {@link UInt8} is greater than or equal another {@link UInt8} value.
+   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(3).greaterThanOrEqual(UInt8.from(3)).assertEquals(Bool(true));
+   * ```
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare with this {@link Field}.
+   *
+   * @return A {@link Bool} representing if this {@link UInt8} is greater than or equal another {@link UInt8} value.
+   */
+  greaterThanOrEqual(value: UInt8) {
+    return this.lessThan(value).not();
   }
 
-  assertGreaterThan(y: UInt8, message?: string) {
-    y.assertLessThan(this, message);
+  /**
+   * Assert that this {@link UInt8} is greater than another {@link UInt8} value.
+   * Calling this function is equivalent to `UInt8(...).greaterThan(...).assertEquals(Bool(true))`.
+   * See {@link UInt8.greaterThan} for more details.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThan(value: UInt8, message?: string) {
+    value.assertLessThan(this, message);
   }
 
-  assertGreaterThanOrEqual(y: UInt8, message?: string) {
-    y.assertLessThanOrEqual(this, message);
+  /**
+   * Assert that this {@link UInt8} is greater than or equal to another {@link UInt8} value.
+   * Calling this function is equivalent to `UInt8(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
+   * See {@link UInt8.greaterThanOrEqual} for more details.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
+   * The method will throw if one of the inputs exceeds 8 bits.
+   *
+   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThanOrEqual(value: UInt8, message?: string) {
+    value.assertLessThanOrEqual(this, message);
   }
 
-  assertEquals(y: number | bigint | UInt8, message?: string) {
-    let y_ = new UInt8(y);
+  /**
+   * Assert that this {@link UInt8} is equal another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertEquals(value: number | bigint | UInt8, message?: string) {
+    let y_ = new UInt8(value);
     this.toField().assertEquals(y_.toField(), message);
   }
 
+  /**
+   * Serialize the {@link UInt8} to a string, e.g. for printing.
+   *
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the {@link UInt8}. Use the operation only during debugging.
+   *
+   * @example
+   * ```ts
+   * const someUInt8 = UInt8.from(42);
+   * console.log(someUInt8 .toString());
+   * ```
+   *
+   * @return A string equivalent to the string representation of the {@link UInt8}.
+   */
   toString() {
     return this.value.toString();
   }
 
+  /**
+   * Serialize the {@link UInt8} to a bigint, e.g. for printing.
+   *
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the bigint representation of the {@link UInt8}. Use the operation only during debugging.
+   *
+   * @example
+   * ```ts
+   * const someUInt8 = UInt8.from(42);
+   * console.log(someUInt8.toBigInt());
+   * ```
+   *
+   * @return A bigint equivalent to the bigint representation of the {@link UInt8}.
+   */
   toBigInt() {
     return this.value.toBigInt();
   }
 
+  /**
+   * Serialize the {@link UInt8} to a {@link Field}.
+   *
+   * @example
+   * ```ts
+   * const someUInt8 = UInt8.from(42);
+   * console.log(someUInt8.toField());
+   * ```
+   *
+   * @return A {@link Field} equivalent to the bigint representation of the {@link UInt8}.
+   */
   toField() {
     return this.value;
   }
 
+  /**
+   * This function is the implementation of {@link Provable.check} in {@link UInt8} type.
+   *
+   * This function is called by {@link Provable.check} to check if the {@link UInt8} is valid.
+   * To check if a {@link UInt8} is valid, we need to check if the value fits in {@link UInt8.NUM_BITS} bits.
+   *
+   * @param value - the {@link UInt8} element to check.
+   */
   check() {
     this.value.toBits(UInt8.NUM_BITS);
   }
 
+  /**
+   * Implementation of {@link Provable.fromFields} for the {@link UInt8} type.
+   *
+   * **Warning**: This function is designed for internal use. It is not intended to be used by a zkApp developer.
+   *
+   * @param fields - an array of {@link UInt8} serialized from {@link Field} elements.
+   *
+   * @return An array of {@link UInt8} elements of the given array.
+   */
   fromFields(xs: Field[]): UInt8[] {
     return xs.map((x) => new UInt8(x));
   }
 
+  /**
+   * Serialize the {@link UInt8} to a JSON string, e.g. for printing.
+   *
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the JSON string representation of the {@link UInt8}. Use the operation only during debugging.
+   *
+   * @example
+   * ```ts
+   * const someUInt8 = UInt8.from(42);
+   * console.log(someUInt8 .toJSON());
+   * ```
+   *
+   * @return A string equivalent to the JSON representation of the {@link Field}.
+   */
   toJSON(): string {
     return this.value.toString();
   }
 
+  /**
+   * Turns a {@link UInt8} into a {@link UInt32}.
+   *
+   * @example
+   * ```ts
+   * const someUInt8 = UInt8.from(42);
+   * const someUInt32 = someUInt8.toUInt32();
+   * ```
+   *
+   * @return A {@link UInt32} equivalent to the {@link UInt8}.
+   */
   toUInt32(): UInt32 {
     let uint32 = new UInt32(this.value);
     UInt32.check(uint32);
     return uint32;
   }
 
+  /**
+   * Turns a {@link UInt8} into a {@link UInt64}.
+   *
+   * @example
+   * ```ts
+   * const someUInt8 = UInt8.from(42);
+   * const someUInt64 = someUInt8.toUInt64();
+   * ```
+   *
+   * @return A {@link UInt64} equivalent to the {@link UInt8}.
+   * */
   toUInt64(): UInt64 {
     let uint64 = new UInt64(this.value);
     UInt64.check(uint64);
     return uint64;
   }
 
+  /**
+   * Check whether this {@link UInt8} element is a hard-coded constant in the constraint system.
+   * If a {@link UInt8} is constructed outside a zkApp method, it is a constant.
+   *
+   * @example
+   * ```ts
+   * console.log(UInt8.from(42).isConstant()); // true
+   * ```
+   *
+   * @example
+   * ```ts
+   * \@method myMethod(x: UInt8) {
+   *    console.log(x.isConstant()); // false
+   * }
+   * ```
+   *
+   * @return A `boolean` showing if this {@link UInt8} is a constant or not.
+   */
   isConstant() {
     return this.value.isConstant();
   }
 
   static fromHex(xs: string): UInt8[] {
-    return Snarky.sha.fieldBytesFromHex(xs).map((x) => new UInt8(Field(x)));
+    return Snarky.sha.fieldBytesFromHex(xs).map((x) => UInt8.from(Field(x)));
   }
 
   static toHex(xs: UInt8[]): string {
@@ -1134,10 +1472,16 @@ class UInt8 extends Struct({
       .join('');
   }
 
+  /**
+   * Creates a {@link UInt8} with a value of 255.
+   */
   static MAXINT() {
     return new UInt8(Field((1n << BigInt(this.NUM_BITS)) - 1n));
   }
 
+  /**
+   * Creates a new {@link UInt8}.
+   */
   static from(
     x: UInt8 | UInt64 | UInt32 | Field | number | string | bigint | number[]
   ) {
