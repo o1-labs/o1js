@@ -45,7 +45,7 @@ const GroupMock = {
   },
   scale() {
     let g1 = Provable.witness(Group, () => Group.generator);
-    let s = Provable.witness(Scalar, () => Scalar.fromBigInt(5n));
+    let s = Provable.witness(Scalar, () => Scalar.from(5n));
     g1.scale(s);
   },
   equals() {

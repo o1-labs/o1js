@@ -1,4 +1,3 @@
-import { Types } from '../bindings/mina-transaction/types.js';
 import { Gate, Pickles, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
