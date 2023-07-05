@@ -252,6 +252,8 @@ declare const Snarky: {
     ): MlArray<FieldVar>;
 
     fieldBytesFromHex(hex: string): MlArray<FieldVar>;
+
+    checkBits(value: FieldVar, bits: number): void;
   };
 
   poseidon: {

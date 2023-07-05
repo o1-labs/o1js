@@ -980,7 +980,10 @@ class UInt8 extends Struct({
     if (x instanceof UInt8) return x;
 
     super({ value: Field(x) });
-    this.value.toBits(UInt8.NUM_BITS); // Make sure that the Field element that is exactly a byte
+
+    // TODO: Enable when rangeCheck works in proofs
+    // UInt8.#rangeCheck(this.value);
+    this.check();
   }
 
   /**
@@ -1125,12 +1128,11 @@ class UInt8 extends Struct({
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
-    // TODO: Need to range check `q`
+    UInt8.#rangeCheck(q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-
-    // TODO: Need to range check `r`
+    UInt8.#rangeCheck(r);
 
     let r_ = UInt8.from(r);
     let q_ = UInt8.from(q);
@@ -1160,7 +1162,17 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
-      // TODO: Need more efficient range checking
+      // TODO: Enable when rangeCheck works in proofs
+      // let xMinusY = this.value.sub(y.value).seal();
+      // UInt8.#rangeCheck(xMinusY);
+
+      // let yMinusX = xMinusY.neg();
+      // UInt8.#rangeCheck(yMinusX);
+
+      // x <= y if y - x fits in 64 bits
+      // return yMinusX;
+
+      // TODO: Remove this when rangeCheck works in proofs
       return this.value.lessThanOrEqual(y.value);
     }
   }
@@ -1227,7 +1239,11 @@ class UInt8 extends Struct({
       }
       return;
     }
-    // TODO: Need more efficient range checking
+    // TODO: Enable when rangeCheck works in proofs
+    // let yMinusX = value.value.sub(this.value).seal();
+    // UInt8.#rangeCheck(yMinusX);
+
+    // TODO: Remove this when rangeCheck works in proofs
     return this.lessThanOrEqual(value).assertEquals(true, message);
   }
 
@@ -1376,6 +1392,8 @@ class UInt8 extends Struct({
    * @param value - the {@link UInt8} element to check.
    */
   check() {
+    // TODO: Enable when rangeCheck works in proofs
+    // UInt8.#rangeCheck(this.value);
     this.value.toBits(UInt8.NUM_BITS);
   }
 
@@ -1506,6 +1524,15 @@ class UInt8 extends Struct({
     if (!x.isConstant()) return x;
     x.toBits(UInt8.NUM_BITS);
     return x;
+  }
+
+  // TODO: rangeCheck does not prove as of yet, waiting on https://github.com/MinaProtocol/mina/pull/12524 to merge.
+  static #rangeCheck(x: UInt8 | Field) {
+    if (isUInt8(x)) x = x.value;
+    if (x.isConstant()) this.checkConstant(x);
+
+    // Throws an error if the value is not in the range [0, 2^UInt8.NUM_BITS - 1]
+    Snarky.sha.checkBits(x.value, UInt8.NUM_BITS);
   }
 }
 
