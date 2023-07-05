@@ -65,14 +65,11 @@ function checkHashConversions(data: UInt8[]) {
 }
 
 function expectDigestToEqualHex(digest: UInt8[]) {
-  const hex = Hash.toHex(digest);
-  expect(equals(digest, Hash.fromHex(hex))).toBe(true);
+  const hex = UInt8.toHex(digest);
+  expect(equals(digest, UInt8.fromHex(hex))).toBe(true);
 }
 
 function equals(a: UInt8[], b: UInt8[]): boolean {
-  // Provable.log('DEBUG', 'a', a);
-  // Provable.log('DEBUG', 'b', b);
-
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) a[i].assertEquals(b[i]);
 
@@ -249,8 +246,8 @@ function testExpected({
   Provable.runAndCheck(() => {
     assert(message.length % 2 === 0);
 
-    let fields = Hash.fromHex(message);
-    let expectedHash = Hash.fromHex(expected);
+    let fields = UInt8.fromHex(message);
+    let expectedHash = UInt8.fromHex(expected);
 
     Provable.asProver(() => {
       if (nist) {

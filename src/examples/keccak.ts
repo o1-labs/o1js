@@ -9,8 +9,8 @@ function equals(a: UInt8[], b: UInt8[]): boolean {
 function checkDigestHexConversion(digest: UInt8[]) {
   console.log('Checking hex->digest, digest->hex matches');
   Provable.asProver(() => {
-    const hex = Hash.toHex(digest);
-    const expected = Hash.fromHex(hex);
+    const hex = UInt8.toHex(digest);
+    const expected = UInt8.fromHex(hex);
     if (equals(digest, expected)) {
       console.log('✅ Digest matches');
     } else {

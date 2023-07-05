@@ -220,18 +220,4 @@ const Hash = {
   SHA512: buildSHA(512, true),
 
   Keccak256: buildSHA(256, false),
-
-  fromHex(xs: string): UInt8[] {
-    return Snarky.sha
-      .fieldBytesFromHex(xs)
-      .map((x) => UInt8.from(Field(x)))
-      .slice(1);
-  },
-
-  toHex(xs: UInt8[]): string {
-    return xs
-      .map((x) => x.value)
-      .map((f) => Field.toBytes(f)[0].toString(16).padStart(2, '0'))
-      .join('');
-  },
 };
