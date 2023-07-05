@@ -980,9 +980,6 @@ class UInt8 extends Struct({
     if (x instanceof UInt8) return x;
 
     super({ value: Field(x) });
-
-    // TODO: Enable when rangeCheck works in proofs
-    // UInt8.#rangeCheck(this.value);
     this.check();
   }
 
@@ -1128,11 +1125,15 @@ class UInt8 extends Struct({
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
-    UInt8.#rangeCheck(q);
+
+    // TODO: Enable when rangeCheck works in proofs
+    // UInt8.#rangeCheck(q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    UInt8.#rangeCheck(r);
+
+    // TODO: Enable when rangeCheck works in proofs
+    // UInt8.#rangeCheck(r);
 
     let r_ = UInt8.from(r);
     let q_ = UInt8.from(q);
