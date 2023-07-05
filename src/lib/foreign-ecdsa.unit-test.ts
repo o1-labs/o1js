@@ -17,7 +17,9 @@ let signature = EthSignature.fromHex(
 );
 
 let msgHash =
-  0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn;
+  Secp256k1.Scalar.from(
+    0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
+  );
 
 console.time('ecdsa verify (witness gen / check)');
 Provable.runAndCheck(() => {

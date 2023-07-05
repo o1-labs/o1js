@@ -139,7 +139,7 @@ function createForeignCurve(curve: CurveParams) {
     }
 
     static BaseField = BaseField;
-    static ScalarField = ScalarField;
+    static Scalar = ScalarField;
   };
 }
 

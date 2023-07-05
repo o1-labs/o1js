@@ -27,7 +27,7 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
   let Curve0: ForeignCurveClass =
     'gen' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
-  class Scalar extends Curve.ScalarField {}
+  class Scalar extends Curve.Scalar {}
   class BaseField extends Curve.BaseField {}
 
   const Signature: Struct<Signature> & (new (value: Signature) => Signature) =
