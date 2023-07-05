@@ -3,7 +3,8 @@ import { Struct } from './circuit_value.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
 import { MerkleMapWitness } from './merkle_map.js';
-import { PublicKey, scaleShifted } from './signature.js';
+import { PrivateKey, PublicKey, scaleShifted } from './signature.js';
+import { Provable } from './provable.js';
 
 export { Nullifier };
 
@@ -164,5 +165,61 @@ class Nullifier extends Struct({
    */
   getPublicKey() {
     return PublicKey.fromGroup(this.publicKey);
+  }
+
+  /**
+   *
+   * _Note_: This function cannot be run within provable code.
+   *
+   * PLUME: An ECDSA Nullifier Scheme for Unique
+   * Pseudonymity within Zero Knowledge Proofs
+   * https://eprint.iacr.org/2022/1255.pdf chapter 3 page 14
+   */
+  static createNullifier(message: Field[], sk: PrivateKey): JsonNullifier {
+    if (Provable.inCheckedComputation())
+      throw Error("Can't be used inside provable code.");
+    const Hash2 = Poseidon.hash;
+    const Hash = Poseidon.hashToGroup;
+
+    const pk = sk.toPublicKey().toGroup();
+
+    const G = Group.generator;
+
+    const r = Scalar.random();
+
+    const gm = Hash([...message, ...Group.toFields(pk)]);
+
+    const h_m_pk = Group({ x: gm.x, y: gm.y.x0 });
+
+    const nullifier = h_m_pk.scale(sk.toBigInt());
+    const h_m_pk_r = h_m_pk.scale(r.toBigInt());
+
+    const g_r = G.scale(r.toBigInt());
+
+    const c = Hash2([
+      ...Group.toFields(G),
+      ...Group.toFields(pk),
+      ...Group.toFields(h_m_pk),
+      ...Group.toFields(nullifier),
+      ...Group.toFields(g_r),
+      ...Group.toFields(h_m_pk_r),
+    ]);
+
+    // operations on scalars (r) should be in Fq, rather than Fp
+    // while c is in Fp (due to Poseidon.hash), c needs to be handled as an element from Fq
+    const s = r.add(sk.s.mul(Scalar.from(c.toBigInt())));
+
+    return {
+      publicKey: pk.toJSON(),
+      private: {
+        c: c.toString(),
+        g_r: g_r.toJSON(),
+        h_m_pk_r: h_m_pk_r.toJSON(),
+      },
+      public: {
+        nullifier: nullifier.toJSON(),
+        s: s.toString(),
+      },
+    };
   }
 }
