@@ -1378,16 +1378,24 @@ var caml_pasta_fq_plonk_circuit_serialize = function (
 };
 
 // Provides: caml_pasta_fp_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust
 var caml_pasta_fp_plonk_index_create = function (
   gates,
   public_inputs,
+  caml_runtime_table_cfgs,
   prev_challenges,
   urs
 ) {
+  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
+    caml_runtime_table_cfgs,
+    caml_fp_runtime_table_cfg_to_rust,
+    plonk_wasm.WasmPastaFpRuntimeTableCfg
+  );
+
   var t = plonk_wasm.caml_pasta_fp_plonk_index_create(
     gates,
     public_inputs,
+    wasm_runtime_table_cfgs,
     prev_challenges,
     urs
   );
@@ -1450,17 +1458,24 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
 };
 
 // Provides: caml_pasta_fq_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust
 var caml_pasta_fq_plonk_index_create = function (
   gates,
   public_inputs,
+  caml_runtime_table_cfgs,
   prev_challenges,
   urs
 ) {
+  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
+    caml_runtime_table_cfgs,
+    caml_fq_runtime_table_cfg_to_rust,
+    plonk_wasm.WasmPastaFqRuntimeTableCfg
+  );
   return free_on_finalize(
     plonk_wasm.caml_pasta_fq_plonk_index_create(
       gates,
       public_inputs,
+      wasm_runtime_table_cfgs,
       prev_challenges,
       urs
     )
