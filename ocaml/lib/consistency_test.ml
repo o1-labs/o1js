@@ -294,7 +294,7 @@ module Transaction_hash = struct
         body =
           Payment
             { Mina_base.Payment_payload.dummy with
-              source_pk = Signature_lib.Public_key.compress kp.public_key
+              receiver_pk = Signature_lib.Public_key.compress kp.public_key
             }
       }
     in
