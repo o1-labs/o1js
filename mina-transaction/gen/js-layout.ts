@@ -413,7 +413,7 @@ let jsLayout = {
                           rangeMax: '4294967295',
                           inner: {
                             type: 'object',
-                            name: 'GlobalSlotInterval',
+                            name: 'GlobalSlotSinceGenesisInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
                             entries: {
@@ -708,7 +708,7 @@ let jsLayout = {
                       rangeMax: '4294967295',
                       inner: {
                         type: 'object',
-                        name: 'GlobalSlotInterval',
+                        name: 'GlobalSlotSinceGenesisInterval',
                         docs: null,
                         keys: ['lower', 'upper'],
                         entries: {
@@ -1171,7 +1171,7 @@ let jsLayout = {
                     rangeMax: '4294967295',
                     inner: {
                       type: 'object',
-                      name: 'GlobalSlotInterval',
+                      name: 'GlobalSlotSinceGenesisInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
                       entries: {
@@ -1466,7 +1466,7 @@ let jsLayout = {
                 rangeMax: '4294967295',
                 inner: {
                   type: 'object',
-                  name: 'GlobalSlotInterval',
+                  name: 'GlobalSlotSinceGenesisInterval',
                   docs: null,
                   keys: ['lower', 'upper'],
                   entries: {
