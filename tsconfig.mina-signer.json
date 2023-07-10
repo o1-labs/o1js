@@ -10,7 +10,11 @@
     "moduleResolution": "nodenext", // comply with node + "type": "module"
     "esModuleInterop": true, // to silence jest
 
+    "experimentalDecorators": true, // needed for decorators
+    "emitDecoratorMetadata": true, // needed for decorators
+
     "strict": true, // for the full TypeScript experience
+    "strictPropertyInitialization": false, // to enable generic constructors, e.g. on CircuitValue
     "importHelpers": true, // reduces size
     "declaration": true, // declaration files are how library consumers get our types
     "noEmitOnError": false, // avoid accidentally shipping with type errors
