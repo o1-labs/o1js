@@ -23,7 +23,9 @@ export {
   delegationFromJson,
   commonFromJson,
   PaymentJson,
+  PaymentJsonV1,
   DelegationJson,
+  DelegationJsonV1,
   CommonJson,
   Tag,
   UserCommand,
@@ -146,7 +148,7 @@ function commonToInputLegacy({
     HashInputLegacy.bits(legacyTokenId),
     PublicKey.toInputLegacy(feePayer),
     HashInputLegacy.bits(UInt32.toBits(nonce)),
-    HashInputLegacy.bits(UInt32.toBits(validUntil)),
+    HashInputLegacy.bits(UInt32.toBits(validUntil.value)),
     HashInputLegacy.bits(Memo.toBits(memo)),
   ].reduce(HashInputLegacy.append);
 }
@@ -160,13 +162,13 @@ const legacyTokenId = [true, ...Array<boolean>(63).fill(false)];
 
 function paymentFromJson({
   common,
-  body: { source, receiver, amount },
+  body: { receiver, amount },
 }: PaymentJson): UserCommand {
   return {
     common: commonFromJson(common),
     body: {
       tag: 'Payment',
-      source: PublicKey.fromJSON(source),
+      source: PublicKey.fromJSON(common.feePayer),
       receiver: PublicKey.fromJSON(receiver),
       amount: UInt64.fromJSON(amount),
     },
@@ -175,25 +177,25 @@ function paymentFromJson({
 
 function delegationFromJson({
   common,
-  body: { delegator, newDelegate },
+  body: { newDelegate },
 }: DelegationJson): UserCommand {
   return {
     common: commonFromJson(common),
     body: {
       tag: 'StakeDelegation',
-      source: PublicKey.fromJSON(delegator),
+      source: PublicKey.fromJSON(common.feePayer),
       receiver: PublicKey.fromJSON(newDelegate),
       amount: UInt64(0),
     },
   };
 }
 
-function commonFromJson(c: CommonJson) {
+function commonFromJson(c: CommonJson): Common {
   return {
     fee: UInt64.fromJSON(c.fee),
     feePayer: PublicKey.fromJSON(c.feePayer),
     nonce: UInt32.fromJSON(c.nonce),
-    validUntil: UInt32.fromJSON(c.validUntil),
+    validUntil: { type: 'SinceGenesis', value: UInt32.fromJSON(c.validUntil) },
     // TODO: this might need to be fromBase58
     memo: Memo.fromString(c.memo),
   };
@@ -262,17 +264,15 @@ type Common = {
   fee: UInt64;
   feePayer: PublicKey;
   nonce: UInt32;
-  validUntil: UInt32;
+  validUntil: { type: 'SinceGenesis'; value: UInt32 };
   memo: string;
 };
 
 type Payment = {
-  source: PublicKey;
   receiver: PublicKey;
   amount: UInt64;
 };
 type Delegation = {
-  delegator: PublicKey;
   newDelegate: PublicKey;
 };
 
@@ -287,6 +287,14 @@ type CommonJson = {
 type PaymentJson = {
   common: CommonJson;
   body: {
+    receiver: Json.PublicKey;
+    amount: Json.UInt64;
+  };
+};
+
+type PaymentJsonV1 = {
+  common: CommonJson;
+  body: {
     source: Json.PublicKey;
     receiver: Json.PublicKey;
     amount: Json.UInt64;
@@ -294,6 +302,13 @@ type PaymentJson = {
 };
 
 type DelegationJson = {
+  common: CommonJson;
+  body: {
+    newDelegate: Json.PublicKey;
+  };
+};
+
+type DelegationJsonV1 = {
   common: CommonJson;
   body: {
     delegator: Json.PublicKey;

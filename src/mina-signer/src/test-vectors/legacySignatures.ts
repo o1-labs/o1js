@@ -14,7 +14,7 @@ let newDelegate = 'B62qkfHpLpELqpMK6ZvUTJ5wRqKDRF3UHyJ4Kv3FU79Sgs4qpBnx5RR';
 
 let payments: PaymentJson[] = [
   {
-    body: { source: keypair.publicKey, receiver, amount: '42' },
+    body: { receiver, amount: '42' },
     common: {
       fee: '3',
       feePayer: keypair.publicKey,
@@ -24,7 +24,7 @@ let payments: PaymentJson[] = [
     },
   },
   {
-    body: { source: keypair.publicKey, receiver, amount: '2048' },
+    body: { receiver, amount: '2048' },
     common: {
       fee: '15',
       feePayer: keypair.publicKey,
@@ -34,7 +34,7 @@ let payments: PaymentJson[] = [
     },
   },
   {
-    body: { source: keypair.publicKey, receiver, amount: '109' },
+    body: { receiver, amount: '109' },
     common: {
       fee: '2001',
       feePayer: keypair.publicKey,
@@ -47,7 +47,7 @@ let payments: PaymentJson[] = [
 
 let delegations: DelegationJson[] = [
   {
-    body: { delegator: keypair.publicKey, newDelegate },
+    body: { newDelegate },
     common: {
       fee: '3',
       feePayer: keypair.publicKey,
@@ -57,7 +57,7 @@ let delegations: DelegationJson[] = [
     },
   },
   {
-    body: { delegator: keypair.publicKey, newDelegate },
+    body: { newDelegate },
     common: {
       fee: '10',
       feePayer: keypair.publicKey,
@@ -67,7 +67,7 @@ let delegations: DelegationJson[] = [
     },
   },
   {
-    body: { delegator: keypair.publicKey, newDelegate },
+    body: { newDelegate },
     common: {
       fee: '8',
       feePayer: keypair.publicKey,
