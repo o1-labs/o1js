@@ -17,6 +17,7 @@ import {
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
+import { Pickles } from '../../snarky.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -180,6 +181,7 @@ function accountUpdateFromFeePayer({
   authorization: signature,
 }: FeePayer): AccountUpdate {
   let { body } = AccountUpdate.emptyValue();
+  let [, , hash] = Pickles.dummyVerificationKey();
   body.publicKey = publicKey;
   body.balanceChange = { magnitude: fee, sgn: Sign(-1) };
   body.incrementNonce = Bool(true);
@@ -196,7 +198,7 @@ function accountUpdateFromFeePayer({
   body.authorizationKind = {
     isProved: Bool(false),
     isSigned: Bool(true),
-    verificationKeyHash: Field(0),
+    verificationKeyHash: Field.fromBytes([...hash]),
   };
   return { body, authorization: { signature } };
 }
@@ -216,12 +218,14 @@ function isCallDepthValid(zkappCommand: ZkappCommand) {
 function assertAuthorizationKindValid(accountUpdate: AccountUpdate) {
   let { isSigned, isProved, verificationKeyHash } =
     accountUpdate.body.authorizationKind;
+  let [, , hash] = Pickles.dummyVerificationKey();
+  const dummyVK = Field.fromBytes([...hash]);
   if (isProved && isSigned)
     throw Error(
       'Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.'
     );
-  if (!isProved && verificationKeyHash !== 0n)
+  if (!isProved && verificationKeyHash !== dummyVK)
     throw Error(
-      `Invalid authorization kind: If \`isProved\` is false, verification key hash must be 0, got ${verificationKeyHash}`
+      `Invalid authorization kind: If \`isProved\` is false, verification key hash must be ${dummyVK}, got ${verificationKeyHash}`
     );
 }

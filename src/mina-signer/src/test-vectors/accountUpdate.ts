@@ -1,6 +1,10 @@
 import * as Json from '../../../bindings/mina-transaction/gen/transaction-json.js';
+import { Field } from '../../../provable/field-bigint.js';
+import { Pickles } from '../../../snarky.js';
 
 export { accountUpdateExample };
+
+let [, , hash] = Pickles.dummyVerificationKey();
 
 // an example account update, to be used for tests
 let accountUpdateExample: Json.AccountUpdate = {
@@ -88,7 +92,7 @@ let accountUpdateExample: Json.AccountUpdate = {
     authorizationKind: {
       isSigned: false,
       isProved: false,
-      verificationKeyHash: '0',
+      verificationKeyHash: Field.fromBytes([...hash]).toString(),
     },
   },
   authorization: { proof: null, signature: null },

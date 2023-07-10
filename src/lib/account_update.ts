@@ -33,6 +33,7 @@ import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
+import { Field as Fp } from './field.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -445,7 +446,7 @@ const Body = {
     tokenId?: Field,
     mayUseToken?: MayUseToken
   ): Body {
-    let { body } = Types.AccountUpdate.emptyValue();
+    let { body } = AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
@@ -463,7 +464,7 @@ const Body = {
   },
 
   dummy(): Body {
-    return Types.AccountUpdate.emptyValue().body;
+    return AccountUpdate.emptyValue().body;
   },
 };
 
@@ -1288,6 +1289,12 @@ class AccountUpdate implements Types.AccountUpdate {
       other
     );
   }
+  static emptyValue() {
+    let empty = Types.AccountUpdate.emptyValue();
+    empty.body.authorizationKind.verificationKeyHash =
+      dummyVerificationKeyHash();
+    return empty;
+  }
 
   static witness<T>(
     type: FlexibleProvable<T>,
@@ -1802,7 +1809,8 @@ const Authorization = {
     signature ??= {};
     accountUpdate.body.authorizationKind.isSigned = Bool(true);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
+    accountUpdate.body.authorizationKind.verificationKeyHash =
+      dummyVerificationKeyHash();
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
@@ -1860,7 +1868,8 @@ const Authorization = {
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
+    accountUpdate.body.authorizationKind.verificationKeyHash =
+      dummyVerificationKeyHash();
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },
@@ -1944,6 +1953,11 @@ function addMissingSignatures(
 
 function dummySignature() {
   return Signature.toBase58(Signature.dummy());
+}
+
+function dummyVerificationKeyHash() {
+  let [, , hash] = Pickles.dummyVerificationKey();
+  return Fp.fromBytes([...hash]);
 }
 
 /**

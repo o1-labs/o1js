@@ -62,6 +62,7 @@ test(Random.json.publicKey, (publicKeyBase58) => {
 
 // empty account update
 let dummy = AccountUpdate.emptyValue();
+fixVerificationKeyHash(dummy);
 let dummySnarky = AccountUpdateSnarky.dummy();
 expect(AccountUpdate.toJSON(dummy)).toEqual(
   AccountUpdateSnarky.toJSON(dummySnarky)
@@ -81,6 +82,7 @@ expect(stringify(dummyInput.packed)).toEqual(
 );
 
 test(Random.accountUpdate, (accountUpdate) => {
+  fixVerificationKeyHash(accountUpdate);
   fixVerificationKey(accountUpdate);
 
   // example account update
@@ -125,6 +127,7 @@ test(memoGenerator, (memoString) => {
 
 // zkapp transaction - basic properties & commitment
 test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
+  zkappCommand.accountUpdates.forEach(fixVerificationKeyHash);
   zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
   assert(isCallDepthValid(zkappCommand));
@@ -151,6 +154,7 @@ test.negative(
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,
   ({ feePayerKey, zkappCommand }) => {
+    zkappCommand.accountUpdates.forEach(fixVerificationKeyHash);
     zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
     let feePayerKeyBase58 = PrivateKey.toBase58(feePayerKey);
@@ -279,4 +283,9 @@ function fixVerificationKey(a: AccountUpdate) {
   } else {
     a.body.update.verificationKey.value = { data: '', hash: Field(0) };
   }
+}
+
+function fixVerificationKeyHash(a: AccountUpdate) {
+  let [, , hash] = Pickles.dummyVerificationKey();
+  a.body.authorizationKind.verificationKeyHash = Field.fromBytes([...hash]);
 }
