@@ -43,6 +43,7 @@ import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
+import { mocks } from '../..//bindings/crypto/constants.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -62,7 +63,6 @@ test(Random.json.publicKey, (publicKeyBase58) => {
 
 // empty account update
 let dummy = AccountUpdate.emptyValue();
-fixVerificationKeyHash(dummy);
 let dummySnarky = AccountUpdateSnarky.dummy();
 expect(AccountUpdate.toJSON(dummy)).toEqual(
   AccountUpdateSnarky.toJSON(dummySnarky)
@@ -82,7 +82,6 @@ expect(stringify(dummyInput.packed)).toEqual(
 );
 
 test(Random.accountUpdate, (accountUpdate) => {
-  fixVerificationKeyHash(accountUpdate);
   fixVerificationKey(accountUpdate);
 
   // example account update
@@ -127,7 +126,6 @@ test(memoGenerator, (memoString) => {
 
 // zkapp transaction - basic properties & commitment
 test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
-  zkappCommand.accountUpdates.forEach(fixVerificationKeyHash);
   zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
   assert(isCallDepthValid(zkappCommand));
@@ -154,7 +152,6 @@ test.negative(
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,
   ({ feePayerKey, zkappCommand }) => {
-    zkappCommand.accountUpdates.forEach(fixVerificationKeyHash);
     zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
     let feePayerKeyBase58 = PrivateKey.toBase58(feePayerKey);
@@ -275,17 +272,22 @@ console.log('to/from json, hashes & signatures are consistent! 🎉');
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
   if (a.body.update.verificationKey.isSome === 1n) {
-    let [, data, hash] = Pickles.dummyVerificationKey();
+    let [, data] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,
-      hash: Field.fromBytes([...hash]),
+      hash: Field(mocks.dummyVerificationKeyHash),
     };
   } else {
-    a.body.update.verificationKey.value = { data: '', hash: Field(0) };
+    a.body.update.verificationKey.value = {
+      data: '',
+      hash: Field(0),
+    };
   }
+  fixVerificationKeyHash(a);
 }
 
 function fixVerificationKeyHash(a: AccountUpdate) {
-  let [, , hash] = Pickles.dummyVerificationKey();
-  a.body.authorizationKind.verificationKeyHash = Field.fromBytes([...hash]);
+  a.body.authorizationKind.verificationKeyHash = Field(
+    mocks.dummyVerificationKeyHash
+  );
 }
