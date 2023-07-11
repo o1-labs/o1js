@@ -1,10 +1,12 @@
 import type { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
-import { Struct } from './circuit_value.js';
+import { Struct, provable, provablePure } from './circuit_value.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
 import { MerkleMapWitness } from './merkle_map.js';
 import { PrivateKey, PublicKey, scaleShifted } from './signature.js';
 import { Provable } from './provable.js';
+import { Bool } from './bool.js';
+import { assert } from 'console';
 
 export { Nullifier };
 
@@ -191,6 +193,9 @@ class Nullifier extends Struct({
     const r = Scalar.random();
 
     const gm = Hash([...message, ...Group.toFields(pk)]);
+
+    // check to prevent the prover from using the second square root and forging a non-unique nullifier
+    gm.y.x0.assertEven();
 
     const h_m_pk = Group({ x: gm.x, y: gm.y.x0 });
 

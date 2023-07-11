@@ -1,10 +1,12 @@
-import { Snarky, Provable } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
+import { Provable } from './provable.js';
+import { provable } from './circuit_value.js';
 
 // external API
 export { Field };
@@ -374,6 +376,63 @@ class Field {
    */
   sub(y: Field | bigint | number | string) {
     return this.add(Field.from(y).neg());
+  }
+
+  #parity() {
+    if (this.isConstant()) return new Field(this.toBigInt() % 2n);
+
+    let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
+      let bits = Fp.toBits(this.toBigInt());
+      let isOdd = bits.shift()! ? 1n : 0n;
+
+      return [
+        0,
+        FieldConst.fromBigint(isOdd),
+        FieldConst.fromBigint(Fp.fromBits(bits)),
+      ];
+    });
+
+    let isOdd = new Field(isOddVar);
+    let xDiv2 = new Field(xDiv2Var);
+
+    // range check for 253 bits
+    // WARNING: this makes use of a special property of the Pasta curves,
+    // namely that a random field element is < 2^254 with overwhelming probability
+    // TODO use 88-bit RCs to make this more efficient
+    xDiv2.toBits(253);
+
+    // check composition
+    xDiv2.mul(2).add(isOdd).assertEquals(this);
+
+    return isOdd;
+  }
+
+  /**
+   * Assert that this {@link Field} is even.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertEven(message?: string) {
+    this.#parity().assertEquals(0, message);
+  }
+
+  /**
+   * Assert that this {@link Field} is odd.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
+   * The method will throw if one of the inputs exceeds 253 bits.
+   *
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertOdd(message?: string) {
+    this.#parity().assertEquals(1, message);
   }
 
   /**
