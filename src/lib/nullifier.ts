@@ -173,7 +173,8 @@ class Nullifier extends Struct({
 
   /**
    *
-   * _Note_: This is *not* the recommended way to create a Nullifier in production. Please use mina-signer to create Nullifiers. Also, this function cannot be run within provable code.
+   * _Note_: This is *not* the recommended way to create a Nullifier in production. Please use mina-signer to create Nullifiers.
+   * Also, this function cannot be run within provable code to avoid unintended creations of Nullifiers - a Nullifier should never be created inside proveable code (e.g. a smart contract) directly, but rather created inside the users wallet (or other secure enclaves, so the private key never leaves that enclave).
    *
    * PLUME: An ECDSA Nullifier Scheme for Unique
    * Pseudonymity within Zero Knowledge Proofs

@@ -20,7 +20,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Added a method `createTestNullifier` to the Nullifier class for testing purposes. It is recommended to use mina-signer to create Nullifiers in production, since it does not leak the private key of the user. The `Nullifier.createTestNullifier` method requires the private key as an input _outside of the users wallet_. https://github.com/o1-labs/snarkyjs/pull/1026
-- Added `field.assertEven` and `field.assertOdd` assertions to assert if a Field element is odd or event. https://github.com/o1-labs/snarkyjs/pull/1026
+- Added `field.assertEven` and `field.assertOdd` assertions to assert if a Field element is odd or even. https://github.com/o1-labs/snarkyjs/pull/1026
 
 ## [0.11.4](https://github.com/o1-labs/snarkyjs/compare/544489609...eaa39dca0)
 
