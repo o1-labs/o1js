@@ -36,10 +36,7 @@ class Account extends Struct({
   points: UInt32,
 }) {
   hash(): Field {
-    return Poseidon.hash([
-      ...this.publicKey.toFields(),
-      ...this.points.toFields(),
-    ]);
+    return Poseidon.hash(Account.toFields(this));
   }
 
   addPoints(points: UInt32) {
