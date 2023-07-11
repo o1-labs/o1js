@@ -43,7 +43,7 @@ import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
-import { mocks } from '../..//bindings/crypto/constants.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
