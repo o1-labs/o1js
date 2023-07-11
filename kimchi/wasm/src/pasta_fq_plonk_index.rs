@@ -94,6 +94,7 @@ impl WasmPastaFqRuntimeTableCfg {
 pub fn caml_pasta_fq_plonk_index_create(
     gates: &WasmGateVector,
     public_: i32,
+    lookup_tables: WasmVector<WasmPastaFqLookupTable>,
     runtime_table_cfgs: WasmVector<WasmPastaFqRuntimeTableCfg>,
     prev_challenges: i32,
     srs: &WasmSrs,
@@ -114,10 +115,14 @@ pub fn caml_pasta_fq_plonk_index_create(
         let rust_runtime_table_cfgs: Vec<RuntimeTableCfg<Fq>> =
             runtime_table_cfgs.into_iter().map(Into::into).collect();
 
+        let rust_lookup_tables : Vec<LookupTable<Fq>> =
+            lookup_tables.into_iter().map(Into::into).collect();
+
         // create constraint system
         let cs = match ConstraintSystem::<Fq>::create(gates)
             .public(public_ as usize)
             .prev_challenges(prev_challenges as usize)
+            .lookup(rust_lookup_tables)
             .runtime(if rust_runtime_table_cfgs.is_empty() {
                 None
             } else {
