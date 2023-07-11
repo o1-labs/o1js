@@ -15,9 +15,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/544489609...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/eaa39dca0...HEAD)
 
 > No unreleased changes yet
+
+## [0.11.4](https://github.com/o1-labs/snarkyjs/compare/544489609...eaa39dca0)
+
+### Fixed
+
+- NodeJS error caused by invalid import https://github.com/o1-labs/snarkyjs/issues/1012
 
 ## [0.11.3](https://github.com/o1-labs/snarkyjs/compare/2d2af219c...544489609)
 
