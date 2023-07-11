@@ -13,6 +13,7 @@ import {
   Hash,
   packToFields,
 } from '../../provable/poseidon-bigint.js';
+import { dummyVerificationKeyHash } from '../../lib/proof_system.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -22,6 +23,7 @@ export {
   ZkappUri,
   TokenSymbol,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
   StateHash,
 };
@@ -51,6 +53,15 @@ type ActionState = Field;
 const ActionState = {
   ...Field,
   emptyValue: Actions.emptyActionState,
+};
+
+function dummyVerificationKeyHashBigInt() {
+  return dummyVerificationKeyHash().toBigInt();
+}
+type VerificationKeyHash = Field;
+const VerificationKeyHash = {
+  ...Field,
+  emptyValue: dummyVerificationKeyHashBigInt,
 };
 
 type ReceiptChainHash = Field;
