@@ -1,7 +1,7 @@
 {
   "name": "snarkyjs",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.11.4",
+  "version": "0.12.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/snarkyjs/",
   "keywords": [
