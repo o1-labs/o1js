@@ -38,7 +38,7 @@ import { Memo } from '../../mina-signer/src/memo.js';
 import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
-import { Pickles } from '../../snarky.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 export { Random, sample, withHardCoded };
 
@@ -262,10 +262,8 @@ const accountUpdateJson = mapWithInvalid(
     }
 
     if (!a.body.authorizationKind.isProved) {
-      let [, , hash] = Pickles.dummyVerificationKey();
-      a.body.authorizationKind.verificationKeyHash = Field.fromBytes([
-        ...hash,
-      ]).toString();
+      a.body.authorizationKind.verificationKeyHash =
+        mocks.dummyVerificationKeyHash;
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
