@@ -1,11 +1,10 @@
-import { Snarky } from '../snarky.js';
+import { Snarky, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
-import { Provable } from './provable.js';
 
 // external API
 export { Field };
