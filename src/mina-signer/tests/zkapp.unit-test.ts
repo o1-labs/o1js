@@ -6,16 +6,13 @@ import { expect } from 'expect';
 import { Transaction } from '../../lib/mina.js';
 import { PrivateKey } from '../../lib/signature.js';
 import { Signature } from '../src/signature.js';
-import { Pickles } from '../../snarky.js';
-import { Field } from '../../index.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 const client = new Client({ network: 'testnet' });
 let { publicKey, privateKey } = client.genKeys();
 
 let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
 let dummySignature = Signature.toBase58(Signature.dummy());
-let [, , hash] = Pickles.dummyVerificationKey();
-let dummyVK = Field.fromBytes([...hash]);
 
 // we construct a transaction which needs signing of the fee payer and another account update
 let accountUpdateExample2: TransactionJson.AccountUpdate = {
@@ -26,7 +23,7 @@ let accountUpdateExample2: TransactionJson.AccountUpdate = {
     authorizationKind: {
       isSigned: true,
       isProved: false,
-      verificationKeyHash: dummyVK.toString(),
+      verificationKeyHash: mocks.dummyVerificationKeyHash,
     },
   },
   authorization: { proof: null, signature: dummySignature },
