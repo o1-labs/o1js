@@ -175,7 +175,7 @@ class Nullifier extends Struct({
    * Pseudonymity within Zero Knowledge Proofs
    * https://eprint.iacr.org/2022/1255.pdf chapter 3 page 14
    */
-  static createNullifier(message: Field[], sk: PrivateKey): JsonNullifier {
+  static createTestNullifier(message: Field[], sk: PrivateKey): JsonNullifier {
     if (Provable.inCheckedComputation()) {
       throw Error(
         'This function cannot not be run within provable code. If you want to create a Nullifier, run this method outside provable code or use mina-signer to do so.'

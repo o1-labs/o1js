@@ -87,7 +87,7 @@ console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('generating nullifier');
 
-let jsonNullifier = Nullifier.createNullifier(
+let jsonNullifier = Nullifier.createTestNullifier(
   [nullifierMessage],
   privilegedKey
 );
