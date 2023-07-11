@@ -11,11 +11,7 @@ import {
   MerkleMapWitness,
   Mina,
   AccountUpdate,
-  Poseidon,
-  Scalar,
 } from 'snarkyjs';
-
-import { createNullifier } from '../mina-signer/src/nullifier.js';
 
 class PayoutOnlyOnce extends SmartContract {
   @state(Field) nullifierRoot = State<Field>();
@@ -91,10 +87,11 @@ console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('generating nullifier');
 
-let jsonNullifier = createNullifier(
-  [nullifierMessage.toBigInt()],
-  BigInt(privilegedKey.s.toJSON())
+let jsonNullifier = Nullifier.createNullifier(
+  [nullifierMessage],
+  privilegedKey
 );
+console.log(jsonNullifier);
 
 console.log('pay out');
 tx = await Mina.transaction(sender, () => {

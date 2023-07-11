@@ -169,15 +169,18 @@ class Nullifier extends Struct({
 
   /**
    *
-   * _Note_: This function cannot be run within provable code.
+   * _Note_: This is *not* the recommended way to create a Nullifier in production. Please use mina-signer to create Nullifiers. Also, this function cannot be run within provable code.
    *
    * PLUME: An ECDSA Nullifier Scheme for Unique
    * Pseudonymity within Zero Knowledge Proofs
    * https://eprint.iacr.org/2022/1255.pdf chapter 3 page 14
    */
   static createNullifier(message: Field[], sk: PrivateKey): JsonNullifier {
-    if (Provable.inCheckedComputation())
-      throw Error("Can't be used inside provable code.");
+    if (Provable.inCheckedComputation()) {
+      throw Error(
+        'This function cannot not be run within provable code. If you want to create a Nullifier, run this method outside provable code or use mina-signer to do so.'
+      );
+    }
     const Hash2 = Poseidon.hash;
     const Hash = Poseidon.hashToGroup;
 
@@ -218,7 +221,7 @@ class Nullifier extends Struct({
       },
       public: {
         nullifier: nullifier.toJSON(),
-        s: s.toString(),
+        s: s.toJSON(),
       },
     };
   }
