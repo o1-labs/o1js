@@ -62,6 +62,10 @@ class Nullifier extends Struct({
       x,
       y: { x0 },
     } = Poseidon.hashToGroup([...message, ...pk_fields]);
+
+    // check to prevent the prover from using the second square root and forging a non-unique nullifier
+    x0.assertEven();
+
     let h_m_pk = Group.fromFields([x, x0]);
 
     // shifted scalar see https://github.com/o1-labs/snarkyjs/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
@@ -191,9 +195,6 @@ class Nullifier extends Struct({
     const r = Scalar.random();
 
     const gm = Hash([...message, ...Group.toFields(pk)]);
-
-    // check to prevent the prover from using the second square root and forging a non-unique nullifier
-    gm.y.x0.assertEven();
 
     const h_m_pk = Group({ x: gm.x, y: gm.y.x0 });
 
