@@ -18,7 +18,13 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
+import {
+  dummyBase64Proof,
+  dummyVerificationKeyHash,
+  Empty,
+  Proof,
+  Prover,
+} from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
@@ -33,7 +39,6 @@ import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
-import { Field as Fp } from './field.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -446,7 +451,7 @@ const Body = {
     tokenId?: Field,
     mayUseToken?: MayUseToken
   ): Body {
-    let { body } = AccountUpdate.emptyValue();
+    let { body } = Types.AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
@@ -464,7 +469,7 @@ const Body = {
   },
 
   dummy(): Body {
-    return AccountUpdate.emptyValue().body;
+    return Types.AccountUpdate.emptyValue().body;
   },
 };
 
@@ -1289,12 +1294,6 @@ class AccountUpdate implements Types.AccountUpdate {
       other
     );
   }
-  static emptyValue() {
-    let empty = Types.AccountUpdate.emptyValue();
-    empty.body.authorizationKind.verificationKeyHash =
-      dummyVerificationKeyHash();
-    return empty;
-  }
 
   static witness<T>(
     type: FlexibleProvable<T>,
@@ -1953,11 +1952,6 @@ function addMissingSignatures(
 
 function dummySignature() {
   return Signature.toBase58(Signature.dummy());
-}
-
-function dummyVerificationKeyHash() {
-  let [, , hash] = Pickles.dummyVerificationKey();
-  return Fp.fromBytes([...hash]);
 }
 
 /**

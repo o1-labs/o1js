@@ -14,6 +14,7 @@ import {
   Field,
   Actions,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
   Sign,
   TokenId,
@@ -104,6 +105,7 @@ const actions = mapWithInvalid(
   Actions.fromList
 );
 const actionState = oneOf(ActionState.emptyValue(), field);
+const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
 const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
@@ -127,6 +129,7 @@ const Generators: Generators = {
   Events: events,
   Actions: actions,
   ActionState: actionState,
+  VerificationKeyHash: verificationKeyHash,
   ReceiptChainHash: receiptChainHash,
   ZkappUri: zkappUri,
   null: constant(null),
@@ -229,6 +232,7 @@ const JsonGenerators: JsonGenerators = {
   Events: mapWithInvalid(events, Events.toJSON),
   Actions: mapWithInvalid(actions, Actions.toJSON),
   ActionState: mapWithInvalid(actionState, ActionState.toJSON),
+  VerificationKeyHash: mapWithInvalid(verificationKeyHash, Field.toJSON),
   ReceiptChainHash: mapWithInvalid(receiptChainHash, ReceiptChainHash.toJSON),
   ZkappUri: string(nat(50)),
   null: constant(null),
