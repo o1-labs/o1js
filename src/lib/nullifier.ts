@@ -1,12 +1,10 @@
 import type { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
-import { Struct, provable, provablePure } from './circuit_value.js';
+import { Struct } from './circuit_value.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
 import { MerkleMapWitness } from './merkle_map.js';
 import { PrivateKey, PublicKey, scaleShifted } from './signature.js';
 import { Provable } from './provable.js';
-import { Bool } from './bool.js';
-import { assert } from 'console';
 
 export { Nullifier };
 

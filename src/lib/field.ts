@@ -6,7 +6,6 @@ import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
 import { Provable } from './provable.js';
-import { provable } from './circuit_value.js';
 
 // external API
 export { Field };
