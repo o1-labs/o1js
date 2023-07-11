@@ -39,7 +39,7 @@ class Account extends Struct({
     return Poseidon.hash(Account.toFields(this));
   }
 
-  addPoints(points: UInt32) {
+  addPoints(points: number) {
     return new Account({
       publicKey: this.publicKey,
       points: this.points.add(points),
@@ -81,7 +81,7 @@ class Leaderboard extends SmartContract {
     path.calculateRoot(account.hash()).assertEquals(commitment);
 
     // we update the account and grant one point!
-    let newAccount = account.addPoints(UInt32.from(1));
+    let newAccount = account.addPoints(1);
 
     // we calculate the new Merkle Root, based on the account changes
     let newCommitment = path.calculateRoot(newAccount.hash());
