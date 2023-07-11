@@ -10,7 +10,7 @@ import {
   emptyHashWithPrefix,
 } from '../../lib/hash.js';
 import { provable } from '../../lib/circuit_value.js';
-import { dummyVerificationKeyHash } from '../../lib/proof_system.js';
+import { mocks } from '../crypto/constants.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -55,7 +55,7 @@ const ActionState = {
 type VerificationKeyHash = Field;
 const VerificationKeyHash = {
   ...provable(Field),
-  emptyValue: dummyVerificationKeyHash,
+  emptyValue: () => Field(mocks.dummyVerificationKeyHash),
 };
 
 type ReceiptChainHash = Field;
