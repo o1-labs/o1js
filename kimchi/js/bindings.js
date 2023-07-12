@@ -1201,24 +1201,26 @@ var caml_plonk_gate_of_rust = function (gate) {
 // Provides: caml_fp_plonk_gate_to_rust
 // Requires: plonk_wasm, caml_plonk_wires_to_rust, caml_u8array_vector_to_rust_flat_vector
 var caml_fp_plonk_gate_to_rust = function (gate) {
-    var gateType = gate[1];
-    if (gateType > 6) gateType = gateType + 4;
-    return new plonk_wasm.WasmFpGate(
-        gateType,
-        caml_plonk_wires_to_rust(gate[2]),
-        caml_u8array_vector_to_rust_flat_vector(gate[3]));
+  var gateType = gate[1];
+  if (gateType > 6) gateType = gateType + 4;
+  return new plonk_wasm.WasmFpGate(
+    gateType,
+    caml_plonk_wires_to_rust(gate[2]),
+    caml_u8array_vector_to_rust_flat_vector(gate[3])
+  );
 };
 
 // Provides: caml_fq_plonk_gate_to_rust
 // Requires: plonk_wasm, caml_plonk_wires_to_rust, caml_u8array_vector_to_rust_flat_vector
 var caml_fq_plonk_gate_to_rust = function (gate) {
-    // TODO: Hardcoding 32 here is a little brittle
-    var gateType = gate[1];
-    if (gateType > 6) gateType = gateType + 4;
-    return new plonk_wasm.WasmFqGate(
-        gateType,
-        caml_plonk_wires_to_rust(gate[2]),
-        caml_u8array_vector_to_rust_flat_vector(gate[3]))
+  // TODO: Hardcoding 32 here is a little brittle
+  var gateType = gate[1];
+  if (gateType > 6) gateType = gateType + 4;
+  return new plonk_wasm.WasmFqGate(
+    gateType,
+    caml_plonk_wires_to_rust(gate[2]),
+    caml_u8array_vector_to_rust_flat_vector(gate[3])
+  );
 };
 
 // Provides: caml_pasta_fp_plonk_gate_vector_create
