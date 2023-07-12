@@ -37,7 +37,7 @@ function toMl({ x, y }: Affine): ForeignCurveVar {
 type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
 
 function createForeignCurve(curve: CurveParams) {
-  const curveMl = Snarky.foreignCurve.create(MlCurveParams(curve));
+  const curveParamsMl = Snarky.foreignCurve.create(MlCurveParams(curve));
   const curveName = curve.name;
 
   class BaseField extends createForeignField(curve.modulus) {}
@@ -77,17 +77,20 @@ function createForeignCurve(curve: CurveParams) {
       return new ForeignCurve(g);
     }
 
-    static #curveMlVar: unknown | undefined;
+    static #curveParamsMlVar: unknown | undefined;
+
     static initialize() {
-      ForeignCurve.#curveMlVar = Snarky.foreignCurve.paramsToVars(curveMl);
+      ForeignCurve.#curveParamsMlVar =
+        Snarky.foreignCurve.paramsToVars(curveParamsMl);
     }
+
     static _getParams(name: string): unknown {
-      if (ForeignCurve.#curveMlVar === undefined) {
+      if (ForeignCurve.#curveParamsMlVar === undefined) {
         throw Error(
           `${name}(): You must call ${this.name}.initialize() once per provable method to use ${curveName}.`
         );
       }
-      return ForeignCurve.#curveMlVar;
+      return ForeignCurve.#curveParamsMlVar;
     }
 
     static generator = new ForeignCurve(curve.gen);
