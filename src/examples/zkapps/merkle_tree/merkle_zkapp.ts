@@ -12,17 +12,11 @@ Merkle Trees give developers the power of storing large amounts of data off-chai
 
 import {
   SmartContract,
-  isReady,
   Poseidon,
   Field,
-  Permissions,
-  DeployArgs,
   State,
   state,
-  CircuitValue,
   PublicKey,
-  UInt64,
-  prop,
   Mina,
   method,
   UInt32,
@@ -30,30 +24,26 @@ import {
   AccountUpdate,
   MerkleTree,
   MerkleWitness,
+  Struct,
 } from 'snarkyjs';
-
-await isReady;
 
 const doProofs = true;
 
 class MyMerkleWitness extends MerkleWitness(8) {}
 
-class Account extends CircuitValue {
-  @prop publicKey: PublicKey;
-  @prop points: UInt32;
-
-  constructor(publicKey: PublicKey, points: UInt32) {
-    super(publicKey, points);
-    this.publicKey = publicKey;
-    this.points = points;
-  }
-
+class Account extends Struct({
+  publicKey: PublicKey,
+  points: UInt32,
+}) {
   hash(): Field {
-    return Poseidon.hash(this.toFields());
+    return Poseidon.hash(Account.toFields(this));
   }
 
-  addPoints(n: number): Account {
-    return new Account(this.publicKey, this.points.add(n));
+  addPoints(points: number) {
+    return new Account({
+      publicKey: this.publicKey,
+      points: this.points.add(points),
+    });
   }
 }
 // we need the initiate tree root in order to tell the contract about our off-chain storage
@@ -69,12 +59,8 @@ class Leaderboard extends SmartContract {
   // a commitment is a cryptographic primitive that allows us to commit to data, with the ability to "reveal" it later
   @state(Field) commitment = State<Field>();
 
-  init() {
+  @method init() {
     super.init();
-    this.account.permissions.set({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
     this.commitment.set(initialCommitment);
   }
 
@@ -118,26 +104,26 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 // this map serves as our off-chain in-memory storage
-let Accounts: Map<string, Account> = new Map<Names, Account>();
-
-let bob = new Account(Local.testAccounts[0].publicKey, UInt32.from(0));
-let alice = new Account(Local.testAccounts[1].publicKey, UInt32.from(0));
-let charlie = new Account(Local.testAccounts[2].publicKey, UInt32.from(0));
-let olivia = new Account(Local.testAccounts[3].publicKey, UInt32.from(0));
-
-Accounts.set('Bob', bob);
-Accounts.set('Alice', alice);
-Accounts.set('Charlie', charlie);
-Accounts.set('Olivia', olivia);
+let Accounts: Map<string, Account> = new Map<Names, Account>(
+  ['Bob', 'Alice', 'Charlie', 'Olivia'].map((name: string, index: number) => {
+    return [
+      name as Names,
+      new Account({
+        publicKey: Local.testAccounts[index].publicKey,
+        points: UInt32.from(0),
+      }),
+    ];
+  })
+);
 
 // we now need "wrap" the Merkle tree around our off-chain storage
 // we initialize a new Merkle Tree with height 8
 const Tree = new MerkleTree(8);
 
-Tree.setLeaf(0n, bob.hash());
-Tree.setLeaf(1n, alice.hash());
-Tree.setLeaf(2n, charlie.hash());
-Tree.setLeaf(3n, olivia.hash());
+Tree.setLeaf(0n, Accounts.get('Bob')!.hash());
+Tree.setLeaf(1n, Accounts.get('Alice')!.hash());
+Tree.setLeaf(2n, Accounts.get('Charlie')!.hash());
+Tree.setLeaf(3n, Accounts.get('Olivia')!.hash());
 
 // now that we got our accounts set up, we need the commitment to deploy our contract!
 initialCommitment = Tree.getRoot();
@@ -154,6 +140,7 @@ let tx = await Mina.transaction(feePayer, () => {
   });
   leaderboardZkApp.deploy();
 });
+await tx.prove();
 await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
