@@ -13,6 +13,7 @@ import {
   Hash,
   packToFields,
 } from '../../provable/poseidon-bigint.js';
+import { mocks } from '../crypto/constants.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -22,6 +23,7 @@ export {
   ZkappUri,
   TokenSymbol,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
   StateHash,
 };
@@ -51,6 +53,12 @@ type ActionState = Field;
 const ActionState = {
   ...Field,
   emptyValue: Actions.emptyActionState,
+};
+
+type VerificationKeyHash = Field;
+const VerificationKeyHash = {
+  ...Field,
+  emptyValue: () => Field(mocks.dummyVerificationKeyHash),
 };
 
 type ReceiptChainHash = Field;

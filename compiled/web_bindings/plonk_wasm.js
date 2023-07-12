@@ -7460,15 +7460,6 @@ export class Wire {
         wasm.__wbg_wire_free(ptr);
     }
     /**
-    * @param {number} row
-    * @param {number} col
-    * @returns {Wire}
-    */
-    static create(row, col) {
-        const ret = wasm.wire_create(row, col);
-        return Wire.__wrap(ret);
-    }
-    /**
     * @returns {number}
     */
     get row() {
@@ -7493,6 +7484,15 @@ export class Wire {
     */
     set col(arg0) {
         wasm.__wbg_set_wire_col(this.ptr, arg0);
+    }
+    /**
+    * @param {number} row
+    * @param {number} col
+    * @returns {Wire}
+    */
+    static create(row, col) {
+        const ret = wasm.wire_create(row, col);
+        return Wire.__wrap(ret);
     }
 }
 

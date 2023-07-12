@@ -2362,7 +2362,6 @@ export interface InitOutput {
   readonly wasmfqopeningproof_sg: (a: number) => number;
   readonly wasmfqproverproof_set_prev_challenges_scalars: (a: number, b: number) => void;
   readonly __wbg_get_wasmfqoracles_o: (a: number) => number;
-  readonly fq_oracles_dummy: () => number;
   readonly __wbg_wasmfqoracles_free: (a: number) => void;
   readonly wasmfqplonkverificationevals_set_generic_comm: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_z_comm: (a: number, b: number) => void;
@@ -2381,6 +2380,7 @@ export interface InitOutput {
   readonly wasmfqprovercommitments_z_comm: (a: number) => number;
   readonly wasmfqopeningproof_set_sg: (a: number, b: number) => void;
   readonly __wbg_set_wasmfqoracles_o: (a: number, b: number) => void;
+  readonly fq_oracles_dummy: () => number;
   readonly __wbg_wasmfqopeningproof_free: (a: number) => void;
   readonly wasmfqplonkverificationevals_set_psm_comm: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_t_comm: (a: number, b: number) => void;
@@ -2494,12 +2494,12 @@ export interface InitOutput {
   readonly caml_pasta_fq_of_bytes: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_deep_copy: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_size_in_bits: () => number;
-  readonly wire_create: (a: number, b: number) => number;
   readonly __wbg_wire_free: (a: number) => void;
   readonly __wbg_get_wire_row: (a: number) => number;
   readonly __wbg_set_wire_row: (a: number, b: number) => void;
   readonly __wbg_get_wire_col: (a: number) => number;
   readonly __wbg_set_wire_col: (a: number, b: number) => void;
+  readonly wire_create: (a: number, b: number) => number;
   readonly memory: WebAssembly.Memory;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
