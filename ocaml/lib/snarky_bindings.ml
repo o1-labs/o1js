@@ -245,6 +245,8 @@ module Foreign_field = struct
 
   type t_const = Impl.field FF.Element.Standard.limbs_type
 
+  type op_mode = FF.op_mode
+
   (* high-level API of self-contained methods which do all necessary checks *)
 
   let assert_valid_element (x : t) (p : t_const) : unit =
@@ -252,7 +254,7 @@ module Foreign_field = struct
     let _ = FF.valid_element (module Impl) external_checks x p in
     FF.constrain_external_checks (module Impl) external_checks p
 
-  let sum_chain (x : t array) (ops : FF.op_mode array) (p : t_const) : t =
+  let sum_chain (x : t array) (ops : op_mode array) (p : t_const) : t =
     FF.sum_chain (module Impl) (Array.to_list x) (Array.to_list ops) p
 
   let mul (x : t) (y : t) (p : t_const) : t =
