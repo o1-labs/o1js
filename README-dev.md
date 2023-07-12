@@ -23,6 +23,9 @@ To see the test running in a web browser, go to `http://localhost:8000/`.
 
 ## Run tests
 
+If you are updating the bindings, you might need to clean first your
+environment using `npm run clean`.
+
 - Unit tests
 
   ```sh
