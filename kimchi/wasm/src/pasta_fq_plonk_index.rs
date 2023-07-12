@@ -1,7 +1,12 @@
 use ark_poly::EvaluationDomain;
+use kimchi::circuits::lookup::runtime_tables::RuntimeTableCfg;
 
+use crate::arkworks::WasmPastaFq;
 use crate::gate_vector::fq::WasmGateVector;
 use crate::srs::fq::WasmFqSrs as WasmSrs;
+use crate::wasm_flat_vector::WasmFlatVector;
+use crate::wasm_vector::fq::*;
+use kimchi::circuits::lookup::tables::LookupTable;
 use kimchi::circuits::{constraints::ConstraintSystem, gate::CircuitGate};
 use kimchi::linearization::expr_linearization;
 use kimchi::prover_index::ProverIndex;
@@ -21,6 +26,64 @@ use wasm_bindgen::prelude::*;
 /// Boxed so that we don't store large proving indexes in the OCaml heap.
 #[wasm_bindgen]
 pub struct WasmPastaFqPlonkIndex(#[wasm_bindgen(skip)] pub Box<ProverIndex<GAffine>>);
+
+#[wasm_bindgen]
+pub struct WasmPastaFqLookupTable {
+    #[wasm_bindgen(skip)]
+    pub id: i32,
+    #[wasm_bindgen(skip)]
+    pub data: WasmVecVecFq,
+}
+
+impl From<WasmPastaFqLookupTable> for LookupTable<Fq> {
+    fn from(wasm_lt: WasmPastaFqLookupTable) -> LookupTable<Fq> {
+        LookupTable {
+            id: wasm_lt.id.into(),
+            data: wasm_lt.data.0,
+        }
+    }
+}
+
+// JS constructor for js/bindings.js
+#[wasm_bindgen]
+impl WasmPastaFqLookupTable {
+    #[wasm_bindgen(constructor)]
+    pub fn new(id: i32, data: WasmVecVecFq) -> WasmPastaFqLookupTable {
+        WasmPastaFqLookupTable { id, data }
+    }
+}
+
+// Runtime table config
+
+#[wasm_bindgen]
+pub struct WasmPastaFqRuntimeTableCfg {
+    #[wasm_bindgen(skip)]
+    pub id: i32,
+    #[wasm_bindgen(skip)]
+    pub first_column: WasmFlatVector<WasmPastaFq>,
+}
+
+impl From<WasmPastaFqRuntimeTableCfg> for RuntimeTableCfg<Fq> {
+    fn from(wasm_rt_cfg: WasmPastaFqRuntimeTableCfg) -> Self {
+        Self {
+            id: wasm_rt_cfg.id,
+            first_column: wasm_rt_cfg
+                .first_column
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
+// JS constructor for js/bindings.js
+#[wasm_bindgen]
+impl WasmPastaFqRuntimeTableCfg {
+    #[wasm_bindgen(constructor)]
+    pub fn new(id: i32, first_column: WasmFlatVector<WasmPastaFq>) -> Self {
+        Self { id, first_column }
+    }
+}
 
 //
 // CamlPastaFqPlonkIndex methods
@@ -122,14 +185,13 @@ pub fn caml_pasta_fq_plonk_index_read(
 
     // optional offset in file
     if let Some(offset) = offset {
-        r.seek(Start(offset as u64)).map_err(|err| {
-            JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {}", err))
-        })?;
+        r.seek(Start(offset as u64))
+            .map_err(|err| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {err}")))?;
     }
 
     // deserialize the index
     let mut t = ProverIndex::<GAffine>::deserialize(&mut rmp_serde::Deserializer::new(r))
-        .map_err(|err| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {}", err)))?;
+        .map_err(|err| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {err}")))?;
     t.srs = srs.0.clone();
     let (linearization, powers_of_alpha) = expr_linearization(Some(&t.cs.feature_flags), true);
     t.linearization = linearization;
@@ -153,7 +215,7 @@ pub fn caml_pasta_fq_plonk_index_write(
     index
         .0
         .serialize(&mut rmp_serde::Serializer::new(w))
-        .map_err(|e| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {e}")))
 }
 
 #[wasm_bindgen]
