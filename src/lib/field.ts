@@ -376,8 +376,22 @@ class Field {
     return this.add(Field.from(y).neg());
   }
 
-  #parity() {
-    if (this.isConstant()) return new Field(this.toBigInt() % 2n);
+  /**
+   * Checks if this {@link Field} is even. Returns `true` for even elements and `false` for odd elements.
+   *
+   * @example
+   * ```ts
+   * let a = Field(5);
+   * a.isEven(); // false
+   * a.isEven().assertTrue(); // throws, as expected!
+   *
+   * let b = Field(4);
+   * b.isEven(); // true
+   * b.isEven().assertTrue(); // does not throw, as expected!
+   * ```
+   */
+  isEven() {
+    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 1n);
 
     let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
       let bits = Fp.toBits(this.toBigInt());
@@ -402,35 +416,7 @@ class Field {
     // check composition
     xDiv2.mul(2).add(isOdd).assertEquals(this);
 
-    return isOdd;
-  }
-
-  /**
-   * Assert that this {@link Field} is even.
-   *
-   * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
-   *
-   * @param message? - a string error message to print if the assertion fails, optional.
-   */
-  assertEven(message?: string) {
-    this.#parity().assertEquals(0, message);
-  }
-
-  /**
-   * Assert that this {@link Field} is odd.
-   *
-   * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
-   *
-   * @param message? - a string error message to print if the assertion fails, optional.
-   */
-  assertOdd(message?: string) {
-    this.#parity().assertEquals(1, message);
+    return new Bool(isOddVar);
   }
 
   /**

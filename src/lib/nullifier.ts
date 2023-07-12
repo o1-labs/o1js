@@ -64,7 +64,7 @@ class Nullifier extends Struct({
     } = Poseidon.hashToGroup([...message, ...pk_fields]);
 
     // check to prevent the prover from using the second square root and forging a non-unique nullifier
-    x0.assertEven();
+    x0.isEven().assertTrue();
 
     let h_m_pk = Group.fromFields([x, x0]);
 
