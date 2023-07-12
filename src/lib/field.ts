@@ -391,7 +391,7 @@ class Field {
    * ```
    */
   isEven() {
-    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 1n);
+    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
 
     let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
       let bits = Fp.toBits(this.toBigInt());
