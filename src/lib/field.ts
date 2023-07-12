@@ -2,8 +2,9 @@ import { Snarky, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
-import { asProver } from './provable-context.js';
+import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
+import { assert } from './errors.js';
 
 // external API
 export { Field };
@@ -16,6 +17,8 @@ export {
   FieldConst,
   isField,
   withMessage,
+  readVarMessage,
+  toConstantField,
   checkBitLength,
 };
 
@@ -206,6 +209,10 @@ class Field {
     return this.value[0] === FieldType.Constant;
   }
 
+  #toConstant(name: string): ConstantField {
+    return toConstantField(this, name, 'x', 'field element');
+  }
+
   /**
    * Create a {@link Field} element equivalent to this {@link Field} element's value,
    * but is a constant.
@@ -220,10 +227,7 @@ class Field {
    * @return A constant {@link Field} element equivalent to this {@link Field} element.
    */
   toConstant(): ConstantField {
-    if (this.isConstant()) return this;
-    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
-    let value = Snarky.field.readVar(this.value);
-    return new Field(value) as ConstantField;
+    return this.#toConstant('toConstant');
   }
 
   /**
@@ -240,7 +244,7 @@ class Field {
    * @return A bigint equivalent to the bigint representation of the Field.
    */
   toBigInt() {
-    let x = this.toConstant();
+    let x = this.#toConstant('toBigInt');
     return FieldConst.toBigint(x.value[1]);
   }
 
@@ -258,7 +262,7 @@ class Field {
    * @return A string equivalent to the string representation of the Field.
    */
   toString() {
-    return this.toBigInt().toString();
+    return this.#toConstant('toString').toBigInt().toString();
   }
 
   /**
@@ -1118,7 +1122,7 @@ class Field {
    * @return A string equivalent to the JSON representation of the {@link Field}.
    */
   toJSON() {
-    return this.toString();
+    return this.#toConstant('toJSON').toString();
   }
 
   /**
@@ -1224,17 +1228,12 @@ class Field {
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return [...t.toConstant().value[1]];
+    return [...toConstantField(t, 'toBytes').value[1]];
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
-    return [
-      Object.assign(Object.create(new Field(1).constructor.prototype), {
-        value: [0, uint8array],
-      }) as Field,
-      offset + 32,
-    ];
+    return [new Field(uint8array), offset + 32];
   },
 });
 
@@ -1277,4 +1276,49 @@ function checkBitLength(
     );
   if (length < 0)
     throw Error(`${name}: bit length must be non-negative, got ${length}`);
+}
+
+function toConstantField(
+  x: Field,
+  methodName: string,
+  varName = 'x',
+  varDescription = 'field element'
+): ConstantField {
+  // if this is a constant, return it
+  if (x.isConstant()) return x;
+
+  // a non-constant can only appear inside a checked computation. everything else is a bug.
+  assert(
+    inCheckedComputation(),
+    'variables only exist inside checked computations'
+  );
+
+  // if we are inside an asProver or witness block, read the variable's value and return it as constant
+  if (Snarky.run.inProverBlock()) {
+    let value = Snarky.field.readVar(x.value);
+    return new Field(value) as ConstantField;
+  }
+
+  // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
+  throw Error(readVarMessage(methodName, varName, varDescription));
+}
+
+function readVarMessage(
+  methodName: string,
+  varName: string,
+  varDescription: string
+) {
+  return `${varName}.${methodName}() was called on a variable ${varDescription} \`${varName}\` in provable code.
+This is not supported, because variables represent an abstract computation, 
+which only carries actual values during proving, but not during compiling.
+
+Also, reading out JS values means that whatever you're doing with those values will no longer be
+linked to the original variable in the proof, which makes this pattern prone to security holes.
+
+You can check whether your ${varDescription} is a variable or a constant by using ${varName}.isConstant().
+
+To inspect values for debugging, use Provable.log(${varName}). For more advanced use cases,
+there is \`Provable.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
+Warning: whatever happens inside asProver() will not be part of the zk proof.
+`;
 }
