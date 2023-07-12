@@ -15,9 +15,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/eaa39dca0...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/161b69d602...HEAD)
 
 > No unreleased changes yet
+
+## [0.12.0](https://github.com/o1-labs/snarkyjs/compare/eaa39dca0...161b69d602)
+
+### Breaking Changes
+
+- Fix the default verification key hash that was generated for AccountUpdates. This change adopts the default mechanism provided by Mina Protocol https://github.com/o1-labs/snarkyjs/pull/1021
+  - Please be aware that this alteration results in a breaking change affecting the verification key of already deployed contracts.
 
 ## [0.11.4](https://github.com/o1-labs/snarkyjs/compare/544489609...eaa39dca0)
 

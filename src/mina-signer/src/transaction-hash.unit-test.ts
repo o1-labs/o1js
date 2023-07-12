@@ -11,10 +11,12 @@ import {
 } from './transaction-hash.js';
 import {
   PaymentJson,
+  PaymentJsonV1,
   commonFromJson,
   paymentFromJson,
   CommonJson,
   DelegationJson,
+  DelegationJsonV1,
   delegationFromJson,
 } from './sign-legacy.js';
 import { Signature, SignatureJson } from './signature.js';
@@ -44,7 +46,7 @@ test(
     let paymentBytes0 = [...result.data];
     let payload = userCommandToEnum(paymentFromJson(payment.data));
     let command = {
-      signer: PublicKey.fromBase58(payment.data.body.source),
+      signer: PublicKey.fromBase58(payment.data.common.feePayer),
       signature: Signature.fromJSON(payment.signature),
       payload,
     };
@@ -68,7 +70,7 @@ test(
     let delegationBytes0 = [...result.data];
     payload = userCommandToEnum(delegationFromJson(delegation.data));
     command = {
-      signer: PublicKey.fromBase58(delegation.data.body.delegator),
+      signer: PublicKey.fromBase58(delegation.data.common.feePayer),
       signature: Signature.fromJSON(delegation.signature),
       payload,
     };
@@ -94,7 +96,7 @@ test(
     );
     let paymentV1Body = userCommandToV1(paymentFromJson(payment.data));
     let paymentV1 = {
-      signer: PublicKey.fromBase58(payment.data.body.source),
+      signer: PublicKey.fromBase58(payment.data.common.feePayer),
       signature: Signature.fromJSON(payment.signature),
       payload: paymentV1Body,
     };
@@ -114,7 +116,7 @@ test(
     );
     let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
     let delegationV1 = {
-      signer: PublicKey.fromBase58(delegation.data.body.delegator),
+      signer: PublicKey.fromBase58(delegation.data.common.feePayer),
       signature: Signature.fromJSON(delegation.signature),
       payload: delegationV1Body,
     };
@@ -152,16 +154,16 @@ test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) => {
 function paymentToOcaml({
   data: {
     common,
-    body: { source, receiver, amount },
+    body: { receiver, amount },
   },
   signature,
 }: SignedLegacy<PaymentJson>) {
   return {
     payload: {
       common: commonToOcaml(common),
-      body: ['Payment', { source_pk: source, receiver_pk: receiver, amount }],
+      body: ['Payment', { receiver_pk: receiver, amount }],
     },
-    signer: source,
+    signer: common.feePayer,
     signature: signatureToOCaml(signature),
   };
 }
@@ -169,7 +171,7 @@ function paymentToOcaml({
 function paymentToOcamlV1({
   data: {
     common,
-    body: { source, receiver, amount },
+    body: { receiver, amount },
   },
   signature,
 }: SignedLegacy<PaymentJson>) {
@@ -178,10 +180,10 @@ function paymentToOcamlV1({
       common: commonToOcamlV1(common),
       body: [
         'Payment',
-        { source_pk: source, receiver_pk: receiver, amount, token_id: '1' },
+        { source_pk: common.feePayer, receiver_pk: receiver, amount, token_id: '1' },
       ],
     },
-    signer: source,
+    signer: common.feePayer,
     signature: signatureToOCaml(signature),
   };
 }
@@ -189,7 +191,7 @@ function paymentToOcamlV1({
 function delegationToOcaml({
   data: {
     common,
-    body: { delegator, newDelegate },
+    body: { newDelegate },
   },
   signature,
 }: SignedLegacy<DelegationJson>) {
@@ -198,10 +200,10 @@ function delegationToOcaml({
       common: commonToOcaml(common),
       body: [
         'Stake_delegation',
-        ['Set_delegate', { delegator, new_delegate: newDelegate }],
+        ['Set_delegate', { new_delegate: newDelegate }],
       ],
     },
-    signer: delegator,
+    signer: common.feePayer,
     signature: signatureToOCaml(signature),
   };
 }
@@ -209,7 +211,7 @@ function delegationToOcaml({
 function delegationToOcamlV1({
   data: {
     common,
-    body: { delegator, newDelegate },
+    body: { newDelegate },
   },
   signature,
 }: SignedLegacy<DelegationJson>) {
@@ -218,10 +220,10 @@ function delegationToOcamlV1({
       common: commonToOcamlV1(common),
       body: [
         'Stake_delegation',
-        ['Set_delegate', { delegator, new_delegate: newDelegate }],
+        ['Set_delegate', { delegator: common.feePayer, new_delegate: newDelegate }],
       ],
     },
-    signer: delegator,
+    signer: common.feePayer,
     signature: signatureToOCaml(signature),
   };
 }
@@ -232,7 +234,7 @@ function commonToOcaml({ fee, feePayer, nonce, validUntil, memo }: CommonJson) {
     fee: fee === '0' ? fee : fee.slice(0, -9),
     fee_payer_pk: feePayer,
     nonce,
-    valid_until: validUntil,
+    valid_until: ['Since_genesis', validUntil],
     memo,
   };
 }

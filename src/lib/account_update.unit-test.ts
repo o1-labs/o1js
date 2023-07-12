@@ -9,6 +9,7 @@ import {
 } from '../index.js';
 import { Test } from '../snarky.js';
 import { expect } from 'expect';
+import { dummyVerificationKeyHash } from './proof_system.js';
 
 let address = PrivateKey.random().toPublicKey();
 
@@ -95,6 +96,14 @@ function createAccountUpdate() {
   ).toEqual(
     '25079927036070901246064867767436987657692091363973573142121686150614948079097'
   );
+}
+
+// creates the right empty vk hash
+{
+  let accountUpdate = createAccountUpdate();
+  expect(
+    accountUpdate.body.authorizationKind.verificationKeyHash.toString()
+  ).toEqual(dummyVerificationKeyHash().toString());
 }
 
 // does not throw an error if private key is missing unless if .send is executed

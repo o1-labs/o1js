@@ -1,4 +1,4 @@
-import { Bool, Field, UInt64 } from '../../provable/field-bigint.js';
+import { Bool, Field, UInt32, UInt64 } from '../../provable/field-bigint.js';
 import {
   Binable,
   BinableString,
@@ -51,7 +51,7 @@ function hashPayment(
   if (!berkeley) return hashPaymentV1(signed);
   let payload = userCommandToEnum(paymentFromJson(signed.data));
   return hashSignedCommand({
-    signer: PublicKey.fromBase58(signed.data.body.source),
+    signer: PublicKey.fromBase58(signed.data.common.feePayer),
     signature: dummySignature,
     payload,
   });
@@ -64,7 +64,7 @@ function hashStakeDelegation(
   if (!berkeley) return hashStakeDelegationV1(signed);
   let payload = userCommandToEnum(delegationFromJson(signed.data));
   return hashSignedCommand({
-    signer: PublicKey.fromBase58(signed.data.body.delegator),
+    signer: PublicKey.fromBase58(signed.data.common.feePayer),
     signature: dummySignature,
     payload,
   });
@@ -82,14 +82,14 @@ function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
   let { tag: type, ...value } = body;
   switch (type) {
     case 'Payment':
-      return { common, body: { type, value } };
+      return { common, body: { type, value: { receiver: body.receiver, amount: body.amount } } };
     case 'StakeDelegation':
-      let { source: delegator, receiver: newDelegate } = value;
+      let { receiver: newDelegate } = value;
       return {
         common,
         body: {
           type,
-          value: { type: 'SetDelegate', value: { delegator, newDelegate } },
+          value: { type: 'SetDelegate', value: { newDelegate } },
         },
       };
   }
@@ -98,28 +98,31 @@ function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
 // binable
 
 let BinablePublicKey = record({ x: Field, isOdd: Bool }, ['x', 'isOdd']);
+type GlobalSlotSinceGenesis = Common['validUntil'];
+let GlobalSlotSinceGenesis = enumWithArgument<[GlobalSlotSinceGenesis]>([
+  { type: 'SinceGenesis', value: BinableUint32 },
+]);
 
 const Common = record<Common>(
   {
     fee: BinableUint64,
     feePayer: BinablePublicKey,
     nonce: BinableUint32,
-    validUntil: BinableUint32,
+    validUntil: GlobalSlotSinceGenesis,
     memo: BinableString,
   },
   ['fee', 'feePayer', 'nonce', 'validUntil', 'memo']
 );
 const Payment = record<Payment>(
   {
-    source: BinablePublicKey,
     receiver: BinablePublicKey,
     amount: BinableUint64,
   },
-  ['source', 'receiver', 'amount']
+  ['receiver', 'amount']
 );
 const Delegation = record<Delegation>(
-  { delegator: BinablePublicKey, newDelegate: BinablePublicKey },
-  ['delegator', 'newDelegate']
+  { newDelegate: BinablePublicKey },
+  ['newDelegate']
 );
 type DelegationEnum = { type: 'SetDelegate'; value: Delegation };
 const DelegationEnum = enumWithArgument<[DelegationEnum]>([
@@ -170,7 +173,7 @@ const HashBase58 = base58(
 function hashPaymentV1({ data, signature }: SignedLegacy<PaymentJson>) {
   let paymentV1 = userCommandToV1(paymentFromJson(data));
   return hashSignedCommandV1({
-    signer: PublicKey.fromBase58(data.body.source),
+    signer: PublicKey.fromBase58(data.common.feePayer),
     signature: Signature.fromJSON(signature),
     payload: paymentV1,
   });
@@ -182,7 +185,7 @@ function hashStakeDelegationV1({
 }: SignedLegacy<DelegationJson>) {
   let payload = userCommandToV1(delegationFromJson(data));
   return hashSignedCommandV1({
-    signer: PublicKey.fromBase58(data.body.delegator),
+    signer: PublicKey.fromBase58(data.common.feePayer),
     signature: Signature.fromJSON(signature),
     payload,
   });
@@ -197,7 +200,11 @@ function hashSignedCommandV1(command: SignedCommandV1) {
 
 function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
   let { tag: type, ...value } = body;
-  let commonV1: CommonV1 = { ...common, feeToken: 1n };
+  let commonV1: CommonV1 = {
+    ...common,
+    validUntil: common.validUntil.value,
+    feeToken: 1n,
+  };
   switch (type) {
     case 'Payment':
       let paymentV1: PaymentV1 = { ...value, tokenId: 1n };
@@ -223,7 +230,15 @@ function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
 const with1 = <T>(binable: Binable<T>) => withVersionNumber(binable, 1);
 const Uint64V1 = with1(with1(BinableUint64));
 const Uint32V1 = with1(with1(BinableUint32));
-type CommonV1 = Common & { feeToken: UInt64 };
+type CommonV1 = {
+  fee: UInt64;
+  feePayer: PublicKey;
+  nonce: UInt32;
+  validUntil: UInt32;
+  memo: string;
+  feeToken: UInt64;
+};
+
 const CommonV1 = with1(
   with1(
     record<CommonV1>(
@@ -239,7 +254,7 @@ const CommonV1 = with1(
     )
   )
 );
-type PaymentV1 = Payment & { tokenId: UInt64 };
+type PaymentV1 = Payment & { source: PublicKey, tokenId: UInt64 };
 const PaymentV1 = with1(
   with1(
     record<PaymentV1>(
@@ -253,23 +268,25 @@ const PaymentV1 = with1(
     )
   )
 );
-const DelegationV1 = record<Delegation>(
+type DelegationV1 = Delegation & { delegator: PublicKey };
+const DelegationV1 = record<DelegationV1>(
   { delegator: PublicKey, newDelegate: PublicKey },
   ['delegator', 'newDelegate']
 );
+type DelegationEnumV1 = { type: 'SetDelegate'; value: DelegationV1 };
 const DelegationEnumV1 = with1(
-  enumWithArgument<[DelegationEnum]>([
+  enumWithArgument<[DelegationEnumV1]>([
     { type: 'SetDelegate', value: DelegationV1 },
   ])
 );
 type BodyV1 =
   | { type: 'Payment'; value: PaymentV1 }
-  | { type: 'StakeDelegation'; value: DelegationEnum };
+  | { type: 'StakeDelegation'; value: DelegationEnumV1 };
 const BodyV1 = with1(
   enumWithArgument<
     [
       { type: 'Payment'; value: PaymentV1 },
-      { type: 'StakeDelegation'; value: DelegationEnum }
+      { type: 'StakeDelegation'; value: DelegationEnumV1 }
     ]
   >([
     { type: 'Payment', value: PaymentV1 },
