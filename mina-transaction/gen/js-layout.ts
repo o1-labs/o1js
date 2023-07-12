@@ -413,7 +413,7 @@ let jsLayout = {
                           rangeMax: '4294967295',
                           inner: {
                             type: 'object',
-                            name: 'GlobalSlotInterval',
+                            name: 'GlobalSlotSinceGenesisInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
                             entries: {
@@ -708,7 +708,7 @@ let jsLayout = {
                       rangeMax: '4294967295',
                       inner: {
                         type: 'object',
-                        name: 'GlobalSlotInterval',
+                        name: 'GlobalSlotSinceGenesisInterval',
                         docs: null,
                         keys: ['lower', 'upper'],
                         entries: {
@@ -749,7 +749,11 @@ let jsLayout = {
                   entries: {
                     isSigned: { type: 'Bool' },
                     isProved: { type: 'Bool' },
-                    verificationKeyHash: { type: 'Field' },
+                    verificationKeyHash: {
+                      type: 'Field',
+                      checkedType: { type: 'Field' },
+                      checkedTypeName: 'VerificationKeyHash',
+                    },
                   },
                   docEntries: {
                     isSigned: null,
@@ -1171,7 +1175,7 @@ let jsLayout = {
                     rangeMax: '4294967295',
                     inner: {
                       type: 'object',
-                      name: 'GlobalSlotInterval',
+                      name: 'GlobalSlotSinceGenesisInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
                       entries: {
@@ -1466,7 +1470,7 @@ let jsLayout = {
                 rangeMax: '4294967295',
                 inner: {
                   type: 'object',
-                  name: 'GlobalSlotInterval',
+                  name: 'GlobalSlotSinceGenesisInterval',
                   docs: null,
                   keys: ['lower', 'upper'],
                   entries: {
@@ -1500,7 +1504,11 @@ let jsLayout = {
             entries: {
               isSigned: { type: 'Bool' },
               isProved: { type: 'Bool' },
-              verificationKeyHash: { type: 'Field' },
+              verificationKeyHash: {
+                type: 'Field',
+                checkedType: { type: 'Field' },
+                checkedTypeName: 'VerificationKeyHash',
+              },
             },
             docEntries: {
               isSigned: null,
