@@ -1,5 +1,5 @@
 // @gen this file is generated - don't edit it directly
-export { prefixes, versionBytes, poseidonParamsKimchiFp, poseidonParamsLegacyFp }
+export { prefixes, versionBytes, poseidonParamsKimchiFp, poseidonParamsLegacyFp, mocks }
 
 let prefixes = {
   "event": "MinaZkappEvent******",
@@ -855,5 +855,9 @@ let poseidonParamsLegacyFp = {
   "stateSize": 3,
   "rate": 2,
   "power": 5
+};
+let mocks = {
+  "dummyVerificationKeyHash":
+    "3392518251768960475377392625298437850623664973002200885669375116181514017494"
 };
 

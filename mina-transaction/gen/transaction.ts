@@ -15,6 +15,7 @@ import {
   Events,
   Actions,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
 } from '../transaction-leaves.js';
 import { GenericProvableExtended } from '../../lib/generic.js';
@@ -85,6 +86,7 @@ type CustomTypes = {
     Json.TypeMap['Field'][][]
   >;
   ActionState: ProvableExtended<Field, Json.TypeMap['Field']>;
+  VerificationKeyHash: ProvableExtended<Field, Json.TypeMap['Field']>;
   ReceiptChainHash: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
@@ -94,6 +96,7 @@ let customTypes: CustomTypes = {
   Events,
   Actions,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
 };
 let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
