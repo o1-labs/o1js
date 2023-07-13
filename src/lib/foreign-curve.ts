@@ -65,7 +65,6 @@ type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
 function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
   const curveParamsMl = Snarky.foreignCurve.create(MlCurveParams(curve));
   const curveName = curve.name;
-  const hasCofactor = curve.cofactor !== undefined && curve.cofactor !== 1n;
 
   class BaseField extends createForeignField(curve.modulus, { unsafe }) {}
   class ScalarField extends createForeignField(curve.order, { unsafe }) {}
@@ -293,7 +292,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
       if (unsafe) return;
       super.check(g); // check that x, y are valid field elements
       ForeignCurve.#assertOnCurve(g);
-      if (hasCofactor) ForeignCurve.#assertInSubgroup(g);
+      if (ConstantCurve.hasCofactor) ForeignCurve.#assertInSubgroup(g);
     }
 
     static BaseField = BaseField;

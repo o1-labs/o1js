@@ -138,7 +138,7 @@ function verifyEcdsa(
   let q = Curve.order;
   let QA = Curve.fromNonzero(publicKey);
   if (!Curve.isOnCurve(QA)) return false;
-  // TODO subgroup check conditional on whether there is a cofactor
+  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
   if (r < 1n || r >= Curve.order) return false;
   if (s < 1n || s >= Curve.order) return false;
 
