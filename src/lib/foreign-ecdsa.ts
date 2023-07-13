@@ -1,3 +1,5 @@
+import { inverse, mod } from '../bindings/crypto/finite_field.js';
+import { CurveAffine } from '../bindings/crypto/elliptic_curve.js';
 import { Snarky } from '../snarky.js';
 import { Struct, isConstant } from './circuit_value.js';
 import {
@@ -79,10 +81,26 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
       msgHash: Scalar | bigint,
       publicKey: Curve | { x: BaseField | bigint; y: BaseField | bigint }
     ): void {
+      let msgHash_ = Scalar.from(msgHash);
+      let publicKey_ = Curve.from(publicKey);
+
+      if (isConstant(Signature, this)) {
+        let signature = { r: this.r.toBigInt(), s: this.s.toBigInt() };
+        let isValid = verifyEcdsa(
+          Curve.Bigint,
+          signature,
+          msgHash_.toBigInt(),
+          publicKey_.toBigint()
+        );
+        if (!isValid) {
+          throw Error(`${this.constructor.name}.verify(): Invalid signature.`);
+        }
+        return;
+      }
       let curve = Curve0._getParams(`${this.constructor.name}.verify`);
       let signatureMl = signatureToMl(this);
-      let msgHashMl = Scalar.from(msgHash).value;
-      let publicKeyMl = affineToMl(Curve.from(publicKey));
+      let msgHashMl = msgHash_.value;
+      let publicKeyMl = affineToMl(publicKey_);
       Snarky.ecdsa.verify(signatureMl, msgHashMl, publicKeyMl, curve);
     }
 
@@ -96,6 +114,7 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
           throw Error(`${this.name}.check(): r must be non-zero`);
         if (signature.s.toBigInt() === 0n)
           throw Error(`${this.name}.check(): s must be non-zero`);
+        return;
       }
       let curve = Curve0._getParams(`${this.name}.check`);
       let signatureMl = signatureToMl(signature);
@@ -106,4 +125,31 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
   }
 
   return EcdsaSignature;
+}
+
+/**
+ * Bigint implementation of ECDSA verify
+ */
+function verifyEcdsa(
+  Curve: CurveAffine,
+  { r, s }: { r: bigint; s: bigint },
+  msgHash: bigint,
+  publicKey: { x: bigint; y: bigint }
+) {
+  let q = Curve.order;
+  let QA = Curve.fromNonzero(publicKey);
+  if (!Curve.isOnCurve(QA)) return false;
+  // TODO subgroup check conditional on whether there is a cofactor
+  if (r < 1n || r >= Curve.order) return false;
+  if (s < 1n || s >= Curve.order) return false;
+
+  let sInv = inverse(s, q);
+  if (sInv === undefined) throw Error('impossible');
+  let u1 = mod(msgHash * sInv, q);
+  let u2 = mod(r * sInv, q);
+
+  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
+  if (Curve.equal(X, Curve.zero)) return false;
+
+  return mod(X.x, q) === r;
 }

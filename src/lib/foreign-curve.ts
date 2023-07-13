@@ -298,6 +298,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
 
     static BaseField = BaseField;
     static Scalar = ScalarField;
+    static Bigint = ConstantCurve;
   }
 
   return ForeignCurve;

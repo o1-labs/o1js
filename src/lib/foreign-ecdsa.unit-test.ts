@@ -21,22 +21,22 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-console.time('ecdsa verify (witness gen / check)');
-Provable.runAndCheck(() => {
+function main() {
   Secp256k1.initialize();
   let signature0 = Provable.witness(EthSignature, () => signature);
-
   signature0.verify(msgHash, publicKey);
-});
+}
+
+console.time('ecdsa verify (constant)');
+main();
+console.timeEnd('ecdsa verify (constant)');
+
+console.time('ecdsa verify (witness gen / check)');
+Provable.runAndCheck(main);
 console.timeEnd('ecdsa verify (witness gen / check)');
 
 console.time('ecdsa verify (build constraint system)');
-let cs = Provable.constraintSystem(() => {
-  Secp256k1.initialize();
-  let signature0 = Provable.witness(EthSignature, () => signature);
-
-  signature0.verify(msgHash, publicKey);
-});
+let cs = Provable.constraintSystem(main);
 console.timeEnd('ecdsa verify (build constraint system)');
 
 let gateTypes: Record<string, number> = {};
