@@ -85,10 +85,9 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
       let publicKey_ = Curve.from(publicKey);
 
       if (isConstant(Signature, this)) {
-        let signature = { r: this.r.toBigInt(), s: this.s.toBigInt() };
         let isValid = verifyEcdsa(
           Curve.Bigint,
-          signature,
+          { r: this.r.toBigInt(), s: this.s.toBigInt() },
           msgHash_.toBigInt(),
           publicKey_.toBigint()
         );
