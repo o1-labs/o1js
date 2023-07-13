@@ -1,6 +1,7 @@
 import { createCurveAffine } from '../bindings/crypto/elliptic_curve.js';
 import { Snarky } from '../snarky.js';
 import { Bool } from './bool.js';
+import type { Group } from './group.js';
 import { Struct, isConstant } from './circuit_value.js';
 import {
   ForeignField,
@@ -38,6 +39,29 @@ function toMl({ x, y }: Affine): ForeignCurveVar {
 
 type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
 
+/**
+ * Create a class representing an elliptic curve group, which is different from the native {@link Group}.
+ *
+ * ```ts
+ * const Curve = createForeignCurve(secp256k1Params); // the elliptic curve 'secp256k1'
+ * ```
+ *
+ * `createForeignCurve(params)` takes the curve parameters {@link CurveParams} as input.
+ * We support `modulus` and `order` to be prime numbers to 259 bits.
+ *
+ * The returned {@link ForeignCurve} class supports standard elliptic curve operations like point addition and scalar multiplication.
+ * It also includes to associated foreign fields: `ForeignCurve.BaseField` and `ForeignCurve.Scalar`, see {@link createForeignField}.
+ *
+ * _Advanced usage:_
+ *
+ * To skip automatic validity checks when introducing curve points and scalars into provable code,
+ * use the optional `{ unsafe: true }` configuration. See {@link createForeignField} for details.
+ * This option is applied to both the scalar field and the base field.
+ *
+ * @param curve parameters for the elliptic curve you are instantiating
+ * @param options
+ * - `unsafe: boolean` determines whether `ForeignField` elements are constrained to be valid on creation.
+ */
 function createForeignCurve(curve: CurveParams) {
   const curveParamsMl = Snarky.foreignCurve.create(MlCurveParams(curve));
   const curveName = curve.name;
@@ -62,6 +86,15 @@ function createForeignCurve(curve: CurveParams) {
   }
 
   class ForeignCurve extends Affine {
+    /**
+     * Create a new {@link ForeignCurve} from an object representing the (affine) x and y coordinates.
+     * @example
+     * ```ts
+     * let x = new ForeignCurve({ x: 1n, y: 1n });
+     * ```
+     *
+     * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
+     */
     constructor(
       g:
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
@@ -80,6 +113,8 @@ function createForeignCurve(curve: CurveParams) {
         y_ = BaseField.from(y);
       }
       super({ x: x_, y: y_ });
+      // don't allow constants that aren't on the curve
+      if (this.isConstant()) this.assertOnCurve();
     }
 
     static from(
@@ -159,7 +194,7 @@ function createForeignCurve(curve: CurveParams) {
         if (!isOnCurve)
           throw Error(
             `${this.constructor.name}.assertOnCurve(): ${JSON.stringify(
-              this
+              ForeignCurve.toJSON(this)
             )} is not on the curve.`
           );
         return;
