@@ -168,6 +168,11 @@ function createForeignCurve(curve: CurveParams) {
 
     // TODO wrap this in a `Scalar` type which is a Bool array under the hood?
     scale(scalar: Bool[]) {
+      if (this.isConstant() && scalar.every((b) => b.isConstant())) {
+        let scalar0 = scalar.map((b) => b.toBoolean());
+        let z = ConstantCurve.scale(this.#toConstant(), scalar0);
+        return new ForeignCurve(z);
+      }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.scale`);
       let p = Snarky.foreignCurve.scale(
         toMl(this),
