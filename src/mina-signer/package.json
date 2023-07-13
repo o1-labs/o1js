@@ -4,6 +4,7 @@
   "version": "2.1.0",
   "type": "module",
   "scripts": {
+    "clean": "npx rimraf dist",
     "build": "tsc -p ../../tsconfig.mina-signer.json",
     "build:cjs": "./build-cjs.sh",
     "build:web": "./build-web.sh",
