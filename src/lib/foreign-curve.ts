@@ -1,6 +1,7 @@
+import { createCurveAffine } from '../bindings/crypto/elliptic_curve.js';
 import { Snarky } from '../snarky.js';
 import { Bool } from './bool.js';
-import { Struct } from './circuit_value.js';
+import { Struct, isConstant } from './circuit_value.js';
 import {
   ForeignField,
   ForeignFieldConst,
@@ -46,6 +47,13 @@ function createForeignCurve(curve: CurveParams) {
   // this is necessary to simplify the type of ForeignCurve, to avoid
   // TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize.
   const Affine: Struct<Affine> = Struct({ x: BaseField, y: BaseField });
+
+  const ConstantCurve = createCurveAffine({
+    p: curve.modulus,
+    a: curve.a,
+    b: curve.b,
+    generator: curve.gen,
+  });
 
   return class ForeignCurve extends Affine {
     constructor(
@@ -95,30 +103,63 @@ function createForeignCurve(curve: CurveParams) {
 
     static generator = new ForeignCurve(curve.gen);
 
+    isConstant() {
+      return isConstant(ForeignCurve, this);
+    }
+
+    toBigint() {
+      return { x: this.x.toBigInt(), y: this.y.toBigInt() };
+    }
+    #toConstant() {
+      return { ...this.toBigint(), infinity: false };
+    }
+
     add(
       h:
         | ForeignCurve
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
     ) {
       let h_ = ForeignCurve.from(h);
+      if (this.isConstant() && h_.isConstant()) {
+        let z = ConstantCurve.add(this.#toConstant(), h_.#toConstant());
+        return new ForeignCurve(z);
+      }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.add`);
       let p = Snarky.foreignCurve.add(toMl(this), toMl(h_), curve);
       return new ForeignCurve(p);
     }
 
     double() {
+      if (this.isConstant()) {
+        let z = ConstantCurve.double(this.#toConstant());
+        return new ForeignCurve(z);
+      }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.double`);
       let p = Snarky.foreignCurve.double(toMl(this), curve);
       return new ForeignCurve(p);
     }
 
     negate() {
+      if (this.isConstant()) {
+        let z = ConstantCurve.negate(this.#toConstant());
+        return new ForeignCurve(z);
+      }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.negate`);
       let p = Snarky.foreignCurve.negate(toMl(this), curve);
       return new ForeignCurve(p);
     }
 
     assertOnCurve() {
+      if (this.isConstant()) {
+        let isOnCurve = ConstantCurve.isOnCurve(this.#toConstant());
+        if (!isOnCurve)
+          throw Error(
+            `${this.constructor.name}.assertOnCurve(): ${JSON.stringify(
+              this
+            )} is not on the curve.`
+          );
+        return;
+      }
       let curve = ForeignCurve._getParams(
         `${this.constructor.name}.assertOnCurve`
       );
