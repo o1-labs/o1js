@@ -21,7 +21,7 @@ function main() {
 
   h0.assertOnCurve();
   // TODO super slow
-  // h0.checkSubgroup();
+  // h0.assertInSubgroup();
 
   let scalar0 = Provable.witness(Field, () => new Field(scalar)).toBits();
   // TODO super slow

@@ -50,6 +50,7 @@ function createForeignCurve(curve: CurveParams) {
 
   const ConstantCurve = createCurveAffine({
     p: curve.modulus,
+    order: curve.order,
     a: curve.a,
     b: curve.b,
     generator: curve.gen,
@@ -182,8 +183,18 @@ function createForeignCurve(curve: CurveParams) {
       return new ForeignCurve(p);
     }
 
-    checkSubgroup() {
-      let curve = ForeignCurve._getParams(`${curveName}.checkSubgroup`);
+    assertInSubgroup() {
+      if (this.isConstant()) {
+        let isInGroup = ConstantCurve.isInSubgroup(this.#toConstant());
+        if (!isInGroup)
+          throw Error(
+            `${this.constructor.name}.assertInSubgroup(): ${JSON.stringify(
+              this
+            )} is not in the target subgroup.`
+          );
+        return;
+      }
+      let curve = ForeignCurve._getParams(`${curveName}.assertInSubgroup`);
       Snarky.foreignCurve.checkSubgroup(toMl(this), curve);
     }
 
