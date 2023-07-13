@@ -4,6 +4,7 @@ export { Field, Bool, Group, Scalar } from './lib/core.js';
 export { createForeignField, ForeignField } from './lib/foreign-field.js';
 export { createForeignCurve } from './lib/foreign-curve.js';
 export { createEcdsa } from './lib/foreign-ecdsa.js';
+export { vestaParams, secp256k1Params } from './lib/foreign-curve-params.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export type {
