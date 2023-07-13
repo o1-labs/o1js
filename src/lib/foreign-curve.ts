@@ -136,7 +136,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
     static #curveParamsMlVar: unknown | undefined;
 
     /**
-     * Initialize usage of the curve. This function has to be called oncel per provable method to use the curve.
+     * Initialize usage of the curve. This function has to be called once per provable method to use the curve.
      */
     static initialize() {
       if (!inCheckedComputation()) return;
@@ -291,6 +291,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
      */
     static check(g: Affine) {
       if (unsafe) return;
+      super.check(g); // check that x, y are valid field elements
       ForeignCurve.#assertOnCurve(g);
       if (hasCofactor) ForeignCurve.#assertInSubgroup(g);
     }
