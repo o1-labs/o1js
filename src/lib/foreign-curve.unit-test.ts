@@ -25,12 +25,21 @@ function main() {
 
   let scalar0 = Provable.witness(Field, () => new Field(scalar)).toBits();
   // TODO super slow
-  // let p0 = h0.scale(scalar0);
-  // Provable.assertEqual(Vesta, p0, new Vesta(p));
+  let p0 = h0.scale(scalar0);
+  Provable.assertEqual(Vesta, p0, new Vesta(p));
 }
 
+console.time('running constant version');
+main();
+console.timeEnd('running constant version');
+
+console.time('running witness generation & checks');
 Provable.runAndCheck(main);
+console.timeEnd('running witness generation & checks');
+
+console.time('creating constraint system');
 let { gates } = Provable.constraintSystem(main);
+console.timeEnd('creating constraint system');
 
 let gateTypes: Record<string, number> = {};
 for (let gate of gates) {

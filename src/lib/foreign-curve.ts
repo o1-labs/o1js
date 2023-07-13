@@ -10,6 +10,7 @@ import {
 } from './foreign-field.js';
 import { MlBigint } from './ml/base.js';
 import { MlBoolArray } from './ml/fields.js';
+import { inCheckedComputation } from './provable-context.js';
 
 // external API
 export { createForeignCurve, CurveParams };
@@ -56,7 +57,11 @@ function createForeignCurve(curve: CurveParams) {
     generator: curve.gen,
   });
 
-  return class ForeignCurve extends Affine {
+  function toConstant(x: ForeignCurve) {
+    return { ...x.toBigint(), infinity: false };
+  }
+
+  class ForeignCurve extends Affine {
     constructor(
       g:
         | { x: BaseField | bigint | number; y: BaseField | bigint | number }
@@ -89,6 +94,7 @@ function createForeignCurve(curve: CurveParams) {
     static #curveParamsMlVar: unknown | undefined;
 
     static initialize() {
+      if (!inCheckedComputation()) return;
       ForeignCurve.#curveParamsMlVar =
         Snarky.foreignCurve.paramsToVars(curveParamsMl);
     }
@@ -111,9 +117,6 @@ function createForeignCurve(curve: CurveParams) {
     toBigint() {
       return { x: this.x.toBigInt(), y: this.y.toBigInt() };
     }
-    #toConstant() {
-      return { ...this.toBigint(), infinity: false };
-    }
 
     add(
       h:
@@ -122,7 +125,7 @@ function createForeignCurve(curve: CurveParams) {
     ) {
       let h_ = ForeignCurve.from(h);
       if (this.isConstant() && h_.isConstant()) {
-        let z = ConstantCurve.add(this.#toConstant(), h_.#toConstant());
+        let z = ConstantCurve.add(toConstant(this), toConstant(h_));
         return new ForeignCurve(z);
       }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.add`);
@@ -132,7 +135,7 @@ function createForeignCurve(curve: CurveParams) {
 
     double() {
       if (this.isConstant()) {
-        let z = ConstantCurve.double(this.#toConstant());
+        let z = ConstantCurve.double(toConstant(this));
         return new ForeignCurve(z);
       }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.double`);
@@ -142,7 +145,7 @@ function createForeignCurve(curve: CurveParams) {
 
     negate() {
       if (this.isConstant()) {
-        let z = ConstantCurve.negate(this.#toConstant());
+        let z = ConstantCurve.negate(toConstant(this));
         return new ForeignCurve(z);
       }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.negate`);
@@ -152,7 +155,7 @@ function createForeignCurve(curve: CurveParams) {
 
     assertOnCurve() {
       if (this.isConstant()) {
-        let isOnCurve = ConstantCurve.isOnCurve(this.#toConstant());
+        let isOnCurve = ConstantCurve.isOnCurve(toConstant(this));
         if (!isOnCurve)
           throw Error(
             `${this.constructor.name}.assertOnCurve(): ${JSON.stringify(
@@ -171,7 +174,7 @@ function createForeignCurve(curve: CurveParams) {
     scale(scalar: Bool[]) {
       if (this.isConstant() && scalar.every((b) => b.isConstant())) {
         let scalar0 = scalar.map((b) => b.toBoolean());
-        let z = ConstantCurve.scale(this.#toConstant(), scalar0);
+        let z = ConstantCurve.scale(toConstant(this), scalar0);
         return new ForeignCurve(z);
       }
       let curve = ForeignCurve._getParams(`${this.constructor.name}.scale`);
@@ -185,7 +188,7 @@ function createForeignCurve(curve: CurveParams) {
 
     assertInSubgroup() {
       if (this.isConstant()) {
-        let isInGroup = ConstantCurve.isInSubgroup(this.#toConstant());
+        let isInGroup = ConstantCurve.isInSubgroup(toConstant(this));
         if (!isInGroup)
           throw Error(
             `${this.constructor.name}.assertInSubgroup(): ${JSON.stringify(
@@ -200,7 +203,9 @@ function createForeignCurve(curve: CurveParams) {
 
     static BaseField = BaseField;
     static Scalar = ScalarField;
-  };
+  }
+
+  return ForeignCurve;
 }
 
 /**
