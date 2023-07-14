@@ -9,7 +9,6 @@ import {
 } from '../index.js';
 import { Test } from '../snarky.js';
 import { expect } from 'expect';
-import { dummyVerificationKeyHash } from './proof_system.js';
 
 let address = PrivateKey.random().toPublicKey();
 
@@ -103,7 +102,7 @@ function createAccountUpdate() {
   let accountUpdate = createAccountUpdate();
   expect(
     accountUpdate.body.authorizationKind.verificationKeyHash.toString()
-  ).toEqual(dummyVerificationKeyHash().toString());
+  ).toEqual('0');
 }
 
 // does not throw an error if private key is missing unless if .send is executed
