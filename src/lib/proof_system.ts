@@ -52,7 +52,6 @@ export {
   isAsFields,
   Prover,
   dummyBase64Proof,
-  dummyVerificationKeyHash,
 };
 
 type Undefined = undefined;
@@ -807,11 +806,6 @@ ZkProgram.Proof = function <
 
 function dummyBase64Proof() {
   return withThreadPool(async () => Pickles.dummyBase64Proof());
-}
-
-function dummyVerificationKeyHash() {
-  let [, , hash] = Pickles.dummyVerificationKey();
-  return Field.fromBytes([...hash]);
 }
 
 // helpers for circuit context
