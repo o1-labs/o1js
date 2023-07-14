@@ -416,7 +416,7 @@ class Field {
     // check composition
     xDiv2.mul(2).add(isOdd).assertEquals(this);
 
-    return new Bool(isOddVar);
+    return new Bool(isOddVar).not();
   }
 
   /**
