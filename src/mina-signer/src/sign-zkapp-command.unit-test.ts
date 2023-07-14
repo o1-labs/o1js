@@ -43,6 +43,7 @@ import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -271,12 +272,22 @@ console.log('to/from json, hashes & signatures are consistent! 🎉');
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
   if (a.body.update.verificationKey.isSome === 1n) {
-    let [, data, hash] = Pickles.dummyVerificationKey();
+    let [, data] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,
-      hash: Field.fromBytes([...hash]),
+      hash: Field(mocks.dummyVerificationKeyHash),
     };
   } else {
-    a.body.update.verificationKey.value = { data: '', hash: Field(0) };
+    a.body.update.verificationKey.value = {
+      data: '',
+      hash: Field(0),
+    };
   }
+  fixVerificationKeyHash(a);
+}
+
+function fixVerificationKeyHash(a: AccountUpdate) {
+  a.body.authorizationKind.verificationKeyHash = Field(
+    mocks.dummyVerificationKeyHash
+  );
 }

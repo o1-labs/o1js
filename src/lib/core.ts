@@ -14,7 +14,7 @@ export { Field, Bool, Scalar, Group };
  * You can create a new Field from everything "field-like" (`bigint`, integer `number`, decimal `string`, `Field`).
  * @example
  * ```
- * Field(10n); // Field contruction from a big integer
+ * Field(10n); // Field construction from a bigint
  * Field(100); // Field construction from a number
  * Field("1"); // Field construction from a decimal string
  * ```
@@ -28,11 +28,12 @@ export { Field, Bool, Scalar, Group };
  * Creating a Field from a negative number can result in unexpected behavior if you are not familiar with [modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic).
  * @example
  * ```
- * const x = Field(-1); // Valid Field construction from negative number
- * const y = Field(Field.ORDER - 1n); // equivalent to `x`
+ * const x = Field(-1); // valid Field construction from negative number
+ * const y = Field(Field.ORDER - 1n); // same as `x`
  * ```
  *
- * **Important**: All the functions defined on a Field (arithmetic, logic, etc.) take their arguments as "field-like". A Field itself is also defined as a "field-like" element.
+ * **Important**: All the functions defined on a Field (arithmetic, logic, etc.) take their arguments as "field-like".
+ * A Field itself is also defined as a "field-like" element.
  *
  * @param value - the value to convert to a {@link Field}
  *
@@ -42,15 +43,29 @@ const Field = toFunctionConstructor(InternalField);
 type Field = InternalField;
 
 /**
- * A boolean value. You can use it like this:
+ * A boolean value. You can create it like this:
  *
+ * @example
  * ```
- * const x = new Bool(true);
+ * const b = Bool(true);
  * ```
  *
- * You can also combine multiple booleans via [[`not`]], [[`and`]], [[`or`]].
+ * You can also combine multiple Bools with boolean operations:
  *
- * Use [[assertEquals]] to enforce the value of a Bool.
+ * @example
+ * ```ts
+ * const c = Bool(false);
+ *
+ * const d = b.or(c).and(false).not();
+ *
+ * d.assertTrue();
+ * ```
+ *
+ * Bools are often created by methods on other types such as `Field.equals()`:
+ *
+ * ```ts
+ * const b: Bool = Field(5).equals(6);
+ * ```
  */
 const Bool = toFunctionConstructor(InternalBool);
 type Bool = InternalBool;

@@ -36,9 +36,10 @@ class MerkleTree {
    * @returns A new MerkleTree
    */
   constructor(public readonly height: number) {
-    this.zeroes = [Field(0)];
-    for (let i = 1; i < height; i++) {
-      this.zeroes.push(Poseidon.hash([this.zeroes[i - 1], this.zeroes[i - 1]]));
+    this.zeroes = new Array(height);
+    this.zeroes[0] = Field(0);
+    for (let i = 1; i < height; i+=1) {
+      this.zeroes[i] = Poseidon.hash([this.zeroes[i - 1], this.zeroes[i - 1]]);
     }
   }
 
