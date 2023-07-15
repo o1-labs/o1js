@@ -7,6 +7,7 @@ import { MlFieldArray } from './ml/fields.js';
 import { UInt8 } from './int.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
+import { MlArray } from './ml/base.js';
 
 // external API
 export { Poseidon, TokenSymbol, Hash };
@@ -212,7 +213,7 @@ function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
   return {
     hash(message: UInt8[]): UInt8[] {
       return Snarky.sha
-        .create([0, ...message.map((f) => f.toField().value)], nist, length)
+        .create(MlArray.to(message.map((f) => f.toField().value)), nist, length)
         .map((f) => UInt8.from(Field(f)))
         .slice(1);
     },
