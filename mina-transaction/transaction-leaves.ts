@@ -10,6 +10,7 @@ import {
   emptyHashWithPrefix,
 } from '../../lib/hash.js';
 import { provable } from '../../lib/circuit_value.js';
+import { mocks } from '../crypto/constants.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -19,6 +20,7 @@ export {
   ZkappUri,
   TokenSymbol,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
   StateHash,
 };
@@ -48,6 +50,12 @@ type ActionState = Field;
 const ActionState = {
   ...provable(Field),
   emptyValue: Actions.emptyActionState,
+};
+
+type VerificationKeyHash = Field;
+const VerificationKeyHash = {
+  ...provable(Field),
+  emptyValue: () => Field(mocks.dummyVerificationKeyHash),
 };
 
 type ReceiptChainHash = Field;

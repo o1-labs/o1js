@@ -62,11 +62,21 @@ let poseidon_params_legacy =
     ; ("power", `Int Random_oracle.Legacy.Inputs.alpha)
     ]
 
+let dummy_verification_key_hash () =
+  Pickles.Side_loaded.Verification_key.dummy
+  |> Mina_base.Zkapp_account.digest_vk
+  |> Pickles.Impls.Step.Field.Constant.to_string
+
+let mocks =
+  `Assoc
+    [ ("dummyVerificationKeyHash", string (dummy_verification_key_hash ())) ]
+
 let constants =
   [ ("prefixes", prefixes)
   ; ("versionBytes", version_bytes)
   ; ("poseidonParamsKimchiFp", poseidon_params_kimchi)
   ; ("poseidonParamsLegacyFp", poseidon_params_legacy)
+  ; ("mocks", mocks)
   ]
 
 let () =
