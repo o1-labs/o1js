@@ -749,7 +749,11 @@ let jsLayout = {
                   entries: {
                     isSigned: { type: 'Bool' },
                     isProved: { type: 'Bool' },
-                    verificationKeyHash: { type: 'Field' },
+                    verificationKeyHash: {
+                      type: 'Field',
+                      checkedType: { type: 'Field' },
+                      checkedTypeName: 'VerificationKeyHash',
+                    },
                   },
                   docEntries: {
                     isSigned: null,
@@ -1500,7 +1504,11 @@ let jsLayout = {
             entries: {
               isSigned: { type: 'Bool' },
               isProved: { type: 'Bool' },
-              verificationKeyHash: { type: 'Field' },
+              verificationKeyHash: {
+                type: 'Field',
+                checkedType: { type: 'Field' },
+                checkedTypeName: 'VerificationKeyHash',
+              },
             },
             docEntries: {
               isSigned: null,

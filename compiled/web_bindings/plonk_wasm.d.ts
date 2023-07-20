@@ -2362,7 +2362,6 @@ export interface InitOutput {
   readonly wasmfqopeningproof_sg: (a: number) => number;
   readonly wasmfqproverproof_set_prev_challenges_scalars: (a: number, b: number) => void;
   readonly __wbg_get_wasmfqoracles_o: (a: number) => number;
-  readonly fq_oracles_dummy: () => number;
   readonly __wbg_wasmfqoracles_free: (a: number) => void;
   readonly wasmfpprovercommitments_set_z_comm: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_z_comm: (a: number, b: number) => void;
@@ -2381,6 +2380,7 @@ export interface InitOutput {
   readonly wasmfqprovercommitments_z_comm: (a: number) => number;
   readonly wasmfqopeningproof_set_sg: (a: number, b: number) => void;
   readonly __wbg_set_wasmfqoracles_o: (a: number, b: number) => void;
+  readonly fq_oracles_dummy: () => number;
   readonly __wbg_wasmfqopeningproof_free: (a: number) => void;
   readonly wasmfpprovercommitments_set_t_comm: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_t_comm: (a: number, b: number) => void;
