@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/b1d8d5910...HEAD)
 
-> No unreleased changes yet
+### Breaking changes
+
+- Changes to verification keys caused by updates to the proof system. This breaks all deployed contracts https://github.com/o1-labs/snarkyjs/pull/1016 
 
 ## [0.12.1](https://github.com/o1-labs/snarkyjs/compare/161b69d602...b1d8d5910)
 
