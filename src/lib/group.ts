@@ -3,6 +3,7 @@ import { Scalar } from './scalar.js';
 import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 
 export { Group };
@@ -22,6 +23,25 @@ class Group {
   }
 
   /**
+   * Unique representation of the `zero` element of the Group (the identity element of addition in this Group).
+   *
+   * **Note**: The `zero` element is represented as `(0, 0)`.
+   *
+   * ```typescript
+   * // g + -g = 0
+   * g.add(g.neg()).assertEquals(zero);
+   * // g + 0 = g
+   * g.add(zero).assertEquals(g);
+   * ```
+   */
+  static get zero() {
+    return new Group({
+      x: 0,
+      y: 0,
+    });
+  }
+
+  /**
    * Coerces anything group-like to a {@link Group}.
    */
   constructor({
@@ -35,6 +55,9 @@ class Group {
     this.y = isField(y) ? y : new Field(y);
 
     if (this.#isConstant()) {
+      // we also check the zero element (0, 0) here
+      if (this.x.equals(0).and(this.y.equals(0)).toBoolean()) return;
+
       const { add, mul, square } = Fp;
 
       let x_bigint = this.x.toBigInt();
@@ -53,8 +76,16 @@ class Group {
   }
 
   // helpers
-  static #fromAffine({ x, y }: { x: bigint; y: bigint; infinity: boolean }) {
-    return new Group({ x, y });
+  static #fromAffine({
+    x,
+    y,
+    infinity,
+  }: {
+    x: bigint;
+    y: bigint;
+    infinity: boolean;
+  }) {
+    return infinity ? Group.zero : new Group({ x, y });
   }
 
   static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
@@ -78,6 +109,14 @@ class Group {
   }
 
   /**
+   * Checks if this element is the `zero` element `{x: 0, y: 0}`.
+   */
+  isZero() {
+    // only the zero element can have x = 0, there are no other (valid) group elements with x = 0
+    return this.x.equals(0);
+  }
+
+  /**
    * Adds this {@link Group} element to another {@link Group} element.
    *
    * ```ts
@@ -87,25 +126,97 @@ class Group {
    */
   add(g: Group) {
     if (this.#isConstant() && g.#isConstant()) {
-      if (this.x.toBigInt() === 0n) {
+      // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
+      if (this.isZero().toBoolean()) {
         return g;
-      } else if (g.x.toBigInt() === 0n) {
+      } else if (g.isZero().toBoolean()) {
         return this;
       } else {
         let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
         return Group.#fromProjective(g_proj);
       }
     } else {
-      let [, x, y] = Snarky.group.add(this.#toTuple(), g.#toTuple());
-      return new Group({ x, y });
+      const { x: x1, y: y1 } = this;
+      const { x: x2, y: y2 } = g;
+
+      let zero = new Field(0);
+
+      let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
+
+      let inf = Provable.witness(Bool, () =>
+        x1.equals(x2).and(y1.equals(y2).not())
+      );
+
+      let inf_z = Provable.witness(Field, () => {
+        if (y1.equals(y2).toBoolean()) return zero;
+        else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
+        else return zero;
+      });
+
+      let x21_inv = Provable.witness(Field, () => {
+        if (x1.equals(x2).toBoolean()) return zero;
+        else return x2.sub(x1).inv();
+      });
+
+      let s = Provable.witness(Field, () => {
+        if (x1.equals(x2).toBoolean()) {
+          let x1_squared = x1.square();
+          return x1_squared.add(x1_squared).add(x1_squared).div(y1.add(y1));
+        } else return y2.sub(y1).div(x2.sub(x1));
+      });
+
+      let x3 = Provable.witness(Field, () => {
+        return s.square().sub(x1.add(x2));
+      });
+
+      let y3 = Provable.witness(Field, () => {
+        return s.mul(x1.sub(x3)).sub(y1);
+      });
+
+      let [, x, y] = Snarky.group.ecadd(
+        Group.from(x1.seal(), y1.seal()).#toTuple(),
+        Group.from(x2.seal(), y2.seal()).#toTuple(),
+        Group.from(x3, y3).#toTuple(),
+        inf.toField().value,
+        same_x.value,
+        s.value,
+        inf_z.value,
+        x21_inv.value
+      );
+
+      // similarly to the constant implementation, we check if either operand is zero
+      // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
+      let gIsZero = g.isZero();
+      let thisIsZero = this.isZero();
+
+      let bothZero = gIsZero.and(thisIsZero);
+
+      let onlyGisZero = gIsZero.and(thisIsZero.not());
+      let onlyThisIsZero = thisIsZero.and(gIsZero.not());
+
+      let isNegation = inf;
+
+      let isNewElement = bothZero
+        .not()
+        .and(isNegation.not())
+        .and(onlyThisIsZero.not())
+        .and(onlyGisZero.not());
+
+      const zero_g = Group.zero;
+
+      return Provable.switch(
+        [bothZero, onlyGisZero, onlyThisIsZero, isNegation, isNewElement],
+        Group,
+        [zero_g, this, g, zero_g, new Group({ x, y })]
+      );
     }
   }
 
   /**
    * Subtracts another {@link Group} element from this one.
    */
-  sub(y: Group) {
-    return this.add(y.neg());
+  sub(g: Group) {
+    return this.add(g.neg());
   }
 
   /**
@@ -113,6 +224,7 @@ class Group {
    */
   neg() {
     let { x, y } = this;
+
     return new Group({ x, y: y.neg() });
   }
 
@@ -151,7 +263,7 @@ class Group {
     let { x: x2, y: y2 } = g;
 
     x1.assertEquals(x2, message);
-    // y1.assertEquals(y2, message); need to enable this later on, but it breaks constraint backwards compatibility
+    y1.assertEquals(y2, message);
   }
 
   /**
@@ -163,15 +275,10 @@ class Group {
    * ```
    */
   equals(g: Group) {
-    if (this.#isConstant() && g.#isConstant()) {
-      let { x: x1, y: y1 } = this;
-      let { x: x2, y: y2 } = g;
+    let { x: x1, y: y1 } = this;
+    let { x: x2, y: y2 } = g;
 
-      return x1.equals(x2).and(y1.equals(y2));
-    } else {
-      let z = Snarky.group.equals(this.#toTuple(), g.#toTuple());
-      return Bool.Unsafe.ofField(new Field(z));
-    }
+    return x1.equals(x2).and(y1.equals(y2));
   }
 
   /**
@@ -346,7 +453,16 @@ class Group {
    */
   static check(g: Group) {
     try {
-      Snarky.group.assertOnCurve(g.#toTuple());
+      const { x, y } = g;
+
+      let x2 = x.square();
+      let x3 = x2.mul(x);
+      let ax = x.mul(Pallas.a); // this will obviously be 0, but just for the sake of correctness
+
+      // we also check the zero element (0, 0) here
+      let isZero = x.equals(0).and(y.equals(0));
+
+      isZero.or(x3.add(ax).add(Pallas.b).equals(y.square())).assertTrue();
     } catch (error) {
       if (!(error instanceof Error)) return error;
       throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${

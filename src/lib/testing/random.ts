@@ -14,6 +14,7 @@ import {
   Field,
   Actions,
   ActionState,
+  VerificationKeyHash,
   ReceiptChainHash,
   Sign,
   TokenId,
@@ -37,6 +38,7 @@ import { Memo } from '../../mina-signer/src/memo.js';
 import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 export { Random, sample, withHardCoded };
 
@@ -103,6 +105,7 @@ const actions = mapWithInvalid(
   Actions.fromList
 );
 const actionState = oneOf(ActionState.emptyValue(), field);
+const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
 const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
@@ -126,6 +129,7 @@ const Generators: Generators = {
   Events: events,
   Actions: actions,
   ActionState: actionState,
+  VerificationKeyHash: verificationKeyHash,
   ReceiptChainHash: receiptChainHash,
   ZkappUri: zkappUri,
   null: constant(null),
@@ -228,6 +232,7 @@ const JsonGenerators: JsonGenerators = {
   Events: mapWithInvalid(events, Events.toJSON),
   Actions: mapWithInvalid(actions, Actions.toJSON),
   ActionState: mapWithInvalid(actionState, ActionState.toJSON),
+  VerificationKeyHash: mapWithInvalid(verificationKeyHash, Field.toJSON),
   ReceiptChainHash: mapWithInvalid(receiptChainHash, ReceiptChainHash.toJSON),
   ZkappUri: string(nat(50)),
   null: constant(null),
@@ -255,8 +260,10 @@ const accountUpdateJson = mapWithInvalid(
     if (isProved && isSigned) {
       a.body.authorizationKind.isProved = false;
     }
+
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = '0';
+      a.body.authorizationKind.verificationKeyHash =
+        mocks.dummyVerificationKeyHash;
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;

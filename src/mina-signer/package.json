@@ -1,7 +1,7 @@
 {
   "name": "mina-signer",
   "description": "Node API for signing transactions on various networks for Mina Protocol",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "build": "tsc -p ../../tsconfig.mina-signer.json",
@@ -18,8 +18,8 @@
   "author": "o1labs",
   "license": "Apache-2.0",
   "homepage": "https://minaprotocol.com/",
-  "repository": "https://github.com/MinaProtocol/mina",
-  "bugs": "https://github.com/MinaProtocol/mina/issues",
+  "repository": "https://github.com/o1-labs/snarkyjs",
+  "bugs": "https://github.com/o1-labs/snarkyjs/issues",
   "main": "dist/node/mina-signer/MinaSigner.js",
   "types": "dist/node/mina-signer/index.d.ts",
   "exports": {
