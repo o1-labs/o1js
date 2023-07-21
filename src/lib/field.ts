@@ -377,6 +377,49 @@ class Field {
   }
 
   /**
+   * Checks if this {@link Field} is even. Returns `true` for even elements and `false` for odd elements.
+   *
+   * @example
+   * ```ts
+   * let a = Field(5);
+   * a.isEven(); // false
+   * a.isEven().assertTrue(); // throws, as expected!
+   *
+   * let b = Field(4);
+   * b.isEven(); // true
+   * b.isEven().assertTrue(); // does not throw, as expected!
+   * ```
+   */
+  isEven() {
+    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
+
+    let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
+      let bits = Fp.toBits(this.toBigInt());
+      let isOdd = bits.shift()! ? 1n : 0n;
+
+      return [
+        0,
+        FieldConst.fromBigint(isOdd),
+        FieldConst.fromBigint(Fp.fromBits(bits)),
+      ];
+    });
+
+    let isOdd = new Field(isOddVar);
+    let xDiv2 = new Field(xDiv2Var);
+
+    // range check for 253 bits
+    // WARNING: this makes use of a special property of the Pasta curves,
+    // namely that a random field element is < 2^254 with overwhelming probability
+    // TODO use 88-bit RCs to make this more efficient
+    xDiv2.toBits(253);
+
+    // check composition
+    xDiv2.mul(2).add(isOdd).assertEquals(this);
+
+    return new Bool(isOddVar).not();
+  }
+
+  /**
    * Multiply another "field-like" value with this {@link Field} element.
    *
    * @example
