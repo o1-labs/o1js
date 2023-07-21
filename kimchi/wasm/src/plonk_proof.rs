@@ -678,6 +678,10 @@ macro_rules! impl_proof {
                     lookup: None,
                     generic_selector: eval(),
                     poseidon_selector: eval(),
+                    complete_add_selector: eval(),
+                    mul_selector: eval(),
+                    emul_selector: eval(),
+                    endomul_scalar_selector: eval(),
                 };
 
                 let dlogproof = ProverProof {
