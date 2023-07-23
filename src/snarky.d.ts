@@ -360,7 +360,7 @@ declare const Snarky: {
 type JsonGate = {
   typ: string;
   wires: { row: number; col: number }[];
-  coeffs: number[][];
+  coeffs: string[];
 };
 type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
