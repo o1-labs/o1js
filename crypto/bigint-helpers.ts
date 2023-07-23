@@ -1,4 +1,4 @@
-export { changeBase, bytesToBigInt, bigIntToBytes };
+export { changeBase, bytesToBigInt, bigIntToBytes, parseHexString };
 
 function bytesToBigInt(bytes: Uint8Array | number[]) {
   let x = 0n;
@@ -8,6 +8,15 @@ function bytesToBigInt(bytes: Uint8Array | number[]) {
     bitPosition += 8n;
   }
   return x;
+}
+
+function parseHexString(input: string) {
+  // Parse the bytes explicitly, Bigint endianness is wrong
+  let inputBytes = new Uint8Array(32);
+  for (var j = 0; j < 32; j++) {
+      inputBytes[j] = parseInt(input[2*j] + input[2*j+1], 16);
+  }
+  return bytesToBigInt(inputBytes);
 }
 
 /**
