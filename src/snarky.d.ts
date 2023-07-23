@@ -537,7 +537,7 @@ declare const Pickles: {
    */
   compile: (
     rules: MlArray<Pickles.Rule>,
-    signature: { publicInputSize: number; publicOutputSize: number }
+    signature: { publicInputSize: number; publicOutputSize: number, overrideWrapDomain?: number }
   ) => {
     provers: MlArray<Pickles.Prover>;
     verify: (

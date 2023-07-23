@@ -203,7 +203,8 @@ function ZkProgram<
         InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
         Types[I]
       >;
-    };
+    },
+    overrideWrapDomain?: number,
   }
 ): {
   name: string;
@@ -267,7 +268,8 @@ function ZkProgram<
       publicOutputType,
       methodIntfs,
       methodFunctions,
-      selfTag
+      selfTag,
+      config.overrideWrapDomain
     );
     compileOutput = { provers, verify };
     return { verificationKey: verificationKey.data };
@@ -503,7 +505,8 @@ async function compileProgram(
   publicOutputType: ProvablePure<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string }
+  proofSystemTag: { name: string },
+  overrideWrapDomain?: number,
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
@@ -523,6 +526,7 @@ async function compileProgram(
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            overrideWrapDomain,
           });
         } finally {
           snarkContext.leave(id);
