@@ -1,6 +1,7 @@
 /* global joo_global_object, plonk_wasm, caml_js_to_bool, caml_jsstring_of_string,
     caml_string_of_jsstring
-    caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length
+    caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length,
+    UInt64, caml_int64_of_int32
 */
 
 // Provides: caml_bytes_of_uint8array
@@ -999,8 +1000,7 @@ var caml_fp_srs_batch_accumulator_check = function (srs, comms, chals) {
 var caml_fp_srs_batch_accumulator_generate = function (srs, comms, chals) {
     var rust_chals = caml_fp_vector_to_rust(chals);
     var rust_comms = plonk_wasm.caml_fp_srs_batch_accumulator_generate(srs, comms, rust_chals);
-    var rust_comms = caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGVesta, rust_affine_to_caml_affine, false);
-    return ok;
+    return caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGVesta, rust_affine_to_caml_affine, false);
 };
 
 // Provides: caml_fp_srs_h
@@ -1081,8 +1081,7 @@ var caml_fq_srs_batch_accumulator_check = function (srs, comms, chals) {
 var caml_fq_srs_batch_accumulator_generate = function (srs, comms, chals) {
     var rust_chals = caml_fq_vector_to_rust(chals);
     var rust_comms = plonk_wasm.caml_fq_srs_batch_accumulator_generate(srs, comms, rust_chals);
-    var rust_comms = caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGPallas, rust_affine_to_caml_affine, false);
-    return ok;
+    return caml_array_of_rust_vector(rust_comms, plonk_wasm.WasmGPallas, rust_affine_to_caml_affine, false);
 };
 
 // Provides: caml_fq_srs_h
@@ -1090,6 +1089,12 @@ var caml_fq_srs_batch_accumulator_generate = function (srs, comms, chals) {
 var caml_fq_srs_h = function (t) {
     return rust_affine_to_caml_affine(plonk_wasm.caml_fq_srs_h(t));
 };
+
+// Provides: caml_fq_srs_add_lagrange_basis
+// Requires: plonk_wasm
+function caml_fq_srs_add_lagrange_basis(srs, log2_size) {
+    return plonk_wasm.caml_fq_srs_add_lagrange_basis(srs, log2_size);
+}
 
 
 
@@ -2267,12 +2272,61 @@ function caml_pasta_fq_poseidon_block_cipher(_fake_params, fq_vector) {
     });
 }
 
-// Provides: caml_pasta_fp_plonk_proof_example_with_lookup
-function caml_pasta_fp_plonk_proof_example_with_lookup() {
-    // This is only used in the pickles unit tests
-    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_lookup");
-}
 
 // Provides: prover_to_json
 // Requires: plonk_wasm
 var prover_to_json = plonk_wasm.prover_to_json;
+
+// Provides: integers_uint64_of_uint32
+// Requires: UInt64, caml_int64_of_int32
+function integers_uint64_of_uint32(i) {
+    // Same as integers_uint64_of_int
+    return new UInt64(caml_int64_of_int32(i));
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// The *_example_* functions below are only used in the pickles unit tests //
+/////////////////////////////////////////////////////////////////////////////
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_ffadd
+function caml_pasta_fp_plonk_proof_example_with_ffadd() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_ffadd");
+}
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_foreign_field_mul
+function caml_pasta_fp_plonk_proof_example_with_foreign_field_mul() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_foreign_field_mul");
+}
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_range_check
+function caml_pasta_fp_plonk_proof_example_with_range_check() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_range_check");
+}
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_range_check0
+function caml_pasta_fp_plonk_proof_example_with_range_check0() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_range_check0");
+}
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_rot
+function caml_pasta_fp_plonk_proof_example_with_rot() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_rot");
+}
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_xor
+function caml_pasta_fp_plonk_proof_example_with_xor() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_xor");
+}
+
+
+// Provides: caml_pasta_fp_plonk_proof_example_with_lookup
+function caml_pasta_fp_plonk_proof_example_with_lookup() {
+    throw new Error("Unimplemented caml_pasta_fp_plonk_proof_example_with_lookup");
+}
