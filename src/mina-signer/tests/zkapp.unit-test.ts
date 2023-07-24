@@ -6,6 +6,7 @@ import { expect } from 'expect';
 import { Transaction } from '../../lib/mina.js';
 import { PrivateKey } from '../../lib/signature.js';
 import { Signature } from '../src/signature.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 const client = new Client({ network: 'testnet' });
 let { publicKey, privateKey } = client.genKeys();
@@ -22,7 +23,7 @@ let accountUpdateExample2: TransactionJson.AccountUpdate = {
     authorizationKind: {
       isSigned: true,
       isProved: false,
-      verificationKeyHash: '0',
+      verificationKeyHash: mocks.dummyVerificationKeyHash,
     },
   },
   authorization: { proof: null, signature: dummySignature },

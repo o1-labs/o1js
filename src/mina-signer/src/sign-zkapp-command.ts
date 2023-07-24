@@ -17,6 +17,7 @@ import {
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -196,7 +197,7 @@ function accountUpdateFromFeePayer({
   body.authorizationKind = {
     isProved: Bool(false),
     isSigned: Bool(true),
-    verificationKeyHash: Field(0),
+    verificationKeyHash: Field(mocks.dummyVerificationKeyHash),
   };
   return { body, authorization: { signature } };
 }
@@ -220,8 +221,11 @@ function assertAuthorizationKindValid(accountUpdate: AccountUpdate) {
     throw Error(
       'Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.'
     );
-  if (!isProved && verificationKeyHash !== 0n)
+  if (
+    !isProved &&
+    verificationKeyHash !== Field(mocks.dummyVerificationKeyHash)
+  )
     throw Error(
-      `Invalid authorization kind: If \`isProved\` is false, verification key hash must be 0, got ${verificationKeyHash}`
+      `Invalid authorization kind: If \`isProved\` is false, verification key hash must be ${mocks.dummyVerificationKeyHash}, got ${verificationKeyHash}`
     );
 }

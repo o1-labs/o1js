@@ -1,4 +1,5 @@
 import * as Json from '../../../bindings/mina-transaction/gen/transaction-json.js';
+import { mocks } from '../../../bindings/crypto/constants.js';
 
 export { accountUpdateExample };
 
@@ -88,7 +89,7 @@ let accountUpdateExample: Json.AccountUpdate = {
     authorizationKind: {
       isSigned: false,
       isProved: false,
-      verificationKeyHash: '0',
+      verificationKeyHash: mocks.dummyVerificationKeyHash,
     },
   },
   authorization: { proof: null, signature: null },

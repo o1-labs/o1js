@@ -3,11 +3,10 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
-  Struct,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
-import { Ledger, Pickles, Test } from '../snarky.js';
+import { Pickles, Test } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
@@ -27,10 +26,9 @@ import {
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { prefixes } from '../bindings/crypto/constants.js';
+import { mocks, prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
-import { Ml } from './ml/conversion.js';
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
@@ -1804,7 +1802,9 @@ const Authorization = {
     signature ??= {};
     accountUpdate.body.authorizationKind.isSigned = Bool(true);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
+    accountUpdate.body.authorizationKind.verificationKeyHash = Field(
+      mocks.dummyVerificationKeyHash
+    );
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
@@ -1862,7 +1862,9 @@ const Authorization = {
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash = Field(0);
+    accountUpdate.body.authorizationKind.verificationKeyHash = Field(
+      mocks.dummyVerificationKeyHash
+    );
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },

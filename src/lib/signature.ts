@@ -12,6 +12,8 @@ import {
   PublicKey as PublicKeyBigint,
 } from '../provable/curve-bigint.js';
 import { prefixes } from '../bindings/crypto/constants.js';
+import { constantScalarToBigint } from './scalar.js';
+import { toConstantField } from './field.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -54,7 +56,7 @@ class PrivateKey extends CircuitValue {
    * Convert this {@link PrivateKey} to a bigint
    */
   toBigInt() {
-    return this.s.toBigInt();
+    return constantScalarToBigint(this.s, 'PrivateKey.toBigInt');
   }
 
   /**
@@ -100,7 +102,9 @@ class PrivateKey extends CircuitValue {
    * @returns a base58 encoded string
    */
   static toBase58(privateKey: { s: Scalar }) {
-    return PrivateKeyBigint.toBase58(privateKey.s.toBigInt());
+    return PrivateKeyBigint.toBase58(
+      constantScalarToBigint(privateKey.s, 'PrivateKey.toBase58')
+    );
   }
 }
 
@@ -196,6 +200,7 @@ class PublicKey extends CircuitValue {
    * @returns a base58 encoded {@link PublicKey}
    */
   static toBase58({ x, isOdd }: PublicKey) {
+    x = toConstantField(x, 'toBase58', 'pk', 'public key');
     return PublicKeyBigint.toBase58({
       x: x.toBigInt(),
       isOdd: BoolBigint(isOdd.toBoolean()),
