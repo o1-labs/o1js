@@ -2,31 +2,25 @@ import { Poseidon, PoseidonLegacy } from './poseidon.js';
 import { testPoseidonKimchiFp } from './test_vectors/poseidonKimchi.js';
 import { testPoseidonLegacyFp } from './test_vectors/poseidonLegacy.js';
 import { expect } from 'expect';
-import { bigIntToBytes } from './bigint-helpers.js';
+import { bigIntToBytes, parseHexString } from './bigint-helpers.js';
 import { test, Random } from '../../lib/testing/property.js';
 import { Test } from '../../snarky.js';
 import { FieldConst } from '../../lib/field.js';
 import { MlArray } from '../../lib/ml/base.js';
 
-let testVectors = testPoseidonKimchiFp.test_vectors;
-
-for (let i = 0; i < testVectors.length; i++) {
-  let { input, output } = testVectors[i];
-  let inputBigint = input.map(BigInt);
-  let hash = Poseidon.hash(inputBigint);
-  let hex = fieldToHex(hash);
-  expect(hex).toEqual(output);
+function checkTestVectors(testVectors: {input: string[], output: string}[], hash: (input: bigint[]) => bigint) {
+  for (let i = 0; i < testVectors.length; i++) {
+    let { input, output } = testVectors[i];
+    let inputBigint = input.map(parseHexString);
+    let hashOutput = hash(inputBigint);
+    let hex = fieldToHex(hashOutput);
+    expect(hex).toEqual(output);
+  }
 }
 
-testVectors = testPoseidonLegacyFp.test_vectors;
+checkTestVectors(testPoseidonKimchiFp.test_vectors, Poseidon.hash);
 
-for (let i = 0; i < testVectors.length; i++) {
-  let { input, output } = testVectors[i];
-  let inputBigint = input.map(BigInt);
-  let hash = PoseidonLegacy.hash(inputBigint);
-  let hex = fieldToHex(hash);
-  expect(hex).toEqual(output);
-}
+checkTestVectors(testPoseidonLegacyFp.test_vectors, PoseidonLegacy.hash);
 
 console.log('poseidon implementation matches the test vectors! 🎉');
 

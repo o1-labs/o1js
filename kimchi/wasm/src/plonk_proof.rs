@@ -1,6 +1,8 @@
 // use kimchi::circuits::expr::{Linearization, PolishToken, Variable, Column};
 // use kimchi::circuits::gate::{GateType, CurrOrNext};
 use crate::wasm_flat_vector::WasmFlatVector;
+use crate::wasm_vector::fp::WasmVecVecFp;
+use crate::wasm_vector::fq::WasmVecVecFq;
 use crate::wasm_vector::WasmVector;
 use paste::paste;
 use std::convert::TryInto;
@@ -54,34 +56,8 @@ macro_rules! impl_proof {
      $WasmVerifierIndex: ty,
      $field_name: ident
      ) => {
-
         paste! {
-            #[wasm_bindgen]
-            pub struct [<WasmVecVec $field_name:camel>](Vec<Vec<$F>>);
             type WasmVecVecF = [<WasmVecVec $field_name:camel>];
-
-            #[wasm_bindgen]
-            impl [<WasmVecVec $field_name:camel>] {
-                #[wasm_bindgen(constructor)]
-                pub fn create(n: i32) -> Self {
-                    [<WasmVecVec $field_name:camel>](Vec::with_capacity(n as usize))
-                }
-
-                #[wasm_bindgen]
-                pub fn push(&mut self, x: WasmFlatVector<$WasmF>) {
-                    self.0.push(x.into_iter().map(Into::into).collect())
-                }
-
-                #[wasm_bindgen]
-                pub fn get(&self, i: i32) -> WasmFlatVector<$WasmF> {
-                    self.0[i as usize].clone().into_iter().map(Into::into).collect()
-                }
-
-                #[wasm_bindgen]
-                pub fn set(&mut self, i: i32, x: WasmFlatVector<$WasmF>) {
-                    self.0[i as usize] = x.into_iter().map(Into::into).collect()
-                }
-            }
 
             #[derive(Clone)]
             pub struct [<Wasm $field_name:camel ProofEvaluations>](
