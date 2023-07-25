@@ -9,6 +9,16 @@ export function caml_pallas_affine_one(): WasmGPallas;
 */
 export function caml_vesta_affine_one(): WasmGVesta;
 /**
+* @param {Uint8Array} state
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_poseidon_block_cipher(state: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} state
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fq_poseidon_block_cipher(state: Uint8Array): Uint8Array;
+/**
 * @returns {WasmPallasGProjective}
 */
 export function caml_pallas_one(): WasmPallasGProjective;
@@ -149,15 +159,10 @@ export function caml_vesta_of_affine_coordinates(x: Uint8Array, y: Uint8Array): 
 */
 export function caml_vesta_affine_deep_copy(x: WasmGVesta): WasmGVesta;
 /**
-* @param {Uint8Array} state
-* @returns {Uint8Array}
+* @param {WasmPastaFpPlonkIndex} prover_index
+* @returns {string}
 */
-export function caml_pasta_fp_poseidon_block_cipher(state: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} state
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fq_poseidon_block_cipher(state: Uint8Array): Uint8Array;
+export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
 /**
 * @returns {WasmFpGateVector}
 */
@@ -357,10 +362,62 @@ export function caml_fq_srs_batch_accumulator_generate(srs: WasmFqSrs, comms: nu
 */
 export function caml_fq_srs_h(srs: WasmFqSrs): WasmGPallas;
 /**
-* @param {WasmPastaFpPlonkIndex} prover_index
+* @param {number | undefined} offset
+* @param {WasmFqSrs} srs
+* @param {string} path
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmFqPlonkVerifierIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fq_plonk_verifier_index_write(append: boolean | undefined, index: WasmFqPlonkVerifierIndex, path: string): void;
+/**
+* @param {WasmFqPlonkVerifierIndex} index
 * @returns {string}
 */
-export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
+export function caml_pasta_fq_plonk_verifier_index_serialize(index: WasmFqPlonkVerifierIndex): string;
+/**
+* @param {WasmFqSrs} srs
+* @param {string} index
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_deserialize(srs: WasmFqSrs, index: string): WasmFqPlonkVerifierIndex;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_create(index: WasmPastaFqPlonkIndex): WasmFqPlonkVerifierIndex;
+/**
+* @param {number} log2_size
+* @returns {WasmFqShifts}
+*/
+export function caml_pasta_fq_plonk_verifier_index_shifts(log2_size: number): WasmFqShifts;
+/**
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierIndex;
+/**
+* @param {WasmFqPlonkVerifierIndex} x
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
+/**
+* @param {number} num_threads
+* @param {string} worker_source
+* @returns {Promise<any>}
+*/
+export function initThreadPool(num_threads: number, worker_source: string): Promise<any>;
+/**
+* @returns {Promise<any>}
+*/
+export function exitThreadPool(): Promise<any>;
+/**
+* @param {number} receiver
+*/
+export function wbg_rayon_start_worker(receiver: number): void;
 /**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
@@ -404,63 +461,6 @@ export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierI
 * @returns {WasmFpPlonkVerifierIndex}
 */
 export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
-/**
-* @param {number} num_threads
-* @param {string} worker_source
-* @returns {Promise<any>}
-*/
-export function initThreadPool(num_threads: number, worker_source: string): Promise<any>;
-/**
-* @returns {Promise<any>}
-*/
-export function exitThreadPool(): Promise<any>;
-/**
-* @param {number} receiver
-*/
-export function wbg_rayon_start_worker(receiver: number): void;
-/**
-* @param {number | undefined} offset
-* @param {WasmFqSrs} srs
-* @param {string} path
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmFqPlonkVerifierIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fq_plonk_verifier_index_write(append: boolean | undefined, index: WasmFqPlonkVerifierIndex, path: string): void;
-/**
-* @param {WasmFqPlonkVerifierIndex} index
-* @returns {string}
-*/
-export function caml_pasta_fq_plonk_verifier_index_serialize(index: WasmFqPlonkVerifierIndex): string;
-/**
-* @param {WasmFqSrs} srs
-* @param {string} index
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_deserialize(srs: WasmFqSrs, index: string): WasmFqPlonkVerifierIndex;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_create(index: WasmPastaFqPlonkIndex): WasmFqPlonkVerifierIndex;
-/**
-* @param {number} log2_size
-* @returns {WasmFqShifts}
-*/
-export function caml_pasta_fq_plonk_verifier_index_shifts(log2_size: number): WasmFqShifts;
-/**
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierIndex;
-/**
-* @param {WasmFqPlonkVerifierIndex} x
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
 /**
 * @param {Uint32Array} lgr_comm
 * @param {WasmFpPlonkVerifierIndex} index
