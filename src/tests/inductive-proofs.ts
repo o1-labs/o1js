@@ -49,7 +49,6 @@ let MaxProofsVerifiedOne = Experimental.ZkProgram({
 
 let MaxProofsVerifiedTwo = Experimental.ZkProgram({
   publicInput: Field,
-  overrideWrapDomain: 1,
 
   methods: {
     baseCase: {
