@@ -89,6 +89,7 @@ impl WasmPastaFqRuntimeTableCfg {
 // CamlPastaFqPlonkIndex methods
 //
 
+// Change js/web/worker-spec.js accordingly
 #[wasm_bindgen]
 pub fn caml_pasta_fq_plonk_index_create(
     gates: &WasmGateVector,
