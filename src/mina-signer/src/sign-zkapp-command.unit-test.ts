@@ -272,10 +272,10 @@ console.log('to/from json, hashes & signatures are consistent! 🎉');
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
   if (a.body.update.verificationKey.isSome === 1n) {
-    let [, data] = Pickles.dummyVerificationKey();
+    let [, data, hash] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,
-      hash: Field(mocks.dummyVerificationKeyHash),
+      hash: Field.fromBytes([...hash]),
     };
   } else {
     a.body.update.verificationKey.value = {
