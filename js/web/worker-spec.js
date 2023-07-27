@@ -52,18 +52,30 @@ function workerSpec(wasm) {
     },
     caml_pasta_fp_plonk_proof_create: {
       args: [
+        // index
         wasm.WasmPastaFpPlonkIndex,
+        // witness
         wasm.WasmVecVecFp,
+        // runtime tables
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /*Uint8Array*/,
+        // prev_svgs
         undefined /*Uint32Array*/,
       ],
       res: wasm.WasmFpProverProof,
     },
     caml_pasta_fq_plonk_proof_create: {
       args: [
+        // index
         wasm.WasmPastaFqPlonkIndex,
+        // witness
         wasm.WasmVecVecFq,
+        // runtime tables
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /*Uint8Array*/,
+        // prev_svgs
         undefined /*Uint32Array*/,
       ],
       res: wasm.WasmFqProverProof,
