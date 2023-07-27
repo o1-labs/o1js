@@ -1,6 +1,137 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
+* @returns {number}
+*/
+export function caml_pasta_fp_size_in_bits(): number;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_size(): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_add(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_sub(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_negate(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_mul(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_div(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array | undefined}
+*/
+export function caml_pasta_fp_inv(x: Uint8Array): Uint8Array | undefined;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_square(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {boolean}
+*/
+export function caml_pasta_fp_is_square(x: Uint8Array): boolean;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array | undefined}
+*/
+export function caml_pasta_fp_sqrt(x: Uint8Array): Uint8Array | undefined;
+/**
+* @param {number} i
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_of_int(i: number): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {string}
+*/
+export function caml_pasta_fp_to_string(x: Uint8Array): string;
+/**
+* @param {string} s
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_of_string(s: string): Uint8Array;
+/**
+* @param {Uint8Array} x
+*/
+export function caml_pasta_fp_print(x: Uint8Array): void;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {number}
+*/
+export function caml_pasta_fp_compare(x: Uint8Array, y: Uint8Array): number;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {boolean}
+*/
+export function caml_pasta_fp_equal(x: Uint8Array, y: Uint8Array): boolean;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_random(): Uint8Array;
+/**
+* @param {number} i
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_rng(i: number): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_to_bigint(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_of_bigint(x: Uint8Array): Uint8Array;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_two_adic_root_of_unity(): Uint8Array;
+/**
+* @param {number} log2_size
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_domain_generator(log2_size: number): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_to_bytes(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_of_bytes(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_deep_copy(x: Uint8Array): Uint8Array;
+/**
 * @returns {WasmGPallas}
 */
 export function caml_pallas_affine_one(): WasmGPallas;
@@ -657,32 +788,6 @@ export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
 */
 export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
 /**
-* @param {string} name
-*/
-export function greet(name: string): void;
-/**
-* @param {string} s
-*/
-export function console_log(s: string): void;
-/**
-* @returns {number}
-*/
-export function create_zero_u32_ptr(): number;
-/**
-* @param {number} ptr
-*/
-export function free_u32_ptr(ptr: number): void;
-/**
-* @param {number} ptr
-* @param {number} arg
-*/
-export function set_u32_ptr(ptr: number, arg: number): void;
-/**
-* @param {number} ptr
-* @returns {number}
-*/
-export function wait_until_non_zero(ptr: number): number;
-/**
 * @param {WasmPastaFqPlonkIndex} index
 * @param {WasmVecVecFq} witness
 * @param {Uint8Array} prev_challenges
@@ -712,136 +817,31 @@ export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
 */
 export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
-* @returns {number}
+* @param {string} name
 */
-export function caml_pasta_fp_size_in_bits(): number;
-/**
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_size(): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_add(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_sub(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_negate(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_mul(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_div(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array | undefined}
-*/
-export function caml_pasta_fp_inv(x: Uint8Array): Uint8Array | undefined;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_square(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {boolean}
-*/
-export function caml_pasta_fp_is_square(x: Uint8Array): boolean;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array | undefined}
-*/
-export function caml_pasta_fp_sqrt(x: Uint8Array): Uint8Array | undefined;
-/**
-* @param {number} i
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_of_int(i: number): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {string}
-*/
-export function caml_pasta_fp_to_string(x: Uint8Array): string;
+export function greet(name: string): void;
 /**
 * @param {string} s
-* @returns {Uint8Array}
 */
-export function caml_pasta_fp_of_string(s: string): Uint8Array;
+export function console_log(s: string): void;
 /**
-* @param {Uint8Array} x
-*/
-export function caml_pasta_fp_print(x: Uint8Array): void;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
 * @returns {number}
 */
-export function caml_pasta_fp_compare(x: Uint8Array, y: Uint8Array): number;
+export function create_zero_u32_ptr(): number;
 /**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {boolean}
+* @param {number} ptr
 */
-export function caml_pasta_fp_equal(x: Uint8Array, y: Uint8Array): boolean;
+export function free_u32_ptr(ptr: number): void;
 /**
-* @returns {Uint8Array}
+* @param {number} ptr
+* @param {number} arg
 */
-export function caml_pasta_fp_random(): Uint8Array;
+export function set_u32_ptr(ptr: number, arg: number): void;
 /**
-* @param {number} i
-* @returns {Uint8Array}
+* @param {number} ptr
+* @returns {number}
 */
-export function caml_pasta_fp_rng(i: number): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_to_bigint(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_of_bigint(x: Uint8Array): Uint8Array;
-/**
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_two_adic_root_of_unity(): Uint8Array;
-/**
-* @param {number} log2_size
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_domain_generator(log2_size: number): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_to_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_of_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_deep_copy(x: Uint8Array): Uint8Array;
+export function wait_until_non_zero(ptr: number): number;
 /**
 * @returns {number}
 */
@@ -1996,6 +1996,32 @@ export class Wire {
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
+  readonly caml_pasta_fp_size_in_bits: () => number;
+  readonly caml_pasta_fp_size: (a: number) => void;
+  readonly caml_pasta_fp_add: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly caml_pasta_fp_sub: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly caml_pasta_fp_negate: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_mul: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly caml_pasta_fp_div: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly caml_pasta_fp_inv: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_square: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_is_square: (a: number, b: number) => number;
+  readonly caml_pasta_fp_sqrt: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_of_int: (a: number, b: number) => void;
+  readonly caml_pasta_fp_to_string: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_of_string: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_print: (a: number, b: number) => void;
+  readonly caml_pasta_fp_compare: (a: number, b: number, c: number, d: number) => number;
+  readonly caml_pasta_fp_equal: (a: number, b: number, c: number, d: number) => number;
+  readonly caml_pasta_fp_random: (a: number) => void;
+  readonly caml_pasta_fp_rng: (a: number, b: number) => void;
+  readonly caml_pasta_fp_to_bigint: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_of_bigint: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_two_adic_root_of_unity: (a: number) => void;
+  readonly caml_pasta_fp_domain_generator: (a: number, b: number) => void;
+  readonly caml_pasta_fp_to_bytes: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_of_bytes: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fp_deep_copy: (a: number, b: number, c: number) => void;
   readonly __wbg_wasmgpallas_free: (a: number) => void;
   readonly __wbg_get_wasmgpallas_x: (a: number, b: number) => void;
   readonly __wbg_set_wasmgpallas_x: (a: number, b: number, c: number) => void;
@@ -2390,12 +2416,6 @@ export interface InitOutput {
   readonly __wbg_get_wasmfqpolycomm_shifted: (a: number) => number;
   readonly __wbg_set_wasmfqpolycomm_shifted: (a: number, b: number) => void;
   readonly __wbg_wasmfqpolycomm_free: (a: number) => void;
-  readonly greet: (a: number, b: number) => void;
-  readonly console_log: (a: number, b: number) => void;
-  readonly create_zero_u32_ptr: () => number;
-  readonly free_u32_ptr: (a: number) => void;
-  readonly set_u32_ptr: (a: number, b: number) => void;
-  readonly wait_until_non_zero: (a: number) => number;
   readonly __wbg_wasmfqprovercommitments_free: (a: number) => void;
   readonly wasmfqprovercommitments_new: (a: number, b: number, c: number, d: number) => number;
   readonly wasmfqprovercommitments_w_comm: (a: number, b: number) => void;
@@ -2443,32 +2463,13 @@ export interface InitOutput {
   readonly caml_pasta_fq_plonk_proof_batch_verify: (a: number, b: number, c: number, d: number) => number;
   readonly caml_pasta_fq_plonk_proof_dummy: () => number;
   readonly caml_pasta_fq_plonk_proof_deep_copy: (a: number) => number;
-  readonly caml_pasta_fp_size_in_bits: () => number;
-  readonly caml_pasta_fp_size: (a: number) => void;
-  readonly caml_pasta_fp_add: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly caml_pasta_fp_sub: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly caml_pasta_fp_negate: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_mul: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly caml_pasta_fp_div: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly caml_pasta_fp_inv: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_square: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_is_square: (a: number, b: number) => number;
-  readonly caml_pasta_fp_sqrt: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_of_int: (a: number, b: number) => void;
-  readonly caml_pasta_fp_to_string: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_of_string: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_print: (a: number, b: number) => void;
-  readonly caml_pasta_fp_compare: (a: number, b: number, c: number, d: number) => number;
-  readonly caml_pasta_fp_equal: (a: number, b: number, c: number, d: number) => number;
-  readonly caml_pasta_fp_random: (a: number) => void;
-  readonly caml_pasta_fp_rng: (a: number, b: number) => void;
-  readonly caml_pasta_fp_to_bigint: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_of_bigint: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_two_adic_root_of_unity: (a: number) => void;
-  readonly caml_pasta_fp_domain_generator: (a: number, b: number) => void;
-  readonly caml_pasta_fp_to_bytes: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_of_bytes: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fp_deep_copy: (a: number, b: number, c: number) => void;
+  readonly greet: (a: number, b: number) => void;
+  readonly console_log: (a: number, b: number) => void;
+  readonly create_zero_u32_ptr: () => number;
+  readonly free_u32_ptr: (a: number) => void;
+  readonly set_u32_ptr: (a: number, b: number) => void;
+  readonly wait_until_non_zero: (a: number) => number;
+  readonly caml_pasta_fq_size_in_bits: () => number;
   readonly caml_pasta_fq_size: (a: number) => void;
   readonly caml_pasta_fq_add: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly caml_pasta_fq_sub: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -2541,7 +2542,6 @@ export interface InitOutput {
   readonly caml_pasta_fp_plonk_proof_batch_verify: (a: number, b: number, c: number, d: number) => number;
   readonly caml_pasta_fp_plonk_proof_dummy: () => number;
   readonly caml_pasta_fp_plonk_proof_deep_copy: (a: number) => number;
-  readonly caml_pasta_fq_size_in_bits: () => number;
   readonly __wbg_wire_free: (a: number) => void;
   readonly __wbg_get_wire_row: (a: number) => number;
   readonly __wbg_set_wire_row: (a: number, b: number) => void;
