@@ -464,17 +464,8 @@ let pickles_compile (choices : pickles_rule_js array)
   let public_input_size = signature##.publicInputSize in
   let public_output_size = signature##.publicOutputSize in
   let override_wrap_domain =
-    match Js.Optdef.to_option signature##.overrideWrapDomain with
-    | None ->
-        None
-    | Some 0 ->
-        Some Pickles_base.Proofs_verified.N0
-    | Some 1 ->
-        Some Pickles_base.Proofs_verified.N1
-    | Some 2 ->
-        Some Pickles_base.Proofs_verified.N2
-    | Some _ ->
-        failwith "Unexpected value for overrideWrapDomain"
+    Js.Optdef.to_option signature##.overrideWrapDomain
+    |> Option.map ~f:Pickles_base.Proofs_verified.of_int
   in
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
