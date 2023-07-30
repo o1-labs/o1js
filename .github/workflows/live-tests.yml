@@ -32,6 +32,8 @@ jobs:
         # - https://hub.docker.com/r/o1labs/mina-local-network
         options: --log-driver=none
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
 
@@ -54,6 +56,8 @@ jobs:
         # - https://hub.docker.com/r/o1labs/mina-local-network
         options: --log-driver=none
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
 
@@ -76,5 +80,7 @@ jobs:
         # - https://hub.docker.com/r/o1labs/mina-local-network
         options: --log-driver=none
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared

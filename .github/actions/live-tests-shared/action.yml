@@ -3,8 +3,6 @@ description: "Shared steps for live testing jobs"
 runs:
   using: "composite"
   steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
     - name: Setup Node
       uses: actions/setup-node@v3
       with:
