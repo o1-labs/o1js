@@ -1,5 +1,5 @@
 // Live integration test against real Mina network.
-import { AccountUpdate, Field, Mina, PrivateKey } from 'snarkyjs';
+import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'snarkyjs';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 
 const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';
@@ -23,18 +23,23 @@ Mina.setActiveInstance(Berkeley);
 
 // Fee payer setup
 if (!useLocalNetwork) {
-  console.log(`Funding the Fee payer ${sender.toBase58()}...`);
+  console.log(`Funding the Fee payer account.`);
   await Mina.faucet(sender);
+} else {
+  console.log(`Fetching the Fee payer account information.`);
+  await fetchAccount({ publicKey: sender });
 }
 const { nonce, balance } = Berkeley.getAccount(sender);
 console.log(
-  `Using Fee payer ${sender.toBase58()} with nonce: ${nonce} and balance: ${balance}`
+  `Using the Fee payer account ${sender.toBase58()} with nonce: ${nonce} and balance: ${balance}.`
 );
+console.log('');
 
 // zkApp compilation
-console.log('Compiling smart contract...');
+console.log('Compiling the smart contract.');
 const { verificationKey } = await HelloWorld.compile();
 const zkApp = new HelloWorld(zkAppAddress);
+console.log('');
 
 // zkApp deployment
 console.log(`Deploying zkApp for public key ${zkAppAddress.toBase58()}.`);
@@ -46,42 +51,38 @@ let transaction = await Mina.transaction(
   }
 );
 transaction.sign([senderKey, zkAppKey]);
-console.log('Sending the transaction...');
+console.log('Sending the transaction.');
 let pendingTx = await transaction.send();
 if (pendingTx.hash() !== undefined) {
-  console.log(`
-Success! Deploy transaction sent.
-
-Your smart contract state will be deployed
+  console.log(`Success! Deploy transaction sent.
+Your smart contract will be deployed
 as soon as the transaction is included in a block.
-Txn hash: ${pendingTx.hash()}
-`);
+Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction to be mined...');
+console.log('Waiting for transaction to be mined.');
 await pendingTx.wait({ maxAttempts: 90 });
+console.log('');
 
 // zkApp state update
-console.log('Trying to update deployed zkApp state...');
+console.log('Trying to update deployed zkApp state.');
 transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
   zkApp.update(Field(4), adminPrivateKey);
 });
 await transaction.sign([senderKey]).prove();
-console.log('Sending the transaction...');
+console.log('Sending the transaction.');
 pendingTx = await transaction.send();
 if (pendingTx.hash() !== undefined) {
-  console.log(`
-Success! Update transaction sent.
-
+  console.log(`Success! Update transaction sent.
 Your smart contract state will be updated
 as soon as the transaction is included in a block.
-Txn hash: ${pendingTx.hash()}
-`);
+Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction to be mined...');
+console.log('Waiting for transaction to be mined.');
 await pendingTx.wait({ maxAttempts: 90 });
+console.log('');
 
 // zkApp state check
-console.log('Validating zkApp state update...');
+console.log('Validating zkApp state update.');
 try {
   (await zkApp.x.fetch())?.assertEquals(Field(4));
 } catch (error) {
