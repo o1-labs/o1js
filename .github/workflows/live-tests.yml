@@ -10,6 +10,7 @@ on:
       - main
       - berkeley
       - develop
+  workflow_dispatch: {}
 
 jobs:
   main-branch:
