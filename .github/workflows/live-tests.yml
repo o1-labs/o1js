@@ -16,7 +16,7 @@ jobs:
   main-branch:
     timeout-minutes: 25
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     services:
       mina-local-network:
         image: o1labs/mina-local-network:rampup-latest-lightnet
@@ -38,7 +38,7 @@ jobs:
   berkeley-branch:
     timeout-minutes: 25
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/berkeley'
+    if: github.ref == 'refs/heads/berkeley' || (github.event_name == 'pull_request' && github.base_ref == 'berkeley')
     services:
       mina-local-network:
         image: o1labs/mina-local-network:berkeley-latest-lightnet
@@ -60,7 +60,7 @@ jobs:
   develop-branch:
     timeout-minutes: 25
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
     services:
       mina-local-network:
         image: o1labs/mina-local-network:develop-latest-lightnet
