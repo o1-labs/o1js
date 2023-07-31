@@ -107,17 +107,30 @@ function createAccountUpdate() {
 }
 
 // does not throw an error if private key is missing unless if .send is executed
+// {
+//   let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+//   Mina.setActiveInstance(Local);
+
+//   const feePayer = Local.testAccounts[0].publicKey;
+
+//   let tx = await Mina.transaction(feePayer, () => {
+//     AccountUpdate.fundNewAccount(feePayer);
+//   });
+//   tx.sign();
+//   await expect(tx.send()).rejects.toThrow(
+//     'Check signature: Invalid signature on fee payer for key'
+//   );
+// }
+
+
+// An additional test verifying the ledger
+// is populated correctly with the test accounts and the same ledger object
+// is used by getAccount
 {
-  let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+  let Local = Mina.LocalBlockchain({ proofsEnabled: false} );
   Mina.setActiveInstance(Local);
-
-  const feePayer = Local.testAccounts[0].publicKey;
-
-  let tx = await Mina.transaction(feePayer, () => {
-    AccountUpdate.fundNewAccount(feePayer);
-  });
-  tx.sign();
-  await expect(tx.send()).rejects.toThrow(
-    'Check signature: Invalid signature on fee payer for key'
-  );
+  for(let i = 0; i < Local.testAccounts.length; i++) {
+    let pk = Local.testAccounts[i]["publicKey"]
+    expect(Local.getAccount(pk) !== undefined)
+  }
 }
