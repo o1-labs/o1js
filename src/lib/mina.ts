@@ -386,10 +386,6 @@ function LocalBlockchain({
 
   let networkState = defaultNetworkState();
 
-  function addAccount(publicKey: PublicKey, balance: string) {
-    Ledger.addAccount(ledger, Ml.fromPublicKey(publicKey), balance);
-  }
-
   let testAccounts: {
     publicKey: PublicKey;
     privateKey: PrivateKey;
@@ -400,7 +396,7 @@ function LocalBlockchain({
     const largeValue = 1000n * MINA;
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
-    addAccount(pk, largeValue.toString());
+    Ledger.addAccount(ledger, Ml.fromPublicKey(pk), largeValue.toString());
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
@@ -411,6 +407,7 @@ function LocalBlockchain({
   > = {};
 
   return {
+    ledger,
     proofsEnabled,
     accountCreationFee: () => UInt64.from(accountCreationFee),
     getNetworkConstants() {
@@ -427,7 +424,7 @@ function LocalBlockchain({
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return !!Ledger.getAccount(
-        ledger,
+        this.ledger,
         Ml.fromPublicKey(publicKey),
         Ml.constFromField(tokenId)
       );
@@ -437,10 +434,12 @@ function LocalBlockchain({
       tokenId: Field = TokenId.default
     ): Account {
       let accountJson = Ledger.getAccount(
-        ledger,
+        this.ledger,
         Ml.fromPublicKey(publicKey),
         Ml.constFromField(tokenId)
       );
+      // console.log("In the getAccount");
+      // console.log(accountJson);
       if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
@@ -463,7 +462,7 @@ function LocalBlockchain({
 
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = Ledger.getAccount(
-          ledger,
+          this.ledger,
           Ml.fromPublicKey(update.body.publicKey),
           Ml.constFromField(update.body.tokenId)
         );
@@ -480,7 +479,7 @@ function LocalBlockchain({
 
       try {
         Ledger.applyJsonTransaction(
-          ledger,
+          this.ledger,
           JSON.stringify(zkappCommandJson),
           String(accountCreationFee),
           JSON.stringify(networkState)
@@ -591,8 +590,9 @@ function LocalBlockchain({
       });
     },
     applyJsonTransaction(json: string) {
+      console.log(this.ledger);
       return Ledger.applyJsonTransaction(
-        ledger,
+        this.ledger,
         json,
         String(accountCreationFee),
         JSON.stringify(networkState)
@@ -639,7 +639,9 @@ function LocalBlockchain({
       }
       return currentActions.slice(startIndex, endIndex);
     },
-    addAccount,
+    addAccount(publicKey: PublicKey, balance: string) {
+      Ledger.addAccount(this.ledger, Ml.fromPublicKey(publicKey), balance);
+    },
     /**
      * An array of 10 test accounts that have been pre-filled with
      * 30000000000 units of currency.
