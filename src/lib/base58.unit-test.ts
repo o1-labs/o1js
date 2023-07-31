@@ -11,8 +11,7 @@ let version = Random.nat(100);
 
 test(bytes, version, (bytes, version, assert) => {
   let binaryString = String.fromCharCode(...bytes);
-  let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-  let base58Ocaml = Test.encoding.toBase58(ocamlBytes, version);
+  let base58Ocaml = Test.encoding.toBase58(binaryString, version);
 
   // check consistency with OCaml result
   let base58 = toBase58Check(bytes, version);

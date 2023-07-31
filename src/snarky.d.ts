@@ -418,8 +418,8 @@ declare const Ledger: {
 declare const Test: {
   encoding: {
     // arbitrary base58Check encoding
-    toBase58(s: MlBytes, versionByte: number): string;
-    ofBase58(base58: string, versionByte: number): MlBytes;
+    toBase58(s: string, versionByte: number): string;
+    ofBase58(base58: string, versionByte: number): string;
 
     // base58 encoding of some transaction types
     publicKeyToBase58(publicKey: MlPublicKey): string;
