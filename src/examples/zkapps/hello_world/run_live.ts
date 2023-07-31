@@ -14,12 +14,12 @@ const zkAppAddress = zkAppKey.toPublicKey();
 const transactionFee = 100_000_000;
 
 // Network configuration
-const Berkeley = Mina.Network(
+const network = Mina.Network(
   useLocalNetwork
     ? 'http://localhost:8080/graphql'
     : 'https://proxy.berkeley.minaexplorer.com/graphql'
 );
-Mina.setActiveInstance(Berkeley);
+Mina.setActiveInstance(network);
 
 // Fee payer setup
 if (!useLocalNetwork) {
