@@ -387,7 +387,7 @@ function LocalBlockchain({
   let networkState = defaultNetworkState();
 
   function addAccount(publicKey: PublicKey, balance: string) {
-    ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
+    Ledger.addAccount(ledger, Ml.fromPublicKey(publicKey), balance);
   }
 
   let testAccounts: {
@@ -426,7 +426,8 @@ function LocalBlockchain({
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return !!ledger.getAccount(
+      return !!Ledger.getAccount(
+        ledger,
         Ml.fromPublicKey(publicKey),
         Ml.constFromField(tokenId)
       );
@@ -435,7 +436,8 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let accountJson = ledger.getAccount(
+      let accountJson = Ledger.getAccount(
+        ledger,
         Ml.fromPublicKey(publicKey),
         Ml.constFromField(tokenId)
       );
@@ -460,7 +462,8 @@ function LocalBlockchain({
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
       for (const update of txn.transaction.accountUpdates) {
-        let accountJson = ledger.getAccount(
+        let accountJson = Ledger.getAccount(
+          ledger,
           Ml.fromPublicKey(update.body.publicKey),
           Ml.constFromField(update.body.tokenId)
         );
@@ -476,7 +479,8 @@ function LocalBlockchain({
       }
 
       try {
-        ledger.applyJsonTransaction(
+        Ledger.applyJsonTransaction(
+          ledger,
           JSON.stringify(zkappCommandJson),
           String(accountCreationFee),
           JSON.stringify(networkState)
@@ -587,7 +591,8 @@ function LocalBlockchain({
       });
     },
     applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(
+      return Ledger.applyJsonTransaction(
+        ledger,
         json,
         String(accountCreationFee),
         JSON.stringify(networkState)

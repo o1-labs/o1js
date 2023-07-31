@@ -379,25 +379,27 @@ type Gate = {
 
 type MlPublicKey = [_: 0, x: FieldConst, isOdd: MlBool];
 type MlPublicKeyVar = [_: 0, x: FieldVar, isOdd: BoolVar];
+type MlLedger = unknown
 
 /**
  * Represents the Mina ledger.
  */
-declare class Ledger {
+declare const Ledger: {
   /**
    * Creates a fresh ledger.
    */
-  static create(): Ledger;
+  create(): MlLedger;
 
   /**
    * Adds an account and its balance to the ledger.
    */
-  addAccount(publicKey: MlPublicKey, balance: string): void;
+  addAccount(ledger: MlLedger, publicKey: MlPublicKey, balance: string): void;
 
   /**
    * Applies a JSON transaction to the ledger.
    */
   applyJsonTransaction(
+    ledger: MlLedger,
     txJson: string,
     accountCreationFee: string,
     networkState: string
@@ -407,6 +409,7 @@ declare class Ledger {
    * Returns an account.
    */
   getAccount(
+    ledger: MlLedger,
     publicKey: MlPublicKey,
     tokenId: FieldConst
   ): JsonAccount | undefined;
