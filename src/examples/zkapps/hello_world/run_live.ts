@@ -25,13 +25,13 @@ Mina.setActiveInstance(Berkeley);
 if (!useLocalNetwork) {
   console.log(`Funding the Fee payer account.`);
   await Mina.faucet(sender);
-} else {
-  console.log(`Fetching the Fee payer account information.`);
-  await fetchAccount({ publicKey: sender });
 }
-const { nonce, balance } = Berkeley.getAccount(sender);
+console.log(`Fetching the Fee payer account information.`);
+const accountDetails = (await fetchAccount({ publicKey: sender })).account;
 console.log(
-  `Using the Fee payer account ${sender.toBase58()} with nonce: ${nonce} and balance: ${balance}.`
+  `Using the Fee payer account ${sender.toBase58()} with nonce: ${
+    accountDetails?.nonce
+  } and balance: ${accountDetails?.balance}.`
 );
 console.log('');
 
