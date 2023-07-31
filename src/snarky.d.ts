@@ -8,7 +8,6 @@ import type {
   MlList,
   MlOption,
   MlBool,
-  MlBytes,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
