@@ -445,7 +445,7 @@ function LocalBlockchain({
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       }
-      return Types.Account.fromJSON(accountJson);
+      return Types.Account.fromJSON(JSON.parse(accountJson));
     },
     getNetworkState() {
       return networkState;
@@ -467,7 +467,7 @@ function LocalBlockchain({
           Ml.constFromField(update.body.tokenId)
         );
         if (accountJson) {
-          let account = Account.fromJSON(accountJson);
+          let account = Account.fromJSON(JSON.parse(accountJson));
           await verifyAccountUpdate(
             account,
             update,

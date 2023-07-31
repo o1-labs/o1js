@@ -412,7 +412,7 @@ declare const Ledger: {
     ledger: MlLedger,
     publicKey: MlPublicKey,
     tokenId: FieldConst
-  ): JsonAccount | undefined;
+  ): string | undefined;
 }
 
 declare const Test: {
