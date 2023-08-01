@@ -46,8 +46,7 @@ function caml_bigint_256_to_bytes(x) {
   x = x[0];
   var ocamlBytes = caml_create_bytes(32);
   for (var i = 0; x > 0; x >>= BigInt_(8), i++) {
-    if (i >= 32)
-      throw Error("bigint256 doesn't fit into 32 bytes.");
+    if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
     var byte = Number(x & BigInt_(0xff));
     caml_bytes_unsafe_set(ocamlBytes, i, byte);
   }
@@ -69,7 +68,7 @@ function caml_bigint_256_test_bit(b, i) {
 
 // Provides: caml_bigint_256_compare
 function caml_bigint_256_compare(x, y) {
-  x = x[0], y = y[0];
+  (x = x[0]), (y = y[0]);
   if (x < y) return -1;
   if (x === y) return 0;
   return 1;
