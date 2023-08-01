@@ -1,4 +1,4 @@
-/* global joo_global_object, Uint8Array_, BigInt_
+/* global globalThis, Uint8Array_, BigInt_
    caml_bigint_of_bytes, caml_js_to_bool, caml_string_of_jsstring
 */
 
@@ -139,7 +139,7 @@ function caml_finite_field_is_square(x, p) {
 // Requires: Uint8Array_
 var caml_random_bytes = (function () {
   // have to use platform-dependent secure randomness
-  var crypto = joo_global_object.crypto;
+  var crypto = globalThis.crypto;
   if (crypto !== undefined && crypto.getRandomValues !== undefined) {
     // browser / deno
     return function randomBytes(n) {
@@ -489,7 +489,7 @@ var caml_bindings_debug = false;
 var _test_finite_field =
   caml_bindings_debug &&
   (function test() {
-    var console = joo_global_object.console;
+    var console = globalThis.console;
     // t is computed correctly from p = 2^32 * t + 1
     console.assert(
       caml_pasta_pm1_odd_factor * (BigInt_(1) << BigInt_(32)) + BigInt_(1) ===
@@ -499,7 +499,6 @@ var _test_finite_field =
       caml_pasta_qm1_odd_factor * (BigInt_(1) << BigInt_(32)) + BigInt_(1) ===
         caml_pasta_q_bigint
     );
-
     // the primitive root of unity is computed correctly as 5^t
     var generator = BigInt_(5);
     var root_fp = caml_finite_field_power(
