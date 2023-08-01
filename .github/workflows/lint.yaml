@@ -19,4 +19,4 @@ jobs:
       - name: Prettify code
         uses: creyD/prettier_action@v4.3
         with:
-          prettier_options: -c kimchi/js/bindings.js
+          prettier_options: -c kimchi/js/bindings.js js/**/*.js
