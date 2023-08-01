@@ -1,0 +1,28 @@
+name: "Shared steps for live testing jobs"
+description: "Shared steps for live testing jobs"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: "18"
+    - name: Make helper script executable
+      run: chmod +x tests/scripts/wait-for-docker-services.sh
+      shell: bash
+    - name: Wait for Docker container services to be ready
+      run: ./tests/scripts/wait-for-docker-services.sh 8080
+      shell: bash
+    - name: Build SnarkyJS and Execute Tests
+      env:
+        TEST_TYPE: "Live integration tests"
+        USE_LOCAL_NETWORK: "true"
+      continue-on-error: false
+      run: |
+        git submodule update --init --recursive
+        npm ci
+        npm run build:node
+        touch profiling.md
+        sh run-ci-tests.sh
+        cat profiling.md >> $GITHUB_STEP_SUMMARY
+      shell: bash
