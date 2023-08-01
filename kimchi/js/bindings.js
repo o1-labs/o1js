@@ -55,6 +55,22 @@ var caml_bigint_256_of_decimal_string = function (s) {
   );
 };
 
+// Provides: caml_create_rust_empty_vector
+var caml_create_rust_empty_vector = function () {
+  // If this is correct, it should be equivalent than calling
+  // js_class_vector_to_rust_vector with an empty js array
+  return new joo_global_object.Uint32Array(0);
+};
+
+// Provides: caml_is_empty_caml_array
+var caml_is_empty_caml_array = function (caml_array) {
+  // An empty caml array will only be the value [0] as a caml array [v1; v2;,
+  // ...] is
+  // represented as a JavaScript array [0, v1, v2, ...] where [0] is the runtime
+  // tag
+  return caml_array.length === 1;
+};
+
 // Provides: caml_bigint_256_num_limbs
 // Requires: plonk_wasm
 var caml_bigint_256_num_limbs = plonk_wasm.caml_bigint_256_num_limbs;
@@ -1229,28 +1245,54 @@ var caml_fq_plonk_gate_to_rust = function (gate) {
 };
 
 // Provides: caml_fp_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fp_vector_of_rust
+// Requires: plonk_wasm, caml_fp_vector_of_rust, caml_get_field_of_caml_record
 var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
+  // A value lookup table is a caml record with an id and a data field.
+  // The converter should be changed if CamlLookupTable is modified.
+  // id field: int32
+  var caml_lookup_table_id = caml_get_field_of_caml_record(
+    caml_lookup_table,
+    0
+  );
+  // data field: caml array of fq vectors
+  var caml_lookup_table_data = caml_get_field_of_caml_record(
+    caml_lookup_table,
+    1
+  );
+  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
   // removing 1 for the 0 used by jsoo to represent values.
-  var lt_len = caml_lookup_table.data.length - 1;
-  var data = new plonk_wasm.WasmVecVecFp(lt_len);
-  for (var i = 1; i < caml_lookup_table.data.length; i++) {
-    data.push(caml_fp_vector_of_rust(caml_lookup_table.data.get(i - 1)));
+  var lt_data_length = caml_lookup_table_data.length - 1;
+  var data = new plonk_wasm.WasmVecVecFp(lt_data_length);
+  for (var i = 1; i < lt_data_length; i++) {
+    data.push(caml_fp_vector_of_rust(caml_lookup_table_data.get(i - 1)));
   }
-  var res = new mk_class(caml_lookup_table.id, data);
+  var res = new mk_class(caml_lookup_table_id, data);
   return res;
 };
 
 // Provides: caml_fq_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_get_field_of_caml_record
 var caml_fq_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
+  // A value lookup table is a caml record with an id and a data field.
+  // The converter should be changed if CamlLookupTable is modified.
+  // id field: int32
+  var caml_lookup_table_id = caml_get_field_of_caml_record(
+    caml_lookup_table,
+    0
+  );
+  // data field: caml array of fq vectors
+  var caml_lookup_table_data = caml_get_field_of_caml_record(
+    caml_lookup_table,
+    1
+  );
+  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
   // removing 1 for the 0 used by jsoo to represent values.
-  var lt_len = caml_lookup_table.data.length - 1;
-  var data = new plonk_wasm.WasmVecVecFq(lt_len);
-  for (var i = 1; i < caml_lookup_table.data.length; i++) {
-    data.push(caml_fq_vector_to_rust(caml_lookup_table.data.get(i - 1)));
+  var lt_data_length = caml_lookup_table_data.length - 1;
+  var data = new plonk_wasm.WasmVecVecFq(lt_data_length);
+  for (var i = 1; i < lt_data_length; i++) {
+    data.push(caml_fq_vector_to_rust(caml_lookup_table_data.get(i - 1)));
   }
-  var res = new mk_class(caml_lookup_table.id, data);
+  var res = new mk_class(caml_lookup_table_id, data);
   return res;
 };
 
@@ -1387,7 +1429,7 @@ var caml_pasta_fq_plonk_circuit_serialize = function (
 };
 
 // Provides: caml_fp_runtime_table_cfg_to_rust
-// Requires: plonk_wasm,caml_fp_vector_to_rust,caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_get_field_of_caml_record
 var caml_fp_runtime_table_cfg_to_rust = function (
   caml_runtime_table_cfg,
   mk_class
@@ -1412,7 +1454,7 @@ var caml_fp_runtime_table_cfg_to_rust = function (
 };
 
 // Provides: caml_pasta_fp_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust, caml_create_rust_empty_vector, caml_is_empty_caml_array
 var caml_pasta_fp_plonk_index_create = function (
   gates,
   public_inputs,
@@ -1498,7 +1540,7 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
 };
 
 // Provides: caml_fq_runtime_table_cfg_to_rust
-// Requires: plonk_wasm,caml_fq_vector_to_rust,caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_get_field_of_caml_record
 var caml_fq_runtime_table_cfg_to_rust = function (
   caml_runtime_table_cfg,
   mk_class
@@ -1523,7 +1565,7 @@ var caml_fq_runtime_table_cfg_to_rust = function (
 };
 
 // Provides: caml_pasta_fq_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust, caml_is_empty_caml_array, caml_create_rust_empty_vector
 var caml_pasta_fq_plonk_index_create = function (
   gates,
   public_inputs,
@@ -2243,11 +2285,23 @@ var caml_pasta_fp_proof_of_rust = function (x) {
 };
 
 // Provides: caml_fp_runtime_table_to_rust
-// Requires: plonk_wasm, caml_fp_vector_to_rust
+// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_get_field_of_caml_record
 var caml_fp_runtime_table_to_rust = function (caml_runtime_table, mk_class) {
+  // A value caml_runtime_table is a record on the OCaml side.
+  // The converter should be changed if CamlRuntimeTable is modified.
+  // id field: int32
+  var caml_runtime_table_id = caml_get_field_of_caml_record(
+    caml_runtime_table,
+    0
+  );
+  // data field: Caml array of fq elements
+  var caml_runtime_table_data = caml_get_field_of_caml_record(
+    caml_runtime_table,
+    1
+  );
   var res = new mk_class(
-    caml_runtime_table.id,
-    caml_fp_vector_to_rust(caml_runtime_table.data)
+    caml_runtime_table_id,
+    caml_fp_vector_to_rust(caml_runtime_table_data)
   );
   return res;
 };
@@ -2491,11 +2545,23 @@ var caml_pasta_fq_proof_of_rust = function (x) {
 };
 
 // Provides: caml_fq_runtime_table_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_get_field_of_caml_record
 var caml_fq_runtime_table_to_rust = function (caml_runtime_table, mk_class) {
+  // A value caml_runtime_table is a record on the OCaml side.
+  // The converter should be changed if CamlRuntimeTable is modified.
+  // id field: int32
+  var caml_runtime_table_id = caml_get_field_of_caml_record(
+    caml_runtime_table,
+    0
+  );
+  // data field: Caml array of fq elements
+  var caml_runtime_table_data = caml_get_field_of_caml_record(
+    caml_runtime_table,
+    1
+  );
   var res = new mk_class(
-    caml_runtime_table.id,
-    caml_fq_vector_to_rust(caml_runtime_table.data)
+    caml_runtime_table_id,
+    caml_fq_vector_to_rust(caml_runtime_table_data)
   );
   return res;
 };
