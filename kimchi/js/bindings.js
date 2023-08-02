@@ -46,22 +46,6 @@ var caml_bigint_256_of_decimal_string = function (s) {
   );
 };
 
-// Provides: caml_create_rust_empty_vector
-var caml_create_rust_empty_vector = function () {
-  // If this is correct, it should be equivalent than calling
-  // js_class_vector_to_rust_vector with an empty js array
-  return new joo_global_object.Uint32Array(0);
-};
-
-// Provides: caml_is_empty_caml_array
-var caml_is_empty_caml_array = function (caml_array) {
-  // An empty caml array will only be the value [0] as a caml array [v1; v2;,
-  // ...] is
-  // represented as a JavaScript array [0, v1, v2, ...] where [0] is the runtime
-  // tag
-  return caml_array.length === 1;
-};
-
 // Provides: caml_bigint_256_num_limbs
 // Requires: plonk_wasm
 var caml_bigint_256_num_limbs = plonk_wasm.caml_bigint_256_num_limbs;
@@ -1387,7 +1371,7 @@ var caml_fp_runtime_table_cfg_to_rust = function (
 };
 
 // Provides: caml_pasta_fp_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust, caml_create_rust_empty_vector, caml_is_empty_caml_array
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust
 var caml_pasta_fp_plonk_index_create = function (
   gates,
   public_inputs,
@@ -1395,17 +1379,11 @@ var caml_pasta_fp_plonk_index_create = function (
   prev_challenges,
   urs
 ) {
-  var wasm_runtime_table_cfgs;
-
-  if (caml_is_empty_caml_array(caml_runtime_table_cfgs)) {
-    wasm_runtime_table_cfgs = caml_create_rust_empty_vector();
-  } else {
-    wasm_runtime_table_cfgs = caml_array_to_rust_vector(
-      caml_runtime_table_cfgs,
-      caml_fp_runtime_table_cfg_to_rust,
-      plonk_wasm.WasmPastaFpRuntimeTableCfg
-    );
-  }
+  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
+    caml_runtime_table_cfgs,
+    caml_fp_runtime_table_cfg_to_rust,
+    plonk_wasm.WasmPastaFpRuntimeTableCfg
+  );
 
   var t = plonk_wasm.caml_pasta_fp_plonk_index_create(
     gates,
@@ -1492,7 +1470,7 @@ var caml_fq_runtime_table_cfg_to_rust = function (
 };
 
 // Provides: caml_pasta_fq_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust, caml_is_empty_caml_array, caml_create_rust_empty_vector
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust
 var caml_pasta_fq_plonk_index_create = function (
   gates,
   public_inputs,
@@ -1500,17 +1478,11 @@ var caml_pasta_fq_plonk_index_create = function (
   prev_challenges,
   urs
 ) {
-  var wasm_runtime_table_cfgs;
-
-  if (caml_is_empty_caml_array(caml_runtime_table_cfgs)) {
-    wasm_runtime_table_cfgs = caml_create_rust_empty_vector();
-  } else {
-    wasm_runtime_table_cfgs = caml_array_to_rust_vector(
-      caml_runtime_table_cfgs,
-      caml_fq_runtime_table_cfg_to_rust,
-      plonk_wasm.WasmPastaFqRuntimeTableCfg
-    );
-  }
+  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
+    caml_runtime_table_cfgs,
+    caml_fq_runtime_table_cfg_to_rust,
+    plonk_wasm.WasmPastaFqRuntimeTableCfg
+  );
 
   return free_on_finalize(
     plonk_wasm.caml_pasta_fq_plonk_index_create(
