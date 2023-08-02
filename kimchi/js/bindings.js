@@ -1235,46 +1235,6 @@ var caml_fq_plonk_gate_to_rust = function (gate) {
   );
 };
 
-// Provides: caml_fp_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fp_vector_of_rust
-var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
-  // A value lookup table is a caml record with an id and a data field.
-  // The converter should be changed if CamlLookupTable is modified.
-  // id field: int32
-  var caml_lookup_table_id = caml_lookup_table[1];
-  // data field: caml array of fq vectors
-  var caml_lookup_table_data = caml_lookup_table[2];
-  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
-  // removing 1 for the 0 used by jsoo to represent values.
-  var lt_data_length = caml_lookup_table_data.length - 1;
-  var data = new plonk_wasm.WasmVecVecFp(lt_data_length);
-  for (var i = 1; i < lt_data_length; i++) {
-    data.push(caml_fp_vector_of_rust(caml_lookup_table_data.get(i - 1)));
-  }
-  var res = new mk_class(caml_lookup_table_id, data);
-  return res;
-};
-
-// Provides: caml_fq_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust
-var caml_fq_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
-  // A value lookup table is a caml record with an id and a data field.
-  // The converter should be changed if CamlLookupTable is modified.
-  // id field: int32
-  var caml_lookup_table_id = caml_lookup_table[1];
-  // data field: caml array of fq vectors
-  var caml_lookup_table_data = caml_lookup_table[2];
-  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
-  // removing 1 for the 0 used by jsoo to represent values.
-  var lt_data_length = caml_lookup_table_data.length - 1;
-  var data = new plonk_wasm.WasmVecVecFq(lt_data_length);
-  for (var i = 1; i < lt_data_length; i++) {
-    data.push(caml_fq_vector_to_rust(caml_lookup_table_data.get(i - 1)));
-  }
-  var res = new mk_class(caml_lookup_table_id, data);
-  return res;
-};
-
 // Provides: caml_pasta_fp_plonk_gate_vector_create
 // Requires: plonk_wasm, free_on_finalize
 var caml_pasta_fp_plonk_gate_vector_create = function () {
