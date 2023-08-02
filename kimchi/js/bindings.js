@@ -4,15 +4,6 @@
     UInt64, caml_int64_of_int32
 */
 
-// Provides: caml_get_field_of_caml_record
-var caml_get_field_of_caml_record = function (caml_record, i) {
-  // Get the ith field of the record [record]
-  // The runtime representation of a record is [0, field1, field2, ...], like
-  // arrays and tuples, see https://github.com/ocsigen/js_of_ocaml/blob/4.0.0/README.md#data-representation
-  // If js_of_ocaml is updated, this has to be reviewed.
-  return caml_record[1 + i];
-};
-
 // Provides: caml_bytes_of_uint8array
 // Requires: caml_create_bytes, caml_bytes_unsafe_set
 var caml_bytes_of_uint8array = function (uint8array) {
@@ -1245,20 +1236,14 @@ var caml_fq_plonk_gate_to_rust = function (gate) {
 };
 
 // Provides: caml_fp_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fp_vector_of_rust, caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fp_vector_of_rust
 var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
   // A value lookup table is a caml record with an id and a data field.
   // The converter should be changed if CamlLookupTable is modified.
   // id field: int32
-  var caml_lookup_table_id = caml_get_field_of_caml_record(
-    caml_lookup_table,
-    0
-  );
+  var caml_lookup_table_id = caml_lookup_table[1];
   // data field: caml array of fq vectors
-  var caml_lookup_table_data = caml_get_field_of_caml_record(
-    caml_lookup_table,
-    1
-  );
+  var caml_lookup_table_data = caml_lookup_table[2];
   // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
   // removing 1 for the 0 used by jsoo to represent values.
   var lt_data_length = caml_lookup_table_data.length - 1;
@@ -1271,20 +1256,14 @@ var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
 };
 
 // Provides: caml_fq_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fq_vector_to_rust
 var caml_fq_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
   // A value lookup table is a caml record with an id and a data field.
   // The converter should be changed if CamlLookupTable is modified.
   // id field: int32
-  var caml_lookup_table_id = caml_get_field_of_caml_record(
-    caml_lookup_table,
-    0
-  );
+  var caml_lookup_table_id = caml_lookup_table[1];
   // data field: caml array of fq vectors
-  var caml_lookup_table_data = caml_get_field_of_caml_record(
-    caml_lookup_table,
-    1
-  );
+  var caml_lookup_table_data = caml_lookup_table[2];
   // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
   // removing 1 for the 0 used by jsoo to represent values.
   var lt_data_length = caml_lookup_table_data.length - 1;
@@ -1429,7 +1408,7 @@ var caml_pasta_fq_plonk_circuit_serialize = function (
 };
 
 // Provides: caml_fp_runtime_table_cfg_to_rust
-// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fp_vector_to_rust
 var caml_fp_runtime_table_cfg_to_rust = function (
   caml_runtime_table_cfg,
   mk_class
@@ -1437,15 +1416,9 @@ var caml_fp_runtime_table_cfg_to_rust = function (
   // A value caml_runtime_table_cfg is a record on the OCaml side.
   // The converter should be changed if CamlRuntimeTableCfg is modified.
   // id field: int32
-  var caml_runtime_table_cfg_id = caml_get_field_of_caml_record(
-    caml_runtime_table_cfg,
-    0
-  );
+  var caml_runtime_table_cfg_id = caml_runtime_table_cfg[1];
   // first_column field: Caml array of fq element
-  var caml_runtime_table_cfg_first_column = caml_get_field_of_caml_record(
-    caml_runtime_table_cfg,
-    1
-  );
+  var caml_runtime_table_cfg_first_column = caml_runtime_table_cfg[2];
   var res = new mk_class(
     caml_runtime_table_cfg_id,
     caml_fp_vector_to_rust(caml_runtime_table_cfg_first_column)
@@ -1540,7 +1513,7 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
 };
 
 // Provides: caml_fq_runtime_table_cfg_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fq_vector_to_rust
 var caml_fq_runtime_table_cfg_to_rust = function (
   caml_runtime_table_cfg,
   mk_class
@@ -1548,15 +1521,9 @@ var caml_fq_runtime_table_cfg_to_rust = function (
   // A value caml_runtime_table_cfg is a record on the OCaml side.
   // The converter should be changed if CamlRuntimeTableCfg is modified.
   // id field: int32
-  var caml_runtime_table_cfg_id = caml_get_field_of_caml_record(
-    caml_runtime_table_cfg,
-    0
-  );
+  var caml_runtime_table_cfg_id = caml_runtime_table_cfg[1];
   // first_column field: Caml array of fq element
-  var caml_runtime_table_cfg_first_column = caml_get_field_of_caml_record(
-    caml_runtime_table_cfg,
-    1
-  );
+  var caml_runtime_table_cfg_first_column = caml_runtime_table_cfg[2];
   var res = new mk_class(
     caml_runtime_table_cfg_id,
     caml_fq_vector_to_rust(caml_runtime_table_cfg_first_column)
@@ -2285,20 +2252,14 @@ var caml_pasta_fp_proof_of_rust = function (x) {
 };
 
 // Provides: caml_fp_runtime_table_to_rust
-// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fp_vector_to_rust
 var caml_fp_runtime_table_to_rust = function (caml_runtime_table, mk_class) {
   // A value caml_runtime_table is a record on the OCaml side.
   // The converter should be changed if CamlRuntimeTable is modified.
   // id field: int32
-  var caml_runtime_table_id = caml_get_field_of_caml_record(
-    caml_runtime_table,
-    0
-  );
+  var caml_runtime_table_id = caml_runtime_table[1];
   // data field: Caml array of fq elements
-  var caml_runtime_table_data = caml_get_field_of_caml_record(
-    caml_runtime_table,
-    1
-  );
+  var caml_runtime_table_data = caml_runtime_table[2];
   var res = new mk_class(
     caml_runtime_table_id,
     caml_fp_vector_to_rust(caml_runtime_table_data)
@@ -2545,20 +2506,14 @@ var caml_pasta_fq_proof_of_rust = function (x) {
 };
 
 // Provides: caml_fq_runtime_table_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust, caml_get_field_of_caml_record
+// Requires: plonk_wasm, caml_fq_vector_to_rust
 var caml_fq_runtime_table_to_rust = function (caml_runtime_table, mk_class) {
   // A value caml_runtime_table is a record on the OCaml side.
   // The converter should be changed if CamlRuntimeTable is modified.
   // id field: int32
-  var caml_runtime_table_id = caml_get_field_of_caml_record(
-    caml_runtime_table,
-    0
-  );
+  var caml_runtime_table_id = caml_runtime_table[1];
   // data field: Caml array of fq elements
-  var caml_runtime_table_data = caml_get_field_of_caml_record(
-    caml_runtime_table,
-    1
-  );
+  var caml_runtime_table_data = caml_runtime_table[2];
   var res = new mk_class(
     caml_runtime_table_id,
     caml_fq_vector_to_rust(caml_runtime_table_data)
