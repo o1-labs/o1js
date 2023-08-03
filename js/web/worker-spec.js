@@ -12,6 +12,7 @@ function workerSpec(wasm) {
       args: [
         wasm.WasmFpGateVector,
         undefined /* number */,
+        undefined /*Uint32Array*/,
         undefined /* number */,
         wasm.WasmFpSrs,
       ],
@@ -21,6 +22,7 @@ function workerSpec(wasm) {
       args: [
         wasm.WasmFqGateVector,
         undefined /* number */,
+        undefined /*Uint32Array*/,
         undefined /* number */,
         wasm.WasmFqSrs,
       ],

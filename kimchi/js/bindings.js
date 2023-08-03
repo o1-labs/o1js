@@ -1351,17 +1351,44 @@ var caml_pasta_fq_plonk_circuit_serialize = function (
   );
 };
 
+// Provides: caml_fp_runtime_table_cfg_to_rust
+// Requires: plonk_wasm, caml_fp_vector_to_rust
+var caml_fp_runtime_table_cfg_to_rust = function (
+  caml_runtime_table_cfg,
+  mk_class
+) {
+  // A value caml_runtime_table_cfg is a record on the OCaml side.
+  // The converter should be changed if CamlRuntimeTableCfg is modified.
+  // id field: int32
+  var caml_runtime_table_cfg_id = caml_runtime_table_cfg[1];
+  // first_column field: Caml array of fq element
+  var caml_runtime_table_cfg_first_column = caml_runtime_table_cfg[2];
+  var res = new mk_class(
+    caml_runtime_table_cfg_id,
+    caml_fp_vector_to_rust(caml_runtime_table_cfg_first_column)
+  );
+  return res;
+};
+
 // Provides: caml_pasta_fp_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust
 var caml_pasta_fp_plonk_index_create = function (
   gates,
   public_inputs,
+  caml_runtime_table_cfgs,
   prev_challenges,
   urs
 ) {
+  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
+    caml_runtime_table_cfgs,
+    caml_fp_runtime_table_cfg_to_rust,
+    plonk_wasm.WasmPastaFpRuntimeTableCfg
+  );
+
   var t = plonk_wasm.caml_pasta_fp_plonk_index_create(
     gates,
     public_inputs,
+    wasm_runtime_table_cfgs,
     prev_challenges,
     urs
   );
@@ -1423,18 +1450,45 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
   );
 };
 
+// Provides: caml_fq_runtime_table_cfg_to_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust
+var caml_fq_runtime_table_cfg_to_rust = function (
+  caml_runtime_table_cfg,
+  mk_class
+) {
+  // A value caml_runtime_table_cfg is a record on the OCaml side.
+  // The converter should be changed if CamlRuntimeTableCfg is modified.
+  // id field: int32
+  var caml_runtime_table_cfg_id = caml_runtime_table_cfg[1];
+  // first_column field: Caml array of fq element
+  var caml_runtime_table_cfg_first_column = caml_runtime_table_cfg[2];
+  var res = new mk_class(
+    caml_runtime_table_cfg_id,
+    caml_fq_vector_to_rust(caml_runtime_table_cfg_first_column)
+  );
+  return res;
+};
+
 // Provides: caml_pasta_fq_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust
 var caml_pasta_fq_plonk_index_create = function (
   gates,
   public_inputs,
+  caml_runtime_table_cfgs,
   prev_challenges,
   urs
 ) {
+  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
+    caml_runtime_table_cfgs,
+    caml_fq_runtime_table_cfg_to_rust,
+    plonk_wasm.WasmPastaFqRuntimeTableCfg
+  );
+
   return free_on_finalize(
     plonk_wasm.caml_pasta_fq_plonk_index_create(
       gates,
       public_inputs,
+      wasm_runtime_table_cfgs,
       prev_challenges,
       urs
     )
@@ -2671,11 +2725,4 @@ function caml_pasta_fp_plonk_proof_example_with_rot() {
 // Provides: caml_pasta_fp_plonk_proof_example_with_xor
 function caml_pasta_fp_plonk_proof_example_with_xor() {
   throw new Error('Unimplemented caml_pasta_fp_plonk_proof_example_with_xor');
-}
-
-// Provides: caml_pasta_fp_plonk_proof_example_with_lookup
-function caml_pasta_fp_plonk_proof_example_with_lookup() {
-  throw new Error(
-    'Unimplemented caml_pasta_fp_plonk_proof_example_with_lookup'
-  );
 }
