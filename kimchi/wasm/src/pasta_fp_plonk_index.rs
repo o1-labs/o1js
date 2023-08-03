@@ -5,7 +5,7 @@ use crate::arkworks::WasmPastaFp;
 use crate::gate_vector::fp::WasmGateVector;
 use crate::srs::fp::WasmFpSrs as WasmSrs;
 use crate::wasm_flat_vector::WasmFlatVector;
-use crate::wasm_vector::fp::*;
+use crate::wasm_vector::{fp::*, WasmVector};
 use kimchi::circuits::lookup::tables::LookupTable;
 use kimchi::circuits::{constraints::ConstraintSystem, gate::CircuitGate};
 use kimchi::linearization::expr_linearization;
@@ -95,6 +95,7 @@ impl From<WasmPastaFpRuntimeTableCfg> for RuntimeTableCfg<Fp> {
 pub fn caml_pasta_fp_plonk_index_create(
     gates: &WasmGateVector,
     public_: i32,
+    runtime_table_cfgs: WasmVector<WasmPastaFpRuntimeTableCfg>,
     prev_challenges: i32,
     srs: &WasmSrs,
 ) -> Result<WasmPastaFpPlonkIndex, JsError> {
@@ -111,10 +112,18 @@ pub fn caml_pasta_fp_plonk_index_create(
             })
             .collect();
 
+        let rust_runtime_table_cfgs: Vec<RuntimeTableCfg<Fp>> =
+            runtime_table_cfgs.into_iter().map(Into::into).collect();
+
         // create constraint system
         let cs = match ConstraintSystem::<Fp>::create(gates)
             .public(public_ as usize)
             .prev_challenges(prev_challenges as usize)
+            .runtime(if rust_runtime_table_cfgs.is_empty() {
+                None
+            } else {
+                Some(rust_runtime_table_cfgs)
+            })
             .build()
         {
             Err(_) => {
