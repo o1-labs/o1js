@@ -2279,6 +2279,21 @@ var caml_pasta_fp_proof_of_rust = function (x) {
   return [0, messages, proof, evals, ft_eval1, public_, prev_challenges];
 };
 
+// Provides: caml_fp_runtime_table_to_rust
+// Requires: plonk_wasm, caml_fp_vector_to_rust
+var caml_fp_runtime_table_to_rust = function (caml_runtime_table, mk_class) {
+  // A value caml_runtime_table is a record on the OCaml side.
+  // id field: int32
+  var caml_runtime_table_id = caml_runtime_table[1];
+  // data field: Caml array of fq elements
+  var caml_runtime_table_data = caml_runtime_table[2];
+  var res = new mk_class(
+    caml_runtime_table_id,
+    caml_fp_vector_to_rust(caml_runtime_table_data)
+  );
+  return res;
+};
+
 // Provides: caml_pasta_fp_plonk_proof_create
 // Requires: plonk_wasm, caml_fp_vector_to_rust, caml_array_to_rust_vector, rust_affine_of_caml_affine, caml_pasta_fp_proof_of_rust, caml_fp_runtime_table_to_rust
 var caml_pasta_fp_plonk_proof_create = function (
@@ -2522,6 +2537,21 @@ var caml_pasta_fq_proof_of_rust = function (x) {
     prev_challenges[i] = res;
   }
   return [0, messages, proof, evals, ft_eval1, public_, prev_challenges];
+};
+
+// Provides: caml_fq_runtime_table_to_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust
+var caml_fq_runtime_table_to_rust = function (caml_runtime_table, mk_class) {
+  // A value caml_runtime_table is a record on the OCaml side.
+  // id field: int32
+  var caml_runtime_table_id = caml_runtime_table[1];
+  // data field: Caml array of fq elements
+  var caml_runtime_table_data = caml_runtime_table[2];
+  var res = new mk_class(
+    caml_runtime_table_id,
+    caml_fq_vector_to_rust(caml_runtime_table_data)
+  );
+  return res;
 };
 
 // Provides: caml_pasta_fq_plonk_proof_create
