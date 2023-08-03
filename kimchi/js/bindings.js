@@ -1443,6 +1443,26 @@ var caml_pasta_fp_plonk_index_create = function (
   return free_on_finalize(t);
 };
 
+// Provides: caml_pasta_fp_plonk_index_create_bytecode
+// Requires: caml_pasta_fp_plonk_index_create
+var caml_pasta_fp_plonk_index_create_bytecode = function (
+  gates,
+  public_inputs,
+  caml_lookup_tables,
+  caml_runtime_table_cfgs,
+  prev_challenges,
+  urs
+) {
+  return caml_pasta_fp_plonk_index_create(
+    gates,
+    public_inputs,
+    caml_lookup_tables,
+    caml_runtime_table_cfgs,
+    prev_challenges,
+    urs
+  );
+};
+
 // Provides: caml_pasta_fp_plonk_index_max_degree
 // Requires: plonk_wasm
 var caml_pasta_fp_plonk_index_max_degree =
@@ -1548,6 +1568,26 @@ var caml_pasta_fq_plonk_index_create = function (
       prev_challenges,
       urs
     )
+  );
+};
+
+// Provides: caml_pasta_fq_plonk_index_create_bytecode
+// Requires: caml_pasta_fq_plonk_index_create
+var caml_pasta_fq_plonk_index_create_bytecode = function (
+  gates,
+  public_inputs,
+  caml_lookup_tables,
+  caml_runtime_table_cfgs,
+  prev_challenges,
+  urs
+) {
+  return caml_pasta_fq_plonk_index_create(
+    gates,
+    public_inputs,
+    caml_lookup_tables,
+    caml_runtime_table_cfgs,
+    prev_challenges,
+    urs
   );
 };
 
