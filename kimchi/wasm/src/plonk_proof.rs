@@ -551,6 +551,7 @@ macro_rules! impl_proof {
             pub fn [<$name:snake _create>](
                 index: &$WasmIndex,
                 witness: WasmVecVecF,
+                wasm_runtime_tables: WasmVector<WasmRuntimeTable>,
                 prev_challenges: WasmFlatVector<$WasmF>,
                 prev_sgs: WasmVector<$WasmG>,
             ) -> Result<WasmProverProof, JsError> {
@@ -586,6 +587,8 @@ macro_rules! impl_proof {
                         }
                     };
 
+                    let rust_runtime_tables: Vec<RuntimeTable<$F>> = wasm_runtime_tables.into_iter().map(Into::into).collect();
+
                     let witness: [Vec<_>; COLUMNS] = witness.0
                         .try_into()
                         .expect("the witness should be a column of 15 vectors");
@@ -599,7 +602,7 @@ macro_rules! impl_proof {
                     let maybe_proof = ProverProof::create_recursive::<
                         DefaultFqSponge<_, PlonkSpongeConstantsKimchi>,
                         DefaultFrSponge<_, PlonkSpongeConstantsKimchi>,
-                        >(&group_map, witness, &[], index, prev, None);
+                        >(&group_map, witness, &rust_runtime_tables, index, prev, None);
                     (maybe_proof, public_input)
                 });
 

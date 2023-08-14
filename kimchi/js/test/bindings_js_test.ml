@@ -645,12 +645,14 @@ let _ =
          let x = Backend.Field.of_int 2 in
          let (pi : Backend.Proof.t) =
            time "generate witness conv" (fun () ->
+               (* TODO(dw) add runtime table, make pickles/snarky more lookup friendly
+                  (https://github.com/MinaProtocol/mina/issues/13476) *)
                Impl.generate_witness_conv ~input_typ:Typ.field
                  ~return_typ:Typ.unit main
                  ~f:(fun { Proof_inputs.auxiliary_inputs; public_inputs } () ->
                    time "create proof" (fun () ->
                        Backend.Proof.create pk ~auxiliary:auxiliary_inputs
-                         ~primary:public_inputs ) )
+                         ~primary:public_inputs ~runtime_tables:[||] ) )
                  x )
          in
          let vk = Backend.Keypair.vk pk in
