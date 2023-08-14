@@ -91,10 +91,12 @@ impl From<WasmPastaFpRuntimeTableCfg> for RuntimeTableCfg<Fp> {
 // CamlPastaFpPlonkIndex methods
 //
 
+// Change js/web/worker-spec.js accordingly
 #[wasm_bindgen]
 pub fn caml_pasta_fp_plonk_index_create(
     gates: &WasmGateVector,
     public_: i32,
+    lookup_tables: WasmVector<WasmPastaFpLookupTable>,
     runtime_table_cfgs: WasmVector<WasmPastaFpRuntimeTableCfg>,
     prev_challenges: i32,
     srs: &WasmSrs,
@@ -115,10 +117,14 @@ pub fn caml_pasta_fp_plonk_index_create(
         let rust_runtime_table_cfgs: Vec<RuntimeTableCfg<Fp>> =
             runtime_table_cfgs.into_iter().map(Into::into).collect();
 
+        let rust_lookup_tables : Vec<LookupTable<Fp>> =
+            lookup_tables.into_iter().map(Into::into).collect();
+
         // create constraint system
         let cs = match ConstraintSystem::<Fp>::create(gates)
             .public(public_ as usize)
             .prev_challenges(prev_challenges as usize)
+            .lookup(rust_lookup_tables)
             .runtime(if rust_runtime_table_cfgs.is_empty() {
                 None
             } else {

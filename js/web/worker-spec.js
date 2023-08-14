@@ -10,20 +10,34 @@ function workerSpec(wasm) {
   return {
     caml_pasta_fp_plonk_index_create: {
       args: [
+        // gates
         wasm.WasmFpGateVector,
+        // public_
         undefined /* number */,
+        // lookup_tables
         undefined /*Uint32Array*/,
+        // runtime_table_cfgs
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /* number */,
+        // srs
         wasm.WasmFpSrs,
       ],
       res: wasm.WasmPastaFpPlonkIndex,
     },
     caml_pasta_fq_plonk_index_create: {
       args: [
+        // gates
         wasm.WasmFqGateVector,
+        // public_
         undefined /* number */,
+        // lookup_tables
         undefined /*Uint32Array*/,
+        // runtime_table_cfgs
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /* number */,
+        // srs
         wasm.WasmFqSrs,
       ],
       res: wasm.WasmPastaFqPlonkIndex,

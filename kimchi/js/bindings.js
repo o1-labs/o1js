@@ -1370,15 +1370,62 @@ var caml_fp_runtime_table_cfg_to_rust = function (
   return res;
 };
 
+// Provides: caml_fp_lookup_table_to_rust
+// Requires: plonk_wasm, caml_fp_vector_of_rust
+var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
+  // A value lookup table is a caml record with an id and a data field.
+  // The converter should be changed if CamlLookupTable is modified.
+  // id field: int32
+  var caml_lookup_table_id = caml_lookup_table[1];
+  // data field: caml array of fq vectors
+  var caml_lookup_table_data = caml_lookup_table[2];
+  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
+  // removing 1 for the 0 used by jsoo to represent values.
+  var lt_data_length = caml_lookup_table_data.length - 1;
+  var data = new plonk_wasm.WasmVecVecFp(lt_data_length);
+  for (var i = 1; i < lt_data_length; i++) {
+    data.push(caml_fp_vector_of_rust(caml_lookup_table_data.get(i - 1)));
+  }
+  var res = new mk_class(caml_lookup_table_id, data);
+  return res;
+};
+
+// Provides: caml_fq_lookup_table_to_rust
+// Requires: plonk_wasm, caml_fq_vector_to_rust
+var caml_fq_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
+  // A value lookup table is a caml record with an id and a data field.
+  // The converter should be changed if CamlLookupTable is modified.
+  // id field: int32
+  var caml_lookup_table_id = caml_lookup_table[1];
+  // data field: caml array of fq vectors
+  var caml_lookup_table_data = caml_lookup_table[2];
+  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
+  // removing 1 for the 0 used by jsoo to represent values.
+  var lt_data_length = caml_lookup_table_data.length - 1;
+  var data = new plonk_wasm.WasmVecVecFq(lt_data_length);
+  for (var i = 1; i < lt_data_length; i++) {
+    data.push(caml_fq_vector_to_rust(caml_lookup_table_data.get(i - 1)));
+  }
+  var res = new mk_class(caml_lookup_table_id, data);
+  return res;
+};
+
 // Provides: caml_pasta_fp_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust, caml_fp_lookup_table_to_rust
 var caml_pasta_fp_plonk_index_create = function (
   gates,
   public_inputs,
+  caml_lookup_tables,
   caml_runtime_table_cfgs,
   prev_challenges,
   urs
 ) {
+  var wasm_lookup_tables = caml_array_to_rust_vector(
+    caml_lookup_tables,
+    caml_fp_lookup_table_to_rust,
+    plonk_wasm.WasmPastaFpLookupTable
+  );
+
   var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
     caml_runtime_table_cfgs,
     caml_fp_runtime_table_cfg_to_rust,
@@ -1388,11 +1435,32 @@ var caml_pasta_fp_plonk_index_create = function (
   var t = plonk_wasm.caml_pasta_fp_plonk_index_create(
     gates,
     public_inputs,
+    wasm_lookup_tables,
     wasm_runtime_table_cfgs,
     prev_challenges,
     urs
   );
   return free_on_finalize(t);
+};
+
+// Provides: caml_pasta_fp_plonk_index_create_bytecode
+// Requires: caml_pasta_fp_plonk_index_create
+var caml_pasta_fp_plonk_index_create_bytecode = function (
+  gates,
+  public_inputs,
+  caml_lookup_tables,
+  caml_runtime_table_cfgs,
+  prev_challenges,
+  urs
+) {
+  return caml_pasta_fp_plonk_index_create(
+    gates,
+    public_inputs,
+    caml_lookup_tables,
+    caml_runtime_table_cfgs,
+    prev_challenges,
+    urs
+  );
 };
 
 // Provides: caml_pasta_fp_plonk_index_max_degree
@@ -1470,14 +1538,21 @@ var caml_fq_runtime_table_cfg_to_rust = function (
 };
 
 // Provides: caml_pasta_fq_plonk_index_create
-// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust
+// Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust, caml_fq_lookup_table_to_rust
 var caml_pasta_fq_plonk_index_create = function (
   gates,
   public_inputs,
+  caml_lookup_tables,
   caml_runtime_table_cfgs,
   prev_challenges,
   urs
 ) {
+  var wasm_lookup_tables = caml_array_to_rust_vector(
+    caml_lookup_tables,
+    caml_fq_lookup_table_to_rust,
+    plonk_wasm.WasmPastaFqLookupTable
+  );
+
   var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
     caml_runtime_table_cfgs,
     caml_fq_runtime_table_cfg_to_rust,
@@ -1488,10 +1563,31 @@ var caml_pasta_fq_plonk_index_create = function (
     plonk_wasm.caml_pasta_fq_plonk_index_create(
       gates,
       public_inputs,
+      wasm_lookup_tables,
       wasm_runtime_table_cfgs,
       prev_challenges,
       urs
     )
+  );
+};
+
+// Provides: caml_pasta_fq_plonk_index_create_bytecode
+// Requires: caml_pasta_fq_plonk_index_create
+var caml_pasta_fq_plonk_index_create_bytecode = function (
+  gates,
+  public_inputs,
+  caml_lookup_tables,
+  caml_runtime_table_cfgs,
+  prev_challenges,
+  urs
+) {
+  return caml_pasta_fq_plonk_index_create(
+    gates,
+    public_inputs,
+    caml_lookup_tables,
+    caml_runtime_table_cfgs,
+    prev_challenges,
+    urs
   );
 };
 
