@@ -115,7 +115,7 @@ pub fn caml_pasta_fq_plonk_index_create(
         let rust_runtime_table_cfgs: Vec<RuntimeTableCfg<Fq>> =
             runtime_table_cfgs.into_iter().map(Into::into).collect();
 
-        let rust_lookup_tables : Vec<LookupTable<Fq>> =
+        let rust_lookup_tables: Vec<LookupTable<Fq>> =
             lookup_tables.into_iter().map(Into::into).collect();
 
         // create constraint system
