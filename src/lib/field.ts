@@ -1,13 +1,25 @@
-import { Snarky, SnarkyField, Provable } from '../snarky.js';
+import { Snarky, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
-import { asProver } from './provable-context.js';
+import { asProver, inCheckedComputation } from './provable-context.js';
+import { Bool } from './bool.js';
+import { assert } from './errors.js';
 
-export { Field, ConstantField, FieldType, FieldVar, FieldConst, isField };
+// external API
+export { Field };
 
-const SnarkyFieldConstructor = SnarkyField(1).constructor;
+// internal API
+export {
+  ConstantField,
+  FieldType,
+  FieldVar,
+  FieldConst,
+  isField,
+  withMessage,
+  readVarMessage,
+  toConstantField,
+};
 
 type FieldConst = Uint8Array;
 
@@ -21,6 +33,12 @@ function constFromBigint(x: Fp) {
 const FieldConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
+  equal(x: FieldConst, y: FieldConst) {
+    for (let i = 0, n = Fp.sizeInBytes(); i < n; i++) {
+      if (x[i] !== y[i]) return false;
+    }
+    return true;
+  },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
   [-1]: constFromBigint(Fp(-1n)),
@@ -58,6 +76,9 @@ const FieldVar = {
   constant(x: bigint | FieldConst): ConstantFieldVar {
     let x0 = typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
     return [FieldType.Constant, x0];
+  },
+  isConstant(x: FieldVar): x is ConstantFieldVar {
+    return x[0] === FieldType.Constant;
   },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
@@ -119,7 +140,7 @@ class Field {
   /**
    * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a Field.
    */
-  constructor(x: bigint | number | string | Field | FieldVar) {
+  constructor(x: bigint | number | string | Field | FieldVar | FieldConst) {
     if (Field.#isField(x)) {
       this.value = x.value;
       return;
@@ -129,13 +150,20 @@ class Field {
       this.value = x;
       return;
     }
+    // FieldConst
+    if (x instanceof Uint8Array) {
+      this.value = FieldVar.constant(x);
+      return;
+    }
     // TODO this should handle common values efficiently by reading from a lookup table
     this.value = FieldVar.constant(Fp(x));
   }
 
   // helpers
-  static #isField(x: bigint | number | string | Field | FieldVar): x is Field {
-    return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+  static #isField(
+    x: bigint | number | string | Field | FieldVar | FieldConst
+  ): x is Field {
+    return x instanceof Field;
   }
   static #toConst(x: bigint | number | string | ConstantField): FieldConst {
     if (Field.#isField(x)) return x.value[1];
@@ -172,6 +200,10 @@ class Field {
     return this.value[0] === FieldType.Constant;
   }
 
+  #toConstant(name: string): ConstantField {
+    return toConstantField(this, name, 'x', 'field element');
+  }
+
   /**
    * Create a {@link Field} element equivalent to this {@link Field} element's value,
    * but is a constant.
@@ -186,10 +218,7 @@ class Field {
    * @return A constant {@link Field} element equivalent to this {@link Field} element.
    */
   toConstant(): ConstantField {
-    if (this.isConstant()) return this;
-    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
-    let value = Snarky.field.readVar(this.value);
-    return new Field(FieldVar.constant(value)) as ConstantField;
+    return this.#toConstant('toConstant');
   }
 
   /**
@@ -206,7 +235,7 @@ class Field {
    * @return A bigint equivalent to the bigint representation of the Field.
    */
   toBigInt() {
-    let x = this.toConstant();
+    let x = this.#toConstant('toBigInt');
     return FieldConst.toBigint(x.value[1]);
   }
 
@@ -224,7 +253,7 @@ class Field {
    * @return A string equivalent to the string representation of the Field.
    */
   toString() {
-    return this.toBigInt().toString();
+    return this.#toConstant('toString').toBigInt().toString();
   }
 
   /**
@@ -345,6 +374,49 @@ class Field {
    */
   sub(y: Field | bigint | number | string) {
     return this.add(Field.from(y).neg());
+  }
+
+  /**
+   * Checks if this {@link Field} is even. Returns `true` for even elements and `false` for odd elements.
+   *
+   * @example
+   * ```ts
+   * let a = Field(5);
+   * a.isEven(); // false
+   * a.isEven().assertTrue(); // throws, as expected!
+   *
+   * let b = Field(4);
+   * b.isEven(); // true
+   * b.isEven().assertTrue(); // does not throw, as expected!
+   * ```
+   */
+  isEven() {
+    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
+
+    let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
+      let bits = Fp.toBits(this.toBigInt());
+      let isOdd = bits.shift()! ? 1n : 0n;
+
+      return [
+        0,
+        FieldConst.fromBigint(isOdd),
+        FieldConst.fromBigint(Fp.fromBits(bits)),
+      ];
+    });
+
+    let isOdd = new Field(isOddVar);
+    let xDiv2 = new Field(xDiv2Var);
+
+    // range check for 253 bits
+    // WARNING: this makes use of a special property of the Pasta curves,
+    // namely that a random field element is < 2^254 with overwhelming probability
+    // TODO use 88-bit RCs to make this more efficient
+    xDiv2.toBits(253);
+
+    // check composition
+    xDiv2.mul(2).add(isOdd).assertEquals(this);
+
+    return new Bool(isOddVar).not();
   }
 
   /**
@@ -523,7 +595,7 @@ class Field {
    */
   isZero() {
     if (this.isConstant()) {
-      return Bool(this.toBigInt() === 0n);
+      return new Bool(this.toBigInt() === 0n);
     }
     // create witnesses z = 1/x, or z=0 if x=0,
     // and b = 1 - zx
@@ -626,7 +698,7 @@ class Field {
    */
   lessThan(y: Field | bigint | number | string): Bool {
     if (this.isConstant() && isConstant(y)) {
-      return Bool(this.toBigInt() < toFp(y));
+      return new Bool(this.toBigInt() < toFp(y));
     }
     return this.#compare(Field.#toVar(y)).less;
   }
@@ -656,7 +728,7 @@ class Field {
    */
   lessThanOrEqual(y: Field | bigint | number | string): Bool {
     if (this.isConstant() && isConstant(y)) {
-      return Bool(this.toBigInt() <= toFp(y));
+      return new Bool(this.toBigInt() <= toFp(y));
     }
     return this.#compare(Field.#toVar(y)).lessOrEqual;
   }
@@ -889,9 +961,9 @@ class Field {
       if (length !== undefined) {
         if (bits.slice(length).some((bit) => bit))
           throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-        return bits.slice(0, length).map(Bool);
+        return bits.slice(0, length).map((b) => new Bool(b));
       }
-      return bits.map(Bool);
+      return bits.map((b) => new Bool(b));
     }
     let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
     return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
@@ -966,7 +1038,9 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    if (this.isConstant()) return this;
+    // TODO: this is just commented for constraint equivalence with the old version
+    // uncomment to sometimes save constraints
+    // if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
     return new Field(x);
   }
@@ -1091,7 +1165,7 @@ class Field {
    * @return A string equivalent to the JSON representation of the {@link Field}.
    */
   toJSON() {
-    return this.toString();
+    return this.#toConstant('toJSON').toString();
   }
 
   /**
@@ -1195,22 +1269,17 @@ class Field {
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return [...t.toConstant().value[1]];
+    return [...toConstantField(t, 'toBytes').value[1]];
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
-    return [
-      Object.assign(Object.create(new Field(1).constructor.prototype), {
-        value: [0, uint8array],
-      }) as Field,
-      offset + 32,
-    ];
+    return [new Field(uint8array), offset + 32];
   },
 });
 
 function isField(x: unknown): x is Field {
-  return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+  return x instanceof Field;
 }
 
 function isConstant(
@@ -1235,4 +1304,49 @@ function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
+}
+
+function toConstantField(
+  x: Field,
+  methodName: string,
+  varName = 'x',
+  varDescription = 'field element'
+): ConstantField {
+  // if this is a constant, return it
+  if (x.isConstant()) return x;
+
+  // a non-constant can only appear inside a checked computation. everything else is a bug.
+  assert(
+    inCheckedComputation(),
+    'variables only exist inside checked computations'
+  );
+
+  // if we are inside an asProver or witness block, read the variable's value and return it as constant
+  if (Snarky.run.inProverBlock()) {
+    let value = Snarky.field.readVar(x.value);
+    return new Field(value) as ConstantField;
+  }
+
+  // otherwise, calling `toConstant()` is likely a mistake. throw a helpful error message.
+  throw Error(readVarMessage(methodName, varName, varDescription));
+}
+
+function readVarMessage(
+  methodName: string,
+  varName: string,
+  varDescription: string
+) {
+  return `${varName}.${methodName}() was called on a variable ${varDescription} \`${varName}\` in provable code.
+This is not supported, because variables represent an abstract computation, 
+which only carries actual values during proving, but not during compiling.
+
+Also, reading out JS values means that whatever you're doing with those values will no longer be
+linked to the original variable in the proof, which makes this pattern prone to security holes.
+
+You can check whether your ${varDescription} is a variable or a constant by using ${varName}.isConstant().
+
+To inspect values for debugging, use Provable.log(${varName}). For more advanced use cases,
+there is \`Provable.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
+Warning: whatever happens inside asProver() will not be part of the zk proof.
+`;
 }

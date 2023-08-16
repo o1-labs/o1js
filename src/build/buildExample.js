@@ -16,7 +16,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
   return importedModule;
 }
 
-async function build(srcPath) {
+async function build(srcPath, isWeb = false) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
 
   let outfile = srcPath.replace('.ts', '.tmp.js');
@@ -25,12 +25,18 @@ async function build(srcPath) {
     entryPoints: [srcPath],
     bundle: true,
     format: 'esm',
-    platform: 'node',
+    platform: isWeb ? 'node' : 'browser',
     outfile,
     target: 'esnext',
     resolveExtensions: ['.node.js', '.ts', '.js'],
     logLevel: 'error',
-    plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
+    plugins: isWeb
+      ? [typescriptPlugin(tsConfig)]
+      : [
+          typescriptPlugin(tsConfig),
+          makeNodeModulesExternal(),
+          makeJsooExternal(),
+        ],
   });
 
   let absPath = path.resolve('.', outfile);
@@ -99,6 +105,21 @@ function makeNodeModulesExternal() {
         path,
         external: true,
       }));
+    },
+  };
+}
+
+function makeJsooExternal() {
+  let isJsoo = /(bc.cjs|plonk_wasm.cjs|wrapper.js)$/;
+  return {
+    name: 'plugin-external',
+    setup(build) {
+      build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => {
+        return {
+          path: path.resolve(resolveDir, filePath),
+          external: true,
+        };
+      });
     },
   };
 }

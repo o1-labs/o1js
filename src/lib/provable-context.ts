@@ -1,6 +1,6 @@
 import { Context } from './global-context.js';
 import { Gate, JsonGate, Snarky } from '../snarky.js';
-import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
+import { parseHexString } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 
 // internal API
@@ -58,7 +58,7 @@ function inCompileMode() {
 
 function asProver(f: () => void) {
   if (inCheckedComputation()) {
-    Snarky.asProver(f);
+    Snarky.run.asProver(f);
   } else {
     f();
   }
@@ -67,7 +67,7 @@ function asProver(f: () => void) {
 function runAndCheck(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
-    Snarky.runAndCheck(f);
+    Snarky.run.runAndCheck(f);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
@@ -78,7 +78,7 @@ function runAndCheck(f: () => void) {
 function runUnchecked(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
-    Snarky.runUnchecked(f);
+    Snarky.run.runUnchecked(f);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
@@ -90,7 +90,7 @@ function constraintSystem<T>(f: () => T) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
     let result: T;
-    let { rows, digest, json } = Snarky.constraintSystem(() => {
+    let { rows, digest, json } = Snarky.run.constraintSystem(() => {
       result = f();
     });
     let { gates, publicInputSize } = gatesFromJson(json);
@@ -105,12 +105,8 @@ function constraintSystem<T>(f: () => T) {
 // helpers
 
 function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
-  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
-    let coeffs = [];
-    for (let coefficient of byteCoeffs) {
-      let arr = new Uint8Array(coefficient);
-      coeffs.push(bytesToBigInt(arr).toString());
-    }
+  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: hexCoeffs }) => {
+    let coeffs = hexCoeffs.map(hex => parseHexString(hex).toString());
     return { type: typ, wires, coeffs };
   });
   return { publicInputSize: cs.public_input_size, gates };

@@ -1,8 +1,11 @@
 import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
-import { Poseidon as Poseidon_ } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
+import { MlFieldArray } from './ml/fields.js';
+import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
+import { assert } from './errors.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -11,12 +14,12 @@ export { Poseidon, TokenSymbol };
 export {
   HashInput,
   Hash,
-  prefixes,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
   packToFields,
   emptyReceiptChainHash,
+  hashConstant,
 };
 
 class Sponge {
@@ -24,30 +27,55 @@ class Sponge {
 
   constructor() {
     let isChecked = Provable.inCheckedComputation();
-    this.sponge = Poseidon_.spongeCreate(isChecked);
+    this.sponge = Snarky.poseidon.sponge.create(isChecked);
   }
 
   absorb(x: Field) {
-    Poseidon_.spongeAbsorb(this.sponge, x);
+    Snarky.poseidon.sponge.absorb(this.sponge, x.value);
   }
 
-  squeeze() {
-    return Poseidon_.spongeSqueeze(this.sponge);
+  squeeze(): Field {
+    return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
   }
 }
 
 const Poseidon = {
   hash(input: Field[]) {
-    let isChecked = !input.every((x) => x.isConstant());
-    // this is the same:
-    // return Poseidon_.update(this.initialState, input, isChecked)[0];
-    return Poseidon_.hash(input, isChecked);
+    if (isConstant(input)) {
+      return Field(PoseidonBigint.hash(toBigints(input)));
+    }
+    return Poseidon.update(this.initialState(), input)[0];
+  },
+
+  update(state: [Field, Field, Field], input: Field[]) {
+    if (isConstant(state) && isConstant(input)) {
+      let newState = PoseidonBigint.update(toBigints(state), toBigints(input));
+      return newState.map(Field);
+    }
+
+    let newState = Snarky.poseidon.update(
+      MlFieldArray.to(state),
+      MlFieldArray.to(input)
+    );
+    return MlFieldArray.from(newState) as [Field, Field, Field];
   },
 
   hashToGroup(input: Field[]) {
-    let isChecked = !input.every((x) => x.isConstant());
+    if (isConstant(input)) {
+      let result = PoseidonBigint.hashToGroup(toBigints(input));
+      assert(result !== undefined, 'hashToGroup works on all inputs');
+      let { x, y } = result!;
+      return {
+        x: Field(x),
+        y: { x0: Field(y.x0), x1: Field(y.x1) },
+      };
+    }
+
     // y = sqrt(y^2)
-    let { x, y } = Poseidon_.hashToGroup(input, isChecked);
+    let [, xv, yv] = Snarky.poseidon.hashToGroup(MlFieldArray.to(input));
+
+    let x = Field(xv);
+    let y = Field(yv);
 
     let x0 = Provable.witness(Field, () => {
       // the even root of y^2 will become x0, so the APIs are uniform
@@ -66,13 +94,6 @@ const Poseidon = {
     return { x, y: { x0, x1 } };
   },
 
-  update(state: [Field, Field, Field], input: Field[]) {
-    let isChecked = !(
-      state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())
-    );
-    return Poseidon_.update(state, input, isChecked);
-  },
-
   initialState(): [Field, Field, Field] {
     return [Field(0), Field(0), Field(0)];
   },
@@ -80,17 +101,12 @@ const Poseidon = {
   Sponge,
 };
 
+function hashConstant(input: Field[]) {
+  return Field(PoseidonBigint.hash(toBigints(input)));
+}
+
 const Hash = createHashHelpers(Field, Poseidon);
 let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
-
-const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
-  // hack bc Poseidon_.prefixes is not available at start-up
-  get(_target, prop) {
-    return Poseidon_.prefixes[
-      prop as keyof typeof Poseidon_.prefixes
-    ] as string;
-  },
-});
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {
@@ -182,4 +198,11 @@ class TokenSymbol extends Struct(TokenSymbolPure) {
 
 function emptyReceiptChainHash() {
   return emptyHashWithPrefix('CodaReceiptEmpty');
+}
+
+function isConstant(fields: Field[]) {
+  return fields.every((x) => x.isConstant());
+}
+function toBigints(fields: Field[]) {
+  return fields.map((x) => x.toBigInt());
 }

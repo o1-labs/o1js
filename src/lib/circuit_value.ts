@@ -1,11 +1,13 @@
 import 'reflect-metadata';
 import { ProvablePure } from '../snarky.js';
-import { Field, Bool } from './core.js';
+import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,
   provablePure,
   HashInput,
   NonMethods,
+} from '../bindings/lib/provable-snarky.js';
+import type {
   InferJson,
   InferProvable,
   InferredProvable,
@@ -451,21 +453,26 @@ function Struct<
   return Struct_ as any;
 }
 
-let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
+let primitives = new Set([Field, Bool, Scalar, Group]);
+function isPrimitive(obj: any) {
+  for (let P of primitives) {
+    if (obj instanceof P) return true;
+  }
+  return false;
+}
 
-// FIXME: the logic in here to check for obj.constructor.name actually doesn't work
-// something that works is Field(1).constructor === obj.constructor etc
 function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
 
   // HACK: callbacks, account udpates
   if (
-    ['GenericArgument', 'Callback'].includes((obj as any).constructor?.name)
+    obj.constructor?.name.includes('GenericArgument') ||
+    obj.constructor?.name.includes('Callback')
   ) {
     return obj;
   }
-  if (['AccountUpdate'].includes((obj as any).constructor?.name)) {
+  if (obj.constructor?.name.includes('AccountUpdate')) {
     return (obj as any).constructor.clone(obj);
   }
 
@@ -480,7 +487,9 @@ function cloneCircuitValue<T>(obj: T): T {
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
   // snarkyjs primitives aren't cloned
-  if (primitives.has((obj as any).constructor.name)) return obj;
+  if (isPrimitive(obj)) {
+    return obj;
+  }
 
   // cloning strategy that works for plain objects AND classes whose constructor only assigns properties
   let propertyDescriptors: Record<string, PropertyDescriptor> = {};

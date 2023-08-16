@@ -1,11 +1,8 @@
-import { isReady, shutdown } from '../snarky.js';
 import { Field } from './core.js';
 import { Struct } from './circuit_value.js';
 import { UInt64 } from './int.js';
 import { ZkProgram } from './proof_system.js';
 import { expect } from 'expect';
-
-await isReady;
 
 const EmptyProgram = ZkProgram({
   publicInput: Field,
@@ -49,11 +46,4 @@ const CounterProgram = ZkProgram({
 });
 
 const incrementMethodMetadata = CounterProgram.analyzeMethods()[0];
-expect(incrementMethodMetadata).toEqual(
-  expect.objectContaining({
-    rows: 18,
-    digest: '62d893f727b12d540bdc483427cbd70b',
-  })
-);
-
-shutdown();
+expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));

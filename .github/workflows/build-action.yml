@@ -4,10 +4,8 @@ on:
     branches:
       - main
       - berkeley
+      - develop
   pull_request:
-    branches:
-      - main
-      - berkeley
   workflow_dispatch: {}
 
 jobs:
@@ -25,6 +23,7 @@ jobs:
             'Voting integration tests',
             'Unit tests',
             'Verification Key Regression Check',
+            'CommonJS test',
           ]
     steps:
       - name: Checkout Repository

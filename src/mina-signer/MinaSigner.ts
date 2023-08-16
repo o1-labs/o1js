@@ -32,6 +32,7 @@ import {
   rosettaTransactionToSignedCommand,
 } from './src/rosetta.js';
 import { sign, Signature, verify } from './src/signature.js';
+import { createNullifier } from './src/nullifier.js';
 
 export { Client as default };
 
@@ -476,6 +477,21 @@ class Client {
    */
   getAccountUpdateMinimumFee(accountUpdates: TransactionJson.AccountUpdate[]) {
     return 0.001 * accountUpdates.length;
+  }
+
+  /**
+   * Creates a nullifier
+   *
+   * @param message A unique message that belongs to a specific nullifier
+   * @param privateKeyBase58 The private key used to create the nullifier
+   * @returns A nullifier
+   */
+  createNullifier(
+    message: bigint[],
+    privateKeyBase58: Json.PrivateKey
+  ): Json.Nullifier {
+    let sk = PrivateKey.fromBase58(privateKeyBase58);
+    return createNullifier(message, sk);
   }
 }
 

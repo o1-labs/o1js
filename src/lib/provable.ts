@@ -23,6 +23,7 @@ import {
   runUnchecked,
   constraintSystem,
 } from './provable-context.js';
+import { isBool } from './bool.js';
 
 // external API
 export { Provable };
@@ -333,7 +334,11 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
     );
   // TODO remove second condition once we have consolidated field class back into one
   // if (type !== y.constructor) {
-  if (type !== y.constructor && !(isField(x) && isField(y))) {
+  if (
+    type !== y.constructor &&
+    !(isField(x) && isField(y)) &&
+    !(isBool(x) && isBool(y))
+  ) {
     throw Error(
       'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +
         `Provable.if(bool, MyType, x, y)`

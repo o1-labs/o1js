@@ -66,7 +66,7 @@ const Signature = {
     return { r, s };
   },
   dummy() {
-    return { r: Field(0), s: Scalar(0) };
+    return { r: Field(1), s: Scalar(1) };
   },
 };
 
