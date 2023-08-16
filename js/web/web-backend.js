@@ -16,16 +16,19 @@ let init = wasm.default;
  * @type {Worker}
  */
 let worker;
+/**
+ * @type {number | undefined}
+ */
+let numWorkers = undefined;
 
 async function initSnarkyJS() {
   const memory = allocateWasmMemoryForUserAgent(navigator.userAgent);
   await init(undefined, memory);
 
   let module = init.__wbindgen_wasm_module;
-  let numWorkers = await getEfficientNumWorkers();
 
   worker = inlineWorker(srcFromFunctionModule(mainWorker));
-  await workerCall(worker, 'start', { memory, module, numWorkers });
+  await workerCall(worker, 'start', { memory, module });
   globalThis.plonk_wasm = overrideBindings(wasm, worker);
 
   // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
@@ -43,7 +46,8 @@ async function initSnarkyJS() {
 
 async function withThreadPool(run) {
   if (worker === undefined) throw Error('need to initialize worker first');
-  await workerCall(worker, 'initThreadPool');
+  numWorkers ??= await getEfficientNumWorkers();
+  await workerCall(worker, 'initThreadPool', numWorkers);
   let result;
   try {
     result = await run();
@@ -61,7 +65,7 @@ async function mainWorker() {
 
   let isInitialized = false;
   let data = await waitForMessage(self, 'start');
-  let { module, memory, numWorkers } = data.message;
+  let { module, memory } = data.message;
 
   onMessage(self, 'run', ({ name, args, u32_ptr }) => {
     let functionSpec = spec[name];
@@ -88,7 +92,7 @@ async function mainWorker() {
   });
 
   workerExport(self, {
-    async initThreadPool() {
+    async initThreadPool(numWorkers) {
       if (!isInitialized) {
         isInitialized = true;
         await wasm.initThreadPool(numWorkers);
@@ -97,7 +101,7 @@ async function mainWorker() {
     async exitThreadPool() {
       if (isInitialized) {
         isInitialized = false;
-        await wasm.exitThreadPool(numWorkers);
+        await wasm.exitThreadPool();
       }
     },
   });
