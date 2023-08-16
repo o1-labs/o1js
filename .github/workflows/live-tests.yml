@@ -25,6 +25,7 @@ jobs:
           PROOF_LEVEL: 'none'
         ports:
           - 3085:3085
+          - 5432:5432
           - 8080:8080
           - 8181:8181
         # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
@@ -49,6 +50,7 @@ jobs:
           PROOF_LEVEL: 'none'
         ports:
           - 3085:3085
+          - 5432:5432
           - 8080:8080
           - 8181:8181
         # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
@@ -73,6 +75,7 @@ jobs:
           PROOF_LEVEL: 'none'
         ports:
           - 3085:3085
+          - 5432:5432
           - 8080:8080
           - 8181:8181
         # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
