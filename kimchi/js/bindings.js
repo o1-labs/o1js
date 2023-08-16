@@ -4,6 +4,9 @@
     UInt64, caml_int64_of_int32
 */
 
+// Provides: tsBindings
+var tsBindings = globalThis.__snarkyTsBindings;
+
 // Provides: caml_bytes_of_uint8array
 // Requires: caml_create_bytes, caml_bytes_unsafe_set
 var caml_bytes_of_uint8array = function (uint8array) {
@@ -2250,7 +2253,7 @@ function caml_pasta_fq_poseidon_params_create() {
 }
 
 // Provides: caml_pasta_fp_poseidon_block_cipher
-// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_fp_vector_of_rust
+// Requires: tsBindings, plonk_wasm, caml_fp_vector_to_rust, caml_fp_vector_of_rust
 function caml_pasta_fp_poseidon_block_cipher(_fake_params, fp_vector) {
     // 1. get permuted field vector from rust
     var wasm_flat_vector = plonk_wasm.caml_pasta_fp_poseidon_block_cipher(caml_fp_vector_to_rust(fp_vector));
