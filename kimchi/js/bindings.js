@@ -471,7 +471,7 @@ var js_class_vector_of_rust_vector = function (v, klass) {
   // return v.map(klass.__wrap)
   var len = v.length;
   var res = new Array(len);
-  for (var i = 0, pos = 0; i < len; i++) {
+  for (var i = 0; i < len; i++) {
     // Beware: the caller may need to add finalizers to these.
     res[i] = klass.__wrap(v[i]);
   }
