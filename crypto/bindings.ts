@@ -1,9 +1,9 @@
-(globalThis as any).__snarkyTsBindings = {
-  dummy,
+import { prefixHashes, prefixHashesLegacy } from '../crypto/constants.js';
+
+const tsBindings = {
+  prefixHashes,
+  prefixHashesLegacy,
 };
 
-let i = 0;
-
-function dummy() {
-  console.log('called', ++i);
-}
+// this is put in a global variable so that ../kimchi/js/bindings.js finds it
+(globalThis as any).__snarkyTsBindings = tsBindings;

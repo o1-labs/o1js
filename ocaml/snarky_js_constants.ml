@@ -1,6 +1,11 @@
+open Core_kernel
+module Field = Pickles.Impls.Step.Field.Constant
+
 let string s = `String s
 
-let array element array = `List (array |> Array.map element |> Array.to_list)
+let field f = `String (Field.to_string f)
+
+let array element array = `List (array |> Array.map ~f:element |> Array.to_list)
 
 let prefixes =
   let open Hash_prefixes in
@@ -17,6 +22,70 @@ let prefixes =
     ; ("zkappUri", `String (zkapp_uri :> string))
     ; ("deriveTokenId", `String (derive_token_id :> string))
     ]
+
+type hash_prefix_kind = Kimchi | Legacy
+
+let prefix_hash_entry (kind : hash_prefix_kind) (s : Hash_prefixes.t) =
+  let s, fields =
+    match kind with
+    | Kimchi ->
+        (s, Random_oracle.(State.to_array (salt (s :> string))))
+    | Legacy ->
+        (s, Random_oracle.Legacy.(State.to_array (salt (s :> string))))
+  in
+  ((s :> string), array field fields)
+
+let prefix_hashes =
+  let open Hash_prefixes in
+  `Assoc
+    (List.map ~f:(prefix_hash_entry Kimchi)
+       [ receipt_chain_user_command
+       ; receipt_chain_zkapp
+       ; coinbase
+       ; pending_coinbases
+       ; coinbase_stack_data
+       ; coinbase_stack_state_hash
+       ; coinbase_stack
+       ; checkpoint_list
+       ; merge_snark
+       ; base_snark
+       ; protocol_state
+       ; protocol_state_body
+       ; vrf_message
+       ; signature_mainnet
+       ; signature_testnet
+       ; vrf_output
+       ; vrf_evaluation
+       ; epoch_seed
+       ; transition_system_snark
+       ; account
+       ; side_loaded_vk
+       ; zkapp_account
+       ; zkapp_payload
+       ; zkapp_body
+       ; zkapp_precondition
+       ; zkapp_precondition_account
+       ; zkapp_precondition_protocol_state
+       ; account_update
+       ; account_update_account_precondition
+       ; account_update_cons
+       ; account_update_node
+       ; account_update_stack_frame
+       ; account_update_stack_frame_cons
+       ; zkapp_uri
+       ; zkapp_event
+       ; zkapp_events
+       ; zkapp_actions
+       ; zkapp_memo
+       ; zkapp_test
+       ; derive_token_id
+       ] )
+
+let prefix_hashes_legacy =
+  let open Hash_prefixes in
+  `Assoc
+    (List.map ~f:(prefix_hash_entry Legacy)
+       [ receipt_chain_user_command; signature_mainnet; signature_testnet ] )
 
 let version_bytes =
   let open Base58_check.Version_bytes in
@@ -74,6 +143,8 @@ let mocks =
 
 let constants =
   [ ("prefixes", prefixes)
+  ; ("prefixHashes", prefix_hashes)
+  ; ("prefixHashesLegacy", prefix_hashes_legacy)
   ; ("versionBytes", version_bytes)
   ; ("poseidonParamsKimchiFp", poseidon_params_kimchi)
   ; ("poseidonParamsLegacyFp", poseidon_params_legacy)
@@ -86,9 +157,9 @@ let () =
   in
   let content =
     "// @gen this file is generated - don't edit it directly\n" ^ "export { "
-    ^ (List.map fst constants |> String.concat ", ")
+    ^ (List.map ~f:fst constants |> String.concat ~sep:", ")
     ^ " }\n\n"
-    ^ (List.map to_js constants |> String.concat "")
+    ^ (List.map ~f:to_js constants |> String.concat ~sep:"")
   in
 
   print_endline content
