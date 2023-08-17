@@ -45,7 +45,7 @@ async function initSnarkyJS() {
     setTimeout(async () => {
       let worker = inlineWorker(srcFromFunctionModule(mainWorker));
       await workerCall(worker, 'start', { memory, module });
-      globalThis.plonk_wasm = overrideBindings(wasm, worker);
+      overrideBindings(globalThis.plonk_wasm, worker);
       resolve(worker);
     }, 0);
   });
@@ -126,11 +126,10 @@ mainWorker.deps = [
   waitForMessage,
 ];
 
-function overrideBindings(wasm, worker) {
-  let spec = workerSpec(wasm);
-  let plonk_wasm_ = { ...wasm };
+function overrideBindings(plonk_wasm, worker) {
+  let spec = workerSpec(plonk_wasm);
   for (let key in spec) {
-    plonk_wasm_[key] = (...args) => {
+    plonk_wasm[key] = (...args) => {
       let u32_ptr = wasm.create_zero_u32_ptr();
       worker.postMessage({
         type: 'run',
@@ -149,7 +148,6 @@ function overrideBindings(wasm, worker) {
       }
     };
   }
-  return plonk_wasm_;
 }
 
 // helpers for main thread <-> worker communication
