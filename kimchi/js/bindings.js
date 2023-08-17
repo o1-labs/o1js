@@ -2259,7 +2259,7 @@ function caml_pasta_fq_poseidon_params_create() {
 }
 
 // Provides: caml_pasta_fp_poseidon_block_cipher
-// Requires: tsBindings, plonk_wasm, caml_fp_vector_to_rust, caml_fp_vector_of_rust
+// Requires: plonk_wasm, caml_fp_vector_to_rust, caml_fp_vector_of_rust
 function caml_pasta_fp_poseidon_block_cipher(_fake_params, fp_vector) {
     // 1. get permuted field vector from rust
     var wasm_flat_vector = plonk_wasm.caml_pasta_fp_poseidon_block_cipher(caml_fp_vector_to_rust(fp_vector));
