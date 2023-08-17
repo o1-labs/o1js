@@ -84,17 +84,19 @@ end
 (* deriver *)
 let account_update_of_json, _account_update_to_json =
   let deriver =
-    Account_update.Graphql_repr.deriver @@ Fields_derivers_zkapps.Derivers.o ()
+    lazy
+      ( Account_update.Graphql_repr.deriver
+      @@ Fields_derivers_zkapps.Derivers.o () )
   in
   let account_update_of_json (account_update : Js.js_string Js.t) :
       Account_update.t =
-    Fields_derivers_zkapps.of_json deriver
+    Fields_derivers_zkapps.of_json (Lazy.force deriver)
       (account_update |> Js.to_string |> Yojson.Safe.from_string)
     |> Account_update.of_graphql_repr
   in
   let account_update_to_json (account_update : Account_update.t) :
       Js.js_string Js.t =
-    Fields_derivers_zkapps.to_json deriver
+    Fields_derivers_zkapps.to_json (Lazy.force deriver)
       (Account_update.to_graphql_repr account_update ~call_depth:0)
     |> Yojson.Safe.to_string |> Js.string
   in
