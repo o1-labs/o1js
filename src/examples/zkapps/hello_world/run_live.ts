@@ -59,7 +59,7 @@ Your smart contract will be deployed
 as soon as the transaction is included in a block.
 Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction inclusion.');
+console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
 console.log('');
 
@@ -77,7 +77,7 @@ Your smart contract state will be updated
 as soon as the transaction is included in a block.
 Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction inclusion.');
+console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
 console.log('');
 
