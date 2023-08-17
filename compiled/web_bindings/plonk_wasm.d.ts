@@ -9,76 +9,6 @@ export function caml_pallas_affine_one(): WasmGPallas;
 */
 export function caml_vesta_affine_one(): WasmGVesta;
 /**
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_one(): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @param {WasmPallasGProjective} y
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_add(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @param {WasmPallasGProjective} y
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_sub(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_negate(x: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_double(x: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @param {Uint8Array} y
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_scale(x: WasmPallasGProjective, y: Uint8Array): WasmPallasGProjective;
-/**
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_random(): WasmPallasGProjective;
-/**
-* @param {number} i
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_rng(i: number): WasmPallasGProjective;
-/**
-* @returns {Uint8Array}
-*/
-export function caml_pallas_endo_base(): Uint8Array;
-/**
-* @returns {Uint8Array}
-*/
-export function caml_pallas_endo_scalar(): Uint8Array;
-/**
-* @param {WasmPallasGProjective} x
-* @returns {WasmGPallas}
-*/
-export function caml_pallas_to_affine(x: WasmPallasGProjective): WasmGPallas;
-/**
-* @param {WasmGPallas} x
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_of_affine(x: WasmGPallas): WasmPallasGProjective;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_of_affine_coordinates(x: Uint8Array, y: Uint8Array): WasmPallasGProjective;
-/**
-* @param {WasmGPallas} x
-* @returns {WasmGPallas}
-*/
-export function caml_pallas_affine_deep_copy(x: WasmGPallas): WasmGPallas;
-/**
 * @returns {WasmVestaGProjective}
 */
 export function caml_vesta_one(): WasmVestaGProjective;
@@ -148,6 +78,76 @@ export function caml_vesta_of_affine_coordinates(x: Uint8Array, y: Uint8Array): 
 * @returns {WasmGVesta}
 */
 export function caml_vesta_affine_deep_copy(x: WasmGVesta): WasmGVesta;
+/**
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_one(): WasmPallasGProjective;
+/**
+* @param {WasmPallasGProjective} x
+* @param {WasmPallasGProjective} y
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_add(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
+/**
+* @param {WasmPallasGProjective} x
+* @param {WasmPallasGProjective} y
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_sub(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
+/**
+* @param {WasmPallasGProjective} x
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_negate(x: WasmPallasGProjective): WasmPallasGProjective;
+/**
+* @param {WasmPallasGProjective} x
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_double(x: WasmPallasGProjective): WasmPallasGProjective;
+/**
+* @param {WasmPallasGProjective} x
+* @param {Uint8Array} y
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_scale(x: WasmPallasGProjective, y: Uint8Array): WasmPallasGProjective;
+/**
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_random(): WasmPallasGProjective;
+/**
+* @param {number} i
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_rng(i: number): WasmPallasGProjective;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_pallas_endo_base(): Uint8Array;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_pallas_endo_scalar(): Uint8Array;
+/**
+* @param {WasmPallasGProjective} x
+* @returns {WasmGPallas}
+*/
+export function caml_pallas_to_affine(x: WasmPallasGProjective): WasmGPallas;
+/**
+* @param {WasmGPallas} x
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_of_affine(x: WasmGPallas): WasmPallasGProjective;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_of_affine_coordinates(x: Uint8Array, y: Uint8Array): WasmPallasGProjective;
+/**
+* @param {WasmGPallas} x
+* @returns {WasmGPallas}
+*/
+export function caml_pallas_affine_deep_copy(x: WasmGPallas): WasmGPallas;
 /**
 * @param {WasmFpGateVector} gates
 * @param {number} public_
@@ -2038,20 +2038,6 @@ export interface InitOutput {
   readonly __wbg_wasmgvesta_free: (a: number) => void;
   readonly __wbg_get_wasmgvesta_infinity: (a: number) => number;
   readonly __wbg_set_wasmgvesta_infinity: (a: number, b: number) => void;
-  readonly caml_pallas_one: () => number;
-  readonly caml_pallas_add: (a: number, b: number) => number;
-  readonly caml_pallas_sub: (a: number, b: number) => number;
-  readonly caml_pallas_negate: (a: number) => number;
-  readonly caml_pallas_double: (a: number) => number;
-  readonly caml_pallas_scale: (a: number, b: number, c: number) => number;
-  readonly caml_pallas_random: () => number;
-  readonly caml_pallas_rng: (a: number) => number;
-  readonly caml_pallas_endo_base: (a: number) => void;
-  readonly caml_pallas_endo_scalar: (a: number) => void;
-  readonly caml_pallas_to_affine: (a: number) => number;
-  readonly caml_pallas_of_affine: (a: number) => number;
-  readonly caml_pallas_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
-  readonly caml_pallas_affine_deep_copy: (a: number) => number;
   readonly caml_vesta_one: () => number;
   readonly caml_vesta_add: (a: number, b: number) => number;
   readonly caml_vesta_sub: (a: number, b: number) => number;
@@ -2066,6 +2052,20 @@ export interface InitOutput {
   readonly caml_vesta_of_affine: (a: number) => number;
   readonly caml_vesta_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
   readonly caml_vesta_affine_deep_copy: (a: number) => number;
+  readonly caml_pallas_one: () => number;
+  readonly caml_pallas_add: (a: number, b: number) => number;
+  readonly caml_pallas_sub: (a: number, b: number) => number;
+  readonly caml_pallas_negate: (a: number) => number;
+  readonly caml_pallas_double: (a: number) => number;
+  readonly caml_pallas_scale: (a: number, b: number, c: number) => number;
+  readonly caml_pallas_random: () => number;
+  readonly caml_pallas_rng: (a: number) => number;
+  readonly caml_pallas_endo_base: (a: number) => void;
+  readonly caml_pallas_endo_scalar: (a: number) => void;
+  readonly caml_pallas_to_affine: (a: number) => number;
+  readonly caml_pallas_of_affine: (a: number) => number;
+  readonly caml_pallas_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
+  readonly caml_pallas_affine_deep_copy: (a: number) => number;
   readonly __wbg_wasmpastafpplonkindex_free: (a: number) => void;
   readonly __wbg_wasmpastafplookuptable_free: (a: number) => void;
   readonly wasmpastafplookuptable_new: (a: number, b: number) => number;

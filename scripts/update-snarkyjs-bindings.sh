@@ -37,9 +37,9 @@ chmod -R 666 "$WEB_BINDINGS"/*
 
 # better error messages
 # `s` is the jsoo representation of the error message string, and `s.c` is the actual JS string
-sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw joo_global_object.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
-sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw joo_global_object.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
-sed -i 's/return \[0,Exn,t\]/return joo_global_object.Error(t.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw globalThis.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/return \[0,Exn,t\]/return globalThis.Error(t.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
 sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' $WEB_BINDINGS/snarky_js_web.bc.js
 
 # optimize wasm / minify JS (we don't do this with jsoo to not break the error message fix above)

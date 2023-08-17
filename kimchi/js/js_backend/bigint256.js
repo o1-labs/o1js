@@ -1,11 +1,11 @@
-/* global joo_global_object, caml_js_to_bool, caml_jsstring_of_string, caml_string_of_jsstring,
+/* global globalThis, caml_js_to_bool, caml_jsstring_of_string, caml_string_of_jsstring,
    caml_ml_bytes_length, caml_bytes_unsafe_get, caml_create_bytes, caml_bytes_unsafe_set
 */
 
 // Provides: BigInt_
-var BigInt_ = joo_global_object.BigInt;
+var BigInt_ = globalThis.BigInt;
 // Provides: Uint8Array_
-var Uint8Array_ = joo_global_object.Uint8Array;
+var Uint8Array_ = globalThis.Uint8Array;
 
 // Provides: caml_bigint_of_bytes
 // Requires: BigInt_

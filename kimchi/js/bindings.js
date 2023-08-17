@@ -1,4 +1,4 @@
-/* global joo_global_object, plonk_wasm, caml_js_to_bool, caml_jsstring_of_string,
+/* global globalThis, plonk_wasm, caml_js_to_bool, caml_jsstring_of_string,
     caml_string_of_jsstring
     caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length,
     UInt64, caml_int64_of_int32
@@ -20,7 +20,7 @@ var caml_bytes_of_uint8array = function (uint8array) {
 // Requires: caml_ml_bytes_length, caml_bytes_unsafe_get
 var caml_bytes_to_uint8array = function (ocaml_bytes) {
   var length = caml_ml_bytes_length(ocaml_bytes);
-  var bytes = new joo_global_object.Uint8Array(length);
+  var bytes = new globalThis.Uint8Array(length);
   for (var i = 0; i < length; i++) {
     // No need to convert here: OCaml Char.t is just an int under the hood.
     bytes[i] = caml_bytes_unsafe_get(ocaml_bytes, i);
@@ -426,10 +426,10 @@ var caml_u8array_vector_to_rust_flat_vector = function (v) {
   var i = 1; // The first entry is the OCaml tag for arrays
   var len = v.length - i;
   if (len === 0) {
-    return new joo_global_object.Uint8Array(0);
+    return new globalThis.Uint8Array(0);
   }
   var inner_len = v[i].length;
-  var res = new joo_global_object.Uint8Array(len * inner_len);
+  var res = new globalThis.Uint8Array(len * inner_len);
   for (var pos = 0; i <= len; i++) {
     for (var j = 0; j < inner_len; j++, pos++) {
       res[pos] = v[i][j];
@@ -445,7 +445,7 @@ var caml_u8array_vector_of_rust_flat_vector = function (v, inner_len) {
   var res = new Array(output_len + 1);
   res[0] = 0; // OCaml tag before array contents, so that we can use this with arrays or vectors
   for (var i = 1, pos = 0; i <= output_len; i++) {
-    var inner_res = new joo_global_object.Uint8Array(inner_len);
+    var inner_res = new globalThis.Uint8Array(inner_len);
     for (var j = 0; j < inner_len; j++, pos++) {
       inner_res[j] = v[pos];
     }
@@ -457,7 +457,7 @@ var caml_u8array_vector_of_rust_flat_vector = function (v, inner_len) {
 // Provides: js_class_vector_to_rust_vector
 var js_class_vector_to_rust_vector = function (v) {
   var len = v.length;
-  var res = new joo_global_object.Uint32Array(len);
+  var res = new globalThis.Uint32Array(len);
   for (var i = 0; i < len; i++) {
     // Beware: caller may need to do finalizer things to avoid these
     // pointers disappearing out from under us.
@@ -501,7 +501,7 @@ var caml_fp_vector_get = function (v, i) {
       'caml_fp_vector_get: Index out of bounds, got ' + i + '/' + (v.length - 1)
     );
   }
-  return new joo_global_object.Uint8Array(value);
+  return new globalThis.Uint8Array(value);
 };
 
 // Provides: caml_fp_vector_to_rust
@@ -540,7 +540,7 @@ var caml_fq_vector_get = function (v, i) {
       'caml_fq_vector_get: Index out of bounds, got ' + i + '/' + (v.length - 1)
     );
   }
-  return new joo_global_object.Uint8Array(value);
+  return new globalThis.Uint8Array(value);
 };
 
 // Provides: caml_fq_vector_to_rust
@@ -557,11 +557,11 @@ var caml_fq_vector_of_rust = function (v) {
 };
 
 // Provides: free_finalization_registry
-var free_finalization_registry = new joo_global_object.FinalizationRegistry(
-  function (instance_representative) {
-    instance_representative.free();
-  }
-);
+var free_finalization_registry = new globalThis.FinalizationRegistry(function (
+  instance_representative
+) {
+  instance_representative.free();
+});
 
 // Provides: free_on_finalize
 // Requires: free_finalization_registry
