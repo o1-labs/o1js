@@ -2551,7 +2551,6 @@ var caml_fp_lookup_commitments_of_rust = function (wasm_lc) {
     var a = js_class_vector_of_rust_vector(v, plonk_wasm.WasmFpPolyComm);
     var res = [0];
     for (var i = 0; i < a.length; ++i) {
-      // TODO Check this. Could be off by 1
       res.push(caml_vesta_poly_comm_of_rust(a[i]));
     }
     return res;
@@ -2877,7 +2876,6 @@ var caml_fq_lookup_commitments_of_rust = function (wasm_lc) {
     var a = js_class_vector_of_rust_vector(v, plonk_wasm.WasmFqPolyComm);
     var res = [0];
     for (var i = 0; i < a.length; ++i) {
-      // TODO Check this. Could be off by 1
       res.push(caml_pallas_poly_comm_of_rust(a[i]));
     }
     return res;
