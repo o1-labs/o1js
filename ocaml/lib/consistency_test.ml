@@ -287,7 +287,7 @@ module Transaction_hash = struct
     in
     Signed_command.to_base58_check_v1 command |> Js.string
 
-  let example_payment =
+  let example_payment () =
     let kp = keypair () in
     let payload : Signed_command_payload.t =
       { Signed_command_payload.dummy with
@@ -393,6 +393,6 @@ let test =
 
         method serializePaymentV1 = serialize_payment_v1
 
-        method examplePayment = example_payment
+        val examplePayment = example_payment
       end
   end
