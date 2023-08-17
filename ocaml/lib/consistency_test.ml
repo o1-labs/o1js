@@ -104,12 +104,13 @@ let account_update_of_json, _account_update_to_json =
 
 let body_of_json =
   let body_deriver =
-    Mina_base.Account_update.Body.Graphql_repr.deriver
-    @@ Fields_derivers_zkapps.o ()
+    lazy
+      ( Mina_base.Account_update.Body.Graphql_repr.deriver
+      @@ Fields_derivers_zkapps.o () )
   in
   let body_of_json json =
     json
-    |> Fields_derivers_zkapps.of_json body_deriver
+    |> Fields_derivers_zkapps.of_json (Lazy.force body_deriver)
     |> Account_update.Body.of_graphql_repr
   in
   body_of_json
