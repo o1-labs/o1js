@@ -11,11 +11,13 @@ import snarkyJsWebSrc from 'string:../../../web_bindings/snarky_js_web.bc.js';
 export { initSnarkyJS, withThreadPool };
 
 let wasm = plonkWasm();
+globalThis.plonk_wasm = wasm;
+
 let init = wasm.default;
 /**
- * @type {Worker}
+ * @type {Promise<Worker>}
  */
-let worker;
+let workerPromise;
 /**
  * @type {number | undefined}
  */
@@ -26,10 +28,6 @@ async function initSnarkyJS() {
   await init(undefined, memory);
 
   let module = init.__wbindgen_wasm_module;
-
-  worker = inlineWorker(srcFromFunctionModule(mainWorker));
-  await workerCall(worker, 'start', { memory, module });
-  globalThis.plonk_wasm = overrideBindings(wasm, worker);
 
   // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
 
@@ -42,10 +40,21 @@ async function initSnarkyJS() {
   // 2. include the code as string and eval it:
   // (this works because it breaks out of strict mode)
   new Function(snarkyJsWebSrc)();
+
+  workerPromise = new Promise((resolve) => {
+    setTimeout(async () => {
+      let worker = inlineWorker(srcFromFunctionModule(mainWorker));
+      await workerCall(worker, 'start', { memory, module });
+      globalThis.plonk_wasm = overrideBindings(wasm, worker);
+      resolve(worker);
+    }, 0);
+  });
 }
 
 async function withThreadPool(run) {
-  if (worker === undefined) throw Error('need to initialize worker first');
+  if (workerPromise === undefined)
+    throw Error('need to initialize worker first');
+  let worker = await workerPromise;
   numWorkers ??= await getEfficientNumWorkers();
   await workerCall(worker, 'initThreadPool', numWorkers);
   let result;
