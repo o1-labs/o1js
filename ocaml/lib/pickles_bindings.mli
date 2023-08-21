@@ -55,7 +55,9 @@ type some_proof = Proof0 of Proof0.t | Proof1 of Proof1.t | Proof2 of Proof2.t
 val pickles :
   < compile :
       (   pickles_rule_js array
-       -> < publicInputSize : int Js.prop ; publicOutputSize : int Js.prop >
+       -> < publicInputSize : int Js.prop
+          ; publicOutputSize : int Js.prop
+          ; overrideWrapDomain : int Js.optdef_prop >
           Js.t
        -> < getVerificationKey : (Js.js_string Js.t * Impl.field) Js.meth
           ; provers : 'a Js.readonly_prop

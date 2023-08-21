@@ -1105,5 +1105,8 @@ let poseidonParamsLegacyFp = {
   "rate": 2,
   "power": 5
 };
-let mocks = { "dummyVerificationKeyHash": "0" };
+let mocks = {
+  "dummyVerificationKeyHash":
+    "3392518251768960475377392625298437850623664973002200885669375116181514017494"
+};
 
