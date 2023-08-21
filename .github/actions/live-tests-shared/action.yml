@@ -7,7 +7,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Wait for Mina Network readiness
+    - name: Wait for Mina network readiness
       uses: o1-labs/wait-for-mina-network-action@v1
       with:
         mina-graphql-port: 8080
@@ -17,7 +17,7 @@ runs:
       uses: actions/setup-node@v3
       with:
         node-version: "18"
-    - name: Build SnarkyJS and Execute Tests
+    - name: Build SnarkyJS and execute tests
       env:
         TEST_TYPE: "Live integration tests"
         USE_LOCAL_NETWORK: "true"
@@ -32,6 +32,8 @@ runs:
       shell: bash
     - name: Upload Mina logs
       uses: actions/upload-artifact@v3
+      continue-on-error: true
+      if: always()
       with:
         if-no-files-found: ignore
         name: mina-logs-${{ inputs.mina-branch-name }}

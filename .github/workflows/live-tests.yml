@@ -31,7 +31,7 @@ jobs:
         volumes:
           - /tmp:/root/logs
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
@@ -56,7 +56,7 @@ jobs:
         volumes:
           - /tmp:/root/logs
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
@@ -81,7 +81,7 @@ jobs:
         volumes:
           - /tmp:/root/logs
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
