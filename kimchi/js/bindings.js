@@ -10,7 +10,7 @@ var tsBindings = globalThis.__snarkyTsBindings;
 // Provides: getTsBindings
 // Requires: tsBindings
 function getTsBindings() {
-    return tsBindings;
+  return tsBindings;
 }
 
 // Provides: caml_bytes_of_uint8array
