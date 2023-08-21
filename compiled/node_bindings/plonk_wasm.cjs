@@ -1137,6 +1137,184 @@ module.exports.caml_pasta_fq_poseidon_block_cipher = function(state) {
 };
 
 /**
+* @param {WasmPastaFpPlonkIndex} index
+* @param {WasmVecVecFp} witness
+* @param {Uint32Array} wasm_runtime_tables
+* @param {Uint8Array} prev_challenges
+* @param {Uint32Array} prev_sgs
+* @returns {WasmFpProverProof}
+*/
+module.exports.caml_pasta_fp_plonk_proof_create = function(index, witness, wasm_runtime_tables, prev_challenges, prev_sgs) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(index, WasmPastaFpPlonkIndex);
+        _assertClass(witness, WasmVecVecFp);
+        var ptr0 = witness.__destroy_into_raw();
+        const ptr1 = passArray32ToWasm0(wasm_runtime_tables, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArray8ToWasm0(prev_challenges, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArray32ToWasm0(prev_sgs, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.caml_pasta_fp_plonk_proof_create(retptr, index.ptr, ptr0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var r2 = getInt32Memory0()[retptr / 4 + 2];
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return WasmFpProverProof.__wrap(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+};
+
+/**
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {WasmFpProverProof} proof
+* @returns {boolean}
+*/
+module.exports.caml_pasta_fp_plonk_proof_verify = function(index, proof) {
+    _assertClass(index, WasmFpPlonkVerifierIndex);
+    var ptr0 = index.__destroy_into_raw();
+    _assertClass(proof, WasmFpProverProof);
+    var ptr1 = proof.__destroy_into_raw();
+    const ret = wasm.caml_pasta_fp_plonk_proof_verify(ptr0, ptr1);
+    return ret !== 0;
+};
+
+/**
+* @param {Uint32Array} indexes
+* @param {Uint32Array} proofs
+* @returns {boolean}
+*/
+module.exports.caml_pasta_fp_plonk_proof_batch_verify = function(indexes, proofs) {
+    const ptr0 = passArray32ToWasm0(indexes, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(proofs, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.caml_pasta_fp_plonk_proof_batch_verify(ptr0, len0, ptr1, len1);
+    return ret !== 0;
+};
+
+/**
+* @returns {WasmFpProverProof}
+*/
+module.exports.caml_pasta_fp_plonk_proof_dummy = function() {
+    const ret = wasm.caml_pasta_fp_plonk_proof_dummy();
+    return WasmFpProverProof.__wrap(ret);
+};
+
+/**
+* @param {WasmFpProverProof} x
+* @returns {WasmFpProverProof}
+*/
+module.exports.caml_pasta_fp_plonk_proof_deep_copy = function(x) {
+    _assertClass(x, WasmFpProverProof);
+    var ptr0 = x.__destroy_into_raw();
+    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
+    return WasmFpProverProof.__wrap(ret);
+};
+
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @param {WasmVecVecFq} witness
+* @param {Uint32Array} wasm_runtime_tables
+* @param {Uint8Array} prev_challenges
+* @param {Uint32Array} prev_sgs
+* @returns {WasmFqProverProof}
+*/
+module.exports.caml_pasta_fq_plonk_proof_create = function(index, witness, wasm_runtime_tables, prev_challenges, prev_sgs) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(index, WasmPastaFqPlonkIndex);
+        _assertClass(witness, WasmVecVecFq);
+        var ptr0 = witness.__destroy_into_raw();
+        const ptr1 = passArray32ToWasm0(wasm_runtime_tables, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArray8ToWasm0(prev_challenges, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArray32ToWasm0(prev_sgs, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.caml_pasta_fq_plonk_proof_create(retptr, index.ptr, ptr0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var r2 = getInt32Memory0()[retptr / 4 + 2];
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return WasmFqProverProof.__wrap(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+};
+
+/**
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {WasmFqProverProof} proof
+* @returns {boolean}
+*/
+module.exports.caml_pasta_fq_plonk_proof_verify = function(index, proof) {
+    _assertClass(index, WasmFqPlonkVerifierIndex);
+    var ptr0 = index.__destroy_into_raw();
+    _assertClass(proof, WasmFqProverProof);
+    var ptr1 = proof.__destroy_into_raw();
+    const ret = wasm.caml_pasta_fq_plonk_proof_verify(ptr0, ptr1);
+    return ret !== 0;
+};
+
+/**
+* @param {Uint32Array} indexes
+* @param {Uint32Array} proofs
+* @returns {boolean}
+*/
+module.exports.caml_pasta_fq_plonk_proof_batch_verify = function(indexes, proofs) {
+    const ptr0 = passArray32ToWasm0(indexes, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(proofs, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.caml_pasta_fq_plonk_proof_batch_verify(ptr0, len0, ptr1, len1);
+    return ret !== 0;
+};
+
+/**
+* @returns {WasmFqProverProof}
+*/
+module.exports.caml_pasta_fq_plonk_proof_dummy = function() {
+    const ret = wasm.caml_pasta_fq_plonk_proof_dummy();
+    return WasmFqProverProof.__wrap(ret);
+};
+
+/**
+* @param {WasmFqProverProof} x
+* @returns {WasmFqProverProof}
+*/
+module.exports.caml_pasta_fq_plonk_proof_deep_copy = function(x) {
+    _assertClass(x, WasmFqProverProof);
+    var ptr0 = x.__destroy_into_raw();
+    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
+    return WasmFqProverProof.__wrap(ret);
+};
+
+/**
+* @param {WasmPastaFpPlonkIndex} prover_index
+* @returns {string}
+*/
+module.exports.prover_to_json = function(prover_index) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(prover_index, WasmPastaFpPlonkIndex);
+        wasm.prover_to_json(retptr, prover_index.ptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(r0, r1);
+    }
+};
+
+/**
 * @returns {WasmFpGateVector}
 */
 module.exports.caml_pasta_fp_plonk_gate_vector_create = function() {
@@ -1691,24 +1869,6 @@ module.exports.caml_fq_srs_h = function(srs) {
 };
 
 /**
-* @param {WasmPastaFpPlonkIndex} prover_index
-* @returns {string}
-*/
-module.exports.prover_to_json = function(prover_index) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(prover_index, WasmPastaFpPlonkIndex);
-        wasm.prover_to_json(retptr, prover_index.ptr);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        return getStringFromWasm0(r0, r1);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_free(r0, r1);
-    }
-};
-
-/**
 * @param {number} num_threads
 * @param {string} worker_source
 * @returns {Promise<any>}
@@ -1776,7 +1936,7 @@ module.exports.fp_oracles_dummy = function() {
 module.exports.fp_oracles_deep_copy = function(x) {
     _assertClass(x, WasmFpProverProof);
     var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
+    const ret = wasm.fp_oracles_deep_copy(ptr0);
     return WasmFpProverProof.__wrap(ret);
 };
 
@@ -1823,167 +1983,7 @@ module.exports.fq_oracles_dummy = function() {
 module.exports.fq_oracles_deep_copy = function(x) {
     _assertClass(x, WasmFqProverProof);
     var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
-    return WasmFqProverProof.__wrap(ret);
-};
-
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @param {WasmVecVecFp} witness
-* @param {Uint32Array} wasm_runtime_tables
-* @param {Uint8Array} prev_challenges
-* @param {Uint32Array} prev_sgs
-* @returns {WasmFpProverProof}
-*/
-module.exports.caml_pasta_fp_plonk_proof_create = function(index, witness, wasm_runtime_tables, prev_challenges, prev_sgs) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(index, WasmPastaFpPlonkIndex);
-        _assertClass(witness, WasmVecVecFp);
-        var ptr0 = witness.__destroy_into_raw();
-        const ptr1 = passArray32ToWasm0(wasm_runtime_tables, wasm.__wbindgen_malloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArray8ToWasm0(prev_challenges, wasm.__wbindgen_malloc);
-        const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArray32ToWasm0(prev_sgs, wasm.__wbindgen_malloc);
-        const len3 = WASM_VECTOR_LEN;
-        wasm.caml_pasta_fp_plonk_proof_create(retptr, index.ptr, ptr0, ptr1, len1, ptr2, len2, ptr3, len3);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var r2 = getInt32Memory0()[retptr / 4 + 2];
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return WasmFpProverProof.__wrap(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-};
-
-/**
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {WasmFpProverProof} proof
-* @returns {boolean}
-*/
-module.exports.caml_pasta_fp_plonk_proof_verify = function(index, proof) {
-    _assertClass(index, WasmFpPlonkVerifierIndex);
-    var ptr0 = index.__destroy_into_raw();
-    _assertClass(proof, WasmFpProverProof);
-    var ptr1 = proof.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fp_plonk_proof_verify(ptr0, ptr1);
-    return ret !== 0;
-};
-
-/**
-* @param {Uint32Array} indexes
-* @param {Uint32Array} proofs
-* @returns {boolean}
-*/
-module.exports.caml_pasta_fp_plonk_proof_batch_verify = function(indexes, proofs) {
-    const ptr0 = passArray32ToWasm0(indexes, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray32ToWasm0(proofs, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.caml_pasta_fp_plonk_proof_batch_verify(ptr0, len0, ptr1, len1);
-    return ret !== 0;
-};
-
-/**
-* @returns {WasmFpProverProof}
-*/
-module.exports.caml_pasta_fp_plonk_proof_dummy = function() {
-    const ret = wasm.caml_pasta_fp_plonk_proof_dummy();
-    return WasmFpProverProof.__wrap(ret);
-};
-
-/**
-* @param {WasmFpProverProof} x
-* @returns {WasmFpProverProof}
-*/
-module.exports.caml_pasta_fp_plonk_proof_deep_copy = function(x) {
-    _assertClass(x, WasmFpProverProof);
-    var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
-    return WasmFpProverProof.__wrap(ret);
-};
-
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @param {WasmVecVecFq} witness
-* @param {Uint32Array} wasm_runtime_tables
-* @param {Uint8Array} prev_challenges
-* @param {Uint32Array} prev_sgs
-* @returns {WasmFqProverProof}
-*/
-module.exports.caml_pasta_fq_plonk_proof_create = function(index, witness, wasm_runtime_tables, prev_challenges, prev_sgs) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(index, WasmPastaFqPlonkIndex);
-        _assertClass(witness, WasmVecVecFq);
-        var ptr0 = witness.__destroy_into_raw();
-        const ptr1 = passArray32ToWasm0(wasm_runtime_tables, wasm.__wbindgen_malloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArray8ToWasm0(prev_challenges, wasm.__wbindgen_malloc);
-        const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArray32ToWasm0(prev_sgs, wasm.__wbindgen_malloc);
-        const len3 = WASM_VECTOR_LEN;
-        wasm.caml_pasta_fq_plonk_proof_create(retptr, index.ptr, ptr0, ptr1, len1, ptr2, len2, ptr3, len3);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var r2 = getInt32Memory0()[retptr / 4 + 2];
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return WasmFqProverProof.__wrap(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-};
-
-/**
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {WasmFqProverProof} proof
-* @returns {boolean}
-*/
-module.exports.caml_pasta_fq_plonk_proof_verify = function(index, proof) {
-    _assertClass(index, WasmFqPlonkVerifierIndex);
-    var ptr0 = index.__destroy_into_raw();
-    _assertClass(proof, WasmFqProverProof);
-    var ptr1 = proof.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fq_plonk_proof_verify(ptr0, ptr1);
-    return ret !== 0;
-};
-
-/**
-* @param {Uint32Array} indexes
-* @param {Uint32Array} proofs
-* @returns {boolean}
-*/
-module.exports.caml_pasta_fq_plonk_proof_batch_verify = function(indexes, proofs) {
-    const ptr0 = passArray32ToWasm0(indexes, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray32ToWasm0(proofs, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.caml_pasta_fq_plonk_proof_batch_verify(ptr0, len0, ptr1, len1);
-    return ret !== 0;
-};
-
-/**
-* @returns {WasmFqProverProof}
-*/
-module.exports.caml_pasta_fq_plonk_proof_dummy = function() {
-    const ret = wasm.caml_pasta_fq_plonk_proof_dummy();
-    return WasmFqProverProof.__wrap(ret);
-};
-
-/**
-* @param {WasmFqProverProof} x
-* @returns {WasmFqProverProof}
-*/
-module.exports.caml_pasta_fq_plonk_proof_deep_copy = function(x) {
-    _assertClass(x, WasmFqProverProof);
-    var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
+    const ret = wasm.fp_oracles_deep_copy(ptr0);
     return WasmFqProverProof.__wrap(ret);
 };
 
@@ -3682,6 +3682,105 @@ class WasmFpGateVector {
 module.exports.WasmFpGateVector = WasmFpGateVector;
 /**
 */
+class WasmFpLookupCommitments {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFpLookupCommitments.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfplookupcommitments_free(ptr);
+    }
+    /**
+    * @param {Uint32Array} sorted
+    * @param {WasmFpPolyComm} aggreg
+    * @param {WasmFpPolyComm | undefined} runtime
+    */
+    constructor(sorted, aggreg, runtime) {
+        const ptr0 = passArray32ToWasm0(sorted, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(aggreg, WasmFpPolyComm);
+        var ptr1 = aggreg.__destroy_into_raw();
+        let ptr2 = 0;
+        if (!isLikeNone(runtime)) {
+            _assertClass(runtime, WasmFpPolyComm);
+            ptr2 = runtime.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfplookupcommitments_new(ptr0, len0, ptr1, ptr2);
+        return WasmFpLookupCommitments.__wrap(ret);
+    }
+    /**
+    * @returns {Uint32Array}
+    */
+    get sorted() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmfplookupcommitments_sorted(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v0 = getArrayU32FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 4);
+            return v0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @returns {WasmFpPolyComm}
+    */
+    get aggreg() {
+        const ret = wasm.wasmfplookupcommitments_aggreg(this.ptr);
+        return WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get runtime() {
+        const ret = wasm.wasmfplookupcommitments_runtime(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {Uint32Array} s
+    */
+    set sorted(s) {
+        const ptr0 = passArray32ToWasm0(s, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmfplookupcommitments_set_sorted(this.ptr, ptr0, len0);
+    }
+    /**
+    * @param {WasmFpPolyComm} a
+    */
+    set aggreg(a) {
+        _assertClass(a, WasmFpPolyComm);
+        var ptr0 = a.__destroy_into_raw();
+        wasm.wasmfplookupcommitments_set_aggreg(this.ptr, ptr0);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} r
+    */
+    set runtime(r) {
+        let ptr0 = 0;
+        if (!isLikeNone(r)) {
+            _assertClass(r, WasmFpPolyComm);
+            ptr0 = r.__destroy_into_raw();
+        }
+        wasm.wasmfplookupcommitments_set_runtime(this.ptr, ptr0);
+    }
+}
+module.exports.WasmFpLookupCommitments = WasmFpLookupCommitments;
+/**
+*/
 class WasmFpLookupSelectors {
 
     static __wrap(ptr) {
@@ -4733,15 +4832,21 @@ class WasmFpProverCommitments {
     * @param {Uint32Array} w_comm
     * @param {WasmFpPolyComm} z_comm
     * @param {WasmFpPolyComm} t_comm
+    * @param {WasmFpLookupCommitments | undefined} lookup
     */
-    constructor(w_comm, z_comm, t_comm) {
+    constructor(w_comm, z_comm, t_comm, lookup) {
         const ptr0 = passArray32ToWasm0(w_comm, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         _assertClass(z_comm, WasmFpPolyComm);
         var ptr1 = z_comm.__destroy_into_raw();
         _assertClass(t_comm, WasmFpPolyComm);
         var ptr2 = t_comm.__destroy_into_raw();
-        const ret = wasm.wasmfpprovercommitments_new(ptr0, len0, ptr1, ptr2);
+        let ptr3 = 0;
+        if (!isLikeNone(lookup)) {
+            _assertClass(lookup, WasmFpLookupCommitments);
+            ptr3 = lookup.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfpprovercommitments_new(ptr0, len0, ptr1, ptr2, ptr3);
         return WasmFpProverCommitments.__wrap(ret);
     }
     /**
@@ -4764,7 +4869,7 @@ class WasmFpProverCommitments {
     * @returns {WasmFpPolyComm}
     */
     get z_comm() {
-        const ret = wasm.wasmfpprovercommitments_z_comm(this.ptr);
+        const ret = wasm.wasmfplookupcommitments_aggreg(this.ptr);
         return WasmFpPolyComm.__wrap(ret);
     }
     /**
@@ -4773,6 +4878,13 @@ class WasmFpProverCommitments {
     get t_comm() {
         const ret = wasm.wasmfpprovercommitments_t_comm(this.ptr);
         return WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @returns {WasmFpLookupCommitments | undefined}
+    */
+    get lookup() {
+        const ret = wasm.wasmfpprovercommitments_lookup(this.ptr);
+        return ret === 0 ? undefined : WasmFpLookupCommitments.__wrap(ret);
     }
     /**
     * @param {Uint32Array} x
@@ -4788,7 +4900,7 @@ class WasmFpProverCommitments {
     set z_comm(x) {
         _assertClass(x, WasmFpPolyComm);
         var ptr0 = x.__destroy_into_raw();
-        wasm.wasmfpprovercommitments_set_z_comm(this.ptr, ptr0);
+        wasm.wasmfplookupcommitments_set_aggreg(this.ptr, ptr0);
     }
     /**
     * @param {WasmFpPolyComm} x
@@ -4797,6 +4909,17 @@ class WasmFpProverCommitments {
         _assertClass(x, WasmFpPolyComm);
         var ptr0 = x.__destroy_into_raw();
         wasm.wasmfpprovercommitments_set_t_comm(this.ptr, ptr0);
+    }
+    /**
+    * @param {WasmFpLookupCommitments | undefined} l
+    */
+    set lookup(l) {
+        let ptr0 = 0;
+        if (!isLikeNone(l)) {
+            _assertClass(l, WasmFpLookupCommitments);
+            ptr0 = l.__destroy_into_raw();
+        }
+        wasm.wasmfpprovercommitments_set_lookup(this.ptr, ptr0);
     }
 }
 module.exports.WasmFpProverCommitments = WasmFpProverCommitments;
@@ -5791,6 +5914,105 @@ class WasmFqGateVector {
     }
 }
 module.exports.WasmFqGateVector = WasmFqGateVector;
+/**
+*/
+class WasmFqLookupCommitments {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFqLookupCommitments.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfqlookupcommitments_free(ptr);
+    }
+    /**
+    * @param {Uint32Array} sorted
+    * @param {WasmFqPolyComm} aggreg
+    * @param {WasmFqPolyComm | undefined} runtime
+    */
+    constructor(sorted, aggreg, runtime) {
+        const ptr0 = passArray32ToWasm0(sorted, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(aggreg, WasmFqPolyComm);
+        var ptr1 = aggreg.__destroy_into_raw();
+        let ptr2 = 0;
+        if (!isLikeNone(runtime)) {
+            _assertClass(runtime, WasmFqPolyComm);
+            ptr2 = runtime.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfqlookupcommitments_new(ptr0, len0, ptr1, ptr2);
+        return WasmFqLookupCommitments.__wrap(ret);
+    }
+    /**
+    * @returns {Uint32Array}
+    */
+    get sorted() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmfqlookupcommitments_sorted(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v0 = getArrayU32FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 4);
+            return v0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @returns {WasmFqPolyComm}
+    */
+    get aggreg() {
+        const ret = wasm.wasmfplookupcommitments_aggreg(this.ptr);
+        return WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get runtime() {
+        const ret = wasm.wasmfplookupcommitments_runtime(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {Uint32Array} s
+    */
+    set sorted(s) {
+        const ptr0 = passArray32ToWasm0(s, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmfqlookupcommitments_set_sorted(this.ptr, ptr0, len0);
+    }
+    /**
+    * @param {WasmFqPolyComm} a
+    */
+    set aggreg(a) {
+        _assertClass(a, WasmFqPolyComm);
+        var ptr0 = a.__destroy_into_raw();
+        wasm.wasmfplookupcommitments_set_aggreg(this.ptr, ptr0);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} r
+    */
+    set runtime(r) {
+        let ptr0 = 0;
+        if (!isLikeNone(r)) {
+            _assertClass(r, WasmFqPolyComm);
+            ptr0 = r.__destroy_into_raw();
+        }
+        wasm.wasmfplookupcommitments_set_runtime(this.ptr, ptr0);
+    }
+}
+module.exports.WasmFqLookupCommitments = WasmFqLookupCommitments;
 /**
 */
 class WasmFqLookupSelectors {
@@ -6844,15 +7066,21 @@ class WasmFqProverCommitments {
     * @param {Uint32Array} w_comm
     * @param {WasmFqPolyComm} z_comm
     * @param {WasmFqPolyComm} t_comm
+    * @param {WasmFqLookupCommitments | undefined} lookup
     */
-    constructor(w_comm, z_comm, t_comm) {
+    constructor(w_comm, z_comm, t_comm, lookup) {
         const ptr0 = passArray32ToWasm0(w_comm, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         _assertClass(z_comm, WasmFqPolyComm);
         var ptr1 = z_comm.__destroy_into_raw();
         _assertClass(t_comm, WasmFqPolyComm);
         var ptr2 = t_comm.__destroy_into_raw();
-        const ret = wasm.wasmfqprovercommitments_new(ptr0, len0, ptr1, ptr2);
+        let ptr3 = 0;
+        if (!isLikeNone(lookup)) {
+            _assertClass(lookup, WasmFqLookupCommitments);
+            ptr3 = lookup.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfqprovercommitments_new(ptr0, len0, ptr1, ptr2, ptr3);
         return WasmFqProverCommitments.__wrap(ret);
     }
     /**
@@ -6875,7 +7103,7 @@ class WasmFqProverCommitments {
     * @returns {WasmFqPolyComm}
     */
     get z_comm() {
-        const ret = wasm.wasmfpprovercommitments_z_comm(this.ptr);
+        const ret = wasm.wasmfplookupcommitments_aggreg(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -6884,6 +7112,13 @@ class WasmFqProverCommitments {
     get t_comm() {
         const ret = wasm.wasmfpprovercommitments_t_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @returns {WasmFqLookupCommitments | undefined}
+    */
+    get lookup() {
+        const ret = wasm.wasmfqprovercommitments_lookup(this.ptr);
+        return ret === 0 ? undefined : WasmFqLookupCommitments.__wrap(ret);
     }
     /**
     * @param {Uint32Array} x
@@ -6899,7 +7134,7 @@ class WasmFqProverCommitments {
     set z_comm(x) {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.__destroy_into_raw();
-        wasm.wasmfpprovercommitments_set_z_comm(this.ptr, ptr0);
+        wasm.wasmfplookupcommitments_set_aggreg(this.ptr, ptr0);
     }
     /**
     * @param {WasmFqPolyComm} x
@@ -6908,6 +7143,17 @@ class WasmFqProverCommitments {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.__destroy_into_raw();
         wasm.wasmfpprovercommitments_set_t_comm(this.ptr, ptr0);
+    }
+    /**
+    * @param {WasmFqLookupCommitments | undefined} l
+    */
+    set lookup(l) {
+        let ptr0 = 0;
+        if (!isLikeNone(l)) {
+            _assertClass(l, WasmFqLookupCommitments);
+            ptr0 = l.__destroy_into_raw();
+        }
+        wasm.wasmfpprovercommitments_set_lookup(this.ptr, ptr0);
     }
 }
 module.exports.WasmFqProverCommitments = WasmFqProverCommitments;
@@ -7078,7 +7324,7 @@ class WasmFqProverProof {
     set prev_challenges_scalars(prev_challenges_scalars) {
         _assertClass(prev_challenges_scalars, WasmVecVecFq);
         var ptr0 = prev_challenges_scalars.__destroy_into_raw();
-        wasm.wasmfqproverproof_set_prev_challenges_scalars(this.ptr, ptr0);
+        wasm.wasmfpproverproof_set_prev_challenges_scalars(this.ptr, ptr0);
     }
     /**
     * @param {Uint32Array} prev_challenges_comms
@@ -8408,7 +8654,7 @@ class WasmVecVecFq {
     * @param {number} n
     */
     constructor(n) {
-        const ret = wasm.wasmvecvecfppolycomm_create(n);
+        const ret = wasm.wasmvecvecfp_create(n);
         return WasmVecVecFq.__wrap(ret);
     }
     /**
