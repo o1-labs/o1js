@@ -387,7 +387,7 @@ function LocalBlockchain({
   let networkState = defaultNetworkState();
 
   function addAccount(publicKey: PublicKey, balance: string) {
-    ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
+    Ledger.addAccount(ledger, Ml.fromPublicKey(publicKey), balance);
   }
 
   let testAccounts: {

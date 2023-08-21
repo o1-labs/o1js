@@ -392,21 +392,23 @@ declare class Ledger {
   /**
    * Adds an account and its balance to the ledger.
    */
-  addAccount(publicKey: MlPublicKey, balance: string): void;
+  addAccount(ledger: Ledger, publicKey: MlPublicKey, balance: string): void;
 
   /**
    * Applies a JSON transaction to the ledger.
    */
   applyJsonTransaction(
-    txJson: string,
-    accountCreationFee: string,
-    networkState: string
+      ledger: Ledger,
+      txJson: string,
+      accountCreationFee: string,
+      networkState: string
   ): void;
 
   /**
    * Returns an account.
    */
   getAccount(
+    ledger: Ledger,
     publicKey: MlPublicKey,
     tokenId: FieldConst
   ): JsonAccount | undefined;
