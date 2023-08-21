@@ -5,15 +5,17 @@ use ark_poly::{EvaluationDomain, Radix2EvaluationDomain as Domain};
 use array_init::array_init;
 use kimchi::circuits::{
     constraints::FeatureFlags,
-    lookup::lookups::{LookupFeatures, LookupPatterns},
+    lookup::index::LookupSelectors,
+    lookup::lookups::{LookupFeatures, LookupInfo, LookupPatterns},
     polynomials::permutation::Shifts,
     polynomials::permutation::{zk_polynomial, zk_w3},
     wires::{COLUMNS, PERMUTS},
 };
 use kimchi::linearization::expr_linearization;
-use kimchi::verifier_index::VerifierIndex as DlogVerifierIndex;
+use kimchi::verifier_index::{LookupVerifierIndex, VerifierIndex as DlogVerifierIndex};
 use paste::paste;
 use poly_commitment::srs::SRS;
+use poly_commitment::commitment::PolyComm;
 use std::path::Path;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
@@ -209,6 +211,261 @@ macro_rules! impl_verification_key {
 
             #[wasm_bindgen]
             #[derive(Clone)]
+            pub struct [<Wasm $field_name:camel LookupSelectors>] {
+                #[wasm_bindgen(skip)]
+                pub xor: Option<$WasmPolyComm>,
+                #[wasm_bindgen(skip)]
+                pub lookup : Option<$WasmPolyComm>,
+                #[wasm_bindgen(skip)]
+                pub range_check: Option<$WasmPolyComm>,
+                #[wasm_bindgen(skip)]
+                pub ffmul: Option<$WasmPolyComm>,
+            }
+
+            type WasmLookupSelectors = [<Wasm $field_name:camel LookupSelectors>];
+
+            impl From<WasmLookupSelectors> for LookupSelectors<PolyComm<$G>> {
+                fn from(x: WasmLookupSelectors) -> Self {
+                    Self {
+                        xor: x.xor.map(Into::into),
+                        lookup: x.lookup.map(Into::into),
+                        range_check: x.range_check.map(Into::into),
+                        ffmul: x.ffmul.map(Into::into),
+                    }
+                }
+            }
+
+            impl From<&WasmLookupSelectors> for LookupSelectors<PolyComm<$G>> {
+                fn from(x: &WasmLookupSelectors) -> Self {
+                    Self {
+                        xor: x.xor.clone().map(Into::into),
+                        lookup: x.lookup.clone().map(Into::into),
+                        range_check: x.range_check.clone().map(Into::into),
+                        ffmul: x.ffmul.clone().map(Into::into),
+                    }
+                }
+            }
+
+            impl From<&LookupSelectors<PolyComm<$G>>> for WasmLookupSelectors {
+                fn from(x: &LookupSelectors<PolyComm<$G>>) -> Self {
+                    Self {
+                        xor: x.xor.clone().map(Into::into),
+                        lookup: x.lookup.clone().map(Into::into),
+                        range_check: x.range_check.clone().map(Into::into),
+                        ffmul: x.ffmul.clone().map(Into::into),
+                    }
+                }
+            }
+
+            impl From<LookupSelectors<PolyComm<$G>>> for WasmLookupSelectors {
+                fn from(x: LookupSelectors<PolyComm<$G>>) -> Self {
+                    Self {
+                        xor: x.xor.clone().map(Into::into),
+                        lookup: x.lookup.clone().map(Into::into),
+                        range_check: x.range_check.clone().map(Into::into),
+                        ffmul: x.ffmul.clone().map(Into::into),
+                    }
+                }
+            }
+
+            #[wasm_bindgen]
+            impl [<Wasm $field_name:camel LookupSelectors>] {
+                #[wasm_bindgen(constructor)]
+                pub fn new(
+                    xor: Option<$WasmPolyComm>,
+                    lookup: Option<$WasmPolyComm>,
+                    range_check: Option<$WasmPolyComm>,
+                    ffmul: Option<$WasmPolyComm>
+                ) -> Self {
+                    Self {
+                        xor,
+                        lookup,
+                        range_check,
+                        ffmul
+                    }
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn xor(&self) -> Option<$WasmPolyComm> {
+                    self.xor.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_xor(&mut self, x: Option<$WasmPolyComm>) {
+                    self.xor = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn lookup(&self) -> Option<$WasmPolyComm> {
+                    self.lookup.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_lookup(&mut self, x: Option<$WasmPolyComm>) {
+                    self.lookup = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn ffmul(&self) -> Option<$WasmPolyComm> {
+                    self.ffmul.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_ffmul(&mut self, x: Option<$WasmPolyComm>) {
+                    self.ffmul = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn range_check(&self) -> Option<$WasmPolyComm> {
+                    self.range_check.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_range_check(&mut self, x: Option<$WasmPolyComm>) {
+                    self.range_check = x
+                }
+            }
+
+            #[wasm_bindgen]
+            #[derive(Clone)]
+            pub struct [<Wasm $field_name:camel LookupVerifierIndex>] {
+                pub joint_lookup_used: bool,
+
+                #[wasm_bindgen(skip)]
+                pub lookup_table: WasmVector<$WasmPolyComm>,
+
+                #[wasm_bindgen(skip)]
+                pub lookup_selectors: WasmLookupSelectors,
+
+                #[wasm_bindgen(skip)]
+                pub table_ids: Option<$WasmPolyComm>,
+
+                #[wasm_bindgen(skip)]
+                pub lookup_info: LookupInfo,
+
+                #[wasm_bindgen(skip)]
+                pub runtime_tables_selector: Option<$WasmPolyComm>,
+            }
+
+            type WasmLookupVerifierIndex = [<Wasm $field_name:camel LookupVerifierIndex>];
+
+            impl From<&LookupVerifierIndex<$G>> for WasmLookupVerifierIndex {
+                fn from(x: &LookupVerifierIndex<$G>) -> Self {
+                    Self {
+                        joint_lookup_used: x.joint_lookup_used.into(),
+                        lookup_table: x.lookup_table.clone().iter().map(Into::into).collect(),
+                        lookup_selectors: x.lookup_selectors.clone().into(),
+                        table_ids: x.table_ids.clone().map(Into::into),
+                        lookup_info: x.lookup_info.clone(),
+                        runtime_tables_selector: x.runtime_tables_selector.clone().map(Into::into)
+                    }
+                }
+            }
+
+            impl From<LookupVerifierIndex<$G>> for WasmLookupVerifierIndex {
+                fn from(x: LookupVerifierIndex<$G>) -> Self {
+                    Self {
+                        joint_lookup_used: x.joint_lookup_used.into(),
+                        lookup_table: x.lookup_table.iter().map(Into::into).collect(),
+                        lookup_selectors: x.lookup_selectors.into(),
+                        table_ids: x.table_ids.map(Into::into),
+                        lookup_info: x.lookup_info,
+                        runtime_tables_selector: x.runtime_tables_selector.map(Into::into)
+                    }
+                }
+            }
+
+
+            impl From<&WasmLookupVerifierIndex> for LookupVerifierIndex<$G> {
+                fn from(x: &WasmLookupVerifierIndex) -> Self {
+                    Self {
+                        joint_lookup_used: x.joint_lookup_used.into(),
+                        lookup_table: x.lookup_table.clone().iter().map(Into::into).collect(),
+                        lookup_selectors: x.lookup_selectors.clone().into(),
+                        table_ids: x.table_ids.clone().map(Into::into),
+                        lookup_info: x.lookup_info,
+                        runtime_tables_selector: x.runtime_tables_selector.clone().map(Into::into)
+                    }
+                }
+            }
+
+            impl From<WasmLookupVerifierIndex> for LookupVerifierIndex<$G> {
+                fn from(x: WasmLookupVerifierIndex) -> Self {
+                    Self {
+                        joint_lookup_used: x.joint_lookup_used.into(),
+                        lookup_table: x.lookup_table.iter().map(Into::into).collect(),
+                        lookup_selectors: x.lookup_selectors.into(),
+                        table_ids: x.table_ids.map(Into::into),
+                        lookup_info: x.lookup_info,
+                        runtime_tables_selector: x.runtime_tables_selector.map(Into::into)
+                    }
+                }
+            }
+
+            #[wasm_bindgen]
+            impl [<Wasm $field_name:camel LookupVerifierIndex>] {
+                #[wasm_bindgen(constructor)]
+                pub fn new(
+                    joint_lookup_used: bool,
+                    lookup_table: WasmVector<$WasmPolyComm>,
+                    lookup_selectors: WasmLookupSelectors,
+                    table_ids: Option<$WasmPolyComm>,
+                    lookup_info: LookupInfo,
+                    runtime_tables_selector: Option<$WasmPolyComm>
+                ) -> WasmLookupVerifierIndex {
+                    WasmLookupVerifierIndex {
+                        joint_lookup_used,
+                        lookup_table,
+                        lookup_selectors,
+                        table_ids,
+                        lookup_info,
+                        runtime_tables_selector
+                    }
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn lookup_table(&self) -> WasmVector<$WasmPolyComm> {
+                    self.lookup_table.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_lookup_table(&mut self, x: WasmVector<$WasmPolyComm>) {
+                    self.lookup_table = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn lookup_selectors(&self) -> WasmLookupSelectors {
+                    self.lookup_selectors.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_lookup_selectors(&mut self, x: WasmLookupSelectors) {
+                    self.lookup_selectors = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn table_ids(&self) -> Option<$WasmPolyComm>{
+                    self.table_ids.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_table_ids(&mut self, x: Option<$WasmPolyComm>) {
+                    self.table_ids = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn runtime_tables_selector(&self) -> Option<$WasmPolyComm> {
+                    self.runtime_tables_selector.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_runtime_tables_selector(&mut self, x: Option<$WasmPolyComm>) {
+                    self.runtime_tables_selector = x
+                }
+            }
+
+            #[wasm_bindgen]
+            #[derive(Clone)]
             pub struct [<Wasm $field_name:camel PlonkVerifierIndex>] {
                 pub domain: WasmDomain,
                 pub max_poly_size: i32,
@@ -219,7 +476,8 @@ macro_rules! impl_verification_key {
                 #[wasm_bindgen(skip)]
                 pub evals: WasmPlonkVerificationEvals,
                 pub shifts: WasmShifts,
-                // TODO: add lookup index field
+                #[wasm_bindgen(skip)]
+                pub lookup_index: Option<WasmLookupVerifierIndex>,
             }
             type WasmPlonkVerifierIndex = [<Wasm $field_name:camel PlonkVerifierIndex>];
 
@@ -234,6 +492,7 @@ macro_rules! impl_verification_key {
                     srs: &$WasmSrs,
                     evals: &WasmPlonkVerificationEvals,
                     shifts: &WasmShifts,
+                    lookup_index: Option<WasmLookupVerifierIndex>,
                 ) -> Self {
                     WasmPlonkVerifierIndex {
                         domain: domain.clone(),
@@ -243,6 +502,7 @@ macro_rules! impl_verification_key {
                         srs: srs.clone(),
                         evals: evals.clone(),
                         shifts: shifts.clone(),
+                        lookup_index: lookup_index.clone(),
                     }
                 }
 
@@ -264,6 +524,16 @@ macro_rules! impl_verification_key {
                 #[wasm_bindgen(setter)]
                 pub fn set_evals(&mut self, x: WasmPlonkVerificationEvals) {
                     self.evals = x
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn lookup_index(&self) -> Option<WasmLookupVerifierIndex> {
+                    self.lookup_index.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_lookup_index(&mut self, li: Option<WasmLookupVerifierIndex>) {
+                    self.lookup_index = li
                 }
             }
 
@@ -300,6 +570,7 @@ macro_rules! impl_verification_key {
                             s5: vi.shift[5].into(),
                             s6: vi.shift[6].into(),
                         },
+                    lookup_index: vi.lookup_index.map(Into::into),
                 }
             }
 
@@ -601,6 +872,7 @@ macro_rules! impl_verification_key {
                             s5: $F::one().into(),
                             s6: $F::one().into(),
                         },
+                    lookup_index: None,
                 }
             }
 
