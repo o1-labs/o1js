@@ -9,6 +9,92 @@ export function caml_pallas_affine_one(): WasmGPallas;
 */
 export function caml_vesta_affine_one(): WasmGVesta;
 /**
+* @param {number | undefined} offset
+* @param {WasmFpSrs} srs
+* @param {string} path
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmFpPlonkVerifierIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fp_plonk_verifier_index_write(append: boolean | undefined, index: WasmFpPlonkVerifierIndex, path: string): void;
+/**
+* @param {WasmFpPlonkVerifierIndex} index
+* @returns {string}
+*/
+export function caml_pasta_fp_plonk_verifier_index_serialize(index: WasmFpPlonkVerifierIndex): string;
+/**
+* @param {WasmFpSrs} srs
+* @param {string} index
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_deserialize(srs: WasmFpSrs, index: string): WasmFpPlonkVerifierIndex;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_create(index: WasmPastaFpPlonkIndex): WasmFpPlonkVerifierIndex;
+/**
+* @param {number} log2_size
+* @returns {WasmFpShifts}
+*/
+export function caml_pasta_fp_plonk_verifier_index_shifts(log2_size: number): WasmFpShifts;
+/**
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierIndex;
+/**
+* @param {WasmFpPlonkVerifierIndex} x
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
+/**
+* @param {number | undefined} offset
+* @param {WasmFqSrs} srs
+* @param {string} path
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmFqPlonkVerifierIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fq_plonk_verifier_index_write(append: boolean | undefined, index: WasmFqPlonkVerifierIndex, path: string): void;
+/**
+* @param {WasmFqPlonkVerifierIndex} index
+* @returns {string}
+*/
+export function caml_pasta_fq_plonk_verifier_index_serialize(index: WasmFqPlonkVerifierIndex): string;
+/**
+* @param {WasmFqSrs} srs
+* @param {string} index
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_deserialize(srs: WasmFqSrs, index: string): WasmFqPlonkVerifierIndex;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_create(index: WasmPastaFqPlonkIndex): WasmFqPlonkVerifierIndex;
+/**
+* @param {number} log2_size
+* @returns {WasmFqShifts}
+*/
+export function caml_pasta_fq_plonk_verifier_index_shifts(log2_size: number): WasmFqShifts;
+/**
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierIndex;
+/**
+* @param {WasmFqPlonkVerifierIndex} x
+* @returns {WasmFqPlonkVerifierIndex}
+*/
+export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
+/**
 * @returns {WasmPallasGProjective}
 */
 export function caml_pallas_one(): WasmPallasGProjective;
@@ -467,92 +553,6 @@ export function caml_fq_srs_h(srs: WasmFqSrs): WasmGPallas;
 * @returns {string}
 */
 export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
-/**
-* @param {number | undefined} offset
-* @param {WasmFpSrs} srs
-* @param {string} path
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmFpPlonkVerifierIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fp_plonk_verifier_index_write(append: boolean | undefined, index: WasmFpPlonkVerifierIndex, path: string): void;
-/**
-* @param {WasmFpPlonkVerifierIndex} index
-* @returns {string}
-*/
-export function caml_pasta_fp_plonk_verifier_index_serialize(index: WasmFpPlonkVerifierIndex): string;
-/**
-* @param {WasmFpSrs} srs
-* @param {string} index
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_deserialize(srs: WasmFpSrs, index: string): WasmFpPlonkVerifierIndex;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_create(index: WasmPastaFpPlonkIndex): WasmFpPlonkVerifierIndex;
-/**
-* @param {number} log2_size
-* @returns {WasmFpShifts}
-*/
-export function caml_pasta_fp_plonk_verifier_index_shifts(log2_size: number): WasmFpShifts;
-/**
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierIndex;
-/**
-* @param {WasmFpPlonkVerifierIndex} x
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
-/**
-* @param {number | undefined} offset
-* @param {WasmFqSrs} srs
-* @param {string} path
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmFqPlonkVerifierIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fq_plonk_verifier_index_write(append: boolean | undefined, index: WasmFqPlonkVerifierIndex, path: string): void;
-/**
-* @param {WasmFqPlonkVerifierIndex} index
-* @returns {string}
-*/
-export function caml_pasta_fq_plonk_verifier_index_serialize(index: WasmFqPlonkVerifierIndex): string;
-/**
-* @param {WasmFqSrs} srs
-* @param {string} index
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_deserialize(srs: WasmFqSrs, index: string): WasmFqPlonkVerifierIndex;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_create(index: WasmPastaFqPlonkIndex): WasmFqPlonkVerifierIndex;
-/**
-* @param {number} log2_size
-* @returns {WasmFqShifts}
-*/
-export function caml_pasta_fq_plonk_verifier_index_shifts(log2_size: number): WasmFqShifts;
-/**
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierIndex;
-/**
-* @param {WasmFqPlonkVerifierIndex} x
-* @returns {WasmFqPlonkVerifierIndex}
-*/
-export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
 /**
 * @param {number} num_threads
 * @param {string} worker_source
@@ -1073,6 +1073,59 @@ export enum GateType {
 }
 /**
 */
+export class LookupFeatures {
+  free(): void;
+/**
+* Whether joint lookups are used
+*/
+  joint_lookup_used: boolean;
+/**
+* A single lookup constraint is a vector of lookup constraints to be applied at a row.
+*/
+  patterns: LookupPatterns;
+/**
+* True if runtime lookup tables are used.
+*/
+  uses_runtime_tables: boolean;
+}
+/**
+* Describes the desired lookup configuration.
+*/
+export class LookupInfo {
+  free(): void;
+/**
+* The features enabled for this lookup configuration
+*/
+  features: LookupFeatures;
+/**
+* The maximum joint size of any joint lookup in a constraint in `kinds`. This can be computed from `kinds`.
+*/
+  max_joint_size: number;
+/**
+* The maximum length of an element of `kinds`. This can be computed from `kinds`.
+*/
+  max_per_row: number;
+}
+/**
+* Flags for each of the hard-coded lookup patterns.
+*/
+export class LookupPatterns {
+  free(): void;
+/**
+*/
+  foreign_field_mul: boolean;
+/**
+*/
+  lookup: boolean;
+/**
+*/
+  range_check: boolean;
+/**
+*/
+  xor: boolean;
+}
+/**
+*/
 export class PoolBuilder {
   free(): void;
 /**
@@ -1124,6 +1177,59 @@ export class WasmFpGate {
 */
 export class WasmFpGateVector {
   free(): void;
+}
+/**
+*/
+export class WasmFpLookupSelectors {
+  free(): void;
+/**
+* @param {WasmFpPolyComm | undefined} xor
+* @param {WasmFpPolyComm | undefined} lookup
+* @param {WasmFpPolyComm | undefined} range_check
+* @param {WasmFpPolyComm | undefined} ffmul
+*/
+  constructor(xor?: WasmFpPolyComm, lookup?: WasmFpPolyComm, range_check?: WasmFpPolyComm, ffmul?: WasmFpPolyComm);
+/**
+*/
+  ffmul?: WasmFpPolyComm;
+/**
+*/
+  lookup?: WasmFpPolyComm;
+/**
+*/
+  range_check?: WasmFpPolyComm;
+/**
+*/
+  xor?: WasmFpPolyComm;
+}
+/**
+*/
+export class WasmFpLookupVerifierIndex {
+  free(): void;
+/**
+* @param {boolean} joint_lookup_used
+* @param {Uint32Array} lookup_table
+* @param {WasmFpLookupSelectors} lookup_selectors
+* @param {WasmFpPolyComm | undefined} table_ids
+* @param {LookupInfo} lookup_info
+* @param {WasmFpPolyComm | undefined} runtime_tables_selector
+*/
+  constructor(joint_lookup_used: boolean, lookup_table: Uint32Array, lookup_selectors: WasmFpLookupSelectors, table_ids: WasmFpPolyComm | undefined, lookup_info: LookupInfo, runtime_tables_selector?: WasmFpPolyComm);
+/**
+*/
+  joint_lookup_used: boolean;
+/**
+*/
+  lookup_selectors: WasmFpLookupSelectors;
+/**
+*/
+  lookup_table: Uint32Array;
+/**
+*/
+  runtime_tables_selector?: WasmFpPolyComm;
+/**
+*/
+  table_ids?: WasmFpPolyComm;
 }
 /**
 */
@@ -1237,14 +1343,18 @@ export class WasmFpPlonkVerifierIndex {
 * @param {WasmFpSrs} srs
 * @param {WasmFpPlonkVerificationEvals} evals
 * @param {WasmFpShifts} shifts
+* @param {WasmFpLookupVerifierIndex | undefined} lookup_index
 */
-  constructor(domain: WasmFpDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFpSrs, evals: WasmFpPlonkVerificationEvals, shifts: WasmFpShifts);
+  constructor(domain: WasmFpDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFpSrs, evals: WasmFpPlonkVerificationEvals, shifts: WasmFpShifts, lookup_index?: WasmFpLookupVerifierIndex);
 /**
 */
   domain: WasmFpDomain;
 /**
 */
   evals: WasmFpPlonkVerificationEvals;
+/**
+*/
+  lookup_index?: WasmFpLookupVerifierIndex;
 /**
 */
   max_poly_size: number;
@@ -1484,6 +1594,59 @@ export class WasmFqGateVector {
 }
 /**
 */
+export class WasmFqLookupSelectors {
+  free(): void;
+/**
+* @param {WasmFqPolyComm | undefined} xor
+* @param {WasmFqPolyComm | undefined} lookup
+* @param {WasmFqPolyComm | undefined} range_check
+* @param {WasmFqPolyComm | undefined} ffmul
+*/
+  constructor(xor?: WasmFqPolyComm, lookup?: WasmFqPolyComm, range_check?: WasmFqPolyComm, ffmul?: WasmFqPolyComm);
+/**
+*/
+  ffmul?: WasmFqPolyComm;
+/**
+*/
+  lookup?: WasmFqPolyComm;
+/**
+*/
+  range_check?: WasmFqPolyComm;
+/**
+*/
+  xor?: WasmFqPolyComm;
+}
+/**
+*/
+export class WasmFqLookupVerifierIndex {
+  free(): void;
+/**
+* @param {boolean} joint_lookup_used
+* @param {Uint32Array} lookup_table
+* @param {WasmFqLookupSelectors} lookup_selectors
+* @param {WasmFqPolyComm | undefined} table_ids
+* @param {LookupInfo} lookup_info
+* @param {WasmFqPolyComm | undefined} runtime_tables_selector
+*/
+  constructor(joint_lookup_used: boolean, lookup_table: Uint32Array, lookup_selectors: WasmFqLookupSelectors, table_ids: WasmFqPolyComm | undefined, lookup_info: LookupInfo, runtime_tables_selector?: WasmFqPolyComm);
+/**
+*/
+  joint_lookup_used: boolean;
+/**
+*/
+  lookup_selectors: WasmFqLookupSelectors;
+/**
+*/
+  lookup_table: Uint32Array;
+/**
+*/
+  runtime_tables_selector?: WasmFqPolyComm;
+/**
+*/
+  table_ids?: WasmFqPolyComm;
+}
+/**
+*/
 export class WasmFqOpeningProof {
   free(): void;
 /**
@@ -1594,14 +1757,18 @@ export class WasmFqPlonkVerifierIndex {
 * @param {WasmFqSrs} srs
 * @param {WasmFqPlonkVerificationEvals} evals
 * @param {WasmFqShifts} shifts
+* @param {WasmFqLookupVerifierIndex | undefined} lookup_index
 */
-  constructor(domain: WasmFqDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFqSrs, evals: WasmFqPlonkVerificationEvals, shifts: WasmFqShifts);
+  constructor(domain: WasmFqDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFqSrs, evals: WasmFqPlonkVerificationEvals, shifts: WasmFqShifts, lookup_index?: WasmFqLookupVerifierIndex);
 /**
 */
   domain: WasmFqDomain;
 /**
 */
   evals: WasmFqPlonkVerificationEvals;
+/**
+*/
+  lookup_index?: WasmFqLookupVerifierIndex;
 /**
 */
   max_poly_size: number;
