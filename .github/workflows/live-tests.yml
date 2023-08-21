@@ -28,15 +28,15 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
-        # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
-        # - Will be fixed by improving logging as part of the work on:
-        # - https://hub.docker.com/r/o1labs/mina-local-network
-        options: --log-driver=none
+        volumes:
+          - /tmp:/root/logs
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: rampup
 
   berkeley-branch:
     timeout-minutes: 25
@@ -53,15 +53,15 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
-        # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
-        # - Will be fixed by improving logging as part of the work on:
-        # - https://hub.docker.com/r/o1labs/mina-local-network
-        options: --log-driver=none
+        volumes:
+          - /tmp:/root/logs
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: berkeley
 
   develop-branch:
     timeout-minutes: 25
@@ -78,12 +78,12 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
-        # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
-        # - Will be fixed by improving logging as part of the work on:
-        # - https://hub.docker.com/r/o1labs/mina-local-network
-        options: --log-driver=none
+        volumes:
+          - /tmp:/root/logs
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: develop
