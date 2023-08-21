@@ -1,3 +1,4 @@
+import { mocks } from '../bindings/crypto/constants.js';
 import {
   AccountUpdate,
   PrivateKey,
@@ -102,7 +103,7 @@ function createAccountUpdate() {
   let accountUpdate = createAccountUpdate();
   expect(
     accountUpdate.body.authorizationKind.verificationKeyHash.toString()
-  ).toEqual('0');
+  ).toEqual(mocks.dummyVerificationKeyHash);
 }
 
 // does not throw an error if private key is missing unless if .send is executed
