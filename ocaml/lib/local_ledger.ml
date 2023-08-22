@@ -58,14 +58,18 @@ module Ledger : Mina_base.Ledger_intf.S = struct
     in
     Ok res
 
-  let get_or_create_account (t : t) (id : Account_id.t) (a: Account.t) : (Mina_base.Ledger_intf.account_state * location) Or_error.t =
+  let[@warning "-32"] get_or_create_account (t : t) (id : Account_id.t)
+      (a : Account.t) :
+      (Mina_base.Ledger_intf.account_state * location) Or_error.t =
     match location_of_account t id with
     | Some loc ->
         let a' = Option.value_exn (get t loc) in
-        if Account.equal a a' then
-          Ok (`Existed, loc)
+        if Account.equal a a' then Ok (`Existed, loc)
         else
-          Or_error.errorf !"account %{sexp: Account_id.t} already present with different contents" id
+          Or_error.errorf
+            !"account %{sexp: Account_id.t} already present with different \
+              contents"
+            id
     | None ->
         let loc = next_location t in
         t := { !t with locations = Map.set !t.locations ~key:id ~data:loc } ;
