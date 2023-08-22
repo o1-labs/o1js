@@ -471,7 +471,7 @@ var js_class_vector_of_rust_vector = function (v, klass) {
   // return v.map(klass.__wrap)
   var len = v.length;
   var res = new Array(len);
-  for (var i = 0, pos = 0; i < len; i++) {
+  for (var i = 0; i < len; i++) {
     // Beware: the caller may need to add finalizers to these.
     res[i] = klass.__wrap(v[i]);
   }
@@ -2384,8 +2384,33 @@ var caml_pasta_fp_commitments_to_rust = function (x) {
   return new plonk_wasm.WasmFpProverCommitments(w_comm, z_comm, t_comm, lookup);
 };
 
+// Provides: caml_fp_lookup_commitments_of_rust
+// Requires: caml_vesta_poly_comm_of_rust, js_class_vector_of_rust_vector, plonk_wasm
+var caml_fp_lookup_commitments_of_rust = function (wasm_lc) {
+  var convertArray = function (v) {
+    var a = js_class_vector_of_rust_vector(v, plonk_wasm.WasmFpPolyComm);
+    var res = [0];
+    for (var i = 0; i < a.length; ++i) {
+      res.push(caml_vesta_poly_comm_of_rust(a[i]));
+    }
+    return res;
+  };
+
+  var sorted = convertArray(wasm_lc.sorted);
+  var aggreg = caml_vesta_poly_comm_of_rust(wasm_lc.aggreg);
+  var wasm_lc_runtime = wasm_lc.runtime;
+  var caml_runtime;
+  if (wasm_lc_runtime === undefined) {
+    caml_runtime = 0;
+  } else {
+    caml_runtime = [0, caml_vesta_poly_comm_of_rust(wasm_lc_runtime)];
+  }
+  wasm_lc.free();
+  return [0, sorted, aggreg, caml_runtime];
+};
+
 // Provides: caml_pasta_fp_commitments_of_rust
-// Requires: caml_vesta_poly_comm_of_rust, js_class_vector_of_rust_vector, plonk_wasm, caml_fp_lookup_commitments_of_rust
+// Requires: caml_vesta_poly_comm_of_rust, js_class_vector_of_rust_vector, plonk_wasm, caml_fp_lookup_commitments_of_rust, caml_opt_of_rust
 var caml_pasta_fp_commitments_of_rust = function (x) {
   var convertArray = function (v) {
     var a = js_class_vector_of_rust_vector(v, plonk_wasm.WasmFpPolyComm);
@@ -2678,7 +2703,7 @@ var caml_fq_lookup_commitments_of_rust = function (wasm_lc) {
 };
 
 // Provides: caml_pasta_fq_commitments_of_rust
-// Requires: caml_pallas_poly_comm_of_rust, js_class_vector_of_rust_vector, plonk_wasm, caml_fq_lookup_commitments_of_rust
+// Requires: caml_pallas_poly_comm_of_rust, js_class_vector_of_rust_vector, plonk_wasm, caml_fq_lookup_commitments_of_rust, caml_opt_of_rust
 var caml_pasta_fq_commitments_of_rust = function (x) {
   var convertArray = function (v) {
     var a = js_class_vector_of_rust_vector(v, plonk_wasm.WasmFqPolyComm);
