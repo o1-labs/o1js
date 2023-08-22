@@ -1565,7 +1565,6 @@ var caml_plonk_verification_evals_to_rust = function (
   x,
   klass,
   poly_comm_class,
-  mk_affine,
   poly_comm_to_rust
 ) {
   var convertArray = function (comms) {
@@ -1914,7 +1913,6 @@ var caml_plonk_verifier_index_to_rust = function (
     x[6],
     verification_evals_class,
     poly_comm_class,
-    mk_affine,
     poly_comm_to_rust
   );
   var shifts = caml_plonk_verification_shifts_to_rust(
