@@ -1,10 +1,10 @@
 import {
   Field,
+  PrivateKey,
   SmartContract,
-  state,
   State,
   method,
-  PrivateKey,
+  state,
 } from 'snarkyjs';
 
 export const adminPrivateKey = PrivateKey.random();
