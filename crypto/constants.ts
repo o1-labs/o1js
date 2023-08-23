@@ -1,4 +1,4 @@
-// @gen this file is generated - don't edit it directly
+// @gen this file is generated from `bindings/ocaml/snarky_js_constants.ml` - don't edit it directly
 export { prefixes, prefixHashes, prefixHashesLegacy, versionBytes, poseidonParamsKimchiFp, poseidonParamsLegacyFp, mocks }
 
 let prefixes = {

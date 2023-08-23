@@ -1,3 +1,10 @@
+(**
+  this file is used to generate the content of bindings/crypto/constants.ts
+  these constants are therefore available to snarkyjs and mina-signer
+  -) without causing a runtime dependency on ocaml code
+  -) without having to be regenerated at startup
+ *)
+
 open Core_kernel
 module Field = Pickles.Impls.Step.Field.Constant
 
@@ -165,7 +172,9 @@ let () =
     "let " ^ key ^ " = " ^ Yojson.Safe.pretty_to_string value ^ ";\n"
   in
   let content =
-    "// @gen this file is generated - don't edit it directly\n" ^ "export { "
+    "// @gen this file is generated from \
+     `bindings/ocaml/snarky_js_constants.ml` - don't edit it directly\n"
+    ^ "export { "
     ^ (List.map ~f:fst constants |> String.concat ~sep:", ")
     ^ " }\n\n"
     ^ (List.map ~f:to_js constants |> String.concat ~sep:"")
