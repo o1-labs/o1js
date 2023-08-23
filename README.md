@@ -28,7 +28,7 @@ git submodule update --init --recursive
 
 Then, switch to the o1js root in `src/lib/o1js`. 
 
-You need these two commands for different purposes:
+You use these two commands for different purposes:
 
 ```
 npm run make
