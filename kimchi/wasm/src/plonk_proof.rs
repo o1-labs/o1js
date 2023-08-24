@@ -18,7 +18,8 @@ use std::array;
 // use std::path::Path;
 use groupmap::GroupMap;
 use kimchi::proof::{
-    PointEvaluations, ProofEvaluations, ProverCommitments, ProverProof, RecursionChallenge,
+    LookupCommitments, PointEvaluations, ProofEvaluations, ProverCommitments, ProverProof,
+    RecursionChallenge,
 };
 use kimchi::prover_index::ProverIndex;
 use kimchi::verifier::batch_verify;
@@ -145,6 +146,102 @@ macro_rules! impl_proof {
 
             #[wasm_bindgen]
             #[derive(Clone)]
+            pub struct [<Wasm $field_name:camel LookupCommitments>]
+            {
+                #[wasm_bindgen(skip)]
+                pub sorted: WasmVector<$WasmPolyComm>,
+                #[wasm_bindgen(skip)]
+                pub aggreg: $WasmPolyComm,
+                #[wasm_bindgen(skip)]
+                pub runtime: Option<$WasmPolyComm>,
+            }
+
+            type WasmLookupCommitments = [<Wasm $field_name:camel LookupCommitments>];
+
+            #[wasm_bindgen]
+            impl [<Wasm $field_name:camel LookupCommitments>] {
+                #[wasm_bindgen(constructor)]
+                pub fn new(
+                    sorted: WasmVector<$WasmPolyComm>,
+                    aggreg: $WasmPolyComm,
+                    runtime: Option<$WasmPolyComm>) -> Self {
+                    WasmLookupCommitments { sorted, aggreg, runtime }
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn sorted(&self) -> WasmVector<$WasmPolyComm> {
+                    self.sorted.clone()
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn aggreg(&self) -> $WasmPolyComm {
+                    self.aggreg.clone()
+                }
+
+                #[wasm_bindgen(getter)]
+                pub fn runtime(&self) -> Option<$WasmPolyComm> {
+                    self.runtime.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_sorted(&mut self, s: WasmVector<$WasmPolyComm>) {
+                    self.sorted = s
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_aggreg(&mut self, a: $WasmPolyComm) {
+                    self.aggreg = a
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_runtime(&mut self, r: Option<$WasmPolyComm>) {
+                    self.runtime = r
+                }
+            }
+
+
+            impl From<&LookupCommitments<$G>> for WasmLookupCommitments {
+                fn from(x: &LookupCommitments<$G>) -> Self {
+                    WasmLookupCommitments {
+                        sorted: x.sorted.iter().map(Into::into).collect(),
+                        aggreg: x.aggreg.clone().into(),
+                        runtime: x.runtime.clone().map(Into::into)
+                    }
+                }
+            }
+
+            impl From<LookupCommitments<$G>> for WasmLookupCommitments {
+                fn from(x: LookupCommitments<$G>) -> Self {
+                    WasmLookupCommitments {
+                        sorted: x.sorted.into_iter().map(Into::into).collect(),
+                        aggreg: x.aggreg.into(),
+                        runtime: x.runtime.map(Into::into)
+                    }
+                }
+            }
+
+            impl From<&WasmLookupCommitments> for LookupCommitments<$G> {
+                fn from(x: &WasmLookupCommitments) -> Self {
+                    LookupCommitments {
+                        sorted: x.sorted.iter().map(Into::into).collect(),
+                        aggreg: x.aggreg.clone().into(),
+                        runtime: x.runtime.clone().map(Into::into)
+                    }
+                }
+            }
+
+            impl From<WasmLookupCommitments> for LookupCommitments<$G> {
+                fn from(x: WasmLookupCommitments) -> Self {
+                    LookupCommitments {
+                        sorted: x.sorted.into_iter().map(Into::into).collect(),
+                        aggreg: x.aggreg.into(),
+                        runtime: x.runtime.map(Into::into)
+                    }
+                }
+            }
+
+            #[wasm_bindgen]
+            #[derive(Clone)]
             pub struct [<Wasm $field_name:camel ProverCommitments>]
             {
                 #[wasm_bindgen(skip)]
@@ -153,10 +250,8 @@ macro_rules! impl_proof {
                 pub z_comm: $WasmPolyComm,
                 #[wasm_bindgen(skip)]
                 pub t_comm: $WasmPolyComm,
-                /* TODO
                 #[wasm_bindgen(skip)]
-                pub lookup: Option<LookupCommitments<G>>,
-                */
+                pub lookup: Option<WasmLookupCommitments>
             }
             type WasmProverCommitments = [<Wasm $field_name:camel ProverCommitments>];
 
@@ -166,8 +261,10 @@ macro_rules! impl_proof {
                 pub fn new(
                     w_comm: WasmVector<$WasmPolyComm>,
                     z_comm: $WasmPolyComm,
-                    t_comm: $WasmPolyComm) -> Self {
-                    WasmProverCommitments { w_comm, z_comm, t_comm }
+                    t_comm: $WasmPolyComm,
+                    lookup: Option<WasmLookupCommitments>
+                ) -> Self {
+                    WasmProverCommitments { w_comm, z_comm, t_comm, lookup }
                 }
 
                 #[wasm_bindgen(getter)]
@@ -183,6 +280,11 @@ macro_rules! impl_proof {
                     self.t_comm.clone()
                 }
 
+                #[wasm_bindgen(getter)]
+                pub fn lookup(&self) -> Option<WasmLookupCommitments> {
+                    self.lookup.clone()
+                }
+
                 #[wasm_bindgen(setter)]
                 pub fn set_w_comm(&mut self, x: WasmVector<$WasmPolyComm>) {
                     self.w_comm = x
@@ -195,6 +297,11 @@ macro_rules! impl_proof {
                 pub fn set_t_comm(&mut self, x: $WasmPolyComm) {
                     self.t_comm = x
                 }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_lookup(&mut self, l: Option<WasmLookupCommitments>) {
+                    self.lookup = l
+                }
             }
 
             impl From<&ProverCommitments<$G>> for WasmProverCommitments {
@@ -203,6 +310,7 @@ macro_rules! impl_proof {
                         w_comm: x.w_comm.iter().map(Into::into).collect(),
                         z_comm: x.z_comm.clone().into(),
                         t_comm: x.t_comm.clone().into(),
+                        lookup: x.lookup.clone().map(Into::into),
                     }
                 }
             }
@@ -213,6 +321,7 @@ macro_rules! impl_proof {
                         w_comm: x.w_comm.iter().map(Into::into).collect(),
                         z_comm: x.z_comm.into(),
                         t_comm: x.t_comm.into(),
+                        lookup: x.lookup.map(Into::into),
                     }
                 }
             }
@@ -223,8 +332,7 @@ macro_rules! impl_proof {
                         w_comm: array_init(|i| x.w_comm[i].clone().into()),
                         z_comm: x.z_comm.clone().into(),
                         t_comm: x.t_comm.clone().into(),
-                        // TODO
-                        lookup: None,
+                        lookup: x.lookup.clone().map(Into::into),
                     }
                 }
             }
@@ -235,8 +343,7 @@ macro_rules! impl_proof {
                         w_comm: array_init(|i| (&x.w_comm[i]).into()),
                         z_comm: x.z_comm.into(),
                         t_comm: x.t_comm.into(),
-                        // TODO
-                        lookup: None,
+                        lookup: x.lookup.map(Into::into),
                     }
                 }
             }
