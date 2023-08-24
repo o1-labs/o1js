@@ -275,7 +275,7 @@ function fixVerificationKey(a: AccountUpdate) {
     let [, data, hash] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,
-      hash: Field.fromBytes([...hash]),
+      hash: hash[0],
     };
   } else {
     a.body.update.verificationKey.value = {
