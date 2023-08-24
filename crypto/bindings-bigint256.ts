@@ -1,4 +1,4 @@
-export { Bigint256 };
+export { Bigint256, toMlStringAscii, fromMlString, MlBytes };
 
 type Bigint256 = [bigint];
 

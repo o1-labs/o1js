@@ -5,11 +5,14 @@
  */
 import { prefixHashes, prefixHashesLegacy } from '../crypto/constants.js';
 import { Bigint256 } from './bindings-bigint256.js';
+import { Fp, Fq } from './bindings-field.js';
 
 const tsBindings = {
   prefixHashes,
   prefixHashesLegacy,
   ...Bigint256,
+  ...Fp,
+  ...Fq,
 };
 
 // this is put in a global variable so that ../kimchi/js/bindings.js finds it
