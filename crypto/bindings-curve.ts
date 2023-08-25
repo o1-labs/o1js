@@ -10,17 +10,15 @@ import {
   GroupProjective,
   GroupAffine,
 } from './elliptic_curve.js';
+import { withPrefix } from './bindings-util.js';
 
 export { VestaBindings, PallasBindings };
 
-const VestaBindings = createCurveBindings(Vesta, 'caml_vesta');
-const PallasBindings = createCurveBindings(Pallas, 'caml_pallas');
+const VestaBindings = withPrefix('caml_vesta', createCurveBindings(Vesta));
+const PallasBindings = withPrefix('caml_pallas', createCurveBindings(Pallas));
 
-function createCurveBindings<curve extends string>(
-  Curve: ProjectiveCurve,
-  curve: curve
-) {
-  let CurveBindings = {
+function createCurveBindings(Curve: ProjectiveCurve) {
+  return {
     one(): GroupProjective {
       return Curve.one;
     },
@@ -56,16 +54,6 @@ function createCurveBindings<curve extends string>(
     affine_deep_copy(g: GroupProjective): GroupProjective {
       return { ...g };
     },
-  };
-
-  type CurveBindings = typeof CurveBindings;
-
-  return Object.fromEntries(
-    Object.entries(CurveBindings).map(([k, v]) => {
-      return [`${curve}_${k}`, v];
-    })
-  ) as {
-    [k in keyof CurveBindings as `${curve}_${k}`]: CurveBindings[k];
   };
 }
 

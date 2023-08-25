@@ -1,3 +1,5 @@
+import { withPrefix } from './bindings-util.js';
+
 /**
  * TS implementation of Pasta_bindings.BigInt256
  */
@@ -5,39 +7,39 @@ export { Bigint256Bindings, Bigint256, toMlStringAscii, fromMlString, MlBytes };
 
 type Bigint256 = [bigint];
 
-const Bigint256Bindings = {
+const Bigint256Bindings = withPrefix('caml_bigint_256', {
   // TODO
-  caml_bigint_256_of_numeral(s: MlBytes, i: number, j: number): Bigint256 {
+  of_numeral(s: MlBytes, i: number, j: number): Bigint256 {
     throw Error('caml_bigint_256_of_numeral not implemented');
   },
-  caml_bigint_256_of_decimal_string(s: MlBytes): Bigint256 {
+  of_decimal_string(s: MlBytes): Bigint256 {
     return [BigInt(fromMlString(s))];
   },
-  caml_bigint_256_num_limbs() {
+  num_limbs() {
     return 4;
   },
-  caml_bigint_256_bytes_per_limb() {
+  bytes_per_limb() {
     return 8;
   },
-  caml_bigint_256_div([x]: Bigint256, [y]: Bigint256): Bigint256 {
+  div([x]: Bigint256, [y]: Bigint256): Bigint256 {
     return [x / y];
   },
-  caml_bigint_256_compare([x]: Bigint256, [y]: Bigint256) {
+  compare([x]: Bigint256, [y]: Bigint256) {
     if (x < y) return -1;
     if (x === y) return 0;
     return 1;
   },
-  caml_bigint_256_print([x]: Bigint256): void {
+  print([x]: Bigint256): void {
     console.log(x.toString());
   },
-  caml_bigint_256_to_string(x: Bigint256) {
+  to_string(x: Bigint256) {
     return toMlStringAscii(x[0].toString());
   },
   // TODO performance critical
-  caml_bigint_256_test_bit(b: Bigint256, i: number) {
+  test_bit(b: Bigint256, i: number) {
     return Number(!!(b[0] & (1n << BigInt(i))));
   },
-  caml_bigint_256_to_bytes([x]: Bigint256) {
+  to_bytes([x]: Bigint256) {
     var ocamlBytes = caml_create_bytes(32);
     for (var i = 0; x > 0; x >>= 8n, i++) {
       if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
@@ -46,7 +48,7 @@ const Bigint256Bindings = {
     }
     return ocamlBytes;
   },
-  caml_bigint_256_of_bytes(ocamlBytes: MlBytes): Bigint256 {
+  of_bytes(ocamlBytes: MlBytes): Bigint256 {
     var length = ocamlBytes.l;
     if (length > 32) throw Error(length + " bytes don't fit into bigint256");
     var x = 0n;
@@ -58,10 +60,10 @@ const Bigint256Bindings = {
     }
     return [x];
   },
-  caml_bigint_256_deep_copy([x]: Bigint256): Bigint256 {
+  deep_copy([x]: Bigint256): Bigint256 {
     return [x];
   },
-};
+});
 
 // TODO clean up all this / make type-safe and match JSOO in all relevant cases
 

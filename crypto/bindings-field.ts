@@ -10,16 +10,17 @@ import {
   toMlStringAscii,
 } from './bindings-bigint256.js';
 import { MlOption, MlBool } from '../../lib/ml/base.js';
+import { withPrefix } from './bindings-util.js';
 
 type Field = [bigint];
 
 export { FpBindings, FqBindings, Field };
 
-const FpBindings = createFieldBindings(Fp, 'caml_pasta_fp');
-const FqBindings = createFieldBindings(Fq, 'caml_pasta_fq');
+const FpBindings = withPrefix('caml_pasta_fp', createFieldBindings(Fp));
+const FqBindings = withPrefix('caml_pasta_fq', createFieldBindings(Fq));
 
-function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
-  let FieldBindings = {
+function createFieldBindings(Field: FiniteField) {
+  return {
     size_in_bits(): number {
       return Field.sizeInBits;
     },
@@ -129,16 +130,6 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
     deep_copy([x]: Field): Field {
       return [x];
     },
-  };
-
-  type FieldBindings = typeof FieldBindings;
-
-  return Object.fromEntries(
-    Object.entries(FieldBindings).map(([k, v]) => {
-      return [`${fp}_${k}`, v];
-    })
-  ) as {
-    [k in keyof FieldBindings as `${fp}_${k}`]: FieldBindings[k];
   };
 }
 
