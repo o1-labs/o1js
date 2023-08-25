@@ -6,7 +6,7 @@ const Bigint256 = {
   caml_bigint_256_of_decimal_string(s: MlBytes): Bigint256 {
     return [BigInt(fromMlString(s))];
   },
-  caml_bigint_256_of_bytes(ocamlBytes: MlBytes) {
+  caml_bigint_256_of_bytes(ocamlBytes: MlBytes): Bigint256 {
     var length = ocamlBytes.l;
     if (length > 32) throw Error(length + " bytes don't fit into bigint256");
     var x = 0n;

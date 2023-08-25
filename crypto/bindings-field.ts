@@ -16,25 +16,31 @@ const FqBindings = createFieldBindings(Fq, 'caml_pasta_fq');
 
 function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
   let FieldBindings = {
+    size_in_bits(): number {
+      return Field.sizeInBits;
+    },
+    size(): Bigint256 {
+      return [Field.modulus];
+    },
     add([x]: Field, [y]: Field): Field {
       return [Field.add(x, y)];
-    },
-    negate([x]: Field): Field {
-      return [Field.negate(x)];
     },
     sub([x]: Field, [y]: Field): Field {
       return [Field.sub(x, y)];
     },
+    negate([x]: Field): Field {
+      return [Field.negate(x)];
+    },
     mul([x]: Field, [y]: Field): Field {
       return [Field.mul(x, y)];
-    },
-    inv([x]: Field): MlOption<Field> {
-      return toMlOption(Field.inverse(x));
     },
     div([x]: Field, [y]: Field): Field {
       let z = Field.div(x, y);
       if (z === undefined) throw Error('division by zero');
       return [z];
+    },
+    inv([x]: Field): MlOption<Field> {
+      return toMlOption(Field.inverse(x));
     },
     square([x]: Field): Field {
       return [Field.square(x)];
@@ -45,23 +51,8 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
     sqrt([x]: Field): MlOption<Field> {
       return toMlOption(Field.sqrt(x));
     },
-    equal([x]: Field, [y]: Field): MlBool {
-      return MlBool(Field.equal(x, y));
-    },
-    compare(x: Field, y: Field): 1 | 0 | -1 {
-      return Bigint256.caml_bigint_256_compare(x, y);
-    },
-    random(): Field {
-      return [Field.random()];
-    },
     of_int(x: number): Field {
       return [Field.fromNumber(x)];
-    },
-    of_bigint(x: Bigint256): Field {
-      return x;
-    },
-    to_bigint(x: Field): Bigint256 {
-      return x;
     },
     to_string([x]: Field): MlBytes {
       return toMlStringAscii(x.toString());
@@ -69,17 +60,11 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
     of_string(s: MlBytes): Field {
       return [Field.fromBigint(BigInt(fromMlString(s)))];
     },
-    size(): Bigint256 {
-      return [Field.modulus];
-    },
-    size_in_bits(): number {
-      return Field.sizeInBits;
+    print(x: Field): void {
+      console.log(x[0].toString());
     },
     copy(x: Field, [y]: Field): void {
       x[0] = y;
-    },
-    print(x: Field): void {
-      console.log(x[0].toString());
     },
     mut_add(x: Field, [y]: Field): void {
       x[0] = Field.add(x[0], y);
@@ -92,6 +77,28 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
     },
     mut_square(x: Field): void {
       x[0] = Field.square(x[0]);
+    },
+    compare(x: Field, y: Field): 1 | 0 | -1 {
+      return Bigint256.caml_bigint_256_compare(x, y);
+    },
+    equal([x]: Field, [y]: Field): MlBool {
+      return MlBool(x === y);
+    },
+    random(): Field {
+      return [Field.random()];
+    },
+    rng(i: number): Field {
+      console.warn('rng is not implemented');
+      return [Field.random()];
+    },
+    to_bigint(x: Field): Bigint256 {
+      return x;
+    },
+    of_bigint(x: Bigint256): Field {
+      return x;
+    },
+    two_adic_root_of_unity(): Field {
+      return [Field.twoadicRoot];
     },
     domain_generator(i: number): Field {
       // this takes an integer i and returns a 2^ith root of unity, i.e. a number `w` with
@@ -108,8 +115,19 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
       }
       return [generator];
     },
+    to_bytes(x: Field): MlBytes {
+      return Bigint256.caml_bigint_256_to_bytes(x);
+    },
+    of_bytes(x: MlBytes): Field {
+      return Bigint256.caml_bigint_256_of_bytes(x);
+    },
+    deep_copy([x]: Field): Field {
+      return [x];
+    },
   };
+
   type FieldBindings = typeof FieldBindings;
+
   return Object.fromEntries(
     Object.entries(FieldBindings).map(([k, v]) => {
       return [`${fp}_${k}`, v];
