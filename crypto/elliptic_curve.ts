@@ -1,5 +1,12 @@
 import { FiniteField, Fp, inverse, mod, p, q } from './finite_field.js';
-export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMapPallas };
+export {
+  Pallas,
+  Vesta,
+  GroupAffine,
+  GroupProjective,
+  GroupMapPallas,
+  ProjectiveCurve,
+};
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
@@ -307,6 +314,8 @@ function createCurveProjective(
     },
   };
 }
+
+type ProjectiveCurve = ReturnType<typeof createCurveProjective>;
 
 const Pallas = createCurveProjective(
   p,
