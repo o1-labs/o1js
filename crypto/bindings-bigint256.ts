@@ -3,8 +3,44 @@ export { Bigint256, toMlStringAscii, fromMlString, MlBytes };
 type Bigint256 = [bigint];
 
 const Bigint256 = {
+  caml_bigint_256_of_numeral(s: MlBytes, i: number, j: number): Bigint256 {
+    throw Error('caml_bigint_256_of_numeral not implemented');
+  },
   caml_bigint_256_of_decimal_string(s: MlBytes): Bigint256 {
     return [BigInt(fromMlString(s))];
+  },
+  caml_bigint_256_num_limbs() {
+    return 4;
+  },
+  caml_bigint_256_bytes_per_limb() {
+    return 8;
+  },
+  caml_bigint_256_div([x]: Bigint256, [y]: Bigint256): Bigint256 {
+    return [x / y];
+  },
+  caml_bigint_256_compare([x]: Bigint256, [y]: Bigint256) {
+    if (x < y) return -1;
+    if (x === y) return 0;
+    return 1;
+  },
+  caml_bigint_256_print([x]: Bigint256): void {
+    console.log(x.toString());
+  },
+  caml_bigint_256_to_string(x: Bigint256) {
+    return toMlStringAscii(x[0].toString());
+  },
+  // TODO performance critical
+  caml_bigint_256_test_bit(b: Bigint256, i: number) {
+    return Number(!!(b[0] & (1n << BigInt(i))));
+  },
+  caml_bigint_256_to_bytes([x]: Bigint256) {
+    var ocamlBytes = caml_create_bytes(32);
+    for (var i = 0; x > 0; x >>= 8n, i++) {
+      if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
+      var byte = Number(x & 0xffn);
+      caml_bytes_unsafe_set(ocamlBytes, i, byte);
+    }
+    return ocamlBytes;
   },
   caml_bigint_256_of_bytes(ocamlBytes: MlBytes): Bigint256 {
     var length = ocamlBytes.l;
@@ -18,32 +54,8 @@ const Bigint256 = {
     }
     return [x];
   },
-  caml_bigint_256_to_bytes([x]: Bigint256) {
-    var ocamlBytes = caml_create_bytes(32);
-    for (var i = 0; x > 0; x >>= 8n, i++) {
-      if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
-      var byte = Number(x & 0xffn);
-      caml_bytes_unsafe_set(ocamlBytes, i, byte);
-    }
-    return ocamlBytes;
-  },
-  caml_bigint_256_to_string(x: Bigint256) {
-    return toMlStringAscii(x[0].toString());
-  },
-  // TODO performance critical
-  caml_bigint_256_test_bit(b: Bigint256, i: number) {
-    return Number(!!(b[0] & (1n << BigInt(i))));
-  },
-  caml_bigint_256_compare([x]: Bigint256, [y]: Bigint256) {
-    if (x < y) return -1;
-    if (x === y) return 0;
-    return 1;
-  },
-  caml_bigint_256_num_limbs() {
-    return 4;
-  },
-  caml_bigint_256_bytes_per_limb() {
-    return 8;
+  caml_bigint_256_deep_copy([x]: Bigint256): Bigint256 {
+    return [x];
   },
 };
 
