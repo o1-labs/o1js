@@ -5,6 +5,7 @@ import {
   fromMlString,
   toMlStringAscii,
 } from './bindings-bigint256.js';
+import { MlOption, MlBool } from '../../lib/ml/base.js';
 
 type Field = Bigint256;
 
@@ -39,13 +40,13 @@ function createFieldBindings(Field: FiniteField, fp: string) {
       return [Field.square(x)];
     },
     [`${fp}_is_square`]([x]: Field): MlBool {
-      return toMlBool(Field.isSquare(x));
+      return MlBool(Field.isSquare(x));
     },
     [`${fp}_sqrt`]([x]: Field): MlOption<Field> {
       return toMlOption(Field.sqrt(x));
     },
     [`${fp}_equal`]([x]: Field, [y]: Field): MlBool {
-      return toMlBool(Field.equal(x, y));
+      return MlBool(Field.equal(x, y));
     },
     [`${fp}_compare`](x: Field, y: Field): 1 | 0 | -1 {
       return Bigint256.caml_bigint_256_compare(x, y);
@@ -110,14 +111,7 @@ function createFieldBindings(Field: FiniteField, fp: string) {
   };
 }
 
-type MlBool = 0 | 1;
-type MlOption<T> = 0 | [0, T];
-
 function toMlOption<T>(x: undefined | T): MlOption<[T]> {
   if (x === undefined) return 0; // None
   return [0, [x]]; // Some(x)
-}
-
-function toMlBool(x: boolean): MlBool {
-  return x ? 1 : 0;
 }
