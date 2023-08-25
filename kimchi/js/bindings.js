@@ -6,6 +6,10 @@
 // Provides: tsBindings
 var tsBindings = globalThis.__snarkyTsBindings;
 
+// Provides: tsRustConversion
+// Requires: tsBindings, plonk_wasm
+var tsRustConversion = tsBindings.rustConversion(plonk_wasm);
+
 // Provides: getTsBindings
 // Requires: tsBindings
 function getTsBindings() {
@@ -463,81 +467,17 @@ function caml_fq_srs_add_lagrange_basis(srs, log2_size) {
     return plonk_wasm.caml_fq_srs_add_lagrange_basis(srs, log2_size);
 }
 
-
-
-
-
-// Provides: caml_plonk_wire_of_rust
-var caml_plonk_wire_of_rust = function (wire) {
-    var res = [0, wire.row, wire.col];
-    wire.free();
-    return res;
-};
-
-// Provides: caml_plonk_wire_to_rust
-// Requires: plonk_wasm
-var caml_plonk_wire_to_rust = function (wire) {
-    return plonk_wasm.Wire.create(wire[1], wire[2]);
-};
-
-// Provides: caml_plonk_wires_of_rust
-// Requires: caml_plonk_wire_of_rust
-var caml_plonk_wires_of_rust = function (wires) {
-    var res = [0,
-        caml_plonk_wire_of_rust(wires[0]),
-        caml_plonk_wire_of_rust(wires[1]),
-        caml_plonk_wire_of_rust(wires[2]),
-        caml_plonk_wire_of_rust(wires[3]),
-        caml_plonk_wire_of_rust(wires[4]),
-        caml_plonk_wire_of_rust(wires[5]),
-        caml_plonk_wire_of_rust(wires[6])];
-    wires.free();
-    return res;
-};
-
-// Provides: caml_plonk_wires_to_rust
-// Requires: plonk_wasm, caml_plonk_wire_to_rust
-var caml_plonk_wires_to_rust = function (wires) {
-    return new plonk_wasm.WasmGateWires(
-        caml_plonk_wire_to_rust(wires[1]),
-        caml_plonk_wire_to_rust(wires[2]),
-        caml_plonk_wire_to_rust(wires[3]),
-        caml_plonk_wire_to_rust(wires[4]),
-        caml_plonk_wire_to_rust(wires[5]),
-        caml_plonk_wire_to_rust(wires[6]),
-        caml_plonk_wire_to_rust(wires[7])
-    );
-};
-
 // Provides: caml_plonk_gate_of_rust
-// Requires: caml_plonk_wires_of_rust, caml_u8array_vector_of_rust_flat_vector
-var caml_plonk_gate_of_rust = function (gate) {
-    // TODO: Hardcoding 32 here is a little brittle
-    var res = [0, gate.typ, caml_plonk_wires_of_rust(gate.wires), caml_u8array_vector_of_rust_flat_vector(gate.c, 32)];
-    gate.free();
-    return res;
-};
+// Requires: tsRustConversion
+var caml_plonk_gate_of_rust = tsRustConversion.gateFromRust;
 
 // Provides: caml_fp_plonk_gate_to_rust
-// Requires: plonk_wasm, caml_plonk_wires_to_rust, caml_u8array_vector_to_rust_flat_vector
-var caml_fp_plonk_gate_to_rust = function (gate) {
-    return new plonk_wasm.WasmFpGate(
-        gate[1],
-        caml_plonk_wires_to_rust(gate[2]),
-        caml_u8array_vector_to_rust_flat_vector(gate[3]));
-};
+// Requires: tsRustConversion
+var caml_fp_plonk_gate_to_rust = tsRustConversion.fp.gateToRust;
 
 // Provides: caml_fq_plonk_gate_to_rust
-// Requires: plonk_wasm, caml_plonk_wires_to_rust, caml_u8array_vector_to_rust_flat_vector
-var caml_fq_plonk_gate_to_rust = function (gate) {
-    // TODO: Hardcoding 32 here is a little brittle
-    return new plonk_wasm.WasmFqGate(
-        gate[1],
-        caml_plonk_wires_to_rust(gate[2]),
-        caml_u8array_vector_to_rust_flat_vector(gate[3]))
-};
-
-
+// Requires: tsRustConversion
+var caml_fq_plonk_gate_to_rust = tsRustConversion.fq.gateToRust;
 
 
 
@@ -566,9 +506,9 @@ var caml_pasta_fp_plonk_gate_vector_len = function (v) {
 };
 
 // Provides: caml_pasta_fp_plonk_gate_vector_wrap
-// Requires: plonk_wasm, caml_plonk_wire_to_rust
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fp_plonk_gate_vector_wrap = function (v, x, y) {
-    return plonk_wasm.caml_pasta_fp_plonk_gate_vector_wrap(v, caml_plonk_wire_to_rust(x), caml_plonk_wire_to_rust(y));
+    return plonk_wasm.caml_pasta_fp_plonk_gate_vector_wrap(v, tsRustConversion.wireToRust(x), tsRustConversion.wireToRust(y));
 };
 
 // Provides: caml_pasta_fp_plonk_gate_vector_digest
@@ -612,9 +552,9 @@ var caml_pasta_fq_plonk_gate_vector_len = function (v) {
 };
 
 // Provides: caml_pasta_fq_plonk_gate_vector_wrap
-// Requires: plonk_wasm, caml_plonk_wire_to_rust
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fq_plonk_gate_vector_wrap = function (v, x, y) {
-    return plonk_wasm.caml_pasta_fq_plonk_gate_vector_wrap(v, caml_plonk_wire_to_rust(x), caml_plonk_wire_to_rust(y));
+    return plonk_wasm.caml_pasta_fq_plonk_gate_vector_wrap(v, tsRustConversion.wireToRust(x), tsRustConversion.wireToRust(y));
 };
 
 // Provides: caml_pasta_fq_plonk_gate_vector_digest
