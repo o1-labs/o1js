@@ -7,6 +7,7 @@ import { prefixHashes, prefixHashesLegacy } from '../crypto/constants.js';
 import { Bigint256Bindings } from './bindings-bigint256.js';
 import { PallasBindings, VestaBindings } from './bindings-curve.js';
 import { FpBindings, FqBindings } from './bindings-field.js';
+import { FpVectorBindings, FqVectorBindings } from './bindings-vector.js';
 
 const tsBindings = {
   prefixHashes,
@@ -16,6 +17,8 @@ const tsBindings = {
   ...FqBindings,
   ...VestaBindings,
   ...PallasBindings,
+  ...FpVectorBindings,
+  ...FqVectorBindings,
 };
 
 // this is put in a global variable so that ../kimchi/js/bindings.js finds it

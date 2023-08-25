@@ -1,52 +1,45 @@
+/* global tsBindings */
 
 // fp
 
 // Provides: caml_fp_vector_create
-var caml_fp_vector_create = function () {
-  return [0]; // OCaml tag for arrays, so that we can use the same utility fns on both
-};
+// Requires: tsBindings
+var caml_fp_vector_create = tsBindings.caml_fp_vector_create;
 
 // Provides: caml_fp_vector_length
-var caml_fp_vector_length = function (v) {
-  return v.length - 1;
-};
+// Requires: tsBindings
+var caml_fp_vector_length = tsBindings.caml_fp_vector_length;
 
 // Provides: caml_fp_vector_emplace_back
-var caml_fp_vector_emplace_back = function (v, x) {
-  v.push(x);
-}
+// Requires: tsBindings
+var caml_fp_vector_emplace_back = tsBindings.caml_fp_vector_emplace_back;
 
 // Provides: caml_fp_vector_get
-var caml_fp_vector_get = function (v, i) {
-  var value = v[i + 1];
-  if (value === undefined) {
-    throw Error('caml_fp_vector_get: Index out of bounds, got ' + i + '/' + (v.length - 1));
-  }
-  return value;
-}
+// Requires: tsBindings
+var caml_fp_vector_get = tsBindings.caml_fp_vector_get;
+
+// Provides: caml_fp_vector_set
+// Requires: tsBindings
+var caml_fp_vector_set = tsBindings.caml_fp_vector_set;
 
 // fq
 
 // Provides: caml_fq_vector_create
-var caml_fq_vector_create = function () {
-  return [0]; // OCaml tag for arrays, so that we can use the same utility fns on both
-};
+// Requires: tsBindings
+var caml_fq_vector_create = tsBindings.caml_fq_vector_create;
 
 // Provides: caml_fq_vector_length
-var caml_fq_vector_length = function (v) {
-  return v.length - 1;
-};
+// Requires: tsBindings
+var caml_fq_vector_length = tsBindings.caml_fq_vector_length;
 
 // Provides: caml_fq_vector_emplace_back
-var caml_fq_vector_emplace_back = function (v, x) {
-  v.push(x);
-}
+// Requires: tsBindings
+var caml_fq_vector_emplace_back = tsBindings.caml_fq_vector_emplace_back;
 
 // Provides: caml_fq_vector_get
-var caml_fq_vector_get = function (v, i) {
-  var value = v[i + 1];
-  if (value === undefined) {
-    throw Error('caml_fq_vector_get: Index out of bounds, got ' + i + '/' + (v.length - 1));
-  }
-  return value;
-}
+// Requires: tsBindings
+var caml_fq_vector_get = tsBindings.caml_fq_vector_get;
+
+// Provides: caml_fq_vector_set
+// Requires: tsBindings
+var caml_fq_vector_set = tsBindings.caml_fq_vector_set;
