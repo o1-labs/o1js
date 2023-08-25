@@ -93,7 +93,6 @@ var caml_pasta_fp_equal = tsBindings.caml_pasta_fp_equal;
 // Requires: tsBindings
 var caml_pasta_fp_random = tsBindings.caml_pasta_fp_random;
 
-// TODO
 // Provides: caml_pasta_fp_rng
 // Requires: tsBindings
 var caml_pasta_fp_rng = tsBindings.caml_pasta_fp_rng;
@@ -106,7 +105,6 @@ var caml_pasta_fp_to_bigint = tsBindings.caml_pasta_fp_to_bigint;
 // Requires: tsBindings
 var caml_pasta_fp_of_bigint = tsBindings.caml_pasta_fp_of_bigint;
 
-// TODO
 // Provides: caml_pasta_fp_two_adic_root_of_unity
 // Requires: tsBindings
 var caml_pasta_fp_two_adic_root_of_unity = tsBindings.caml_pasta_fp_two_adic_root_of_unity;
@@ -115,17 +113,14 @@ var caml_pasta_fp_two_adic_root_of_unity = tsBindings.caml_pasta_fp_two_adic_roo
 // Requires: tsBindings
 var caml_pasta_fp_domain_generator = tsBindings.caml_pasta_fp_domain_generator;
 
-// TODO
 // Provides: caml_pasta_fp_to_bytes
 // Requires: tsBindings
 var caml_pasta_fp_to_bytes = tsBindings.caml_pasta_fp_to_bytes;
 
-// TODO
 // Provides: caml_pasta_fp_of_bytes
 // Requires: tsBindings
 var caml_pasta_fp_of_bytes = tsBindings.caml_pasta_fp_of_bytes;
 
-// TODO
 // Provides: caml_pasta_fp_deep_copy
 // Requires: tsBindings
 var caml_pasta_fp_deep_copy = tsBindings.caml_pasta_fp_deep_copy;
@@ -225,7 +220,6 @@ var caml_pasta_fq_equal = tsBindings.caml_pasta_fq_equal;
 // Requires: tsBindings
 var caml_pasta_fq_random = tsBindings.caml_pasta_fq_random;
 
-// TODO
 // Provides: caml_pasta_fq_rng
 // Requires: tsBindings
 var caml_pasta_fq_rng = tsBindings.caml_pasta_fq_rng;
@@ -238,7 +232,6 @@ var caml_pasta_fq_to_bigint = tsBindings.caml_pasta_fq_to_bigint;
 // Requires: tsBindings
 var caml_pasta_fq_of_bigint = tsBindings.caml_pasta_fq_of_bigint;
 
-// TODO
 // Provides: caml_pasta_fq_two_adic_root_of_unity
 // Requires: tsBindings
 var caml_pasta_fq_two_adic_root_of_unity = tsBindings.caml_pasta_fq_two_adic_root_of_unity;
@@ -247,17 +240,14 @@ var caml_pasta_fq_two_adic_root_of_unity = tsBindings.caml_pasta_fq_two_adic_roo
 // Requires: tsBindings
 var caml_pasta_fq_domain_generator = tsBindings.caml_pasta_fq_domain_generator;
 
-// TODO
 // Provides: caml_pasta_fq_to_bytes
 // Requires: tsBindings
 var caml_pasta_fq_to_bytes = tsBindings.caml_pasta_fq_to_bytes;
 
-// TODO
 // Provides: caml_pasta_fq_of_bytes
 // Requires: tsBindings
 var caml_pasta_fq_of_bytes = tsBindings.caml_pasta_fq_of_bytes;
 
-// TODO
 // Provides: caml_pasta_fq_deep_copy
 // Requires: tsBindings
 var caml_pasta_fq_deep_copy = tsBindings.caml_pasta_fq_deep_copy;
