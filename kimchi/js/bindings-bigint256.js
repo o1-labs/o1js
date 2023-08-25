@@ -1,7 +1,6 @@
 /* global tsBindings
 */
 
-// TODO
 // Provides: caml_bigint_256_of_numeral
 // Requires: tsBindings
 var caml_bigint_256_of_numeral = tsBindings.caml_bigint_256_of_numeral;
@@ -10,17 +9,14 @@ var caml_bigint_256_of_numeral = tsBindings.caml_bigint_256_of_numeral;
 // Requires: tsBindings
 var caml_bigint_256_of_decimal_string = tsBindings.caml_bigint_256_of_decimal_string;
 
-// TODO
 // Provides: caml_bigint_256_num_limbs
 // Requires: tsBindings
 var caml_bigint_256_num_limbs = tsBindings.caml_bigint_256_num_limbs;
 
-// TODO
 // Provides: caml_bigint_256_bytes_per_limb
 // Requires: tsBindings
 var caml_bigint_256_bytes_per_limb = tsBindings.caml_bigint_256_bytes_per_limb;
 
-// TODO
 // Provides: caml_bigint_256_div
 // Requires: tsBindings
 var caml_bigint_256_div = tsBindings.caml_bigint_256_div;
@@ -49,7 +45,6 @@ var caml_bigint_256_to_bytes = tsBindings.caml_bigint_256_to_bytes;
 // Requires: tsBindings
 var caml_bigint_256_of_bytes = tsBindings.caml_bigint_256_of_bytes;
 
-// TODO
 // Provides: caml_bigint_256_deep_copy
 // Requires: tsBindings
 var caml_bigint_256_deep_copy = tsBindings.caml_bigint_256_deep_copy

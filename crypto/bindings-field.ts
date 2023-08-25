@@ -87,6 +87,7 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
     random(): Field {
       return [Field.random()];
     },
+    // TODO
     rng(i: number): Field {
       console.warn('rng is not implemented');
       return [Field.random()];

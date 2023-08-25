@@ -3,6 +3,7 @@ export { Bigint256, toMlStringAscii, fromMlString, MlBytes };
 type Bigint256 = [bigint];
 
 const Bigint256 = {
+  // TODO
   caml_bigint_256_of_numeral(s: MlBytes, i: number, j: number): Bigint256 {
     throw Error('caml_bigint_256_of_numeral not implemented');
   },
