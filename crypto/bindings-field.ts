@@ -7,93 +7,93 @@ import {
 } from './bindings-bigint256.js';
 import { MlOption, MlBool } from '../../lib/ml/base.js';
 
-type Field = Bigint256;
+type Field = [bigint];
 
 export { FpBindings as Fp, FqBindings as Fq };
 
 const FpBindings = createFieldBindings(Fp, 'caml_pasta_fp');
 const FqBindings = createFieldBindings(Fq, 'caml_pasta_fq');
 
-function createFieldBindings(Field: FiniteField, fp: string) {
-  return {
-    [`${fp}_add`]([x]: Field, [y]: Field): Field {
+function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
+  let FieldBindings = {
+    add([x]: Field, [y]: Field): Field {
       return [Field.add(x, y)];
     },
-    [`${fp}_negate`]([x]: Field): Field {
+    negate([x]: Field): Field {
       return [Field.negate(x)];
     },
-    [`${fp}_sub`]([x]: Field, [y]: Field): Field {
+    sub([x]: Field, [y]: Field): Field {
       return [Field.sub(x, y)];
     },
-    [`${fp}_mul`]([x]: Field, [y]: Field): Field {
+    mul([x]: Field, [y]: Field): Field {
       return [Field.mul(x, y)];
     },
-    [`${fp}_inv`]([x]: Field): MlOption<Field> {
+    inv([x]: Field): MlOption<Field> {
       return toMlOption(Field.inverse(x));
     },
-    [`${fp}_div`]([x]: Field, [y]: Field): Field {
+    div([x]: Field, [y]: Field): Field {
       let z = Field.div(x, y);
       if (z === undefined) throw Error('division by zero');
       return [z];
     },
-    [`${fp}_square`]([x]: Field): Field {
+    square([x]: Field): Field {
       return [Field.square(x)];
     },
-    [`${fp}_is_square`]([x]: Field): MlBool {
+    is_square([x]: Field): MlBool {
       return MlBool(Field.isSquare(x));
     },
-    [`${fp}_sqrt`]([x]: Field): MlOption<Field> {
+    sqrt([x]: Field): MlOption<Field> {
       return toMlOption(Field.sqrt(x));
     },
-    [`${fp}_equal`]([x]: Field, [y]: Field): MlBool {
+    equal([x]: Field, [y]: Field): MlBool {
       return MlBool(Field.equal(x, y));
     },
-    [`${fp}_compare`](x: Field, y: Field): 1 | 0 | -1 {
+    compare(x: Field, y: Field): 1 | 0 | -1 {
       return Bigint256.caml_bigint_256_compare(x, y);
     },
-    [`${fp}_random`](): Field {
+    random(): Field {
       return [Field.random()];
     },
-    [`${fp}_of_int`](x: number): Field {
+    of_int(x: number): Field {
       return [Field.fromNumber(x)];
     },
-    [`${fp}_of_bigint`](x: Bigint256): Field {
+    of_bigint(x: Bigint256): Field {
       return x;
     },
-    [`${fp}_to_bigint`](x: Field): Bigint256 {
+    to_bigint(x: Field): Bigint256 {
       return x;
     },
-    [`${fp}_to_string`]([x]: Field): MlBytes {
+    to_string([x]: Field): MlBytes {
       return toMlStringAscii(x.toString());
     },
-    [`${fp}_of_string`](s: MlBytes): Field {
+    of_string(s: MlBytes): Field {
       return [Field.fromBigint(BigInt(fromMlString(s)))];
     },
-    [`${fp}_size`](): Bigint256 {
+    size(): Bigint256 {
       return [Field.modulus];
     },
-    [`${fp}_size_in_bits`](): number {
+    size_in_bits(): number {
       return Field.sizeInBits;
     },
-    [`${fp}_copy`](x: Field, [y]: Field): void {
+    copy(x: Field, [y]: Field): void {
       x[0] = y;
     },
-    [`${fp}_print`](x: Field): void {
+    print(x: Field): void {
       console.log(x[0].toString());
     },
-    [`${fp}_mut_add`](x: Field, [y]: Field): void {
+    mut_add(x: Field, [y]: Field): void {
       x[0] = Field.add(x[0], y);
     },
-    [`${fp}_mut_sub`](x: Field, [y]: Field): void {
+    mut_sub(x: Field, [y]: Field): void {
       x[0] = Field.sub(x[0], y);
     },
-    [`${fp}_mut_mul`](x: Field, [y]: Field): void {
+    mut_mul(x: Field, [y]: Field): void {
       x[0] = Field.mul(x[0], y);
     },
-    [`${fp}_mut_square`](x: Field): void {
+    mut_square(x: Field): void {
       x[0] = Field.square(x[0]);
     },
-    [`${fp}_domain_generator`](i: number): Field {
+    domain_generator(i: number): Field {
       // this takes an integer i and returns a 2^ith root of unity, i.e. a number `w` with
       // w^(2^i) = 1, w^(2^(i-1)) = -1
       // computed by taking the 2^32th root and squaring 32-i times
@@ -108,6 +108,14 @@ function createFieldBindings(Field: FiniteField, fp: string) {
       }
       return [generator];
     },
+  };
+  type FieldBindings = typeof FieldBindings;
+  return Object.fromEntries(
+    Object.entries(FieldBindings).map(([k, v]) => {
+      return [`${fp}_${k}`, v];
+    })
+  ) as {
+    [k in keyof FieldBindings as `${fp}_${k}`]: FieldBindings[k];
   };
 }
 
