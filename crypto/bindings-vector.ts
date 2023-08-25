@@ -8,8 +8,8 @@ export { FpVectorBindings, FqVectorBindings };
 
 type FieldVector = MlArray<Field>;
 
-const FpVectorBindings = createFieldVector('caml_pasta_fp_vector');
-const FqVectorBindings = createFieldVector('caml_pasta_fq_vector');
+const FpVectorBindings = createFieldVector('caml_fp_vector');
+const FqVectorBindings = createFieldVector('caml_fq_vector');
 
 function createFieldVector<vector extends string>(vector: vector) {
   let FieldVectorBindings = {
