@@ -7,20 +7,28 @@ import { Field } from './bindings-field.js';
 import type {
   WasmFpDomain,
   WasmFpGate,
+  WasmFpOracles,
   WasmFpPlonkVerificationEvals,
   WasmFpPlonkVerifierIndex,
   WasmFpPolyComm,
+  WasmFpProverProof,
+  WasmFpRandomOracles,
   WasmFpShifts,
   WasmFpSrs,
   WasmFqDomain,
   WasmFqGate,
+  WasmFqOracles,
   WasmFqPlonkVerificationEvals,
   WasmFqPlonkVerifierIndex,
   WasmFqPolyComm,
+  WasmFqProverProof,
+  WasmFqRandomOracles,
   WasmFqShifts,
   WasmFqSrs,
   WasmGPallas,
   WasmGVesta,
+  WasmVecVecFp,
+  WasmVecVecFq,
 } from '../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import { bigIntToBytes, bytesToBigInt } from './bigint-helpers.js';
@@ -72,6 +80,29 @@ type VerifierIndex = [
   lookup_index: MlOption<Lookup<PolyComm>>
 ];
 
+type ScalarChallenge = [_: 0, inner: Field];
+type RandomOracles = [
+  _: 0,
+  joint_combiner: MlOption<[0, ScalarChallenge, Field]>,
+  beta: Field,
+  gamma: Field,
+  alpha_chal: ScalarChallenge,
+  alpha: Field,
+  zeta: Field,
+  v: Field,
+  u: Field,
+  zeta_chal: ScalarChallenge,
+  v_chal: ScalarChallenge,
+  u_chal: ScalarChallenge
+];
+type Oracles = [
+  _: 0,
+  o: RandomOracles,
+  p_eval: [0, Field, Field],
+  opening_prechallenges: MlArray<Field>,
+  digest_before_evaluations: Field
+];
+
 // wasm types
 
 type wasm = typeof wasmNamespace;
@@ -85,6 +116,10 @@ type WasmVerificationEvals =
   | WasmFqPlonkVerificationEvals;
 type WasmShifts = WasmFpShifts | WasmFqShifts;
 type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
+type WasmRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
+type WasmOracles = WasmFpOracles | WasmFqOracles;
+type WasmVecVec = WasmVecVecFp | WasmVecVecFq;
+type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 
 // wasm class types
 
@@ -101,6 +136,10 @@ type WasmClasses = {
   VerifierIndex:
     | typeof WasmFpPlonkVerifierIndex
     | typeof WasmFqPlonkVerifierIndex;
+  RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
+  Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
+  VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
+  ProverProof: typeof WasmFpProverProof | typeof WasmFqProverProof;
 };
 
 // TODO: Hardcoding this is a little brittle
@@ -138,7 +177,7 @@ function createRustConversion(wasm: wasm) {
       },
       pointFromRust: affineFromRust,
 
-      pointsToRust([, ...points]: MlArray<OrInfinity>) {
+      pointsToRust([, ...points]: MlArray<OrInfinity>): Uint32Array {
         return mapToUint32Array(points, (point) => {
           let rustValue = self.pointToRust(point);
           // Don't free when GC runs; rust will free on its end.
@@ -146,7 +185,7 @@ function createRustConversion(wasm: wasm) {
           return unwrap(rustValue);
         });
       },
-      pointsFromRust(points: Uint32Array) {
+      pointsFromRust(points: Uint32Array): MlArray<OrInfinity> {
         let arr = mapFromUintArray(points, (ptr) => {
           return affineFromRust(wrap(ptr, CommitmentCurve));
         });
@@ -290,6 +329,10 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
     Shifts: wasm.WasmFpShifts,
     VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+    RandomOracles: wasm.WasmFpRandomOracles,
+    Oracles: wasm.WasmFpOracles,
+    VecVec: wasm.WasmVecVecFp,
+    ProverProof: wasm.WasmFpProverProof,
   });
   const fq = perField({
     CommitmentCurve: wasm.WasmGPallas,
@@ -300,6 +343,10 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
     Shifts: wasm.WasmFqShifts,
     VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+    RandomOracles: wasm.WasmFqRandomOracles,
+    Oracles: wasm.WasmFqOracles,
+    VecVec: wasm.WasmVecVecFq,
+    ProverProof: wasm.WasmFqProverProof,
   });
 
   return {
@@ -338,11 +385,11 @@ function fieldsToRustFlat([, ...fields]: MlArray<Field>): Uint8Array {
 }
 
 function fieldsFromRustFlat(fieldBytes: Uint8Array): MlArray<Field> {
-  var n = fieldBytes.length / fieldSizeBytes;
+  let n = fieldBytes.length / fieldSizeBytes;
   if (!Number.isInteger(n)) {
     throw Error('fieldsFromRustFlat: invalid bytes');
   }
-  var fields: Field[] = Array(n);
+  let fields: Field[] = Array(n);
   for (let i = 0, offset = 0; i < n; i++, offset += fieldSizeBytes) {
     let fieldView = new Uint8Array(fieldBytes.buffer, offset, fieldSizeBytes);
     fields[i] = fieldFromRust(fieldView);
@@ -368,7 +415,7 @@ function affineToRust<A extends WasmAffine>(
   pt: OrInfinity,
   makeAffine: () => A
 ) {
-  var res = makeAffine();
+  let res = makeAffine();
   if (pt === 0) {
     res.infinity = true;
   } else {
