@@ -58,42 +58,6 @@ var caml_option_to_maybe_undefined = function (x) {
     }
 };
 
-// Provides: caml_u8array_vector_to_rust_flat_vector
-var caml_u8array_vector_to_rust_flat_vector = function (v) {
-    var i = 1; // The first entry is the OCaml tag for arrays
-    var len = v.length - i;
-    if (len === 0) {
-        return new joo_global_object.Uint8Array(0);
-    }
-    var inner_len = v[i].length;
-    var res = new joo_global_object.Uint8Array(len * inner_len);
-    for (var pos = 0; i <= len; i++) {
-        for (var j = 0; j < inner_len; j++, pos++) {
-            res[pos] = v[i][j];
-        }
-    }
-    return res;
-};
-
-// Provides: caml_u8array_vector_of_rust_flat_vector
-var caml_u8array_vector_of_rust_flat_vector = function (v, inner_len) {
-    var len = v.length;
-    var output_len = len / inner_len;
-    var res = new Array(output_len + 1)
-    res[0] = 0 // OCaml tag before array contents, so that we can use this with arrays or vectors
-    for (var i = 1, pos = 0; i <= output_len; i++) {
-        var inner_res = new joo_global_object.Uint8Array(inner_len);
-        for (var j = 0; j < inner_len; j++, pos++) {
-            inner_res[j] = v[pos];
-        }
-        res[i] = inner_res;
-    }
-    return res;
-};
-
-
-
-
 
 // Provides: js_class_vector_to_rust_vector
 var js_class_vector_to_rust_vector = function (v) {
@@ -324,9 +288,9 @@ var caml_fp_srs_commit_evaluations = function (t, domain_size, fps) {
 };
 
 // Provides: caml_fp_srs_b_poly_commitment
-// Requires: plonk_wasm, caml_vesta_poly_comm_of_rust, caml_u8array_vector_to_rust_flat_vector
+// Requires: plonk_wasm, caml_vesta_poly_comm_of_rust, tsRustConversion
 var caml_fp_srs_b_poly_commitment = function (srs, chals) {
-    var res = plonk_wasm.caml_fp_srs_b_poly_commitment(srs, caml_u8array_vector_to_rust_flat_vector(chals));
+    var res = plonk_wasm.caml_fp_srs_b_poly_commitment(srs, tsRustConversion.fieldsToRustFlat(chals));
     return caml_vesta_poly_comm_of_rust(res);
 };
 
@@ -405,9 +369,9 @@ var caml_fq_srs_commit_evaluations = function (t, domain_size, fqs) {
 };
 
 // Provides: caml_fq_srs_b_poly_commitment
-// Requires: plonk_wasm, caml_pallas_poly_comm_of_rust, caml_u8array_vector_to_rust_flat_vector
+// Requires: plonk_wasm, caml_pallas_poly_comm_of_rust, tsRustConversion
 var caml_fq_srs_b_poly_commitment = function (srs, chals) {
-    var res = plonk_wasm.caml_fq_srs_b_poly_commitment(srs, caml_u8array_vector_to_rust_flat_vector(chals));
+    var res = plonk_wasm.caml_fq_srs_b_poly_commitment(srs, tsRustConversion.fieldsToRustFlat(chals));
     return caml_pallas_poly_comm_of_rust(res);
 };
 
@@ -1393,7 +1357,7 @@ var caml_pasta_fq_plonk_proof_deep_copy = function (proof) {
 
 
 // Provides: caml_random_oracles_of_rust
-// Requires: caml_u8array_vector_of_rust_flat_vector, caml_option_of_maybe_undefined
+// Requires: caml_option_of_maybe_undefined
 var caml_random_oracles_of_rust = function (x) {
     var joint_combiner_chal = x.joint_combiner_chal;
     var joint_combiner = x.joint_combiner;
@@ -1416,7 +1380,7 @@ var caml_random_oracles_of_rust = function (x) {
 };
 
 // Provides: caml_random_oracles_to_rust
-// Requires: caml_u8array_vector_to_rust_flat_vector, caml_option_to_maybe_undefined
+// Requires: caml_option_to_maybe_undefined
 var caml_random_oracles_to_rust = function (x, roKlass) {
     // var caml_vector = [0, x[1], x[2], x[3][1], x[4], x[5], x[6], x[7], x[8][1], x[9][1], x[10][1]];
     var joint_combiner_ocaml = caml_option_to_maybe_undefined(x[1]);
@@ -1442,19 +1406,19 @@ var caml_random_oracles_to_rust = function (x, roKlass) {
 };
 
 // Provides: caml_oracles_of_rust
-// Requires: caml_u8array_vector_of_rust_flat_vector, caml_random_oracles_of_rust
+// Requires: tsRustConversion, caml_random_oracles_of_rust
 var caml_oracles_of_rust = function (x) {
-    return [0, caml_random_oracles_of_rust(x.o), [0, x.p_eval0, x.p_eval1], caml_u8array_vector_of_rust_flat_vector(x.opening_prechallenges, 32 /* TODO: Don't hardcode */), x.digest_before_evaluations];
+    return [0, caml_random_oracles_of_rust(x.o), [0, x.p_eval0, x.p_eval1], tsRustConversion.fieldsFromRustFlat(x.opening_prechallenges), x.digest_before_evaluations];
 };
 
 // Provides: caml_oracles_to_rust
-// Requires: caml_u8array_vector_to_rust_flat_vector, caml_random_oracles_to_rust
+// Requires: tsRustConversion, caml_random_oracles_to_rust
 var caml_oracles_to_rust = function (x, klass, roKlass) {
     return new klass(
         caml_random_oracles_to_rust(x[1], roKlass),
         x[2][1],
         x[2][2],
-        caml_u8array_vector_to_rust_flat_vector(x[3]),
+        tsRustConversion.fieldsToRustFlat(x[3]),
         x[4]
     );
 };

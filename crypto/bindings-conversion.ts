@@ -54,6 +54,8 @@ function createRustConversion(wasm: wasm) {
 
   return {
     wireToRust,
+    fieldsToRustFlat,
+    fieldsFromRustFlat,
     fp: fpConversion,
     fq: fqConversion,
     gateFromRust(wasmGate: WasmFpGate | WasmFqGate) {
