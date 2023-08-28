@@ -5,7 +5,7 @@
     "rootDir": "./src",
     "outDir": "dist",
     "baseUrl": ".", // affects where output files end up
-    "target": "es2020", // goal: ship *the most modern syntax* that is supported by *all* browsers that support our Wasm
+    "target": "es2021", // goal: ship *the most modern syntax* that is supported by *all* browsers that support our Wasm
     "module": "es2022", // allow top-level await
     "moduleResolution": "nodenext", // comply with node + "type": "module"
     "esModuleInterop": true, // to silence jest
