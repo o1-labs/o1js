@@ -118,20 +118,26 @@ function createRustConversion(wasm: wasm) {
     Gate,
     PolyComm,
     Domain,
+    VerificationEvals,
+    Shifts,
+    VerifierIndex,
   }: WasmClasses) {
     let self = {
       vectorToRust: fieldsToRustFlat,
       vectorFromRust: fieldsFromRustFlat,
+
       gateToRust(gate: Gate) {
         let [, typ, [, ...wires], coeffs] = gate;
         let rustWires = new wasm.WasmGateWires(...mapTuple(wires, wireToRust));
         let rustCoeffs = fieldsToRustFlat(coeffs);
         return new Gate(typ, rustWires, rustCoeffs);
       },
+
       pointToRust(point: OrInfinity) {
         return affineToRust(point, makeAffine);
       },
       pointFromRust: affineFromRust,
+
       pointsToRust([, ...points]: MlArray<OrInfinity>) {
         return mapToUint32Array(points, (point) => {
           let rustValue = self.pointToRust(point);
@@ -146,6 +152,7 @@ function createRustConversion(wasm: wasm) {
         });
         return [0, ...arr];
       },
+
       polyCommToRust(polyComm: PolyComm): WasmPolyComm {
         let [, camlUnshifted, camlShifted] = polyComm;
         let rustShifted =
@@ -165,6 +172,7 @@ function createRustConversion(wasm: wasm) {
         });
         return [0, [0, ...mlUnshifted], mlShifted];
       },
+
       polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
         return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
       },
@@ -174,20 +182,40 @@ function createRustConversion(wasm: wasm) {
         );
         return [0, ...comms];
       },
-      domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
-        return new Domain(logSizeOfGroup, fieldToRust(groupGen));
-      },
-      domainFromRust(domain: WasmDomain): Domain {
-        let logSizeOfGroup = domain.log_size_of_group;
-        let groupGen = fieldFromRust(domain.group_gen);
-        domain.free();
-        return [0, logSizeOfGroup, groupGen];
-      },
+
       verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
-        throw 'todo';
+        let domain = domainToRust(vk[1]);
+        let maxPolySize = vk[2];
+        let nPublic = vk[3];
+        let prevChallenges = vk[4];
+        let srs = vk[5];
+        let evals = verificationEvalsToRust(vk[6]);
+        let shifts = shiftsToRust(vk[7]);
+        return new VerifierIndex(
+          domain,
+          maxPolySize,
+          nPublic,
+          prevChallenges,
+          srs,
+          evals,
+          shifts
+        );
       },
       verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
-        throw 'todo';
+        let lookupIndex = 0 as 0; // None
+        let mlVk: VerifierIndex = [
+          0,
+          domainFromRust(vk.domain),
+          vk.max_poly_size,
+          vk.public_,
+          vk.prev_challenges,
+          vk.srs,
+          verificationEvalsFromRust(vk.evals),
+          shiftsFromRust(vk.shifts),
+          lookupIndex,
+        ];
+        vk.free();
+        return mlVk;
       },
     };
 
@@ -204,27 +232,55 @@ function createRustConversion(wasm: wasm) {
     function verificationEvalsToRust(
       evals: VerificationEvals
     ): WasmVerificationEvals {
-      throw 'todo';
+      let sigmaComm = self.polyCommsToRust(evals[1]);
+      let coefficientsComm = self.polyCommsToRust(evals[2]);
+      let genericComm = self.polyCommToRust(evals[3]);
+      let psmComm = self.polyCommToRust(evals[4]);
+      let completeAddComm = self.polyCommToRust(evals[5]);
+      let mulComm = self.polyCommToRust(evals[6]);
+      let emulComm = self.polyCommToRust(evals[7]);
+      let endomulScalarComm = self.polyCommToRust(evals[8]);
+      return new VerificationEvals(
+        sigmaComm,
+        coefficientsComm,
+        genericComm,
+        psmComm,
+        completeAddComm,
+        mulComm,
+        emulComm,
+        endomulScalarComm
+      );
     }
     function verificationEvalsFromRust(
       evals: WasmVerificationEvals
     ): VerificationEvals {
-      throw 'todo';
+      let mlEvals: VerificationEvals = [
+        0,
+        self.polyCommsFromRust(evals.sigma_comm),
+        self.polyCommsFromRust(evals.coefficients_comm),
+        self.polyCommFromRust(evals.generic_comm),
+        self.polyCommFromRust(evals.psm_comm),
+        self.polyCommFromRust(evals.complete_add_comm),
+        self.polyCommFromRust(evals.mul_comm),
+        self.polyCommFromRust(evals.emul_comm),
+        self.polyCommFromRust(evals.endomul_scalar_comm),
+      ];
+      evals.free();
+      return mlEvals;
     }
 
-    function shiftsToRust(shifts: MlArray<Field>): WasmShifts {
-      throw 'todo';
+    function shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
+      let s = shifts.map(fieldToRust);
+      return new Shifts(s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
     }
-    function shiftsFromRust(shifts: WasmShifts): MlArray<Field> {
-      throw 'todo';
+    function shiftsFromRust(s: WasmShifts): MlArray<Field> {
+      let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
+      s.free();
+      return [0, ...shifts.map(fieldFromRust)];
     }
 
     return self;
   }
-
-  // TODO: we have to lie about types here:
-  // -) the WasmGVesta class doesn't declare __wrap() but our code assumes it
-  // -) WasmGVesta doesn't declare the `ptr` property but our code assumes it
 
   const fp = perField({
     CommitmentCurve: wasm.WasmGVesta,
