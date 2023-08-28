@@ -88,11 +88,9 @@ type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
 
 // wasm class types
 
-type WasmPolyCommClass = typeof WasmFpPolyComm | typeof WasmFqPolyComm;
-
 type WasmClasses = {
-  CommitmentCurve: WrapperClass<WasmGVesta> | WrapperClass<WasmGPallas>;
-  makeCurve: MakeAffine<WasmAffine>;
+  CommitmentCurve: typeof WasmGVesta | typeof WasmGPallas;
+  makeAffine: () => WasmAffine;
   Gate: typeof WasmFpGate | typeof WasmFqGate;
   PolyComm: typeof WasmFpPolyComm | typeof WasmFqPolyComm;
   Domain: typeof WasmFpDomain | typeof WasmFqDomain;
@@ -116,15 +114,91 @@ function createRustConversion(wasm: wasm) {
 
   function perField({
     CommitmentCurve,
-    makeCurve,
+    makeAffine,
     Gate,
     PolyComm,
+    Domain,
   }: WasmClasses) {
-    function domainToRust(domain: Domain): WasmDomain {
-      throw 'todo';
+    let self = {
+      vectorToRust: fieldsToRustFlat,
+      vectorFromRust: fieldsFromRustFlat,
+      gateToRust(gate: Gate) {
+        let [, typ, [, ...wires], coeffs] = gate;
+        let rustWires = new wasm.WasmGateWires(...mapTuple(wires, wireToRust));
+        let rustCoeffs = fieldsToRustFlat(coeffs);
+        return new Gate(typ, rustWires, rustCoeffs);
+      },
+      pointToRust(point: OrInfinity) {
+        return affineToRust(point, makeAffine);
+      },
+      pointFromRust: affineFromRust,
+      pointsToRust([, ...points]: MlArray<OrInfinity>) {
+        return mapToUint32Array(points, (point) => {
+          let rustValue = self.pointToRust(point);
+          // Don't free when GC runs; rust will free on its end.
+          registry.unregister(rustValue);
+          return unwrap(rustValue);
+        });
+      },
+      pointsFromRust(points: Uint32Array) {
+        let arr = mapFromUintArray(points, (ptr) => {
+          return affineFromRust(wrap(ptr, CommitmentCurve));
+        });
+        return [0, ...arr];
+      },
+      polyCommToRust(polyComm: PolyComm): WasmPolyComm {
+        let [, camlUnshifted, camlShifted] = polyComm;
+        let rustShifted =
+          camlShifted === 0
+            ? undefined
+            : affineToRust(camlShifted[1], makeAffine);
+        let rustUnshifted = self.pointsToRust(camlUnshifted);
+        return new PolyComm(rustUnshifted, rustShifted);
+      },
+      polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
+        let rustShifted = polyComm.shifted;
+        let rustUnshifted = polyComm.unshifted;
+        let mlShifted: MlOption<OrInfinity> =
+          rustShifted === undefined ? 0 : [0, affineFromRust(rustShifted)];
+        let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
+          return affineFromRust(wrap(ptr, CommitmentCurve));
+        });
+        return [0, [0, ...mlUnshifted], mlShifted];
+      },
+      polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
+        return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
+      },
+      polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
+        let comms = mapFromUintArray(rustComms, (ptr) =>
+          self.polyCommFromRust(wrap(ptr, PolyComm))
+        );
+        return [0, ...comms];
+      },
+      domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
+        return new Domain(logSizeOfGroup, fieldToRust(groupGen));
+      },
+      domainFromRust(domain: WasmDomain): Domain {
+        let logSizeOfGroup = domain.log_size_of_group;
+        let groupGen = fieldFromRust(domain.group_gen);
+        domain.free();
+        return [0, logSizeOfGroup, groupGen];
+      },
+      verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
+        throw 'todo';
+      },
+      verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
+        throw 'todo';
+      },
+    };
+
+    function domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
+      return new Domain(logSizeOfGroup, fieldToRust(groupGen));
     }
     function domainFromRust(domain: WasmDomain): Domain {
-      throw 'todo';
+      let logSizeOfGroup = domain.log_size_of_group;
+      let groupGen = fieldFromRust(domain.group_gen);
+      domain.free();
+      return [0, logSizeOfGroup, groupGen];
     }
 
     function verificationEvalsToRust(
@@ -145,45 +219,7 @@ function createRustConversion(wasm: wasm) {
       throw 'todo';
     }
 
-    return {
-      vectorToRust: fieldsToRustFlat,
-      vectorFromRust: fieldsFromRustFlat,
-      gateToRust(gate: Gate) {
-        let [, typ, [, ...wires], coeffs] = gate;
-        let rustWires = new wasm.WasmGateWires(...mapTuple(wires, wireToRust));
-        let rustCoeffs = fieldsToRustFlat(coeffs);
-        return new Gate(typ, rustWires, rustCoeffs);
-      },
-      pointToRust(point: OrInfinity) {
-        return affineToRust(point, makeCurve);
-      },
-      pointFromRust(point: WasmAffine) {
-        return affineFromRust(point);
-      },
-      pointsToRust(points: MlArray<OrInfinity>) {
-        return mlArrayToRustVector(points, affineToRust, makeCurve);
-      },
-      pointsFromRust(points: Uint32Array) {
-        return mlArrayFromRustVector(
-          points,
-          CommitmentCurve,
-          affineFromRust,
-          false
-        );
-      },
-      polyCommToRust(polyComm: PolyComm): WasmPolyComm {
-        return polyCommToRust(polyComm, PolyComm, makeCurve);
-      },
-      polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
-        return polyCommFromRust(polyComm, CommitmentCurve, false);
-      },
-      verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
-        throw 'todo';
-      },
-      verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
-        throw 'todo';
-      },
-    };
+    return self;
   }
 
   // TODO: we have to lie about types here:
@@ -191,8 +227,8 @@ function createRustConversion(wasm: wasm) {
   // -) WasmGVesta doesn't declare the `ptr` property but our code assumes it
 
   const fp = perField({
-    CommitmentCurve: wasm.WasmGVesta as any as WrapperClass<WasmGVesta>,
-    makeCurve: wasm.caml_vesta_affine_one as MakeAffine<WasmGVesta>,
+    CommitmentCurve: wasm.WasmGVesta,
+    makeAffine: wasm.caml_vesta_affine_one,
     Gate: wasm.WasmFpGate,
     PolyComm: wasm.WasmFpPolyComm,
     Domain: wasm.WasmFpDomain,
@@ -201,8 +237,8 @@ function createRustConversion(wasm: wasm) {
     VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
   });
   const fq = perField({
-    CommitmentCurve: wasm.WasmGPallas as any as WrapperClass<WasmGPallas>,
-    makeCurve: wasm.caml_pallas_affine_one as MakeAffine<WasmGPallas>,
+    CommitmentCurve: wasm.WasmGPallas,
+    makeAffine: wasm.caml_pallas_affine_one,
     Gate: wasm.WasmFqGate,
     PolyComm: wasm.WasmFqPolyComm,
     Domain: wasm.WasmFqDomain,
@@ -261,8 +297,6 @@ function fieldsFromRustFlat(fieldBytes: Uint8Array): MlArray<Field> {
 
 // affine
 
-type MakeAffine<A extends WasmAffine> = () => A & { ptr: number };
-
 function affineFromRust(pt: WasmAffine): OrInfinity {
   if (pt.infinity) {
     pt.free();
@@ -277,9 +311,9 @@ function affineFromRust(pt: WasmAffine): OrInfinity {
 
 function affineToRust<A extends WasmAffine>(
   pt: OrInfinity,
-  klass: MakeAffine<A>
+  makeAffine: () => A
 ) {
-  var res = klass();
+  var res = makeAffine();
   if (pt === 0) {
     res.infinity = true;
   } else {
@@ -289,85 +323,45 @@ function affineToRust<A extends WasmAffine>(
   return res;
 }
 
-// polycomm
-
-function polyCommFromRust(
-  polyComm: WasmPolyComm,
-  klass: WrapperClass<WasmAffine>,
-  shouldFree: boolean
-): PolyComm {
-  let rustShifted = polyComm.shifted;
-  let rustUnshifted = polyComm.unshifted;
-  let mlShifted: MlOption<OrInfinity> =
-    rustShifted === undefined ? 0 : [0, affineFromRust(rustShifted)];
-  let mlUnshifted = mlArrayFromRustVector(
-    rustUnshifted,
-    klass,
-    affineFromRust,
-    shouldFree
-  );
-  return [0, mlUnshifted, mlShifted];
-}
-
-function polyCommToRust(
-  [, camlUnshifted, camlShifted]: PolyComm,
-  PolyComm: WasmPolyCommClass,
-  makeAffine: MakeAffine<WasmAffine>
-): WasmPolyComm {
-  let rustShifted =
-    camlShifted === 0 ? undefined : affineToRust(camlShifted[1], makeAffine);
-  let rustUnshifted = mlArrayToRustVector(
-    camlUnshifted,
-    affineToRust,
-    makeAffine
-  );
-  return new PolyComm(rustUnshifted, rustShifted);
-}
-
 // generic rust helpers
 
 type Freeable = { free(): void };
-type WrappedPointer = Freeable & { ptr: number };
-type WrapperClass<T extends Freeable> = {
-  __wrap(i: number): T;
-};
+type Constructor<T> = new (...args: any[]) => T;
 
-const registry = new FinalizationRegistry((ptr: WrappedPointer) => {
+function wrap<T>(ptr: number, Class: Constructor<T>): T {
+  const obj = Object.create(Class.prototype);
+  obj.ptr = ptr;
+  return obj;
+}
+function unwrap<T extends {}>(obj: T): number {
+  // Beware: caller may need to do finalizer things to avoid these
+  // pointers disappearing out from under us.
+  let ptr = (obj as any).ptr;
+  if (ptr === undefined) throw Error('unwrap: missing ptr');
+  return ptr;
+}
+
+const registry = new FinalizationRegistry((ptr: Freeable) => {
   ptr.free();
 });
 
-function mlArrayFromRustVector<TRust extends Freeable, TMl>(
-  rustVector: Uint32Array,
-  klass: WrapperClass<TRust>,
-  convert: (c: TRust) => TMl,
-  shouldFree: boolean
-): MlArray<TMl> {
-  var n = rustVector.length;
-  var array: TMl[] = new Array(n);
+function mapFromUintArray<T>(
+  array: Uint32Array | Uint8Array,
+  map: (i: number) => T
+) {
+  let n = array.length;
+  let result: T[] = Array(n);
   for (let i = 0; i < n; i++) {
-    var rustValue = klass.__wrap(rustVector[i]);
-    array[i] = convert(rustValue);
-    if (shouldFree) rustValue.free();
+    result[i] = map(array[i]);
   }
-  return [0, ...array];
+  return result;
 }
 
-// TODO get rid of excessive indirection here
-
-function mlArrayToRustVector<TRust extends WrappedPointer, TMl>(
-  [, ...array]: MlArray<TMl>,
-  convert: (c: TMl, makeNew: () => TRust) => TRust,
-  makeNew: () => TRust
-): Uint32Array {
+function mapToUint32Array<T>(array: T[], map: (t: T) => number) {
   let n = array.length;
-  let rustVector = new Uint32Array(n);
-  for (var i = 0, l = array.length; i < l; i++) {
-    var rustValue = convert(array[i], makeNew);
-    // Beware: caller may need to do finalizer things to avoid these
-    // pointers disappearing out from under us.
-    rustVector[i] = rustValue.ptr;
-    // Don't free when GC runs; rust will free on its end.
-    registry.unregister(rustValue);
+  let result = new Uint32Array(n);
+  for (let i = 0; i < n; i++) {
+    result[i] = map(array[i]);
   }
-  return rustVector;
+  return result;
 }
