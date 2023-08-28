@@ -24,7 +24,7 @@ Protocol.
 
 2. For the avoidance of doubt, excluding o1js-bindings, o1js (as 
 implemented in the repository located at https://github.com/o1-labs/o1js), 
-continues to be licensed under Apache 2.0 as shown in the applicable Github 
+continues to be licensed under Apache 2.0 as shown in the applicable GitHub 
 repositories. Any use of this o1js-bindings repository, without 
 modification, as a transitive dependency or derivative of the use of o1js, 
 is permitted. Modification of the software in this repository is not permitted 
