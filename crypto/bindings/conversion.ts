@@ -4,11 +4,26 @@
 import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
 import { mapTuple } from './util.js';
 import type {
+  WasmFpDomain,
   WasmFpGate,
+  WasmFpPlonkVerificationEvals,
+  WasmFpPlonkVerifierIndex,
+  WasmFpPolyComm,
+  WasmFpShifts,
+  WasmFpSrs,
+  WasmFqDomain,
   WasmFqGate,
+  WasmFqPlonkVerificationEvals,
+  WasmFqPlonkVerifierIndex,
+  WasmFqPolyComm,
+  WasmFqShifts,
+  WasmFqSrs,
+  WasmGPallas,
+  WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { bigIntToBytes, bytesToBigInt } from '../bigint-helpers.js';
+import { Lookup } from './lookup.js';
 
 export { createRustConversion };
 
@@ -18,6 +33,7 @@ type Field = Uint8Array;
 type OrInfinity = MlOption<MlTuple<Field, Field>>;
 
 // ml types from kimchi_types.ml
+
 type GateType = number;
 type Wire = [_: 0, row: number, col: number];
 type Gate = [
@@ -33,7 +49,64 @@ type PolyComm = [
   shifted: MlOption<OrInfinity>
 ];
 
+type Domain = [_: 0, log_size_of_group: number, group_gen: Field];
+
+type VerificationEvals = [
+  _: 0,
+  sigma_comm: MlArray<PolyComm>,
+  coefficients_comm: MlArray<PolyComm>,
+  generic_comm: PolyComm,
+  psm_comm: PolyComm,
+  complete_add_comm: PolyComm,
+  mul_comm: PolyComm,
+  emul_comm: PolyComm,
+  endomul_scalar_comm: PolyComm
+];
+
+type VerifierIndex = [
+  _: 0,
+  domain: Domain,
+  max_poly_size: number,
+  public_: number,
+  prev_challenges: number,
+  srs: WasmSrs,
+  evals: VerificationEvals,
+  shifts: MlArray<Field>,
+  lookup_index: MlOption<Lookup<PolyComm>>
+];
+
+// wasm types
+
 type wasm = typeof wasmNamespace;
+
+type WasmAffine = WasmGVesta | WasmGPallas;
+type WasmPolyComm = WasmFpPolyComm | WasmFqPolyComm;
+type WasmSrs = WasmFpSrs | WasmFqSrs;
+type WasmDomain = WasmFpDomain | WasmFqDomain;
+type WasmVerificationEvals =
+  | WasmFpPlonkVerificationEvals
+  | WasmFqPlonkVerificationEvals;
+type WasmShifts = WasmFpShifts | WasmFqShifts;
+type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
+
+// wasm class types
+
+type WasmPolyCommClass = typeof WasmFpPolyComm | typeof WasmFqPolyComm;
+
+type WasmClasses = {
+  CommitmentCurve: WrapperClass<WasmGVesta> | WrapperClass<WasmGPallas>;
+  makeCurve: MakeAffine<WasmAffine>;
+  Gate: typeof WasmFpGate | typeof WasmFqGate;
+  PolyComm: typeof WasmFpPolyComm | typeof WasmFqPolyComm;
+  Domain: typeof WasmFpDomain | typeof WasmFqDomain;
+  VerificationEvals:
+    | typeof WasmFpPlonkVerificationEvals
+    | typeof WasmFqPlonkVerificationEvals;
+  Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
+  VerifierIndex:
+    | typeof WasmFpPlonkVerifierIndex
+    | typeof WasmFqPlonkVerifierIndex;
+};
 
 // TODO: Hardcoding this is a little brittle
 // TODO read from field
@@ -44,17 +117,37 @@ function createRustConversion(wasm: wasm) {
     return wasm.Wire.create(row, col);
   }
 
-  function perField<WasmGate extends typeof WasmFpGate | typeof WasmFqGate>({
-    WasmGate,
-    WasmPolyComm,
+  function perField({
     CommitmentCurve,
-    makeCommitmentCurve,
-  }: {
-    WasmGate: WasmGate;
-    WasmPolyComm: WasmPolyCommClass;
-    CommitmentCurve: WrapperClass<WasmAffine>;
-    makeCommitmentCurve: MakeAffine<WasmAffine>;
-  }) {
+    makeCurve,
+    Gate,
+    PolyComm,
+  }: WasmClasses) {
+    function domainToRust(domain: Domain): WasmDomain {
+      throw 'todo';
+    }
+    function domainFromRust(domain: WasmDomain): Domain {
+      throw 'todo';
+    }
+
+    function verificationEvalsToRust(
+      evals: VerificationEvals
+    ): WasmVerificationEvals {
+      throw 'todo';
+    }
+    function verificationEvalsFromRust(
+      evals: WasmVerificationEvals
+    ): VerificationEvals {
+      throw 'todo';
+    }
+
+    function shiftsToRust(shifts: MlArray<Field>): WasmShifts {
+      throw 'todo';
+    }
+    function shiftsFromRust(shifts: WasmShifts): MlArray<Field> {
+      throw 'todo';
+    }
+
     return {
       vectorToRust: fieldsToRustFlat,
       vectorFromRust: fieldsFromRustFlat,
@@ -62,16 +155,16 @@ function createRustConversion(wasm: wasm) {
         let [, typ, [, ...wires], coeffs] = gate;
         let rustWires = new wasm.WasmGateWires(...mapTuple(wires, wireToRust));
         let rustCoeffs = fieldsToRustFlat(coeffs);
-        return new WasmGate(typ, rustWires, rustCoeffs);
+        return new Gate(typ, rustWires, rustCoeffs);
       },
       pointToRust(point: OrInfinity) {
-        return affineToRust(point, makeCommitmentCurve);
+        return affineToRust(point, makeCurve);
       },
       pointFromRust(point: WasmAffine) {
         return affineFromRust(point);
       },
       pointsToRust(points: MlArray<OrInfinity>) {
-        return mlArrayToRustVector(points, affineToRust, makeCommitmentCurve);
+        return mlArrayToRustVector(points, affineToRust, makeCurve);
       },
       pointsFromRust(points: Uint32Array) {
         return mlArrayFromRustVector(
@@ -82,10 +175,16 @@ function createRustConversion(wasm: wasm) {
         );
       },
       polyCommToRust(polyComm: PolyComm): WasmPolyComm {
-        return polyCommToRust(polyComm, WasmPolyComm, makeCommitmentCurve);
+        return polyCommToRust(polyComm, PolyComm, makeCurve);
       },
       polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
         return polyCommFromRust(polyComm, CommitmentCurve, false);
+      },
+      verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
+        throw 'todo';
+      },
+      verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
+        throw 'todo';
       },
     };
   }
@@ -95,20 +194,24 @@ function createRustConversion(wasm: wasm) {
   // -) WasmGVesta doesn't declare the `ptr` property but our code assumes it
 
   const fp = perField({
-    WasmGate: wasm.WasmFpGate,
-    WasmPolyComm: wasm.WasmFpPolyComm,
-    CommitmentCurve:
-      wasm.WasmGVesta as any as WrapperClass<wasmNamespace.WasmGVesta>,
-    makeCommitmentCurve:
-      wasm.caml_vesta_affine_one as MakeAffine<wasmNamespace.WasmGVesta>,
+    CommitmentCurve: wasm.WasmGVesta as any as WrapperClass<WasmGVesta>,
+    makeCurve: wasm.caml_vesta_affine_one as MakeAffine<WasmGVesta>,
+    Gate: wasm.WasmFpGate,
+    PolyComm: wasm.WasmFpPolyComm,
+    Domain: wasm.WasmFpDomain,
+    VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
+    Shifts: wasm.WasmFpShifts,
+    VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
   });
   const fq = perField({
-    WasmGate: wasm.WasmFqGate,
-    WasmPolyComm: wasm.WasmFqPolyComm,
-    CommitmentCurve:
-      wasm.WasmGPallas as any as WrapperClass<wasmNamespace.WasmGPallas>,
-    makeCommitmentCurve:
-      wasm.caml_pallas_affine_one as MakeAffine<wasmNamespace.WasmGPallas>,
+    CommitmentCurve: wasm.WasmGPallas as any as WrapperClass<WasmGPallas>,
+    makeCurve: wasm.caml_pallas_affine_one as MakeAffine<WasmGPallas>,
+    Gate: wasm.WasmFqGate,
+    PolyComm: wasm.WasmFqPolyComm,
+    Domain: wasm.WasmFqDomain,
+    VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
+    Shifts: wasm.WasmFqShifts,
+    VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
   });
 
   return {
@@ -161,7 +264,6 @@ function fieldsFromRustFlat(fieldBytes: Uint8Array): MlArray<Field> {
 
 // affine
 
-type WasmAffine = wasmNamespace.WasmGVesta | wasmNamespace.WasmGPallas;
 type MakeAffine<A extends WasmAffine> = () => A & { ptr: number };
 
 function affineFromRust(pt: WasmAffine): OrInfinity {
@@ -191,9 +293,6 @@ function affineToRust<A extends WasmAffine>(
 }
 
 // polycomm
-
-type WasmPolyComm = wasmNamespace.WasmFpPolyComm | wasmNamespace.WasmFqPolyComm;
-type WasmPolyCommClass = wasm['WasmFpPolyComm'] | wasm['WasmFqPolyComm'];
 
 function polyCommFromRust(
   polyComm: WasmPolyComm,
