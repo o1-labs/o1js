@@ -5,7 +5,7 @@ let prefixes = {
   "event": "MinaZkappEvent******",
   "events": "MinaZkappEvents*****",
   "sequenceEvents": "MinaZkappSeqEvents**",
-  "body": "MinaZkappBody*******",
+  "body": "TestnetZkappBody****",
   "accountUpdateCons": "MinaAcctUpdateCons**",
   "accountUpdateNode": "MinaAcctUpdateNode**",
   "zkappMemo": "MinaZkappMemo*******",

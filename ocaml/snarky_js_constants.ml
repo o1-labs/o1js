@@ -8,7 +8,7 @@ let prefixes =
     [ ("event", `String (zkapp_event :> string))
     ; ("events", `String (zkapp_events :> string))
     ; ("sequenceEvents", `String (zkapp_actions :> string))
-    ; ("body", `String (zkapp_body :> string))
+    ; ("body", `String (zkapp_body ~chain:Mina_signature_kind.t :> string))
     ; ("accountUpdateCons", `String (account_update_cons :> string))
     ; ("accountUpdateNode", `String (account_update_node :> string))
     ; ("zkappMemo", `String (zkapp_memo :> string))
