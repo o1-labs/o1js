@@ -8,7 +8,7 @@ The repo is included as a git submodule in the [o1js repo](https://github.com/o1
 
 - `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` and `wasm-bindgen` from Rust and OCaml source code. We keep these artifacts in the source tree so that developing on o1js can be done with standard JS tooling and doesn't require setting up the full OCaml/Rust build pipeline.
 - `/crypto` - pure TS implementations of a subset of the crypto primitives we use, including finite field and elliptic curve arithmetic. This is used by mina-signer (a pure TS package) to hash and sign transactions.
-- `/js` - JS-side wrappers for the artifacts located in `/compiled,` which differs between the Node.js and web versions of o1js. Includes code for setting up workers to support using `rayon` in Rust.
+- `/js` - JS-side wrappers for the artifacts located in `/compiled`, which differs between the Node.js and web versions of o1js. Includes code for setting up workers to support using `rayon` in Rust.
 - `/kimchi` - bindings to the [Kimchi proof system](https://o1-labs.github.io/proof-systems/kimchi/overview.html) which is implemented in Rust. This contains a Wasm compatibility layer written in Rust as well as a `js_of_ocaml`-to-`wasm-bindgen` glue layer written in JS.
 - `/lib` - miscellaneous low-level TypeScript, which underpins o1js and provides generic ways to connect with a proof system and blockchain protocol.
 - `/mina-transaction` - TS types and modules that specialize the generic tooling in `/lib` to Mina's zkApp protocol; mostly auto-generated from OCaml.
