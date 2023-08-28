@@ -205,6 +205,7 @@ var caml_poly_comm_to_rust_poly_comm = function (poly_comm, poly_comm_class, mk_
 };
 
 
+// srs
 
 // Provides: caml_fp_srs_create
 // Requires: plonk_wasm, free_on_finalize
@@ -370,19 +371,9 @@ function caml_fq_srs_add_lagrange_basis(srs, log2_size) {
     return plonk_wasm.caml_fq_srs_add_lagrange_basis(srs, log2_size);
 }
 
-// Provides: caml_plonk_gate_of_rust
-// Requires: tsRustConversion
-var caml_plonk_gate_of_rust = tsRustConversion.gateFromRust;
-
-// Provides: caml_fp_plonk_gate_to_rust
-// Requires: tsRustConversion
-var caml_fp_plonk_gate_to_rust = tsRustConversion.fp.gateToRust;
-
-// Provides: caml_fq_plonk_gate_to_rust
-// Requires: tsRustConversion
-var caml_fq_plonk_gate_to_rust = tsRustConversion.fq.gateToRust;
 
 
+// gate vector
 
 // Provides: caml_pasta_fp_plonk_gate_vector_create
 // Requires: plonk_wasm, free_on_finalize
@@ -391,15 +382,15 @@ var caml_pasta_fp_plonk_gate_vector_create = function () {
 };
 
 // Provides: caml_pasta_fp_plonk_gate_vector_add
-// Requires: plonk_wasm, caml_fp_plonk_gate_to_rust
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fp_plonk_gate_vector_add = function (v, x) {
-    return plonk_wasm.caml_pasta_fp_plonk_gate_vector_add(v, caml_fp_plonk_gate_to_rust(x));
+    return plonk_wasm.caml_pasta_fp_plonk_gate_vector_add(v, tsRustConversion.fp.gateToRust(x));
 };
 
 // Provides: caml_pasta_fp_plonk_gate_vector_get
-// Requires: plonk_wasm, caml_plonk_gate_of_rust
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fp_plonk_gate_vector_get = function (v, i) {
-    return caml_plonk_gate_of_rust(plonk_wasm.caml_pasta_fp_plonk_gate_vector_get(v, i));
+    return tsRustConversion.gateFromRust(plonk_wasm.caml_pasta_fp_plonk_gate_vector_get(v, i));
 };
 
 // Provides: caml_pasta_fp_plonk_gate_vector_len
@@ -437,15 +428,15 @@ var caml_pasta_fq_plonk_gate_vector_create = function () {
 };
 
 // Provides: caml_pasta_fq_plonk_gate_vector_add
-// Requires: plonk_wasm, caml_fq_plonk_gate_to_rust
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fq_plonk_gate_vector_add = function (v, x) {
-    return plonk_wasm.caml_pasta_fq_plonk_gate_vector_add(v, caml_fq_plonk_gate_to_rust(x));
+    return plonk_wasm.caml_pasta_fq_plonk_gate_vector_add(v, tsRustConversion.fq.gateToRust(x));
 };
 
 // Provides: caml_pasta_fq_plonk_gate_vector_get
-// Requires: plonk_wasm, caml_plonk_gate_of_rust
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fq_plonk_gate_vector_get = function (v, i) {
-    return caml_plonk_gate_of_rust(plonk_wasm.caml_pasta_fq_plonk_gate_vector_get(v, i));
+    return tsRustConversion.gateFromRust(plonk_wasm.caml_pasta_fq_plonk_gate_vector_get(v, i));
 };
 
 // Provides: caml_pasta_fq_plonk_gate_vector_len
