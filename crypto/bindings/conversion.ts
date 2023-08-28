@@ -64,6 +64,23 @@ function createRustConversion(wasm: wasm) {
         let rustCoeffs = fieldsToRustFlat(coeffs);
         return new WasmGate(typ, rustWires, rustCoeffs);
       },
+      pointToRust(point: OrInfinity) {
+        return affineToRust(point, makeCommitmentCurve);
+      },
+      pointFromRust(point: WasmAffine) {
+        return affineFromRust(point);
+      },
+      pointsToRust(points: MlArray<OrInfinity>) {
+        return mlArrayToRustVector(points, affineToRust, makeCommitmentCurve);
+      },
+      pointsFromRust(points: Uint32Array) {
+        return mlArrayFromRustVector(
+          points,
+          CommitmentCurve,
+          affineFromRust,
+          false
+        );
+      },
       polyCommToRust(polyComm: PolyComm): WasmPolyComm {
         return polyCommToRust(polyComm, WasmPolyComm, makeCommitmentCurve);
       },
