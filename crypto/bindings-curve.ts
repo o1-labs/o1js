@@ -12,7 +12,7 @@ import {
 } from './elliptic_curve.js';
 import { withPrefix } from './bindings-util.js';
 
-export { VestaBindings, PallasBindings };
+export { VestaBindings, PallasBindings, OrInfinity };
 
 const VestaBindings = withPrefix('caml_vesta', createCurveBindings(Vesta));
 const PallasBindings = withPrefix('caml_pallas', createCurveBindings(Pallas));
