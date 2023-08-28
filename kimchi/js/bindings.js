@@ -516,7 +516,7 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
 
 
 
-
+// prover index
 
 // Provides: caml_pasta_fq_plonk_index_create
 // Requires: plonk_wasm, free_on_finalize
@@ -568,7 +568,7 @@ var caml_pasta_fq_plonk_index_write = function (append, t, path) {
 
 
 
-
+// verifier index
 
 // Provides: caml_plonk_domain_of_rust
 var caml_plonk_domain_of_rust = function (x) {
@@ -679,98 +679,11 @@ var caml_plonk_verification_shifts_to_rust = function (x, klass) {
     return new klass(x[1], x[2], x[3], x[4], x[5], x[6], x[7]);
 };
 
-// Provides: column_of_rust
-function column_of_rust(col) {
-    // type nonrec column = Witness of int | Z | LookupSorted of int | LookupAggreg | LookupTable | LookupKindIndex of int | Index of gate_type | Coefficient of int
-    var tag = col.tag;
-    var gate_type = col.gate_type;
-    var i = col.i;
-    col.free();
-    return {
-        0: [tag, i],
-        2: [tag, i],
-        5: [tag, i],
-        6: [tag, gate_type],
-        7: [tag, i]
-    }[tag] || tag;
-}
-
-// Provides: variable_of_rust
-// Requires: column_of_rust
-function variable_of_rust(variable) {
-    // col * row
-    var col = variable.col;
-    var row = variable.row; // 0, 1
-    variable.free();
-    return [0, column_of_rust(col), row];
-}
-
-// Provides: polish_token_of_rust
-// Requires: variable_of_rust
-function polish_token_of_rust(token) {
-    var tag = token.tag;
-    var i0 = token.i0;
-    var i1 = token.i1;
-    var f = token.f;
-    var v = variable_of_rust(token.v);
-    token.free();
-    return {
-        5: [5, i0, i1],
-        6: [6, f],
-        7: [7, v],
-        9: [9, i0],
-        14: [14, i0],
-        16: [16, i0]
-    }[tag] || tag;
-}
-
-// Provides: index_term_of_rust
-// Requires: column_of_rust, js_class_vector_of_rust_vector, polish_token_of_rust
-function index_term_of_rust(term, token_class) {
-    // pub column: WasmColumn,
-    // pub coefficient: WasmVector<WasmPolishToken>,
-    var column = column_of_rust(term.column);
-    var coefficient = js_class_vector_of_rust_vector(term.coefficient, token_class);
-    coefficient = coefficient.map(polish_token_of_rust)
-    coefficient = [0].concat(coefficient);
-    term.free();
-    return [0, column, coefficient];
-}
-
-// Provides: wrap
-function wrap(ptr, klass) {
-    var obj = Object.create(klass.prototype);
-    obj.ptr = ptr;
-    return obj;
-}
-
-// Provides: linearization_of_rust
-// Requires: plonk_wasm, js_class_vector_of_rust_vector, polish_token_of_rust, wrap, index_term_of_rust
-function linearization_of_rust(linearization, affine_class) {
-    var F = affine_class === plonk_wasm.WasmGVesta ? 'Fq' : 'Fp';
-    var WasmPolishToken = plonk_wasm['Wasm' + F + 'PolishToken'];
-    var WasmIndexTerm = plonk_wasm['Wasm' + F + 'IndexTerm'];
-
-    var constant_term = js_class_vector_of_rust_vector(linearization.constant_term, WasmPolishToken);
-    constant_term = constant_term.map(polish_token_of_rust)
-    constant_term = [0].concat(constant_term);
-
-    var index_terms = Array.from(linearization.index_terms)
-        .map(function (ptr) {
-            var wasmIndexTerm = wrap(ptr, WasmIndexTerm);
-            return index_term_of_rust(wasmIndexTerm, WasmPolishToken);
-        });
-    index_terms = [0].concat(index_terms);
-
-    linearization.free();
-    return [0, constant_term, index_terms];
-}
-
 // Provides: None
 var None = 0;
 
 // Provides: caml_plonk_verifier_index_of_rust
-// Requires: linearization_of_rust, caml_plonk_domain_of_rust, caml_plonk_verification_evals_of_rust, caml_plonk_verification_shifts_of_rust, free_on_finalize, None
+// Requires: caml_plonk_domain_of_rust, caml_plonk_verification_evals_of_rust, caml_plonk_verification_shifts_of_rust, free_on_finalize, None
 var caml_plonk_verifier_index_of_rust = function (x, affine_class) {
     var domain = caml_plonk_domain_of_rust(x.domain);
     var max_poly_size = x.max_poly_size;
@@ -779,11 +692,9 @@ var caml_plonk_verifier_index_of_rust = function (x, affine_class) {
     var srs = free_on_finalize(x.srs);
     var evals = caml_plonk_verification_evals_of_rust(x.evals, affine_class);
     var shifts = caml_plonk_verification_shifts_of_rust(x.shifts);
-    // TODO: Handle linearization correctly!
-    // var linearization = linearization_of_rust(x.linearization, affine_class);
     var lookup_index = None;
     x.free();
-    return [0, domain, max_poly_size, public_, prev_challenges, srs, evals, shifts, None];
+    return [0, domain, max_poly_size, public_, prev_challenges, srs, evals, shifts, lookup_index];
 };
 // Provides: caml_plonk_verifier_index_to_rust
 // Requires: caml_plonk_domain_to_rust, caml_plonk_verification_evals_to_rust, caml_plonk_verification_shifts_to_rust, free_finalization_registry
