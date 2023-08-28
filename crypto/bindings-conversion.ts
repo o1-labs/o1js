@@ -183,6 +183,16 @@ function createRustConversion(wasm: wasm) {
         return [0, ...comms];
       },
 
+      shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
+        let s = shifts.map(fieldToRust);
+        return new Shifts(s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
+      },
+      shiftsFromRust(s: WasmShifts): MlArray<Field> {
+        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
+        s.free();
+        return [0, ...shifts.map(fieldFromRust)];
+      },
+
       verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
         let domain = domainToRust(vk[1]);
         let maxPolySize = vk[2];
@@ -190,7 +200,7 @@ function createRustConversion(wasm: wasm) {
         let prevChallenges = vk[4];
         let srs = vk[5];
         let evals = verificationEvalsToRust(vk[6]);
-        let shifts = shiftsToRust(vk[7]);
+        let shifts = self.shiftsToRust(vk[7]);
         return new VerifierIndex(
           domain,
           maxPolySize,
@@ -211,7 +221,7 @@ function createRustConversion(wasm: wasm) {
           vk.prev_challenges,
           vk.srs,
           verificationEvalsFromRust(vk.evals),
-          shiftsFromRust(vk.shifts),
+          self.shiftsFromRust(vk.shifts),
           lookupIndex,
         ];
         vk.free();
@@ -268,17 +278,6 @@ function createRustConversion(wasm: wasm) {
       evals.free();
       return mlEvals;
     }
-
-    function shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
-      let s = shifts.map(fieldToRust);
-      return new Shifts(s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
-    }
-    function shiftsFromRust(s: WasmShifts): MlArray<Field> {
-      let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
-      s.free();
-      return [0, ...shifts.map(fieldFromRust)];
-    }
-
     return self;
   }
 
