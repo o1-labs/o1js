@@ -11,7 +11,7 @@ import {
   Struct,
 } from 'o1js';
 
-/* This file demonstrates the classes and functions available in snarkyjs */
+/* This file demonstrates the classes and functions available in o1js */
 
 /* # Field */
 

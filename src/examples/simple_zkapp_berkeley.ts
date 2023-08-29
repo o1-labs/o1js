@@ -1,5 +1,5 @@
 /**
- * This is an example for interacting with the Berkeley QANet, directly from snarkyjs.
+ * This is an example for interacting with the Berkeley QANet, directly from o1js.
  *
  * At a high level, it does the following:
  * -) try fetching the account corresponding to the `zkappAddress` from chain

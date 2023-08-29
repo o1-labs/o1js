@@ -113,7 +113,7 @@ class Client {
    * // sign field elements with mina-signer
    * let signed = client.signFields(fields, privateKey);
    *
-   * // read signature in snarkyjs and verify
+   * // read signature in o1js and verify
    * let signature = Signature.fromBase58(signed.signature);
    * let isValid: Bool = signature.verify(publicKey, fields.map(Field));
    * ```
