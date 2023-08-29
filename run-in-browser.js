@@ -32,7 +32,7 @@ const indexHtml = `
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="data:," />
-    <title>snarkyjs</title>
+    <title>o1js</title>
     <script type="module" src="./${fileName}">
     </script>
   </head>

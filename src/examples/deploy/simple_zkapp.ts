@@ -1,4 +1,4 @@
-import { Field, state, State, method, SmartContract } from 'snarkyjs';
+import { Field, state, State, method, SmartContract } from 'o1js';
 
 export { SimpleZkapp as default };
 

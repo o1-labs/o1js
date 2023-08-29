@@ -12,7 +12,7 @@ import {
   SelfProof,
   verify,
   Empty,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

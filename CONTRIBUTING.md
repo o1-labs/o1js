@@ -47,6 +47,6 @@ To contribute directly to this project repo, follow these steps to get your chan
 1. After your RFC proposal is approved, fork the repository and implement your changes.
 1. Submit a pull request and wait for code review. :)
 
-Our goal is to include functionality within o1js when the change is likely to be widely useful for developers. For more esoteric functionality, it makes more sense to provide high-quality community packages that can be used alongside SnarkyJS.
+Our goal is to include functionality within o1js when the change is likely to be widely useful for developers. For more esoteric functionality, it makes more sense to provide high-quality community packages that can be used alongside o1js.
 
 We appreciate your contribution!
