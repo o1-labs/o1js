@@ -1,5 +1,5 @@
 // Live integration test against real Mina network.
-import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'snarkyjs';
+import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 
 const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';

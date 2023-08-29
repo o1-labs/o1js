@@ -9,7 +9,7 @@ import {
   Int64,
   Provable,
   Struct,
-} from 'snarkyjs';
+} from 'o1js';
 
 /* This file demonstrates the classes and functions available in snarkyjs */
 

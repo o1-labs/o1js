@@ -1,4 +1,4 @@
-import { isReady, PrivateKey, shutdown } from 'snarkyjs';
+import { isReady, PrivateKey, shutdown } from 'o1js';
 import SimpleZkapp from './simple_zkapp.js';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

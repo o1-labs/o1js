@@ -20,7 +20,7 @@ import {
   shutdown,
   DeployArgs,
   fetchAccount,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

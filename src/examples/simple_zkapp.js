@@ -14,7 +14,7 @@ import {
   declareState,
   declareMethods,
   shutdown,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 
