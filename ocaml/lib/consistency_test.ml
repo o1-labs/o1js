@@ -84,17 +84,19 @@ end
 (* deriver *)
 let account_update_of_json, _account_update_to_json =
   let deriver =
-    Account_update.Graphql_repr.deriver @@ Fields_derivers_zkapps.Derivers.o ()
+    lazy
+      ( Account_update.Graphql_repr.deriver
+      @@ Fields_derivers_zkapps.Derivers.o () )
   in
   let account_update_of_json (account_update : Js.js_string Js.t) :
       Account_update.t =
-    Fields_derivers_zkapps.of_json deriver
+    Fields_derivers_zkapps.of_json (Lazy.force deriver)
       (account_update |> Js.to_string |> Yojson.Safe.from_string)
     |> Account_update.of_graphql_repr
   in
   let account_update_to_json (account_update : Account_update.t) :
       Js.js_string Js.t =
-    Fields_derivers_zkapps.to_json deriver
+    Fields_derivers_zkapps.to_json (Lazy.force deriver)
       (Account_update.to_graphql_repr account_update ~call_depth:0)
     |> Yojson.Safe.to_string |> Js.string
   in
@@ -102,12 +104,13 @@ let account_update_of_json, _account_update_to_json =
 
 let body_of_json =
   let body_deriver =
-    Mina_base.Account_update.Body.Graphql_repr.deriver
-    @@ Fields_derivers_zkapps.o ()
+    lazy
+      ( Mina_base.Account_update.Body.Graphql_repr.deriver
+      @@ Fields_derivers_zkapps.o () )
   in
   let body_of_json json =
     json
-    |> Fields_derivers_zkapps.of_json body_deriver
+    |> Fields_derivers_zkapps.of_json (Lazy.force body_deriver)
     |> Account_update.Body.of_graphql_repr
   in
   body_of_json
@@ -287,7 +290,7 @@ module Transaction_hash = struct
     in
     Signed_command.to_base58_check_v1 command |> Js.string
 
-  let example_payment =
+  let example_payment () =
     let kp = keypair () in
     let payload : Signed_command_payload.t =
       { Signed_command_payload.dummy with
@@ -392,6 +395,6 @@ let test =
 
         method serializePaymentV1 = serialize_payment_v1
 
-        method examplePayment = example_payment
+        val examplePayment = example_payment
       end
   end
