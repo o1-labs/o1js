@@ -148,14 +148,14 @@ function unwrapMlException<E extends unknown>(error: E) {
 }
 
 /**
- * Trims paths in the stack trace line based on whether it includes 'snarkyjs' or 'opam'.
+ * Trims paths in the stack trace line based on whether it includes 'o1js' or 'opam'.
  *
  * @param stacktracePath - The stack trace line containing the path to trim.
  * @returns The trimmed stack trace line.
  */
 function trimPaths(stacktracePath: string) {
-  const includesSnarkyJS = stacktracePath.includes('snarkyjs');
-  if (includesSnarkyJS) {
+  const includesO1js = stacktracePath.includes('o1js');
+  if (includesO1js) {
     return trimSnarkyJSPath(stacktracePath);
   }
 
@@ -173,24 +173,24 @@ function trimPaths(stacktracePath: string) {
 }
 
 /**
- * Trims the 'snarkyjs' portion of the stack trace line's path.
+ * Trims the 'o1js' portion of the stack trace line's path.
  *
- * @param stacktraceLine - The stack trace line containing the 'snarkyjs' path to trim.
- * @returns The stack trace line with the trimmed 'snarkyjs' path.
+ * @param stacktraceLine - The stack trace line containing the 'o1js' path to trim.
+ * @returns The stack trace line with the trimmed 'o1js' path.
  */
 function trimSnarkyJSPath(stacktraceLine: string) {
   const fullPath = getDirectoryPath(stacktraceLine);
   if (!fullPath) {
     return stacktraceLine;
   }
-  const snarkyJSIndex = fullPath.indexOf('snarkyjs');
+  const snarkyJSIndex = fullPath.indexOf('o1js');
   if (snarkyJSIndex === -1) {
     return stacktraceLine;
   }
 
   // Grab the text before the parentheses as the prefix
   const prefix = stacktraceLine.slice(0, stacktraceLine.indexOf('(') + 1);
-  // Grab the text including and after the snarkyjs path
+  // Grab the text including and after the o1js path
   const updatedPath = fullPath.slice(snarkyJSIndex);
   return `${prefix}${updatedPath})`;
 }
@@ -255,7 +255,7 @@ function trimWorkspacePath(stacktraceLine: string) {
  * @returns The extracted directory path or undefined if not found.
  */
 function getDirectoryPath(stacktraceLine: string) {
-  // Regex to match the path inside the parentheses (e.g. (/home/../snarkyjs/../*.ts))
+  // Regex to match the path inside the parentheses (e.g. (/home/../o1js/../*.ts))
   const fullPathRegex = /\(([^)]+)\)/;
   const matchedPaths = stacktraceLine.match(fullPathRegex);
   if (matchedPaths) {
