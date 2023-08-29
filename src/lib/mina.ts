@@ -464,8 +464,21 @@ function LocalBlockchain({
           Ml.fromPublicKey(update.body.publicKey),
           Ml.constFromField(update.body.tokenId)
         );
+
+        let authIsProof = !!update.authorization.proof;
+        let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
+        // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
+        // this resulted in an assertion OCaml error, which didn't contain any useful information
+        if (kindIsProof && !authIsProof) {
+          throw Error(
+            `The actual authorization does not match the expected authorization kind.
+            Did you forget to invoke \`await tx.prove();\`?`
+          );
+        }
+
         if (accountJson) {
           let account = Account.fromJSON(accountJson);
+
           await verifyAccountUpdate(
             account,
             update,
