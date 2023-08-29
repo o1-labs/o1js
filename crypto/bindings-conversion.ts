@@ -619,6 +619,12 @@ function createRustConversion(wasm: wasm) {
     fieldsFromRustFlat,
     fp,
     fq,
+    mapMlArrayToRustVector<TMl, TRust extends {}>(
+      [, ...array]: MlArray<TMl>,
+      map: (x: TMl) => TRust
+    ): Uint32Array {
+      return mapToUint32Array(array, (x) => unwrap(map(x)));
+    },
     gateFromRust(wasmGate: WasmFpGate | WasmFqGate) {
       // note: this was never used and the old implementation was wrong
       // (accessed non-existent fields on wasmGate)

@@ -59,30 +59,6 @@ var caml_option_to_maybe_undefined = function (x) {
 };
 
 
-// Provides: js_class_vector_to_rust_vector
-var js_class_vector_to_rust_vector = function (v) {
-    var len = v.length;
-    var res = new joo_global_object.Uint32Array(len);
-    for (var i = 0; i < len; i++) {
-        // Beware: caller may need to do finalizer things to avoid these
-        // pointers disappearing out from under us.
-        res[i] = v[i].ptr;
-    }
-    return res;
-};
-
-// Provides: js_class_vector_of_rust_vector
-var js_class_vector_of_rust_vector = function (v, klass) {
-    // return v.map(klass.__wrap)
-    var len = v.length;
-    var res = new Array(len);
-    for (var i = 0, pos = 0; i < len; i++) {
-        // Beware: the caller may need to add finalizers to these.
-        res[i] = klass.__wrap(v[i]);
-    }
-    return res;
-};
-
 
 // Provides: free_finalization_registry
 var free_finalization_registry =
@@ -109,34 +85,6 @@ var free_on_finalize = function (x) {
     return x;
 };
 
-
-// Provides: caml_array_of_rust_vector
-// Requires: js_class_vector_of_rust_vector
-var caml_array_of_rust_vector = function (v, klass, convert, should_free) {
-    v = js_class_vector_of_rust_vector(v, klass);
-    var len = v.length;
-    var res = new Array(len + 1);
-    res[0] = 0; // OCaml tag before array contents
-    for (var i = 0; i < len; i++) {
-        var rust_val = v[i];
-        res[i + 1] = convert(rust_val);
-        if (should_free) { rust_val.free(); }
-    }
-    return res;
-};
-
-// Provides: caml_array_to_rust_vector
-// Requires: js_class_vector_to_rust_vector, free_finalization_registry
-var caml_array_to_rust_vector = function (v, convert, mk_new) {
-    v = v.slice(1); // Copy, dropping OCaml tag
-    for (var i = 0, l = v.length; i < l; i++) {
-        var class_val = convert(v[i], mk_new);
-        v[i] = class_val;
-        // Don't free when GC runs; rust will free on its end.
-        free_finalization_registry.unregister(class_val);
-    }
-    return js_class_vector_to_rust_vector(v);
-}
 
 
 // srs
@@ -354,6 +302,7 @@ var caml_pasta_fp_plonk_circuit_serialize = function (public_input_size, gate_ve
 
 
 
+// prover index
 
 // Provides: caml_pasta_fq_plonk_gate_vector_create
 // Requires: plonk_wasm, free_on_finalize
@@ -449,8 +398,6 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
 };
 
 
-
-// prover index
 
 // Provides: caml_pasta_fq_plonk_index_create
 // Requires: plonk_wasm, free_on_finalize
@@ -628,10 +575,10 @@ var caml_pasta_fp_plonk_proof_verify = function (index, proof) {
 };
 
 // Provides: caml_pasta_fp_plonk_proof_batch_verify
-// Requires: plonk_wasm, caml_array_to_rust_vector, tsRustConversion
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fp_plonk_proof_batch_verify = function (indexes, proofs) {
-    indexes = caml_array_to_rust_vector(indexes, tsRustConversion.fp.verifierIndexToRust);
-    proofs = caml_array_to_rust_vector(proofs, tsRustConversion.fp.proofToRust);
+    indexes = tsRustConversion.mapMlArrayToRustVector(indexes, tsRustConversion.fp.verifierIndexToRust);
+    proofs = tsRustConversion.mapMlArrayToRustVector(proofs, tsRustConversion.fp.proofToRust);
     return plonk_wasm.caml_pasta_fp_plonk_proof_batch_verify(indexes, proofs);
 };
 
@@ -672,10 +619,10 @@ var caml_pasta_fq_plonk_proof_verify = function (index, proof) {
 };
 
 // Provides: caml_pasta_fq_plonk_proof_batch_verify
-// Requires: plonk_wasm, caml_array_to_rust_vector, tsRustConversion
+// Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fq_plonk_proof_batch_verify = function (indexes, proofs) {
-    indexes = caml_array_to_rust_vector(indexes, tsRustConversion.fq.verifierIndexToRust);
-    proofs = caml_array_to_rust_vector(proofs, tsRustConversion.fq.proofToRust);
+    indexes = tsRustConversion.mapMlArrayToRustVector(indexes, tsRustConversion.fq.verifierIndexToRust);
+    proofs = tsRustConversion.mapMlArrayToRustVector(proofs, tsRustConversion.fq.proofToRust);
     return plonk_wasm.caml_pasta_fq_plonk_proof_batch_verify(indexes, proofs);
 };
 
