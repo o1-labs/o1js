@@ -188,7 +188,7 @@ function createRustConversion(wasm: wasm) {
 
       shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
         let s = shifts.map(fieldToRust);
-        return new Shifts(s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
+        return new Shifts(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
       },
       shiftsFromRust(s: WasmShifts): MlArray<Field> {
         let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
