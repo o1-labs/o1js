@@ -124,7 +124,7 @@ x.assertEquals(Int64.from(2));
 /* # Signature
  */
 
-/* The standard library of snarkyJS comes with a Signature scheme.
+/* The standard library of o1js comes with a Signature scheme.
    The message to be signed is an array of field elements, so any application level
    message data needs to be encoded as an array of field elements before being signed.
 */

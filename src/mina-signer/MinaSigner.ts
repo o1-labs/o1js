@@ -108,7 +108,7 @@ class Client {
 
   /**
    * Signs an arbitrary list of field elements in a SNARK-compatible way.
-   * The resulting signature can be verified in SnarkyJS as follows:
+   * The resulting signature can be verified in o1js as follows:
    * ```ts
    * // sign field elements with mina-signer
    * let signed = client.signFields(fields, privateKey);

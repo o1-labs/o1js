@@ -1029,11 +1029,11 @@ class Field {
   /**
    * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
    *
-   * In SnarkyJS, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.
+   * In o1js, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.
    *
    *  A new internal variable is created only when the variable is needed in a multiplicative or any higher level constraint (for example multiplication of two {@link Field} elements) to represent the operation.
    *
-   * The `seal()` function tells SnarkyJS to stop building an AST and create a new variable right away.
+   * The `seal()` function tells o1js to stop building an AST and create a new variable right away.
    *
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
