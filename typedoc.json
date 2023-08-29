@@ -1,14 +1,16 @@
 {
-	"name": "SnarkyJS",
-	"plugin": ["typedoc-plugin-markdown", "typedoc-plugin-merge-modules"],
-	"out": "snarkyjs-reference",
-	"cleanOutputDir": true,
-	"githubPages": false,
-	"exclude": [
-		"dist/**/*",
-		"src/mina-signer/**/*",
-		"src/examples/**/*"
-	],
-	"entryPoints": ["src/index.ts", "src/snarky.d.ts", "src/lib/field.ts", "src/lib/group.ts", "src/lib/bool.ts"],
-	"entryPointStrategy": "resolve",
+  "name": "o1js",
+  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-merge-modules"],
+  "out": "o1js-reference",
+  "cleanOutputDir": true,
+  "githubPages": false,
+  "exclude": ["dist/**/*", "src/mina-signer/**/*", "src/examples/**/*"],
+  "entryPoints": [
+    "src/index.ts",
+    "src/snarky.d.ts",
+    "src/lib/field.ts",
+    "src/lib/group.ts",
+    "src/lib/bool.ts"
+  ],
+  "entryPointStrategy": "resolve"
 }
