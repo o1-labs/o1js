@@ -128,27 +128,29 @@ type OpeningProof = [
   z2: Field,
   sg: OrInfinity
 ];
-type PointEvaluations = [
+type PointEvaluations<Field> = [
   _: 0,
   zeta: MlArray<Field>,
   zeta_omega: MlArray<Field>
 ];
-type LookupEvaluations = [
+type LookupEvaluations<Field> = [
   _: 0,
-  sorted: MlArray<PointEvaluations>,
-  aggreg: PointEvaluations,
-  table: PointEvaluations,
-  runtime: MlOption<PointEvaluations>
+  sorted: MlArray<PointEvaluations<Field>>,
+  aggreg: PointEvaluations<Field>,
+  table: PointEvaluations<Field>,
+  runtime: MlOption<PointEvaluations<Field>>
 ];
-type ProofEvaluations = [
+type nColumns = 15;
+type nPermutsMinus1 = 6;
+type ProofEvaluations<Field> = [
   _: 0,
-  w: MlTupleN<PointEvaluations, 16>,
-  z: PointEvaluations,
-  s: MlTupleN<PointEvaluations, 6>,
-  coefficients: MlTupleN<PointEvaluations, 15>,
-  lookup: MlOption<LookupEvaluations>,
-  generic_selector: PointEvaluations,
-  poseidon_selector: PointEvaluations
+  w: MlTupleN<PointEvaluations<Field>, nColumns>,
+  z: PointEvaluations<Field>,
+  s: MlTupleN<PointEvaluations<Field>, nPermutsMinus1>,
+  coefficients: MlTupleN<PointEvaluations<Field>, nColumns>,
+  lookup: MlOption<LookupEvaluations<Field>>,
+  generic_selector: PointEvaluations<Field>,
+  poseidon_selector: PointEvaluations<Field>
 ];
 type RecursionChallenge = [_: 0, chals: MlArray<Field>, comm: PolyComm];
 
@@ -156,7 +158,7 @@ type ProverProof = [
   _: 0,
   commitments: ProverCommitments,
   proof: OpeningProof,
-  evals: ProofEvaluations,
+  evals: ProofEvaluations<Field>,
   ft_eval1: Field,
   public_: MlArray<Field>,
   prev_challenges: MlArray<RecursionChallenge>
@@ -362,8 +364,8 @@ function createRustConversion(wasm: wasm) {
       proofToRust(proof: ProverProof): WasmProverProof {
         let commitments = commitmentsToRust(proof[1]);
         let openingProof = openingProofToRust(proof[2]);
-        // WARNING we're not converting evals atm - not touched in OCaml?
-        let evals = proof[3];
+        // TODO typed as `any` in wasm-bindgen, this is the correct type
+        let evals: PointEvaluations<Uint8Array> = proof[3];
         let ftEval1 = fieldToRust(proof[4]);
         let public_ = fieldsToRustFlat(proof[5]);
         let [, ...prevChallenges] = proof[6];
@@ -388,8 +390,8 @@ function createRustConversion(wasm: wasm) {
       proofFromRust(proof: WasmProverProof): ProverProof {
         let commitments = commitmentsFromRust(proof.commitments);
         let openingProof = openingProofFromRust(proof.proof);
-        // WARNING we're not converting evals atm - not touched in OCaml?
-        let evals = proof.evals;
+        // TODO typed as `any` in wasm-bindgen, this is the correct type
+        let evals: PointEvaluations<Uint8Array> = proof.evals;
         let ftEval1 = fieldFromRust(proof.ft_eval1);
         let public_ = fieldsFromRustFlat(proof.public_);
         let prevChallengeScalars = proof.prev_challenges_scalars;
