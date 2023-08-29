@@ -2,24 +2,28 @@
  * Implementation of Kimchi_bindings.Protocol.Gates
  */
 import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
-import { mapTuple } from './util.js';
+import { MlTupleN, mapTuple } from './util.js';
 import type {
   WasmFpDomain,
   WasmFpGate,
+  WasmFpOpeningProof,
   WasmFpOracles,
   WasmFpPlonkVerificationEvals,
   WasmFpPlonkVerifierIndex,
   WasmFpPolyComm,
+  WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRandomOracles,
   WasmFpShifts,
   WasmFpSrs,
   WasmFqDomain,
   WasmFqGate,
+  WasmFqOpeningProof,
   WasmFqOracles,
   WasmFqPlonkVerificationEvals,
   WasmFqPlonkVerifierIndex,
   WasmFqPolyComm,
+  WasmFqProverCommitments,
   WasmFqProverProof,
   WasmFqRandomOracles,
   WasmFqShifts,
@@ -106,6 +110,61 @@ type Oracles = [
   digest_before_evaluations: Field
 ];
 
+type LookupCommitments = [
+  _: 0,
+  sorted: MlArray<PolyComm>,
+  aggreg: PolyComm,
+  runtime: MlOption<PolyComm>
+];
+type ProverCommitments = [
+  _: 0,
+  w_comm: MlTupleN<PolyComm, 15>,
+  z_comm: PolyComm,
+  t_comm: PolyComm,
+  lookup: LookupCommitments
+];
+type OpeningProof = [
+  _: 0,
+  lr: MlArray<[0, OrInfinity, OrInfinity]>,
+  delta: OrInfinity,
+  z1: Field,
+  z2: Field,
+  sg: OrInfinity
+];
+type PointEvaluations = [
+  _: 0,
+  zeta: MlArray<Field>,
+  zeta_omega: MlArray<Field>
+];
+type LookupEvaluations = [
+  _: 0,
+  sorted: MlArray<PointEvaluations>,
+  aggreg: PointEvaluations,
+  table: PointEvaluations,
+  runtime: MlOption<PointEvaluations>
+];
+type ProofEvaluations = [
+  _: 0,
+  w: MlTupleN<PointEvaluations, 16>,
+  z: PointEvaluations,
+  s: MlTupleN<PointEvaluations, 6>,
+  coefficients: MlTupleN<PointEvaluations, 15>,
+  lookup: MlOption<LookupEvaluations>,
+  generic_selector: PointEvaluations,
+  poseidon_selector: PointEvaluations
+];
+type RecursionChallenge = [_: 0, chals: MlArray<Field>, comm: PolyComm];
+
+type ProverProof = [
+  _: 0,
+  commitments: ProverCommitments,
+  proof: OpeningProof,
+  evals: ProofEvaluations,
+  ft_eval1: Field,
+  public_: MlArray<Field>,
+  prev_challenges: MlArray<RecursionChallenge>
+];
+
 // wasm types
 
 type wasm = typeof wasmNamespace;
@@ -121,6 +180,8 @@ type WasmShifts = WasmFpShifts | WasmFqShifts;
 type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
 type WasmRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
 type WasmOracles = WasmFpOracles | WasmFqOracles;
+type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
+type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmVecVec = WasmVecVecFp | WasmVecVecFq;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 
@@ -141,6 +202,10 @@ type WasmClasses = {
     | typeof WasmFqPlonkVerifierIndex;
   RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
   Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
+  ProverCommitments:
+    | typeof WasmFpProverCommitments
+    | typeof WasmFqProverCommitments;
+  OpeningProof: typeof WasmFpOpeningProof | typeof WasmFqOpeningProof;
   VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
   ProverProof: typeof WasmFpProverProof | typeof WasmFqProverProof;
 };
@@ -165,6 +230,10 @@ function createRustConversion(wasm: wasm) {
     VerifierIndex,
     RandomOracles,
     Oracles,
+    ProverCommitments,
+    OpeningProof,
+    VecVec,
+    ProverProof,
   }: WasmClasses) {
     let self = {
       vectorToRust: fieldsToRustFlat,
@@ -191,9 +260,9 @@ function createRustConversion(wasm: wasm) {
         });
       },
       pointsFromRust(points: Uint32Array): MlArray<OrInfinity> {
-        let arr = mapFromUintArray(points, (ptr) => {
-          return affineFromRust(wrap(ptr, CommitmentCurve));
-        });
+        let arr = mapFromUintArray(points, (ptr) =>
+          affineFromRust(wrap(ptr, CommitmentCurve))
+        );
         return [0, ...arr];
       },
 
@@ -294,6 +363,61 @@ function createRustConversion(wasm: wasm) {
         // TODO: do we not want to free?
         // oracles.free();
         return mlOracles;
+      },
+
+      proofToRust(proof: ProverProof): WasmProverProof {
+        let commitments = commitmentsToRust(proof[1]);
+        let openingProof = openingProofToRust(proof[2]);
+        // WARNING we're not converting evals atm - not touched in OCaml?
+        let evals = proof[3];
+        let ftEval1 = fieldToRust(proof[4]);
+        let public_ = fieldsToRustFlat(proof[5]);
+        let [, ...prevChallenges] = proof[6];
+        let n = prevChallenges.length;
+        let prevChallengeScalars = new VecVec(n);
+        let prevChallengeCommsMl: MlArray<PolyComm> = [0];
+        for (let [, scalars, comms] of prevChallenges) {
+          prevChallengeScalars.push(fieldsToRustFlat(scalars));
+          prevChallengeCommsMl.push(comms);
+        }
+        let prevChallengeComms = self.polyCommsToRust(prevChallengeCommsMl);
+        return new ProverProof(
+          commitments,
+          openingProof,
+          evals,
+          ftEval1,
+          public_,
+          prevChallengeScalars,
+          prevChallengeComms
+        );
+      },
+      proofFromRust(proof: WasmProverProof): ProverProof {
+        let commitments = commitmentsFromRust(proof.commitments);
+        let openingProof = openingProofFromRust(proof.proof);
+        // WARNING we're not converting evals atm - not touched in OCaml?
+        let evals = proof.evals;
+        let ftEval1 = fieldFromRust(proof.ft_eval1);
+        let public_ = fieldsFromRustFlat(proof.public_);
+        let prevChallengeScalars = proof.prev_challenges_scalars;
+        let [, ...prevChallengeComms] = self.polyCommsFromRust(
+          proof.prev_challenges_comms
+        );
+        let prevChallenges = prevChallengeComms.map<RecursionChallenge>(
+          (comms, i) => {
+            let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));
+            return [0, scalars, comms];
+          }
+        );
+        proof.free();
+        return [
+          0,
+          commitments,
+          openingProof,
+          evals,
+          ftEval1,
+          public_,
+          [0, ...prevChallenges],
+        ];
       },
     };
 
@@ -406,6 +530,59 @@ function createRustConversion(wasm: wasm) {
       return mlRo;
     }
 
+    function commitmentsToRust(
+      commitments: ProverCommitments
+    ): WasmProverCommitments {
+      let wComm = self.polyCommsToRust(commitments[1]);
+      let zComm = self.polyCommToRust(commitments[2]);
+      let tComm = self.polyCommToRust(commitments[3]);
+      // TODO lookup
+      return new ProverCommitments(wComm, zComm, tComm);
+    }
+    function commitmentsFromRust(
+      commitments: WasmProverCommitments
+    ): ProverCommitments {
+      let wComm = self.polyCommsFromRust(commitments.w_comm);
+      let zComm = self.polyCommFromRust(commitments.z_comm);
+      let tComm = self.polyCommFromRust(commitments.t_comm);
+      let lookup = 0 as any; // TODO
+      commitments.free();
+      return [0, wComm as MlTupleN<PolyComm, 15>, zComm, tComm, lookup];
+    }
+
+    function openingProofToRust(proof: OpeningProof): WasmOpeningProof {
+      let [_, [, ...lr], delta, z1, z2, sg] = proof;
+      // We pass l and r as separate vectors over the FFI
+      let l: MlArray<OrInfinity> = [0];
+      let r: MlArray<OrInfinity> = [0];
+      for (let [, li, ri] of lr) {
+        l.push(li);
+        r.push(ri);
+      }
+      return new OpeningProof(
+        self.pointsToRust(l),
+        self.pointsToRust(r),
+        self.pointToRust(delta),
+        fieldToRust(z1),
+        fieldToRust(z2),
+        self.pointToRust(sg)
+      );
+    }
+    function openingProofFromRust(proof: WasmOpeningProof): OpeningProof {
+      let [, ...l] = self.pointsFromRust(proof.lr_0);
+      let [, ...r] = self.pointsFromRust(proof.lr_1);
+      let n = l.length;
+      if (n !== r.length)
+        throw Error('openingProofFromRust: l and r length mismatch.');
+      let lr = l.map<[0, OrInfinity, OrInfinity]>((li, i) => [0, li, r[i]]);
+      let delta = self.pointFromRust(proof.delta);
+      let z1 = fieldFromRust(proof.z1);
+      let z2 = fieldFromRust(proof.z2);
+      let sg = self.pointFromRust(proof.sg);
+      proof.free();
+      return [0, [0, ...lr], delta, z1, z2, sg];
+    }
+
     return self;
   }
 
@@ -420,6 +597,8 @@ function createRustConversion(wasm: wasm) {
     VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
     RandomOracles: wasm.WasmFpRandomOracles,
     Oracles: wasm.WasmFpOracles,
+    ProverCommitments: wasm.WasmFpProverCommitments,
+    OpeningProof: wasm.WasmFpOpeningProof,
     VecVec: wasm.WasmVecVecFp,
     ProverProof: wasm.WasmFpProverProof,
   });
@@ -434,6 +613,8 @@ function createRustConversion(wasm: wasm) {
     VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
     RandomOracles: wasm.WasmFqRandomOracles,
     Oracles: wasm.WasmFqOracles,
+    ProverCommitments: wasm.WasmFqProverCommitments,
+    OpeningProof: wasm.WasmFqOpeningProof,
     VecVec: wasm.WasmVecVecFq,
     ProverProof: wasm.WasmFqProverProof,
   });

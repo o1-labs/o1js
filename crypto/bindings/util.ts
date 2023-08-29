@@ -1,4 +1,4 @@
-export { withPrefix, mapTuple };
+export { withPrefix, mapTuple, MlTupleN };
 
 function withPrefix<prefix extends string, T extends Record<string, any>>(
   prefix: prefix,
@@ -21,3 +21,16 @@ function mapTuple<T extends Tuple<any>, B>(
 ): { [i in keyof T]: B } {
   return tuple.map(f) as any;
 }
+
+/**
+ * tuple type that has the length as generic parameter
+ */
+type MlTupleN<T, N extends number> = N extends N
+  ? number extends N
+    ? [0, ...T[]] // N is not typed as a constant => fall back to array
+    : [0, ...TupleRec<T, N, []>]
+  : never;
+
+type TupleRec<T, N extends number, R extends unknown[]> = R['length'] extends N
+  ? R
+  : TupleRec<T, N, [T, ...R]>;
