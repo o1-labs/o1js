@@ -156,7 +156,7 @@ function unwrapMlException<E extends unknown>(error: E) {
 function trimPaths(stacktracePath: string) {
   const includesO1js = stacktracePath.includes('o1js');
   if (includesO1js) {
-    return trimSnarkyJSPath(stacktracePath);
+    return trimO1jsPath(stacktracePath);
   }
 
   const includesOpam = stacktracePath.includes('opam');
@@ -178,20 +178,20 @@ function trimPaths(stacktracePath: string) {
  * @param stacktraceLine - The stack trace line containing the 'o1js' path to trim.
  * @returns The stack trace line with the trimmed 'o1js' path.
  */
-function trimSnarkyJSPath(stacktraceLine: string) {
+function trimO1jsPath(stacktraceLine: string) {
   const fullPath = getDirectoryPath(stacktraceLine);
   if (!fullPath) {
     return stacktraceLine;
   }
-  const snarkyJSIndex = fullPath.indexOf('o1js');
-  if (snarkyJSIndex === -1) {
+  const o1jsIndex = fullPath.indexOf('o1js');
+  if (o1jsIndex === -1) {
     return stacktraceLine;
   }
 
   // Grab the text before the parentheses as the prefix
   const prefix = stacktraceLine.slice(0, stacktraceLine.indexOf('(') + 1);
   // Grab the text including and after the o1js path
-  const updatedPath = fullPath.slice(snarkyJSIndex);
+  const updatedPath = fullPath.slice(o1jsIndex);
   return `${prefix}${updatedPath})`;
 }
 
