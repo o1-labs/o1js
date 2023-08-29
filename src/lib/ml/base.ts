@@ -53,3 +53,14 @@ const MlBool = Object.assign(
     },
   }
 );
+
+const MlOption = Object.assign(
+  function MlOption<T>(x?: T): MlOption<T> {
+    return x === undefined ? 0 : [0, x];
+  },
+  {
+    from<T>(option: MlOption<T>): T | undefined {
+      return option === 0 ? undefined : option[1];
+    },
+  }
+);
