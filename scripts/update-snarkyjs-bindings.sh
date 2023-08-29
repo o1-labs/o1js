@@ -52,7 +52,7 @@ popd
 
 npm run build:web --prefix="$SNARKY_JS_PATH"
 
-# 3. update MINA_COMMIT file in snarkyjs
+# 3. update MINA_COMMIT file in o1js
 
 echo "The mina commit used to generate the backends for node and web is
 $(git rev-parse HEAD)" > "$SNARKY_JS_PATH/src/bindings/MINA_COMMIT"
