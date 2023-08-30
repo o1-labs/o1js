@@ -21,20 +21,20 @@ export {
   toConstantField,
 };
 
-type FieldConst = [bigint];
+type FieldConst = [0, bigint];
 
 function constToBigint(x: FieldConst): Fp {
-  return x[0];
+  return x[1];
 }
 function constFromBigint(x: Fp): FieldConst {
-  return [x];
+  return [0, x];
 }
 
 const FieldConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
   equal(x: FieldConst, y: FieldConst) {
-    return x[0] === y[0];
+    return x[1] === y[1];
   },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
@@ -143,17 +143,14 @@ class Field {
       return;
     }
     if (Array.isArray(x)) {
-      if (typeof x[0] === 'number') {
-        // FieldVar
-        this.value = x;
-        return;
-      } else if (typeof x[0] === 'bigint') {
+      if (typeof x[1] === 'bigint') {
         // FieldConst
-        this.value = FieldVar.constant(x);
+        this.value = FieldVar.constant(x as FieldConst);
         return;
       } else {
-        console.log(x);
-        throw Error('Field(): Invalid argument');
+        // FieldVar
+        this.value = x as FieldVar;
+        return;
       }
     }
     // TODO this should handle common values efficiently by reading from a lookup table
@@ -1270,7 +1267,7 @@ class Field {
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    let t0 = toConstantField(t, 'toBytes').value[1][0];
+    let t0 = toConstantField(t, 'toBytes').toBigInt();
     return Fp.toBytes(t0);
   },
   readBytes(bytes, offset) {
