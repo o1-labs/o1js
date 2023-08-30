@@ -471,8 +471,7 @@ function LocalBlockchain({
         // this resulted in an assertion OCaml error, which didn't contain any useful information
         if (kindIsProof && !authIsProof) {
           throw Error(
-            `The actual authorization does not match the expected authorization kind.
-            Did you forget to invoke \`await tx.prove();\`?`
+            `The actual authorization does not match the expected authorization kind. Did you forget to invoke \`await tx.prove();\`?`
           );
         }
 
