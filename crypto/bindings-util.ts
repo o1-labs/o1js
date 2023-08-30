@@ -1,4 +1,4 @@
-export { withPrefix, mapTuple, MlTupleN };
+export { withPrefix, mapTuple, mapMlTuple, MlTupleN };
 
 function withPrefix<prefix extends string, T extends Record<string, any>>(
   prefix: prefix,
@@ -20,6 +20,13 @@ function mapTuple<T extends Tuple<any>, B>(
   f: (a: T[number]) => B
 ): { [i in keyof T]: B } {
   return tuple.map(f) as any;
+}
+
+function mapMlTuple<T extends Tuple<any>, B>(
+  [, ...mlTuple]: [0, ...T],
+  f: (a: T[number]) => B
+): [0, ...{ [i in keyof T]: B }] {
+  return [0, ...mlTuple.map(f)] as any;
 }
 
 /**

@@ -23,6 +23,8 @@ export {
   Oracles,
   ProverCommitments,
   OpeningProof,
+  PointEvaluations,
+  LookupEvaluations,
   ProofEvaluations,
   RecursionChallenge,
   ProverProof,
