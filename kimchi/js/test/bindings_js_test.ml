@@ -1010,10 +1010,28 @@ let verification_evals_to_list
     ; mul_comm : 'PolyComm
     ; emul_comm : 'PolyComm
     ; endomul_scalar_comm : 'PolyComm
+    ; xor_comm : 'PolyComm option
+    ; range_check0_comm : 'PolyComm option
+    ; range_check1_comm : 'PolyComm option
+    ; foreign_field_add_comm : 'PolyComm option
+    ; foreign_field_mul_comm : 'PolyComm option
+    ; rot_comm : 'PolyComm option
     } =
-  generic_comm :: psm_comm :: complete_add_comm :: mul_comm :: emul_comm
-  :: endomul_scalar_comm
-  :: (Array.append sigma_comm coefficients_comm |> Array.to_list)
+  let non_opt_comms =
+    generic_comm :: psm_comm :: complete_add_comm :: mul_comm :: emul_comm
+    :: endomul_scalar_comm
+    :: (Array.append sigma_comm coefficients_comm |> Array.to_list)
+  in
+  let opt_comms =
+    [ xor_comm
+    ; range_check0_comm
+    ; range_check1_comm
+    ; foreign_field_add_comm
+    ; foreign_field_mul_comm
+    ; rot_comm
+    ]
+  in
+  List.map Option.some non_opt_comms @ opt_comms
 
 let eq_verifier_index ~field_equal ~other_field_equal
     { VerifierIndex.domain = { log_size_of_group = i1_1; group_gen = f1 }
@@ -1036,7 +1054,14 @@ let eq_verifier_index ~field_equal ~other_field_equal
     } =
   i1_1 = i2_1 && field_equal f1 f2 && i1_2 = i2_2
   && List.for_all2
-       (eq_poly_comm ~field_equal:other_field_equal)
+       (fun x y ->
+         match (x, y) with
+         | Some x, Some y ->
+             eq_poly_comm ~field_equal:other_field_equal x y
+         | None, None ->
+             true
+         | _, _ ->
+             false )
        (verification_evals_to_list evals1)
        (verification_evals_to_list evals2)
   && eq_verification_shifts ~field_equal shifts1 shifts2
