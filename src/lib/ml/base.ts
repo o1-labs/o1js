@@ -24,6 +24,9 @@ const MlArray = {
   from<T>([, ...arr]: MlArray<T>): T[] {
     return arr;
   },
+  map<T, S>([, ...arr]: MlArray<T>, map: (t: T) => S): MlArray<S> {
+    return [0, ...arr.map(map)];
+  },
 };
 
 const MlTuple = Object.assign(
@@ -61,6 +64,10 @@ const MlOption = Object.assign(
   {
     from<T>(option: MlOption<T>): T | undefined {
       return option === 0 ? undefined : option[1];
+    },
+    map<T, S>(option: MlOption<T>, map: (t: T) => S): MlOption<S> {
+      if (option === 0) return 0;
+      return [0, map(option[1])];
     },
   }
 );
