@@ -12,7 +12,7 @@ import {
 import { MlOption, MlBool } from '../../lib/ml/base.js';
 import { withPrefix } from './bindings-util.js';
 
-type Field = [bigint];
+type Field = [0, bigint];
 
 export { FpBindings, FqBindings, Field };
 
@@ -25,77 +25,77 @@ function createFieldBindings(Field: FiniteField) {
       return Field.sizeInBits;
     },
     size(): Bigint256 {
-      return [Field.modulus];
+      return [0, Field.modulus];
     },
-    add([x]: Field, [y]: Field): Field {
-      return [Field.add(x, y)];
+    add([, x]: Field, [, y]: Field): Field {
+      return [0, Field.add(x, y)];
     },
-    sub([x]: Field, [y]: Field): Field {
-      return [Field.sub(x, y)];
+    sub([, x]: Field, [, y]: Field): Field {
+      return [0, Field.sub(x, y)];
     },
-    negate([x]: Field): Field {
-      return [Field.negate(x)];
+    negate([, x]: Field): Field {
+      return [0, Field.negate(x)];
     },
-    mul([x]: Field, [y]: Field): Field {
-      return [Field.mul(x, y)];
+    mul([, x]: Field, [, y]: Field): Field {
+      return [0, Field.mul(x, y)];
     },
-    div([x]: Field, [y]: Field): Field {
+    div([, x]: Field, [, y]: Field): Field {
       let z = Field.div(x, y);
       if (z === undefined) throw Error('division by zero');
-      return [z];
+      return [0, z];
     },
-    inv([x]: Field): MlOption<Field> {
+    inv([, x]: Field): MlOption<Field> {
       return toMlOption(Field.inverse(x));
     },
-    square([x]: Field): Field {
-      return [Field.square(x)];
+    square([, x]: Field): Field {
+      return [0, Field.square(x)];
     },
-    is_square([x]: Field): MlBool {
+    is_square([, x]: Field): MlBool {
       return MlBool(Field.isSquare(x));
     },
-    sqrt([x]: Field): MlOption<Field> {
+    sqrt([, x]: Field): MlOption<Field> {
       return toMlOption(Field.sqrt(x));
     },
     of_int(x: number): Field {
-      return [Field.fromNumber(x)];
+      return [0, Field.fromNumber(x)];
     },
-    to_string([x]: Field): MlBytes {
+    to_string([, x]: Field): MlBytes {
       return toMlStringAscii(x.toString());
     },
     of_string(s: MlBytes): Field {
-      return [Field.fromBigint(BigInt(fromMlString(s)))];
+      return [0, Field.fromBigint(BigInt(fromMlString(s)))];
     },
     print(x: Field): void {
       console.log(x[0].toString());
     },
-    copy(x: Field, [y]: Field): void {
-      x[0] = y;
+    copy(x: Field, [, y]: Field): void {
+      x[1] = y;
     },
-    mut_add(x: Field, [y]: Field): void {
-      x[0] = Field.add(x[0], y);
+    mut_add(x: Field, [, y]: Field): void {
+      x[1] = Field.add(x[1], y);
     },
-    mut_sub(x: Field, [y]: Field): void {
-      x[0] = Field.sub(x[0], y);
+    mut_sub(x: Field, [, y]: Field): void {
+      x[1] = Field.sub(x[1], y);
     },
-    mut_mul(x: Field, [y]: Field): void {
-      x[0] = Field.mul(x[0], y);
+    mut_mul(x: Field, [, y]: Field): void {
+      x[1] = Field.mul(x[1], y);
     },
     mut_square(x: Field): void {
-      x[0] = Field.square(x[0]);
+      x[1] = Field.square(x[1]);
     },
     compare(x: Field, y: Field): 1 | 0 | -1 {
       return Bigint256Bindings.caml_bigint_256_compare(x, y);
     },
-    equal([x]: Field, [y]: Field): MlBool {
+    equal([, x]: Field, [, y]: Field): MlBool {
       return MlBool(x === y);
     },
     random(): Field {
-      return [Field.random()];
+      return [0, Field.random()];
     },
     // TODO
     rng(i: number): Field {
       console.warn('rng is not implemented');
-      return [Field.random()];
+      return [0, Field.random()];
     },
     to_bigint(x: Field): Bigint256 {
       return x;
@@ -104,7 +104,7 @@ function createFieldBindings(Field: FiniteField) {
       return x;
     },
     two_adic_root_of_unity(): Field {
-      return [Field.twoadicRoot];
+      return [0, Field.twoadicRoot];
     },
     domain_generator(i: number): Field {
       // this takes an integer i and returns a 2^ith root of unity, i.e. a number `w` with
@@ -114,12 +114,12 @@ function createFieldBindings(Field: FiniteField) {
         throw Error(
           'log2 size of evaluation domain must be in [0, 32], got ' + i
         );
-      if (i === 0) return [1n];
+      if (i === 0) return [0, 1n];
       let generator = Field.twoadicRoot;
       for (var j = 32; j > i; j--) {
         generator = mod(generator * generator, Field.modulus);
       }
-      return [generator];
+      return [0, generator];
     },
     to_bytes(x: Field): MlBytes {
       return Bigint256Bindings.caml_bigint_256_to_bytes(x);
@@ -127,13 +127,13 @@ function createFieldBindings(Field: FiniteField) {
     of_bytes(x: MlBytes): Field {
       return Bigint256Bindings.caml_bigint_256_of_bytes(x);
     },
-    deep_copy([x]: Field): Field {
-      return [x];
+    deep_copy([, x]: Field): Field {
+      return [0, x];
     },
   };
 }
 
-function toMlOption<T>(x: undefined | T): MlOption<[T]> {
+function toMlOption<T>(x: undefined | T): MlOption<[0, T]> {
   if (x === undefined) return 0; // None
-  return [0, [x]]; // Some(x)
+  return [0, [0, x]]; // Some(x)
 }

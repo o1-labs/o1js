@@ -5,7 +5,7 @@ import { withPrefix } from './bindings-util.js';
  */
 export { Bigint256Bindings, Bigint256, toMlStringAscii, fromMlString, MlBytes };
 
-type Bigint256 = [bigint];
+type Bigint256 = [0, bigint];
 
 const Bigint256Bindings = withPrefix('caml_bigint_256', {
   // TODO
@@ -13,7 +13,7 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     throw Error('caml_bigint_256_of_numeral not implemented');
   },
   of_decimal_string(s: MlBytes): Bigint256 {
-    return [BigInt(fromMlString(s))];
+    return [0, BigInt(fromMlString(s))];
   },
   num_limbs() {
     return 4;
@@ -21,25 +21,25 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
   bytes_per_limb() {
     return 8;
   },
-  div([x]: Bigint256, [y]: Bigint256): Bigint256 {
-    return [x / y];
+  div([, x]: Bigint256, [, y]: Bigint256): Bigint256 {
+    return [0, x / y];
   },
-  compare([x]: Bigint256, [y]: Bigint256) {
+  compare([, x]: Bigint256, [, y]: Bigint256) {
     if (x < y) return -1;
     if (x === y) return 0;
     return 1;
   },
-  print([x]: Bigint256): void {
+  print([, x]: Bigint256): void {
     console.log(x.toString());
   },
   to_string(x: Bigint256) {
-    return toMlStringAscii(x[0].toString());
+    return toMlStringAscii(x[1].toString());
   },
   // TODO performance critical
   test_bit(b: Bigint256, i: number) {
-    return Number(!!(b[0] & (1n << BigInt(i))));
+    return Number(!!(b[1] & (1n << BigInt(i))));
   },
-  to_bytes([x]: Bigint256) {
+  to_bytes([, x]: Bigint256) {
     var ocamlBytes = caml_create_bytes(32);
     for (var i = 0; x > 0; x >>= 8n, i++) {
       if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
@@ -58,10 +58,10 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
       x += BigInt(byte) << bitPosition;
       bitPosition += 8n;
     }
-    return [x];
+    return [0, x];
   },
-  deep_copy([x]: Bigint256): Bigint256 {
-    return [x];
+  deep_copy([, x]: Bigint256): Bigint256 {
+    return [0, x];
   },
 });
 

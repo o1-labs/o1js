@@ -24,11 +24,11 @@ const fieldSizeBytes = 32;
 // field, field vectors
 
 // TODO make more performant
-function fieldToRust([x]: Field): Uint8Array {
+function fieldToRust([, x]: Field): Uint8Array {
   return Uint8Array.from(bigIntToBytes(x, fieldSizeBytes));
 }
 function fieldFromRust(x: Uint8Array): Field {
-  return [bytesToBigInt(x)];
+  return [0, bytesToBigInt(x)];
 }
 
 // TODO avoid intermediate Uint8Arrays
