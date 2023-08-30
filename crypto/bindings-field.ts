@@ -99,8 +99,8 @@ function createFieldBindings(Field: FiniteField) {
     to_bigint(x: Field): Bigint256 {
       return x;
     },
-    of_bigint(x: Bigint256): Field {
-      return x;
+    of_bigint([, x]: Bigint256): Field {
+      return [0, Field.fromBigint(x)];
     },
     two_adic_root_of_unity(): Field {
       return [0, Field.twoadicRoot];
@@ -124,7 +124,8 @@ function createFieldBindings(Field: FiniteField) {
       return Bigint256Bindings.caml_bigint_256_to_bytes(x);
     },
     of_bytes(x: MlBytes): Field {
-      return Bigint256Bindings.caml_bigint_256_of_bytes(x);
+      let [, bigint] = Bigint256Bindings.caml_bigint_256_of_bytes(x);
+      return [0, Field.fromBigint(bigint)];
     },
     deep_copy([, x]: Field): Field {
       return [0, x];
