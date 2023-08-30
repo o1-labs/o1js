@@ -15,7 +15,6 @@ import type {
   WasmFpProverProof,
   WasmFpRandomOracles,
   WasmFpShifts,
-  WasmFpSrs,
   WasmFqDomain,
   WasmFqGate,
   WasmFqOpeningProof,
@@ -27,7 +26,6 @@ import type {
   WasmFqProverProof,
   WasmFqRandomOracles,
   WasmFqShifts,
-  WasmFqSrs,
   WasmGPallas,
   WasmGVesta,
   WasmVecVecFp,
@@ -35,137 +33,26 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { bigIntToBytes, bytesToBigInt } from '../bigint-helpers.js';
-import { Lookup } from './lookup.js';
+import {
+  Wire,
+  Gate,
+  PolyComm,
+  VerifierIndex,
+  Oracles,
+  ProverProof,
+  ProofEvaluations,
+  Domain,
+  VerificationEvals,
+  RandomOracles,
+  ScalarChallenge,
+  ProverCommitments,
+  OpeningProof,
+  RecursionChallenge,
+} from './kimchi-types.js';
 
 export { createRustConversion };
 
-type Field = Uint8Array;
-
-// Kimchi_types.or_infinity
-type OrInfinity = MlOption<MlTuple<Field, Field>>;
-
-// ml types from kimchi_types.ml
-
-type GateType = number;
-type Wire = [_: 0, row: number, col: number];
-type Gate = [
-  _: 0,
-  typ: GateType,
-  wires: [0, Wire, Wire, Wire, Wire, Wire, Wire, Wire],
-  coeffs: MlArray<Field>
-];
-
-type PolyComm = [
-  _: 0,
-  unshifted: MlArray<OrInfinity>,
-  shifted: MlOption<OrInfinity>
-];
-
-type Domain = [_: 0, log_size_of_group: number, group_gen: Field];
-
-type VerificationEvals = [
-  _: 0,
-  sigma_comm: MlArray<PolyComm>,
-  coefficients_comm: MlArray<PolyComm>,
-  generic_comm: PolyComm,
-  psm_comm: PolyComm,
-  complete_add_comm: PolyComm,
-  mul_comm: PolyComm,
-  emul_comm: PolyComm,
-  endomul_scalar_comm: PolyComm
-];
-
-type VerifierIndex = [
-  _: 0,
-  domain: Domain,
-  max_poly_size: number,
-  public_: number,
-  prev_challenges: number,
-  srs: WasmSrs,
-  evals: VerificationEvals,
-  shifts: MlArray<Field>,
-  lookup_index: MlOption<Lookup<PolyComm>>
-];
-
-type ScalarChallenge = [_: 0, inner: Field];
-type RandomOracles = [
-  _: 0,
-  joint_combiner: MlOption<[0, ScalarChallenge, Field]>,
-  beta: Field,
-  gamma: Field,
-  alpha_chal: ScalarChallenge,
-  alpha: Field,
-  zeta: Field,
-  v: Field,
-  u: Field,
-  zeta_chal: ScalarChallenge,
-  v_chal: ScalarChallenge,
-  u_chal: ScalarChallenge
-];
-type Oracles = [
-  _: 0,
-  o: RandomOracles,
-  p_eval: [0, Field, Field],
-  opening_prechallenges: MlArray<Field>,
-  digest_before_evaluations: Field
-];
-
-type LookupCommitments = [
-  _: 0,
-  sorted: MlArray<PolyComm>,
-  aggreg: PolyComm,
-  runtime: MlOption<PolyComm>
-];
-type ProverCommitments = [
-  _: 0,
-  w_comm: MlTupleN<PolyComm, 15>,
-  z_comm: PolyComm,
-  t_comm: PolyComm,
-  lookup: LookupCommitments
-];
-type OpeningProof = [
-  _: 0,
-  lr: MlArray<[0, OrInfinity, OrInfinity]>,
-  delta: OrInfinity,
-  z1: Field,
-  z2: Field,
-  sg: OrInfinity
-];
-type PointEvaluations<Field> = [
-  _: 0,
-  zeta: MlArray<Field>,
-  zeta_omega: MlArray<Field>
-];
-type LookupEvaluations<Field> = [
-  _: 0,
-  sorted: MlArray<PointEvaluations<Field>>,
-  aggreg: PointEvaluations<Field>,
-  table: PointEvaluations<Field>,
-  runtime: MlOption<PointEvaluations<Field>>
-];
-type nColumns = 15;
-type nPermutsMinus1 = 6;
-type ProofEvaluations<Field> = [
-  _: 0,
-  w: MlTupleN<PointEvaluations<Field>, nColumns>,
-  z: PointEvaluations<Field>,
-  s: MlTupleN<PointEvaluations<Field>, nPermutsMinus1>,
-  coefficients: MlTupleN<PointEvaluations<Field>, nColumns>,
-  lookup: MlOption<LookupEvaluations<Field>>,
-  generic_selector: PointEvaluations<Field>,
-  poseidon_selector: PointEvaluations<Field>
-];
-type RecursionChallenge = [_: 0, chals: MlArray<Field>, comm: PolyComm];
-
-type ProverProof = [
-  _: 0,
-  commitments: ProverCommitments,
-  proof: OpeningProof,
-  evals: ProofEvaluations<Field>,
-  ft_eval1: Field,
-  public_: MlArray<Field>,
-  prev_challenges: MlArray<RecursionChallenge>
-];
+import { Field, OrInfinity } from './kimchi-types.js';
 
 // wasm types
 
@@ -173,7 +60,6 @@ type wasm = typeof wasmNamespace;
 
 type WasmAffine = WasmGVesta | WasmGPallas;
 type WasmPolyComm = WasmFpPolyComm | WasmFqPolyComm;
-type WasmSrs = WasmFpSrs | WasmFqSrs;
 type WasmDomain = WasmFpDomain | WasmFqDomain;
 type WasmVerificationEvals =
   | WasmFpPlonkVerificationEvals
