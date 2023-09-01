@@ -13,7 +13,7 @@ import { tic, toc } from '../tictoc.js';
 
 await isReady;
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 tic('Happy path with actions');
 console.log();
