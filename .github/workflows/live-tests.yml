@@ -1,0 +1,86 @@
+name: Test SnarkyJS against real network
+on:
+  push:
+    branches:
+      - main
+      - berkeley
+      - develop
+  pull_request:
+    branches:
+      - main
+      - berkeley
+      - develop
+  workflow_dispatch: {}
+
+jobs:
+  main-branch:
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:rampup-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 8080:8080
+          - 8181:8181
+        # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
+        # - Will be fixed by improving logging as part of the work on:
+        # - https://hub.docker.com/r/o1labs/mina-local-network
+        options: --log-driver=none
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
+
+  berkeley-branch:
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/berkeley' || (github.event_name == 'pull_request' && github.base_ref == 'berkeley')
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:berkeley-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 8080:8080
+          - 8181:8181
+        # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
+        # - Will be fixed by improving logging as part of the work on:
+        # - https://hub.docker.com/r/o1labs/mina-local-network
+        options: --log-driver=none
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
+
+  develop-branch:
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:develop-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 8080:8080
+          - 8181:8181
+        # TODO: Disable logging for container as the workaround of long post-job-cleanup phase
+        # - Will be fixed by improving logging as part of the work on:
+        # - https://hub.docker.com/r/o1labs/mina-local-network
+        options: --log-driver=none
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
