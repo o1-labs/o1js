@@ -2,7 +2,7 @@ import { handleErrors } from '../../../lib/testing/equivalent.js';
 import { test, Random } from '../../../lib/testing/property.js';
 import { deepEqual } from 'node:assert/strict';
 
-export { id, equivalentRecord, Spec };
+export { id, equivalentRecord, Spec, ToSpec, FromSpec };
 
 // a `Spec` tells us how to compare two functions
 
