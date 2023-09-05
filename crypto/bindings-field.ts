@@ -124,12 +124,12 @@ function createFieldBindings(Field: FiniteField) {
       return [0, generator];
     },
     to_bytes(x: Field): MlBytes {
-      return Bigint256Bindings.caml_bigint_256_to_bytes(x);
+      // not used in js
+      throw Error('to_bytes: not implemented');
     },
     of_bytes(bytes: MlBytes): Field {
-      let [, x] = Bigint256Bindings.caml_bigint_256_of_bytes(bytes);
-      if (x >= Field.modulus) throw Error('of_bytes: input exceeds field size');
-      return [0, x];
+      // not used in js
+      throw Error('of_bytes: not implemented');
     },
     deep_copy([, x]: Field): Field {
       return [0, x];
