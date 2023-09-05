@@ -6,7 +6,7 @@ let url = import.meta.url;
 let filename = url !== undefined ? fileURLToPath(url) : __filename;
 
 /**
- * @type {import("../../node_bindings/plonk_wasm")}
+ * @type {import("../../compiled/node_bindings/plonk_wasm.cjs")}
  */
 const wasm = wasm_;
 
