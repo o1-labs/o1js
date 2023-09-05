@@ -1,5 +1,19 @@
 # o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
+O(1) Labs has renamed SnarkyJS to o1js, effective immediately!
+
+This name change reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
+
+Your favorite functionality stays the same and transitioning to o1js is a quick and easy process:
+- To update zkApp-cli, run the following command:
+    `npm i -g zkapp-cli@latest`
+- To remove the now-deprecated SnarkyJs package and install o1js, run the following command:
+    `npm remove snarkyjs && npm install o1js`
+- For existing zkApps, make sure to update your imports from `snarkyjs` to `o1js`
+- No need to redeploy, you are good to go!
+
+## o1js
+
 o1js helps developers build apps powered by zero-knowledge (zk) cryptography.
 
 The easiest way to write zk programs is using o1js.
