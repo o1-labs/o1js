@@ -111,10 +111,8 @@ equivalentRecord(
     caml_pasta_fp_of_bigint: { from: [bigint256], to: fp },
     caml_pasta_fp_two_adic_root_of_unity: { from: [], to: fp },
     caml_pasta_fp_domain_generator: { from: [numberBetween(0, 31)], to: fp },
-    // caml_pasta_fp_to_bytes: { from: [fp], to: bytes },
-    caml_pasta_fp_to_bytes: undefined, // TODO
-    // caml_pasta_fp_of_bytes: { from: [bytes], to: fp },
-    caml_pasta_fp_of_bytes: undefined, // TODO
+    caml_pasta_fp_to_bytes: undefined, // not implemented
+    caml_pasta_fp_of_bytes: undefined, // not implemented
     caml_pasta_fp_deep_copy: { from: [fp], to: fp },
   }
 );
