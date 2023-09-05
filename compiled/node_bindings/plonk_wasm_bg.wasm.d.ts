@@ -450,9 +450,6 @@ export function poolbuilder_build(a: number): void;
 export function initThreadPool(a: number, b: number): number;
 export function exitThreadPool(): number;
 export function wbg_rayon_start_worker(a: number): void;
-<<<<<<< HEAD
-export function __wbg_wasmfqrandomoracles_free(a: number): void;
-=======
 export function __wbg_wasmpallasgprojective_free(a: number): void;
 export function __wbg_wasmfprandomoracles_free(a: number): void;
 export function __wbg_get_wasmfprandomoracles_joint_combiner_chal(a: number, b: number): void;
@@ -495,7 +492,6 @@ export function wasmfporacles_set_opening_prechallenges(a: number, b: number, c:
 export function fp_oracles_create(a: number, b: number, c: number, d: number, e: number): void;
 export function fp_oracles_dummy(): number;
 export function fp_oracles_deep_copy(a: number): number;
->>>>>>> 776bf54f82739c5fd7a30b1cc1fa1bd3c0f04833
 export function __wbg_get_wasmfqrandomoracles_joint_combiner_chal(a: number, b: number): void;
 export function __wbg_set_wasmfqrandomoracles_joint_combiner_chal(a: number, b: number, c: number): void;
 export function __wbg_get_wasmfqrandomoracles_joint_combiner(a: number, b: number): void;
@@ -532,60 +528,6 @@ export function wasmfqoracles_opening_prechallenges(a: number, b: number): void;
 export function wasmfqoracles_set_opening_prechallenges(a: number, b: number, c: number): void;
 export function fq_oracles_create(a: number, b: number, c: number, d: number, e: number): void;
 export function fq_oracles_deep_copy(a: number): number;
-<<<<<<< HEAD
-export function __wbg_wasmpallasgprojective_free(a: number): void;
-export function __wbg_wasmfprandomoracles_free(a: number): void;
-export function __wbg_get_wasmfprandomoracles_joint_combiner_chal(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_joint_combiner_chal(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_joint_combiner(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_joint_combiner(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_beta(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_beta(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_gamma(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_gamma(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_alpha_chal(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_alpha_chal(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_alpha(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_alpha(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_zeta(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_zeta(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_v(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_v(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_u(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_u(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_zeta_chal(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_zeta_chal(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_v_chal(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_v_chal(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfprandomoracles_u_chal(a: number, b: number): void;
-export function __wbg_set_wasmfprandomoracles_u_chal(a: number, b: number, c: number): void;
-export function wasmfprandomoracles_new(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number): number;
-export function __wbg_wasmfporacles_free(a: number): void;
-export function __wbg_get_wasmfporacles_o(a: number): number;
-export function __wbg_set_wasmfporacles_o(a: number, b: number): void;
-export function __wbg_get_wasmfporacles_p_eval0(a: number, b: number): void;
-export function __wbg_set_wasmfporacles_p_eval0(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfporacles_p_eval1(a: number, b: number): void;
-export function __wbg_set_wasmfporacles_p_eval1(a: number, b: number, c: number): void;
-export function __wbg_get_wasmfporacles_digest_before_evaluations(a: number, b: number): void;
-export function __wbg_set_wasmfporacles_digest_before_evaluations(a: number, b: number, c: number): void;
-export function wasmfporacles_new(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number): number;
-export function wasmfporacles_opening_prechallenges(a: number, b: number): void;
-export function wasmfporacles_set_opening_prechallenges(a: number, b: number, c: number): void;
-export function fp_oracles_create(a: number, b: number, c: number, d: number, e: number): void;
-export function fp_oracles_dummy(): number;
-export function fp_oracles_deep_copy(a: number): number;
-export function wasmfppolycomm_new(a: number, b: number, c: number): number;
-export function wasmfppolycomm_unshifted(a: number, b: number): void;
-export function wasmfppolycomm_set_unshifted(a: number, b: number, c: number): void;
-export function __wbg_wasmfppolycomm_free(a: number): void;
-export function __wbg_get_wasmfppolycomm_shifted(a: number): number;
-export function __wbg_set_wasmfppolycomm_shifted(a: number, b: number): void;
-export function wasmfqpolycomm_new(a: number, b: number, c: number): number;
-export function wasmfqpolycomm_unshifted(a: number, b: number): void;
-export function wasmfqpolycomm_set_unshifted(a: number, b: number, c: number): void;
-=======
->>>>>>> 776bf54f82739c5fd7a30b1cc1fa1bd3c0f04833
 export function __wbg_wasmvestagprojective_free(a: number): void;
 export function __wbg_wasmfqrandomoracles_free(a: number): void;
 export function __wbg_get_wasmfqoracles_o(a: number): number;
