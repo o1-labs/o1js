@@ -100,7 +100,9 @@ function createFieldBindings(Field: FiniteField) {
       return x;
     },
     of_bigint([, x]: Bigint256): Field {
-      return [0, Field.fromBigint(x)];
+      if (x >= Field.modulus)
+        throw Error('of_bigint: input exceeds field size');
+      return [0, x];
     },
     two_adic_root_of_unity(): Field {
       return [0, Field.twoadicRoot];
@@ -123,9 +125,10 @@ function createFieldBindings(Field: FiniteField) {
     to_bytes(x: Field): MlBytes {
       return Bigint256Bindings.caml_bigint_256_to_bytes(x);
     },
-    of_bytes(x: MlBytes): Field {
-      let [, bigint] = Bigint256Bindings.caml_bigint_256_of_bytes(x);
-      return [0, Field.fromBigint(bigint)];
+    of_bytes(bytes: MlBytes): Field {
+      let [, x] = Bigint256Bindings.caml_bigint_256_of_bytes(bytes);
+      if (x >= Field.modulus) throw Error('of_bytes: input exceeds field size');
+      return [0, x];
     },
     deep_copy([, x]: Field): Field {
       return [0, x];
