@@ -1738,7 +1738,6 @@ var caml_plonk_verification_evals_of_rust = function (x, affine_klass) {
     foreign_field_add_comm,
     foreign_field_mul_comm,
     rot_comm,
-    0,
   ];
 };
 
