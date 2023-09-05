@@ -118,7 +118,7 @@ function createFieldBindings(Field: FiniteField) {
         );
       if (i === 0) return [0, 1n];
       let generator = Field.twoadicRoot;
-      for (var j = 32; j > i; j--) {
+      for (let j = 32; j > i; j--) {
         generator = mod(generator * generator, Field.modulus);
       }
       return [0, generator];
