@@ -20,13 +20,13 @@ The repo is included as a git submodule in the [o1js repo](https://github.com/o1
 
 To instrument the scripts and build the o1js bindings from source, you need to work from the [Mina monorepo](https://github.com/MinaProtocol/mina).
 
-Inside the Mina repo, you'll find the [o1js repo](https://github.com/o1-labs/o1js) as a git submodule under `src/lib/o1js`. Inside `o1js`, the `o1js-bindings` repo is located at `src/bindings`. To make sure you have all nested submodules checked out, run (from the Mina root):
+Inside the Mina repo, you'll find the [o1js repo](https://github.com/o1-labs/o1js) as a git submodule under `src/lib/snarkyjs`. Inside `o1js`, the `o1js-bindings` repo is located at `src/bindings`. To make sure you have all nested submodules checked out, run (from the Mina root):
 
 ```sh
 git submodule update --init --recursive
 ```
 
-Then, switch to the o1js root in `src/lib/o1js`. 
+Then, switch to the o1js root in `src/lib/snarkyjs`. 
 
 You use these two commands for different purposes:
 
