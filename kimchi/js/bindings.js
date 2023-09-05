@@ -4,6 +4,15 @@
     UInt64, caml_int64_of_int32
 */
 
+// Provides: tsBindings
+var tsBindings = globalThis.__snarkyTsBindings;
+
+// Provides: getTsBindings
+// Requires: tsBindings
+function getTsBindings() {
+    return tsBindings;
+}
+
 // Provides: caml_bytes_of_uint8array
 // Requires: caml_create_bytes, caml_bytes_unsafe_set
 var caml_bytes_of_uint8array = function (uint8array) {

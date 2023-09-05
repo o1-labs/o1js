@@ -11,22 +11,23 @@ import o1jsWebSrc from "string:../../../web_bindings/snarky_js_web.bc.js";
 export { initO1, withThreadPool };
 
 let wasm = plonkWasm();
+globalThis.plonk_wasm = wasm;
+
 let init = wasm.default;
 /**
- * @type {Worker}
+ * @type {Promise<Worker>}
  */
-let worker;
+let workerPromise;
+/**
+ * @type {number | undefined}
+ */
+let numWorkers = undefined;
 
 async function initO1() {
   const memory = allocateWasmMemoryForUserAgent(navigator.userAgent);
   await init(undefined, memory);
 
   let module = init.__wbindgen_wasm_module;
-  let numWorkers = await getEfficientNumWorkers();
-
-  worker = inlineWorker(srcFromFunctionModule(mainWorker));
-  await workerCall(worker, "start", { memory, module, numWorkers });
-  globalThis.plonk_wasm = overrideBindings(wasm, worker);
 
   // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
 
@@ -39,11 +40,23 @@ async function initO1() {
   // 2. include the code as string and eval it:
   // (this works because it breaks out of strict mode)
   new Function(o1jsWebSrc)();
+
+  workerPromise = new Promise((resolve) => {
+    setTimeout(async () => {
+      let worker = inlineWorker(srcFromFunctionModule(mainWorker));
+      await workerCall(worker, "start", { memory, module });
+      overrideBindings(globalThis.plonk_wasm, worker);
+      resolve(worker);
+    }, 0);
+  });
 }
 
 async function withThreadPool(run) {
-  if (worker === undefined) throw Error("need to initialize worker first");
-  await workerCall(worker, "initThreadPool");
+  if (workerPromise === undefined)
+    throw Error("need to initialize worker first");
+  let worker = await workerPromise;
+  numWorkers ??= await getEfficientNumWorkers();
+  await workerCall(worker, "initThreadPool", numWorkers);
   let result;
   try {
     result = await run();
@@ -61,7 +74,7 @@ async function mainWorker() {
 
   let isInitialized = false;
   let data = await waitForMessage(self, "start");
-  let { module, memory, numWorkers } = data.message;
+  let { module, memory } = data.message;
 
   onMessage(self, "run", ({ name, args, u32_ptr }) => {
     let functionSpec = spec[name];
@@ -88,7 +101,7 @@ async function mainWorker() {
   });
 
   workerExport(self, {
-    async initThreadPool() {
+    async initThreadPool(numWorkers) {
       if (!isInitialized) {
         isInitialized = true;
         await wasm.initThreadPool(numWorkers);
@@ -97,7 +110,7 @@ async function mainWorker() {
     async exitThreadPool() {
       if (isInitialized) {
         isInitialized = false;
-        await wasm.exitThreadPool(numWorkers);
+        await wasm.exitThreadPool();
       }
     },
   });
@@ -113,11 +126,10 @@ mainWorker.deps = [
   waitForMessage,
 ];
 
-function overrideBindings(wasm, worker) {
-  let spec = workerSpec(wasm);
-  let plonk_wasm_ = { ...wasm };
+function overrideBindings(plonk_wasm, worker) {
+  let spec = workerSpec(plonk_wasm);
   for (let key in spec) {
-    plonk_wasm_[key] = (...args) => {
+    plonk_wasm[key] = (...args) => {
       let u32_ptr = wasm.create_zero_u32_ptr();
       worker.postMessage({
         type: "run",
@@ -136,7 +148,6 @@ function overrideBindings(wasm, worker) {
       }
     };
   }
-  return plonk_wasm_;
 }
 
 // helpers for main thread <-> worker communication
