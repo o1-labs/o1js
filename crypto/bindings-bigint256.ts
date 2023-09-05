@@ -1,3 +1,4 @@
+import { MlBool } from '../../lib/ml/base.js';
 import { withPrefix } from './bindings-util.js';
 
 /**
@@ -44,8 +45,8 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     return toMlStringAscii(x[1].toString());
   },
   // TODO performance critical
-  test_bit(b: Bigint256, i: number) {
-    return Number(!!(b[1] & (1n << BigInt(i))));
+  test_bit(b: Bigint256, i: number): MlBool {
+    return MlBool(!!(b[1] & (1n << BigInt(i))));
   },
   to_bytes([, x]: Bigint256) {
     var ocamlBytes = caml_create_bytes(32);
