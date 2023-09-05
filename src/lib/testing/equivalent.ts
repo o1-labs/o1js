@@ -5,7 +5,7 @@ import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
 
-export { createEquivalenceTesters, throwError };
+export { createEquivalenceTesters, throwError, handleErrors };
 
 function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
   Field: Provable<Field>,
@@ -129,35 +129,35 @@ function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
     });
   }
 
-  function handleErrors<T, S, R>(
-    op1: () => T,
-    op2: () => S,
-    useResults?: (a: T, b: S) => R
-  ): R | undefined {
-    let result1: T, result2: S;
-    let error1: Error | undefined;
-    let error2: Error | undefined;
-    try {
-      result1 = op1();
-    } catch (err) {
-      error1 = err as Error;
-    }
-    try {
-      result2 = op2();
-    } catch (err) {
-      error2 = err as Error;
-    }
-    if (!!error1 !== !!error2) {
-      error1 && console.log(error1);
-      error2 && console.log(error2);
-    }
-    deepEqual(!!error1, !!error2, 'equivalent errors');
-    if (!(error1 || error2) && useResults !== undefined) {
-      return useResults(result1!, result2!);
-    }
-  }
-
   return { equivalent1, equivalent2, equivalentVoid1, equivalentVoid2 };
+}
+
+function handleErrors<T, S, R>(
+  op1: () => T,
+  op2: () => S,
+  useResults?: (a: T, b: S) => R
+): R | undefined {
+  let result1: T, result2: S;
+  let error1: Error | undefined;
+  let error2: Error | undefined;
+  try {
+    result1 = op1();
+  } catch (err) {
+    error1 = err as Error;
+  }
+  try {
+    result2 = op2();
+  } catch (err) {
+    error2 = err as Error;
+  }
+  if (!!error1 !== !!error2) {
+    error1 && console.log(error1);
+    error2 && console.log(error2);
+  }
+  deepEqual(!!error1, !!error2, 'equivalent errors');
+  if (!(error1 || error2) && useResults !== undefined) {
+    return useResults(result1!, result2!);
+  }
 }
 
 function throwError(message?: string): any {
