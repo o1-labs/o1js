@@ -11,7 +11,7 @@ import { wasm } from '../../js/node/node-backend.js';
 import { Random } from '../../../lib/testing/property.js';
 import { fieldFromRust, fieldToRust } from '../bindings-conversion-base.js';
 import { id, equivalentRecord, Spec, ToSpec, FromSpec } from './test-utils.js';
-import { Field, FpBindings } from '../bindings-field.js';
+import { Field, FpBindings, FqBindings } from '../bindings-field.js';
 import { MlBool, MlOption } from '../../../lib/ml/base.js';
 
 let unit: ToSpec<void, void> = { back: id };
@@ -114,6 +114,52 @@ equivalentRecord(
     caml_pasta_fp_to_bytes: undefined, // not implemented
     caml_pasta_fp_of_bytes: undefined, // not implemented
     caml_pasta_fp_deep_copy: { from: [fp], to: fp },
+  }
+);
+
+equivalentRecord(
+  FqBindings as Omit<
+    typeof FqBindings,
+    | 'caml_pasta_fq_copy'
+    | 'caml_pasta_fq_mut_add'
+    | 'caml_pasta_fq_mut_sub'
+    | 'caml_pasta_fq_mut_mul'
+    | 'caml_pasta_fq_mut_square'
+  >,
+  wasm,
+  {
+    caml_pasta_fq_size_in_bits: { from: [], to: number },
+    caml_pasta_fq_size: { from: [], to: fq },
+    caml_pasta_fq_add: { from: [fq, fq], to: fq },
+    caml_pasta_fq_sub: { from: [fq, fq], to: fq },
+    caml_pasta_fq_negate: { from: [fq], to: fq },
+    caml_pasta_fq_mul: { from: [fq, fq], to: fq },
+    caml_pasta_fq_div: { from: [fq, fq], to: fq },
+    caml_pasta_fq_inv: { from: [fq], to: option(fq) },
+    caml_pasta_fq_square: { from: [fq], to: fq },
+    caml_pasta_fq_is_square: { from: [fq], to: boolean },
+    caml_pasta_fq_sqrt: { from: [fq], to: option(fq) },
+    caml_pasta_fq_of_int: { from: [numberBetween(0, 1000)], to: fq },
+    caml_pasta_fq_to_string: { from: [fq], to: decimalString },
+    caml_pasta_fq_of_string: { from: [decimalString], to: fq },
+    caml_pasta_fq_print: undefined, // this would spam the console
+    // these aren't defined in Rust
+    // caml_pasta_fq_copy: { from: [fq, fq], to: unit },
+    // caml_pasta_fq_mut_add: { from: [fq, fq], to: unit },
+    // caml_pasta_fq_mut_sub: { from: [fq, fq], to: unit },
+    // caml_pasta_fq_mut_mul: { from: [fq, fq], to: unit },
+    // caml_pasta_fq_mut_square: { from: [fq], to: unit },
+    caml_pasta_fq_compare: { from: [fq, fq], to: number },
+    caml_pasta_fq_equal: { from: [fq, fq], to: boolean },
+    caml_pasta_fq_random: undefined, // random outputs won't match
+    caml_pasta_fq_rng: undefined, // random outputs won't match
+    caml_pasta_fq_to_bigint: { from: [fq], to: bigint256 },
+    caml_pasta_fq_of_bigint: { from: [bigint256], to: fq },
+    caml_pasta_fq_two_adic_root_of_unity: { from: [], to: fq },
+    caml_pasta_fq_domain_generator: { from: [numberBetween(0, 31)], to: fq },
+    caml_pasta_fq_to_bytes: undefined, // not implemented
+    caml_pasta_fq_of_bytes: undefined, // not implemented
+    caml_pasta_fq_deep_copy: { from: [fq], to: fq },
   }
 );
 
