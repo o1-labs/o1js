@@ -12,7 +12,7 @@ function proxyClasses(getModuleObject, isItReady, moduleSpec) {
     };
     for (let prop of classSpec.props) {
       let propName = prop.name;
-      if (prop.type === 'function') {
+      if (prop.type === "function") {
         // static method
         Class[propName] = function (...args) {
           if (!isItReady()) throw Error(methodError(className, propName));
@@ -47,16 +47,16 @@ function proxyFunctions(getModuleObject, isItReady, functionNames) {
 
 let constructError = (
   className
-) => `Cannot call class constructor because snarkyjs has not finished loading.
+) => `Cannot call class constructor because o1js has not finished loading.
 Try calling \`await isReady\` before \`new ${className}()\``;
 
 let methodError = (
   className,
   methodName
-) => `Cannot call static method because snarkyjs has not finished loading.
+) => `Cannot call static method because o1js has not finished loading.
 Try calling \`await isReady\` before \`${className}.${methodName}()\``;
 
 let functionError = (
   functionName
-) => `Cannot call function because snarkyjs has not finished loading.
+) => `Cannot call function because o1js has not finished loading.
 Try calling \`await isReady\` before \`${functionName}()\``;

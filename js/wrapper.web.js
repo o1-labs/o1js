@@ -1,4 +1,4 @@
-import { initSnarkyJS, withThreadPool } from './web/web-backend.js';
+import { initO1, withThreadPool } from "./web/web-backend.js";
 
 export { getSnarky, getWasm, withThreadPool };
 
@@ -8,4 +8,4 @@ function getWasm() {
   return globalThis.plonk_wasm;
 }
 
-await initSnarkyJS();
+await initO1();
