@@ -1,4 +1,5 @@
 import {
+  Bigint256,
   Bigint256Bindings,
   MlBytes,
   fromMlString,
@@ -10,7 +11,7 @@ import { wasm } from '../../js/node/node-backend.js';
 import { Random } from '../../../lib/testing/property.js';
 import { fieldFromRust, fieldToRust } from '../bindings-conversion-base.js';
 import { id, equivalentRecord, Spec } from './test-utils.js';
-import { Field } from '../bindings-field.js';
+import { Field, FpBindings } from '../bindings-field.js';
 import { MlBool } from '../../../lib/ml/base.js';
 
 let number: Spec<number, number> = {
@@ -19,13 +20,18 @@ let number: Spec<number, number> = {
   back: id,
 };
 
+let bigint256: Spec<Bigint256, Uint8Array> = {
+  rng: Random.map(Random.biguint(256), (x) => [0, x]),
+  there: fieldToRust,
+  back: fieldFromRust,
+};
 let fp: Spec<Field, Uint8Array> = {
-  rng: Random.map(Random.field, (x) => [0, x] satisfies Field),
+  rng: Random.map(Random.field, (x) => [0, x]),
   there: fieldToRust,
   back: fieldFromRust,
 };
 let fq: Spec<Field, Uint8Array> = {
-  rng: Random.map(Random.scalar, (x) => [0, x] satisfies Field),
+  rng: Random.map(Random.scalar, (x) => [0, x]),
   there: fieldToRust,
   back: fieldFromRust,
 };
@@ -48,15 +54,15 @@ let bytes: Spec<MlBytes, Uint8Array> = {
 
 equivalentRecord(Bigint256Bindings, wasm, {
   caml_bigint_256_of_numeral: undefined, // TODO
-  caml_bigint_256_of_decimal_string: { from: [decimalString], to: fp },
+  caml_bigint_256_of_decimal_string: { from: [decimalString], to: bigint256 },
   caml_bigint_256_num_limbs: { from: [], to: number },
   caml_bigint_256_bytes_per_limb: { from: [], to: number },
-  caml_bigint_256_div: { from: [fp, fp], to: fp },
-  caml_bigint_256_compare: { from: [fp, fp], to: number },
+  caml_bigint_256_div: { from: [bigint256, bigint256], to: bigint256 },
+  caml_bigint_256_compare: { from: [bigint256, bigint256], to: number },
   caml_bigint_256_print: undefined, // this would spam the console
-  caml_bigint_256_to_string: { from: [fp], to: decimalString },
-  caml_bigint_256_test_bit: { from: [fp, number], to: boolean },
-  caml_bigint_256_to_bytes: { from: [fp], to: bytes },
-  caml_bigint_256_of_bytes: { from: [bytes], to: fp },
-  caml_bigint_256_deep_copy: { from: [fp], to: fp },
+  caml_bigint_256_to_string: { from: [bigint256], to: decimalString },
+  caml_bigint_256_test_bit: { from: [bigint256, number], to: boolean },
+  caml_bigint_256_to_bytes: { from: [bigint256], to: bytes },
+  caml_bigint_256_of_bytes: { from: [bytes], to: bigint256 },
+  caml_bigint_256_deep_copy: { from: [bigint256], to: bigint256 },
 });
