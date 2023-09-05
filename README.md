@@ -4,7 +4,7 @@
 
 This name change reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
 
-Your favorite functionalities stay the same. Transitioning to o1js a quick and easy process:
+Your favorite functionality stays the same and transitioning to o1js is a quick and easy process:
 - To update zkApp-cli, run the following command:
     `npm i -g zkapp-cli@latest`
 - To remove the now-deprecated SnarkyJs package and install o1js, run the following command:
