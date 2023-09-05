@@ -67,6 +67,7 @@ const boolean = Random_(() => drawOneOf8() < 4);
 const bool = map(boolean, Bool);
 const uint32 = biguintWithInvalid(32);
 const uint64 = biguintWithInvalid(64);
+const byte = Random_(drawRandomByte);
 
 const field = fieldWithInvalid(Field);
 const scalar = fieldWithInvalid(Scalar);
@@ -291,6 +292,7 @@ const Random = Object.assign(Random_, {
   nat,
   fraction,
   boolean,
+  byte,
   bytes,
   string,
   base58,
@@ -715,16 +717,15 @@ let specialBytes = [0, 0, 0, 1, 1, 2, 255, 255];
  * log-uniform distribution over range [0, 255]
  * with bias towards 0, 1, 2, 255
  */
-const byte: Random<number> = {
-  create: () => () => {
-    // 25% of test cases are special numbers
-    if (drawOneOf8() < 2) return specialBytes[drawOneOf8()];
-    // the remaining follow log-uniform / cut off exponential distribution:
-    // we sample a bit length from [1, 8] and then a number with that length
-    let bitLength = 1 + drawOneOf8();
-    return drawUniformUintBits(bitLength);
-  },
-};
+function drawRandomByte() {
+  // 25% of test cases are special numbers
+  if (drawOneOf8() < 2) return specialBytes[drawOneOf8()];
+  // the remaining follow log-uniform / cut off exponential distribution:
+  // we sample a bit length from [1, 8] and then a number with that length
+  let bitLength = 1 + drawOneOf8();
+  return drawUniformUintBits(bitLength);
+}
+
 /**
  * log-uniform distribution over 2^n-bit range
  * with bias towards 0, 1, 2, max
