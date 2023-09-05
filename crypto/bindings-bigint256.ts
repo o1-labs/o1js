@@ -3,7 +3,15 @@ import { withPrefix } from './bindings-util.js';
 /**
  * TS implementation of Pasta_bindings.BigInt256
  */
-export { Bigint256Bindings, Bigint256, toMlStringAscii, fromMlString, MlBytes };
+export {
+  Bigint256Bindings,
+  Bigint256,
+  toMlStringAscii,
+  fromMlString,
+  MlBytes,
+  mlBytesFromUint8Array,
+  mlBytesToUint8Array,
+};
 
 type Bigint256 = [0, bigint];
 
@@ -15,16 +23,16 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
   of_decimal_string(s: MlBytes): Bigint256 {
     return [0, BigInt(fromMlString(s))];
   },
-  num_limbs() {
+  num_limbs(): number {
     return 4;
   },
-  bytes_per_limb() {
+  bytes_per_limb(): number {
     return 8;
   },
   div([, x]: Bigint256, [, y]: Bigint256): Bigint256 {
     return [0, x / y];
   },
-  compare([, x]: Bigint256, [, y]: Bigint256) {
+  compare([, x]: Bigint256, [, y]: Bigint256): number {
     if (x < y) return -1;
     if (x === y) return 0;
     return 1;
@@ -41,11 +49,12 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
   },
   to_bytes([, x]: Bigint256) {
     var ocamlBytes = caml_create_bytes(32);
-    for (var i = 0; x > 0; x >>= 8n, i++) {
-      if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
+    for (var i = 0; i < 32; i++) {
       var byte = Number(x & 0xffn);
       caml_bytes_unsafe_set(ocamlBytes, i, byte);
+      x >>= 8n;
     }
+    if (x !== 0n) throw Error("bigint256 doesn't fit into 32 bytes.");
     return ocamlBytes;
   },
   of_bytes(ocamlBytes: MlBytes): Bigint256 {
@@ -75,14 +84,14 @@ function toMlStringAscii(s: string) {
   return new MlBytes(9, s, s.length);
 }
 
-function caml_bytes_unsafe_get(s: MlBytes, i: number) {
+function caml_bytes_unsafe_get(s: MlBytes, i: number): number {
   switch (s.t & 6) {
     default: /* PARTIAL */
       if (i >= s.c.length) return 0;
     case 0 /* BYTES */:
       return s.c.charCodeAt(i);
     case 4 /* ARRAY */:
-      return s.c[i];
+      return s.c[i] as any as number;
   }
 }
 
@@ -118,6 +127,26 @@ function caml_convert_bytes_to_array(s: MlBytes) {
   // TODO
   s.t = 4; /* ARRAY */
   return a;
+}
+
+function mlBytesFromUint8Array(uint8array: Uint8Array | number[]) {
+  var length = uint8array.length;
+  var ocaml_bytes = caml_create_bytes(length);
+  for (var i = 0; i < length; i++) {
+    // No need to convert here: OCaml Char.t is just an int under the hood.
+    caml_bytes_unsafe_set(ocaml_bytes, i, uint8array[i]);
+  }
+  return ocaml_bytes;
+}
+
+function mlBytesToUint8Array(ocaml_bytes: MlBytes) {
+  var length = ocaml_bytes.l;
+  var bytes = new Uint8Array(length);
+  for (var i = 0; i < length; i++) {
+    // No need to convert here: OCaml Char.t is just an int under the hood.
+    bytes[i] = caml_bytes_unsafe_get(ocaml_bytes, i);
+  }
+  return bytes;
 }
 
 class MlBytes {

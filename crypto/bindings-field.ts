@@ -83,7 +83,7 @@ function createFieldBindings(Field: FiniteField) {
     mut_square(x: Field): void {
       x[1] = Field.square(x[1]);
     },
-    compare(x: Field, y: Field): 1 | 0 | -1 {
+    compare(x: Field, y: Field): number {
       return Bigint256Bindings.caml_bigint_256_compare(x, y);
     },
     equal([, x]: Field, [, y]: Field): MlBool {
