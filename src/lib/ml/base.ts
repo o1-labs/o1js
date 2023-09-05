@@ -69,5 +69,13 @@ const MlOption = Object.assign(
       if (option === 0) return 0;
       return [0, map(option[1])];
     },
+    mapFrom<T, S>(option: MlOption<T>, map: (t: T) => S): S | undefined {
+      if (option === 0) return undefined;
+      return map(option[1]);
+    },
+    mapTo<T, S>(option: T | undefined, map: (t: T) => S): MlOption<S> {
+      if (option === undefined) return 0;
+      return [0, map(option)];
+    },
   }
 );
