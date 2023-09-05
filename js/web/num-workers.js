@@ -11,7 +11,7 @@ async function getEfficientNumWorkers() {
   // gpuTier.gpu is undefined if page was rendered server side
   let gpuModel = gpuTier.gpu;
 
-  var numWorkers =
+  let numWorkers =
     {
       'apple m1': 2,
       'apple m1 pro': numCpus === 10 ? 3 : 2,

@@ -49,9 +49,9 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     return MlBool(!!(b[1] & (1n << BigInt(i))));
   },
   to_bytes([, x]: Bigint256) {
-    var ocamlBytes = caml_create_bytes(32);
-    for (var i = 0; i < 32; i++) {
-      var byte = Number(x & 0xffn);
+    let ocamlBytes = caml_create_bytes(32);
+    for (let i = 0; i < 32; i++) {
+      let byte = Number(x & 0xffn);
       caml_bytes_unsafe_set(ocamlBytes, i, byte);
       x >>= 8n;
     }
@@ -59,12 +59,12 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     return ocamlBytes;
   },
   of_bytes(ocamlBytes: MlBytes): Bigint256 {
-    var length = ocamlBytes.l;
+    let length = ocamlBytes.l;
     if (length > 32) throw Error(length + " bytes don't fit into bigint256");
-    var x = 0n;
-    var bitPosition = 0n;
-    for (var i = 0; i < length; i++) {
-      var byte = caml_bytes_unsafe_get(ocamlBytes, i);
+    let x = 0n;
+    let bitPosition = 0n;
+    for (let i = 0; i < length; i++) {
+      let byte = caml_bytes_unsafe_get(ocamlBytes, i);
       x += BigInt(byte) << bitPosition;
       bitPosition += 8n;
     }
@@ -118,8 +118,8 @@ function caml_create_bytes(len: number) {
 
 function caml_convert_bytes_to_array(s: MlBytes) {
   /* Assumes not ARRAY */
-  var a = new Uint8Array(s.l);
-  var b = s.c,
+  let a = new Uint8Array(s.l);
+  let b = s.c,
     l = b.length,
     i = 0;
   for (; i < l; i++) a[i] = b.charCodeAt(i);
@@ -131,9 +131,9 @@ function caml_convert_bytes_to_array(s: MlBytes) {
 }
 
 function mlBytesFromUint8Array(uint8array: Uint8Array | number[]) {
-  var length = uint8array.length;
-  var ocaml_bytes = caml_create_bytes(length);
-  for (var i = 0; i < length; i++) {
+  let length = uint8array.length;
+  let ocaml_bytes = caml_create_bytes(length);
+  for (let i = 0; i < length; i++) {
     // No need to convert here: OCaml Char.t is just an int under the hood.
     caml_bytes_unsafe_set(ocaml_bytes, i, uint8array[i]);
   }
@@ -141,9 +141,9 @@ function mlBytesFromUint8Array(uint8array: Uint8Array | number[]) {
 }
 
 function mlBytesToUint8Array(ocaml_bytes: MlBytes) {
-  var length = ocaml_bytes.l;
-  var bytes = new Uint8Array(length);
-  for (var i = 0; i < length; i++) {
+  let length = ocaml_bytes.l;
+  let bytes = new Uint8Array(length);
+  for (let i = 0; i < length; i++) {
     // No need to convert here: OCaml Char.t is just an int under the hood.
     bytes[i] = caml_bytes_unsafe_get(ocaml_bytes, i);
   }
@@ -171,7 +171,7 @@ class MlBytes {
   }
 
   slice() {
-    var content = this.t == 4 ? this.c.slice() : this.c;
+    let content = this.t == 4 ? this.c.slice() : this.c;
     return new MlBytes(this.t, content, this.l);
   }
 }
