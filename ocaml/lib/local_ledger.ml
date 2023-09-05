@@ -192,10 +192,13 @@ let create () : ledger_class Js.t =
   new%js ledger_constr l
 
 let account_to_json =
-  let deriver = Mina_base.Account.deriver @@ Fields_derivers_zkapps.o () in
-  let to_json' = Fields_derivers_zkapps.to_json deriver in
+  let deriver =
+    lazy (Mina_base.Account.deriver @@ Fields_derivers_zkapps.o ())
+  in
   let to_json (account : Mina_base.Account.t) : Js.Unsafe.any =
-    account |> to_json' |> Yojson.Safe.to_string |> Js.string |> Util.json_parse
+    account
+    |> Fields_derivers_zkapps.to_json (Lazy.force deriver)
+    |> Yojson.Safe.to_string |> Js.string |> Util.json_parse
   in
   to_json
 
@@ -210,13 +213,14 @@ let add_account l (pk : public_key) (balance : Js.js_string Js.t) =
 
 let protocol_state_of_json =
   let deriver =
-    Mina_base.Zkapp_precondition.Protocol_state.View.deriver
-    @@ Fields_derivers_zkapps.o ()
+    lazy
+      ( Mina_base.Zkapp_precondition.Protocol_state.View.deriver
+      @@ Fields_derivers_zkapps.o () )
   in
-  let of_json = Fields_derivers_zkapps.of_json deriver in
   fun (json : Js.js_string Js.t) :
       Mina_base.Zkapp_precondition.Protocol_state.View.t ->
-    json |> Js.to_string |> Yojson.Safe.from_string |> of_json
+    json |> Js.to_string |> Yojson.Safe.from_string
+    |> Fields_derivers_zkapps.of_json (Lazy.force deriver)
 
 let apply_zkapp_command_transaction l (txn : Zkapp_command.t)
     (account_creation_fee : string)

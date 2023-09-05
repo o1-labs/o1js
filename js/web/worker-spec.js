@@ -10,18 +10,34 @@ function workerSpec(wasm) {
   return {
     caml_pasta_fp_plonk_index_create: {
       args: [
+        // gates
         wasm.WasmFpGateVector,
+        // public_
         undefined /* number */,
+        // lookup_tables
+        undefined /*Uint32Array*/,
+        // runtime_table_cfgs
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /* number */,
+        // srs
         wasm.WasmFpSrs,
       ],
       res: wasm.WasmPastaFpPlonkIndex,
     },
     caml_pasta_fq_plonk_index_create: {
       args: [
+        // gates
         wasm.WasmFqGateVector,
+        // public_
         undefined /* number */,
+        // lookup_tables
+        undefined /*Uint32Array*/,
+        // runtime_table_cfgs
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /* number */,
+        // srs
         wasm.WasmFqSrs,
       ],
       res: wasm.WasmPastaFqPlonkIndex,
@@ -36,18 +52,30 @@ function workerSpec(wasm) {
     },
     caml_pasta_fp_plonk_proof_create: {
       args: [
+        // index
         wasm.WasmPastaFpPlonkIndex,
+        // witness
         wasm.WasmVecVecFp,
+        // runtime tables
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /*Uint8Array*/,
+        // prev_svgs
         undefined /*Uint32Array*/,
       ],
       res: wasm.WasmFpProverProof,
     },
     caml_pasta_fq_plonk_proof_create: {
       args: [
+        // index
         wasm.WasmPastaFqPlonkIndex,
+        // witness
         wasm.WasmVecVecFq,
+        // runtime tables
+        undefined /*Uint32Array*/,
+        // prev_challenges
         undefined /*Uint8Array*/,
+        // prev_svgs
         undefined /*Uint32Array*/,
       ],
       res: wasm.WasmFqProverProof,
