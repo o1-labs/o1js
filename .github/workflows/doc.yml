@@ -1,4 +1,4 @@
-name: Build SnarkyJS
+name: Build o1js
 on:
   push:
     branches:

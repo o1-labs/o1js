@@ -1,4 +1,4 @@
-name: Build SnarkyJS
+name: Build o1js
 on:
   push:
     branches:
@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - name: Build SnarkyJS and execute tests
+      - name: Build o1js and execute tests
         env:
           TEST_TYPE: ${{ matrix.test_type }}
         continue-on-error: false
@@ -60,7 +60,7 @@ jobs:
           npm ci
       - name: Install Playwright browsers
         run: npm run e2e:install
-      - name: Build SnarkyJS and prepare the web server
+      - name: Build o1js and prepare the web server
         run: |
           npm run build:web
           npm run e2e:prepare-server
@@ -87,7 +87,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - name: Build SnarkyJS
+      - name: Build o1js
         run: |
           git submodule update --init --recursive
           npm ci

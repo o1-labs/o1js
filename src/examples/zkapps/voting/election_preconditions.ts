@@ -1,4 +1,4 @@
-import { CircuitValue, prop, UInt32 } from 'snarkyjs';
+import { CircuitValue, prop, UInt32 } from 'o1js';
 
 export default class ElectionPreconditions extends CircuitValue {
   @prop startElection: UInt32;

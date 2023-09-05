@@ -17,7 +17,7 @@ import {
   Permissions,
   DeployArgs,
   UInt32,
-} from 'snarkyjs';
+} from 'o1js';
 
 const doProofs = false;
 

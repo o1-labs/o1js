@@ -11,7 +11,7 @@ import {
   MerkleMapWitness,
   Mina,
   AccountUpdate,
-} from 'snarkyjs';
+} from 'o1js';
 
 class PayoutOnlyOnce extends SmartContract {
   @state(Field) nullifierRoot = State<Field>();

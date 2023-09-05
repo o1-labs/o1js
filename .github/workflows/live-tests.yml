@@ -1,4 +1,4 @@
-name: Test SnarkyJS against real network
+name: Test o1js against real network
 on:
   push:
     branches:
