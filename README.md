@@ -1,6 +1,6 @@
 # o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
-(O)1 Labs has renamed SnarkyJS to o1js, effective immediately!
+O(1) Labs has renamed SnarkyJS to o1js, effective immediately!
 
 This name change reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
 
