@@ -310,6 +310,7 @@ const Random = Object.assign(Random_, {
   bool,
   uint32,
   uint64,
+  biguint: biguintWithInvalid,
   privateKey,
   publicKey,
   scalar,
