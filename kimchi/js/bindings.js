@@ -1210,10 +1210,8 @@ var caml_plonk_gate_of_rust = function (gate) {
 // Provides: caml_fp_plonk_gate_to_rust
 // Requires: plonk_wasm, caml_plonk_wires_to_rust, caml_u8array_vector_to_rust_flat_vector
 var caml_fp_plonk_gate_to_rust = function (gate) {
-  var gateType = gate[1];
-  if (gateType > 6) gateType = gateType + 4;
   return new plonk_wasm.WasmFpGate(
-    gateType,
+    gate[1],
     caml_plonk_wires_to_rust(gate[2]),
     caml_u8array_vector_to_rust_flat_vector(gate[3])
   );
