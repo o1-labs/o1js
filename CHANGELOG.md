@@ -15,11 +15,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/161b69d602...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/b1d8d5910...HEAD)
+
+### Breaking changes
+
+- Changes to verification keys caused by updates to the proof system. This breaks all deployed contracts https://github.com/o1-labs/snarkyjs/pull/1016
 
 ### Added
 
 - **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
+
+## [0.12.1](https://github.com/o1-labs/snarkyjs/compare/161b69d602...b1d8d5910)
+
+### Added
+
+- Added a method `createTestNullifier` to the Nullifier class for testing purposes. It is recommended to use mina-signer to create Nullifiers in production, since it does not leak the private key of the user. The `Nullifier.createTestNullifier` method requires the private key as an input _outside of the users wallet_. https://github.com/o1-labs/snarkyjs/pull/1026
+- Added `field.isEven` to check if a Field element is odd or even. https://github.com/o1-labs/snarkyjs/pull/1026
+
+### Fixed
+
+- Revert verification key hash change from previous release to stay compatible with the current testnet https://github.com/o1-labs/snarkyjs/pull/1032
 
 ## [0.12.0](https://github.com/o1-labs/snarkyjs/compare/eaa39dca0...161b69d602)
 

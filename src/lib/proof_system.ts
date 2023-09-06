@@ -52,7 +52,6 @@ export {
   isAsFields,
   Prover,
   dummyBase64Proof,
-  dummyVerificationKeyHash,
 };
 
 type Undefined = undefined;
@@ -205,6 +204,7 @@ function ZkProgram<
         Types[I]
       >;
     };
+    overrideWrapDomain?: 0 | 1 | 2;
   }
 ): {
   name: string;
@@ -247,10 +247,7 @@ function ZkProgram<
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
   );
   let methodFunctions = keys.map((key) => methods[key].method);
-  let maxProofsVerified = methodIntfs.reduce(
-    (acc, { proofArgs }) => Math.max(acc, proofArgs.length),
-    0
-  ) as any as 0 | 1 | 2;
+  let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
   let compileOutput:
     | {
@@ -268,7 +265,8 @@ function ZkProgram<
       publicOutputType,
       methodIntfs,
       methodFunctions,
-      selfTag
+      selfTag,
+      config.overrideWrapDomain
     );
     compileOutput = { provers, verify };
     return { verificationKey: verificationKey.data };
@@ -499,12 +497,16 @@ type MethodInterface = {
   returnType?: Provable<any>;
 };
 
+// reasonable default choice for `overrideWrapDomain`
+const maxProofsToWrapDomain = { 0: 0, 1: 1, 2: 1 } as const;
+
 async function compileProgram(
   publicInputType: ProvablePure<any>,
   publicOutputType: ProvablePure<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string }
+  proofSystemTag: { name: string },
+  overrideWrapDomain?: 0 | 1 | 2
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
@@ -515,6 +517,9 @@ async function compileProgram(
       methodEntry
     )
   );
+  let maxProofs = getMaxProofsVerified(methodIntfs);
+  overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
+
   let { verificationKey, provers, verify, tag } =
     await prettifyStacktracePromise(
       withThreadPool(async () => {
@@ -524,6 +529,7 @@ async function compileProgram(
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            overrideWrapDomain,
           });
         } finally {
           snarkContext.leave(id);
@@ -774,6 +780,13 @@ function getStatementType<
   };
 }
 
+function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
+  return methodIntfs.reduce(
+    (acc, { proofArgs }) => Math.max(acc, proofArgs.length),
+    0
+  ) as any as 0 | 1 | 2;
+}
+
 function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
   return type.fromFields(MlFieldArray.from(fields));
 }
@@ -807,11 +820,6 @@ ZkProgram.Proof = function <
 
 function dummyBase64Proof() {
   return withThreadPool(async () => Pickles.dummyBase64Proof());
-}
-
-function dummyVerificationKeyHash() {
-  let [, , hash] = Pickles.dummyVerificationKey();
-  return Field.fromBytes([...hash]);
 }
 
 // helpers for circuit context

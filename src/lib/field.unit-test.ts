@@ -124,6 +124,11 @@ equivalentVoid1(
   (x) => x.assertBool(),
   (x) => x === 0n || x === 1n || throwError('not boolean')
 );
+equivalent1(
+  (x) => x.isEven().toField(),
+  (x) => BigInt((x & 1n) === 0n),
+  SmallField
+);
 
 // non-constant field vars
 test(Random.field, (x0, assert) => {

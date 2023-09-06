@@ -1,16 +1,11 @@
 import {
   Field,
+  PrivateKey,
   SmartContract,
-  state,
   State,
   method,
-  DeployArgs,
-  PrivateKey,
-  Permissions,
-  isReady,
+  state,
 } from 'snarkyjs';
-
-await isReady;
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();
