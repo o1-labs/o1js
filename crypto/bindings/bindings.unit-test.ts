@@ -55,8 +55,8 @@ let numberLessThan = (max: number): FromSpec<number, number> => ({
   rng: Random.map(Random.nat(max - 1), id),
   there: id,
 });
-let int32: Spec<number, number> = {
-  rng: Random.map(Random.int(-0x80000000, 0x7fffffff), id),
+let uint31: Spec<number, number> = {
+  rng: Random.map(Random.nat(0x7fffffff), id),
   there: id,
   back: id,
 };
@@ -141,8 +141,7 @@ equivalentRecord(
     caml_pasta_fp_square: { from: [fp], to: fp },
     caml_pasta_fp_is_square: { from: [fp], to: boolean },
     caml_pasta_fp_sqrt: { from: [fp], to: option(fp) },
-    caml_pasta_fp_of_int: undefined, // TODO
-    // caml_pasta_fp_of_int: { from: [int32], to: fp },
+    caml_pasta_fp_of_int: { from: [uint31], to: fp },
     caml_pasta_fp_to_string: { from: [fp], to: decimalString },
     caml_pasta_fp_of_string: { from: [decimalString], to: fp },
     caml_pasta_fp_print: undefined, // this would spam the console
@@ -188,8 +187,7 @@ equivalentRecord(
     caml_pasta_fq_square: { from: [fq], to: fq },
     caml_pasta_fq_is_square: { from: [fq], to: boolean },
     caml_pasta_fq_sqrt: { from: [fq], to: option(fq) },
-    caml_pasta_fq_of_int: undefined, // TODO
-    // caml_pasta_fq_of_int: { from: [int32], to: fq },
+    caml_pasta_fq_of_int: { from: [uint31], to: fq },
     caml_pasta_fq_to_string: { from: [fq], to: decimalString },
     caml_pasta_fq_of_string: { from: [decimalString], to: fq },
     caml_pasta_fq_print: undefined, // this would spam the console

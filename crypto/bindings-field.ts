@@ -57,6 +57,9 @@ function createFieldBindings(Field: FiniteField) {
       return toMlOption(Field.sqrt(x));
     },
     of_int(x: number): Field {
+      // avoid unnatural behaviour in Rust which treats negative numbers as uint64,
+      // e.g. -1 becomes 2^64 - 1
+      if (x < 0) throw Error('of_int: inputs must be non-negative');
       return [0, Field.fromNumber(x)];
     },
     to_string([, x]: Field): MlBytes {
