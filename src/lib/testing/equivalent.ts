@@ -135,7 +135,8 @@ function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
 function handleErrors<T, S, R>(
   op1: () => T,
   op2: () => S,
-  useResults?: (a: T, b: S) => R
+  useResults?: (a: T, b: S) => R,
+  label?: string
 ): R | undefined {
   let result1: T, result2: S;
   let error1: Error | undefined;
@@ -154,7 +155,8 @@ function handleErrors<T, S, R>(
     error1 && console.log(error1);
     error2 && console.log(error2);
   }
-  deepEqual(!!error1, !!error2, 'equivalent errors');
+  let message = `${(label && `${label}: `) || ''}equivalent errors`;
+  deepEqual(!!error1, !!error2, message);
   if (!(error1 || error2) && useResults !== undefined) {
     return useResults(result1!, result2!);
   }
