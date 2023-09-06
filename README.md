@@ -5,10 +5,11 @@ O(1) Labs has renamed SnarkyJS to o1js, effective immediately!
 This name change reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
 
 Your favorite functionality stays the same and transitioning to o1js is a quick and easy process:
+
 - To update zkApp-cli, run the following command:
-    `npm i -g zkapp-cli@latest`
+  `npm i -g zkapp-cli@latest`
 - To remove the now-deprecated SnarkyJs package and install o1js, run the following command:
-    `npm remove snarkyjs && npm install o1js`
+  `npm remove snarkyjs && npm install o1js`
 - For existing zkApps, make sure to update your imports from `snarkyjs` to `o1js`
 - No need to redeploy, you are good to go!
 
@@ -44,6 +45,6 @@ See the [Contributing guidelines](https://github.com/o1-labs/o1js/blob/main/CONT
 
 High-quality community packages from open source developers are available for your project.
 
-- **snarkyjs-elgamal** A partially homomorphic encryption library for o1js based on Elgamal encryption: [GitHub](https://github.com/Trivo25/snarkyjs-elgamal) and [npm](https://www.npmjs.com/package/snarkyjs-elgamal)
+- **o1js-elgamal** A partially homomorphic encryption library for o1js based on Elgamal encryption: [GitHub](https://github.com/Trivo25/o1js-elgamal) and [npm](https://www.npmjs.com/package/o1js-elgamal)
 
 To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
