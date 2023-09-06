@@ -1,4 +1,4 @@
-import { Field, Circuit, circuitMain, public_, isReady } from 'snarkyjs';
+import { Field, Circuit, circuitMain, public_, isReady } from 'o1js';
 
 await isReady;
 

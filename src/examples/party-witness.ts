@@ -5,7 +5,7 @@ import {
   provable,
   isReady,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

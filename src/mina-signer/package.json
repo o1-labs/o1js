@@ -18,8 +18,8 @@
   "author": "o1labs",
   "license": "Apache-2.0",
   "homepage": "https://minaprotocol.com/",
-  "repository": "https://github.com/o1-labs/snarkyjs",
-  "bugs": "https://github.com/o1-labs/snarkyjs/issues",
+  "repository": "https://github.com/o1-labs/o1js",
+  "bugs": "https://github.com/o1-labs/o1js/issues",
   "main": "dist/node/mina-signer/MinaSigner.js",
   "types": "dist/node/mina-signer/index.d.ts",
   "exports": {

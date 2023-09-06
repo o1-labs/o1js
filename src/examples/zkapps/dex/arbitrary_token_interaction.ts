@@ -5,7 +5,7 @@ import {
   UInt64,
   shutdown,
   TokenId,
-} from 'snarkyjs';
+} from 'o1js';
 import { TokenContract, addresses, keys, tokenIds } from './dex.js';
 
 await isReady;

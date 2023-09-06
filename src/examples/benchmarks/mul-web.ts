@@ -1,7 +1,7 @@
 /**
  * benchmark a circuit filled with generic gates
  */
-import { Circuit, Field, Provable, circuitMain, Experimental } from 'snarkyjs';
+import { Circuit, Field, Provable, circuitMain, Experimental } from 'o1js';
 import { tic, toc } from './tic-toc.js';
 let { ZkProgram } = Experimental;
 

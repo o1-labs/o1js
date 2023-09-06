@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
 import {
   Dex,
   DexTokenHolder,

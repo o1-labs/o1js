@@ -9,7 +9,7 @@ import {
   CircuitValue,
   Signature,
   isReady,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

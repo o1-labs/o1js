@@ -25,7 +25,7 @@ import {
   MerkleTree,
   MerkleWitness,
   Struct,
-} from 'snarkyjs';
+} from 'o1js';
 
 const doProofs = true;
 

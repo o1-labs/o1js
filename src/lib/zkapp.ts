@@ -294,7 +294,7 @@ function wrapMethod(
           Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
 
           // first, clone to protect against the method modifying arguments!
-          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, o1js primitives
           let clonedArgs = cloneCircuitValue(actualArgs);
 
           // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
@@ -374,7 +374,7 @@ function wrapMethod(
         `@method ${methodIntf.methodName}(): Field {\n` +
         `  // ...\n` +
         `}\n\n` +
-        `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
+        `Note: Only types built out of \`Field\` are valid return types. This includes o1js primitive types and custom CircuitValues.`;
       // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
       if (
         ZkappClass._methodMetadata?.[methodIntf.methodName]?.hasReturn &&
@@ -501,7 +501,7 @@ function checkPublicInput(
 /**
  * compute fields to be hashed as callData, in a way that the hash & circuit changes whenever
  * the method signature changes, i.e., the argument / return types represented as lists of field elements and the methodName.
- * see https://github.com/o1-labs/snarkyjs/issues/303#issuecomment-1196441140
+ * see https://github.com/o1-labs/o1js/issues/303#issuecomment-1196441140
  */
 function computeCallData(
   methodIntf: MethodInterface,
