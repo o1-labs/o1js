@@ -2,41 +2,33 @@
  * Implementation of Kimchi_bindings.Protocol.Gates
  */
 import { MlArray, MlOption } from '../../../lib/ml/base.js';
-import { MlTupleN, mapTuple } from './util.js';
+import { MlTupleN } from './util.js';
 import { Field } from './field.js';
 import type {
   WasmFpDomain,
-  WasmFpGate,
   WasmFpOpeningProof,
   WasmFpOracles,
   WasmFpPlonkVerificationEvals,
   WasmFpPlonkVerifierIndex,
-  WasmFpPolyComm,
   WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRandomOracles,
   WasmFpShifts,
   WasmFqDomain,
-  WasmFqGate,
   WasmFqOpeningProof,
   WasmFqOracles,
   WasmFqPlonkVerificationEvals,
   WasmFqPlonkVerifierIndex,
-  WasmFqPolyComm,
   WasmFqProverCommitments,
   WasmFqProverProof,
   WasmFqRandomOracles,
   WasmFqShifts,
-  WasmGPallas,
-  WasmGVesta,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { OrInfinity } from './curve.js';
 import {
-  Wire,
-  Gate,
   PolyComm,
   VerifierIndex,
   Oracles,
@@ -51,8 +43,6 @@ import {
   RecursionChallenge,
 } from './kimchi-types.js';
 import {
-  affineFromRust,
-  affineToRust,
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
@@ -63,6 +53,11 @@ import {
   proofEvaluationsFromRust,
   proofEvaluationsToRust,
 } from './conversion-proof.js';
+import {
+  ConversionCore,
+  conversionCore,
+  freeOnFinalize,
+} from './conversion-core.js';
 
 export { createRustConversion };
 
@@ -70,8 +65,6 @@ export { createRustConversion };
 
 type wasm = typeof wasmNamespace;
 
-type WasmAffine = WasmGVesta | WasmGPallas;
-type WasmPolyComm = WasmFpPolyComm | WasmFqPolyComm;
 type WasmDomain = WasmFpDomain | WasmFqDomain;
 type WasmVerificationEvals =
   | WasmFpPlonkVerificationEvals
@@ -82,16 +75,11 @@ type WasmRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
 type WasmOracles = WasmFpOracles | WasmFqOracles;
 type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
 type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
-type WasmVecVec = WasmVecVecFp | WasmVecVecFq;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 
 // wasm class types
 
 type WasmClasses = {
-  CommitmentCurve: typeof WasmGVesta | typeof WasmGPallas;
-  makeAffine: () => WasmAffine;
-  Gate: typeof WasmFpGate | typeof WasmFqGate;
-  PolyComm: typeof WasmFpPolyComm | typeof WasmFqPolyComm;
   Domain: typeof WasmFpDomain | typeof WasmFqDomain;
   VerificationEvals:
     | typeof WasmFpPlonkVerificationEvals
@@ -111,84 +99,23 @@ type WasmClasses = {
 };
 
 function createRustConversion(wasm: wasm) {
-  function wireToRust([, row, col]: Wire) {
-    return wasm.Wire.create(row, col);
-  }
-
-  function perField({
-    CommitmentCurve,
-    makeAffine,
-    Gate,
-    PolyComm,
-    Domain,
-    VerificationEvals,
-    Shifts,
-    VerifierIndex,
-    RandomOracles,
-    Oracles,
-    ProverCommitments,
-    OpeningProof,
-    VecVec,
-    ProverProof,
-  }: WasmClasses) {
+  function perField(
+    core: ConversionCore,
+    {
+      Domain,
+      VerificationEvals,
+      Shifts,
+      VerifierIndex,
+      RandomOracles,
+      Oracles,
+      ProverCommitments,
+      OpeningProof,
+      VecVec,
+      ProverProof,
+    }: WasmClasses
+  ) {
     let self = {
-      vectorToRust: fieldsToRustFlat,
-      vectorFromRust: fieldsFromRustFlat,
-
-      gateToRust(gate: Gate) {
-        let [, typ, [, ...wires], coeffs] = gate;
-        let rustWires = new wasm.WasmGateWires(...mapTuple(wires, wireToRust));
-        let rustCoeffs = fieldsToRustFlat(coeffs);
-        return new Gate(typ, rustWires, rustCoeffs);
-      },
-
-      pointToRust(point: OrInfinity) {
-        return affineToRust(point, makeAffine);
-      },
-      pointFromRust: affineFromRust,
-
-      pointsToRust([, ...points]: MlArray<OrInfinity>): Uint32Array {
-        return mapToUint32Array(points, (point) =>
-          unwrap(self.pointToRust(point))
-        );
-      },
-      pointsFromRust(points: Uint32Array): MlArray<OrInfinity> {
-        let arr = mapFromUintArray(points, (ptr) =>
-          affineFromRust(wrap(ptr, CommitmentCurve))
-        );
-        return [0, ...arr];
-      },
-
-      polyCommToRust(polyComm: PolyComm): WasmPolyComm {
-        let [, camlUnshifted, camlShifted] = polyComm;
-        let rustShifted =
-          camlShifted === 0
-            ? undefined
-            : affineToRust(camlShifted[1], makeAffine);
-        let rustUnshifted = self.pointsToRust(camlUnshifted);
-        return new PolyComm(rustUnshifted, rustShifted);
-      },
-      polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
-        let rustShifted = polyComm.shifted;
-        let rustUnshifted = polyComm.unshifted;
-        let mlShifted: MlOption<OrInfinity> =
-          rustShifted === undefined ? 0 : [0, affineFromRust(rustShifted)];
-        let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
-          return affineFromRust(wrap(ptr, CommitmentCurve));
-        });
-        return [0, [0, ...mlUnshifted], mlShifted];
-      },
-
-      polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
-        return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
-      },
-      polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
-        let comms = mapFromUintArray(rustComms, (ptr) =>
-          self.polyCommFromRust(wrap(ptr, PolyComm))
-        );
-        return [0, ...comms];
-      },
-
+      ...core,
       shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
         let s = shifts.map(fieldToRust);
         return new Shifts(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
@@ -481,11 +408,9 @@ function createRustConversion(wasm: wasm) {
     return self;
   }
 
-  const fp = perField({
-    CommitmentCurve: wasm.WasmGVesta,
-    makeAffine: wasm.caml_vesta_affine_one,
-    Gate: wasm.WasmFpGate,
-    PolyComm: wasm.WasmFpPolyComm,
+  let core = conversionCore(wasm);
+
+  const fp = perField(core.fp, {
     Domain: wasm.WasmFpDomain,
     VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
     Shifts: wasm.WasmFpShifts,
@@ -497,11 +422,7 @@ function createRustConversion(wasm: wasm) {
     VecVec: wasm.WasmVecVecFp,
     ProverProof: wasm.WasmFpProverProof,
   });
-  const fq = perField({
-    CommitmentCurve: wasm.WasmGPallas,
-    makeAffine: wasm.caml_pallas_affine_one,
-    Gate: wasm.WasmFqGate,
-    PolyComm: wasm.WasmFqPolyComm,
+  const fq = perField(core.fq, {
     Domain: wasm.WasmFqDomain,
     VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
     Shifts: wasm.WasmFqShifts,
@@ -515,83 +436,11 @@ function createRustConversion(wasm: wasm) {
   });
 
   return {
-    wireToRust,
-    fieldsToRustFlat,
-    fieldsFromRustFlat,
     fp,
     fq,
-    mapMlArrayToRustVector<TMl, TRust extends {}>(
-      [, ...array]: MlArray<TMl>,
-      map: (x: TMl) => TRust
-    ): Uint32Array {
-      return mapToUint32Array(array, (x) => unwrap(map(x)));
-    },
-    gateFromRust(wasmGate: WasmFpGate | WasmFqGate) {
-      // note: this was never used and the old implementation was wrong
-      // (accessed non-existent fields on wasmGate)
-      throw Error('gateFromRust not implemented');
-    },
+    fieldsToRustFlat,
+    fieldsFromRustFlat,
+    wireToRust: core.wireToRust,
+    mapMlArrayToRustVector: core.mapMlArrayToRustVector,
   };
-}
-
-// generic rust helpers
-
-type Freeable = { free(): void };
-type Constructor<T> = new (...args: any[]) => T;
-
-function wrap<T>(ptr: number, Class: Constructor<T>): T {
-  const obj = Object.create(Class.prototype);
-  obj.ptr = ptr;
-  return obj;
-}
-function unwrap<T extends {}>(obj: T): number {
-  // Beware: caller may need to do finalizer things to avoid these
-  // pointers disappearing out from under us.
-  let ptr = (obj as any).ptr;
-  if (ptr === undefined) throw Error('unwrap: missing ptr');
-  return ptr;
-}
-
-const registry = new FinalizationRegistry((ptr: Freeable) => {
-  ptr.free();
-});
-function freeOnFinalize<T extends Freeable>(instance: T) {
-  // This is an unfortunate hack: we're creating a second instance of the
-  // class to be able to call free on it. We can't pass the value itself,
-  // since the registry holds a strong reference to the representative value.
-  //
-  // However, the class is only really a wrapper around a pointer, with a
-  // reference to the class' prototype as its __prototype__.
-  //
-  // It might seem cleaner to call the destructor here on the pointer
-  // directly, but unfortunately the destructor name is some mangled internal
-  // string generated by wasm_bindgen. For now, this is the best,
-  // least-brittle way to free once the original class instance gets collected.
-  let instanceRepresentative = wrap<T>(
-    (instance as any).ptr,
-    (instance as any).constructor
-  );
-  registry.register(instance, instanceRepresentative, instance);
-  return instance;
-}
-
-function mapFromUintArray<T>(
-  array: Uint32Array | Uint8Array,
-  map: (i: number) => T
-) {
-  let n = array.length;
-  let result: T[] = Array(n);
-  for (let i = 0; i < n; i++) {
-    result[i] = map(array[i]);
-  }
-  return result;
-}
-
-function mapToUint32Array<T>(array: T[], map: (t: T) => number) {
-  let n = array.length;
-  let result = new Uint32Array(n);
-  for (let i = 0; i < n; i++) {
-    result[i] = map(array[i]);
-  }
-  return result;
 }
