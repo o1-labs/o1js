@@ -72,7 +72,8 @@ function same<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2>(
       () => f1(...inputs),
       () =>
         to.back(f2(...(inputs.map((x, i) => from[i].there(x)) as any as In2))),
-      (x, y) => assertEqual(x, y, label)
+      (x, y) => assertEqual(x, y, label),
+      label
     );
   });
 }
