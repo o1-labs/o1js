@@ -1,11 +1,11 @@
-/* global joo_global_object, caml_js_to_bool, caml_jsstring_of_string, caml_string_of_jsstring,
+/* global globalThis, caml_js_to_bool, caml_jsstring_of_string, caml_string_of_jsstring,
    caml_ml_bytes_length, caml_bytes_unsafe_get, caml_create_bytes, caml_bytes_unsafe_set
 */
 
 // Provides: BigInt_
-var BigInt_ = joo_global_object.BigInt;
+var BigInt_ = globalThis.BigInt;
 // Provides: Uint8Array_
-var Uint8Array_ = joo_global_object.Uint8Array;
+var Uint8Array_ = globalThis.Uint8Array;
 
 // Provides: caml_bigint_of_bytes
 // Requires: BigInt_
@@ -46,8 +46,7 @@ function caml_bigint_256_to_bytes(x) {
   x = x[0];
   var ocamlBytes = caml_create_bytes(32);
   for (var i = 0; x > 0; x >>= BigInt_(8), i++) {
-    if (i >= 32)
-      throw Error("bigint256 doesn't fit into 32 bytes.");
+    if (i >= 32) throw Error("bigint256 doesn't fit into 32 bytes.");
     var byte = Number(x & BigInt_(0xff));
     caml_bytes_unsafe_set(ocamlBytes, i, byte);
   }
@@ -69,7 +68,7 @@ function caml_bigint_256_test_bit(b, i) {
 
 // Provides: caml_bigint_256_compare
 function caml_bigint_256_compare(x, y) {
-  x = x[0], y = y[0];
+  (x = x[0]), (y = y[0]);
   if (x < y) return -1;
   if (x === y) return 0;
   return 1;

@@ -160,10 +160,12 @@ module Circuit = struct
     let pk = Impl.Keypair.pk keypair in
     let input_typ = typ public_input_size in
     let return_typ = Impl.Typ.unit in
+    (* TODO(dw): runtime tables should not be empty *)
+    let runtime_tables = [||] in
     Impl.generate_witness_conv ~input_typ ~return_typ
       ~f:(fun { Impl.Proof_inputs.auxiliary_inputs; public_inputs } () ->
         Backend.Proof.create pk ~auxiliary:auxiliary_inputs
-          ~primary:public_inputs )
+          ~primary:public_inputs ~runtime_tables )
       (Main.of_js main) public_input
 
   let verify public_input proof vk =
@@ -203,13 +205,9 @@ module Poseidon = struct
   module Poseidon_sponge =
     Sponge.Make_sponge (Sponge.Poseidon (Pickles.Tick_field_sponge.Inputs))
 
-  let sponge_params_checked =
-    Sponge.Params.(
-      map pasta_p_kimchi
-        ~f:(Fn.compose Impl.Field.constant Impl.Field.Constant.of_string))
+  let sponge_params = Kimchi_pasta_basic.poseidon_params_fp
 
-  let sponge_params =
-    Sponge.Params.(map pasta_p_kimchi ~f:Impl.Field.Constant.of_string)
+  let sponge_params_checked = Sponge.Params.map sponge_params ~f:Field.constant
 
   type sponge =
     | Checked of Poseidon_sponge_checked.t
@@ -226,7 +224,7 @@ module Poseidon = struct
     | Checked s ->
         Poseidon_sponge_checked.absorb s field
     | Unchecked s ->
-        Poseidon_sponge.absorb s (to_unchecked @@ field)
+        Poseidon_sponge.absorb s @@ to_unchecked field
 
   let sponge_squeeze (sponge : sponge) : Field.t =
     match sponge with

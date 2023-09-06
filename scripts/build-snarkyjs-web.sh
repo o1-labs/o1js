@@ -14,9 +14,9 @@ cp $BUILD_PATH/snarky_js_web*.js $WEB_BINDINGS/
 
 # better error messages
 # `s` is the jsoo representation of the error message string, and `s.c` is the actual JS string
-sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw joo_global_object.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
-sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw joo_global_object.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
-sed -i 's/return \[0,Exn,t\]/return joo_global_object.Error(t.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw globalThis.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/return \[0,Exn,t\]/return globalThis.Error(t.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
 sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "some error")}/' $WEB_BINDINGS/snarky_js_web.bc.js
 
 pushd $WEB_BINDINGS

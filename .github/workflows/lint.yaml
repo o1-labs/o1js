@@ -1,0 +1,22 @@
+name: Lint
+
+on:
+  pull_request:
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Print prettier version
+        uses: creyD/prettier_action@v4.3
+        with:
+          prettier_options: -v
+
+      - name: Prettify code
+        uses: creyD/prettier_action@v4.3
+        with:
+          prettier_options: -c kimchi/js/**/*.js js/**/*.js

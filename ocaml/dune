@@ -72,8 +72,10 @@
  (libraries
   mina_base
   core_kernel
+  base
   sponge
   hash_prefixes
+  mina_signature_kind
   base58_check
   pickles
   random_oracle

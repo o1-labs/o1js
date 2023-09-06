@@ -58,6 +58,24 @@ module Ledger : Mina_base.Ledger_intf.S = struct
     in
     Ok res
 
+  let[@warning "-32"] get_or_create_account (t : t) (id : Account_id.t)
+      (a : Account.t) :
+      (Mina_base.Ledger_intf.account_state * location) Or_error.t =
+    match location_of_account t id with
+    | Some loc ->
+        let a' = Option.value_exn (get t loc) in
+        if Account.equal a a' then Ok (`Existed, loc)
+        else
+          Or_error.errorf
+            !"account %{sexp: Account_id.t} already present with different \
+              contents"
+            id
+    | None ->
+        let loc = next_location t in
+        t := { !t with locations = Map.set !t.locations ~key:id ~data:loc } ;
+        set t loc a ;
+        Ok (`Added, loc)
+
   let create_new_account (t : t) (id : Account_id.t) (a : Account.t) :
       unit Or_error.t =
     match location_of_account t id with
@@ -174,10 +192,13 @@ let create () : ledger_class Js.t =
   new%js ledger_constr l
 
 let account_to_json =
-  let deriver = Mina_base.Account.deriver @@ Fields_derivers_zkapps.o () in
-  let to_json' = Fields_derivers_zkapps.to_json deriver in
+  let deriver =
+    lazy (Mina_base.Account.deriver @@ Fields_derivers_zkapps.o ())
+  in
   let to_json (account : Mina_base.Account.t) : Js.Unsafe.any =
-    account |> to_json' |> Yojson.Safe.to_string |> Js.string |> Util.json_parse
+    account
+    |> Fields_derivers_zkapps.to_json (Lazy.force deriver)
+    |> Yojson.Safe.to_string |> Js.string |> Util.json_parse
   in
   to_json
 
@@ -192,13 +213,14 @@ let add_account l (pk : public_key) (balance : Js.js_string Js.t) =
 
 let protocol_state_of_json =
   let deriver =
-    Mina_base.Zkapp_precondition.Protocol_state.View.deriver
-    @@ Fields_derivers_zkapps.o ()
+    lazy
+      ( Mina_base.Zkapp_precondition.Protocol_state.View.deriver
+      @@ Fields_derivers_zkapps.o () )
   in
-  let of_json = Fields_derivers_zkapps.of_json deriver in
   fun (json : Js.js_string Js.t) :
       Mina_base.Zkapp_precondition.Protocol_state.View.t ->
-    json |> Js.to_string |> Yojson.Safe.from_string |> of_json
+    json |> Js.to_string |> Yojson.Safe.from_string
+    |> Fields_derivers_zkapps.of_json (Lazy.force deriver)
 
 let apply_zkapp_command_transaction l (txn : Zkapp_command.t)
     (account_creation_fee : string)

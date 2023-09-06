@@ -1,4 +1,4 @@
-/* global joo_global_object
+/* global globalThis
  */
 
 //Provides: caml_raise_with_string (const, const)
@@ -57,8 +57,8 @@ function caml_fatal_uncaught_exception(err) {
     return acc.string;
   }
   var str = collect_strings(err, {});
-  if (str !== undefined) throw joo_global_object.Error(str);
+  if (str !== undefined) throw globalThis.Error(str);
   // otherwise, just throw an unhelpful error
   console.dir(err, { depth: 10 });
-  throw joo_global_object.Error('Unknown error thrown from OCaml');
+  throw globalThis.Error('Unknown error thrown from OCaml');
 }
