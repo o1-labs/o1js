@@ -14,7 +14,7 @@ import {
   mlBytesFromUint8Array,
   mlBytesToUint8Array,
   toMlStringAscii,
-} from '../bindings-bigint256.js';
+} from './bigint256.js';
 import { wasm } from '../../js/node/node-backend.js';
 import { Random } from '../../../lib/testing/property.js';
 import {
@@ -24,7 +24,7 @@ import {
   affineToRust,
   fieldFromRust,
   fieldToRust,
-} from '../bindings-conversion-base.js';
+} from './conversion-base.js';
 import {
   id,
   equivalentRecord,
@@ -33,14 +33,14 @@ import {
   FromSpec,
   defaultAssertEqual,
 } from './test-utils.js';
-import { Field, FpBindings, FqBindings } from '../bindings-field.js';
+import { Field, FpBindings, FqBindings } from './field.js';
 import { MlBool, MlOption } from '../../../lib/ml/base.js';
 import {
   OrInfinity,
   PallasBindings,
   VestaBindings,
   toMlOrInfinity,
-} from '../bindings-curve.js';
+} from './curve.js';
 import {
   GroupProjective,
   Pallas,

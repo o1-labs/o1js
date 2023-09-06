@@ -1,9 +1,9 @@
 /**
  * TS implementation of Kimchi_bindings.FieldVectors
  */
-import { MlArray } from '../../lib/ml/base.js';
-import { Field } from './bindings-field.js';
-import { withPrefix } from './bindings-util.js';
+import { MlArray } from '../../../lib/ml/base.js';
+import { Field } from './field.js';
+import { withPrefix } from './util.js';
 
 export { FpVectorBindings, FqVectorBindings };
 

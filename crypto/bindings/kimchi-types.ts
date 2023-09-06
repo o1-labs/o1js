@@ -1,15 +1,15 @@
 /**
  * This file is a TS representation of kimchi_types.ml
  */
-import type { Lookup } from './bindings-lookup.js';
-import type { MlArray, MlOption } from '../../lib/ml/base.js';
-import type { OrInfinity } from './bindings-curve.js';
-import type { Field } from './bindings-field.js';
+import type { Lookup } from './lookup.js';
+import type { MlArray, MlOption } from '../../../lib/ml/base.js';
+import type { OrInfinity } from './curve.js';
+import type { Field } from './field.js';
 import type {
   WasmFpSrs,
   WasmFqSrs,
-} from '../compiled/node_bindings/plonk_wasm.cjs';
-import type { MlTupleN } from './bindings-util.js';
+} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type { MlTupleN } from './util.js';
 
 export {
   Wire,

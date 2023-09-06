@@ -1,9 +1,9 @@
 /**
  * Implementation of Kimchi_bindings.Protocol.Gates
  */
-import { MlArray, MlOption } from '../../lib/ml/base.js';
-import { MlTupleN, mapTuple } from './bindings-util.js';
-import { Field } from './bindings-field.js';
+import { MlArray, MlOption } from '../../../lib/ml/base.js';
+import { MlTupleN, mapTuple } from './util.js';
+import { Field } from './field.js';
 import type {
   WasmFpDomain,
   WasmFpGate,
@@ -31,9 +31,9 @@ import type {
   WasmGVesta,
   WasmVecVecFp,
   WasmVecVecFq,
-} from '../compiled/node_bindings/plonk_wasm.cjs';
-import type * as wasmNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
-import { OrInfinity } from './bindings-curve.js';
+} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { OrInfinity } from './curve.js';
 import {
   Wire,
   Gate,
@@ -49,7 +49,7 @@ import {
   ProverCommitments,
   OpeningProof,
   RecursionChallenge,
-} from './bindings-kimchi-types.js';
+} from './kimchi-types.js';
 import {
   affineFromRust,
   affineToRust,
@@ -58,11 +58,11 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
   maybeFieldToRust,
-} from './bindings-conversion-base.js';
+} from './conversion-base.js';
 import {
   proofEvaluationsFromRust,
   proofEvaluationsToRust,
-} from './bindings-conversion-proof.js';
+} from './conversion-proof.js';
 
 export { createRustConversion };
 

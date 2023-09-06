@@ -1,5 +1,5 @@
-import { MlBool } from '../../lib/ml/base.js';
-import { withPrefix } from './bindings-util.js';
+import { MlBool } from '../../../lib/ml/base.js';
+import { withPrefix } from './util.js';
 
 /**
  * TS implementation of Pasta_bindings.BigInt256

@@ -1,4 +1,4 @@
-import { MlArray, MlBool, MlOption } from '../../lib/ml/base.js';
+import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
 
 export { Lookup };
 

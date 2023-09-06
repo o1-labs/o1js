@@ -2,10 +2,10 @@ import type {
   LookupEvaluations,
   PointEvaluations,
   ProofEvaluations,
-} from './bindings-kimchi-types.js';
-import { mapMlTuple } from './bindings-util.js';
-import { MlArray, MlOption } from '../../lib/ml/base.js';
-import { fieldToRust, fieldFromRust } from './bindings-conversion-base.js';
+} from './kimchi-types.js';
+import { mapMlTuple } from './util.js';
+import { MlArray, MlOption } from '../../../lib/ml/base.js';
+import { fieldToRust, fieldFromRust } from './conversion-base.js';
 
 export { proofEvaluationsToRust, proofEvaluationsFromRust };
 
