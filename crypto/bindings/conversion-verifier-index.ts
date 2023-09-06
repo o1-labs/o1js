@@ -19,14 +19,7 @@ import {
 } from './conversion-core.js';
 import { Field } from './field.js';
 
-export {
-  verifierIndexConversion,
-  verifierIndexConversionPerField,
-  VerifierIndexConversion,
-  VerifierIndexConversions,
-};
-
-// basic conversion functions for each field
+export { verifierIndexConversion };
 
 type wasm = typeof wasmNamespace;
 
@@ -48,11 +41,6 @@ type WasmClasses = {
     | typeof WasmFqPlonkVerifierIndex;
 };
 
-type VerifierIndexConversion = ReturnType<
-  typeof verifierIndexConversionPerField
->;
-type VerifierIndexConversions = ReturnType<typeof verifierIndexConversion>;
-
 function verifierIndexConversion(wasm: wasm, core: ConversionCores) {
   const fp = verifierIndexConversionPerField(core.fp, {
     Domain: wasm.WasmFpDomain,
@@ -66,7 +54,6 @@ function verifierIndexConversion(wasm: wasm, core: ConversionCores) {
     Shifts: wasm.WasmFqShifts,
     VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
   });
-
   return { fp, fq };
 }
 

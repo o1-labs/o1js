@@ -23,7 +23,6 @@ export {
   ConversionCore,
   ConversionCores,
   conversionCore,
-  conversionCorePerField,
   freeOnFinalize,
   wrap,
   unwrap,

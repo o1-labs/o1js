@@ -16,14 +16,7 @@ import {
 } from './conversion-base.js';
 import { Field } from './field.js';
 
-export {
-  oraclesConversion,
-  oraclesConversionPerField,
-  OraclesConversion,
-  OraclesConversions,
-};
-
-// wasm types
+export { oraclesConversion };
 
 type wasm = typeof wasmNamespace;
 
@@ -35,9 +28,6 @@ type WasmClasses = {
   Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
 };
 
-type OraclesConversion = ReturnType<typeof oraclesConversionPerField>;
-type OraclesConversions = ReturnType<typeof oraclesConversion>;
-
 function oraclesConversion(wasm: wasm) {
   const fp = oraclesConversionPerField({
     RandomOracles: wasm.WasmFpRandomOracles,
@@ -47,7 +37,6 @@ function oraclesConversion(wasm: wasm) {
     RandomOracles: wasm.WasmFqRandomOracles,
     Oracles: wasm.WasmFqOracles,
   });
-
   return { fp, fq };
 }
 
@@ -111,7 +100,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: WasmClasses) {
     return mlRo;
   }
 
-  let self = {
+  return {
     oraclesToRust(oracles: Oracles): WasmOracles {
       let [, o, pEval, openingPrechallenges, digestBeforeEvaluations] = oracles;
       return new Oracles(
@@ -135,6 +124,4 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: WasmClasses) {
       return mlOracles;
     },
   };
-
-  return self;
 }
