@@ -21,6 +21,7 @@ import {
 
 export {
   ConversionCore,
+  ConversionCores,
   conversionCore,
   conversionCorePerField,
   freeOnFinalize,
@@ -44,6 +45,7 @@ type WasmClasses = {
 };
 
 type ConversionCore = ReturnType<typeof conversionCorePerField>;
+type ConversionCores = ReturnType<typeof conversionCore>;
 
 function conversionCore(wasm: wasm) {
   const fp = conversionCorePerField(wasm, {
