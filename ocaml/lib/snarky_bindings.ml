@@ -249,11 +249,18 @@ module Foreign_field = struct
 
   let assert_valid_element (x : t) (p : t_const) : unit =
     let external_checks = External_checks.create (module Impl) in
-    let _ = FF.valid_element (module Impl) external_checks x p in
+    let _ = FF.check_canonical (module Impl) external_checks x p in
     FF.constrain_external_checks (module Impl) external_checks p
 
   let sum_chain (x : t array) (ops : op_mode array) (p : t_const) : t =
-    FF.sum_chain (module Impl) (Array.to_list x) (Array.to_list ops) p
+    let external_checks = External_checks.create (module Impl) in
+    let sum =
+      FF.sum_chain
+        (module Impl)
+        external_checks (Array.to_list x) (Array.to_list ops) p
+    in
+    FF.constrain_external_checks (module Impl) external_checks p ;
+    sum
 
   let mul (x : t) (y : t) (p : t_const) : t =
     let external_checks = External_checks.create (module Impl) in
