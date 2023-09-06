@@ -13,6 +13,7 @@ export {
   maybeFieldToRust,
   affineToRust,
   affineFromRust,
+  WasmAffine,
 };
 
 import { Field, OrInfinity } from './kimchi-types.js';
