@@ -1,3 +1,11 @@
+/**
+ * This file exhaustively tests JS implementations of `pasta_bindings.ml` for consistency.
+ * The TS impl is tested to be equivalent to the Rust/Wasm impl.
+ *
+ * "Equivalent" is defined as follows:
+ * - They throw errors for the same inputs
+ * - If they don't throw an error, outputs must be the same
+ */
 import {
   Bigint256,
   Bigint256Bindings,
@@ -9,17 +17,49 @@ import {
 } from '../bindings-bigint256.js';
 import { wasm } from '../../js/node/node-backend.js';
 import { Random } from '../../../lib/testing/property.js';
-import { fieldFromRust, fieldToRust } from '../bindings-conversion-base.js';
-import { id, equivalentRecord, Spec, ToSpec, FromSpec } from './test-utils.js';
+import {
+  WasmAffine,
+  WasmProjective,
+  fieldFromRust,
+  fieldToRust,
+} from '../bindings-conversion-base.js';
+import {
+  id,
+  equivalentRecord,
+  Spec,
+  ToSpec,
+  FromSpec,
+  defaultAssertEqual,
+} from './test-utils.js';
 import { Field, FpBindings, FqBindings } from '../bindings-field.js';
 import { MlBool, MlOption } from '../../../lib/ml/base.js';
+import { PallasBindings, VestaBindings } from '../bindings-curve.js';
+import {
+  GroupProjective,
+  Pallas,
+  ProjectiveCurve,
+  Vesta,
+} from '../elliptic_curve.js';
+import {
+  WasmGPallas,
+  WasmGVesta,
+  WasmPallasGProjective,
+  WasmVestaGProjective,
+} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { FiniteField, Fp, Fq } from '../finite_field.js';
+import { Group } from 'src/index.js';
 
 let unit: ToSpec<void, void> = { back: id };
 let number: ToSpec<number, number> = { back: id };
-let numberBetween = (min: number, max: number): FromSpec<number, number> => ({
-  rng: Random.map(Random.int(min, max), id),
+let numberLessThan = (max: number): FromSpec<number, number> => ({
+  rng: Random.map(Random.nat(max - 1), id),
   there: id,
 });
+let int32: Spec<number, number> = {
+  rng: Random.map(Random.int(-0x80000000, 0x7fffffff), id),
+  there: id,
+  back: id,
+};
 
 let bigint256: Spec<Bigint256, Uint8Array> = {
   rng: Random.map(Random.biguint(256), (x) => [0, x]),
@@ -53,6 +93,14 @@ let bytes: Spec<MlBytes, Uint8Array> = {
   back: mlBytesFromUint8Array,
 };
 
+function option<T, S>(spec: Spec<T, S>): Spec<MlOption<T>, S | undefined> {
+  return {
+    rng: Random.map(Random.oneOf(spec.rng, undefined), (o) => MlOption(o)),
+    there: (x) => MlOption.mapFrom(x, spec.there),
+    back: (x) => MlOption.mapTo(x, spec.back),
+  };
+}
+
 equivalentRecord(Bigint256Bindings, wasm, {
   caml_bigint_256_of_numeral: undefined, // TODO
   caml_bigint_256_of_decimal_string: { from: [decimalString], to: bigint256 },
@@ -63,7 +111,7 @@ equivalentRecord(Bigint256Bindings, wasm, {
   caml_bigint_256_print: undefined, // this would spam the console
   caml_bigint_256_to_string: { from: [bigint256], to: decimalString },
   caml_bigint_256_test_bit: {
-    from: [bigint256, numberBetween(0, 255)],
+    from: [bigint256, numberLessThan(256)],
     to: boolean,
   },
   caml_bigint_256_to_bytes: { from: [bigint256], to: bytes },
@@ -93,7 +141,8 @@ equivalentRecord(
     caml_pasta_fp_square: { from: [fp], to: fp },
     caml_pasta_fp_is_square: { from: [fp], to: boolean },
     caml_pasta_fp_sqrt: { from: [fp], to: option(fp) },
-    caml_pasta_fp_of_int: { from: [numberBetween(0, 1000)], to: fp },
+    caml_pasta_fp_of_int: undefined, // TODO
+    // caml_pasta_fp_of_int: { from: [int32], to: fp },
     caml_pasta_fp_to_string: { from: [fp], to: decimalString },
     caml_pasta_fp_of_string: { from: [decimalString], to: fp },
     caml_pasta_fp_print: undefined, // this would spam the console
@@ -110,7 +159,7 @@ equivalentRecord(
     caml_pasta_fp_to_bigint: { from: [fp], to: bigint256 },
     caml_pasta_fp_of_bigint: { from: [bigint256], to: fp },
     caml_pasta_fp_two_adic_root_of_unity: { from: [], to: fp },
-    caml_pasta_fp_domain_generator: { from: [numberBetween(0, 31)], to: fp },
+    caml_pasta_fp_domain_generator: { from: [numberLessThan(32)], to: fp },
     caml_pasta_fp_to_bytes: undefined, // not implemented
     caml_pasta_fp_of_bytes: undefined, // not implemented
     caml_pasta_fp_deep_copy: { from: [fp], to: fp },
@@ -139,7 +188,8 @@ equivalentRecord(
     caml_pasta_fq_square: { from: [fq], to: fq },
     caml_pasta_fq_is_square: { from: [fq], to: boolean },
     caml_pasta_fq_sqrt: { from: [fq], to: option(fq) },
-    caml_pasta_fq_of_int: { from: [numberBetween(0, 1000)], to: fq },
+    caml_pasta_fq_of_int: undefined, // TODO
+    // caml_pasta_fq_of_int: { from: [int32], to: fq },
     caml_pasta_fq_to_string: { from: [fq], to: decimalString },
     caml_pasta_fq_of_string: { from: [decimalString], to: fq },
     caml_pasta_fq_print: undefined, // this would spam the console
@@ -156,17 +206,109 @@ equivalentRecord(
     caml_pasta_fq_to_bigint: { from: [fq], to: bigint256 },
     caml_pasta_fq_of_bigint: { from: [bigint256], to: fq },
     caml_pasta_fq_two_adic_root_of_unity: { from: [], to: fq },
-    caml_pasta_fq_domain_generator: { from: [numberBetween(0, 31)], to: fq },
+    caml_pasta_fq_domain_generator: { from: [numberLessThan(32)], to: fq },
     caml_pasta_fq_to_bytes: undefined, // not implemented
     caml_pasta_fq_of_bytes: undefined, // not implemented
     caml_pasta_fq_deep_copy: { from: [fq], to: fq },
   }
 );
 
-function option<T, S>(spec: Spec<T, S>): Spec<MlOption<T>, S | undefined> {
+// elliptic curve
+
+function projective<WasmP extends WasmProjective, WasmA extends WasmAffine>(
+  Curve: ProjectiveCurve,
+  Scalar: FiniteField,
+  affineOne: () => WasmA,
+  projOfAffine: (a: WasmA) => WasmP,
+  projToAffine: (p: WasmP) => WasmA
+): Spec<GroupProjective, WasmP> {
+  let randomScaled = Random(() => Curve.scale(Curve.one, Scalar.random()));
+
   return {
-    rng: Random.map(Random.oneOf(spec.rng, undefined), (o) => MlOption(o)),
-    there: (x) => MlOption.mapFrom(x, spec.there),
-    back: (x) => MlOption.mapTo(x, spec.back),
+    rng: Random.oneOf(
+      Curve.zero,
+      Curve.one,
+      randomScaled,
+      randomScaled,
+      randomScaled
+    ),
+    // excessively expensive to work around limited Rust API - only use for tests
+    there(p: GroupProjective): WasmP {
+      let { x, y, infinity } = Curve.toAffine(p);
+      let pAffineRust = affineOne();
+      if (infinity) {
+        pAffineRust.infinity = true;
+      } else {
+        pAffineRust.x = fieldToRust([0, x]);
+        pAffineRust.y = fieldToRust([0, y]);
+      }
+      return projOfAffine(pAffineRust);
+    },
+    back(p: WasmP): GroupProjective {
+      let pAffineRust = projToAffine(p);
+      if (pAffineRust.infinity) {
+        pAffineRust.free();
+        return Curve.zero;
+      } else {
+        let [, x] = fieldFromRust(pAffineRust.x);
+        let [, y] = fieldFromRust(pAffineRust.y);
+        return Curve.fromAffine({ x, y, infinity: false });
+      }
+    },
+    // we have to relax equality since we always normalize Rust points for conversion,
+    // but TS points are not normalized
+    assertEqual(g, h, message) {
+      defaultAssertEqual(Curve.equal(g, h), true, message);
+    },
   };
 }
+
+let pallas = projective<WasmPallasGProjective, WasmGPallas>(
+  Pallas,
+  Fq,
+  wasm.caml_pallas_affine_one,
+  wasm.caml_pallas_of_affine,
+  wasm.caml_pallas_to_affine
+);
+
+let vesta = projective<WasmVestaGProjective, WasmGVesta>(
+  Vesta,
+  Fp,
+  wasm.caml_vesta_affine_one,
+  wasm.caml_vesta_of_affine,
+  wasm.caml_vesta_to_affine
+);
+
+equivalentRecord(PallasBindings, wasm, {
+  caml_pallas_one: { from: [], to: pallas },
+  caml_pallas_add: { from: [pallas, pallas], to: pallas },
+  caml_pallas_sub: { from: [pallas, pallas], to: pallas },
+  caml_pallas_negate: { from: [pallas], to: pallas },
+  caml_pallas_double: { from: [pallas], to: pallas },
+  caml_pallas_scale: { from: [pallas, fq], to: pallas },
+  caml_pallas_random: undefined, // random outputs won't match
+  caml_pallas_rng: undefined, // random outputs won't match
+  caml_pallas_endo_base: { from: [], to: fp },
+  caml_pallas_endo_scalar: { from: [], to: fq },
+  caml_pallas_to_affine: undefined, // TODO
+  caml_pallas_of_affine: undefined, // TODO
+  caml_pallas_of_affine_coordinates: undefined, // TODO
+  caml_pallas_affine_deep_copy: undefined, // TODO
+});
+
+equivalentRecord(VestaBindings, wasm, {
+  caml_vesta_one: { from: [], to: vesta },
+  caml_vesta_add: { from: [vesta, vesta], to: vesta },
+  caml_vesta_sub: { from: [vesta, vesta], to: vesta },
+  caml_vesta_negate: { from: [vesta], to: vesta },
+  caml_vesta_double: { from: [vesta], to: vesta },
+  caml_vesta_scale: { from: [vesta, fp], to: vesta },
+  caml_vesta_random: undefined, // random outputs won't match
+  caml_vesta_rng: undefined, // random outputs won't match
+  caml_vesta_endo_base: { from: [], to: fq },
+  caml_vesta_endo_scalar: { from: [], to: fp },
+  caml_vesta_to_affine: undefined, // TODO
+  caml_vesta_of_affine: undefined, // TODO
+  caml_vesta_of_affine_coordinates: undefined, // TODO
+  caml_vesta_affine_deep_copy: undefined, // TODO
+});

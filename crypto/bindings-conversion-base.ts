@@ -3,6 +3,8 @@ import { bigIntToBytes, bytesToBigInt } from './bigint-helpers.js';
 import type {
   WasmGPallas,
   WasmGVesta,
+  WasmPallasGProjective,
+  WasmVestaGProjective,
 } from '../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray } from '../../lib/ml/base.js';
 import { OrInfinity } from './bindings-curve.js';
@@ -15,6 +17,8 @@ export {
   maybeFieldToRust,
   affineToRust,
   affineFromRust,
+  WasmAffine,
+  WasmProjective,
 };
 
 // TODO: Hardcoding this is a little brittle
@@ -63,7 +67,7 @@ function maybeFieldToRust(x?: Field): Uint8Array | undefined {
 
 type WasmAffine = WasmGVesta | WasmGPallas;
 
-function affineFromRust(pt: WasmAffine): OrInfinity {
+function affineFromRust<A extends WasmAffine>(pt: A): OrInfinity {
   if (pt.infinity) {
     pt.free();
     return 0;
@@ -88,3 +92,7 @@ function affineToRust<A extends WasmAffine>(
   }
   return res;
 }
+
+// projective
+
+type WasmProjective = WasmVestaGProjective | WasmPallasGProjective;
