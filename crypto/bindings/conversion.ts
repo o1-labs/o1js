@@ -4,36 +4,25 @@
 import { MlArray, MlOption } from '../../../lib/ml/base.js';
 import { MlTupleN } from './util.js';
 import type {
-  WasmFpDomain,
   WasmFpOpeningProof,
   WasmFpOracles,
-  WasmFpPlonkVerificationEvals,
-  WasmFpPlonkVerifierIndex,
   WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRandomOracles,
-  WasmFpShifts,
-  WasmFqDomain,
   WasmFqOpeningProof,
   WasmFqOracles,
-  WasmFqPlonkVerificationEvals,
-  WasmFqPlonkVerifierIndex,
   WasmFqProverCommitments,
   WasmFqProverProof,
   WasmFqRandomOracles,
-  WasmFqShifts,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import {
   PolyComm,
-  VerifierIndex,
   Oracles,
   ProverProof,
   ProofEvaluations,
-  Domain,
-  VerificationEvals,
   RandomOracles,
   ScalarChallenge,
   ProverCommitments,
@@ -51,11 +40,11 @@ import {
   proofEvaluationsFromRust,
   proofEvaluationsToRust,
 } from './conversion-proof.js';
+import { ConversionCore, conversionCore } from './conversion-core.js';
 import {
-  ConversionCore,
-  conversionCore,
-  freeOnFinalize,
-} from './conversion-core.js';
+  VerifierIndexConversion,
+  verifierIndexConversion,
+} from './conversion-verifier-index.js';
 
 export { createRustConversion };
 
@@ -65,12 +54,6 @@ import { Field, OrInfinity } from './kimchi-types.js';
 
 type wasm = typeof wasmNamespace;
 
-type WasmDomain = WasmFpDomain | WasmFqDomain;
-type WasmVerificationEvals =
-  | WasmFpPlonkVerificationEvals
-  | WasmFqPlonkVerificationEvals;
-type WasmShifts = WasmFpShifts | WasmFqShifts;
-type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
 type WasmRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
 type WasmOracles = WasmFpOracles | WasmFqOracles;
 type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
@@ -80,14 +63,6 @@ type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 // wasm class types
 
 type WasmClasses = {
-  Domain: typeof WasmFpDomain | typeof WasmFqDomain;
-  VerificationEvals:
-    | typeof WasmFpPlonkVerificationEvals
-    | typeof WasmFqPlonkVerificationEvals;
-  Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
-  VerifierIndex:
-    | typeof WasmFpPlonkVerifierIndex
-    | typeof WasmFqPlonkVerifierIndex;
   RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
   Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
   ProverCommitments:
@@ -101,11 +76,8 @@ type WasmClasses = {
 function createRustConversion(wasm: wasm) {
   function perField(
     core: ConversionCore,
+    verifierIndex: VerifierIndexConversion,
     {
-      Domain,
-      VerificationEvals,
-      Shifts,
-      VerifierIndex,
       RandomOracles,
       Oracles,
       ProverCommitments,
@@ -116,51 +88,7 @@ function createRustConversion(wasm: wasm) {
   ) {
     let self = {
       ...core,
-      shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
-        let s = shifts.map(fieldToRust);
-        return new Shifts(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
-      },
-      shiftsFromRust(s: WasmShifts): MlArray<Field> {
-        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
-        s.free();
-        return [0, ...shifts.map(fieldFromRust)];
-      },
-
-      verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
-        let domain = domainToRust(vk[1]);
-        let maxPolySize = vk[2];
-        let nPublic = vk[3];
-        let prevChallenges = vk[4];
-        let srs = vk[5];
-        let evals = verificationEvalsToRust(vk[6]);
-        let shifts = self.shiftsToRust(vk[7]);
-        return new VerifierIndex(
-          domain,
-          maxPolySize,
-          nPublic,
-          prevChallenges,
-          srs,
-          evals,
-          shifts
-        );
-      },
-      verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
-        let lookupIndex = 0 as 0; // None
-        let mlVk: VerifierIndex = [
-          0,
-          domainFromRust(vk.domain),
-          vk.max_poly_size,
-          vk.public_,
-          vk.prev_challenges,
-          freeOnFinalize(vk.srs),
-          verificationEvalsFromRust(vk.evals),
-          self.shiftsFromRust(vk.shifts),
-          lookupIndex,
-        ];
-        vk.free();
-        return mlVk;
-      },
-
+      ...verifierIndex,
       oraclesToRust(oracles: Oracles): WasmOracles {
         let [, o, pEval, openingPrechallenges, digestBeforeEvaluations] =
           oracles;
@@ -242,56 +170,6 @@ function createRustConversion(wasm: wasm) {
         ];
       },
     };
-
-    function domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
-      return new Domain(logSizeOfGroup, fieldToRust(groupGen));
-    }
-    function domainFromRust(domain: WasmDomain): Domain {
-      let logSizeOfGroup = domain.log_size_of_group;
-      let groupGen = fieldFromRust(domain.group_gen);
-      domain.free();
-      return [0, logSizeOfGroup, groupGen];
-    }
-
-    function verificationEvalsToRust(
-      evals: VerificationEvals
-    ): WasmVerificationEvals {
-      let sigmaComm = self.polyCommsToRust(evals[1]);
-      let coefficientsComm = self.polyCommsToRust(evals[2]);
-      let genericComm = self.polyCommToRust(evals[3]);
-      let psmComm = self.polyCommToRust(evals[4]);
-      let completeAddComm = self.polyCommToRust(evals[5]);
-      let mulComm = self.polyCommToRust(evals[6]);
-      let emulComm = self.polyCommToRust(evals[7]);
-      let endomulScalarComm = self.polyCommToRust(evals[8]);
-      return new VerificationEvals(
-        sigmaComm,
-        coefficientsComm,
-        genericComm,
-        psmComm,
-        completeAddComm,
-        mulComm,
-        emulComm,
-        endomulScalarComm
-      );
-    }
-    function verificationEvalsFromRust(
-      evals: WasmVerificationEvals
-    ): VerificationEvals {
-      let mlEvals: VerificationEvals = [
-        0,
-        self.polyCommsFromRust(evals.sigma_comm),
-        self.polyCommsFromRust(evals.coefficients_comm),
-        self.polyCommFromRust(evals.generic_comm),
-        self.polyCommFromRust(evals.psm_comm),
-        self.polyCommFromRust(evals.complete_add_comm),
-        self.polyCommFromRust(evals.mul_comm),
-        self.polyCommFromRust(evals.emul_comm),
-        self.polyCommFromRust(evals.endomul_scalar_comm),
-      ];
-      evals.free();
-      return mlEvals;
-    }
 
     function randomOraclesToRust(ro: RandomOracles): WasmRandomOracles {
       let jointCombinerMl = MlOption.from(ro[1]);
@@ -409,12 +287,9 @@ function createRustConversion(wasm: wasm) {
   }
 
   let core = conversionCore(wasm);
+  let verifierIndex = verifierIndexConversion(wasm, core);
 
-  const fp = perField(core.fp, {
-    Domain: wasm.WasmFpDomain,
-    VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
-    Shifts: wasm.WasmFpShifts,
-    VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+  const fp = perField(core.fp, verifierIndex.fp, {
     RandomOracles: wasm.WasmFpRandomOracles,
     Oracles: wasm.WasmFpOracles,
     ProverCommitments: wasm.WasmFpProverCommitments,
@@ -422,11 +297,7 @@ function createRustConversion(wasm: wasm) {
     VecVec: wasm.WasmVecVecFp,
     ProverProof: wasm.WasmFpProverProof,
   });
-  const fq = perField(core.fq, {
-    Domain: wasm.WasmFqDomain,
-    VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
-    Shifts: wasm.WasmFqShifts,
-    VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+  const fq = perField(core.fq, verifierIndex.fq, {
     RandomOracles: wasm.WasmFqRandomOracles,
     Oracles: wasm.WasmFqOracles,
     ProverCommitments: wasm.WasmFqProverCommitments,
