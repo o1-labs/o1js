@@ -45,6 +45,7 @@ import {
   VerifierIndexConversion,
   verifierIndexConversion,
 } from './conversion-verifier-index.js';
+import { OraclesConversion, oraclesConversion } from './conversion-oracles.js';
 
 export { createRustConversion };
 
@@ -54,8 +55,6 @@ import { Field, OrInfinity } from './kimchi-types.js';
 
 type wasm = typeof wasmNamespace;
 
-type WasmRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
-type WasmOracles = WasmFpOracles | WasmFqOracles;
 type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
 type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
@@ -63,8 +62,6 @@ type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 // wasm class types
 
 type WasmClasses = {
-  RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
-  Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
   ProverCommitments:
     | typeof WasmFpProverCommitments
     | typeof WasmFqProverCommitments;
@@ -77,42 +74,13 @@ function createRustConversion(wasm: wasm) {
   function perField(
     core: ConversionCore,
     verifierIndex: VerifierIndexConversion,
-    {
-      RandomOracles,
-      Oracles,
-      ProverCommitments,
-      OpeningProof,
-      VecVec,
-      ProverProof,
-    }: WasmClasses
+    oracles: OraclesConversion,
+    { ProverCommitments, OpeningProof, VecVec, ProverProof }: WasmClasses
   ) {
     let self = {
       ...core,
       ...verifierIndex,
-      oraclesToRust(oracles: Oracles): WasmOracles {
-        let [, o, pEval, openingPrechallenges, digestBeforeEvaluations] =
-          oracles;
-        return new Oracles(
-          randomOraclesToRust(o),
-          fieldToRust(pEval[1]),
-          fieldToRust(pEval[2]),
-          fieldsToRustFlat(openingPrechallenges),
-          fieldToRust(digestBeforeEvaluations)
-        );
-      },
-      oraclesFromRust(oracles: WasmOracles): Oracles {
-        let mlOracles: Oracles = [
-          0,
-          randomOraclesFromRust(oracles.o),
-          [0, fieldFromRust(oracles.p_eval0), fieldFromRust(oracles.p_eval1)],
-          fieldsFromRustFlat(oracles.opening_prechallenges),
-          fieldFromRust(oracles.digest_before_evaluations),
-        ];
-        // TODO: do we not want to free?
-        // oracles.free();
-        return mlOracles;
-      },
-
+      ...oracles,
       proofToRust(proof: ProverProof): WasmProverProof {
         let commitments = commitmentsToRust(proof[1]);
         let openingProof = openingProofToRust(proof[2]);
@@ -170,65 +138,6 @@ function createRustConversion(wasm: wasm) {
         ];
       },
     };
-
-    function randomOraclesToRust(ro: RandomOracles): WasmRandomOracles {
-      let jointCombinerMl = MlOption.from(ro[1]);
-      let jointCombinerChal = maybeFieldToRust(jointCombinerMl?.[1][1]);
-      let jointCombiner = maybeFieldToRust(jointCombinerMl?.[2]);
-      let beta = fieldToRust(ro[2]);
-      let gamma = fieldToRust(ro[3]);
-      let alphaChal = fieldToRust(ro[4][1]);
-      let alpha = fieldToRust(ro[5]);
-      let zeta = fieldToRust(ro[6]);
-      let v = fieldToRust(ro[7]);
-      let u = fieldToRust(ro[8]);
-      let zetaChal = fieldToRust(ro[9][1]);
-      let vChal = fieldToRust(ro[10][1]);
-      let uChal = fieldToRust(ro[11][1]);
-      return new RandomOracles(
-        jointCombinerChal,
-        jointCombiner,
-        beta,
-        gamma,
-        alphaChal,
-        alpha,
-        zeta,
-        v,
-        u,
-        zetaChal,
-        vChal,
-        uChal
-      );
-    }
-    function randomOraclesFromRust(ro: WasmRandomOracles): RandomOracles {
-      let jointCombinerChal = ro.joint_combiner_chal;
-      let jointCombiner = ro.joint_combiner;
-      let jointCombinerOption = MlOption<[0, ScalarChallenge, Field]>(
-        jointCombinerChal &&
-          jointCombiner && [
-            0,
-            [0, fieldFromRust(jointCombinerChal)],
-            fieldFromRust(jointCombiner),
-          ]
-      );
-      let mlRo: RandomOracles = [
-        0,
-        jointCombinerOption,
-        fieldFromRust(ro.beta),
-        fieldFromRust(ro.gamma),
-        [0, fieldFromRust(ro.alpha_chal)],
-        fieldFromRust(ro.alpha),
-        fieldFromRust(ro.zeta),
-        fieldFromRust(ro.v),
-        fieldFromRust(ro.u),
-        [0, fieldFromRust(ro.zeta_chal)],
-        [0, fieldFromRust(ro.v_chal)],
-        [0, fieldFromRust(ro.u_chal)],
-      ];
-      // TODO: do we not want to free?
-      // ro.free();
-      return mlRo;
-    }
 
     function commitmentsToRust(
       commitments: ProverCommitments
@@ -288,18 +197,15 @@ function createRustConversion(wasm: wasm) {
 
   let core = conversionCore(wasm);
   let verifierIndex = verifierIndexConversion(wasm, core);
+  let oracles = oraclesConversion(wasm);
 
-  const fp = perField(core.fp, verifierIndex.fp, {
-    RandomOracles: wasm.WasmFpRandomOracles,
-    Oracles: wasm.WasmFpOracles,
+  const fp = perField(core.fp, verifierIndex.fp, oracles.fp, {
     ProverCommitments: wasm.WasmFpProverCommitments,
     OpeningProof: wasm.WasmFpOpeningProof,
     VecVec: wasm.WasmVecVecFp,
     ProverProof: wasm.WasmFpProverProof,
   });
-  const fq = perField(core.fq, verifierIndex.fq, {
-    RandomOracles: wasm.WasmFqRandomOracles,
-    Oracles: wasm.WasmFqOracles,
+  const fq = perField(core.fq, verifierIndex.fq, oracles.fq, {
     ProverCommitments: wasm.WasmFqProverCommitments,
     OpeningProof: wasm.WasmFqOpeningProof,
     VecVec: wasm.WasmVecVecFq,
