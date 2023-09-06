@@ -43,19 +43,20 @@ type WasmClasses = {
 };
 
 function verifierIndexConversion(wasm: wasm, core: ConversionCores) {
-  const fp = verifierIndexConversionPerField(core.fp, {
-    Domain: wasm.WasmFpDomain,
-    VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
-    Shifts: wasm.WasmFpShifts,
-    VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
-  });
-  const fq = verifierIndexConversionPerField(core.fq, {
-    Domain: wasm.WasmFqDomain,
-    VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
-    Shifts: wasm.WasmFqShifts,
-    VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
-  });
-  return { fp, fq };
+  return {
+    fp: verifierIndexConversionPerField(core.fp, {
+      Domain: wasm.WasmFpDomain,
+      VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
+      Shifts: wasm.WasmFpShifts,
+      VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+    }),
+    fq: verifierIndexConversionPerField(core.fq, {
+      Domain: wasm.WasmFqDomain,
+      VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
+      Shifts: wasm.WasmFqShifts,
+      VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+    }),
+  };
 }
 
 function verifierIndexConversionPerField(
