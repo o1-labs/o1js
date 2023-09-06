@@ -51,19 +51,20 @@ type WasmClasses = {
 };
 
 function proofConversion(wasm: wasm, core: ConversionCores) {
-  const fp = proofConversionPerField(core.fp, {
-    ProverCommitments: wasm.WasmFpProverCommitments,
-    OpeningProof: wasm.WasmFpOpeningProof,
-    VecVec: wasm.WasmVecVecFp,
-    ProverProof: wasm.WasmFpProverProof,
-  });
-  const fq = proofConversionPerField(core.fq, {
-    ProverCommitments: wasm.WasmFqProverCommitments,
-    OpeningProof: wasm.WasmFqOpeningProof,
-    VecVec: wasm.WasmVecVecFq,
-    ProverProof: wasm.WasmFqProverProof,
-  });
-  return { fp, fq };
+  return {
+    fp: proofConversionPerField(core.fp, {
+      ProverCommitments: wasm.WasmFpProverCommitments,
+      OpeningProof: wasm.WasmFpOpeningProof,
+      VecVec: wasm.WasmVecVecFp,
+      ProverProof: wasm.WasmFpProverProof,
+    }),
+    fq: proofConversionPerField(core.fq, {
+      ProverCommitments: wasm.WasmFqProverCommitments,
+      OpeningProof: wasm.WasmFqOpeningProof,
+      VecVec: wasm.WasmVecVecFq,
+      ProverProof: wasm.WasmFqProverProof,
+    }),
+  };
 }
 
 function proofConversionPerField(

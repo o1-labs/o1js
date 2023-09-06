@@ -29,15 +29,16 @@ type WasmClasses = {
 };
 
 function oraclesConversion(wasm: wasm) {
-  const fp = oraclesConversionPerField({
-    RandomOracles: wasm.WasmFpRandomOracles,
-    Oracles: wasm.WasmFpOracles,
-  });
-  const fq = oraclesConversionPerField({
-    RandomOracles: wasm.WasmFqRandomOracles,
-    Oracles: wasm.WasmFqOracles,
-  });
-  return { fp, fq };
+  return {
+    fp: oraclesConversionPerField({
+      RandomOracles: wasm.WasmFpRandomOracles,
+      Oracles: wasm.WasmFpOracles,
+    }),
+    fq: oraclesConversionPerField({
+      RandomOracles: wasm.WasmFqRandomOracles,
+      Oracles: wasm.WasmFqOracles,
+    }),
+  };
 }
 
 function oraclesConversionPerField({ RandomOracles, Oracles }: WasmClasses) {
