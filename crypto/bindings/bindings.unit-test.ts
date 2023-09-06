@@ -55,7 +55,6 @@ import {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { FiniteField, Fp, Fq } from '../finite_field.js';
 
-let unit: ToSpec<void, void> = { back: id };
 let number: ToSpec<number, number> = { back: id };
 let numberLessThan = (max: number): FromSpec<number, number> => ({
   rng: Random.map(Random.nat(max - 1), id),
