@@ -15,9 +15,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/b1d8d5910...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/fbd4b2717...HEAD)
 
 > No unreleased changes yet
+
+## [0.12.2](https://github.com/o1-labs/o1js/compare/b1d8d5910...fbd4b2717)
+
+### Changed
+
+- Renamed SnarkyJS to o1js https://github.com/o1-labs/o1js/pull/1104
+- Reduce loading time of the library by 3-4x https://github.com/o1-labs/o1js/pull/1073
 
 ## [0.12.1](https://github.com/o1-labs/o1js/compare/161b69d602...b1d8d5910)
 
