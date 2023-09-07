@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Renamed SnarkyJS to o1js https://github.com/o1-labs/o1js/pull/1104
 - Reduce loading time of the library by 3-4x https://github.com/o1-labs/o1js/pull/1073
+- Improve error when forgetting `transaction.prove()` https://github.com/o1-labs/o1js/pull/1095
 
 ## [0.12.1](https://github.com/o1-labs/o1js/compare/161b69d602...b1d8d5910)
 
