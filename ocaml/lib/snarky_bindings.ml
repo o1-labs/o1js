@@ -160,12 +160,10 @@ module Circuit = struct
     let pk = Impl.Keypair.pk keypair in
     let input_typ = typ public_input_size in
     let return_typ = Impl.Typ.unit in
-    (* TODO(dw): runtime tables should not be empty *)
-    let runtime_tables = [||] in
     Impl.generate_witness_conv ~input_typ ~return_typ
       ~f:(fun { Impl.Proof_inputs.auxiliary_inputs; public_inputs } () ->
         Backend.Proof.create pk ~auxiliary:auxiliary_inputs
-          ~primary:public_inputs ~runtime_tables )
+          ~primary:public_inputs )
       (Main.of_js main) public_input
 
   let verify public_input proof vk =
