@@ -10,8 +10,8 @@ import {
 
 export { VestaBindings, PallasBindings };
 
-const VestaBindings = createCurveBindings(Vesta, 'caml_pasta_vesta');
-const PallasBindings = createCurveBindings(Pallas, 'caml_pasta_pallas');
+const VestaBindings = createCurveBindings(Vesta, 'caml_vesta');
+const PallasBindings = createCurveBindings(Pallas, 'caml_pallas');
 
 function createCurveBindings<curve extends string>(
   Curve: ProjectiveCurve,
@@ -50,7 +50,7 @@ function createCurveBindings<curve extends string>(
       // TODO this matches Rust but doesn't handle (0, 0)
       return { x: x[0], y: y[0], z: 1n };
     },
-    deep_copy(g: GroupProjective): GroupProjective {
+    affine_deep_copy(g: GroupProjective): GroupProjective {
       return { ...g };
     },
   };
