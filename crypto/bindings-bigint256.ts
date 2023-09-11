@@ -1,8 +1,9 @@
-export { Bigint256, toMlStringAscii, fromMlString, MlBytes };
+export { Bigint256Bindings, Bigint256, toMlStringAscii, fromMlString, MlBytes };
 
 type Bigint256 = [bigint];
 
-const Bigint256 = {
+const Bigint256Bindings = {
+  // TODO
   caml_bigint_256_of_numeral(s: MlBytes, i: number, j: number): Bigint256 {
     throw Error('caml_bigint_256_of_numeral not implemented');
   },

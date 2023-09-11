@@ -1,5 +1,6 @@
 import { FiniteField, Fp, Fq, mod } from './finite_field.js';
 import {
+  Bigint256Bindings,
   Bigint256,
   MlBytes,
   fromMlString,
@@ -9,7 +10,7 @@ import { MlOption, MlBool } from '../../lib/ml/base.js';
 
 type Field = [bigint];
 
-export { FpBindings as Fp, FqBindings as Fq };
+export { FpBindings, FqBindings, Field };
 
 const FpBindings = createFieldBindings(Fp, 'caml_pasta_fp');
 const FqBindings = createFieldBindings(Fq, 'caml_pasta_fq');
@@ -79,7 +80,7 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
       x[0] = Field.square(x[0]);
     },
     compare(x: Field, y: Field): 1 | 0 | -1 {
-      return Bigint256.caml_bigint_256_compare(x, y);
+      return Bigint256Bindings.caml_bigint_256_compare(x, y);
     },
     equal([x]: Field, [y]: Field): MlBool {
       return MlBool(x === y);
@@ -116,10 +117,10 @@ function createFieldBindings<fp extends string>(Field: FiniteField, fp: fp) {
       return [generator];
     },
     to_bytes(x: Field): MlBytes {
-      return Bigint256.caml_bigint_256_to_bytes(x);
+      return Bigint256Bindings.caml_bigint_256_to_bytes(x);
     },
     of_bytes(x: MlBytes): Field {
-      return Bigint256.caml_bigint_256_of_bytes(x);
+      return Bigint256Bindings.caml_bigint_256_of_bytes(x);
     },
     deep_copy([x]: Field): Field {
       return [x];
