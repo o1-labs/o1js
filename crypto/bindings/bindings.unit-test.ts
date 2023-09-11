@@ -20,6 +20,8 @@ import { Random } from '../../../lib/testing/property.js';
 import {
   WasmAffine,
   WasmProjective,
+  affineFromRust,
+  affineToRust,
   fieldFromRust,
   fieldToRust,
 } from '../bindings-conversion-base.js';
@@ -33,7 +35,12 @@ import {
 } from './test-utils.js';
 import { Field, FpBindings, FqBindings } from '../bindings-field.js';
 import { MlBool, MlOption } from '../../../lib/ml/base.js';
-import { PallasBindings, VestaBindings } from '../bindings-curve.js';
+import {
+  OrInfinity,
+  PallasBindings,
+  VestaBindings,
+  toMlOrInfinity,
+} from '../bindings-curve.js';
 import {
   GroupProjective,
   Pallas,
@@ -47,7 +54,6 @@ import {
   WasmVestaGProjective,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { FiniteField, Fp, Fq } from '../finite_field.js';
-import { Group } from 'src/index.js';
 
 let unit: ToSpec<void, void> = { back: id };
 let number: ToSpec<number, number> = { back: id };
@@ -213,6 +219,58 @@ equivalentRecord(
 
 // elliptic curve
 
+let pallas = projective<WasmPallasGProjective, WasmGPallas>(
+  Pallas,
+  Fq,
+  wasm.caml_pallas_affine_one,
+  wasm.caml_pallas_of_affine,
+  wasm.caml_pallas_to_affine
+);
+let pallasAffine = affine<WasmGPallas>(Pallas, Fq, wasm.caml_pallas_affine_one);
+
+let vesta = projective<WasmVestaGProjective, WasmGVesta>(
+  Vesta,
+  Fp,
+  wasm.caml_vesta_affine_one,
+  wasm.caml_vesta_of_affine,
+  wasm.caml_vesta_to_affine
+);
+let vestaAffine = affine<WasmGVesta>(Vesta, Fp, wasm.caml_vesta_affine_one);
+
+equivalentRecord(PallasBindings, wasm, {
+  caml_pallas_one: { from: [], to: pallas },
+  caml_pallas_add: { from: [pallas, pallas], to: pallas },
+  caml_pallas_sub: { from: [pallas, pallas], to: pallas },
+  caml_pallas_negate: { from: [pallas], to: pallas },
+  caml_pallas_double: { from: [pallas], to: pallas },
+  caml_pallas_scale: { from: [pallas, fq], to: pallas },
+  caml_pallas_random: undefined, // random outputs won't match
+  caml_pallas_rng: undefined, // random outputs won't match
+  caml_pallas_endo_base: { from: [], to: fp },
+  caml_pallas_endo_scalar: { from: [], to: fq },
+  caml_pallas_to_affine: { from: [pallas], to: pallasAffine },
+  caml_pallas_of_affine: { from: [pallasAffine], to: pallas },
+  caml_pallas_of_affine_coordinates: { from: [fp, fp], to: pallas },
+  caml_pallas_affine_deep_copy: { from: [pallasAffine], to: pallasAffine },
+});
+
+equivalentRecord(VestaBindings, wasm, {
+  caml_vesta_one: { from: [], to: vesta },
+  caml_vesta_add: { from: [vesta, vesta], to: vesta },
+  caml_vesta_sub: { from: [vesta, vesta], to: vesta },
+  caml_vesta_negate: { from: [vesta], to: vesta },
+  caml_vesta_double: { from: [vesta], to: vesta },
+  caml_vesta_scale: { from: [vesta, fp], to: vesta },
+  caml_vesta_random: undefined, // random outputs won't match
+  caml_vesta_rng: undefined, // random outputs won't match
+  caml_vesta_endo_base: { from: [], to: fq },
+  caml_vesta_endo_scalar: { from: [], to: fp },
+  caml_vesta_to_affine: { from: [vesta], to: vestaAffine },
+  caml_vesta_of_affine: { from: [vestaAffine], to: vesta },
+  caml_vesta_of_affine_coordinates: { from: [fq, fq], to: vesta },
+  caml_vesta_affine_deep_copy: { from: [vestaAffine], to: vestaAffine },
+});
+
 function projective<WasmP extends WasmProjective, WasmA extends WasmAffine>(
   Curve: ProjectiveCurve,
   Scalar: FiniteField,
@@ -261,52 +319,24 @@ function projective<WasmP extends WasmProjective, WasmA extends WasmAffine>(
   };
 }
 
-let pallas = projective<WasmPallasGProjective, WasmGPallas>(
-  Pallas,
-  Fq,
-  wasm.caml_pallas_affine_one,
-  wasm.caml_pallas_of_affine,
-  wasm.caml_pallas_to_affine
-);
+function affine<WasmA extends WasmAffine>(
+  Curve: ProjectiveCurve,
+  Scalar: FiniteField,
+  affineOne: () => WasmA
+): Spec<OrInfinity, WasmA> {
+  let randomScaled = Random(() => Curve.scale(Curve.one, Scalar.random()));
+  let rngProjective = Random.oneOf(
+    Curve.zero,
+    Curve.one,
+    randomScaled,
+    randomScaled,
+    randomScaled
+  );
+  let rng = Random.map(rngProjective, (p) => toMlOrInfinity(Curve.toAffine(p)));
 
-let vesta = projective<WasmVestaGProjective, WasmGVesta>(
-  Vesta,
-  Fp,
-  wasm.caml_vesta_affine_one,
-  wasm.caml_vesta_of_affine,
-  wasm.caml_vesta_to_affine
-);
-
-equivalentRecord(PallasBindings, wasm, {
-  caml_pallas_one: { from: [], to: pallas },
-  caml_pallas_add: { from: [pallas, pallas], to: pallas },
-  caml_pallas_sub: { from: [pallas, pallas], to: pallas },
-  caml_pallas_negate: { from: [pallas], to: pallas },
-  caml_pallas_double: { from: [pallas], to: pallas },
-  caml_pallas_scale: { from: [pallas, fq], to: pallas },
-  caml_pallas_random: undefined, // random outputs won't match
-  caml_pallas_rng: undefined, // random outputs won't match
-  caml_pallas_endo_base: { from: [], to: fp },
-  caml_pallas_endo_scalar: { from: [], to: fq },
-  caml_pallas_to_affine: undefined, // TODO
-  caml_pallas_of_affine: undefined, // TODO
-  caml_pallas_of_affine_coordinates: undefined, // TODO
-  caml_pallas_affine_deep_copy: undefined, // TODO
-});
-
-equivalentRecord(VestaBindings, wasm, {
-  caml_vesta_one: { from: [], to: vesta },
-  caml_vesta_add: { from: [vesta, vesta], to: vesta },
-  caml_vesta_sub: { from: [vesta, vesta], to: vesta },
-  caml_vesta_negate: { from: [vesta], to: vesta },
-  caml_vesta_double: { from: [vesta], to: vesta },
-  caml_vesta_scale: { from: [vesta, fp], to: vesta },
-  caml_vesta_random: undefined, // random outputs won't match
-  caml_vesta_rng: undefined, // random outputs won't match
-  caml_vesta_endo_base: { from: [], to: fq },
-  caml_vesta_endo_scalar: { from: [], to: fp },
-  caml_vesta_to_affine: undefined, // TODO
-  caml_vesta_of_affine: undefined, // TODO
-  caml_vesta_of_affine_coordinates: undefined, // TODO
-  caml_vesta_affine_deep_copy: undefined, // TODO
-});
+  return {
+    rng,
+    there: (p: OrInfinity) => affineToRust(p, affineOne),
+    back: affineFromRust,
+  };
+}

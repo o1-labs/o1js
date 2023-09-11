@@ -12,7 +12,13 @@ import {
 } from './elliptic_curve.js';
 import { withPrefix } from './bindings-util.js';
 
-export { VestaBindings, PallasBindings };
+export {
+  VestaBindings,
+  PallasBindings,
+  OrInfinity,
+  toMlOrInfinity,
+  fromMlOrInfinity,
+};
 
 const VestaBindings = withPrefix('caml_vesta', createCurveBindings(Vesta));
 const PallasBindings = withPrefix('caml_pallas', createCurveBindings(Pallas));
@@ -48,11 +54,11 @@ function createCurveBindings(Curve: ProjectiveCurve) {
       return Curve.fromAffine(fromMlOrInfinity(g));
     },
     of_affine_coordinates(x: Field, y: Field): GroupProjective {
-      // TODO this matches Rust but doesn't handle (0, 0)
+      // allows to create in points not on the curve - matches Rust impl
       return { x: x[1], y: y[1], z: 1n };
     },
-    affine_deep_copy(g: GroupProjective): GroupProjective {
-      return { ...g };
+    affine_deep_copy(g: OrInfinity): OrInfinity {
+      return toMlOrInfinity(fromMlOrInfinity(g));
     },
   };
 }
