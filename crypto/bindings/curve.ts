@@ -2,15 +2,15 @@
  * TS implementation of Pasta_bindings.{Pallas, Vesta}
  */
 import { MlOption, MlTuple } from 'src/lib/ml/base.js';
-import { Field } from './bindings-field.js';
+import { Field } from './field.js';
 import {
   Pallas,
   Vesta,
   ProjectiveCurve,
   GroupProjective,
   GroupAffine,
-} from './elliptic_curve.js';
-import { withPrefix } from './bindings-util.js';
+} from '../elliptic_curve.js';
+import { withPrefix } from './util.js';
 
 export {
   VestaBindings,

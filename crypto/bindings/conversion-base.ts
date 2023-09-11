@@ -1,13 +1,13 @@
-import { Field } from './bindings-field.js';
-import { bigIntToBytes, bytesToBigInt } from './bigint-helpers.js';
+import { Field } from './field.js';
+import { bigIntToBytes, bytesToBigInt } from '../bigint-helpers.js';
 import type {
   WasmGPallas,
   WasmGVesta,
   WasmPallasGProjective,
   WasmVestaGProjective,
-} from '../compiled/node_bindings/plonk_wasm.cjs';
-import type { MlArray } from '../../lib/ml/base.js';
-import { OrInfinity } from './bindings-curve.js';
+} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type { MlArray } from '../../../lib/ml/base.js';
+import { OrInfinity } from './curve.js';
 
 export {
   fieldToRust,
