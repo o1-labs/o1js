@@ -1,3 +1,6 @@
+/**
+ * TS implementation of Pasta_bindings.{Pallas, Vesta}
+ */
 import { MlOption, MlTuple } from 'src/lib/ml/base.js';
 import { Field } from './bindings-field.js';
 import {

@@ -1,3 +1,6 @@
+/**
+ * TS implementation of Pasta_bindings.BigInt256
+ */
 export { Bigint256Bindings, Bigint256, toMlStringAscii, fromMlString, MlBytes };
 
 type Bigint256 = [bigint];

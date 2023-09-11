@@ -1,3 +1,6 @@
+/**
+ * TS implementation of Pasta_bindings.{Fp, Fq}
+ */
 import { FiniteField, Fp, Fq, mod } from './finite_field.js';
 import {
   Bigint256Bindings,
