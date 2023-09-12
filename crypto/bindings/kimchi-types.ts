@@ -12,6 +12,8 @@ import type {
 import type { MlTupleN } from './util.js';
 
 export {
+  Field,
+  OrInfinity,
   Wire,
   Gate,
   PolyComm,

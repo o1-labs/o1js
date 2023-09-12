@@ -10,14 +10,18 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray } from '../../../lib/ml/base.js';
-import { VerifierIndex, Domain, VerificationEvals } from './kimchi-types.js';
+import {
+  Field,
+  VerifierIndex,
+  Domain,
+  VerificationEvals,
+} from './kimchi-types.js';
 import { fieldFromRust, fieldToRust } from './conversion-base.js';
 import {
   ConversionCore,
   ConversionCores,
   freeOnFinalize,
 } from './conversion-core.js';
-import { Field } from './field.js';
 
 export { verifierIndexConversion };
 

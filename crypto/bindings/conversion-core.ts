@@ -6,10 +6,9 @@ import type {
   WasmGPallas,
   WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { Gate, PolyComm, Wire } from './kimchi-types.js';
+import { OrInfinity, Gate, PolyComm, Wire } from './kimchi-types.js';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray, MlOption } from '../../../lib/ml/base.js';
-import { OrInfinity } from './curve.js';
 import { mapTuple } from './util.js';
 import {
   WasmAffine,

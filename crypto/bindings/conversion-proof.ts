@@ -10,6 +10,7 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
+  OrInfinity,
   LookupEvaluations,
   PointEvaluations,
   PolyComm,
@@ -28,7 +29,6 @@ import {
   fieldsFromRustFlat,
 } from './conversion-base.js';
 import { ConversionCore, ConversionCores } from './conversion-core.js';
-import { OrInfinity } from './curve.js';
 
 export { proofConversion };
 
