@@ -8,6 +8,7 @@ import { Bigint256Bindings } from './bindings/bigint256.js';
 import { PallasBindings, VestaBindings } from './bindings/curve.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
+import { createRustConversion } from './bindings/conversion.js';
 
 const tsBindings = {
   prefixHashes,
@@ -19,6 +20,7 @@ const tsBindings = {
   ...PallasBindings,
   ...FpVectorBindings,
   ...FqVectorBindings,
+  rustConversion: createRustConversion,
 };
 
 // this is put in a global variable so that ../kimchi/js/bindings.js finds it
