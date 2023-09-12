@@ -11,7 +11,7 @@ import type {
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray } from '../../../lib/ml/base.js';
 import { VerifierIndex, Domain, VerificationEvals } from './kimchi-types.js';
-import { fieldFromRust, fieldToRust } from './conversion-base.js';
+import { fieldFromRust, fieldToRust } from './conversion-base-old.js';
 import {
   ConversionCore,
   ConversionCores,

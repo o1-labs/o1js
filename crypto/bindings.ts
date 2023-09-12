@@ -12,7 +12,7 @@ import type * as wasmNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
-} from './bindings/conversion-base.js';
+} from './bindings/conversion-base-old.js';
 import { proofConversion } from './bindings/conversion-proof.js';
 import { conversionCore } from './bindings/conversion-core.js';
 import { verifierIndexConversion } from './bindings/conversion-verifier-index.js';
