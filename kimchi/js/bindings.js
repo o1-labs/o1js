@@ -59,6 +59,7 @@ var caml_option_to_maybe_undefined = function (x) {
 };
 
 
+
 // Provides: free_finalization_registry
 var free_finalization_registry =
     new joo_global_object.FinalizationRegistry(function (instance_representative) {
@@ -83,9 +84,6 @@ var free_on_finalize = function (x) {
     free_finalization_registry.register(x, instance_representative, x);
     return x;
 };
-
-
-
 
 
 
