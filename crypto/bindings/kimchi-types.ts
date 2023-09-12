@@ -2,7 +2,9 @@
  * This file is a TS representation of kimchi_types.ml
  */
 import type { Lookup } from './lookup.js';
-import type { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import type { MlArray, MlOption } from '../../../lib/ml/base.js';
+import type { OrInfinity } from './curve.js';
+import type { Field } from './field.js';
 import type {
   WasmFpSrs,
   WasmFqSrs,
@@ -10,6 +12,8 @@ import type {
 import type { MlTupleN } from './util.js';
 
 export {
+  Field,
+  OrInfinity,
   Wire,
   Gate,
   PolyComm,
@@ -27,13 +31,6 @@ export {
   RecursionChallenge,
   ProverProof,
 };
-
-export { Field, OrInfinity };
-
-type Field = Uint8Array;
-
-// Kimchi_types.or_infinity
-type OrInfinity = MlOption<MlTuple<Field, Field>>;
 
 // wasm types
 

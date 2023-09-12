@@ -18,7 +18,7 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
   maybeFieldToRust,
-} from './conversion-base-old.js';
+} from './conversion-base.js';
 
 export { oraclesConversion };
 

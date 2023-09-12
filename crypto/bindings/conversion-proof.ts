@@ -27,7 +27,7 @@ import {
   fieldFromRust,
   fieldsToRustFlat,
   fieldsFromRustFlat,
-} from './conversion-base-old.js';
+} from './conversion-base.js';
 import { ConversionCore, ConversionCores } from './conversion-core.js';
 
 export { proofConversion };

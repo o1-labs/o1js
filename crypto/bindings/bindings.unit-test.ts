@@ -24,7 +24,7 @@ import {
   affineToRust,
   fieldFromRust,
   fieldToRust,
-} from './conversion-base-new.js';
+} from './conversion-base.js';
 import {
   id,
   equivalentRecord,

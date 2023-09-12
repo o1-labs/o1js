@@ -95,6 +95,7 @@ function createFieldBindings(Field: FiniteField) {
     random(): Field {
       return [0, Field.random()];
     },
+    // TODO
     rng(i: number): Field {
       console.warn('rng is not implemented');
       return [0, Field.random()];

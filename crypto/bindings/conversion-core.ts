@@ -16,7 +16,7 @@ import {
   affineToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
-} from './conversion-base-old.js';
+} from './conversion-base.js';
 
 export {
   ConversionCore,
