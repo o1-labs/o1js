@@ -1,14 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
-* @returns {WasmGPallas}
-*/
-export function caml_pallas_affine_one(): WasmGPallas;
-/**
-* @returns {WasmGVesta}
-*/
-export function caml_vesta_affine_one(): WasmGVesta;
-/**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
 * @param {string} path
@@ -94,6 +86,14 @@ export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierI
 * @returns {WasmFqPlonkVerifierIndex}
 */
 export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
+/**
+* @returns {WasmGPallas}
+*/
+export function caml_pallas_affine_one(): WasmGPallas;
+/**
+* @returns {WasmGVesta}
+*/
+export function caml_vesta_affine_one(): WasmGVesta;
 /**
 * @returns {WasmPallasGProjective}
 */
@@ -1324,8 +1324,14 @@ export class WasmFpPlonkVerificationEvals {
 * @param {WasmFpPolyComm} mul_comm
 * @param {WasmFpPolyComm} emul_comm
 * @param {WasmFpPolyComm} endomul_scalar_comm
+* @param {WasmFpPolyComm | undefined} xor_comm
+* @param {WasmFpPolyComm | undefined} range_check0_comm
+* @param {WasmFpPolyComm | undefined} range_check1_comm
+* @param {WasmFpPolyComm | undefined} foreign_field_add_comm
+* @param {WasmFpPolyComm | undefined} foreign_field_mul_comm
+* @param {WasmFpPolyComm | undefined} rot_comm
 */
-  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFpPolyComm, psm_comm: WasmFpPolyComm, complete_add_comm: WasmFpPolyComm, mul_comm: WasmFpPolyComm, emul_comm: WasmFpPolyComm, endomul_scalar_comm: WasmFpPolyComm);
+  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFpPolyComm, psm_comm: WasmFpPolyComm, complete_add_comm: WasmFpPolyComm, mul_comm: WasmFpPolyComm, emul_comm: WasmFpPolyComm, endomul_scalar_comm: WasmFpPolyComm, xor_comm?: WasmFpPolyComm, range_check0_comm?: WasmFpPolyComm, range_check1_comm?: WasmFpPolyComm, foreign_field_add_comm?: WasmFpPolyComm, foreign_field_mul_comm?: WasmFpPolyComm, rot_comm?: WasmFpPolyComm);
 /**
 */
   coefficients_comm: Uint32Array;
@@ -1340,6 +1346,12 @@ export class WasmFpPlonkVerificationEvals {
   endomul_scalar_comm: WasmFpPolyComm;
 /**
 */
+  foreign_field_add_comm?: WasmFpPolyComm;
+/**
+*/
+  foreign_field_mul_comm?: WasmFpPolyComm;
+/**
+*/
   generic_comm: WasmFpPolyComm;
 /**
 */
@@ -1349,7 +1361,19 @@ export class WasmFpPlonkVerificationEvals {
   psm_comm: WasmFpPolyComm;
 /**
 */
+  range_check0_comm?: WasmFpPolyComm;
+/**
+*/
+  range_check1_comm?: WasmFpPolyComm;
+/**
+*/
+  rot_comm?: WasmFpPolyComm;
+/**
+*/
   sigma_comm: Uint32Array;
+/**
+*/
+  xor_comm?: WasmFpPolyComm;
 }
 /**
 */
@@ -1762,8 +1786,14 @@ export class WasmFqPlonkVerificationEvals {
 * @param {WasmFqPolyComm} mul_comm
 * @param {WasmFqPolyComm} emul_comm
 * @param {WasmFqPolyComm} endomul_scalar_comm
+* @param {WasmFqPolyComm | undefined} xor_comm
+* @param {WasmFqPolyComm | undefined} range_check0_comm
+* @param {WasmFqPolyComm | undefined} range_check1_comm
+* @param {WasmFqPolyComm | undefined} foreign_field_add_comm
+* @param {WasmFqPolyComm | undefined} foreign_field_mul_comm
+* @param {WasmFqPolyComm | undefined} rot_comm
 */
-  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFqPolyComm, psm_comm: WasmFqPolyComm, complete_add_comm: WasmFqPolyComm, mul_comm: WasmFqPolyComm, emul_comm: WasmFqPolyComm, endomul_scalar_comm: WasmFqPolyComm);
+  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFqPolyComm, psm_comm: WasmFqPolyComm, complete_add_comm: WasmFqPolyComm, mul_comm: WasmFqPolyComm, emul_comm: WasmFqPolyComm, endomul_scalar_comm: WasmFqPolyComm, xor_comm?: WasmFqPolyComm, range_check0_comm?: WasmFqPolyComm, range_check1_comm?: WasmFqPolyComm, foreign_field_add_comm?: WasmFqPolyComm, foreign_field_mul_comm?: WasmFqPolyComm, rot_comm?: WasmFqPolyComm);
 /**
 */
   coefficients_comm: Uint32Array;
@@ -1778,6 +1808,12 @@ export class WasmFqPlonkVerificationEvals {
   endomul_scalar_comm: WasmFqPolyComm;
 /**
 */
+  foreign_field_add_comm?: WasmFqPolyComm;
+/**
+*/
+  foreign_field_mul_comm?: WasmFqPolyComm;
+/**
+*/
   generic_comm: WasmFqPolyComm;
 /**
 */
@@ -1787,7 +1823,19 @@ export class WasmFqPlonkVerificationEvals {
   psm_comm: WasmFqPolyComm;
 /**
 */
+  range_check0_comm?: WasmFqPolyComm;
+/**
+*/
+  range_check1_comm?: WasmFqPolyComm;
+/**
+*/
+  rot_comm?: WasmFqPolyComm;
+/**
+*/
   sigma_comm: Uint32Array;
+/**
+*/
+  xor_comm?: WasmFqPolyComm;
 }
 /**
 */
