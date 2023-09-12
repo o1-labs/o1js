@@ -17,7 +17,6 @@ import {
   ConversionCores,
   freeOnFinalize,
 } from './conversion-core.js';
-import { Field } from './field.js';
 
 export {
   verifierIndexConversion,
@@ -27,6 +26,8 @@ export {
 };
 
 // basic conversion functions for each field
+
+import { Field } from './kimchi-types.js';
 
 type wasm = typeof wasmNamespace;
 
