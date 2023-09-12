@@ -14,7 +14,6 @@ import {
   fieldsToRustFlat,
   maybeFieldToRust,
 } from './conversion-base.js';
-import { Field } from './field.js';
 
 export {
   oraclesConversion,
@@ -24,6 +23,8 @@ export {
 };
 
 // wasm types
+
+import { Field } from './kimchi-types.js';
 
 type wasm = typeof wasmNamespace;
 
