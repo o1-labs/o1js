@@ -368,7 +368,7 @@ function createRustConversion(wasm: wasm) {
         let commitments = commitmentsToRust(proof[1]);
         let openingProof = openingProofToRust(proof[2]);
         // TODO typed as `any` in wasm-bindgen, this is the correct type
-        let evals: PointEvaluations<Uint8Array> = proof[3];
+        let evals: ProofEvaluations<Uint8Array> = proof[3];
         let ftEval1 = fieldToRust(proof[4]);
         let public_ = fieldsToRustFlat(proof[5]);
         let [, ...prevChallenges] = proof[6];
@@ -394,7 +394,7 @@ function createRustConversion(wasm: wasm) {
         let commitments = commitmentsFromRust(proof.commitments);
         let openingProof = openingProofFromRust(proof.proof);
         // TODO typed as `any` in wasm-bindgen, this is the correct type
-        let evals: PointEvaluations<Uint8Array> = proof.evals;
+        let evals: ProofEvaluations<Uint8Array> = proof.evals;
         let ftEval1 = fieldFromRust(proof.ft_eval1);
         let public_ = fieldsFromRustFlat(proof.public_);
         let prevChallengeScalars = proof.prev_challenges_scalars;
