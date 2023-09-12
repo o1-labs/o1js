@@ -6,7 +6,12 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { MlOption } from '../../../lib/ml/base.js';
-import { Oracles, RandomOracles, ScalarChallenge } from './kimchi-types.js';
+import {
+  Field,
+  Oracles,
+  RandomOracles,
+  ScalarChallenge,
+} from './kimchi-types.js';
 import {
   fieldFromRust,
   fieldToRust,
@@ -16,8 +21,6 @@ import {
 } from './conversion-base-old.js';
 
 export { oraclesConversion };
-
-import { Field } from './kimchi-types.js';
 
 type wasm = typeof wasmNamespace;
 

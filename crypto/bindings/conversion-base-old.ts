@@ -4,6 +4,7 @@ import type {
   WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray } from '../../../lib/ml/base.js';
+import { Field, OrInfinity } from './kimchi-types.js';
 
 export {
   fieldToRust,
@@ -15,8 +16,6 @@ export {
   affineFromRust,
   WasmAffine,
 };
-
-import { Field, OrInfinity } from './kimchi-types.js';
 
 // TODO: Hardcoding this is a little brittle
 // TODO read from field

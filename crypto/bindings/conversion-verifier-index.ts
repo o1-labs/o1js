@@ -10,7 +10,12 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray } from '../../../lib/ml/base.js';
-import { VerifierIndex, Domain, VerificationEvals } from './kimchi-types.js';
+import {
+  Field,
+  VerifierIndex,
+  Domain,
+  VerificationEvals,
+} from './kimchi-types.js';
 import { fieldFromRust, fieldToRust } from './conversion-base-old.js';
 import {
   ConversionCore,
@@ -19,8 +24,6 @@ import {
 } from './conversion-core.js';
 
 export { verifierIndexConversion };
-
-import { Field } from './kimchi-types.js';
 
 type wasm = typeof wasmNamespace;
 

@@ -10,6 +10,7 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
+  OrInfinity,
   LookupEvaluations,
   PointEvaluations,
   PolyComm,
@@ -30,8 +31,6 @@ import {
 import { ConversionCore, ConversionCores } from './conversion-core.js';
 
 export { proofConversion };
-
-import { OrInfinity } from './kimchi-types.js';
 
 const proofEvaluationsToRust = mapProofEvaluations(fieldToRust);
 const proofEvaluationsFromRust = mapProofEvaluations(fieldFromRust);
