@@ -1899,7 +1899,7 @@ var caml_lookup_patterns_to_rust = function (wasm_lookup_patterns, klass) {
   var range_check = wasm_lookup_patterns[3];
   var foreign_field_mul = wasm_lookup_patterns[4];
 
-  return new plonk_wasm.LookupPatterns(
+  return new plonk_wasm.WasmLookupPatterns(
     xor,
     lookup,
     range_check,
@@ -1914,7 +1914,7 @@ var caml_lookup_features_to_rust = function (wasm_lookup_features) {
   var joint_lookup_used = wasm_lookup_features[2];
   var uses_runtime_tables = wasm_lookup_features[3];
 
-  return new plonk_wasm.LookupFeatures(
+  return new plonk_wasm.WasmLookupFeatures(
     patterns,
     joint_lookup_used,
     uses_runtime_tables
@@ -1923,12 +1923,11 @@ var caml_lookup_features_to_rust = function (wasm_lookup_features) {
 
 // Provides: caml_lookup_info_to_rust
 // Requires: plonk_wasm, caml_lookup_features_to_rust
-var caml_lookup_info_to_rust = function (wasm_lookup_info) {
-  var max_per_row = wasm_lookup_info[1];
-  var max_poly_size = wasm_lookup_info[2];
-  var features = caml_lookup_features_to_rust(wasm_lookup_info[3]);
-
-  return new plonk_wasm.LookupInfo(max_per_row, max_poly_size, features);
+var caml_lookup_info_to_rust = function (caml_lookup_info) {
+  var max_per_row = caml_lookup_info[1];
+  var max_poly_size = caml_lookup_info[2];
+  var features = caml_lookup_features_to_rust(caml_lookup_info[3]);
+  return new plonk_wasm.WasmLookupInfo(max_per_row, max_poly_size, features);
 };
 
 // Provides: caml_plonk_lookup_verifier_index_to_rust
