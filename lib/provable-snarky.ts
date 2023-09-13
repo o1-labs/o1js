@@ -52,7 +52,7 @@ function provable<A>(
   type J = InferJson<A>;
   let objectKeys =
     typeof typeObj === 'object' && typeObj !== null
-      ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
+      ? options?.customObjectKeys ?? Object.keys(typeObj)
       : [];
   let nonCircuitPrimitives = new Set([
     Number,
