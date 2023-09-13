@@ -227,11 +227,11 @@ let { rows: rows1 } = Provable.constraintSystem(main1);
 expect(rows0 + 100).toBeLessThan(rows1);
 
 // TODO: add when proving works
-/* 
+
 class Main extends Circuit {
   @circuitMain
   static main() {
-    main_();
+    main0();
   }
 }
 
@@ -252,7 +252,7 @@ let Program = ZkProgram({
     test: {
       privateInputs: [],
       method() {
-        main_();
+        main0();
       },
     },
   },
@@ -266,7 +266,6 @@ let proof = await Program.test();
 
 ok = await Program.verify(proof);
 console.log('verifies?', ok);
- */
 
 type GateType =
   | 'Zero'
