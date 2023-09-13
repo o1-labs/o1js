@@ -1920,11 +1920,11 @@ var caml_is_none = function (v) {
 
 // Provides: caml_map_of_rust_vector
 // Requires: js_class_vector_of_rust_vector
-var caml_map_of_rust_vector = function (v, klass, converter_to_rust) {
+var caml_map_of_rust_vector = function (v, klass, converter_of_rust) {
   var a = js_class_vector_of_rust_vector(v, klass);
   var res = [0];
   for (var i = 0; i < a.length; ++i) {
-    res.push(converter_to_rust(a[i]));
+    res.push(converter_of_rust(a[i]));
   }
   return res;
 };
@@ -2059,7 +2059,11 @@ var caml_lookup_verifier_index_of_rust = function (
 
 // Provides: caml_plonk_verifier_index_of_rust
 // Requires: linearization_of_rust, caml_plonk_domain_of_rust, caml_plonk_verification_evals_of_rust, caml_plonk_verification_shifts_of_rust, free_on_finalize, None, caml_opt_of_rust, caml_lookup_verifier_index_of_rust
-var caml_plonk_verifier_index_of_rust = function (x, affine_class) {
+var caml_plonk_verifier_index_of_rust = function (
+  x,
+  affine_class,
+  poly_comm_class
+) {
   var domain = caml_plonk_domain_of_rust(x.domain);
   var max_poly_size = x.max_poly_size;
   var public_ = x.public_;
@@ -2070,9 +2074,20 @@ var caml_plonk_verifier_index_of_rust = function (x, affine_class) {
   // TODO: Handle linearization correctly!
   // var linearization = linearization_of_rust(x.linearization, affine_class);
 
+  function poly_comm_of_rust(poly_comm) {
+    caml_poly_comm_of_rust_poly_comm(poly_comm, affine_class, false);
+  }
+  function lookup_verifier_index_of_rust(wasm_lookup_index) {
+    caml_lookup_verifier_index_of_rust(
+      wasm_lookup_index,
+      poly_comm_class,
+      poly_comm_of_rust
+    );
+  }
+
   var caml_lookup_index = caml_opt_of_rust(
     x.lookup_index,
-    caml_lookup_verifier_index_of_rust
+    lookup_verifier_index_of_rust
   );
 
   x.free();
@@ -2292,7 +2307,11 @@ var caml_plonk_verifier_index_to_rust = function (
 // Provides: caml_pasta_fp_plonk_verifier_index_of_rust
 // Requires: plonk_wasm, caml_plonk_verifier_index_of_rust
 var caml_pasta_fp_plonk_verifier_index_of_rust = function (x) {
-  return caml_plonk_verifier_index_of_rust(x, plonk_wasm.WasmGVesta);
+  return caml_plonk_verifier_index_of_rust(
+    x,
+    plonk_wasm.WasmGVesta,
+    plonk_wasm.WasmFpPolyComm
+  );
 };
 
 // Provides: caml_pasta_fp_plonk_verifier_index_to_rust
@@ -2380,7 +2399,11 @@ var caml_pasta_fp_plonk_verifier_index_deep_copy = function (x) {
 // Provides: caml_pasta_fq_plonk_verifier_index_of_rust
 // Requires: plonk_wasm, caml_plonk_verifier_index_of_rust
 var caml_pasta_fq_plonk_verifier_index_of_rust = function (x) {
-  return caml_plonk_verifier_index_of_rust(x, plonk_wasm.WasmGPallas);
+  return caml_plonk_verifier_index_of_rust(
+    x,
+    plonk_wasm.WasmGPallas,
+    plonk_wasm.WasmFqPolyComm
+  );
 };
 
 // Provides: caml_pasta_fq_plonk_verifier_index_to_rust
