@@ -2,6 +2,7 @@
  * benchmark a circuit filled with generic gates
  */
 import { Circuit, Field, Provable, circuitMain, Experimental } from 'o1js';
+import { tic, toc } from './tic-toc.js';
 let { ZkProgram } = Experimental;
 
 // parameters
@@ -47,20 +48,6 @@ function picklesCircuit(nMuls: number) {
       },
     },
   });
-}
-
-// timing helpers
-let timingStack: [string, number][] = [];
-let i = 0;
-function tic(label = `Run command ${i++}`) {
-  console.log(`${label}... `);
-  timingStack.push([label, Date.now()]);
-}
-function toc() {
-  let [label, start] = timingStack.pop()!;
-  let time = (Date.now() - start) / 1000;
-  console.log(`\r${label}... ${time.toFixed(3)} sec\n`);
-  return time;
 }
 
 // the script

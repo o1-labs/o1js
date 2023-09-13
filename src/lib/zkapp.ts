@@ -1422,15 +1422,15 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       fromActionState: Field,
       config
     ): Field {
-      const stateType = provable(undefined);
+      const stateType = provable(null);
       let { actionState } = this.reduce(
         actionLists,
         stateType,
         (_, action) => {
           callback(action);
-          return undefined;
+          return null;
         },
-        { state: undefined, actionState: fromActionState },
+        { state: null, actionState: fromActionState },
         config
       );
       return actionState;
