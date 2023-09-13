@@ -454,6 +454,16 @@ macro_rules! impl_verification_key {
                 }
 
                 #[wasm_bindgen(getter)]
+                pub fn lookup_info(&self) -> LookupInfo {
+                    self.lookup_info.clone()
+                }
+
+                #[wasm_bindgen(setter)]
+                pub fn set_lookup_info(&mut self, x: LookupInfo) {
+                    self.lookup_info = x
+                }
+
+                #[wasm_bindgen(getter)]
                 pub fn runtime_tables_selector(&self) -> Option<$WasmPolyComm> {
                     self.runtime_tables_selector.clone()
                 }
