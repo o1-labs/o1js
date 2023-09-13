@@ -2075,10 +2075,10 @@ var caml_plonk_verifier_index_of_rust = function (
   // var linearization = linearization_of_rust(x.linearization, affine_class);
 
   function poly_comm_of_rust(poly_comm) {
-    caml_poly_comm_of_rust_poly_comm(poly_comm, affine_class, false);
+    return caml_poly_comm_of_rust_poly_comm(poly_comm, affine_class, false);
   }
   function lookup_verifier_index_of_rust(wasm_lookup_index) {
-    caml_lookup_verifier_index_of_rust(
+    return caml_lookup_verifier_index_of_rust(
       wasm_lookup_index,
       poly_comm_class,
       poly_comm_of_rust
