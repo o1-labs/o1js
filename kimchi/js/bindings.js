@@ -2017,7 +2017,7 @@ var caml_lookup_verifier_index_of_rust = function (
   poly_comm_of_rust
 ) {
   var caml_joint_lookup_used = caml_bool_of_rust(
-    wasm_lookup_index.join_lookup_used
+    wasm_lookup_index.joint_lookup_used
   );
 
   // lookup table
