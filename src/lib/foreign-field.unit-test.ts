@@ -226,12 +226,20 @@ let { rows: rows0 } = Provable.constraintSystem(main0);
 let { rows: rows1 } = Provable.constraintSystem(main1);
 expect(rows0 + 100).toBeLessThan(rows1);
 
-// TODO: add when proving works
+// tests with proving
+
+function simpleMain() {
+  let s = Provable.witness(
+    ForeignScalar,
+    () => new ForeignScalar(scalarBigint)
+  );
+  s.mul(oneHalf);
+}
 
 class Main extends Circuit {
   @circuitMain
   static main() {
-    main0();
+    simpleMain();
   }
 }
 
@@ -239,11 +247,13 @@ console.log('compiling');
 let kp = await Main.generateKeypair();
 
 let cs = kp.constraintSystem();
-console.log(JSON.stringify(cs.filter((g) => g.type !== 'Zero')));
+// console.log(JSON.stringify(cs.filter((g) => g.type !== 'Zero')));
+console.log('# rows', cs.length);
 
 console.log('proving');
 let proof0 = await Main.prove([], [], kp);
 
+console.log('verifying');
 let ok = await Main.verify([], kp.verificationKey(), proof0);
 console.log('verifies?', ok);
 
@@ -252,7 +262,7 @@ let Program = ZkProgram({
     test: {
       privateInputs: [],
       method() {
-        main0();
+        simpleMain();
       },
     },
   },
@@ -264,6 +274,7 @@ await Program.compile();
 console.log('proving');
 let proof = await Program.test();
 
+console.log('verifying');
 ok = await Program.verify(proof);
 console.log('verifies?', ok);
 
