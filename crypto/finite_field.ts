@@ -65,22 +65,17 @@ function inverse(a: bigint, p: bigint) {
   return mod(x, p);
 }
 
-let precomputed_c: Record<string, bigint> = {};
-
-function sqrt(n: bigint, p: bigint, Q: bigint, z: bigint) {
+function sqrt(n: bigint, p: bigint, Q: bigint, c: bigint) {
   // https://en.wikipedia.org/wiki/Tonelli-Shanks_algorithm#The_algorithm
   // variable naming is the same as in that link ^
   // Q is what we call `t` elsewhere - the odd factor in p - 1
-  // z is a known non-square mod p. we pass in the primitive root of unity
+  // c is a known primitive root of unity
+  if (n === 0n) return 0n;
   let M = 32n;
-  let c =
-    precomputed_c[p.toString()] ||
-    (precomputed_c[p.toString()] = power(z, Q, p)); // z^Q
-  // TODO: can we save work by sharing computation between t and R?
-  let t = power(n, Q, p); // n^Q
-  let R = power(n, (Q + 1n) / 2n, p); // n^((Q + 1)/2)
+  let t = power(n, (Q - 1n) >> 1n, p); // n^(Q - 1)/2
+  let R = mod(t * n, p); // n^((Q - 1)/2 + 1) = n^((Q + 1)/2)
+  t = mod(t * R, p); // n^((Q - 1)/2 + (Q + 1)/2) = n^Q
   while (true) {
-    if (t === 0n) return 0n;
     if (t === 1n) return R;
     // use repeated squaring to find the least i, 0 < i < M, such that t^(2^i) = 1
     let i = 0n;
