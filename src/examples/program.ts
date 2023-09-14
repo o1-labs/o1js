@@ -8,7 +8,7 @@ import {
   JsonProof,
   Provable,
   Empty,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

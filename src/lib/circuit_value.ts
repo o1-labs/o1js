@@ -287,7 +287,7 @@ function matrixProp<T>(
 }
 
 /**
- * `Struct` lets you declare composite types for use in snarkyjs circuits.
+ * `Struct` lets you declare composite types for use in o1js circuits.
  *
  * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
  * or as event / action types.
@@ -337,7 +337,7 @@ function matrixProp<T>(
  * ```
  *
  * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
- * This, for example, allows you to re-use the same type outside snarkyjs methods, where you might want to store additional metadata.
+ * This, for example, allows you to re-use the same type outside o1js methods, where you might want to store additional metadata.
  *
  * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
  * Here's how we could add the voter's name (a string) as auxiliary data:
@@ -486,7 +486,7 @@ function cloneCircuitValue<T>(obj: T): T {
     ) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-  // snarkyjs primitives aren't cloned
+  // o1js primitives aren't cloned
   if (isPrimitive(obj)) {
     return obj;
   }
@@ -543,7 +543,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
     );
   }
 
-  // the two checks below cover snarkyjs primitives and CircuitValues
+  // the two checks below cover o1js primitives and CircuitValues
   // if we have an .equals method, try to use it
   if ('equals' in a && typeof (a as any).equals === 'function') {
     let isEqual = (a as any).equals(b).toBoolean();

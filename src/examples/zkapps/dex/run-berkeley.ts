@@ -5,7 +5,7 @@ import {
   UInt64,
   PrivateKey,
   fetchAccount,
-} from 'snarkyjs';
+} from 'o1js';
 import {
   Dex,
   DexTokenHolder,

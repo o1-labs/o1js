@@ -10,7 +10,7 @@ import {
   isReady,
   Permissions,
   Reducer,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

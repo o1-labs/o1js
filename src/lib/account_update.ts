@@ -389,7 +389,7 @@ interface Body extends AccountUpdateBody {
    * Events can be collected by archive nodes.
    *
    * [Check out our documentation about
-   * Events!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/events)
+   * Events!](https://docs.minaprotocol.com/zkapps/advanced-o1js/events)
    */
   events: Events;
   /**
@@ -398,7 +398,7 @@ interface Body extends AccountUpdateBody {
    * a {@link Reducer}.
    *
    * [Check out our documentation about
-   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
+   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-o1js/actions-and-reducer)
    */
   actions: Events;
   /**
