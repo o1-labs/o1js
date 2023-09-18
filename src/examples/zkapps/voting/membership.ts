@@ -62,8 +62,8 @@ export class Membership_ extends SmartContract {
 
   events = {
     newMemberState: provablePure({
-      committedMembersRoot: Field,
       accumulatedMembersRoot: Field,
+      committedMembersRoot: Field,
     }),
   };
 

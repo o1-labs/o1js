@@ -91,8 +91,8 @@ export class Voting_ extends SmartContract {
   events = {
     newVoteFor: PublicKey,
     newVoteState: provablePure({
-      committedVotesRoot: Field,
       accumulatedVotesRoot: Field,
+      committedVotesRoot: Field,
     }),
   };
 

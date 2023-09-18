@@ -1017,8 +1017,8 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   private static signingInfo = provable({
-    nonce: UInt32,
     isSameAsFeePayer: Bool,
+    nonce: UInt32,
   });
 
   private static getSigningInfo(
