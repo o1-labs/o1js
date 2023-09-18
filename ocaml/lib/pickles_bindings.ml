@@ -446,8 +446,10 @@ let constraint_constants =
 
 let pickles_compile (choices : pickles_rule_js array)
     (signature :
-      < publicInputSize : int Js.prop ; publicOutputSize : int Js.prop > Js.t )
-    =
+      < publicInputSize : int Js.prop
+      ; publicOutputSize : int Js.prop
+      ; overrideWrapDomain : int Js.optdef_prop >
+      Js.t ) =
   (* translate number of branches and recursively verified proofs from JS *)
   let branches = Array.length choices in
   let max_proofs =
@@ -461,13 +463,17 @@ let pickles_compile (choices : pickles_rule_js array)
   (* translate method circuits from JS *)
   let public_input_size = signature##.publicInputSize in
   let public_output_size = signature##.publicOutputSize in
+  let override_wrap_domain =
+    Js.Optdef.to_option signature##.overrideWrapDomain
+    |> Option.map ~f:Pickles_base.Proofs_verified.of_int
+  in
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
   in
 
   (* call into Pickles *)
   let tag, _cache, p, provers =
-    Pickles.compile_promise () ~choices
+    Pickles.compile_promise () ?override_wrap_domain ~choices
       ~public_input:
         (Input_and_output
            ( public_input_typ public_input_size
