@@ -20,7 +20,7 @@ let prefixes =
     [ ("event", `String (zkapp_event :> string))
     ; ("events", `String (zkapp_events :> string))
     ; ("sequenceEvents", `String (zkapp_actions :> string))
-    ; ("body", `String (zkapp_body :> string))
+    ; ("body", `String (zkapp_body ~chain:Mina_signature_kind.t :> string))
     ; ("accountUpdateCons", `String (account_update_cons :> string))
     ; ("accountUpdateNode", `String (account_update_node :> string))
     ; ("zkappMemo", `String (zkapp_memo :> string))
@@ -69,11 +69,10 @@ let prefix_hashes =
        ; (side_loaded_vk :> string)
        ; (zkapp_account :> string)
        ; (zkapp_payload :> string)
-       ; (zkapp_body :> string)
+       ; (zkapp_body ~chain:Testnet :> string)
        ; (zkapp_precondition :> string)
        ; (zkapp_precondition_account :> string)
        ; (zkapp_precondition_protocol_state :> string)
-       ; (account_update :> string)
        ; (account_update_account_precondition :> string)
        ; (account_update_cons :> string)
        ; (account_update_node :> string)
@@ -147,15 +146,14 @@ let poseidon_params_legacy =
     ; ("power", `Int Random_oracle.Legacy.Inputs.alpha)
     ]
 
-(* let dummy_verification_key_hash () =
-   Pickles.Side_loaded.Verification_key.dummy
-   |> Mina_base.Zkapp_account.digest_vk
-   |> Pickles.Impls.Step.Field.Constant.to_string *)
+let dummy_verification_key_hash () =
+  Pickles.Side_loaded.Verification_key.dummy
+  |> Mina_base.Zkapp_account.digest_vk
+  |> Pickles.Impls.Step.Field.Constant.to_string
 
 let mocks =
   `Assoc
-    (* [ ("dummyVerificationKeyHash", string (dummy_verification_key_hash ())) ] *)
-    [ ("dummyVerificationKeyHash", string "0") ]
+    [ ("dummyVerificationKeyHash", string (dummy_verification_key_hash ())) ]
 
 let constants =
   [ ("prefixes", prefixes)
