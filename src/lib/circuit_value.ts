@@ -362,8 +362,7 @@ function Struct<
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
-  type: A,
-  options: { customObjectKeys?: string[] } = {}
+  type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
     ? ProvablePure<T>
     : Provable<T>) & {
@@ -375,7 +374,7 @@ function Struct<
     fromJSON: (x: J) => T;
   } {
   class Struct_ {
-    static type = provable<A>(type, options);
+    static type = provable<A>(type);
     static _isStruct: true;
 
     constructor(value: T) {
