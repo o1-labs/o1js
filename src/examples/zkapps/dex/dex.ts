@@ -21,7 +21,7 @@ import {
   UInt32,
   TokenId,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 
 export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
 

@@ -16,7 +16,7 @@ import {
   Mina,
   Int64,
   VerificationKey,
-} from 'snarkyjs';
+} from 'o1js';
 
 /**
  * ERC-20 token standard.

@@ -1,12 +1,11 @@
 {
-  "name": "snarkyjs",
+  "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/o1-labs/snarkyjs/",
+  "homepage": "https://github.com/o1-labs/o1js/",
   "keywords": [
     "mina",
-    "snarkyjs",
     "zkapp",
     "zk",
     "smart contract",
@@ -57,9 +56,8 @@
     "serve:web": "cp src/bindings/compiled/web_bindings/server.js src/bindings/compiled/web_bindings/index.html src/examples/simple_zkapp.js dist/web && node dist/web/server.js",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
-    "prepublish:both": "npm run prepublish:web && npm run prepublish:node",
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
-    "bootstrap": "npm run build && node src/build/extractJsooMethods.cjs && npm run build",
+    "dump-vks": "./run src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "./run-jest-tests.sh",
     "clean": "rimraf ./dist && rimraf ./src/bindings/compiled/_node_bindings",
@@ -79,7 +77,7 @@
     "@types/jest": "^27.0.0",
     "@types/node": "^18.14.2",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "esbuild": "^0.16.16",
+    "esbuild": "^0.19.2",
     "eslint": "^8.0.0",
     "expect": "^29.0.1",
     "fs-extra": "^10.0.0",
@@ -91,10 +89,10 @@
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
-    "typedoc": "^0.24.6",
+    "typedoc": "^0.24.8",
     "typedoc-plugin-markdown": "^3.15.3",
     "typedoc-plugin-merge-modules": "^5.0.1",
-    "typescript": "^4.9.5"
+    "typescript": "5.1"
   },
   "dependencies": {
     "blakejs": "1.2.1",

@@ -1,6 +1,6 @@
-# How to contribute to the SnarkyJS codebase
+# How to contribute to the o1js codebase
 
-This README includes information that is helpful for SnarkyJS core contributors.
+This README includes information that is helpful for o1js core contributors.
 
 ## Run examples using Node.js
 
@@ -50,15 +50,15 @@ To see the test running in a web browser, go to `http://localhost:8000/`.
 
 ## Branch Compatibility
 
-SnarkyJS is mostly used to write Mina Smart Contracts and must be compatible with the latest Berkeley Testnet (or soon Mainnet). 
+o1js is mostly used to write Mina Smart Contracts and must be compatible with the latest Berkeley Testnet, or soon Mainnet. 
 
-The OCaml code is in the snarkyjs-bindings repository, not directly in SnarkyJS. 
+The OCaml code is in the o1js-bindings repository, not directly in o1js.
 
-To maintain compatibility between the repositories and build SnarkyJS from the [Mina repository](https://github.com/MinaProtocol/mina), make changes to its core, such as the OCaml-bindings in the [snarkyjs-bindings repository](https://github.com/o1-labs/snarkyjs-bindings), you must follow a certain branch compatibility pattern:
+To maintain compatibility between the repositories and build o1js from the [Mina repository](https://github.com/MinaProtocol/mina), make changes to its core, such as the OCaml-bindings in the [o1js-bindings repository](https://github.com/o1-labs/o1js-bindings), you must follow a certain branch compatibility pattern:
 
 The following branches are compatible:
 
-| repository | mina -> snarkyjs -> snarkyjs-bindings |
+| repository | mina -> o1js -> o1js-bindings |
 | ---------- | ------------------------------------- |
 | branches   | rampup -> main -> main                |
 |            | berkeley -> berkeley -> berkeley      |

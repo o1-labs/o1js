@@ -256,18 +256,23 @@ function createState<T>(): InternalStateType<T> {
             contract.instance.address,
             contract.instance.self.body.tokenId
           );
-        } catch (err) {
+        } catch (err: any) {
           // TODO: there should also be a reasonable error here
           if (inProver_) {
             throw err;
           }
-          throw Error(
+          let message =
             `${contract.key}.get() failed, either:\n` +
-              `1. We can't find this zkapp account in the ledger\n` +
-              `2. Because the zkapp account was not found in the cache. ` +
-              `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
-              `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
-          );
+            `1. We can't find this zkapp account in the ledger\n` +
+            `2. Because the zkapp account was not found in the cache. ` +
+            `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
+            `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`;
+          if (err.message) {
+            err.message = message + `\n\n${err.message}`;
+            throw err;
+          } else {
+            throw Error(message);
+          }
         }
         if (account.zkapp?.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
