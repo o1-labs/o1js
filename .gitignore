@@ -7,3 +7,4 @@ tests/test-artifacts/
 profiling.md
 snarkyjs-reference
 *.tmp.js
+_build/
