@@ -1,6 +1,6 @@
 import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
 
-export { Lookup };
+export { Lookup, LookupInfo, LookupPatterns, LookupFeatures, LookupSelectors };
 
 type LookupPatterns = [
   _: 0,
