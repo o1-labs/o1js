@@ -238,7 +238,6 @@ function createRustConversion(wasm: wasm) {
         );
       },
       verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
-        let lookupIndex: 0 = 0; // None
         let mlVk: VerifierIndex = [
           0,
           domainFromRust(vk.domain),
@@ -248,7 +247,7 @@ function createRustConversion(wasm: wasm) {
           vk.srs,
           verificationEvalsFromRust(vk.evals),
           self.shiftsFromRust(vk.shifts),
-          lookupIndex,
+          MlOption.mapTo(vk.lookup_index, lookupVerifierIndexFromRust),
         ];
         vk.free();
         return mlVk;
@@ -326,6 +325,23 @@ function createRustConversion(wasm: wasm) {
         MlOption.mapFrom(runtime_tables_selector, self.polyCommToRust)
       );
     }
+    function lookupVerifierIndexFromRust(
+      lookup: WasmLookupVerifierIndex
+    ): Lookup<PolyComm> {
+      // TODO there is no .lookup_info
+      throw Error('lookupVerifierIndexFromRust not implemented');
+      // let mlLookup: Lookup<PolyComm> = [
+      //   0,
+      //   MlBool(lookup.joint_lookup_used),
+      //   self.polyCommsFromRust(lookup.lookup_table),
+      //   lookupSelectorsFromRust(lookup.lookup_selectors),
+      //   MlOption.mapTo(lookup.table_ids, self.polyCommFromRust),
+      //   lookupInfoFromRust(lookup.info),
+      //   MlOption.mapFrom(lookup.runtime_tables_selector, self.polyCommFromRust),
+      // ];
+      // lookup.free();
+      // return mlLookup;
+    }
 
     function lookupSelectorsToRust([
       ,
@@ -338,6 +354,13 @@ function createRustConversion(wasm: wasm) {
         undefined
       );
     }
+    function lookupSelectorsFromRust(
+      selector: WasmLookupSelector
+    ): LookupSelectors<PolyComm> {
+      let lookup = MlOption.mapTo(selector.lookup, self.polyCommFromRust);
+      selector.free();
+      return [0, lookup];
+    }
 
     function lookupInfoToRust([
       ,
@@ -347,6 +370,29 @@ function createRustConversion(wasm: wasm) {
     ]: LookupInfo): WasmLookupInfo {
       // TODO the original implementation called a class that didn't exist
       throw Error('lookupInfoToRust not implemented');
+    }
+    function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
+      let features = info.features;
+      let patterns = features.patterns;
+      let mlInfo: LookupInfo = [
+        0,
+        info.max_per_row,
+        info.max_joint_size,
+        [
+          0,
+          [
+            0,
+            MlBool(patterns.xor),
+            MlBool(patterns.lookup),
+            MlBool(patterns.range_check),
+            MlBool(patterns.foreign_field_mul),
+          ],
+          MlBool(features.joint_lookup_used),
+          MlBool(features.uses_runtime_tables),
+        ],
+      ];
+      info.free();
+      return mlInfo;
     }
 
     return self;
