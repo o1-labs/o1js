@@ -1561,7 +1561,7 @@ var caml_fp_lookup_commitments_to_rust = function (caml_lc) {
     var n = v.length - 1;
     var res = new Array(n);
     for (var i = 0; i < n; ++i) {
-      res[i] = tsRustConversion.fp.polyCommFromRust(v[i + 1]);
+      res[i] = tsRustConversion.fp.polyCommToRust(v[i + 1]);
     }
     return js_class_vector_to_rust_vector(res);
   };

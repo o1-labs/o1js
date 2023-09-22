@@ -39,7 +39,10 @@ export { createRustConversion };
 type Field = Uint8Array;
 
 // Kimchi_types.or_infinity
-type OrInfinity = MlOption<MlTuple<Field, Field>>;
+type Infinity = 0;
+const Infinity = 0;
+type Finite<T> = [0, T];
+type OrInfinity = Infinity | Finite<MlTuple<Field, Field>>;
 
 // ml types from kimchi_types.ml
 
@@ -179,18 +182,14 @@ function createRustConversion(wasm: wasm) {
 
       polyCommToRust(polyComm: PolyComm): WasmPolyComm {
         let [, camlUnshifted, camlShifted] = polyComm;
-        let rustShifted =
-          camlShifted === 0
-            ? undefined
-            : affineToRust(camlShifted[1], makeAffine);
+        let rustShifted = MlOption.mapFrom(camlShifted, self.pointToRust);
         let rustUnshifted = self.pointsToRust(camlUnshifted);
         return new PolyComm(rustUnshifted, rustShifted);
       },
       polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
         let rustShifted = polyComm.shifted;
         let rustUnshifted = polyComm.unshifted;
-        let mlShifted: MlOption<OrInfinity> =
-          rustShifted === undefined ? 0 : [0, affineFromRust(rustShifted)];
+        let mlShifted = MlOption.mapTo(rustShifted, affineFromRust);
         let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
           return affineFromRust(wrap(ptr, CommitmentCurve));
         });
@@ -490,11 +489,12 @@ function affineToRust<A extends WasmAffine>(
   makeAffine: () => A
 ) {
   var res = makeAffine();
-  if (pt === 0) {
+  if (pt === Infinity) {
     res.infinity = true;
   } else {
-    res.x = fieldToRust(pt[1][1]);
-    res.y = fieldToRust(pt[1][2]);
+    let [, [, x, y]] = pt;
+    res.x = fieldToRust(x);
+    res.y = fieldToRust(y);
   }
   return res;
 }
