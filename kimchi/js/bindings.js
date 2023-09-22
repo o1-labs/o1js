@@ -1329,6 +1329,26 @@ var caml_pasta_fq_plonk_index_write = function (append, t, path) {
 
 // verifier index
 
+// Provides: caml_opt_of_rust
+var caml_opt_of_rust = function (value, value_of_rust) {
+  if (value === undefined) {
+    return 0;
+  } else {
+    return [0, value_of_rust(value)];
+  }
+};
+
+// Provides: caml_opt_to_rust
+var caml_opt_to_rust = function (caml_optional_value, to_rust) {
+  // to_rust expects the parameters of the variant. A `Some vx` is represented
+  // as [0, vx]
+  if (caml_optional_value === 0) {
+    return undefined;
+  } else {
+    return to_rust(caml_optional_value[1]);
+  }
+};
+
 // Provides: caml_pasta_fp_plonk_verifier_index_create
 // Requires: plonk_wasm, tsRustConversion
 var caml_pasta_fp_plonk_verifier_index_create = function (x) {
@@ -1458,11 +1478,6 @@ var caml_pasta_fq_plonk_verifier_index_deep_copy = function (x) {
     )
   );
 };
-
-// Provides: COLUMNS
-var COLUMNS = 15;
-// Provides: PERMUTS_MINUS_1
-var PERMUTS_MINUS_1 = 6;
 
 // Provides: caml_pasta_fp_proof_evaluations_to_rust
 var caml_pasta_fp_proof_evaluations_to_rust = function (x) {
