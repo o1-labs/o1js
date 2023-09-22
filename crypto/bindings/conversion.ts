@@ -16,6 +16,7 @@ type Field = Uint8Array;
 
 // Kimchi_types.or_infinity
 type Infinity = 0;
+const Infinity = 0;
 type Finite<T> = [0, T];
 type OrInfinity = Infinity | Finite<MlTuple<Field, Field>>;
 
@@ -183,11 +184,12 @@ function affineToRust<A extends WasmAffine>(
   klass: MakeAffine<A>
 ) {
   var res = klass();
-  if (pt === 0) {
+  if (pt === Infinity) {
     res.infinity = true;
   } else {
-    res.x = fieldToRust(pt[1][1]);
-    res.y = fieldToRust(pt[1][2]);
+    let [, [, x, y]] = pt;
+    res.x = fieldToRust(x);
+    res.y = fieldToRust(y);
   }
   return res;
 }
@@ -204,8 +206,7 @@ function polyCommFromRust(
 ): PolyComm {
   let rustShifted = polyComm.shifted;
   let rustUnshifted = polyComm.unshifted;
-  let mlShifted: MlOption<OrInfinity> =
-    rustShifted === undefined ? 0 : [0, affineFromRust(rustShifted)];
+  let mlShifted = MlOption.mapTo(rustShifted, affineFromRust);
   let mlUnshifted = mlArrayFromRustVector(
     rustUnshifted,
     klass,
@@ -267,7 +268,7 @@ function mlArrayToRustVector<TRust extends WrappedPointer, TMl>(
 ): Uint32Array {
   let n = array.length;
   let rustVector = new Uint32Array(n);
-  for (var i = 0, l = array.length; i < l; i++) {
+  for (var i = 0; i < n; i++) {
     var rustValue = convert(array[i], makeNew);
     // Beware: caller may need to do finalizer things to avoid these
     // pointers disappearing out from under us.
