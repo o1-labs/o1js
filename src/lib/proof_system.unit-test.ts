@@ -46,9 +46,4 @@ const CounterProgram = ZkProgram({
 });
 
 const incrementMethodMetadata = CounterProgram.analyzeMethods()[0];
-expect(incrementMethodMetadata).toEqual(
-  expect.objectContaining({
-    rows: 18,
-    digest: '62d893f727b12d540bdc483427cbd70b',
-  })
-);
+expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));

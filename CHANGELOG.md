@@ -13,11 +13,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Removed_ for now removed features.
     _Fixed_ for any bug fixes.
     _Security_ in case of vulnerabilities.
+
+
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/fbd4b2717...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/c2f392fe5...HEAD)
 
-> No unreleased changes yet
+### Breaking changes
+
+- Changes to some verification keys caused by changing the way `Struct` orders object properties. https://github.com/o1-labs/o1js/pull/1124 [@Comdex](https://github.com/Comdex)
+  - To recover existing verification keys and behavior, change the order of properties in your Struct definitions to be alphabetical
+  - The `customObjectKeys` option is removed from `Struct`
+
+## [0.13.0](https://github.com/o1-labs/o1js/compare/fbd4b2717...c2f392fe5)
+
+### Breaking changes
+
+- Changes to verification keys caused by updates to the proof system. This breaks all deployed contracts https://github.com/o1-labs/o1js/pull/1016
 
 ## [0.12.2](https://github.com/o1-labs/o1js/compare/b1d8d5910...fbd4b2717)
 
