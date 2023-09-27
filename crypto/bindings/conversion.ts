@@ -1,14 +1,36 @@
 /**
  * Implementation of Kimchi_bindings.Protocol.Gates
  */
-import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import { MlArray, MlBool, MlOption, MlTuple } from '../../../lib/ml/base.js';
 import { mapTuple } from './util.js';
 import type {
+  WasmFpDomain,
   WasmFpGate,
+  WasmFpLookupCommitments,
+  WasmFpLookupSelectors,
+  WasmFpLookupVerifierIndex,
+  WasmFpPlonkVerificationEvals,
+  WasmFpPlonkVerifierIndex,
+  WasmFpPolyComm,
+  WasmFpShifts,
+  WasmFpSrs,
+  WasmFqDomain,
   WasmFqGate,
+  WasmFqLookupCommitments,
+  WasmFqLookupSelectors,
+  WasmFqLookupVerifierIndex,
+  WasmFqPlonkVerificationEvals,
+  WasmFqPlonkVerifierIndex,
+  WasmFqPolyComm,
+  WasmFqShifts,
+  WasmFqSrs,
+  WasmGPallas,
+  WasmGVesta,
+  LookupInfo as WasmLookupInfo,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { bigIntToBytes, bytesToBigInt } from '../bigint-helpers.js';
+import { Lookup, LookupInfo, LookupSelectors } from './lookup.js';
 
 export { createRustConversion };
 
@@ -21,6 +43,7 @@ type Finite<T> = [0, T];
 type OrInfinity = Infinity | Finite<MlTuple<Field, Field>>;
 
 // ml types from kimchi_types.ml
+
 type GateType = number;
 type Wire = [_: 0, row: number, col: number];
 type Gate = [
@@ -36,7 +59,72 @@ type PolyComm = [
   shifted: MlOption<OrInfinity>
 ];
 
+type Domain = [_: 0, log_size_of_group: number, group_gen: Field];
+
+type VerificationEvals = [
+  _: 0,
+  sigma_comm: MlArray<PolyComm>,
+  coefficients_comm: MlArray<PolyComm>,
+  generic_comm: PolyComm,
+  psm_comm: PolyComm,
+  complete_add_comm: PolyComm,
+  mul_comm: PolyComm,
+  emul_comm: PolyComm,
+  endomul_scalar_comm: PolyComm
+];
+
+type VerifierIndex = [
+  _: 0,
+  domain: Domain,
+  max_poly_size: number,
+  public_: number,
+  prev_challenges: number,
+  srs: WasmSrs,
+  evals: VerificationEvals,
+  shifts: MlArray<Field>,
+  lookup_index: MlOption<Lookup<PolyComm>>
+];
+
+// wasm types
+
 type wasm = typeof wasmNamespace;
+
+type WasmAffine = WasmGVesta | WasmGPallas;
+type WasmPolyComm = WasmFpPolyComm | WasmFqPolyComm;
+type WasmSrs = WasmFpSrs | WasmFqSrs;
+type WasmDomain = WasmFpDomain | WasmFqDomain;
+type WasmVerificationEvals =
+  | WasmFpPlonkVerificationEvals
+  | WasmFqPlonkVerificationEvals;
+type WasmShifts = WasmFpShifts | WasmFqShifts;
+type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
+
+type WasmLookupVerifierIndex =
+  | WasmFpLookupVerifierIndex
+  | WasmFqLookupVerifierIndex;
+type WasmLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
+type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
+
+// wasm class types
+
+type WasmClasses = {
+  CommitmentCurve: typeof WasmGVesta | typeof WasmGPallas;
+  makeAffine: () => WasmAffine;
+  Gate: typeof WasmFpGate | typeof WasmFqGate;
+  PolyComm: typeof WasmFpPolyComm | typeof WasmFqPolyComm;
+  Domain: typeof WasmFpDomain | typeof WasmFqDomain;
+  VerificationEvals:
+    | typeof WasmFpPlonkVerificationEvals
+    | typeof WasmFqPlonkVerificationEvals;
+  Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
+  VerifierIndex:
+    | typeof WasmFpPlonkVerifierIndex
+    | typeof WasmFqPlonkVerifierIndex;
+  LookupVerifierIndex:
+    | typeof WasmFpLookupVerifierIndex
+    | typeof WasmFqLookupVerifierIndex;
+  LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
+};
 
 // TODO: Hardcoding this is a little brittle
 // TODO read from field
@@ -47,71 +135,299 @@ function createRustConversion(wasm: wasm) {
     return wasm.Wire.create(row, col);
   }
 
-  function perField<WasmGate extends typeof WasmFpGate | typeof WasmFqGate>({
-    WasmGate,
-    WasmPolyComm,
+  function perField({
     CommitmentCurve,
-    makeCommitmentCurve,
-  }: {
-    WasmGate: WasmGate;
-    WasmPolyComm: WasmPolyCommClass;
-    CommitmentCurve: WrapperClass<WasmAffine>;
-    makeCommitmentCurve: MakeAffine<WasmAffine>;
-  }) {
-    return {
+    makeAffine,
+    Gate,
+    PolyComm,
+    Domain,
+    VerificationEvals,
+    Shifts,
+    VerifierIndex,
+    LookupVerifierIndex,
+    LookupSelector,
+  }: WasmClasses) {
+    let self = {
       vectorToRust: fieldsToRustFlat,
       vectorFromRust: fieldsFromRustFlat,
+
       gateToRust(gate: Gate) {
         let [, typ, [, ...wires], coeffs] = gate;
         let rustWires = new wasm.WasmGateWires(...mapTuple(wires, wireToRust));
         let rustCoeffs = fieldsToRustFlat(coeffs);
-        return new WasmGate(typ, rustWires, rustCoeffs);
+        return new Gate(typ, rustWires, rustCoeffs);
       },
+
       pointToRust(point: OrInfinity) {
-        return affineToRust(point, makeCommitmentCurve);
+        return affineToRust(point, makeAffine);
       },
-      pointFromRust(point: WasmAffine) {
-        return affineFromRust(point);
-      },
-      pointsToRust(points: MlArray<OrInfinity>) {
-        return mlArrayToRustVector(points, affineToRust, makeCommitmentCurve);
+      pointFromRust: affineFromRust,
+
+      pointsToRust([, ...points]: MlArray<OrInfinity>) {
+        return mapToUint32Array(points, (point) => {
+          let rustValue = self.pointToRust(point);
+          // Don't free when GC runs; rust will free on its end.
+          registry.unregister(rustValue);
+          return unwrap(rustValue);
+        });
       },
       pointsFromRust(points: Uint32Array) {
-        return mlArrayFromRustVector(
-          points,
-          CommitmentCurve,
-          affineFromRust,
-          false
-        );
+        let arr = mapFromUintArray(points, (ptr) => {
+          return affineFromRust(wrap(ptr, CommitmentCurve));
+        });
+        return [0, ...arr];
       },
+
       polyCommToRust(polyComm: PolyComm): WasmPolyComm {
-        return polyCommToRust(polyComm, WasmPolyComm, makeCommitmentCurve);
+        let [, camlUnshifted, camlShifted] = polyComm;
+        let rustShifted = MlOption.mapFrom(camlShifted, self.pointToRust);
+        let rustUnshifted = self.pointsToRust(camlUnshifted);
+        return new PolyComm(rustUnshifted, rustShifted);
       },
       polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
-        return polyCommFromRust(polyComm, CommitmentCurve, false);
+        let rustShifted = polyComm.shifted;
+        let rustUnshifted = polyComm.unshifted;
+        let mlShifted = MlOption.mapTo(rustShifted, affineFromRust);
+        let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
+          return affineFromRust(wrap(ptr, CommitmentCurve));
+        });
+        return [0, [0, ...mlUnshifted], mlShifted];
+      },
+
+      polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
+        return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
+      },
+      polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
+        let comms = mapFromUintArray(rustComms, (ptr) =>
+          self.polyCommFromRust(wrap(ptr, PolyComm))
+        );
+        return [0, ...comms];
+      },
+
+      shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
+        let s = shifts.map(fieldToRust);
+        return new Shifts(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
+      },
+      shiftsFromRust(s: WasmShifts): MlArray<Field> {
+        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
+        s.free();
+        return [0, ...shifts.map(fieldFromRust)];
+      },
+
+      verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
+        let domain = domainToRust(vk[1]);
+        let maxPolySize = vk[2];
+        let nPublic = vk[3];
+        let prevChallenges = vk[4];
+        let srs = vk[5];
+        let evals = verificationEvalsToRust(vk[6]);
+        let shifts = self.shiftsToRust(vk[7]);
+        let lookupIndex = MlOption.mapFrom(vk[8], lookupVerifierIndexToRust);
+        return new VerifierIndex(
+          domain,
+          maxPolySize,
+          nPublic,
+          prevChallenges,
+          srs,
+          evals,
+          shifts,
+          lookupIndex
+        );
+      },
+      verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
+        let mlVk: VerifierIndex = [
+          0,
+          domainFromRust(vk.domain),
+          vk.max_poly_size,
+          vk.public_,
+          vk.prev_challenges,
+          vk.srs,
+          verificationEvalsFromRust(vk.evals),
+          self.shiftsFromRust(vk.shifts),
+          MlOption.mapTo(vk.lookup_index, lookupVerifierIndexFromRust),
+        ];
+        vk.free();
+        return mlVk;
       },
     };
+
+    function domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
+      return new Domain(logSizeOfGroup, fieldToRust(groupGen));
+    }
+    function domainFromRust(domain: WasmDomain): Domain {
+      let logSizeOfGroup = domain.log_size_of_group;
+      let groupGen = fieldFromRust(domain.group_gen);
+      domain.free();
+      return [0, logSizeOfGroup, groupGen];
+    }
+
+    function verificationEvalsToRust(
+      evals: VerificationEvals
+    ): WasmVerificationEvals {
+      let sigmaComm = self.polyCommsToRust(evals[1]);
+      let coefficientsComm = self.polyCommsToRust(evals[2]);
+      let genericComm = self.polyCommToRust(evals[3]);
+      let psmComm = self.polyCommToRust(evals[4]);
+      let completeAddComm = self.polyCommToRust(evals[5]);
+      let mulComm = self.polyCommToRust(evals[6]);
+      let emulComm = self.polyCommToRust(evals[7]);
+      let endomulScalarComm = self.polyCommToRust(evals[8]);
+      return new VerificationEvals(
+        sigmaComm,
+        coefficientsComm,
+        genericComm,
+        psmComm,
+        completeAddComm,
+        mulComm,
+        emulComm,
+        endomulScalarComm
+      );
+    }
+    function verificationEvalsFromRust(
+      evals: WasmVerificationEvals
+    ): VerificationEvals {
+      let mlEvals: VerificationEvals = [
+        0,
+        self.polyCommsFromRust(evals.sigma_comm),
+        self.polyCommsFromRust(evals.coefficients_comm),
+        self.polyCommFromRust(evals.generic_comm),
+        self.polyCommFromRust(evals.psm_comm),
+        self.polyCommFromRust(evals.complete_add_comm),
+        self.polyCommFromRust(evals.mul_comm),
+        self.polyCommFromRust(evals.emul_comm),
+        self.polyCommFromRust(evals.endomul_scalar_comm),
+      ];
+      evals.free();
+      return mlEvals;
+    }
+
+    function lookupVerifierIndexToRust(
+      lookup: Lookup<PolyComm>
+    ): WasmLookupVerifierIndex {
+      let [
+        ,
+        joint_lookup_used,
+        lookup_table,
+        selectors,
+        table_ids,
+        lookup_info,
+        runtime_tables_selector,
+      ] = lookup;
+      return new LookupVerifierIndex(
+        MlBool.from(joint_lookup_used),
+        self.polyCommsToRust(lookup_table),
+        lookupSelectorsToRust(selectors),
+        MlOption.mapFrom(table_ids, self.polyCommToRust),
+        lookupInfoToRust(lookup_info),
+        MlOption.mapFrom(runtime_tables_selector, self.polyCommToRust)
+      );
+    }
+    function lookupVerifierIndexFromRust(
+      lookup: WasmLookupVerifierIndex
+    ): Lookup<PolyComm> {
+      let mlLookup: Lookup<PolyComm> = [
+        0,
+        MlBool(lookup.joint_lookup_used),
+        self.polyCommsFromRust(lookup.lookup_table),
+        lookupSelectorsFromRust(lookup.lookup_selectors),
+        MlOption.mapTo(lookup.table_ids, self.polyCommFromRust),
+        lookupInfoFromRust(lookup.lookup_info),
+        MlOption.mapTo(lookup.runtime_tables_selector, self.polyCommFromRust),
+      ];
+      lookup.free();
+      return mlLookup;
+    }
+
+    function lookupSelectorsToRust([
+      ,
+      lookup,
+    ]: LookupSelectors<PolyComm>): WasmLookupSelector {
+      return new LookupSelector(
+        undefined,
+        MlOption.mapFrom(lookup, self.polyCommToRust),
+        undefined,
+        undefined
+      );
+    }
+    function lookupSelectorsFromRust(
+      selector: WasmLookupSelector
+    ): LookupSelectors<PolyComm> {
+      let lookup = MlOption.mapTo(selector.lookup, self.polyCommFromRust);
+      selector.free();
+      return [0, lookup];
+    }
+
+    function lookupInfoToRust([
+      ,
+      maxPerRow,
+      maxJointSize,
+      features,
+    ]: LookupInfo): WasmLookupInfo {
+      let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
+      let [, xor, lookup, range_check, foreign_field_mul] = patterns;
+      let wasmPatterns = new wasm.LookupPatterns(
+        MlBool.from(xor),
+        MlBool.from(lookup),
+        MlBool.from(range_check),
+        MlBool.from(foreign_field_mul)
+      );
+      let wasmFeatures = new wasm.LookupFeatures(
+        wasmPatterns,
+        MlBool.from(joint_lookup_used),
+        MlBool.from(uses_runtime_tables)
+      );
+      return new wasm.LookupInfo(maxPerRow, maxJointSize, wasmFeatures);
+    }
+    function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
+      let features = info.features;
+      let patterns = features.patterns;
+      let mlInfo: LookupInfo = [
+        0,
+        info.max_per_row,
+        info.max_joint_size,
+        [
+          0,
+          [
+            0,
+            MlBool(patterns.xor),
+            MlBool(patterns.lookup),
+            MlBool(patterns.range_check),
+            MlBool(patterns.foreign_field_mul),
+          ],
+          MlBool(features.joint_lookup_used),
+          MlBool(features.uses_runtime_tables),
+        ],
+      ];
+      info.free();
+      return mlInfo;
+    }
+
+    return self;
   }
 
-  // TODO: we have to lie about types here:
-  // -) the WasmGVesta class doesn't declare __wrap() but our code assumes it
-  // -) WasmGVesta doesn't declare the `ptr` property but our code assumes it
-
   const fp = perField({
-    WasmGate: wasm.WasmFpGate,
-    WasmPolyComm: wasm.WasmFpPolyComm,
-    CommitmentCurve:
-      wasm.WasmGVesta as any as WrapperClass<wasmNamespace.WasmGVesta>,
-    makeCommitmentCurve:
-      wasm.caml_vesta_affine_one as MakeAffine<wasmNamespace.WasmGVesta>,
+    CommitmentCurve: wasm.WasmGVesta,
+    makeAffine: wasm.caml_vesta_affine_one,
+    Gate: wasm.WasmFpGate,
+    PolyComm: wasm.WasmFpPolyComm,
+    Domain: wasm.WasmFpDomain,
+    VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
+    Shifts: wasm.WasmFpShifts,
+    VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+    LookupVerifierIndex: wasm.WasmFpLookupVerifierIndex,
+    LookupSelector: wasm.WasmFpLookupSelectors,
   });
   const fq = perField({
-    WasmGate: wasm.WasmFqGate,
-    WasmPolyComm: wasm.WasmFqPolyComm,
-    CommitmentCurve:
-      wasm.WasmGPallas as any as WrapperClass<wasmNamespace.WasmGPallas>,
-    makeCommitmentCurve:
-      wasm.caml_pallas_affine_one as MakeAffine<wasmNamespace.WasmGPallas>,
+    CommitmentCurve: wasm.WasmGPallas,
+    makeAffine: wasm.caml_pallas_affine_one,
+    Gate: wasm.WasmFqGate,
+    PolyComm: wasm.WasmFqPolyComm,
+    Domain: wasm.WasmFqDomain,
+    VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
+    Shifts: wasm.WasmFqShifts,
+    VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+    LookupVerifierIndex: wasm.WasmFqLookupVerifierIndex,
+    LookupSelector: wasm.WasmFqLookupSelectors,
   });
 
   return {
@@ -164,9 +480,6 @@ function fieldsFromRustFlat(fieldBytes: Uint8Array): MlArray<Field> {
 
 // affine
 
-type WasmAffine = wasmNamespace.WasmGVesta | wasmNamespace.WasmGPallas;
-type MakeAffine<A extends WasmAffine> = () => A & { ptr: number };
-
 function affineFromRust(pt: WasmAffine): OrInfinity {
   if (pt.infinity) {
     pt.free();
@@ -181,9 +494,9 @@ function affineFromRust(pt: WasmAffine): OrInfinity {
 
 function affineToRust<A extends WasmAffine>(
   pt: OrInfinity,
-  klass: MakeAffine<A>
+  makeAffine: () => A
 ) {
-  var res = klass();
+  var res = makeAffine();
   if (pt === Infinity) {
     res.infinity = true;
   } else {
@@ -194,87 +507,45 @@ function affineToRust<A extends WasmAffine>(
   return res;
 }
 
-// polycomm
-
-type WasmPolyComm = wasmNamespace.WasmFpPolyComm | wasmNamespace.WasmFqPolyComm;
-type WasmPolyCommClass = wasm['WasmFpPolyComm'] | wasm['WasmFqPolyComm'];
-
-function polyCommFromRust(
-  polyComm: WasmPolyComm,
-  klass: WrapperClass<WasmAffine>,
-  shouldFree: boolean
-): PolyComm {
-  let rustShifted = polyComm.shifted;
-  let rustUnshifted = polyComm.unshifted;
-  let mlShifted = MlOption.mapTo(rustShifted, affineFromRust);
-  let mlUnshifted = mlArrayFromRustVector(
-    rustUnshifted,
-    klass,
-    affineFromRust,
-    shouldFree
-  );
-  return [0, mlUnshifted, mlShifted];
-}
-
-function polyCommToRust(
-  [, camlUnshifted, camlShifted]: PolyComm,
-  PolyComm: WasmPolyCommClass,
-  makeAffine: MakeAffine<WasmAffine>
-): WasmPolyComm {
-  let rustShifted =
-    camlShifted === 0 ? undefined : affineToRust(camlShifted[1], makeAffine);
-  let rustUnshifted = mlArrayToRustVector(
-    camlUnshifted,
-    affineToRust,
-    makeAffine
-  );
-  return new PolyComm(rustUnshifted, rustShifted);
-}
-
 // generic rust helpers
 
 type Freeable = { free(): void };
-type WrappedPointer = Freeable & { ptr: number };
-type WrapperClass<T extends Freeable> = {
-  __wrap(i: number): T;
-};
+type Constructor<T> = new (...args: any[]) => T;
 
-const registry = new FinalizationRegistry((ptr: WrappedPointer) => {
+function wrap<T>(ptr: number, Class: Constructor<T>): T {
+  const obj = Object.create(Class.prototype);
+  obj.ptr = ptr;
+  return obj;
+}
+function unwrap<T extends {}>(obj: T): number {
+  // Beware: caller may need to do finalizer things to avoid these
+  // pointers disappearing out from under us.
+  let ptr = (obj as any).ptr;
+  if (ptr === undefined) throw Error('unwrap: missing ptr');
+  return ptr;
+}
+
+const registry = new FinalizationRegistry((ptr: Freeable) => {
   ptr.free();
 });
 
-function mlArrayFromRustVector<TRust extends Freeable, TMl>(
-  rustVector: Uint32Array,
-  klass: WrapperClass<TRust>,
-  convert: (c: TRust) => TMl,
-  shouldFree: boolean
-): MlArray<TMl> {
-  var n = rustVector.length;
-  var array: TMl[] = new Array(n);
+function mapFromUintArray<T>(
+  array: Uint32Array | Uint8Array,
+  map: (i: number) => T
+) {
+  let n = array.length;
+  let result: T[] = Array(n);
   for (let i = 0; i < n; i++) {
-    var rustValue = klass.__wrap(rustVector[i]);
-    array[i] = convert(rustValue);
-    if (shouldFree) rustValue.free();
+    result[i] = map(array[i]);
   }
-  return [0, ...array];
+  return result;
 }
 
-// TODO get rid of excessive indirection here
-
-function mlArrayToRustVector<TRust extends WrappedPointer, TMl>(
-  [, ...array]: MlArray<TMl>,
-  convert: (c: TMl, makeNew: () => TRust) => TRust,
-  makeNew: () => TRust
-): Uint32Array {
+function mapToUint32Array<T>(array: T[], map: (t: T) => number) {
   let n = array.length;
-  let rustVector = new Uint32Array(n);
-  for (var i = 0; i < n; i++) {
-    var rustValue = convert(array[i], makeNew);
-    // Beware: caller may need to do finalizer things to avoid these
-    // pointers disappearing out from under us.
-    rustVector[i] = rustValue.ptr;
-    // Don't free when GC runs; rust will free on its end.
-    registry.unregister(rustValue);
+  let result = new Uint32Array(n);
+  for (let i = 0; i < n; i++) {
+    result[i] = map(array[i]);
   }
-  return rustVector;
+  return result;
 }
