@@ -14,73 +14,11 @@ use kimchi::circuits::{
 use kimchi::linearization::expr_linearization;
 use kimchi::verifier_index::{LookupVerifierIndex, VerifierIndex as DlogVerifierIndex};
 use paste::paste;
-use poly_commitment::srs::SRS;
 use poly_commitment::commitment::PolyComm;
+use poly_commitment::srs::SRS;
 use std::path::Path;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub struct WasmLookupPatterns {
-    inner: LookupPatterns,
-}
-
-#[wasm_bindgen]
-impl WasmLookupPatterns {
-    #[wasm_bindgen(constructor)]
-    pub fn new(xor: bool, lookup: bool, range_check: bool, foreign_field_mul: bool) -> Self {
-        WasmLookupPatterns {
-            inner: LookupPatterns {
-                xor,
-                lookup,
-                range_check,
-                foreign_field_mul,
-            },
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub struct WasmLookupFeatures {
-    inner: LookupFeatures,
-}
-
-#[wasm_bindgen]
-impl WasmLookupFeatures {
-    #[wasm_bindgen(constructor)]
-    pub fn new(
-        patterns: &WasmLookupPatterns,
-        joint_lookup_used: bool,
-        uses_runtime_tables: bool,
-    ) -> Self {
-        WasmLookupFeatures {
-            inner: LookupFeatures {
-                patterns: patterns.inner.clone(),
-                joint_lookup_used,
-                uses_runtime_tables,
-            },
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub struct WasmLookupInfo {
-    inner: LookupInfo,
-}
-
-#[wasm_bindgen]
-impl WasmLookupInfo {
-    #[wasm_bindgen(constructor)]
-    pub fn new(max_per_row: usize, max_joint_size: u32, features: &WasmLookupFeatures) -> Self {
-        WasmLookupInfo {
-            inner: LookupInfo {
-                max_per_row,
-                max_joint_size,
-                features: features.inner.clone(),
-            },
-        }
-    }
-}
 
 macro_rules! impl_verification_key {
     (
@@ -472,7 +410,7 @@ macro_rules! impl_verification_key {
                     lookup_table: WasmVector<$WasmPolyComm>,
                     lookup_selectors: WasmLookupSelectors,
                     table_ids: Option<$WasmPolyComm>,
-                    lookup_info: &WasmLookupInfo,
+                    lookup_info: &LookupInfo,
                     runtime_tables_selector: Option<$WasmPolyComm>
                 ) -> WasmLookupVerifierIndex {
                     WasmLookupVerifierIndex {
@@ -480,7 +418,7 @@ macro_rules! impl_verification_key {
                         lookup_table,
                         lookup_selectors,
                         table_ids,
-                        lookup_info: lookup_info.inner.clone(),
+                        lookup_info: lookup_info.clone(),
                         runtime_tables_selector
                     }
                 }
