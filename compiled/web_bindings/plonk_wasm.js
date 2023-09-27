@@ -3294,11 +3294,29 @@ export class LookupFeatures {
     set uses_runtime_tables(arg0) {
         wasm.__wbg_set_lookupfeatures_uses_runtime_tables(this.ptr, arg0);
     }
+    /**
+    * @param {LookupPatterns} patterns
+    * @param {boolean} joint_lookup_used
+    * @param {boolean} uses_runtime_tables
+    */
+    constructor(patterns, joint_lookup_used, uses_runtime_tables) {
+        _assertClass(patterns, LookupPatterns);
+        var ptr0 = patterns.__destroy_into_raw();
+        const ret = wasm.lookupfeatures_new(ptr0, joint_lookup_used, uses_runtime_tables);
+        return LookupFeatures.__wrap(ret);
+    }
 }
 /**
 * Describes the desired lookup configuration.
 */
 export class LookupInfo {
+
+    static __wrap(ptr) {
+        const obj = Object.create(LookupInfo.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
 
     __destroy_into_raw() {
         const ptr = this.ptr;
@@ -3357,6 +3375,17 @@ export class LookupInfo {
         _assertClass(arg0, LookupFeatures);
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_lookupinfo_features(this.ptr, ptr0);
+    }
+    /**
+    * @param {number} max_per_row
+    * @param {number} max_joint_size
+    * @param {LookupFeatures} features
+    */
+    constructor(max_per_row, max_joint_size, features) {
+        _assertClass(features, LookupFeatures);
+        var ptr0 = features.__destroy_into_raw();
+        const ret = wasm.lookupinfo_new(max_per_row, max_joint_size, ptr0);
+        return LookupInfo.__wrap(ret);
     }
 }
 /**
@@ -3433,6 +3462,16 @@ export class LookupPatterns {
     */
     set foreign_field_mul(arg0) {
         wasm.__wbg_set_lookuppatterns_foreign_field_mul(this.ptr, arg0);
+    }
+    /**
+    * @param {boolean} xor
+    * @param {boolean} lookup
+    * @param {boolean} range_check
+    * @param {boolean} foreign_field_mul
+    */
+    constructor(xor, lookup, range_check, foreign_field_mul) {
+        const ret = wasm.lookuppatterns_new(xor, lookup, range_check, foreign_field_mul);
+        return LookupPatterns.__wrap(ret);
     }
 }
 /**
@@ -3911,13 +3950,12 @@ export class WasmFpLookupVerifierIndex {
             ptr2 = table_ids.__destroy_into_raw();
         }
         _assertClass(lookup_info, LookupInfo);
-        var ptr3 = lookup_info.__destroy_into_raw();
-        let ptr4 = 0;
+        let ptr3 = 0;
         if (!isLikeNone(runtime_tables_selector)) {
             _assertClass(runtime_tables_selector, WasmFpPolyComm);
-            ptr4 = runtime_tables_selector.__destroy_into_raw();
+            ptr3 = runtime_tables_selector.__destroy_into_raw();
         }
-        const ret = wasm.wasmfplookupverifierindex_new(joint_lookup_used, ptr0, len0, ptr1, ptr2, ptr3, ptr4);
+        const ret = wasm.wasmfplookupverifierindex_new(joint_lookup_used, ptr0, len0, ptr1, ptr2, lookup_info.ptr, ptr3);
         return WasmFpLookupVerifierIndex.__wrap(ret);
     }
     /**
@@ -3976,6 +4014,21 @@ export class WasmFpLookupVerifierIndex {
             ptr0 = x.__destroy_into_raw();
         }
         wasm.wasmfplookupverifierindex_set_table_ids(this.ptr, ptr0);
+    }
+    /**
+    * @returns {LookupInfo}
+    */
+    get lookup_info() {
+        const ret = wasm.wasmfplookupverifierindex_lookup_info(this.ptr);
+        return LookupInfo.__wrap(ret);
+    }
+    /**
+    * @param {LookupInfo} x
+    */
+    set lookup_info(x) {
+        _assertClass(x, LookupInfo);
+        var ptr0 = x.__destroy_into_raw();
+        wasm.wasmfplookupverifierindex_set_lookup_info(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFpPolyComm | undefined}
@@ -6095,13 +6148,12 @@ export class WasmFqLookupVerifierIndex {
             ptr2 = table_ids.__destroy_into_raw();
         }
         _assertClass(lookup_info, LookupInfo);
-        var ptr3 = lookup_info.__destroy_into_raw();
-        let ptr4 = 0;
+        let ptr3 = 0;
         if (!isLikeNone(runtime_tables_selector)) {
             _assertClass(runtime_tables_selector, WasmFqPolyComm);
-            ptr4 = runtime_tables_selector.__destroy_into_raw();
+            ptr3 = runtime_tables_selector.__destroy_into_raw();
         }
-        const ret = wasm.wasmfqlookupverifierindex_new(joint_lookup_used, ptr0, len0, ptr1, ptr2, ptr3, ptr4);
+        const ret = wasm.wasmfqlookupverifierindex_new(joint_lookup_used, ptr0, len0, ptr1, ptr2, lookup_info.ptr, ptr3);
         return WasmFqLookupVerifierIndex.__wrap(ret);
     }
     /**
@@ -6160,6 +6212,21 @@ export class WasmFqLookupVerifierIndex {
             ptr0 = x.__destroy_into_raw();
         }
         wasm.wasmfplookupverifierindex_set_table_ids(this.ptr, ptr0);
+    }
+    /**
+    * @returns {LookupInfo}
+    */
+    get lookup_info() {
+        const ret = wasm.wasmfplookupverifierindex_lookup_info(this.ptr);
+        return LookupInfo.__wrap(ret);
+    }
+    /**
+    * @param {LookupInfo} x
+    */
+    set lookup_info(x) {
+        _assertClass(x, LookupInfo);
+        var ptr0 = x.__destroy_into_raw();
+        wasm.wasmfplookupverifierindex_set_lookup_info(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFqPolyComm | undefined}

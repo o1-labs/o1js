@@ -1070,6 +1070,12 @@ export enum GateType {
 export class LookupFeatures {
   free(): void;
 /**
+* @param {LookupPatterns} patterns
+* @param {boolean} joint_lookup_used
+* @param {boolean} uses_runtime_tables
+*/
+  constructor(patterns: LookupPatterns, joint_lookup_used: boolean, uses_runtime_tables: boolean);
+/**
 * Whether joint lookups are used
 */
   joint_lookup_used: boolean;
@@ -1088,6 +1094,12 @@ export class LookupFeatures {
 export class LookupInfo {
   free(): void;
 /**
+* @param {number} max_per_row
+* @param {number} max_joint_size
+* @param {LookupFeatures} features
+*/
+  constructor(max_per_row: number, max_joint_size: number, features: LookupFeatures);
+/**
 * The features enabled for this lookup configuration
 */
   features: LookupFeatures;
@@ -1105,6 +1117,13 @@ export class LookupInfo {
 */
 export class LookupPatterns {
   free(): void;
+/**
+* @param {boolean} xor
+* @param {boolean} lookup
+* @param {boolean} range_check
+* @param {boolean} foreign_field_mul
+*/
+  constructor(xor: boolean, lookup: boolean, range_check: boolean, foreign_field_mul: boolean);
 /**
 */
   foreign_field_mul: boolean;
@@ -1232,6 +1251,9 @@ export class WasmFpLookupVerifierIndex {
 /**
 */
   joint_lookup_used: boolean;
+/**
+*/
+  lookup_info: LookupInfo;
 /**
 */
   lookup_selectors: WasmFpLookupSelectors;
@@ -1660,6 +1682,9 @@ export class WasmFqLookupVerifierIndex {
 /**
 */
   joint_lookup_used: boolean;
+/**
+*/
+  lookup_info: LookupInfo;
 /**
 */
   lookup_selectors: WasmFqLookupSelectors;
