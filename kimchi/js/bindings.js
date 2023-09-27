@@ -1574,7 +1574,7 @@ var caml_fp_lookup_commitments_to_rust = function (caml_lc) {
   } else {
     wasm_runtime = tsRustConversion.fp.polyCommToRust(caml_lc[3][1]);
   }
-  return plonk_wasm.WasmFpLookupCommitments(
+  return new plonk_wasm.WasmFpLookupCommitments(
     wasm_sorted,
     wasm_aggreg,
     wasm_runtime
@@ -1870,7 +1870,7 @@ var caml_fq_lookup_commitments_to_rust = function (caml_lc) {
     caml_lc[3],
     tsRustConversion.fq.polyCommToRust
   );
-  return plonk_wasm.WasmFqLookupCommitments(
+  return new plonk_wasm.WasmFqLookupCommitments(
     wasm_sorted,
     wasm_aggreg,
     wasm_runtime

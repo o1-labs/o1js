@@ -83,16 +83,11 @@ function derivedLeafTypes<Field, Bool>({
   };
 
   const AuthRequired = {
-    ...provable(
-      { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
-      {
-        customObjectKeys: [
-          'constant',
-          'signatureNecessary',
-          'signatureSufficient',
-        ],
-      }
-    ),
+    ...provable({
+      constant: Bool,
+      signatureNecessary: Bool,
+      signatureSufficient: Bool,
+    }),
     emptyValue(): AuthRequired {
       return {
         constant: Bool(true),

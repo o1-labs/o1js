@@ -1069,6 +1069,12 @@ export enum GateType {
 export class LookupFeatures {
   free(): void;
 /**
+* @param {LookupPatterns} patterns
+* @param {boolean} joint_lookup_used
+* @param {boolean} uses_runtime_tables
+*/
+  constructor(patterns: LookupPatterns, joint_lookup_used: boolean, uses_runtime_tables: boolean);
+/**
 * Whether joint lookups are used
 */
   joint_lookup_used: boolean;
@@ -1087,6 +1093,12 @@ export class LookupFeatures {
 export class LookupInfo {
   free(): void;
 /**
+* @param {number} max_per_row
+* @param {number} max_joint_size
+* @param {LookupFeatures} features
+*/
+  constructor(max_per_row: number, max_joint_size: number, features: LookupFeatures);
+/**
 * The features enabled for this lookup configuration
 */
   features: LookupFeatures;
@@ -1104,6 +1116,13 @@ export class LookupInfo {
 */
 export class LookupPatterns {
   free(): void;
+/**
+* @param {boolean} xor
+* @param {boolean} lookup
+* @param {boolean} range_check
+* @param {boolean} foreign_field_mul
+*/
+  constructor(xor: boolean, lookup: boolean, range_check: boolean, foreign_field_mul: boolean);
 /**
 */
   foreign_field_mul: boolean;
@@ -1231,6 +1250,9 @@ export class WasmFpLookupVerifierIndex {
 /**
 */
   joint_lookup_used: boolean;
+/**
+*/
+  lookup_info: LookupInfo;
 /**
 */
   lookup_selectors: WasmFpLookupSelectors;
@@ -1659,6 +1681,9 @@ export class WasmFqLookupVerifierIndex {
 /**
 */
   joint_lookup_used: boolean;
+/**
+*/
+  lookup_info: LookupInfo;
 /**
 */
   lookup_selectors: WasmFqLookupSelectors;
@@ -2270,6 +2295,8 @@ export interface InitOutput {
   readonly wasmfplookupverifierindex_set_lookup_selectors: (a: number, b: number) => void;
   readonly wasmfplookupverifierindex_table_ids: (a: number) => number;
   readonly wasmfplookupverifierindex_set_table_ids: (a: number, b: number) => void;
+  readonly wasmfplookupverifierindex_lookup_info: (a: number) => number;
+  readonly wasmfplookupverifierindex_set_lookup_info: (a: number, b: number) => void;
   readonly wasmfplookupverifierindex_runtime_tables_selector: (a: number) => number;
   readonly wasmfplookupverifierindex_set_runtime_tables_selector: (a: number, b: number) => void;
   readonly __wbg_wasmfpplonkverifierindex_free: (a: number) => void;
@@ -2364,6 +2391,7 @@ export interface InitOutput {
   readonly wasmfqlookupselectors_set_xor: (a: number, b: number) => void;
   readonly __wbg_set_wasmfqlookupverifierindex_joint_lookup_used: (a: number, b: number) => void;
   readonly caml_vesta_affine_deep_copy: (a: number) => number;
+  readonly wasmfqlookupverifierindex_set_lookup_info: (a: number, b: number) => void;
   readonly __wbg_wasmfqlookupselectors_free: (a: number) => void;
   readonly __wbg_set_wasmfpshifts_s0: (a: number, b: number, c: number) => void;
   readonly __wbg_set_wasmfqshifts_s0: (a: number, b: number, c: number) => void;
@@ -2390,6 +2418,7 @@ export interface InitOutput {
   readonly wasmfqplonkverificationevals_emul_comm: (a: number) => number;
   readonly wasmfqplonkverificationevals_endomul_scalar_comm: (a: number) => number;
   readonly __wbg_wasmfqplonkverificationevals_free: (a: number) => void;
+  readonly wasmfqlookupverifierindex_lookup_info: (a: number) => number;
   readonly wasmfqlookupverifierindex_lookup_selectors: (a: number) => number;
   readonly wasmfqlookupverifierindex_set_lookup_selectors: (a: number, b: number) => void;
   readonly wasmfqplonkverifierindex_set_lookup_index: (a: number, b: number) => void;
@@ -2800,6 +2829,9 @@ export interface InitOutput {
   readonly __wbg_set_lookupinfo_max_joint_size: (a: number, b: number) => void;
   readonly __wbg_get_lookupinfo_features: (a: number) => number;
   readonly __wbg_set_lookupinfo_features: (a: number, b: number) => void;
+  readonly lookuppatterns_new: (a: number, b: number, c: number, d: number) => number;
+  readonly lookupfeatures_new: (a: number, b: number, c: number) => number;
+  readonly lookupinfo_new: (a: number, b: number, c: number) => number;
   readonly __wbg_wire_free: (a: number) => void;
   readonly __wbg_get_wire_row: (a: number) => number;
   readonly __wbg_set_wire_row: (a: number, b: number) => void;
