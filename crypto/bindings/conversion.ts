@@ -26,9 +26,7 @@ import type {
   WasmFqSrs,
   WasmGPallas,
   WasmGVesta,
-  LookupFeatures as WasmLookupFeatures,
   LookupInfo as WasmLookupInfo,
-  LookupPatterns as WasmLookupPatterns,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { bigIntToBytes, bytesToBigInt } from '../bigint-helpers.js';
@@ -327,19 +325,17 @@ function createRustConversion(wasm: wasm) {
     function lookupVerifierIndexFromRust(
       lookup: WasmLookupVerifierIndex
     ): Lookup<PolyComm> {
-      // TODO there is no .lookup_info
-      throw Error('lookupVerifierIndexFromRust not implemented');
-      // let mlLookup: Lookup<PolyComm> = [
-      //   0,
-      //   MlBool(lookup.joint_lookup_used),
-      //   self.polyCommsFromRust(lookup.lookup_table),
-      //   lookupSelectorsFromRust(lookup.lookup_selectors),
-      //   MlOption.mapTo(lookup.table_ids, self.polyCommFromRust),
-      //   lookupInfoFromRust(lookup.info),
-      //   MlOption.mapFrom(lookup.runtime_tables_selector, self.polyCommFromRust),
-      // ];
-      // lookup.free();
-      // return mlLookup;
+      let mlLookup: Lookup<PolyComm> = [
+        0,
+        MlBool(lookup.joint_lookup_used),
+        self.polyCommsFromRust(lookup.lookup_table),
+        lookupSelectorsFromRust(lookup.lookup_selectors),
+        MlOption.mapTo(lookup.table_ids, self.polyCommFromRust),
+        lookupInfoFromRust(lookup.lookup_info),
+        MlOption.mapTo(lookup.runtime_tables_selector, self.polyCommFromRust),
+      ];
+      lookup.free();
+      return mlLookup;
     }
 
     function lookupSelectorsToRust([
@@ -367,8 +363,20 @@ function createRustConversion(wasm: wasm) {
       maxJointSize,
       features,
     ]: LookupInfo): WasmLookupInfo {
-      // TODO the original implementation called a class that didn't exist
-      throw Error('lookupInfoToRust not implemented');
+      let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
+      let [, xor, lookup, range_check, foreign_field_mul] = patterns;
+      let wasmPatterns = new wasm.LookupPatterns(
+        MlBool.from(xor),
+        MlBool.from(lookup),
+        MlBool.from(range_check),
+        MlBool.from(foreign_field_mul)
+      );
+      let wasmFeatures = new wasm.LookupFeatures(
+        wasmPatterns,
+        MlBool.from(joint_lookup_used),
+        MlBool.from(uses_runtime_tables)
+      );
+      return new wasm.LookupInfo(maxPerRow, maxJointSize, wasmFeatures);
     }
     function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
       let features = info.features;
