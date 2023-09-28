@@ -131,7 +131,7 @@ type ProverCommitments = [
   w_comm: MlTupleN<PolyComm, 15>,
   z_comm: PolyComm,
   t_comm: PolyComm,
-  lookup: LookupCommitments
+  lookup: MlOption<LookupCommitments>
 ];
 type OpeningProof = [
   _: 0,
@@ -218,6 +218,9 @@ type WasmClasses = {
   VerifierIndex:
     | typeof WasmFpPlonkVerifierIndex
     | typeof WasmFqPlonkVerifierIndex;
+  LookupCommitments:
+    | typeof WasmFpLookupCommitments
+    | typeof WasmFqLookupCommitments;
   LookupVerifierIndex:
     | typeof WasmFpLookupVerifierIndex
     | typeof WasmFqLookupVerifierIndex;
@@ -250,6 +253,7 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals,
     Shifts,
     VerifierIndex,
+    LookupCommitments,
     LookupVerifierIndex,
     LookupSelector,
     RandomOracles,
@@ -655,8 +659,8 @@ function createRustConversion(wasm: wasm) {
       let wComm = self.polyCommsToRust(commitments[1]);
       let zComm = self.polyCommToRust(commitments[2]);
       let tComm = self.polyCommToRust(commitments[3]);
-      // TODO lookup
-      return new ProverCommitments(wComm, zComm, tComm);
+      let lookup = MlOption.mapFrom(commitments[4], lookupCommitmentsToRust);
+      return new ProverCommitments(wComm, zComm, tComm, lookup);
     }
     function commitmentsFromRust(
       commitments: WasmProverCommitments
@@ -664,9 +668,30 @@ function createRustConversion(wasm: wasm) {
       let wComm = self.polyCommsFromRust(commitments.w_comm);
       let zComm = self.polyCommFromRust(commitments.z_comm);
       let tComm = self.polyCommFromRust(commitments.t_comm);
-      let lookup = 0 as any; // TODO
+      let lookup = MlOption.mapTo(
+        commitments.lookup,
+        lookupCommitmentsFromRust
+      );
       commitments.free();
       return [0, wComm as MlTupleN<PolyComm, 15>, zComm, tComm, lookup];
+    }
+
+    function lookupCommitmentsToRust(
+      lookup: LookupCommitments
+    ): WasmLookupCommitments {
+      let sorted = self.polyCommsToRust(lookup[1]);
+      let aggreg = self.polyCommToRust(lookup[2]);
+      let runtime = MlOption.mapFrom(lookup[3], self.polyCommToRust);
+      return new LookupCommitments(sorted, aggreg, runtime);
+    }
+    function lookupCommitmentsFromRust(
+      lookup: WasmLookupCommitments
+    ): LookupCommitments {
+      let sorted = self.polyCommsFromRust(lookup.sorted);
+      let aggreg = self.polyCommFromRust(lookup.aggreg);
+      let runtime = MlOption.mapTo(lookup.runtime, self.polyCommFromRust);
+      lookup.free();
+      return [0, sorted, aggreg, runtime];
     }
 
     function openingProofToRust(proof: OpeningProof): WasmOpeningProof {
@@ -714,6 +739,7 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
     Shifts: wasm.WasmFpShifts,
     VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+    LookupCommitments: wasm.WasmFpLookupCommitments,
     LookupVerifierIndex: wasm.WasmFpLookupVerifierIndex,
     LookupSelector: wasm.WasmFpLookupSelectors,
     RandomOracles: wasm.WasmFpRandomOracles,
@@ -732,6 +758,7 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
     Shifts: wasm.WasmFqShifts,
     VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+    LookupCommitments: wasm.WasmFqLookupCommitments,
     LookupVerifierIndex: wasm.WasmFqLookupVerifierIndex,
     LookupSelector: wasm.WasmFqLookupSelectors,
     RandomOracles: wasm.WasmFqRandomOracles,
