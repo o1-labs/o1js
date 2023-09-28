@@ -162,7 +162,7 @@ function proofConversionPerField(
       let commitments = commitmentsToRust(proof[1]);
       let openingProof = openingProofToRust(proof[2]);
       // TODO typed as `any` in wasm-bindgen, this has the correct type
-      let evals = proofEvaluationsToRust(proof[3]);
+      let evals: ProofEvaluations<Uint8Array> = proof[3];
       let ftEval1 = fieldToRust(proof[4]);
       let public_ = fieldsToRustFlat(proof[5]);
       let [, ...prevChallenges] = proof[6];
@@ -187,10 +187,7 @@ function proofConversionPerField(
     proofFromRust(proof: WasmProverProof): ProverProof {
       let commitments = commitmentsFromRust(proof.commitments);
       let openingProof = openingProofFromRust(proof.proof);
-      let evals = proofEvaluationsFromRust(
-        // TODO typed as `any` in wasm-bindgen, this has the correct type
-        proof.evals satisfies ProofEvaluations<Uint8Array>
-      );
+      let evals: ProofEvaluations<Uint8Array> = proof.evals;
       let ftEval1 = fieldFromRust(proof.ft_eval1);
       let public_ = fieldsFromRustFlat(proof.public_);
       let prevChallengeScalars = proof.prev_challenges_scalars;
