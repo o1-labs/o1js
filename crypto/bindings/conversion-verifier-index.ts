@@ -1,20 +1,26 @@
 import type {
   WasmFpDomain,
+  WasmFpLookupSelectors,
+  WasmFpLookupVerifierIndex,
   WasmFpPlonkVerificationEvals,
   WasmFpPlonkVerifierIndex,
   WasmFpShifts,
   WasmFqDomain,
+  WasmFqLookupSelectors,
+  WasmFqLookupVerifierIndex,
   WasmFqPlonkVerificationEvals,
   WasmFqPlonkVerifierIndex,
   WasmFqShifts,
+  LookupInfo as WasmLookupInfo,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
-import type { MlArray } from '../../../lib/ml/base.js';
+import { MlBool, type MlArray, MlOption } from '../../../lib/ml/base.js';
 import {
   Field,
   VerifierIndex,
   Domain,
   VerificationEvals,
+  PolyComm,
 } from './kimchi-types.js';
 import { fieldFromRust, fieldToRust } from './conversion-base-old.js';
 import {
@@ -22,6 +28,7 @@ import {
   ConversionCores,
   freeOnFinalize,
 } from './conversion-core.js';
+import { Lookup, LookupInfo, LookupSelectors } from './lookup.js';
 
 export { verifierIndexConversion };
 
@@ -34,6 +41,11 @@ type WasmVerificationEvals =
 type WasmShifts = WasmFpShifts | WasmFqShifts;
 type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
 
+type WasmLookupVerifierIndex =
+  | WasmFpLookupVerifierIndex
+  | WasmFqLookupVerifierIndex;
+type WasmLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
+
 type WasmClasses = {
   Domain: typeof WasmFpDomain | typeof WasmFqDomain;
   VerificationEvals:
@@ -43,28 +55,44 @@ type WasmClasses = {
   VerifierIndex:
     | typeof WasmFpPlonkVerifierIndex
     | typeof WasmFqPlonkVerifierIndex;
+  LookupVerifierIndex:
+    | typeof WasmFpLookupVerifierIndex
+    | typeof WasmFqLookupVerifierIndex;
+  LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
 };
 
 function verifierIndexConversion(wasm: wasm, core: ConversionCores) {
   return {
-    fp: verifierIndexConversionPerField(core.fp, {
+    fp: verifierIndexConversionPerField(wasm, core.fp, {
       Domain: wasm.WasmFpDomain,
       VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
       Shifts: wasm.WasmFpShifts,
       VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+      LookupVerifierIndex: wasm.WasmFpLookupVerifierIndex,
+      LookupSelector: wasm.WasmFpLookupSelectors,
     }),
-    fq: verifierIndexConversionPerField(core.fq, {
+    fq: verifierIndexConversionPerField(wasm, core.fq, {
       Domain: wasm.WasmFqDomain,
       VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
       Shifts: wasm.WasmFqShifts,
       VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+      LookupVerifierIndex: wasm.WasmFqLookupVerifierIndex,
+      LookupSelector: wasm.WasmFqLookupSelectors,
     }),
   };
 }
 
 function verifierIndexConversionPerField(
+  wasm: wasm,
   core: ConversionCore,
-  { Domain, VerificationEvals, Shifts, VerifierIndex }: WasmClasses
+  {
+    Domain,
+    VerificationEvals,
+    Shifts,
+    VerifierIndex,
+    LookupVerifierIndex,
+    LookupSelector,
+  }: WasmClasses
 ) {
   function domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
     return new Domain(logSizeOfGroup, fieldToRust(groupGen));
@@ -116,6 +144,107 @@ function verifierIndexConversionPerField(
     return mlEvals;
   }
 
+  function lookupVerifierIndexToRust(
+    lookup: Lookup<PolyComm>
+  ): WasmLookupVerifierIndex {
+    let [
+      ,
+      joint_lookup_used,
+      lookup_table,
+      selectors,
+      table_ids,
+      lookup_info,
+      runtime_tables_selector,
+    ] = lookup;
+    return new LookupVerifierIndex(
+      MlBool.from(joint_lookup_used),
+      core.polyCommsToRust(lookup_table),
+      lookupSelectorsToRust(selectors),
+      MlOption.mapFrom(table_ids, core.polyCommToRust),
+      lookupInfoToRust(lookup_info),
+      MlOption.mapFrom(runtime_tables_selector, core.polyCommToRust)
+    );
+  }
+  function lookupVerifierIndexFromRust(
+    lookup: WasmLookupVerifierIndex
+  ): Lookup<PolyComm> {
+    let mlLookup: Lookup<PolyComm> = [
+      0,
+      MlBool(lookup.joint_lookup_used),
+      core.polyCommsFromRust(lookup.lookup_table),
+      lookupSelectorsFromRust(lookup.lookup_selectors),
+      MlOption.mapTo(lookup.table_ids, core.polyCommFromRust),
+      lookupInfoFromRust(lookup.lookup_info),
+      MlOption.mapTo(lookup.runtime_tables_selector, core.polyCommFromRust),
+    ];
+    lookup.free();
+    return mlLookup;
+  }
+
+  function lookupSelectorsToRust([
+    ,
+    lookup,
+  ]: LookupSelectors<PolyComm>): WasmLookupSelector {
+    return new LookupSelector(
+      undefined,
+      MlOption.mapFrom(lookup, core.polyCommToRust),
+      undefined,
+      undefined
+    );
+  }
+  function lookupSelectorsFromRust(
+    selector: WasmLookupSelector
+  ): LookupSelectors<PolyComm> {
+    let lookup = MlOption.mapTo(selector.lookup, core.polyCommFromRust);
+    selector.free();
+    return [0, lookup];
+  }
+
+  function lookupInfoToRust([
+    ,
+    maxPerRow,
+    maxJointSize,
+    features,
+  ]: LookupInfo): WasmLookupInfo {
+    let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
+    let [, xor, lookup, range_check, foreign_field_mul] = patterns;
+    let wasmPatterns = new wasm.LookupPatterns(
+      MlBool.from(xor),
+      MlBool.from(lookup),
+      MlBool.from(range_check),
+      MlBool.from(foreign_field_mul)
+    );
+    let wasmFeatures = new wasm.LookupFeatures(
+      wasmPatterns,
+      MlBool.from(joint_lookup_used),
+      MlBool.from(uses_runtime_tables)
+    );
+    return new wasm.LookupInfo(maxPerRow, maxJointSize, wasmFeatures);
+  }
+  function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
+    let features = info.features;
+    let patterns = features.patterns;
+    let mlInfo: LookupInfo = [
+      0,
+      info.max_per_row,
+      info.max_joint_size,
+      [
+        0,
+        [
+          0,
+          MlBool(patterns.xor),
+          MlBool(patterns.lookup),
+          MlBool(patterns.range_check),
+          MlBool(patterns.foreign_field_mul),
+        ],
+        MlBool(features.joint_lookup_used),
+        MlBool(features.uses_runtime_tables),
+      ],
+    ];
+    info.free();
+    return mlInfo;
+  }
+
   let self = {
     shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
       let s = shifts.map(fieldToRust);
@@ -135,6 +264,7 @@ function verifierIndexConversionPerField(
       let srs = vk[5];
       let evals = verificationEvalsToRust(vk[6]);
       let shifts = self.shiftsToRust(vk[7]);
+      let lookupIndex = MlOption.mapFrom(vk[8], lookupVerifierIndexToRust);
       return new VerifierIndex(
         domain,
         maxPolySize,
@@ -142,11 +272,11 @@ function verifierIndexConversionPerField(
         prevChallenges,
         srs,
         evals,
-        shifts
+        shifts,
+        lookupIndex
       );
     },
     verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
-      let lookupIndex = 0 as 0; // None
       let mlVk: VerifierIndex = [
         0,
         domainFromRust(vk.domain),
@@ -156,7 +286,7 @@ function verifierIndexConversionPerField(
         freeOnFinalize(vk.srs),
         verificationEvalsFromRust(vk.evals),
         self.shiftsFromRust(vk.shifts),
-        lookupIndex,
+        MlOption.mapTo(vk.lookup_index, lookupVerifierIndexFromRust),
       ];
       vk.free();
       return mlVk;

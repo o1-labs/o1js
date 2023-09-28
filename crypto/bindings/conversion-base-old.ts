@@ -4,7 +4,7 @@ import type {
   WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type { MlArray } from '../../../lib/ml/base.js';
-import { Field, OrInfinity } from './kimchi-types.js';
+import { Field, OrInfinity, Infinity } from './kimchi-types.js';
 
 export {
   fieldToRust,
@@ -80,11 +80,12 @@ function affineToRust<A extends WasmAffine>(
   makeAffine: () => A
 ) {
   let res = makeAffine();
-  if (pt === 0) {
+  if (pt === Infinity) {
     res.infinity = true;
   } else {
-    res.x = fieldToRust(pt[1][1]);
-    res.y = fieldToRust(pt[1][2]);
+    let [, [, x, y]] = pt;
+    res.x = fieldToRust(x);
+    res.y = fieldToRust(y);
   }
   return res;
 }

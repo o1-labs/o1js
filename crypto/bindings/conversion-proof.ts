@@ -1,7 +1,9 @@
 import type {
+  WasmFpLookupCommitments,
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
+  WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
   WasmFqProverProof,
@@ -19,6 +21,7 @@ import type {
   ProverCommitments,
   OpeningProof,
   RecursionChallenge,
+  LookupCommitments,
 } from './kimchi-types.js';
 import { MlTupleN, mapMlTuple } from './util.js';
 import { MlArray, MlOption } from '../../../lib/ml/base.js';
@@ -40,6 +43,7 @@ type wasm = typeof wasmNamespace;
 type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
 type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
+type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
 
 type WasmClasses = {
   ProverCommitments:
@@ -48,6 +52,9 @@ type WasmClasses = {
   OpeningProof: typeof WasmFpOpeningProof | typeof WasmFqOpeningProof;
   VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
   ProverProof: typeof WasmFpProverProof | typeof WasmFqProverProof;
+  LookupCommitments:
+    | typeof WasmFpLookupCommitments
+    | typeof WasmFqLookupCommitments;
 };
 
 function proofConversion(wasm: wasm, core: ConversionCores) {
@@ -57,19 +64,27 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       OpeningProof: wasm.WasmFpOpeningProof,
       VecVec: wasm.WasmVecVecFp,
       ProverProof: wasm.WasmFpProverProof,
+      LookupCommitments: wasm.WasmFpLookupCommitments,
     }),
     fq: proofConversionPerField(core.fq, {
       ProverCommitments: wasm.WasmFqProverCommitments,
       OpeningProof: wasm.WasmFqOpeningProof,
       VecVec: wasm.WasmVecVecFq,
       ProverProof: wasm.WasmFqProverProof,
+      LookupCommitments: wasm.WasmFqLookupCommitments,
     }),
   };
 }
 
 function proofConversionPerField(
   core: ConversionCore,
-  { ProverCommitments, OpeningProof, VecVec, ProverProof }: WasmClasses
+  {
+    ProverCommitments,
+    OpeningProof,
+    VecVec,
+    ProverProof,
+    LookupCommitments,
+  }: WasmClasses
 ) {
   function commitmentsToRust(
     commitments: ProverCommitments
@@ -77,8 +92,8 @@ function proofConversionPerField(
     let wComm = core.polyCommsToRust(commitments[1]);
     let zComm = core.polyCommToRust(commitments[2]);
     let tComm = core.polyCommToRust(commitments[3]);
-    // TODO lookup
-    return new ProverCommitments(wComm, zComm, tComm);
+    let lookup = MlOption.mapFrom(commitments[4], lookupCommitmentsToRust);
+    return new ProverCommitments(wComm, zComm, tComm, lookup);
   }
   function commitmentsFromRust(
     commitments: WasmProverCommitments
@@ -86,9 +101,27 @@ function proofConversionPerField(
     let wComm = core.polyCommsFromRust(commitments.w_comm);
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
-    let lookup = 0 as any; // TODO
+    let lookup = MlOption.mapTo(commitments.lookup, lookupCommitmentsFromRust);
     commitments.free();
     return [0, wComm as MlTupleN<PolyComm, 15>, zComm, tComm, lookup];
+  }
+
+  function lookupCommitmentsToRust(
+    lookup: LookupCommitments
+  ): WasmLookupCommitments {
+    let sorted = core.polyCommsToRust(lookup[1]);
+    let aggreg = core.polyCommToRust(lookup[2]);
+    let runtime = MlOption.mapFrom(lookup[3], core.polyCommToRust);
+    return new LookupCommitments(sorted, aggreg, runtime);
+  }
+  function lookupCommitmentsFromRust(
+    lookup: WasmLookupCommitments
+  ): LookupCommitments {
+    let sorted = core.polyCommsFromRust(lookup.sorted);
+    let aggreg = core.polyCommFromRust(lookup.aggreg);
+    let runtime = MlOption.mapTo(lookup.runtime, core.polyCommFromRust);
+    lookup.free();
+    return [0, sorted, aggreg, runtime];
   }
 
   function openingProofToRust(proof: OpeningProof): WasmOpeningProof {

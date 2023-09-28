@@ -26,14 +26,18 @@ export {
   ProofEvaluations,
   RecursionChallenge,
   ProverProof,
+  LookupCommitments,
 };
 
-export { Field, OrInfinity };
+export { Field, OrInfinity, Infinity };
 
 type Field = Uint8Array;
 
 // Kimchi_types.or_infinity
-type OrInfinity = MlOption<MlTuple<Field, Field>>;
+type Infinity = 0;
+const Infinity = 0;
+type Finite<T> = [0, T];
+type OrInfinity = Infinity | Finite<MlTuple<Field, Field>>;
 
 // wasm types
 
@@ -122,7 +126,7 @@ type ProverCommitments = [
   w_comm: MlTupleN<PolyComm, 15>,
   z_comm: PolyComm,
   t_comm: PolyComm,
-  lookup: LookupCommitments
+  lookup: MlOption<LookupCommitments>
 ];
 type OpeningProof = [
   _: 0,
