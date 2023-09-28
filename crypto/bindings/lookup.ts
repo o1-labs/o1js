@@ -1,6 +1,6 @@
 import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
 
-export { Lookup };
+export { Lookup, LookupInfo, LookupPatterns, LookupFeatures, LookupSelectors };
 
 type LookupPatterns = [
   _: 0,
@@ -10,6 +10,7 @@ type LookupPatterns = [
   foreign_field_mul: MlBool
 ];
 type LookupFeatures = [
+  _: 0,
   patterns: LookupPatterns,
   joint_lookup_used: MlBool,
   uses_runtime_tables: MlBool
