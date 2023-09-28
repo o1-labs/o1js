@@ -46,14 +46,12 @@ const HashInput = {
 
 function provable<A>(
   typeObj: A,
-  options?: { customObjectKeys?: string[]; isPure?: boolean }
+  options?: { isPure?: boolean }
 ): ProvableExtended<InferProvable<A>, InferJson<A>> {
   type T = InferProvable<A>;
   type J = InferJson<A>;
   let objectKeys =
-    typeof typeObj === 'object' && typeObj !== null
-      ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
-      : [];
+    typeof typeObj === 'object' && typeObj !== null ? Object.keys(typeObj) : [];
   let nonCircuitPrimitives = new Set([
     Number,
     String,
@@ -222,11 +220,10 @@ function provable<A>(
 }
 
 function provablePure<A>(
-  typeObj: A,
-  options: { customObjectKeys?: string[] } = {}
+  typeObj: A
 ): ProvablePure<InferProvable<A>> &
   ProvableExtension<InferProvable<A>, InferJson<A>> {
-  return provable(typeObj, { ...options, isPure: true }) as any;
+  return provable(typeObj, { isPure: true }) as any;
 }
 
 // some type inference helpers

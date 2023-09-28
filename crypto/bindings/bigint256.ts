@@ -65,7 +65,7 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     let bitPosition = 0n;
     for (let i = 0; i < length; i++) {
       let byte = caml_bytes_unsafe_get(ocamlBytes, i);
-      x += BigInt(byte) << bitPosition;
+      x |= BigInt(byte) << bitPosition;
       bitPosition += 8n;
     }
     return [0, x];

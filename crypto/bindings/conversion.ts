@@ -1,11 +1,14 @@
 /**
  * Implementation of Kimchi_bindings.Protocol.Gates
  */
-import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import { MlArray, MlBool, MlOption, MlTuple } from '../../../lib/ml/base.js';
 import { mapTuple } from './util.js';
 import type {
   WasmFpDomain,
   WasmFpGate,
+  WasmFpLookupCommitments,
+  WasmFpLookupSelectors,
+  WasmFpLookupVerifierIndex,
   WasmFpOracles,
   WasmFpPlonkVerificationEvals,
   WasmFpPlonkVerifierIndex,
@@ -16,6 +19,9 @@ import type {
   WasmFpSrs,
   WasmFqDomain,
   WasmFqGate,
+  WasmFqLookupCommitments,
+  WasmFqLookupSelectors,
+  WasmFqLookupVerifierIndex,
   WasmFqOracles,
   WasmFqPlonkVerificationEvals,
   WasmFqPlonkVerifierIndex,
@@ -26,19 +32,23 @@ import type {
   WasmFqSrs,
   WasmGPallas,
   WasmGVesta,
+  LookupInfo as WasmLookupInfo,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { bigIntToBytes, bytesToBigInt } from '../bigint-helpers.js';
-import { Lookup } from './lookup.js';
+import { Lookup, LookupInfo, LookupSelectors } from './lookup.js';
 
 export { createRustConversion };
 
 type Field = Uint8Array;
 
 // Kimchi_types.or_infinity
-type OrInfinity = MlOption<MlTuple<Field, Field>>;
+type Infinity = 0;
+const Infinity = 0;
+type Finite<T> = [0, T];
+type OrInfinity = Infinity | Finite<MlTuple<Field, Field>>;
 
 // ml types from kimchi_types.ml
 
@@ -119,6 +129,12 @@ type WasmVerificationEvals =
   | WasmFqPlonkVerificationEvals;
 type WasmShifts = WasmFpShifts | WasmFqShifts;
 type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
+
+type WasmLookupVerifierIndex =
+  | WasmFpLookupVerifierIndex
+  | WasmFqLookupVerifierIndex;
+type WasmLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
+type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
 type WasmRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
 type WasmOracles = WasmFpOracles | WasmFqOracles;
 type WasmVecVec = WasmVecVecFp | WasmVecVecFq;
@@ -139,6 +155,10 @@ type WasmClasses = {
   VerifierIndex:
     | typeof WasmFpPlonkVerifierIndex
     | typeof WasmFqPlonkVerifierIndex;
+  LookupVerifierIndex:
+    | typeof WasmFpLookupVerifierIndex
+    | typeof WasmFqLookupVerifierIndex;
+  LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
   RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
   Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
   VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
@@ -163,6 +183,8 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals,
     Shifts,
     VerifierIndex,
+    LookupVerifierIndex,
+    LookupSelector,
     RandomOracles,
     Oracles,
   }: WasmClasses) {
@@ -199,18 +221,14 @@ function createRustConversion(wasm: wasm) {
 
       polyCommToRust(polyComm: PolyComm): WasmPolyComm {
         let [, camlUnshifted, camlShifted] = polyComm;
-        let rustShifted =
-          camlShifted === 0
-            ? undefined
-            : affineToRust(camlShifted[1], makeAffine);
+        let rustShifted = MlOption.mapFrom(camlShifted, self.pointToRust);
         let rustUnshifted = self.pointsToRust(camlUnshifted);
         return new PolyComm(rustUnshifted, rustShifted);
       },
       polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
         let rustShifted = polyComm.shifted;
         let rustUnshifted = polyComm.unshifted;
-        let mlShifted: MlOption<OrInfinity> =
-          rustShifted === undefined ? 0 : [0, affineFromRust(rustShifted)];
+        let mlShifted = MlOption.mapTo(rustShifted, affineFromRust);
         let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
           return affineFromRust(wrap(ptr, CommitmentCurve));
         });
@@ -245,6 +263,7 @@ function createRustConversion(wasm: wasm) {
         let srs = vk[5];
         let evals = verificationEvalsToRust(vk[6]);
         let shifts = self.shiftsToRust(vk[7]);
+        let lookupIndex = MlOption.mapFrom(vk[8], lookupVerifierIndexToRust);
         return new VerifierIndex(
           domain,
           maxPolySize,
@@ -252,11 +271,11 @@ function createRustConversion(wasm: wasm) {
           prevChallenges,
           srs,
           evals,
-          shifts
+          shifts,
+          lookupIndex
         );
       },
       verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
-        let lookupIndex = 0 as 0; // None
         let mlVk: VerifierIndex = [
           0,
           domainFromRust(vk.domain),
@@ -266,7 +285,7 @@ function createRustConversion(wasm: wasm) {
           vk.srs,
           verificationEvalsFromRust(vk.evals),
           self.shiftsFromRust(vk.shifts),
-          lookupIndex,
+          MlOption.mapTo(vk.lookup_index, lookupVerifierIndexFromRust),
         ];
         vk.free();
         return mlVk;
@@ -347,6 +366,107 @@ function createRustConversion(wasm: wasm) {
       return mlEvals;
     }
 
+    function lookupVerifierIndexToRust(
+      lookup: Lookup<PolyComm>
+    ): WasmLookupVerifierIndex {
+      let [
+        ,
+        joint_lookup_used,
+        lookup_table,
+        selectors,
+        table_ids,
+        lookup_info,
+        runtime_tables_selector,
+      ] = lookup;
+      return new LookupVerifierIndex(
+        MlBool.from(joint_lookup_used),
+        self.polyCommsToRust(lookup_table),
+        lookupSelectorsToRust(selectors),
+        MlOption.mapFrom(table_ids, self.polyCommToRust),
+        lookupInfoToRust(lookup_info),
+        MlOption.mapFrom(runtime_tables_selector, self.polyCommToRust)
+      );
+    }
+    function lookupVerifierIndexFromRust(
+      lookup: WasmLookupVerifierIndex
+    ): Lookup<PolyComm> {
+      let mlLookup: Lookup<PolyComm> = [
+        0,
+        MlBool(lookup.joint_lookup_used),
+        self.polyCommsFromRust(lookup.lookup_table),
+        lookupSelectorsFromRust(lookup.lookup_selectors),
+        MlOption.mapTo(lookup.table_ids, self.polyCommFromRust),
+        lookupInfoFromRust(lookup.lookup_info),
+        MlOption.mapTo(lookup.runtime_tables_selector, self.polyCommFromRust),
+      ];
+      lookup.free();
+      return mlLookup;
+    }
+
+    function lookupSelectorsToRust([
+      ,
+      lookup,
+    ]: LookupSelectors<PolyComm>): WasmLookupSelector {
+      return new LookupSelector(
+        undefined,
+        MlOption.mapFrom(lookup, self.polyCommToRust),
+        undefined,
+        undefined
+      );
+    }
+    function lookupSelectorsFromRust(
+      selector: WasmLookupSelector
+    ): LookupSelectors<PolyComm> {
+      let lookup = MlOption.mapTo(selector.lookup, self.polyCommFromRust);
+      selector.free();
+      return [0, lookup];
+    }
+
+    function lookupInfoToRust([
+      ,
+      maxPerRow,
+      maxJointSize,
+      features,
+    ]: LookupInfo): WasmLookupInfo {
+      let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
+      let [, xor, lookup, range_check, foreign_field_mul] = patterns;
+      let wasmPatterns = new wasm.LookupPatterns(
+        MlBool.from(xor),
+        MlBool.from(lookup),
+        MlBool.from(range_check),
+        MlBool.from(foreign_field_mul)
+      );
+      let wasmFeatures = new wasm.LookupFeatures(
+        wasmPatterns,
+        MlBool.from(joint_lookup_used),
+        MlBool.from(uses_runtime_tables)
+      );
+      return new wasm.LookupInfo(maxPerRow, maxJointSize, wasmFeatures);
+    }
+    function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
+      let features = info.features;
+      let patterns = features.patterns;
+      let mlInfo: LookupInfo = [
+        0,
+        info.max_per_row,
+        info.max_joint_size,
+        [
+          0,
+          [
+            0,
+            MlBool(patterns.xor),
+            MlBool(patterns.lookup),
+            MlBool(patterns.range_check),
+            MlBool(patterns.foreign_field_mul),
+          ],
+          MlBool(features.joint_lookup_used),
+          MlBool(features.uses_runtime_tables),
+        ],
+      ];
+      info.free();
+      return mlInfo;
+    }
+
     function randomOraclesToRust(ro: RandomOracles): WasmRandomOracles {
       let jointCombinerMl = MlOption.from(ro[1]);
       let jointCombinerChal = maybeFieldToRust(jointCombinerMl?.[1][1]);
@@ -418,6 +538,8 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals: wasm.WasmFpPlonkVerificationEvals,
     Shifts: wasm.WasmFpShifts,
     VerifierIndex: wasm.WasmFpPlonkVerifierIndex,
+    LookupVerifierIndex: wasm.WasmFpLookupVerifierIndex,
+    LookupSelector: wasm.WasmFpLookupSelectors,
     RandomOracles: wasm.WasmFpRandomOracles,
     Oracles: wasm.WasmFpOracles,
     VecVec: wasm.WasmVecVecFp,
@@ -432,6 +554,8 @@ function createRustConversion(wasm: wasm) {
     VerificationEvals: wasm.WasmFqPlonkVerificationEvals,
     Shifts: wasm.WasmFqShifts,
     VerifierIndex: wasm.WasmFqPlonkVerifierIndex,
+    LookupVerifierIndex: wasm.WasmFqLookupVerifierIndex,
+    LookupSelector: wasm.WasmFqLookupSelectors,
     RandomOracles: wasm.WasmFqRandomOracles,
     Oracles: wasm.WasmFqOracles,
     VecVec: wasm.WasmVecVecFq,
@@ -509,11 +633,12 @@ function affineToRust<A extends WasmAffine>(
   makeAffine: () => A
 ) {
   let res = makeAffine();
-  if (pt === 0) {
+  if (pt === Infinity) {
     res.infinity = true;
   } else {
-    res.x = fieldToRust(pt[1][1]);
-    res.y = fieldToRust(pt[1][2]);
+    let [, [, x, y]] = pt;
+    res.x = fieldToRust(x);
+    res.y = fieldToRust(y);
   }
   return res;
 }
