@@ -184,20 +184,29 @@ function verifierIndexConversionPerField(
   function lookupSelectorsToRust([
     ,
     lookup,
+    xor,
+    range_check,
+    ffmul,
   ]: LookupSelectors<PolyComm>): WasmLookupSelector {
     return new LookupSelector(
-      undefined,
+      MlOption.mapFrom(xor, core.polyCommToRust),
       MlOption.mapFrom(lookup, core.polyCommToRust),
-      undefined,
-      undefined
+      MlOption.mapFrom(range_check, core.polyCommToRust),
+      MlOption.mapFrom(ffmul, core.polyCommToRust)
     );
   }
   function lookupSelectorsFromRust(
     selector: WasmLookupSelector
   ): LookupSelectors<PolyComm> {
     let lookup = MlOption.mapTo(selector.lookup, core.polyCommFromRust);
+    let xor = MlOption.mapTo(selector.xor, core.polyCommFromRust);
+    let range_check = MlOption.mapTo(
+      selector.range_check,
+      core.polyCommFromRust
+    );
+    let ffmul = MlOption.mapTo(selector.ffmul, core.polyCommFromRust);
     selector.free();
-    return [0, lookup];
+    return [0, lookup, xor, range_check, ffmul];
   }
 
   function lookupInfoToRust([

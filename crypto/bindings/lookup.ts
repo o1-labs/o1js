@@ -21,7 +21,13 @@ type LookupInfo = [
   max_joint_size: number,
   features: LookupFeatures
 ];
-type LookupSelectors<PolyComm> = [_: 0, lookup: MlOption<PolyComm>];
+type LookupSelectors<PolyComm> = [
+  _: 0,
+  lookup: MlOption<PolyComm>,
+  xor: MlOption<PolyComm>,
+  range_check: MlOption<PolyComm>,
+  ffmul: MlOption<PolyComm>
+];
 type Lookup<PolyComm> = [
   _: 0,
   joint_lookup_used: MlBool,
