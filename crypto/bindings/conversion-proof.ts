@@ -1,14 +1,18 @@
 import type {
   WasmFpLookupCommitments,
+  WasmFpLookupTable,
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRuntimeTable,
+  WasmFpRuntimeTableCfg,
   WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
+  WasmFqLookupTable,
   WasmFqProverProof,
   WasmFqRuntimeTable,
+  WasmFqRuntimeTableCfg,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
@@ -24,6 +28,8 @@ import type {
   RecursionChallenge,
   LookupCommitments,
   RuntimeTable,
+  RuntimeTableCfg,
+  LookupTable,
 } from './kimchi-types.js';
 import { MlTupleN, mapMlTuple } from './util.js';
 import { MlArray, MlOption } from '../../../lib/ml/base.js';
@@ -52,6 +58,8 @@ type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
 type WasmRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
+type WasmRuntimeTableCfg = WasmFpRuntimeTableCfg | WasmFqRuntimeTableCfg;
+type WasmLookupTable = WasmFpLookupTable | WasmFqLookupTable;
 
 type WasmClasses = {
   ProverCommitments:
@@ -64,6 +72,8 @@ type WasmClasses = {
     | typeof WasmFpLookupCommitments
     | typeof WasmFqLookupCommitments;
   RuntimeTable: typeof WasmFpRuntimeTable | typeof WasmFqRuntimeTable;
+  RuntimeTableCfg: typeof WasmFpRuntimeTableCfg | typeof WasmFqRuntimeTableCfg;
+  LookupTable: typeof WasmFpLookupTable | typeof WasmFqLookupTable;
 };
 
 function proofConversion(wasm: wasm, core: ConversionCores) {
@@ -75,6 +85,8 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       ProverProof: wasm.WasmFpProverProof,
       LookupCommitments: wasm.WasmFpLookupCommitments,
       RuntimeTable: wasm.WasmFpRuntimeTable,
+      RuntimeTableCfg: wasm.WasmFpRuntimeTableCfg,
+      LookupTable: wasm.WasmFpLookupTable,
     }),
     fq: proofConversionPerField(core.fq, {
       ProverCommitments: wasm.WasmFqProverCommitments,
@@ -83,6 +95,8 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       ProverProof: wasm.WasmFqProverProof,
       LookupCommitments: wasm.WasmFqLookupCommitments,
       RuntimeTable: wasm.WasmFqRuntimeTable,
+      RuntimeTableCfg: wasm.WasmFqRuntimeTableCfg,
+      LookupTable: wasm.WasmFqLookupTable,
     }),
   };
 }
@@ -96,6 +110,8 @@ function proofConversionPerField(
     ProverProof,
     LookupCommitments,
     RuntimeTable,
+    RuntimeTableCfg,
+    LookupTable,
   }: WasmClasses
 ) {
   function commitmentsToRust(
@@ -173,6 +189,28 @@ function proofConversionPerField(
     return new RuntimeTable(id, core.vectorToRust(data));
   }
 
+  function runtimeTableCfgToRust([
+    ,
+    id,
+    firstColumn,
+  ]: RuntimeTableCfg): WasmRuntimeTableCfg {
+    return new RuntimeTableCfg(id, core.vectorToRust(firstColumn));
+  }
+
+  function lookupTableToRust([
+    ,
+    id,
+    [, ...data],
+  ]: LookupTable): WasmLookupTable {
+    let n = data.length;
+    let wasmData = new VecVec(n);
+    for (let i = 0; i < n; i++) {
+      // TODO is .push() correct if we already initialized to the final length?
+      wasmData.push(fieldsToRustFlat(data[i]));
+    }
+    return new LookupTable(id, wasmData);
+  }
+
   return {
     proofToRust(proof: ProverProof): WasmProverProof {
       let commitments = commitmentsToRust(proof[1]);
@@ -186,6 +224,7 @@ function proofConversionPerField(
       let prevChallengeScalars = new VecVec(n);
       let prevChallengeCommsMl: MlArray<PolyComm> = [0];
       for (let [, scalars, comms] of prevChallenges) {
+        // TODO is .push() correct if we already initialized to the final length?
         prevChallengeScalars.push(fieldsToRustFlat(scalars));
         prevChallengeCommsMl.push(comms);
       }
@@ -234,6 +273,21 @@ function proofConversionPerField(
     runtimeTablesToRust([, ...tables]: MlArray<RuntimeTable>): Uint32Array {
       return mapToUint32Array(tables, (table) =>
         unwrap(runtimeTableToRust(table))
+      );
+    },
+
+    runtimeTableCfgsToRust([
+      ,
+      ...tableCfgs
+    ]: MlArray<RuntimeTableCfg>): Uint32Array {
+      return mapToUint32Array(tableCfgs, (tableCfg) =>
+        unwrap(runtimeTableCfgToRust(tableCfg))
+      );
+    },
+
+    lookupTablesToRust([, ...tables]: MlArray<LookupTable>) {
+      return mapToUint32Array(tables, (table) =>
+        unwrap(lookupTableToRust(table))
       );
     },
   };
