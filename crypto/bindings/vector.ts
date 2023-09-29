@@ -27,7 +27,7 @@ const FieldVectorBindings = {
         `FieldVector.get(): Index out of bounds, got ${i}/${v.length - 1}`
       );
     }
-    return value;
+    return [...value];
   },
   set(v: FieldVector, i: number, x: Field): void {
     v[i + 1] = x;

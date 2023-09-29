@@ -100,8 +100,8 @@ function createFieldBindings(Field: FiniteField) {
       console.warn('rng is not implemented');
       return [0, Field.random()];
     },
-    to_bigint(x: Field): Bigint256 {
-      return x;
+    to_bigint([, x]: Field): Bigint256 {
+      return [0, x];
     },
     of_bigint([, x]: Bigint256): Field {
       if (x >= Field.modulus)
