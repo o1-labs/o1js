@@ -3,10 +3,12 @@ import type {
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
+  WasmFpRuntimeTable,
   WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
   WasmFqProverProof,
+  WasmFqRuntimeTable,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
@@ -21,6 +23,7 @@ import type {
   OpeningProof,
   RecursionChallenge,
   LookupCommitments,
+  RuntimeTable,
 } from './kimchi-types.js';
 import { MlTupleN, mapMlTuple } from './util.js';
 import { MlArray, MlOption } from '../../../lib/ml/base.js';
@@ -30,7 +33,12 @@ import {
   fieldsToRustFlat,
   fieldsFromRustFlat,
 } from './conversion-base.js';
-import { ConversionCore, ConversionCores } from './conversion-core.js';
+import {
+  ConversionCore,
+  ConversionCores,
+  mapToUint32Array,
+  unwrap,
+} from './conversion-core.js';
 
 export { proofConversion };
 
@@ -43,6 +51,7 @@ type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
 type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
+type WasmRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
 
 type WasmClasses = {
   ProverCommitments:
@@ -54,6 +63,7 @@ type WasmClasses = {
   LookupCommitments:
     | typeof WasmFpLookupCommitments
     | typeof WasmFqLookupCommitments;
+  RuntimeTable: typeof WasmFpRuntimeTable | typeof WasmFqRuntimeTable;
 };
 
 function proofConversion(wasm: wasm, core: ConversionCores) {
@@ -64,6 +74,7 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       VecVec: wasm.WasmVecVecFp,
       ProverProof: wasm.WasmFpProverProof,
       LookupCommitments: wasm.WasmFpLookupCommitments,
+      RuntimeTable: wasm.WasmFpRuntimeTable,
     }),
     fq: proofConversionPerField(core.fq, {
       ProverCommitments: wasm.WasmFqProverCommitments,
@@ -71,6 +82,7 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       VecVec: wasm.WasmVecVecFq,
       ProverProof: wasm.WasmFqProverProof,
       LookupCommitments: wasm.WasmFqLookupCommitments,
+      RuntimeTable: wasm.WasmFqRuntimeTable,
     }),
   };
 }
@@ -83,6 +95,7 @@ function proofConversionPerField(
     VecVec,
     ProverProof,
     LookupCommitments,
+    RuntimeTable,
   }: WasmClasses
 ) {
   function commitmentsToRust(
@@ -156,6 +169,10 @@ function proofConversionPerField(
     return [0, [0, ...lr], delta, z1, z2, sg];
   }
 
+  function runtimeTableToRust([, id, data]: RuntimeTable): WasmRuntimeTable {
+    return new RuntimeTable(id, core.vectorToRust(data));
+  }
+
   return {
     proofToRust(proof: ProverProof): WasmProverProof {
       let commitments = commitmentsToRust(proof[1]);
@@ -212,6 +229,12 @@ function proofConversionPerField(
         public_,
         [0, ...prevChallenges],
       ];
+    },
+
+    runtimeTablesToRust([, ...tables]: MlArray<RuntimeTable>): Uint32Array {
+      return mapToUint32Array(tables, (table) =>
+        unwrap(runtimeTableToRust(table))
+      );
     },
   };
 }
