@@ -79,7 +79,7 @@ let BinablePublicKey = withVersionNumber(
  * A public key, represented by a non-zero point on the Pallas curve, in compressed form { x, isOdd }
  */
 const PublicKey = {
-  ...provable({ x: Field, isOdd: Bool }, { customObjectKeys: ['x', 'isOdd'] }),
+  ...provable({ x: Field, isOdd: Bool }),
   ...withBase58(BinablePublicKey, versionBytes.publicKey),
 
   toJSON(publicKey: PublicKey) {

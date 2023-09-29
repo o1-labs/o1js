@@ -1,6 +1,7 @@
 # o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
-O(1) Labs has renamed SnarkyJS to o1js, effective immediately!
+ℹ️ **o1js** is an evolution of [SnarkyJS](https://www.npmjs.com/package/snarkyjs) which saw:
+49 updated versions over 2 years of development with 43,141 downloads
 
 This name change reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
 
@@ -46,5 +47,6 @@ See the [Contributing guidelines](https://github.com/o1-labs/o1js/blob/main/CONT
 High-quality community packages from open source developers are available for your project.
 
 - **o1js-elgamal** A partially homomorphic encryption library for o1js based on Elgamal encryption: [GitHub](https://github.com/Trivo25/o1js-elgamal) and [npm](https://www.npmjs.com/package/o1js-elgamal)
+- **o1js-pack** A library for o1js that allows a zkApp developer to pack extra data into a single Field. [GitHub](https://github.com/45930/o1js-pack) and [npm](https://www.npmjs.com/package/o1js-pack)
 
 To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
