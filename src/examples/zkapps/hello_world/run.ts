@@ -1,4 +1,4 @@
-import { AccountUpdate, Field, Mina, PrivateKey } from 'snarkyjs';
+import { AccountUpdate, Field, Mina, PrivateKey } from 'o1js';
 import { getProfiler } from '../../profiler.js';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 

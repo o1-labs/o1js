@@ -5,7 +5,7 @@ import {
   Permissions,
   PrivateKey,
   UInt64,
-} from 'snarkyjs';
+} from 'o1js';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 import { getProfiler } from '../../profiler.js';

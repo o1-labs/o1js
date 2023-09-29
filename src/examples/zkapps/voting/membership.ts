@@ -12,7 +12,7 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
 
@@ -62,8 +62,8 @@ export class Membership_ extends SmartContract {
 
   events = {
     newMemberState: provablePure({
-      committedMembersRoot: Field,
       accumulatedMembersRoot: Field,
+      committedMembersRoot: Field,
     }),
   };
 
