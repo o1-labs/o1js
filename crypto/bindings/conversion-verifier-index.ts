@@ -14,7 +14,7 @@ import type {
   LookupInfo as WasmLookupInfo,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { MlBool, type MlArray, MlOption } from '../../../lib/ml/base.js';
+import { MlBool, MlArray, MlOption } from '../../../lib/ml/base.js';
 import {
   Field,
   VerifierIndex,
@@ -115,6 +115,12 @@ function verifierIndexConversionPerField(
     let mulComm = core.polyCommToRust(evals[6]);
     let emulComm = core.polyCommToRust(evals[7]);
     let endomulScalarComm = core.polyCommToRust(evals[8]);
+    let xorComm = MlOption.mapFrom(evals[9], core.polyCommToRust);
+    let rangeCheck0Comm = MlOption.mapFrom(evals[9], core.polyCommToRust);
+    let rangeCheck1Comm = MlOption.mapFrom(evals[10], core.polyCommToRust);
+    let foreignFieldAddComm = MlOption.mapFrom(evals[11], core.polyCommToRust);
+    let foreignFieldMulComm = MlOption.mapFrom(evals[12], core.polyCommToRust);
+    let rotComm = MlOption.mapFrom(evals[13], core.polyCommToRust);
     return new VerificationEvals(
       sigmaComm,
       coefficientsComm,
@@ -123,7 +129,13 @@ function verifierIndexConversionPerField(
       completeAddComm,
       mulComm,
       emulComm,
-      endomulScalarComm
+      endomulScalarComm,
+      xorComm,
+      rangeCheck0Comm,
+      rangeCheck1Comm,
+      foreignFieldAddComm,
+      foreignFieldMulComm,
+      rotComm
     );
   }
   function verificationEvalsFromRust(
@@ -139,6 +151,12 @@ function verifierIndexConversionPerField(
       core.polyCommFromRust(evals.mul_comm),
       core.polyCommFromRust(evals.emul_comm),
       core.polyCommFromRust(evals.endomul_scalar_comm),
+      MlOption.mapTo(evals.xor_comm, core.polyCommFromRust),
+      MlOption.mapTo(evals.range_check0_comm, core.polyCommFromRust),
+      MlOption.mapTo(evals.range_check1_comm, core.polyCommFromRust),
+      MlOption.mapTo(evals.foreign_field_add_comm, core.polyCommFromRust),
+      MlOption.mapTo(evals.foreign_field_mul_comm, core.polyCommFromRust),
+      MlOption.mapTo(evals.rot_comm, core.polyCommFromRust),
     ];
     evals.free();
     return mlEvals;

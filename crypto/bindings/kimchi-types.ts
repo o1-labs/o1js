@@ -66,7 +66,13 @@ type VerificationEvals = [
   complete_add_comm: PolyComm,
   mul_comm: PolyComm,
   emul_comm: PolyComm,
-  endomul_scalar_comm: PolyComm
+  endomul_scalar_comm: PolyComm,
+  xor_comm: MlOption<PolyComm>,
+  range_check0_comm: MlOption<PolyComm>,
+  range_check1_comm: MlOption<PolyComm>,
+  foreign_field_add_comm: MlOption<PolyComm>,
+  foreign_field_mul_comm: MlOption<PolyComm>,
+  rot_comm: MlOption<PolyComm>
 ];
 
 type VerifierIndex = [
