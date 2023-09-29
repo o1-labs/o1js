@@ -9,7 +9,7 @@ export { createProvable, createHashInput, ProvableConstructor };
 
 type ProvableConstructor<Field> = <A>(
   typeObj: A,
-  options?: { customObjectKeys?: string[]; isPure?: boolean }
+  options?: { isPure?: boolean }
 ) => GenericProvableExtended<InferProvable<A, Field>, InferJson<A>, Field>;
 
 function createProvable<Field>(): ProvableConstructor<Field> {
@@ -25,13 +25,13 @@ function createProvable<Field>(): ProvableConstructor<Field> {
 
   function provable<A>(
     typeObj: A,
-    options?: { customObjectKeys?: string[]; isPure?: boolean }
+    options?: { isPure?: boolean }
   ): ProvableExtended<InferProvable<A, Field>, InferJson<A>> {
     type T = InferProvable<A, Field>;
     type J = InferJson<A>;
     let objectKeys =
       typeof typeObj === 'object' && typeObj !== null
-        ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
+        ? Object.keys(typeObj)
         : [];
     let nonCircuitPrimitives = new Set([
       Number,

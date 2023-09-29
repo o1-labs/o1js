@@ -26,10 +26,10 @@ export {
   ProverCommitments,
   OpeningProof,
   PointEvaluations,
-  LookupEvaluations,
   ProofEvaluations,
   RecursionChallenge,
   ProverProof,
+  LookupCommitments,
 };
 
 // wasm types
@@ -119,7 +119,7 @@ type ProverCommitments = [
   w_comm: MlTupleN<PolyComm, 15>,
   z_comm: PolyComm,
   t_comm: PolyComm,
-  lookup: LookupCommitments
+  lookup: MlOption<LookupCommitments>
 ];
 type OpeningProof = [
   _: 0,
@@ -134,24 +134,37 @@ type PointEvaluations<Field> = [
   zeta: MlArray<Field>,
   zeta_omega: MlArray<Field>
 ];
-type LookupEvaluations<Field> = [
-  _: 0,
-  sorted: MlArray<PointEvaluations<Field>>,
-  aggreg: PointEvaluations<Field>,
-  table: PointEvaluations<Field>,
-  runtime: MlOption<PointEvaluations<Field>>
-];
+
 type nColumns = 15;
 type nPermutsMinus1 = 6;
+
 type ProofEvaluations<Field> = [
   _: 0,
   w: MlTupleN<PointEvaluations<Field>, nColumns>,
   z: PointEvaluations<Field>,
   s: MlTupleN<PointEvaluations<Field>, nPermutsMinus1>,
   coefficients: MlTupleN<PointEvaluations<Field>, nColumns>,
-  lookup: MlOption<LookupEvaluations<Field>>,
   generic_selector: PointEvaluations<Field>,
-  poseidon_selector: PointEvaluations<Field>
+  poseidon_selector: PointEvaluations<Field>,
+  complete_add_selector: PointEvaluations<Field>,
+  mul_selector: PointEvaluations<Field>,
+  emul_selector: PointEvaluations<Field>,
+  endomul_scalar_selector: PointEvaluations<Field>,
+  range_check0_selector: MlOption<PointEvaluations<Field>>,
+  range_check1_selector: MlOption<PointEvaluations<Field>>,
+  foreign_field_add_selector: MlOption<PointEvaluations<Field>>,
+  foreign_field_mul_selector: MlOption<PointEvaluations<Field>>,
+  xor_selector: MlOption<PointEvaluations<Field>>,
+  rot_selector: MlOption<PointEvaluations<Field>>,
+  lookup_aggregation: MlOption<PointEvaluations<Field>>,
+  lookup_table: MlOption<PointEvaluations<Field>>,
+  lookup_sorted: MlArray<MlOption<PointEvaluations<Field>>>,
+  runtime_lookup_table: MlOption<PointEvaluations<Field>>,
+  runtime_lookup_table_selector: MlOption<PointEvaluations<Field>>,
+  xor_lookup_selector: MlOption<PointEvaluations<Field>>,
+  lookup_gate_lookup_selector: MlOption<PointEvaluations<Field>>,
+  range_check_lookup_selector: MlOption<PointEvaluations<Field>>,
+  foreign_field_mul_lookup_selector: MlOption<PointEvaluations<Field>>
 ];
 type RecursionChallenge = [_: 0, chals: MlArray<Field>, comm: PolyComm];
 

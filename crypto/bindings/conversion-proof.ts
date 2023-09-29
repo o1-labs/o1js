@@ -1,7 +1,9 @@
 import type {
+  WasmFpLookupCommitments,
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
+  WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
   WasmFqProverProof,
@@ -11,7 +13,6 @@ import type {
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   OrInfinity,
-  LookupEvaluations,
   PointEvaluations,
   PolyComm,
   ProverProof,
@@ -19,6 +20,7 @@ import type {
   ProverCommitments,
   OpeningProof,
   RecursionChallenge,
+  LookupCommitments,
 } from './kimchi-types.js';
 import { MlTupleN, mapMlTuple } from './util.js';
 import { MlArray, MlOption } from '../../../lib/ml/base.js';
@@ -40,6 +42,7 @@ type wasm = typeof wasmNamespace;
 type WasmProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
 type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
+type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
 
 type WasmClasses = {
   ProverCommitments:
@@ -48,6 +51,9 @@ type WasmClasses = {
   OpeningProof: typeof WasmFpOpeningProof | typeof WasmFqOpeningProof;
   VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
   ProverProof: typeof WasmFpProverProof | typeof WasmFqProverProof;
+  LookupCommitments:
+    | typeof WasmFpLookupCommitments
+    | typeof WasmFqLookupCommitments;
 };
 
 function proofConversion(wasm: wasm, core: ConversionCores) {
@@ -57,19 +63,27 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       OpeningProof: wasm.WasmFpOpeningProof,
       VecVec: wasm.WasmVecVecFp,
       ProverProof: wasm.WasmFpProverProof,
+      LookupCommitments: wasm.WasmFpLookupCommitments,
     }),
     fq: proofConversionPerField(core.fq, {
       ProverCommitments: wasm.WasmFqProverCommitments,
       OpeningProof: wasm.WasmFqOpeningProof,
       VecVec: wasm.WasmVecVecFq,
       ProverProof: wasm.WasmFqProverProof,
+      LookupCommitments: wasm.WasmFqLookupCommitments,
     }),
   };
 }
 
 function proofConversionPerField(
   core: ConversionCore,
-  { ProverCommitments, OpeningProof, VecVec, ProverProof }: WasmClasses
+  {
+    ProverCommitments,
+    OpeningProof,
+    VecVec,
+    ProverProof,
+    LookupCommitments,
+  }: WasmClasses
 ) {
   function commitmentsToRust(
     commitments: ProverCommitments
@@ -77,8 +91,8 @@ function proofConversionPerField(
     let wComm = core.polyCommsToRust(commitments[1]);
     let zComm = core.polyCommToRust(commitments[2]);
     let tComm = core.polyCommToRust(commitments[3]);
-    // TODO lookup
-    return new ProverCommitments(wComm, zComm, tComm);
+    let lookup = MlOption.mapFrom(commitments[4], lookupCommitmentsToRust);
+    return new ProverCommitments(wComm, zComm, tComm, lookup);
   }
   function commitmentsFromRust(
     commitments: WasmProverCommitments
@@ -86,9 +100,27 @@ function proofConversionPerField(
     let wComm = core.polyCommsFromRust(commitments.w_comm);
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
-    let lookup = 0 as any; // TODO
+    let lookup = MlOption.mapTo(commitments.lookup, lookupCommitmentsFromRust);
     commitments.free();
     return [0, wComm as MlTupleN<PolyComm, 15>, zComm, tComm, lookup];
+  }
+
+  function lookupCommitmentsToRust(
+    lookup: LookupCommitments
+  ): WasmLookupCommitments {
+    let sorted = core.polyCommsToRust(lookup[1]);
+    let aggreg = core.polyCommToRust(lookup[2]);
+    let runtime = MlOption.mapFrom(lookup[3], core.polyCommToRust);
+    return new LookupCommitments(sorted, aggreg, runtime);
+  }
+  function lookupCommitmentsFromRust(
+    lookup: WasmLookupCommitments
+  ): LookupCommitments {
+    let sorted = core.polyCommsFromRust(lookup.sorted);
+    let aggreg = core.polyCommFromRust(lookup.aggreg);
+    let runtime = MlOption.mapTo(lookup.runtime, core.polyCommFromRust);
+    lookup.free();
+    return [0, sorted, aggreg, runtime];
   }
 
   function openingProofToRust(proof: OpeningProof): WasmOpeningProof {
@@ -155,7 +187,7 @@ function proofConversionPerField(
       let commitments = commitmentsFromRust(proof.commitments);
       let openingProof = openingProofFromRust(proof.proof);
       let evals = proofEvaluationsFromRust(
-        // TODO typed as `any` in wasm-bindgen, this has the correct type
+        // TODO typed as `any` in wasm-bindgen, this is the correct type
         proof.evals satisfies ProofEvaluations<Uint8Array>
       );
       let ftEval1 = fieldFromRust(proof.ft_eval1);
@@ -192,32 +224,68 @@ function mapProofEvaluations<Field1, Field2>(map: (x: Field1) => Field2) {
     return [0, MlArray.map(zeta, map), MlArray.map(zeta_omega, map)];
   };
 
-  const mapLookupEvals = (
-    evals: LookupEvaluations<Field1>
-  ): LookupEvaluations<Field2> => {
-    let [, sorted, aggreg, table, runtime] = evals;
-    return [
-      0,
-      MlArray.map(sorted, mapPointEvals),
-      mapPointEvals(aggreg),
-      mapPointEvals(table),
-      MlOption.map(runtime, mapPointEvals),
-    ];
-  };
+  const mapPointEvalsOption = (
+    evals: MlOption<PointEvaluations<Field1>>
+  ): MlOption<PointEvaluations<Field2>> => MlOption.map(evals, mapPointEvals);
 
   return function mapProofEvaluations(
     evals: ProofEvaluations<Field1>
   ): ProofEvaluations<Field2> {
-    let [, w, z, s, coeffs, lookup, genericSelector, poseidonSelector] = evals;
+    let [
+      ,
+      w,
+      z,
+      s,
+      coeffs,
+      genericSelector,
+      poseidonSelector,
+      completeAddSelector,
+      mulSelector,
+      emulSelector,
+      endomulScalarSelector,
+      rangeCheck0Selector,
+      rangeCheck1Selector,
+      foreignFieldAddSelector,
+      foreignFieldMulSelector,
+      xorSelector,
+      rotSelector,
+      lookupAggregation,
+      lookupTable,
+      lookupSorted,
+      runtimeLookupTable,
+      runtimeLookupTableSelector,
+      xorLookupSelector,
+      lookupGateLookupSelector,
+      rangeCheckLookupSelector,
+      foreignFieldMulLookupSelector,
+    ] = evals;
     return [
       0,
       mapMlTuple(w, mapPointEvals),
       mapPointEvals(z),
       mapMlTuple(s, mapPointEvals),
       mapMlTuple(coeffs, mapPointEvals),
-      MlOption.map(lookup, mapLookupEvals),
       mapPointEvals(genericSelector),
       mapPointEvals(poseidonSelector),
+      mapPointEvals(completeAddSelector),
+      mapPointEvals(mulSelector),
+      mapPointEvals(emulSelector),
+      mapPointEvals(endomulScalarSelector),
+      mapPointEvalsOption(rangeCheck0Selector),
+      mapPointEvalsOption(rangeCheck1Selector),
+      mapPointEvalsOption(foreignFieldAddSelector),
+      mapPointEvalsOption(foreignFieldMulSelector),
+      mapPointEvalsOption(xorSelector),
+      mapPointEvalsOption(rotSelector),
+      mapPointEvalsOption(lookupAggregation),
+      mapPointEvalsOption(lookupTable),
+      MlArray.map(lookupSorted, mapPointEvalsOption),
+      mapPointEvalsOption(runtimeLookupTable),
+      mapPointEvalsOption(runtimeLookupTableSelector),
+      mapPointEvalsOption(xorLookupSelector),
+      mapPointEvalsOption(lookupGateLookupSelector),
+      mapPointEvalsOption(rangeCheckLookupSelector),
+      mapPointEvalsOption(foreignFieldMulLookupSelector),
     ];
   };
 }

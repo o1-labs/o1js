@@ -1,7 +1,7 @@
 /**
  * TS implementation of Pasta_bindings.{Pallas, Vesta}
  */
-import { MlOption, MlTuple } from 'src/lib/ml/base.js';
+import { MlTuple } from 'src/lib/ml/base.js';
 import { Field } from './field.js';
 import {
   Pallas,
@@ -15,6 +15,7 @@ import { withPrefix } from './util.js';
 export {
   VestaBindings,
   PallasBindings,
+  Infinity,
   OrInfinity,
   toMlOrInfinity,
   fromMlOrInfinity,
@@ -66,7 +67,10 @@ function createCurveBindings(Curve: ProjectiveCurve) {
 const affineZero = { x: 0n, y: 0n, infinity: true };
 
 // Kimchi_types.or_infinity
-type OrInfinity = MlOption<MlTuple<Field, Field>>;
+type Infinity = 0;
+const Infinity = 0;
+type Finite<T> = [0, T];
+type OrInfinity = Infinity | Finite<MlTuple<Field, Field>>;
 
 function toMlOrInfinity(g: GroupAffine): OrInfinity {
   if (g.infinity) return 0;
