@@ -13,7 +13,6 @@ import type {
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   OrInfinity,
-  LookupEvaluations,
   PointEvaluations,
   PolyComm,
   ProverProof,
@@ -162,7 +161,7 @@ function proofConversionPerField(
       let commitments = commitmentsToRust(proof[1]);
       let openingProof = openingProofToRust(proof[2]);
       // TODO typed as `any` in wasm-bindgen, this has the correct type
-      let evals: ProofEvaluations<Uint8Array> = proof[3];
+      let evals = proofEvaluationsToRust(proof[3]);
       let ftEval1 = fieldToRust(proof[4]);
       let public_ = fieldsToRustFlat(proof[5]);
       let [, ...prevChallenges] = proof[6];
@@ -187,7 +186,10 @@ function proofConversionPerField(
     proofFromRust(proof: WasmProverProof): ProverProof {
       let commitments = commitmentsFromRust(proof.commitments);
       let openingProof = openingProofFromRust(proof.proof);
-      let evals: ProofEvaluations<Uint8Array> = proof.evals;
+      let evals = proofEvaluationsFromRust(
+        // TODO typed as `any` in wasm-bindgen, this is the correct type
+        proof.evals satisfies ProofEvaluations<Uint8Array>
+      );
       let ftEval1 = fieldFromRust(proof.ft_eval1);
       let public_ = fieldsFromRustFlat(proof.public_);
       let prevChallengeScalars = proof.prev_challenges_scalars;
@@ -222,32 +224,68 @@ function mapProofEvaluations<Field1, Field2>(map: (x: Field1) => Field2) {
     return [0, MlArray.map(zeta, map), MlArray.map(zeta_omega, map)];
   };
 
-  const mapLookupEvals = (
-    evals: LookupEvaluations<Field1>
-  ): LookupEvaluations<Field2> => {
-    let [, sorted, aggreg, table, runtime] = evals;
-    return [
-      0,
-      MlArray.map(sorted, mapPointEvals),
-      mapPointEvals(aggreg),
-      mapPointEvals(table),
-      MlOption.map(runtime, mapPointEvals),
-    ];
-  };
+  const mapPointEvalsOption = (
+    evals: MlOption<PointEvaluations<Field1>>
+  ): MlOption<PointEvaluations<Field2>> => MlOption.map(evals, mapPointEvals);
 
   return function mapProofEvaluations(
     evals: ProofEvaluations<Field1>
   ): ProofEvaluations<Field2> {
-    let [, w, z, s, coeffs, lookup, genericSelector, poseidonSelector] = evals;
+    let [
+      ,
+      w,
+      z,
+      s,
+      coeffs,
+      genericSelector,
+      poseidonSelector,
+      completeAddSelector,
+      mulSelector,
+      emulSelector,
+      endomulScalarSelector,
+      rangeCheck0Selector,
+      rangeCheck1Selector,
+      foreignFieldAddSelector,
+      foreignFieldMulSelector,
+      xorSelector,
+      rotSelector,
+      lookupAggregation,
+      lookupTable,
+      lookupSorted,
+      runtimeLookupTable,
+      runtimeLookupTableSelector,
+      xorLookupSelector,
+      lookupGateLookupSelector,
+      rangeCheckLookupSelector,
+      foreignFieldMulLookupSelector,
+    ] = evals;
     return [
       0,
       mapMlTuple(w, mapPointEvals),
       mapPointEvals(z),
       mapMlTuple(s, mapPointEvals),
       mapMlTuple(coeffs, mapPointEvals),
-      MlOption.map(lookup, mapLookupEvals),
       mapPointEvals(genericSelector),
       mapPointEvals(poseidonSelector),
+      mapPointEvals(completeAddSelector),
+      mapPointEvals(mulSelector),
+      mapPointEvals(emulSelector),
+      mapPointEvals(endomulScalarSelector),
+      mapPointEvalsOption(rangeCheck0Selector),
+      mapPointEvalsOption(rangeCheck1Selector),
+      mapPointEvalsOption(foreignFieldAddSelector),
+      mapPointEvalsOption(foreignFieldMulSelector),
+      mapPointEvalsOption(xorSelector),
+      mapPointEvalsOption(rotSelector),
+      mapPointEvalsOption(lookupAggregation),
+      mapPointEvalsOption(lookupTable),
+      MlArray.map(lookupSorted, mapPointEvalsOption),
+      mapPointEvalsOption(runtimeLookupTable),
+      mapPointEvalsOption(runtimeLookupTableSelector),
+      mapPointEvalsOption(xorLookupSelector),
+      mapPointEvalsOption(lookupGateLookupSelector),
+      mapPointEvalsOption(rangeCheckLookupSelector),
+      mapPointEvalsOption(foreignFieldMulLookupSelector),
     ];
   };
 }
