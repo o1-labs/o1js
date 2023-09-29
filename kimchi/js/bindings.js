@@ -1,4 +1,4 @@
-/* global globalThis, plonk_wasm, caml_jsstring_of_string, caml_string_of_jsstring,
+/* global plonk_wasm, caml_jsstring_of_string, caml_string_of_jsstring,
     caml_create_bytes, caml_bytes_unsafe_set, caml_bytes_unsafe_get, caml_ml_bytes_length,
     UInt64, caml_int64_of_int32
 */
@@ -413,65 +413,6 @@ var caml_pasta_fq_plonk_circuit_serialize = function (
   );
 };
 
-// Provides: caml_fp_runtime_table_cfg_to_rust
-// Requires: plonk_wasm, caml_fp_vector_to_rust
-var caml_fp_runtime_table_cfg_to_rust = function (
-  caml_runtime_table_cfg,
-  mk_class
-) {
-  // A value caml_runtime_table_cfg is a record on the OCaml side.
-  // The converter should be changed if CamlRuntimeTableCfg is modified.
-  // id field: int32
-  var caml_runtime_table_cfg_id = caml_runtime_table_cfg[1];
-  // first_column field: Caml array of fq element
-  var caml_runtime_table_cfg_first_column = caml_runtime_table_cfg[2];
-  var res = new mk_class(
-    caml_runtime_table_cfg_id,
-    caml_fp_vector_to_rust(caml_runtime_table_cfg_first_column)
-  );
-  return res;
-};
-
-// Provides: caml_fp_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fp_vector_of_rust
-var caml_fp_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
-  // A value lookup table is a caml record with an id and a data field.
-  // The converter should be changed if CamlLookupTable is modified.
-  // id field: int32
-  var caml_lookup_table_id = caml_lookup_table[1];
-  // data field: caml array of fq vectors
-  var caml_lookup_table_data = caml_lookup_table[2];
-  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
-  // removing 1 for the 0 used by jsoo to represent values.
-  var lt_data_length = caml_lookup_table_data.length - 1;
-  var data = new plonk_wasm.WasmVecVecFp(lt_data_length);
-  for (var i = 1; i < lt_data_length; i++) {
-    data.push(caml_fp_vector_of_rust(caml_lookup_table_data.get(i - 1)));
-  }
-  var res = new mk_class(caml_lookup_table_id, data);
-  return res;
-};
-
-// Provides: caml_fq_lookup_table_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust
-var caml_fq_lookup_table_to_rust = function (caml_lookup_table, mk_class) {
-  // A value lookup table is a caml record with an id and a data field.
-  // The converter should be changed if CamlLookupTable is modified.
-  // id field: int32
-  var caml_lookup_table_id = caml_lookup_table[1];
-  // data field: caml array of fq vectors
-  var caml_lookup_table_data = caml_lookup_table[2];
-  // caml_lookup_table_data is a Caml array, starting with 0 for the runtime repr.
-  // removing 1 for the 0 used by jsoo to represent values.
-  var lt_data_length = caml_lookup_table_data.length - 1;
-  var data = new plonk_wasm.WasmVecVecFq(lt_data_length);
-  for (var i = 1; i < lt_data_length; i++) {
-    data.push(caml_fq_vector_to_rust(caml_lookup_table_data.get(i - 1)));
-  }
-  var res = new mk_class(caml_lookup_table_id, data);
-  return res;
-};
-
 // Provides: caml_pasta_fp_plonk_index_create
 // Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fp_runtime_table_cfg_to_rust, caml_fp_lookup_table_to_rust
 var caml_pasta_fp_plonk_index_create = function (
@@ -482,16 +423,10 @@ var caml_pasta_fp_plonk_index_create = function (
   prev_challenges,
   urs
 ) {
-  var wasm_lookup_tables = caml_array_to_rust_vector(
-    caml_lookup_tables,
-    caml_fp_lookup_table_to_rust,
-    plonk_wasm.WasmPastaFpLookupTable
-  );
-
-  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
-    caml_runtime_table_cfgs,
-    caml_fp_runtime_table_cfg_to_rust,
-    plonk_wasm.WasmPastaFpRuntimeTableCfg
+  var wasm_lookup_tables =
+    tsRustConversion.fp.lookupTablesToRust(caml_lookup_tables);
+  var wasm_runtime_table_cfgs = tsRustConversion.fp.runtimeTableCfgsToRust(
+    caml_runtime_table_cfgs
   );
 
   var t = plonk_wasm.caml_pasta_fp_plonk_index_create(
@@ -580,25 +515,6 @@ var caml_pasta_fp_plonk_index_write = function (append, t, path) {
   );
 };
 
-// Provides: caml_fq_runtime_table_cfg_to_rust
-// Requires: plonk_wasm, caml_fq_vector_to_rust
-var caml_fq_runtime_table_cfg_to_rust = function (
-  caml_runtime_table_cfg,
-  mk_class
-) {
-  // A value caml_runtime_table_cfg is a record on the OCaml side.
-  // The converter should be changed if CamlRuntimeTableCfg is modified.
-  // id field: int32
-  var caml_runtime_table_cfg_id = caml_runtime_table_cfg[1];
-  // first_column field: Caml array of fq element
-  var caml_runtime_table_cfg_first_column = caml_runtime_table_cfg[2];
-  var res = new mk_class(
-    caml_runtime_table_cfg_id,
-    caml_fq_vector_to_rust(caml_runtime_table_cfg_first_column)
-  );
-  return res;
-};
-
 // Provides: caml_pasta_fq_plonk_index_create
 // Requires: plonk_wasm, free_on_finalize, caml_array_to_rust_vector, caml_fq_runtime_table_cfg_to_rust, caml_fq_lookup_table_to_rust
 var caml_pasta_fq_plonk_index_create = function (
@@ -609,16 +525,10 @@ var caml_pasta_fq_plonk_index_create = function (
   prev_challenges,
   urs
 ) {
-  var wasm_lookup_tables = caml_array_to_rust_vector(
-    caml_lookup_tables,
-    caml_fq_lookup_table_to_rust,
-    plonk_wasm.WasmPastaFqLookupTable
-  );
-
-  var wasm_runtime_table_cfgs = caml_array_to_rust_vector(
-    caml_runtime_table_cfgs,
-    caml_fq_runtime_table_cfg_to_rust,
-    plonk_wasm.WasmPastaFqRuntimeTableCfg
+  var wasm_lookup_tables =
+    tsRustConversion.fq.lookupTablesToRust(caml_lookup_tables);
+  var wasm_runtime_table_cfgs = tsRustConversion.fq.runtimeTableCfgsToRust(
+    caml_runtime_table_cfgs
   );
 
   return free_on_finalize(
