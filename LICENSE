@@ -9,8 +9,8 @@ Parameters
 
 Licensor:           O(1) Labs Operating Corporation
 
-Licensed Work:      snarkyjs-bindings, or any subsequent name assigned to this 
-                    Github repository
+Licensed Work:      o1js-bindings, or any subsequent name assigned to this 
+                    GitHub repository
 
 The Licensed Work is (c) 2021 O(1) Labs Operating Corporation
 
@@ -22,11 +22,11 @@ Licensed Work solely for development or use of apps and smart contracts running
 on the Mina Protocol, or any app or smart contract that settles to the Mina 
 Protocol.
 
-2. For the avoidance of doubt, excluding snarkyjs-bindings, SnarkyJS (as 
-implemented in the repository located at https://github.com/o1-labs/snarkyjs), 
-continues to be licensed under Apache 2.0 as shown in the applicable Github 
-repositories. Any use of this snarkyjs-bindings repository, without 
-modification, as a transitive dependency or derivative of the use of SnarkyJS, 
+2. For the avoidance of doubt, excluding o1js-bindings, o1js (as 
+implemented in the repository located at https://github.com/o1-labs/o1js), 
+continues to be licensed under Apache 2.0 as shown in the applicable GitHub 
+repositories. Any use of this o1js-bindings repository, without 
+modification, as a transitive dependency or derivative of the use of o1js, 
 is permitted. Modification of the software in this repository is not permitted 
 unless authorized under the Additional Use Grant #1 set forth above or #3 set 
 forth below.

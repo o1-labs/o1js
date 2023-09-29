@@ -178,7 +178,7 @@ type EnumWithArgument<T extends string, V> = { type: T; value: V };
 type AnyEnum = EnumNoArgument<string> | EnumWithArgument<string, any>;
 
 function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
-  [i in keyof Enum_]: Enum_[i] extends EnumWithArgument<string, any>
+  [i in number]: Enum_[i] extends EnumWithArgument<string, any>
     ? {
         type: Enum_[i]['type'];
         value: Binable<Enum_[i]['value']>;

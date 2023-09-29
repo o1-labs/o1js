@@ -1,5 +1,12 @@
 import { FiniteField, Fp, inverse, mod, p, q } from './finite_field.js';
-export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMapPallas };
+export {
+  Pallas,
+  Vesta,
+  GroupAffine,
+  GroupProjective,
+  GroupMapPallas,
+  ProjectiveCurve,
+};
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
@@ -178,6 +185,7 @@ function projectiveDouble(g: GroupProjective, p: bigint) {
   let X1 = g.x,
     Y1 = g.y,
     Z1 = g.z;
+  if (Y1 === 0n) throw Error('projectiveDouble: unhandled case');
   // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
   // !!! formula depends on a === 0 in the curve equation y^2 = x^3 + ax + b !!!
   // A = X1^2
@@ -219,7 +227,7 @@ function projectiveToAffine(g: GroupProjective, p: bigint): GroupAffine {
   let z = g.z;
   if (z === 0n) {
     // infinity
-    return { x: 1n, y: 1n, infinity: true };
+    return { x: 0n, y: 0n, infinity: true };
   } else if (z === 1n) {
     // already normalized affine form
     return { x: g.x, y: g.y, infinity: false };
@@ -236,12 +244,12 @@ function projectiveToAffine(g: GroupProjective, p: bigint): GroupAffine {
 
 function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
   // special case: z=0 can only be equal to another z=0; protects against (0,0,0) being equal to any point
-  if ((g.z === 0n || h.z === 0n) && !(g.z === 0n && h.z === 0n)) return false;
+  if ((g.z === 0n || h.z === 0n) && g.z !== h.z) return false;
   // multiply out with z^2, z^3
   let gz2 = mod(g.z * g.z, p);
   let hz2 = mod(h.z * h.z, p);
   // early return if gx !== hx
-  if (mod(g.x * hz2, p) !== mod(h.x * gz2, p)) return false;
+  if (mod(g.x * hz2 - h.x * gz2, p) !== 0n) return false;
   let gz3 = mod(gz2 * g.z, p);
   let hz3 = mod(hz2 * h.z, p);
   return mod(g.y * hz3, p) === mod(h.y * gz3, p);
@@ -307,6 +315,8 @@ function createCurveProjective(
     },
   };
 }
+
+type ProjectiveCurve = ReturnType<typeof createCurveProjective>;
 
 const Pallas = createCurveProjective(
   p,
