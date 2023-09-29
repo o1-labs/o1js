@@ -30,6 +30,9 @@ export {
   RecursionChallenge,
   ProverProof,
   LookupCommitments,
+  RuntimeTableCfg,
+  LookupTable,
+  RuntimeTable,
 };
 
 // wasm types
@@ -183,3 +186,11 @@ type ProverProof = [
   public_: MlArray<Field>,
   prev_challenges: MlArray<RecursionChallenge>
 ];
+
+// tables
+
+type RuntimeTableCfg = [_: 0, id: number, first_column: MlArray<Field>];
+
+type LookupTable = [_: 0, id: number, data: MlArray<MlArray<Field>>];
+
+type RuntimeTable = [_: 0, id: number, data: MlArray<Field>];
