@@ -1,18 +1,18 @@
 import type {
   WasmFpLookupCommitments,
-  WasmFpLookupTable,
+  WasmPastaFpLookupTable,
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRuntimeTable,
-  WasmFpRuntimeTableCfg,
+  WasmPastaFpRuntimeTableCfg,
   WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
-  WasmFqLookupTable,
+  WasmPastaFqLookupTable,
   WasmFqProverProof,
   WasmFqRuntimeTable,
-  WasmFqRuntimeTableCfg,
+  WasmPastaFqRuntimeTableCfg,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
@@ -58,8 +58,10 @@ type WasmOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type WasmProverProof = WasmFpProverProof | WasmFqProverProof;
 type WasmLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
 type WasmRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
-type WasmRuntimeTableCfg = WasmFpRuntimeTableCfg | WasmFqRuntimeTableCfg;
-type WasmLookupTable = WasmFpLookupTable | WasmFqLookupTable;
+type WasmRuntimeTableCfg =
+  | WasmPastaFpRuntimeTableCfg
+  | WasmPastaFqRuntimeTableCfg;
+type WasmLookupTable = WasmPastaFpLookupTable | WasmPastaFqLookupTable;
 
 type WasmClasses = {
   ProverCommitments:
@@ -72,8 +74,10 @@ type WasmClasses = {
     | typeof WasmFpLookupCommitments
     | typeof WasmFqLookupCommitments;
   RuntimeTable: typeof WasmFpRuntimeTable | typeof WasmFqRuntimeTable;
-  RuntimeTableCfg: typeof WasmFpRuntimeTableCfg | typeof WasmFqRuntimeTableCfg;
-  LookupTable: typeof WasmFpLookupTable | typeof WasmFqLookupTable;
+  RuntimeTableCfg:
+    | typeof WasmPastaFpRuntimeTableCfg
+    | typeof WasmPastaFqRuntimeTableCfg;
+  LookupTable: typeof WasmPastaFpLookupTable | typeof WasmPastaFqLookupTable;
 };
 
 function proofConversion(wasm: wasm, core: ConversionCores) {
@@ -85,8 +89,8 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       ProverProof: wasm.WasmFpProverProof,
       LookupCommitments: wasm.WasmFpLookupCommitments,
       RuntimeTable: wasm.WasmFpRuntimeTable,
-      RuntimeTableCfg: wasm.WasmFpRuntimeTableCfg,
-      LookupTable: wasm.WasmFpLookupTable,
+      RuntimeTableCfg: wasm.WasmPastaFpRuntimeTableCfg,
+      LookupTable: wasm.WasmPastaFpLookupTable,
     }),
     fq: proofConversionPerField(core.fq, {
       ProverCommitments: wasm.WasmFqProverCommitments,
@@ -95,8 +99,8 @@ function proofConversion(wasm: wasm, core: ConversionCores) {
       ProverProof: wasm.WasmFqProverProof,
       LookupCommitments: wasm.WasmFqLookupCommitments,
       RuntimeTable: wasm.WasmFqRuntimeTable,
-      RuntimeTableCfg: wasm.WasmFqRuntimeTableCfg,
-      LookupTable: wasm.WasmFqLookupTable,
+      RuntimeTableCfg: wasm.WasmPastaFqRuntimeTableCfg,
+      LookupTable: wasm.WasmPastaFqLookupTable,
     }),
   };
 }
