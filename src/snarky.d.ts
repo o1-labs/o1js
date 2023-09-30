@@ -273,6 +273,25 @@ declare const Snarky: {
     ];
   };
 
+  gates: {
+    rangeCheck0(
+      v0: FieldVar,
+      v0p: [0, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar],
+      v0c: [
+        0,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar
+      ],
+      compact: FieldConst
+    ): void;
+  };
+
   bool: {
     not(x: BoolVar): BoolVar;
 
