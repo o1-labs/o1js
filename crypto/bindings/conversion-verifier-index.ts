@@ -116,11 +116,11 @@ function verifierIndexConversionPerField(
     let emulComm = core.polyCommToRust(evals[7]);
     let endomulScalarComm = core.polyCommToRust(evals[8]);
     let xorComm = MlOption.mapFrom(evals[9], core.polyCommToRust);
-    let rangeCheck0Comm = MlOption.mapFrom(evals[9], core.polyCommToRust);
-    let rangeCheck1Comm = MlOption.mapFrom(evals[10], core.polyCommToRust);
-    let foreignFieldAddComm = MlOption.mapFrom(evals[11], core.polyCommToRust);
-    let foreignFieldMulComm = MlOption.mapFrom(evals[12], core.polyCommToRust);
-    let rotComm = MlOption.mapFrom(evals[13], core.polyCommToRust);
+    let rangeCheck0Comm = MlOption.mapFrom(evals[10], core.polyCommToRust);
+    let rangeCheck1Comm = MlOption.mapFrom(evals[11], core.polyCommToRust);
+    let foreignFieldAddComm = MlOption.mapFrom(evals[12], core.polyCommToRust);
+    let foreignFieldMulComm = MlOption.mapFrom(evals[13], core.polyCommToRust);
+    let rotComm = MlOption.mapFrom(evals[14], core.polyCommToRust);
     return new VerificationEvals(
       sigmaComm,
       coefficientsComm,
