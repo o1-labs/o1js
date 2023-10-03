@@ -21,23 +21,20 @@ export {
   toConstantField,
 };
 
-type FieldConst = Uint8Array;
+type FieldConst = [0, bigint];
 
 function constToBigint(x: FieldConst): Fp {
-  return Fp.fromBytes([...x]);
+  return x[1];
 }
-function constFromBigint(x: Fp) {
-  return Uint8Array.from(Fp.toBytes(x));
+function constFromBigint(x: Fp): FieldConst {
+  return [0, x];
 }
 
 const FieldConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
   equal(x: FieldConst, y: FieldConst) {
-    for (let i = 0, n = Fp.sizeInBytes(); i < n; i++) {
-      if (x[i] !== y[i]) return false;
-    }
-    return true;
+    return x[1] === y[1];
   },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
@@ -145,15 +142,16 @@ class Field {
       this.value = x.value;
       return;
     }
-    // FieldVar
     if (Array.isArray(x)) {
-      this.value = x;
-      return;
-    }
-    // FieldConst
-    if (x instanceof Uint8Array) {
-      this.value = FieldVar.constant(x);
-      return;
+      if (typeof x[1] === 'bigint') {
+        // FieldConst
+        this.value = FieldVar.constant(x as FieldConst);
+        return;
+      } else {
+        // FieldVar
+        this.value = x as FieldVar;
+        return;
+      }
     }
     // TODO this should handle common values efficiently by reading from a lookup table
     this.value = FieldVar.constant(Fp(x));
@@ -1269,12 +1267,14 @@ class Field {
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return [...toConstantField(t, 'toBytes').value[1]];
+    let t0 = toConstantField(t, 'toBytes').toBigInt();
+    return Fp.toBytes(t0);
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
-    return [new Field(uint8array), offset + 32];
+    let x = Fp.fromBytes([...uint8array]);
+    return [new Field(x), offset + 32];
   },
 });
 
