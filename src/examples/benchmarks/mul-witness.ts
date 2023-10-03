@@ -1,7 +1,7 @@
 /**
  * benchmark witness generation for an all-mul circuit
  */
-import { Field, Provable } from 'snarkyjs';
+import { Field, Provable } from 'o1js';
 import { tic, toc } from './tic-toc.js';
 
 // parameters
