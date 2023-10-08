@@ -1,69 +1,69 @@
-import { Ledger } from '../snarky.js';
-import { Field } from './core.js';
-import { UInt32, UInt64 } from './int.js';
-import { PrivateKey, PublicKey } from './signature.js';
-import {
-  addMissingProofs,
-  addMissingSignatures,
-  FeePayerUnsigned,
-  ZkappCommand,
-  AccountUpdate,
-  ZkappPublicInput,
-  TokenId,
-  CallForest,
-  Authorization,
-  Actions,
-  Events,
-  dummySignature,
-} from './account_update.js';
-import * as Fetch from './fetch.js';
-import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Empty, Proof, verify } from './proof_system.js';
-import { Context } from './global-context.js';
-import { SmartContract } from './zkapp.js';
-import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
-import { Account } from './mina/account.js';
-import { TransactionCost, TransactionLimits } from './mina/constants.js';
-import { Provable } from './provable.js';
-import { prettifyStacktrace } from './errors.js';
-import { Ml } from './ml/conversion.js';
 import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
+import { Ledger } from '../snarky.js';
+import {
+  AccountUpdate,
+  Actions,
+  Authorization,
+  CallForest,
+  Events,
+  FeePayerUnsigned,
+  TokenId,
+  ZkappCommand,
+  ZkappPublicInput,
+  addMissingProofs,
+  addMissingSignatures,
+  dummySignature,
+} from './account_update.js';
+import { cloneCircuitValue, toConstant } from './circuit_value.js';
+import { Field } from './core.js';
+import { prettifyStacktrace } from './errors.js';
+import * as Fetch from './fetch.js';
+import { Context } from './global-context.js';
+import { UInt32, UInt64 } from './int.js';
+import { Account } from './mina/account.js';
+import { TransactionCost, TransactionLimits } from './mina/constants.js';
+import { invalidTransactionError } from './mina/errors.js';
+import { Ml } from './ml/conversion.js';
+import { NetworkValue, assertPreconditionInvariants } from './precondition.js';
+import { Empty, Proof, verify } from './proof_system.js';
+import { Provable } from './provable.js';
+import { PrivateKey, PublicKey } from './signature.js';
+import { SmartContract } from './zkapp.js';
 
 export {
-  createTransaction,
+  ActionStates,
   BerkeleyQANet,
-  Network,
-  LocalBlockchain,
-  currentTransaction,
   CurrentTransaction,
+  FeePayerSpec,
+  LocalBlockchain,
+  Network,
   Transaction,
   TransactionId,
-  activeInstance,
-  setActiveInstance,
-  transaction,
-  sender,
-  currentSlot,
-  getAccount,
-  hasAccount,
-  getBalance,
-  getNetworkState,
   accountCreationFee,
-  sendTransaction,
-  fetchEvents,
-  fetchActions,
-  getActions,
-  FeePayerSpec,
-  ActionStates,
+  activeInstance,
+  createTransaction,
+  currentSlot,
+  currentTransaction,
   faucet,
-  waitForFunding,
-  getProofsEnabled,
+  fetchActions,
+  fetchEvents,
   // for internal testing only
   filterGroups,
+  getAccount,
+  getActions,
+  getBalance,
+  getNetworkState,
+  getProofsEnabled,
+  hasAccount,
+  sendTransaction,
+  sender,
+  setActiveInstance,
+  transaction,
+  waitForFunding,
 };
 interface TransactionId {
   isSuccess: boolean;
@@ -677,22 +677,34 @@ LocalBlockchain satisfies (...args: any) => Mina;
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(graphqlEndpoints: {
+function Network(endpoints: {
+  mina: string | string[];
+  accountsManager?: string;
+}): Mina;
+function Network(endpoints: {
   mina: string | string[];
   archive: string | string[];
+  accountsManager?: string;
 }): Mina;
 function Network(
-  input: { mina: string | string[]; archive: string | string[] } | string
+  input:
+    | {
+        mina: string | string[];
+        archive?: string | string[];
+        accountsManager?: string;
+      }
+    | string
 ): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
+  let accountsManagerEndpoint: string;
 
   if (input && typeof input === 'string') {
     minaGraphqlEndpoint = input;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (input && typeof input === 'object') {
-    if (!input.mina || !input.archive)
+    if (!input.mina)
       throw new Error(
         "Network: malformed input. Please provide an object with 'mina' and 'archive' endpoints."
       );
@@ -705,13 +717,20 @@ function Network(
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
     }
 
-    if (Array.isArray(input.archive) && input.archive.length !== 0) {
-      archiveEndpoint = input.archive[0];
-      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
-      Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
-    } else if (typeof input.archive === 'string') {
-      archiveEndpoint = input.archive;
-      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+    if (input.archive) {
+      if (Array.isArray(input.archive) && input.archive.length !== 0) {
+        archiveEndpoint = input.archive[0];
+        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+        Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
+      } else if (typeof input.archive === 'string') {
+        archiveEndpoint = input.archive;
+        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+      }
+    }
+
+    if (input.accountsManager && typeof input.accountsManager === 'string') {
+      accountsManagerEndpoint = input.accountsManager;
+      Fetch.setAccountsManagerEndpoint(accountsManagerEndpoint);
     }
   } else {
     throw new Error(

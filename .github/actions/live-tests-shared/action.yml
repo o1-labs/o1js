@@ -1,11 +1,11 @@
-name: 'Shared steps for live testing jobs'
-description: 'Shared steps for live testing jobs'
+name: "Shared steps for live testing jobs"
+description: "Shared steps for live testing jobs"
 inputs:
   mina-branch-name:
-    description: 'Mina branch name in use by service container'
+    description: "Mina branch name in use by service container"
     required: true
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Wait for Mina network readiness
       uses: o1-labs/wait-for-mina-network-action@v1
@@ -16,11 +16,11 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v3
       with:
-        node-version: '20'
+        node-version: "20"
     - name: Build o1js and execute tests
       env:
-        TEST_TYPE: 'Live integration tests'
-        USE_LOCAL_NETWORK: 'true'
+        TEST_TYPE: "Live integration tests"
+        USE_CUSTOM_LOCAL_NETWORK: "true"
       run: |
         git submodule update --init --recursive
         npm ci

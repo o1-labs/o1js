@@ -1,48 +1,52 @@
 import 'isomorphic-fetch';
+import { Types } from '../bindings/mina-transaction/types.js';
+import { Actions, TokenId } from './account_update.js';
+import { EpochSeed, LedgerHash, StateHash } from './base58-encodings.js';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
-import { Actions, TokenId } from './account_update.js';
-import { PublicKey } from './signature.js';
-import { NetworkValue } from './precondition.js';
-import { Types } from '../bindings/mina-transaction/types.js';
 import { ActionStates } from './mina.js';
-import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
 import {
   Account,
-  accountQuery,
   FetchedAccount,
+  PartialAccount,
+  accountQuery,
   fillPartialAccount,
   parseFetchedAccount,
-  PartialAccount,
 } from './mina/account.js';
+import { NetworkValue } from './precondition.js';
+import { PrivateKey, PublicKey } from './signature.js';
 
 export {
-  fetchAccount,
-  fetchLastBlock,
+  EventActionFilterOptions,
+  KeyPair,
+  TransactionStatus,
+  acquireKeyPair,
+  addCachedAccount,
   checkZkappTransaction,
-  parseFetchedAccount,
-  markAccountToBeFetched,
-  markNetworkToBeFetched,
-  markActionsToBeFetched,
+  fetchAccount,
+  fetchActions,
+  fetchEvents,
+  fetchLastBlock,
   fetchMissingData,
   fetchTransactionStatus,
-  TransactionStatus,
-  EventActionFilterOptions,
   getCachedAccount,
-  getCachedNetwork,
   getCachedActions,
-  addCachedAccount,
+  getCachedNetwork,
+  markAccountToBeFetched,
+  markActionsToBeFetched,
+  markNetworkToBeFetched,
   networkConfig,
+  parseFetchedAccount,
+  releaseKeyPair,
+  removeJsonQuotes,
+  sendZkapp,
+  sendZkappQuery,
+  setAccountsManagerEndpoint,
+  setArchiveGraphqlEndpoint,
+  setArchiveGraphqlFallbackEndpoints,
   setGraphqlEndpoint,
   setGraphqlEndpoints,
   setMinaGraphqlFallbackEndpoints,
-  setArchiveGraphqlEndpoint,
-  setArchiveGraphqlFallbackEndpoints,
-  sendZkappQuery,
-  sendZkapp,
-  removeJsonQuotes,
-  fetchEvents,
-  fetchActions,
 };
 
 type NetworkConfig = {
@@ -50,6 +54,11 @@ type NetworkConfig = {
   minaFallbackEndpoints: string[];
   archiveEndpoint: string;
   archiveFallbackEndpoints: string[];
+  accountsManagerEndpoint: string;
+};
+type KeyPair = {
+  publicKey: PublicKey;
+  privateKey: PrivateKey;
 };
 
 let networkConfig = {
@@ -57,6 +66,7 @@ let networkConfig = {
   minaFallbackEndpoints: [] as string[],
   archiveEndpoint: '',
   archiveFallbackEndpoints: [] as string[],
+  accountsManagerEndpoint: '',
 } satisfies NetworkConfig;
 
 function checkForValidUrl(url: string) {
@@ -112,6 +122,20 @@ function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
     );
   }
   networkConfig.archiveFallbackEndpoints = graphqlEndpoints;
+}
+
+/**
+ * Sets up the lightnet accounts manager endpoint to be used for accounts acquisition and releasing.
+ *
+ * @param endpoint Accounts manager endpoint.
+ */
+function setAccountsManagerEndpoint(endpoint: string) {
+  if (!checkForValidUrl(endpoint)) {
+    throw new Error(
+      `Invalid accounts manager endpoint: ${endpoint}. Please specify a valid URL.`
+    );
+  }
+  networkConfig.accountsManagerEndpoint = endpoint;
 }
 
 /**
@@ -991,6 +1015,76 @@ async function fetchActions(
   });
   addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
+}
+
+/**
+ * Gets random key pair (public and private keys) from accounts manager
+ * that operates with accounts configured in network's Genesis Ledger.
+ *
+ * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
+ * the data is returned.
+ *
+ * @param isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+ * @param accountsManagerEndpoint Accounts manager endpoint to fetch from
+ * @returns Key pair
+ */
+async function acquireKeyPair(
+  isRegularAccount = true,
+  accountsManagerEndpoint = networkConfig.accountsManagerEndpoint
+): Promise<KeyPair> {
+  console.info(
+    `Attempting to acquire ${isRegularAccount ? 'non-' : ''}zkApp account.`
+  );
+  const response = await fetch(
+    `${accountsManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (response.ok) {
+    const data = await response.json();
+    if (data) {
+      return {
+        publicKey: PublicKey.fromBase58(data.pk),
+        privateKey: PrivateKey.fromBase58(data.sk),
+      };
+    }
+  }
+
+  throw new Error('Failed to acquire the key pair');
+}
+
+/**
+ * Releases previously acquired key pair from accounts manager by public key.
+ *
+ * @param publicKey Public key of previously acquired key pair to release
+ * @param accountsManagerEndpoint Accounts manager endpoint to fetch from
+ * @returns Void (since we don't really care about the success of this operation)
+ */
+async function releaseKeyPair(
+  publicKey: string,
+  accountsManagerEndpoint = networkConfig.accountsManagerEndpoint
+): Promise<void> {
+  const response = await fetch(`${accountsManagerEndpoint}/release-account`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      pk: publicKey,
+    }),
+  });
+
+  if (response.ok) {
+    const data = await response.json();
+    if (data) {
+      console.info(data.message);
+    }
+  }
 }
 
 function updateActionState(actions: string[][], actionState: Field) {
