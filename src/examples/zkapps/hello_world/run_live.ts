@@ -2,11 +2,10 @@
 import {
   AccountUpdate,
   Field,
+  Lightnet,
   Mina,
   PrivateKey,
-  acquireKeyPair,
   fetchAccount,
-  releaseKeyPair,
 } from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 
@@ -26,7 +25,7 @@ Mina.setActiveInstance(network);
 
 // Fee payer setup
 const senderKey = useCustomLocalNetwork
-  ? (await acquireKeyPair()).privateKey
+  ? (await Lightnet.acquireKeyPair()).privateKey
   : PrivateKey.random();
 const sender = senderKey.toPublicKey();
 if (!useCustomLocalNetwork) {
@@ -100,7 +99,7 @@ try {
 console.log('Success!');
 
 // Tear down
-const keyPairReleaseMessage = await releaseKeyPair({
+const keyPairReleaseMessage = await Lightnet.releaseKeyPair({
   publicKey: sender.toBase58(),
 });
 if (keyPairReleaseMessage) console.info(keyPairReleaseMessage);

@@ -44,8 +44,7 @@ export {
   removeJsonQuotes,
   fetchEvents,
   fetchActions,
-  acquireKeyPair,
-  releaseKeyPair
+  Lightnet
 };
 
 type NetworkConfig = {
@@ -1012,89 +1011,91 @@ async function fetchActions(
   return actionsList;
 }
 
-/**
- * Gets random key pair (public and private keys) from account manager
- * that operates with accounts configured in target network Genesis Ledger.
- *
- * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
- * the data is returned.
- *
- * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
- * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
- * @returns Key pair
- */
-async function acquireKeyPair(
-  options: {
-    isRegularAccount?: boolean;
+namespace Lightnet {
+  /**
+   * Gets random key pair (public and private keys) from account manager
+   * that operates with accounts configured in target network Genesis Ledger.
+   *
+   * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
+   * the data is returned.
+   *
+   * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Key pair
+   */
+  export async function acquireKeyPair(
+    options: {
+      isRegularAccount?: boolean;
+      lightnetAccountManagerEndpoint?: string;
+    } = {}
+  ): Promise<{
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }> {
+    const {
+      isRegularAccount = true,
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return {
+          publicKey: PublicKey.fromBase58(data.pk),
+          privateKey: PrivateKey.fromBase58(data.sk),
+        };
+      }
+    }
+
+    throw new Error('Failed to acquire the key pair');
+  }
+
+  /**
+   * Releases previously acquired key pair by public key.
+   *
+   * @param options.publicKey Public key of previously acquired key pair to release
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Response message from the account manager as string or null if the request failed
+   */
+  export async function releaseKeyPair(options: {
+    publicKey: string;
     lightnetAccountManagerEndpoint?: string;
-  } = {}
-): Promise<{
-  publicKey: PublicKey;
-  privateKey: PrivateKey;
-}> {
-  const {
-    isRegularAccount = true,
-    lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
-  } = options;
-  const response = await fetch(
-    `${lightnetAccountManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  }): Promise<string | null> {
+    const {
+      publicKey,
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/release-account`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pk: publicKey,
+        }),
+      }
+    );
 
-  if (response.ok) {
-    const data = await response.json();
-    if (data) {
-      return {
-        publicKey: PublicKey.fromBase58(data.pk),
-        privateKey: PrivateKey.fromBase58(data.sk),
-      };
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return data.message as string;
+      }
     }
+
+    return null;
   }
-
-  throw new Error('Failed to acquire the key pair');
-}
-
-/**
- * Releases previously acquired key pair by public key.
- *
- * @param options.publicKey Public key of previously acquired key pair to release
- * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
- * @returns Response message from the account manager as string or null if the request failed
- */
-async function releaseKeyPair(options: {
-  publicKey: string;
-  lightnetAccountManagerEndpoint?: string;
-}): Promise<string | null> {
-  const {
-    publicKey,
-    lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
-  } = options;
-  const response = await fetch(
-    `${lightnetAccountManagerEndpoint}/release-account`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        pk: publicKey,
-      }),
-    }
-  );
-
-  if (response.ok) {
-    const data = await response.json();
-    if (data) {
-      return data.message as string;
-    }
-  }
-
-  return null;
 }
 
 function updateActionState(actions: string[][], actionState: Field) {
