@@ -12,7 +12,7 @@ import {
   UInt32,
   PublicKey,
   Struct,
-} from 'snarkyjs';
+} from 'o1js';
 
 const doProofs = false;
 

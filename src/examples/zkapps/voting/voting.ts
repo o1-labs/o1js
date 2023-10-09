@@ -12,7 +12,7 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 
 import { Member } from './member.js';
 import {
@@ -91,8 +91,8 @@ export class Voting_ extends SmartContract {
   events = {
     newVoteFor: PublicKey,
     newVoteState: provablePure({
-      committedVotesRoot: Field,
       accumulatedVotesRoot: Field,
+      committedVotesRoot: Field,
     }),
   };
 

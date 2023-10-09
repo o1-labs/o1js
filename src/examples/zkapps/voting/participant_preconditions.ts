@@ -1,4 +1,4 @@
-import { CircuitValue, prop, UInt64 } from 'snarkyjs';
+import { CircuitValue, prop, UInt64 } from 'o1js';
 
 export default class ParticipantPreconditions extends CircuitValue {
   @prop minMinaVote: UInt64;
