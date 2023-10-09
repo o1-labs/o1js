@@ -38,13 +38,12 @@ export {
   setMinaGraphqlFallbackEndpoints,
   setArchiveGraphqlEndpoint,
   setArchiveGraphqlFallbackEndpoints,
-  setAccountsManagerEndpoint,
+  setLightnetAccountManagerEndpoint,
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
   fetchEvents,
   fetchActions,
-  KeyPair,
   acquireKeyPair,
   releaseKeyPair
 };
@@ -54,11 +53,7 @@ type NetworkConfig = {
   minaFallbackEndpoints: string[];
   archiveEndpoint: string;
   archiveFallbackEndpoints: string[];
-  accountsManagerEndpoint: string;
-};
-type KeyPair = {
-  publicKey: PublicKey;
-  privateKey: PrivateKey;
+  lightnetAccountManagerEndpoint: string;
 };
 
 let networkConfig = {
@@ -66,7 +61,7 @@ let networkConfig = {
   minaFallbackEndpoints: [] as string[],
   archiveEndpoint: '',
   archiveFallbackEndpoints: [] as string[],
-  accountsManagerEndpoint: '',
+  lightnetAccountManagerEndpoint: '',
 } satisfies NetworkConfig;
 
 function checkForValidUrl(url: string) {
@@ -125,17 +120,17 @@ function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
 }
 
 /**
- * Sets up the lightnet accounts manager endpoint to be used for accounts acquisition and releasing.
+ * Sets up the lightnet account manager endpoint to be used for accounts acquisition and releasing.
  *
- * @param endpoint Accounts manager endpoint.
+ * @param endpoint Account manager endpoint.
  */
-function setAccountsManagerEndpoint(endpoint: string) {
+function setLightnetAccountManagerEndpoint(endpoint: string) {
   if (!checkForValidUrl(endpoint)) {
     throw new Error(
-      `Invalid accounts manager endpoint: ${endpoint}. Please specify a valid URL.`
+      `Invalid account manager endpoint: ${endpoint}. Please specify a valid URL.`
     );
   }
-  networkConfig.accountsManagerEndpoint = endpoint;
+  networkConfig.lightnetAccountManagerEndpoint = endpoint;
 }
 
 /**
@@ -1018,25 +1013,31 @@ async function fetchActions(
 }
 
 /**
- * Gets random key pair (public and private keys) from accounts manager
- * that operates with accounts configured in network's Genesis Ledger.
+ * Gets random key pair (public and private keys) from account manager
+ * that operates with accounts configured in target network Genesis Ledger.
  *
  * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
  * the data is returned.
  *
- * @param isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
- * @param accountsManagerEndpoint Accounts manager endpoint to fetch from
+ * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+ * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
  * @returns Key pair
  */
 async function acquireKeyPair(
-  isRegularAccount = true,
-  accountsManagerEndpoint = networkConfig.accountsManagerEndpoint
-): Promise<KeyPair> {
-  console.info(
-    `Attempting to acquire ${isRegularAccount ? 'non-' : ''}zkApp account.`
-  );
+  options: {
+    isRegularAccount?: boolean;
+    lightnetAccountManagerEndpoint?: string;
+  } = {}
+): Promise<{
+  publicKey: PublicKey;
+  privateKey: PrivateKey;
+}> {
+  const {
+    isRegularAccount = true,
+    lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+  } = options;
   const response = await fetch(
-    `${accountsManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
+    `${lightnetAccountManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
     {
       method: 'GET',
       headers: {
@@ -1059,32 +1060,41 @@ async function acquireKeyPair(
 }
 
 /**
- * Releases previously acquired key pair from accounts manager by public key.
+ * Releases previously acquired key pair by public key.
  *
- * @param publicKey Public key of previously acquired key pair to release
- * @param accountsManagerEndpoint Accounts manager endpoint to fetch from
- * @returns Void (since we don't really care about the success of this operation)
+ * @param options.publicKey Public key of previously acquired key pair to release
+ * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+ * @returns Response message from the account manager as string or null if the request failed
  */
-async function releaseKeyPair(
-  publicKey: string,
-  accountsManagerEndpoint = networkConfig.accountsManagerEndpoint
-): Promise<void> {
-  const response = await fetch(`${accountsManagerEndpoint}/release-account`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      pk: publicKey,
-    }),
-  });
+async function releaseKeyPair(options: {
+  publicKey: string;
+  lightnetAccountManagerEndpoint?: string;
+}): Promise<string | null> {
+  const {
+    publicKey,
+    lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+  } = options;
+  const response = await fetch(
+    `${lightnetAccountManagerEndpoint}/release-account`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        pk: publicKey,
+      }),
+    }
+  );
 
   if (response.ok) {
     const data = await response.json();
     if (data) {
-      console.info(data.message);
+      return data.message as string;
     }
   }
+
+  return null;
 }
 
 function updateActionState(actions: string[][], actionState: Field) {

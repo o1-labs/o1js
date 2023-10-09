@@ -65,7 +65,6 @@ export {
   setGraphqlEndpoints,
   setArchiveGraphqlEndpoint,
   sendZkapp,
-  KeyPair,
   acquireKeyPair,
   releaseKeyPair
 } from './lib/fetch.js';

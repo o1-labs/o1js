@@ -20,13 +20,13 @@ const network = Mina.Network({
   mina: useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
     : 'https://proxy.berkeley.minaexplorer.com/graphql',
-  accountsManager: 'http://localhost:8181',
+  lightnetAccountManager: 'http://localhost:8181',
 });
 Mina.setActiveInstance(network);
 
 // Fee payer setup
 const senderKey = useCustomLocalNetwork
-  ? (await acquireKeyPair(true)).privateKey
+  ? (await acquireKeyPair()).privateKey
   : PrivateKey.random();
 const sender = senderKey.toPublicKey();
 if (!useCustomLocalNetwork) {
@@ -100,4 +100,7 @@ try {
 console.log('Success!');
 
 // Tear down
-await releaseKeyPair(senderKey.toPublicKey().toBase58());
+const keyPairReleaseMessage = await releaseKeyPair({
+  publicKey: sender.toBase58(),
+});
+if (keyPairReleaseMessage) console.info(keyPairReleaseMessage);
