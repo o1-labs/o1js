@@ -137,7 +137,7 @@ function rewriteBundledWasmBindings(src) {
   let exportSlice = src.slice(i);
   let defaultExport = exportSlice.match(/\w* as default/)[0];
   exportSlice = exportSlice
-    .replace(defaultExport, `default: init`)
+    .replace(defaultExport, `default: __wbg_init`)
     .replace('export', 'return');
   src = src.slice(0, i) + exportSlice;
 
