@@ -748,8 +748,7 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is greater than another "field-like" value.
    */
   greaterThan(y: Field | bigint | number | string) {
-    // TODO: this is less efficient than possible for equivalence with ml
-    return this.lessThanOrEqual(y).not();
+    return Field.from(y).lessThan(this);
   }
 
   /**
@@ -776,8 +775,7 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is greater than or equal another "field-like" value.
    */
   greaterThanOrEqual(y: Field | bigint | number | string) {
-    // TODO: this is less efficient than possible for equivalence with ml
-    return this.lessThan(y).not();
+    return Field.from(y).lessThanOrEqual(this);
   }
 
   /**
