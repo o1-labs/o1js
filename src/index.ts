@@ -72,13 +72,12 @@ export { Character, CircuitString } from './lib/string.js';
 export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 
-export { Nullifier } from './lib/nullifier.js';
-
 // experimental APIs
 import { ZkProgram } from './lib/proof_system.js';
 import { Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';
 import { memoizeWitness } from './lib/provable.js';
+import { Nullifier as Nullifier_ } from './lib/nullifier.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -86,10 +85,11 @@ const Experimental_ = {
   createChildAccountUpdate,
   memoizeWitness,
   ZkProgram,
+  Nullifier_,
 };
 
 type Callback_<Result> = Callback<Result>;
-
+type Nullifier = Nullifier_;
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
  * (Not unstable in the sense that they are less functional or tested than other parts.)
@@ -100,6 +100,8 @@ namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
+  export let Nullifier = Experimental_.Nullifier_;
+  export type Nullifier = Nullifier_;
 }
 
 Error.stackTraceLimit = 1000;

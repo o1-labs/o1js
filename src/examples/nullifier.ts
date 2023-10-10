@@ -1,6 +1,6 @@
 import {
   PrivateKey,
-  Nullifier,
+  Experimental,
   Field,
   SmartContract,
   state,
@@ -17,7 +17,7 @@ class PayoutOnlyOnce extends SmartContract {
   @state(Field) nullifierRoot = State<Field>();
   @state(Field) nullifierMessage = State<Field>();
 
-  @method payout(nullifier: Nullifier) {
+  @method payout(nullifier: Experimental.Nullifier) {
     let nullifierRoot = this.nullifierRoot.getAndAssertEquals();
     let nullifierMessage = this.nullifierMessage.getAndAssertEquals();
 
@@ -87,7 +87,7 @@ console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('generating nullifier');
 
-let jsonNullifier = Nullifier.createTestNullifier(
+let jsonNullifier = Experimental.Nullifier.createTestNullifier(
   [nullifierMessage],
   privilegedKey
 );
@@ -96,7 +96,7 @@ console.log(jsonNullifier);
 console.log('pay out');
 tx = await Mina.transaction(sender, () => {
   AccountUpdate.fundNewAccount(sender);
-  zkapp.payout(Nullifier.fromJSON(jsonNullifier));
+  zkapp.payout(Experimental.Nullifier.fromJSON(jsonNullifier));
 });
 await tx.prove();
 await tx.sign([senderKey]).send();
@@ -110,7 +110,7 @@ console.log('trying second pay out');
 
 try {
   tx = await Mina.transaction(sender, () => {
-    zkapp.payout(Nullifier.fromJSON(jsonNullifier));
+    zkapp.payout(Experimental.Nullifier.fromJSON(jsonNullifier));
   });
 
   await tx.prove();
