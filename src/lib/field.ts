@@ -616,7 +616,7 @@ class Field {
     // ^^^ these prove that b = Bool(x === 0):
     // if x = 0, the 2nd equation implies b = 1
     // if x != 0, the 1st implies b = 0
-    return Bool.Unsafe.ofField(new Field(b));
+    return new Bool(b);
   }
 
   /**
@@ -661,10 +661,7 @@ class Field {
         );
     });
     let [, less, lessOrEqual] = Snarky.field.compare(maxLength, this.value, y);
-    return {
-      less: Bool.Unsafe.ofField(new Field(less)),
-      lessOrEqual: Bool.Unsafe.ofField(new Field(lessOrEqual)),
-    };
+    return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
   }
 
   /**
@@ -960,7 +957,7 @@ class Field {
       return bits.map((b) => new Bool(b));
     }
     let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
-    return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
+    return bits.map((b) => new Bool(b));
   }
 
   /**
