@@ -14,6 +14,7 @@ import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
   ForeignFieldVar,
   ForeignFieldConst,
+  ForeignAffine,
 } from './lib/foreign-field.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
@@ -271,10 +272,10 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
-    ];
+        _: 0,
+        constant: MlOption<FieldConst>,
+        terms: MlList<MlTuple<FieldConst, number>>
+      ];
   };
 
   bool: {
@@ -373,6 +374,10 @@ declare const Snarky: {
       p: ForeignFieldConst
     ): ForeignFieldVar;
   };
+
+  foreignGroup: {
+    add(x: ForeignAffine, y: ForeignAffine): ForeignAffine;
+  }
 };
 
 type JsonGate = {

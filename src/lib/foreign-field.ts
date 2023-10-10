@@ -16,13 +16,17 @@ import { MlArray } from './ml/base.js';
 export { createForeignField, ForeignField };
 
 // internal API
-export { ForeignFieldVar, ForeignFieldConst, limbBits };
+export { ForeignFieldVar, ForeignFieldConst, ForeignAffine, limbBits };
 
 const limbBits = 88n;
+
+// ADD type Curve = (a, b, c)
+// We need to convert in OCaml from 3-tuple to Curve.t
 
 type MlForeignField<F> = [_: 0, x0: F, x1: F, x2: F];
 type ForeignFieldVar = MlForeignField<FieldVar>;
 type ForeignFieldConst = MlForeignField<FieldConst>;
+type ForeignAffine = [ForeignFieldVar, ForeignFieldVar];
 type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
 
 /**
@@ -502,8 +506,8 @@ function mapTuple<T extends Tuple<any>, B>(
  */
 type TupleN<T, N extends number> = N extends N
   ? number extends N
-    ? T[]
-    : _TupleOf<T, N, []>
+  ? T[]
+  : _TupleOf<T, N, []>
   : never;
 type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
   ? R
