@@ -520,7 +520,8 @@ class Field {
    * @return A {@link Field} element equivalent to the modular division of the two value.
    */
   div(y: Field | bigint | number | string) {
-    // TODO this is the same as snarky-ml but could use 1 constraint instead of 2
+    // this intentionally uses 2 constraints instead of 1 to avoid an unconstrained output when dividing 0/0
+    // (in this version, division by 0 is strictly not allowed)
     return this.mul(Field.from(y).inv());
   }
 
@@ -633,10 +634,6 @@ class Field {
    */
   equals(y: Field | bigint | number | string): Bool {
     // x == y is equivalent to x - y == 0
-    // TODO: this is less efficient than possible for equivalence with snarky-ml
-    return this.sub(y).isZero();
-    // more efficient code is commented below
-    /* 
     // if one of the two is constant, we just need the two constraints in `isZero`
     if (this.isConstant() || isConstant(y)) {
       return this.sub(y).isZero();
@@ -647,7 +644,6 @@ class Field {
     );
     Snarky.field.assertEqual(this.sub(y).value, xMinusY);
     return new Field(xMinusY).isZero();
-    */
   }
 
   // internal base method for all comparisons
