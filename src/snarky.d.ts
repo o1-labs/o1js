@@ -376,15 +376,31 @@ declare const Snarky: {
   };
 };
 
+type GateType =
+  | 'Zero'
+  | 'Generic'
+  | 'Poseidon'
+  | 'CompleteAdd'
+  | 'VarbaseMul'
+  | 'EndoMul'
+  | 'EndoMulScalar'
+  | 'Lookup'
+  | 'RangeCheck0'
+  | 'RangeCheck1'
+  | 'RoreignFieldAdd'
+  | 'ForeignFieldMul'
+  | 'Xor16'
+  | 'Rot64';
+
 type JsonGate = {
-  typ: string;
+  typ: GateType;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
 type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
 type Gate = {
-  type: string;
+  type: GateType;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
@@ -524,6 +540,17 @@ declare namespace Pickles {
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
     };
+    featureFlags: [
+      _: 0,
+      rangeCheck0: MlBool,
+      rangeCheck1: MlBool,
+      foreignFieldAdd: MlBool,
+      foreignFieldMul: MlBool,
+      xor: MlBool,
+      rot: MlBool,
+      lookup: MlBool,
+      runtimeTables: MlBool
+    ];
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
   type Prover = (
