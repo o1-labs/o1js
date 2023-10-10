@@ -140,12 +140,12 @@
     "digest": "Group Primitive",
     "methods": {
       "add": {
-        "rows": 32,
-        "digest": "8754c691505a1d11559afac1361c58e4"
+        "rows": 30,
+        "digest": "8179f9497cc9b6624912033324c27b6d"
       },
       "sub": {
-        "rows": 33,
-        "digest": "f1bb469656221c45fa9eddaf1af8fbc0"
+        "rows": 30,
+        "digest": "ddb709883792aa08b3bdfb69206a9f69"
       },
       "scale": {
         "rows": 113,
