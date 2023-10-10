@@ -64,7 +64,7 @@ const Poseidon = {
     if (isConstant(input)) {
       let result = PoseidonBigint.hashToGroup(toBigints(input));
       assert(result !== undefined, 'hashToGroup works on all inputs');
-      let { x, y } = result!;
+      let { x, y } = result;
       return {
         x: Field(x),
         y: { x0: Field(y.x0), x1: Field(y.x1) },

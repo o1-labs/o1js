@@ -274,6 +274,9 @@ function Bug(message: string) {
 /**
  * Make an assertion. When failing, this will communicate to users it's not their fault but indicates an internal bug.
  */
-function assert(condition: boolean, message = 'Failed assertion.') {
+function assert(
+  condition: boolean,
+  message = 'Failed assertion.'
+): asserts condition {
   if (!condition) throw Bug(message);
 }
