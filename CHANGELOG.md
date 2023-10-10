@@ -17,13 +17,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/c2f392fe5...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/045faa7...HEAD)
+
+### Breaking changes
+
+- Constraint optimizations in core Field methods cause breaking changes to most verification keys https://github.com/o1-labs/o1js/pull/1171
+
+### Added
+
+- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
+
+## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
 
 - Changes to some verification keys caused by changing the way `Struct` orders object properties. https://github.com/o1-labs/o1js/pull/1124 [@Comdex](https://github.com/Comdex)
   - To recover existing verification keys and behavior, change the order of properties in your Struct definitions to be alphabetical
   - The `customObjectKeys` option is removed from `Struct`
+
+### Changed
+
+- Improve prover performance by ~25% https://github.com/o1-labs/o1js/pull/1092
+  - Change internal representation of field elements to be JS bigint instead of Uint8Array
 
 ## [0.13.0](https://github.com/o1-labs/o1js/compare/fbd4b2717...c2f392fe5)
 

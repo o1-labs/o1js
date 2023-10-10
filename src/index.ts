@@ -65,6 +65,7 @@ export {
   setGraphqlEndpoints,
   setArchiveGraphqlEndpoint,
   sendZkapp,
+  Lightnet
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';

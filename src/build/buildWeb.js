@@ -90,6 +90,7 @@ async function buildWeb({ production }) {
     outfile: 'dist/web/index.js',
     resolveExtensions: ['.js', '.ts'],
     plugins: [wasmPlugin(), srcStringPlugin()],
+    dropLabels: ['CJS'],
     external: ['*.bc.js'],
     target,
     allowOverwrite: true,
