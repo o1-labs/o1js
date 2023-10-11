@@ -77,5 +77,11 @@ const MlOption = Object.assign(
       if (option === undefined) return 0;
       return [0, map(option)];
     },
+    isNone(option: MlOption<unknown>): option is 0 {
+      return option === 0;
+    },
+    isSome<T>(option: MlOption<T>): option is [0, T] {
+      return option !== 0;
+    },
   }
 );
