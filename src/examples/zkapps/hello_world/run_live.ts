@@ -1,5 +1,5 @@
 // Live integration test against real Mina network.
-import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'snarkyjs';
+import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 
 const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';
@@ -23,13 +23,13 @@ Mina.setActiveInstance(network);
 
 // Fee payer setup
 if (!useLocalNetwork) {
-  console.log(`Funding the Fee payer account.`);
+  console.log(`Funding the fee payer account.`);
   await Mina.faucet(sender);
 }
-console.log(`Fetching the Fee payer account information.`);
+console.log(`Fetching the fee payer account information.`);
 const accountDetails = (await fetchAccount({ publicKey: sender })).account;
 console.log(
-  `Using the Fee payer account ${sender.toBase58()} with nonce: ${
+  `Using the fee payer account ${sender.toBase58()} with nonce: ${
     accountDetails?.nonce
   } and balance: ${accountDetails?.balance}.`
 );
@@ -59,7 +59,7 @@ Your smart contract will be deployed
 as soon as the transaction is included in a block.
 Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction to be mined.');
+console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
 console.log('');
 
@@ -77,7 +77,7 @@ Your smart contract state will be updated
 as soon as the transaction is included in a block.
 Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction to be mined.');
+console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
 console.log('');
 

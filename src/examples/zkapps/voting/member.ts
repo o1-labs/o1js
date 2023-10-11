@@ -7,7 +7,7 @@ import {
   UInt64,
   Poseidon,
   MerkleWitness,
-} from 'snarkyjs';
+} from 'o1js';
 
 export class MyMerkleWitness extends MerkleWitness(3) {}
 let w = {

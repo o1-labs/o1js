@@ -162,7 +162,7 @@ test(
     feePayer.authorization = Signature.toBase58(Signature.dummy());
     let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
 
-    // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
+    // o1js fromJSON -> toJSON roundtrip, + consistency with mina-signer
     let zkappCommandSnarky = ZkappCommandSnarky.fromJSON(zkappCommandJson);
     let zkappCommandJsonSnarky = ZkappCommandSnarky.toJSON(zkappCommandSnarky);
     expect(JSON.stringify(zkappCommandJson)).toEqual(
@@ -275,7 +275,7 @@ function fixVerificationKey(a: AccountUpdate) {
     let [, data, hash] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,
-      hash: Field.fromBytes([...hash]),
+      hash: FieldConst.toBigint(hash),
     };
   } else {
     a.body.update.verificationKey.value = {

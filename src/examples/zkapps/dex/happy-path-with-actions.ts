@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
 import {
   Dex,
   DexTokenHolder,
@@ -13,7 +13,7 @@ import { tic, toc } from '../tictoc.js';
 
 await isReady;
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 tic('Happy path with actions');
 console.log();

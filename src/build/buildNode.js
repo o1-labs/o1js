@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exec } from 'node:child_process';
 import esbuild from 'esbuild';
 import minimist from 'minimist';
 
@@ -41,6 +40,7 @@ async function buildNode({ production }) {
     resolveExtensions: ['.node.js', '.ts', '.js'],
     allowOverwrite: true,
     plugins: [makeNodeModulesExternal(), makeJsooExternal()],
+    dropLabels: ['ESM'],
     minify: false,
   });
 }

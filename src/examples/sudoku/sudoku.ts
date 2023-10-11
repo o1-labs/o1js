@@ -9,7 +9,7 @@ import {
   Poseidon,
   Struct,
   Circuit,
-} from 'snarkyjs';
+} from 'o1js';
 
 export { Sudoku, SudokuZkApp };
 
