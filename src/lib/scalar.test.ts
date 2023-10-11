@@ -1,4 +1,4 @@
-import { shutdown, isReady, Field, Bool, Provable, Scalar } from 'snarkyjs';
+import { shutdown, isReady, Field, Bool, Provable, Scalar } from 'o1js';
 
 describe('scalar', () => {
   beforeAll(async () => {

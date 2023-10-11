@@ -6,7 +6,7 @@ import {
   fetchLastBlock,
   PublicKey,
   Types,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 setGraphqlEndpoints([

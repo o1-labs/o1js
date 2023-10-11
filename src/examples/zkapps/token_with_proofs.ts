@@ -14,7 +14,7 @@ import {
   DeployArgs,
   VerificationKey,
   TokenId,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

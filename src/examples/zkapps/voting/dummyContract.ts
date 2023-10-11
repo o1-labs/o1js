@@ -6,7 +6,7 @@ import {
   method,
   DeployArgs,
   Permissions,
-} from 'snarkyjs';
+} from 'o1js';
 
 export class DummyContract extends SmartContract {
   @state(Field) sum = State<Field>();

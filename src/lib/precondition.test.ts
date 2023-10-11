@@ -11,7 +11,7 @@ import {
   PublicKey,
   Bool,
   Field,
-} from 'snarkyjs';
+} from 'o1js';
 
 class MyContract extends SmartContract {
   @method shouldMakeCompileThrow() {

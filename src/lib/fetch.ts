@@ -2,7 +2,7 @@ import 'isomorphic-fetch';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
-import { PublicKey } from './signature.js';
+import { PublicKey, PrivateKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { ActionStates } from './mina.js';
@@ -38,11 +38,13 @@ export {
   setMinaGraphqlFallbackEndpoints,
   setArchiveGraphqlEndpoint,
   setArchiveGraphqlFallbackEndpoints,
+  setLightnetAccountManagerEndpoint,
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
   fetchEvents,
   fetchActions,
+  Lightnet
 };
 
 type NetworkConfig = {
@@ -50,6 +52,7 @@ type NetworkConfig = {
   minaFallbackEndpoints: string[];
   archiveEndpoint: string;
   archiveFallbackEndpoints: string[];
+  lightnetAccountManagerEndpoint: string;
 };
 
 let networkConfig = {
@@ -57,6 +60,7 @@ let networkConfig = {
   minaFallbackEndpoints: [] as string[],
   archiveEndpoint: '',
   archiveFallbackEndpoints: [] as string[],
+  lightnetAccountManagerEndpoint: '',
 } satisfies NetworkConfig;
 
 function checkForValidUrl(url: string) {
@@ -112,6 +116,20 @@ function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
     );
   }
   networkConfig.archiveFallbackEndpoints = graphqlEndpoints;
+}
+
+/**
+ * Sets up the lightnet account manager endpoint to be used for accounts acquisition and releasing.
+ *
+ * @param endpoint Account manager endpoint.
+ */
+function setLightnetAccountManagerEndpoint(endpoint: string) {
+  if (!checkForValidUrl(endpoint)) {
+    throw new Error(
+      `Invalid account manager endpoint: ${endpoint}. Please specify a valid URL.`
+    );
+  }
+  networkConfig.lightnetAccountManagerEndpoint = endpoint;
 }
 
 /**
@@ -993,6 +1011,93 @@ async function fetchActions(
   return actionsList;
 }
 
+namespace Lightnet {
+  /**
+   * Gets random key pair (public and private keys) from account manager
+   * that operates with accounts configured in target network Genesis Ledger.
+   *
+   * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
+   * the data is returned.
+   *
+   * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Key pair
+   */
+  export async function acquireKeyPair(
+    options: {
+      isRegularAccount?: boolean;
+      lightnetAccountManagerEndpoint?: string;
+    } = {}
+  ): Promise<{
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }> {
+    const {
+      isRegularAccount = true,
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return {
+          publicKey: PublicKey.fromBase58(data.pk),
+          privateKey: PrivateKey.fromBase58(data.sk),
+        };
+      }
+    }
+
+    throw new Error('Failed to acquire the key pair');
+  }
+
+  /**
+   * Releases previously acquired key pair by public key.
+   *
+   * @param options.publicKey Public key of previously acquired key pair to release
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Response message from the account manager as string or null if the request failed
+   */
+  export async function releaseKeyPair(options: {
+    publicKey: string;
+    lightnetAccountManagerEndpoint?: string;
+  }): Promise<string | null> {
+    const {
+      publicKey,
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/release-account`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pk: publicKey,
+        }),
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return data.message as string;
+      }
+    }
+
+    return null;
+  }
+}
+
 function updateActionState(actions: string[][], actionState: Field) {
   let actionHash = Actions.fromJSON(actions).hash;
   return Actions.updateSequenceState(actionState, actionHash);
@@ -1059,7 +1164,7 @@ async function makeGraphqlRequest(
         // If the request timed out, try the next 2 endpoints
         timeoutErrors.push({ url1, url2, error });
       } else {
-        // If the request failed for some other reason (e.g. SnarkyJS error), return the error
+        // If the request failed for some other reason (e.g. o1js error), return the error
         return [undefined, error] as [undefined, FetchError];
       }
     }

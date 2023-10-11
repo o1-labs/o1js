@@ -1,35 +1,41 @@
 // Live integration test against real Mina network.
-import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'snarkyjs';
+import {
+  AccountUpdate,
+  Field,
+  Lightnet,
+  Mina,
+  PrivateKey,
+  fetchAccount,
+} from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 
-const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';
-const senderKey = useLocalNetwork
-  ? PrivateKey.fromBase58(
-      'EKEnVLUhYHDJvgmgQu5SzaV8MWKNfhAXYSkLBRk5KEfudWZRbs4P'
-    )
-  : PrivateKey.random();
-const sender = senderKey.toPublicKey();
+const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 const zkAppKey = PrivateKey.random();
 const zkAppAddress = zkAppKey.toPublicKey();
 const transactionFee = 100_000_000;
 
 // Network configuration
-const network = Mina.Network(
-  useLocalNetwork
+const network = Mina.Network({
+  mina: useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
-    : 'https://proxy.berkeley.minaexplorer.com/graphql'
-);
+    : 'https://proxy.berkeley.minaexplorer.com/graphql',
+  lightnetAccountManager: 'http://localhost:8181',
+});
 Mina.setActiveInstance(network);
 
 // Fee payer setup
-if (!useLocalNetwork) {
-  console.log(`Funding the Fee payer account.`);
+const senderKey = useCustomLocalNetwork
+  ? (await Lightnet.acquireKeyPair()).privateKey
+  : PrivateKey.random();
+const sender = senderKey.toPublicKey();
+if (!useCustomLocalNetwork) {
+  console.log(`Funding the fee payer account.`);
   await Mina.faucet(sender);
 }
-console.log(`Fetching the Fee payer account information.`);
+console.log(`Fetching the fee payer account information.`);
 const accountDetails = (await fetchAccount({ publicKey: sender })).account;
 console.log(
-  `Using the Fee payer account ${sender.toBase58()} with nonce: ${
+  `Using the fee payer account ${sender.toBase58()} with nonce: ${
     accountDetails?.nonce
   } and balance: ${accountDetails?.balance}.`
 );
@@ -59,7 +65,7 @@ Your smart contract will be deployed
 as soon as the transaction is included in a block.
 Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction to be mined.');
+console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
 console.log('');
 
@@ -77,7 +83,7 @@ Your smart contract state will be updated
 as soon as the transaction is included in a block.
 Txn hash: ${pendingTx.hash()}`);
 }
-console.log('Waiting for transaction to be mined.');
+console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
 console.log('');
 
@@ -91,3 +97,9 @@ try {
   );
 }
 console.log('Success!');
+
+// Tear down
+const keyPairReleaseMessage = await Lightnet.releaseKeyPair({
+  publicKey: sender.toBase58(),
+});
+if (keyPairReleaseMessage) console.info(keyPairReleaseMessage);

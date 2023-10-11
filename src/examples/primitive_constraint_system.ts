@@ -1,4 +1,4 @@
-import { Field, Group, Poseidon, Provable, Scalar } from 'snarkyjs';
+import { Field, Group, Poseidon, Provable, Scalar } from 'o1js';
 
 function mock(obj: { [K: string]: (...args: any) => void }, name: string) {
   let methodKeys = Object.keys(obj);

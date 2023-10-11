@@ -21,7 +21,7 @@ const eventsContainer = document.querySelector('#eventsContainer');
 const zkAppStateContainer = document.querySelector('#zkAppStateContainer');
 
 logEvents(
-  `SnarkyJS initialized after ${performance.now().toFixed(2)}ms`,
+  `o1js initialized after ${performance.now().toFixed(2)}ms`,
   eventsContainer
 );
 
