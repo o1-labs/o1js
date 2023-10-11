@@ -847,10 +847,43 @@ function dummyBase64Proof() {
 }
 
 function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
-  throw 'todo';
-}
-
-function featureFlagsToMl(flags: FeatureFlags): MlFeatureFlags {
+  let flags: FeatureFlags = {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  };
+  for (let gate of gates) {
+    switch (gate.type) {
+      case 'RangeCheck0':
+        flags.rangeCheck0 = true;
+        break;
+      case 'RangeCheck1':
+        flags.rangeCheck1 = true;
+        break;
+      case 'ForeignFieldAdd':
+        flags.foreignFieldAdd = true;
+        break;
+      case 'ForeignFieldMul':
+        flags.foreignFieldMul = true;
+        break;
+      case 'Xor16':
+        flags.xor = true;
+        break;
+      case 'Rot64':
+        flags.rot = true;
+        break;
+      case 'Lookup':
+        flags.lookup = true;
+        break;
+      default:
+        break;
+    }
+  }
   return [
     0,
     MlBool(flags.rangeCheck0),
