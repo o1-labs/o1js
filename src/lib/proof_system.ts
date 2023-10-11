@@ -273,7 +273,7 @@ function ZkProgram<
 
   async function compile() {
     let methodsMeta = analyzeMethods();
-    let gates = Object.values(methodsMeta).map(({ gates }) => gates);
+    let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,

@@ -676,7 +676,7 @@ class SmartContract {
     });
     // run methods once to get information tshat we need already at compile time
     let methodsMeta = this.analyzeMethods();
-    let gates = Object.values(methodsMeta).map(({ gates }) => gates);
+    let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let {
       verificationKey: verificationKey_,
       provers,
