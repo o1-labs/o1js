@@ -16,18 +16,16 @@ import { MlArray } from './ml/base.js';
 export { createForeignField, ForeignField };
 
 // internal API
-export { ForeignFieldVar, ForeignFieldConst, ForeignAffine, limbBits };
+export { ForeignFieldVar, ForeignFieldConst, ForeignAffine, EllipticCurve, limbBits };
 
 const limbBits = 88n;
-
-// ADD type Curve = (a, b, c)
-// We need to convert in OCaml from 3-tuple to Curve.t
 
 type MlForeignField<F> = [_: 0, x0: F, x1: F, x2: F];
 type ForeignFieldVar = MlForeignField<FieldVar>;
 type ForeignFieldConst = MlForeignField<FieldConst>;
 type ForeignAffine = [ForeignFieldVar, ForeignFieldVar];
 type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
+type EllipticCurve = [a: string, b: string, modulus: string, gen: [string, string], order: string];
 
 /**
  * Create a class representing a prime order finite field, which is different from the native {@link Field}.

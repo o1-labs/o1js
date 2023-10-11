@@ -15,6 +15,7 @@ import type {
   ForeignFieldVar,
   ForeignFieldConst,
   ForeignAffine,
+  EllipticCurve,
 } from './lib/foreign-field.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
@@ -376,7 +377,7 @@ declare const Snarky: {
   };
 
   foreignGroup: {
-    add(x: ForeignAffine, y: ForeignAffine): ForeignAffine;
+    add(x: ForeignAffine, y: ForeignAffine, curve: EllipticCurve): ForeignAffine;
   }
 };
 
