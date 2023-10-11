@@ -395,7 +395,7 @@ type GateType =
   | 'Lookup'
   | 'RangeCheck0'
   | 'RangeCheck1'
-  | 'RoreignFieldAdd'
+  | 'ForeignFieldAdd'
   | 'ForeignFieldMul'
   | 'Xor16'
   | 'Rot64';
@@ -571,17 +571,7 @@ declare namespace Pickles {
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
     };
-    featureFlags: [
-      _: 0,
-      rangeCheck0: MlBool,
-      rangeCheck1: MlBool,
-      foreignFieldAdd: MlBool,
-      foreignFieldMul: MlBool,
-      xor: MlBool,
-      rot: MlBool,
-      lookup: MlBool,
-      runtimeTables: MlBool
-    ];
+    featureFlags: MlFeatureFlags;
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
   type Prover = (
