@@ -16,7 +16,7 @@ import { MlArray } from './ml/base.js';
 export { createForeignField, ForeignField };
 
 // internal API
-export { ForeignFieldVar, ForeignFieldConst, ForeignAffine, EllipticCurve, limbBits };
+export { ForeignFieldVar, ForeignFieldConst, ForeignAffine, limbBits };
 
 const limbBits = 88n;
 
@@ -25,7 +25,6 @@ type ForeignFieldVar = MlForeignField<FieldVar>;
 type ForeignFieldConst = MlForeignField<FieldConst>;
 type ForeignAffine = [ForeignFieldVar, ForeignFieldVar];
 type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
-type EllipticCurve = [a: string, b: string, modulus: string, gen: [string, string], order: string];
 
 /**
  * Create a class representing a prime order finite field, which is different from the native {@link Field}.
