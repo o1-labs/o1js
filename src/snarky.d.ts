@@ -15,7 +15,15 @@ import type { MlHashInput } from './lib/ml/conversion.js';
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
+export {
+  Snarky,
+  Test,
+  JsonGate,
+  MlPublicKey,
+  MlPublicKeyVar,
+  FeatureFlags,
+  MlFeatureFlags,
+};
 
 /**
  * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
@@ -529,6 +537,29 @@ declare const Test: {
     hashPaymentV1(payment: string): string;
   };
 };
+
+type FeatureFlags = {
+  rangeCheck0: boolean;
+  rangeCheck1: boolean;
+  foreignFieldAdd: boolean;
+  foreignFieldMul: boolean;
+  xor: boolean;
+  rot: boolean;
+  lookup: boolean;
+  runtimeTables: boolean;
+};
+
+type MlFeatureFlags = [
+  _: 0,
+  rangeCheck0: MlBool,
+  rangeCheck1: MlBool,
+  foreignFieldAdd: MlBool,
+  foreignFieldMul: MlBool,
+  xor: MlBool,
+  rot: MlBool,
+  lookup: MlBool,
+  runtimeTables: MlBool
+];
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
