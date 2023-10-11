@@ -1256,12 +1256,23 @@ class Field {
   /**
    * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
    *
-   * As all {@link Field} elements have 31 bits, this function returns 31.
+   * As all {@link Field} elements have 31 bytes, this function returns 31.
    *
    * @return The size of a {@link Field} element - 31.
    */
   static sizeInBytes() {
     return Fp.sizeInBytes();
+  }
+
+  /**
+   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   *
+   * As all {@link Field} elements have 255 bits, this function returns 255.
+   *
+   * @return The size of a {@link Field} element in bits - 255.
+   */
+  static sizeInBits() {
+    return Fp.sizeInBits;
   }
 }
 
