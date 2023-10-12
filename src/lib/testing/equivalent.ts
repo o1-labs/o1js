@@ -57,27 +57,6 @@ type SpecFromFunctions<
   F2 extends AnyFunction
 > = FuncSpec<Parameters<F1>, ReturnType<F1>, Parameters<F2>, ReturnType<F2>>;
 
-function equivalent<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2>(
-  { from, to }: FuncSpec<In1, Out1, In2, Out2>,
-  f1: (...args: In1) => Out1,
-  f2: (...args: In2) => Out2,
-  label = 'expect equal results'
-) {
-  let generators = from.map((spec) => spec.rng);
-  let assertEqual = to.assertEqual ?? deepEqual;
-  test(...(generators as any[]), (...args) => {
-    args.pop();
-    let inputs = args as any as In1;
-    handleErrors(
-      () => f1(...inputs),
-      () =>
-        to.back(f2(...(inputs.map((x, i) => from[i].there(x)) as any as In2))),
-      (x, y) => assertEqual(x, y, label),
-      label
-    );
-  });
-}
-
 function id<T>(x: T) {
   return x;
 }
@@ -111,7 +90,36 @@ function toUnion<T1, T2>(spec: OrUnion<T1, T2>): FromSpecUnion<T1, T2> {
   return specAny._isUnion ? specAny : oneOf(specAny);
 }
 
-// equivalence in provable code
+// equivalence tester
+
+function equivalent<
+  In extends Tuple<FromSpec<any, any>>,
+  Out extends ToSpec<any, any>
+>({ from, to }: { from: In; to: Out }) {
+  return function run(
+    f1: (...args: Params1<In>) => Result1<Out>,
+    f2: (...args: Params2<In>) => Result2<Out>,
+    label = 'expect equal results'
+  ) {
+    let generators = from.map((spec) => spec.rng);
+    let assertEqual = to.assertEqual ?? deepEqual;
+    test(...(generators as any[]), (...args) => {
+      args.pop();
+      let inputs = args as Params1<In>;
+      handleErrors(
+        () => f1(...inputs),
+        () =>
+          to.back(
+            f2(...(inputs.map((x, i) => from[i].there(x)) as Params2<In>))
+          ),
+        (x, y) => assertEqual(x, y, label),
+        label
+      );
+    });
+  };
+}
+
+// equivalence tester for provable code
 
 function equivalentProvable<
   In extends Tuple<OrUnion<any, any>>,
@@ -180,7 +188,7 @@ let bigintField: Spec<bigint, bigint> = {
   back: id,
 };
 
-let bool: Spec<boolean, Bool> = {
+let bool: ProvableSpec<boolean, Bool> = {
   rng: Random.boolean,
   there: Bool,
   back: (x) => x.toBoolean(),
