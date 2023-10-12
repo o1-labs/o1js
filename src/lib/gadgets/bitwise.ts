@@ -68,7 +68,7 @@ function xor(a: Field, b: Field, length: number, len_xor = 4) {
   });
 
   // Obtain pad length until the length is a multiple of 4*n for n-bit length lookup table
-  let padLength = len_xor;
+  let padLength = length;
   if (length % (4 * len_xor) !== 0) {
     padLength = length + 4 * len_xor - (length % (4 * len_xor));
   }
@@ -80,22 +80,26 @@ function xor(a: Field, b: Field, length: number, len_xor = 4) {
   return outputXor;
 }
 
+let aa = 0;
 // builds xor chain recurisvely
 function xorRec(
-  input1: Field,
-  input2: Field,
+  a: Field,
+  b: Field,
   outputXor: Field,
   padLength: number,
   len_xor: number
 ) {
   // if inputs are zero and length is zero, add the zero check
+  console.log('padLength', padLength);
+  aa++;
 
-  if (padLength == 0) {
-    Gates.zeroCheck(input1, input2, outputXor);
+  if (aa >= 30) throw Error('too many calls');
+  if (padLength === 0) {
+    Gates.zeroCheck(a, b, outputXor);
 
     let zero = new Field(0);
-    zero.assertEquals(input1);
-    zero.assertEquals(input2);
+    zero.assertEquals(a);
+    zero.assertEquals(b);
     zero.assertEquals(outputXor);
   } else {
     function ofBits(f: Field, start: number, stop: number) {
@@ -111,22 +115,22 @@ function xorRec(
     let third = second + len_xor;
     let fourth = third + len_xor;
 
-    let in1_0 = ofBits(input1, 0, first);
-    let in1_1 = ofBits(input1, first, second);
-    let in1_2 = ofBits(input1, second, third);
-    let in1_3 = ofBits(input1, third, fourth);
-    let in2_0 = ofBits(input2, 0, first);
-    let in2_1 = ofBits(input2, first, second);
-    let in2_2 = ofBits(input2, second, third);
-    let in2_3 = ofBits(input2, third, fourth);
+    let in1_0 = ofBits(a, 0, first);
+    let in1_1 = ofBits(a, first, second);
+    let in1_2 = ofBits(a, second, third);
+    let in1_3 = ofBits(a, third, fourth);
+    let in2_0 = ofBits(b, 0, first);
+    let in2_1 = ofBits(b, first, second);
+    let in2_2 = ofBits(b, second, third);
+    let in2_3 = ofBits(b, third, fourth);
     let out_0 = ofBits(outputXor, 0, first);
     let out_1 = ofBits(outputXor, first, second);
     let out_2 = ofBits(outputXor, second, third);
     let out_3 = ofBits(outputXor, third, fourth);
 
     Gates.xor(
-      input1,
-      input2,
+      a,
+      b,
       outputXor,
       in1_0,
       in1_1,
@@ -142,9 +146,9 @@ function xorRec(
       out_3
     );
 
-    let next_in1 = asProverNextVar(input1, in1_0, in1_1, in1_2, in1_3, len_xor);
+    let next_in1 = asProverNextVar(a, in1_0, in1_1, in1_2, in1_3, len_xor);
 
-    let next_in2 = asProverNextVar(input2, in2_0, in2_1, in2_2, in2_3, len_xor);
+    let next_in2 = asProverNextVar(b, in2_0, in2_1, in2_2, in2_3, len_xor);
 
     let next_out = asProverNextVar(
       outputXor,
