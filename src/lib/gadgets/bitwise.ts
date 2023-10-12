@@ -9,7 +9,7 @@ export { xor };
  * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
  * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
  *
- * The `length` parameter lets you define how many bits should be compared. By default it is set to `32`. The output is not constrained to the length.
+ * The `length` parameter lets you define how many bits should be compared. The output is not constrained to the length.
  *
  * **Note:** Specifying a larger `length` parameter adds additional constraints.
  *
@@ -20,14 +20,14 @@ export { xor };
  * let a = Field(5);    // ... 000101
  * let b = Field(3);    // ... 000011
  *
- * let c = a.xor(b);    // ... 000110
+ * let c = xor(a, b, 2);    // ... 000110
  * c.assertEquals(6);
  * ```
  */
-function xor(a: Field, b: Field, length: number, len_xor = 4) {
+function xor(a: Field, b: Field, length: number, lengthXor = 4) {
   // check that both input lengths are positive
   assert(
-    length > 0 && len_xor > 0,
+    length > 0 && lengthXor > 0,
     `Input lengths need to be positive values.`
   );
 
@@ -53,13 +53,13 @@ function xor(a: Field, b: Field, length: number, len_xor = 4) {
 
   // Obtain pad length until the length is a multiple of 4*n for n-bit length lookup table
   let padLength = length;
-  if (length % (4 * len_xor) !== 0) {
-    padLength = length + 4 * len_xor - (length % (4 * len_xor));
+  if (length % (4 * lengthXor) !== 0) {
+    padLength = length + 4 * lengthXor - (length % (4 * lengthXor));
   }
 
   // recurisvely build xor gadget
 
-  xorRec(a, b, outputXor, padLength, len_xor);
+  xorRec(a, b, outputXor, padLength, lengthXor);
   // convert back to field
   return outputXor;
 }
@@ -70,7 +70,7 @@ function xorRec(
   b: Field,
   outputXor: Field,
   padLength: number,
-  len_xor: number
+  lengthXor: number
 ) {
   // if inputs are zero and length is zero, add the zero check
   if (padLength === 0) {
@@ -81,31 +81,24 @@ function xorRec(
     zero.assertEquals(b);
     zero.assertEquals(outputXor);
   } else {
-    function ofBits(f: Field, start: number, stop: number) {
-      if (stop !== -1 && stop <= start)
-        throw Error('Stop offste must be greater than start offset');
-
-      return Provable.witness(Field, () => fieldBitsToFieldLE(f, start, stop));
-    }
-
     // nibble offsets
-    let first = len_xor;
-    let second = first + len_xor;
-    let third = second + len_xor;
-    let fourth = third + len_xor;
+    let first = lengthXor;
+    let second = first + lengthXor;
+    let third = second + lengthXor;
+    let fourth = third + lengthXor;
 
-    let in1_0 = ofBits(a, 0, first);
-    let in1_1 = ofBits(a, first, second);
-    let in1_2 = ofBits(a, second, third);
-    let in1_3 = ofBits(a, third, fourth);
-    let in2_0 = ofBits(b, 0, first);
-    let in2_1 = ofBits(b, first, second);
-    let in2_2 = ofBits(b, second, third);
-    let in2_3 = ofBits(b, third, fourth);
-    let out_0 = ofBits(outputXor, 0, first);
-    let out_1 = ofBits(outputXor, first, second);
-    let out_2 = ofBits(outputXor, second, third);
-    let out_3 = ofBits(outputXor, third, fourth);
+    let in1_0 = sliceBits(a, 0, first);
+    let in1_1 = sliceBits(a, first, second);
+    let in1_2 = sliceBits(a, second, third);
+    let in1_3 = sliceBits(a, third, fourth);
+    let in2_0 = sliceBits(b, 0, first);
+    let in2_1 = sliceBits(b, first, second);
+    let in2_2 = sliceBits(b, second, third);
+    let in2_3 = sliceBits(b, third, fourth);
+    let out_0 = sliceBits(outputXor, 0, first);
+    let out_1 = sliceBits(outputXor, first, second);
+    let out_2 = sliceBits(outputXor, second, third);
+    let out_3 = sliceBits(outputXor, third, fourth);
 
     Gates.xor(
       a,
@@ -125,9 +118,9 @@ function xorRec(
       out_3
     );
 
-    let next_in1 = asProverNextVar(a, in1_0, in1_1, in1_2, in1_3, len_xor);
+    let next_in1 = asProverNextVar(a, in1_0, in1_1, in1_2, in1_3, lengthXor);
 
-    let next_in2 = asProverNextVar(b, in2_0, in2_1, in2_2, in2_3, len_xor);
+    let next_in2 = asProverNextVar(b, in2_0, in2_1, in2_2, in2_3, lengthXor);
 
     let next_out = asProverNextVar(
       outputXor,
@@ -135,11 +128,11 @@ function xorRec(
       out_1,
       out_2,
       out_3,
-      len_xor
+      lengthXor
     );
 
-    let next_length = padLength - 4 * len_xor;
-    xorRec(next_in1, next_in2, next_out, next_length, len_xor);
+    let next_length = padLength - 4 * lengthXor;
+    xorRec(next_in1, next_in2, next_out, next_length, lengthXor);
   }
 }
 
@@ -158,17 +151,17 @@ function fitsInBits(word: Field, length: number) {
   });
 }
 
-function fieldBitsToFieldLE(f: Field, start: number, stop: number) {
+function sliceBits(f: Field, start: number, stop = -1) {
   if (stop !== -1 && stop <= start)
     throw Error('stop offset must be greater than start offset');
 
-  let bits = f.toBits();
+  return Provable.witness(Field, () => {
+    let bits = f.toBits();
+    if (stop > bits.length) throw Error('stop must be less than bit-length');
+    if (stop === -1) stop = bits.length;
 
-  if (stop > bits.length) throw Error('stop must be less than bit-length');
-
-  if (stop === -1) stop = bits.length;
-
-  return Field.fromBits(bits.slice(start, stop));
+    return Field.fromBits(bits.slice(start, stop));
+  });
 }
 
 function asProverNextVar(
