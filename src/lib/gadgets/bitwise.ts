@@ -1,7 +1,8 @@
-import { Snarky } from 'src/snarky.js';
-import { Field, FieldConst, FieldVar } from '../field.js';
+import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import * as Gates from '../gates.js';
+
+export { xor };
 
 /**
  * Boolean Xor of length bits
@@ -9,7 +10,7 @@ import * as Gates from '../gates.js';
  * length is the number of bits to Xor
  * len_xor is the number of bits of the lookup table (default is 4)
  */
-function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
+function xor(input1: Field, input2: Field, length: number, len_xor = 4) {
   // check that both input lengths are positive
   assert(
     length > 0 && len_xor < 0,
@@ -24,107 +25,6 @@ function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
 
   if (input1.isConstant() && input2.isConstant()) {
     throw Error('TODO constant case');
-  }
-
-  // calculates next variable for the chain as provr
-  function nextVariable(): Field {
-    return new Field(5);
-  }
-
-  // builds xor chain recurisvely
-  function xorRec(
-    input1: Field,
-    input2: Field,
-    outputXor: FieldVar,
-    padLength: number,
-    len_xor: number
-  ) {
-    // if inputs are zero and length is zero, add the zero check
-
-    if (padLength == 0) {
-      Gates.zeroCheck(input1, input2, new Field(outputXor));
-
-      let zero = new Field(0);
-      zero.assertEquals(input1);
-      zero.assertEquals(input2);
-      zero.assertEquals(new Field(outputXor));
-    } else {
-      function ofBits(f: Field, start: number, stop: number) {
-        if (stop !== -1 && stop <= start)
-          throw Error('Stop offste must be greater than start offset');
-
-        return Provable.witness(Field, () =>
-          fieldBitsToFieldLE(f, start, stop)
-        );
-      }
-
-      // nibble offsets
-      let first = len_xor;
-      let second = first + len_xor;
-      let third = second + len_xor;
-      let fourth = third + len_xor;
-
-      let in1_0 = ofBits(input1, 0, first);
-      let in1_1 = ofBits(input1, first, second);
-      let in1_2 = ofBits(input1, second, third);
-      let in1_3 = ofBits(input1, third, fourth);
-      let in2_0 = ofBits(input2, 0, first);
-      let in2_1 = ofBits(input2, first, second);
-      let in2_2 = ofBits(input2, second, third);
-      let in2_3 = ofBits(input2, third, fourth);
-      let out_0 = ofBits(new Field(outputXor), 0, first);
-      let out_1 = ofBits(new Field(outputXor), first, second);
-      let out_2 = ofBits(new Field(outputXor), second, third);
-      let out_3 = ofBits(new Field(outputXor), third, fourth);
-
-      Gates.xor(
-        input1,
-        input2,
-        new Field(outputXor),
-        in1_0,
-        in1_1,
-        in1_2,
-        in1_3,
-        in2_0,
-        in2_1,
-        in2_2,
-        in2_3,
-        out_0,
-        out_1,
-        out_2,
-        out_3
-      );
-
-      let next_in1 = asProverNextVar(
-        input1,
-        in1_0,
-        in1_1,
-        in1_2,
-        in1_3,
-        len_xor
-      );
-
-      let next_in2 = asProverNextVar(
-        input2,
-        in2_0,
-        in2_1,
-        in2_2,
-        in2_3,
-        len_xor
-      );
-
-      let next_out = asProverNextVar(
-        new Field(outputXor),
-        out_0,
-        out_1,
-        out_2,
-        out_3,
-        len_xor
-      );
-
-      let next_length = padLength - 4 * len_xor;
-      xorRec(next_in1, next_in2, next_out.value, next_length, len_xor);
-    }
   }
 
   // create two input arrays of length 255 set to false
@@ -148,7 +48,7 @@ function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
     }
   });
 
-  let outputXor = Snarky.existsVar(() => {
+  let outputXor = Provable.witness(Field, () => {
     // check real lengths are at most the desired length
     fitsInBits(input1, length);
     fitsInBits(input2, length);
@@ -164,7 +64,7 @@ function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
     });
 
     // convert bits to Field
-    return FieldConst.fromBigint(Field.fromBits(outputBits).toBigInt());
+    return Field.fromBits(outputBits);
   });
 
   // Obtain pad length until the length is a multiple of 4*n for n-bit length lookup table
@@ -179,6 +79,86 @@ function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
 
   // convert back to field
   return new Field(outputXor);
+}
+
+// builds xor chain recurisvely
+function xorRec(
+  input1: Field,
+  input2: Field,
+  outputXor: Field,
+  padLength: number,
+  len_xor: number
+) {
+  // if inputs are zero and length is zero, add the zero check
+
+  if (padLength == 0) {
+    Gates.zeroCheck(input1, input2, outputXor);
+
+    let zero = new Field(0);
+    zero.assertEquals(input1);
+    zero.assertEquals(input2);
+    zero.assertEquals(outputXor);
+  } else {
+    function ofBits(f: Field, start: number, stop: number) {
+      if (stop !== -1 && stop <= start)
+        throw Error('Stop offste must be greater than start offset');
+
+      return Provable.witness(Field, () => fieldBitsToFieldLE(f, start, stop));
+    }
+
+    // nibble offsets
+    let first = len_xor;
+    let second = first + len_xor;
+    let third = second + len_xor;
+    let fourth = third + len_xor;
+
+    let in1_0 = ofBits(input1, 0, first);
+    let in1_1 = ofBits(input1, first, second);
+    let in1_2 = ofBits(input1, second, third);
+    let in1_3 = ofBits(input1, third, fourth);
+    let in2_0 = ofBits(input2, 0, first);
+    let in2_1 = ofBits(input2, first, second);
+    let in2_2 = ofBits(input2, second, third);
+    let in2_3 = ofBits(input2, third, fourth);
+    let out_0 = ofBits(outputXor, 0, first);
+    let out_1 = ofBits(outputXor, first, second);
+    let out_2 = ofBits(outputXor, second, third);
+    let out_3 = ofBits(outputXor, third, fourth);
+
+    Gates.xor(
+      input1,
+      input2,
+      outputXor,
+      in1_0,
+      in1_1,
+      in1_2,
+      in1_3,
+      in2_0,
+      in2_1,
+      in2_2,
+      in2_3,
+      out_0,
+      out_1,
+      out_2,
+      out_3
+    );
+
+    let next_in1 = asProverNextVar(input1, in1_0, in1_1, in1_2, in1_3, len_xor);
+
+    let next_in2 = asProverNextVar(input2, in2_0, in2_1, in2_2, in2_3, len_xor);
+
+    let next_out = asProverNextVar(
+      outputXor,
+      out_0,
+      out_1,
+      out_2,
+      out_3,
+      len_xor
+    );
+
+    let next_length = padLength - 4 * len_xor;
+    xorRec(next_in1, next_in2, next_out, next_length, len_xor);
+  }
 }
 
 function assert(stmt: boolean, message?: string) {
