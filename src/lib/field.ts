@@ -5,6 +5,7 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
+import * as Gadgets from './gadgets/bitwise.js';
 
 // external API
 export { Field };
@@ -587,6 +588,29 @@ class Field {
     // constrain z * z === x
     Snarky.field.assertSquare(z, this.value);
     return new Field(z);
+  }
+
+  /**
+   * Bitwise XOR gate on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * The `length` parameter lets you define how many bits should be compared. By default it is set to `32`. The output is not constrained to the length.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
+   * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
+   *
+   * ```typescript
+   * let a = Field(5);    // ... 000101
+   * let b = Field(3);    // ... 000011
+   *
+   * let c = a.xor(b);    // ... 000110
+   * c.assertEquals(6);
+   * ```
+   */
+  xor(y: Field | bigint | number | string, length: number = 32) {
+    return Gadgets.xor(this, Field.from(y), length);
   }
 
   /**
