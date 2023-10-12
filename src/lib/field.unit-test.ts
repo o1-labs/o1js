@@ -63,7 +63,7 @@ let SmallField = Random.reject(
 );
 
 let { equivalent1, equivalent2, equivalentVoid1, equivalentVoid2 } =
-  createEquivalenceTesters(Field, Field);
+  createEquivalenceTesters();
 
 // arithmetic, both in- and outside provable code
 equivalent2((x, y) => x.add(y), Fp.add);

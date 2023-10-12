@@ -4,6 +4,7 @@
 import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
+import { Field } from '../core.js';
 
 export {
   equivalent,
@@ -51,7 +52,7 @@ function equivalent<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2>(
   { from, to }: FuncSpec<In1, Out1, In2, Out2>,
   f1: (...args: In1) => Out1,
   f2: (...args: In2) => Out2,
-  label?: string
+  label = 'expect equal results'
 ) {
   let generators = from.map((spec) => spec.rng);
   let assertEqual = to.assertEqual ?? deepEqual;
@@ -62,134 +63,122 @@ function equivalent<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2>(
       () => f1(...inputs),
       () =>
         to.back(f2(...(inputs.map((x, i) => from[i].there(x)) as any as In2))),
-      (x, y) => assertEqual(x, y, label ?? 'same results'),
+      (x, y) => assertEqual(x, y, label),
       label
     );
   });
 }
 
-let id = <T>(x: T) => x;
+function id<T>(x: T) {
+  return x;
+}
 
-function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
-  Field: Provable<Field>,
-  newField: (x: bigint) => Field
-) {
-  function equivalent1(
-    op1: (x: Field) => Field,
-    op2: (x: bigint) => bigint,
-    rng: Random<bigint> = Random.field
+// equivalence in provable code
+
+type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2> };
+type MaybeProvableFromSpec<T1, T2> = FromSpec<T1, T2> & {
+  provable?: Provable<T2>;
+};
+
+function equivalentProvable<
+  In extends Tuple<MaybeProvableFromSpec<any, any>>,
+  Out extends ToSpec<any, any>
+>({ from, to }: { from: In; to: Out }) {
+  return function run(
+    f1: (...args: Params1<In>) => Result1<Out>,
+    f2: (...args: Params2<In>) => Result2<Out>,
+    label = 'expect equal results'
   ) {
-    test(rng, (x0, assert) => {
-      let x = newField(x0);
+    let generators = from.map((spec) => spec.rng);
+    let assertEqual = to.assertEqual ?? deepEqual;
+    test(...(generators as any[]), (...args) => {
+      args.pop();
+      let inputs = args as any as Params1<In>;
+      let inputs2 = inputs.map((x, i) =>
+        from[i].there(x)
+      ) as any as Params2<In>;
+
       // outside provable code
       handleErrors(
-        () => op1(x),
-        () => op2(x0),
-        (a, b) => assert(a.toBigInt() === b, 'equal results')
+        () => f1(...inputs),
+        () => f2(...inputs2),
+        (x, y) => assertEqual(x, to.back(y), label),
+        label
       );
+
       // inside provable code
       Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
+        let inputWitnesses = inputs2.map((x, i) => {
+          let provable = from[i].provable;
+          return provable !== undefined
+            ? Provable.witness(provable, () => x)
+            : x;
+        }) as any as Params2<In>;
         handleErrors(
-          () => op1(x),
-          () => op2(x0),
-          (a, b) =>
-            Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
+          () => f1(...inputs),
+          () => f2(...inputWitnesses),
+          (x, y) => Provable.asProver(() => assertEqual(x, to.back(y), label))
         );
       });
     });
+  };
+}
+
+// some useful specs
+
+let unit: ToSpec<void, void> = { back: id, assertEqual() {} };
+
+let field: ProvableSpec<bigint, Field> = {
+  rng: Random.field,
+  there: (x) => new Field(x),
+  back: (x) => x.toBigInt(),
+  provable: Field,
+};
+
+let fieldBigint: Spec<bigint, bigint> = {
+  rng: Random.field,
+  there: id,
+  back: id,
+};
+
+// old equivalence testers
+
+function createEquivalenceTesters() {
+  function equivalent1(
+    f1: (x: Field) => Field,
+    f2: (x: bigint) => bigint,
+    rng: Random<bigint> = Random.field
+  ) {
+    let field_ = { ...field, rng };
+    equivalentProvable({ from: [field_], to: field_ })(f2, f1);
   }
   function equivalent2(
-    op1: (x: Field, y: Field | bigint) => Field,
-    op2: (x: bigint, y: bigint) => bigint,
+    f1: (x: Field, y: Field | bigint) => Field,
+    f2: (x: bigint, y: bigint) => bigint,
     rng: Random<bigint> = Random.field
   ) {
-    test(rng, rng, (x0, y0, assert) => {
-      let x = newField(x0);
-      let y = newField(y0);
-      // outside provable code
-      handleErrors(
-        () => op1(x, y),
-        () => op2(x0, y0),
-        (a, b) => assert(a.toBigInt() === b, 'equal results')
-      );
-      handleErrors(
-        () => op1(x, y0),
-        () => op2(x0, y0),
-        (a, b) => assert(a.toBigInt() === b, 'equal results')
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        y = Provable.witness(Field, () => y);
-        handleErrors(
-          () => op1(x, y),
-          () => op2(x0, y0),
-          (a, b) =>
-            Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
-        );
-        handleErrors(
-          () => op1(x, y0),
-          () => op2(x0, y0),
-          (a, b) =>
-            Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
-        );
-      });
-    });
+    let field_ = { ...field, rng };
+    let fieldBigint_ = { ...fieldBigint, rng };
+    equivalentProvable({ from: [field_, field_], to: field_ })(f2, f1);
+    equivalentProvable({ from: [field_, fieldBigint_], to: field_ })(f2, f1);
   }
   function equivalentVoid1(
-    op1: (x: Field) => void,
-    op2: (x: bigint) => void,
+    f1: (x: Field) => void,
+    f2: (x: bigint) => void,
     rng: Random<bigint> = Random.field
   ) {
-    test(rng, (x0) => {
-      let x = newField(x0);
-      // outside provable code
-      handleErrors(
-        () => op1(x),
-        () => op2(x0)
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        handleErrors(
-          () => op1(x),
-          () => op2(x0)
-        );
-      });
-    });
+    let field_ = { ...field, rng };
+    equivalentProvable({ from: [field_], to: unit })(f2, f1);
   }
   function equivalentVoid2(
-    op1: (x: Field, y: Field | bigint) => void,
-    op2: (x: bigint, y: bigint) => void,
+    f1: (x: Field, y: Field | bigint) => void,
+    f2: (x: bigint, y: bigint) => void,
     rng: Random<bigint> = Random.field
   ) {
-    test(rng, rng, (x0, y0) => {
-      let x = newField(x0);
-      let y = newField(y0);
-      // outside provable code
-      handleErrors(
-        () => op1(x, y),
-        () => op2(x0, y0)
-      );
-      handleErrors(
-        () => op1(x, y0),
-        () => op2(x0, y0)
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        y = Provable.witness(Field, () => y);
-        handleErrors(
-          () => op1(x, y),
-          () => op2(x0, y0)
-        );
-        handleErrors(
-          () => op1(x, y0),
-          () => op2(x0, y0)
-        );
-      });
-    });
+    let field_ = { ...field, rng };
+    let fieldBigint_ = { ...fieldBigint, rng };
+    equivalentProvable({ from: [field_, field_], to: unit })(f2, f1);
+    equivalentProvable({ from: [field_, fieldBigint_], to: unit })(f2, f1);
   }
 
   return { equivalent1, equivalent2, equivalentVoid1, equivalentVoid2 };
@@ -234,3 +223,18 @@ function throwError(message?: string): any {
 type AnyFunction = (...args: any) => any;
 
 type Tuple<T> = [] | [T, ...T[]];
+
+// infer input types from specs
+
+type Params1<Ins extends Tuple<FromSpec<any, any>>> = {
+  [k in keyof Ins]: Ins[k] extends FromSpec<infer In, any> ? In : never;
+};
+type Params2<Ins extends Tuple<FromSpec<any, any>>> = {
+  [k in keyof Ins]: Ins[k] extends FromSpec<any, infer In> ? In : never;
+};
+type Result1<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
+  ? Out1
+  : never;
+type Result2<Out extends ToSpec<any, any>> = Out extends ToSpec<any, infer Out2>
+  ? Out2
+  : never;
