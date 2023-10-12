@@ -7,14 +7,16 @@ import {
   field,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
-import { rangeCheck64 } from './range-check.js';
+import { Gadgets } from './gadgets.js';
+
+// TODO: make a ZkFunction or something that doesn't go through Pickles
 
 let RangeCheck64 = ZkProgram({
   methods: {
     run: {
       privateInputs: [Field],
       method(x) {
-        rangeCheck64(x);
+        Gadgets.rangeCheck64(x);
       },
     },
   },
