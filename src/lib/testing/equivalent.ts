@@ -8,12 +8,15 @@ import { Field } from '../core.js';
 
 export {
   equivalent,
+  equivalentProvable,
+  oneOf,
   createEquivalenceTesters,
   throwError,
   handleErrors,
   deepEqual as defaultAssertEqual,
   id,
 };
+export { field, fieldBigint };
 export { Spec, ToSpec, FromSpec, SpecFromFunctions };
 
 // a `Spec` tells us how to compare two functions
@@ -24,6 +27,11 @@ type FromSpec<In1, In2> = {
 
   // `there` converts to inputs to the second function
   there: (x: In1) => In2;
+
+  // `provable` tells us how to create witnesses, to test provable code
+  // note: we only allow the second function to be provable;
+  // the second because it's more natural to have non-provable types as random generator output
+  provable?: Provable<In2>;
 };
 
 type ToSpec<Out1, Out2> = {
@@ -35,6 +43,8 @@ type ToSpec<Out1, Out2> = {
 };
 
 type Spec<T1, T2> = FromSpec<T1, T2> & ToSpec<T1, T2>;
+
+type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2> };
 
 type FuncSpec<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2> = {
   from: {
@@ -73,30 +83,60 @@ function id<T>(x: T) {
   return x;
 }
 
-// equivalence in provable code
+// unions of specs, to cleanly model functions parameters that are unions of types
 
-type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2> };
-type MaybeProvableFromSpec<T1, T2> = FromSpec<T1, T2> & {
-  provable?: Provable<T2>;
+type FromSpecUnion<T1, T2> = {
+  _isUnion: true;
+  specs: Tuple<FromSpec<T1, T2>>;
+  rng: Random<[number, T1]>;
 };
 
+type OrUnion<T1, T2> = FromSpec<T1, T2> | FromSpecUnion<T1, T2>;
+
+type Union<T> = T[keyof T & number];
+
+function oneOf<In extends Tuple<FromSpec<any, any>>>(
+  ...specs: In
+): FromSpecUnion<Union<Params1<In>>, Union<Params2<In>>> {
+  // the randomly generated value from a union keeps track of which spec it came from
+  let rng = Random.oneOf(
+    ...specs.map((spec, i) =>
+      Random.map(spec.rng, (x) => [i, x] as [number, any])
+    )
+  );
+  return { _isUnion: true, specs, rng };
+}
+
+function toUnion<T1, T2>(spec: OrUnion<T1, T2>): FromSpecUnion<T1, T2> {
+  let specAny = spec as any;
+  return specAny._isUnion ? specAny : oneOf(specAny);
+}
+
+// equivalence in provable code
+
 function equivalentProvable<
-  In extends Tuple<MaybeProvableFromSpec<any, any>>,
+  In extends Tuple<OrUnion<any, any>>,
   Out extends ToSpec<any, any>
->({ from, to }: { from: In; to: Out }) {
+>({ from: fromRaw, to }: { from: In; to: Out }) {
+  let fromUnions = fromRaw.map(toUnion);
   return function run(
     f1: (...args: Params1<In>) => Result1<Out>,
     f2: (...args: Params2<In>) => Result2<Out>,
     label = 'expect equal results'
   ) {
-    let generators = from.map((spec) => spec.rng);
+    let generators = fromUnions.map((spec) => spec.rng);
     let assertEqual = to.assertEqual ?? deepEqual;
-    test(...(generators as any[]), (...args) => {
+    test(...generators, (...args) => {
       args.pop();
-      let inputs = args as any as Params1<In>;
-      let inputs2 = inputs.map((x, i) =>
-        from[i].there(x)
-      ) as any as Params2<In>;
+
+      // figure out which spec to use for each argument
+      let from = (args as [number, unknown][]).map(
+        ([j], i) => fromUnions[i].specs[j]
+      );
+      let inputs = (args as [number, unknown][]).map(
+        ([, x]) => x
+      ) as Params1<In>;
+      let inputs2 = inputs.map((x, i) => from[i].there(x)) as Params2<In>;
 
       // outside provable code
       handleErrors(
@@ -113,7 +153,7 @@ function equivalentProvable<
           return provable !== undefined
             ? Provable.witness(provable, () => x)
             : x;
-        }) as any as Params2<In>;
+        }) as Params2<In>;
         handleErrors(
           () => f1(...inputs),
           () => f2(...inputWitnesses),
@@ -144,13 +184,8 @@ let fieldBigint: Spec<bigint, bigint> = {
 // old equivalence testers
 
 function createEquivalenceTesters() {
-  function equivalent1(
-    f1: (x: Field) => Field,
-    f2: (x: bigint) => bigint,
-    rng: Random<bigint> = Random.field
-  ) {
-    let field_ = { ...field, rng };
-    equivalentProvable({ from: [field_], to: field_ })(f2, f1);
+  function equivalent1(f1: (x: Field) => Field, f2: (x: bigint) => bigint) {
+    equivalentProvable({ from: [field], to: field })(f2, f1);
   }
   function equivalent2(
     f1: (x: Field, y: Field | bigint) => Field,
@@ -226,12 +261,28 @@ type Tuple<T> = [] | [T, ...T[]];
 
 // infer input types from specs
 
-type Params1<Ins extends Tuple<FromSpec<any, any>>> = {
-  [k in keyof Ins]: Ins[k] extends FromSpec<infer In, any> ? In : never;
+type Param1<In extends OrUnion<any, any>> = In extends {
+  there: (x: infer In) => any;
+}
+  ? In
+  : In extends FromSpecUnion<infer T1, any>
+  ? T1
+  : never;
+type Param2<In extends OrUnion<any, any>> = In extends {
+  there: (x: any) => infer In;
+}
+  ? In
+  : In extends FromSpecUnion<any, infer T2>
+  ? T2
+  : never;
+
+type Params1<Ins extends Tuple<OrUnion<any, any>>> = {
+  [k in keyof Ins]: Param1<Ins[k]>;
 };
-type Params2<Ins extends Tuple<FromSpec<any, any>>> = {
-  [k in keyof Ins]: Ins[k] extends FromSpec<any, infer In> ? In : never;
+type Params2<Ins extends Tuple<OrUnion<any, any>>> = {
+  [k in keyof Ins]: Param2<Ins[k]>;
 };
+
 type Result1<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
   ? Out1
   : never;
