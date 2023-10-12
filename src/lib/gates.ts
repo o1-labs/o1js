@@ -1,7 +1,7 @@
 import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
 
-export { rangeCheck64 };
+export { rangeCheck64, xor, zeroCheck };
 
 /**
  * Asserts that x is at most 64 bits
@@ -40,6 +40,49 @@ function rangeCheck64(x: Field) {
     // not using compact mode
     FieldConst[0]
   );
+}
+
+/**
+ *
+ */
+function xor(
+  input1: Field,
+  input2: Field,
+  outputXor: Field,
+  in1_0: Field,
+  in1_1: Field,
+  in1_2: Field,
+  in1_3: Field,
+  in2_0: Field,
+  in2_1: Field,
+  in2_2: Field,
+  in2_3: Field,
+  out_0: Field,
+  out_1: Field,
+  out_2: Field,
+  out_3: Field
+) {
+  Snarky.gates.xor(
+    input1.value,
+    input2.value,
+    outputXor.value,
+    in1_0.value,
+    in1_1.value,
+    in1_2.value,
+    in1_3.value,
+    in2_0.value,
+    in2_1.value,
+    in2_2.value,
+    in2_3.value,
+    out_0.value,
+    out_1.value,
+    out_2.value,
+    out_3.value
+  );
+}
+
+function zeroCheck(in1: Field, in2: Field, out: Field) {
+  Snarky.gates.zeroCheck(in1.value, in2.value, out.value);
 }
 
 function getBits(x: bigint, start: number, length: number) {
