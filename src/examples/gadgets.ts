@@ -1,10 +1,22 @@
 import { Field, Provable, xor, Experimental } from 'o1js';
 
+Provable.runAndCheck(() => {
+  let res = xor(
+    Field(5215),
+    Provable.witness(Field, () => Field(7812)),
+    16
+  );
+  Provable.log(res);
+});
+
+let res = xor(Field(2), Field(5), 4);
+Provable.log(res);
+
 let cs = Provable.constraintSystem(() => {
   let res = xor(
     Provable.witness(Field, () => Field(5215)),
     Provable.witness(Field, () => Field(7812)),
-    4
+    2
   );
   Provable.log(res);
 });
