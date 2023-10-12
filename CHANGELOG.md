@@ -29,6 +29,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
 
+- `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
+
 ## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
@@ -36,10 +38,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Changes to some verification keys caused by changing the way `Struct` orders object properties. https://github.com/o1-labs/o1js/pull/1124 [@Comdex](https://github.com/Comdex)
   - To recover existing verification keys and behavior, change the order of properties in your Struct definitions to be alphabetical
   - The `customObjectKeys` option is removed from `Struct`
-
-### Added
-
-- `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
 
 ### Changed
 
