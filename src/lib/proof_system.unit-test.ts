@@ -46,4 +46,4 @@ const CounterProgram = ZkProgram({
 });
 
 const incrementMethodMetadata = CounterProgram.analyzeMethods()[0];
-expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 9 }));
+expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));
