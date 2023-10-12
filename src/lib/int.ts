@@ -67,7 +67,8 @@ class UInt64 extends CircuitValue {
   }
 
   static check(x: UInt64) {
-    rangeCheck64(x.value);
+    let actual = x.value.rangeCheckHelper(64);
+    actual.assertEquals(x.value);
   }
 
   static toInput(x: UInt64): HashInput {
