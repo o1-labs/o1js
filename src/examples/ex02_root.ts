@@ -1,4 +1,4 @@
-import { Field, Circuit, circuitMain, public_, UInt64 } from 'o1js';
+import { Field, Circuit, circuitMain, public_, UInt64, Gadgets } from 'o1js';
 
 /* Exercise 2:
 
@@ -10,6 +10,7 @@ Prove:
 class Main extends Circuit {
   @circuitMain
   static main(@public_ y: Field, x: UInt64) {
+    Gadgets.rangeCheck64(x.value);
     let y3 = y.square().mul(y);
     y3.assertEquals(x.value);
   }

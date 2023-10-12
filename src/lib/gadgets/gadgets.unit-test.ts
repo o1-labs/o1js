@@ -1,3 +1,4 @@
+import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { ZkProgram } from '../proof_system.js';
 import {
@@ -26,13 +27,15 @@ await RangeCheck64.compile();
 
 let maybeUint64: Spec<bigint, Field> = {
   ...field,
-  rng: Random.oneOf(Random.uint64, Random.uint64.invalid),
+  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
+    mod(x, Field.ORDER)
+  ),
 };
 
 // do a couple of proofs
 // TODO: we use this as a test because there's no way to check custom gates quickly :(
 
-equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
+equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 20 })(
   (x) => {
     if (x >= 1n << 64n) throw Error('expected 64 bits');
     return true;

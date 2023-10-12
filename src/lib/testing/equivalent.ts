@@ -139,15 +139,22 @@ function equivalentAsync<
     for (let i = 0; i < runs; i++) {
       let args = nexts.map((next) => next());
       let inputs = args as Params1<In>;
-      await handleErrorsAsync(
-        () => f1(...inputs),
-        async () =>
-          to.back(
-            await f2(...(inputs.map((x, i) => from[i].there(x)) as Params2<In>))
-          ),
-        (x, y) => assertEqual(x, y, label),
-        label
-      );
+      try {
+        await handleErrorsAsync(
+          () => f1(...inputs),
+          async () =>
+            to.back(
+              await f2(
+                ...(inputs.map((x, i) => from[i].there(x)) as Params2<In>)
+              )
+            ),
+          (x, y) => assertEqual(x, y, label),
+          label
+        );
+      } catch (err) {
+        console.log(...inputs);
+        throw err;
+      }
     }
   };
 }
