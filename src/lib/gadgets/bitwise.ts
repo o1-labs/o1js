@@ -41,7 +41,7 @@ function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
   ) {
     // if inputs are zero and length is zero, add the zero check
 
-    if (length == 0) {
+    if (padLength == 0) {
       Gates.zeroCheck(input1, input2, new Field(outputXor));
 
       let zero = new Field(0);
@@ -103,6 +103,27 @@ function bxor(input1: Field, input2: Field, length: number, len_xor = 4) {
         in1_3,
         len_xor
       );
+
+      let next_in2 = asProverNextVar(
+        input2,
+        in2_0,
+        in2_1,
+        in2_2,
+        in2_3,
+        len_xor
+      );
+
+      let next_out = asProverNextVar(
+        new Field(outputXor),
+        out_0,
+        out_1,
+        out_2,
+        out_3,
+        len_xor
+      );
+
+      let next_length = padLength - 4 * len_xor;
+      xorRec(next_in1, next_in2, next_out.value, next_length, len_xor);
     }
   }
 
