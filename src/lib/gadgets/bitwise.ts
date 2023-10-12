@@ -1,71 +1,55 @@
-import { Field } from '../field.js';
+import { Field, toFp } from '../field.js';
 import { Provable } from '../provable.js';
+import { Field as Fp } from '../../provable/field-bigint.js';
 import * as Gates from '../gates.js';
 
 export { xor };
 
 /**
- * Boolean Xor of length bits
- * input1 and input2 are the inputs to the Xor gate
- * length is the number of bits to Xor
- * len_xor is the number of bits of the lookup table (default is 4)
+ * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+ * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+ *
+ * The `length` parameter lets you define how many bits should be compared. By default it is set to `32`. The output is not constrained to the length.
+ *
+ * **Note:** Specifying a larger `length` parameter adds additional constraints.
+ *
+ * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
+ * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
+ *
+ * ```typescript
+ * let a = Field(5);    // ... 000101
+ * let b = Field(3);    // ... 000011
+ *
+ * let c = a.xor(b);    // ... 000110
+ * c.assertEquals(6);
+ * ```
  */
 function xor(a: Field, b: Field, length: number, len_xor = 4) {
   // check that both input lengths are positive
   assert(
     length > 0 && len_xor > 0,
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+    `Input lengths need to be positive values.`
   );
 
   // check that length does not exceed maximum field size in bits
   assert(
     length <= Field.sizeInBits(),
-    'Length exceeds maximum field size in bits.'
+    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
-  /*   if (a.isConstant() && b.isConstant()) {
-    throw Error('TODO constant case');
+  // check that both elements fit into length bits as prover
+  fitsInBits(a, length);
+  fitsInBits(b, length);
+
+  // handle constant case
+  if (a.isConstant() && b.isConstant()) {
+    return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
- */
-  // create two input arrays of length 255 set to false
-  let input1Array = new Array(length).fill(false);
-  let input2Array = new Array(length).fill(false);
 
-  // sanity check as prover about lengths of inputs
-  Provable.asProver(() => {
-    // check real lengths are at most the desired length
-    fitsInBits(a, length);
-    fitsInBits(b, length);
-
-    // converts input field elements to list of bits of length 255
-    let input1Bits = a.toBits();
-    let input2Bits = b.toBits();
-
-    // iterate over 255 positions to update value of arrays
-    for (let i = 0; i < Field.sizeInBits() - 1; i++) {
-      input1Array[i] = input1Bits[i];
-      input2Array[i] = input2Bits[i];
-    }
-  });
-
-  let outputXor = Provable.witness(Field, () => {
-    // check real lengths are at most the desired length
-    fitsInBits(a, length);
-    fitsInBits(b, length);
-
-    // converts input field elements to list of bits of length 255
-    let input1Bits = a.toBits();
-    let input2Bits = b.toBits();
-
-    let outputBits = input1Bits.map((bit, i) => {
-      let b1 = bit;
-      let b2 = input2Bits[i];
-      return b1.equals(b2).not();
-    });
-
-    // convert bits to Field
-    return Field.fromBits(outputBits);
-  });
+  let outputXor = Provable.witness(
+    Field,
+    () => new Field(Fp.xor(a.toBigInt(), b.toBigInt()))
+  );
 
   // Obtain pad length until the length is a multiple of 4*n for n-bit length lookup table
   let padLength = length;
@@ -80,7 +64,6 @@ function xor(a: Field, b: Field, length: number, len_xor = 4) {
   return outputXor;
 }
 
-let aa = 0;
 // builds xor chain recurisvely
 function xorRec(
   a: Field,
@@ -90,10 +73,6 @@ function xorRec(
   len_xor: number
 ) {
   // if inputs are zero and length is zero, add the zero check
-  console.log('padLength', padLength);
-  aa++;
-
-  if (aa >= 30) throw Error('too many calls');
   if (padLength === 0) {
     Gates.zeroCheck(a, b, outputXor);
 
@@ -172,7 +151,10 @@ function assert(stmt: boolean, message?: string) {
 
 function fitsInBits(word: Field, length: number) {
   Provable.asProver(() => {
-    assert(word.toBigInt() < 2 ** length, 'Word does not fit in bits');
+    assert(
+      word.toBigInt() < 2 ** length,
+      `${word.toBigInt()} does not fit into ${length} bits`
+    );
   });
 }
 
