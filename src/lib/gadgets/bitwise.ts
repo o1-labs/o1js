@@ -57,15 +57,14 @@ function xor(a: Field, b: Field, length: number, lengthXor = 4) {
     padLength = length + 4 * lengthXor - (length % (4 * lengthXor));
   }
 
-  // recurisvely build xor gadget
+  // recursively build xor gadget
+  buildXor(a, b, outputXor, padLength, lengthXor);
 
-  xorRec(a, b, outputXor, padLength, lengthXor);
-  // convert back to field
   return outputXor;
 }
 
-// builds xor chain recurisvely
-function xorRec(
+// builds xor chain recursively
+function buildXor(
   a: Field,
   b: Field,
   outputXor: Field,
@@ -118,11 +117,9 @@ function xorRec(
       out_3
     );
 
-    let next_in1 = asProverNextVar(a, in1_0, in1_1, in1_2, in1_3, lengthXor);
-
-    let next_in2 = asProverNextVar(b, in2_0, in2_1, in2_2, in2_3, lengthXor);
-
-    let next_out = asProverNextVar(
+    let nextIn1 = witnessNextValue(a, in1_0, in1_1, in1_2, in1_3, lengthXor);
+    let nextIn2 = witnessNextValue(b, in2_0, in2_1, in2_2, in2_3, lengthXor);
+    let nextOut = witnessNextValue(
       outputXor,
       out_0,
       out_1,
@@ -132,7 +129,7 @@ function xorRec(
     );
 
     let next_length = padLength - 4 * lengthXor;
-    xorRec(next_in1, next_in2, next_out, next_length, lengthXor);
+    buildXor(nextIn1, nextIn2, nextOut, next_length, lengthXor);
   }
 }
 
@@ -164,21 +161,20 @@ function sliceBits(f: Field, start: number, stop = -1) {
   });
 }
 
-function asProverNextVar(
+function witnessNextValue(
   current: Field,
   var0: Field,
   var1: Field,
   var2: Field,
   var3: Field,
-  len_xor: number
+  lenXor: number
 ) {
-  let twoPowLen = new Field(2 ** len_xor);
+  return Provable.witness(Field, () => {
+    let twoPowLen = new Field(2 ** lenXor);
+    let twoPow2Len = twoPowLen.mul(twoPowLen);
+    let twoPow3Len = twoPow2Len.mul(twoPowLen);
+    let twoPow4Len = twoPow3Len.mul(twoPowLen);
 
-  let twoPow2Len = twoPowLen.mul(twoPowLen);
-  let twoPow3Len = twoPow2Len.mul(twoPowLen);
-  let twoPow4Len = twoPow3Len.mul(twoPowLen);
-
-  let nextVar = Provable.witness(Field, () => {
     return current
       .sub(var0)
       .sub(var1.mul(twoPowLen))
@@ -186,6 +182,4 @@ function asProverNextVar(
       .sub(var3.mul(twoPow3Len))
       .div(twoPow4Len);
   });
-
-  return nextVar;
 }
