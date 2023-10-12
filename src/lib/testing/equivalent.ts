@@ -4,20 +4,19 @@
 import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
-import { Field } from '../core.js';
+import { Bool, Field } from '../core.js';
 
 export {
   equivalent,
   equivalentProvable,
   oneOf,
-  createEquivalenceTesters,
   throwError,
   handleErrors,
   deepEqual as defaultAssertEqual,
   id,
 };
-export { field, fieldBigint };
-export { Spec, ToSpec, FromSpec, SpecFromFunctions };
+export { field, bigintField, bool, unit };
+export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
 
 // a `Spec` tells us how to compare two functions
 
@@ -83,7 +82,7 @@ function id<T>(x: T) {
   return x;
 }
 
-// unions of specs, to cleanly model functions parameters that are unions of types
+// unions of specs, to cleanly model function parameters that are unions of types
 
 type FromSpecUnion<T1, T2> = {
   _isUnion: true;
@@ -170,54 +169,25 @@ let unit: ToSpec<void, void> = { back: id, assertEqual() {} };
 
 let field: ProvableSpec<bigint, Field> = {
   rng: Random.field,
-  there: (x) => new Field(x),
+  there: Field,
   back: (x) => x.toBigInt(),
   provable: Field,
 };
 
-let fieldBigint: Spec<bigint, bigint> = {
+let bigintField: Spec<bigint, bigint> = {
   rng: Random.field,
   there: id,
   back: id,
 };
 
-// old equivalence testers
+let bool: Spec<boolean, Bool> = {
+  rng: Random.boolean,
+  there: Bool,
+  back: (x) => x.toBoolean(),
+  provable: Bool,
+};
 
-function createEquivalenceTesters() {
-  function equivalent1(f1: (x: Field) => Field, f2: (x: bigint) => bigint) {
-    equivalentProvable({ from: [field], to: field })(f2, f1);
-  }
-  function equivalent2(
-    f1: (x: Field, y: Field | bigint) => Field,
-    f2: (x: bigint, y: bigint) => bigint,
-    rng: Random<bigint> = Random.field
-  ) {
-    let field_ = { ...field, rng };
-    let fieldBigint_ = { ...fieldBigint, rng };
-    equivalentProvable({ from: [field_, field_], to: field_ })(f2, f1);
-    equivalentProvable({ from: [field_, fieldBigint_], to: field_ })(f2, f1);
-  }
-  function equivalentVoid1(
-    f1: (x: Field) => void,
-    f2: (x: bigint) => void,
-    rng: Random<bigint> = Random.field
-  ) {
-    let field_ = { ...field, rng };
-    equivalentProvable({ from: [field_], to: unit })(f2, f1);
-  }
-  function equivalentVoid2(
-    f1: (x: Field, y: Field | bigint) => void,
-    f2: (x: bigint, y: bigint) => void,
-    rng: Random<bigint> = Random.field
-  ) {
-    let field_ = { ...field, rng };
-    let fieldBigint_ = { ...fieldBigint, rng };
-    equivalentProvable({ from: [field_, field_], to: unit })(f2, f1);
-    equivalentProvable({ from: [field_, fieldBigint_], to: unit })(f2, f1);
-  }
-
-  return { equivalent1, equivalent2, equivalentVoid1, equivalentVoid2 };
-}
+// helper to ensure two functions throw equivalent errors
 
 function handleErrors<T, S, R>(
   op1: () => T,
