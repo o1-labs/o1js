@@ -1,28 +1,34 @@
 // Live integration test against real Mina network.
-import { AccountUpdate, Field, Mina, PrivateKey, fetchAccount } from 'o1js';
+import {
+  AccountUpdate,
+  Field,
+  Lightnet,
+  Mina,
+  PrivateKey,
+  fetchAccount,
+} from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 
-const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';
-const senderKey = useLocalNetwork
-  ? PrivateKey.fromBase58(
-      'EKEnVLUhYHDJvgmgQu5SzaV8MWKNfhAXYSkLBRk5KEfudWZRbs4P'
-    )
-  : PrivateKey.random();
-const sender = senderKey.toPublicKey();
+const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 const zkAppKey = PrivateKey.random();
 const zkAppAddress = zkAppKey.toPublicKey();
 const transactionFee = 100_000_000;
 
 // Network configuration
-const network = Mina.Network(
-  useLocalNetwork
+const network = Mina.Network({
+  mina: useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
-    : 'https://proxy.berkeley.minaexplorer.com/graphql'
-);
+    : 'https://proxy.berkeley.minaexplorer.com/graphql',
+  lightnetAccountManager: 'http://localhost:8181',
+});
 Mina.setActiveInstance(network);
 
 // Fee payer setup
-if (!useLocalNetwork) {
+const senderKey = useCustomLocalNetwork
+  ? (await Lightnet.acquireKeyPair()).privateKey
+  : PrivateKey.random();
+const sender = senderKey.toPublicKey();
+if (!useCustomLocalNetwork) {
   console.log(`Funding the fee payer account.`);
   await Mina.faucet(sender);
 }
@@ -91,3 +97,9 @@ try {
   );
 }
 console.log('Success!');
+
+// Tear down
+const keyPairReleaseMessage = await Lightnet.releaseKeyPair({
+  publicKey: sender.toBase58(),
+});
+if (keyPairReleaseMessage) console.info(keyPairReleaseMessage);

@@ -19,7 +19,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/045faa7...HEAD)
 
+### Breaking changes
+
+- Constraint optimizations in Field methods and core crypto changes break all verification keys https://github.com/o1-labs/o1js/pull/1171 https://github.com/o1-labs/o1js/pull/1178
+
 ### Added
+
+- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
 
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
 
