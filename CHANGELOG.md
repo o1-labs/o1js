@@ -27,10 +27,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - To recover existing verification keys and behavior, change the order of properties in your Struct definitions to be alphabetical
   - The `customObjectKeys` option is removed from `Struct`
 
+### Added
+
+- `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
+
 ### Changed
 
 - Improve prover performance by ~25% https://github.com/o1-labs/o1js/pull/1092
   - Change internal representation of field elements to be JS bigint instead of Uint8Array
+- Consolidate internal framework for testing equivalence of two implementations
 
 ## [0.13.0](https://github.com/o1-labs/o1js/compare/fbd4b2717...c2f392fe5)
 
