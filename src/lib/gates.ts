@@ -81,8 +81,8 @@ function xor(
   );
 }
 
-function zeroCheck(in1: Field, in2: Field, out: Field) {
-  Snarky.gates.zeroCheck(in1.value, in2.value, out.value);
+function zeroCheck(a: Field, b: Field, c: Field) {
+  Snarky.gates.zeroCheck(a.value, b.value, c.value);
 }
 
 function getBits(x: bigint, start: number, length: number) {
