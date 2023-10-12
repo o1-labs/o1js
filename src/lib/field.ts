@@ -19,6 +19,7 @@ export {
   withMessage,
   readVarMessage,
   toConstantField,
+  toFp,
 };
 
 type FieldConst = [0, bigint];
