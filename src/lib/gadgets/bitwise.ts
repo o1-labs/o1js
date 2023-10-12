@@ -10,10 +10,10 @@ export { xor };
  * length is the number of bits to Xor
  * len_xor is the number of bits of the lookup table (default is 4)
  */
-function xor(input1: Field, input2: Field, length: number, len_xor = 4) {
+function xor(a: Field, b: Field, length: number, len_xor = 4) {
   // check that both input lengths are positive
   assert(
-    length > 0 && len_xor < 0,
+    length > 0 && len_xor > 0,
     `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
@@ -23,10 +23,10 @@ function xor(input1: Field, input2: Field, length: number, len_xor = 4) {
     'Length exceeds maximum field size in bits.'
   );
 
-  if (input1.isConstant() && input2.isConstant()) {
+  /*   if (a.isConstant() && b.isConstant()) {
     throw Error('TODO constant case');
   }
-
+ */
   // create two input arrays of length 255 set to false
   let input1Array = new Array(length).fill(false);
   let input2Array = new Array(length).fill(false);
@@ -34,12 +34,12 @@ function xor(input1: Field, input2: Field, length: number, len_xor = 4) {
   // sanity check as prover about lengths of inputs
   Provable.asProver(() => {
     // check real lengths are at most the desired length
-    fitsInBits(input1, length);
-    fitsInBits(input2, length);
+    fitsInBits(a, length);
+    fitsInBits(b, length);
 
     // converts input field elements to list of bits of length 255
-    let input1Bits = input1.toBits();
-    let input2Bits = input2.toBits();
+    let input1Bits = a.toBits();
+    let input2Bits = b.toBits();
 
     // iterate over 255 positions to update value of arrays
     for (let i = 0; i < Field.sizeInBits() - 1; i++) {
@@ -50,12 +50,12 @@ function xor(input1: Field, input2: Field, length: number, len_xor = 4) {
 
   let outputXor = Provable.witness(Field, () => {
     // check real lengths are at most the desired length
-    fitsInBits(input1, length);
-    fitsInBits(input2, length);
+    fitsInBits(a, length);
+    fitsInBits(b, length);
 
     // converts input field elements to list of bits of length 255
-    let input1Bits = input1.toBits();
-    let input2Bits = input2.toBits();
+    let input1Bits = a.toBits();
+    let input2Bits = b.toBits();
 
     let outputBits = input1Bits.map((bit, i) => {
       let b1 = bit;
@@ -75,10 +75,9 @@ function xor(input1: Field, input2: Field, length: number, len_xor = 4) {
 
   // recurisvely build xor gadget
 
-  xorRec(input1, input2, outputXor, padLength, len_xor);
-
+  xorRec(a, b, outputXor, padLength, len_xor);
   // convert back to field
-  return new Field(outputXor);
+  return outputXor;
 }
 
 // builds xor chain recurisvely
