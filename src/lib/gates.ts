@@ -62,7 +62,6 @@ function xor(
   out_2: Field,
   out_3: Field
 ) {
-  console.log('XOR');
   Snarky.gates.xor(
     input1.value,
     input2.value,
