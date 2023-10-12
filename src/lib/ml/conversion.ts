@@ -99,9 +99,5 @@ function fromPublicKeyVar(pk: PublicKey): MlPublicKeyVar {
   return MlTuple(pk.x.value, pk.isOdd.toField().value);
 }
 function toPublicKeyVar([, x, isOdd]: MlPublicKeyVar): PublicKey {
-  return PublicKey.from({
-    x: Field(x),
-    // TODO
-    isOdd: Bool.Unsafe.ofField(Field(isOdd)),
-  });
+  return PublicKey.from({ x: Field(x), isOdd: Bool(isOdd) });
 }
