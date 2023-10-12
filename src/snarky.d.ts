@@ -298,6 +298,25 @@ declare const Snarky: {
       ],
       compact: FieldConst
     ): void;
+
+    rot(
+      word: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: [0, FieldVar, FieldVar, FieldVar, FieldVar],
+      crumbs: [
+        0,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar
+      ],
+      two_to_rot: FieldConst
+    ): void;
   };
 
   bool: {
