@@ -9,13 +9,14 @@ import { Bool, Field } from '../core.js';
 export {
   equivalent,
   equivalentProvable,
+  equivalentAsync,
   oneOf,
   throwError,
   handleErrors,
   deepEqual as defaultAssertEqual,
   id,
 };
-export { field, bigintField, bool, unit };
+export { field, bigintField, bool, boolean, unit };
 export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
 
 // a `Spec` tells us how to compare two functions
@@ -119,6 +120,38 @@ function equivalent<
   };
 }
 
+// async equivalence
+
+function equivalentAsync<
+  In extends Tuple<FromSpec<any, any>>,
+  Out extends ToSpec<any, any>
+>({ from, to }: { from: In; to: Out }, { runs = 1 } = {}) {
+  return async function run(
+    f1: (...args: Params1<In>) => Promise<Result1<Out>> | Result1<Out>,
+    f2: (...args: Params2<In>) => Promise<Result2<Out>> | Result2<Out>,
+    label = 'expect equal results'
+  ) {
+    let generators = from.map((spec) => spec.rng);
+    let assertEqual = to.assertEqual ?? deepEqual;
+
+    let nexts = generators.map((g) => g.create());
+
+    for (let i = 0; i < runs; i++) {
+      let args = nexts.map((next) => next());
+      let inputs = args as Params1<In>;
+      await handleErrorsAsync(
+        () => f1(...inputs),
+        async () =>
+          to.back(
+            await f2(...(inputs.map((x, i) => from[i].there(x)) as Params2<In>))
+          ),
+        (x, y) => assertEqual(x, y, label),
+        label
+      );
+    }
+  };
+}
+
 // equivalence tester for provable code
 
 function equivalentProvable<
@@ -194,6 +227,11 @@ let bool: ProvableSpec<boolean, Bool> = {
   back: (x) => x.toBoolean(),
   provable: Bool,
 };
+let boolean: Spec<boolean, boolean> = {
+  rng: Random.boolean,
+  there: id,
+  back: id,
+};
 
 // helper to ensure two functions throw equivalent errors
 
@@ -213,6 +251,36 @@ function handleErrors<T, S, R>(
   }
   try {
     result2 = op2();
+  } catch (err) {
+    error2 = err as Error;
+  }
+  if (!!error1 !== !!error2) {
+    error1 && console.log(error1);
+    error2 && console.log(error2);
+  }
+  let message = `${(label && `${label}: `) || ''}equivalent errors`;
+  deepEqual(!!error1, !!error2, message);
+  if (!(error1 || error2) && useResults !== undefined) {
+    return useResults(result1!, result2!);
+  }
+}
+
+async function handleErrorsAsync<T, S, R>(
+  op1: () => T,
+  op2: () => S,
+  useResults?: (a: Awaited<T>, b: Awaited<S>) => R,
+  label?: string
+): Promise<R | undefined> {
+  let result1: Awaited<T>, result2: Awaited<S>;
+  let error1: Error | undefined;
+  let error2: Error | undefined;
+  try {
+    result1 = await op1();
+  } catch (err) {
+    error1 = err as Error;
+  }
+  try {
+    result2 = await op2();
   } catch (err) {
     error2 = err as Error;
   }
