@@ -12,7 +12,7 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType };
 
 // internal
 export {
