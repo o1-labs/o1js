@@ -9,7 +9,7 @@ const MAX_BITS = 64 as const;
 function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
   // Check that the rotation bits are in range
   if (bits < 0 || bits > MAX_BITS) {
-    throw Error(`rot64: expected bits to be between 0 and 64, got ${bits}`);
+    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
   }
 
   // Check that the input word is at most 64 bits.
