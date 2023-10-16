@@ -10,6 +10,7 @@ import {
   FeatureFlags,
   MlFeatureFlags,
   Gate,
+  GateType,
 } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
@@ -846,6 +847,18 @@ function dummyBase64Proof() {
   return withThreadPool(async () => Pickles.dummyBase64Proof());
 }
 
+// what feature flags to set to enable certain gate types
+
+const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
+  RangeCheck0: 'rangeCheck0',
+  RangeCheck1: 'rangeCheck1',
+  ForeignFieldAdd: 'foreignFieldAdd',
+  ForeignFieldMul: 'foreignFieldMul',
+  Xor16: 'xor',
+  Rot64: 'rot',
+  Lookup: 'lookup',
+};
+
 function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
   let flags: FeatureFlags = {
     rangeCheck0: false,
@@ -858,31 +871,8 @@ function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
     runtimeTables: false,
   };
   for (let gate of gates) {
-    switch (gate.type) {
-      case 'RangeCheck0':
-        flags.rangeCheck0 = true;
-        break;
-      case 'RangeCheck1':
-        flags.rangeCheck1 = true;
-        break;
-      case 'ForeignFieldAdd':
-        flags.foreignFieldAdd = true;
-        break;
-      case 'ForeignFieldMul':
-        flags.foreignFieldMul = true;
-        break;
-      case 'Xor16':
-        flags.xor = true;
-        break;
-      case 'Rot64':
-        flags.rot = true;
-        break;
-      case 'Lookup':
-        flags.lookup = true;
-        break;
-      default:
-        break;
-    }
+    let flag = gateToFlag[gate.type];
+    if (flag !== undefined) flags[flag] = true;
   }
   return [
     0,
