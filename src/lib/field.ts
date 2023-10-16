@@ -605,9 +605,9 @@ class Field {
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction (true) left or (false) right rotation direction.
    */
-  rot64(bits: number, direction: 'left' | 'right' = 'left') {
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
     if (this.isConstant()) {
-      return new Field(Fp.rot64(this.toBigInt(), bits, direction === 'left'));
+      return new Field(Fp.rot(this.toBigInt(), bits, direction === 'left'));
     } else {
       return rot(this, bits, direction);
     }

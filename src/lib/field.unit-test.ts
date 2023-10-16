@@ -42,9 +42,9 @@ test(
   Random.boolean,
   (x, n, direction, assert) => {
     let z = Field(x);
-    let r1 = Fp.rot64(x, n, direction);
+    let r1 = Fp.rot(x, n, direction);
     Provable.runAndCheck(() => {
-      let r2 = Provable.witness(Field, () => z).rot64(
+      let r2 = Provable.witness(Field, () => z).rot(
         n,
         direction ? 'left' : 'right'
       );

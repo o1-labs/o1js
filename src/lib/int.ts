@@ -385,7 +385,7 @@ class UInt64 extends CircuitValue {
    * @param direction (true) left or (false) right rotation direction.
    */
   rot(bits: number, direction: 'left' | 'right' = 'left') {
-    return new UInt64(this.value.rot64(bits, direction));
+    return new UInt64(this.value.rot(bits, direction));
   }
 }
 /**
@@ -737,7 +737,7 @@ class UInt32 extends CircuitValue {
    * @param direction (true) left or (false) right rotation direction.
    */
   rot(bits: number, direction: 'left' | 'right' = 'left') {
-    return new UInt32(this.value.rot64(bits, direction));
+    return new UInt32(this.value.rot(bits, direction));
   }
 }
 
