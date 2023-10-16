@@ -371,6 +371,22 @@ class UInt64 extends CircuitValue {
   assertGreaterThanOrEqual(y: UInt64, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
+
+  /**
+   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
+   * ```typescript
+   * let a = UInt64.from(12);
+   * let b = a.rot(2, true);  // left rotation by 2 bit
+   * c.assertEquals(20);
+   * ```
+   *
+   * @param bits amount of bits to rotate this {@link UInt64} element with.
+   * @param direction (true) left or (false) right rotation direction.
+   */
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
+    return new UInt64(this.value.rot64(bits, direction));
+  }
 }
 /**
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
@@ -706,6 +722,22 @@ class UInt32 extends CircuitValue {
    */
   assertGreaterThanOrEqual(y: UInt32, message?: string) {
     y.assertLessThanOrEqual(this, message);
+  }
+
+  /**
+   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
+   * ```typescript
+   * let a = UInt32.from(12);
+   * let b = a.rot(2, true);  // left rotation by 2 bit
+   * c.assertEquals(20);
+   * ```
+   *
+   * @param bits amount of bits to rotate this {@link UInt64} element with.
+   * @param direction (true) left or (false) right rotation direction.
+   */
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
+    return new UInt32(this.value.rot64(bits, direction));
   }
 }
 

@@ -35,6 +35,24 @@ test(Random.field, Random.json.field, (x, y, assert) => {
   assert(z.toJSON() === y);
 });
 
+// rotation
+test(
+  Random.uint64,
+  Random.nat(64),
+  Random.boolean,
+  (x, n, direction, assert) => {
+    let z = Field(x);
+    let r1 = Fp.rot64(x, n, direction);
+    Provable.runAndCheck(() => {
+      let r2 = Provable.witness(Field, () => z).rot64(
+        n,
+        direction ? 'left' : 'right'
+      );
+      Provable.asProver(() => assert(r1 === r2.toBigInt()));
+    });
+  }
+);
+
 // handles small numbers
 test(Random.nat(1000), (n, assert) => {
   assert(Field(n).toString() === String(n));
