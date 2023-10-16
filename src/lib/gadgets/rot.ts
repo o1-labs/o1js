@@ -2,7 +2,7 @@ import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import * as Gates from '../gates.js';
 
-export { rot };
+export { rot, rotate };
 
 const MAX_BITS = 64 as const;
 
@@ -21,17 +21,8 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
     }
   });
 
-  // Compute actual length depending on whether the rotation mode is "left" or "right"
-  let rotationBits = bits;
-  if (direction === 'right') {
-    rotationBits = MAX_BITS - bits;
-  }
-
   // Compute rotated word
-  const [rotated, excess, shifted, bound] = computeRotatedWord(
-    word,
-    rotationBits
-  );
+  const [rotated, excess, shifted, bound] = rotate(word, bits, direction);
 
   // Compute current row
   Gates.rot(
@@ -63,7 +54,17 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
   return rotated;
 }
 
-function computeRotatedWord(word: Field, rotationBits: number) {
+function rotate(
+  word: Field,
+  bits: number,
+  direction: 'left' | 'right' = 'left'
+) {
+  // Compute actual length depending on whether the rotation mode is "left" or "right"
+  let rotationBits = bits;
+  if (direction === 'right') {
+    rotationBits = MAX_BITS - bits;
+  }
+
   return Provable.witness(Provable.Array(Field, 4), () => {
     const wordBigInt = word.toBigInt();
 
