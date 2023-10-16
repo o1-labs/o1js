@@ -21,7 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
-- Constraint optimizations in core Field methods cause breaking changes to most verification keys https://github.com/o1-labs/o1js/pull/1171
+- Constraint optimizations in Field methods and core crypto changes break all verification keys https://github.com/o1-labs/o1js/pull/1171 https://github.com/o1-labs/o1js/pull/1178
 
 ### Added
 

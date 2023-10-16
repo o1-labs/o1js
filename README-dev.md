@@ -63,3 +63,12 @@ The following branches are compatible:
 | branches   | rampup -> main -> main                |
 |            | berkeley -> berkeley -> berkeley      |
 |            | develop -> develop -> develop         |
+
+## Run the GitHub actions locally
+
+<!-- The test example should stay in sync with a real value set in .github/workflows/build-actions.yml -->
+You can execute the CI locally by using [act](https://github.com/nektos/act). First generate a GitHub token and use:
+```
+act -j Build-And-Test-Server --matrix test_type:"Simple integration tests" -s $GITHUB_TOKEN
+```
+to execute the job "Build-And-Test-Server for the test type `Simple integration tests`.
