@@ -69,9 +69,11 @@ class UInt64 extends CircuitValue {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
+
   static toInput(x: UInt64): HashInput {
     return { packed: [[x.value, 64]] };
   }
+
   /**
    * Encodes this structure into a JSON-like object.
    */

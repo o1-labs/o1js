@@ -4,7 +4,14 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { ProvablePure, Pickles } from '../snarky.js';
+import {
+  ProvablePure,
+  Pickles,
+  FeatureFlags,
+  MlFeatureFlags,
+  Gate,
+  GateType,
+} from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   FlexibleProvable,
@@ -18,7 +25,7 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlTuple } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
 
@@ -249,6 +256,12 @@ function ZkProgram<
   let methodFunctions = keys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
+  function analyzeMethods() {
+    return methodIntfs.map((methodEntry, i) =>
+      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    );
+  }
+
   let compileOutput:
     | {
         provers: Pickles.Prover[];
@@ -260,14 +273,17 @@ function ZkProgram<
     | undefined;
 
   async function compile() {
-    let { provers, verify, verificationKey } = await compileProgram(
+    let methodsMeta = analyzeMethods();
+    let gates = methodsMeta.map((m) => m.gates);
+    let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
       methodIntfs,
-      methodFunctions,
-      selfTag,
-      config.overrideWrapDomain
-    );
+      methods: methodFunctions,
+      gates,
+      proofSystemTag: selfTag,
+      overrideWrapDomain: config.overrideWrapDomain,
+    });
     compileOutput = { provers, verify };
     return { verificationKey: verificationKey.data };
   }
@@ -350,12 +366,6 @@ function ZkProgram<
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
-  }
-
-  function analyzeMethods() {
-    return methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
-    );
   }
 
   return Object.assign(
@@ -500,21 +510,31 @@ type MethodInterface = {
 // reasonable default choice for `overrideWrapDomain`
 const maxProofsToWrapDomain = { 0: 0, 1: 1, 2: 1 } as const;
 
-async function compileProgram(
-  publicInputType: ProvablePure<any>,
-  publicOutputType: ProvablePure<any>,
-  methodIntfs: MethodInterface[],
-  methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string },
-  overrideWrapDomain?: 0 | 1 | 2
-) {
+async function compileProgram({
+  publicInputType,
+  publicOutputType,
+  methodIntfs,
+  methods,
+  gates,
+  proofSystemTag,
+  overrideWrapDomain,
+}: {
+  publicInputType: ProvablePure<any>;
+  publicOutputType: ProvablePure<any>;
+  methodIntfs: MethodInterface[];
+  methods: ((...args: any) => void)[];
+  gates: Gate[][];
+  proofSystemTag: { name: string };
+  overrideWrapDomain?: 0 | 1 | 2;
+}) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       publicInputType,
       publicOutputType,
       methods[i],
       proofSystemTag,
-      methodEntry
+      methodEntry,
+      gates[i]
     )
   );
   let maxProofs = getMaxProofsVerified(methodIntfs);
@@ -589,7 +609,8 @@ function picklesRuleFromFunction(
   publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
+  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
+  gates: Gate[]
 ): Pickles.Rule {
   function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
@@ -664,9 +685,13 @@ function picklesRuleFromFunction(
       return { isSelf: false, tag: compiledTag };
     }
   });
+
+  let featureFlags = computeFeatureFlags(gates);
+
   return {
     identifier: methodName,
     main,
+    featureFlags,
     proofsToVerify: MlArray.to(proofsToVerify),
   };
 }
@@ -820,6 +845,46 @@ ZkProgram.Proof = function <
 
 function dummyBase64Proof() {
   return withThreadPool(async () => Pickles.dummyBase64Proof());
+}
+
+// what feature flags to set to enable certain gate types
+
+const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
+  RangeCheck0: 'rangeCheck0',
+  RangeCheck1: 'rangeCheck1',
+  ForeignFieldAdd: 'foreignFieldAdd',
+  ForeignFieldMul: 'foreignFieldMul',
+  Xor16: 'xor',
+  Rot64: 'rot',
+  Lookup: 'lookup',
+};
+
+function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
+  let flags: FeatureFlags = {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  };
+  for (let gate of gates) {
+    let flag = gateToFlag[gate.type];
+    if (flag !== undefined) flags[flag] = true;
+  }
+  return [
+    0,
+    MlBool(flags.rangeCheck0),
+    MlBool(flags.rangeCheck1),
+    MlBool(flags.foreignFieldAdd),
+    MlBool(flags.foreignFieldMul),
+    MlBool(flags.xor),
+    MlBool(flags.rot),
+    MlBool(flags.lookup),
+    MlBool(flags.runtimeTables),
+  ];
 }
 
 // helpers for circuit context
