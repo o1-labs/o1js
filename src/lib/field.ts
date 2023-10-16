@@ -606,10 +606,6 @@ class Field {
    * @param direction (true) left or (false) right rotation direction.
    */
   rot64(bits: number, direction: 'left' | 'right' = 'left') {
-    // Check that the rotation bits are in range
-    if (bits < 0 || bits > 64) {
-      throw Error(`rot64: expected bits to be between 0 and 64, got ${bits}`);
-    }
     if (this.isConstant()) {
       return new Field(Fp.rot64(this.toBigInt(), bits, direction === 'left'));
     } else {

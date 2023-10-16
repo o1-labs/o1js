@@ -7,9 +7,14 @@ export { rot };
 const MAX_BITS = 64 as const;
 
 function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
+  // Check that the rotation bits are in range
+  if (bits < 0 || bits > 64) {
+    throw Error(`rot64: expected bits to be between 0 and 64, got ${bits}`);
+  }
+
   // Check that the input word is at most 64 bits.
   Provable.asProver(() => {
-    if (word.toBigInt() < 2 ** MAX_BITS) {
+    if (word.toBigInt() > 2 ** MAX_BITS) {
       throw Error(
         `rot: expected word to be at most 64 bits, got ${word.toBigInt()}`
       );
@@ -59,14 +64,15 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
 }
 
 function computeRotatedWord(word: Field, rotationBits: number) {
-  // Auxiliary BigInt values
-  const big2Power64 = 2n ** 64n;
-  const big2PowerRot = 2n ** BigInt(rotationBits);
-  const wordBigInt = word.toBigInt();
-
   return Provable.witness(Provable.Array(Field, 4), () => {
+    const wordBigInt = word.toBigInt();
+
+    // Auxiliary BigInt values
+    const big2Power64 = 2n ** 64n;
+    const big2PowerRot = 2n ** BigInt(rotationBits);
+
     // Assert that the word is at most 64 bits.
-    if (wordBigInt < big2Power64) {
+    if (wordBigInt > big2Power64) {
       throw Error(
         `rot: expected word to be at most 64 bits, got ${word.toBigInt()}`
       );
