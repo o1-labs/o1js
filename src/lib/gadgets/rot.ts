@@ -1,33 +1,12 @@
 import { Field } from '../field.js';
-import { UInt64 } from '../int.js';
 import { Provable } from '../provable.js';
-import { Field as Fp } from '../../provable/field-bigint.js';
 import * as Gates from '../gates.js';
 
 export { rot };
 
 const MAX_BITS = 64 as const;
 
-function rot(word: Field, direction: 'left' | 'right' = 'left', bits: number) {
-  // Check that the rotation bits are in range
-  if (bits < 0 || bits > 64) {
-    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
-  }
-
-  if (word.isConstant()) {
-    return new Field(Fp.rot64(word.toBigInt(), bits, direction === 'left'));
-  } else {
-    // Check that the input word is at most 64 bits.
-    UInt64.check(UInt64.from(word));
-    return rot_provable(word, direction, bits);
-  }
-}
-
-function rot_provable(
-  word: Field,
-  direction: 'left' | 'right' = 'left',
-  bits: number
-) {
+function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
   // Check that the input word is at most 64 bits.
   Provable.asProver(() => {
     if (word.toBigInt() < 2 ** MAX_BITS) {
