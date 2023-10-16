@@ -303,18 +303,8 @@ declare const Snarky: {
       word: FieldVar,
       rotated: FieldVar,
       excess: FieldVar,
-      limbs: [0, FieldVar, FieldVar, FieldVar, FieldVar],
-      crumbs: [
-        0,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar
-      ],
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
       two_to_rot: FieldConst
     ): void;
   };
