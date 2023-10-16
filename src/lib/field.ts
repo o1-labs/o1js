@@ -522,7 +522,8 @@ class Field {
    * @return A {@link Field} element equivalent to the modular division of the two value.
    */
   div(y: Field | bigint | number | string) {
-    // TODO this is the same as snarky-ml but could use 1 constraint instead of 2
+    // this intentionally uses 2 constraints instead of 1 to avoid an unconstrained output when dividing 0/0
+    // (in this version, division by 0 is strictly not allowed)
     return this.mul(Field.from(y).inv());
   }
 
@@ -640,7 +641,7 @@ class Field {
     // ^^^ these prove that b = Bool(x === 0):
     // if x = 0, the 2nd equation implies b = 1
     // if x != 0, the 1st implies b = 0
-    return Bool.Unsafe.ofField(new Field(b));
+    return new Bool(b);
   }
 
   /**
@@ -658,10 +659,6 @@ class Field {
    */
   equals(y: Field | bigint | number | string): Bool {
     // x == y is equivalent to x - y == 0
-    // TODO: this is less efficient than possible for equivalence with snarky-ml
-    return this.sub(y).isZero();
-    // more efficient code is commented below
-    /* 
     // if one of the two is constant, we just need the two constraints in `isZero`
     if (this.isConstant() || isConstant(y)) {
       return this.sub(y).isZero();
@@ -672,7 +669,6 @@ class Field {
     );
     Snarky.field.assertEqual(this.sub(y).value, xMinusY);
     return new Field(xMinusY).isZero();
-    */
   }
 
   // internal base method for all comparisons
@@ -690,10 +686,7 @@ class Field {
         );
     });
     let [, less, lessOrEqual] = Snarky.field.compare(maxLength, this.value, y);
-    return {
-      less: Bool.Unsafe.ofField(new Field(less)),
-      lessOrEqual: Bool.Unsafe.ofField(new Field(lessOrEqual)),
-    };
+    return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
   }
 
   /**
@@ -780,8 +773,7 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is greater than another "field-like" value.
    */
   greaterThan(y: Field | bigint | number | string) {
-    // TODO: this is less efficient than possible for equivalence with ml
-    return this.lessThanOrEqual(y).not();
+    return Field.from(y).lessThan(this);
   }
 
   /**
@@ -808,8 +800,7 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is greater than or equal another "field-like" value.
    */
   greaterThanOrEqual(y: Field | bigint | number | string) {
-    // TODO: this is less efficient than possible for equivalence with ml
-    return this.lessThan(y).not();
+    return Field.from(y).lessThanOrEqual(this);
   }
 
   /**
@@ -989,7 +980,7 @@ class Field {
       return bits.map((b) => new Bool(b));
     }
     let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
-    return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
+    return bits.map((b) => new Bool(b));
   }
 
   /**
@@ -1061,9 +1052,7 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    // TODO: this is just commented for constraint equivalence with the old version
-    // uncomment to sometimes save constraints
-    // if (this.isConstant()) return this;
+    if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
     return new Field(x);
   }
