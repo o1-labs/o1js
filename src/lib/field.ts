@@ -5,6 +5,7 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
+import { rot } from './gadgets/rot.js';
 
 // external API
 export { Field };
@@ -587,6 +588,33 @@ class Field {
     // constrain z * z === x
     Snarky.field.assertSquare(z, this.value);
     return new Field(z);
+  }
+
+  /**
+   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
+   *
+   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
+   *
+   * ```typescript
+   * let a = Field(12);
+   * let b = a.rot(2, 'left');  // left rotation by 2 bit
+   * c.assertEquals(20);
+   * ```
+   *
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction (true) left or (false) right rotation direction.
+   */
+  rot64(bits: number, direction: 'left' | 'right' = 'left') {
+    // Check that the rotation bits are in range
+    if (bits < 0 || bits > 64) {
+      throw Error(`rot64: expected bits to be between 0 and 64, got ${bits}`);
+    }
+    if (this.isConstant()) {
+      return new Field(Fp.rot64(this.toBigInt(), bits, direction === 'left'));
+    } else {
+      return rot(this, bits, direction);
+    }
   }
 
   /**
