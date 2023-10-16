@@ -377,12 +377,12 @@ class UInt64 extends CircuitValue {
    * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
    * ```typescript
    * let a = UInt64.from(12);
-   * let b = a.rot(2, true);  // left rotation by 2 bit
-   * c.assertEquals(20);
+   * let b = a.rot(2, 'left');  // left rotation by 2 bit
+   * b.assertEquals(48);
    * ```
    *
    * @param bits amount of bits to rotate this {@link UInt64} element with.
-   * @param direction (true) left or (false) right rotation direction.
+   * @param direction left or right rotation direction.
    */
   rot(bits: number = UInt64.NUM_BITS, direction: 'left' | 'right' = 'left') {
     return new UInt64(this.value.rot(bits, direction));
@@ -729,12 +729,12 @@ class UInt32 extends CircuitValue {
    * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
    * ```typescript
    * let a = UInt32.from(12);
-   * let b = a.rot(2, true);  // left rotation by 2 bit
-   * c.assertEquals(20);
+   * let b = a.rot(2, 'left');  // left rotation by 2 bit
+   * b.assertEquals(48);
    * ```
    *
    * @param bits amount of bits to rotate this {@link UInt64} element with.
-   * @param direction (true) left or (false) right rotation direction.
+   * @param direction left or right rotation direction.
    */
   rot(bits: number = UInt32.NUM_BITS, direction: 'left' | 'right' = 'left') {
     return new UInt32(this.value.rot(bits, direction));
