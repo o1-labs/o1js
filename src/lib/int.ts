@@ -384,7 +384,7 @@ class UInt64 extends CircuitValue {
    * @param bits amount of bits to rotate this {@link UInt64} element with.
    * @param direction (true) left or (false) right rotation direction.
    */
-  rot(bits: number, direction: 'left' | 'right' = 'left') {
+  rot(bits: number = UInt64.NUM_BITS, direction: 'left' | 'right' = 'left') {
     return new UInt64(this.value.rot(bits, direction));
   }
 }
@@ -736,7 +736,7 @@ class UInt32 extends CircuitValue {
    * @param bits amount of bits to rotate this {@link UInt64} element with.
    * @param direction (true) left or (false) right rotation direction.
    */
-  rot(bits: number, direction: 'left' | 'right' = 'left') {
+  rot(bits: number = UInt32.NUM_BITS, direction: 'left' | 'right' = 'left') {
     return new UInt32(this.value.rot(bits, direction));
   }
 }
