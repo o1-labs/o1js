@@ -1,5 +1,6 @@
 import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
+import { MlArray } from './ml/base.js';
 
 export { rangeCheck64, rot };
 
@@ -43,24 +44,21 @@ function rangeCheck64(x: Field) {
 }
 
 function rot(
-  word: FieldVar,
-  rotated: FieldVar,
-  excess: FieldVar,
-  limbs: [0, FieldVar, FieldVar, FieldVar, FieldVar],
-  crumbs: [
-    0,
-    FieldVar,
-    FieldVar,
-    FieldVar,
-    FieldVar,
-    FieldVar,
-    FieldVar,
-    FieldVar,
-    FieldVar
-  ],
-  two_to_rot: FieldConst
+  word: Field,
+  rotated: Field,
+  excess: Field,
+  limbs: [Field, Field, Field, Field],
+  crumbs: [Field, Field, Field, Field, Field, Field, Field, Field],
+  two_to_rot: Field
 ) {
-  Snarky.gates.rot(word, rotated, excess, limbs, crumbs, two_to_rot);
+  Snarky.gates.rot(
+    word.value,
+    rotated.value,
+    excess.value,
+    MlArray.to(limbs.map((x) => x.value)),
+    MlArray.to(crumbs.map((x) => x.value)),
+    FieldConst.fromBigint(two_to_rot.toBigInt())
+  );
 }
 
 function getBits(x: bigint, start: number, length: number) {
