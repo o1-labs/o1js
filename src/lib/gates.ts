@@ -1,7 +1,7 @@
 import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
 
-export { rangeCheck64 };
+export { rangeCheck64, rot };
 
 /**
  * Asserts that x is at most 64 bits
@@ -40,6 +40,27 @@ function rangeCheck64(x: Field) {
     // not using compact mode
     FieldConst[0]
   );
+}
+
+function rot(
+  word: FieldVar,
+  rotated: FieldVar,
+  excess: FieldVar,
+  limbs: [0, FieldVar, FieldVar, FieldVar, FieldVar],
+  crumbs: [
+    0,
+    FieldVar,
+    FieldVar,
+    FieldVar,
+    FieldVar,
+    FieldVar,
+    FieldVar,
+    FieldVar,
+    FieldVar
+  ],
+  two_to_rot: FieldConst
+) {
+  Snarky.gates.rot(word, rotated, excess, limbs, crumbs, two_to_rot);
 }
 
 function getBits(x: bigint, start: number, length: number) {
