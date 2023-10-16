@@ -67,7 +67,6 @@ function rotate(
 
   return Provable.witness(Provable.Array(Field, 4), () => {
     const wordBigInt = word.toBigInt();
-
     // Auxiliary BigInt values
     const big2Power64 = 2n ** 64n;
     const big2PowerRot = 2n ** BigInt(rotationBits);
@@ -81,25 +80,17 @@ function rotate(
 
     // Obtain rotated output, excess, and shifted for the equation
     // word * 2^rot = excess * 2^64 + shifted
-    const { quotient: excessBigInt, remainder: shiftedBigInt } = divRem(
+    const { quotient: excess, remainder: shifted } = divideWithRemainder(
       wordBigInt * big2PowerRot,
       big2Power64
     );
-
     // Compute rotated value as
     // rotated = excess + shifted
-    const rotatedBig = shiftedBigInt + excessBigInt;
-
+    const rotated = shifted + excess;
     // Compute bound that is the right input of FFAdd equation
-    const boundBig = excessBigInt + big2Power64 - big2PowerRot;
+    const bound = excess + big2Power64 - big2PowerRot;
 
-    // Convert back to field
-    const shifted = Field.from(shiftedBigInt);
-    const excess = Field.from(excessBigInt);
-    const rotated = Field.from(rotatedBig);
-    const bound = Field.from(boundBig);
-
-    return [rotated, excess, shifted, bound];
+    return [rotated, excess, shifted, bound].map(Field.from);
   });
 }
 
@@ -121,7 +112,7 @@ function witnessSlices(f: Field, start: number, stop = -1) {
   });
 }
 
-function divRem(numerator: bigint, denominator: bigint) {
+function divideWithRemainder(numerator: bigint, denominator: bigint) {
   const quotient = numerator / denominator;
   const remainder = numerator - denominator * quotient;
   return { quotient, remainder };
