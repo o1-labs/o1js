@@ -8,6 +8,17 @@ export { rot, rotate };
 const MAX_BITS = 64 as const;
 
 function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
+  // Check that the rotation bits are in range
+  if (bits < 0 || bits > MAX_BITS) {
+    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
+  }
+
+  if (direction !== 'left' && direction !== 'right') {
+    throw Error(
+      `rot: expected direction to be 'left' or 'right', got ${direction}`
+    );
+  }
+
   if (word.isConstant()) {
     return new Field(Fp.rot(word.toBigInt(), bits, direction === 'left'));
   }
@@ -20,17 +31,6 @@ function rotate(
   bits: number,
   direction: 'left' | 'right' = 'left'
 ): [Field, Field, Field] {
-  // Check that the rotation bits are in range
-  if (bits < 0 || bits > MAX_BITS) {
-    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
-  }
-
-  if (direction !== 'left' && direction !== 'right') {
-    throw Error(
-      `rot: expected direction to be 'left' or 'right', got ${direction}`
-    );
-  }
-
   // Check as the prover, that the input word is at most 64 bits.
   Provable.asProver(() => {
     if (word.toBigInt() > 2 ** MAX_BITS) {
@@ -41,7 +41,7 @@ function rotate(
   });
 
   const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
-  const big2Power64 = 2n ** 64n;
+  const big2Power64 = 2n ** BigInt(MAX_BITS);
   const big2PowerRot = 2n ** BigInt(rotationBits);
 
   const [rotated, excess, shifted, bound] = Provable.witness(
@@ -92,6 +92,7 @@ function rotate(
   Gates.rangeCheck64(shifted);
   // Compute following row
   Gates.rangeCheck64(excess);
+  Gates.rangeCheck64(rotated);
   return [rotated, excess, shifted];
 }
 
