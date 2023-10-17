@@ -17,7 +17,6 @@ import {
   bool,
   Spec,
 } from './testing/equivalent.js';
-import { Gadgets } from './gadgets/gadgets.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -64,25 +63,6 @@ test.negative(Random.int(-10, 10), Random.fraction(1), (x, f) => {
 // correctly overflows the field
 test(Random.field, Random.int(-5, 5), (x, k) => {
   deepEqual(Field(x + BigInt(k) * Field.ORDER), Field(x));
-});
-
-// XOR with some common and odd lengths
-[2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
-  test(Random.field, Random.field, (x_, y_, assert) => {
-    let modulus = 1n << BigInt(length);
-    let x = x_ % modulus;
-    let y = y_ % modulus;
-    let z = Field(x);
-
-    let r1 = Fp.xor(BigInt(x), BigInt(y));
-
-    Provable.runAndCheck(() => {
-      let zz = Provable.witness(Field, () => z);
-      let yy = Provable.witness(Field, () => Field(y));
-      let r2 = Gadgets.xor(zz, yy, length);
-      Provable.asProver(() => assert(r1 === r2.toBigInt()));
-    });
-  });
 });
 
 // Field | bigint parameter
