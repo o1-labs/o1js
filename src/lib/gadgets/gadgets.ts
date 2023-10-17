@@ -50,10 +50,13 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(12));
-   * const y = rot(x, 2, 'left'); // left rotation by 2 bit
-   * const z = rot(x, 2, 'right'); // right rotation by 2 bit
+   * const y = rot(x, 2, 'left'); // left rotation by 2 bits
+   * const z = rot(x, 2, 'right'); // right rotation by 2 bits
    * y.assertEquals(48);
    * z.assertEquals(3)
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * rot(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
   rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {

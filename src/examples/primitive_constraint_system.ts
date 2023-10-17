@@ -69,7 +69,7 @@ const BitwiseMock = {
     Gadgets.rot(a, 2, 'left');
     Gadgets.rot(a, 2, 'right');
     Gadgets.rot(a, 4, 'left');
-    Gadgets.rot(a, 4, 'left');
+    Gadgets.rot(a, 4, 'right');
   },
 };
 
