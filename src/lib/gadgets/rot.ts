@@ -1,5 +1,6 @@
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
+import { Fp } from '../../bindings/crypto/finite_field.js';
 import * as Gates from '../gates.js';
 
 export { rot, rotate };
@@ -7,6 +8,9 @@ export { rot, rotate };
 const MAX_BITS = 64 as const;
 
 function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
+  if (word.isConstant()) {
+    return new Field(Fp.rot(word.toBigInt(), bits, direction === 'left'));
+  }
   const [rotated] = rotate(word, bits, direction);
   return rotated;
 }

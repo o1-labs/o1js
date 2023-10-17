@@ -48,10 +48,12 @@ const Gadgets = {
    * @throws Throws an error if the input value exceeds 64 bits.
    *
    * @example
-   * ```typescript
-   * let a = Field(12);
-   * let b = a.rot(2, 'left');  // left rotation by 2 bit
-   * b.assertEquals(48);
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12));
+   * const y = rot(x, 2, 'left'); // left rotation by 2 bit
+   * const z = rot(x, 2, 'right'); // right rotation by 2 bit
+   * y.assertEquals(48);
+   * z.assertEquals(3)
    * ```
    */
   rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {

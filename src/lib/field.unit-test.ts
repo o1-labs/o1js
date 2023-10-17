@@ -17,6 +17,7 @@ import {
   bool,
   Spec,
 } from './testing/equivalent.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -53,10 +54,8 @@ test(
     let z = Field(x);
     let r1 = Fp.rot(x, n, direction);
     Provable.runAndCheck(() => {
-      let r2 = Provable.witness(Field, () => z).rot(
-        n,
-        direction ? 'left' : 'right'
-      );
+      let f = Provable.witness(Field, () => z);
+      let r2 = Gadgets.rot(f, n, direction ? 'left' : 'right');
       Provable.asProver(() => assert(r1 === r2.toBigInt()));
     });
   }

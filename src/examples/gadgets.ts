@@ -1,4 +1,4 @@
-import { Field, Provable, Experimental } from 'o1js';
+import { Field, Provable, Experimental, Gadgets } from 'o1js';
 
 function testRot(
   word: Field,
@@ -9,7 +9,7 @@ function testRot(
   Provable.runAndCheck(() => {
     let w = Provable.witness(Field, () => word);
     let r = Provable.witness(Field, () => result);
-    let output = w.rot(bits, mode);
+    let output = Gadgets.rot(w, bits, mode);
     Provable.asProver(() => {
       Provable.log(`rot(${word}, ${bits}, ${mode}) = ${output}`);
     });
@@ -41,8 +41,14 @@ testRot(
 console.log('🎉 Passed positive tests');
 
 let cs = Provable.constraintSystem(() => {
-  let res1 = Provable.witness(Field, () => Field(12).rot(2, 'left'));
-  let res2 = Provable.witness(Field, () => Field(12).rot(2, 'right'));
+  let res1 = Provable.witness(Field, () => {
+    let f = Field(12);
+    return Gadgets.rot(f, 2, 'left');
+  });
+  let res2 = Provable.witness(Field, () => {
+    let f = Field(12);
+    return Gadgets.rot(f, 2, 'right');
+  });
 
   res1.assertEquals(Field(48));
   res2.assertEquals(Field(3));
@@ -58,8 +64,8 @@ const ROT = Experimental.ZkProgram({
       privateInputs: [],
       method: () => {
         let a = Provable.witness(Field, () => Field(48));
-        let actualLeft = a.rot(2, 'left');
-        let actualRight = a.rot(2, 'right');
+        let actualLeft = Gadgets.rot(a, 2, 'left');
+        let actualRight = Gadgets.rot(a, 2, 'right');
 
         let expectedLeft = Field(192);
         actualLeft.assertEquals(expectedLeft);
