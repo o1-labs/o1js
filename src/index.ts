@@ -1,5 +1,3 @@
-export { xor } from './lib/gadgets/bitwise.js';
-
 export type { ProvablePure } from './snarky.js';
 export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
@@ -68,7 +66,7 @@ export {
   setGraphqlEndpoints,
   setArchiveGraphqlEndpoint,
   sendZkapp,
-  Lightnet
+  Lightnet,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';

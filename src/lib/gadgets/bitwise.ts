@@ -115,6 +115,7 @@ function buildXor(
     let out2 = witnessSlices(expectedOutput, second, third);
     let out3 = witnessSlices(expectedOutput, third, fourth);
 
+    // assert that the xor of the slices is correct, 16 bit at a time
     Gates.xor(
       a,
       b,

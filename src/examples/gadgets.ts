@@ -1,7 +1,7 @@
-import { Field, Provable, xor, Experimental } from 'o1js';
+import { Field, Provable, Gadgets, Experimental } from 'o1js';
 
 Provable.runAndCheck(() => {
-  let res = xor(
+  let res = Gadgets.xor(
     Field(5215),
     Provable.witness(Field, () => Field(7812)),
     16
@@ -9,11 +9,11 @@ Provable.runAndCheck(() => {
   Provable.log(res);
 });
 
-let res = xor(Field(2), Field(5), 4);
+let res = Gadgets.xor(Field(2), Field(5), 4);
 Provable.log(res);
 
 let cs = Provable.constraintSystem(() => {
-  let res = xor(
+  let res = Gadgets.xor(
     Provable.witness(Field, () => Field(5215)),
     Provable.witness(Field, () => Field(7812)),
     2
@@ -29,7 +29,7 @@ const XOR = Experimental.ZkProgram({
       method: () => {
         let a = Provable.witness(Field, () => Field(5));
         let b = Provable.witness(Field, () => Field(2));
-        let actual = xor(a, b, 4);
+        let actual = Gadgets.xor(a, b, 4);
         let expected = Field(7);
         actual.assertEquals(expected);
       },

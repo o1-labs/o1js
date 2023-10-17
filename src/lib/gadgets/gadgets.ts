@@ -2,6 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
+import { xor } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -32,5 +33,28 @@ const Gadgets = {
    */
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
+  },
+
+  /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * The `length` parameter lets you define how many bits should be compared. The output is not constrained to the length.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
+   * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
+   *
+   * ```typescript
+   * let a = Field(5);    // ... 000101
+   * let b = Field(3);    // ... 000011
+   *
+   * let c = xor(a, b, 2);    // ... 000110
+   * c.assertEquals(6);
+   * ```
+   */
+  xor(a: Field, b: Field, length: number, lengthXor = 4) {
+    return xor(a, b, length, lengthXor);
   },
 };
