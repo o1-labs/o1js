@@ -1,5 +1,10 @@
 import { ZkProgram } from '../proof_system.js';
-import { Spec, equivalentAsync, field } from '../testing/equivalent.js';
+import {
+  Spec,
+  equivalent,
+  equivalentAsync,
+  field,
+} from '../testing/equivalent.js';
 import { Fp, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gadgets } from './gadgets.js';
@@ -21,24 +26,19 @@ let Bitwise = ZkProgram({
 await Bitwise.compile();
 
 // XOR with some common and odd lengths
+let uint = (length: number) => fieldWithRng(Random.biguint(length));
+
 [2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
-  test(Random.field, Random.field, (x_, y_, assert) => {
-    let modulus = 1n << BigInt(length);
-    let x = x_ % modulus;
-    let y = y_ % modulus;
-    let z = new Field(x);
-
-    let r1 = Fp.xor(BigInt(x), BigInt(y));
-
-    Provable.runAndCheck(() => {
-      let zz = Provable.witness(Field, () => z);
-      let yy = Provable.witness(Field, () => new Field(y));
-      let r2 = Gadgets.xor(zz, yy, length);
-      Provable.asProver(() => assert(r1 === r2.toBigInt()));
-    });
-  });
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    Fp.xor,
+    (x, y) => Gadgets.xor(x, y, length)
+  );
 });
 
+// helper that should be added to `equivalent.ts`
+function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
+  return { ...field, rng };
+}
 let maybeUint64: Spec<bigint, Field> = {
   ...field,
   rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>

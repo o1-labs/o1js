@@ -5,27 +5,6 @@ import * as Gates from '../gates.js';
 
 export { xor };
 
-/**
- * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
- * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
- *
- * This gadget builds a chain of XOR gates recursively. Each XOR gate can verify 16 bit at most. If your input elements exceed 16 bit, another XOR gate will be added to the chain.
- *
- * The `length` parameter lets you define how many bits should be compared. The output is not constrained to the length.
- *
- * **Note:** Specifying a larger `length` parameter adds additional constraints.
- *
- * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
- * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
- *
- * ```typescript
- * let a = Field(5);    // ... 000101
- * let b = Field(3);    // ... 000011
- *
- * let c = xor(a, b, 2);    // ... 000110
- * c.assertEquals(6);
- * ```
- */
 function xor(a: Field, b: Field, length: number, lengthXor = 4) {
   // check that both input lengths are positive
   assert(
@@ -39,8 +18,8 @@ function xor(a: Field, b: Field, length: number, lengthXor = 4) {
     `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
-  // sanity check as prover to check that both elements fit into length bits
-  Provable.asProver(() => {
+  // handle constant case
+  if (a.isConstant() && b.isConstant()) {
     assert(
       a.toBigInt() < 2 ** length,
       `${a.toBigInt()} does not fit into ${length} bits`
@@ -50,10 +29,7 @@ function xor(a: Field, b: Field, length: number, lengthXor = 4) {
       b.toBigInt() < 2 ** length,
       `${b.toBigInt()} does not fit into ${length} bits`
     );
-  });
 
-  // handle constant case
-  if (a.isConstant() && b.isConstant()) {
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
 
@@ -64,10 +40,8 @@ function xor(a: Field, b: Field, length: number, lengthXor = 4) {
   );
 
   // obtain pad length until the length is a multiple of 4*n for n-bit length lookup table
-  let padLength = length;
-  if (length % (4 * lengthXor) !== 0) {
-    padLength = length + 4 * lengthXor - (length % (4 * lengthXor));
-  }
+  let l = 4 * lengthXor;
+  let padLength = Math.ceil(length / l) * l;
 
   // recursively build xor gadget chain
   buildXor(a, b, outputXor, padLength, lengthXor);
@@ -86,14 +60,14 @@ function buildXor(
 ) {
   // if inputs are zero and length is zero, add the zero check
   if (padLength === 0) {
-    Gates.zeroCheck(a, b, expectedOutput);
+    Gates.zero(a, b, expectedOutput);
 
     let zero = new Field(0);
     zero.assertEquals(a);
     zero.assertEquals(b);
     zero.assertEquals(expectedOutput);
   } else {
-    // nibble offsets
+    // lengthXor-sized offsets
     let first = lengthXor;
     let second = first + lengthXor;
     let third = second + lengthXor;

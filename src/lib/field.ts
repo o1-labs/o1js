@@ -1246,9 +1246,9 @@ class Field {
   /**
    * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
    *
-   * As all {@link Field} elements have 31 bytes, this function returns 31.
+   * As all {@link Field} elements have 32 bytes, this function returns 32.
    *
-   * @return The size of a {@link Field} element - 31.
+   * @return The size of a {@link Field} element - 32.
    */
   static sizeInBytes() {
     return Fp.sizeInBytes();
