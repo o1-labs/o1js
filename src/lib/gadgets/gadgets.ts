@@ -2,6 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
+import { rot } from './rot.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -32,5 +33,28 @@ const Gadgets = {
    */
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
+  },
+
+  /**
+   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
+   *
+   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
+   *
+   * @param word {@link Field} element to rotate.
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
+   * ```typescript
+   * let a = Field(12);
+   * let b = a.rot(2, 'left');  // left rotation by 2 bit
+   * b.assertEquals(48);
+   * ```
+   */
+  rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rot(word, bits, direction);
   },
 };
