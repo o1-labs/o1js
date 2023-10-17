@@ -596,14 +596,17 @@ class Field {
    *
    * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
    *
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
    * ```typescript
    * let a = Field(12);
    * let b = a.rot(2, 'left');  // left rotation by 2 bit
    * b.assertEquals(48);
    * ```
-   *
-   * @param bits amount of bits to rotate this {@link Field} element with.
-   * @param direction left or right rotation direction.
    */
   rot(bits: number = 64, direction: 'left' | 'right' = 'left') {
     if (this.isConstant()) {

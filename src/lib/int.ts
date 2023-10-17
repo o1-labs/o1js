@@ -374,15 +374,21 @@ class UInt64 extends CircuitValue {
 
   /**
    * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
-   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
+   *
+   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
+   *
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
    * ```typescript
-   * let a = UInt64.from(12);
+   * let a = Field(12);
    * let b = a.rot(2, 'left');  // left rotation by 2 bit
    * b.assertEquals(48);
    * ```
-   *
-   * @param bits amount of bits to rotate this {@link UInt64} element with.
-   * @param direction left or right rotation direction.
    */
   rot(bits: number = UInt64.NUM_BITS, direction: 'left' | 'right' = 'left') {
     return new UInt64(this.value.rot(bits, direction));
@@ -726,15 +732,21 @@ class UInt32 extends CircuitValue {
 
   /**
    * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
-   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.   *
+   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
+   *
+   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
+   *
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
    * ```typescript
-   * let a = UInt32.from(12);
+   * let a = Field(12);
    * let b = a.rot(2, 'left');  // left rotation by 2 bit
    * b.assertEquals(48);
    * ```
-   *
-   * @param bits amount of bits to rotate this {@link UInt64} element with.
-   * @param direction left or right rotation direction.
    */
   rot(bits: number = UInt32.NUM_BITS, direction: 'left' | 'right' = 'left') {
     return new UInt32(this.value.rot(bits, direction));
