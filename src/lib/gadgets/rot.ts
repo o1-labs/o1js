@@ -27,7 +27,7 @@ function rotate(
     );
   }
 
-  // Check that the input word is at most 64 bits.
+  // Check as the prover, that the input word is at most 64 bits.
   Provable.asProver(() => {
     if (word.toBigInt() > 2 ** MAX_BITS) {
       throw Error(
