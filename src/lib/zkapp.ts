@@ -674,7 +674,7 @@ class SmartContract {
         (instance as any)[methodName](publicInput, ...args);
       };
     });
-    // run methods once to get information tshat we need already at compile time
+    // run methods once to get information that we need already at compile time
     let methodsMeta = this.analyzeMethods();
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let {

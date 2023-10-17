@@ -3,7 +3,6 @@ import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import { rangeCheck64 } from './gadgets/range-check.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -67,7 +66,8 @@ class UInt64 extends CircuitValue {
   }
 
   static check(x: UInt64) {
-    rangeCheck64(x.value);
+    let actual = x.value.rangeCheckHelper(64);
+    actual.assertEquals(x.value);
   }
 
   static toInput(x: UInt64): HashInput {
