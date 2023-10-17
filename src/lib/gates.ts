@@ -43,7 +43,7 @@ function rangeCheck64(x: Field) {
 }
 
 /**
- *
+ * Asserts that 16 bit limbs of input two elements are the correct XOR output
  */
 function xor(
   input1: Field,
@@ -57,10 +57,10 @@ function xor(
   in2_1: Field,
   in2_2: Field,
   in2_3: Field,
-  out_0: Field,
-  out_1: Field,
-  out_2: Field,
-  out_3: Field
+  out0: Field,
+  out1: Field,
+  out2: Field,
+  out3: Field
 ) {
   Snarky.gates.xor(
     input1.value,
@@ -74,10 +74,10 @@ function xor(
     in2_1.value,
     in2_2.value,
     in2_3.value,
-    out_0.value,
-    out_1.value,
-    out_2.value,
-    out_3.value
+    out0.value,
+    out1.value,
+    out2.value,
+    out3.value
   );
 }
 
