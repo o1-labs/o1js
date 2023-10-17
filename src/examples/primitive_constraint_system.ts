@@ -1,4 +1,4 @@
-import { Field, Group, Poseidon, Provable, Scalar } from 'o1js';
+import { Field, Group, Gadgets, Provable, Scalar } from 'o1js';
 
 function mock(obj: { [K: string]: (...args: any) => void }, name: string) {
   let methodKeys = Object.keys(obj);
@@ -63,4 +63,16 @@ const GroupMock = {
   },
 };
 
+const BitwiseMock = {
+  xor() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    let b = Provable.witness(Field, () => new Field(5n));
+    Gadgets.xor(a, b, 16);
+    Gadgets.xor(a, b, 32);
+    Gadgets.xor(a, b, 48);
+    Gadgets.xor(a, b, 64);
+  },
+};
+
 export const GroupCS = mock(GroupMock, 'Group Primitive');
+export const BitwiseCS = mock(BitwiseMock, 'Bitwise Primitive');
