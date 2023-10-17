@@ -390,7 +390,7 @@ class UInt64 extends CircuitValue {
    * b.assertEquals(48);
    * ```
    */
-  rot(bits: number = UInt64.NUM_BITS, direction: 'left' | 'right' = 'left') {
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
     return new UInt64(this.value.rot(bits, direction));
   }
 }
@@ -748,7 +748,7 @@ class UInt32 extends CircuitValue {
    * b.assertEquals(48);
    * ```
    */
-  rot(bits: number = UInt32.NUM_BITS, direction: 'left' | 'right' = 'left') {
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
     return new UInt32(this.value.rot(bits, direction));
   }
 }

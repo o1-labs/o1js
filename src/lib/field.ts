@@ -608,7 +608,7 @@ class Field {
    * b.assertEquals(48);
    * ```
    */
-  rot(bits: number = 64, direction: 'left' | 'right' = 'left') {
+  rot(bits: number, direction: 'left' | 'right' = 'left') {
     if (this.isConstant()) {
       return new Field(Fp.rot(this.toBigInt(), bits, direction === 'left'));
     } else {
