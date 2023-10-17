@@ -1,6 +1,6 @@
-import { Field, toFp } from '../field.js';
 import { Provable } from '../provable.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
+import { Field } from '../field.js';
 import * as Gates from '../gates.js';
 
 export { xor };
@@ -8,6 +8,8 @@ export { xor };
 /**
  * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
  * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+ *
+ * This gadget builds a chain of XOR gates recursively. Each XOR gate can verify 16 bit at most. If your input elements exceed 16 bit, another XOR gate will be added to the chain.
  *
  * The `length` parameter lets you define how many bits should be compared. The output is not constrained to the length.
  *

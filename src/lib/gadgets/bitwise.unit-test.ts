@@ -1,8 +1,8 @@
-import { Fp, mod } from '../../bindings/crypto/finite_field.js';
-import { Field } from '../field.js';
 import { ZkProgram } from '../proof_system.js';
 import { Spec, equivalentAsync, field } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
+import { Fp, mod } from '../../bindings/crypto/finite_field.js';
+import { Field } from '../field.js';
 import { Gadgets } from './gadgets.js';
 
 let Bitwise = ZkProgram({

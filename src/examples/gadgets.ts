@@ -2,9 +2,9 @@ import { Field, Provable, Gadgets, Experimental } from 'o1js';
 
 Provable.runAndCheck(() => {
   let res = Gadgets.xor(
-    Field(5215),
-    Provable.witness(Field, () => Field(7812)),
-    16
+    Field(521515),
+    Provable.witness(Field, () => Field(771812)),
+    32
   );
   Provable.log(res);
 });

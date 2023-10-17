@@ -116,21 +116,6 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * Bitwise XOR gate on {@link UInt64} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
-   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal. It applies XOR to all 64 bits of the elements.
-   * ```typescript
-   * let a = UInt64.from(5);    // ... 000101
-   * let b = UInt64.from(3);    // ... 000011
-   *
-   * let c = a.xor(b);    // ... 000110
-   * c.assertEquals(6);
-   * ```
-   */
-  xor(y: UInt64) {
-    return new UInt64(this.value.xor(y.value, UInt64.NUM_BITS));
-  }
-
-  /**
    * Integer division with remainder.
    *
    * `x.divMod(y)` returns the quotient and the remainder.
@@ -472,21 +457,6 @@ class UInt32 extends CircuitValue {
    */
   static MAXINT() {
     return new UInt32(Field((1n << 32n) - 1n));
-  }
-
-  /**
-   * Bitwise XOR gate on {@link UInt32} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
-   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal. It applies XOR to all 32 bits of the elements.
-   * ```typescript
-   * let a = UInt32.from(5);    // ... 000101
-   * let b = UInt32.from(3);    // ... 000011
-   *
-   * let c = a.xor(b);    // ... 000110
-   * c.assertEquals(6);
-   * ```
-   */
-  xor(y: UInt32) {
-    return new UInt32(this.value.xor(y.value, UInt32.NUM_BITS));
   }
 
   /**

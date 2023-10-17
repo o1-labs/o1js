@@ -17,6 +17,7 @@ import {
   bool,
   Spec,
 } from './testing/equivalent.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -76,11 +77,14 @@ test(Random.field, Random.int(-5, 5), (x, k) => {
     let r1 = Fp.xor(BigInt(x), BigInt(y));
 
     Provable.runAndCheck(() => {
-      let r2 = Provable.witness(Field, () => z).xor(y, length);
+      let zz = Provable.witness(Field, () => z);
+      let yy = Provable.witness(Field, () => Field(y));
+      let r2 = Gadgets.xor(zz, yy, length);
       Provable.asProver(() => assert(r1 === r2.toBigInt()));
     });
   });
 });
+
 // Field | bigint parameter
 let fieldOrBigint = oneOf(field, bigintField);
 
