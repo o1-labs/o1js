@@ -49,8 +49,7 @@ let maybeUint64: Spec<bigint, Field> = {
 // do a couple of proofs
 equivalentAsync({ from: [maybeUint64, maybeUint64], to: field }, { runs: 3 })(
   (x, y) => {
-    if (x > 2 ** length || y > 2 ** length)
-      throw Error('Does not fit into 64 bits');
+    if (x > 2 ** 64 || y > 2 ** 64) throw Error('Does not fit into 64 bits');
     return Fp.xor(x, y);
   },
   async (x, y) => {
