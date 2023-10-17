@@ -12,7 +12,7 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType };
 
 // internal
 export {
@@ -282,6 +282,14 @@ declare const Snarky: {
   };
 
   gates: {
+    /**
+     * Range check gate
+     *
+     * @param v0 field var to be range checked
+     * @param v0p bits 16 to 88 as 6 12-bit limbs
+     * @param v0c bits 0 to 16 as 8 2-bit limbs
+     * @param compact boolean field elements -- whether to use "compact mode"
+     */
     rangeCheck0(
       v0: FieldVar,
       v0p: [0, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar],
@@ -573,16 +581,30 @@ type MlFeatureFlags = [
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
   type Statement<F> = [_: 0, publicInput: MlArray<F>, publicOutput: MlArray<F>];
+
+  /**
+   * A "rule" is a circuit plus some metadata for `Pickles.compile`
+   */
   type Rule = {
     identifier: string;
+    /**
+     * The main circuit functions
+     */
     main: (publicInput: MlArray<FieldVar>) => {
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
     };
+    /**
+     * Feature flags which enable certain custom gates
+     */
     featureFlags: MlFeatureFlags;
+    /**
+     * Description of previous proofs to verify in this rule
+     */
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
+
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>

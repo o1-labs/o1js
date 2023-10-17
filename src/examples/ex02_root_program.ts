@@ -1,11 +1,4 @@
-import {
-  Field,
-  Circuit,
-  circuitMain,
-  public_,
-  UInt64,
-  Experimental,
-} from 'o1js';
+import { Field, UInt64, Experimental, Gadgets } from 'o1js';
 
 let { ZkProgram } = Experimental;
 
@@ -15,6 +8,7 @@ const Main = ZkProgram({
     main: {
       privateInputs: [UInt64],
       method(y: Field, x: UInt64) {
+        Gadgets.rangeCheck64(x.value);
         let y3 = y.square().mul(y);
         y3.assertEquals(x.value);
       },
