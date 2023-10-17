@@ -7,7 +7,7 @@ export { rot, rotate };
 const MAX_BITS = 64 as const;
 
 function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
-  const [rotated, ,] = rotate(word, bits, direction);
+  const [rotated] = rotate(word, bits, direction);
   return rotated;
 }
 
@@ -45,19 +45,18 @@ function rotate(
     () => {
       const wordBigInt = word.toBigInt();
 
-      // Obtain rotated output, excess, and shifted for the equation
+      // Obtain rotated output, excess, and shifted for the equation:
       // word * 2^rot = excess * 2^64 + shifted
       const { quotient: excess, remainder: shifted } = divideWithRemainder(
         wordBigInt * big2PowerRot,
         big2Power64
       );
 
-      // Compute rotated value as
+      // Compute rotated value as:
       // rotated = excess + shifted
       const rotated = shifted + excess;
       // Compute bound that is the right input of FFAdd equation
       const bound = excess + big2Power64 - big2PowerRot;
-
       return [rotated, excess, shifted, bound].map(Field.from);
     }
   );
