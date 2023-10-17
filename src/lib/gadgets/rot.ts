@@ -7,9 +7,24 @@ export { rot, rotate };
 const MAX_BITS = 64 as const;
 
 function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
+  const [rotated, ,] = rotate(word, bits, direction);
+  return rotated;
+}
+
+function rotate(
+  word: Field,
+  bits: number,
+  direction: 'left' | 'right' = 'left'
+): [Field, Field, Field] {
   // Check that the rotation bits are in range
   if (bits < 0 || bits > MAX_BITS) {
     throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
+  }
+
+  if (direction !== 'left' && direction !== 'right') {
+    throw Error(
+      `rot: expected direction to be 'left' or 'right', got ${direction}`
+    );
   }
 
   // Check that the input word is at most 64 bits.
@@ -21,8 +36,31 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
     }
   });
 
-  // Compute rotated word
-  const [rotated, excess, shifted, bound] = rotate(word, bits, direction);
+  const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
+  const big2Power64 = 2n ** 64n;
+  const big2PowerRot = 2n ** BigInt(rotationBits);
+
+  const [rotated, excess, shifted, bound] = Provable.witness(
+    Provable.Array(Field, 4),
+    () => {
+      const wordBigInt = word.toBigInt();
+
+      // Obtain rotated output, excess, and shifted for the equation
+      // word * 2^rot = excess * 2^64 + shifted
+      const { quotient: excess, remainder: shifted } = divideWithRemainder(
+        wordBigInt * big2PowerRot,
+        big2Power64
+      );
+
+      // Compute rotated value as
+      // rotated = excess + shifted
+      const rotated = shifted + excess;
+      // Compute bound that is the right input of FFAdd equation
+      const bound = excess + big2Power64 - big2PowerRot;
+
+      return [rotated, excess, shifted, bound].map(Field.from);
+    }
+  );
 
   // Compute current row
   Gates.rot(
@@ -45,53 +83,13 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
       witnessSlices(bound, 2, 4),
       witnessSlices(bound, 0, 2),
     ],
-    Field.from(2n ** 64n)
+    Field.from(big2PowerRot)
   );
   // Compute next row
   Gates.rangeCheck64(shifted);
   // Compute following row
   Gates.rangeCheck64(excess);
-  return rotated;
-}
-
-function rotate(
-  word: Field,
-  bits: number,
-  direction: 'left' | 'right' = 'left'
-) {
-  // Compute actual length depending on whether the rotation mode is "left" or "right"
-  let rotationBits = bits;
-  if (direction === 'right') {
-    rotationBits = MAX_BITS - bits;
-  }
-
-  return Provable.witness(Provable.Array(Field, 4), () => {
-    const wordBigInt = word.toBigInt();
-    // Auxiliary BigInt values
-    const big2Power64 = 2n ** 64n;
-    const big2PowerRot = 2n ** BigInt(rotationBits);
-
-    // Assert that the word is at most 64 bits.
-    if (wordBigInt > big2Power64) {
-      throw Error(
-        `rot: expected word to be at most 64 bits, got ${word.toBigInt()}`
-      );
-    }
-
-    // Obtain rotated output, excess, and shifted for the equation
-    // word * 2^rot = excess * 2^64 + shifted
-    const { quotient: excess, remainder: shifted } = divideWithRemainder(
-      wordBigInt * big2PowerRot,
-      big2Power64
-    );
-    // Compute rotated value as
-    // rotated = excess + shifted
-    const rotated = shifted + excess;
-    // Compute bound that is the right input of FFAdd equation
-    const bound = excess + big2Power64 - big2PowerRot;
-
-    return [rotated, excess, shifted, bound].map(Field.from);
-  });
+  return [rotated, excess, shifted];
 }
 
 function witnessSlices(f: Field, start: number, stop = -1) {
