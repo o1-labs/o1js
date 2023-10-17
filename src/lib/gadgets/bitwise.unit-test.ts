@@ -20,13 +20,6 @@ let Bitwise = ZkProgram({
 
 await Bitwise.compile();
 
-let maybeUint64: Spec<bigint, Field> = {
-  ...field,
-  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
-    mod(x, Field.ORDER)
-  ),
-};
-
 // XOR with some common and odd lengths
 [2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
   test(Random.field, Random.field, (x_, y_, assert) => {
@@ -46,9 +39,18 @@ let maybeUint64: Spec<bigint, Field> = {
   });
 });
 
+let maybeUint64: Spec<bigint, Field> = {
+  ...field,
+  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
+    mod(x, Field.ORDER)
+  ),
+};
+
 // do a couple of proofs
 equivalentAsync({ from: [maybeUint64, maybeUint64], to: field }, { runs: 3 })(
   (x, y) => {
+    if (x > 2 ** length || y > 2 ** length)
+      throw Error('Does not fit into 64 bits');
     return Fp.xor(x, y);
   },
   async (x, y) => {
