@@ -1,27 +1,5 @@
 import { Field, Provable, Gadgets, Experimental } from 'o1js';
 
-Provable.runAndCheck(() => {
-  let res = Gadgets.xor(
-    Field(521515),
-    Provable.witness(Field, () => Field(771812)),
-    32
-  );
-  Provable.log(res);
-});
-
-let res = Gadgets.xor(Field(2), Field(5), 4);
-Provable.log(res);
-
-let cs = Provable.constraintSystem(() => {
-  let res = Gadgets.xor(
-    Provable.witness(Field, () => Field(5215)),
-    Provable.witness(Field, () => Field(7812)),
-    2
-  );
-  Provable.log(res);
-});
-console.log(cs);
-
 const XOR = Experimental.ZkProgram({
   methods: {
     baseCase: {
