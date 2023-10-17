@@ -48,7 +48,7 @@ let maybeUint64: Spec<bigint, Field> = {
 // do a couple of proofs
 // TODO: we use this as a test because there's no way to check custom gates quickly :(
 
-equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
+await equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
   (x) => {
     if (x >= 1n << 64n) throw Error('expected 64 bits');
     return true;
@@ -59,7 +59,7 @@ equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
   }
 );
 
-equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
+await equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
   (x) => {
     if (x >= 1n << 64n) throw Error('expected 64 bits');
     return true;
