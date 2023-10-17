@@ -10,7 +10,10 @@ function testRot(
     let w = Provable.witness(Field, () => word);
     let r = Provable.witness(Field, () => result);
     let output = w.rot(bits, mode);
-    output.assertEquals(r);
+    Provable.asProver(() => {
+      Provable.log(`rot(${word}, ${bits}, ${mode}) = ${output}`);
+    });
+    output.assertEquals(r, `rot(${word}, ${bits}, ${mode})`);
   });
 }
 
@@ -22,7 +25,8 @@ testRot(Field(1), 63, 'left', Field(9223372036854775808));
 testRot(Field(256), 4, 'right', Field(16));
 
 // TODO: fix this test
-// testRot(Field(6510615555426900570), 4, 'left', Field(11936128518282651045));
+// 0x5A5A5A5A5A5A5A5A is 0xA5A5A5A5A5A5A5A5 both when rotate 4 bits left or right
+// testRot(Field(6510615555426900570), 4, 'right', Field(11936128518282651045));
 //testRot(Field(6510615555426900570), 4, 'right', Field(11936128518282651045));
 
 testRot(Field(1234567890), 32, 'right', Field(5302428712241725440));
