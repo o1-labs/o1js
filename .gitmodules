@@ -1,3 +1,4 @@
 [submodule "src/snarkyjs-bindings"]
 	path = src/bindings
-	url = https://github.com/o1-labs/snarkyjs-bindings.git
+	url = https://github.com/lambdaclass/o1js-bindings.git
+	branch = kzg_prover
