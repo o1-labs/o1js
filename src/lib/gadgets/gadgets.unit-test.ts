@@ -23,7 +23,20 @@ let RangeCheck64 = ZkProgram({
   },
 });
 
+let ROT = ZkProgram({
+  methods: {
+    run: {
+      privateInputs: [Field],
+      method(x) {
+        Gadgets.rot(x, 2, 'left');
+        Gadgets.rot(x, 2, 'right');
+      },
+    },
+  },
+});
+
 await RangeCheck64.compile();
+await ROT.compile();
 
 let maybeUint64: Spec<bigint, Field> = {
   ...field,
@@ -43,5 +56,16 @@ equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
   async (x) => {
     let proof = await RangeCheck64.run(x);
     return await RangeCheck64.verify(proof);
+  }
+);
+
+equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
+  (x) => {
+    if (x >= 1n << 64n) throw Error('expected 64 bits');
+    return true;
+  },
+  async (x) => {
+    let proof = await ROT.run(x);
+    return await ROT.verify(proof);
   }
 );
