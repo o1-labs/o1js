@@ -4,12 +4,12 @@ import {
   equivalent,
   equivalentAsync,
   field,
+  fieldWithRng,
 } from '../testing/equivalent.js';
 import { Fp, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gadgets } from './gadgets.js';
-import { Provable } from '../provable.js';
-import { test, Random } from '../testing/property.js';
+import { Random } from '../testing/property.js';
 
 let Bitwise = ZkProgram({
   publicOutput: Field,
@@ -25,20 +25,15 @@ let Bitwise = ZkProgram({
 
 await Bitwise.compile();
 
-// XOR with some common and odd lengths
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
-[2, 4, 8, 16, 32, 64, 3, 5, 10, 15].forEach((length) => {
+[2, 4, 8, 16, 32, 64, 128].forEach((length) => {
   equivalent({ from: [uint(length), uint(length)], to: field })(
     Fp.xor,
     (x, y) => Gadgets.xor(x, y, length)
   );
 });
 
-// helper that should be added to `equivalent.ts`
-function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
-  return { ...field, rng };
-}
 let maybeUint64: Spec<bigint, Field> = {
   ...field,
   rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>

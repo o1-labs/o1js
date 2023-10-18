@@ -15,6 +15,7 @@ export {
   handleErrors,
   deepEqual as defaultAssertEqual,
   id,
+  fieldWithRng,
 };
 export { field, bigintField, bool, boolean, unit };
 export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
@@ -239,6 +240,10 @@ let boolean: Spec<boolean, boolean> = {
   there: id,
   back: id,
 };
+
+function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
+  return { ...field, rng };
+}
 
 // helper to ensure two functions throw equivalent errors
 
