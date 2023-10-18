@@ -96,21 +96,12 @@ function rotate(
   return [rotated, excess, shifted];
 }
 
-function witnessSlices(f: Field, start: number, stop = -1) {
-  if (stop !== -1 && stop <= start) {
-    throw Error('stop must be greater than start');
-  }
+function witnessSlices(f: Field, start: number, length: number) {
+  if (length <= 0) throw Error('Length must be a positive number');
 
   return Provable.witness(Field, () => {
-    let bits = f.toBits();
-    if (stop > bits.length) {
-      throw Error('stop must be less than bit-length');
-    }
-    if (stop === -1) {
-      stop = bits.length;
-    }
-
-    return Field.fromBits(bits.slice(start, stop));
+    let n = f.toBigInt();
+    return new Field((n >> BigInt(start)) & ((1n << BigInt(length)) - 1n));
   });
 }
 
