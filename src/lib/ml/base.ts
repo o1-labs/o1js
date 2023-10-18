@@ -1,7 +1,7 @@
 /**
  * This module contains basic methods for interacting with OCaml
  */
-export { MlArray, MlTuple, MlList, MlOption, MlBool, MlBytes };
+export { MlArray, MlTuple, MlList, MlOption, MlBool, MlBytes, MlResult };
 
 // ocaml types
 
@@ -10,6 +10,7 @@ type MlArray<T> = [0, ...T[]];
 type MlList<T> = [0, T, 0 | MlList<T>];
 type MlOption<T> = 0 | [0, T];
 type MlBool = 0 | 1;
+type MlResult<T, E> = [0, T] | [1, E];
 
 /**
  * js_of_ocaml representation of a byte array,
@@ -85,3 +86,12 @@ const MlOption = Object.assign(
     },
   }
 );
+
+const MlResult = {
+  return<T>(t: T): MlResult<T, any> {
+    return [0, t];
+  },
+  unitError(): MlResult<any, 0> {
+    return [1, 0];
+  },
+};

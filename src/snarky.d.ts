@@ -9,6 +9,7 @@ import type {
   MlOption,
   MlBool,
   MlBytes,
+  MlResult,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
@@ -596,6 +597,16 @@ declare namespace Pickles {
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
 
+  /**
+   * Type to configure how Pickles should cache prover keys
+   */
+  type Storable = [
+    _: 0,
+    read: (key: any, path: string) => MlResult<unknown, 0>,
+    write: (key: any, value: any, path: string) => MlResult<undefined, 0>,
+    canWrite: MlBool
+  ];
+
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
@@ -626,9 +637,10 @@ declare const Pickles: {
    */
   compile: (
     rules: MlArray<Pickles.Rule>,
-    signature: {
+    config: {
       publicInputSize: number;
       publicOutputSize: number;
+      storable?: Pickles.Storable;
       overrideWrapDomain?: 0 | 1 | 2;
     }
   ) => {
