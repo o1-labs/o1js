@@ -39,6 +39,8 @@ const Gadgets = {
    * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
    * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
    *
+   * This gadget builds a chain of XOR gates recursively. Each XOR gate can verify 16 bit at most. If your input elements exceed 16 bit, another XOR gate will be added to the chain.
+   *
    * The `length` parameter lets you define how many bits should be compared. The output is not constrained to the length.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -54,7 +56,7 @@ const Gadgets = {
    * c.assertEquals(6);
    * ```
    */
-  xor(a: Field, b: Field, length: number, lengthXor = 4) {
-    return xor(a, b, length, lengthXor);
+  xor(a: Field, b: Field, length: number) {
+    return xor(a, b, length);
   },
 };
