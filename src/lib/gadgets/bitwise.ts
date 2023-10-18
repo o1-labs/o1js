@@ -5,9 +5,13 @@ import * as Gates from '../gates.js';
 
 export { xor };
 
+<<<<<<< HEAD
 const LENGTH_XOR = 4;
 
 function xor(a: Field, b: Field, length: number) {
+=======
+function xor(a: Field, b: Field, length: number, lengthXor = 4) {
+>>>>>>> 1c25be89d277083238bad555b5395765ee08ae00
   // check that both input lengths are positive
   assert(length > 0, `Input lengths need to be positive values.`);
 
@@ -17,8 +21,8 @@ function xor(a: Field, b: Field, length: number) {
     `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
-  // sanity check as prover to check that both elements fit into length bits
-  Provable.asProver(() => {
+  // handle constant case
+  if (a.isConstant() && b.isConstant()) {
     assert(
       a.toBigInt() < 2 ** length,
       `${a.toBigInt()} does not fit into ${length} bits`
@@ -28,10 +32,7 @@ function xor(a: Field, b: Field, length: number) {
       b.toBigInt() < 2 ** length,
       `${b.toBigInt()} does not fit into ${length} bits`
     );
-  });
 
-  // handle constant case
-  if (a.isConstant() && b.isConstant()) {
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
 
@@ -42,7 +43,11 @@ function xor(a: Field, b: Field, length: number) {
   );
 
   // obtain pad length until the length is a multiple of 4*n for n-bit length lookup table
+<<<<<<< HEAD
   let l = 4 * LENGTH_XOR;
+=======
+  let l = 4 * lengthXor;
+>>>>>>> 1c25be89d277083238bad555b5395765ee08ae00
   let padLength = Math.ceil(length / l) * l;
 
   // recursively build xor gadget chain
@@ -59,10 +64,27 @@ function buildXor(
   expectedOutput: Field,
   padLength: number
 ) {
+<<<<<<< HEAD
   // 4 bit sized offsets
   let first = LENGTH_XOR;
   let second = first + LENGTH_XOR;
   let third = second + LENGTH_XOR;
+=======
+  // if inputs are zero and length is zero, add the zero check
+  if (padLength === 0) {
+    Gates.zero(a, b, expectedOutput);
+
+    let zero = new Field(0);
+    zero.assertEquals(a);
+    zero.assertEquals(b);
+    zero.assertEquals(expectedOutput);
+  } else {
+    // lengthXor-sized offsets
+    let first = lengthXor;
+    let second = first + lengthXor;
+    let third = second + lengthXor;
+    let fourth = third + lengthXor;
+>>>>>>> 1c25be89d277083238bad555b5395765ee08ae00
 
   // construct the chain of XORs until padLength is 0
   while (padLength !== 0) {
