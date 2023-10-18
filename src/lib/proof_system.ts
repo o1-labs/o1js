@@ -25,7 +25,7 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlTuple } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
 
@@ -540,6 +540,19 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
+  let storable: Pickles.Storable = [
+    0,
+    function read(key, path) {
+      console.log('READ', path);
+      return MlResult.unitError();
+    },
+    function write(key, path, value) {
+      console.log('WRITE', path, value);
+      return MlResult.unitError();
+    },
+    MlBool(true),
+  ];
+
   let { verificationKey, provers, verify, tag } =
     await prettifyStacktracePromise(
       withThreadPool(async () => {
@@ -549,6 +562,7 @@ async function compileProgram({
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            storable,
             overrideWrapDomain,
           });
         } finally {
