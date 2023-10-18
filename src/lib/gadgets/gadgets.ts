@@ -41,12 +41,13 @@ const Gadgets = {
    *
    * This gadget builds a chain of XOR gates recursively. Each XOR gate can verify 16 bit at most. If your input elements exceed 16 bit, another XOR gate will be added to the chain.
    *
-   * The `length` parameter lets you define how many bits should be compared. The output is not constrained to the length.
+   * The `length` parameter lets you define how many bits should be compared.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
    *
    * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
    * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
+   * If either input element exceeds the maximum bit length, an error is thrown and no proof can be generated because the method fails to properly constrain the operation.
    *
    * ```typescript
    * let a = Field(5);    // ... 000101
