@@ -112,7 +112,7 @@ function buildXor(
   }
 
   // inputs are zero and length is zero, add the zero check - we reached the end of our chain
-  Gates.zeroCheck(a, b, expectedOutput);
+  Gates.zero(a, b, expectedOutput);
 
   let zero = new Field(0);
   zero.assertEquals(a);

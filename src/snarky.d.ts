@@ -325,7 +325,7 @@ declare const Snarky: {
       out_3: FieldVar
     ): void;
 
-    zeroCheck(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
   };
 
   bool: {
