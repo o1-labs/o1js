@@ -77,7 +77,9 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 // a special account that is allowed to pull out half of the zkapp balance, once
-let privilegedKey = PrivateKey.random();
+let privilegedKey = PrivateKey.fromBase58(
+  'EKEeoESE2A41YQnSht9f7mjiKpJSeZ4jnfHXYatYi8xJdYSxWBep'
+);
 let privilegedAddress = privilegedKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
