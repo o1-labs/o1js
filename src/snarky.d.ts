@@ -275,10 +275,10 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
-    ];
+        _: 0,
+        constant: MlOption<FieldConst>,
+        terms: MlList<MlTuple<FieldConst, number>>
+      ];
   };
 
   gates: {
@@ -349,8 +349,22 @@ declare const Snarky: {
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
+     * Uses the prover with Mina backend (Kimchi + IPA + Pasta).
      */
     prove(
+      main: Snarky.Main,
+      publicInputSize: number,
+      publicInput: MlArray<FieldConst>,
+      keypair: Snarky.Keypair
+    ): Snarky.Proof;
+
+    /**
+     * Proves a statement using the private input, public input and the keypair of the circuit.
+     * Uses the prover with Ethereum backend (Kimchi + KZG + BN254).
+     * 
+     * TODO: change backend from Mina to Ethereum.
+     */
+    proveKZG(
       main: Snarky.Main,
       publicInputSize: number,
       publicInput: MlArray<FieldConst>,
