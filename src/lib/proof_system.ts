@@ -550,14 +550,23 @@ async function compileProgram({
   let storable: Pickles.Storable = [
     0,
     function read_(key, path) {
-      let bytes = read(path);
-      if (bytes === undefined) return MlResult.unitError();
-      return MlResult.ok(decodeProverKey(key, bytes));
+      try {
+        let bytes = read(path);
+        return MlResult.ok(decodeProverKey(key, bytes));
+      } catch (e: any) {
+        console.log('read failed', e.message);
+        return MlResult.unitError();
+      }
     },
     function write_(key, value, path) {
-      let bytes = encodeProverKey(value);
-      if (write(path, bytes)) return MlResult.ok(undefined);
-      return MlResult.unitError();
+      try {
+        let bytes = encodeProverKey(value);
+        write(path, bytes);
+        return MlResult.ok(undefined);
+      } catch (e: any) {
+        console.log('write failed', e.message);
+        return MlResult.unitError();
+      }
     },
     MlBool(true),
   ];

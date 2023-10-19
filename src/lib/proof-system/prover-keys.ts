@@ -43,12 +43,10 @@ type AnyValue =
 
 function encodeProverKey(value: AnyValue): Uint8Array {
   console.log('ENCODE', value);
-  // TODO
-  return value as any;
+  throw Error('todo');
 }
 
 function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
   console.log('DECODE', key);
-  // TODO
-  return bytes as any;
+  throw Error('todo');
 }
