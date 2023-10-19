@@ -70,9 +70,10 @@ function buildXor(
   let iterations = Math.ceil(padLength / (4 * LENGTH_XOR));
 
   // pre compute all inputs for the xor chain
-  let precomputedInputs = computeChainInputs(iterations, a, b, expectedOutput);
+  let precomputed = computeChainInputs(iterations, a, b, expectedOutput);
 
-  precomputedInputs.forEach(
+  // for each iteration of the xor chain, take the precomputed inputs and assert that the xor operation of the slices is correct
+  precomputed.inputs.forEach(
     (
       {
         a,
@@ -103,14 +104,16 @@ function buildXor(
         out3
       );
 
-      // if we reached the end of our chain, assert that the inputs are zero and add a zero gate
+      // if we reached the end of our chain, assert that the final inputs are zero and add a zero gate
       if (n === iterations - 1) {
-        Gates.zero(a, b, expectedOutput);
+        // final values for a, b and output - the end of the XOR chain - which should be zero
+        let { finalA, finalB, finalOutput } = precomputed;
 
+        Gates.zero(finalA, finalB, finalOutput);
         let zero = new Field(0);
-        zero.assertEquals(a);
-        zero.assertEquals(b);
-        zero.assertEquals(expectedOutput);
+        zero.assertEquals(finalA);
+        zero.assertEquals(finalB);
+        zero.assertEquals(finalOutput);
       }
     }
   );
@@ -137,7 +140,7 @@ function computeChainInputs(
   b: Field,
   expectedOutput: Field
 ) {
-  let precomputedVariables = [];
+  let inputs = [];
 
   for (let i = 0; i < iterations; i++) {
     // slices the inputs into LENGTH_XOR-sized chunks
@@ -160,7 +163,7 @@ function computeChainInputs(
     let out3 = witnessSlices(expectedOutput, thirdOffset, LENGTH_XOR);
 
     // store all inputs for the current iteration of the XOR chain
-    precomputedVariables[i] = {
+    inputs[i] = {
       a,
       b,
       expectedOutput,
@@ -181,7 +184,8 @@ function computeChainInputs(
     ).seal();
   }
 
-  return precomputedVariables;
+  // we return the precomputed inputs to the XOR chain and the final values of a, b and output for the final zero gate and zero assertion check
+  return { inputs, finalA: a, finalB: b, finalOutput: expectedOutput };
 }
 
 function calculateNextValue(
