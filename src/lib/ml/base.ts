@@ -88,10 +88,10 @@ const MlOption = Object.assign(
 );
 
 const MlResult = {
-  return<T>(t: T): MlResult<T, any> {
+  ok<T, E>(t: T): MlResult<T, E> {
     return [0, t];
   },
-  unitError(): MlResult<any, 0> {
+  unitError<T>(): MlResult<T, 0> {
     return [1, 0];
   },
 };

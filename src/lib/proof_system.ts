@@ -28,6 +28,7 @@ import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlTuple } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
+import { Storable } from './storable.js';
 
 // public API
 export {
@@ -517,6 +518,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
+  storable: { read, write } = Storable.FileSystemDefault,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -525,6 +527,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
+  storable?: Storable<Uint8Array>;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -542,13 +545,17 @@ async function compileProgram({
 
   let storable: Pickles.Storable = [
     0,
-    function read(key, path) {
-      console.log('READ', path);
-      return MlResult.unitError();
+    function read_(_key, path) {
+      let value = read(path);
+      if (value === undefined) return MlResult.unitError();
+      // TODO decode value
+      return MlResult.ok(value);
     },
-    function write(key, path, value) {
-      console.log('WRITE', path, value);
-      return MlResult.unitError();
+    function write_(_key, value, path) {
+      // TODO encode value
+      let stringValue = value;
+      if (write(path, stringValue)) return MlResult.ok(undefined);
+      return MlResult.unitError<undefined>();
     },
     MlBool(true),
   ];
