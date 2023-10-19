@@ -2,14 +2,17 @@ import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
-import { getWasm } from '../../snarky.js';
+import { Pickles, getWasm } from '../../snarky.js';
 
 export { encodeProverKey, decodeProverKey, AnyKey, AnyValue };
 
-type TODO = any;
+type TODO = unknown;
 type Opaque = unknown;
 
-type MlConstraintSystem = Opaque; // opaque
+// Plonk_constraint_system.Make()().t
+class MlConstraintSystem {
+  // opaque type
+}
 
 // Dlog_plonk_based_keypair.Make().t
 
@@ -19,34 +22,44 @@ type MlBackendKeyPair<WasmIndex> = [
   cs: MlConstraintSystem
 ];
 
+// Pickles.Cache.{Step,Wrap}.Key.Proving.t
+
+type MlProvingKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: Opaque,
+  index: number,
+  constraintSystem: MlConstraintSystem
+];
+
 // pickles_bindings.ml, any_key enum
 
 enum KeyType {
-  StepProverKey,
-  StepVerifierKey,
-  WrapProverKey,
-  WrapVerifierKey,
+  StepProvingKey,
+  StepVerificationKey,
+  WrapProvingKey,
+  WrapVerificationKey,
 }
 
 // TODO better names
 
 type AnyKey =
-  | [KeyType.StepProverKey, TODO]
-  | [KeyType.StepVerifierKey, TODO]
-  | [KeyType.WrapProverKey, TODO]
-  | [KeyType.WrapVerifierKey, TODO];
+  | [KeyType.StepProvingKey, MlProvingKeyHeader]
+  | [KeyType.StepVerificationKey, TODO]
+  | [KeyType.WrapProvingKey, MlProvingKeyHeader]
+  | [KeyType.WrapVerificationKey, TODO];
 
 type AnyValue =
-  | [KeyType.StepProverKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
-  | [KeyType.StepVerifierKey, unknown]
-  | [KeyType.WrapProverKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
-  | [KeyType.WrapVerifierKey, unknown];
+  | [KeyType.StepProvingKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
+  | [KeyType.StepVerificationKey, TODO]
+  | [KeyType.WrapProvingKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
+  | [KeyType.WrapVerificationKey, TODO];
 
 function encodeProverKey(value: AnyValue): Uint8Array {
   console.log('ENCODE', value);
   let wasm = getWasm();
   switch (value[0]) {
-    case KeyType.StepProverKey:
+    case KeyType.StepProvingKey:
       return wasm.caml_pasta_fp_plonk_index_encode(value[1][1]);
     default:
       throw Error('todo');
@@ -57,17 +70,11 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
   console.log('DECODE', key);
   let wasm = getWasm();
   switch (key[0]) {
-    case KeyType.StepProverKey:
-      throw Error('todo');
-    // return [
-    //   KeyType.StepProverKey,
-    //   [
-    //     0,
-    //     wasm.caml_pasta_fp_plonk_index_decode(bytes),
-    //     // TODO
-    //     null,
-    //   ],
-    // ];
+    case KeyType.StepProvingKey:
+      let srs = Pickles.loadSrsFp();
+      let index = wasm.caml_pasta_fp_plonk_index_decode(bytes, srs);
+      let cs = key[1][4];
+      return [KeyType.StepProvingKey, [0, index, cs]];
     default:
       throw Error('todo');
   }

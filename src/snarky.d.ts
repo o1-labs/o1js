@@ -13,8 +13,12 @@ import type {
   MlUnit,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
-import type * as ProverKeys from './lib/proof-system/prover-keys.ts';
+import type * as ProverKeys from './lib/proof-system/prover-keys.js';
 import { getWasm } from './bindings/js/wrapper.js';
+import type {
+  WasmFpSrs,
+  WasmFqSrs,
+} from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -671,6 +675,9 @@ declare const Pickles: {
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;
+
+  loadSrsFp(): WasmFpSrs;
+  loadSrsFq(): WasmFqSrs;
 
   dummyBase64Proof: () => string;
   /**
