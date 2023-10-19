@@ -5,6 +5,11 @@ import * as Gates from '../gates.js';
 
 export { xor };
 
+// 4 bit sized offsets
+const firstChunk = 4;
+const secondChunk = firstChunk + 4;
+const thirdChunk = secondChunk + 4;
+
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
   assert(length > 0, `Input lengths need to be positive values.`);
@@ -54,31 +59,26 @@ function buildXor(
   expectedOutput: Field,
   padLength: number
 ) {
-  // 4 bit sized offsets
-  let first = 4;
-  let second = first + 4;
-  let third = second + 4;
-
   // construct the chain of XORs until padLength is 0
   while (padLength !== 0) {
-    // slices the inputs into LENGTH_XOR-sized chunks
+    // slices the inputs 4bit-sized chunks
     // slices of a
     let in1_0 = witnessSlices(a, 0, 4);
-    let in1_1 = witnessSlices(a, first, 4);
-    let in1_2 = witnessSlices(a, second, 4);
-    let in1_3 = witnessSlices(a, third, 4);
+    let in1_1 = witnessSlices(a, firstChunk, 4);
+    let in1_2 = witnessSlices(a, secondChunk, 4);
+    let in1_3 = witnessSlices(a, thirdChunk, 4);
 
     // slices of b
     let in2_0 = witnessSlices(b, 0, 4);
-    let in2_1 = witnessSlices(b, first, 4);
-    let in2_2 = witnessSlices(b, second, 4);
-    let in2_3 = witnessSlices(b, third, 4);
+    let in2_1 = witnessSlices(b, firstChunk, 4);
+    let in2_2 = witnessSlices(b, secondChunk, 4);
+    let in2_3 = witnessSlices(b, thirdChunk, 4);
 
     // slice of expected output
     let out0 = witnessSlices(expectedOutput, 0, 4);
-    let out1 = witnessSlices(expectedOutput, first, 4);
-    let out2 = witnessSlices(expectedOutput, second, 4);
-    let out3 = witnessSlices(expectedOutput, third, 4);
+    let out1 = witnessSlices(expectedOutput, firstChunk, 4);
+    let out2 = witnessSlices(expectedOutput, secondChunk, 4);
+    let out3 = witnessSlices(expectedOutput, thirdChunk, 4);
 
     // assert that the xor of the slices is correct, 16 bit at a time
     Gates.xor(
