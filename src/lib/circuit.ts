@@ -33,6 +33,7 @@ class Circuit {
 
   /**
    * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
+   * The proof is generated using the Mina backend and can be verified using the `verify` function.
    * @example
    * ```ts
    * const keypair = await MyCircuit.generateKeypair();
@@ -57,7 +58,35 @@ class Circuit {
   }
 
   /**
+   * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
+   * The proof is generated using the Ethereum backend and can be verified using the corresponding 
+   * verifier smart contract.
+   * @example
+   * ```ts
+   * const keypair = await MyCircuit.generateKeypair();
+   * const proof = await MyCircuit.proveKZG(privateInput, publicInput, keypair);
+   * ```
+   */
+  static proveKZG(privateInput: any[], publicInput: any[], keypair: Keypair) {
+    let main = mainFromCircuitData(this._main, privateInput);
+    let publicInputSize = this._main.publicInputType.sizeInFields();
+    let publicInputFields = this._main.publicInputType.toFields(publicInput);
+    return prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let proof = Snarky.circuit.proveKZG(
+          main,
+          publicInputSize,
+          MlFieldConstArray.to(publicInputFields),
+          keypair.value
+        );
+        return new Proof(proof);
+      })
+    );
+  }
+
+  /**
    * Verifies a proof using the public input, the proof, and the initial {@link Keypair} of the circuit.
+   * Accepts only proofs generated using the Mina backend (i.e. by calling the `prove` function).
    * @example
    * ```ts
    * const keypair = await MyCircuit.generateKeypair();
