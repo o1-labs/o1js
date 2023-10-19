@@ -54,31 +54,26 @@ function buildXor(
   expectedOutput: Field,
   padLength: number
 ) {
-  // 4 bit sized offsets
-  const firstChunk = 4;
-  const secondChunk = firstChunk + 4;
-  const thirdChunk = secondChunk + 4;
-
   // construct the chain of XORs until padLength is 0
   while (padLength !== 0) {
-    // slices the inputs 4bit-sized chunks
+    // slices the inputs 4 4bit-sized chunks
     // slices of a
     let in1_0 = witnessSlices(a, 0, 4);
-    let in1_1 = witnessSlices(a, firstChunk, 4);
-    let in1_2 = witnessSlices(a, secondChunk, 4);
-    let in1_3 = witnessSlices(a, thirdChunk, 4);
+    let in1_1 = witnessSlices(a, 4, 4);
+    let in1_2 = witnessSlices(a, 8, 4);
+    let in1_3 = witnessSlices(a, 12, 4);
 
     // slices of b
     let in2_0 = witnessSlices(b, 0, 4);
-    let in2_1 = witnessSlices(b, firstChunk, 4);
-    let in2_2 = witnessSlices(b, secondChunk, 4);
-    let in2_3 = witnessSlices(b, thirdChunk, 4);
+    let in2_1 = witnessSlices(b, 4, 4);
+    let in2_2 = witnessSlices(b, 8, 4);
+    let in2_3 = witnessSlices(b, 12, 4);
 
     // slice of expected output
     let out0 = witnessSlices(expectedOutput, 0, 4);
-    let out1 = witnessSlices(expectedOutput, firstChunk, 4);
-    let out2 = witnessSlices(expectedOutput, secondChunk, 4);
-    let out3 = witnessSlices(expectedOutput, thirdChunk, 4);
+    let out1 = witnessSlices(expectedOutput, 4, 4);
+    let out2 = witnessSlices(expectedOutput, 8, 4);
+    let out3 = witnessSlices(expectedOutput, 12, 4);
 
     // assert that the xor of the slices is correct, 16 bit at a time
     Gates.xor(
