@@ -24,11 +24,18 @@ type MlBackendKeyPair<WasmIndex> = [
 
 // Pickles.Cache.{Step,Wrap}.Key.Proving.t
 
-type MlProvingKeyHeader = [
+type MlStepProvingKeyHeader = [
   _: 0,
   typeEqual: number,
   snarkKeysHeader: Opaque,
   index: number,
+  constraintSystem: MlConstraintSystem
+];
+
+type MlWrapProvingKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: Opaque,
   constraintSystem: MlConstraintSystem
 ];
 
@@ -44,9 +51,9 @@ enum KeyType {
 // TODO better names
 
 type AnyKey =
-  | [KeyType.StepProvingKey, MlProvingKeyHeader]
+  | [KeyType.StepProvingKey, MlStepProvingKeyHeader]
   | [KeyType.StepVerificationKey, TODO]
-  | [KeyType.WrapProvingKey, MlProvingKeyHeader]
+  | [KeyType.WrapProvingKey, MlWrapProvingKeyHeader]
   | [KeyType.WrapVerificationKey, TODO];
 
 type AnyValue =
@@ -56,25 +63,46 @@ type AnyValue =
   | [KeyType.WrapVerificationKey, TODO];
 
 function encodeProverKey(value: AnyValue): Uint8Array {
-  console.log('ENCODE', value);
   let wasm = getWasm();
   switch (value[0]) {
-    case KeyType.StepProvingKey:
-      return wasm.caml_pasta_fp_plonk_index_encode(value[1][1]);
+    case KeyType.StepProvingKey: {
+      let index = value[1][1];
+      console.time('encode index');
+      let encoded = wasm.caml_pasta_fp_plonk_index_encode(index);
+      console.timeEnd('encode index');
+      return encoded;
+    }
+    case KeyType.WrapProvingKey: {
+      let index = value[1][1];
+      console.time('encode wrap index');
+      let encoded = wasm.caml_pasta_fq_plonk_index_encode(index);
+      console.timeEnd('encode wrap index');
+      return encoded;
+    }
     default:
       throw Error('todo');
   }
 }
 
 function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
-  console.log('DECODE', key);
   let wasm = getWasm();
   switch (key[0]) {
-    case KeyType.StepProvingKey:
+    case KeyType.StepProvingKey: {
       let srs = Pickles.loadSrsFp();
+      console.time('decode index');
       let index = wasm.caml_pasta_fp_plonk_index_decode(bytes, srs);
+      console.timeEnd('decode index');
       let cs = key[1][4];
       return [KeyType.StepProvingKey, [0, index, cs]];
+    }
+    case KeyType.WrapProvingKey: {
+      let srs = Pickles.loadSrsFq();
+      console.time('decode wrap index');
+      let index = wasm.caml_pasta_fq_plonk_index_decode(bytes, srs);
+      console.timeEnd('decode wrap index');
+      let cs = key[1][3];
+      return [KeyType.WrapProvingKey, [0, index, cs]];
+    }
     default:
       throw Error('todo');
   }
