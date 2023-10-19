@@ -5,11 +5,6 @@ import * as Gates from '../gates.js';
 
 export { xor };
 
-// 4 bit sized offsets
-const firstChunk = 4;
-const secondChunk = firstChunk + 4;
-const thirdChunk = secondChunk + 4;
-
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
   assert(length > 0, `Input lengths need to be positive values.`);
@@ -59,6 +54,11 @@ function buildXor(
   expectedOutput: Field,
   padLength: number
 ) {
+  // 4 bit sized offsets
+  const firstChunk = 4;
+  const secondChunk = firstChunk + 4;
+  const thirdChunk = secondChunk + 4;
+
   // construct the chain of XORs until padLength is 0
   while (padLength !== 0) {
     // slices the inputs 4bit-sized chunks
