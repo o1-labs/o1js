@@ -5,7 +5,18 @@ import * as Gates from '../gates.js';
 
 export { xor };
 
+// XOR specific constants
 const LENGTH_XOR = 4;
+
+const twoPowLen = new Field(2 ** LENGTH_XOR);
+const twoPow2Len = twoPowLen.mul(twoPowLen);
+const twoPow3Len = twoPow2Len.mul(twoPowLen);
+const twoPow4Len = twoPow3Len.mul(twoPowLen);
+
+// 4 bit sized offsets
+const firstOffset = LENGTH_XOR;
+const secondOffset = firstOffset + LENGTH_XOR;
+const thirdOffset = secondOffset + LENGTH_XOR;
 
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
@@ -56,65 +67,53 @@ function buildXor(
   expectedOutput: Field,
   padLength: number
 ) {
-  // 4 bit sized offsets
-  let first = LENGTH_XOR;
-  let second = first + LENGTH_XOR;
-  let third = second + LENGTH_XOR;
+  let iterations = Math.ceil(padLength / (4 * LENGTH_XOR));
 
-  // construct the chain of XORs until padLength is 0
-  while (padLength !== 0) {
-    // slices the inputs into LENGTH_XOR-sized chunks
-    // slices of a
-    let in1_0 = witnessSlices(a, 0, LENGTH_XOR);
-    let in1_1 = witnessSlices(a, first, LENGTH_XOR);
-    let in1_2 = witnessSlices(a, second, LENGTH_XOR);
-    let in1_3 = witnessSlices(a, third, LENGTH_XOR);
+  // pre compute all inputs for the xor chain
+  let precomputedInputs = computeChainInputs(iterations, a, b, expectedOutput);
 
-    // slices of b
-    let in2_0 = witnessSlices(b, 0, LENGTH_XOR);
-    let in2_1 = witnessSlices(b, first, LENGTH_XOR);
-    let in2_2 = witnessSlices(b, second, LENGTH_XOR);
-    let in2_3 = witnessSlices(b, third, LENGTH_XOR);
+  precomputedInputs.forEach(
+    (
+      {
+        a,
+        b,
+        expectedOutput,
+        in1: [in1_0, in1_1, in1_2, in1_3],
+        in2: [in2_0, in2_1, in2_2, in2_3],
+        out: [out0, out1, out2, out3],
+      },
+      n
+    ) => {
+      // assert that xor of the slices is correct, 16 bit at a time
+      Gates.xor(
+        a,
+        b,
+        expectedOutput,
+        in1_0,
+        in1_1,
+        in1_2,
+        in1_3,
+        in2_0,
+        in2_1,
+        in2_2,
+        in2_3,
+        out0,
+        out1,
+        out2,
+        out3
+      );
 
-    // slice of expected output
-    let out0 = witnessSlices(expectedOutput, 0, LENGTH_XOR);
-    let out1 = witnessSlices(expectedOutput, first, LENGTH_XOR);
-    let out2 = witnessSlices(expectedOutput, second, LENGTH_XOR);
-    let out3 = witnessSlices(expectedOutput, third, LENGTH_XOR);
+      // if we reached the end of our chain, assert that the inputs are zero and add a zero gate
+      if (n === iterations - 1) {
+        Gates.zero(a, b, expectedOutput);
 
-    // assert that the xor of the slices is correct, 16 bit at a time
-    Gates.xor(
-      a,
-      b,
-      expectedOutput,
-      in1_0,
-      in1_1,
-      in1_2,
-      in1_3,
-      in2_0,
-      in2_1,
-      in2_2,
-      in2_3,
-      out0,
-      out1,
-      out2,
-      out3
-    );
-
-    // update the values for the next loop iteration
-    a = witnessNextValue(a);
-    b = witnessNextValue(b);
-    expectedOutput = witnessNextValue(expectedOutput);
-    padLength = padLength - 4 * LENGTH_XOR;
-  }
-
-  // inputs are zero and length is zero, add the zero check - we reached the end of our chain
-  Gates.zero(a, b, expectedOutput);
-
-  let zero = new Field(0);
-  zero.assertEquals(a);
-  zero.assertEquals(b);
-  zero.assertEquals(expectedOutput);
+        let zero = new Field(0);
+        zero.assertEquals(a);
+        zero.assertEquals(b);
+        zero.assertEquals(expectedOutput);
+      }
+    }
+  );
 }
 
 function assert(stmt: boolean, message?: string) {
@@ -132,6 +131,70 @@ function witnessSlices(f: Field, start: number, length: number) {
   });
 }
 
-function witnessNextValue(current: Field) {
-  return Provable.witness(Field, () => new Field(current.toBigInt() >> 16n));
+function computeChainInputs(
+  iterations: number,
+  a: Field,
+  b: Field,
+  expectedOutput: Field
+) {
+  let precomputedVariables = [];
+
+  for (let i = 0; i < iterations; i++) {
+    // slices the inputs into LENGTH_XOR-sized chunks
+    // slices of a
+    let in1_0 = witnessSlices(a, 0, LENGTH_XOR);
+    let in1_1 = witnessSlices(a, firstOffset, LENGTH_XOR);
+    let in1_2 = witnessSlices(a, secondOffset, LENGTH_XOR);
+    let in1_3 = witnessSlices(a, thirdOffset, LENGTH_XOR);
+
+    // slices of b
+    let in2_0 = witnessSlices(b, 0, LENGTH_XOR);
+    let in2_1 = witnessSlices(b, firstOffset, LENGTH_XOR);
+    let in2_2 = witnessSlices(b, secondOffset, LENGTH_XOR);
+    let in2_3 = witnessSlices(b, thirdOffset, LENGTH_XOR);
+
+    // slice of expected output
+    let out0 = witnessSlices(expectedOutput, 0, LENGTH_XOR);
+    let out1 = witnessSlices(expectedOutput, firstOffset, LENGTH_XOR);
+    let out2 = witnessSlices(expectedOutput, secondOffset, LENGTH_XOR);
+    let out3 = witnessSlices(expectedOutput, thirdOffset, LENGTH_XOR);
+
+    // store all inputs for the current iteration of the XOR chain
+    precomputedVariables[i] = {
+      a,
+      b,
+      expectedOutput,
+      in1: [in1_0, in1_1, in1_2, in1_3],
+      in2: [in2_0, in2_1, in2_2, in2_3],
+      out: [out0, out1, out2, out3],
+    };
+
+    // update the values for the next loop iteration - seal them to force snarky to compute the constraints directly
+    a = calculateNextValue(a, in1_0, in1_1, in1_2, in1_3).seal();
+    b = calculateNextValue(b, in2_0, in2_1, in2_2, in2_3).seal();
+    expectedOutput = calculateNextValue(
+      expectedOutput,
+      out0,
+      out1,
+      out2,
+      out3
+    ).seal();
+  }
+
+  return precomputedVariables;
+}
+
+function calculateNextValue(
+  current: Field,
+  var0: Field,
+  var1: Field,
+  var2: Field,
+  var3: Field
+) {
+  return current
+    .sub(var0)
+    .sub(var1.mul(twoPowLen))
+    .sub(var2.mul(twoPow2Len))
+    .sub(var3.mul(twoPow3Len))
+    .div(twoPow4Len);
 }
