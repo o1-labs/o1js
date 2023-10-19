@@ -14,8 +14,9 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type * as ProverKeys from './lib/proof-system/prover-keys.ts';
+import { getWasm } from './bindings/js/wrapper.js';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
 // internal
 export {

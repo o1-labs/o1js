@@ -2,6 +2,7 @@ import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
+import { getWasm } from '../../snarky.js';
 
 export { encodeProverKey, decodeProverKey, AnyKey, AnyValue };
 
@@ -37,16 +38,37 @@ type AnyKey =
 
 type AnyValue =
   | [KeyType.StepProverKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
-  | [KeyType.StepVerifierKey, TODO]
+  | [KeyType.StepVerifierKey, unknown]
   | [KeyType.WrapProverKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
-  | [KeyType.WrapVerifierKey, TODO];
+  | [KeyType.WrapVerifierKey, unknown];
 
 function encodeProverKey(value: AnyValue): Uint8Array {
   console.log('ENCODE', value);
-  throw Error('todo');
+  let wasm = getWasm();
+  switch (value[0]) {
+    case KeyType.StepProverKey:
+      return wasm.caml_pasta_fp_plonk_index_encode(value[1][1]);
+    default:
+      throw Error('todo');
+  }
 }
 
 function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
   console.log('DECODE', key);
-  throw Error('todo');
+  let wasm = getWasm();
+  switch (key[0]) {
+    case KeyType.StepProverKey:
+      throw Error('todo');
+    // return [
+    //   KeyType.StepProverKey,
+    //   [
+    //     0,
+    //     wasm.caml_pasta_fp_plonk_index_decode(bytes),
+    //     // TODO
+    //     null,
+    //   ],
+    // ];
+    default:
+      throw Error('todo');
+  }
 }
