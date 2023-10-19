@@ -25,10 +25,14 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlResult, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
 import { Storable } from './storable.js';
+import {
+  decodeProverKey,
+  encodeProverKey,
+} from './proof-system/prover-keys.js';
 
 // public API
 export {
@@ -545,17 +549,15 @@ async function compileProgram({
 
   let storable: Pickles.Storable = [
     0,
-    function read_(_key, path) {
-      let value = read(path);
-      if (value === undefined) return MlResult.unitError();
-      // TODO decode value
-      return MlResult.ok(value);
+    function read_(key, path) {
+      let bytes = read(path);
+      if (bytes === undefined) return MlResult.unitError();
+      return MlResult.ok(decodeProverKey(key, bytes));
     },
-    function write_(_key, value, path) {
-      // TODO encode value
-      let stringValue = value;
-      if (write(path, stringValue)) return MlResult.ok(undefined);
-      return MlResult.unitError<undefined>();
+    function write_(key, value, path) {
+      let bytes = encodeProverKey(value);
+      if (write(path, bytes)) return MlResult.ok(undefined);
+      return MlResult.unitError();
     },
     MlBool(true),
   ];

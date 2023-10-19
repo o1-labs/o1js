@@ -10,8 +10,10 @@ import type {
   MlBool,
   MlBytes,
   MlResult,
+  MlUnit,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
+import type * as ProverKeys from './lib/proof-system/prover-keys.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType };
 
@@ -602,8 +604,15 @@ declare namespace Pickles {
    */
   type Storable = [
     _: 0,
-    read: (key: any, path: string) => MlResult<unknown, 0>,
-    write: (key: any, value: any, path: string) => MlResult<undefined, 0>,
+    read: (
+      key: ProverKeys.AnyKey,
+      path: string
+    ) => MlResult<ProverKeys.AnyValue, MlUnit>,
+    write: (
+      key: ProverKeys.AnyKey,
+      value: ProverKeys.AnyValue,
+      path: string
+    ) => MlResult<undefined, MlUnit>,
     canWrite: MlBool
   ];
 
