@@ -169,8 +169,8 @@
     "digest": "Bitwise Primitive",
     "methods": {
       "xor": {
-        "rows": 75,
-        "digest": "8d87d6130e66394180b88c76c11a4baf"
+        "rows": 15,
+        "digest": "b3595a9cc9562d4f4a3a397b6de44971"
       }
     },
     "verificationKey": {
