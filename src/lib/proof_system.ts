@@ -145,9 +145,7 @@ class Proof<Input, Output> {
     publicOutput: OutPut,
     maxProofsVerified: 0 | 1 | 2
   ): Promise<Proof<Input, OutPut>> {
-    // TODO need to select dummy based on maxProofsVerified
-    let dummyBase64 = await dummyBase64Proof();
-    let [, dummyRaw] = Pickles.proofOfBase64(dummyBase64, maxProofsVerified);
+    let dummyRaw = await dummyProof(maxProofsVerified);
     return new this({
       publicInput,
       publicOutput,
@@ -859,8 +857,13 @@ ZkProgram.Proof = function <
   };
 };
 
-function dummyBase64Proof() {
-  return withThreadPool(async () => Pickles.dummyBase64Proof());
+function dummyProof(maxProofsVerified: 0 | 1 | 2) {
+  return withThreadPool(async () => Pickles.dummyProof(maxProofsVerified)[1]);
+}
+
+async function dummyBase64Proof() {
+  let proof = await dummyProof(2);
+  return Pickles.proofToBase64([2, proof]);
 }
 
 // what feature flags to set to enable certain gate types
