@@ -139,6 +139,22 @@ class Proof<Input, Output> {
     this.proof = proof; // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
   }
+
+  static async dummy<Input, OutPut>(
+    publicInput: Input,
+    publicOutput: OutPut,
+    maxProofsVerified: 0 | 1 | 2
+  ): Promise<Proof<Input, OutPut>> {
+    // TODO need to select dummy based on maxProofsVerified
+    let dummyBase64 = await dummyBase64Proof();
+    let [, dummyRaw] = Pickles.proofOfBase64(dummyBase64, maxProofsVerified);
+    return new this({
+      publicInput,
+      publicOutput,
+      proof: dummyRaw,
+      maxProofsVerified,
+    });
+  }
 }
 
 async function verify(
