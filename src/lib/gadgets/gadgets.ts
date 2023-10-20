@@ -45,9 +45,8 @@ const Gadgets = {
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
    *
-   * **Note:** Both {@link Field} elements need to fit into `2^length - 1`, or the operation will fail.
-   * For example, for `length = 2` ( 2² = 4), `.xor` will fail for any element that is larger than `> 3`.
-   * If either input element exceeds the maximum bit length, an error is thrown and no proof can be generated because the method fails to properly constrain the operation.
+   * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated..
+   * For example, with `length = 2` (`paddedLength = 16`), `xor()` will fail for any input that is larger than `2**16`.
    *
    * ```typescript
    * let a = Field(5);    // ... 000101
