@@ -554,7 +554,7 @@ async function compileProgram({
         let bytes = read(path);
         return MlResult.ok(decodeProverKey(key, bytes));
       } catch (e: any) {
-        console.log('read failed', e.message);
+        console.log('read failed', e);
         return MlResult.unitError();
       }
     },

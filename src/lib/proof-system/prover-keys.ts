@@ -5,6 +5,7 @@ import {
 import { Pickles, getWasm } from '../../snarky.js';
 
 export { encodeProverKey, decodeProverKey, AnyKey, AnyValue };
+export type { MlWrapVerificationKey };
 
 type TODO = unknown;
 type Opaque = unknown;
@@ -39,6 +40,13 @@ type MlWrapProvingKeyHeader = [
   constraintSystem: MlConstraintSystem
 ];
 
+// Pickles.Verification_key.t
+// no point in defining
+
+class MlWrapVerificationKey {
+  // opaque type
+}
+
 // pickles_bindings.ml, any_key enum
 
 enum KeyType {
@@ -60,7 +68,7 @@ type AnyValue =
   | [KeyType.StepProvingKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
   | [KeyType.StepVerificationKey, TODO]
   | [KeyType.WrapProvingKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
-  | [KeyType.WrapVerificationKey, TODO];
+  | [KeyType.WrapVerificationKey, MlWrapVerificationKey];
 
 function encodeProverKey(value: AnyValue): Uint8Array {
   let wasm = getWasm();
@@ -79,7 +87,15 @@ function encodeProverKey(value: AnyValue): Uint8Array {
       console.timeEnd('encode wrap index');
       return encoded;
     }
+    case KeyType.WrapVerificationKey: {
+      let vk = value[1];
+      console.time('encode wrap vk');
+      let string = Pickles.encodeVerificationKey(vk);
+      console.timeEnd('encode wrap vk');
+      return new TextEncoder().encode(string);
+    }
     default:
+      value[0] satisfies KeyType.StepVerificationKey;
       throw Error('todo');
   }
 }
@@ -103,7 +119,15 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
       let cs = key[1][3];
       return [KeyType.WrapProvingKey, [0, index, cs]];
     }
+    case KeyType.WrapVerificationKey: {
+      let string = new TextDecoder().decode(bytes);
+      console.time('decode wrap vk');
+      let vk = Pickles.decodeVerificationKey(string);
+      console.timeEnd('decode wrap vk');
+      return [KeyType.WrapVerificationKey, vk];
+    }
     default:
+      key[0] satisfies KeyType.StepVerificationKey;
       throw Error('todo');
   }
 }

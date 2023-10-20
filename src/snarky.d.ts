@@ -685,6 +685,9 @@ declare const Pickles: {
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
+  encodeVerificationKey: (vk: ProverKeys.MlWrapVerificationKey) => string;
+  decodeVerificationKey: (vk: string) => ProverKeys.MlWrapVerificationKey;
+
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (
     base64: string,
