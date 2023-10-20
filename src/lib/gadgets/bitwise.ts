@@ -23,9 +23,9 @@ function xor(a: Field, b: Field, length: number) {
   if (a.isConstant() && b.isConstant()) {
     let max = 1n << BigInt(padLength);
 
-    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${max} bits`);
+    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
 
-    assert(b.toBigInt() < max, `${b.toBigInt()} does not fit into ${max} bits`);
+    assert(b.toBigInt() < max, `${b.toBigInt()} does not fit into ${padLength} bits`);
 
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
