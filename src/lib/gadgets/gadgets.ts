@@ -41,7 +41,7 @@ const Gadgets = {
    *
    * This gadget builds a chain of XOR gates recursively. Each XOR gate can verify 16 bit at most. If your input elements exceed 16 bit, another XOR gate will be added to the chain.
    *
-   * The `length` parameter lets you define how many bits should be compared.
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
    *
