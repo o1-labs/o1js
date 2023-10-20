@@ -140,6 +140,27 @@ class Proof<Input, Output> {
     this.maxProofsVerified = maxProofsVerified;
   }
 
+  /**
+   * Dummy proof. This can be useful for ZkPrograms that handle the base case in the same
+   * method as the inductive case, using a pattern like this:
+   *
+   * ```ts
+   * method(proof: SelfProof<I, O>, isRecursive: Bool) {
+   *   proof.verifyIf(isRecursive);
+   *   // ...
+   * }
+   * ```
+   *
+   * To use such a method in the base case, you need a dummy proof:
+   *
+   * ```ts
+   * let dummy = await MyProof.dummy(publicInput, publicOutput, 1);
+   * await myProgram.myMethod(dummy, Bool(false));
+   * ```
+   *
+   * **Note**: The types of `publicInput` and `publicOutput`, as well as the `maxProofsVerified` parameter,
+   * must match your ZkProgram. `maxProofsVerified` is the maximum number of proofs that any of your methods take as arguments.
+   */
   static async dummy<Input, OutPut>(
     publicInput: Input,
     publicOutput: OutPut,
