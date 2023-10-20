@@ -650,7 +650,10 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
-  dummyProof: <N extends 0 | 1 | 2>(maxProofsVerified: N) => [N, Pickles.Proof];
+  dummyProof: <N extends 0 | 1 | 2>(
+    maxProofsVerified: N,
+    domainLog2: number
+  ) => [N, Pickles.Proof];
 
   /**
    * @returns (base64 vk, hash)

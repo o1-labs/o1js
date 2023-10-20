@@ -143,9 +143,10 @@ class Proof<Input, Output> {
   static async dummy<Input, OutPut>(
     publicInput: Input,
     publicOutput: OutPut,
-    maxProofsVerified: 0 | 1 | 2
+    maxProofsVerified: 0 | 1 | 2,
+    domainLog2: number = 14
   ): Promise<Proof<Input, OutPut>> {
-    let dummyRaw = await dummyProof(maxProofsVerified);
+    let dummyRaw = await dummyProof(maxProofsVerified, domainLog2);
     return new this({
       publicInput,
       publicOutput,
@@ -857,12 +858,14 @@ ZkProgram.Proof = function <
   };
 };
 
-function dummyProof(maxProofsVerified: 0 | 1 | 2) {
-  return withThreadPool(async () => Pickles.dummyProof(maxProofsVerified)[1]);
+function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
+  return withThreadPool(
+    async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
+  );
 }
 
 async function dummyBase64Proof() {
-  let proof = await dummyProof(2);
+  let proof = await dummyProof(2, 15);
   return Pickles.proofToBase64([2, proof]);
 }
 
