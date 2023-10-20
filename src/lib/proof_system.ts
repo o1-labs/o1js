@@ -139,6 +139,42 @@ class Proof<Input, Output> {
     this.proof = proof; // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
   }
+
+  /**
+   * Dummy proof. This can be useful for ZkPrograms that handle the base case in the same
+   * method as the inductive case, using a pattern like this:
+   *
+   * ```ts
+   * method(proof: SelfProof<I, O>, isRecursive: Bool) {
+   *   proof.verifyIf(isRecursive);
+   *   // ...
+   * }
+   * ```
+   *
+   * To use such a method in the base case, you need a dummy proof:
+   *
+   * ```ts
+   * let dummy = await MyProof.dummy(publicInput, publicOutput, 1);
+   * await myProgram.myMethod(dummy, Bool(false));
+   * ```
+   *
+   * **Note**: The types of `publicInput` and `publicOutput`, as well as the `maxProofsVerified` parameter,
+   * must match your ZkProgram. `maxProofsVerified` is the maximum number of proofs that any of your methods take as arguments.
+   */
+  static async dummy<Input, OutPut>(
+    publicInput: Input,
+    publicOutput: OutPut,
+    maxProofsVerified: 0 | 1 | 2,
+    domainLog2: number = 14
+  ): Promise<Proof<Input, OutPut>> {
+    let dummyRaw = await dummyProof(maxProofsVerified, domainLog2);
+    return new this({
+      publicInput,
+      publicOutput,
+      proof: dummyRaw,
+      maxProofsVerified,
+    });
+  }
 }
 
 async function verify(
@@ -843,8 +879,15 @@ ZkProgram.Proof = function <
   };
 };
 
-function dummyBase64Proof() {
-  return withThreadPool(async () => Pickles.dummyBase64Proof());
+function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
+  return withThreadPool(
+    async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
+  );
+}
+
+async function dummyBase64Proof() {
+  let proof = await dummyProof(2, 15);
+  return Pickles.proofToBase64([2, proof]);
 }
 
 // what feature flags to set to enable certain gate types
