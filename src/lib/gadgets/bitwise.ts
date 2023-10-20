@@ -15,17 +15,17 @@ function xor(a: Field, b: Field, length: number) {
     `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
+  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
+  let l = 16;
+  let padLength = Math.ceil(length / l) * l;
+
   // handle constant case
   if (a.isConstant() && b.isConstant()) {
-    assert(
-      a.toBigInt() < 2 ** length,
-      `${a.toBigInt()} does not fit into ${length} bits`
-    );
+    let max = 1n << BigInt(padLength);
 
-    assert(
-      b.toBigInt() < 2 ** length,
-      `${b.toBigInt()} does not fit into ${length} bits`
-    );
+    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${max} bits`);
+
+    assert(b.toBigInt() < max, `${b.toBigInt()} does not fit into ${max} bits`);
 
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
@@ -36,18 +36,14 @@ function xor(a: Field, b: Field, length: number) {
     () => new Field(Fp.xor(a.toBigInt(), b.toBigInt()))
   );
 
-  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
-  let l = 16;
-  let padLength = Math.ceil(length / l) * l;
-
-  // recursively build xor gadget chain
+  // builds the xor gadget chain
   buildXor(a, b, outputXor, padLength);
 
   // return the result of the xor operation
   return outputXor;
 }
 
-// builds xor chain recursively
+// builds a xor chain
 function buildXor(
   a: Field,
   b: Field,
