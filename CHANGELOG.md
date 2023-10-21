@@ -33,6 +33,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Added bitwise `ROT` operation support for native field elements. https://github.com/o1-labs/o1js/pull/1182
 
+- `Proof.dummy()` to create dummy proofs https://github.com/o1-labs/o1js/pull/1188
+  - You can use this to write ZkPrograms that handle the base case and the inductive case in the same method.
+
 ## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
