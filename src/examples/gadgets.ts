@@ -1,14 +1,10 @@
 import { Field, Provable, Experimental, Gadgets } from 'o1js';
 
 let cs = Provable.constraintSystem(() => {
-  let res1 = Provable.witness(Field, () => {
-    let f = Field(12);
-    return Gadgets.rot(f, 2, 'left');
-  });
-  let res2 = Provable.witness(Field, () => {
-    let f = Field(12);
-    return Gadgets.rot(f, 2, 'right');
-  });
+  let f = Provable.witness(Field, () => Field(12));
+
+  let res1 = Gadgets.rot(f, 2, 'left');
+  let res2 = Gadgets.rot(f, 2, 'right');
 
   res1.assertEquals(Field(48));
   res2.assertEquals(Field(3));
