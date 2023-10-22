@@ -71,20 +71,20 @@ function rotate(
     rotated,
     excess,
     [
-      witnessSlices(bound, 52, 64),
-      witnessSlices(bound, 40, 52),
-      witnessSlices(bound, 28, 40),
-      witnessSlices(bound, 16, 28),
+      witnessSlices(bound, 52, 12), // bits 52-64
+      witnessSlices(bound, 40, 12), // bits 40-52
+      witnessSlices(bound, 28, 12), // bits 28-40
+      witnessSlices(bound, 16, 12), // bits 16-28
     ],
     [
-      witnessSlices(bound, 14, 16),
-      witnessSlices(bound, 12, 14),
-      witnessSlices(bound, 10, 12),
-      witnessSlices(bound, 8, 10),
-      witnessSlices(bound, 6, 8),
-      witnessSlices(bound, 4, 6),
-      witnessSlices(bound, 2, 4),
-      witnessSlices(bound, 0, 2),
+      witnessSlices(bound, 14, 2), // bits 14-16
+      witnessSlices(bound, 12, 2), // bits 12-14
+      witnessSlices(bound, 10, 2), // bits 10-12
+      witnessSlices(bound, 8, 2), // bits 8-10
+      witnessSlices(bound, 6, 2), // bits 6-8
+      witnessSlices(bound, 4, 2), // bits 4-6
+      witnessSlices(bound, 2, 2), // bits 2-4
+      witnessSlices(bound, 0, 2), // bits 0-2
     ],
     Field.from(big2PowerRot)
   );
@@ -96,21 +96,13 @@ function rotate(
   return [rotated, excess, shifted];
 }
 
-function witnessSlices(f: Field, start: number, stop = -1) {
-  if (stop !== -1 && stop <= start) {
-    throw Error('stop must be greater than start');
-  }
-
+// TODO: move to utils once https://github.com/o1-labs/o1js/pull/1177 is merged
+function witnessSlices(f: Field, start: number, length: number) {
+  if (length <= 0) throw Error('Length must be a positive number');
   return Provable.witness(Field, () => {
-    let bits = f.toBits();
-    if (stop > bits.length) {
-      throw Error('stop must be less than bit-length');
-    }
-    if (stop === -1) {
-      stop = bits.length;
-    }
-
-    return Field.fromBits(bits.slice(start, stop));
+    let mask = (1n << BigInt(length)) - 1n;
+    let n = f.toBigInt();
+    return new Field((n >> BigInt(start)) & mask);
   });
 }
 
