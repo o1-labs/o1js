@@ -41,7 +41,7 @@ const Gadgets = {
    *
    * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
    *
-   * @param word {@link Field} element to rotate.
+   * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction left or right rotation direction.
    *
@@ -59,8 +59,8 @@ const Gadgets = {
    * rot(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
-  rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
-    return rot(word, bits, direction);
+  rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rot(field, bits, direction);
   },
 
   /**

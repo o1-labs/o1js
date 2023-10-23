@@ -44,7 +44,7 @@ function rangeCheck64(x: Field) {
 }
 
 function rot(
-  word: Field,
+  field: Field,
   rotated: Field,
   excess: Field,
   limbs: [Field, Field, Field, Field],
@@ -52,7 +52,7 @@ function rot(
   two_to_rot: Field
 ) {
   Snarky.gates.rot(
-    word.value,
+    field.value,
     rotated.value,
     excess.value,
     MlArray.to(limbs.map((x) => x.value)),

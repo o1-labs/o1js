@@ -308,7 +308,7 @@ declare const Snarky: {
     ): void;
 
     rot(
-      word: FieldVar,
+      field: FieldVar,
       rotated: FieldVar,
       excess: FieldVar,
       limbs: MlArray<FieldVar>,
