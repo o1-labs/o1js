@@ -26,7 +26,7 @@ const ROT = Experimental.ZkProgram({
         let expectedLeft = Field(192);
         actualLeft.assertEquals(expectedLeft);
 
-        let expectedRight = 12;
+        let expectedRight = Field(12);
         actualRight.assertEquals(expectedRight);
       },
     },
