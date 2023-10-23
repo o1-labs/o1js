@@ -3,8 +3,10 @@ import {
   Mina,
   isReady,
   Permissions,
+  TxnVersion,
   PrivateKey,
   UInt64,
+  TxnVersion,
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
@@ -427,7 +429,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: { auth: Permissions.impossible(), txnVersion: TxnVersion.current() }
     });
   });
   await tx.prove();

@@ -6,6 +6,7 @@ import {
   VerificationKey,
   method,
   Permissions,
+  TxnVersion,
   isReady,
   PrivateKey,
   Mina,
@@ -19,7 +20,7 @@ class Foo extends SmartContract {
     super.init();
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.proof(),
+      setVerificationKey: { auth: Permissions.proof(), txnVersion: TxnVersion.current() }
     });
   }
 

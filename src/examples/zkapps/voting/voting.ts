@@ -6,6 +6,7 @@ import {
   method,
   DeployArgs,
   Permissions,
+  TxnVersion,
   PublicKey,
   Bool,
   Reducer,
@@ -103,7 +104,7 @@ export class Voting_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
-      setVerificationKey: Permissions.none(),
+      setVerificationKey: { auth: Permissions.none(), txnVersion: TxnVersion.current() },
       setPermissions: Permissions.proofOrSignature(),
     });
     this.accumulatedVotes.set(Reducer.initialActionState);

@@ -19,7 +19,7 @@ let accountUpdateExample: Json.AccountUpdate = {
         receive: 'Proof',
         setDelegate: 'Signature',
         setPermissions: 'None',
-        setVerificationKey: 'None',
+        setVerificationKey: {auth: 'None', txnVersion: '3'},
         setZkappUri: 'Signature',
         editActionState: 'Proof',
         setTokenSymbol: 'Signature',

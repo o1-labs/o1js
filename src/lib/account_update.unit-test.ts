@@ -118,6 +118,6 @@ function createAccountUpdate() {
   });
   tx.sign();
   await expect(tx.send()).rejects.toThrow(
-    'Check signature: Invalid signature on fee payer for key'
+    'Check signature: Invalid signature on fee payer for key B62qoDz7a2SL6ULj1xGQkzhtTdt2VHeENehntPtc7xNYhCMSMQjG8Qr'
   );
 }

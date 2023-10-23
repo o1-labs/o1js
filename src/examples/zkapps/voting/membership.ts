@@ -12,6 +12,7 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
+  TxnVersion,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -74,7 +75,7 @@ export class Membership_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
-      setVerificationKey: Permissions.proofOrSignature(),
+      setVerificationKey: { auth: Permissions.proofOrSignature(), txnVersion: TxnVersion.current() },
       incrementNonce: Permissions.proofOrSignature(),
     });
   }

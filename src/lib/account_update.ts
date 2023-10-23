@@ -99,6 +99,11 @@ type SetOrKeep<T> = { isSome: Bool; value: T };
 const True = () => Bool(true);
 const False = () => Bool(false);
 
+type TxnVersion = UInt32;
+let TxnVersion = {
+  current: (): TxnVersion => (UInt32.from(3)),
+};
+
 /**
  * One specific permission value.
  *
@@ -199,7 +204,7 @@ interface Permissions extends Permissions_ {
    * key associated with the circuit tied to this account. Effectively
    * "upgradeability" of the smart contract.
    */
-  setVerificationKey: Permission;
+  setVerificationKey: {auth: Permission; txnVersion: TxnVersion;};
 
   /**
    * The {@link Permission} corresponding to the ability to set the zkapp uri
@@ -265,7 +270,7 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: Permission.signature(),
+    setVerificationKey: {auth: Permission.signature(), txnVersion: TxnVersion.current()},
     setZkappUri: Permission.signature(),
     editActionState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
@@ -281,7 +286,7 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: Permission.signature(),
+    setVerificationKey: {auth: Permission.signature(), txnVersion: TxnVersion.current()},
     setZkappUri: Permission.signature(),
     editActionState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
@@ -298,7 +303,7 @@ let Permissions = {
     access: Permission.none(),
     setDelegate: Permission.none(),
     setPermissions: Permission.none(),
-    setVerificationKey: Permission.none(),
+    setVerificationKey: {auth: Permission.none(), txnVersion: TxnVersion.current()},
     setZkappUri: Permission.none(),
     editActionState: Permission.none(),
     setTokenSymbol: Permission.none(),
@@ -314,7 +319,7 @@ let Permissions = {
     access: Permission.impossible(),
     setDelegate: Permission.impossible(),
     setPermissions: Permission.impossible(),
-    setVerificationKey: Permission.impossible(),
+    setVerificationKey: {auth: Permission.impossible(), txnVersion: TxnVersion.current()},
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
     setTokenSymbol: Permission.impossible(),
@@ -347,12 +352,21 @@ let Permissions = {
       Types.Json.AccountUpdate['body']['update']['permissions']
     >
   ): Permissions => {
-    return Object.fromEntries(
-      Object.entries(permissions).map(([k, v]) => [
-        k,
-        Permissions.fromString(v),
-      ])
-    ) as unknown as Permissions;
+    return {
+      editState: Permissions.fromString(permissions.editState),
+      send: Permissions.fromString(permissions.send),
+      receive: Permissions.fromString(permissions.receive),
+      access: Permissions.fromString(permissions.access),
+      setDelegate: Permissions.fromString(permissions.setDelegate),
+      setPermissions: Permissions.fromString(permissions.setPermissions),
+      setVerificationKey: {auth: Permissions.fromString(permissions.setVerificationKey.auth), txnVersion: UInt32.from(permissions.setVerificationKey.txnVersion)},
+      setZkappUri: Permissions.fromString(permissions.setZkappUri),
+      editActionState: Permissions.fromString(permissions.editActionState),
+      setTokenSymbol: Permissions.fromString(permissions.setTokenSymbol),
+      incrementNonce: Permissions.fromString(permissions.incrementNonce),
+      setVotingFor: Permissions.fromString(permissions.setVotingFor),
+      setTiming: Permissions.fromString(permissions.setTiming),
+    }
   },
 };
 

@@ -13,9 +13,11 @@ import {
   Account,
   Experimental,
   Permissions,
+  TxnVersion,
   Mina,
   Int64,
   VerificationKey,
+  TxnVersion,
 } from 'snarkyjs';
 
 /**
@@ -93,7 +95,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // make account non-upgradable forever
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: { auth: Permissions.impossible(), txnVersion: TxnVersion.current() },
       setPermissions: Permissions.impossible(),
       access: Permissions.proofOrSignature(),
     });
