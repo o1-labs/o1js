@@ -2,7 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { xor } from './bitwise.js';
+import { xor, and } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -34,7 +34,6 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
-
   /**
    * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
    * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
@@ -58,5 +57,34 @@ const Gadgets = {
    */
   xor(a: Field, b: Field, length: number) {
     return xor(a, b, length);
+  },
+  /**
+   * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * An AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a one double generic gate (plus the gates created by XOR) the that verifies the following relationship between these values.
+   *  a + b = sum
+   *  a x b = xor
+   *  a ^ b = and
+   *
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`.
+   *
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated..
+   * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
+   *
+   * ```typescript
+   * let a = Field(3);    // ... 000011
+   * let b = Field(5);    // ... 000101
+   *
+   * let c = and(a, b, 2);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(a: Field, b: Field, length: number) {
+    return and(a, b, length);
   },
 };

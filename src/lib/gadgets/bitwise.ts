@@ -1,9 +1,9 @@
 import { Provable } from '../provable.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
-import { Field } from '../field.js';
+import { Field, FieldConst } from '../field.js';
 import * as Gates from '../gates.js';
 
-export { xor };
+export { xor, and };
 
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
@@ -23,9 +23,15 @@ function xor(a: Field, b: Field, length: number) {
   if (a.isConstant() && b.isConstant()) {
     let max = 1n << BigInt(padLength);
 
-    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
+    assert(
+      a.toBigInt() < max,
+      `${a.toBigInt()} does not fit into ${padLength} bits`
+    );
 
-    assert(b.toBigInt() < max, `${b.toBigInt()} does not fit into ${padLength} bits`);
+    assert(
+      b.toBigInt() < max,
+      `${b.toBigInt()} does not fit into ${padLength} bits`
+    );
 
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
@@ -104,6 +110,62 @@ function buildXor(
   zero.assertEquals(a);
   zero.assertEquals(b);
   zero.assertEquals(expectedOutput);
+}
+
+function and(a: Field, b: Field, length: number) {
+  // check that both input lengths are positive
+  assert(length > 0, `Input lengths need to be positive values.`);
+
+  // check that length does not exceed maximum field size in bits
+  assert(
+    length <= Field.sizeInBits(),
+    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+  );
+
+  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
+  let padLength = Math.ceil(length / 16) * 16;
+
+  // handle constant case
+  if (a.isConstant() && b.isConstant()) {
+    let max = 1n << BigInt(padLength);
+
+    assert(
+      a.toBigInt() < max,
+      `${a.toBigInt()} does not fit into ${padLength} bits`
+    );
+
+    assert(
+      b.toBigInt() < max,
+      `${b.toBigInt()} does not fit into ${padLength} bits`
+    );
+
+    return new Field(Fp.and(a.toBigInt(), b.toBigInt()));
+  }
+
+  // calculate expect and output
+  let outputAnd = Provable.witness(
+    Field,
+    () => new Field(Fp.and(a.toBigInt(), b.toBigInt()))
+  );
+
+  // compute values for gate
+  let sum = a.add(b);
+  let xor_output = xor(a, b, length);
+  let and_output = outputAnd;
+
+  Gates.basic(
+    FieldConst['1'],
+    sum,
+    FieldConst['-1'],
+    xor_output,
+    FieldConst.fromBigint(-2n),
+    and_output,
+    FieldConst['0'],
+    FieldConst['0']
+  );
+
+  // return the result of the and operation
+  return outputAnd;
 }
 
 function assert(stmt: boolean, message?: string) {

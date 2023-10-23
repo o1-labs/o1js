@@ -326,6 +326,17 @@ declare const Snarky: {
     ): void;
 
     zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+
+    basic(
+      sl: FieldConst,
+      l: FieldVar,
+      sr: FieldConst,
+      r: FieldVar,
+      so: FieldConst,
+      o: FieldVar,
+      sm: FieldConst,
+      sc: FieldConst
+    ): void;
   };
 
   bool: {

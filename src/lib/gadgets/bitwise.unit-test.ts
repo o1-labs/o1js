@@ -20,6 +20,12 @@ let Bitwise = ZkProgram({
         return Gadgets.xor(a, b, 64);
       },
     },
+    and: {
+      privateInputs: [Field, Field],
+      method(a: Field, b: Field) {
+        return Gadgets.and(a, b, 64);
+      },
+    },
   },
 });
 
@@ -31,6 +37,10 @@ let uint = (length: number) => fieldWithRng(Random.biguint(length));
   equivalent({ from: [uint(length), uint(length)], to: field })(
     Fp.xor,
     (x, y) => Gadgets.xor(x, y, length)
+  );
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    Fp.and,
+    (x, y) => Gadgets.and(x, y, length)
   );
 });
 
@@ -53,6 +63,21 @@ await equivalentAsync(
   },
   async (x, y) => {
     let proof = await Bitwise.xor(x, y);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync(
+  { from: [maybeUint64, maybeUint64], to: field },
+  { runs: 3 }
+)(
+  (x, y) => {
+    if (x >= 2n ** 64n || y >= 2n ** 64n)
+      throw Error('Does not fit into 64 bits');
+    return Fp.and(x, y);
+  },
+  async (x, y) => {
+    let proof = await Bitwise.and(x, y);
     return proof.publicOutput;
   }
 );
