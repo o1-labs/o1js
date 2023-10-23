@@ -7,12 +7,12 @@ export { Storable };
  * Interface for storing and retrieving values for caching.
  * `read()` and `write()` can just throw errors on failure.
  */
-type Storable<T> = {
-  read(key: string, type: 'string' | 'bytes'): T;
-  write(key: string, value: T, type: 'string' | 'bytes'): void;
+type Storable = {
+  read(key: string, type: 'string' | 'bytes'): Uint8Array;
+  write(key: string, value: Uint8Array, type: 'string' | 'bytes'): void;
 };
 
-const None: Storable<Uint8Array> = {
+const None: Storable = {
   read() {
     throw Error('not available');
   },
@@ -21,7 +21,7 @@ const None: Storable<Uint8Array> = {
   },
 };
 
-const FileSystem = (cacheDirectory: string): Storable<Uint8Array> => ({
+const FileSystem = (cacheDirectory: string): Storable => ({
   read(key, type: 'string' | 'bytes') {
     if (jsEnvironment !== 'node') throw Error('file system not available');
     console.log('READ', key);

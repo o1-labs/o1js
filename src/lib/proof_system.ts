@@ -532,7 +532,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
-  storable?: Storable<Uint8Array>;
+  storable?: Storable;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
