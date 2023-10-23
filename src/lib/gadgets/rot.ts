@@ -33,7 +33,7 @@ function rotate(
 ): [Field, Field, Field] {
   // Check as the prover, that the input word is at most 64 bits.
   Provable.asProver(() => {
-    if (word.toBigInt() > 2 ** MAX_BITS) {
+    if (word.toBigInt() > BigInt(2 ** MAX_BITS)) {
       throw Error(
         `rot: expected word to be at most 64 bits, got ${word.toBigInt()}`
       );
