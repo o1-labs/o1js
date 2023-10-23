@@ -20,6 +20,7 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
   }
 
   if (word.isConstant()) {
+    checkMaxBits(word);
     return new Field(Fp.rot(word.toBigInt(), bits, direction));
   }
   const [rotated] = rotate(word, bits, direction);
@@ -33,11 +34,7 @@ function rotate(
 ): [Field, Field, Field] {
   // Check as the prover, that the input word is at most 64 bits.
   Provable.asProver(() => {
-    if (word.toBigInt() > BigInt(2 ** MAX_BITS)) {
-      throw Error(
-        `rot: expected word to be at most 64 bits, got ${word.toBigInt()}`
-      );
-    }
+    checkMaxBits(word);
   });
 
   const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
@@ -94,6 +91,14 @@ function rotate(
   Gates.rangeCheck64(excess);
   Gates.rangeCheck64(rotated);
   return [rotated, excess, shifted];
+}
+
+function checkMaxBits(x: Field) {
+  if (x.toBigInt() > BigInt(2 ** MAX_BITS)) {
+    throw Error(
+      `rot: expected word to be at most 64 bits, got ${x.toBigInt()}`
+    );
+  }
 }
 
 // TODO: move to utils once https://github.com/o1-labs/o1js/pull/1177 is merged
