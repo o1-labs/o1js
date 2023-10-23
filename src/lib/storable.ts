@@ -12,6 +12,15 @@ type Storable<T> = {
   write(key: string, value: T, type: 'string' | 'bytes'): void;
 };
 
+const None: Storable<Uint8Array> = {
+  read() {
+    throw Error('not available');
+  },
+  write() {
+    throw Error('not available');
+  },
+};
+
 const FileSystem = (cacheDirectory: string): Storable<Uint8Array> => ({
   read(key, type: 'string' | 'bytes') {
     if (jsEnvironment !== 'node') throw Error('file system not available');
@@ -39,4 +48,5 @@ const FileSystemDefault = FileSystem('/tmp');
 const Storable = {
   FileSystem,
   FileSystemDefault,
+  None,
 };

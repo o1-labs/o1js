@@ -523,7 +523,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  storable: { read, write } = Storable.FileSystemDefault,
+  storable: { read, write } = Storable.None,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -556,7 +556,7 @@ async function compileProgram({
         let bytes = read(path, type);
         return MlResult.ok(decodeProverKey(key, bytes));
       } catch (e: any) {
-        console.log('read failed', e);
+        console.log('read failed', e.message);
         return MlResult.unitError();
       }
     },
