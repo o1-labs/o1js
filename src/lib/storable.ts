@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, mkdirSync } from './util/fs.js';
+import { writeFileSync, readFileSync, mkdirSync, cacheDir } from './util/fs.js';
 import { jsEnvironment } from '../bindings/crypto/bindings/env.js';
 
 export { Storable };
@@ -43,7 +43,7 @@ const FileSystem = (cacheDirectory: string): Storable => ({
   },
 });
 
-const FileSystemDefault = FileSystem('/tmp');
+const FileSystemDefault = FileSystem(cacheDir('pickles'));
 
 const Storable = {
   FileSystem,

@@ -523,7 +523,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  storable: { read, write } = Storable.None,
+  storable: { read, write } = Storable.FileSystemDefault,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
