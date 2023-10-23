@@ -2,7 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { rot } from './rot.js';
+import { rot, leftShift } from './rot.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -87,7 +87,7 @@ const Gadgets = {
    * ```
    */
   leftShift(field: Field, bits: number) {
-    return rot(field, bits, 'left');
+    return leftShift(field, bits);
   },
 
   /**
