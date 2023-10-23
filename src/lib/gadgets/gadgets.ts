@@ -89,4 +89,31 @@ const Gadgets = {
   leftShift(word: Field, bits: number) {
     return rot(word, bits, 'left');
   },
+
+  /**
+   * Performs a right shift operation on the provided {@link Field} element.
+   * This is similar to the `>>` shift operation in JavaScript, where bits are moved to the right.
+   * The `rightShift` function utilizes the rotation method internally to implement this operation.
+   *
+   * **Note:** You cannot shift {@link Field} elements that exceed 64 bits.
+   * For elements that exceed 64 bits, this operation will fail.
+   *
+   * @param word {@link Field} element to shift.
+   * @param bits Amount of bits to shift the {@link Field} element to the right.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(48));
+   * const y = rightShift(x, 2); // right shift by 2 bits
+   * y.assertEquals(12);
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * rightShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * ```
+   */
+  rightShift(word: Field, bits: number) {
+    return rot(word, bits, 'right');
+  },
 };
