@@ -679,7 +679,11 @@ declare const Pickles: {
   loadSrsFp(): WasmFpSrs;
   loadSrsFq(): WasmFqSrs;
 
-  dummyBase64Proof: () => string;
+  dummyProof: <N extends 0 | 1 | 2>(
+    maxProofsVerified: N,
+    domainLog2: number
+  ) => [N, Pickles.Proof];
+
   /**
    * @returns (base64 vk, hash)
    */
@@ -689,10 +693,10 @@ declare const Pickles: {
   decodeVerificationKey: (vk: string) => ProverKeys.MlWrapVerificationKey;
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
-  proofOfBase64: (
+  proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
-    maxProofsVerified: 0 | 1 | 2
-  ) => [0 | 1 | 2, Pickles.Proof];
+    maxProofsVerified: N
+  ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
