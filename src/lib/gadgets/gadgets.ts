@@ -71,7 +71,7 @@ const Gadgets = {
    * **Note:** You cannot shift {@link Field} elements that exceed 64 bits.
    * For elements that exceed 64 bits, this operation will fail.
    *
-   * @param word {@link Field} element to shift.
+   * @param field {@link Field} element to shift.
    * @param bits Amount of bits to shift the {@link Field} element to the left.
    *
    * @throws Throws an error if the input value exceeds 64 bits.
@@ -86,8 +86,8 @@ const Gadgets = {
    * leftShift(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
-  leftShift(word: Field, bits: number) {
-    return rot(word, bits, 'left');
+  leftShift(field: Field, bits: number) {
+    return rot(field, bits, 'left');
   },
 
   /**
@@ -98,7 +98,7 @@ const Gadgets = {
    * **Note:** You cannot shift {@link Field} elements that exceed 64 bits.
    * For elements that exceed 64 bits, this operation will fail.
    *
-   * @param word {@link Field} element to shift.
+   * @param field {@link Field} element to shift.
    * @param bits Amount of bits to shift the {@link Field} element to the right.
    *
    * @throws Throws an error if the input value exceeds 64 bits.
@@ -113,7 +113,7 @@ const Gadgets = {
    * rightShift(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
-  rightShift(word: Field, bits: number) {
-    return rot(word, bits, 'right');
+  rightShift(field: Field, bits: number) {
+    return rot(field, bits, 'right');
   },
 };
