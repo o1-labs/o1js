@@ -8,22 +8,29 @@ export { Storable };
  * `read()` and `write()` can just throw errors on failure.
  */
 type Storable<T> = {
-  read(key: string): T;
-  write(key: string, value: T): void;
+  read(key: string, type: 'string' | 'bytes'): T;
+  write(key: string, value: T, type: 'string' | 'bytes'): void;
 };
 
 const FileSystem = (cacheDirectory: string): Storable<Uint8Array> => ({
-  read(key) {
+  read(key, type: 'string' | 'bytes') {
     if (jsEnvironment !== 'node') throw Error('file system not available');
     console.log('READ', key);
-    let buffer = readFileSync(`${cacheDirectory}/${key}`);
-    return new Uint8Array(buffer.buffer);
+    if (type === 'string') {
+      let string = readFileSync(`${cacheDirectory}/${key}`, 'utf8');
+      return new TextEncoder().encode(string);
+    } else {
+      let buffer = readFileSync(`${cacheDirectory}/${key}`);
+      return new Uint8Array(buffer.buffer);
+    }
   },
-  write(key, value) {
+  write(key, value, type: 'string' | 'bytes') {
     if (jsEnvironment !== 'node') throw Error('file system not available');
     console.log('WRITE', key);
     mkdirSync(cacheDirectory, { recursive: true });
-    writeFileSync(`${cacheDirectory}/${key}`, value);
+    writeFileSync(`${cacheDirectory}/${key}`, value, {
+      encoding: type === 'string' ? 'utf8' : undefined,
+    });
   },
 });
 

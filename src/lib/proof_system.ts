@@ -32,6 +32,7 @@ import { Storable } from './storable.js';
 import {
   decodeProverKey,
   encodeProverKey,
+  proverKeyType,
 } from './proof-system/prover-keys.js';
 
 // public API
@@ -551,7 +552,8 @@ async function compileProgram({
     0,
     function read_(key, path) {
       try {
-        let bytes = read(path);
+        let type = proverKeyType(key);
+        let bytes = read(path, type);
         return MlResult.ok(decodeProverKey(key, bytes));
       } catch (e: any) {
         console.log('read failed', e);
@@ -560,8 +562,9 @@ async function compileProgram({
     },
     function write_(key, value, path) {
       try {
+        let type = proverKeyType(key);
         let bytes = encodeProverKey(value);
-        write(path, bytes);
+        write(path, bytes, type);
         return MlResult.ok(undefined);
       } catch (e: any) {
         console.log('write failed', e.message);
