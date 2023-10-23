@@ -7,7 +7,7 @@ export { rot, rotate };
 
 const MAX_BITS = 64 as const;
 
-function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
+function rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
   // Check that the rotation bits are in range
   if (bits < 0 || bits > MAX_BITS) {
     throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
@@ -19,22 +19,22 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
     );
   }
 
-  if (word.isConstant()) {
-    checkMaxBits(word);
-    return new Field(Fp.rot(word.toBigInt(), bits, direction));
+  if (field.isConstant()) {
+    checkMaxBits(field);
+    return new Field(Fp.rot(field.toBigInt(), bits, direction));
   }
-  const [rotated] = rotate(word, bits, direction);
+  const [rotated] = rotate(field, bits, direction);
   return rotated;
 }
 
 function rotate(
-  word: Field,
+  field: Field,
   bits: number,
   direction: 'left' | 'right' = 'left'
 ): [Field, Field, Field] {
-  // Check as the prover, that the input word is at most 64 bits.
+  // Check as the prover, that the input is at most 64 bits.
   Provable.asProver(() => {
-    checkMaxBits(word);
+    checkMaxBits(field);
   });
 
   const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
@@ -44,12 +44,12 @@ function rotate(
   const [rotated, excess, shifted, bound] = Provable.witness(
     Provable.Array(Field, 4),
     () => {
-      const wordBigInt = word.toBigInt();
+      const f = field.toBigInt();
 
       // Obtain rotated output, excess, and shifted for the equation:
-      // word * 2^rot = excess * 2^64 + shifted
+      // f * 2^rot = excess * 2^64 + shifted
       const { quotient: excess, remainder: shifted } = divideWithRemainder(
-        wordBigInt * big2PowerRot,
+        f * big2PowerRot,
         big2Power64
       );
 
@@ -64,7 +64,7 @@ function rotate(
 
   // Compute current row
   Gates.rot(
-    word,
+    field,
     rotated,
     excess,
     [
@@ -96,7 +96,7 @@ function rotate(
 function checkMaxBits(x: Field) {
   if (x.toBigInt() > BigInt(2 ** MAX_BITS)) {
     throw Error(
-      `rot: expected word to be at most 64 bits, got ${x.toBigInt()}`
+      `rot: expected field to be at most 64 bits, got ${x.toBigInt()}`
     );
   }
 }

@@ -77,16 +77,16 @@ await equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
 );
 
 function testRot(
-  word: Field,
+  field: Field,
   bits: number,
   mode: 'left' | 'right',
   result: Field
 ) {
   Provable.runAndCheck(() => {
-    let w = Provable.witness(Field, () => word);
+    let w = Provable.witness(Field, () => field);
     let r = Provable.witness(Field, () => result);
     let output = Gadgets.rot(w, bits, mode);
-    output.assertEquals(r, `rot(${word}, ${bits}, ${mode})`);
+    output.assertEquals(r, `rot(${field}, ${bits}, ${mode})`);
   });
 }
 
