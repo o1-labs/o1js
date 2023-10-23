@@ -62,4 +62,31 @@ const Gadgets = {
   rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
     return rot(word, bits, direction);
   },
+
+  /**
+   * Performs a left shift operation on the provided {@link Field} element.
+   * This is akin to the `<<` shift operation in JavaScript, where bits are moved to the left.
+   * The `leftShift` function uses the rotation method internally to achieve this operation.
+   *
+   * **Note:** You cannot shift {@link Field} elements that exceed 64 bits.
+   * For elements that exceed 64 bits, this operation will fail.
+   *
+   * @param word {@link Field} element to shift.
+   * @param bits Amount of bits to shift the {@link Field} element to the left.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12));
+   * const y = leftShift(x, 2); // left shift by 2 bits
+   * y.assertEquals(48);
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * leftShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * ```
+   */
+  leftShift(word: Field, bits: number) {
+    return rot(word, bits, 'left');
+  },
 };
