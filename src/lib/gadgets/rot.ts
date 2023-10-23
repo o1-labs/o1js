@@ -20,7 +20,7 @@ function rot(word: Field, bits: number, direction: 'left' | 'right' = 'left') {
   }
 
   if (word.isConstant()) {
-    return new Field(Fp.rot(word.toBigInt(), bits, direction === 'left'));
+    return new Field(Fp.rot(word.toBigInt(), bits, direction));
   }
   const [rotated] = rotate(word, bits, direction);
   return rotated;
