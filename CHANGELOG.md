@@ -29,6 +29,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
 
+### Changed
+
+- Use cached prover keys in `compile()` when running in Node.js https://github.com/o1-labs/o1js/pull/1187
+  - Caching is configurable by passing a custom `Storable` (new export) to `compile()`
+  - By default, prover keys are stored in an OS-dependent cache directory; `~/.cache/pickles` on Mac and Linux
+
 ## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
