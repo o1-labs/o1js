@@ -7,7 +7,8 @@ import {
   equivalentAsync,
   field,
 } from '../testing/equivalent.js';
-import { Random } from '../testing/random.js';
+import { test, Random } from '../testing/property.js';
+import { Field as Fp } from '../../provable/field-bigint.js';
 import { Gadgets } from './gadgets.js';
 import { Provable } from '../provable.js';
 
@@ -99,3 +100,19 @@ testRot(Field(2651214356120862720), 32, 'right', Field(617283945));
 testRot(Field(1153202983878524928), 32, 'right', Field(268500993));
 testRot(Field(6510615555426900570n), 4, 'right', Field(11936128518282651045n));
 testRot(Field(6510615555426900570n), 4, 'right', Field(11936128518282651045n));
+
+// rotation
+test(
+  Random.uint64,
+  Random.nat(64),
+  Random.boolean,
+  (x, n, direction, assert) => {
+    let z = Field(x);
+    let r1 = Fp.rot(x, n, direction ? 'left' : 'right');
+    Provable.runAndCheck(() => {
+      let f = Provable.witness(Field, () => z);
+      let r2 = Gadgets.rot(f, n, direction ? 'left' : 'right');
+      Provable.asProver(() => assert(r1 === r2.toBigInt()));
+    });
+  }
+);

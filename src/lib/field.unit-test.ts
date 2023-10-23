@@ -17,7 +17,6 @@ import {
   bool,
   Spec,
 } from './testing/equivalent.js';
-import { Gadgets } from './gadgets/gadgets.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -44,22 +43,6 @@ test(Random.field, Random.json.field, (x, y, assert) => {
   deepEqual(Field.fromJSON(y), z);
   assert(z.toJSON() === y);
 });
-
-// rotation
-test(
-  Random.uint64,
-  Random.nat(64),
-  Random.boolean,
-  (x, n, direction, assert) => {
-    let z = Field(x);
-    let r1 = Fp.rot(x, n, direction);
-    Provable.runAndCheck(() => {
-      let f = Provable.witness(Field, () => z);
-      let r2 = Gadgets.rot(f, n, direction ? 'left' : 'right');
-      Provable.asProver(() => assert(r1 === r2.toBigInt()));
-    });
-  }
-);
 
 // handles small numbers
 test(Random.nat(1000), (n, assert) => {
