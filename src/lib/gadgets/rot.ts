@@ -3,7 +3,7 @@ import { Provable } from '../provable.js';
 import { Fp } from '../../bindings/crypto/finite_field.js';
 import * as Gates from '../gates.js';
 
-export { rot, rotate, leftShift };
+export { rot, rotate, leftShift, rightShift };
 
 const MAX_BITS = 64 as const;
 
@@ -39,6 +39,22 @@ function leftShift(field: Field, bits: number) {
   }
   const [, , shifted] = rotate(field, bits, 'left');
   return shifted;
+}
+
+function rightShift(field: Field, bits: number) {
+  // Check that the rotation bits are in range
+  if (bits < 0 || bits > MAX_BITS) {
+    throw Error(
+      `rightShift: expected bits to be between 0 and 64, got ${bits}`
+    );
+  }
+
+  if (field.isConstant()) {
+    checkMaxBits(field);
+    return new Field(Fp.rightShift(field.toBigInt(), bits));
+  }
+  const [, excess] = rotate(field, bits, 'right');
+  return excess;
 }
 
 function rotate(
