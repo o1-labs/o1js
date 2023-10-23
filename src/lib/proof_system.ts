@@ -278,7 +278,7 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile() {
+  async function compile({ storable = Storable.FileSystemDefault } = {}) {
     let methodsMeta = analyzeMethods();
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
@@ -288,6 +288,7 @@ function ZkProgram<
       methods: methodFunctions,
       gates,
       proofSystemTag: selfTag,
+      storable,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -523,7 +524,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  storable: { read, write } = Storable.FileSystemDefault,
+  storable: { read, write },
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -532,7 +533,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
-  storable?: Storable;
+  storable: Storable;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
