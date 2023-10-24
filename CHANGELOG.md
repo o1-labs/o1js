@@ -31,6 +31,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
 
+- Added bitwise `XOR` operation support for native field elements. https://github.com/o1-labs/o1js/pull/1177
+
 ## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
