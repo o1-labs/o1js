@@ -1,5 +1,7 @@
 import { Field, Provable, Gadgets, Experimental } from 'o1js';
 
+console.log('--------------- XOR ---------------');
+
 const XOR = Experimental.ZkProgram({
   methods: {
     baseCase: {
@@ -14,8 +16,6 @@ const XOR = Experimental.ZkProgram({
     },
   },
 });
-
-console.log('XOR:');
 
 console.log('compiling..');
 
@@ -32,6 +32,8 @@ console.timeEnd('prove');
 if (!(await XOR.verify(XORproof))) throw Error('Invalid proof');
 else console.log('proof valid');
 
+console.log('--------------- AND ---------------');
+
 const AND = Experimental.ZkProgram({
   methods: {
     baseCase: {
@@ -46,8 +48,6 @@ const AND = Experimental.ZkProgram({
     },
   },
 });
-
-console.log('AND:');
 
 console.log('compiling..');
 
