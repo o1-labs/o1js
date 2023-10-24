@@ -9,6 +9,12 @@ function not(a: Field, length: number) {
   // check that input length is positive
   assert(length > 0, `Input length needs to be positive values.`);
 
+  // Check that length does not exceed maximum field size in bits
+  assert(
+    length <= Field.sizeInBits(),
+    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+  );
+
 }
 
 function xor(a: Field, b: Field, length: number) {
