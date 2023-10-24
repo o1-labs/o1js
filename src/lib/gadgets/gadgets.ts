@@ -61,4 +61,8 @@ const Gadgets = {
   xor(a: Field, b: Field, length: number) {
     return xor(a, b, length);
   },
+
+  not(a: Field, length: number) {
+   
+  }
 };
