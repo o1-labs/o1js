@@ -3,7 +3,11 @@ import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import * as Gates from '../gates.js';
 
-export { xor };
+export { xor, not };
+
+function not(a: Field, length: number) {
+  
+}
 
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
