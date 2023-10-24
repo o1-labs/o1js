@@ -16,16 +16,21 @@ function xor(a: Field, b: Field, length: number) {
   );
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
-  let l = 16;
-  let padLength = Math.ceil(length / l) * l;
+  let padLength = Math.ceil(length / 16) * 16;
 
   // handle constant case
   if (a.isConstant() && b.isConstant()) {
     let max = 1n << BigInt(padLength);
 
-    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
+    assert(
+      a.toBigInt() < max,
+      `${a.toBigInt()} does not fit into ${padLength} bits`
+    );
 
-    assert(b.toBigInt() < max, `${b.toBigInt()} does not fit into ${padLength} bits`);
+    assert(
+      b.toBigInt() < max,
+      `${b.toBigInt()} does not fit into ${padLength} bits`
+    );
 
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
@@ -65,7 +70,7 @@ function buildXor(
     let in2_2 = witnessSlices(b, 8, 4);
     let in2_3 = witnessSlices(b, 12, 4);
 
-    // slice of expected output
+    // slices of expected output
     let out0 = witnessSlices(expectedOutput, 0, 4);
     let out1 = witnessSlices(expectedOutput, 4, 4);
     let out2 = witnessSlices(expectedOutput, 8, 4);
