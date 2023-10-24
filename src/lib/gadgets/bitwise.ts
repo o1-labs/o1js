@@ -6,7 +6,9 @@ import * as Gates from '../gates.js';
 export { xor, not };
 
 function not(a: Field, length: number) {
-  
+  // check that input length is positive
+  assert(length > 0, `Input length needs to be positive values.`);
+
 }
 
 function xor(a: Field, b: Field, length: number) {
