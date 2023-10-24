@@ -74,36 +74,24 @@ function encodeProverKey(value: AnyValue): Uint8Array {
   switch (value[0]) {
     case KeyType.StepProvingKey: {
       let index = value[1][1];
-      console.time('encode index');
       let encoded = wasm.caml_pasta_fp_plonk_index_encode(index);
-      console.timeEnd('encode index');
       return encoded;
     }
     case KeyType.StepVerificationKey: {
       let vkMl = value[1];
-      console.time('create rust conversion');
       const rustConversion = getRustConversion(getWasm());
-      console.timeEnd('create rust conversion');
-      console.time('verifierIndexToRust');
       let vkWasm = rustConversion.fp.verifierIndexToRust(vkMl);
-      console.timeEnd('verifierIndexToRust');
-      console.time('encode vk');
       let string = wasm.caml_pasta_fp_plonk_verifier_index_serialize(vkWasm);
-      console.timeEnd('encode vk');
       return new TextEncoder().encode(string);
     }
     case KeyType.WrapProvingKey: {
       let index = value[1][1];
-      console.time('encode wrap index');
       let encoded = wasm.caml_pasta_fq_plonk_index_encode(index);
-      console.timeEnd('encode wrap index');
       return encoded;
     }
     case KeyType.WrapVerificationKey: {
       let vk = value[1];
-      console.time('encode wrap vk');
       let string = Pickles.encodeVerificationKey(vk);
-      console.timeEnd('encode wrap vk');
       return new TextEncoder().encode(string);
     }
     default:
@@ -117,42 +105,30 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
   switch (key[0]) {
     case KeyType.StepProvingKey: {
       let srs = Pickles.loadSrsFp();
-      console.time('decode index');
       let index = wasm.caml_pasta_fp_plonk_index_decode(bytes, srs);
-      console.timeEnd('decode index');
       let cs = key[1][4];
       return [KeyType.StepProvingKey, [0, index, cs]];
     }
     case KeyType.StepVerificationKey: {
       let srs = Pickles.loadSrsFp();
       let string = new TextDecoder().decode(bytes);
-      console.time('decode vk');
       let vkWasm = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(
         srs,
         string
       );
-      console.timeEnd('decode vk');
-      console.time('create rust conversion');
       const rustConversion = getRustConversion(getWasm());
-      console.timeEnd('create rust conversion');
-      console.time('verifierIndexFromRust');
       let vkMl = rustConversion.fp.verifierIndexFromRust(vkWasm);
-      console.timeEnd('verifierIndexFromRust');
       return [KeyType.StepVerificationKey, vkMl];
     }
     case KeyType.WrapProvingKey: {
       let srs = Pickles.loadSrsFq();
-      console.time('decode wrap index');
       let index = wasm.caml_pasta_fq_plonk_index_decode(bytes, srs);
-      console.timeEnd('decode wrap index');
       let cs = key[1][3];
       return [KeyType.WrapProvingKey, [0, index, cs]];
     }
     case KeyType.WrapVerificationKey: {
       let string = new TextDecoder().decode(bytes);
-      console.time('decode wrap vk');
       let vk = Pickles.decodeVerificationKey(string);
-      console.timeEnd('decode wrap vk');
       return [KeyType.WrapVerificationKey, vk];
     }
     default:

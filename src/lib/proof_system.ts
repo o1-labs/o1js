@@ -593,7 +593,6 @@ async function compileProgram({
         let bytes = read(path, type);
         return MlResult.ok(decodeProverKey(key, bytes));
       } catch (e: any) {
-        console.log('read failed', e.message);
         return MlResult.unitError();
       }
     },
@@ -604,7 +603,6 @@ async function compileProgram({
         write(path, bytes, type);
         return MlResult.ok(undefined);
       } catch (e: any) {
-        console.log('write failed', e.message);
         return MlResult.unitError();
       }
     },

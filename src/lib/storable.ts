@@ -44,7 +44,6 @@ const None: Storable = {
 const FileSystem = (cacheDirectory: string): Storable => ({
   read(key, type: 'string' | 'bytes') {
     if (jsEnvironment !== 'node') throw Error('file system not available');
-    console.log('READ', key);
     if (type === 'string') {
       let string = readFileSync(resolve(cacheDirectory, key), 'utf8');
       return new TextEncoder().encode(string);
@@ -55,7 +54,6 @@ const FileSystem = (cacheDirectory: string): Storable => ({
   },
   write(key, value, type: 'string' | 'bytes') {
     if (jsEnvironment !== 'node') throw Error('file system not available');
-    console.log('WRITE', key);
     mkdirSync(cacheDirectory, { recursive: true });
     writeFileSync(resolve(cacheDirectory, key), value, {
       encoding: type === 'string' ? 'utf8' : undefined,
