@@ -27,20 +27,6 @@ function rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
   return rotated;
 }
 
-function leftShift(field: Field, bits: number) {
-  // Check that the rotation bits are in range
-  if (bits < 0 || bits > MAX_BITS) {
-    throw Error(`leftShift: expected bits to be between 0 and 64, got ${bits}`);
-  }
-
-  if (field.isConstant()) {
-    checkMaxBits(field);
-    return new Field(Fp.leftShift(field.toBigInt(), bits));
-  }
-  const [, , shifted] = rotate(field, bits, 'left');
-  return shifted;
-}
-
 function rightShift(field: Field, bits: number) {
   // Check that the rotation bits are in range
   if (bits < 0 || bits > MAX_BITS) {
@@ -55,6 +41,20 @@ function rightShift(field: Field, bits: number) {
   }
   const [, excess] = rotate(field, bits, 'right');
   return excess;
+}
+
+function leftShift(field: Field, bits: number) {
+  // Check that the rotation bits are in range
+  if (bits < 0 || bits > MAX_BITS) {
+    throw Error(`leftShift: expected bits to be between 0 and 64, got ${bits}`);
+  }
+
+  if (field.isConstant()) {
+    checkMaxBits(field);
+    return new Field(Fp.leftShift(field.toBigInt(), bits));
+  }
+  const [, , shifted] = rotate(field, bits, 'left');
+  return shifted;
 }
 
 function rotate(
