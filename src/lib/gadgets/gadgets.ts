@@ -62,6 +62,25 @@ const Gadgets = {
     return xor(a, b, length);
   },
 
+
+  /**
+   * Bitwise NOT gadget on {@link Field} elements, for a specified bit length. Equivalent to the [bitwise NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_NOT), but limited to the given length.
+   * A NOT gate works by inverting each bit.
+   *
+   * This gadget builds the NOT operation on a given input using the XOR gate. The NOT operation is applied only up to the specified bit length.
+   *
+   * **Note:** The {@link Field} element input needs to fit into the specified bit length. Otherwise, the `xor` implementation may throw an error.
+   *
+   * ```typescript
+   * let a = Field(5);    // ... 000101
+   *
+   * let c = not(a, 3);    // ... 010
+   * c.assertEquals(2);
+   * ```
+   * 
+   * @param a - The value to apply NOT to.
+   * @param length - The number of bits to be considered for the NOT operation.
+   */
   not(a: Field, length: number) {
      // mask with all bits set to 1, up to the specified length
     const allOnes = Field((1n << BigInt(length)) - 1n); 
