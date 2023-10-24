@@ -171,6 +171,14 @@
       "rot": {
         "rows": 17,
         "digest": "916f4017a60f48d56d487c6869919b9c"
+      },
+      "leftShift": {
+        "rows": 9,
+        "digest": "70b1449c9a549b3aa2e964c667b7e14c"
+      },
+      "rightShift": {
+        "rows": 9,
+        "digest": "110f686f60987e5e46b290e69e10cd37"
       }
     },
     "verificationKey": {

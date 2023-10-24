@@ -71,6 +71,16 @@ const BitwiseMock = {
     Gadgets.rot(a, 4, 'left');
     Gadgets.rot(a, 4, 'right');
   },
+  leftShift() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.leftShift(a, 2);
+    Gadgets.leftShift(a, 4);
+  },
+  rightShift() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rightShift(a, 2);
+    Gadgets.rightShift(a, 4);
+  },
 };
 
 export const GroupCS = mock(GroupMock, 'Group Primitive');
