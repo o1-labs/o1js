@@ -149,6 +149,7 @@ function and(a: Field, b: Field, length: number) {
   );
 
   // compute values for gate
+  // explanation here: https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and
   let sum = a.add(b);
   let xor_output = xor(a, b, length);
   let and_output = outputAnd;
