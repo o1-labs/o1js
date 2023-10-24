@@ -9,10 +9,7 @@ const MAX_BITS = 64 as const;
 
 function rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
   // Check that the rotation bits are in range
-  if (bits < 0 || bits > MAX_BITS) {
-    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
-  }
-
+  checkBitsRange(bits);
   if (direction !== 'left' && direction !== 'right') {
     throw Error(
       `rot: expected direction to be 'left' or 'right', got ${direction}`
@@ -28,12 +25,8 @@ function rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
 }
 
 function rightShift(field: Field, bits: number) {
-  // Check that the rotation bits are in range
-  if (bits < 0 || bits > MAX_BITS) {
-    throw Error(
-      `rightShift: expected bits to be between 0 and 64, got ${bits}`
-    );
-  }
+  // Check that the shift bits are in range
+  checkBitsRange(bits);
 
   if (field.isConstant()) {
     checkMaxBits(field);
@@ -44,10 +37,8 @@ function rightShift(field: Field, bits: number) {
 }
 
 function leftShift(field: Field, bits: number) {
-  // Check that the rotation bits are in range
-  if (bits < 0 || bits > MAX_BITS) {
-    throw Error(`leftShift: expected bits to be between 0 and 64, got ${bits}`);
-  }
+  // Check that the shift bits are in range
+  checkBitsRange(bits);
 
   if (field.isConstant()) {
     checkMaxBits(field);
@@ -121,6 +112,12 @@ function rotate(
   Gates.rangeCheck64(excess);
   Gates.rangeCheck64(field);
   return [rotated, excess, shifted];
+}
+
+function checkBitsRange(bits: number) {
+  if (bits < 0 || bits > MAX_BITS) {
+    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
+  }
 }
 
 function checkMaxBits(x: Field) {
