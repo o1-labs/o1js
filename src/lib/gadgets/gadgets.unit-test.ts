@@ -210,18 +210,12 @@ testShift(
   Field(17134720101237391360n)
 );
 
-// TODO: left case is broken
 test(Random.uint64, Random.nat(64), (x, n, assert) => {
   let z = Field(x);
   let r = Fp.leftShift(x, n);
   Provable.runAndCheck(() => {
     let f = Provable.witness(Field, () => z);
     let o = Gadgets.leftShift(f, n);
-    Provable.asProver(() => {
-      console.log(
-        `input: ${z}, shift: ${n}, expected: ${r}, actual: ${o.toBigInt()}`
-      );
-    });
     Provable.asProver(() => assert(r === o.toBigInt()));
   });
 });
