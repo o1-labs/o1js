@@ -1,7 +1,7 @@
 import {
   SelfProof,
   Field,
-  Experimental,
+  ZkProgram,
   isReady,
   shutdown,
 } from '../../dist/node/index.js';
@@ -9,7 +9,7 @@ import { tic, toc } from './tictoc.js';
 
 await isReady;
 
-let MaxProofsVerifiedZero = Experimental.ZkProgram({
+let MaxProofsVerifiedZero = ZkProgram({
   publicInput: Field,
 
   methods: {
@@ -23,7 +23,7 @@ let MaxProofsVerifiedZero = Experimental.ZkProgram({
   },
 });
 
-let MaxProofsVerifiedOne = Experimental.ZkProgram({
+let MaxProofsVerifiedOne = ZkProgram({
   publicInput: Field,
 
   methods: {
@@ -46,7 +46,7 @@ let MaxProofsVerifiedOne = Experimental.ZkProgram({
   },
 });
 
-let MaxProofsVerifiedTwo = Experimental.ZkProgram({
+let MaxProofsVerifiedTwo = ZkProgram({
   publicInput: Field,
 
   methods: {
@@ -92,7 +92,7 @@ await testRecursion(MaxProofsVerifiedTwo, 2);
 async function testRecursion(Program, maxProofsVerified) {
   console.log(`testing maxProofsVerified = ${maxProofsVerified}`);
 
-  let ProofClass = Experimental.ZkProgram.Proof(Program);
+  let ProofClass = ZkProgram.Proof(Program);
 
   tic('executing base case..');
   let initialProof = await Program.baseCase(Field(0));
