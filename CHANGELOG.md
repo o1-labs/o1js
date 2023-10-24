@@ -35,6 +35,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
 
+- Added bitwise `XOR` operation support for native field elements. https://github.com/o1-labs/o1js/pull/1177
+
 - `Proof.dummy()` to create dummy proofs https://github.com/o1-labs/o1js/pull/1188
   - You can use this to write ZkPrograms that handle the base case and the inductive case in the same method.
 

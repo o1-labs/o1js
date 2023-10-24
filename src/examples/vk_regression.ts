@@ -3,7 +3,7 @@ import { Voting_ } from './zkapps/voting/voting.js';
 import { Membership_ } from './zkapps/voting/membership.js';
 import { HelloWorld } from './zkapps/hello_world/hello_world.js';
 import { TokenContract, createDex } from './zkapps/dex/dex.js';
-import { GroupCS } from './primitive_constraint_system.js';
+import { GroupCS, BitwiseCS } from './primitive_constraint_system.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
@@ -37,6 +37,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   TokenContract,
   createDex().Dex,
   GroupCS,
+  BitwiseCS,
 ];
 
 let filePath = jsonPath ? jsonPath : './src/examples/regression_test.json';
