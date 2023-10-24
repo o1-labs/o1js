@@ -62,12 +62,16 @@ const Gadgets = {
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
    * An AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
    *
-   * It can be checked by a one double generic gate (plus the gates created by XOR) the that verifies the following relationship between these values.
-   *  a + b = sum
-   *  a x b = xor
-   *  a ^ b = and
+   * It can be checked by a double generic gate the that verifies the following relationship between the values below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
    *
-   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`.
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a x b = xor`\
+   * `a ^ b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
    *
    * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
