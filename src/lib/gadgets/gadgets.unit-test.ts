@@ -11,6 +11,7 @@ import { test, Random } from '../testing/property.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
 import { Gadgets } from './gadgets.js';
 import { Provable } from '../provable.js';
+import { Bool } from '../core.js';
 
 let maybeUint64: Spec<bigint, Field> = {
   ...field,
@@ -116,3 +117,121 @@ test(
     });
   }
 );
+
+// --------------------------
+// Shift Gates
+// --------------------------
+
+function testShift(
+  field: Field,
+  bits: number,
+  mode: 'left' | 'right',
+  result: Field
+) {
+  Provable.runAndCheck(() => {
+    let w = Provable.witness(Field, () => field);
+    let r = Provable.witness(Field, () => result);
+    let output = Provable.if(
+      Bool(mode === 'left'),
+      Gadgets.leftShift(w, bits),
+      Gadgets.rightShift(w, bits)
+    );
+    output.assertEquals(
+      r,
+      `${mode === 'left' ? 'ls' : 'rs'}(${field}, ${bits})`
+    );
+  });
+}
+
+let LS = ZkProgram({
+  methods: {
+    run: {
+      privateInputs: [Field],
+      method(x) {
+        Gadgets.leftShift(x, 2);
+      },
+    },
+  },
+});
+
+await LS.compile();
+await equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
+  (x) => {
+    if (x >= 1n << 64n) throw Error('expected 64 bits');
+    return true;
+  },
+  async (x) => {
+    let proof = await LS.run(x);
+    return await LS.verify(proof);
+  }
+);
+
+let RS = ZkProgram({
+  methods: {
+    run: {
+      privateInputs: [Field],
+      method(x) {
+        Gadgets.rightShift(x, 2);
+      },
+    },
+  },
+});
+
+await RS.compile();
+await equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
+  (x) => {
+    if (x >= 1n << 64n) throw Error('expected 64 bits');
+    return true;
+  },
+  async (x) => {
+    let proof = await RS.run(x);
+    return await RS.verify(proof);
+  }
+);
+
+testShift(Field(0), 1, 'left', Field(0));
+testShift(Field(0), 1, 'right', Field(0));
+testShift(Field(1), 1, 'left', Field(2));
+testShift(Field(1), 1, 'right', Field(0));
+testShift(Field(256), 4, 'right', Field(16));
+testShift(Field(256), 20, 'right', Field(0));
+testShift(Field(6510615555426900570n), 16, 'right', Field(99344109427290n));
+testShift(
+  Field(18446744073709551615n),
+  15,
+  'left',
+  Field(18446744073709518848n)
+);
+testShift(Field(12523523412423524646n), 32, 'right', Field(2915860016));
+testShift(
+  Field(12523523412423524646n),
+  32,
+  'left',
+  Field(17134720101237391360n)
+);
+
+// TODO: left case is broken
+test(Random.uint64, Random.nat(64), (x, n, assert) => {
+  let z = Field(x);
+  let r = Fp.leftShift(x, n);
+  Provable.runAndCheck(() => {
+    let f = Provable.witness(Field, () => z);
+    let o = Gadgets.leftShift(f, n);
+    Provable.asProver(() => {
+      console.log(
+        `input: ${z}, shift: ${n}, expected: ${r}, actual: ${o.toBigInt()}`
+      );
+    });
+    Provable.asProver(() => assert(r === o.toBigInt()));
+  });
+});
+
+test(Random.uint64, Random.nat(64), (x, n, assert) => {
+  let z = Field(x);
+  let r = Fp.rightShift(x, n);
+  Provable.runAndCheck(() => {
+    let f = Provable.witness(Field, () => z);
+    let o = Gadgets.rightShift(f, n);
+    Provable.asProver(() => assert(r === o.toBigInt()));
+  });
+});
