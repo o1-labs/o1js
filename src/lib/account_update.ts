@@ -41,6 +41,7 @@ export {
   smartContractContext,
   SetOrKeep,
   Permission,
+  TxnVersion,
   Preconditions,
   Body,
   Authorization,

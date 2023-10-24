@@ -50,6 +50,7 @@ export {
   TokenId,
   AccountUpdate,
   Permissions,
+  TxnVersion,
   ZkappPublicInput,
 } from './lib/account_update.js';
 
