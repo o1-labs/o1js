@@ -63,6 +63,8 @@ const Gadgets = {
   },
 
   not(a: Field, length: number) {
-   
-  }
+     // mask with all bits set to 1, up to the specified length
+    const allOnes = Field((1n << BigInt(length)) - 1n); 
+    return xor(a, allOnes, length);
+  },
 };
