@@ -35,7 +35,7 @@ function xor(a: Field, b: Field, length: number) {
     return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
   }
 
-  // calculate expect xor output
+  // calculate expected xor output
   let outputXor = Provable.witness(
     Field,
     () => new Field(Fp.xor(a.toBigInt(), b.toBigInt()))
@@ -57,7 +57,7 @@ function buildXor(
 ) {
   // construct the chain of XORs until padLength is 0
   while (padLength !== 0) {
-    // slices the inputs 4 4bit-sized chunks
+    // slices the inputs into 4x 4bit-sized chunks
     // slices of a
     let in1_0 = witnessSlices(a, 0, 4);
     let in1_1 = witnessSlices(a, 4, 4);
