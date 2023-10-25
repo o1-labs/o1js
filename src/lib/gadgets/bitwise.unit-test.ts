@@ -11,18 +11,6 @@ import { Field } from '../field.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
 
-let Not = ZkProgram({
-  methods: {
-    run: {
-      privateInputs: [Field],
-      method(a) {
-        Gadgets.not(a, 64);
-      },
-    },
-  },
-});
-
-
 let Bitwise = ZkProgram({
   publicOutput: Field,
   methods: {
@@ -68,3 +56,26 @@ await equivalentAsync(
     return proof.publicOutput;
   }
 );
+
+let NOT = ZkProgram({
+  methods: {
+    run: {
+      privateInputs: [Field],
+      method(a) {
+        Gadgets.not(a, 64);
+      },
+    },
+  },
+});
+
+await NOT.compile();
+
+// not
+[2, 4, 8, 16, 32, 64, 128].forEach((length) => {
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    Fp.not,
+    (x, ) => Gadgets.not(x, length)
+  );
+});
+
+
