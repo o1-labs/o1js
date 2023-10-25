@@ -11,6 +11,18 @@ import { Field } from '../field.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
 
+let Not = ZkProgram({
+  methods: {
+    run: {
+      privateInputs: [Field],
+      method(a) {
+        Gadgets.not(a, 64);
+      },
+    },
+  },
+});
+
+
 let Bitwise = ZkProgram({
   publicOutput: Field,
   methods: {
