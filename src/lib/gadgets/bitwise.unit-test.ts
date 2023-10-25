@@ -74,7 +74,7 @@ await NOT.compile();
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
   equivalent({ from: [uint(length), uint(length)], to: field })(
     Fp.not,
-    (x, ) => Gadgets.not(x, length)
+    (x) => Gadgets.not(x, length)
   );
 });
 
