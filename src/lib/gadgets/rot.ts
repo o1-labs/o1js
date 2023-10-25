@@ -13,12 +13,6 @@ function rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
     throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
   }
 
-  if (direction !== 'left' && direction !== 'right') {
-    throw Error(
-      `rot: expected direction to be 'left' or 'right', got ${direction}`
-    );
-  }
-
   if (field.isConstant()) {
     checkMaxBits(field);
     return new Field(Fp.rot(field.toBigInt(), bits, direction));
