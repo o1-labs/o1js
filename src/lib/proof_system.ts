@@ -34,6 +34,7 @@ import {
   encodeProverKey,
   proverKeyType,
 } from './proof-system/prover-keys.js';
+import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
 
 // public API
 export {
@@ -560,7 +561,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  storable: { read, write },
+  storable,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -585,12 +586,12 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
-  let storable: Pickles.Storable = [
+  let picklesStorable: Pickles.Storable = [
     0,
     function read_(key, path) {
       try {
         let type = proverKeyType(key);
-        let bytes = read(path, type);
+        let bytes = storable.read(path, type);
         return MlResult.ok(decodeProverKey(key, bytes));
       } catch (e: any) {
         return MlResult.unitError();
@@ -600,7 +601,7 @@ async function compileProgram({
       try {
         let type = proverKeyType(key);
         let bytes = encodeProverKey(value);
-        write(path, bytes, type);
+        storable.write(path, bytes, type);
         return MlResult.ok(undefined);
       } catch (e: any) {
         return MlResult.unitError();
@@ -614,15 +615,17 @@ async function compileProgram({
       withThreadPool(async () => {
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
+        setSrsCache(storable);
         try {
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
-            storable,
+            storable: picklesStorable,
             overrideWrapDomain,
           });
         } finally {
           snarkContext.leave(id);
+          unsetSrsCache();
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
