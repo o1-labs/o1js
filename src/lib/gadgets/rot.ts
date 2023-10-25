@@ -51,10 +51,9 @@ function rot(
         big2Power64
       );
 
-      // Compute rotated value as:
-      // rotated = excess + shifted
+      // Compute rotated value as: rotated = excess + shifted
       const rotated = shifted + excess;
-      // Compute bound that is the right input of FFAdd equation
+      // Compute bound to check excess < 2^rot
       const bound = excess + big2Power64 - big2PowerRot;
       return [rotated, excess, shifted, bound].map(Field.from);
     }
