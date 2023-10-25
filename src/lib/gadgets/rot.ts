@@ -83,7 +83,6 @@ function rotate(
   Gates.rangeCheck64(shifted);
   // Compute following row
   Gates.rangeCheck64(excess);
-  Gates.rangeCheck64(field);
   return [rotated, excess, shifted];
 }
 
