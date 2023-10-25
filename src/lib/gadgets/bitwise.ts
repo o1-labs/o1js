@@ -24,17 +24,15 @@ function not(a: Field, length: number) {
     return new Field(Fp.not(a.toBigInt()));
   }
 
-
-
   // Create a bitmask with all ones
   let allOnes = new Field(BigInt(2 ** length - 1));
    
   let notOutput = xor(a, allOnes, length);
 
 
-
-
   return notOutput;
+
+
    
 }
 
