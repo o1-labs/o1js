@@ -79,3 +79,19 @@ await NOT.compile();
 });
 
 
+await equivalentAsync(
+  { from: [maybeUint64], to: field },
+  { runs: 3 }
+)(
+  (x) => {
+    if (x >= 2n ** 64n)
+      throw Error('Does not fit into 64 bits');
+    return Fp.not(x);
+  },
+  async (x) => {
+    let proof = await Bitwise.not(x);
+    return proof.publicOutput;
+  }
+);
+
+
