@@ -72,6 +72,14 @@ const BitwiseMock = {
     Gadgets.xor(a, b, 48);
     Gadgets.xor(a, b, 64);
   },
+
+  not() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    Gadgets.not(a, 16);
+    Gadgets.not(a, 32);
+    Gadgets.not(a, 48);
+    Gadgets.not(a, 64);
+  },
 };
 
 export const GroupCS = mock(GroupMock, 'Group Primitive');
