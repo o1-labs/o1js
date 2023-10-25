@@ -307,7 +307,7 @@ declare const Snarky: {
       compact: FieldConst
     ): void;
 
-    rot(
+    rotate(
       field: FieldVar,
       rotated: FieldVar,
       excess: FieldVar,

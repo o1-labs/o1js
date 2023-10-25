@@ -57,8 +57,8 @@ let ROT = ZkProgram({
     run: {
       privateInputs: [Field],
       method(x) {
-        Gadgets.rot(x, 2, 'left');
-        Gadgets.rot(x, 2, 'right');
+        Gadgets.rotate(x, 2, 'left');
+        Gadgets.rotate(x, 2, 'right');
       },
     },
   },
@@ -85,7 +85,7 @@ function testRot(
   Provable.runAndCheck(() => {
     let w = Provable.witness(Field, () => field);
     let r = Provable.witness(Field, () => result);
-    let output = Gadgets.rot(w, bits, mode);
+    let output = Gadgets.rotate(w, bits, mode);
     output.assertEquals(r, `rot(${field}, ${bits}, ${mode})`);
   });
 }
@@ -111,7 +111,7 @@ test(
     let r1 = Fp.rot(x, n, direction ? 'left' : 'right');
     Provable.runAndCheck(() => {
       let f = Provable.witness(Field, () => z);
-      let r2 = Gadgets.rot(f, n, direction ? 'left' : 'right');
+      let r2 = Gadgets.rotate(f, n, direction ? 'left' : 'right');
       Provable.asProver(() => assert(r1 === r2.toBigInt()));
     });
   }

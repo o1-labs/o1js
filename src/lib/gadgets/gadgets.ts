@@ -2,7 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { rot } from './rot.js';
+import { rotate } from './rot.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -62,7 +62,7 @@ const Gadgets = {
    * rot(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
-  rot(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
-    return rot(field, bits, direction);
+  rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rotate(field, bits, direction);
   },
 };
