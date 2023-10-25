@@ -15,6 +15,16 @@ function not(a: Field, length: number) {
     `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
+  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
+  let padLength = Math.ceil(length / 16) * 16;
+
+   // Handle constant case
+  if (a.isConstant()) {
+    let max = 1n << BigInt(padLength);
+    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
+    return new Field(Fp.not(a.toBigInt()));
+  }
+
 }
 
 function xor(a: Field, b: Field, length: number) {
