@@ -49,7 +49,7 @@ function rot(
   excess: Field,
   limbs: [Field, Field, Field, Field],
   crumbs: [Field, Field, Field, Field, Field, Field, Field, Field],
-  two_to_rot: Field
+  two_to_rot: bigint
 ) {
   Snarky.gates.rot(
     field.value,
@@ -57,7 +57,7 @@ function rot(
     excess.value,
     MlArray.to(limbs.map((x) => x.value)),
     MlArray.to(crumbs.map((x) => x.value)),
-    FieldConst.fromBigint(two_to_rot.toBigInt())
+    FieldConst.fromBigint(two_to_rot)
   );
 }
 

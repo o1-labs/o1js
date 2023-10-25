@@ -77,7 +77,7 @@ function rotate(
       witnessSlices(bound, 2, 2), // bits 2-4
       witnessSlices(bound, 0, 2), // bits 0-2
     ],
-    Field.from(big2PowerRot)
+    big2PowerRot
   );
   // Compute next row
   Gates.rangeCheck64(shifted);
