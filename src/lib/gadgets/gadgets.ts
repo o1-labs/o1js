@@ -36,12 +36,15 @@ const Gadgets = {
   },
 
   /**
-   * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
-   * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript, with the distinction that the bits are circulated to the opposite end rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end. Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   * It’s important to note that these operations are performed considering the binary representation of the number in big-endian format, where the most significant bit is on the left end and the least significant bit is on the right end.
+   * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
    *
    * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   *
    * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
-   * Therefore, to safely use `rot()`, you need to make sure that the values passed in are range checked to 64 bits.
+   * Therefore, to safely use `rotate()`, you need to make sure that the values passed in are range checked to 64 bits.
    * For example, this can be done with {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to rotate.
