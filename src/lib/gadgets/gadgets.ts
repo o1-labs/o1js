@@ -2,7 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { xor } from './bitwise.js';
+import { xor, not } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -82,8 +82,6 @@ const Gadgets = {
    * @param length - The number of bits to be considered for the NOT operation.
    */
   not(a: Field, length: number) {
-     // mask with all bits set to 1, up to the specified length
-    const allOnes = Field((1n << BigInt(length)) - 1n); 
-    return xor(a, allOnes, length);
+    return not(a, length);
   },
 };
