@@ -19,17 +19,20 @@ function not(a: Field, length: number) {
   let padLength = Math.ceil(length / 16) * 16;
 
   // Create a bitmask with all ones
-  let allOnes = BigInt(2 ** length - 1);
+  let allOnes = new Field(BigInt(2 ** length - 1));
+   
+  let notOutput = xor(a, allOnes, length);
+
 
    // Handle constant case
   if (a.isConstant()) {
     let max = 1n << BigInt(padLength);
     assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
-    return new Field(Fp.(a.toBigInt()));
+    return new Field(Fp.not(a.toBigInt()));
   }
 
-
-
+  return notOutput;
+   
 }
 
 function xor(a: Field, b: Field, length: number) {
