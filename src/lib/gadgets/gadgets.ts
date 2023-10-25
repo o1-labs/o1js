@@ -39,7 +39,10 @@ const Gadgets = {
    * A (left and right) rotation is similar to the shift operation, `<<` and `>>` in JavaScript, just that bits are being appended to the other side.
    * `direction` is a string which accepts either `'left'` or `'right'`, defining the direction of the rotation.
    *
-   * **Note:** You can not rotate {@link Field} elements that exceed 64 bits. For elements that exceed 64 bits this operation will fail.
+   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
+   * Therefore, to safely use `rot()`, you need to make sure that the values passed in are range checked to 64 bits.
+   * For example, this can be done with {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
