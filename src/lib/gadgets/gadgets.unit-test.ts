@@ -83,10 +83,8 @@ function testRot(
   result: Field
 ) {
   Provable.runAndCheck(() => {
-    let w = Provable.witness(Field, () => field);
-    let r = Provable.witness(Field, () => result);
-    let output = Gadgets.rotate(w, bits, mode);
-    output.assertEquals(r, `rot(${field}, ${bits}, ${mode})`);
+    let output = Gadgets.rotate(field, bits, mode);
+    output.assertEquals(result, `rot(${field}, ${bits}, ${mode})`);
   });
 }
 
