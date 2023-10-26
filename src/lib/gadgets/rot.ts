@@ -30,11 +30,6 @@ function rot(
   bits: number,
   direction: 'left' | 'right' = 'left'
 ): [Field, Field, Field] {
-  // Check as the prover, that the input is at most 64 bits.
-  Provable.asProver(() => {
-    checkMaxBits(field);
-  });
-
   const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
   const big2Power64 = 2n ** BigInt(MAX_BITS);
   const big2PowerRot = 2n ** BigInt(rotationBits);
