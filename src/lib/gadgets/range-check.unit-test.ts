@@ -54,6 +54,7 @@ await equivalentAsync({ from: [maybeUint64], to: boolean }, { runs: 3 })(
 // ROT Gate
 // --------------------------
 let ROT = ZkProgram({
+  name: 'rot',
   methods: {
     run: {
       privateInputs: [Field],
