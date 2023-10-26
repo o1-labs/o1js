@@ -2,10 +2,15 @@ import { Provable } from '../provable.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import * as Gates from '../gates.js';
+import {
+  MAX_BITS,
+  assert,
+  witnessSlices,
+  witnessNextValue,
+  divideWithRemainder,
+} from './common.js';
 
 export { xor, rotate };
-
-const MAX_BITS = 64 as const;
 
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
@@ -119,12 +124,16 @@ function rotate(
   direction: 'left' | 'right' = 'left'
 ) {
   // Check that the rotation bits are in range
-  if (bits < 0 || bits > MAX_BITS) {
-    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
-  }
+  assert(
+    bits > 0 && bits < MAX_BITS,
+    `rotation: expected bits to be between 0 and 64, got ${bits}`
+  );
 
   if (field.isConstant()) {
-    checkMaxBits(field);
+    assert(
+      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
+    );
     return new Field(Fp.rot(field.toBigInt(), bits, direction));
   }
   const [rotated] = rot(field, bits, direction);
@@ -188,37 +197,4 @@ function rot(
   // Compute following row
   Gates.rangeCheck64(excess);
   return [rotated, excess, shifted];
-}
-
-function assert(stmt: boolean, message?: string) {
-  if (!stmt) {
-    throw Error(message ?? 'Assertion failed');
-  }
-}
-
-function witnessSlices(f: Field, start: number, length: number) {
-  if (length <= 0) throw Error('Length must be a positive number');
-
-  return Provable.witness(Field, () => {
-    let n = f.toBigInt();
-    return new Field((n >> BigInt(start)) & ((1n << BigInt(length)) - 1n));
-  });
-}
-
-function witnessNextValue(current: Field) {
-  return Provable.witness(Field, () => new Field(current.toBigInt() >> 16n));
-}
-
-function checkMaxBits(x: Field) {
-  if (x.toBigInt() > BigInt(2 ** MAX_BITS)) {
-    throw Error(
-      `rot: expected field to be at most 64 bits, got ${x.toBigInt()}`
-    );
-  }
-}
-
-function divideWithRemainder(numerator: bigint, denominator: bigint) {
-  const quotient = numerator / denominator;
-  const remainder = numerator - denominator * quotient;
-  return { quotient, remainder };
 }
