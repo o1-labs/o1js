@@ -36,7 +36,7 @@ function not(a: Field, length: number) {
   }
 
   // create a bitmask with all ones
-  let allOnesF = new Field(BigInt(2 ** length - 1));
+  let allOnesF = new Field(2n ** BigInt(length) - 1n);
 
   let allOnes = Provable.witness(Field, () => {
     return allOnesF;
