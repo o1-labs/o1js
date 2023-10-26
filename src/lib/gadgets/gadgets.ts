@@ -107,8 +107,8 @@ const Gadgets = {
 
   /**
    * Performs a left shift operation on the provided {@link Field} element.
-   * This is akin to the `<<` shift operation in JavaScript, where bits are moved to the left.
-   * The `leftShift` function uses the rotation method internally to achieve this operation.
+   * This operation is akin to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
    *
    * **Important:** The gadgets assumes that its input is at most 64 bits in size.
    *
