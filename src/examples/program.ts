@@ -13,6 +13,7 @@ import {
 await isReady;
 
 let MyProgram = ZkProgram({
+  name: 'example-with-output',
   publicOutput: Field,
 
   methods: {

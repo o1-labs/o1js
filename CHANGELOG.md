@@ -26,6 +26,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - `ZkProgram` has moved out of the `Experimental` namespace and is now available as a top-level import directly. `Experimental.ZkProgram` has been deprecated.
+- `ZkProgram` gets a new input argument `name: string` which is required in the non-experimental API. The name is used to identify a ZkProgram when caching prover keys. https://github.com/o1-labs/o1js/pull/1200
 
 ### Added
 

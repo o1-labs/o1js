@@ -1,8 +1,7 @@
-import { Field, UInt64, Experimental, Gadgets } from 'o1js';
-
-let { ZkProgram } = Experimental;
+import { Field, UInt64, Gadgets, ZkProgram } from 'o1js';
 
 const Main = ZkProgram({
+  name: 'example-with-custom-gates',
   publicInput: Field,
   methods: {
     main: {

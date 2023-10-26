@@ -25,6 +25,7 @@ let maybeUint64: Spec<bigint, Field> = {
 // --------------------------
 
 let RangeCheck64 = ZkProgram({
+  name: 'range-check-64',
   methods: {
     run: {
       privateInputs: [Field],

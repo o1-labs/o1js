@@ -1,4 +1,4 @@
-import { Field, Provable, Experimental, Gadgets } from 'o1js';
+import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
 
 let cs = Provable.constraintSystem(() => {
   let f = Provable.witness(Field, () => Field(12));
@@ -14,7 +14,8 @@ let cs = Provable.constraintSystem(() => {
 });
 console.log('constraint system: ', cs);
 
-const ROT = Experimental.ZkProgram({
+const ROT = ZkProgram({
+  name: 'rot-example',
   methods: {
     baseCase: {
       privateInputs: [],
@@ -33,7 +34,8 @@ const ROT = Experimental.ZkProgram({
   },
 });
 
-const XOR = Experimental.ZkProgram({
+const XOR = ZkProgram({
+  name: 'xor-example',
   methods: {
     baseCase: {
       privateInputs: [],
