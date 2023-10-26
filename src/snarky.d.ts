@@ -678,3 +678,4 @@ declare const Pickles: {
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
+

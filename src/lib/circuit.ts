@@ -1,6 +1,6 @@
 import { ProvablePure, Snarky } from '../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
-import { withThreadPool } from '../bindings/js/wrapper.js';
+import { getWasm, withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable } from './provable.js';
 import { snarkContext, gatesFromJson } from './provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from './errors.js';
@@ -68,18 +68,10 @@ class Circuit {
    * ```
    */
   static proveKZG(privateInput: any[], publicInput: any[], keypair: Keypair) {
-    let main = mainFromCircuitData(this._main, privateInput);
-    let publicInputSize = this._main.publicInputType.sizeInFields();
-    let publicInputFields = this._main.publicInputType.toFields(publicInput);
     return prettifyStacktracePromise(
       withThreadPool(async () => {
-        let proof = Snarky.circuit.proveKZG(
-          main,
-          publicInputSize,
-          MlFieldConstArray.to(publicInputFields),
-          keypair.value
-        );
-        return new Proof(proof);
+        let proof = getWasm().wasm_bn254_plonk_proof_create();
+        return proof;
       })
     );
   }
