@@ -17,23 +17,25 @@ function not(a: Field, length: number) {
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
-  // Handle constant case
+
+  // handle constant case
   if (a.isConstant()) {
     let max = 1n << BigInt(padLength);
-    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
+    assert(
+      a.toBigInt() < max,
+      `${a.toBigInt()} does not fit into ${padLength} bits`
+    );
     return new Field(Fp.not(a.toBigInt()));
   }
 
-  // Create a bitmask with all ones
-  let allOnes = new Field(BigInt(2 ** length - 1));
-   
+  let allOnes = Provable.witness(Field, () => {
+    // Create a bitmask with all ones
+    return new Field(BigInt(2 ** length - 1));
+  });
+
   let notOutput = xor(a, allOnes, length);
 
-
   return notOutput;
-
-
-   
 }
 
 function xor(a: Field, b: Field, length: number) {
