@@ -13,10 +13,8 @@ function rotate(
   direction: 'left' | 'right' = 'left'
 ) {
   // Check that the rotation bits are in range
-  if (bits <= 0 || bits >= MAX_BITS) {
-    throw Error(
-      `rot: expected bits to be in range [1, ${MAX_BITS - 1}], got ${bits}`
-    );
+  if (bits < 0 || bits > MAX_BITS) {
+    throw Error(`rot: expected bits to be between 0 and 64, got ${bits}`);
   }
 
   if (field.isConstant()) {
