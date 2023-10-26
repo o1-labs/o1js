@@ -32,6 +32,7 @@ signature.verify(publicKey, fieldsSnarky).assertTrue();
 const Message = Provable.Array(Field, fields.length);
 
 const MyProgram = ZkProgram({
+  name: 'verify-signature',
   methods: {
     verifySignature: {
       privateInputs: [Signature, Message],

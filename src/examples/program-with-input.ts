@@ -12,6 +12,7 @@ import {
 await isReady;
 
 let MyProgram = ZkProgram({
+  name: 'example-with-input',
   publicInput: Field,
 
   methods: {

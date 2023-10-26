@@ -1,6 +1,7 @@
-import { Field, Provable, Gadgets, Experimental } from 'o1js';
+import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
 
-const XOR = Experimental.ZkProgram({
+const XOR = ZkProgram({
+  name: 'xor-example',
   methods: {
     baseCase: {
       privateInputs: [],

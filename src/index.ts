@@ -76,7 +76,7 @@ export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 
-import { ZkProgram } from './lib/proof_system.js';
+import { ExperimentalZkProgram, ZkProgram } from './lib/proof_system.js';
 export { ZkProgram };
 
 // experimental APIs
@@ -89,7 +89,6 @@ const Experimental_ = {
   Callback,
   createChildAccountUpdate,
   memoizeWitness,
-  ZkProgram,
 };
 
 type Callback_<Result> = Callback<Result>;
@@ -102,7 +101,7 @@ namespace Experimental {
   /** @deprecated `ZkProgram` has moved out of the Experimental namespace and is now directly available as a top-level import `ZkProgram`.
    * The old `Experimental.ZkProgram` API has been deprecated in favor of the new `ZkProgram` top-level import.
    */
-  export let ZkProgram = Experimental_.ZkProgram;
+  export let ZkProgram = ExperimentalZkProgram;
   export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let Callback = Experimental_.Callback;

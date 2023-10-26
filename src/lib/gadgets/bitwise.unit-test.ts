@@ -12,6 +12,7 @@ import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
 
 let Bitwise = ZkProgram({
+  name: 'bitwise',
   publicOutput: Field,
   methods: {
     xor: {

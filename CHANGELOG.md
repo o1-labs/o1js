@@ -26,17 +26,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - `ZkProgram` has moved out of the `Experimental` namespace and is now available as a top-level import directly. `Experimental.ZkProgram` has been deprecated.
+- `ZkProgram` gets a new input argument `name: string` which is required in the non-experimental API. The name is used to identify a ZkProgram when caching prover keys. https://github.com/o1-labs/o1js/pull/1200
 
 ### Added
 
 - `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
-
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
-
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
-
 - Added bitwise `XOR` operation support for native field elements. https://github.com/o1-labs/o1js/pull/1177
-
 - `Proof.dummy()` to create dummy proofs https://github.com/o1-labs/o1js/pull/1188
   - You can use this to write ZkPrograms that handle the base case and the inductive case in the same method.
 
