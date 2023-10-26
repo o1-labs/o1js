@@ -20,6 +20,12 @@ let Bitwise = ZkProgram({
         return Gadgets.xor(a, b, 64);
       },
     },
+    not: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 64);
+      },
+    },
   },
 });
 
@@ -57,41 +63,20 @@ await equivalentAsync(
   }
 );
 
-let NOT = ZkProgram({
-  methods: {
-    run: {
-      privateInputs: [Field],
-      method(a) {
-        Gadgets.not(a, 64);
-      },
-    },
-  },
-});
-
-await NOT.compile();
-
 // not
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
-  equivalent({ from: [uint(length), uint(length)], to: field })(
-    Fp.not,
-    (x) => Gadgets.not(x, length)
+  equivalent({ from: [uint(length), uint(length)], to: field })(Fp.not, (x) =>
+    Gadgets.not(x, length)
   );
 });
 
-
-await equivalentAsync(
-  { from: [maybeUint64], to: field },
-  { runs: 3 }
-)(
+await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
   (x) => {
-    if (x >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
+    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
     return Fp.not(x);
   },
-  async (x) => {
-    let proof = await Bitwise.not(x);
+  async (a) => {
+    let proof = await Bitwise.not(a);
     return proof.publicOutput;
   }
 );
-
-
