@@ -20,8 +20,8 @@ const ROT = Experimental.ZkProgram({
       privateInputs: [],
       method: () => {
         let a = Provable.witness(Field, () => Field(48));
-        let actualLeft = Gadgets.rot(a, 2, 'left');
-        let actualRight = Gadgets.rot(a, 2, 'right');
+        let actualLeft = Gadgets.rotate(a, 2, 'left');
+        let actualRight = Gadgets.rotate(a, 2, 'right');
 
         let expectedLeft = Field(192);
         actualLeft.assertEquals(expectedLeft);
@@ -33,17 +33,36 @@ const ROT = Experimental.ZkProgram({
   },
 });
 
+const XOR = Experimental.ZkProgram({
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      method: () => {
+        let a = Provable.witness(Field, () => Field(5));
+        let b = Provable.witness(Field, () => Field(2));
+        let actual = Gadgets.xor(a, b, 4);
+        let expected = Field(7);
+        actual.assertEquals(expected);
+      },
+    },
+  },
+});
+
 console.log('compiling..');
 
 console.time('compile');
 await ROT.compile();
+await XOR.compile();
 console.timeEnd('compile');
 
 console.log('proving..');
 
-console.time('prove');
-let proof = await ROT.baseCase();
-console.timeEnd('prove');
+console.time('rotation prove');
+let rotProof = await ROT.baseCase();
+console.timeEnd('rotation prove');
+if (!(await ROT.verify(rotProof))) throw Error('rotate: Invalid proof');
 
-if (!(await ROT.verify(proof))) throw Error('Invalid proof');
-else console.log('proof valid');
+console.time('xor prove');
+let proof = await XOR.baseCase();
+console.timeEnd('xor prove');
+if (!(await XOR.verify(proof))) throw Error('Invalid proof');

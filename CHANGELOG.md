@@ -23,6 +23,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Constraint optimizations in Field methods and core crypto changes break all verification keys https://github.com/o1-labs/o1js/pull/1171 https://github.com/o1-labs/o1js/pull/1178
 
+### Changed
+
+- `ZkProgram` has moved out of the `Experimental` namespace and is now available as a top-level import directly. `Experimental.ZkProgram` has been deprecated.
+
 ### Added
 
 - `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
@@ -32,6 +36,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
 
 - `Gadgets.rotate()`, new provable method to support bitwise rotation for native field elements. https://github.com/o1-labs/o1js/pull/1182
+
+- Added bitwise `XOR` operation support for native field elements. https://github.com/o1-labs/o1js/pull/1177
 
 - `Proof.dummy()` to create dummy proofs https://github.com/o1-labs/o1js/pull/1188
   - You can use this to write ZkPrograms that handle the base case and the inductive case in the same method.

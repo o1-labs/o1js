@@ -2,7 +2,7 @@ import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
 import { MlArray } from './ml/base.js';
 
-export { rangeCheck64, rotate };
+export { rangeCheck64, xor, zero, rotate };
 
 /**
  * Asserts that x is at most 64 bits
@@ -59,6 +59,49 @@ function rotate(
     MlArray.to(crumbs.map((x) => x.value)),
     FieldConst.fromBigint(two_to_rot)
   );
+}
+
+/**
+ * Asserts that 16 bit limbs of input two elements are the correct XOR output
+ */
+function xor(
+  input1: Field,
+  input2: Field,
+  outputXor: Field,
+  in1_0: Field,
+  in1_1: Field,
+  in1_2: Field,
+  in1_3: Field,
+  in2_0: Field,
+  in2_1: Field,
+  in2_2: Field,
+  in2_3: Field,
+  out0: Field,
+  out1: Field,
+  out2: Field,
+  out3: Field
+) {
+  Snarky.gates.xor(
+    input1.value,
+    input2.value,
+    outputXor.value,
+    in1_0.value,
+    in1_1.value,
+    in1_2.value,
+    in1_3.value,
+    in2_0.value,
+    in2_1.value,
+    in2_2.value,
+    in2_3.value,
+    out0.value,
+    out1.value,
+    out2.value,
+    out3.value
+  );
+}
+
+function zero(a: Field, b: Field, c: Field) {
+  Snarky.gates.zero(a.value, b.value, c.value);
 }
 
 function getBits(x: bigint, start: number, length: number) {
