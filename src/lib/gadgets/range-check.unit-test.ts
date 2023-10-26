@@ -93,7 +93,7 @@ function testRot(
 testRot(Field(0), 0, 'left', Field(0));
 testRot(Field(0), 32, 'right', Field(0));
 testRot(Field(1), 1, 'left', Field(2));
-testRot(Field(1), 63, 'left', Field('9223372036854775808'));
+testRot(Field(1), 63, 'left', Field(9223372036854775808n));
 testRot(Field(256), 4, 'right', Field(16));
 testRot(Field(1234567890), 32, 'right', Field(5302428712241725440));
 testRot(Field(2651214356120862720), 32, 'right', Field(617283945));
