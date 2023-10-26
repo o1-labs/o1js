@@ -1,10 +1,10 @@
-import { Field, Provable, Experimental, Gadgets } from 'o1js';
+import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
 
 let cs = Provable.constraintSystem(() => {
   let f = Provable.witness(Field, () => Field(12));
 
-  let res1 = Gadgets.rot(f, 2, 'left');
-  let res2 = Gadgets.rot(f, 2, 'right');
+  let res1 = Gadgets.rotate(f, 2, 'left');
+  let res2 = Gadgets.rotate(f, 2, 'right');
 
   res1.assertEquals(Field(48));
   res2.assertEquals(Field(3));
@@ -14,14 +14,15 @@ let cs = Provable.constraintSystem(() => {
 });
 console.log('constraint system: ', cs);
 
-const ROT = Experimental.ZkProgram({
+const ROT = ZkProgram({
+  name: 'rot-example',
   methods: {
     baseCase: {
       privateInputs: [],
       method: () => {
         let a = Provable.witness(Field, () => Field(48));
-        let actualLeft = Gadgets.rot(a, 2, 'left');
-        let actualRight = Gadgets.rot(a, 2, 'right');
+        let actualLeft = Gadgets.rotate(a, 2, 'left');
+        let actualRight = Gadgets.rotate(a, 2, 'right');
 
         let expectedLeft = Field(192);
         actualLeft.assertEquals(expectedLeft);
@@ -33,17 +34,37 @@ const ROT = Experimental.ZkProgram({
   },
 });
 
+const XOR = ZkProgram({
+  name: 'xor-example',
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      method: () => {
+        let a = Provable.witness(Field, () => Field(5));
+        let b = Provable.witness(Field, () => Field(2));
+        let actual = Gadgets.xor(a, b, 4);
+        let expected = Field(7);
+        actual.assertEquals(expected);
+      },
+    },
+  },
+});
+
 console.log('compiling..');
 
 console.time('compile');
 await ROT.compile();
+await XOR.compile();
 console.timeEnd('compile');
 
 console.log('proving..');
 
-console.time('prove');
-let proof = await ROT.baseCase();
-console.timeEnd('prove');
+console.time('rotation prove');
+let rotProof = await ROT.baseCase();
+console.timeEnd('rotation prove');
+if (!(await ROT.verify(rotProof))) throw Error('rotate: Invalid proof');
 
-if (!(await ROT.verify(proof))) throw Error('Invalid proof');
-else console.log('proof valid');
+console.time('xor prove');
+let proof = await XOR.baseCase();
+console.timeEnd('xor prove');
+if (!(await XOR.verify(proof))) throw Error('Invalid proof');

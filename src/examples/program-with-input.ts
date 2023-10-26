@@ -1,7 +1,7 @@
 import {
   SelfProof,
   Field,
-  Experimental,
+  ZkProgram,
   verify,
   isReady,
   Proof,
@@ -11,7 +11,8 @@ import {
 
 await isReady;
 
-let MyProgram = Experimental.ZkProgram({
+let MyProgram = ZkProgram({
+  name: 'example-with-input',
   publicInput: Field,
 
   methods: {
@@ -35,7 +36,7 @@ let MyProgram = Experimental.ZkProgram({
 MyProgram.publicInputType satisfies typeof Field;
 MyProgram.publicOutputType satisfies Provable<void>;
 
-let MyProof = Experimental.ZkProgram.Proof(MyProgram);
+let MyProof = ZkProgram.Proof(MyProgram);
 
 console.log('program digest', MyProgram.digest());
 
