@@ -10,6 +10,7 @@ import { tic, toc } from './tictoc.js';
 await isReady;
 
 let MaxProofsVerifiedZero = ZkProgram({
+  name: 'no-recursion',
   publicInput: Field,
 
   methods: {
@@ -24,6 +25,7 @@ let MaxProofsVerifiedZero = ZkProgram({
 });
 
 let MaxProofsVerifiedOne = ZkProgram({
+  name: 'recursive-1',
   publicInput: Field,
 
   methods: {
@@ -47,6 +49,7 @@ let MaxProofsVerifiedOne = ZkProgram({
 });
 
 let MaxProofsVerifiedTwo = ZkProgram({
+  name: 'recursive-2',
   publicInput: Field,
 
   methods: {

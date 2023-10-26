@@ -13,6 +13,7 @@ import { Gadgets } from './gadgets.js';
 // TODO: make a ZkFunction or something that doesn't go through Pickles
 
 let RangeCheck64 = ZkProgram({
+  name: 'range-check-64',
   methods: {
     run: {
       privateInputs: [Field],
