@@ -28,10 +28,14 @@ function not(a: Field, length: number) {
     return new Field(Fp.not(a.toBigInt()));
   }
 
+  // create a bitmask with all ones
+  let allOnesF = new Field(BigInt(2 ** length - 1));
+
   let allOnes = Provable.witness(Field, () => {
-    // Create a bitmask with all ones
-    return new Field(BigInt(2 ** length - 1));
+    return allOnesF;
   });
+
+  allOnesF.assertEquals(allOnes);
 
   let notOutput = xor(a, allOnes, length);
 
