@@ -2,8 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { rotate } from './rot.js';
-import { xor } from './bitwise.js';
+import { xor, rotate } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
