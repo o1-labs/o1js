@@ -2,8 +2,15 @@ import { Provable } from '../provable.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import * as Gates from '../gates.js';
+import {
+  MAX_BITS,
+  assert,
+  witnessSlices,
+  witnessNextValue,
+  divideWithRemainder,
+} from './common.js';
 
-export { xor, not };
+export { xor, not, rotate };
 
 function not(a: Field, length: number) {
   // check that input length is positive
@@ -148,21 +155,83 @@ function buildXor(
   zero.assertEquals(expectedOutput);
 }
 
-function assert(stmt: boolean, message?: string) {
-  if (!stmt) {
-    throw Error(message ?? 'Assertion failed');
+function rotate(
+  field: Field,
+  bits: number,
+  direction: 'left' | 'right' = 'left'
+) {
+  // Check that the rotation bits are in range
+  assert(
+    bits >= 0 && bits <= MAX_BITS,
+    `rotation: expected bits to be between 0 and 64, got ${bits}`
+  );
+
+  if (field.isConstant()) {
+    assert(
+      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
+    );
+    return new Field(Fp.rot(field.toBigInt(), bits, direction));
   }
+  const [rotated] = rot(field, bits, direction);
+  return rotated;
 }
 
-function witnessSlices(f: Field, start: number, length: number) {
-  if (length <= 0) throw Error('Length must be a positive number');
+function rot(
+  field: Field,
+  bits: number,
+  direction: 'left' | 'right' = 'left'
+): [Field, Field, Field] {
+  const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
+  const big2Power64 = 2n ** BigInt(MAX_BITS);
+  const big2PowerRot = 2n ** BigInt(rotationBits);
 
-  return Provable.witness(Field, () => {
-    let n = f.toBigInt();
-    return new Field((n >> BigInt(start)) & ((1n << BigInt(length)) - 1n));
-  });
-}
+  const [rotated, excess, shifted, bound] = Provable.witness(
+    Provable.Array(Field, 4),
+    () => {
+      const f = field.toBigInt();
 
-function witnessNextValue(current: Field) {
-  return Provable.witness(Field, () => new Field(current.toBigInt() >> 16n));
+      // Obtain rotated output, excess, and shifted for the equation:
+      // f * 2^rot = excess * 2^64 + shifted
+      const { quotient: excess, remainder: shifted } = divideWithRemainder(
+        f * big2PowerRot,
+        big2Power64
+      );
+
+      // Compute rotated value as: rotated = excess + shifted
+      const rotated = shifted + excess;
+      // Compute bound to check excess < 2^rot
+      const bound = excess + big2Power64 - big2PowerRot;
+      return [rotated, excess, shifted, bound].map(Field.from);
+    }
+  );
+
+  // Compute current row
+  Gates.rotate(
+    field,
+    rotated,
+    excess,
+    [
+      witnessSlices(bound, 52, 12), // bits 52-64
+      witnessSlices(bound, 40, 12), // bits 40-52
+      witnessSlices(bound, 28, 12), // bits 28-40
+      witnessSlices(bound, 16, 12), // bits 16-28
+    ],
+    [
+      witnessSlices(bound, 14, 2), // bits 14-16
+      witnessSlices(bound, 12, 2), // bits 12-14
+      witnessSlices(bound, 10, 2), // bits 10-12
+      witnessSlices(bound, 8, 2), // bits 8-10
+      witnessSlices(bound, 6, 2), // bits 6-8
+      witnessSlices(bound, 4, 2), // bits 4-6
+      witnessSlices(bound, 2, 2), // bits 2-4
+      witnessSlices(bound, 0, 2), // bits 0-2
+    ],
+    big2PowerRot
+  );
+  // Compute next row
+  Gates.rangeCheck64(shifted);
+  // Compute following row
+  Gates.rangeCheck64(excess);
+  return [rotated, excess, shifted];
 }

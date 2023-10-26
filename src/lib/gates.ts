@@ -1,7 +1,8 @@
 import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
+import { MlArray } from './ml/base.js';
 
-export { rangeCheck64, xor, zero };
+export { rangeCheck64, xor, zero, rotate };
 
 /**
  * Asserts that x is at most 64 bits
@@ -39,6 +40,24 @@ function rangeCheck64(x: Field) {
     [0, x14, x12, x10, x8, x6, x4, x2, x0],
     // not using compact mode
     FieldConst[0]
+  );
+}
+
+function rotate(
+  field: Field,
+  rotated: Field,
+  excess: Field,
+  limbs: [Field, Field, Field, Field],
+  crumbs: [Field, Field, Field, Field, Field, Field, Field, Field],
+  two_to_rot: bigint
+) {
+  Snarky.gates.rotate(
+    field.value,
+    rotated.value,
+    excess.value,
+    MlArray.to(limbs.map((x) => x.value)),
+    MlArray.to(crumbs.map((x) => x.value)),
+    FieldConst.fromBigint(two_to_rot)
   );
 }
 
