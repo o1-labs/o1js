@@ -125,7 +125,7 @@ function rotate(
 ) {
   // Check that the rotation bits are in range
   assert(
-    bits > 0 && bits < MAX_BITS,
+    bits >= 0 && bits <= MAX_BITS,
     `rotation: expected bits to be between 0 and 64, got ${bits}`
   );
 
