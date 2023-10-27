@@ -14,9 +14,7 @@ npm run build
 ## Build and run the web version
 
 ```sh
-npm install
-npm run build:web
-npm run serve:web
+npm run build:bindings
 ```
 
 To see the test running in a web browser, go to `http://localhost:8000/`.
@@ -50,9 +48,9 @@ To see the test running in a web browser, go to `http://localhost:8000/`.
 
 ## Branch Compatibility
 
-SnarkyJS is mostly used to write Mina Smart Contracts and must be compatible with the latest Berkeley Testnet (or soon Mainnet). 
+SnarkyJS is mostly used to write Mina Smart Contracts and must be compatible with the latest Berkeley Testnet (or soon Mainnet).
 
-The OCaml code is in the snarkyjs-bindings repository, not directly in SnarkyJS. 
+The OCaml code is in the snarkyjs-bindings repository, not directly in SnarkyJS.
 
 To maintain compatibility between the repositories and build SnarkyJS from the [Mina repository](https://github.com/MinaProtocol/mina), make changes to its core, such as the OCaml-bindings in the [snarkyjs-bindings repository](https://github.com/o1-labs/snarkyjs-bindings), you must follow a certain branch compatibility pattern:
 
