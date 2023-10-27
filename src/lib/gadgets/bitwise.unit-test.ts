@@ -1,7 +1,7 @@
 import { ZkProgram } from '../proof_system.js';
 import {
   Spec,
-  equivalent,
+  equivalentProvable as equivalent,
   equivalentAsync,
   field,
   fieldWithRng,
