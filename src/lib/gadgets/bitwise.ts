@@ -194,7 +194,9 @@ function rot(
   );
   // Compute next row
   Gates.rangeCheck64(shifted);
-  // Compute following row
-  Gates.rangeCheck64(excess);
+  // note: range-checking `shifted` and `field` is enough.
+  // * excess < 2^rot follows from the bound check and the rotation equation in the gate
+  // * rotated < 2^64 follows from rotated = excess + shifted (because shifted has to be a multiple of 2^rot)
+  // for a proof, see TODO
   return [rotated, excess, shifted];
 }
