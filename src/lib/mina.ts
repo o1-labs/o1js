@@ -677,24 +677,32 @@ LocalBlockchain satisfies (...args: any) => Mina;
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(graphqlEndpoints: {
+function Network(endpoints: {
   mina: string | string[];
-  archive: string | string[];
+  archive?: string | string[];
+  lightnetAccountManager?: string;
 }): Mina;
 function Network(
-  input: { mina: string | string[]; archive: string | string[] } | string
+  input:
+    | {
+        mina: string | string[];
+        archive?: string | string[];
+        lightnetAccountManager?: string;
+      }
+    | string
 ): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
+  let lightnetAccountManagerEndpoint: string;
 
   if (input && typeof input === 'string') {
     minaGraphqlEndpoint = input;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (input && typeof input === 'object') {
-    if (!input.mina || !input.archive)
+    if (!input.mina)
       throw new Error(
-        "Network: malformed input. Please provide an object with 'mina' and 'archive' endpoints."
+        "Network: malformed input. Please provide an object with 'mina' endpoint."
       );
     if (Array.isArray(input.mina) && input.mina.length !== 0) {
       minaGraphqlEndpoint = input.mina[0];
@@ -705,13 +713,23 @@ function Network(
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
     }
 
-    if (Array.isArray(input.archive) && input.archive.length !== 0) {
-      archiveEndpoint = input.archive[0];
-      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
-      Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
-    } else if (typeof input.archive === 'string') {
-      archiveEndpoint = input.archive;
-      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+    if (input.archive !== undefined) {
+      if (Array.isArray(input.archive) && input.archive.length !== 0) {
+        archiveEndpoint = input.archive[0];
+        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+        Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
+      } else if (typeof input.archive === 'string') {
+        archiveEndpoint = input.archive;
+        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+      }
+    }
+
+    if (
+      input.lightnetAccountManager !== undefined &&
+      typeof input.lightnetAccountManager === 'string'
+    ) {
+      lightnetAccountManagerEndpoint = input.lightnetAccountManager;
+      Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
   } else {
     throw new Error(

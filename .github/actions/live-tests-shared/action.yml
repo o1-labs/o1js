@@ -20,7 +20,7 @@ runs:
     - name: Build o1js and execute tests
       env:
         TEST_TYPE: 'Live integration tests'
-        USE_LOCAL_NETWORK: 'true'
+        USE_CUSTOM_LOCAL_NETWORK: 'true'
       run: |
         git submodule update --init --recursive
         npm ci

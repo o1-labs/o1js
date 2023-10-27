@@ -12,10 +12,18 @@ import type {
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
+export {
+  Snarky,
+  Test,
+  JsonGate,
+  MlPublicKey,
+  MlPublicKeyVar,
+  FeatureFlags,
+  MlFeatureFlags,
+};
 
 /**
  * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
@@ -273,6 +281,62 @@ declare const Snarky: {
     ];
   };
 
+  gates: {
+    /**
+     * Range check gate
+     *
+     * @param v0 field var to be range checked
+     * @param v0p bits 16 to 88 as 6 12-bit limbs
+     * @param v0c bits 0 to 16 as 8 2-bit limbs
+     * @param compact boolean field elements -- whether to use "compact mode"
+     */
+    rangeCheck0(
+      v0: FieldVar,
+      v0p: [0, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar],
+      v0c: [
+        0,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar,
+        FieldVar
+      ],
+      compact: FieldConst
+    ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    xor(
+      in1: FieldVar,
+      in2: FieldVar,
+      out: FieldVar,
+      in1_0: FieldVar,
+      in1_1: FieldVar,
+      in1_2: FieldVar,
+      in1_3: FieldVar,
+      in2_0: FieldVar,
+      in2_1: FieldVar,
+      in2_2: FieldVar,
+      in2_3: FieldVar,
+      out_0: FieldVar,
+      out_1: FieldVar,
+      out_2: FieldVar,
+      out_3: FieldVar
+    ): void;
+
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+  };
+
   bool: {
     not(x: BoolVar): BoolVar;
 
@@ -357,15 +421,31 @@ declare const Snarky: {
   };
 };
 
+type GateType =
+  | 'Zero'
+  | 'Generic'
+  | 'Poseidon'
+  | 'CompleteAdd'
+  | 'VarbaseMul'
+  | 'EndoMul'
+  | 'EndoMulScalar'
+  | 'Lookup'
+  | 'RangeCheck0'
+  | 'RangeCheck1'
+  | 'ForeignFieldAdd'
+  | 'ForeignFieldMul'
+  | 'Xor16'
+  | 'Rot64';
+
 type JsonGate = {
-  typ: string;
+  typ: GateType;
   wires: { row: number; col: number }[];
-  coeffs: number[][];
+  coeffs: string[];
 };
 type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
 type Gate = {
-  type: string;
+  type: GateType;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
@@ -495,18 +575,56 @@ declare const Test: {
   };
 };
 
+type FeatureFlags = {
+  rangeCheck0: boolean;
+  rangeCheck1: boolean;
+  foreignFieldAdd: boolean;
+  foreignFieldMul: boolean;
+  xor: boolean;
+  rot: boolean;
+  lookup: boolean;
+  runtimeTables: boolean;
+};
+
+type MlFeatureFlags = [
+  _: 0,
+  rangeCheck0: MlBool,
+  rangeCheck1: MlBool,
+  foreignFieldAdd: MlBool,
+  foreignFieldMul: MlBool,
+  xor: MlBool,
+  rot: MlBool,
+  lookup: MlBool,
+  runtimeTables: MlBool
+];
+
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
   type Statement<F> = [_: 0, publicInput: MlArray<F>, publicOutput: MlArray<F>];
+
+  /**
+   * A "rule" is a circuit plus some metadata for `Pickles.compile`
+   */
   type Rule = {
     identifier: string;
+    /**
+     * The main circuit functions
+     */
     main: (publicInput: MlArray<FieldVar>) => {
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
     };
+    /**
+     * Feature flags which enable certain custom gates
+     */
+    featureFlags: MlFeatureFlags;
+    /**
+     * Description of previous proofs to verify in this rule
+     */
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
+
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
@@ -561,17 +679,21 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
-  dummyBase64Proof: () => string;
+  dummyProof: <N extends 0 | 1 | 2>(
+    maxProofsVerified: N,
+    domainLog2: number
+  ) => [N, Pickles.Proof];
+
   /**
    * @returns (base64 vk, hash)
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
-  proofOfBase64: (
+  proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
-    maxProofsVerified: 0 | 1 | 2
-  ) => [0 | 1 | 2, Pickles.Proof];
+    maxProofsVerified: N
+  ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };

@@ -10,11 +10,14 @@ export { Scalar, ScalarConst, unshift, shift };
 export { constantScalarToBigint };
 
 type BoolVar = FieldVar;
-type ScalarConst = Uint8Array;
+type ScalarConst = [0, bigint];
 
 const ScalarConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
+  is(x: any): x is ScalarConst {
+    return Array.isArray(x) && x[0] === 0 && typeof x[1] === 'bigint';
+  },
 };
 
 let scalarShift = Fq(1n + 2n ** 255n);
@@ -44,9 +47,9 @@ class Scalar {
    *
    * If the input is too large, it is reduced modulo the scalar field size.
    */
-  static from(x: Scalar | Uint8Array | bigint | number | string) {
+  static from(x: Scalar | ScalarConst | bigint | number | string) {
     if (x instanceof Scalar) return x;
-    if (x instanceof Uint8Array) x = ScalarConst.toBigint(x);
+    if (ScalarConst.is(x)) x = constToBigint(x);
     let scalar = Fq(x);
     let bits = toBits(scalar);
     return new Scalar(bits, scalar);
@@ -348,10 +351,10 @@ function unshift(s: Fq): Fq {
 }
 
 function constToBigint(x: ScalarConst): Fq {
-  return Fq.fromBytes([...x]);
+  return x[1];
 }
-function constFromBigint(x: Fq) {
-  return Uint8Array.from(Fq.toBytes(x));
+function constFromBigint(x: Fq): ScalarConst {
+  return [0, x];
 }
 
 function constantScalarToBigint(s: Scalar, name: string) {

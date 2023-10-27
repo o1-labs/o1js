@@ -17,13 +17,45 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/c2f392fe5...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/045faa7...HEAD)
+
+### Breaking changes
+
+- Constraint optimizations in Field methods and core crypto changes break all verification keys https://github.com/o1-labs/o1js/pull/1171 https://github.com/o1-labs/o1js/pull/1178
+
+### Changed
+
+- `ZkProgram` has moved out of the `Experimental` namespace and is now available as a top-level import directly. `Experimental.ZkProgram` has been deprecated.
+- `ZkProgram` gets a new input argument `name: string` which is required in the non-experimental API. The name is used to identify a ZkProgram when caching prover keys. https://github.com/o1-labs/o1js/pull/1200
+
+### Added
+
+- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
+
+- Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
+
+- `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
+
+- `Gadgets.rotate()`, new provable method to support bitwise rotation for native field elements. https://github.com/o1-labs/o1js/pull/1182
+
+- `Gadgets.xor()`, new provable method to support bitwise xor for native field elements. https://github.com/o1-labs/o1js/pull/1177
+
+- `Proof.dummy()` to create dummy proofs https://github.com/o1-labs/o1js/pull/1188
+  - You can use this to write ZkPrograms that handle the base case and the inductive case in the same method.
+
+## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
 
 - Changes to some verification keys caused by changing the way `Struct` orders object properties. https://github.com/o1-labs/o1js/pull/1124 [@Comdex](https://github.com/Comdex)
   - To recover existing verification keys and behavior, change the order of properties in your Struct definitions to be alphabetical
   - The `customObjectKeys` option is removed from `Struct`
+
+### Changed
+
+- Improve prover performance by ~25% https://github.com/o1-labs/o1js/pull/1092
+  - Change internal representation of field elements to be JS bigint instead of Uint8Array
+- Consolidate internal framework for testing equivalence of two implementations
 
 ## [0.13.0](https://github.com/o1-labs/o1js/compare/fbd4b2717...c2f392fe5)
 

@@ -1,6 +1,4 @@
-import { Field, Circuit, circuitMain, public_, isReady } from 'o1js';
-
-await isReady;
+import { Field, Circuit, circuitMain, public_, UInt64, Gadgets } from 'o1js';
 
 /* Exercise 2:
 
@@ -11,9 +9,10 @@ Prove:
 
 class Main extends Circuit {
   @circuitMain
-  static main(y: Field, @public_ x: Field) {
+  static main(@public_ y: Field, x: UInt64) {
+    Gadgets.rangeCheck64(x.value);
     let y3 = y.square().mul(y);
-    y3.assertEquals(x);
+    y3.assertEquals(x.value);
   }
 }
 
@@ -24,15 +23,15 @@ console.timeEnd('generating keypair...');
 
 console.log('prove...');
 console.time('prove...');
-const x = new Field(8);
+const x = UInt64.from(8);
 const y = new Field(2);
-const proof = await Main.prove([y], [x], kp);
+const proof = await Main.prove([x], [y], kp);
 console.timeEnd('prove...');
 
 console.log('verify...');
 console.time('verify...');
 let vk = kp.verificationKey();
-let ok = await Main.verify([x], vk, proof);
+let ok = await Main.verify([y], vk, proof);
 console.timeEnd('verify...');
 
 console.log('ok?', ok);

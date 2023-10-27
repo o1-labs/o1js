@@ -675,18 +675,20 @@ class SmartContract {
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods();
+    let methodsMeta = this.analyzeMethods();
+    let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let {
       verificationKey: verificationKey_,
       provers,
       verify,
-    } = await compileProgram(
-      ZkappPublicInput,
-      Empty,
+    } = await compileProgram({
+      publicInputType: ZkappPublicInput,
+      publicOutputType: Empty,
       methodIntfs,
       methods,
-      this
-    );
+      gates,
+      proofSystemTag: this,
+    });
     let verificationKey = {
       data: verificationKey_.data,
       hash: Field(verificationKey_.hash),
