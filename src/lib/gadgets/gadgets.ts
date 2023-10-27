@@ -63,7 +63,10 @@ const Gadgets = {
    * const y = Gadgets.rotate(x, 2, 'left'); // left rotation by 2 bits
    * const z = Gadgets.rotate(x, 2, 'right'); // right rotation by 2 bits
    * y.assertEquals(0b110000);
-   * z.assertEquals(0b000011)
+   * z.assertEquals(0b000011);
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rotate(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
   rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
