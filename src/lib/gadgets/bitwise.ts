@@ -197,6 +197,6 @@ function rot(
   // note: range-checking `shifted` and `field` is enough.
   // * excess < 2^rot follows from the bound check and the rotation equation in the gate
   // * rotated < 2^64 follows from rotated = excess + shifted (because shifted has to be a multiple of 2^rot)
-  // for a proof, see TODO
+  // for a proof, see https://github.com/o1-labs/o1js/pull/1201
   return [rotated, excess, shifted];
 }
