@@ -66,6 +66,7 @@ const GroupMock = {
 const BitwiseMock = {
   rot() {
     let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rangeCheck64(a); // `rotate()` doesn't do this
     Gadgets.rotate(a, 2, 'left');
     Gadgets.rotate(a, 2, 'right');
     Gadgets.rotate(a, 4, 'left');

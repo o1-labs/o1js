@@ -169,8 +169,8 @@
     "digest": "Bitwise Primitive",
     "methods": {
       "rot": {
-        "rows": 13,
-        "digest": "2c0dadbba96fd7ddb9adb7d643425ce3"
+        "rows": 10,
+        "digest": "c38703de755b10edf77bf24269089274"
       },
       "xor": {
         "rows": 15,
