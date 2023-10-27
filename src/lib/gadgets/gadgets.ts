@@ -21,10 +21,10 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(12345678n));
-   * rangeCheck64(x); // successfully proves 64-bit range
+   * Gadgets.rangeCheck64(x); // successfully proves 64-bit range
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rangeCheck64(xLarge); // throws an error since input exceeds 64 bits
+   * Gadgets.rangeCheck64(xLarge); // throws an error since input exceeds 64 bits
    * ```
    *
    * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
@@ -54,6 +54,8 @@ const Gadgets = {
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
    *
    * @example
    * ```ts
@@ -96,7 +98,7 @@ const Gadgets = {
    * let a = Field(5);      // ... 000101
    * let b = Field(3);      // ... 000011
    *
-   * let c = xor(a, b, 2);  // ... 000110
+   * let c = Gadgets.xor(a, b, 2);  // ... 000110
    * c.assertEquals(6);
    * ```
    */
