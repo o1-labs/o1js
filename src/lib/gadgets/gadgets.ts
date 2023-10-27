@@ -36,16 +36,20 @@ const Gadgets = {
   },
 
   /**
-   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript, with the distinction that the bits are circulated to the opposite end rather than being discarded.
-   * For a left rotation, this means that bits shifted off the left end reappear at the right end. Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
-   * It’s important to note that these operations are performed considering the binary representation of the number in big-endian format, where the most significant bit is on the left end and the least significant bit is on the right end.
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
    * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
    *
-   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
-   * Therefore, to safely use `rotate()`, you need to make sure that the values passed in are range checked to 64 bits.
-   * For example, this can be done with {@link Gadgets.rangeCheck64}.
+   * To safely use `rotate()`, you need to make sure that the value passed in is range checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
