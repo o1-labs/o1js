@@ -48,25 +48,20 @@ const Gadgets = {
    * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
-   * To safely use `rotate()`, you need to make sure that the value passed in is range checked to 64 bits;
+   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction left or right rotation direction.
    *
-   * @throws Throws an error if the input value exceeds 64 bits.
-   *
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100));
-   * const y = rot(x, 2, 'left'); // left rotation by 2 bits
-   * const z = rot(x, 2, 'right'); // right rotation by 2 bits
+   * const y = Gadgets.rotate(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate(x, 2, 'right'); // right rotation by 2 bits
    * y.assertEquals(0b110000);
    * z.assertEquals(0b000011)
-   *
-   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rot(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
   rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
