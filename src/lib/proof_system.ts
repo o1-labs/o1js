@@ -590,7 +590,6 @@ async function compileProgram({
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
-      // TODO sanitize program name
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       try {
         let bytes = cache.read(header);
@@ -602,7 +601,7 @@ async function compileProgram({
     },
     function write_(mlHeader, value) {
       if (!cache.canWrite) return MlResult.unitError();
-      // TODO sanitize program name
+
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       try {
         let bytes = encodeProverKey(value);

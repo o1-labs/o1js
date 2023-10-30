@@ -41,7 +41,7 @@ type CommonHeader = {
    */
   version: number;
   /**
-   * An identifier that is persistent even as version of the data change. Safe to use as a file path.
+   * An identifier that is persistent even as versions of the data change. Safe to use as a file path.
    */
   persistentId: string;
   /**
