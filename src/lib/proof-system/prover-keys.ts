@@ -102,7 +102,7 @@ type AnyValue =
   | [KeyType.WrapVerificationKey, MlWrapVerificationKey];
 
 function parseHeader(
-  programId: string,
+  programName: string,
   methods: MethodInterface[],
   key: AnyKey
 ): CacheHeader {
@@ -113,13 +113,15 @@ function parseHeader(
       let kind = snarkKeyStringKind[key[0]];
       let methodIndex = key[1][3];
       let methodName = methods[methodIndex].methodName;
-      // TODO sanitize unique id
-      let uniqueId = `${kind}-${programId}-${methodIndex}-${methodName}-${hash}`;
+      // TODO sanitize ids
+      let persistentId = `${kind}-${programName}-${methodName}`;
+      let uniqueId = `${kind}-${programName}-${methodIndex}-${methodName}-${hash}`;
       return {
         version: cacheHeaderVersion,
         uniqueId,
         kind,
-        programId,
+        persistentId,
+        programName,
         methodName,
         methodIndex,
         hash,
@@ -130,13 +132,15 @@ function parseHeader(
     case KeyType.WrapVerificationKey: {
       let kind = snarkKeyStringKind[key[0]];
       let dataType = snarkKeySerializationType[key[0]];
-      // TODO sanitize unique id
-      let uniqueId = `${kind}-${programId}-${hash}`;
+      // TODO sanitize ids
+      let persistentId = `${kind}-${programName}`;
+      let uniqueId = `${kind}-${programName}-${hash}`;
       return {
         version: cacheHeaderVersion,
         uniqueId,
         kind,
-        programId,
+        persistentId,
+        programName,
         hash,
         dataType,
       };

@@ -41,6 +41,10 @@ type CommonHeader = {
    */
   version: number;
   /**
+   * An identifier that is persistent even as version of the data change. Safe to use as a file path.
+   */
+  persistentId: string;
+  /**
    * A unique identifier for the data to be read. Safe to use as a file path.
    */
   uniqueId: string;
@@ -52,12 +56,12 @@ type CommonHeader = {
 };
 type StepKeyHeader<Kind> = {
   kind: Kind;
-  programId: string;
+  programName: string;
   methodName: string;
   methodIndex: number;
   hash: string;
 };
-type WrapKeyHeader<Kind> = { kind: Kind; programId: string; hash: string };
+type WrapKeyHeader<Kind> = { kind: Kind; programName: string; hash: string };
 
 /**
  * A header that is passed to the caching layer, to support richer caching strategies.
@@ -83,20 +87,31 @@ const None: Cache = {
 };
 
 const FileSystem = (cacheDirectory: string): Cache => ({
-  read({ uniqueId, dataType }) {
+  read({ persistentId, uniqueId, dataType }) {
     if (jsEnvironment !== 'node') throw Error('file system not available');
+
+    // read current uniqueId, return data if it matches
+    let currentId = readFileSync(
+      resolve(cacheDirectory, `${persistentId}.header`),
+      'utf8'
+    );
+    if (currentId !== uniqueId) return undefined;
+
     if (dataType === 'string') {
-      let string = readFileSync(resolve(cacheDirectory, uniqueId), 'utf8');
+      let string = readFileSync(resolve(cacheDirectory, persistentId), 'utf8');
       return new TextEncoder().encode(string);
     } else {
-      let buffer = readFileSync(resolve(cacheDirectory, uniqueId));
+      let buffer = readFileSync(resolve(cacheDirectory, persistentId));
       return new Uint8Array(buffer.buffer);
     }
   },
-  write({ uniqueId, dataType }, data) {
+  write({ persistentId, uniqueId, dataType }, data) {
     if (jsEnvironment !== 'node') throw Error('file system not available');
     mkdirSync(cacheDirectory, { recursive: true });
-    writeFileSync(resolve(cacheDirectory, uniqueId), data, {
+    writeFileSync(resolve(cacheDirectory, `${persistentId}.header`), uniqueId, {
+      encoding: 'utf8',
+    });
+    writeFileSync(resolve(cacheDirectory, persistentId), data, {
       encoding: dataType === 'string' ? 'utf8' : undefined,
     });
   },
