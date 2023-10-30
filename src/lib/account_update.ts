@@ -68,7 +68,7 @@ export {
 const ZkappStateLength = 8;
 
 const TxnVersion = {
-  current: () => UInt32.from(512),
+  current: () => UInt32.from(protocolVersions.txnVersion),
 };
 
 type SmartContractContext = {
