@@ -11,6 +11,7 @@ import type {
   MlBytes,
   MlResult,
   MlUnit,
+  MlString,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type * as ProverKeys from './lib/proof-system/prover-keys.js';
@@ -728,4 +729,9 @@ declare const Pickles: {
   ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
+
+  util: {
+    toMlString(s: string): MlString;
+    fromMlString(s: MlString): string;
+  };
 };

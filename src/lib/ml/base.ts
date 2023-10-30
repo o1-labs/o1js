@@ -10,6 +10,7 @@ export {
   MlBytes,
   MlResult,
   MlUnit,
+  MlString,
 };
 
 // ocaml types
@@ -27,6 +28,7 @@ type MlUnit = 0;
  * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
  */
 type MlBytes = { t: number; c: string; l: number };
+type MlString = MlBytes;
 
 const MlArray = {
   to<T>(arr: T[]): MlArray<T> {

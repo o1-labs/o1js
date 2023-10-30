@@ -7,7 +7,7 @@ import {
 } from './util/fs.js';
 import { jsEnvironment } from '../bindings/crypto/bindings/env.js';
 
-export { Storable };
+export { Storable, CacheHeader, cacheHeaderVersion };
 
 /**
  * Interface for storing and retrieving values, for caching.
@@ -31,6 +31,29 @@ type Storable = {
    */
   write(key: string, value: Uint8Array, type: 'string' | 'bytes'): void;
 };
+
+const cacheHeaderVersion = 0;
+
+type CommonHeader = { version: number; uniqueId: string };
+type StepKeyHeader<Kind> = {
+  kind: Kind;
+  programId: string;
+  methodName: string;
+  methodIndex: number;
+  hash: string;
+};
+type WrapKeyHeader<Kind> = { kind: Kind; programId: string; hash: string };
+
+/**
+ * A header that is passed to the caching layer, to support richer caching strategies.
+ */
+type CacheHeader = (
+  | StepKeyHeader<'step-pk'>
+  | StepKeyHeader<'step-vk'>
+  | WrapKeyHeader<'wrap-pk'>
+  | WrapKeyHeader<'wrap-vk'>
+) &
+  CommonHeader;
 
 const None: Storable = {
   read() {

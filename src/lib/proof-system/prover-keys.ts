@@ -5,8 +5,18 @@ import {
 import { Pickles, getWasm } from '../../snarky.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
+import { MlString } from '../ml/base.js';
+import { CacheHeader, cacheHeaderVersion } from '../storable.js';
+import type { MethodInterface } from '../proof_system.js';
 
-export { encodeProverKey, decodeProverKey, proverKeyType, AnyKey, AnyValue };
+export {
+  parseHeader,
+  encodeProverKey,
+  decodeProverKey,
+  proverKeyType,
+  AnyKey,
+  AnyValue,
+};
 export type { MlWrapVerificationKey };
 
 // Plonk_constraint_system.Make()().t
@@ -23,21 +33,50 @@ type MlBackendKeyPair<WasmIndex> = [
   cs: MlConstraintSystem
 ];
 
+// Snarky_keys_header.t
+
+type MlSnarkKeysHeader = [
+  _: 0,
+  headerVersion: number,
+  kind: [_: 0, type: MlString, identifier: MlString],
+  constraintConstants: unknown,
+  commits: unknown,
+  length: number,
+  commitDate: MlString,
+  constraintSystemHash: MlString,
+  identifyingHash: MlString
+];
+
 // Pickles.Cache.{Step,Wrap}.Key.Proving.t
 
 type MlStepProvingKeyHeader = [
   _: 0,
   typeEqual: number,
-  snarkKeysHeader: unknown,
+  snarkKeysHeader: MlSnarkKeysHeader,
   index: number,
   constraintSystem: MlConstraintSystem
+];
+
+type MlStepVerificationKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: MlSnarkKeysHeader,
+  index: number,
+  digest: unknown
 ];
 
 type MlWrapProvingKeyHeader = [
   _: 0,
   typeEqual: number,
-  snarkKeysHeader: unknown,
+  snarkKeysHeader: MlSnarkKeysHeader,
   constraintSystem: MlConstraintSystem
+];
+
+type MlWrapVerificationKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: MlSnarkKeysHeader,
+  digest: unknown
 ];
 
 // Pickles.Verification_key.t
@@ -59,15 +98,49 @@ enum KeyType {
 
 type AnyKey =
   | [KeyType.StepProvingKey, MlStepProvingKeyHeader]
-  | [KeyType.StepVerificationKey, unknown]
+  | [KeyType.StepVerificationKey, MlStepVerificationKeyHeader]
   | [KeyType.WrapProvingKey, MlWrapProvingKeyHeader]
-  | [KeyType.WrapVerificationKey, unknown];
+  | [KeyType.WrapVerificationKey, MlWrapVerificationKeyHeader];
 
 type AnyValue =
   | [KeyType.StepProvingKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
   | [KeyType.StepVerificationKey, VerifierIndex]
   | [KeyType.WrapProvingKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
   | [KeyType.WrapVerificationKey, MlWrapVerificationKey];
+
+function parseHeader(
+  programId: string,
+  methods: MethodInterface[],
+  key: AnyKey
+): CacheHeader {
+  let hash = Pickles.util.fromMlString(key[1][2][8]);
+  switch (key[0]) {
+    case KeyType.StepProvingKey:
+    case KeyType.StepVerificationKey: {
+      let kind = snarkKeyStringKind[key[0]];
+      let methodIndex = key[1][3];
+      let methodName = methods[methodIndex].methodName;
+      // TODO sanitize unique id
+      let uniqueId = `${kind}-${programId}-${methodIndex}-${methodName}-${hash}`;
+      return {
+        version: cacheHeaderVersion,
+        uniqueId,
+        kind,
+        programId,
+        methodName,
+        methodIndex,
+        hash,
+      };
+    }
+    case KeyType.WrapProvingKey:
+    case KeyType.WrapVerificationKey: {
+      let kind = snarkKeyStringKind[key[0]];
+      // TODO sanitize unique id
+      let uniqueId = `${kind}-${programId}-${hash}`;
+      return { version: cacheHeaderVersion, uniqueId, kind, programId, hash };
+    }
+  }
+}
 
 function encodeProverKey(value: AnyValue): Uint8Array {
   let wasm = getWasm();
@@ -136,6 +209,13 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
       throw Error('todo');
   }
 }
+
+const snarkKeyStringKind = {
+  [KeyType.StepProvingKey]: 'step-pk',
+  [KeyType.StepVerificationKey]: 'step-vk',
+  [KeyType.WrapProvingKey]: 'wrap-pk',
+  [KeyType.WrapVerificationKey]: 'wrap-vk',
+} as const;
 
 const proverKeySerializationType = {
   [KeyType.StepProvingKey]: 'bytes',

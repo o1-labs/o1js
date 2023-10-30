@@ -32,6 +32,7 @@ import { Storable } from './storable.js';
 import {
   decodeProverKey,
   encodeProverKey,
+  parseHeader,
   proverKeyType,
 } from './proof-system/prover-keys.js';
 
@@ -590,6 +591,8 @@ async function compileProgram({
   let storable: Pickles.Storable = [
     0,
     function read_(key, path) {
+      // TODO sanitize program name
+      let header = parseHeader(proofSystemTag.name, methodIntfs, key);
       try {
         let type = proverKeyType(key);
         let bytes = read(path, type);
@@ -599,6 +602,8 @@ async function compileProgram({
       }
     },
     function write_(key, value, path) {
+      // TODO sanitize program name
+      let header = parseHeader(proofSystemTag.name, methodIntfs, key);
       try {
         let type = proverKeyType(key);
         let bytes = encodeProverKey(value);
