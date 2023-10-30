@@ -9,14 +9,7 @@ import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from '../storable.js';
 import type { MethodInterface } from '../proof_system.js';
 
-export {
-  parseHeader,
-  encodeProverKey,
-  decodeProverKey,
-  proverKeyType,
-  AnyKey,
-  AnyValue,
-};
+export { parseHeader, encodeProverKey, decodeProverKey, AnyKey, AnyValue };
 export type { MlWrapVerificationKey };
 
 // Plonk_constraint_system.Make()().t
@@ -130,14 +123,23 @@ function parseHeader(
         methodName,
         methodIndex,
         hash,
+        dataType: snarkKeySerializationType[key[0]],
       };
     }
     case KeyType.WrapProvingKey:
     case KeyType.WrapVerificationKey: {
       let kind = snarkKeyStringKind[key[0]];
+      let dataType = snarkKeySerializationType[key[0]];
       // TODO sanitize unique id
       let uniqueId = `${kind}-${programId}-${hash}`;
-      return { version: cacheHeaderVersion, uniqueId, kind, programId, hash };
+      return {
+        version: cacheHeaderVersion,
+        uniqueId,
+        kind,
+        programId,
+        hash,
+        dataType,
+      };
     }
   }
 }
@@ -217,13 +219,9 @@ const snarkKeyStringKind = {
   [KeyType.WrapVerificationKey]: 'wrap-vk',
 } as const;
 
-const proverKeySerializationType = {
+const snarkKeySerializationType = {
   [KeyType.StepProvingKey]: 'bytes',
   [KeyType.StepVerificationKey]: 'string',
   [KeyType.WrapProvingKey]: 'bytes',
   [KeyType.WrapVerificationKey]: 'string',
 } as const;
-
-function proverKeyType(key: AnyKey): 'string' | 'bytes' {
-  return proverKeySerializationType[key[0]];
-}

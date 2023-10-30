@@ -28,12 +28,11 @@ import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
-import { Storable } from './storable.js';
+import { Cache } from './storable.js';
 import {
   decodeProverKey,
   encodeProverKey,
   parseHeader,
-  proverKeyType,
 } from './proof-system/prover-keys.js';
 
 // public API
@@ -317,7 +316,7 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile({ storable = Storable.FileSystemDefault } = {}) {
+  async function compile({ cache = Cache.FileSystemDefault } = {}) {
     let methodsMeta = analyzeMethods();
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
@@ -327,7 +326,7 @@ function ZkProgram<
       methods: methodFunctions,
       gates,
       proofSystemTag: selfTag,
-      storable,
+      cache,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -563,7 +562,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  storable: { read, write },
+  cache: { read, write },
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -572,7 +571,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
-  storable: Storable;
+  cache: Cache;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -588,26 +587,24 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
-  let storable: Pickles.Storable = [
+  let cache: Pickles.Cache = [
     0,
-    function read_(key, path) {
+    function read_(key) {
       // TODO sanitize program name
       let header = parseHeader(proofSystemTag.name, methodIntfs, key);
       try {
-        let type = proverKeyType(key);
-        let bytes = read(path, type);
+        let bytes = read(header);
         return MlResult.ok(decodeProverKey(key, bytes));
       } catch (e: any) {
         return MlResult.unitError();
       }
     },
-    function write_(key, value, path) {
+    function write_(key, value) {
       // TODO sanitize program name
       let header = parseHeader(proofSystemTag.name, methodIntfs, key);
       try {
-        let type = proverKeyType(key);
         let bytes = encodeProverKey(value);
-        write(path, bytes, type);
+        write(header, bytes);
         return MlResult.ok(undefined);
       } catch (e: any) {
         return MlResult.unitError();
@@ -625,7 +622,7 @@ async function compileProgram({
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
-            storable,
+            cache,
             overrideWrapDomain,
           });
         } finally {

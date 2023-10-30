@@ -45,7 +45,7 @@ export {
   Undefined,
   Void,
 } from './lib/proof_system.js';
-export { Storable } from './lib/storable.js';
+export { Cache } from './lib/storable.js';
 
 export {
   Token,

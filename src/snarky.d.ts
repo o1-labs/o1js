@@ -637,7 +637,7 @@ declare namespace Pickles {
   /**
    * Type to configure how Pickles should cache prover keys
    */
-  type Storable = [
+  type Cache = [
     _: 0,
     read: (
       key: ProverKeys.AnyKey,
@@ -684,7 +684,7 @@ declare const Pickles: {
     config: {
       publicInputSize: number;
       publicOutputSize: number;
-      storable?: Pickles.Storable;
+      cache?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
     }
   ) => {
