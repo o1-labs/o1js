@@ -118,7 +118,7 @@ const FileSystem = (cacheDirectory: string): Cache => ({
   canWrite: jsEnvironment === 'node',
 });
 
-const FileSystemDefault = FileSystem(cacheDir('pickles'));
+const FileSystemDefault = FileSystem(cacheDir('o1js'));
 
 const Cache = {
   /**
