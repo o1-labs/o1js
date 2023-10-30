@@ -12,72 +12,6 @@ import type { MethodInterface } from '../proof_system.js';
 export { parseHeader, encodeProverKey, decodeProverKey, AnyKey, AnyValue };
 export type { MlWrapVerificationKey };
 
-// Plonk_constraint_system.Make()().t
-
-class MlConstraintSystem {
-  // opaque type
-}
-
-// Dlog_plonk_based_keypair.Make().t
-
-type MlBackendKeyPair<WasmIndex> = [
-  _: 0,
-  index: WasmIndex,
-  cs: MlConstraintSystem
-];
-
-// Snarky_keys_header.t
-
-type MlSnarkKeysHeader = [
-  _: 0,
-  headerVersion: number,
-  kind: [_: 0, type: MlString, identifier: MlString],
-  constraintConstants: unknown,
-  commits: unknown,
-  length: number,
-  commitDate: MlString,
-  constraintSystemHash: MlString,
-  identifyingHash: MlString
-];
-
-// Pickles.Cache.{Step,Wrap}.Key.Proving.t
-
-type MlStepProvingKeyHeader = [
-  _: 0,
-  typeEqual: number,
-  snarkKeysHeader: MlSnarkKeysHeader,
-  index: number,
-  constraintSystem: MlConstraintSystem
-];
-
-type MlStepVerificationKeyHeader = [
-  _: 0,
-  typeEqual: number,
-  snarkKeysHeader: MlSnarkKeysHeader,
-  index: number,
-  digest: unknown
-];
-
-type MlWrapProvingKeyHeader = [
-  _: 0,
-  typeEqual: number,
-  snarkKeysHeader: MlSnarkKeysHeader,
-  constraintSystem: MlConstraintSystem
-];
-
-type MlWrapVerificationKeyHeader = [
-  _: 0,
-  typeEqual: number,
-  snarkKeysHeader: MlSnarkKeysHeader,
-  digest: unknown
-];
-
-// Pickles.Verification_key.t
-
-class MlWrapVerificationKey {
-  // opaque type
-}
-
 // pickles_bindings.ml, any_key enum
 
 enum KeyType {
@@ -86,8 +20,6 @@ enum KeyType {
   WrapProvingKey,
   WrapVerificationKey,
 }
-
-// TODO better names
 
 type AnyKey =
   | [KeyType.StepProvingKey, MlStepProvingKeyHeader]
@@ -233,3 +165,71 @@ const snarkKeySerializationType = {
   [KeyType.WrapProvingKey]: 'bytes',
   [KeyType.WrapVerificationKey]: 'string',
 } as const;
+
+// pickles types
+
+// Plonk_constraint_system.Make()().t
+
+class MlConstraintSystem {
+  // opaque type
+}
+
+// Dlog_plonk_based_keypair.Make().t
+
+type MlBackendKeyPair<WasmIndex> = [
+  _: 0,
+  index: WasmIndex,
+  cs: MlConstraintSystem
+];
+
+// Snarky_keys_header.t
+
+type MlSnarkKeysHeader = [
+  _: 0,
+  headerVersion: number,
+  kind: [_: 0, type: MlString, identifier: MlString],
+  constraintConstants: unknown,
+  commits: unknown,
+  length: number,
+  commitDate: MlString,
+  constraintSystemHash: MlString,
+  identifyingHash: MlString
+];
+
+// Pickles.Cache.{Step,Wrap}.Key.Proving.t
+
+type MlStepProvingKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: MlSnarkKeysHeader,
+  index: number,
+  constraintSystem: MlConstraintSystem
+];
+
+type MlStepVerificationKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: MlSnarkKeysHeader,
+  index: number,
+  digest: unknown
+];
+
+type MlWrapProvingKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: MlSnarkKeysHeader,
+  constraintSystem: MlConstraintSystem
+];
+
+type MlWrapVerificationKeyHeader = [
+  _: 0,
+  typeEqual: number,
+  snarkKeysHeader: MlSnarkKeysHeader,
+  digest: unknown
+];
+
+// Pickles.Verification_key.t
+
+class MlWrapVerificationKey {
+  // opaque type
+}
