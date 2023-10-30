@@ -26,7 +26,11 @@ import {
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { mocks, prefixes } from '../bindings/crypto/constants.js';
+import {
+  mocks,
+  prefixes,
+  protocolVersions,
+} from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 import { MlArray } from './ml/base.js';
@@ -62,6 +66,10 @@ export {
 };
 
 const ZkappStateLength = 8;
+
+const TxnVersion = {
+  current: () => UInt32.from(512),
+};
 
 type SmartContractContext = {
   this: SmartContract;
@@ -199,7 +207,10 @@ interface Permissions extends Permissions_ {
    * key associated with the circuit tied to this account. Effectively
    * "upgradeability" of the smart contract.
    */
-  setVerificationKey: Permission;
+  setVerificationKey: {
+    auth: Permission;
+    txnVersion: UInt32;
+  };
 
   /**
    * The {@link Permission} corresponding to the ability to set the zkapp uri
@@ -265,7 +276,10 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: Permission.signature(),
+    setVerificationKey: {
+      auth: Permission.signature(),
+      txnVersion: TxnVersion.current(),
+    },
     setZkappUri: Permission.signature(),
     editActionState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
@@ -281,7 +295,10 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: Permission.signature(),
+    setVerificationKey: {
+      auth: Permission.signature(),
+      txnVersion: TxnVersion.current(),
+    },
     setZkappUri: Permission.signature(),
     editActionState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
@@ -298,7 +315,10 @@ let Permissions = {
     access: Permission.none(),
     setDelegate: Permission.none(),
     setPermissions: Permission.none(),
-    setVerificationKey: Permission.none(),
+    setVerificationKey: {
+      auth: Permission.signature(),
+      txnVersion: TxnVersion.current(),
+    },
     setZkappUri: Permission.none(),
     editActionState: Permission.none(),
     setTokenSymbol: Permission.none(),
@@ -314,7 +334,10 @@ let Permissions = {
     access: Permission.impossible(),
     setDelegate: Permission.impossible(),
     setPermissions: Permission.impossible(),
-    setVerificationKey: Permission.impossible(),
+    setVerificationKey: {
+      auth: Permission.signature(),
+      txnVersion: TxnVersion.current(),
+    },
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
     setTokenSymbol: Permission.impossible(),
@@ -350,7 +373,7 @@ let Permissions = {
     return Object.fromEntries(
       Object.entries(permissions).map(([k, v]) => [
         k,
-        Permissions.fromString(v),
+        Permissions.fromString(typeof v === 'string' ? v : v.auth),
       ])
     ) as unknown as Permissions;
   },

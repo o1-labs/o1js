@@ -300,6 +300,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   let self: Transaction = {
     transaction,
     sign(additionalKeys?: PrivateKey[]) {
+      self.transaction.accountUpdates.forEach(
+        (a) => (a.body.callData = Field(5))
+      );
       self.transaction = addMissingSignatures(self.transaction, additionalKeys);
       return self;
     },
@@ -1280,7 +1283,7 @@ async function verifyAccountUpdate(
       case 'delegate':
         return perm.setDelegate;
       case 'verificationKey':
-        return perm.setVerificationKey;
+        return perm.setVerificationKey.auth;
       case 'permissions':
         return perm.setPermissions;
       case 'zkappUri':
