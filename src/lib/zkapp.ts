@@ -56,7 +56,7 @@ import {
   inProver,
   snarkContext,
 } from './provable-context.js';
-import { Cache } from './storable.js';
+import { Cache } from './proof-system/cache.js';
 
 // external API
 export {

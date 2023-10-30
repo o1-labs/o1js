@@ -28,7 +28,7 @@ import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
-import { Cache } from './storable.js';
+import { Cache } from './proof-system/cache.js';
 import {
   decodeProverKey,
   encodeProverKey,

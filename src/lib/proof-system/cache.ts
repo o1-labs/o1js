@@ -4,8 +4,8 @@ import {
   mkdirSync,
   resolve,
   cacheDir,
-} from './util/fs.js';
-import { jsEnvironment } from '../bindings/crypto/bindings/env.js';
+} from '../util/fs.js';
+import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
 
 export { Cache, CacheHeader, cacheHeaderVersion };
 

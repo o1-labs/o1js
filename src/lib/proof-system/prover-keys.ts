@@ -6,7 +6,7 @@ import { Pickles, getWasm } from '../../snarky.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { MlString } from '../ml/base.js';
-import { CacheHeader, cacheHeaderVersion } from '../storable.js';
+import { CacheHeader, cacheHeaderVersion } from './cache.js';
 import type { MethodInterface } from '../proof_system.js';
 
 export { parseHeader, encodeProverKey, decodeProverKey, AnyKey, AnyValue };
