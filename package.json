@@ -52,7 +52,7 @@
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
-    "build:docs": "npx typedoc",
+    "build:docs": "npx typedoc --tsconfig ./tsconfig.web.json",
     "serve:web": "cp src/bindings/compiled/web_bindings/server.js src/bindings/compiled/web_bindings/index.html src/examples/simple_zkapp.js dist/web && node dist/web/server.js",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
