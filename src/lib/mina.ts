@@ -300,9 +300,6 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   let self: Transaction = {
     transaction,
     sign(additionalKeys?: PrivateKey[]) {
-      self.transaction.accountUpdates.forEach(
-        (a) => (a.body.callData = Field(5))
-      );
       self.transaction = addMissingSignatures(self.transaction, additionalKeys);
       return self;
     },
