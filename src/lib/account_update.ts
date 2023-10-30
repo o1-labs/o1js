@@ -718,6 +718,7 @@ class AccountUpdate implements Types.AccountUpdate {
       this,
       isSelf
     );
+
     this.account = account;
     this.network = network;
     this.currentSlot = currentSlot;

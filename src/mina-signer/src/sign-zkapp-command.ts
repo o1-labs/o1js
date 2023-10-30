@@ -119,8 +119,6 @@ function transactionCommitments(zkappCommand: ZkappCommand) {
     feePayerDigest,
     commitment,
   ]);
-  console.log('commitment', commitment);
-  console.log('fullCommitment', fullCommitment);
   return { commitment, fullCommitment };
 }
 
