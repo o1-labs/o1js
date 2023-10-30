@@ -624,7 +624,7 @@ async function compileProgram({
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
-            cache: picklesCache,
+            storable: picklesCache,
             overrideWrapDomain,
           });
         } finally {

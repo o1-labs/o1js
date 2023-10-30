@@ -684,7 +684,7 @@ declare const Pickles: {
     config: {
       publicInputSize: number;
       publicOutputSize: number;
-      cache?: Pickles.Cache;
+      storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
     }
   ) => {
