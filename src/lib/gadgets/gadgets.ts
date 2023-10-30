@@ -98,11 +98,11 @@ const Gadgets = {
    *
    * @example
    * ```ts
-   * let a = Field(5);      // ... 000101
-   * let b = Field(3);      // ... 000011
+   * let a = Field(0b0101);
+   * let b = Field(0b0011);
    *
-   * let c = Gadgets.xor(a, b, 2);  // ... 000110
-   * c.assertEquals(6);
+   * let c = Gadgets.xor(a, b, 4); // xor-ing 4 bits
+   * c.assertEquals(0b0110);
    * ```
    */
   xor(a: Field, b: Field, length: number) {
