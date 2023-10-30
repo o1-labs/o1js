@@ -41,6 +41,7 @@ export {
   SelfProof,
   JsonProof,
   ZkProgram,
+  ExperimentalZkProgram,
   verify,
   Empty,
   Undefined,
@@ -246,6 +247,7 @@ function ZkProgram<
   }
 >(
   config: StatementType & {
+    name: string;
     methods: {
       [I in keyof Types]: Method<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -279,7 +281,7 @@ function ZkProgram<
   let publicInputType: ProvablePure<any> = config.publicInput! ?? Undefined;
   let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
 
-  let selfTag = { name: `Program${i++}` };
+  let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
   >;
@@ -1055,3 +1057,30 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
+
+// deprecated experimental API
+
+function ExperimentalZkProgram<
+  StatementType extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  Types extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+>(
+  config: StatementType & {
+    name?: string;
+    methods: {
+      [I in keyof Types]: Method<
+        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+        Types[I]
+      >;
+    };
+    overrideWrapDomain?: 0 | 1 | 2;
+  }
+) {
+  let config_ = { ...config, name: config.name ?? `Program${i++}` };
+  return ZkProgram<StatementType, Types>(config_);
+}

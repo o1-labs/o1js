@@ -11,6 +11,7 @@ import { tic, toc } from '../examples/zkapps/tictoc.js';
 await isReady;
 
 let MaxProofsVerifiedOne = ZkProgram({
+  name: 'recursive-1',
   publicInput: Field,
 
   methods: {

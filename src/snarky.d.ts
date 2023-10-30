@@ -314,6 +314,35 @@ declare const Snarky: {
       ],
       compact: FieldConst
     ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    xor(
+      in1: FieldVar,
+      in2: FieldVar,
+      out: FieldVar,
+      in1_0: FieldVar,
+      in1_1: FieldVar,
+      in1_2: FieldVar,
+      in1_3: FieldVar,
+      in2_0: FieldVar,
+      in2_1: FieldVar,
+      in2_2: FieldVar,
+      in2_3: FieldVar,
+      out_0: FieldVar,
+      out_1: FieldVar,
+      out_2: FieldVar,
+      out_3: FieldVar
+    ): void;
+
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
   };
 
   bool: {

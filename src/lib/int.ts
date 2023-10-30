@@ -458,6 +458,7 @@ class UInt32 extends CircuitValue {
   static MAXINT() {
     return new UInt32(Field((1n << 32n) - 1n));
   }
+
   /**
    * Integer division with remainder.
    *

@@ -164,5 +164,22 @@
       "data": "",
       "hash": ""
     }
+  },
+  "Bitwise Primitive": {
+    "digest": "Bitwise Primitive",
+    "methods": {
+      "rot": {
+        "rows": 13,
+        "digest": "2c0dadbba96fd7ddb9adb7d643425ce3"
+      },
+      "xor": {
+        "rows": 15,
+        "digest": "b3595a9cc9562d4f4a3a397b6de44971"
+      }
+    },
+    "verificationKey": {
+      "data": "",
+      "hash": ""
+    }
   }
 }
