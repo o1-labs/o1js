@@ -1,3 +1,10 @@
+/**
+ * This file provides helpers to
+ * - encode and decode all 4 kinds of snark keys to/from bytes
+ * - create a header which is passed to the `Cache` so that it can figure out where and if to read from cache
+ *
+ * The inputs are `SnarkKeyHeader` and `SnarkKey`, which are OCaml tagged enums defined in pickles_bindings.ml
+ */
 import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
@@ -9,11 +16,16 @@ import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
 import type { MethodInterface } from '../proof_system.js';
 
-export { parseHeader, encodeProverKey, decodeProverKey, AnyKey, AnyValue };
+export {
+  parseHeader,
+  encodeProverKey,
+  decodeProverKey,
+  SnarkKeyHeader,
+  SnarkKey,
+};
 export type { MlWrapVerificationKey };
 
-// pickles_bindings.ml, any_key enum
-
+// there are 4 types of snark keys in Pickles which we all handle at once
 enum KeyType {
   StepProvingKey,
   StepVerificationKey,
@@ -21,29 +33,32 @@ enum KeyType {
   WrapVerificationKey,
 }
 
-type AnyKey =
+type SnarkKeyHeader =
   | [KeyType.StepProvingKey, MlStepProvingKeyHeader]
   | [KeyType.StepVerificationKey, MlStepVerificationKeyHeader]
   | [KeyType.WrapProvingKey, MlWrapProvingKeyHeader]
   | [KeyType.WrapVerificationKey, MlWrapVerificationKeyHeader];
 
-type AnyValue =
+type SnarkKey =
   | [KeyType.StepProvingKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
   | [KeyType.StepVerificationKey, VerifierIndex]
   | [KeyType.WrapProvingKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
   | [KeyType.WrapVerificationKey, MlWrapVerificationKey];
 
+/**
+ * Create `CacheHeader` from a `SnarkKeyHeader` plus some context available to `compile()`
+ */
 function parseHeader(
   programName: string,
   methods: MethodInterface[],
-  key: AnyKey
+  header: SnarkKeyHeader
 ): CacheHeader {
-  let hash = Pickles.util.fromMlString(key[1][2][8]);
-  switch (key[0]) {
+  let hash = Pickles.util.fromMlString(header[1][2][8]);
+  switch (header[0]) {
     case KeyType.StepProvingKey:
     case KeyType.StepVerificationKey: {
-      let kind = snarkKeyStringKind[key[0]];
-      let methodIndex = key[1][3];
+      let kind = snarkKeyStringKind[header[0]];
+      let methodIndex = header[1][3];
       let methodName = methods[methodIndex].methodName;
       let persistentId = sanitize(`${kind}-${programName}-${methodName}`);
       let uniqueId = sanitize(
@@ -58,13 +73,13 @@ function parseHeader(
         methodName,
         methodIndex,
         hash,
-        dataType: snarkKeySerializationType[key[0]],
+        dataType: snarkKeySerializationType[header[0]],
       };
     }
     case KeyType.WrapProvingKey:
     case KeyType.WrapVerificationKey: {
-      let kind = snarkKeyStringKind[key[0]];
-      let dataType = snarkKeySerializationType[key[0]];
+      let kind = snarkKeyStringKind[header[0]];
+      let dataType = snarkKeySerializationType[header[0]];
       let persistentId = sanitize(`${kind}-${programName}`);
       let uniqueId = sanitize(`${kind}-${programName}-${hash}`);
       return {
@@ -80,7 +95,10 @@ function parseHeader(
   }
 }
 
-function encodeProverKey(value: AnyValue): Uint8Array {
+/**
+ * Encode a snark key to bytes
+ */
+function encodeProverKey(value: SnarkKey): Uint8Array {
   let wasm = getWasm();
   switch (value[0]) {
     case KeyType.StepProvingKey: {
@@ -111,13 +129,16 @@ function encodeProverKey(value: AnyValue): Uint8Array {
   }
 }
 
-function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
+/**
+ * Decode bytes to a snark key with the help of its header
+ */
+function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
   let wasm = getWasm();
-  switch (key[0]) {
+  switch (header[0]) {
     case KeyType.StepProvingKey: {
       let srs = Pickles.loadSrsFp();
       let index = wasm.caml_pasta_fp_plonk_index_decode(bytes, srs);
-      let cs = key[1][4];
+      let cs = header[1][4];
       return [KeyType.StepProvingKey, [0, index, cs]];
     }
     case KeyType.StepVerificationKey: {
@@ -134,7 +155,7 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
     case KeyType.WrapProvingKey: {
       let srs = Pickles.loadSrsFq();
       let index = wasm.caml_pasta_fq_plonk_index_decode(bytes, srs);
-      let cs = key[1][3];
+      let cs = header[1][3];
       return [KeyType.WrapProvingKey, [0, index, cs]];
     }
     case KeyType.WrapVerificationKey: {
@@ -143,11 +164,14 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
       return [KeyType.WrapVerificationKey, vk];
     }
     default:
-      key satisfies never;
+      header satisfies never;
       throw Error('todo');
   }
 }
 
+/**
+ * Sanitize a string so that it can be used as a file name
+ */
 function sanitize(string: string): string {
   return string.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
 }

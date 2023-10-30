@@ -14,7 +14,11 @@ import type {
   MlString,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
-import type * as ProverKeys from './lib/proof-system/prover-keys.js';
+import type {
+  SnarkKey,
+  SnarkKeyHeader,
+  MlWrapVerificationKey,
+} from './lib/proof-system/prover-keys.js';
 import { getWasm } from './bindings/js/wrapper.js';
 import type {
   WasmFpSrs,
@@ -639,13 +643,10 @@ declare namespace Pickles {
    */
   type Cache = [
     _: 0,
-    read: (
-      key: ProverKeys.AnyKey,
-      path: string
-    ) => MlResult<ProverKeys.AnyValue, MlUnit>,
+    read: (header: SnarkKeyHeader, path: string) => MlResult<SnarkKey, MlUnit>,
     write: (
-      key: ProverKeys.AnyKey,
-      value: ProverKeys.AnyValue,
+      header: SnarkKeyHeader,
+      value: SnarkKey,
       path: string
     ) => MlResult<undefined, MlUnit>,
     canWrite: MlBool
@@ -719,8 +720,8 @@ declare const Pickles: {
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
-  encodeVerificationKey: (vk: ProverKeys.MlWrapVerificationKey) => string;
-  decodeVerificationKey: (vk: string) => ProverKeys.MlWrapVerificationKey;
+  encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
+  decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: <N extends 0 | 1 | 2>(
