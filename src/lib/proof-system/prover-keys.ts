@@ -113,9 +113,10 @@ function parseHeader(
       let kind = snarkKeyStringKind[key[0]];
       let methodIndex = key[1][3];
       let methodName = methods[methodIndex].methodName;
-      // TODO sanitize ids
-      let persistentId = `${kind}-${programName}-${methodName}`;
-      let uniqueId = `${kind}-${programName}-${methodIndex}-${methodName}-${hash}`;
+      let persistentId = sanitize(`${kind}-${programName}-${methodName}`);
+      let uniqueId = sanitize(
+        `${kind}-${programName}-${methodIndex}-${methodName}-${hash}`
+      );
       return {
         version: cacheHeaderVersion,
         uniqueId,
@@ -132,9 +133,8 @@ function parseHeader(
     case KeyType.WrapVerificationKey: {
       let kind = snarkKeyStringKind[key[0]];
       let dataType = snarkKeySerializationType[key[0]];
-      // TODO sanitize ids
-      let persistentId = `${kind}-${programName}`;
-      let uniqueId = `${kind}-${programName}-${hash}`;
+      let persistentId = sanitize(`${kind}-${programName}`);
+      let uniqueId = sanitize(`${kind}-${programName}-${hash}`);
       return {
         version: cacheHeaderVersion,
         uniqueId,
@@ -214,6 +214,10 @@ function decodeProverKey(key: AnyKey, bytes: Uint8Array): AnyValue {
       key satisfies never;
       throw Error('todo');
   }
+}
+
+function sanitize(string: string): string {
+  return string.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
 }
 
 const snarkKeyStringKind = {
