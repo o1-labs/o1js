@@ -19,7 +19,7 @@ type Cache = {
    *
    * @param header A small header to identify what is read from the cache.
    */
-  read(header: CacheHeader): Uint8Array;
+  read(header: CacheHeader): Uint8Array | undefined;
   /**
    * Write a value to the cache.
    *
@@ -27,6 +27,10 @@ type Cache = {
    * @param value The value to write to the cache, as a byte array.
    */
   write(header: CacheHeader, value: Uint8Array): void;
+  /**
+   * Indicates whether the cache is writable.
+   */
+  canWrite: boolean;
 };
 
 const cacheHeaderVersion = 0.1;
@@ -75,6 +79,7 @@ const None: Cache = {
   write() {
     throw Error('not available');
   },
+  canWrite: false,
 };
 
 const FileSystem = (cacheDirectory: string): Cache => ({
@@ -95,6 +100,7 @@ const FileSystem = (cacheDirectory: string): Cache => ({
       encoding: dataType === 'string' ? 'utf8' : undefined,
     });
   },
+  canWrite: jsEnvironment === 'node',
 });
 
 const FileSystemDefault = FileSystem(cacheDir('pickles'));

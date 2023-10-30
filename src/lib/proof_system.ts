@@ -562,7 +562,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  cache: { read, write },
+  cache,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -587,30 +587,32 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
-  let cache: Pickles.Cache = [
+  let picklesCache: Pickles.Cache = [
     0,
-    function read_(key) {
+    function read_(mlHeader) {
       // TODO sanitize program name
-      let header = parseHeader(proofSystemTag.name, methodIntfs, key);
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       try {
-        let bytes = read(header);
-        return MlResult.ok(decodeProverKey(key, bytes));
+        let bytes = cache.read(header);
+        if (bytes === undefined) return MlResult.unitError();
+        return MlResult.ok(decodeProverKey(mlHeader, bytes));
       } catch (e: any) {
         return MlResult.unitError();
       }
     },
-    function write_(key, value) {
+    function write_(mlHeader, value) {
+      if (!cache.canWrite) return MlResult.unitError();
       // TODO sanitize program name
-      let header = parseHeader(proofSystemTag.name, methodIntfs, key);
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       try {
         let bytes = encodeProverKey(value);
-        write(header, bytes);
+        cache.write(header, bytes);
         return MlResult.ok(undefined);
       } catch (e: any) {
         return MlResult.unitError();
       }
     },
-    MlBool(true),
+    MlBool(cache.canWrite),
   ];
 
   let { verificationKey, provers, verify, tag } =
@@ -622,7 +624,7 @@ async function compileProgram({
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
-            cache,
+            cache: picklesCache,
             overrideWrapDomain,
           });
         } finally {
