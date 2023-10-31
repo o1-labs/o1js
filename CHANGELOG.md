@@ -43,6 +43,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Use cached prover keys in `compile()` when running in Node.js https://github.com/o1-labs/o1js/pull/1187
   - Caching is configurable by passing a custom `Cache` (new export) to `compile()`
   - By default, prover keys are stored in an OS-dependent cache directory; `~/.cache/pickles` on Mac and Linux
+- Use cached setup points (SRS and Lagrange bases) when running in Node.js https://github.com/o1-labs/o1js/pull/1197
+  - Also, speed up SRS generation by using multiple threads
+  - Together with caching of prover keys, this speeds up compilation time by roughly
+    - **86%** when everything is cached
+    - **34%** when nothing is cached
 
 ## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 

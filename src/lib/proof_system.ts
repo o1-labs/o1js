@@ -28,12 +28,13 @@ import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
-import { Cache } from './proof-system/cache.js';
+import { Cache, readCache, writeCache } from './proof-system/cache.js';
 import {
   decodeProverKey,
   encodeProverKey,
   parseHeader,
 } from './proof-system/prover-keys.js';
+import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
 
 // public API
 export {
@@ -591,25 +592,20 @@ async function compileProgram({
     0,
     function read_(mlHeader) {
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
-      try {
-        let bytes = cache.read(header);
-        if (bytes === undefined) return MlResult.unitError();
-        return MlResult.ok(decodeProverKey(mlHeader, bytes));
-      } catch (e: any) {
-        return MlResult.unitError();
-      }
+      let result = readCache(cache, header, (bytes) =>
+        decodeProverKey(mlHeader, bytes)
+      );
+      if (result === undefined) return MlResult.unitError();
+      return MlResult.ok(result);
     },
     function write_(mlHeader, value) {
       if (!cache.canWrite) return MlResult.unitError();
 
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
-      try {
-        let bytes = encodeProverKey(value);
-        cache.write(header, bytes);
-        return MlResult.ok(undefined);
-      } catch (e: any) {
-        return MlResult.unitError();
-      }
+      let didWrite = writeCache(cache, header, encodeProverKey(value));
+
+      if (!didWrite) return MlResult.unitError();
+      return MlResult.ok(undefined);
     },
     MlBool(cache.canWrite),
   ];
@@ -619,6 +615,7 @@ async function compileProgram({
       withThreadPool(async () => {
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
+        setSrsCache(cache);
         try {
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
@@ -628,6 +625,7 @@ async function compileProgram({
           });
         } finally {
           snarkContext.leave(id);
+          unsetSrsCache();
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);

@@ -40,6 +40,12 @@ const MlArray = {
   map<T, S>([, ...arr]: MlArray<T>, map: (t: T) => S): MlArray<S> {
     return [0, ...arr.map(map)];
   },
+  mapTo<T, S>(arr: T[], map: (t: T) => S): MlArray<S> {
+    return [0, ...arr.map(map)];
+  },
+  mapFrom<T, S>([, ...arr]: MlArray<T>, map: (t: T) => S): S[] {
+    return arr.map(map);
+  },
 };
 
 const MlTuple = Object.assign(
