@@ -101,11 +101,25 @@ function withVersion(
 
 // default methods to interact with a cache
 
-function readCache(cache: Cache, header: CacheHeader) {
+function readCache(cache: Cache, header: CacheHeader): Uint8Array | undefined;
+function readCache<T>(
+  cache: Cache,
+  header: CacheHeader,
+  transform: (x: Uint8Array) => T
+): T | undefined;
+function readCache<T>(
+  cache: Cache,
+  header: CacheHeader,
+  transform?: (x: Uint8Array) => T
+): T | undefined {
   try {
     let result = cache.read(header);
-    if (result === undefined && cache.debug) console.trace('Cache miss');
-    return result;
+    if (result === undefined) {
+      if (cache.debug) console.trace('cache miss');
+      return undefined;
+    }
+    if (transform === undefined) return result as any as T;
+    return transform(result);
   } catch (e) {
     if (cache.debug) console.log('Failed to read cache', e);
     return undefined;
@@ -113,11 +127,13 @@ function readCache(cache: Cache, header: CacheHeader) {
 }
 
 function writeCache(cache: Cache, header: CacheHeader, value: Uint8Array) {
-  if (!cache.canWrite) return;
+  if (!cache.canWrite) return false;
   try {
     cache.write(header, value);
+    return true;
   } catch (e) {
     if (cache.debug) console.log('Failed to write cache', e);
+    return false;
   }
 }
 
