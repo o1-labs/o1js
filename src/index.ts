@@ -45,6 +45,7 @@ export {
   Undefined,
   Void,
 } from './lib/proof_system.js';
+export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export {
   Token,

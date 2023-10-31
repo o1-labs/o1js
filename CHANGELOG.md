@@ -31,17 +31,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
-
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
-
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
-
 - `Gadgets.rotate()`, new provable method to support bitwise rotation for native field elements. https://github.com/o1-labs/o1js/pull/1182
-
 - `Gadgets.xor()`, new provable method to support bitwise xor for native field elements. https://github.com/o1-labs/o1js/pull/1177
-
 - `Proof.dummy()` to create dummy proofs https://github.com/o1-labs/o1js/pull/1188
   - You can use this to write ZkPrograms that handle the base case and the inductive case in the same method.
+
+### Changed
+
+- Use cached prover keys in `compile()` when running in Node.js https://github.com/o1-labs/o1js/pull/1187
+  - Caching is configurable by passing a custom `Cache` (new export) to `compile()`
+  - By default, prover keys are stored in an OS-dependent cache directory; `~/.cache/pickles` on Mac and Linux
+- Use cached setup points (SRS and Lagrange bases) when running in Node.js https://github.com/o1-labs/o1js/pull/1197
+  - Also, speed up SRS generation by using multiple threads
+  - Together with caching of prover keys, this speeds up compilation time by roughly
+    - **86%** when everything is cached
+    - **34%** when nothing is cached
 
 ## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 

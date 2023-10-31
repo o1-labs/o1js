@@ -21,10 +21,10 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(12345678n));
-   * rangeCheck64(x); // successfully proves 64-bit range
+   * Gadgets.rangeCheck64(x); // successfully proves 64-bit range
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rangeCheck64(xLarge); // throws an error since input exceeds 64 bits
+   * Gadgets.rangeCheck64(xLarge); // throws an error since input exceeds 64 bits
    * ```
    *
    * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
@@ -36,16 +36,20 @@ const Gadgets = {
   },
 
   /**
-   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript, with the distinction that the bits are circulated to the opposite end rather than being discarded.
-   * For a left rotation, this means that bits shifted off the left end reappear at the right end. Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
-   * It’s important to note that these operations are performed considering the binary representation of the number in big-endian format, where the most significant bit is on the left end and the least significant bit is on the right end.
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
    * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
    *
-   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
-   * Therefore, to safely use `rotate()`, you need to make sure that the values passed in are range checked to 64 bits.
-   * For example, this can be done with {@link Gadgets.rangeCheck64}.
+   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
@@ -56,13 +60,13 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100));
-   * const y = rot(x, 2, 'left'); // left rotation by 2 bits
-   * const z = rot(x, 2, 'right'); // right rotation by 2 bits
+   * const y = Gadgets.rotate(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate(x, 2, 'right'); // right rotation by 2 bits
    * y.assertEquals(0b110000);
-   * z.assertEquals(0b000011)
+   * z.assertEquals(0b000011);
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rot(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
+   * Gadgets.rotate(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
   rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
@@ -94,11 +98,11 @@ const Gadgets = {
    *
    * @example
    * ```ts
-   * let a = Field(5);      // ... 000101
-   * let b = Field(3);      // ... 000011
+   * let a = Field(0b0101);
+   * let b = Field(0b0011);
    *
-   * let c = xor(a, b, 2);  // ... 000110
-   * c.assertEquals(6);
+   * let c = Gadgets.xor(a, b, 4); // xor-ing 4 bits
+   * c.assertEquals(0b0110);
    * ```
    */
   xor(a: Field, b: Field, length: number) {
