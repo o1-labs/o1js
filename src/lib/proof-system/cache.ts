@@ -7,7 +7,7 @@ import {
 } from '../util/fs.js';
 import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
 
-export { Cache, CacheHeader, cacheHeaderVersion };
+export { Cache, CacheHeader, cacheHeaderVersion, withVersion };
 
 /**
  * Interface for storing and retrieving values, for caching.
@@ -33,7 +33,7 @@ type Cache = {
   canWrite: boolean;
 };
 
-const cacheHeaderVersion = 0.1;
+const cacheHeaderVersion = 1;
 
 type CommonHeader = {
   /**
@@ -62,6 +62,7 @@ type StepKeyHeader<Kind> = {
   hash: string;
 };
 type WrapKeyHeader<Kind> = { kind: Kind; programName: string; hash: string };
+type PlainHeader<Kind> = { kind: Kind };
 
 /**
  * A header that is passed to the caching layer, to support richer caching strategies.
@@ -73,8 +74,18 @@ type CacheHeader = (
   | StepKeyHeader<'step-vk'>
   | WrapKeyHeader<'wrap-pk'>
   | WrapKeyHeader<'wrap-vk'>
+  | PlainHeader<'srs'>
+  | PlainHeader<'lagrange-basis'>
 ) &
   CommonHeader;
+
+function withVersion(
+  header: Omit<CacheHeader, 'version'>,
+  version = cacheHeaderVersion
+): CacheHeader {
+  let uniqueId = `${header.uniqueId}-${version}`;
+  return { ...header, version, uniqueId } as CacheHeader;
+}
 
 const None: Cache = {
   read() {
