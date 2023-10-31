@@ -7,7 +7,11 @@ import {
 } from '../util/fs.js';
 import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
 
-export { Cache, CacheHeader, cacheHeaderVersion, withVersion };
+// external API
+export { Cache, CacheHeader };
+
+// internal API
+export { readCache, writeCache, withVersion, cacheHeaderVersion };
 
 /**
  * Interface for storing and retrieving values, for caching.
@@ -31,6 +35,13 @@ type Cache = {
    * Indicates whether the cache is writable.
    */
   canWrite: boolean;
+  /**
+   * If `isDebug` is toggled, cache read and write errors are logged to the console.
+   *
+   * By default, cache errors are silent, because they don't necessarily represent an error condition,
+   * but could just be a cache miss or file system permissions incompatible with writing data.
+   */
+  debug?: boolean;
 };
 
 const cacheHeaderVersion = 1;
@@ -54,6 +65,7 @@ type CommonHeader = {
    */
   dataType: 'string' | 'bytes';
 };
+
 type StepKeyHeader<Kind> = {
   kind: Kind;
   programName: string;
@@ -65,7 +77,7 @@ type WrapKeyHeader<Kind> = { kind: Kind; programName: string; hash: string };
 type PlainHeader<Kind> = { kind: Kind };
 
 /**
- * A header that is passed to the caching layer, to support richer caching strategies.
+ * A header that is passed to the caching layer, to support rich caching strategies.
  *
  * Both `uniqueId` and `programId` can safely be used as a file path.
  */
@@ -85,6 +97,28 @@ function withVersion(
 ): CacheHeader {
   let uniqueId = `${header.uniqueId}-${version}`;
   return { ...header, version, uniqueId } as CacheHeader;
+}
+
+// default methods to interact with a cache
+
+function readCache(cache: Cache, header: CacheHeader) {
+  try {
+    let result = cache.read(header);
+    if (result === undefined && cache.debug) console.trace('Cache miss');
+    return result;
+  } catch (e) {
+    if (cache.debug) console.log('Failed to read cache', e);
+    return undefined;
+  }
+}
+
+function writeCache(cache: Cache, header: CacheHeader, value: Uint8Array) {
+  if (!cache.canWrite) return;
+  try {
+    cache.write(header, value);
+  } catch (e) {
+    if (cache.debug) console.log('Failed to write cache', e);
+  }
 }
 
 const None: Cache = {
