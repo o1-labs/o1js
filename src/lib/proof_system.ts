@@ -620,7 +620,7 @@ async function compileProgram({
       withThreadPool(async () => {
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
-        setSrsCache(storable);
+        setSrsCache(cache);
         try {
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
