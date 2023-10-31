@@ -16,6 +16,17 @@ export { readCache, writeCache, withVersion, cacheHeaderVersion };
 /**
  * Interface for storing and retrieving values, for caching.
  * `read()` and `write()` can just throw errors on failure.
+ *
+ * The data that will be passed to the cache for writing is exhaustively described by the {@link CacheHeader} type.
+ * It represents one of the following:
+ * - The SRS. This is a deterministic lists of curve points (one per curve) that needs to be generated just once,
+ *   to be used for polynomial commitments.
+ * - Lagrange basis commitments. Similar to the SRS, this will be created once for every power-of-2 circuit size.
+ * - Prover and verifier keys for every compiled circuit.
+ *
+ * Per smart contract or ZkProgram, several different keys are created:
+ * - a step prover key (`step-pk`) and verification key (`step-vk`) _for every method_.
+ * - a wrap prover key (`wrap-pk`) and verification key (`wrap-vk`) for the entire contract.
  */
 type Cache = {
   /**
@@ -24,6 +35,7 @@ type Cache = {
    * @param header A small header to identify what is read from the cache.
    */
   read(header: CacheHeader): Uint8Array | undefined;
+
   /**
    * Write a value to the cache.
    *
@@ -31,15 +43,17 @@ type Cache = {
    * @param value The value to write to the cache, as a byte array.
    */
   write(header: CacheHeader, value: Uint8Array): void;
+
   /**
    * Indicates whether the cache is writable.
    */
   canWrite: boolean;
+
   /**
-   * If `isDebug` is toggled, cache read and write errors are logged to the console.
+   * If `debug` is toggled, `read()` and `write()` errors are logged to the console.
    *
    * By default, cache errors are silent, because they don't necessarily represent an error condition,
-   * but could just be a cache miss or file system permissions incompatible with writing data.
+   * but could just be a cache miss, or file system permissions incompatible with writing data.
    */
   debug?: boolean;
 };
@@ -186,11 +200,17 @@ const Cache = {
   /**
    * Store data on the file system, in a directory of your choice.
    *
+   * Data will be stored in two files per cache entry: a data file and a `.header` file.
+   * The header file just contains a unique string which is used to determine whether we can use the cached data.
+   *
    * Note: this {@link Cache} only caches data in Node.js.
    */
   FileSystem,
   /**
    * Store data on the file system, in a standard cache directory depending on the OS.
+   *
+   * Data will be stored in two files per cache entry: a data file and a `.header` file.
+   * The header file just contains a unique string which is used to determine whether we can use the cached data.
    *
    * Note: this {@link Cache} only caches data in Node.js.
    */
