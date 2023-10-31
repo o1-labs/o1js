@@ -25,9 +25,15 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
+import { Cache } from './proof-system/cache.js';
+import {
+  decodeProverKey,
+  encodeProverKey,
+  parseHeader,
+} from './proof-system/prover-keys.js';
 
 // public API
 export {
@@ -310,7 +316,7 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile() {
+  async function compile({ cache = Cache.FileSystemDefault } = {}) {
     let methodsMeta = analyzeMethods();
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
@@ -320,6 +326,7 @@ function ZkProgram<
       methods: methodFunctions,
       gates,
       proofSystemTag: selfTag,
+      cache,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -555,6 +562,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
+  cache,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -563,6 +571,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
+  cache: Cache;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -578,6 +587,33 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
+  let picklesCache: Pickles.Cache = [
+    0,
+    function read_(mlHeader) {
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      try {
+        let bytes = cache.read(header);
+        if (bytes === undefined) return MlResult.unitError();
+        return MlResult.ok(decodeProverKey(mlHeader, bytes));
+      } catch (e: any) {
+        return MlResult.unitError();
+      }
+    },
+    function write_(mlHeader, value) {
+      if (!cache.canWrite) return MlResult.unitError();
+
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      try {
+        let bytes = encodeProverKey(value);
+        cache.write(header, bytes);
+        return MlResult.ok(undefined);
+      } catch (e: any) {
+        return MlResult.unitError();
+      }
+    },
+    MlBool(cache.canWrite),
+  ];
+
   let { verificationKey, provers, verify, tag } =
     await prettifyStacktracePromise(
       withThreadPool(async () => {
@@ -587,6 +623,7 @@ async function compileProgram({
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            storable: picklesCache,
             overrideWrapDomain,
           });
         } finally {
