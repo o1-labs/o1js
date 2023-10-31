@@ -147,7 +147,7 @@ const None: Cache = {
   canWrite: false,
 };
 
-const FileSystem = (cacheDirectory: string): Cache => ({
+const FileSystem = (cacheDirectory: string, debug?: boolean): Cache => ({
   read({ persistentId, uniqueId, dataType }) {
     if (jsEnvironment !== 'node') throw Error('file system not available');
 
@@ -177,6 +177,7 @@ const FileSystem = (cacheDirectory: string): Cache => ({
     });
   },
   canWrite: jsEnvironment === 'node',
+  debug,
 });
 
 const FileSystemDefault = FileSystem(cacheDir('o1js'));
