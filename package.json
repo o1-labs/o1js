@@ -63,7 +63,7 @@
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
-    "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2eTestsBuildHelper.js && cp -rf src/bindings/compiled/web_bindings/index.html src/bindings/compiled/web_bindings/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
+    "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2eTestsBuildHelper.js && cp -rf src/examples/plain-html/index.html src/examples/plain-html/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report"
