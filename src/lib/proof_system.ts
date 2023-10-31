@@ -28,11 +28,11 @@ import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
-import { Storable } from './storable.js';
+import { Cache } from './proof-system/cache.js';
 import {
   decodeProverKey,
   encodeProverKey,
-  proverKeyType,
+  parseHeader,
 } from './proof-system/prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
 
@@ -42,6 +42,7 @@ export {
   SelfProof,
   JsonProof,
   ZkProgram,
+  ExperimentalZkProgram,
   verify,
   Empty,
   Undefined,
@@ -247,6 +248,7 @@ function ZkProgram<
   }
 >(
   config: StatementType & {
+    name: string;
     methods: {
       [I in keyof Types]: Method<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -280,7 +282,7 @@ function ZkProgram<
   let publicInputType: ProvablePure<any> = config.publicInput! ?? Undefined;
   let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
 
-  let selfTag = { name: `Program${i++}` };
+  let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
   >;
@@ -315,7 +317,7 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile({ storable = Storable.FileSystemDefault } = {}) {
+  async function compile({ cache = Cache.FileSystemDefault } = {}) {
     let methodsMeta = analyzeMethods();
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
@@ -325,7 +327,7 @@ function ZkProgram<
       methods: methodFunctions,
       gates,
       proofSystemTag: selfTag,
-      storable,
+      cache,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -561,7 +563,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
-  storable,
+  cache,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -570,7 +572,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
-  storable: Storable;
+  cache: Cache;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -586,28 +588,31 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
-  let picklesStorable: Pickles.Storable = [
+  let picklesCache: Pickles.Cache = [
     0,
-    function read_(key, path) {
+    function read_(mlHeader) {
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       try {
-        let type = proverKeyType(key);
-        let bytes = storable.read(path, type);
-        return MlResult.ok(decodeProverKey(key, bytes));
+        let bytes = cache.read(header);
+        if (bytes === undefined) return MlResult.unitError();
+        return MlResult.ok(decodeProverKey(mlHeader, bytes));
       } catch (e: any) {
         return MlResult.unitError();
       }
     },
-    function write_(key, value, path) {
+    function write_(mlHeader, value) {
+      if (!cache.canWrite) return MlResult.unitError();
+
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       try {
-        let type = proverKeyType(key);
         let bytes = encodeProverKey(value);
-        storable.write(path, bytes, type);
+        cache.write(header, bytes);
         return MlResult.ok(undefined);
       } catch (e: any) {
         return MlResult.unitError();
       }
     },
-    MlBool(true),
+    MlBool(cache.canWrite),
   ];
 
   let { verificationKey, provers, verify, tag } =
@@ -620,7 +625,7 @@ async function compileProgram({
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
-            storable: picklesStorable,
+            storable: picklesCache,
             overrideWrapDomain,
           });
         } finally {
@@ -1058,3 +1063,30 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
+
+// deprecated experimental API
+
+function ExperimentalZkProgram<
+  StatementType extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  Types extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+>(
+  config: StatementType & {
+    name?: string;
+    methods: {
+      [I in keyof Types]: Method<
+        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+        Types[I]
+      >;
+    };
+    overrideWrapDomain?: 0 | 1 | 2;
+  }
+) {
+  let config_ = { ...config, name: config.name ?? `Program${i++}` };
+  return ZkProgram<StatementType, Types>(config_);
+}

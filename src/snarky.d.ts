@@ -11,9 +11,14 @@ import type {
   MlBytes,
   MlResult,
   MlUnit,
+  MlString,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
-import type * as ProverKeys from './lib/proof-system/prover-keys.js';
+import type {
+  SnarkKey,
+  SnarkKeyHeader,
+  MlWrapVerificationKey,
+} from './lib/proof-system/prover-keys.js';
 import { getWasm } from './bindings/js/wrapper.js';
 import type {
   WasmFpSrs,
@@ -314,6 +319,35 @@ declare const Snarky: {
       ],
       compact: FieldConst
     ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    xor(
+      in1: FieldVar,
+      in2: FieldVar,
+      out: FieldVar,
+      in1_0: FieldVar,
+      in1_1: FieldVar,
+      in1_2: FieldVar,
+      in1_3: FieldVar,
+      in2_0: FieldVar,
+      in2_1: FieldVar,
+      in2_2: FieldVar,
+      in2_3: FieldVar,
+      out_0: FieldVar,
+      out_1: FieldVar,
+      out_2: FieldVar,
+      out_3: FieldVar
+    ): void;
+
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
   };
 
   bool: {
@@ -607,15 +641,12 @@ declare namespace Pickles {
   /**
    * Type to configure how Pickles should cache prover keys
    */
-  type Storable = [
+  type Cache = [
     _: 0,
-    read: (
-      key: ProverKeys.AnyKey,
-      path: string
-    ) => MlResult<ProverKeys.AnyValue, MlUnit>,
+    read: (header: SnarkKeyHeader, path: string) => MlResult<SnarkKey, MlUnit>,
     write: (
-      key: ProverKeys.AnyKey,
-      value: ProverKeys.AnyValue,
+      header: SnarkKeyHeader,
+      value: SnarkKey,
       path: string
     ) => MlResult<undefined, MlUnit>,
     canWrite: MlBool
@@ -654,7 +685,7 @@ declare const Pickles: {
     config: {
       publicInputSize: number;
       publicOutputSize: number;
-      storable?: Pickles.Storable;
+      storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
     }
   ) => {
@@ -689,8 +720,8 @@ declare const Pickles: {
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
-  encodeVerificationKey: (vk: ProverKeys.MlWrapVerificationKey) => string;
-  decodeVerificationKey: (vk: string) => ProverKeys.MlWrapVerificationKey;
+  encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
+  decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: <N extends 0 | 1 | 2>(
@@ -699,4 +730,9 @@ declare const Pickles: {
   ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
+
+  util: {
+    toMlString(s: string): MlString;
+    fromMlString(s: MlString): string;
+  };
 };
