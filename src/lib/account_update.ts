@@ -39,7 +39,7 @@ import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
 
 // external API
-export { AccountUpdate, Permissions, ZkappPublicInput };
+export { AccountUpdate, Permissions, ZkappPublicInput, TransactionVersion };
 // internal API
 export {
   smartContractContext,
@@ -67,7 +67,7 @@ export {
 
 const ZkappStateLength = 8;
 
-const TxnVersion = {
+const TransactionVersion = {
   current: () => UInt32.from(protocolVersions.txnVersion),
 };
 
@@ -278,7 +278,7 @@ let Permissions = {
     setPermissions: Permission.signature(),
     setVerificationKey: {
       auth: Permission.signature(),
-      txnVersion: TxnVersion.current(),
+      txnVersion: TransactionVersion.current(),
     },
     setZkappUri: Permission.signature(),
     editActionState: Permission.proof(),
@@ -297,7 +297,7 @@ let Permissions = {
     setPermissions: Permission.signature(),
     setVerificationKey: {
       auth: Permission.signature(),
-      txnVersion: TxnVersion.current(),
+      txnVersion: TransactionVersion.current(),
     },
     setZkappUri: Permission.signature(),
     editActionState: Permission.signature(),
@@ -317,7 +317,7 @@ let Permissions = {
     setPermissions: Permission.none(),
     setVerificationKey: {
       auth: Permission.signature(),
-      txnVersion: TxnVersion.current(),
+      txnVersion: TransactionVersion.current(),
     },
     setZkappUri: Permission.none(),
     editActionState: Permission.none(),
@@ -336,7 +336,7 @@ let Permissions = {
     setPermissions: Permission.impossible(),
     setVerificationKey: {
       auth: Permission.signature(),
-      txnVersion: TxnVersion.current(),
+      txnVersion: TransactionVersion.current(),
     },
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
