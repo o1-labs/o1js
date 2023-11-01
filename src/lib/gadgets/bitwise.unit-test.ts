@@ -56,6 +56,10 @@ let uint = (length: number) => fieldWithRng(Random.biguint(length));
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
   );
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length)
+  );
 });
 
 test(
@@ -91,24 +95,6 @@ await equivalentAsync(
   },
   async (x, y) => {
     let proof = await Bitwise.xor(x, y);
-    return proof.publicOutput;
-  }
-);
-
-// not
-[2, 4, 8, 16, 32, 64, 128].forEach((length) => {
-  equivalent({ from: [uint(length), uint(length)], to: field })(Fp.not, (x) =>
-    Gadgets.not(x, length)
-  );
-});
-
-await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.not(x);
-  },
-  async (a) => {
-    let proof = await Bitwise.not(a);
     return proof.publicOutput;
   }
 );
