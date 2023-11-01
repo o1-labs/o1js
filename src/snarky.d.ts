@@ -4,7 +4,7 @@ import type { BoolVar, Bool } from './lib/bool.js';
 import type { ScalarConst } from './lib/scalar.js';
 import type {
   MlArray,
-  MlTuple,
+  MlPair,
   MlList,
   MlOption,
   MlBool,
@@ -12,6 +12,7 @@ import type {
   MlResult,
   MlUnit,
   MlString,
+  MlTuple,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
@@ -155,7 +156,7 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (value: T) => void;
 }
 
-type MlGroup = MlTuple<FieldVar, FieldVar>;
+type MlGroup = MlPair<FieldVar, FieldVar>;
 
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
@@ -290,11 +291,102 @@ declare const Snarky: {
     ): [
       _: 0,
       constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
+      terms: MlList<MlPair<FieldConst, number>>
     ];
   };
 
   gates: {
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+
+    generic(
+      sl: FieldConst,
+      l: FieldVar,
+      sr: FieldConst,
+      r: FieldVar,
+      so: FieldConst,
+      o: FieldVar,
+      sm: FieldConst,
+      sc: FieldConst
+    ): void;
+
+    poseidon(state: MlArray<MlTuple<Field, 3>>): void;
+
+    /**
+     * Low-level Elliptic Curve Addition gate.
+     */
+    ecAdd(
+      p1: MlGroup,
+      p2: MlGroup,
+      p3: MlGroup,
+      inf: FieldVar,
+      same_x: FieldVar,
+      slope: FieldVar,
+      inf_z: FieldVar,
+      x21_inv: FieldVar
+    ): MlGroup;
+
+    ecScale(
+      state: MlArray<
+        [
+          _: 0,
+          accs: MlArray<MlTuple<FieldVar, 2>>,
+          bits: MlArray<FieldVar>,
+          ss: MlArray<FieldVar>,
+          base: MlGroup,
+          nPrev: Field,
+          nNext: Field
+        ]
+      >
+    ): void;
+
+    ecEndoscale(
+      state: MlArray<
+        [
+          _: 0,
+          xt: FieldVar,
+          yt: FieldVar,
+          xp: FieldVar,
+          yp: FieldVar,
+          nAcc: FieldVar,
+          xr: FieldVar,
+          yr: FieldVar,
+          s1: FieldVar,
+          s3: FieldVar,
+          b1: FieldVar,
+          b2: FieldVar,
+          b3: FieldVar,
+          b4: FieldVar
+        ]
+      >,
+      xs: FieldVar,
+      ys: FieldVar,
+      nAcc: FieldVar
+    ): void;
+
+    ecEndoscalar(
+      state: MlArray<
+        [
+          _: 0,
+          n0: FieldVar,
+          n8: FieldVar,
+          a0: FieldVar,
+          b0: FieldVar,
+          a8: FieldVar,
+          b8: FieldVar,
+          x0: FieldVar,
+          x1: FieldVar,
+          x2: FieldVar,
+          x3: FieldVar,
+          x4: FieldVar,
+          x5: FieldVar,
+          x6: FieldVar,
+          x7: FieldVar
+        ]
+      >
+    ): void;
+
+    lookup(input: MlTuple<FieldVar, 7>): void;
+
     /**
      * Range check gate
      *
@@ -305,28 +397,16 @@ declare const Snarky: {
      */
     rangeCheck0(
       v0: FieldVar,
-      v0p: [0, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar],
-      v0c: [
-        0,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar
-      ],
+      v0p: MlTuple<FieldVar, 6>,
+      v0c: MlTuple<FieldVar, 8>,
       compact: FieldConst
     ): void;
 
-    rotate(
-      field: FieldVar,
-      rotated: FieldVar,
-      excess: FieldVar,
-      limbs: MlArray<FieldVar>,
-      crumbs: MlArray<FieldVar>,
-      two_to_rot: FieldConst
+    rangeCheck1(
+      v2: FieldVar,
+      v12: FieldVar,
+      vCurr: MlTuple<FieldVar, 13>,
+      vNext: MlTuple<FieldVar, 15>
     ): void;
 
     xor(
@@ -347,17 +427,46 @@ declare const Snarky: {
       out_3: FieldVar
     ): void;
 
-    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+    foreignFieldAdd(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      fieldOverflow: FieldVar,
+      carry: FieldVar,
+      foreignFieldModulus: MlTuple<FieldConst, 3>,
+      sign: FieldConst
+    ): void;
 
-    generic(
-      sl: FieldConst,
-      l: FieldVar,
-      sr: FieldConst,
-      r: FieldVar,
-      so: FieldConst,
-      o: FieldVar,
-      sm: FieldConst,
-      sc: FieldConst
+    foreignFieldMul(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      remainder: MlTuple<FieldVar, 2>,
+      quotient: MlTuple<FieldVar, 3>,
+      quotientHiBound: FieldVar,
+      product1: MlTuple<FieldVar, 3>,
+      carry0: FieldVar,
+      carry1p: MlTuple<FieldVar, 7>,
+      carry1c: MlTuple<FieldVar, 4>,
+      foreignFieldModulus2: FieldConst,
+      negForeignFieldModulus: MlTuple<FieldConst, 3>
+    ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    addFixedLookupTable(id: number, data: MlArray<MlArray<FieldConst>>): void;
+
+    addRuntimeTableConfig(id: number, firstColumn: MlArray<FieldConst>): void;
+
+    raw(
+      kind: KimchiGateType,
+      values: MlArray<FieldVar>,
+      coefficients: MlArray<FieldConst>
     ): void;
   };
 
@@ -374,20 +483,6 @@ declare const Snarky: {
   };
 
   group: {
-    /**
-     * Low-level Elliptic Curve Addition gate.
-     */
-    ecadd(
-      p1: MlGroup,
-      p2: MlGroup,
-      p3: MlGroup,
-      inf: FieldVar,
-      same_x: FieldVar,
-      slope: FieldVar,
-      inf_z: FieldVar,
-      x21_inv: FieldVar
-    ): MlGroup;
-
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 
@@ -435,7 +530,7 @@ declare const Snarky: {
       input: MlArray<FieldVar>
     ): [0, FieldVar, FieldVar, FieldVar];
 
-    hashToGroup(input: MlArray<FieldVar>): MlTuple<FieldVar, FieldVar>;
+    hashToGroup(input: MlArray<FieldVar>): MlPair<FieldVar, FieldVar>;
 
     sponge: {
       create(isChecked: boolean): unknown;
@@ -444,6 +539,27 @@ declare const Snarky: {
     };
   };
 };
+
+declare enum KimchiGateType {
+  Zero,
+  Generic,
+  Poseidon,
+  CompleteAdd,
+  VarBaseMul,
+  EndoMul,
+  EndoMulScalar,
+  Lookup,
+  CairoClaim,
+  CairoInstruction,
+  CairoFlags,
+  CairoTransition,
+  RangeCheck0,
+  RangeCheck1,
+  ForeignFieldAdd,
+  ForeignFieldMul,
+  Xor16,
+  Rot64,
+}
 
 type GateType =
   | 'Zero'
@@ -540,7 +656,7 @@ declare const Test: {
   };
 
   poseidon: {
-    hashToGroup(input: MlArray<FieldConst>): MlTuple<FieldConst, FieldConst>;
+    hashToGroup(input: MlArray<FieldConst>): MlPair<FieldConst, FieldConst>;
   };
 
   signature: {
