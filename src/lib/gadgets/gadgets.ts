@@ -109,12 +109,15 @@ const Gadgets = {
 
   /**
    * Performs a left shift operation on the provided {@link Field} element.
-   * This operation is akin to the `<<` shift operation in JavaScript,
+   * This operation is similar to the `<<` shift operation in JavaScript,
    * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
    *
    * **Important:** The gadgets assumes that its input is at most 64 bits in size.
    *
-   * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
+   * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the shift.
    * Therefore, to safely use `leftShift()`, you need to make sure that the values passed in are range checked to 64 bits.
    * For example, this can be done with {@link Gadgets.rangeCheck64}.
    *
@@ -126,7 +129,7 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = leftShift(x, 2); // left shift by 2 bits
+   * const y = Gadgets.leftShift(x, 2); // left shift by 2 bits
    * y.assertEquals(0b110000); // 48 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
@@ -142,11 +145,14 @@ const Gadgets = {
    * This is similar to the `>>` shift operation in JavaScript, where bits are moved to the right.
    * The `rightShift` function utilizes the rotation method internally to implement this operation.
    *
+   * * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
    * **Important:** The gadgets assumes that its input is at most 64 bits in size.
    *
-   * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
-   * Therefore, to safely use `rightShift()`, you need to make sure that the values passed in are range checked to 64 bits.
-   * For example, this can be done with {@link Gadgets.rangeCheck64}.
+   * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the shift.
+   * To safely use `rightShift()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to shift.
    * @param bits Amount of bits to shift the {@link Field} element to the right. The amount should be between 0 and 64 (or else the shift will fail).
@@ -156,7 +162,7 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = rightShift(x, 2); // right shift by 2 bits
+   * const y = Gadgets.rightShift(x, 2); // right shift by 2 bits
    * y.assertEquals(0b000011); // 3 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
@@ -188,11 +194,12 @@ const Gadgets = {
    * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated.
    * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
    *
+   * @example
    * ```typescript
    * let a = Field(3);    // ... 000011
    * let b = Field(5);    // ... 000101
    *
-   * let c = and(a, b, 2);    // ... 000001
+   * let c = Gadgets.and(a, b, 2);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
