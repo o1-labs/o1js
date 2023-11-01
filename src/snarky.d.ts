@@ -296,6 +296,33 @@ declare const Snarky: {
   };
 
   gates: {
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+
+    generic(
+      sl: FieldConst,
+      l: FieldVar,
+      sr: FieldConst,
+      r: FieldVar,
+      so: FieldConst,
+      o: FieldVar,
+      sm: FieldConst,
+      sc: FieldConst
+    ): void;
+
+    /**
+     * Low-level Elliptic Curve Addition gate.
+     */
+    ecAdd(
+      p1: MlGroup,
+      p2: MlGroup,
+      p3: MlGroup,
+      inf: FieldVar,
+      same_x: FieldVar,
+      slope: FieldVar,
+      inf_z: FieldVar,
+      x21_inv: FieldVar
+    ): MlGroup;
+
     /**
      * Range check gate
      *
@@ -346,19 +373,6 @@ declare const Snarky: {
       out_2: FieldVar,
       out_3: FieldVar
     ): void;
-
-    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
-
-    generic(
-      sl: FieldConst,
-      l: FieldVar,
-      sr: FieldConst,
-      r: FieldVar,
-      so: FieldConst,
-      o: FieldVar,
-      sm: FieldConst,
-      sc: FieldConst
-    ): void;
   };
 
   bool: {
@@ -374,20 +388,6 @@ declare const Snarky: {
   };
 
   group: {
-    /**
-     * Low-level Elliptic Curve Addition gate.
-     */
-    ecadd(
-      p1: MlGroup,
-      p2: MlGroup,
-      p3: MlGroup,
-      inf: FieldVar,
-      same_x: FieldVar,
-      slope: FieldVar,
-      inf_z: FieldVar,
-      x21_inv: FieldVar
-    ): MlGroup;
-
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 
