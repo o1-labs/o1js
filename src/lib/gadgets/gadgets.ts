@@ -145,9 +145,15 @@ const Gadgets = {
   },
 
   /**
-   * Multi-range check
+   * Multi-range check.
    *
-   * TODO
+   * Proves that x, y, z are all in the range [0, 2^88).
+   *
+   * This takes 4 rows, so it checks 88*3/4 = 66 bits per row. This is slightly more efficient
+   * than 64-bit range checks, which can do 64 bits in 1 row.
+   *
+   * In particular, the 3x88-bit range check supports bigints up to 264 bits, which in turn is enough
+   * to support foreign field multiplication with moduli up to 2^259.
    */
   multiRangeCheck(x: Field, y: Field, z: Field) {
     multiRangeCheck(x, y, z);
@@ -156,7 +162,15 @@ const Gadgets = {
   /**
    * Compact multi-range check
    *
-   * TODO
+   * This is a variant of {@link multiRangeCheck} where the first two variables are passed in
+   * combined form xy = x + 2^88*y.
+   *
+   * The gadget
+   * - splits up xy into x and y
+   * - proves that xy = x + 2^88*y
+   * - proves that x, y, z are all in the range [0, 2^88).
+   *
+   * The split form [x, y, z] is returned.
    */
   compactMultiRangeCheck(xy: Field, z: Field) {
     return compactMultiRangeCheck(xy, z);
