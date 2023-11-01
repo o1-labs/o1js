@@ -1,5 +1,4 @@
 import { Provable } from '../provable.js';
-import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field, FieldConst } from '../field.js';
 import * as Gates from '../gates.js';
 
@@ -33,13 +32,13 @@ function xor(a: Field, b: Field, length: number) {
       `${b.toBigInt()} does not fit into ${padLength} bits`
     );
 
-    return new Field(Fp.xor(a.toBigInt(), b.toBigInt()));
+    return new Field(a.toBigInt() ^ b.toBigInt());
   }
 
   // calculate expect xor output
   let outputXor = Provable.witness(
     Field,
-    () => new Field(Fp.xor(a.toBigInt(), b.toBigInt()))
+    () => new Field(a.toBigInt() ^ b.toBigInt())
   );
 
   // builds the xor gadget chain
@@ -139,13 +138,13 @@ function and(a: Field, b: Field, length: number) {
       `${b.toBigInt()} does not fit into ${padLength} bits`
     );
 
-    return new Field(Fp.and(a.toBigInt(), b.toBigInt()));
+    return new Field(a.toBigInt() & b.toBigInt());
   }
 
   // calculate expect and output
   let outputAnd = Provable.witness(
     Field,
-    () => new Field(Fp.and(a.toBigInt(), b.toBigInt()))
+    () => new Field(a.toBigInt() & b.toBigInt())
   );
 
   // compute values for gate

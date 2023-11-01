@@ -6,7 +6,7 @@ import {
   field,
   fieldWithRng,
 } from '../testing/equivalent.js';
-import { Fp, mod } from '../../bindings/crypto/finite_field.js';
+import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
@@ -35,11 +35,11 @@ let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
   equivalent({ from: [uint(length), uint(length)], to: field })(
-    Fp.xor,
+    (x, y) => x ^ y,
     (x, y) => Gadgets.xor(x, y, length)
   );
   equivalent({ from: [uint(length), uint(length)], to: field })(
-    Fp.and,
+    (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
   );
 });
@@ -59,7 +59,7 @@ await equivalentAsync(
   (x, y) => {
     if (x >= 2n ** 64n || y >= 2n ** 64n)
       throw Error('Does not fit into 64 bits');
-    return Fp.xor(x, y);
+    return x ^ y;
   },
   async (x, y) => {
     let proof = await Bitwise.xor(x, y);
@@ -74,7 +74,7 @@ await equivalentAsync(
   (x, y) => {
     if (x >= 2n ** 64n || y >= 2n ** 64n)
       throw Error('Does not fit into 64 bits');
-    return Fp.and(x, y);
+    return x & y;
   },
   async (x, y) => {
     let proof = await Bitwise.and(x, y);
