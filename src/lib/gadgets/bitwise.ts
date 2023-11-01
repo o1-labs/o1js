@@ -32,7 +32,7 @@ function not(a: Field, length: number) {
       a.toBigInt() < max,
       `${a.toBigInt()} does not fit into ${padLength} bits`
     );
-    return new Field(Fp.not(a.toBigInt()));
+    return new Field(Fp.not(a.toBigInt(), length));
   }
 
   // create a bitmask with all ones
