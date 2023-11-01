@@ -108,9 +108,11 @@ const Gadgets = {
   },
 
   /**
-   * Bitwise NOT gate on {@link Field} elements. Equivalent to the [bitwise
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
    * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
-   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT). The NOT gate only operates over the amount
+   * of bits specified by the 'length' paramenter.
+   *
    * A NOT gate works by returning `1` in each bit position if the
    * corresponding bit of the operand is `0`, and returning `0` if the
    * corresponding bit of the operand is `1`.
