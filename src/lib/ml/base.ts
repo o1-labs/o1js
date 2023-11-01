@@ -3,7 +3,7 @@
  */
 export {
   MlArray,
-  MlTuple,
+  MlPair,
   MlList,
   MlOption,
   MlBool,
@@ -11,11 +11,12 @@ export {
   MlResult,
   MlUnit,
   MlString,
+  MlTuple,
 };
 
 // ocaml types
 
-type MlTuple<X, Y> = [0, X, Y];
+type MlPair<X, Y> = [0, X, Y];
 type MlArray<T> = [0, ...T[]];
 type MlList<T> = [0, T, 0 | MlList<T>];
 type MlOption<T> = 0 | [0, T];
@@ -48,18 +49,18 @@ const MlArray = {
   },
 };
 
-const MlTuple = Object.assign(
-  function MlTuple<X, Y>(x: X, y: Y): MlTuple<X, Y> {
+const MlPair = Object.assign(
+  function MlTuple<X, Y>(x: X, y: Y): MlPair<X, Y> {
     return [0, x, y];
   },
   {
-    from<X, Y>([, x, y]: MlTuple<X, Y>): [X, Y] {
+    from<X, Y>([, x, y]: MlPair<X, Y>): [X, Y] {
       return [x, y];
     },
-    first<X>(t: MlTuple<X, unknown>): X {
+    first<X>(t: MlPair<X, unknown>): X {
       return t[1];
     },
-    second<Y>(t: MlTuple<unknown, Y>): Y {
+    second<Y>(t: MlPair<unknown, Y>): Y {
       return t[2];
     },
   }
@@ -111,5 +112,29 @@ const MlResult = {
   },
   unitError<T>(): MlResult<T, 0> {
     return [1, 0];
+  },
+};
+
+/**
+ * tuple type that has the length as generic parameter
+ */
+type MlTuple<T, N extends number> = N extends N
+  ? number extends N
+    ? [0, ...T[]] // N is not typed as a constant => fall back to array
+    : [0, ...TupleRec<T, N, []>]
+  : never;
+
+type TupleRec<T, N extends number, R extends unknown[]> = R['length'] extends N
+  ? R
+  : TupleRec<T, N, [T, ...R]>;
+
+type Tuple<T> = [T, ...T[]] | [];
+
+const MlTuple = {
+  map<T extends Tuple<any>, B>(
+    [, ...mlTuple]: [0, ...T],
+    f: (a: T[number]) => B
+  ): [0, ...{ [i in keyof T]: B }] {
+    return [0, ...mlTuple.map(f)] as any;
   },
 };

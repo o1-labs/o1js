@@ -25,7 +25,7 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlPair, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
 import { Cache, readCache, writeCache } from './proof-system/cache.js';
@@ -203,14 +203,14 @@ async function verify(
     let output = MlFieldConstArray.to(
       (proof as JsonProof).publicOutput.map(Field)
     );
-    statement = MlTuple(input, output);
+    statement = MlPair(input, output);
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
     let input = toFieldConsts(type.input, proof.publicInput);
     let output = toFieldConsts(type.output, proof.publicOutput);
-    statement = MlTuple(input, output);
+    statement = MlPair(input, output);
   }
   return prettifyStacktracePromise(
     withThreadPool(() =>
@@ -361,7 +361,7 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let [publicOutputFields, proof] = MlTuple.from(result);
+      let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
@@ -397,7 +397,7 @@ function ZkProgram<
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
       );
     }
-    let statement = MlTuple(
+    let statement = MlPair(
       toFieldConsts(publicInputType, proof.publicInput),
       toFieldConsts(publicOutputType, proof.publicOutput)
     );
@@ -714,7 +714,7 @@ function picklesRuleFromFunction(
         proofs.push(proofInstance);
         let input = toFieldVars(type.input, publicInput);
         let output = toFieldVars(type.output, publicOutput);
-        previousStatements.push(MlTuple(input, output));
+        previousStatements.push(MlPair(input, output));
       } else if (arg.type === 'generic') {
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }

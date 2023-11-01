@@ -4,7 +4,7 @@ import type { BoolVar, Bool } from './lib/bool.js';
 import type { ScalarConst } from './lib/scalar.js';
 import type {
   MlArray,
-  MlTuple,
+  MlPair,
   MlList,
   MlOption,
   MlBool,
@@ -12,6 +12,7 @@ import type {
   MlResult,
   MlUnit,
   MlString,
+  MlTuple,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
@@ -155,7 +156,7 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (value: T) => void;
 }
 
-type MlGroup = MlTuple<FieldVar, FieldVar>;
+type MlGroup = MlPair<FieldVar, FieldVar>;
 
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
@@ -290,7 +291,7 @@ declare const Snarky: {
     ): [
       _: 0,
       constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
+      terms: MlList<MlPair<FieldConst, number>>
     ];
   };
 
@@ -435,7 +436,7 @@ declare const Snarky: {
       input: MlArray<FieldVar>
     ): [0, FieldVar, FieldVar, FieldVar];
 
-    hashToGroup(input: MlArray<FieldVar>): MlTuple<FieldVar, FieldVar>;
+    hashToGroup(input: MlArray<FieldVar>): MlPair<FieldVar, FieldVar>;
 
     sponge: {
       create(isChecked: boolean): unknown;
@@ -540,7 +541,7 @@ declare const Test: {
   };
 
   poseidon: {
-    hashToGroup(input: MlArray<FieldConst>): MlTuple<FieldConst, FieldConst>;
+    hashToGroup(input: MlArray<FieldConst>): MlPair<FieldConst, FieldConst>;
   };
 
   signature: {

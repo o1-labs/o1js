@@ -8,7 +8,7 @@ import { Bool, Field } from '../core.js';
 import { FieldConst, FieldVar } from '../field.js';
 import { Scalar, ScalarConst } from '../scalar.js';
 import { PrivateKey, PublicKey } from '../signature.js';
-import { MlTuple, MlBool, MlArray } from './base.js';
+import { MlPair, MlBool, MlArray } from './base.js';
 import { MlFieldConstArray } from './fields.js';
 
 export { Ml, MlHashInput };
@@ -35,7 +35,7 @@ const Ml = {
 type MlHashInput = [
   flag: 0,
   field_elements: MlArray<FieldConst>,
-  packed: MlArray<MlTuple<FieldConst, number>>
+  packed: MlArray<MlPair<FieldConst, number>>
 ];
 
 const MlHashInput = {
@@ -86,7 +86,7 @@ function toPrivateKey(sk: ScalarConst) {
 }
 
 function fromPublicKey(pk: PublicKey): MlPublicKey {
-  return MlTuple(pk.x.toConstant().value[1], MlBool(pk.isOdd.toBoolean()));
+  return MlPair(pk.x.toConstant().value[1], MlBool(pk.isOdd.toBoolean()));
 }
 function toPublicKey([, x, isOdd]: MlPublicKey): PublicKey {
   return PublicKey.from({
@@ -96,7 +96,7 @@ function toPublicKey([, x, isOdd]: MlPublicKey): PublicKey {
 }
 
 function fromPublicKeyVar(pk: PublicKey): MlPublicKeyVar {
-  return MlTuple(pk.x.value, pk.isOdd.toField().value);
+  return MlPair(pk.x.value, pk.isOdd.toField().value);
 }
 function toPublicKeyVar([, x, isOdd]: MlPublicKeyVar): PublicKey {
   return PublicKey.from({ x: Field(x), isOdd: Bool(isOdd) });
