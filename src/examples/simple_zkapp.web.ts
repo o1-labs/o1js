@@ -11,7 +11,6 @@ import {
   Bool,
   PublicKey,
 } from 'o1js';
-import { getProfiler } from './profiler.js';
 
 const doProofs = true;
 
@@ -64,8 +63,6 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
-const SimpleProfiler = getProfiler('Simple zkApp');
-SimpleProfiler.start('Simple zkApp test flow');
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
@@ -88,9 +85,7 @@ let zkapp = new SimpleZkapp(zkappAddress);
 
 if (doProofs) {
   console.log('compile');
-  console.time('compile');
   await SimpleZkapp.compile();
-  console.timeEnd('compile');
 }
 
 console.log('deploy');
@@ -130,37 +125,6 @@ tx = await Mina.transaction(sender, () => {
 });
 await tx.prove();
 await tx.sign([senderKey]).send();
-sender;
 
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
-
-console.log('try to payout a second time..');
-tx = await Mina.transaction(sender, () => {
-  zkapp.payout(privilegedKey);
-});
-try {
-  await tx.prove();
-  await tx.sign([senderKey]).send();
-} catch (err: any) {
-  console.log('Transaction failed with error', err.message);
-}
-
-console.log('try to payout to a different account..');
-try {
-  tx = await Mina.transaction(sender, () => {
-    zkapp.payout(Local.testAccounts[2].privateKey);
-  });
-  await tx.prove();
-  await tx.sign([senderKey]).send();
-} catch (err: any) {
-  console.log('Transaction failed with error', err.message);
-}
-
-console.log(
-  `should still be the same final balance: ${zkapp.account.balance
-    .get()
-    .div(1e9)} MINA`
-);
-
-SimpleProfiler.stop().store();

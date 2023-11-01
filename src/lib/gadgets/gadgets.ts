@@ -2,7 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { xor, rotate, leftShift, rightShift } from './bitwise.js';
+import { rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -21,10 +21,10 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(12345678n));
-   * rangeCheck64(x); // successfully proves 64-bit range
+   * Gadgets.rangeCheck64(x); // successfully proves 64-bit range
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rangeCheck64(xLarge); // throws an error since input exceeds 64 bits
+   * Gadgets.rangeCheck64(xLarge); // throws an error since input exceeds 64 bits
    * ```
    *
    * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
@@ -34,18 +34,21 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
-
   /**
-   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript, with the distinction that the bits are circulated to the opposite end rather than being discarded.
-   * For a left rotation, this means that bits shifted off the left end reappear at the right end. Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
-   * It’s important to note that these operations are performed considering the binary representation of the number in big-endian format, where the most significant bit is on the left end and the least significant bit is on the right end.
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
    * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
    *
-   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
-   * Therefore, to safely use `rotate()`, you need to make sure that the values passed in are range checked to 64 bits.
-   * For example, this can be done with {@link Gadgets.rangeCheck64}.
+   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
@@ -55,20 +58,19 @@ const Gadgets = {
    *
    * @example
    * ```ts
-   * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = rot(x, 2, 'left'); // left rotation by 2 bits
-   * const z = rot(x, 2, 'right'); // right rotation by 2 bits
-   * y.assertEquals(0b110000); // 48 in binary
-   * z.assertEquals(0b000011) // 3 in binary
+   * const x = Provable.witness(Field, () => Field(0b001100));
+   * const y = Gadgets.rotate(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate(x, 2, 'right'); // right rotation by 2 bits
+   * y.assertEquals(0b110000);
+   * z.assertEquals(0b000011);
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rot(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
+   * Gadgets.rotate(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
   rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
     return rotate(field, bits, direction);
   },
-
   /**
    * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
    * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
@@ -94,11 +96,11 @@ const Gadgets = {
    *
    * @example
    * ```ts
-   * let a = Field(5);      // ... 000101
-   * let b = Field(3);      // ... 000011
+   * let a = Field(0b0101);
+   * let b = Field(0b0011);
    *
-   * let c = xor(a, b, 2);  // ... 000110
-   * c.assertEquals(6);
+   * let c = Gadgets.xor(a, b, 4); // xor-ing 4 bits
+   * c.assertEquals(0b0110);
    * ```
    */
   xor(a: Field, b: Field, length: number) {
@@ -163,5 +165,38 @@ const Gadgets = {
    */
   rightShift(field: Field, bits: number) {
     return rightShift(field, bits);
+  },
+  /**
+   * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated.
+   * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
+   *
+   * ```typescript
+   * let a = Field(3);    // ... 000011
+   * let b = Field(5);    // ... 000101
+   *
+   * let c = and(a, b, 2);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(a: Field, b: Field, length: number) {
+    return and(a, b, length);
   },
 };

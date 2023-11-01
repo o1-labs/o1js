@@ -183,6 +183,10 @@
       "rightShift": {
         "rows": 7,
         "digest": "a32264f2d4c3092f30d600fa9506385b"
+      },
+      "and": {
+        "rows": 19,
+        "digest": "647e6fd1852873d1c326ba1cd269cff2"
       }
     },
     "verificationKey": {
