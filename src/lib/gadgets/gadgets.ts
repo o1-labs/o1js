@@ -2,7 +2,7 @@
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
 import { rangeCheck64 } from './range-check.js';
-import { xor, rotate } from './bitwise.js';
+import { rotate, xor, and } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -34,7 +34,6 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
-
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
    * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
@@ -72,7 +71,6 @@ const Gadgets = {
   rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
     return rotate(field, bits, direction);
   },
-
   /**
    * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
    * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
@@ -107,5 +105,38 @@ const Gadgets = {
    */
   xor(a: Field, b: Field, length: number) {
     return xor(a, b, length);
+  },
+  /**
+   * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated.
+   * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
+   *
+   * ```typescript
+   * let a = Field(3);    // ... 000011
+   * let b = Field(5);    // ... 000101
+   *
+   * let c = and(a, b, 2);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(a: Field, b: Field, length: number) {
+    return and(a, b, length);
   },
 };

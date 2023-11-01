@@ -175,6 +175,10 @@
       "xor": {
         "rows": 15,
         "digest": "b3595a9cc9562d4f4a3a397b6de44971"
+      },
+      "and": {
+        "rows": 19,
+        "digest": "647e6fd1852873d1c326ba1cd269cff2"
       }
     },
     "verificationKey": {

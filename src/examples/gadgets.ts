@@ -14,10 +14,10 @@ let cs = Provable.constraintSystem(() => {
 });
 console.log('constraint system: ', cs);
 
-const ROT = ZkProgram({
-  name: 'rot-example',
+const BitwiseProver = ZkProgram({
+  name: 'bitwise',
   methods: {
-    baseCase: {
+    rot: {
       privateInputs: [],
       method: () => {
         let a = Provable.witness(Field, () => Field(48));
@@ -31,13 +31,7 @@ const ROT = ZkProgram({
         actualRight.assertEquals(expectedRight);
       },
     },
-  },
-});
-
-const XOR = ZkProgram({
-  name: 'xor-example',
-  methods: {
-    baseCase: {
+    xor: {
       privateInputs: [],
       method: () => {
         let a = Provable.witness(Field, () => Field(5));
@@ -47,24 +41,38 @@ const XOR = ZkProgram({
         actual.assertEquals(expected);
       },
     },
+    and: {
+      privateInputs: [],
+      method: () => {
+        let a = Provable.witness(Field, () => Field(3));
+        let b = Provable.witness(Field, () => Field(5));
+        let actual = Gadgets.and(a, b, 4);
+        let expected = Field(1);
+        actual.assertEquals(expected);
+      },
+    },
   },
 });
 
 console.log('compiling..');
 
 console.time('compile');
-await ROT.compile();
-await XOR.compile();
+await BitwiseProver.compile();
 console.timeEnd('compile');
 
 console.log('proving..');
 
 console.time('rotation prove');
-let rotProof = await ROT.baseCase();
+let rotProof = await BitwiseProver.rot();
 console.timeEnd('rotation prove');
-if (!(await ROT.verify(rotProof))) throw Error('rotate: Invalid proof');
+if (!(await BitwiseProver.verify(rotProof))) throw Error('rot: Invalid proof');
 
 console.time('xor prove');
-let proof = await XOR.baseCase();
+let xorProof = await BitwiseProver.xor();
 console.timeEnd('xor prove');
-if (!(await XOR.verify(proof))) throw Error('Invalid proof');
+if (!(await BitwiseProver.verify(xorProof))) throw Error('xor: Invalid proof');
+
+console.time('and prove');
+let andProof = await BitwiseProver.and();
+console.timeEnd('and prove');
+if (!(await BitwiseProver.verify(andProof))) throw Error('and: Invalid proof');
