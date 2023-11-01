@@ -9,6 +9,7 @@ import {
   witnessNextValue,
   divideWithRemainder,
 } from './common.js';
+import { rangeCheck64 } from './range-check.js';
 
 export { xor, and, rotate };
 
@@ -239,8 +240,8 @@ function rot(
     big2PowerRot
   );
   // Compute next row
-  Gates.rangeCheck64(shifted);
+  rangeCheck64(shifted);
   // Compute following row
-  Gates.rangeCheck64(excess);
+  rangeCheck64(excess);
   return [rotated, excess, shifted];
 }
