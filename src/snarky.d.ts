@@ -405,10 +405,8 @@ declare const Snarky: {
     rangeCheck1(
       v2: FieldVar,
       v12: FieldVar,
-      v0p: MlTuple<FieldVar, 2>,
-      v1p: MlTuple<FieldVar, 2>,
-      v2p: MlTuple<FieldVar, 4>,
-      v2c: MlTuple<FieldVar, 20>
+      vCurr: MlTuple<FieldVar, 13>,
+      vNext: MlTuple<FieldVar, 15>
     ): void;
 
     xor(
