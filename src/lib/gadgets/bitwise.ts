@@ -153,7 +153,7 @@ function and(a: Field, b: Field, length: number) {
   let xor_output = xor(a, b, length);
   let and_output = outputAnd;
 
-  Gates.basic(
+  Gates.generic(
     FieldConst['1'],
     sum,
     FieldConst['-1'],

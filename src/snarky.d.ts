@@ -327,7 +327,7 @@ declare const Snarky: {
 
     zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
 
-    basic(
+    generic(
       sl: FieldConst,
       l: FieldVar,
       sr: FieldConst,

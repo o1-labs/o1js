@@ -1,7 +1,7 @@
 import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
 
-export { rangeCheck64, xor, zero, basic };
+export { rangeCheck64, xor, zero, generic };
 
 /**
  * Asserts that x is at most 64 bits
@@ -84,7 +84,7 @@ function xor(
 /**
  * Generic gate
  */
-function basic(
+function generic(
   sl: FieldConst,
   l: Field,
   sr: FieldConst,
@@ -94,7 +94,7 @@ function basic(
   sm: FieldConst,
   sc: FieldConst
 ) {
-  Snarky.gates.basic(sl, l.value, sr, r.value, so, o.value, sm, sc);
+  Snarky.gates.generic(sl, l.value, sr, r.value, so, o.value, sm, sc);
 }
 
 function zero(a: Field, b: Field, c: Field) {
