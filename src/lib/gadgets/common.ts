@@ -10,6 +10,7 @@ export {
   MAX_BITS,
   exists,
   assert,
+  bitSlice,
   witnessSlices,
   witnessNextValue,
   divideWithRemainder,
@@ -30,6 +31,10 @@ function assert(stmt: boolean, message?: string) {
   if (!stmt) {
     throw Error(message ?? 'Assertion failed');
   }
+}
+
+function bitSlice(x: bigint, start: number, length: number) {
+  return (x >> BigInt(start)) & ((1n << BigInt(length)) - 1n);
 }
 
 function witnessSlices(f: Field, start: number, length: number) {
