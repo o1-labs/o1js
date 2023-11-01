@@ -72,6 +72,9 @@ await Bitwise.compile();
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
   );
+});
+
+[2, 4, 8, 16, 32, 64].forEach((length) => {
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.rot(x, 12, 'left'),
     (x) => Gadgets.rotate(x, 12, 'left')
