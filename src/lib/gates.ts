@@ -109,7 +109,7 @@ function xor(
  *
  * More generally, the generic gate controls the coefficients (denoted `c_`) in the equation:
  *
- * `c_l*l + c_r*r + c_o+o + c_m*l*r + c_c === 0`
+ * `c_l*l + c_r*r + c_o*o + c_m*l*r + c_c === 0`
  */
 function generic(
   coefficients: {
