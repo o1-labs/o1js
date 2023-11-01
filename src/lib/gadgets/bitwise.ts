@@ -148,21 +148,10 @@ function and(a: Field, b: Field, length: number) {
   );
 
   // compute values for gate
-  // explanation here: https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and
+  // explanation: https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and
   let sum = a.add(b);
-  let xor_output = xor(a, b, length);
-  let and_output = outputAnd;
-
-  Gates.generic(
-    FieldConst['1'],
-    sum,
-    FieldConst['-1'],
-    xor_output,
-    FieldConst.fromBigint(-2n),
-    and_output,
-    FieldConst['0'],
-    FieldConst['0']
-  );
+  let xorOutput = xor(a, b, length);
+  outputAnd.mul(2).add(xorOutput).assertEquals(sum);
 
   // return the result of the and operation
   return outputAnd;
