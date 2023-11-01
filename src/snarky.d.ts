@@ -309,6 +309,8 @@ declare const Snarky: {
       sc: FieldConst
     ): void;
 
+    poseidon(state: MlArray<MlTuple<Field, 3>>): void;
+
     /**
      * Low-level Elliptic Curve Addition gate.
      */
@@ -322,6 +324,68 @@ declare const Snarky: {
       inf_z: FieldVar,
       x21_inv: FieldVar
     ): MlGroup;
+
+    ecScale(
+      state: MlArray<
+        [
+          _: 0,
+          accs: MlArray<MlTuple<FieldVar, 2>>,
+          bits: MlArray<FieldVar>,
+          ss: MlArray<FieldVar>,
+          base: MlGroup,
+          nPrev: Field,
+          nNext: Field
+        ]
+      >
+    ): void;
+
+    ecEndoscale(
+      state: MlArray<
+        [
+          _: 0,
+          xt: FieldVar,
+          yt: FieldVar,
+          xp: FieldVar,
+          yp: FieldVar,
+          nAcc: FieldVar,
+          xr: FieldVar,
+          yr: FieldVar,
+          s1: FieldVar,
+          s3: FieldVar,
+          b1: FieldVar,
+          b2: FieldVar,
+          b3: FieldVar,
+          b4: FieldVar
+        ]
+      >,
+      xs: FieldVar,
+      ys: FieldVar,
+      nAcc: FieldVar
+    ): void;
+
+    ecEndoscalar(
+      state: MlArray<
+        [
+          _: 0,
+          n0: FieldVar,
+          n8: FieldVar,
+          a0: FieldVar,
+          b0: FieldVar,
+          a8: FieldVar,
+          b8: FieldVar,
+          x0: FieldVar,
+          x1: FieldVar,
+          x2: FieldVar,
+          x3: FieldVar,
+          x4: FieldVar,
+          x5: FieldVar,
+          x6: FieldVar,
+          x7: FieldVar
+        ]
+      >
+    ): void;
+
+    lookup(input: MlTuple<FieldVar, 7>): void;
 
     /**
      * Range check gate
@@ -347,15 +411,6 @@ declare const Snarky: {
       v2c: MlTuple<FieldVar, 20>
     ): void;
 
-    rotate(
-      field: FieldVar,
-      rotated: FieldVar,
-      excess: FieldVar,
-      limbs: MlArray<FieldVar>,
-      crumbs: MlArray<FieldVar>,
-      two_to_rot: FieldConst
-    ): void;
-
     xor(
       in1: FieldVar,
       in2: FieldVar,
@@ -372,6 +427,48 @@ declare const Snarky: {
       out_1: FieldVar,
       out_2: FieldVar,
       out_3: FieldVar
+    ): void;
+
+    foreignFieldAdd(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      fieldOverflow: FieldVar,
+      carry: FieldVar,
+      foreignFieldModulus: MlTuple<FieldConst, 3>,
+      sign: FieldConst
+    ): void;
+
+    foreignFieldMul(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      remainder: MlTuple<FieldVar, 2>,
+      quotient: MlTuple<FieldVar, 3>,
+      quotientHiBound: FieldVar,
+      product1: MlTuple<FieldVar, 3>,
+      carry0: FieldVar,
+      carry1p: MlTuple<FieldVar, 7>,
+      carry1c: MlTuple<FieldVar, 4>,
+      foreignFieldModulus2: FieldConst,
+      negForeignFieldModulus: MlTuple<FieldConst, 3>
+    ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    addFixedLookupTable(id: number, data: MlArray<MlArray<FieldConst>>): void;
+
+    addRuntimeTableConfig(id: number, firstColumn: MlArray<FieldConst>): void;
+
+    raw(
+      kind: KimchiGateType,
+      values: MlArray<FieldVar>,
+      coefficients: MlArray<FieldConst>
     ): void;
   };
 
@@ -444,6 +541,27 @@ declare const Snarky: {
     };
   };
 };
+
+declare enum KimchiGateType {
+  Zero,
+  Generic,
+  Poseidon,
+  CompleteAdd,
+  VarBaseMul,
+  EndoMul,
+  EndoMulScalar,
+  Lookup,
+  CairoClaim,
+  CairoInstruction,
+  CairoFlags,
+  CairoTransition,
+  RangeCheck0,
+  RangeCheck1,
+  ForeignFieldAdd,
+  ForeignFieldMul,
+  Xor16,
+  Rot64,
+}
 
 type GateType =
   | 'Zero'
