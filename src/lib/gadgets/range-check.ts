@@ -2,7 +2,7 @@ import { Field } from '../field.js';
 import * as Gates from '../gates.js';
 import { bitSlice, exists } from './common.js';
 
-export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck };
+export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck, L };
 
 /**
  * Asserts that x is in the range [0, 2^64)

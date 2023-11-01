@@ -1,7 +1,11 @@
 /**
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
-import { rangeCheck64 } from './range-check.js';
+import {
+  compactMultiRangeCheck,
+  multiRangeCheck,
+  rangeCheck64,
+} from './range-check.js';
 import { rotate, xor, and } from './bitwise.js';
 import { Field } from '../core.js';
 
@@ -138,5 +142,23 @@ const Gadgets = {
    */
   and(a: Field, b: Field, length: number) {
     return and(a, b, length);
+  },
+
+  /**
+   * Multi-range check
+   *
+   * TODO
+   */
+  multiRangeCheck(x: Field, y: Field, z: Field) {
+    multiRangeCheck(x, y, z);
+  },
+
+  /**
+   * Compact multi-range check
+   *
+   * TODO
+   */
+  compactMultiRangeCheck(xy: Field, z: Field) {
+    return compactMultiRangeCheck(xy, z);
   },
 };
