@@ -25,9 +25,16 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlTuple, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
+import { Cache, readCache, writeCache } from './proof-system/cache.js';
+import {
+  decodeProverKey,
+  encodeProverKey,
+  parseHeader,
+} from './proof-system/prover-keys.js';
+import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
 
 // public API
 export {
@@ -35,6 +42,7 @@ export {
   SelfProof,
   JsonProof,
   ZkProgram,
+  ExperimentalZkProgram,
   verify,
   Empty,
   Undefined,
@@ -139,6 +147,42 @@ class Proof<Input, Output> {
     this.proof = proof; // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
   }
+
+  /**
+   * Dummy proof. This can be useful for ZkPrograms that handle the base case in the same
+   * method as the inductive case, using a pattern like this:
+   *
+   * ```ts
+   * method(proof: SelfProof<I, O>, isRecursive: Bool) {
+   *   proof.verifyIf(isRecursive);
+   *   // ...
+   * }
+   * ```
+   *
+   * To use such a method in the base case, you need a dummy proof:
+   *
+   * ```ts
+   * let dummy = await MyProof.dummy(publicInput, publicOutput, 1);
+   * await myProgram.myMethod(dummy, Bool(false));
+   * ```
+   *
+   * **Note**: The types of `publicInput` and `publicOutput`, as well as the `maxProofsVerified` parameter,
+   * must match your ZkProgram. `maxProofsVerified` is the maximum number of proofs that any of your methods take as arguments.
+   */
+  static async dummy<Input, OutPut>(
+    publicInput: Input,
+    publicOutput: OutPut,
+    maxProofsVerified: 0 | 1 | 2,
+    domainLog2: number = 14
+  ): Promise<Proof<Input, OutPut>> {
+    let dummyRaw = await dummyProof(maxProofsVerified, domainLog2);
+    return new this({
+      publicInput,
+      publicOutput,
+      proof: dummyRaw,
+      maxProofsVerified,
+    });
+  }
 }
 
 async function verify(
@@ -204,6 +248,7 @@ function ZkProgram<
   }
 >(
   config: StatementType & {
+    name: string;
     methods: {
       [I in keyof Types]: Method<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -237,7 +282,7 @@ function ZkProgram<
   let publicInputType: ProvablePure<any> = config.publicInput! ?? Undefined;
   let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
 
-  let selfTag = { name: `Program${i++}` };
+  let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
   >;
@@ -272,7 +317,7 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile() {
+  async function compile({ cache = Cache.FileSystemDefault } = {}) {
     let methodsMeta = analyzeMethods();
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
@@ -282,6 +327,7 @@ function ZkProgram<
       methods: methodFunctions,
       gates,
       proofSystemTag: selfTag,
+      cache,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -517,6 +563,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
+  cache,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -525,6 +572,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
+  cache: Cache;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -540,19 +588,44 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
+  let picklesCache: Pickles.Cache = [
+    0,
+    function read_(mlHeader) {
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      let result = readCache(cache, header, (bytes) =>
+        decodeProverKey(mlHeader, bytes)
+      );
+      if (result === undefined) return MlResult.unitError();
+      return MlResult.ok(result);
+    },
+    function write_(mlHeader, value) {
+      if (!cache.canWrite) return MlResult.unitError();
+
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      let didWrite = writeCache(cache, header, encodeProverKey(value));
+
+      if (!didWrite) return MlResult.unitError();
+      return MlResult.ok(undefined);
+    },
+    MlBool(cache.canWrite),
+  ];
+
   let { verificationKey, provers, verify, tag } =
     await prettifyStacktracePromise(
       withThreadPool(async () => {
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
+        setSrsCache(cache);
         try {
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            storable: picklesCache,
             overrideWrapDomain,
           });
         } finally {
           snarkContext.leave(id);
+          unsetSrsCache();
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -843,8 +916,15 @@ ZkProgram.Proof = function <
   };
 };
 
-function dummyBase64Proof() {
-  return withThreadPool(async () => Pickles.dummyBase64Proof());
+function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
+  return withThreadPool(
+    async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
+  );
+}
+
+async function dummyBase64Proof() {
+  let proof = await dummyProof(2, 15);
+  return Pickles.proofToBase64([2, proof]);
 }
 
 // what feature flags to set to enable certain gate types
@@ -978,3 +1058,30 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
+
+// deprecated experimental API
+
+function ExperimentalZkProgram<
+  StatementType extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  Types extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+>(
+  config: StatementType & {
+    name?: string;
+    methods: {
+      [I in keyof Types]: Method<
+        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+        Types[I]
+      >;
+    };
+    overrideWrapDomain?: 0 | 1 | 2;
+  }
+) {
+  let config_ = { ...config, name: config.name ?? `Program${i++}` };
+  return ZkProgram<StatementType, Types>(config_);
+}

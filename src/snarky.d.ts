@@ -9,10 +9,23 @@ import type {
   MlOption,
   MlBool,
   MlBytes,
+  MlResult,
+  MlUnit,
+  MlString,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
+import type {
+  SnarkKey,
+  SnarkKeyHeader,
+  MlWrapVerificationKey,
+} from './lib/proof-system/prover-keys.js';
+import { getWasm } from './bindings/js/wrapper.js';
+import type {
+  WasmFpSrs,
+  WasmFqSrs,
+} from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
 // internal
 export {
@@ -305,6 +318,15 @@ declare const Snarky: {
         FieldVar
       ],
       compact: FieldConst
+    ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
     ): void;
 
     xor(
@@ -627,6 +649,20 @@ declare namespace Pickles {
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
 
+  /**
+   * Type to configure how Pickles should cache prover keys
+   */
+  type Cache = [
+    _: 0,
+    read: (header: SnarkKeyHeader, path: string) => MlResult<SnarkKey, MlUnit>,
+    write: (
+      header: SnarkKeyHeader,
+      value: SnarkKey,
+      path: string
+    ) => MlResult<undefined, MlUnit>,
+    canWrite: MlBool
+  ];
+
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
@@ -657,9 +693,10 @@ declare const Pickles: {
    */
   compile: (
     rules: MlArray<Pickles.Rule>,
-    signature: {
+    config: {
       publicInputSize: number;
       publicOutputSize: number;
+      storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
     }
   ) => {
@@ -681,17 +718,32 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
-  dummyBase64Proof: () => string;
+  loadSrsFp(): WasmFpSrs;
+  loadSrsFq(): WasmFqSrs;
+
+  dummyProof: <N extends 0 | 1 | 2>(
+    maxProofsVerified: N,
+    domainLog2: number
+  ) => [N, Pickles.Proof];
+
   /**
    * @returns (base64 vk, hash)
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
+  encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
+  decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
+
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
-  proofOfBase64: (
+  proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
-    maxProofsVerified: 0 | 1 | 2
-  ) => [0 | 1 | 2, Pickles.Proof];
+    maxProofsVerified: N
+  ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
+
+  util: {
+    toMlString(s: string): MlString;
+    fromMlString(s: MlString): string;
+  };
 };

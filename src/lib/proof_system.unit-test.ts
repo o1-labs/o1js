@@ -5,6 +5,7 @@ import { ZkProgram } from './proof_system.js';
 import { expect } from 'expect';
 
 const EmptyProgram = ZkProgram({
+  name: 'empty',
   publicInput: Field,
   methods: {
     run: {
@@ -30,6 +31,7 @@ class CounterPublicInput extends Struct({
   updated: UInt64,
 }) {}
 const CounterProgram = ZkProgram({
+  name: 'counter',
   publicInput: CounterPublicInput,
   methods: {
     increment: {
