@@ -62,11 +62,12 @@ function multiRangeCheck(x: Field, y: Field, z: Field) {
     if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
       throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);
     }
-
-    let [x64, x76] = rangeCheck0Helper(x);
-    let [y64, y76] = rangeCheck0Helper(y);
-    rangeCheck1Helper({ x64, x76, y64, y76, z, yz: new Field(0) });
+    return;
   }
+
+  let [x64, x76] = rangeCheck0Helper(x);
+  let [y64, y76] = rangeCheck0Helper(y);
+  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: new Field(0) });
 }
 
 /**
