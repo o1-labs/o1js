@@ -306,18 +306,8 @@ declare const Snarky: {
      */
     rangeCheck0(
       v0: FieldVar,
-      v0p: [0, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar, FieldVar],
-      v0c: [
-        0,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar,
-        FieldVar
-      ],
+      v0p: MlTuple<FieldVar, 6>,
+      v0c: MlTuple<FieldVar, 8>,
       compact: FieldConst
     ): void;
 
