@@ -19,7 +19,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/e8e7510e1...HEAD)
 
-> No unreleased changes yet
+### Added
+
+- `Gadgets.multiRangeCheck()` and `Gadgets.compactMultiRangeCheck()`, two building blocks for non-native arithmetic with bigints of size up to 264 bits. https://github.com/o1-labs/o1js/pull/1216
 
 ## [0.14.0](https://github.com/o1-labs/o1js/compare/045faa7...e8e7510e1)
 
