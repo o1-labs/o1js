@@ -179,6 +179,10 @@
       "not": {
         "rows": 17,
         "digest": "e558102138be69839649579eb34f2fe9"
+      },
+      "and": {
+        "rows": 19,
+        "digest": "647e6fd1852873d1c326ba1cd269cff2"
       }
     },
     "verificationKey": {

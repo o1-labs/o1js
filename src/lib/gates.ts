@@ -2,7 +2,7 @@ import { Snarky } from '../snarky.js';
 import { FieldVar, FieldConst, type Field } from './field.js';
 import { MlArray } from './ml/base.js';
 
-export { rangeCheck64, xor, zero, rotate };
+export { rangeCheck64, xor, zero, rotate, generic };
 
 /**
  * Asserts that x is at most 64 bits
@@ -97,6 +97,39 @@ function xor(
     out1.value,
     out2.value,
     out3.value
+  );
+}
+
+/**
+ * [Generic gate](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=foreignfield#double-generic-gate)
+ * The vanilla PLONK gate that allows us to do operations like:
+ * * addition of two registers (into an output register)
+ * * multiplication of two registers
+ * * equality of a register with a constant
+ *
+ * More generally, the generic gate controls the coefficients (denoted `c_`) in the equation:
+ *
+ * `c_l*l + c_r*r + c_o*o + c_m*l*r + c_c === 0`
+ */
+function generic(
+  coefficients: {
+    left: bigint;
+    right: bigint;
+    out: bigint;
+    mul: bigint;
+    const: bigint;
+  },
+  inputs: { left: Field; right: Field; out: Field }
+) {
+  Snarky.gates.generic(
+    FieldConst.fromBigint(coefficients.left),
+    inputs.left.value,
+    FieldConst.fromBigint(coefficients.right),
+    inputs.right.value,
+    FieldConst.fromBigint(coefficients.out),
+    inputs.out.value,
+    FieldConst.fromBigint(coefficients.mul),
+    FieldConst.fromBigint(coefficients.const)
   );
 }
 
