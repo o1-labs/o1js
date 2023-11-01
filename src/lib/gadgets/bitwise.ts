@@ -5,7 +5,7 @@ import * as Gates from '../gates.js';
 import {
   MAX_BITS,
   assert,
-  witnessSlices,
+  witnessSlice,
   witnessNextValue,
   divideWithRemainder,
 } from './common.js';
@@ -66,22 +66,22 @@ function buildXor(
   while (padLength !== 0) {
     // slices the inputs into 4x 4bit-sized chunks
     // slices of a
-    let in1_0 = witnessSlices(a, 0, 4);
-    let in1_1 = witnessSlices(a, 4, 4);
-    let in1_2 = witnessSlices(a, 8, 4);
-    let in1_3 = witnessSlices(a, 12, 4);
+    let in1_0 = witnessSlice(a, 0, 4);
+    let in1_1 = witnessSlice(a, 4, 4);
+    let in1_2 = witnessSlice(a, 8, 4);
+    let in1_3 = witnessSlice(a, 12, 4);
 
     // slices of b
-    let in2_0 = witnessSlices(b, 0, 4);
-    let in2_1 = witnessSlices(b, 4, 4);
-    let in2_2 = witnessSlices(b, 8, 4);
-    let in2_3 = witnessSlices(b, 12, 4);
+    let in2_0 = witnessSlice(b, 0, 4);
+    let in2_1 = witnessSlice(b, 4, 4);
+    let in2_2 = witnessSlice(b, 8, 4);
+    let in2_3 = witnessSlice(b, 12, 4);
 
     // slices of expected output
-    let out0 = witnessSlices(expectedOutput, 0, 4);
-    let out1 = witnessSlices(expectedOutput, 4, 4);
-    let out2 = witnessSlices(expectedOutput, 8, 4);
-    let out3 = witnessSlices(expectedOutput, 12, 4);
+    let out0 = witnessSlice(expectedOutput, 0, 4);
+    let out1 = witnessSlice(expectedOutput, 4, 4);
+    let out2 = witnessSlice(expectedOutput, 8, 4);
+    let out3 = witnessSlice(expectedOutput, 12, 4);
 
     // assert that the xor of the slices is correct, 16 bit at a time
     Gates.xor(
@@ -221,20 +221,20 @@ function rot(
     rotated,
     excess,
     [
-      witnessSlices(bound, 52, 12), // bits 52-64
-      witnessSlices(bound, 40, 12), // bits 40-52
-      witnessSlices(bound, 28, 12), // bits 28-40
-      witnessSlices(bound, 16, 12), // bits 16-28
+      witnessSlice(bound, 52, 12), // bits 52-64
+      witnessSlice(bound, 40, 12), // bits 40-52
+      witnessSlice(bound, 28, 12), // bits 28-40
+      witnessSlice(bound, 16, 12), // bits 16-28
     ],
     [
-      witnessSlices(bound, 14, 2), // bits 14-16
-      witnessSlices(bound, 12, 2), // bits 12-14
-      witnessSlices(bound, 10, 2), // bits 10-12
-      witnessSlices(bound, 8, 2), // bits 8-10
-      witnessSlices(bound, 6, 2), // bits 6-8
-      witnessSlices(bound, 4, 2), // bits 4-6
-      witnessSlices(bound, 2, 2), // bits 2-4
-      witnessSlices(bound, 0, 2), // bits 0-2
+      witnessSlice(bound, 14, 2), // bits 14-16
+      witnessSlice(bound, 12, 2), // bits 12-14
+      witnessSlice(bound, 10, 2), // bits 10-12
+      witnessSlice(bound, 8, 2), // bits 8-10
+      witnessSlice(bound, 6, 2), // bits 6-8
+      witnessSlice(bound, 4, 2), // bits 4-6
+      witnessSlice(bound, 2, 2), // bits 2-4
+      witnessSlice(bound, 0, 2), // bits 0-2
     ],
     big2PowerRot
   );

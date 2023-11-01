@@ -11,7 +11,7 @@ export {
   exists,
   assert,
   bitSlice,
-  witnessSlices,
+  witnessSlice,
   witnessNextValue,
   divideWithRemainder,
 };
@@ -37,7 +37,7 @@ function bitSlice(x: bigint, start: number, length: number) {
   return (x >> BigInt(start)) & ((1n << BigInt(length)) - 1n);
 }
 
-function witnessSlices(f: Field, start: number, length: number) {
+function witnessSlice(f: Field, start: number, length: number) {
   if (length <= 0) throw Error('Length must be a positive number');
 
   return Provable.witness(Field, () => {
