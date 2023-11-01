@@ -2,7 +2,7 @@ import { Field } from '../field.js';
 import * as Gates from '../gates.js';
 import { bitSlice, exists } from './common.js';
 
-export { rangeCheck64, multiRangeCheck };
+export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck };
 
 /**
  * Asserts that x is in the range [0, 2^64)
@@ -49,25 +49,56 @@ function rangeCheck64(x: Field) {
   );
 }
 
+// default bigint limb size
+const L = 88n;
+const twoL = 2n * L;
+const lMask = (1n << L) - 1n;
+
 /**
  * Asserts that x, y, z \in [0, 2^88)
  */
 function multiRangeCheck(x: Field, y: Field, z: Field) {
   if (x.isConstant() && y.isConstant() && z.isConstant()) {
-    if (
-      x.toBigInt() >= 1n << 88n ||
-      y.toBigInt() >= 1n << 88n ||
-      z.toBigInt() >= 1n << 88n
-    ) {
-      throw Error(
-        `multiRangeCheck: expected fields to fit in 88 bits, got ${x}, ${y}, ${z}`
-      );
+    if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
+      throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);
     }
 
     let [x64, x76] = rangeCheck0Helper(x);
     let [y64, y76] = rangeCheck0Helper(y);
     rangeCheck1Helper({ x64, x76, y64, y76, z, yz: new Field(0) });
   }
+}
+
+/**
+ * Compact multi-range-check - checks
+ * - xy = x + 2^88*y
+ * - x, y, z \in [0, 2^88)
+ *
+ * Returns the full limbs x, y, z
+ */
+function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
+  // constant case
+  if (xy.isConstant() && z.isConstant()) {
+    if (xy.toBigInt() >> twoL || z.toBigInt() >> L) {
+      throw Error(
+        `Expected fields to fit in ${twoL} and ${L} bits respectively, got ${xy}, ${z}`
+      );
+    }
+    let [x, y] = splitCompactLimb(xy.toBigInt());
+    return [new Field(x), new Field(y), z];
+  }
+
+  let [x, y] = exists(2, () => splitCompactLimb(xy.toBigInt()));
+
+  let [z64, z76] = rangeCheck0Helper(z, false);
+  let [x64, x76] = rangeCheck0Helper(x, true);
+  rangeCheck1Helper({ x64: z64, x76: z76, y64: x64, y76: x76, z: y, yz: xy });
+
+  return [x, y, z];
+}
+
+function splitCompactLimb(x01: bigint): [bigint, bigint] {
+  return [x01 & lMask, x01 >> L];
 }
 
 function rangeCheck0Helper(x: Field, isCompact = false): [Field, Field] {
