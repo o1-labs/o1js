@@ -1,6 +1,8 @@
+import type { Gate } from '../../snarky.js';
 import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../../lib/core.js';
 import { ZkProgram } from '../proof_system.js';
+import { Provable } from '../provable.js';
 import {
   Spec,
   boolean,
@@ -8,9 +10,10 @@ import {
   fieldWithRng,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/property.js';
-import { assert } from './common.js';
+import { assert, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
 import { L } from './range-check.js';
+import { expect } from 'expect';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   let uint = Random.bignat((1n << BigInt(n)) - 1n);
@@ -23,6 +26,32 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
     Random.map(Random.oneOf(uint, uint.invalid), (x) => mod(x, Field.ORDER))
   );
 };
+
+// constraint system sanity check
+
+function csWithoutGenerics(gates: Gate[]) {
+  return gates.map((g) => g.type).filter((type) => type !== 'Generic');
+}
+
+let check64 = Provable.constraintSystem(() => {
+  let [x] = exists(1, () => [0n]);
+  Gadgets.rangeCheck64(x);
+});
+let multi = Provable.constraintSystem(() => {
+  let [x, y, z] = exists(3, () => [0n, 0n, 0n]);
+  Gadgets.multiRangeCheck(x, y, z);
+});
+let compact = Provable.constraintSystem(() => {
+  let [xy, z] = exists(2, () => [0n, 0n]);
+  Gadgets.compactMultiRangeCheck(xy, z);
+});
+
+let expectedLayout64 = ['RangeCheck0'];
+let expectedLayoutMulti = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
+
+expect(csWithoutGenerics(check64.gates)).toEqual(expectedLayout64);
+expect(csWithoutGenerics(multi.gates)).toEqual(expectedLayoutMulti);
+expect(csWithoutGenerics(compact.gates)).toEqual(expectedLayoutMulti);
 
 // TODO: make a ZkFunction or something that doesn't go through Pickles
 // --------------------------
@@ -48,7 +77,7 @@ let RangeCheck = ZkProgram({
       privateInputs: [Field, Field],
       method(xy, z) {
         let [x, y] = Gadgets.compactMultiRangeCheck(xy, z);
-        x.add(y.mul(1n << 176n)).assertEquals(xy);
+        x.add(y.mul(1n << L)).assertEquals(xy);
       },
     },
   },
@@ -74,8 +103,7 @@ await equivalentAsync(
   { runs: 3 }
 )(
   (x, y, z) => {
-    console.log(x, y, z);
-    assert(!(x >> L) && !(y >> L) && !(z >> L));
+    assert(!(x >> L) && !(y >> L) && !(z >> L), 'multi: not out of range');
     return true;
   },
   async (x, y, z) => {
@@ -89,7 +117,7 @@ await equivalentAsync(
   { runs: 3 }
 )(
   (xy, z) => {
-    assert(!(xy >> (2n * L)) && !(z >> L));
+    assert(!(xy >> (2n * L)) && !(z >> L), 'compact: not out of range');
     return true;
   },
   async (xy, z) => {
