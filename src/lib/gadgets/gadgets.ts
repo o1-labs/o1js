@@ -115,18 +115,17 @@ const Gadgets = {
    * corresponding bit of the operand is `0`, and returning `0` if the
    * corresponding bit of the operand is `1`.
    *
-   * The `length` parameter lets you define how many bits to NOT. It
-   * defaults to the size of the field in bits ({@link Fp.sizeInBits}).
+   * The `length` parameter lets you define how many bits to NOT.
    *
    * **Note:** Specifying a larger `length` parameter adds additional * * *
    *   constraints.
    *
    * @example
    * ```ts
-   * let a = Field(5);    // ... 101
-   * let b = not(5,3);    // ... 010
+   * let a = Field(0b0101);
+   * let b = not(a,4);    // not-ing 4 bits
    *
-   * b.assertEquals(-6);
+   * b.assertEquals(0b1010);
    * ```
    *
    * @param a - The value to apply NOT to.
