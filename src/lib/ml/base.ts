@@ -1,3 +1,5 @@
+import { TupleN } from '../util/types.js';
+
 /**
  * This module contains basic methods for interacting with OCaml
  */
@@ -136,5 +138,19 @@ const MlTuple = {
     f: (a: T[number]) => B
   ): [0, ...{ [i in keyof T]: B }] {
     return [0, ...mlTuple.map(f)] as any;
+  },
+
+  mapFrom<T, N extends number, B>(
+    [, ...mlTuple]: MlTuple<T, N>,
+    f: (a: T) => B
+  ): B[] {
+    return mlTuple.map(f);
+  },
+
+  mapTo<T extends Tuple<any> | TupleN<any, any>, B>(
+    tuple: T,
+    f: (a: T[number]) => B
+  ): [0, ...{ [i in keyof T]: B }] {
+    return [0, ...tuple.map(f)] as any;
   },
 };

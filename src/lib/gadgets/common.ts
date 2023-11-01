@@ -1,15 +1,30 @@
 import { Provable } from '../provable.js';
-import { Field } from '../field.js';
+import { Field, FieldConst } from '../field.js';
+import { TupleN } from '../util/types.js';
+import { Snarky } from '../../snarky.js';
+import { MlArray } from '../ml/base.js';
 
 const MAX_BITS = 64 as const;
 
 export {
   MAX_BITS,
+  exists,
   assert,
   witnessSlices,
   witnessNextValue,
   divideWithRemainder,
 };
+
+function exists<N extends number, C extends () => TupleN<bigint, N>>(
+  n: N,
+  compute: C
+) {
+  let varsMl = Snarky.exists(n, () =>
+    MlArray.mapTo(compute(), FieldConst.fromBigint)
+  );
+  let vars = MlArray.mapFrom(varsMl, (v) => new Field(v));
+  return TupleN.fromArray(n, vars);
+}
 
 function assert(stmt: boolean, message?: string) {
   if (!stmt) {
