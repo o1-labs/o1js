@@ -2,7 +2,15 @@ import { Field } from '../field.js';
 import * as Gates from '../gates.js';
 import { bitSlice, exists } from './common.js';
 
-export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck, L };
+export {
+  rangeCheck64,
+  multiRangeCheck,
+  compactMultiRangeCheck,
+  L,
+  twoL,
+  lMask,
+  twoLMask,
+};
 
 /**
  * Asserts that x is in the range [0, 2^64)
@@ -53,6 +61,7 @@ function rangeCheck64(x: Field) {
 const L = 88n;
 const twoL = 2n * L;
 const lMask = (1n << L) - 1n;
+const twoLMask = (1n << twoL) - 1n;
 
 /**
  * Asserts that x, y, z \in [0, 2^88)
