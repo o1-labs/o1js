@@ -9,7 +9,7 @@ import {
 import { Fp, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
-import {  Random } from '../testing/property.js';
+import { Random } from '../testing/property.js';
 
 let maybeUint64: Spec<bigint, Field> = {
   ...field,
@@ -62,7 +62,6 @@ let Bitwise = ZkProgram({
 });
 
 await Bitwise.compile();
-
 
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
   equivalent({ from: [uint(length), uint(length)], to: field })(
