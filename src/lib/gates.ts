@@ -101,19 +101,36 @@ function xor(
 }
 
 /**
- * Generic gate
+ * [Generic gate](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=foreignfield#double-generic-gate)
+ * The vanilla PLONK gate that allows us to do operations like:
+ * * addition of two registers (into an output register)
+ * * multiplication of two registers
+ * * equality of a register with a constant
+ *
+ * More generally, the generic gate controls the coefficients (denoted `c_`) in the equation:
+ *
+ * `c_l*l + c_r*r + c_o+o + c_m*l*r + c_c === 0`
  */
 function generic(
-  sl: FieldConst,
-  l: Field,
-  sr: FieldConst,
-  r: Field,
-  so: FieldConst,
-  o: Field,
-  sm: FieldConst,
-  sc: FieldConst
+  coefficients: {
+    left: bigint;
+    right: bigint;
+    out: bigint;
+    mul: bigint;
+    const: bigint;
+  },
+  inputs: { left: Field; right: Field; out: Field }
 ) {
-  Snarky.gates.generic(sl, l.value, sr, r.value, so, o.value, sm, sc);
+  Snarky.gates.generic(
+    FieldConst.fromBigint(coefficients.left),
+    inputs.left.value,
+    FieldConst.fromBigint(coefficients.right),
+    inputs.right.value,
+    FieldConst.fromBigint(coefficients.out),
+    inputs.out.value,
+    FieldConst.fromBigint(coefficients.mul),
+    FieldConst.fromBigint(coefficients.const)
+  );
 }
 
 function zero(a: Field, b: Field, c: Field) {
