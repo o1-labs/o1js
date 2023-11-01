@@ -3,7 +3,15 @@ import { FieldConst, type Field } from './field.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
-export { rangeCheck0, rangeCheck1, xor, zero, rotate, generic };
+export {
+  rangeCheck0,
+  rangeCheck1,
+  xor,
+  zero,
+  rotate,
+  generic,
+  foreignFieldAdd,
+};
 
 function rangeCheck0(
   x: Field,
@@ -129,4 +137,39 @@ function generic(
 
 function zero(a: Field, b: Field, c: Field) {
   Snarky.gates.zero(a.value, b.value, c.value);
+}
+
+/**
+ * bigint addition which allows for field overflow and carry
+ *
+ * - `l01 + sign*r01 - overflow*f01 - carry*2^2l === r01`
+ * - `l2  + sign*r2  - overflow*f2  + carry      === r2`
+ * - overflow is 0 or sign
+ * - carry is 0, 1 or -1
+ *
+ * assumes that the result is placed in the first 3 cells of the next row!
+ */
+function foreignFieldAdd({
+  left,
+  right,
+  overflow,
+  carry,
+  modulus,
+  sign,
+}: {
+  left: TupleN<Field, 3>;
+  right: TupleN<Field, 3>;
+  overflow: Field;
+  carry: Field;
+  modulus: TupleN<bigint, 3>;
+  sign: 1n | -1n;
+}) {
+  Snarky.gates.foreignFieldAdd(
+    MlTuple.mapTo(left, (x) => x.value),
+    MlTuple.mapTo(right, (x) => x.value),
+    overflow.value,
+    carry.value,
+    MlTuple.mapTo(modulus, FieldConst.fromBigint),
+    FieldConst.fromBigint(sign)
+  );
 }
