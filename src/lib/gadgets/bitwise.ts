@@ -13,7 +13,7 @@ import { rangeCheck64 } from './range-check.js';
 
 export { xor, not, and, rotate };
 
-function not(a: Field, length: number, checked: boolean = false) {
+function not(a: Field, length: number, checked: boolean = true) {
   // check that input length is positive
   assert(length > 0, `Input length needs to be positive values.`);
 
@@ -45,9 +45,10 @@ function not(a: Field, length: number, checked: boolean = false) {
 
   allOnesF.assertEquals(allOnes);
 
-  let notOutput = xor(a, allOnes, length);
+  let notChecked = xor(a, allOnes, length);
+  let notUnchecked = allOnes.sub(a);
 
-  return notOutput;
+  return checked ? notChecked : notUnchecked;
 }
 
 function xor(a: Field, b: Field, length: number) {
