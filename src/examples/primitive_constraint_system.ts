@@ -79,6 +79,16 @@ const BitwiseMock = {
     Gadgets.xor(a, b, 48);
     Gadgets.xor(a, b, 64);
   },
+  leftShift() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.leftShift(a, 2);
+    Gadgets.leftShift(a, 4);
+  },
+  rightShift() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rightShift(a, 2);
+    Gadgets.rightShift(a, 4);
+  },
   and() {
     let a = Provable.witness(Field, () => new Field(5n));
     let b = Provable.witness(Field, () => new Field(5n));

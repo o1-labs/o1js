@@ -19,7 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/e8e7510e1...HEAD)
 
-> No unreleased changes yet
+### Added
+
+- `Gadgets.leftShift() / Gadgets.rightShift()`, new provable method to support bitwise shifting for native field elements. https://github.com/o1-labs/o1js/pull/1194
+- `Gadgets.and()`, new provable method to support bitwise and for native field elements. https://github.com/o1-labs/o1js/pull/1193
 
 ## [0.14.0](https://github.com/o1-labs/o1js/compare/045faa7...e8e7510e1)
 

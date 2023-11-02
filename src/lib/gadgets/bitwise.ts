@@ -11,7 +11,7 @@ import {
 } from './common.js';
 import { rangeCheck64 } from './range-check.js';
 
-export { xor, and, rotate };
+export { xor, rotate, and, rightShift, leftShift };
 
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
@@ -244,4 +244,38 @@ function rot(
   // Compute following row
   rangeCheck64(excess);
   return [rotated, excess, shifted];
+}
+
+function rightShift(field: Field, bits: number) {
+  assert(
+    bits >= 0 && bits <= MAX_BITS,
+    `rightShift: expected bits to be between 0 and 64, got ${bits}`
+  );
+
+  if (field.isConstant()) {
+    assert(
+      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      `rightShift: expected field to be at most 64 bits, got ${field.toBigInt()}`
+    );
+    return new Field(Fp.rightShift(field.toBigInt(), bits));
+  }
+  const [, excess] = rot(field, bits, 'right');
+  return excess;
+}
+
+function leftShift(field: Field, bits: number) {
+  assert(
+    bits >= 0 && bits <= MAX_BITS,
+    `rightShift: expected bits to be between 0 and 64, got ${bits}`
+  );
+
+  if (field.isConstant()) {
+    assert(
+      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      `rightShift: expected field to be at most 64 bits, got ${field.toBigInt()}`
+    );
+    return new Field(Fp.leftShift(field.toBigInt(), bits));
+  }
+  const [, , shifted] = rot(field, bits, 'left');
+  return shifted;
 }
