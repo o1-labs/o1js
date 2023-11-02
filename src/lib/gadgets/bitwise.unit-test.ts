@@ -20,10 +20,6 @@ let maybeUint64: Spec<bigint, Field> = {
 
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
-// --------------------------
-// Bitwise Gates
-// --------------------------
-
 let Bitwise = ZkProgram({
   name: 'bitwise',
   publicOutput: Field,
