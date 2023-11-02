@@ -19,13 +19,13 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 64);
+        return Gadgets.xor(a, b, 255);
       },
     },
     not: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.not(a, 64);
+        return Gadgets.not(a, 16);
       },
     },
     and: {
@@ -89,8 +89,8 @@ await equivalentAsync(
   { runs: 3 }
 )(
   (x, y) => {
-    if (x >= 2n ** 64n || y >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
+    if (x >= 2n ** 255n || y >= 2n ** 255n)
+      throw Error('Does not fit into 255 bits');
     return x ^ y;
   },
   async (x, y) => {
