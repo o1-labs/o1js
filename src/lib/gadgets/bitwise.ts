@@ -45,10 +45,11 @@ function not(a: Field, length: number, checked: boolean = false) {
 
   allOnesF.assertEquals(allOnes);
 
-  let notChecked = xor(a, allOnes, length);
-  let notUnchecked = allOnes.sub(a);
-
-  return checked ? notChecked : notUnchecked;
+  if (checked) {
+    return xor(a, allOnes, length);
+  } else {
+    return allOnes.sub(a);
+  }
 }
 
 function xor(a: Field, b: Field, length: number) {
