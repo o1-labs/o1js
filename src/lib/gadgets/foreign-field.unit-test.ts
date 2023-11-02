@@ -9,9 +9,18 @@ function foreignField(F: FiniteField): Spec<bigint, Field3> {
   return { rng, there: ForeignField.from, back: ForeignField.toBigint };
 }
 
-let { small, babybear, f25519, bls12_381_fq, Fq, Fp } = exampleFields;
+let fields = [
+  exampleFields.small,
+  exampleFields.babybear,
+  exampleFields.f25519,
+  exampleFields.secp256k1,
+  exampleFields.secq256k1,
+  exampleFields.bls12_381_scalar,
+  exampleFields.Fq,
+  exampleFields.Fp,
+];
 
-for (let F of [small, babybear, f25519, bls12_381_fq, Fq, Fp]) {
+for (let F of fields) {
   let f = foreignField(F);
   let eq2 = equivalentProvable({ from: [f, f], to: f });
 
