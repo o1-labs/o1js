@@ -79,13 +79,19 @@ const BitwiseMock = {
     Gadgets.xor(a, b, 48);
     Gadgets.xor(a, b, 64);
   },
-
-  not() {
+  notUnchecked() {
     let a = Provable.witness(Field, () => new Field(5n));
-    Gadgets.not(a, 16);
-    Gadgets.not(a, 32);
-    Gadgets.not(a, 48);
-    Gadgets.not(a, 64);
+    Gadgets.not(a, 16, false);
+    Gadgets.not(a, 32, false);
+    Gadgets.not(a, 48, false);
+    Gadgets.not(a, 64, false);
+  },
+  notChecked() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    Gadgets.not(a, 16, true);
+    Gadgets.not(a, 32, true);
+    Gadgets.not(a, 48, true);
+    Gadgets.not(a, 64, true);
   },
   and() {
     let a = Provable.witness(Field, () => new Field(5n));

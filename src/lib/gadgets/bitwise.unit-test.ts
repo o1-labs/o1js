@@ -22,10 +22,16 @@ let Bitwise = ZkProgram({
         return Gadgets.xor(a, b, 255);
       },
     },
-    not: {
+    notChecked: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.not(a, 255);
+        return Gadgets.not(a, 255, true);
+      },
+    },
+    notUnchecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 255, false);
       },
     },
     and: {
@@ -56,9 +62,15 @@ let uint = (length: number) => fieldWithRng(Random.biguint(length));
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
   );
-  equivalent({ from: [uint(length), uint(length)], to: field })(
+  // NOT checked
+  equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.not(x, length),
-    (x) => Gadgets.not(x, length)
+    (x) => Gadgets.not(x, length, true)
+  );
+  // NOT unchecked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, false)
   );
 });
 

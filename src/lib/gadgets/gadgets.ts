@@ -127,9 +127,9 @@ const Gadgets = {
    * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
    * the {@link Gadgets.xor} gadget is reusesd the with a second argument to be an
    * all one bitmask the same length. This approach needs as many rows as an XOR would need
-   * for a single negation. If the 'checked' parameter is set to 'false', NOT is
+   * for a single negation. If the `checked` parameter is set to `false`, NOT is
    * implementad as a subtraction of the input from the all one bitmask. This
-   * implementation is returned by default if no 'checked' parameter is provided.
+   * implementation is returned by default if no `checked` parameter is provided.
    *
    *You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
    *
