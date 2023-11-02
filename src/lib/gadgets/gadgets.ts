@@ -122,19 +122,29 @@ const Gadgets = {
    * **Note:** Specifying a larger `length` parameter adds additional * * *
    *   constraints.
    *
+   * NOT is implemented in two different ways. If the 'checked' parameter is set to 'true'
+   * the {@link Gadgets.xor} gadget is reusesd the with a second argument to be an
+   * all one bitmask the same length. This approach needs as many rows as an XOR would need
+   * for a single negation. If the 'checked' parameter is set to 'false' NOT is
+   * implementad as a subtraction of the input from the all one bitmask. This
+   * implementation is returned by default if no 'checked' parameter is provided.
+   *
+   *You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
    * @example
    * ```ts
    * let a = Field(0b0101);
-   * let b = not(a,4);    // not-ing 4 bits
+   * let b = not(a,4,false);    // not-ing 4 bits
    *
    * b.assertEquals(0b1010);
    * ```
    *
    * @param a - The value to apply NOT to.
    * @param length - The number of bits to be considered for the NOT operation.
+   * @param checked - Boolean to determine if the checked or unchecked not implementation is used.
    */
-  not(a: Field, length: number) {
-    return not(a, length);
+  not(a: Field, length: number, checked: boolean = false) {
+    return not(a, length, checked);
   },
   /**
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
@@ -147,9 +157,9 @@ const Gadgets = {
    * Where:\
    * `a + b = sum`\
    * `a ^ b = xor`\
-   * `a & b = and`
+   * `a & b = and`You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
    *
-   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
    *
    * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
