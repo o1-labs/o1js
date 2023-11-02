@@ -80,28 +80,16 @@ for (let F of fields) {
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
 
+let chainLength = 5;
+let signs = [-1n, 1n, -1n, -1n] satisfies Sign[];
+
 let ffProgram = ZkProgram({
   name: 'foreign-field',
   publicOutput: Field3_,
   methods: {
-    add: {
-      privateInputs: [Field3_, Field3_],
-      method(x, y) {
-        return ForeignField.add(x, y, F.modulus);
-      },
-    },
-
-    sub: {
-      privateInputs: [Field3_, Field3_],
-      method(x, y) {
-        return ForeignField.sub(x, y, F.modulus);
-      },
-    },
-
-    // sumchain of length 5
     sumchain: {
-      privateInputs: [Provable.Array(Field3_, 5), Provable.Array(Sign, 4)],
-      method(xs, signs) {
+      privateInputs: [Provable.Array(Field3_, chainLength)],
+      method(xs) {
         return ForeignField.sumChain(xs, signs, F.modulus);
       },
     },
@@ -110,37 +98,10 @@ let ffProgram = ZkProgram({
 
 await ffProgram.compile();
 
-let [{ gates }] = ffProgram.analyzeMethods();
-
-console.log(gates);
-
-await equivalentAsync({ from: [f, f], to: f }, { runs: 0 })(
-  F.add,
-  async (x, y) => {
-    let proof = await ffProgram.add(x, y);
-    assert(await ffProgram.verify(proof), 'verifies');
-    return proof.publicOutput;
-  },
-  'prove add'
-);
-
-await equivalentAsync({ from: [f, f], to: f }, { runs: 10 })(
-  F.sub,
-  async (x, y) => {
-    let proof = await ffProgram.sub(x, y);
-    assert(await ffProgram.verify(proof), 'verifies');
-    return proof.publicOutput;
-  },
-  'prove sub'
-);
-
-await equivalentAsync(
-  { from: [array(f, 5), array(sign, 4)], to: f },
-  { runs: 0 }
-)(
-  (xs, signs) => sumchain(xs, signs, F),
-  async (xs, signs) => {
-    let proof = await ffProgram.sumchain(xs, signs);
+await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 5 })(
+  (xs) => sumchain(xs, signs, F),
+  async (xs) => {
+    let proof = await ffProgram.sumchain(xs);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
