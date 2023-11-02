@@ -3,7 +3,15 @@ import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
 import { assert, bitSlice, exists } from './common.js';
-import { L, lMask, multiRangeCheck, L2, l2Mask, L3 } from './range-check.js';
+import {
+  L,
+  lMask,
+  multiRangeCheck,
+  L2,
+  l2Mask,
+  L3,
+  compactMultiRangeCheck,
+} from './range-check.js';
 
 export { ForeignField, Field3, Sign };
 
@@ -20,6 +28,10 @@ const ForeignField = {
     return sumChain([x, y], [-1n], f);
   },
   sumChain,
+
+  mul(x: Field3, y: Field3, f: bigint) {
+    return multiply(x, y, f);
+  },
 
   // helper methods
   from(x: bigint): Field3 {
@@ -97,20 +109,21 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   return { result: [r0, r1, r2] satisfies Field3, overflow };
 }
 
-function multiply(aF: Field3, bF: Field3, f: bigint) {
+function multiply(a: Field3, b: Field3, f: bigint) {
   // notation follows https://github.com/o1-labs/rfcs/blob/main/0006-ffmul-revised.md
+  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
   let f_ = (1n << L3) - f;
   let [f_0, f_1, f_2] = split(f_);
+  let f2 = f >> L2;
+  let f2Bound = (1n << L) - f2 - 1n;
 
-  let witnesses = exists(27, () => {
+  let witnesses = exists(21, () => {
     // split inputs into 3 limbs
-    let [a0, a1, a2] = bigint3(aF);
-    let [b0, b1, b2] = bigint3(bF);
-    let a = collapse([a0, a1, a2]);
-    let b = collapse([b0, b1, b2]);
+    let [a0, a1, a2] = bigint3(a);
+    let [b0, b1, b2] = bigint3(b);
 
     // compute q and r such that a*b = q*f + r
-    let ab = a * b;
+    let ab = collapse([a0, a1, a2]) * collapse([b0, b1, b2]);
     let q = ab / f;
     let r = ab - q * f;
 
@@ -146,12 +159,10 @@ function multiply(aF: Field3, bF: Field3, f: bigint) {
     let c1_90 = bitSlice(c1, 90, 1);
 
     // quotient high bound
-    let q2Bound = q2 + (1n << L) - (f >> L2) - 1n;
+    let q2Bound = q2 + f2Bound;
 
     // prettier-ignore
     return [
-      a0, a1, a2,
-      b0, b1, b2,
       r01, r2,
       q0, q1, q2,
       q2Bound,
@@ -161,6 +172,49 @@ function multiply(aF: Field3, bF: Field3, f: bigint) {
       c1_84, c1_86, c1_88, c1_90,
     ];
   });
+
+  // prettier-ignore
+  let [
+    r01, r2,
+    q0, q1, q2,
+    q2Bound,
+    p10, p110, p111,
+    c0,
+    c1_00, c1_12, c1_24, c1_36, c1_48, c1_60, c1_72,
+    c1_84, c1_86, c1_88, c1_90,
+  ] = witnesses;
+
+  let q: Field3 = [q0, q1, q2];
+
+  // ffmul gate. this already adds the following zero row.
+  Gates.foreignFieldMul({
+    left: a,
+    right: b,
+    remainder: [r01, r2],
+    quotient: q,
+    quotientHiBound: q2Bound,
+    product1: [p10, p110, p111],
+    carry0: c0,
+    carry1p: [c1_00, c1_12, c1_24, c1_36, c1_48, c1_60, c1_72],
+    carry1c: [c1_84, c1_86, c1_88, c1_90],
+    foreignFieldModulus2: f2,
+    negForeignFieldModulus: [f_0, f_1, f_2],
+  });
+
+  // limb range checks on quotient and remainder
+  multiRangeCheck(...q);
+  let r = compactMultiRangeCheck(r01, r2);
+
+  // range check on q and r bounds
+  // TODO: this uses one RC too many.. need global RC stack
+  let [r2Bound, zero] = exists(2, () => [r2.toBigInt() + f2Bound, 0n]);
+  multiRangeCheck(q2Bound, r2Bound, zero);
+
+  // constrain r2 bound, zero
+  r2.add(f2Bound).assertEquals(r2Bound);
+  zero.assertEquals(0);
+
+  return [r, q] satisfies [Field3, Field3];
 }
 
 function Field3(x: bigint3): Field3 {
