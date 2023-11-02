@@ -150,8 +150,8 @@ const Gadgets = {
    *
    * @param a - The value to apply NOT to.
    * @param length - The number of bits to be considered for the NOT operation.
-   * @param checked - Optional Boolean to determine if the checked or unchecked not implementation is used. If it is set to `true` the {@link Gadgets.xor} gadget is reusesd. If it is set to `false`
-   * NOT is implementad as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
+   * @param checked - Optional Boolean to determine if the checked or unchecked not implementation is used. If it is set to `true` the {@link Gadgets.xor} gadget is reusesd.
+   * If it is set to `false`, NOT is implementad as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
    *
    */
   not(a: Field, length: number, checked: boolean = false) {
