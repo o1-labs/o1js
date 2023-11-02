@@ -15,9 +15,18 @@ export {
   handleErrors,
   deepEqual as defaultAssertEqual,
   id,
-  fieldWithRng,
 };
-export { field, bigintField, bool, boolean, unit };
+export {
+  field,
+  fieldWithRng,
+  bigintField,
+  bool,
+  boolean,
+  unit,
+  array,
+  record,
+  fromRandom,
+};
 export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
 
 // a `Spec` tells us how to compare two functions
@@ -235,14 +244,49 @@ let bool: ProvableSpec<boolean, Bool> = {
   back: (x) => x.toBoolean(),
   provable: Bool,
 };
-let boolean: Spec<boolean, boolean> = {
-  rng: Random.boolean,
-  there: id,
-  back: id,
-};
+let boolean: Spec<boolean, boolean> = fromRandom(Random.boolean);
 
 function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
   return { ...field, rng };
+}
+
+// spec combinators
+
+function array<T, S>(
+  spec: Spec<T, S>,
+  n: Random<number> | number
+): Spec<T[], S[]> {
+  return {
+    rng: Random.array(spec.rng, n),
+    there: (x) => x.map(spec.there),
+    back: (x) => x.map(spec.back),
+  };
+}
+
+function record<Specs extends { [k in string]: Spec<any, any> }>(
+  specs: Specs
+): Spec<
+  { [k in keyof Specs]: Result1<Specs[k]> },
+  { [k in keyof Specs]: Result2<Specs[k]> }
+> {
+  return {
+    rng: Random.record(mapObject(specs, (spec) => spec.rng)) as any,
+    there: (x) => mapObject(specs, (spec, k) => spec.there(x[k])) as any,
+    back: (x) => mapObject(specs, (spec, k) => spec.back(x[k])) as any,
+  };
+}
+
+function mapObject<K extends string, T, S>(
+  t: { [k in K]: T },
+  map: (t: T, k: K) => S
+): { [k in K]: S } {
+  return Object.fromEntries(
+    Object.entries<T>(t).map(([k, v]) => [k, map(v, k as K)])
+  ) as any;
+}
+
+function fromRandom<T>(rng: Random<T>): Spec<T, T> {
+  return { rng, there: id, back: id };
 }
 
 // helper to ensure two functions throw equivalent errors
