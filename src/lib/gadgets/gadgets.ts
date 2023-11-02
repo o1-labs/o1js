@@ -8,6 +8,7 @@ import {
 } from './range-check.js';
 import { rotate, xor, and } from './bitwise.js';
 import { Field } from '../core.js';
+import { ForeignField } from './foreign-field.js';
 
 export { Gadgets };
 
@@ -175,4 +176,9 @@ const Gadgets = {
   compactMultiRangeCheck(xy: Field, z: Field) {
     return compactMultiRangeCheck(xy, z);
   },
+
+  /**
+   * Gadgets for foreign field operations.
+   */
+  ForeignField,
 };

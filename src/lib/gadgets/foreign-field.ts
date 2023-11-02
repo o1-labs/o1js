@@ -10,7 +10,15 @@ type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
 
-const ForeignField = { sumChain };
+const ForeignField = {
+  add(x: Field3, y: Field3, f: bigint) {
+    return sumChain([x, y], [1n], f);
+  },
+  sub(x: Field3, y: Field3, f: bigint) {
+    return sumChain([x, y], [-1n], f);
+  },
+  sumChain,
+};
 
 /**
  * computes x[0] + sign[0] * x[1] + ... + sign[n-1] * x[n] modulo f
