@@ -19,7 +19,7 @@ function not(a: Field, length: number, checked: boolean = false) {
 
   // Check that length does not exceed maximum field size in bits
   assert(
-    length <= Field.sizeInBits(),
+    length < Field.sizeInBits(),
     `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
   );
 
