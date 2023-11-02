@@ -77,7 +77,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
     // figure out if there's overflow
     let r = collapse(x_) + sign * collapse(y_);
     let overflow = 0n;
-    if (sign === 1n && r > f) overflow = 1n;
+    if (sign === 1n && r >= f) overflow = 1n;
     if (sign === -1n && r < 0n) overflow = -1n;
     if (f === 0n) overflow = 0n; // special case where overflow doesn't change anything
 
