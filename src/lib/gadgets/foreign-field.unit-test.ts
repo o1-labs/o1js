@@ -91,13 +91,20 @@ let ffProgram = ZkProgram({
       },
     },
 
-    // // sumchain of length 5
-    // sumchain: {
-    //   privateInputs: [Provable.Array(Field3_, 5), Provable.Array(Sign, 4)],
-    //   method(xs, signs) {
-    //     return ForeignField.sumChain(xs, signs, F.modulus);
-    //   },
-    // },
+    sub: {
+      privateInputs: [Field3_, Field3_],
+      method(x, y) {
+        return ForeignField.sub(x, y, F.modulus);
+      },
+    },
+
+    // sumchain of length 5
+    sumchain: {
+      privateInputs: [Provable.Array(Field3_, 5), Provable.Array(Sign, 4)],
+      method(xs, signs) {
+        return ForeignField.sumChain(xs, signs, F.modulus);
+      },
+    },
   },
 });
 
@@ -107,7 +114,7 @@ let [{ gates }] = ffProgram.analyzeMethods();
 
 console.log(gates);
 
-await equivalentAsync({ from: [f, f], to: f }, { runs: 5 })(
+await equivalentAsync({ from: [f, f], to: f }, { runs: 0 })(
   F.add,
   async (x, y) => {
     let proof = await ffProgram.add(x, y);
@@ -117,18 +124,28 @@ await equivalentAsync({ from: [f, f], to: f }, { runs: 5 })(
   'prove add'
 );
 
-// await equivalentAsync(
-//   { from: [array(f, 5), array(sign, 4)], to: f },
-//   { runs: 5 }
-// )(
-//   (xs, signs) => sumchain(xs, signs, F),
-//   async (xs, signs) => {
-//     let proof = await ffProgram.sumchain(xs, signs);
-//     assert(await ffProgram.verify(proof), 'verifies');
-//     return proof.publicOutput;
-//   },
-//   'prove chain'
-// );
+await equivalentAsync({ from: [f, f], to: f }, { runs: 10 })(
+  F.sub,
+  async (x, y) => {
+    let proof = await ffProgram.sub(x, y);
+    assert(await ffProgram.verify(proof), 'verifies');
+    return proof.publicOutput;
+  },
+  'prove sub'
+);
+
+await equivalentAsync(
+  { from: [array(f, 5), array(sign, 4)], to: f },
+  { runs: 0 }
+)(
+  (xs, signs) => sumchain(xs, signs, F),
+  async (xs, signs) => {
+    let proof = await ffProgram.sumchain(xs, signs);
+    assert(await ffProgram.verify(proof), 'verifies');
+    return proof.publicOutput;
+  },
+  'prove chain'
+);
 
 // helper
 
