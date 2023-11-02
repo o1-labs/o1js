@@ -176,7 +176,11 @@
         "rows": 15,
         "digest": "b3595a9cc9562d4f4a3a397b6de44971"
       },
-      "not": {
+      "notUnchecked": {
+        "rows": 2,
+        "digest": "fa18d403c061ef2be221baeae18ca19d"
+      },
+      "notChecked": {
         "rows": 17,
         "digest": "5e01b2cad70489c7bec1546b84ac868d"
       },
