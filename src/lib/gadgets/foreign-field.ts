@@ -4,13 +4,14 @@ import { Tuple } from '../util/types.js';
 import { assert, exists } from './common.js';
 import { L, lMask, multiRangeCheck, twoL, twoLMask } from './range-check.js';
 
-export { ForeignField };
+export { ForeignField, Field3 };
 
 type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
 
 const ForeignField = {
+  // arithmetic
   add(x: Field3, y: Field3, f: bigint) {
     return sumChain([x, y], [1n], f);
   },
@@ -18,6 +19,14 @@ const ForeignField = {
     return sumChain([x, y], [-1n], f);
   },
   sumChain,
+
+  // helper methods
+  from(x: bigint): Field3 {
+    return Field3(split(x));
+  },
+  toBigint(x: Field3): bigint {
+    return collapse(bigint3(x));
+  },
 };
 
 /**
@@ -37,6 +46,8 @@ function sumChain(x: Field3[], sign: Sign[], f: bigint) {
 
   // range check result
   multiRangeCheck(...result);
+
+  return result;
 }
 
 /**
