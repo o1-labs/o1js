@@ -1,4 +1,4 @@
-import { Snarky } from '../snarky.js';
+import { KimchiGateType, Snarky } from '../snarky.js';
 import { FieldConst, type Field } from './field.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
@@ -23,6 +23,8 @@ const Gates = {
   rotate,
   generic,
   foreignFieldAdd,
+  foreignFieldMul,
+  raw,
 };
 
 function rangeCheck0(
@@ -228,5 +230,13 @@ function foreignFieldMul(inputs: {
     MlTuple.mapTo(carry1c, (x) => x.value),
     FieldConst.fromBigint(foreignFieldModulus2),
     MlTuple.mapTo(negForeignFieldModulus, FieldConst.fromBigint)
+  );
+}
+
+function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
+  Snarky.gates.raw(
+    kind,
+    MlArray.to(values.map((x) => x.value)),
+    MlArray.to(coefficients.map(FieldConst.fromBigint))
   );
 }
