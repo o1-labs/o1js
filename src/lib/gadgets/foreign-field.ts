@@ -31,6 +31,14 @@ function sumChain(x: Field3[], sign: Sign[], f: bigint) {
   multiRangeCheck(...result);
 }
 
+/**
+ * core building block for non-native addition
+ *
+ * **warning**: this just adds the `foreignFieldAdd` row;
+ * it _must_ be chained with a second row that holds the result in its first 3 cells.
+ *
+ * the second row could, for example, be `zero`, `foreignFieldMul`, or another `foreignFieldAdd`.
+ */
 function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   let f_ = split(f);
 
@@ -56,14 +64,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
     return [r0, r1, r2, overflow, carry];
   });
 
-  foreignFieldAdd({
-    left: x,
-    right: y,
-    overflow,
-    carry,
-    modulus: f_,
-    sign,
-  });
+  foreignFieldAdd({ left: x, right: y, overflow, carry, modulus: f_, sign });
 
   return { result: [r0, r1, r2] satisfies Field3, overflow };
 }
