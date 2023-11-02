@@ -50,6 +50,7 @@ for (let F of fields) {
 
   eq2(F.add, (x, y) => ForeignField.add(x, y, F.modulus), 'add');
   eq2(F.sub, (x, y) => ForeignField.sub(x, y, F.modulus), 'sub');
+  eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus)[0], 'mul');
 
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
