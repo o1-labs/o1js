@@ -109,13 +109,21 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   return { result: [r0, r1, r2] satisfies Field3, overflow };
 }
 
-function multiply(a: Field3, b: Field3, f: bigint) {
+function multiply(a: Field3, b: Field3, f: bigint): [Field3, Field3] {
   // notation follows https://github.com/o1-labs/rfcs/blob/main/0006-ffmul-revised.md
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
   let f_ = (1n << L3) - f;
   let [f_0, f_1, f_2] = split(f_);
   let f2 = f >> L2;
   let f2Bound = (1n << L) - f2 - 1n;
+
+  // constant case
+  if (a.every((x) => x.isConstant()) && b.every((x) => x.isConstant())) {
+    let ab = ForeignField.toBigint(a) * ForeignField.toBigint(b);
+    let q = ab / f;
+    let r = ab - q * f;
+    return [ForeignField.from(r), ForeignField.from(q)];
+  }
 
   let witnesses = exists(21, () => {
     // split inputs into 3 limbs
@@ -214,7 +222,7 @@ function multiply(a: Field3, b: Field3, f: bigint) {
   r2.add(f2Bound).assertEquals(r2Bound);
   zero.assertEquals(0);
 
-  return [r, q] satisfies [Field3, Field3];
+  return [r, q];
 }
 
 function Field3(x: bigint3): Field3 {
