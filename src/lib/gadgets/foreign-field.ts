@@ -1,3 +1,4 @@
+import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
@@ -37,6 +38,14 @@ const ForeignField = {
 function sumChain(x: Field3[], sign: Sign[], f: bigint) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
+  // constant case
+  if (x.every((x) => x.every((x) => x.isConstant()))) {
+    let xBig = x.map(ForeignField.toBigint);
+    let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
+    return ForeignField.from(mod(sum, f));
+  }
+
+  // provable case - create chain of ffadd rows
   let result = x[0];
   for (let i = 0; i < sign.length; i++) {
     ({ result } = singleAdd(result, x[i + 1], sign[i], f));
