@@ -1,20 +1,37 @@
 import { Field } from '../field.js';
-import { foreignFieldAdd } from '../gates.js';
+import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
 import { assert, exists } from './common.js';
-import { L, lMask, twoL, twoLMask } from './range-check.js';
+import { L, lMask, multiRangeCheck, twoL, twoLMask } from './range-check.js';
+
+export { ForeignField };
 
 type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
 
-function sumchain(xs: Field3[], signs: Sign[], f: bigint) {
-  assert(xs.length === signs.length + 1, 'inputs and operators match');
+const ForeignField = { sumChain };
 
-  // TODO
+/**
+ * computes x[0] + sign[0] * x[1] + ... + sign[n-1] * x[n] modulo f
+ *
+ * assumes that inputs are range checked, does range check on the result.
+ */
+function sumChain(x: Field3[], sign: Sign[], f: bigint) {
+  assert(x.length === sign.length + 1, 'inputs and operators match');
+
+  let result = x[0];
+  for (let i = 0; i < sign.length; i++) {
+    ({ result } = singleAdd(result, x[i + 1], sign[i], f));
+  }
+  // final zero row to hold result
+  Gates.zero(...result);
+
+  // range check result
+  multiRangeCheck(...result);
 }
 
-function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint): Field3 {
+function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   let f_ = split(f);
 
   let [r0, r1, r2, overflow, carry] = exists(5, () => {
@@ -26,8 +43,10 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint): Field3 {
     let overflow = 0n;
     if (sign === 1n && r > f) overflow = 1n;
     if (sign === -1n && r < 0n) overflow = -1n;
+    if (f === 0n) overflow = 0n; // special case where overflow doesn't change anything
 
-    // do the carry
+    // do the add with carry
+    // note: this "just works" with negative r01
     let r01 = collapse2(x_) + sign * collapse2(y_) - overflow * collapse2(f_);
     let carry = r01 >> twoL;
     r01 &= twoLMask;
@@ -46,7 +65,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint): Field3 {
     sign,
   });
 
-  return [r0, r1, r2];
+  return { result: [r0, r1, r2] satisfies Field3, overflow };
 }
 
 function Field3(x: bigint3): Field3 {

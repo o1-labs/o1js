@@ -4,6 +4,17 @@ import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
 export {
+  Gates,
+  rangeCheck0,
+  rangeCheck1,
+  xor,
+  zero,
+  rotate,
+  generic,
+  foreignFieldAdd,
+};
+
+const Gates = {
   rangeCheck0,
   rangeCheck1,
   xor,
