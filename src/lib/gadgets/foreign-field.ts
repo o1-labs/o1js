@@ -5,7 +5,7 @@ import { Tuple } from '../util/types.js';
 import { assert, exists } from './common.js';
 import { L, lMask, multiRangeCheck, twoL, twoLMask } from './range-check.js';
 
-export { ForeignField, Field3 };
+export { ForeignField, Field3, Sign };
 
 type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
