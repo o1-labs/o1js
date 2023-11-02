@@ -12,6 +12,7 @@ export {
   rotate,
   generic,
   foreignFieldAdd,
+  foreignFieldMul,
 };
 
 const Gates = {
@@ -182,5 +183,50 @@ function foreignFieldAdd({
     carry.value,
     MlTuple.mapTo(modulus, FieldConst.fromBigint),
     FieldConst.fromBigint(sign)
+  );
+}
+
+/**
+ * Foreign field multiplication
+ */
+function foreignFieldMul(inputs: {
+  left: TupleN<Field, 3>;
+  right: TupleN<Field, 3>;
+  remainder: TupleN<Field, 2>;
+  quotient: TupleN<Field, 3>;
+  quotientHiBound: Field;
+  product1: TupleN<Field, 3>;
+  carry0: Field;
+  carry1p: TupleN<Field, 7>;
+  carry1c: TupleN<Field, 4>;
+  foreignFieldModulus2: bigint;
+  negForeignFieldModulus: TupleN<bigint, 3>;
+}) {
+  let {
+    left,
+    right,
+    remainder,
+    quotient,
+    quotientHiBound,
+    product1,
+    carry0,
+    carry1p,
+    carry1c,
+    foreignFieldModulus2,
+    negForeignFieldModulus,
+  } = inputs;
+
+  Snarky.gates.foreignFieldMul(
+    MlTuple.mapTo(left, (x) => x.value),
+    MlTuple.mapTo(right, (x) => x.value),
+    MlTuple.mapTo(remainder, (x) => x.value),
+    MlTuple.mapTo(quotient, (x) => x.value),
+    quotientHiBound.value,
+    MlTuple.mapTo(product1, (x) => x.value),
+    carry0.value,
+    MlTuple.mapTo(carry1p, (x) => x.value),
+    MlTuple.mapTo(carry1c, (x) => x.value),
+    FieldConst.fromBigint(foreignFieldModulus2),
+    MlTuple.mapTo(negForeignFieldModulus, FieldConst.fromBigint)
   );
 }
