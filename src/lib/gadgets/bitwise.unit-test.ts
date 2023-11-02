@@ -25,7 +25,7 @@ let Bitwise = ZkProgram({
     not: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.not(a, 16);
+        return Gadgets.not(a, 255);
       },
     },
     and: {
