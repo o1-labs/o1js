@@ -110,7 +110,9 @@ const Gadgets = {
   /**
    * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
    * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
-   * Web/JavaScript/Reference/Operators/Bitwise_NOT). The NOT gate only operates over the amount
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate only operates over the amount
    * of bits specified by the 'length' paramenter.
    *
    * A NOT gate works by returning `1` in each bit position if the
@@ -119,8 +121,8 @@ const Gadgets = {
    *
    * The `length` parameter lets you define how many bits to NOT.
    *
-   * **Note:** Specifying a larger `length` parameter adds additional * * *
-   *   constraints.
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
    *
    * NOT is implemented in two different ways. If the 'checked' parameter is set to 'true'
    * the {@link Gadgets.xor} gadget is reusesd the with a second argument to be an
@@ -141,7 +143,8 @@ const Gadgets = {
    *
    * @param a - The value to apply NOT to.
    * @param length - The number of bits to be considered for the NOT operation.
-   * @param checked - Boolean to determine if the checked or unchecked not implementation is used.
+   * @param checked - Optional Boolean to determine if the checked or unchecked not implementation is used.
+   * It is set to false by default if no parameter is provided.
    */
   not(a: Field, length: number, checked: boolean = false) {
     return not(a, length, checked);
