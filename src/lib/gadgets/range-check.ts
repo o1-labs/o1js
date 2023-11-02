@@ -1,5 +1,5 @@
 import { Field } from '../field.js';
-import * as Gates from '../gates.js';
+import { Gates } from '../gates.js';
 import { bitSlice, exists } from './common.js';
 
 export {
