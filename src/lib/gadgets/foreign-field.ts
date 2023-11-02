@@ -108,12 +108,12 @@ function collapse([x0, x1, x2]: bigint3) {
   return x0 + (x1 << L) + (x2 << twoL);
 }
 function split(x: bigint): bigint3 {
-  return [x & lMask, (x >> L) & lMask, x >> twoL];
+  return [x & lMask, (x >> L) & lMask, (x >> twoL) & lMask];
 }
 
 function collapse2([x0, x1]: bigint3 | [bigint, bigint]) {
   return x0 + (x1 << L);
 }
 function split2(x: bigint): [bigint, bigint] {
-  return [x & lMask, x >> L];
+  return [x & lMask, (x >> L) & lMask];
 }
