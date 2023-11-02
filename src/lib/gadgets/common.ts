@@ -3,7 +3,6 @@ import { Field, FieldConst } from '../field.js';
 import { TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
-import { mod } from '../../bindings/crypto/finite_field.js';
 
 const MAX_BITS = 64 as const;
 
@@ -22,7 +21,7 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   compute: C
 ) {
   let varsMl = Snarky.exists(n, () =>
-    MlArray.mapTo(compute(), (x) => FieldConst.fromBigint(mod(x, Field.ORDER)))
+    MlArray.mapTo(compute(), FieldConst.fromBigint)
   );
   let vars = MlArray.mapFrom(varsMl, (v) => new Field(v));
   return TupleN.fromArray(n, vars);

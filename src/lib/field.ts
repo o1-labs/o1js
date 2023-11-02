@@ -28,7 +28,7 @@ function constToBigint(x: FieldConst): Fp {
   return x[1];
 }
 function constFromBigint(x: Fp): FieldConst {
-  return [0, x];
+  return [0, Fp(x)];
 }
 
 const FieldConst = {
@@ -39,7 +39,7 @@ const FieldConst = {
   },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
-  [-1]: constFromBigint(Fp(-1n)),
+  [-1]: constFromBigint(-1n),
 };
 
 enum FieldType {
