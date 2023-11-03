@@ -250,12 +250,11 @@ const Gadgets = {
    * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
    *
    * @example
-   * @example
    * ```typescript
    * let a = Field(3);    // ... 000011
    * let b = Field(5);    // ... 000101
    *
-   * let c = Gadgets.Gadgets.and(a, b, 2);    // ... 000001
+   * let c = Gadgets.and(a, b, 2);    // ... 000001
    * c.assertEquals(1);
    * ```
    */

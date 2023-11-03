@@ -112,7 +112,7 @@ await equivalentAsync(
   { runs: 3 }
 )(
   (x, y) => {
-    if (x >= 2n ** 255n || y >= 2n ** 255n)
+    if (x >= 2n ** 254n || y >= 2n ** 254n)
       throw Error('Does not fit into 255 bits');
     return x ^ y;
   },
