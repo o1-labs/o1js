@@ -1,7 +1,11 @@
 /**
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
-import { rangeCheck64 } from './range-check.js';
+import {
+  compactMultiRangeCheck,
+  multiRangeCheck,
+  rangeCheck64,
+} from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
 
@@ -260,5 +264,51 @@ const Gadgets = {
    */
   and(a: Field, b: Field, length: number) {
     return and(a, b, length);
+  },
+
+  /**
+   * Multi-range check.
+   *
+   * Proves that x, y, z are all in the range [0, 2^88).
+   *
+   * This takes 4 rows, so it checks 88*3/4 = 66 bits per row. This is slightly more efficient
+   * than 64-bit range checks, which can do 64 bits in 1 row.
+   *
+   * In particular, the 3x88-bit range check supports bigints up to 264 bits, which in turn is enough
+   * to support foreign field multiplication with moduli up to 2^259.
+   *
+   * @example
+   * ```ts
+   * Gadgets.multiRangeCheck([x, y, z]);
+   * ```
+   *
+   * @throws Throws an error if one of the input values exceeds 88 bits.
+   */
+  multiRangeCheck(limbs: [Field, Field, Field]) {
+    multiRangeCheck(limbs);
+  },
+
+  /**
+   * Compact multi-range check
+   *
+   * This is a variant of {@link multiRangeCheck} where the first two variables are passed in
+   * combined form xy = x + 2^88*y.
+   *
+   * The gadget
+   * - splits up xy into x and y
+   * - proves that xy = x + 2^88*y
+   * - proves that x, y, z are all in the range [0, 2^88).
+   *
+   * The split form [x, y, z] is returned.
+   *
+   * @example
+   * ```ts
+   * let [x, y] = Gadgets.compactMultiRangeCheck([xy, z]);
+   * ```
+   *
+   * @throws Throws an error if `xy` exceeds 2*88 = 176 bits, or if z exceeds 88 bits.
+   */
+  compactMultiRangeCheck(xy: Field, z: Field) {
+    return compactMultiRangeCheck(xy, z);
   },
 };
