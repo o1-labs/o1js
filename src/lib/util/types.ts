@@ -23,10 +23,10 @@ type TupleN<T, N extends number> = N extends N
   : never;
 
 const TupleN = {
-  map<T, S, N extends number>(
-    tuple: TupleN<T, N>,
-    f: (a: T) => S
-  ): TupleN<S, N> {
+  map<T extends Tuple<any>, B>(
+    tuple: T,
+    f: (a: T[number]) => B
+  ): [...{ [i in keyof T]: B }] {
     return tuple.map(f) as any;
   },
 

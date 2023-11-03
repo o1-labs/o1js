@@ -3,7 +3,7 @@ import { FieldConst, type Field } from './field.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
-export { rangeCheck0, xor, zero, rotate, generic };
+export { rangeCheck0, rangeCheck1, xor, zero, rotate, generic };
 
 function rangeCheck0(
   x: Field,
@@ -16,6 +16,24 @@ function rangeCheck0(
     MlTuple.mapTo(xLimbs12, (x) => x.value),
     MlTuple.mapTo(xLimbs2, (x) => x.value),
     isCompact ? FieldConst[1] : FieldConst[0]
+  );
+}
+
+/**
+ * the rangeCheck1 gate is used in combination with the rangeCheck0,
+ * for doing a 3x88-bit range check
+ */
+function rangeCheck1(
+  v2: Field,
+  v12: Field,
+  vCurr: TupleN<Field, 13>,
+  vNext: TupleN<Field, 15>
+) {
+  Snarky.gates.rangeCheck1(
+    v2.value,
+    v12.value,
+    MlTuple.mapTo(vCurr, (x) => x.value),
+    MlTuple.mapTo(vNext, (x) => x.value)
   );
 }
 
