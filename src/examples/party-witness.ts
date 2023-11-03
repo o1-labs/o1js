@@ -1,13 +1,5 @@
-import {
-  AccountUpdate,
-  PrivateKey,
-  Circuit,
-  provable,
-  isReady,
-  Provable,
-} from 'o1js';
-
-await isReady;
+import assert from 'assert/strict';
+import { AccountUpdate, PrivateKey, Provable, Empty } from 'o1js';
 
 let address = PrivateKey.random().toPublicKey();
 
@@ -24,16 +16,21 @@ let aux = AccountUpdate.toAuxiliary(accountUpdate);
 let accountUpdateRaw = AccountUpdate.fromFields(fields, aux);
 let json = AccountUpdate.toJSON(accountUpdateRaw);
 
-if (address.toBase58() !== json.body.publicKey) throw Error('fail');
-
-let Null = provable(null);
+assert.equal(
+  address.toBase58(),
+  json.body.publicKey,
+  'recover json public key'
+);
 
 Provable.runAndCheck(() => {
-  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
-    accountUpdate,
-    result: null,
-  })).accountUpdate;
-  console.assert(accountUpdateWitness.body.callDepth === 5);
+  let accountUpdateWitness = Provable.witness(
+    AccountUpdate,
+    () => accountUpdate
+  );
+  assert(
+    accountUpdateWitness.body.callDepth === 5,
+    'when witness block is executed, witness() recreates auxiliary parts of provable type'
+  );
   Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
   Provable.assertEqual(
     PrivateKey,
@@ -42,12 +39,15 @@ Provable.runAndCheck(() => {
   );
 });
 
-let result = Provable.witness(() => {
-  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
-    accountUpdate,
-    result: null,
-  })).accountUpdate;
-  console.assert(accountUpdateWitness.body.callDepth === 0);
+let result = Provable.constraintSystem(() => {
+  let accountUpdateWitness = Provable.witness(
+    AccountUpdate,
+    () => accountUpdate
+  );
+  assert(
+    accountUpdateWitness.body.callDepth === 0,
+    'when witness block is not executed, witness() returns dummy data'
+  );
   Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
@@ -56,19 +56,26 @@ console.log(
   `witnessing an account update and comparing it to another one creates ${result.rows} rows`
 );
 
-result = Provable.witness(() => {
-  let accountUpdateWitness = AccountUpdate.witness(
-    Null,
-    () => ({
-      accountUpdate,
-      result: null,
-    }),
+result = Provable.constraintSystem(() => {
+  let { accountUpdate: accountUpdateWitness } = AccountUpdate.witness(
+    Empty,
+    () => ({ accountUpdate, result: undefined }),
     { skipCheck: true }
-  ).accountUpdate;
-  console.assert(accountUpdateWitness.body.callDepth === 0);
+  );
   Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
 console.log(
   `without all the checks on subfields, witnessing and comparing only creates ${result.rows} rows`
 );
+
+result = Provable.constraintSystem(() => {
+  let { accountUpdate: accountUpdateWitness } = AccountUpdate.witness(
+    Empty,
+    () => ({ accountUpdate, result: undefined }),
+    { skipCheck: true }
+  );
+  accountUpdateWitness.hash();
+});
+
+console.log(`hashing a witnessed account update creates ${result.rows} rows`);
