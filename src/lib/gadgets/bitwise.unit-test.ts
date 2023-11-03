@@ -112,12 +112,37 @@ await equivalentAsync(
   { runs: 3 }
 )(
   (x, y) => {
-    if (x >= 2n ** 254n || y >= 2n ** 254n)
+    if (x >= Fp.modulus || y >= Fp.modulus) {
       throw Error('Does not fit into 255 bits');
+    }
     return x ^ y;
   },
   async (x, y) => {
     let proof = await Bitwise.xor(x, y);
+    return proof.publicOutput;
+  }
+);
+
+// notChecked
+await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
+  (x) => {
+    if (x > Fp.modulus) throw Error('Does not fit into 255 bits');
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notChecked(x);
+    return proof.publicOutput;
+  }
+);
+
+// notUnchecked
+await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
+  (x) => {
+    if (x > Fp.modulus) throw Error('Does not fit into 255 bits');
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notUnchecked(x);
     return proof.publicOutput;
   }
 );
