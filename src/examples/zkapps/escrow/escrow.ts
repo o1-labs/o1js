@@ -11,7 +11,7 @@ export class Escrow extends SmartContract {
     // add your deposit logic circuit here
     // that will adjust the amount
 
-    const payerUpdate = AccountUpdate.create(user);
+    const payerUpdate = AccountUpdate.createSigned(user);
     payerUpdate.send({ to: this.address, amount: UInt64.from(1000000) });
   }
 
