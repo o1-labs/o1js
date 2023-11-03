@@ -14,7 +14,7 @@ import {
   Provable,
 } from 'o1js';
 import assert from 'node:assert/strict';
-import { getProfiler } from '../../profiler.js';
+import { getProfiler } from '../../utils/profiler.js';
 
 await isReady;
 

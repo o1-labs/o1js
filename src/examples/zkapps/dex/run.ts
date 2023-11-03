@@ -10,7 +10,7 @@ import {
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 
-import { getProfiler } from '../../profiler.js';
+import { getProfiler } from '../../utils/profiler.js';
 
 await isReady;
 let proofsEnabled = false;
