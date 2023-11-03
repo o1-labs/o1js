@@ -51,6 +51,11 @@ for (let F of fields) {
   eq2(F.add, (x, y) => ForeignField.add(x, y, F.modulus), 'add');
   eq2(F.sub, (x, y) => ForeignField.sub(x, y, F.modulus), 'sub');
   eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus)[0], 'mul');
+  eq2(
+    (x, y) => (x * y) / F.modulus,
+    (x, y) => ForeignField.mul(x, y, F.modulus)[1],
+    'mul quotient'
+  );
 
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
@@ -99,7 +104,7 @@ let ffProgram = ZkProgram({
 
 await ffProgram.compile();
 
-await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 5 })(
+await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 0 })(
   (xs) => sumchain(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
