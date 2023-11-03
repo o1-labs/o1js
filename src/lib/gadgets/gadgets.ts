@@ -221,9 +221,16 @@ const Gadgets = {
    *
    * In particular, the 3x88-bit range check supports bigints up to 264 bits, which in turn is enough
    * to support foreign field multiplication with moduli up to 2^259.
+   *
+   * @example
+   * ```ts
+   * Gadgets.multiRangeCheck([x, y, z]);
+   * ```
+   *
+   * @throws Throws an error if one of the input values exceeds 88 bits.
    */
-  multiRangeCheck(x: Field, y: Field, z: Field) {
-    multiRangeCheck(x, y, z);
+  multiRangeCheck(limbs: [Field, Field, Field]) {
+    multiRangeCheck(limbs);
   },
 
   /**
@@ -238,8 +245,15 @@ const Gadgets = {
    * - proves that x, y, z are all in the range [0, 2^88).
    *
    * The split form [x, y, z] is returned.
+   *
+   * @example
+   * ```ts
+   * let [x, y] = Gadgets.compactMultiRangeCheck([xy, z]);
+   * ```
+   *
+   * @throws Throws an error if `xy` exceeds 2*88 = 176 bits, or if z exceeds 88 bits.
    */
-  compactMultiRangeCheck(xy: Field, z: Field) {
-    return compactMultiRangeCheck(xy, z);
+  compactMultiRangeCheck(limbs: [Field, Field]) {
+    return compactMultiRangeCheck(limbs);
   },
 };

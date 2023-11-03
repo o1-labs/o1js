@@ -57,7 +57,7 @@ const lMask = (1n << L) - 1n;
 /**
  * Asserts that x, y, z \in [0, 2^88)
  */
-function multiRangeCheck(x: Field, y: Field, z: Field) {
+function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
   if (x.isConstant() && y.isConstant() && z.isConstant()) {
     if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
       throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);
@@ -77,7 +77,11 @@ function multiRangeCheck(x: Field, y: Field, z: Field) {
  *
  * Returns the full limbs x, y, z
  */
-function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
+function compactMultiRangeCheck([xy, z]: [Field, Field]): [
+  Field,
+  Field,
+  Field
+] {
   // constant case
   if (xy.isConstant() && z.isConstant()) {
     if (xy.toBigInt() >> twoL || z.toBigInt() >> L) {
