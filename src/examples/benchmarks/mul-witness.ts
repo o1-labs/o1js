@@ -2,7 +2,7 @@
  * benchmark witness generation for an all-mul circuit
  */
 import { Field, Provable } from 'o1js';
-import { tic, toc } from './tic-toc.js';
+import { tic, toc } from '../utils/tic-toc.js';
 
 // parameters
 let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
