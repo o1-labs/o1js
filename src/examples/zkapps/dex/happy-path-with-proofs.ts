@@ -2,7 +2,7 @@ import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../../utils/tic-toc.node.js';
-import { getProfiler } from '../../profiler.js';
+import { getProfiler } from '../../utils/profiler.js';
 
 await isReady;
 
