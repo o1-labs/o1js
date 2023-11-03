@@ -113,7 +113,7 @@ await equivalentAsync(
 )(
   (x, y) => {
     if (x >= Fp.modulus || y >= Fp.modulus) {
-      throw Error('Does not fit into 255 bits');
+      throw Error(`Does not fit into ${Fp.modulus}`);
     }
     return x ^ y;
   },
@@ -126,7 +126,7 @@ await equivalentAsync(
 // notChecked
 await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
   (x) => {
-    if (x > Fp.modulus) throw Error('Does not fit into 255 bits');
+    if (x > Fp.modulus) throw Error(`Does not fit into ${Fp.modulus}`);
     return Fp.not(x, 254);
   },
   async (x) => {
@@ -138,7 +138,7 @@ await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
 // notUnchecked
 await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
   (x) => {
-    if (x > Fp.modulus) throw Error('Does not fit into 255 bits');
+    if (x > Fp.modulus) throw Error(`Does not fit into ${Fp.modulus}`);
     return Fp.not(x, 254);
   },
   async (x) => {
