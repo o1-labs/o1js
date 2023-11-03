@@ -260,7 +260,7 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: () => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache: Cache }) => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
