@@ -99,12 +99,24 @@ let ffProgram = ZkProgram({
         return ForeignField.sumChain(xs, signs, F.modulus);
       },
     },
+
+    mul: {
+      privateInputs: [Field3_, Field3_],
+      method(x, y) {
+        let [r, _q] = ForeignField.mul(x, y, F.modulus);
+        return r;
+      },
+    },
   },
 });
 
 await ffProgram.compile();
 
-await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 0 })(
+await equivalentAsync(
+  { from: [array(f, chainLength)], to: f },
+  // TODO revert to 3 runs
+  { runs: 0 }
+)(
   (xs) => sumchain(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
@@ -112,6 +124,16 @@ await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 0 })(
     return proof.publicOutput;
   },
   'prove chain'
+);
+
+await equivalentAsync({ from: [f, f], to: f }, { runs: 10 })(
+  F.mul,
+  async (x, y) => {
+    let proof = await ffProgram.mul(x, y);
+    assert(await ffProgram.verify(proof), 'verifies');
+    return proof.publicOutput;
+  },
+  'prove mul'
 );
 
 // helper
