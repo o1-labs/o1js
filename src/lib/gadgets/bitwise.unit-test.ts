@@ -33,13 +33,13 @@ let Bitwise = ZkProgram({
     notUnchecked: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.not(a, 255, false);
+        return Gadgets.not(a, 254, false);
       },
     },
     notChecked: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.not(a, 255, true);
+        return Gadgets.not(a, 254, true);
       },
     },
     and: {

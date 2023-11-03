@@ -125,7 +125,7 @@ const Gadgets = {
    *
    * The `length` parameter lets you define how many bits to NOT.
    *
-   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   * **Note:** Specifying a larger `length` parameter adds additional constraints. The operation will fail if the length is larger than 254.
    *
    * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
    * the {@link Gadgets.xor} gadget is reused with a second argument to be an
