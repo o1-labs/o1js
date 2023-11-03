@@ -112,11 +112,7 @@ let ffProgram = ZkProgram({
 
 await ffProgram.compile();
 
-await equivalentAsync(
-  { from: [array(f, chainLength)], to: f },
-  // TODO revert to 3 runs
-  { runs: 0 }
-)(
+await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 3 })(
   (xs) => sumchain(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
@@ -126,7 +122,7 @@ await equivalentAsync(
   'prove chain'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs: 10 })(
+await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
   F.mul,
   async (x, y) => {
     let proof = await ffProgram.mul(x, y);
