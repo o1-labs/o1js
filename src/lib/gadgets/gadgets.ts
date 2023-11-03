@@ -50,6 +50,8 @@ const Gadgets = {
    * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
+   *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction left or right rotation direction.
@@ -88,6 +90,8 @@ const Gadgets = {
    *
    * For example, with `length = 2` (`paddedLength = 16`), `xor()` will fail for any input that is larger than `2**16`.
    *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
    * @param a {@link Field} element to compare.
    * @param b {@link Field} element to compare.
    * @param length amount of bits to compare.
@@ -113,7 +117,7 @@ const Gadgets = {
    * Web/JavaScript/Reference/Operators/Bitwise_NOT).
    *
    * **Note:** The NOT gate only operates over the amount
-   * of bits specified by the 'length' parameter.
+   * of bits specified by the `length` parameter.
    *
    * A NOT gate works by returning `1` in each bit position if the
    * corresponding bit of the operand is `0`, and returning `0` if the
@@ -122,7 +126,6 @@ const Gadgets = {
    * The `length` parameter lets you define how many bits to NOT.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
-   *
    *
    * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
    * the {@link Gadgets.xor} gadget is reused with a second argument to be an
@@ -150,8 +153,9 @@ const Gadgets = {
    *
    * @param a - The value to apply NOT to.
    * @param length - The number of bits to be considered for the NOT operation.
-   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it is set to `true` the {@link Gadgets.xor} gadget is reused.
-   * If it is set to `false`, NOT is implemented as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
+   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
+   * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
+   *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
    *
    */
   not(a: Field, length: number, checked: boolean = false) {
