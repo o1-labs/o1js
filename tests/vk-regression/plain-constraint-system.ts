@@ -1,38 +1,8 @@
 import { Field, Group, Gadgets, Provable, Scalar } from 'o1js';
 
-function mock(obj: { [K: string]: (...args: any) => void }, name: string) {
-  let methodKeys = Object.keys(obj);
+export { GroupCS, BitwiseCS };
 
-  return {
-    analyzeMethods() {
-      let cs: Record<
-        string,
-        {
-          rows: number;
-          digest: string;
-        }
-      > = {};
-      for (let key of methodKeys) {
-        let { rows, digest } = Provable.constraintSystem(obj[key]);
-        cs[key] = {
-          digest,
-          rows,
-        };
-      }
-
-      return cs;
-    },
-    async compile() {
-      return {
-        verificationKey: { data: '', hash: '' },
-      };
-    },
-    name,
-    digest: () => name,
-  };
-}
-
-const GroupMock = {
+const GroupCS = constraintSystem('Group Primitive', {
   add() {
     let g1 = Provable.witness(Group, () => Group.generator);
     let g2 = Provable.witness(Group, () => Group.generator);
@@ -61,9 +31,9 @@ const GroupMock = {
     let g2 = Provable.witness(Group, () => Group.generator);
     g1.assertEquals(g2);
   },
-};
+});
 
-const BitwiseMock = {
+const BitwiseCS = constraintSystem('Bitwise Primitive', {
   rot() {
     let a = Provable.witness(Field, () => new Field(12));
     Gadgets.rotate(a, 2, 'left');
@@ -97,7 +67,40 @@ const BitwiseMock = {
     Gadgets.and(a, b, 48);
     Gadgets.and(a, b, 64);
   },
-};
+});
 
-export const GroupCS = mock(GroupMock, 'Group Primitive');
-export const BitwiseCS = mock(BitwiseMock, 'Bitwise Primitive');
+// mock ZkProgram API for testing
+
+function constraintSystem(
+  name: string,
+  obj: { [K: string]: (...args: any) => void }
+) {
+  let methodKeys = Object.keys(obj);
+
+  return {
+    analyzeMethods() {
+      let cs: Record<
+        string,
+        {
+          rows: number;
+          digest: string;
+        }
+      > = {};
+      for (let key of methodKeys) {
+        let { rows, digest } = Provable.constraintSystem(obj[key]);
+        cs[key] = {
+          digest,
+          rows,
+        };
+      }
+      return cs;
+    },
+    async compile() {
+      return {
+        verificationKey: { data: '', hash: '' },
+      };
+    },
+    name,
+    digest: () => name,
+  };
+}
