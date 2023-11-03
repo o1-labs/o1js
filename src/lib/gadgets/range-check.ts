@@ -77,11 +77,7 @@ function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
  *
  * Returns the full limbs x, y, z
  */
-function compactMultiRangeCheck([xy, z]: [Field, Field]): [
-  Field,
-  Field,
-  Field
-] {
+function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
   // constant case
   if (xy.isConstant() && z.isConstant()) {
     if (xy.toBigInt() >> twoL || z.toBigInt() >> L) {

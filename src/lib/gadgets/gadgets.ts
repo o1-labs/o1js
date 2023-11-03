@@ -253,7 +253,7 @@ const Gadgets = {
    *
    * @throws Throws an error if `xy` exceeds 2*88 = 176 bits, or if z exceeds 88 bits.
    */
-  compactMultiRangeCheck(limbs: [Field, Field]) {
-    return compactMultiRangeCheck(limbs);
+  compactMultiRangeCheck(xy: Field, z: Field) {
+    return compactMultiRangeCheck(xy, z);
   },
 };

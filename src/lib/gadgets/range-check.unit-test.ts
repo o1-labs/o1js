@@ -38,8 +38,8 @@ let check64 = Provable.constraintSystem(() => {
   Gadgets.rangeCheck64(x);
 });
 let multi = Provable.constraintSystem(() => {
-  let [x, y, z] = exists(3, () => [0n, 0n, 0n]);
-  Gadgets.multiRangeCheck(x, y, z);
+  let x = exists(3, () => [0n, 0n, 0n]);
+  Gadgets.multiRangeCheck(x);
 });
 let compact = Provable.constraintSystem(() => {
   let [xy, z] = exists(2, () => [0n, 0n]);
@@ -70,7 +70,7 @@ let RangeCheck = ZkProgram({
     checkMulti: {
       privateInputs: [Field, Field, Field],
       method(x, y, z) {
-        Gadgets.multiRangeCheck(x, y, z);
+        Gadgets.multiRangeCheck([x, y, z]);
       },
     },
     checkCompact: {
