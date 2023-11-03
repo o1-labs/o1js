@@ -57,7 +57,7 @@ try {
 } catch (error) {
   if (!dump) {
     throw Error(
-      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. ./run ./src/examples/vk_regression.ts [--bundle] --dump `
+      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. npm run dump-vks`
     );
   }
 }
