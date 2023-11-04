@@ -129,7 +129,7 @@ const Gadgets = {
    *
    * The `length` parameter lets you define how many bits to NOT.
    *
-   * **Note:** Specifying a larger `length` parameter adds additional constraints. The operation will fail if the length is larger than 254.
+   * **Note:** Specifying a larger `length` parameter adds additional constraints. The operation will fail if the length or the input value is larger than 254.
    *
    * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
    * the {@link Gadgets.xor} gadget is reused with a second argument to be an
@@ -155,12 +155,13 @@ const Gadgets = {
    * b.assertEquals(0b1010);
    * ```
    *
-   * @param a - The value to apply NOT to.
+   * @param a - The value to apply NOT to. The operation will fail if the value is larger than 254.
    * @param length - The number of bits to be considered for the NOT operation.
    * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
    * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
    *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
    *
+   * @throws Throws an error if the input value exceeds 254 bits.
    */
   not(a: Field, length: number, checked: boolean = false) {
     return not(a, length, checked);
