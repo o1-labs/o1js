@@ -79,7 +79,7 @@ function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048) {
   }
 
   // last carry is 0 ==> xy - qp - r is 0
-  let res_i = res[2 * 18 - 1].add(carry);
+  let res_i = res[2 * 18 - 2].add(carry);
   res_i.assertEquals(0n);
 
   return r;
@@ -139,3 +139,16 @@ function rangeCheck128(x: Field) {
 
   x0.add(x1.mul(1n << 116n)).assertEquals(x);
 }
+
+let TODO = 0n;
+
+let { rows, gates } = Provable.constraintSystem(() => {
+  let message = Provable.witness(Bigint2048, () => Bigint2048.from(TODO));
+  let signature = Provable.witness(Bigint2048, () => Bigint2048.from(TODO));
+  let modulus = Provable.witness(Bigint2048, () => Bigint2048.from(TODO));
+
+  rsaVerify65537(message, signature, modulus);
+});
+
+console.log('gates', gates);
+console.log('rows', rows);
