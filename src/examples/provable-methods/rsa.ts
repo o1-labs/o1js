@@ -10,29 +10,27 @@ const mask = (1n << 116n) - 1n;
  */
 const Field18 = Provable.Array(Field, 18);
 
-class Bigint2048 extends Struct({ values: Field18 }) {
+class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
+  modmul(x: Bigint2048, y: Bigint2048) {
+    return multiply(x, y, this);
+  }
+
   toBigInt() {
-    let result = 0n;
-    let bitPosition = 0n;
-    for (let i = 0; i < 18; i++) {
-      result += this.values[i].toBigInt() << bitPosition;
-      bitPosition += 116n;
-    }
-    return result;
+    return this.value;
   }
 
   static from(x: bigint) {
-    let values = [];
+    let fields = [];
     for (let i = 0; i < 18; i++) {
-      values.push(Field(x & mask));
+      fields.push(Field(x & mask));
       x >>= 116n;
     }
-    return new Bigint2048({ values });
+    return new Bigint2048({ fields, value: x });
   }
 
-  static check(x: { values: Field[] }) {
+  static check(x: { fields: Field[] }) {
     for (let i = 0; i < 18; i++) {
-      rangeCheck116(x.values[i]);
+      rangeCheck116(x.fields[i]);
     }
   }
 }
@@ -40,23 +38,22 @@ class Bigint2048 extends Struct({ values: Field18 }) {
 /**
  * x*y mod p
  */
-function multiply(x: Bigint2048, y: Bigint2048, p: bigint) {
+function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048) {
   // witness q, r so that x*y = q*p + r
   // this also adds the range checks in `check()`
   let { q, r } = Provable.witness(
     provable({ q: Bigint2048, r: Bigint2048 }),
     () => {
       let xy = x.toBigInt() * y.toBigInt();
-      let q = xy / p;
-      let r = xy - q * p;
+      let p0 = p.toBigInt();
+      let q = xy / p0;
+      let r = xy - q * p0;
       return { q: Bigint2048.from(q), r: Bigint2048.from(r) };
     }
   );
 
   let res: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
-  let [X, Y, Q, R] = [x.values, y.values, q.values, r.values];
-
-  const P = Bigint2048.from(p).values;
+  let [X, Y, Q, R, P] = [x.fields, y.fields, q.fields, r.fields, p.fields];
 
   for (let i = 0; i < 18; i++) {
     for (let j = 0; j < 18; j++) {
@@ -70,7 +67,6 @@ function multiply(x: Bigint2048, y: Bigint2048, p: bigint) {
   }
 
   // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
-
   let carry = Field(0);
 
   for (let i = 0; i < 2 * 18 - 2; i++) {
@@ -87,6 +83,30 @@ function multiply(x: Bigint2048, y: Bigint2048, p: bigint) {
   res_i.assertEquals(0n);
 
   return r;
+}
+
+/**
+ * RSA signature verification
+ *
+ * TODO this is a bit simplistic, according to RSA spec, message must be 256 bits and the remaining
+ * bits must follow a specific pattern.
+ */
+function rsaVerify65537(
+  message: Bigint2048,
+  signature: Bigint2048,
+  modulus: Bigint2048
+) {
+  // compute signature^(2^16 + 1) mod modulus
+  // square 16 times
+  let x = signature;
+  for (let i = 0; i < 16; i++) {
+    x = modulus.modmul(x, x);
+  }
+  // multiply by signature
+  x = modulus.modmul(x, signature);
+
+  // check that x == message
+  Provable.assertEqual(Bigint2048, message, x);
 }
 
 /**
