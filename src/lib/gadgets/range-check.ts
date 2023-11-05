@@ -1,18 +1,28 @@
 import { Field } from '../field.js';
 import * as Gates from '../gates.js';
+import { TupleN } from '../util/types.js';
 import { bitSlice, exists } from './common.js';
 
 export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck, L };
 
 /**
- * Asserts that x is in the range [0, 2^64)
+ * Asserts that x is in the range [0, 2^64).
+ *
+ * Returns the 4 highest 12-bit limbs of x in reverse order: [x52, x40, x28, x16].
  */
-function rangeCheck64(x: Field) {
+function rangeCheck64(x: Field): TupleN<Field, 4> {
   if (x.isConstant()) {
-    if (x.toBigInt() >= 1n << 64n) {
+    let xx = x.toBigInt();
+    if (xx >= 1n << 64n) {
       throw Error(`rangeCheck64: expected field to fit in 64 bits, got ${x}`);
     }
-    return;
+    // returned for consistency with the provable case
+    return [
+      new Field(bitSlice(xx, 52, 12)),
+      new Field(bitSlice(xx, 40, 12)),
+      new Field(bitSlice(xx, 28, 12)),
+      new Field(bitSlice(xx, 16, 12)),
+    ];
   }
 
   // crumbs (2-bit limbs)
@@ -47,6 +57,8 @@ function rangeCheck64(x: Field) {
     [x14, x12, x10, x8, x6, x4, x2, x0],
     false // not using compact mode
   );
+
+  return [x52, x40, x28, x16];
 }
 
 // default bigint limb size
