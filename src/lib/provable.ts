@@ -13,7 +13,7 @@ import {
   InferProvable,
   InferredProvable,
 } from '../bindings/lib/provable-snarky.js';
-import { isField } from './field.js';
+import { FieldConst, isField } from './field.js';
 import {
   inCheckedComputation,
   inProver,
@@ -24,6 +24,8 @@ import {
   constraintSystem,
 } from './provable-context.js';
 import { isBool } from './bool.js';
+import { TupleN } from './util/types.js';
+import { MlArray } from './ml/base.js';
 
 // external API
 export { Provable };
@@ -63,6 +65,12 @@ const Provable = {
    * ```
    */
   witness,
+  /**
+   * Witness a tuple of field elements. This works just like {@link Provable.witness},
+   * but optimized for witnessing plain field elements, which is especially common
+   * in low-level provable code.
+   */
+  witnessFields,
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -233,6 +241,17 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
   type.check(value);
 
   return value;
+}
+
+function witnessFields<N extends number, C extends () => TupleN<bigint, N>>(
+  n: N,
+  compute: C
+) {
+  let varsMl = Snarky.exists(n, () =>
+    MlArray.mapTo(compute(), FieldConst.fromBigint)
+  );
+  let vars = MlArray.mapFrom(varsMl, (v) => new Field(v));
+  return TupleN.fromArray(n, vars);
 }
 
 type ToFieldable = { toFields(): Field[] };
