@@ -15,6 +15,10 @@ class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
     return multiply(x, y, this);
   }
 
+  modsquare(x: Bigint2048) {
+    return square(x, this);
+  }
+
   toBigInt() {
     return this.value;
   }
@@ -86,6 +90,62 @@ function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048) {
 }
 
 /**
+ * x^2 mod p
+ */
+function square(x: Bigint2048, p: Bigint2048) {
+  // witness q, r so that x^2 = q*p + r
+  // this also adds the range checks in `check()`
+  let { q, r } = Provable.witness(
+    provable({ q: Bigint2048, r: Bigint2048 }),
+    () => {
+      let xx = x.toBigInt() ** 2n;
+      let p0 = p.toBigInt();
+      let q = xx / p0;
+      let r = xx - q * p0;
+      return { q: Bigint2048.from(q), r: Bigint2048.from(r) };
+    }
+  );
+
+  let res: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
+  let [X, Q, R, P] = [x.fields, q.fields, r.fields, p.fields];
+
+  for (let i = 0; i < 18; i++) {
+    for (let j = 0; j < i; j++) {
+      let xy = X[i].mul(X[j]).mul(2n);
+      res[i + j] = res[i + j].add(xy);
+    }
+    let xy = X[i].mul(X[i]);
+    res[2 * i] = res[2 * i].add(xy);
+
+    for (let j = 0; j < 18; j++) {
+      let qp = Q[i].mul(P[j]);
+      res[i + j] = res[i + j].sub(qp);
+    }
+  }
+  for (let i = 0; i < 18; i++) {
+    res[i] = res[i].sub(R[i]);
+  }
+
+  // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
+  let carry = Field(0);
+
+  for (let i = 0; i < 2 * 18 - 2; i++) {
+    let res_i = res[i].add(carry);
+
+    [carry] = Provable.witnessFields(1, () => [res_i.toBigInt() >> 116n]);
+    rangeCheck128(carry);
+
+    res_i.assertEquals(carry.mul(1n << 116n));
+  }
+
+  // last carry is 0 ==> xy - qp - r is 0
+  let res_i = res[2 * 18 - 2].add(carry);
+  res_i.assertEquals(0n);
+
+  return r;
+}
+
+/**
  * RSA signature verification
  *
  * TODO this is a bit simplistic, according to RSA spec, message must be 256 bits and the remaining
@@ -100,7 +160,7 @@ function rsaVerify65537(
   // square 16 times
   let x = signature;
   for (let i = 0; i < 16; i++) {
-    x = modulus.modmul(x, x);
+    x = modulus.modsquare(x);
   }
   // multiply by signature
   x = modulus.modmul(x, signature);
