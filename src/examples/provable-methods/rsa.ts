@@ -65,7 +65,7 @@ function multiply(
   );
 
   // compute res = xy - qp - r
-  // note that we can use a sum of native field products for each result limb, because
+  // we can use a sum of native field products for each result limb, because
   // input limbs are range-checked to 116 bits, and 2*116 + log(2*18-1) = 232 + 6 fits the native field.
   let res: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
   let [X, Y, Q, R, P] = [x.fields, y.fields, q.fields, r.fields, p.fields];
@@ -74,21 +74,17 @@ function multiply(
     // when squaring, we can save constraints by not computing xi * xj twice
     if (isSquare) {
       for (let j = 0; j < i; j++) {
-        let xy = X[i].mul(X[j]).mul(2n);
-        res[i + j] = res[i + j].add(xy);
+        res[i + j] = res[i + j].add(X[i].mul(X[j]).mul(2n));
       }
-      let xy = X[i].mul(X[i]);
-      res[2 * i] = res[2 * i].add(xy);
+      res[2 * i] = res[2 * i].add(X[i].mul(X[i]));
     } else {
       for (let j = 0; j < 18; j++) {
-        let xy = X[i].mul(Y[j]);
-        res[i + j] = res[i + j].add(xy);
+        res[i + j] = res[i + j].add(X[i].mul(Y[j]));
       }
     }
 
     for (let j = 0; j < 18; j++) {
-      let qp = Q[i].mul(P[j]);
-      res[i + j] = res[i + j].sub(qp);
+      res[i + j] = res[i + j].sub(Q[i].mul(P[j]));
     }
 
     res[i] = res[i].sub(R[i]);
@@ -104,10 +100,11 @@ function multiply(
     rangeCheck128Signed(carry);
 
     // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
+    // proves that bits i*116 to (i+1)*116 of res are zero
     res_i.assertEquals(carry.mul(1n << 116n));
   }
 
-  // last carry is 0 ==> xy - qp - r is 0
+  // last carry is 0 ==> all of res is 0 ==> x*y = q*p + r as integers
   res[2 * 18 - 2].add(carry).assertEquals(0n);
 
   return r;
@@ -148,8 +145,8 @@ function rangeCheck116(x: Field) {
 
   Gadgets.rangeCheck64(x0);
   let [x52] = Gadgets.rangeCheck64(x1);
-  x52.assertEquals(0n);
-
+  x52.assertEquals(0n); // => x1 is 52 bits
+  // 64 + 52 = 116
   x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
 
@@ -180,5 +177,8 @@ let { rows, gates } = Provable.constraintSystem(() => {
   rsaVerify65537(message, signature, modulus);
 });
 
-console.log('gates', gates);
+console.log(
+  'gates',
+  gates.map((g) => g.type)
+);
 console.log('rows', rows);
