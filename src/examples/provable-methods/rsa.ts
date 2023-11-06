@@ -16,7 +16,7 @@ class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
   }
 
   modsquare(x: Bigint2048) {
-    return square(x, this);
+    return multiply(x, x, this, { isSquare: true });
   }
 
   toBigInt() {
@@ -25,11 +25,12 @@ class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
 
   static from(x: bigint) {
     let fields = [];
+    let value = x;
     for (let i = 0; i < 18; i++) {
       fields.push(Field(x & mask));
       x >>= 116n;
     }
-    return new Bigint2048({ fields, value: x });
+    return new Bigint2048({ fields, value });
   }
 
   static check(x: { fields: Field[] }) {
@@ -42,7 +43,14 @@ class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
 /**
  * x*y mod p
  */
-function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048) {
+function multiply(
+  x: Bigint2048,
+  y: Bigint2048,
+  p: Bigint2048,
+  { isSquare = false } = {}
+) {
+  if (isSquare) y = x;
+
   // witness q, r so that x*y = q*p + r
   // this also adds the range checks in `check()`
   let { q, r } = Provable.witness(
@@ -56,91 +64,51 @@ function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048) {
     }
   );
 
+  // compute res = xy - qp - r
+  // note that we can use a sum of native field products for each result limb, because
+  // input limbs are range-checked to 116 bits, and 2*116 + log(2*18-1) = 232 + 6 fits the native field.
   let res: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
   let [X, Y, Q, R, P] = [x.fields, y.fields, q.fields, r.fields, p.fields];
 
   for (let i = 0; i < 18; i++) {
-    for (let j = 0; j < 18; j++) {
-      let xy = X[i].mul(Y[j]);
-      let qp = Q[i].mul(P[j]);
-      res[i + j] = res[i + j].add(xy).sub(qp);
+    // when squaring, we can save constraints by not computing xi * xj twice
+    if (isSquare) {
+      for (let j = 0; j < i; j++) {
+        let xy = X[i].mul(X[j]).mul(2n);
+        res[i + j] = res[i + j].add(xy);
+      }
+      let xy = X[i].mul(X[i]);
+      res[2 * i] = res[2 * i].add(xy);
+    } else {
+      for (let j = 0; j < 18; j++) {
+        let xy = X[i].mul(Y[j]);
+        res[i + j] = res[i + j].add(xy);
+      }
     }
-  }
-  for (let i = 0; i < 18; i++) {
-    res[i] = res[i].sub(R[i]);
-  }
-
-  // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
-  let carry = Field(0);
-
-  for (let i = 0; i < 2 * 18 - 2; i++) {
-    let res_i = res[i].add(carry);
-
-    [carry] = Provable.witnessFields(1, () => [res_i.toBigInt() >> 116n]);
-    rangeCheck128(carry);
-
-    res_i.assertEquals(carry.mul(1n << 116n));
-  }
-
-  // last carry is 0 ==> xy - qp - r is 0
-  let res_i = res[2 * 18 - 2].add(carry);
-  res_i.assertEquals(0n);
-
-  return r;
-}
-
-/**
- * x^2 mod p
- */
-function square(x: Bigint2048, p: Bigint2048) {
-  // witness q, r so that x^2 = q*p + r
-  // this also adds the range checks in `check()`
-  let { q, r } = Provable.witness(
-    provable({ q: Bigint2048, r: Bigint2048 }),
-    () => {
-      let xx = x.toBigInt() ** 2n;
-      let p0 = p.toBigInt();
-      let q = xx / p0;
-      let r = xx - q * p0;
-      return { q: Bigint2048.from(q), r: Bigint2048.from(r) };
-    }
-  );
-
-  let res: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
-  let [X, Q, R, P] = [x.fields, q.fields, r.fields, p.fields];
-
-  for (let i = 0; i < 18; i++) {
-    for (let j = 0; j < i; j++) {
-      let xy = X[i].mul(X[j]).mul(2n);
-      res[i + j] = res[i + j].add(xy);
-    }
-    let xy = X[i].mul(X[i]);
-    res[2 * i] = res[2 * i].add(xy);
 
     for (let j = 0; j < 18; j++) {
       let qp = Q[i].mul(P[j]);
       res[i + j] = res[i + j].sub(qp);
     }
-  }
-  for (let i = 0; i < 18; i++) {
+
     res[i] = res[i].sub(R[i]);
   }
 
-  // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
+  // perform carrying on res to show that it is zero
   let carry = Field(0);
 
   for (let i = 0; i < 2 * 18 - 2; i++) {
     let res_i = res[i].add(carry);
 
     [carry] = Provable.witnessFields(1, () => [res_i.toBigInt() >> 116n]);
-    rangeCheck128(carry);
+    rangeCheck128Signed(carry);
 
+    // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
     res_i.assertEquals(carry.mul(1n << 116n));
   }
 
   // last carry is 0 ==> xy - qp - r is 0
-  let res_i = res[2 * 18 - 2].add(carry);
-  res_i.assertEquals(0n);
+  res[2 * 18 - 2].add(carry).assertEquals(0n);
 
   return r;
 }
@@ -148,8 +116,8 @@ function square(x: Bigint2048, p: Bigint2048) {
 /**
  * RSA signature verification
  *
- * TODO this is a bit simplistic, according to RSA spec, message must be 256 bits and the remaining
- * bits must follow a specific pattern.
+ * TODO this is a bit simplistic; according to RSA spec, message must be 256 bits
+ * and the remaining bits must follow a specific pattern.
  */
 function rsaVerify65537(
   message: Bigint2048,
@@ -170,34 +138,36 @@ function rsaVerify65537(
 }
 
 /**
- * Custom range check for a single limb
+ * Custom range check for a single limb, x in [0, 2^116)
  */
 function rangeCheck116(x: Field) {
   let [x0, x1] = Provable.witnessFields(2, () => [
-    x.toBigInt() & mask,
-    x.toBigInt() >> 116n,
+    x.toBigInt() & ((1n << 64n) - 1n),
+    x.toBigInt() >> 64n,
   ]);
 
   Gadgets.rangeCheck64(x0);
   let [x52] = Gadgets.rangeCheck64(x1);
   x52.assertEquals(0n);
 
-  x0.add(x1.mul(1n << 116n)).assertEquals(x);
+  x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
 
 /**
- * Custom range check for carries
+ * Custom range check for carries, x in [-2^127, 2^127)
  */
-function rangeCheck128(x: Field) {
+function rangeCheck128Signed(xSigned: Field) {
+  let x = xSigned.add(1n << 127n);
+
   let [x0, x1] = Provable.witnessFields(2, () => [
-    x.toBigInt() & mask,
-    x.toBigInt() >> 116n,
+    x.toBigInt() & ((1n << 64n) - 1n),
+    x.toBigInt() >> 64n,
   ]);
 
   Gadgets.rangeCheck64(x0);
   Gadgets.rangeCheck64(x1);
 
-  x0.add(x1.mul(1n << 116n)).assertEquals(x);
+  x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
 
 let TODO = 0n;
