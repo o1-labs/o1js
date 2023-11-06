@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 ################################# Dependencies ################################
 
 [dependencies]
-wasm-bindgen = { version = "0.2.78" }
+wasm-bindgen = { version = "0.2.87" }
 console_error_panic_hook = { version = "0.1.6" }
 web-sys = { version = "0.3.35", features = ["Window", "Document", "HtmlElement", "Text", "Node", "Element" ] }
 

@@ -5,7 +5,6 @@ use mina_poseidon::{
     self,
     constants::PlonkSpongeConstantsKimchi,
     sponge::{DefaultFqSponge, DefaultFrSponge},
-    FqSponge,
 };
 use paste::paste;
 use poly_commitment::commitment::{shift_scalar, PolyComm};
@@ -178,7 +177,7 @@ macro_rules! impl_oracles {
             ) -> Result<[<Wasm $field_name:camel Oracles>], JsError> {
                 // conversions
                 let result = crate::rayon::run_in_pool(|| {
-                    let index: DlogVerifierIndex<$G> = index.into();
+                    let index: DlogVerifierIndex<$G, OpeningProof<$G>> = index.into();
 
                     let lgr_comm: Vec<PolyComm<$G>> = lgr_comm
                         .into_iter()

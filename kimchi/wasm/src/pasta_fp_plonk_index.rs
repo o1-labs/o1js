@@ -1,4 +1,3 @@
-use ark_poly::EvaluationDomain;
 use kimchi::circuits::lookup::runtime_tables::RuntimeTableCfg;
 
 use crate::arkworks::WasmPastaFp;
@@ -12,7 +11,6 @@ use kimchi::linearization::expr_linearization;
 use kimchi::prover_index::ProverIndex;
 use mina_curves::pasta::{Fp, Pallas as GAffineOther, Vesta as GAffine, VestaParameters};
 use mina_poseidon::{constants::PlonkSpongeConstantsKimchi, sponge::DefaultFqSponge};
-use serde::{Deserialize, Serialize};
 use std::{
     fs::{File, OpenOptions},
     io::{BufReader, BufWriter, Seek, SeekFrom::Start},
@@ -25,7 +23,9 @@ use wasm_bindgen::prelude::*;
 
 /// Boxed so that we don't store large proving indexes in the OCaml heap.
 #[wasm_bindgen]
-pub struct WasmPastaFpPlonkIndex(#[wasm_bindgen(skip)] pub Box<ProverIndex<GAffine>>);
+pub struct WasmPastaFpPlonkIndex(
+    #[wasm_bindgen(skip)] pub Box<ProverIndex<GAffine, OpeningProof<GAffine>>>,
+);
 
 // This should mimic LookupTable structure
 #[wasm_bindgen]

@@ -461,8 +461,8 @@ macro_rules! impl_proof {
             }
             type WasmProverProof = [<Wasm $field_name:camel ProverProof>];
 
-            impl From<(&ProverProof<$G>, &Vec<$F>)> for WasmProverProof {
-                fn from((x, public): (&ProverProof<$G>, &Vec<$F>)) -> Self {
+            impl From<(&ProverProof<$G, OpeningProof<$G>>, &Vec<$F>)> for WasmProverProof {
+                fn from((x, public): (&ProverProof<$G, OpeningProof<$G>>, &Vec<$F>)) -> Self {
                     let (scalars, comms) =
                         x.prev_challenges
                             .iter()
@@ -482,8 +482,8 @@ macro_rules! impl_proof {
                 }
             }
 
-            impl From<(ProverProof<$G>, Vec<$F>)> for WasmProverProof {
-                fn from((x, public): (ProverProof<$G>, Vec<$F>)) -> Self {
+            impl From<(ProverProof<$G, OpeningProof<$G>>, Vec<$F>)> for WasmProverProof {
+                fn from((x, public): (ProverProof<$G, OpeningProof<$G>>, Vec<$F>)) -> Self {
                     let ProverProof {ft_eval1, commitments, proof, evals , prev_challenges} = x;
                     let (scalars, comms) =
                         prev_challenges
@@ -502,7 +502,7 @@ macro_rules! impl_proof {
                 }
             }
 
-            impl From<&WasmProverProof> for (ProverProof<$G>, Vec<$F>) {
+            impl From<&WasmProverProof> for (ProverProof<$G, OpeningProof<$G>>, Vec<$F>) {
                 fn from(x: &WasmProverProof) -> Self {
                     let proof = ProverProof {
                         commitments: x.commitments.clone().into(),
@@ -526,7 +526,7 @@ macro_rules! impl_proof {
                 }
             }
 
-            impl From<WasmProverProof> for (ProverProof<$G>, Vec<$F>) {
+            impl From<WasmProverProof> for (ProverProof<$G, OpeningProof<$G>>, Vec<$F>) {
                 fn from(x: WasmProverProof) -> Self {
                     let proof =ProverProof {
                         commitments: x.commitments.into(),
@@ -773,6 +773,7 @@ macro_rules! impl_proof {
                         $G,
                         DefaultFqSponge<_, PlonkSpongeConstantsKimchi>,
                         DefaultFrSponge<_, PlonkSpongeConstantsKimchi>,
+                        OpeningProof<$G>
                     >(&group_map, &ts)
                     .is_ok()
                 })
@@ -807,6 +808,7 @@ macro_rules! impl_proof {
                     zeta_omega: vec![$F::one()],
                 };
                 let evals = ProofEvaluations {
+                    public: None,
                     w: array_init(|_| eval()),
                     coefficients: array_init(|_| eval()),
                     z: eval(),

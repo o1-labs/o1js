@@ -637,7 +637,7 @@ macro_rules! impl_verification_key {
 
             pub fn to_wasm<'a>(
                 srs: &Arc<SRS<$G>>,
-                vi: DlogVerifierIndex<$G>,
+                vi: DlogVerifierIndex<$G, OpeningProof<$G>>,
             ) -> WasmPlonkVerifierIndex {
                 WasmPlonkVerifierIndex {
                     domain: WasmDomain {
@@ -722,7 +722,7 @@ macro_rules! impl_verification_key {
                 evals: &WasmPlonkVerificationEvals,
                 shifts: &WasmShifts,
                 lookup_index: Option<WasmLookupVerifierIndex>
-            ) -> (DlogVerifierIndex<GAffine>, Arc<SRS<GAffine>>) {
+            ) -> (DlogVerifierIndex<GAffine, OpeningProof<GAffine>>, Arc<SRS<GAffine>>) {
                 /*
                 let urs_copy = Rc::clone(&*urs);
                 let urs_copy_outer = Rc::clone(&*urs);
@@ -813,7 +813,7 @@ macro_rules! impl_verification_key {
                 (index, srs.0.clone())
             }
 
-            impl From<WasmPlonkVerifierIndex> for DlogVerifierIndex<$G> {
+            impl From<WasmPlonkVerifierIndex> for DlogVerifierIndex<$G, OpeningProof<$G>> {
                 fn from(index: WasmPlonkVerifierIndex) -> Self {
                     of_wasm(
                         index.max_poly_size,
@@ -833,7 +833,7 @@ macro_rules! impl_verification_key {
                 offset: Option<i32>,
                 srs: &$WasmSrs,
                 path: String,
-            ) -> Result<DlogVerifierIndex<$G>, JsValue> {
+            ) -> Result<DlogVerifierIndex<$G, OpeningProof<$G>>, JsValue> {
                 let path = Path::new(&path);
                 let (endo_q, _endo_r) = poly_commitment::srs::endos::<GAffineOther>();
                 DlogVerifierIndex::<$G>::from_file(
