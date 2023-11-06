@@ -1,7 +1,8 @@
 /**
  * RSA signature verification with o1js
  */
-import { Field, Gadgets, Provable, Struct, provable } from 'o1js';
+import { Field, Gadgets, Provable, Struct, ZkProgram, provable } from 'o1js';
+import { tic, toc } from '../utils/tic-toc.node.js';
 
 const mask = (1n << 116n) - 1n;
 
@@ -167,18 +168,28 @@ function rangeCheck128Signed(xSigned: Field) {
   x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
 
-let TODO = 0n;
+let rsa = ZkProgram({
+  name: 'rsa-verify',
 
-let { rows, gates } = Provable.constraintSystem(() => {
-  let message = Provable.witness(Bigint2048, () => Bigint2048.from(TODO));
-  let signature = Provable.witness(Bigint2048, () => Bigint2048.from(TODO));
-  let modulus = Provable.witness(Bigint2048, () => Bigint2048.from(TODO));
+  methods: {
+    verify: {
+      privateInputs: [Bigint2048, Bigint2048, Bigint2048],
 
-  rsaVerify65537(message, signature, modulus);
+      method(message: Bigint2048, signature: Bigint2048, modulus: Bigint2048) {
+        rsaVerify65537(message, signature, modulus);
+      },
+    },
+  },
 });
+
+let [{ rows, gates }] = rsa.analyzeMethods();
 
 console.log(
   'gates',
   gates.map((g) => g.type)
 );
 console.log('rows', rows);
+
+tic('compile');
+await rsa.compile();
+toc();
