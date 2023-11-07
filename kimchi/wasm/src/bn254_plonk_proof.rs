@@ -23,8 +23,16 @@ type Proof = PairingProof<ark_ec::bn::Bn<ark_bn254::Parameters>>;
 type EFqSponge = DefaultFqSponge<BN254Parameters, PlonkSpongeConstantsKimchi>;
 type EFrSponge = DefaultFrSponge<Fp, PlonkSpongeConstantsKimchi>;
 
+struct RunState<Field> {
+}
+
 enum CVar {
     Var(i32)
+}
+
+enum Checked<A, F> {
+    Pure(A),
+    Function(Fn(RunState<F>) -> (RunState<F>, A))
 }
 
 #[wasm_bindgen]
@@ -112,6 +120,33 @@ fn alloc_var(next_input: &mut i32) -> CVar {
  */
 fn var_of_fields(fields: &[BN254]) -> BN254 {
     fields[0]
+}
+
+/**
+ * `Pickles.Impls.Step.Checked1.return`
+ * See https://github.com/o1-labs/snarky/blob/94b2df82129658d505b612806a5804bc192f13f0/src/base/checked_runner.ml#L43
+ */
+fn return_value<T>(x: Checked<T>) -> Checked<Checked<T>> {
+    Checked::Pure(x)
+}
+
+/**
+ * `Pickles.Impls.Step.Checked1.bind`
+ * See https://github.com/o1-labs/snarky/blob/94b2df82129658d505b612806a5804bc192f13f0/src/base/checked_runner.ml#L57
+ */
+fn bind<S, T>(x: Checked<S>, f: Fn(S) -> Checked<T>) -> Checked<T> {
+    match x {
+        Pure(a) => f(a),
+        Function(g) => Function(|s| {
+            let (s, a) = g(s);
+            eval(f(a), s)
+        })
+    }
+}
+
+
+fn inject_wrapper<InputVar, RVar>(f: Fn(RVar) -> RVar, x: Fn(InputVar) -> RVar) -> dyn Fn(InputVar) -> RVar {
+    |a| f(x(a))
 }
 
 /**
