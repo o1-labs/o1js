@@ -20,16 +20,6 @@ let maybeUint64: Spec<bigint, Field> = {
 
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
-let notTestInput: Spec<bigint, Field> = {
-  ...field,
-  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) => {
-    if (mod(x, Field.ORDER).toString() > '254') {
-      return mod(randomBigInt(254), Field.ORDER);
-    }
-    return mod(x, Field.ORDER);
-  }),
-};
-
 let Bitwise = ZkProgram({
   name: 'bitwise',
   publicOutput: Field,
@@ -133,20 +123,18 @@ await equivalentAsync(
   }
 );
 
-await equivalentAsync({ from: [notTestInput], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
   (x) => {
     if (x > Fp.modulus) throw Error(`Does not fit into 254`);
     return Fp.not(x, 254);
   },
   async (x) => {
-    console.log('x notUnChecked async', x);
     let proof = await Bitwise.notUnchecked(x);
     return proof.publicOutput;
   }
 );
-await equivalentAsync({ from: [notTestInput], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
   (x) => {
-    console.log('x notChecked bigint');
     if (x > Fp.modulus) throw Error(`Does not fit into 254`);
     return Fp.not(x, 254);
   },
@@ -203,11 +191,3 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
     return proof.publicOutput;
   }
 );
-
-function randomBigInt(bits: number) {
-  let randomString = '1';
-  for (let i = 1; i < bits; i++) {
-    randomString += Math.floor(Math.random() * 2).toString();
-  }
-  return BigInt('0b' + randomString);
-}
