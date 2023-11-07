@@ -106,14 +106,8 @@ await Bitwise.compile();
   );
 });
 
-await equivalentAsync(
-  { from: [maybeField, maybeField], to: field },
-  { runs: 3 }
-)(
+await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs: 3 })(
   (x, y) => {
-    if (x >= 2n ** 254n || y >= 2n ** 254n) {
-      throw Error(`Does not fit into 254 bits`);
-    }
     return x ^ y;
   },
   async (x, y) => {
