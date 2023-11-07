@@ -111,7 +111,7 @@ await equivalentAsync(
   { runs: 3 }
 )(
   (x, y) => {
-    if (x > 2n ** 254n || y > 2n ** 254n) {
+    if (x >= 2n ** 254n || y >= 2n ** 254n) {
       throw Error(`Does not fit into 254 bits`);
     }
     return x ^ y;
@@ -124,7 +124,6 @@ await equivalentAsync(
 
 await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
   (x) => {
-    if (x > 2n ** 254n) throw Error(`Does not fit into 254 bits`);
     return Fp.not(x, 254);
   },
   async (x) => {
@@ -134,7 +133,7 @@ await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
 );
 await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
   (x) => {
-    if (x > 2n ** 254n) throw Error(`Does not fit into 254 bits`);
+    if (x > 2n ** 254n) throw Error('Does not fit into 254 bit');
     return Fp.not(x, 254);
   },
   async (x) => {
