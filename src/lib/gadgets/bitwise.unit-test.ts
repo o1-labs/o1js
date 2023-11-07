@@ -37,7 +37,7 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 255);
+        return Gadgets.xor(a, b, 254);
       },
     },
     notUnchecked: {

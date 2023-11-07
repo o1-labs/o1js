@@ -56,11 +56,8 @@ function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
   assert(length > 0, `Input lengths need to be positive values.`);
 
-  // check that length does not exceed maximum field size in bits
-  assert(
-    length <= Field.sizeInBits(),
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
-  );
+  // check that length does not exceed maximum 254 size in bits
+  assert(length <= 254, `Length ${length} exceeds maximum of 254 bits.`);
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
