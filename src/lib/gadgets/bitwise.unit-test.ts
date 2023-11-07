@@ -1,6 +1,5 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  Spec,
   equivalent,
   equivalentAsync,
   field,
@@ -11,9 +10,9 @@ import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
 
-let maybeUint64: Spec<bigint, Field> = {
+const maybeField = {
   ...field,
-  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
+  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
     mod(x, Field.ORDER)
   ),
 };
@@ -108,12 +107,12 @@ await Bitwise.compile();
 });
 
 await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
+  { from: [maybeField, maybeField], to: field },
   { runs: 3 }
 )(
   (x, y) => {
-    if (x >= Fp.modulus || y >= Fp.modulus) {
-      throw Error(`Does not fit into ${Fp.modulus}`);
+    if (x > 2n ** 254n || y > 2n ** 254n) {
+      throw Error(`Does not fit into 254 bits`);
     }
     return x ^ y;
   },
@@ -123,9 +122,9 @@ await equivalentAsync(
   }
 );
 
-await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
   (x) => {
-    if (x > Fp.modulus) throw Error(`Does not fit into 254`);
+    if (x > 2n ** 254n) throw Error(`Does not fit into 254 bits`);
     return Fp.not(x, 254);
   },
   async (x) => {
@@ -133,9 +132,9 @@ await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
     return proof.publicOutput;
   }
 );
-await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
   (x) => {
-    if (x > Fp.modulus) throw Error(`Does not fit into 254`);
+    if (x > 2n ** 254n) throw Error(`Does not fit into 254 bits`);
     return Fp.not(x, 254);
   },
   async (x) => {
@@ -145,7 +144,7 @@ await equivalentAsync({ from: [maybeUint64], to: field }, { runs: 3 })(
 );
 
 await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
+  { from: [maybeField, maybeField], to: field },
   { runs: 3 }
 )(
   (x, y) => {
