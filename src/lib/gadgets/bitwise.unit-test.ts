@@ -1,6 +1,5 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  Spec,
   equivalent,
   equivalentAsync,
   field,
@@ -11,9 +10,9 @@ import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
 
-let maybeUint64: Spec<bigint, Field> = {
+const maybeField = {
   ...field,
-  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
+  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
     mod(x, Field.ORDER)
   ),
 };
@@ -27,7 +26,19 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 64);
+        return Gadgets.xor(a, b, 254);
+      },
+    },
+    notUnchecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 254, false);
+      },
+    },
+    notChecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 254, true);
       },
     },
     and: {
@@ -68,6 +79,16 @@ await Bitwise.compile();
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
   );
+  // NOT unchecked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, false)
+  );
+  // NOT checked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, true)
+  );
 });
 
 [2, 4, 8, 16, 32, 64].forEach((length) => {
@@ -85,13 +106,8 @@ await Bitwise.compile();
   );
 });
 
-await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
-  { runs: 3 }
-)(
+await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs: 3 })(
   (x, y) => {
-    if (x >= 2n ** 64n || y >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
     return x ^ y;
   },
   async (x, y) => {
@@ -100,8 +116,28 @@ await equivalentAsync(
   }
 );
 
+await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
+  (x) => {
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notUnchecked(x);
+    return proof.publicOutput;
+  }
+);
+await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
+  (x) => {
+    if (x > 2n ** 254n) throw Error('Does not fit into 254 bit');
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notChecked(x);
+    return proof.publicOutput;
+  }
+);
+
 await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
+  { from: [maybeField, maybeField], to: field },
   { runs: 3 }
 )(
   (x, y) => {

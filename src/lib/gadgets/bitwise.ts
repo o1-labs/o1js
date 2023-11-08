@@ -11,17 +11,53 @@ import {
 } from './common.js';
 import { rangeCheck64 } from './range-check.js';
 
-export { xor, rotate, and, rightShift, leftShift };
+export { xor, not, rotate, and, rightShift, leftShift };
+
+function not(a: Field, length: number, checked: boolean = false) {
+  // check that input length is positive
+  assert(length > 0, `Input length needs to be positive values.`);
+
+  // Check that length does not exceed maximum field size in bits
+  assert(
+    length < Field.sizeInBits(),
+    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+  );
+
+  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
+  let padLength = Math.ceil(length / 16) * 16;
+
+  // handle constant case
+  if (a.isConstant()) {
+    let max = 1n << BigInt(padLength);
+    assert(
+      a.toBigInt() < max,
+      `${a.toBigInt()} does not fit into ${padLength} bits`
+    );
+    return new Field(Fp.not(a.toBigInt(), length));
+  }
+
+  // create a bitmask with all ones
+  let allOnesF = new Field(2n ** BigInt(length) - 1n);
+
+  let allOnes = Provable.witness(Field, () => {
+    return allOnesF;
+  });
+
+  allOnesF.assertEquals(allOnes);
+
+  if (checked) {
+    return xor(a, allOnes, length);
+  } else {
+    return allOnes.sub(a);
+  }
+}
 
 function xor(a: Field, b: Field, length: number) {
   // check that both input lengths are positive
   assert(length > 0, `Input lengths need to be positive values.`);
 
-  // check that length does not exceed maximum field size in bits
-  assert(
-    length <= Field.sizeInBits(),
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
-  );
+  // check that length does not exceed maximum 254 size in bits
+  assert(length <= 254, `Length ${length} exceeds maximum of 254 bits.`);
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;

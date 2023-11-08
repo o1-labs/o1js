@@ -49,6 +49,20 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
     Gadgets.xor(a, b, 48);
     Gadgets.xor(a, b, 64);
   },
+  notUnchecked() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    Gadgets.not(a, 16, false);
+    Gadgets.not(a, 32, false);
+    Gadgets.not(a, 48, false);
+    Gadgets.not(a, 64, false);
+  },
+  notChecked() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    Gadgets.not(a, 16, true);
+    Gadgets.not(a, 32, true);
+    Gadgets.not(a, 48, true);
+    Gadgets.not(a, 64, true);
+  },
   leftShift() {
     let a = Provable.witness(Field, () => new Field(12));
     Gadgets.leftShift(a, 2);

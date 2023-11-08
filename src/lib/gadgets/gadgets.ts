@@ -6,7 +6,7 @@ import {
   multiRangeCheck,
   rangeCheck64,
 } from './range-check.js';
-import { rotate, xor, and, leftShift, rightShift } from './bitwise.js';
+import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
 
 export { Gadgets };
@@ -54,6 +54,8 @@ const Gadgets = {
    * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
+   *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
    * @param direction left or right rotation direction.
@@ -92,6 +94,8 @@ const Gadgets = {
    *
    * For example, with `length = 2` (`paddedLength = 16`), `xor()` will fail for any input that is larger than `2**16`.
    *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
    * @param a {@link Field} element to compare.
    * @param b {@link Field} element to compare.
    * @param length amount of bits to compare.
@@ -109,6 +113,58 @@ const Gadgets = {
    */
   xor(a: Field, b: Field, length: number) {
     return xor(a, b, length);
+  },
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate only operates over the amount
+   * of bits specified by the `length` parameter.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * The `length` parameter lets you define how many bits to NOT.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints. The operation will fail if the length or the input value is larger than 254.
+   *
+   * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
+   * the {@link Gadgets.xor} gadget is reused with a second argument to be an
+   * all one bitmask the same length. This approach needs as many rows as an XOR would need
+   * for a single negation. If the `checked` parameter is set to `false`, NOT is
+   * implemented as a subtraction of the input from the all one bitmask. This
+   * implementation is returned by default if no `checked` parameter is provided.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // not-ing 4 bits with the unchecked version
+   * let a = Field(0b0101);
+   * let b = Gadgets.not(a,4,false);
+   *
+   * b.assertEquals(0b1010);
+   *
+   * // not-ing 4 bits with the checked version utilizing the xor gadget
+   * let a = Field(0b0101);
+   * let b = Gadgets.not(a,4,true);
+   *
+   * b.assertEquals(0b1010);
+   * ```
+   *
+   * @param a - The value to apply NOT to. The operation will fail if the value is larger than 254.
+   * @param length - The number of bits to be considered for the NOT operation.
+   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
+   * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
+   *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
+   *
+   * @throws Throws an error if the input value exceeds 254 bits.
+   */
+  not(a: Field, length: number, checked: boolean = false) {
+    return not(a, length, checked);
   },
 
   /**
