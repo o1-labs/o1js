@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e8e7510e1...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/26363465d...HEAD)
+
+## [0.14.1](https://github.com/o1-labs/o1js/compare/e8e7510e1...26363465d)
 
 ### Added
 
