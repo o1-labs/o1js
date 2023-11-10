@@ -268,7 +268,9 @@ function ZkProgram<
     >
   ) => Promise<boolean>;
   digest: () => string;
-  analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
+  analyzeMethods: () => {
+    [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+  };
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
 } & {
@@ -302,9 +304,14 @@ function ZkProgram<
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
   function analyzeMethods() {
-    return methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
-    );
+    return Object.fromEntries(
+      methodIntfs.map((methodEntry, i) => [
+        methodEntry.methodName,
+        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]),
+      ])
+    ) as any as {
+      [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+    };
   }
 
   let compileOutput:
@@ -318,7 +325,9 @@ function ZkProgram<
     | undefined;
 
   async function compile({ cache = Cache.FileSystemDefault } = {}) {
-    let methodsMeta = analyzeMethods();
+    let methodsMeta = methodIntfs.map((methodEntry, i) =>
+      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    );
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
