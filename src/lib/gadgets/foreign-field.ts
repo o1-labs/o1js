@@ -1,4 +1,7 @@
-import { mod } from '../../bindings/crypto/finite_field.js';
+import {
+  inverse as modInverse,
+  mod,
+} from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
@@ -31,6 +34,9 @@ const ForeignField = {
 
   mul(x: Field3, y: Field3, f: bigint) {
     return multiply(x, y, f);
+  },
+  inv(x: Field3, f: bigint) {
+    return inverse(x, f);
   },
 
   // helper methods
@@ -121,11 +127,7 @@ function multiply(a: Field3, b: Field3, f: bigint): [Field3, Field3] {
   }
 
   // provable case
-  let {
-    r: [r01, r2],
-    q,
-    q2Bound,
-  } = multiplyNoRangeCheck(a, b, f);
+  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(a, b, f);
 
   // limb range checks on quotient and remainder
   multiRangeCheck(...q);
@@ -140,9 +142,38 @@ function multiply(a: Field3, b: Field3, f: bigint): [Field3, Field3] {
 
   // constrain r2 bound, zero
   r2.add(f2Bound).assertEquals(r2Bound);
-  zero.assertEquals(0);
+  zero.assertEquals(0n);
 
   return [r, q];
+}
+
+function inverse(x: Field3, f: bigint): Field3 {
+  // constant case
+  if (x.every((x) => x.isConstant())) {
+    let xInv = modInverse(ForeignField.toBigint(x), f);
+    assert(xInv !== undefined, 'inverse exists');
+    return ForeignField.from(xInv);
+  }
+
+  // provable case
+  let xInv = exists(3, () => {
+    let xInv = modInverse(ForeignField.toBigint(x), f);
+    return xInv === undefined ? [0n, 0n, 0n] : split(xInv);
+  });
+  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, xInv, f);
+
+  // range checks on quotient
+  multiRangeCheck(...q);
+  // TODO: this uses one RC too many.. need global RC stack
+  let [zero] = exists(1, () => [0n]);
+  multiRangeCheck(q2Bound, zero, zero);
+  zero.assertEquals(0n);
+
+  // assert r === 1
+  r01.assertEquals(1n);
+  r2.assertEquals(0n);
+
+  return xInv;
 }
 
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
@@ -220,13 +251,12 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   ] = witnesses;
 
   let q: Field3 = [q0, q1, q2];
-  let r: [Field, Field] = [r01, r2];
 
   // ffmul gate. this already adds the following zero row.
   Gates.foreignFieldMul({
     left: a,
     right: b,
-    remainder: r,
+    remainder: [r01, r2],
     quotient: q,
     quotientHiBound: q2Bound,
     product1: [p10, p110, p111],
@@ -237,7 +267,7 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     negForeignFieldModulus: [f_0, f_1, f_2],
   });
 
-  return { r, q, q2Bound };
+  return { r01, r2, q, q2Bound };
 }
 
 function Field3(x: bigint3): Field3 {

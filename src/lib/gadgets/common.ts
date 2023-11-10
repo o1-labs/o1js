@@ -27,7 +27,7 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   return TupleN.fromArray(n, vars);
 }
 
-function assert(stmt: boolean, message?: string) {
+function assert(stmt: boolean, message?: string): asserts stmt {
   if (!stmt) {
     throw Error(message ?? 'Assertion failed');
   }
