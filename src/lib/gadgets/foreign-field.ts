@@ -202,16 +202,17 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
   let z2Bound = weakBound(z[2], f);
   multiRangeCheck(q2Bound, z2Bound, new Field(0n));
 
-  // check that r === y
+  // check that r === x
   // this means we don't have to range check r
-  let y01 = y[0].add(y[1].mul(1n << L));
-  r01.assertEquals(y01);
-  r2.assertEquals(y[2]);
+  let x01 = x[0].add(x[1].mul(1n << L));
+  r01.assertEquals(x01);
+  r2.assertEquals(x[2]);
 
   if (!allowZeroOverZero) {
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
     // this works because we assume y[2] <= f2
     // TODO is this the most efficient way?
+    let y01 = y[0].add(y[1].mul(1n << L));
     y01.equals(0n).and(y[2].equals(0n)).assertFalse();
     let [f0, f1, f2] = split(f);
     let f01 = collapse2([f0, f1]);
