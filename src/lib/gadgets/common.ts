@@ -1,6 +1,6 @@
 import { Provable } from '../provable.js';
-import { Field, FieldConst } from '../field.js';
-import { TupleN } from '../util/types.js';
+import { Field, FieldConst, FieldType } from '../field.js';
+import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
 
@@ -9,6 +9,9 @@ const MAX_BITS = 64 as const;
 export {
   MAX_BITS,
   exists,
+  toVars,
+  existsOne,
+  toVar,
   assert,
   bitSlice,
   witnessSlice,
@@ -25,6 +28,25 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   );
   let vars = MlArray.mapFrom(varsMl, (v) => new Field(v));
   return TupleN.fromArray(n, vars);
+}
+
+function toVars<T extends Tuple<Field | bigint>>(
+  fields: T
+): { [k in keyof T]: Field } {
+  return Tuple.map(fields, toVar);
+}
+
+function existsOne(compute: () => bigint) {
+  let varMl = Snarky.existsVar(() => FieldConst.fromBigint(compute()));
+  return new Field(varMl);
+}
+
+function toVar(x: Field | bigint) {
+  // don't change existing vars
+  if (x instanceof Field && x.value[1] === FieldType.Var) return x;
+  let xVar = existsOne(() => Field.from(x).toBigInt());
+  xVar.assertEquals(x);
+  return xVar;
 }
 
 function assert(stmt: boolean, message?: string): asserts stmt {

@@ -4,8 +4,9 @@ import {
 } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
+import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists } from './common.js';
+import { assert, bitSlice, exists, existsOne, toVar } from './common.js';
 import {
   L,
   lMask,
@@ -37,6 +38,9 @@ const ForeignField = {
   },
   inv(x: Field3, f: bigint) {
     return inverse(x, f);
+  },
+  div(x: Field3, y: Field3, f: bigint, { allowZeroOverZero = false } = {}) {
+    return divide(x, y, f, allowZeroOverZero);
   },
 
   // helper methods
@@ -115,15 +119,13 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   return { result: [r0, r1, r2] satisfies Field3, overflow };
 }
 
-function multiply(a: Field3, b: Field3, f: bigint): [Field3, Field3] {
+function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
   if (a.every((x) => x.isConstant()) && b.every((x) => x.isConstant())) {
     let ab = ForeignField.toBigint(a) * ForeignField.toBigint(b);
-    let q = ab / f;
-    let r = ab - q * f;
-    return [ForeignField.from(r), ForeignField.from(q)];
+    return ForeignField.from(mod(ab, f));
   }
 
   // provable case
@@ -135,19 +137,15 @@ function multiply(a: Field3, b: Field3, f: bigint): [Field3, Field3] {
 
   // range check on q and r bounds
   // TODO: this uses one RC too many.. need global RC stack
-  let f2 = f >> L2;
-  let f2Bound = (1n << L) - f2 - 1n;
-  let [r2Bound, zero] = exists(2, () => [r2.toBigInt() + f2Bound, 0n]);
-  multiRangeCheck(q2Bound, r2Bound, zero);
+  let r2Bound = weakBound(r2, f);
+  multiRangeCheck(q2Bound, r2Bound, toVar(0n));
 
-  // constrain r2 bound, zero
-  r2.add(f2Bound).assertEquals(r2Bound);
-  zero.assertEquals(0n);
-
-  return [r, q];
+  return r;
 }
 
 function inverse(x: Field3, f: bigint): Field3 {
+  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
+
   // constant case
   if (x.every((x) => x.isConstant())) {
     let xInv = modInverse(ForeignField.toBigint(x), f);
@@ -167,17 +165,60 @@ function inverse(x: Field3, f: bigint): Field3 {
   multiRangeCheck(...xInv);
   // range check on q and xInv bounds
   // TODO: this uses one RC too many.. need global RC stack
-  let f2 = f >> L2;
-  let f2Bound = (1n << L) - f2 - 1n;
-  let [xInv2Bound, zero] = exists(2, () => [xInv[2].toBigInt() + f2Bound, 0n]);
-  multiRangeCheck(q2Bound, xInv2Bound, zero);
-  zero.assertEquals(0n);
+  // TODO: make sure that we can just pass non-vars to multiRangeCheck() to get rid of this
+  let xInv2Bound = weakBound(xInv[2], f);
+  multiRangeCheck(q2Bound, xInv2Bound, new Field(0n));
 
   // assert r === 1
   r01.assertEquals(1n);
   r2.assertEquals(0n);
 
   return xInv;
+}
+
+function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
+  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
+
+  // constant case
+  if (x.every((x) => x.isConstant()) && y.every((x) => x.isConstant())) {
+    let yInv = modInverse(ForeignField.toBigint(y), f);
+    assert(yInv !== undefined, 'inverse exists');
+    return ForeignField.from(mod(ForeignField.toBigint(x) * yInv, f));
+  }
+
+  // provable case
+  // to show that z = x/y, we prove that z*y = x and y != 0 (the latter avoids the unconstrained 0/0 case)
+  let z = exists(3, () => {
+    let yInv = modInverse(ForeignField.toBigint(y), f);
+    if (yInv === undefined) return [0n, 0n, 0n];
+    return split(mod(ForeignField.toBigint(x) * yInv, f));
+  });
+  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(z, y, f);
+
+  // limb range checks on quotient and result
+  multiRangeCheck(...q);
+  multiRangeCheck(...z);
+  // range check on q and result bounds
+  let z2Bound = weakBound(z[2], f);
+  multiRangeCheck(q2Bound, z2Bound, new Field(0n));
+
+  // check that r === y
+  // this means we don't have to range check r
+  let y01 = y[0].add(y[1].mul(1n << L));
+  r01.assertEquals(y01);
+  r2.assertEquals(y[2]);
+
+  if (!allowZeroOverZero) {
+    // assert that y != 0 mod f by checking that it doesn't equal 0 or f
+    // this works because we assume y[2] <= f2
+    // TODO is this the most efficient way?
+    y01.equals(0n).and(y[2].equals(0n)).assertFalse();
+    let [f0, f1, f2] = split(f);
+    let f01 = collapse2([f0, f1]);
+    y01.equals(f01).and(y[2].equals(f2)).assertFalse();
+  }
+
+  return z;
 }
 
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
@@ -272,6 +313,12 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   });
 
   return { r01, r2, q, q2Bound };
+}
+
+function weakBound(x: Field, f: bigint) {
+  let f2 = f >> L2;
+  let f2Bound = (1n << L) - f2 - 1n;
+  return x.add(f2Bound);
 }
 
 function Field3(x: bigint3): Field3 {
