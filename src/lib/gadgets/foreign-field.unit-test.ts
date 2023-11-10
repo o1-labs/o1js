@@ -50,11 +50,15 @@ for (let F of fields) {
 
   eq2(F.add, (x, y) => ForeignField.add(x, y, F.modulus), 'add');
   eq2(F.sub, (x, y) => ForeignField.sub(x, y, F.modulus), 'sub');
-  eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus)[0], 'mul');
+  eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus), 'mul');
+  equivalentProvable({ from: [f], to: f })(
+    (x) => F.inverse(x) ?? throwError('no inverse'),
+    (x) => ForeignField.inv(x, F.modulus)
+  );
   eq2(
-    (x, y) => (x * y) / F.modulus,
-    (x, y) => ForeignField.mul(x, y, F.modulus)[1],
-    'mul quotient'
+    (x, y) => F.div(x, y) ?? throwError('no inverse'),
+    (x, y) => ForeignField.div(x, y, F.modulus),
+    'div'
   );
 
   // sumchain of 5
@@ -103,12 +107,27 @@ let ffProgram = ZkProgram({
     mul: {
       privateInputs: [Field3_, Field3_],
       method(x, y) {
-        let [r, _q] = ForeignField.mul(x, y, F.modulus);
-        return r;
+        return ForeignField.mul(x, y, F.modulus);
+      },
+    },
+
+    inv: {
+      privateInputs: [Field3_],
+      method(x) {
+        return ForeignField.inv(x, F.modulus);
+      },
+    },
+
+    div: {
+      privateInputs: [Field3_, Field3_],
+      method(x, y) {
+        return ForeignField.div(x, y, F.modulus);
       },
     },
   },
 });
+
+// console.log(ffProgram.analyzeMethods());
 
 await ffProgram.compile();
 
@@ -132,6 +151,16 @@ await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
   'prove mul'
 );
 
+await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
+  (x, y) => F.div(x, y) ?? throwError('no inverse'),
+  async (x, y) => {
+    let proof = await ffProgram.div(x, y);
+    assert(await ffProgram.verify(proof), 'verifies');
+    return proof.publicOutput;
+  },
+  'prove div'
+);
+
 // helper
 
 function sumchain(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
@@ -140,4 +169,8 @@ function sumchain(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
     sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
   }
   return sum;
+}
+
+function throwError<T>(message: string): T {
+  throw Error(message);
 }
