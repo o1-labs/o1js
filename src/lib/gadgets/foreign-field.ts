@@ -162,11 +162,15 @@ function inverse(x: Field3, f: bigint): Field3 {
   });
   let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, xInv, f);
 
-  // range checks on quotient
+  // limb range checks on quotient and inverse
   multiRangeCheck(...q);
+  multiRangeCheck(...xInv);
+  // range check on q and xInv bounds
   // TODO: this uses one RC too many.. need global RC stack
-  let [zero] = exists(1, () => [0n]);
-  multiRangeCheck(q2Bound, zero, zero);
+  let f2 = f >> L2;
+  let f2Bound = (1n << L) - f2 - 1n;
+  let [xInv2Bound, zero] = exists(2, () => [xInv[2].toBigInt() + f2Bound, 0n]);
+  multiRangeCheck(q2Bound, xInv2Bound, zero);
   zero.assertEquals(0n);
 
   // assert r === 1
