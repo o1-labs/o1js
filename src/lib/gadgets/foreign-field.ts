@@ -4,9 +4,8 @@ import {
 } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists, existsOne, toVar } from './common.js';
+import { assert, bitSlice, exists, toVar } from './common.js';
 import {
   L,
   lMask,
@@ -17,7 +16,16 @@ import {
   compactMultiRangeCheck,
 } from './range-check.js';
 
-export { ForeignField, Field3, bigint3, Sign };
+export {
+  ForeignField,
+  Field3,
+  bigint3,
+  Sign,
+  split,
+  collapse,
+  weakBound,
+  assertMul,
+};
 
 type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
@@ -50,6 +58,9 @@ const ForeignField = {
   toBigint(x: Field3): bigint {
     return collapse(bigint3(x));
   },
+  toBigints<T extends Tuple<Field3>>(...xs: T) {
+    return Tuple.map(xs, ForeignField.toBigint);
+  },
 };
 
 /**
@@ -57,7 +68,12 @@ const ForeignField = {
  *
  * assumes that inputs are range checked, does range check on the result.
  */
-function sumChain(x: Field3[], sign: Sign[], f: bigint) {
+function sumChain(
+  x: Field3[],
+  sign: Sign[],
+  f: bigint,
+  { skipRangeCheck = false } = {}
+) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
   // constant case
@@ -76,7 +92,9 @@ function sumChain(x: Field3[], sign: Sign[], f: bigint) {
   Gates.zero(...result);
 
   // range check result
-  multiRangeCheck(...result);
+  if (!skipRangeCheck) {
+    multiRangeCheck(...result);
+  }
 
   return result;
 }
@@ -141,6 +159,32 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   multiRangeCheck(q2Bound, r2Bound, toVar(0n));
 
   return r;
+}
+
+function assertMul(x: Field3, y: Field3, xy: Field3, f: bigint) {
+  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
+
+  // constant case
+  if (
+    x.every((x) => x.isConstant()) &&
+    y.every((x) => x.isConstant()) &&
+    xy.every((x) => x.isConstant())
+  ) {
+    let xy_ = mod(ForeignField.toBigint(x) * ForeignField.toBigint(y), f);
+    assert(xy_ === ForeignField.toBigint(xy), 'Expected xy to be x*y mod f');
+    return Field.from(0n);
+  }
+
+  // provable case
+  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
+  let xy01 = xy[0].add(xy[1].mul(1n << L));
+  r01.assertEquals(xy01);
+  r2.assertEquals(xy[2]);
+
+  // range check on quotient
+  multiRangeCheck(...q);
+
+  return q2Bound;
 }
 
 function inverse(x: Field3, f: bigint): Field3 {
