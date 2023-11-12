@@ -45,19 +45,27 @@ function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   let x3Bound = weakBound(x3[2], f);
   // we dont need to bounds check y3[2] because it's never one of the inputs to a multiplication
 
-  // m*(x1 - x2) = y1 - y2
-  let deltaX = sumChain([x1, x2], [-1n], f);
+  // (x1 - x2)*m = y1 - y2
   let deltaY = sumChain([y1, y2], [-1n], f, { skipRangeCheck: true });
-  let qBound1 = assertMul(m, deltaX, deltaY, f);
+  let deltaX = sumChain([x1, x2], [-1n], f, {
+    skipRangeCheck: true,
+    skipZeroRow: true,
+  });
+  let qBound1 = assertMul(deltaX, m, deltaY, f);
+  multiRangeCheck(...deltaX);
 
   // m^2 = x1 + x2 + x3
   let xSum = sumChain([x1, x2, x3], [1n, 1n], f, { skipRangeCheck: true });
   let qBound2 = assertMul(m, m, xSum, f);
 
-  // m*(x1 - x3) = y1 + y3
-  let deltaX1X3 = sumChain([x1, x3], [-1n], f);
+  // (x1 - x3)*m = y1 + y3
   let ySum = sumChain([y1, y3], [1n], f, { skipRangeCheck: true });
-  let qBound3 = assertMul(m, deltaX1X3, ySum, f);
+  let deltaX1X3 = sumChain([x1, x3], [-1n], f, {
+    skipRangeCheck: true,
+    skipZeroRow: true,
+  });
+  let qBound3 = assertMul(deltaX1X3, m, ySum, f);
+  multiRangeCheck(...deltaX1X3);
 
   // bounds checks
   multiRangeCheck(m2Bound, x3Bound, qBound1);

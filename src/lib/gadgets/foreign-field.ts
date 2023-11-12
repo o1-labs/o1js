@@ -72,7 +72,7 @@ function sumChain(
   x: Field3[],
   sign: Sign[],
   f: bigint,
-  { skipRangeCheck = false } = {}
+  { skipRangeCheck = false, skipZeroRow = false } = {}
 ) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
@@ -89,12 +89,10 @@ function sumChain(
     ({ result } = singleAdd(result, x[i + 1], sign[i], f));
   }
   // final zero row to hold result
-  Gates.zero(...result);
+  if (!skipZeroRow) Gates.zero(...result);
 
   // range check result
-  if (!skipRangeCheck) {
-    multiRangeCheck(...result);
-  }
+  if (!skipRangeCheck) multiRangeCheck(...result);
 
   return result;
 }
