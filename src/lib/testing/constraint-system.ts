@@ -40,6 +40,7 @@ type TypeAndValue<T> = { type: Provable<T>; value: T };
 // main DSL
 
 function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
+  label: string,
   inputs: { from: In },
   main: (...args: CsParams<In>) => void,
   csTest: CsTest
@@ -70,9 +71,10 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
       // TODO nice printed representation of cs
       console.log(gates);
 
-      let s = failures.length === 1 ? '' : 's';
       throw Error(
-        `Failed constraint system test${s}:\n${failures.join('\n')}\n`
+        `Constraint system test: ${label}\n\n${failures
+          .map((f) => `FAIL: ${f}`)
+          .join('\n')}\n`
       );
     }
   });
@@ -107,13 +109,13 @@ function run(test: CsTest, cs: Gate[], inputs: TypeAndValue<any>[]): Result {
     case 'and': {
       let results = test.tests.map((t) => run(t, cs, inputs));
       let ok = results.every((r) => r.ok);
-      let failures = results.flatMap((r) => r.failures);
+      let failures = ok ? [] : results.flatMap((r) => r.failures);
       return { ok, failures };
     }
     case 'or': {
       let results = test.tests.map((t) => run(t, cs, inputs));
       let ok = results.some((r) => r.ok);
-      let failures = results.flatMap((r) => r.failures);
+      let failures = ok ? [] : results.flatMap((r) => r.failures);
       return { ok, failures };
     }
   }
