@@ -482,7 +482,7 @@ type LastBlockQueryFailureCheckResponse = {
 };
 
 const lastBlockQueryFailureCheck = `{
-  bestChain(maxLength: 1) {
+  bestChain(maxLength: 20) {
     transactions {
       zkappCommands {
         hash
