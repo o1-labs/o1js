@@ -28,24 +28,27 @@ export {
   ConstraintSystemTest,
 };
 
-type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
-type InferCsVar<T> = T extends { provable: Provable<infer U> }
-  ? U
-  : T extends Provable<infer U>
-  ? U
-  : never;
-type CsParams<In extends Tuple<CsVarSpec<any>>> = {
-  [k in keyof In]: InferCsVar<In[k]>;
-};
-type TypeAndValue<T> = { type: Provable<T>; value: T };
-
-// main DSL
-
-function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
+/**
+ * `constraintSystem()` is a test runner to check properties of constraint systems.
+ * You give it a description of inputs and a circuit, as well as a `ConstraintSystemTest` to assert
+ * properties on the generated constraint system.
+ *
+ * As inputs variables, we generate random combinations of constants, variables, add & scale combinators,
+ * to poke for the common problem of gate chains broken by unexpected Generic gates.
+ *
+ * The `constraintSystemTest` is written using a DSL of property assertions, such as {@link equals} and {@link contains}.
+ * To run multiple assertions, use the {@link and} / {@link or} combinators.
+ *
+ * @param label description of the constraint system
+ * @param inputs input spec in form `{ from: [...provables] }`
+ * @param main circuit to test
+ * @param constraintSystemTest property test to run on the constraint system
+ */
+function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
   label: string,
-  inputs: { from: In },
-  main: (...args: CsParams<In>) => void,
-  csTest: ConstraintSystemTest
+  inputs: { from: Input },
+  main: (...args: CsParams<Input>) => void,
+  constraintSystemTest: ConstraintSystemTest
 ) {
   // create random generators
   let types = inputs.from.map(provable);
@@ -59,14 +62,14 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
       // each random input "layout" has to be instantiated into vars in this circuit
       let values = types.map((type, i) =>
         instantiate(type, layouts[i])
-      ) as CsParams<In>;
+      ) as CsParams<Input>;
       main(...values);
     });
 
     // run tests
     let typesAndValues = types.map((type, i) => ({ type, value: layouts[i] }));
 
-    let { ok, failures } = run(csTest, gates, typesAndValues);
+    let { ok, failures } = run(constraintSystemTest, gates, typesAndValues);
 
     if (!ok) {
       console.log('Constraint system:');
@@ -346,6 +349,19 @@ function drawFieldType(): FieldType {
   if (oneOf8 === 6) return FieldType.Scale;
   return FieldType.Add;
 }
+
+// types
+
+type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
+type InferCsVar<T> = T extends { provable: Provable<infer U> }
+  ? U
+  : T extends Provable<infer U>
+  ? U
+  : never;
+type CsParams<In extends Tuple<CsVarSpec<any>>> = {
+  [k in keyof In]: InferCsVar<In[k]>;
+};
+type TypeAndValue<T> = { type: Provable<T>; value: T };
 
 // print a constraint system
 
