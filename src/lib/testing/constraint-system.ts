@@ -12,7 +12,19 @@ import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
 
-export { constraintSystem, not, and, or, contains, allConstant, log };
+export {
+  constraintSystem,
+  not,
+  and,
+  or,
+  equals,
+  contains,
+  allConstant,
+  ifNotAllConstant,
+  isEmpty,
+  withoutGenerics,
+  log,
+};
 
 type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
 type InferCsVar<T> = T extends { provable: Provable<infer U> }
@@ -73,8 +85,8 @@ type CsTestBase = {
 };
 type Base = { kind?: undefined } & CsTestBase;
 type Not = { kind: 'not' } & CsTestBase;
-type And = { kind: 'and'; tests: CsTest[] };
-type Or = { kind: 'or'; tests: CsTest[] };
+type And = { kind: 'and'; tests: CsTest[]; label: string };
+type Or = { kind: 'or'; tests: CsTest[]; label: string };
 type CsTest = Base | Not | And | Or;
 
 type Result = { ok: boolean; failures: string[] };
@@ -116,13 +128,25 @@ function not(test: CsTest): CsTest {
  * Check that all input tests pass.
  */
 function and(...tests: CsTest[]): CsTest {
-  return { kind: 'and', tests };
+  return { kind: 'and', tests, label: `and(${tests.map((t) => t.label)})` };
 }
 /**
  * Check that at least one input test passes.
  */
 function or(...tests: CsTest[]): CsTest {
-  return { kind: 'or', tests };
+  return { kind: 'or', tests, label: `or(${tests.map((t) => t.label)})` };
+}
+
+/**
+ * Test for precise equality of the constraint system with a given list of gates.
+ */
+function equals(gates: GateType[]): CsTest {
+  return {
+    run(cs) {
+      return cs.every((g, i) => g.type === gates[i]);
+    },
+    label: `equals ${JSON.stringify(gates)}`,
+  };
 }
 
 /**
@@ -181,6 +205,40 @@ const allConstant: CsTest = {
   },
   label: 'all inputs constant',
 };
+
+/**
+ * Modifies a test so that it doesn't fail if all inputs are constant, and instead
+ * checks that the constraint system is empty in that case.
+ */
+function ifNotAllConstant(test: CsTest): CsTest {
+  return or(test, and(allConstant, isEmpty));
+}
+
+/**
+ * Test whether all inputs are constant.
+ */
+const isEmpty: CsTest = {
+  run(cs) {
+    return cs.length === 0;
+  },
+  label: 'cs is empty',
+};
+
+/**
+ * Modifies a test so that it runs on the constraint system with generic gates filtered out.
+ */
+function withoutGenerics(test: CsTest): CsTest {
+  return {
+    run(cs, inputs) {
+      return run(
+        test,
+        cs.filter((g) => g.type !== 'Generic'),
+        inputs
+      ).ok;
+    },
+    label: `withoutGenerics(${test.label})`,
+  };
+}
 
 /**
  * "Test" that just logs the constraint system.
