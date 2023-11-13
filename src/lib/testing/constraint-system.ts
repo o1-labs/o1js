@@ -25,6 +25,7 @@ export {
   withoutGenerics,
   print,
   repeat,
+  ConstraintSystemTest,
 };
 
 type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
@@ -44,7 +45,7 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
   label: string,
   inputs: { from: In },
   main: (...args: CsParams<In>) => void,
-  csTest: CsTest
+  csTest: ConstraintSystemTest
 ) {
   // create random generators
   let types = inputs.from.map(provable);
@@ -82,19 +83,23 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
 
 // DSL for writing tests
 
-type CsTestBase = {
+type ConstraintSystemTestBase = {
   run: (cs: Gate[], inputs: TypeAndValue<any>[]) => boolean;
   label: string;
 };
-type Base = { kind?: undefined } & CsTestBase;
-type Not = { kind: 'not' } & CsTestBase;
-type And = { kind: 'and'; tests: CsTest[]; label: string };
-type Or = { kind: 'or'; tests: CsTest[]; label: string };
-type CsTest = Base | Not | And | Or;
+type Base = { kind?: undefined } & ConstraintSystemTestBase;
+type Not = { kind: 'not' } & ConstraintSystemTestBase;
+type And = { kind: 'and'; tests: ConstraintSystemTest[]; label: string };
+type Or = { kind: 'or'; tests: ConstraintSystemTest[]; label: string };
+type ConstraintSystemTest = Base | Not | And | Or;
 
 type Result = { ok: boolean; failures: string[] };
 
-function run(test: CsTest, cs: Gate[], inputs: TypeAndValue<any>[]): Result {
+function run(
+  test: ConstraintSystemTest,
+  cs: Gate[],
+  inputs: TypeAndValue<any>[]
+): Result {
   switch (test.kind) {
     case undefined: {
       let ok = test.run(cs, inputs);
@@ -124,26 +129,26 @@ function run(test: CsTest, cs: Gate[], inputs: TypeAndValue<any>[]): Result {
 /**
  * Negate a test.
  */
-function not(test: CsTest): CsTest {
+function not(test: ConstraintSystemTest): ConstraintSystemTest {
   return { kind: 'not', ...test };
 }
 /**
  * Check that all input tests pass.
  */
-function and(...tests: CsTest[]): CsTest {
+function and(...tests: ConstraintSystemTest[]): ConstraintSystemTest {
   return { kind: 'and', tests, label: `and(${tests.map((t) => t.label)})` };
 }
 /**
  * Check that at least one input test passes.
  */
-function or(...tests: CsTest[]): CsTest {
+function or(...tests: ConstraintSystemTest[]): ConstraintSystemTest {
   return { kind: 'or', tests, label: `or(${tests.map((t) => t.label)})` };
 }
 
 /**
  * Test for precise equality of the constraint system with a given list of gates.
  */
-function equals(gates: readonly GateType[]): CsTest {
+function equals(gates: readonly GateType[]): ConstraintSystemTest {
   return {
     run(cs) {
       if (cs.length !== gates.length) return false;
@@ -173,7 +178,7 @@ function equals(gates: readonly GateType[]): CsTest {
  */
 function contains(
   gates: GateType | readonly GateType[] | readonly GateType[][]
-): CsTest {
+): ConstraintSystemTest {
   let expectedGatess = toGatess(gates);
   return {
     run(cs) {
@@ -203,7 +208,7 @@ function contains(
 /**
  * Test whether all inputs are constant.
  */
-const allConstant: CsTest = {
+const allConstant: ConstraintSystemTest = {
   run(cs, inputs) {
     return inputs.every(({ type, value }) =>
       type.toFields(value).every((x) => x.isConstant())
@@ -216,14 +221,14 @@ const allConstant: CsTest = {
  * Modifies a test so that it doesn't fail if all inputs are constant, and instead
  * checks that the constraint system is empty in that case.
  */
-function ifNotAllConstant(test: CsTest): CsTest {
+function ifNotAllConstant(test: ConstraintSystemTest): ConstraintSystemTest {
   return or(test, and(allConstant, isEmpty));
 }
 
 /**
  * Test whether all inputs are constant.
  */
-const isEmpty: CsTest = {
+const isEmpty: ConstraintSystemTest = {
   run(cs) {
     return cs.length === 0;
   },
@@ -233,7 +238,7 @@ const isEmpty: CsTest = {
 /**
  * Modifies a test so that it runs on the constraint system with generic gates filtered out.
  */
-function withoutGenerics(test: CsTest): CsTest {
+function withoutGenerics(test: ConstraintSystemTest): ConstraintSystemTest {
   return {
     run(cs, inputs) {
       return run(
@@ -249,7 +254,7 @@ function withoutGenerics(test: CsTest): CsTest {
 /**
  * "Test" that just logs the constraint system.
  */
-const print: CsTest = {
+const print: ConstraintSystemTest = {
   run(cs) {
     console.log('Constraint system:');
     printGates(cs);
