@@ -542,7 +542,7 @@ async function checkZkappTransaction(txnId: string, blockLength = 20) {
   }
   return {
     success: false,
-    failureReason: `Transaction ${txnId} not found in the latest ${blockLength} blocks.`,
+    failureReason: null,
   };
 }
 
