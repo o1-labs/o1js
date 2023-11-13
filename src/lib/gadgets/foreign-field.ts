@@ -2,7 +2,7 @@ import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
-import { assert, exists } from './common.js';
+import { assert, exists, toVars } from './common.js';
 import { L, lMask, multiRangeCheck, twoL, twoLMask } from './range-check.js';
 
 export { ForeignField, Field3, Sign };
@@ -44,8 +44,8 @@ function sumChain(x: Field3[], sign: Sign[], f: bigint) {
     let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
     return ForeignField.from(mod(sum, f));
   }
-
   // provable case - create chain of ffadd rows
+  x = x.map(toVars);
   let result = x[0];
   for (let i = 0; i < sign.length; i++) {
     ({ result } = singleAdd(result, x[i + 1], sign[i], f));
