@@ -1,8 +1,6 @@
-import type { Gate } from '../../snarky.js';
 import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../../lib/core.js';
 import { ZkProgram } from '../proof_system.js';
-import { Provable } from '../provable.js';
 import {
   Spec,
   boolean,
@@ -10,12 +8,12 @@ import {
   fieldWithRng,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/property.js';
-import { assert, exists } from './common.js';
+import { assert } from './common.js';
 import { Gadgets } from './gadgets.js';
 import { L } from './range-check.js';
-import { expect } from 'expect';
 import {
   constraintSystem,
+  contains,
   equals,
   ifNotAllConstant,
   withoutGenerics,
@@ -36,28 +34,29 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
 // constraint system sanity check
 
 constraintSystem(
+  'range check 64',
   { from: [Field] },
-  (x) => Gadgets.rangeCheck64(x),
+  Gadgets.rangeCheck64,
   ifNotAllConstant(withoutGenerics(equals(['RangeCheck0'])))
 );
 
-function csWithoutGenerics(gates: Gate[]) {
-  return gates.map((g) => g.type).filter((type) => type !== 'Generic');
-}
+constraintSystem(
+  'multi-range check',
+  { from: [Field, Field, Field] },
+  (x, y, z) => Gadgets.multiRangeCheck([x, y, z]),
+  ifNotAllConstant(
+    contains(['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'])
+  )
+);
 
-let multi = Provable.constraintSystem(() => {
-  let x = exists(3, () => [0n, 0n, 0n]);
-  Gadgets.multiRangeCheck(x);
-});
-let compact = Provable.constraintSystem(() => {
-  let [xy, z] = exists(2, () => [0n, 0n]);
-  Gadgets.compactMultiRangeCheck(xy, z);
-});
-
-let expectedLayoutMulti = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
-
-expect(csWithoutGenerics(multi.gates)).toEqual(expectedLayoutMulti);
-expect(csWithoutGenerics(compact.gates)).toEqual(expectedLayoutMulti);
+constraintSystem(
+  'compact multi-range check',
+  { from: [Field, Field] },
+  Gadgets.compactMultiRangeCheck,
+  ifNotAllConstant(
+    contains(['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'])
+  )
+);
 
 // TODO: make a ZkFunction or something that doesn't go through Pickles
 // --------------------------
