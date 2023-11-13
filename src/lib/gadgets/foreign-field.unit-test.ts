@@ -1,7 +1,7 @@
 import type { FiniteField } from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import {
-  Spec,
+  ProvableSpec,
   array,
   equivalentAsync,
   equivalentProvable,
@@ -16,10 +16,20 @@ import { Field } from '../field.js';
 import { provablePure } from '../circuit_value.js';
 import { TupleN } from '../util/types.js';
 import { assert } from './common.js';
+import {
+  and,
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
+import { GateType } from '../../snarky.js';
 
 const Field3_ = provablePure([Field, Field, Field] as TupleN<typeof Field, 3>);
 
-function foreignField(F: FiniteField): Spec<bigint, Field3> {
+function foreignField(F: FiniteField): ProvableSpec<bigint, Field3> {
   let rng = Random.otherField(F);
   return {
     rng,
@@ -74,13 +84,29 @@ for (let F of fields) {
   );
 }
 
-// tests with proving
+// tests for constraint system
 
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
-
 let chainLength = 5;
-let signs = [-1n, 1n, -1n, -1n] satisfies Sign[];
+let signs = [1n, -1n, -1n, 1n] satisfies Sign[];
+
+let addChain = repeat(chainLength - 1, 'ForeignFieldAdd').concat('Zero');
+let mrc: GateType[] = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
+
+constraintSystem(
+  'foreign field sum chain',
+  { from: [array(f, chainLength)] },
+  (xs) => ForeignField.sumChain(xs, signs, F.modulus),
+  ifNotAllConstant(
+    and(
+      contains([addChain, mrc]),
+      withoutGenerics(equals([...addChain, ...mrc]))
+    )
+  )
+);
+
+// tests with proving
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
