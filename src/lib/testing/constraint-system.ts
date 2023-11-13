@@ -38,6 +38,7 @@ export {
  *
  * The `constraintSystemTest` is written using a DSL of property assertions, such as {@link equals} and {@link contains}.
  * To run multiple assertions, use the {@link and} / {@link or} combinators.
+ * To debug the constraint system, use the {@link print} test or `and(print, ...otherTests)`.
  *
  * @param label description of the constraint system
  * @param inputs input spec in form `{ from: [...provables] }`
@@ -255,7 +256,7 @@ function withoutGenerics(test: ConstraintSystemTest): ConstraintSystemTest {
 }
 
 /**
- * "Test" that just logs the constraint system.
+ * "Test" that just pretty-prints the constraint system.
  */
 const print: ConstraintSystemTest = {
   run(cs) {
