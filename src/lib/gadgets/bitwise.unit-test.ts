@@ -9,6 +9,16 @@ import { Fp, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
+import {
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  and,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
+import { GateType } from '../../snarky.js';
 
 const maybeField = {
   ...field,
@@ -182,4 +192,64 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
     let proof = await Bitwise.rightShift(x);
     return proof.publicOutput;
   }
+);
+
+// check that gate chains stay intact
+
+function xorChain(bits: number) {
+  return repeat(Math.ceil(bits / 16), 'Xor16').concat('Zero');
+}
+
+constraintSystem(
+  'xor',
+  { from: [Field, Field] },
+  Bitwise.rawMethods.xor,
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem(
+  'not checked',
+  { from: [Field] },
+  Bitwise.rawMethods.notChecked,
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem(
+  'not unchecked',
+  { from: [Field] },
+  Bitwise.rawMethods.notUnchecked,
+  ifNotAllConstant(contains('Generic'))
+);
+
+constraintSystem(
+  'and',
+  { from: [Field, Field] },
+  Bitwise.rawMethods.and,
+  ifNotAllConstant(contains(xorChain(64)))
+);
+
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0', 'RangeCheck0'];
+let isJustRotate = ifNotAllConstant(
+  and(contains(rotChain), withoutGenerics(equals(rotChain)))
+);
+
+constraintSystem(
+  'rotate',
+  { from: [Field] },
+  Bitwise.rawMethods.rot,
+  isJustRotate
+);
+
+constraintSystem(
+  'left shift',
+  { from: [Field] },
+  Bitwise.rawMethods.leftShift,
+  isJustRotate
+);
+
+constraintSystem(
+  'right shift',
+  { from: [Field] },
+  Bitwise.rawMethods.rightShift,
+  isJustRotate
 );

@@ -1,6 +1,6 @@
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
-import { bitSlice, exists } from './common.js';
+import { bitSlice, exists, toVar, toVars } from './common.js';
 
 export {
   rangeCheck64,
@@ -73,10 +73,13 @@ function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
     }
     return;
   }
+  // ensure we are using pure variables
+  [x, y, z] = toVars([x, y, z]);
+  let zero = toVar(0n);
 
   let [x64, x76] = rangeCheck0Helper(x);
   let [y64, y76] = rangeCheck0Helper(y);
-  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: new Field(0) });
+  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: zero });
 }
 
 /**
@@ -97,6 +100,8 @@ function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
     let [x, y] = splitCompactLimb(xy.toBigInt());
     return [new Field(x), new Field(y), z];
   }
+  // ensure we are using pure variables
+  [xy, z] = toVars([xy, z]);
 
   let [x, y] = exists(2, () => splitCompactLimb(xy.toBigInt()));
 

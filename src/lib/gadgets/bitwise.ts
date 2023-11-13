@@ -8,6 +8,7 @@ import {
   witnessSlice,
   witnessNextValue,
   divideWithRemainder,
+  toVar,
 } from './common.js';
 import { rangeCheck64 } from './range-check.js';
 
@@ -37,18 +38,12 @@ function not(a: Field, length: number, checked: boolean = false) {
   }
 
   // create a bitmask with all ones
-  let allOnesF = new Field(2n ** BigInt(length) - 1n);
-
-  let allOnes = Provable.witness(Field, () => {
-    return allOnesF;
-  });
-
-  allOnesF.assertEquals(allOnes);
+  let allOnes = new Field(2n ** BigInt(length) - 1n);
 
   if (checked) {
     return xor(a, allOnes, length);
   } else {
-    return allOnes.sub(a);
+    return allOnes.sub(a).seal();
   }
 }
 
@@ -251,6 +246,10 @@ function rot(
       return [rotated, excess, shifted, bound].map(Field.from);
     }
   );
+
+  // flush zero var to prevent broken gate chain (zero is used in rangeCheck64)
+  // TODO this is an abstraction leak, but not clear to me how to improve
+  toVar(0n);
 
   // Compute current row
   Gates.rotate(
