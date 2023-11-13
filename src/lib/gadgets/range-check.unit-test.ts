@@ -14,6 +14,12 @@ import { assert, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
 import { L } from './range-check.js';
 import { expect } from 'expect';
+import {
+  constraintSystem,
+  equals,
+  ifNotAllConstant,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   let uint = Random.bignat((1n << BigInt(n)) - 1n);
@@ -29,14 +35,16 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
 
 // constraint system sanity check
 
+constraintSystem(
+  { from: [Field] },
+  (x) => Gadgets.rangeCheck64(x),
+  ifNotAllConstant(withoutGenerics(equals(['RangeCheck0'])))
+);
+
 function csWithoutGenerics(gates: Gate[]) {
   return gates.map((g) => g.type).filter((type) => type !== 'Generic');
 }
 
-let check64 = Provable.constraintSystem(() => {
-  let [x] = exists(1, () => [0n]);
-  Gadgets.rangeCheck64(x);
-});
 let multi = Provable.constraintSystem(() => {
   let x = exists(3, () => [0n, 0n, 0n]);
   Gadgets.multiRangeCheck(x);
@@ -46,10 +54,8 @@ let compact = Provable.constraintSystem(() => {
   Gadgets.compactMultiRangeCheck(xy, z);
 });
 
-let expectedLayout64 = ['RangeCheck0'];
 let expectedLayoutMulti = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
 
-expect(csWithoutGenerics(check64.gates)).toEqual(expectedLayout64);
 expect(csWithoutGenerics(multi.gates)).toEqual(expectedLayoutMulti);
 expect(csWithoutGenerics(compact.gates)).toEqual(expectedLayoutMulti);
 
