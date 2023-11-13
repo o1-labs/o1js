@@ -78,13 +78,22 @@ const FieldVar = {
   isConstant(x: FieldVar): x is ConstantFieldVar {
     return x[0] === FieldType.Constant;
   },
-  // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
+    if (FieldVar.isConstant(x) && x[1][1] === 0n) return y;
+    if (FieldVar.isConstant(y) && y[1][1] === 0n) return x;
+    if (FieldVar.isConstant(x) && FieldVar.isConstant(y)) {
+      return FieldVar.constant(Fp.add(x[1][1], y[1][1]));
+    }
     return [FieldType.Add, x, y];
   },
-  // TODO: handle (special) constants
-  scale(c: FieldConst, x: FieldVar): FieldVar {
-    return [FieldType.Scale, c, x];
+  scale(c: bigint | FieldConst, x: FieldVar): FieldVar {
+    let c0 = typeof c === 'bigint' ? FieldConst.fromBigint(c) : c;
+    if (c0[1] === 0n) return FieldVar.constant(0n);
+    if (c0[1] === 1n) return x;
+    if (FieldVar.isConstant(x)) {
+      return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
+    }
+    return [FieldType.Scale, c0, x];
   },
   [0]: [FieldType.Constant, FieldConst[0]] satisfies ConstantFieldVar,
   [1]: [FieldType.Constant, FieldConst[1]] satisfies ConstantFieldVar,
