@@ -37,7 +37,7 @@ This will compile the TypeScript source files, making it ready for use. The comp
 
 If you need to regenerate the OCaml and WebAssembly artifacts, you can do so within the o1js repo. The [bindings](https://github.com/o1-labs/o1js-bindings) and [Mina](https://github.com/MinaProtocol/mina) repos are both submodules of o1js, so you can build them from within the o1js repo.
 
-o1js depends on OCaml code that is transplied to JavaScript using [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml), and Rust code that is transpiled to WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack). These artifacts allow o1js to call into [snarky](https://github.com/o1-labs/snarky) and [Kimchi](https://github.com/o1-labs/proof-systems) to write zk-SNARKs and zkApps.
+o1js depends on OCaml code that is transplied to JavaScript using [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml), and Rust code that is transpiled to WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack). These artifacts allow o1js to call into [Pickles](https://github.com/o1-labs/snarkyhttps://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/README.md), [snarky](https://github.com/o1-labs/snarky), and [Kimchi](https://github.com/o1-labs/proof-systems) to write zk-SNARKs and zkApps.
 
 The compiled artifacts are stored under `src/bindings/compiled`, and are version-controlled to simplify the build process for end-users.
 
@@ -51,11 +51,11 @@ This will build the OCaml and Rust artifacts, and copy them to the `src/bindings
 
 ### OCaml Bindings
 
-The OCaml bindings are located under `src/bindings`, and they specify all of the low-level OCaml code that is exposed to o1js. See the [OCaml Bindings README](https://github.com/o1-labs/o1js-bindings/blob/main/README.md) for more information.
+o1js depends on Pickles, snarky, and parts of the Mina transaction logic, all of which are compiled to JavaScript and stored as artifacts to be used by o1js natively. The OCaml bindings are located under `src/bindings`. See the [OCaml Bindings README](https://github.com/o1-labs/o1js-bindings/blob/main/README.md) for more information.
 
 ### WebAssembly Bindings
 
-The WebAssembly bindings are built using Rust's `wasm-pack`. Ensure you have it installed and configured correctly.
+o1js additionally depends on Kimchi, which is compiled to WebAssembly. Kimchi is located in the Mina repo, under `src/mina`. See the [Kimchi README](https://github.com/o1-labs/proof-systems/blob/master/README.md) for more information.
 
 ## Development
 
