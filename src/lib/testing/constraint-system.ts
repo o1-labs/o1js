@@ -68,8 +68,7 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
 
     if (!ok) {
       console.log('Constraint system:');
-      // TODO nice printed representation of cs
-      console.log(gates);
+      printGates(gates);
 
       throw Error(
         `Constraint system test: ${label}\n\n${failures
@@ -334,4 +333,60 @@ function drawFieldType(): FieldType {
   if (oneOf8 < 6) return FieldType.Constant;
   if (oneOf8 === 6) return FieldType.Scale;
   return FieldType.Add;
+}
+
+// print a constraint system
+
+function printGates(gates: Gate[]) {
+  for (let i = 0, n = gates.length; i < n; i++) {
+    let { type, wires, coeffs } = gates[i];
+    console.log(
+      i.toString().padEnd(4, ' '),
+      type.padEnd(15, ' '),
+      coeffsToPretty(type, coeffs).padEnd(30, ' '),
+      wiresToPretty(wires, i)
+    );
+  }
+  console.log();
+}
+
+let minusRange = Field.ORDER - (1n << 64n);
+
+function coeffsToPretty(type: Gate['type'], coeffs: Gate['coeffs']): string {
+  if (coeffs.length === 0) return '';
+  if (type === 'Generic' && coeffs.length > 5) {
+    let first = coeffsToPretty(type, coeffs.slice(0, 5));
+    let second = coeffsToPretty(type, coeffs.slice(5));
+    return `${first} ${second}`;
+  }
+  if (type === 'Poseidon' && coeffs.length > 3) {
+    return `${coeffsToPretty(type, coeffs.slice(0, 3)).slice(0, -1)} ...]`;
+  }
+  let str = coeffs
+    .map((c) => {
+      let c0 = BigInt(c);
+      if (c0 > minusRange) c0 -= Field.ORDER;
+      let cStr = c0.toString();
+      if (cStr.length > 4) return `${cStr.slice(0, 4)}..`;
+      return cStr;
+    })
+    .join(' ');
+  return `[${str}]`;
+}
+
+function wiresToPretty(wires: Gate['wires'], row: number) {
+  let strWires: string[] = [];
+  let n = wires.length;
+  for (let col = 0; col < n; col++) {
+    let wire = wires[col];
+    if (wire.row === row && wire.col === col) continue;
+    if (wire.row === row) {
+      strWires.push(`${col}->${wire.col}`);
+    } else {
+      let rowDelta = wire.row - row;
+      let rowStr = rowDelta > 0 ? `+${rowDelta}` : `${rowDelta}`;
+      strWires.push(`${col}->(${rowStr},${wire.col})`);
+    }
+  }
+  return strWires.join(', ');
 }
