@@ -54,7 +54,7 @@ function sumChain(x: Field3[], sign: Sign[], f: bigint) {
   Gates.zero(...result);
 
   // range check result
-  multiRangeCheck(...result);
+  multiRangeCheck(result);
 
   return result;
 }
