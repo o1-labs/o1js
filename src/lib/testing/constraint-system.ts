@@ -12,7 +12,7 @@ import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
 
-export { constraintSystem, contains, log };
+export { constraintSystem, not, and, or, contains, allConstant, log };
 
 type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
 type InferCsVar<T> = T extends { provable: Provable<infer U> }
@@ -23,15 +23,14 @@ type InferCsVar<T> = T extends { provable: Provable<infer U> }
 type CsParams<In extends Tuple<CsVarSpec<any>>> = {
   [k in keyof In]: InferCsVar<In[k]>;
 };
-
-type CsTest = { run: (cs: Gate[]) => boolean; label: string };
+type TypeAndValue<T> = { type: Provable<T>; value: T };
 
 // main DSL
 
 function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
   inputs: { from: In },
   main: (...args: CsParams<In>) => void,
-  tests: CsTest[]
+  csTest: CsTest
 ) {
   // create random generators
   let types = inputs.from.map(provable);
@@ -41,7 +40,7 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
     let layouts = args.slice(0, -1);
 
     // compute the constraint system
-    let result = Provable.constraintSystem(() => {
+    let { gates } = Provable.constraintSystem(() => {
       // each random input "layout" has to be instantiated into vars in this circuit
       let values = types.map((type, i) =>
         instantiate(type, layouts[i])
@@ -50,14 +49,13 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
     });
 
     // run tests
-    let failures = tests
-      .map((test) => [test.run(result.gates), test.label] as const)
-      .filter(([ok]) => !ok)
-      .map(([, label]) => label);
+    let typesAndValues = types.map((type, i) => ({ type, value: layouts[i] }));
 
-    if (failures.length > 0) {
+    let { ok, failures } = run(csTest, gates, typesAndValues);
+
+    if (!ok) {
       console.log('Constraint system:');
-      console.log(result.gates);
+      console.log(gates);
 
       let s = failures.length === 1 ? '' : 's';
       throw Error(
@@ -68,6 +66,64 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
 }
 
 // DSL for writing tests
+
+type CsTestBase = {
+  run: (cs: Gate[], inputs: TypeAndValue<any>[]) => boolean;
+  label: string;
+};
+type Base = { kind?: undefined } & CsTestBase;
+type Not = { kind: 'not' } & CsTestBase;
+type And = { kind: 'and'; tests: CsTest[] };
+type Or = { kind: 'or'; tests: CsTest[] };
+type CsTest = Base | Not | And | Or;
+
+type Result = { ok: boolean; failures: string[] };
+
+function run(test: CsTest, cs: Gate[], inputs: TypeAndValue<any>[]): Result {
+  switch (test.kind) {
+    case undefined: {
+      let ok = test.run(cs, inputs);
+      let failures = ok ? [] : [test.label];
+      return { ok, failures };
+    }
+    case 'not': {
+      let ok = test.run(cs, inputs);
+      let failures = ok ? [`not(${test.label})`] : [];
+      return { ok: !ok, failures };
+    }
+    case 'and': {
+      let results = test.tests.map((t) => run(t, cs, inputs));
+      let ok = results.every((r) => r.ok);
+      let failures = results.flatMap((r) => r.failures);
+      return { ok, failures };
+    }
+    case 'or': {
+      let results = test.tests.map((t) => run(t, cs, inputs));
+      let ok = results.some((r) => r.ok);
+      let failures = results.flatMap((r) => r.failures);
+      return { ok, failures };
+    }
+  }
+}
+
+/**
+ * Negate a test.
+ */
+function not(test: CsTest): CsTest {
+  return { kind: 'not', ...test };
+}
+/**
+ * Check that all input tests pass.
+ */
+function and(...tests: CsTest[]): CsTest {
+  return { kind: 'and', tests };
+}
+/**
+ * Check that at least one input test passes.
+ */
+function or(...tests: CsTest[]): CsTest {
+  return { kind: 'or', tests };
+}
 
 /**
  * Test that constraint system contains each of a list of gates consecutively.
@@ -115,6 +171,18 @@ function contains(gates: GateType | GateType[] | GateType[][]): CsTest {
 }
 
 /**
+ * Test whether all inputs are constant.
+ */
+const allConstant: CsTest = {
+  run(cs, inputs) {
+    return inputs.every(({ type, value }) =>
+      type.toFields(value).every((x) => x.isConstant())
+    );
+  },
+  label: 'all inputs constant',
+};
+
+/**
  * "Test" that just logs the constraint system.
  */
 const log: CsTest = {
@@ -160,7 +228,7 @@ function drawFieldVar(): FieldVar {
   let fieldType = drawFieldType();
   switch (fieldType) {
     case FieldType.Constant: {
-      return [FieldType.Constant, [0, 17n]];
+      return FieldVar.constant(17n);
     }
     case FieldType.Var: {
       return [FieldType.Var, 0];
@@ -168,11 +236,11 @@ function drawFieldVar(): FieldVar {
     case FieldType.Add: {
       let x = drawFieldVar();
       let y = drawFieldVar();
-      return [FieldType.Add, x, y];
+      return FieldVar.add(x, y);
     }
     case FieldType.Scale: {
       let x = drawFieldVar();
-      return [FieldType.Scale, [0, 3n], x];
+      return FieldVar.scale(3n, x);
     }
   }
 }
