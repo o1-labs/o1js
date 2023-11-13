@@ -481,8 +481,8 @@ type LastBlockQueryFailureCheckResponse = {
   }[];
 };
 
-const lastBlockQueryFailureCheck = `{
-  bestChain(maxLength: 20) {
+const lastBlockQueryFailureCheck = (length: number) => `{
+  bestChain(maxLength: ${length}) {
     transactions {
       zkappCommands {
         hash
@@ -496,10 +496,11 @@ const lastBlockQueryFailureCheck = `{
 }`;
 
 async function fetchLatestBlockZkappStatus(
+  blockLength: number,
   graphqlEndpoint = networkConfig.minaEndpoint
 ) {
   let [resp, error] = await makeGraphqlRequest(
-    lastBlockQueryFailureCheck,
+    lastBlockQueryFailureCheck(blockLength),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints
   );
@@ -513,9 +514,8 @@ async function fetchLatestBlockZkappStatus(
   return bestChain;
 }
 
-async function checkZkappTransaction(txnId: string) {
-  let bestChainBlocks = await fetchLatestBlockZkappStatus();
-
+async function checkZkappTransaction(txnId: string, blockLength = 20) {
+  let bestChainBlocks = await fetchLatestBlockZkappStatus(blockLength);
   for (let block of bestChainBlocks.bestChain) {
     for (let zkappCommand of block.transactions.zkappCommands) {
       if (zkappCommand.hash === txnId) {
@@ -542,7 +542,7 @@ async function checkZkappTransaction(txnId: string) {
   }
   return {
     success: false,
-    failureReason: null,
+    failureReason: `Transaction ${txnId} not found in the latest ${blockLength} blocks.`,
   };
 }
 
