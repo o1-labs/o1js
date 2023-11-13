@@ -17,10 +17,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e8e7510e1...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/26363465d...HEAD)
+
+> No unreleased changes yet
+
+## [0.14.1](https://github.com/o1-labs/o1js/compare/e8e7510e1...26363465d)
 
 ### Added
 
+- `Gadgets.not()`, new provable method to support bitwise shifting for native field elements. https://github.com/o1-labs/o1js/pull/1198
+- `Gadgets.leftShift() / Gadgets.rightShift()`, new provable method to support bitwise shifting for native field elements. https://github.com/o1-labs/o1js/pull/1194
+- `Gadgets.and()`, new provable method to support bitwise and for native field elements. https://github.com/o1-labs/o1js/pull/1193
 - `Gadgets.multiRangeCheck()` and `Gadgets.compactMultiRangeCheck()`, two building blocks for non-native arithmetic with bigints of size up to 264 bits. https://github.com/o1-labs/o1js/pull/1216
 
 ## [0.14.0](https://github.com/o1-labs/o1js/compare/045faa7...e8e7510e1)

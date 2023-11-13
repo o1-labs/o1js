@@ -176,6 +176,22 @@
         "rows": 15,
         "digest": "b3595a9cc9562d4f4a3a397b6de44971"
       },
+      "notUnchecked": {
+        "rows": 2,
+        "digest": "fa18d403c061ef2be221baeae18ca19d"
+      },
+      "notChecked": {
+        "rows": 17,
+        "digest": "5e01b2cad70489c7bec1546b84ac868d"
+      },
+      "leftShift": {
+        "rows": 7,
+        "digest": "66de39ad3dd5807f760341ec85a6cc41"
+      },
+      "rightShift": {
+        "rows": 7,
+        "digest": "a32264f2d4c3092f30d600fa9506385b"
+      },
       "and": {
         "rows": 19,
         "digest": "647e6fd1852873d1c326ba1cd269cff2"

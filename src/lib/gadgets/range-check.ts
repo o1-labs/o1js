@@ -66,7 +66,7 @@ const twoLMask = (1n << twoL) - 1n;
 /**
  * Asserts that x, y, z \in [0, 2^88)
  */
-function multiRangeCheck(x: Field, y: Field, z: Field) {
+function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
   if (x.isConstant() && y.isConstant() && z.isConstant()) {
     if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
       throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);

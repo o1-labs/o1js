@@ -1,4 +1,3 @@
-import { time } from 'console';
 import fs from 'fs';
 
 export { getProfiler };

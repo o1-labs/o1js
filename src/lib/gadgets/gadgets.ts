@@ -6,7 +6,7 @@ import {
   multiRangeCheck,
   rangeCheck64,
 } from './range-check.js';
-import { rotate, xor, and } from './bitwise.js';
+import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
 import { ForeignField } from './foreign-field.js';
 
@@ -51,9 +51,11 @@ const Gadgets = {
    *
    * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
-   * If the input exceeds 64 bits, the gadget is invalid and does not prove correct execution of the rotation.
+   * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the rotation.
    * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
    *
    * @param field {@link Field} element to rotate.
    * @param bits amount of bits to rotate this {@link Field} element with.
@@ -93,6 +95,8 @@ const Gadgets = {
    *
    * For example, with `length = 2` (`paddedLength = 16`), `xor()` will fail for any input that is larger than `2**16`.
    *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
    * @param a {@link Field} element to compare.
    * @param b {@link Field} element to compare.
    * @param length amount of bits to compare.
@@ -110,6 +114,124 @@ const Gadgets = {
    */
   xor(a: Field, b: Field, length: number) {
     return xor(a, b, length);
+  },
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate only operates over the amount
+   * of bits specified by the `length` parameter.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * The `length` parameter lets you define how many bits to NOT.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints. The operation will fail if the length or the input value is larger than 254.
+   *
+   * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
+   * the {@link Gadgets.xor} gadget is reused with a second argument to be an
+   * all one bitmask the same length. This approach needs as many rows as an XOR would need
+   * for a single negation. If the `checked` parameter is set to `false`, NOT is
+   * implemented as a subtraction of the input from the all one bitmask. This
+   * implementation is returned by default if no `checked` parameter is provided.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // not-ing 4 bits with the unchecked version
+   * let a = Field(0b0101);
+   * let b = Gadgets.not(a,4,false);
+   *
+   * b.assertEquals(0b1010);
+   *
+   * // not-ing 4 bits with the checked version utilizing the xor gadget
+   * let a = Field(0b0101);
+   * let b = Gadgets.not(a,4,true);
+   *
+   * b.assertEquals(0b1010);
+   * ```
+   *
+   * @param a - The value to apply NOT to. The operation will fail if the value is larger than 254.
+   * @param length - The number of bits to be considered for the NOT operation.
+   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
+   * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
+   *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
+   *
+   * @throws Throws an error if the input value exceeds 254 bits.
+   */
+  not(a: Field, length: number, checked: boolean = false) {
+    return not(a, length, checked);
+  },
+
+  /**
+   * Performs a left shift operation on the provided {@link Field} element.
+   * This operation is similar to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   *
+   * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the shift.
+   * Therefore, to safely use `leftShift()`, you need to make sure that the values passed in are range checked to 64 bits.
+   * For example, this can be done with {@link Gadgets.rangeCheck64}.
+   *
+   * @param field {@link Field} element to shift.
+   * @param bits Amount of bits to shift the {@link Field} element to the left. The amount should be between 0 and 64 (or else the shift will fail).
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
+   * const y = Gadgets.leftShift(x, 2); // left shift by 2 bits
+   * y.assertEquals(0b110000); // 48 in binary
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * leftShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * ```
+   */
+  leftShift(field: Field, bits: number) {
+    return leftShift(field, bits);
+  },
+
+  /**
+   * Performs a right shift operation on the provided {@link Field} element.
+   * This is similar to the `>>` shift operation in JavaScript, where bits are moved to the right.
+   * The `rightShift` function utilizes the rotation method internally to implement this operation.
+   *
+   * * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   *
+   * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the shift.
+   * To safely use `rightShift()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
+   *
+   * @param field {@link Field} element to shift.
+   * @param bits Amount of bits to shift the {@link Field} element to the right. The amount should be between 0 and 64 (or else the shift will fail).
+   *
+   * @throws Throws an error if the input value exceeds 64 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
+   * const y = Gadgets.rightShift(x, 2); // right shift by 2 bits
+   * y.assertEquals(0b000011); // 3 in binary
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * rightShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * ```
+   */
+  rightShift(field: Field, bits: number) {
+    return rightShift(field, bits);
   },
   /**
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
@@ -133,11 +255,12 @@ const Gadgets = {
    * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated.
    * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
    *
+   * @example
    * ```typescript
    * let a = Field(3);    // ... 000011
    * let b = Field(5);    // ... 000101
    *
-   * let c = and(a, b, 2);    // ... 000001
+   * let c = Gadgets.and(a, b, 2);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
@@ -155,9 +278,16 @@ const Gadgets = {
    *
    * In particular, the 3x88-bit range check supports bigints up to 264 bits, which in turn is enough
    * to support foreign field multiplication with moduli up to 2^259.
+   *
+   * @example
+   * ```ts
+   * Gadgets.multiRangeCheck([x, y, z]);
+   * ```
+   *
+   * @throws Throws an error if one of the input values exceeds 88 bits.
    */
-  multiRangeCheck(x: Field, y: Field, z: Field) {
-    multiRangeCheck(x, y, z);
+  multiRangeCheck(limbs: [Field, Field, Field]) {
+    multiRangeCheck(limbs);
   },
 
   /**
@@ -172,6 +302,13 @@ const Gadgets = {
    * - proves that x, y, z are all in the range [0, 2^88).
    *
    * The split form [x, y, z] is returned.
+   *
+   * @example
+   * ```ts
+   * let [x, y] = Gadgets.compactMultiRangeCheck([xy, z]);
+   * ```
+   *
+   * @throws Throws an error if `xy` exceeds 2*88 = 176 bits, or if z exceeds 88 bits.
    */
   compactMultiRangeCheck(xy: Field, z: Field) {
     return compactMultiRangeCheck(xy, z);
