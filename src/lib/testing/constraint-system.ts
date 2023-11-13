@@ -23,7 +23,8 @@ export {
   ifNotAllConstant,
   isEmpty,
   withoutGenerics,
-  log,
+  print,
+  repeat,
 };
 
 type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
@@ -142,9 +143,10 @@ function or(...tests: CsTest[]): CsTest {
 /**
  * Test for precise equality of the constraint system with a given list of gates.
  */
-function equals(gates: GateType[]): CsTest {
+function equals(gates: readonly GateType[]): CsTest {
   return {
     run(cs) {
+      if (cs.length !== gates.length) return false;
       return cs.every((g, i) => g.type === gates[i]);
     },
     label: `equals ${JSON.stringify(gates)}`,
@@ -247,14 +249,19 @@ function withoutGenerics(test: CsTest): CsTest {
 /**
  * "Test" that just logs the constraint system.
  */
-const log: CsTest = {
+const print: CsTest = {
   run(cs) {
     console.log('Constraint system:');
-    console.log(cs);
+    printGates(cs);
     return true;
   },
   label: '',
 };
+
+function repeat(n: number, gates: GateType | GateType[]): GateType[] {
+  gates = Array.isArray(gates) ? gates : [gates];
+  return Array<GateType[]>(n).fill(gates).flat();
+}
 
 function toGatess(
   gateTypes: GateType | readonly GateType[] | readonly GateType[][]
