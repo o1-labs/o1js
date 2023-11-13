@@ -67,6 +67,7 @@ function constraintSystem<In extends Tuple<CsVarSpec<any>>>(
 
     if (!ok) {
       console.log('Constraint system:');
+      // TODO nice printed representation of cs
       console.log(gates);
 
       let s = failures.length === 1 ? '' : 's';
@@ -167,7 +168,9 @@ function equals(gates: GateType[]): CsTest {
  * contains([['Rot64', 'RangeCheck0'], ['Rot64', 'RangeCheck0']]])
  * ```
  */
-function contains(gates: GateType | GateType[] | GateType[][]): CsTest {
+function contains(
+  gates: GateType | readonly GateType[] | readonly GateType[][]
+): CsTest {
   let expectedGatess = toGatess(gates);
   return {
     run(cs) {
@@ -253,7 +256,7 @@ const log: CsTest = {
 };
 
 function toGatess(
-  gateTypes: GateType | GateType[] | GateType[][]
+  gateTypes: GateType | readonly GateType[] | readonly GateType[][]
 ): GateType[][] {
   if (typeof gateTypes === 'string') return [[gateTypes]];
   if (Array.isArray(gateTypes[0])) return gateTypes as GateType[][];
