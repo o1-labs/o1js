@@ -13,12 +13,11 @@ import { ForeignField, Field3, Sign } from './foreign-field.js';
 import { ZkProgram } from '../proof_system.js';
 import { Provable } from '../provable.js';
 import { Field } from '../field.js';
-import { ProvableExtended, provable, provablePure } from '../circuit_value.js';
+import { provablePure } from '../circuit_value.js';
 import { TupleN } from '../util/types.js';
 import { assert } from './common.js';
 
 const Field3_ = provablePure([Field, Field, Field] as TupleN<typeof Field, 3>);
-const Sign = provable(BigInt) as ProvableExtended<Sign, string>;
 
 function foreignField(F: FiniteField): Spec<bigint, Field3> {
   let rng = Random.otherField(F);
