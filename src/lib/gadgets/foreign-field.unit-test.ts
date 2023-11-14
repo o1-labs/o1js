@@ -149,6 +149,18 @@ constraintSystem.fromZkProgram(
   )
 );
 
+let mulChain: GateType[] = ['ForeignFieldMul', 'Zero'];
+let mulLayout = ifNotAllConstant(
+  and(
+    contains([mulChain, mrc, mrc, mrc]),
+    withoutGenerics(equals([...mulChain, ...repeat(3, mrc)]))
+  )
+);
+
+constraintSystem.fromZkProgram(ffProgram, 'mul', mulLayout);
+constraintSystem.fromZkProgram(ffProgram, 'inv', mulLayout);
+constraintSystem.fromZkProgram(ffProgram, 'div', mulLayout);
+
 // tests with proving
 
 await ffProgram.compile();
