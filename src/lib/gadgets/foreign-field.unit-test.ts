@@ -84,29 +84,12 @@ for (let F of fields) {
   );
 }
 
-// tests for constraint system
+// setup zk program tests
 
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
 let chainLength = 5;
 let signs = [1n, -1n, -1n, 1n] satisfies Sign[];
-
-let addChain = repeat(chainLength - 1, 'ForeignFieldAdd').concat('Zero');
-let mrc: GateType[] = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
-
-constraintSystem(
-  'foreign field sum chain',
-  { from: [array(f, chainLength)] },
-  (xs) => ForeignField.sumChain(xs, signs, F.modulus),
-  ifNotAllConstant(
-    and(
-      contains([addChain, mrc]),
-      withoutGenerics(equals([...addChain, ...mrc]))
-    )
-  )
-);
-
-// tests with proving
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
@@ -120,6 +103,24 @@ let ffProgram = ZkProgram({
     },
   },
 });
+
+// tests for constraint system
+
+let addChain = repeat(chainLength - 1, 'ForeignFieldAdd').concat('Zero');
+let mrc: GateType[] = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
+
+constraintSystem.fromZkProgram(
+  ffProgram,
+  'sumchain',
+  ifNotAllConstant(
+    and(
+      contains([addChain, mrc]),
+      withoutGenerics(equals([...addChain, ...mrc]))
+    )
+  )
+);
+
+// tests with proving
 
 await ffProgram.compile();
 
