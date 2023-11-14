@@ -2,6 +2,7 @@ import { mod } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
+import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
 import { assert, exists, toVars } from './common.js';
 import { L, lMask, multiRangeCheck, twoL, twoLMask } from './range-check.js';
@@ -14,6 +15,37 @@ type Sign = -1n | 1n;
 
 const ForeignField = {
   // arithmetic
+
+  /**
+   * Foreign field addition: `x + y mod f`
+   *
+   * The modulus `f` does not need to be prime.
+   *
+   * Inputs and outputs are 3-tuples of native Fields.
+   * Each input limb is assumed to be in the range [0, 2^88), and the gadget is invalid if this is not the case.
+   * The result limbs are guaranteed to be in the same range.
+   *
+   * Note:
+   *
+   * @example
+   * ```ts
+   * let x = Provable.witness(ForeignField.provable, () => ForeignField.from(9n));
+   * let y = Provable.witness(ForeignField.provable, () => ForeignField.from(10n));
+   *
+   * let z = ForeignField.add(x, y, 17n);
+   *
+   * Provable.log(z); // ['2', '0', '0'] = limb representation of 2 = 9 + 10 mod 17
+   * ```
+   *
+   * **Warning**: The gadget does not assume that inputs are reduced modulo f,
+   * and does not prove that the result is reduced modulo f.
+   * It only guarantees that the result is in the correct residue class.
+   *
+   * @param x left summand
+   * @param y right summand
+   * @param f modulus
+   * @returns x + y mod f
+   */
   add(x: Field3, y: Field3, f: bigint) {
     return sumChain([x, y], [1n], f);
   },
@@ -29,6 +61,10 @@ const ForeignField = {
   toBigint(x: Field3): bigint {
     return collapse(bigint3(x));
   },
+  /**
+   * Provable<T> interface for `Field3 = [Field, Field, Field]`
+   */
+  provable: provableTuple([Field, Field, Field]),
 };
 
 /**
@@ -101,7 +137,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
 function Field3(x: bigint3): Field3 {
   return Tuple.map(x, (x) => new Field(x));
 }
-Field3.provable = provableTuple([Field, Field, Field]);
+Field3.provable = ForeignField.provable;
 
 function bigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
