@@ -131,9 +131,9 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   let r = compactMultiRangeCheck(r01, r2);
 
   // range check on q and r bounds
-  // TODO: this uses one RC too many.. need global RC stack
+  // TODO: this uses one RC too many.. need global RC stack, or get rid of bounds checks
   let r2Bound = weakBound(r2, f);
-  multiRangeCheck([q2Bound, r2Bound, toVar(0n)]);
+  multiRangeCheck([q2Bound, r2Bound, Field.from(0n)]);
 
   return r;
 }
@@ -160,9 +160,8 @@ function inverse(x: Field3, f: bigint): Field3 {
   multiRangeCheck(xInv);
   // range check on q and xInv bounds
   // TODO: this uses one RC too many.. need global RC stack
-  // TODO: make sure that we can just pass non-vars to multiRangeCheck() to get rid of this
   let xInv2Bound = weakBound(xInv[2], f);
-  multiRangeCheck([q2Bound, xInv2Bound, new Field(0n)]);
+  multiRangeCheck([q2Bound, xInv2Bound, Field.from(0n)]);
 
   // assert r === 1
   r01.assertEquals(1n);
@@ -195,7 +194,7 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
   multiRangeCheck(z);
   // range check on q and result bounds
   let z2Bound = weakBound(z[2], f);
-  multiRangeCheck([q2Bound, z2Bound, new Field(0n)]);
+  multiRangeCheck([q2Bound, z2Bound, Field.from(0n)]);
 
   // check that r === x
   // this means we don't have to range check r
