@@ -50,7 +50,7 @@ The compiled artifacts are stored under `src/bindings/compiled`, and are version
 If you wish to rebuild the OCaml and Rust artifacts, you must be able to build the Mina repo before building the bindings. See the [Mina Dev Readme](https://github.com/MinaProtocol/mina/blob/develop/README-dev.md) for more information. Once you have configured your environment to build Mina, you can build the bindings:
 
 ```sh
-npm run make
+npm run build:bindings
 ```
 
 This will build the OCaml and Rust artifacts, and copy them to the `src/bindings/compiled` directory.
