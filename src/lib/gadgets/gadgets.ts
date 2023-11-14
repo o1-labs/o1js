@@ -316,6 +316,17 @@ const Gadgets = {
 
   /**
    * Gadgets for foreign field operations.
+   *
+   * A _foreign field_ is a finite field different from the native field of the proof system.
+   *
+   * The `ForeignField` namespace exposes operations like modular addition and multiplication,
+   * which work for any finite field of size less than 2^256.
+   *
+   * Foreign field elements are represented as 3 limbs of native field elements.
+   * Each limb holds 88 bits of the total, in little-endian order.
+   *
+   * All `ForeignField` gadgets expect that their input limbs are constrained to the range [0, 2^88).
+   * Range checks on outputs are added by the gadget itself.
    */
   ForeignField,
 };
