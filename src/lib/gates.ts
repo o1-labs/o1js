@@ -1,45 +1,39 @@
 import { Snarky } from '../snarky.js';
-import { FieldVar, FieldConst, type Field } from './field.js';
-import { MlArray } from './ml/base.js';
+import { FieldConst, type Field } from './field.js';
+import { MlArray, MlTuple } from './ml/base.js';
+import { TupleN } from './util/types.js';
 
-export { rangeCheck64, xor, zero, rotate };
+export { rangeCheck0, rangeCheck1, xor, zero, rotate, generic };
 
-/**
- * Asserts that x is at most 64 bits
- */
-function rangeCheck64(x: Field) {
-  let [, x0, x2, x4, x6, x8, x10, x12, x14] = Snarky.exists(8, () => {
-    let xx = x.toBigInt();
-    // crumbs (2-bit limbs)
-    return [
-      0,
-      getBits(xx, 0, 2),
-      getBits(xx, 2, 2),
-      getBits(xx, 4, 2),
-      getBits(xx, 6, 2),
-      getBits(xx, 8, 2),
-      getBits(xx, 10, 2),
-      getBits(xx, 12, 2),
-      getBits(xx, 14, 2),
-    ];
-  });
-  // 12-bit limbs
-  let [, x16, x28, x40, x52] = Snarky.exists(4, () => {
-    let xx = x.toBigInt();
-    return [
-      0,
-      getBits(xx, 16, 12),
-      getBits(xx, 28, 12),
-      getBits(xx, 40, 12),
-      getBits(xx, 52, 12),
-    ];
-  });
+function rangeCheck0(
+  x: Field,
+  xLimbs12: TupleN<Field, 6>,
+  xLimbs2: TupleN<Field, 8>,
+  isCompact: boolean
+) {
   Snarky.gates.rangeCheck0(
     x.value,
-    [0, FieldVar[0], FieldVar[0], x52, x40, x28, x16],
-    [0, x14, x12, x10, x8, x6, x4, x2, x0],
-    // not using compact mode
-    FieldConst[0]
+    MlTuple.mapTo(xLimbs12, (x) => x.value),
+    MlTuple.mapTo(xLimbs2, (x) => x.value),
+    isCompact ? FieldConst[1] : FieldConst[0]
+  );
+}
+
+/**
+ * the rangeCheck1 gate is used in combination with the rangeCheck0,
+ * for doing a 3x88-bit range check
+ */
+function rangeCheck1(
+  v2: Field,
+  v12: Field,
+  vCurr: TupleN<Field, 13>,
+  vNext: TupleN<Field, 15>
+) {
+  Snarky.gates.rangeCheck1(
+    v2.value,
+    v12.value,
+    MlTuple.mapTo(vCurr, (x) => x.value),
+    MlTuple.mapTo(vNext, (x) => x.value)
   );
 }
 
@@ -100,12 +94,39 @@ function xor(
   );
 }
 
-function zero(a: Field, b: Field, c: Field) {
-  Snarky.gates.zero(a.value, b.value, c.value);
+/**
+ * [Generic gate](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=foreignfield#double-generic-gate)
+ * The vanilla PLONK gate that allows us to do operations like:
+ * * addition of two registers (into an output register)
+ * * multiplication of two registers
+ * * equality of a register with a constant
+ *
+ * More generally, the generic gate controls the coefficients (denoted `c_`) in the equation:
+ *
+ * `c_l*l + c_r*r + c_o*o + c_m*l*r + c_c === 0`
+ */
+function generic(
+  coefficients: {
+    left: bigint;
+    right: bigint;
+    out: bigint;
+    mul: bigint;
+    const: bigint;
+  },
+  inputs: { left: Field; right: Field; out: Field }
+) {
+  Snarky.gates.generic(
+    FieldConst.fromBigint(coefficients.left),
+    inputs.left.value,
+    FieldConst.fromBigint(coefficients.right),
+    inputs.right.value,
+    FieldConst.fromBigint(coefficients.out),
+    inputs.out.value,
+    FieldConst.fromBigint(coefficients.mul),
+    FieldConst.fromBigint(coefficients.const)
+  );
 }
 
-function getBits(x: bigint, start: number, length: number) {
-  return FieldConst.fromBigint(
-    (x >> BigInt(start)) & ((1n << BigInt(length)) - 1n)
-  );
+function zero(a: Field, b: Field, c: Field) {
+  Snarky.gates.zero(a.value, b.value, c.value);
 }

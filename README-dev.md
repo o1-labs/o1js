@@ -77,6 +77,8 @@ When working with submodules and various interconnected parts of the stack, ensu
 
 - `develop`: The develop branch is also maintained across all three repositories. It is used for ongoing development, testing new features, and integration work.
 
+o1js is mostly used to write Mina Smart Contracts and must be compatible with the latest Berkeley Testnet, or soon Mainnet.
+
 ### Running Tests
 
 To ensure your changes don't break existing functionality, run the test suite:

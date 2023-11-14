@@ -1,15 +1,31 @@
 import { Provable } from '../provable.js';
-import { Field } from '../field.js';
+import { Field, FieldConst } from '../field.js';
+import { TupleN } from '../util/types.js';
+import { Snarky } from '../../snarky.js';
+import { MlArray } from '../ml/base.js';
 
 const MAX_BITS = 64 as const;
 
 export {
   MAX_BITS,
+  exists,
   assert,
-  witnessSlices,
+  bitSlice,
+  witnessSlice,
   witnessNextValue,
   divideWithRemainder,
 };
+
+function exists<N extends number, C extends () => TupleN<bigint, N>>(
+  n: N,
+  compute: C
+) {
+  let varsMl = Snarky.exists(n, () =>
+    MlArray.mapTo(compute(), FieldConst.fromBigint)
+  );
+  let vars = MlArray.mapFrom(varsMl, (v) => new Field(v));
+  return TupleN.fromArray(n, vars);
+}
 
 function assert(stmt: boolean, message?: string) {
   if (!stmt) {
@@ -17,7 +33,11 @@ function assert(stmt: boolean, message?: string) {
   }
 }
 
-function witnessSlices(f: Field, start: number, length: number) {
+function bitSlice(x: bigint, start: number, length: number) {
+  return (x >> BigInt(start)) & ((1n << BigInt(length)) - 1n);
+}
+
+function witnessSlice(f: Field, start: number, length: number) {
   if (length <= 0) throw Error('Length must be a positive number');
 
   return Provable.witness(Field, () => {
