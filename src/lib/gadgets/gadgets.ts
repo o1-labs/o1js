@@ -286,7 +286,7 @@ const Gadgets = {
    *
    * @throws Throws an error if one of the input values exceeds 88 bits.
    */
-  multiRangeCheck(limbs: [Field, Field, Field]) {
+  multiRangeCheck(limbs: Field3) {
     multiRangeCheck(limbs);
   },
 
@@ -343,6 +343,11 @@ const Gadgets = {
      * let x = Provable.witness(Field3.provable, () => Field3.from(9n));
      * let y = Provable.witness(Field3.provable, () => Field3.from(10n));
      *
+     * // range check x and y
+     * Gadgets.multiRangeCheck(x);
+     * Gadgets.multiRangeCheck(y);
+     *
+     * // compute x + y mod 17
      * let z = ForeignField.add(x, y, 17n);
      *
      * Provable.log(z); // ['2', '0', '0'] = limb representation of 2 = 9 + 10 mod 17
@@ -376,11 +381,14 @@ const Gadgets = {
     },
 
     /**
-     * Foreign field sum: `x[0] + sign[0] * x[1] + ... + sign[n-1] * x[n] mod f`
+     * Foreign field sum: `xs[0] + signs[0] * xs[1] + ... + signs[n-1] * xs[n] mod f`
      *
      * This gadget takes a list of inputs and a list of signs (of size one less than the inputs),
      * and computes a chain of additions or subtractions, depending on the sign.
      * A sign is of type `1n | -1n`, where `1n` represents addition and `-1n` represents subtraction.
+     *
+     * **Note**: For 3 or more inputs, `sum()` uses fewer constraints than a sequence of `add()` and `sub()` calls,
+     * because we can avoid range checks on intermediate results.
      *
      * See {@link ForeignField.add} for assumptions on inputs.
      *
@@ -390,16 +398,16 @@ const Gadgets = {
      * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
      * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
      *
+     * // range check x, y, z
+     * Gadgets.multiRangeCheck(x);
+     * Gadgets.multiRangeCheck(y);
+     * Gadgets.multiRangeCheck(z);
+     *
      * // compute x + y - z mod 17
      * let sum = ForeignField.sum([x, y, z], [1n, -1n], 17n);
      *
      * Provable.log(sum); // ['16', '0', '0'] = limb representation of 16 = 4 + 5 - 10 mod 17
      * ```
-     *
-     * @param xs summands
-     * @param signs
-     * @param f modulus
-     * @returns the sum modulo f
      */
     sum(xs: Field3[], signs: (1n | -1n)[], f: bigint) {
       return ForeignField.sum(xs, signs, f);
