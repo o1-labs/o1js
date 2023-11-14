@@ -3,6 +3,7 @@ import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -204,6 +205,71 @@ class UInt64 extends CircuitValue {
     return new UInt64(z);
   }
 
+  xor(x: UInt64) {
+    return Gadgets.xor(this.value, x.value, 64);
+  }
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 64 bit for UInt64 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   *
+   * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
+   * the {@link Gadgets.xor} gadget is reused with a second argument to be an
+   * all one bitmask the same length. This approach needs as many rows as an XOR would need
+   * for a single negation. If the `checked` parameter is set to `false`, NOT is
+   * implemented as a subtraction of the input from the all one bitmask. This
+   * implementation is returned by default if no `checked` parameter is provided.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits with the unchecked version
+   * let a = UInt64.from(0b0101);
+   * let b = a.not(false);
+   *
+   * b.assertEquals(0b1010);
+   *
+   * // NOTing 4 bits with the checked version utilizing the xor gadget
+   * let a = UInt64(0b0101);
+   * let b = a.not();
+   *
+   * b.assertEquals(0b1010);
+   * ```
+   *
+   * @param a - The value to apply NOT to.
+   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
+   * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
+   *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
+   *
+   */
+  not(checked = true) {
+    return Gadgets.not(this.value, 64, checked);
+  }
+
+  rotate(direction: 'left' | 'right' = 'left') {
+    return Gadgets.rotate(this.value, 64, direction);
+  }
+
+  leftShift() {
+    return Gadgets.leftShift(this.value, 64);
+  }
+
+  rightShift() {
+    return Gadgets.rightShift(this.value, 64);
+  }
+
+  and(x: UInt64) {
+    return Gadgets.and(this.value, x.value, 64);
+  }
   /**
    * @deprecated Use {@link lessThanOrEqual} instead.
    *
