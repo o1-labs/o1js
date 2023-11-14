@@ -205,8 +205,27 @@ class UInt64 extends CircuitValue {
     return new UInt64(z);
   }
 
+  /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt64} element to compare.
+   *
+   * @example
+   * ```ts
+   * let a = UInt64.from(0b0101);
+   * let b = UInt64.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
   xor(x: UInt64) {
-    return Gadgets.xor(this.value, x.value, 64);
+    return Gadgets.xor(this.value, x.value, UInt64.NUM_BITS);
   }
 
   /**
@@ -252,24 +271,112 @@ class UInt64 extends CircuitValue {
    *
    */
   not(checked = true) {
-    return Gadgets.not(this.value, 64, checked);
+    return Gadgets.not(this.value, UInt64.NUM_BITS, checked);
   }
 
-  rotate(direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate(this.value, 64, direction);
+  /**
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
+   *
+   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
+   *
+   * @param bits amount of bits to rotate this {@link UInt64} element with.
+   * @param direction left or right rotation direction.
+   *
+   *
+   * @example
+   * ```ts
+   * const x = UInt64.from(0b001100);
+   * const y = x.rotate(2, 'left');
+   * const z = x.rotate(2, 'right'); // right rotation by 2 bits
+   * y.assertEquals(0b110000);
+   * z.assertEquals(0b000011);
+   * ```
+   */
+  rotate(bits: number, direction: 'left' | 'right' = 'left') {
+    return Gadgets.rotate(this.value, bits, direction);
   }
 
-  leftShift() {
-    return Gadgets.leftShift(this.value, 64);
+  /**
+   * Performs a left shift operation on the provided {@link UInt64} element.
+   * This operation is similar to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * @param bits Amount of bits to shift the {@link UInt64} element to the left. The amount should be between 0 and 64 (or else the shift will fail).
+   *
+   * @example
+   * ```ts
+   * const x = UInt64.from(0b001100); // 12 in binary
+   * const y = x.leftShift(2); // left shift by 2 bits
+   * y.assertEquals(0b110000); // 48 in binary
+   * ```
+   */
+  leftShift(bits: number) {
+    return Gadgets.leftShift(this.value, bits);
   }
 
-  rightShift() {
-    return Gadgets.rightShift(this.value, 64);
+  /**
+   * Performs a left right operation on the provided {@link UInt64} element.
+   * This operation is similar to the `>>` shift operation in JavaScript,
+   * where bits are shifted to the right, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * @param bits Amount of bits to shift the {@link UInt64} element to the right. The amount should be between 0 and 64 (or else the shift will fail).
+   *
+   * @example
+   * ```ts
+   * const x = UInt64.from(0b001100); // 12 in binary
+   * const y = x.rightShift(2); // left shift by 2 bits
+   * y.assertEquals(0b000011); // 48 in binary
+   * ```
+   */
+  rightShift(bits: number) {
+    return Gadgets.rightShift(this.value, bits);
   }
 
+  /**
+   * Bitwise AND gadget on {@link UInt64} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt64.from(3);    // ... 000011
+   * let b = UInt64.from(5);    // ... 000101
+   *
+   * let c = a.and(b, 2);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
   and(x: UInt64) {
-    return Gadgets.and(this.value, x.value, 64);
+    return Gadgets.and(this.value, x.value, UInt64.NUM_BITS);
   }
+
   /**
    * @deprecated Use {@link lessThanOrEqual} instead.
    *
