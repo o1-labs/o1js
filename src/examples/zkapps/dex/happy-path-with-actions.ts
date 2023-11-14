@@ -9,7 +9,7 @@ import {
 } from './dex-with-actions.js';
 import { TokenContract } from './dex.js';
 import { expect } from 'expect';
-import { tic, toc } from '../tictoc.js';
+import { tic, toc } from '../../utils/tic-toc.node.js';
 
 await isReady;
 

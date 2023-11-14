@@ -260,7 +260,7 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: () => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache: Cache }) => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -273,6 +273,20 @@ function ZkProgram<
   };
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
+  privateInputTypes: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['privateInputs'];
+  };
+  rawMethods: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['method'];
+  };
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -281,8 +295,8 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = config.publicInput! ?? Undefined;
-  let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
+  let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
+  let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
 
   let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
@@ -296,11 +310,11 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
-  let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
-  let methodIntfs = keys.map((key) =>
+  let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
   );
-  let methodFunctions = keys.map((key) => methods[key].method);
+  let methodFunctions = methodKeys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
   function analyzeMethods() {
@@ -396,7 +410,7 @@ function ZkProgram<
     }
     return [key, prove];
   }
-  let provers = Object.fromEntries(keys.map(toProver)) as {
+  let provers = Object.fromEntries(methodKeys.map(toProver)) as {
     [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
   };
 
@@ -429,17 +443,33 @@ function ZkProgram<
       compile,
       verify,
       digest,
+      analyzeMethods,
       publicInputType: publicInputType as ProvableOrUndefined<
         Get<StatementType, 'publicInput'>
       >,
       publicOutputType: publicOutputType as ProvableOrVoid<
         Get<StatementType, 'publicOutput'>
       >,
-      analyzeMethods,
+      privateInputTypes: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].privateInputs])
+      ) as any,
+      rawMethods: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].method])
+      ) as any,
     },
     provers
   );
 }
+
+type ZkProgram<
+  S extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  T extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+> = ReturnType<typeof ZkProgram<S, T>>;
 
 let i = 0;
 
@@ -924,6 +954,7 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
+ExperimentalZkProgram.Proof = ZkProgram.Proof;
 
 function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   return withThreadPool(

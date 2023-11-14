@@ -1,6 +1,6 @@
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
-import { bitSlice, exists, toVars } from './common.js';
+import { bitSlice, exists, toVar, toVars } from './common.js';
 
 export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck };
 export { L, L2, L3, lMask, l2Mask };
@@ -60,7 +60,7 @@ const l2Mask = (1n << L2) - 1n;
 /**
  * Asserts that x, y, z \in [0, 2^88)
  */
-function multiRangeCheck(x: Field, y: Field, z: Field) {
+function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
   if (x.isConstant() && y.isConstant() && z.isConstant()) {
     if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
       throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);
@@ -69,10 +69,11 @@ function multiRangeCheck(x: Field, y: Field, z: Field) {
   }
   // ensure we are using pure variables
   [x, y, z] = toVars([x, y, z]);
+  let zero = toVar(0n);
 
   let [x64, x76] = rangeCheck0Helper(x);
   let [y64, y76] = rangeCheck0Helper(y);
-  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: new Field(0) });
+  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: zero });
 }
 
 /**

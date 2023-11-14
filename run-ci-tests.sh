@@ -42,7 +42,7 @@ case $TEST_TYPE in
 
 "Verification Key Regression Check")
   echo "Running Regression checks"
-  ./run ./src/examples/vk_regression.ts --bundle
+  ./run ./tests/vk-regression/vk-regression.ts --bundle
   ;;
 
 "CommonJS test")

@@ -2,7 +2,7 @@
  * benchmark witness generation for an all-mul circuit
  */
 import { Field, Provable, Poseidon } from 'o1js';
-import { tic, toc } from './tic-toc.js';
+import { tic, toc } from '../utils/tic-toc.js';
 
 // parameters
 let nPermutations = 1 << 12; // 2^12 x 11 rows < 2^16 rows, should just fit in a circuit
