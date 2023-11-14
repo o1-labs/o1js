@@ -12,9 +12,6 @@ import { Random } from '../testing/random.js';
 import { ForeignField, Field3, Sign } from './foreign-field.js';
 import { ZkProgram } from '../proof_system.js';
 import { Provable } from '../provable.js';
-import { Field } from '../field.js';
-import { provablePure } from '../circuit_value.js';
-import { TupleN } from '../util/types.js';
 import { assert } from './common.js';
 import {
   and,
@@ -27,15 +24,13 @@ import {
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
 
-const Field3_ = provablePure([Field, Field, Field] as TupleN<typeof Field, 3>);
-
 function foreignField(F: FiniteField): ProvableSpec<bigint, Field3> {
   let rng = Random.otherField(F);
   return {
     rng,
     there: ForeignField.from,
     back: ForeignField.toBigint,
-    provable: Field3_,
+    provable: Field3.provable,
   };
 }
 let sign = fromRandom(Random.oneOf(1n as const, -1n as const));
@@ -93,10 +88,10 @@ let signs = [1n, -1n, -1n, 1n] satisfies Sign[];
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
-  publicOutput: Field3_,
+  publicOutput: Field3.provable,
   methods: {
     sumchain: {
-      privateInputs: [Provable.Array(Field3_, chainLength)],
+      privateInputs: [Provable.Array(Field3.provable, chainLength)],
       method(xs) {
         return ForeignField.sumChain(xs, signs, F.modulus);
       },

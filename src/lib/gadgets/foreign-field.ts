@@ -1,4 +1,5 @@
 import { mod } from '../../bindings/crypto/finite_field.js';
+import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
@@ -100,6 +101,8 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
 function Field3(x: bigint3): Field3 {
   return Tuple.map(x, (x) => new Field(x));
 }
+Field3.provable = provableTuple([Field, Field, Field]);
+
 function bigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
