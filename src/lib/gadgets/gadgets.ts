@@ -340,8 +340,8 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(ForeignField.provable, () => ForeignField.from(9n));
-     * let y = Provable.witness(ForeignField.provable, () => ForeignField.from(10n));
+     * let x = Provable.witness(Field3.provable, () => Field3.from(9n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(10n));
      *
      * let z = ForeignField.add(x, y, 17n);
      *
@@ -386,9 +386,9 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(ForeignField.provable, () => ForeignField.from(4n));
-     * let y = Provable.witness(ForeignField.provable, () => ForeignField.from(5n));
-     * let z = Provable.witness(ForeignField.provable, () => ForeignField.from(10n));
+     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
+     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
      *
      * // compute x + y - z mod 17
      * let sum = ForeignField.sum([x, y, z], [1n, -1n], 17n);
@@ -405,4 +405,18 @@ const Gadgets = {
       return ForeignField.sum(xs, signs, f);
     },
   },
+
+  /**
+   * Helper methods to interact with 3-limb vectors of Fields.
+   *
+   * **Note:** This interface does not contain any provable methods.
+   */
+  Field3,
 };
+
+export namespace Gadgets {
+  /**
+   * A 3-tuple of Fields, representing a 3-limb bigint.
+   */
+  export type Field3 = [Field, Field, Field];
+}

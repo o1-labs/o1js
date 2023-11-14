@@ -2,13 +2,15 @@ import { mod } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
 import { assert, exists, toVars } from './common.js';
 import { L, lMask, multiRangeCheck, twoL, twoLMask } from './range-check.js';
 
 export { ForeignField, Field3, Sign };
 
+/**
+ * A 3-tuple of Fields, representing a 3-limb bigint.
+ */
 type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
@@ -21,18 +23,6 @@ const ForeignField = {
     return sum([x, y], [-1n], f);
   },
   sum,
-
-  // helper methods
-  from(x: bigint): Field3 {
-    return Field3(split(x));
-  },
-  toBigint(x: Field3): bigint {
-    return collapse(bigint3(x));
-  },
-  /**
-   * Provable<T> interface for `Field3 = [Field, Field, Field]`
-   */
-  provable: provableTuple([Field, Field, Field]),
 };
 
 /**
@@ -45,9 +35,9 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
 
   // constant case
   if (x.every((x) => x.every((x) => x.isConstant()))) {
-    let xBig = x.map(ForeignField.toBigint);
+    let xBig = x.map(Field3.toBigint);
     let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
-    return ForeignField.from(mod(sum, f));
+    return Field3.from(mod(sum, f));
   }
   // provable case - create chain of ffadd rows
   x = x.map(toVars);
@@ -102,11 +92,33 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   return { result: [r0, r1, r2] satisfies Field3, overflow };
 }
 
-function Field3(x: bigint3): Field3 {
+const Field3 = {
+  /**
+   * Turn a bigint into a 3-tuple of Fields
+   */
+  from(x: bigint): Field3 {
+    return toField3(split(x));
+  },
+
+  /**
+   * Turn a 3-tuple of Fields into a bigint
+   */
+  toBigint(x: Field3): bigint {
+    return collapse(bigint3(x));
+  },
+
+  /**
+   * Provable<T> interface for `Field3 = [Field, Field, Field]`.
+   *
+   * Note: Witnessing this creates a plain tuple of field elements without any implicit
+   * range checks.
+   */
+  provable: provableTuple([Field, Field, Field]),
+};
+
+function toField3(x: bigint3): Field3 {
   return Tuple.map(x, (x) => new Field(x));
 }
-Field3.provable = ForeignField.provable;
-
 function bigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
