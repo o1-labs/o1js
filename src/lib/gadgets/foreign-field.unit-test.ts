@@ -9,7 +9,7 @@ import {
   record,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
-import { ForeignField, Field3, Sign } from './foreign-field.js';
+import { Gadgets } from './gadgets.js';
 import { ZkProgram } from '../proof_system.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
@@ -24,12 +24,14 @@ import {
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
 
-function foreignField(F: FiniteField): ProvableSpec<bigint, Field3> {
+const { ForeignField, Field3 } = Gadgets;
+
+function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
   let rng = Random.otherField(F);
   return {
     rng,
-    there: ForeignField.from,
-    back: ForeignField.toBigint,
+    there: Field3.from,
+    back: Field3.toBigint,
     provable: Field3.provable,
   };
 }
@@ -57,8 +59,8 @@ for (let F of fields) {
 
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
-    (xs, signs) => sumchain(xs, signs, F),
-    (xs, signs) => ForeignField.sumChain(xs, signs, F.modulus)
+    (xs, signs) => sum(xs, signs, F),
+    (xs, signs) => ForeignField.sum(xs, signs, F.modulus)
   );
 
   // sumchain up to 100
@@ -68,12 +70,12 @@ for (let F of fields) {
     (x0, ts) => {
       let xs = [x0, ...ts.map((t) => t.x)];
       let signs = ts.map((t) => t.sign);
-      return sumchain(xs, signs, F);
+      return sum(xs, signs, F);
     },
     (x0, ts) => {
       let xs = [x0, ...ts.map((t) => t.x)];
       let signs = ts.map((t) => t.sign);
-      return ForeignField.sumChain(xs, signs, F.modulus);
+      return ForeignField.sum(xs, signs, F.modulus);
     },
     'sumchain'
   );
@@ -84,7 +86,7 @@ for (let F of fields) {
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
 let chainLength = 5;
-let signs = [1n, -1n, -1n, 1n] satisfies Sign[];
+let signs = [1n, -1n, -1n, 1n] satisfies (-1n | 1n)[];
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
@@ -93,7 +95,7 @@ let ffProgram = ZkProgram({
     sumchain: {
       privateInputs: [Provable.Array(Field3.provable, chainLength)],
       method(xs) {
-        return ForeignField.sumChain(xs, signs, F.modulus);
+        return ForeignField.sum(xs, signs, F.modulus);
       },
     },
   },
@@ -120,7 +122,7 @@ constraintSystem.fromZkProgram(
 await ffProgram.compile();
 
 await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 5 })(
-  (xs) => sumchain(xs, signs, F),
+  (xs) => sum(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
     assert(await ffProgram.verify(proof), 'verifies');
@@ -131,7 +133,7 @@ await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 5 })(
 
 // helper
 
-function sumchain(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
+function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
   let sum = xs[0];
   for (let i = 0; i < signs.length; i++) {
     sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
