@@ -14,45 +14,13 @@ type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
 
 const ForeignField = {
-  // arithmetic
-
-  /**
-   * Foreign field addition: `x + y mod f`
-   *
-   * The modulus `f` does not need to be prime.
-   *
-   * Inputs and outputs are 3-tuples of native Fields.
-   * Each input limb is assumed to be in the range [0, 2^88), and the gadget is invalid if this is not the case.
-   * The result limbs are guaranteed to be in the same range.
-   *
-   * Note:
-   *
-   * @example
-   * ```ts
-   * let x = Provable.witness(ForeignField.provable, () => ForeignField.from(9n));
-   * let y = Provable.witness(ForeignField.provable, () => ForeignField.from(10n));
-   *
-   * let z = ForeignField.add(x, y, 17n);
-   *
-   * Provable.log(z); // ['2', '0', '0'] = limb representation of 2 = 9 + 10 mod 17
-   * ```
-   *
-   * **Warning**: The gadget does not assume that inputs are reduced modulo f,
-   * and does not prove that the result is reduced modulo f.
-   * It only guarantees that the result is in the correct residue class.
-   *
-   * @param x left summand
-   * @param y right summand
-   * @param f modulus
-   * @returns x + y mod f
-   */
   add(x: Field3, y: Field3, f: bigint) {
-    return sumChain([x, y], [1n], f);
+    return sum([x, y], [1n], f);
   },
   sub(x: Field3, y: Field3, f: bigint) {
-    return sumChain([x, y], [-1n], f);
+    return sum([x, y], [-1n], f);
   },
-  sumChain,
+  sum,
 
   // helper methods
   from(x: bigint): Field3 {
@@ -72,7 +40,7 @@ const ForeignField = {
  *
  * assumes that inputs are range checked, does range check on the result.
  */
-function sumChain(x: Field3[], sign: Sign[], f: bigint) {
+function sum(x: Field3[], sign: Sign[], f: bigint) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
   // constant case
