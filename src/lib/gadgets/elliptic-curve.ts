@@ -73,6 +73,8 @@ function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   // bounds checks
   multiRangeCheck([mBound, x3Bound, qBound1]);
   multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
+
+  return { x: x3, y: y3 };
 }
 
 function double({ x: x1, y: y1 }: Point, f: bigint) {
@@ -123,13 +125,20 @@ function double({ x: x1, y: y1 }: Point, f: bigint) {
   // bounds checks
   multiRangeCheck([mBound, x3Bound, qBound1]);
   multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
+
+  return { x: x3, y: y3 };
 }
 
 function verifyEcdsa(
   Curve: CurveAffine,
+  IA: point,
   signature: Signature,
   msgHash: Field3,
-  publicKey: Point
+  publicKey: Point,
+  table?: {
+    windowSize: number; // what we called c before
+    multiples?: point[]; // 0, G, 2*G, ..., (2^c-1)*G
+  }
 ) {
   // constant case
   if (
@@ -148,7 +157,45 @@ function verifyEcdsa(
   }
 
   // provable case
-  // TODO
+  // TODO should check that the publicKey is a valid point? probably not
+
+  let { r, s } = signature;
+  let sInv = ForeignField.inv(s, Curve.order);
+  let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
+  let u2 = ForeignField.mul(r, sInv, Curve.order);
+
+  let X = varPlusFixedScalarMul(Curve, IA, u1, publicKey, u2, table);
+
+  // assert that X != IA, and add -IA
+  Point.equal(X, Point.from(IA)).assertFalse();
+  X = add(X, Point.from(Curve.negate(IA)), Curve.order);
+
+  // TODO reduce X.x mod the scalar order
+  Field3.assertEqual(X.x, r);
+}
+
+/**
+ * Scalar mul that we need for ECDSA:
+ *
+ * IA + s*P + t*G,
+ *
+ * where IA is the initial aggregator, P is any point and G is the generator.
+ *
+ * We double both points together and leverage a precomputed table
+ * of size 2^c to avoid all but every cth addition for t*G.
+ */
+function varPlusFixedScalarMul(
+  Curve: CurveAffine,
+  IA: point,
+  s: Field3,
+  P: Point,
+  t: Field3,
+  table?: {
+    windowSize: number; // what we called c before
+    multiples?: point[]; // 0, G, 2*G, ..., (2^c-1)*G
+  }
+): Point {
+  throw Error('TODO');
 }
 
 /**
@@ -207,11 +254,21 @@ function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
 }
 
 const Point = {
+  from({ x, y }: point): Point {
+    return { x: Field3.from(x), y: Field3.from(y) };
+  },
   toBigint({ x, y }: Point): point {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
   isConstant({ x, y }: Point) {
     return Field3.isConstant(x) && Field3.isConstant(y);
+  },
+  assertEqual({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point) {
+    Field3.assertEqual(x1, x2);
+    Field3.assertEqual(y1, y2);
+  },
+  equal({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point) {
+    return Field3.equal(x1, x2).and(Field3.equal(y1, y2));
   },
 };
 
