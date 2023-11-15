@@ -186,7 +186,7 @@ function divide(
   let q2Bound = assertMul(z, y, x, f);
 
   // range check on q and result bounds
-  multiRangeCheck([q2Bound, z2Bound, new Field(0n)]);
+  multiRangeCheck([q2Bound, z2Bound, Field.from(0n)]);
 
   if (!allowZeroOverZero) {
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
@@ -319,9 +319,7 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
-  let f2 = f >> L2;
-  let f2Bound = lMask - f2;
-  return x.add(f2Bound);
+  return x.add(lMask - (f >> L2));
 }
 
 const Field3 = {
