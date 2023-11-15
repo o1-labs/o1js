@@ -1,8 +1,12 @@
-import { inverse, mod } from '../../bindings/crypto/finite_field.js';
+import {
+  FiniteField,
+  inverse,
+  mod,
+} from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
-import { exists } from './common.js';
+import { assert, exists } from './common.js';
 import {
   Field3,
   ForeignField,
@@ -14,6 +18,9 @@ import {
 } from './foreign-field.js';
 import { multiRangeCheck } from './range-check.js';
 import { printGates } from '../testing/constraint-system.js';
+import { sha256 } from 'js-sha256';
+import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
+import { Pallas } from '../../bindings/crypto/elliptic_curve.js';
 
 type Point = { x: Field3; y: Field3 };
 type point = { x: bigint3; y: bigint3; infinity: boolean };
@@ -114,6 +121,34 @@ function double({ x: x1, y: y1 }: Point, f: bigint) {
   multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
 }
 
+/**
+ * For EC scalar multiplication we use an initial point which is subtracted
+ * at the end, to avoid encountering the point at infinity.
+ *
+ * This is a simple hash-to-group algorithm which finds that initial point.
+ * It's important that this point has no known discrete logarithm so that nobody
+ * can create an invalid proof of EC scaling.
+ */
+function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
+  let h = sha256.create();
+  h.update('o1js:ecdsa');
+  let bytes = h.array();
+
+  // bytes represent a 256-bit number
+  // use that as x coordinate
+  let x = F.mod(bytesToBigInt(bytes));
+  let y: bigint | undefined = undefined;
+
+  // increment x until we find a y coordinate
+  while (y === undefined) {
+    // solve y^2 = x^3 + ax + b
+    let x3 = F.mul(F.square(x), x);
+    let y2 = F.add(x3, F.mul(a, x) + b);
+    y = F.sqrt(y2);
+  }
+  return { x: F.mod(x), y, infinity: false };
+}
+
 let csAdd = Provable.constraintSystem(() => {
   let x1 = Provable.witness(Field3.provable, () => Field3.from(0n));
   let x2 = Provable.witness(Field3.provable, () => Field3.from(0n));
@@ -140,3 +175,7 @@ console.log({ digest: csAdd.digest, rows: csAdd.rows });
 
 printGates(csDouble.gates);
 console.log({ digest: csDouble.digest, rows: csDouble.rows });
+
+let point = initialAggregator(exampleFields.Fp, { a: 0n, b: 5n });
+console.log({ point });
+assert(Pallas.isOnCurve(Pallas.fromAffine(point)));
