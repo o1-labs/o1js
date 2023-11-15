@@ -5,9 +5,8 @@ import {
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists, toVars, toVar } from './common.js';
+import { assert, bitSlice, exists, toVars } from './common.js';
 import {
   L,
   lMask,
@@ -156,7 +155,7 @@ function inverse(x: Field3, f: bigint): Field3 {
   multiRangeCheck(xInv);
   let xInv2Bound = weakBound(xInv[2], f);
 
-  let one: [Field, Field] = [Field.from(1n), Field.from(0n)];
+  let one: Field2 = [Field.from(1n), Field.from(0n)];
   let q2Bound = assertMul(x, xInv, one, f);
 
   // range check on q and result bounds
@@ -204,12 +203,7 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
   return z;
 }
 
-function assertMul(
-  x: Field3,
-  y: Field3,
-  xy: Field3 | [Field, Field],
-  f: bigint
-) {
+function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
@@ -219,10 +213,7 @@ function assertMul(
     xy.every((x) => x.isConstant())
   ) {
     let xyExpected = mod(Field3.toBigint(x) * Field3.toBigint(y), f);
-    let xyActual =
-      xy.length === 2
-        ? collapse2(Tuple.map(xy, (x) => x.toBigInt()))
-        : Field3.toBigint(xy);
+    let xyActual = xy.length === 2 ? Field2.toBigint(xy) : Field3.toBigint(xy);
     assert(xyExpected === xyActual, 'Expected xy to be x*y mod f');
     return Field.from(0n);
   }
@@ -354,7 +345,7 @@ const Field3 = {
    * Turn a bigint into a 3-tuple of Fields
    */
   from(x: bigint): Field3 {
-    return toField3(split(x));
+    return Tuple.map(split(x), Field.from);
   },
 
   /**
@@ -373,9 +364,13 @@ const Field3 = {
   provable: provableTuple([Field, Field, Field]),
 };
 
-function toField3(x: bigint3): Field3 {
-  return Tuple.map(x, (x) => new Field(x));
-}
+type Field2 = [Field, Field];
+const Field2 = {
+  toBigint(x: Field2): bigint {
+    return collapse2(Tuple.map(x, (x) => x.toBigInt()));
+  },
+};
+
 function bigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
