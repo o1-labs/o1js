@@ -22,6 +22,7 @@ import { sha256 } from 'js-sha256';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { CurveAffine, Pallas } from '../../bindings/crypto/elliptic_curve.js';
 import { Bool } from '../bool.js';
+import { provable } from '../circuit_value.js';
 
 type Point = { x: Field3; y: Field3 };
 type point = { x: bigint; y: bigint; infinity: boolean };
@@ -131,7 +132,7 @@ function double({ x: x1, y: y1 }: Point, f: bigint) {
 
 function verifyEcdsa(
   Curve: CurveAffine,
-  IA: point,
+  ia: point,
   signature: Signature,
   msgHash: Field3,
   publicKey: Point,
@@ -142,9 +143,9 @@ function verifyEcdsa(
 ) {
   // constant case
   if (
-    Signature.isConstant(signature) &&
+    Provable.isConstant(Signature, signature) &&
     Field3.isConstant(msgHash) &&
-    Point.isConstant(publicKey)
+    Provable.isConstant(Point, publicKey)
   ) {
     let isValid = verifyEcdsaConstant(
       Curve,
@@ -164,14 +165,15 @@ function verifyEcdsa(
   let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
+  let IA = Point.from(ia);
   let X = varPlusFixedScalarMul(Curve, IA, u1, publicKey, u2, table);
 
   // assert that X != IA, and add -IA
-  Point.equal(X, Point.from(IA)).assertFalse();
-  X = add(X, Point.from(Curve.negate(IA)), Curve.order);
+  Provable.equal(Point, X, IA).assertFalse();
+  X = add(X, Point.from(Curve.negate(ia)), Curve.order);
 
   // TODO reduce X.x mod the scalar order
-  Field3.assertEqual(X.x, r);
+  Provable.assertEqual(Field3.provable, X.x, r);
 }
 
 /**
@@ -186,7 +188,7 @@ function verifyEcdsa(
  */
 function varPlusFixedScalarMul(
   Curve: CurveAffine,
-  IA: point,
+  IA: Point,
   s: Field3,
   P: Point,
   t: Field3,
@@ -254,30 +256,19 @@ function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
 }
 
 const Point = {
+  ...provable({ x: Field3.provable, y: Field3.provable }),
   from({ x, y }: point): Point {
     return { x: Field3.from(x), y: Field3.from(y) };
   },
   toBigint({ x, y }: Point): point {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
-  isConstant({ x, y }: Point) {
-    return Field3.isConstant(x) && Field3.isConstant(y);
-  },
-  assertEqual({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point) {
-    Field3.assertEqual(x1, x2);
-    Field3.assertEqual(y1, y2);
-  },
-  equal({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point) {
-    return Field3.equal(x1, x2).and(Field3.equal(y1, y2));
-  },
 };
 
 const Signature = {
+  ...provable({ r: Field3.provable, s: Field3.provable }),
   toBigint({ r, s }: Signature): signature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
-  },
-  isConstant({ s, r }: Signature) {
-    return Field3.isConstant(s) && Field3.isConstant(r);
   },
 };
 
