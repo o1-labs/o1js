@@ -204,21 +204,6 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
 }
 
 function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
-  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
-
-  // constant case
-  if (
-    x.every((x) => x.isConstant()) &&
-    y.every((x) => x.isConstant()) &&
-    xy.every((x) => x.isConstant())
-  ) {
-    let xyExpected = mod(Field3.toBigint(x) * Field3.toBigint(y), f);
-    let xyActual = xy.length === 2 ? Field2.toBigint(xy) : Field3.toBigint(xy);
-    assert(xyExpected === xyActual, 'Expected xy to be x*y mod f');
-    return Field.from(0n);
-  }
-
-  // provable case
   let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
 
   // range check on quotient
