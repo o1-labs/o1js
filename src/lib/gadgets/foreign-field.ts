@@ -17,7 +17,16 @@ import {
   compactMultiRangeCheck,
 } from './range-check.js';
 
-export { ForeignField, Field3, Sign, split, collapse, weakBound, assertMul };
+export {
+  ForeignField,
+  Field3,
+  bigint3,
+  Sign,
+  split,
+  collapse,
+  weakBound,
+  assertMul,
+};
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -38,10 +47,6 @@ const ForeignField = {
   mul: multiply,
   inv: inverse,
   div: divide,
-
-  toBigints<T extends Tuple<Field3>>(...xs: T) {
-    return Tuple.map(xs, Field3.toBigint);
-  },
 };
 
 /**
@@ -347,6 +352,13 @@ const Field3 = {
    */
   toBigint(x: Field3): bigint {
     return collapse(bigint3(x));
+  },
+
+  /**
+   * Turn several 3-tuples of Fields into bigints
+   */
+  toBigints<T extends Tuple<Field3>>(...xs: T) {
+    return Tuple.map(xs, Field3.toBigint);
   },
 
   /**

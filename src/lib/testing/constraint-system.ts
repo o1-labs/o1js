@@ -26,6 +26,7 @@ export {
   withoutGenerics,
   print,
   repeat,
+  printGates,
   ConstraintSystemTest,
 };
 

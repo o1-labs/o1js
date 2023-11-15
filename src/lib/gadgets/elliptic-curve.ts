@@ -14,16 +14,17 @@ import {
   weakBound,
 } from './foreign-field.js';
 import { multiRangeCheck } from './range-check.js';
+import { printGates } from '../testing/constraint-system.js';
 
 type Point = { x: Field3; y: Field3 };
 type point = { x: bigint3; y: bigint3; infinity: boolean };
 
-let { sumChain } = ForeignField;
+let { sum } = ForeignField;
 
 function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
-    let [x1_, x2_, y1_, y2_] = ForeignField.toBigints(x1, x2, y1, y2);
+    let [x1_, x2_, y1_, y2_] = Field3.toBigints(x1, x2, y1, y2);
     let denom = inverse(mod(x1_ - x2_, f), f);
 
     let m = denom !== undefined ? mod((y1_ - y2_) * denom, f) : 0n;
@@ -38,47 +39,45 @@ function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
 
-  multiRangeCheck(...m);
-  multiRangeCheck(...x3);
-  multiRangeCheck(...y3);
+  multiRangeCheck(m);
+  multiRangeCheck(x3);
+  multiRangeCheck(y3);
   let m2Bound = weakBound(m[2], f);
   let x3Bound = weakBound(x3[2], f);
   // we dont need to bounds check y3[2] because it's never one of the inputs to a multiplication
 
   // (x1 - x2)*m = y1 - y2
-  let deltaY = sumChain([y1, y2], [-1n], f, { skipRangeCheck: true });
-  let deltaX = sumChain([x1, x2], [-1n], f, {
+  let deltaY = sum([y1, y2], [-1n], f, { skipRangeCheck: true });
+  let deltaX = sum([x1, x2], [-1n], f, {
     skipRangeCheck: true,
     skipZeroRow: true,
   });
   let qBound1 = assertMul(deltaX, m, deltaY, f);
-  multiRangeCheck(...deltaX);
+  multiRangeCheck(deltaX);
 
   // m^2 = x1 + x2 + x3
-  let xSum = sumChain([x1, x2, x3], [1n, 1n], f, { skipRangeCheck: true });
+  let xSum = sum([x1, x2, x3], [1n, 1n], f, { skipRangeCheck: true });
   let qBound2 = assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let ySum = sumChain([y1, y3], [1n], f, { skipRangeCheck: true });
-  let deltaX1X3 = sumChain([x1, x3], [-1n], f, {
+  let ySum = sum([y1, y3], [1n], f, { skipRangeCheck: true });
+  let deltaX1X3 = sum([x1, x3], [-1n], f, {
     skipRangeCheck: true,
     skipZeroRow: true,
   });
   let qBound3 = assertMul(deltaX1X3, m, ySum, f);
-  multiRangeCheck(...deltaX1X3);
+  multiRangeCheck(deltaX1X3);
 
   // bounds checks
-  multiRangeCheck(m2Bound, x3Bound, qBound1);
-  multiRangeCheck(qBound2, qBound3, Field.from(0n));
+  multiRangeCheck([m2Bound, x3Bound, qBound1]);
+  multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
 }
 
-const Field3_ = provablePure([Field, Field, Field] as TupleN<typeof Field, 3>);
-
 let cs = Provable.constraintSystem(() => {
-  let x1 = Provable.witness(Field3_, () => ForeignField.from(0n));
-  let x2 = Provable.witness(Field3_, () => ForeignField.from(0n));
-  let y1 = Provable.witness(Field3_, () => ForeignField.from(0n));
-  let y2 = Provable.witness(Field3_, () => ForeignField.from(0n));
+  let x1 = Provable.witness(Field3.provable, () => Field3.from(0n));
+  let x2 = Provable.witness(Field3.provable, () => Field3.from(0n));
+  let y1 = Provable.witness(Field3.provable, () => Field3.from(0n));
+  let y2 = Provable.witness(Field3.provable, () => Field3.from(0n));
 
   let g = { x: x1, y: y1 };
   let h = { x: x2, y: y2 };
@@ -86,4 +85,4 @@ let cs = Provable.constraintSystem(() => {
   add(g, h, exampleFields.secp256k1.modulus);
 });
 
-console.log(cs);
+printGates(cs.gates);
