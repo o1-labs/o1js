@@ -1,7 +1,7 @@
 import type { FiniteField } from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import {
-  Spec,
+  ProvableSpec,
   array,
   equivalentAsync,
   equivalentProvable,
@@ -9,26 +9,50 @@ import {
   record,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
-import { ForeignField, Field3, Sign } from './foreign-field.js';
+import { Gadgets } from './gadgets.js';
 import { ZkProgram } from '../proof_system.js';
 import { Provable } from '../provable.js';
-import { Field } from '../field.js';
-import { ProvableExtended, provable, provablePure } from '../circuit_value.js';
-import { TupleN } from '../util/types.js';
 import { assert } from './common.js';
+import {
+  and,
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
+import { GateType } from '../../snarky.js';
 
-const Field3_ = provablePure([Field, Field, Field] as TupleN<typeof Field, 3>);
-const Sign = provable(BigInt) as ProvableExtended<Sign, string>;
+const { ForeignField, Field3 } = Gadgets;
 
-function foreignField(F: FiniteField): Spec<bigint, Field3> {
-  let rng = Random.otherField(F);
+function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
   return {
-    rng,
-    there: ForeignField.from,
-    back: ForeignField.toBigint,
-    provable: Field3_,
+    rng: Random.otherField(F),
+    there: Field3.from,
+    back: Field3.toBigint,
+    provable: Field3.provable,
   };
 }
+
+// for testing with inputs > f
+function unreducedForeignField(
+  maxBits: number,
+  F: FiniteField
+): ProvableSpec<bigint, Gadgets.Field3> {
+  return {
+    rng: Random.bignat(1n << BigInt(maxBits)),
+    there: Field3.from,
+    back: Field3.toBigint,
+    provable: Field3.provable,
+    assertEqual(x, y, message) {
+      // need weak equality here because, while ffadd works on bigints larger than the modulus,
+      // it can't fully reduce them
+      assert(F.equal(x, y), message);
+    },
+  };
+}
+
 let sign = fromRandom(Random.oneOf(1n as const, -1n as const));
 
 let fields = [
@@ -53,7 +77,8 @@ for (let F of fields) {
   eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus), 'mul');
   equivalentProvable({ from: [f], to: f })(
     (x) => F.inverse(x) ?? throwError('no inverse'),
-    (x) => ForeignField.inv(x, F.modulus)
+    (x) => ForeignField.inv(x, F.modulus),
+    'inv'
   );
   eq2(
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
@@ -61,10 +86,45 @@ for (let F of fields) {
     'div'
   );
 
+  // tests with inputs that aren't reduced mod f
+  let big264 = unreducedForeignField(264, F); // this is the max size supported by our range checks / ffadd
+  let big258 = unreducedForeignField(258, F); // rough max size supported by ffmul
+
+  equivalentProvable({ from: [big264, big264], to: big264 })(
+    F.add,
+    (x, y) => ForeignField.add(x, y, F.modulus),
+    'add unreduced'
+  );
+  // subtraction doesn't work with unreduced y because the range check on the result prevents x-y < -f
+  equivalentProvable({ from: [big264, f], to: big264 })(
+    F.sub,
+    (x, y) => ForeignField.sub(x, y, F.modulus),
+    'sub unreduced'
+  );
+  equivalentProvable({ from: [big258, big258], to: f })(
+    F.mul,
+    (x, y) => ForeignField.mul(x, y, F.modulus),
+    'mul unreduced'
+  );
+  equivalentProvable({ from: [big258], to: f })(
+    (x) => F.inverse(x) ?? throwError('no inverse'),
+    (x) => ForeignField.inv(x, F.modulus),
+    'inv unreduced'
+  );
+  // the div() gadget doesn't work with unreduced x because the backwards check (x/y)*y === x fails
+  // and it's not valid with unreduced y because we only assert y != 0, y != f but it can be 2f, 3f, etc.
+  // the combination of inv() and mul() is more flexible (but much more expensive, ~40 vs ~30 constraints)
+  equivalentProvable({ from: [big258, big258], to: f })(
+    (x, y) => F.div(x, y) ?? throwError('no inverse'),
+    (x, y) => ForeignField.mul(x, ForeignField.inv(y, F.modulus), F.modulus),
+    'div unreduced'
+  );
+
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
-    (xs, signs) => sumchain(xs, signs, F),
-    (xs, signs) => ForeignField.sumChain(xs, signs, F.modulus)
+    (xs, signs) => sum(xs, signs, F),
+    (xs, signs) => ForeignField.sum(xs, signs, F.modulus),
+    'sumchain 5'
   );
 
   // sumchain up to 100
@@ -74,52 +134,48 @@ for (let F of fields) {
     (x0, ts) => {
       let xs = [x0, ...ts.map((t) => t.x)];
       let signs = ts.map((t) => t.sign);
-      return sumchain(xs, signs, F);
+      return sum(xs, signs, F);
     },
     (x0, ts) => {
       let xs = [x0, ...ts.map((t) => t.x)];
       let signs = ts.map((t) => t.sign);
-      return ForeignField.sumChain(xs, signs, F.modulus);
+      return ForeignField.sum(xs, signs, F.modulus);
     },
-    'sumchain'
+    'sumchain long'
   );
 }
 
-// tests with proving
+// setup zk program tests
 
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
-
 let chainLength = 5;
-let signs = [-1n, 1n, -1n, -1n] satisfies Sign[];
+let signs = [1n, -1n, -1n, 1n] satisfies (-1n | 1n)[];
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
-  publicOutput: Field3_,
+  publicOutput: Field3.provable,
   methods: {
     sumchain: {
-      privateInputs: [Provable.Array(Field3_, chainLength)],
+      privateInputs: [Provable.Array(Field3.provable, chainLength)],
       method(xs) {
-        return ForeignField.sumChain(xs, signs, F.modulus);
+        return ForeignField.sum(xs, signs, F.modulus);
       },
     },
-
     mul: {
-      privateInputs: [Field3_, Field3_],
+      privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
         return ForeignField.mul(x, y, F.modulus);
       },
     },
-
     inv: {
-      privateInputs: [Field3_],
+      privateInputs: [Field3.provable],
       method(x) {
         return ForeignField.inv(x, F.modulus);
       },
     },
-
     div: {
-      privateInputs: [Field3_, Field3_],
+      privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
         return ForeignField.div(x, y, F.modulus);
       },
@@ -127,12 +183,46 @@ let ffProgram = ZkProgram({
   },
 });
 
-// console.log(ffProgram.analyzeMethods());
+// tests for constraint system
+
+let addChain = repeat(chainLength - 1, 'ForeignFieldAdd').concat('Zero');
+let mrc: GateType[] = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
+
+constraintSystem.fromZkProgram(
+  ffProgram,
+  'sumchain',
+  ifNotAllConstant(
+    and(
+      contains([addChain, mrc]),
+      withoutGenerics(equals([...addChain, ...mrc]))
+    )
+  )
+);
+
+let mulChain: GateType[] = ['ForeignFieldMul', 'Zero'];
+let mulLayout = ifNotAllConstant(
+  and(
+    contains([mulChain, mrc, mrc, mrc, mrc]),
+    withoutGenerics(equals([...mulChain, ...repeat(4, mrc)]))
+  )
+);
+let invLayout = ifNotAllConstant(
+  and(
+    contains([mrc, mulChain, mrc, mrc, mrc]),
+    withoutGenerics(equals([...mrc, ...mulChain, ...repeat(3, mrc)]))
+  )
+);
+
+constraintSystem.fromZkProgram(ffProgram, 'mul', mulLayout);
+constraintSystem.fromZkProgram(ffProgram, 'inv', invLayout);
+constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
+
+// tests with proving
 
 await ffProgram.compile();
 
 await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 3 })(
-  (xs) => sumchain(xs, signs, F),
+  (xs) => sum(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
     assert(await ffProgram.verify(proof), 'verifies');
@@ -163,7 +253,7 @@ await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
 
 // helper
 
-function sumchain(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
+function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
   let sum = xs[0];
   for (let i = 0; i < signs.length; i++) {
     sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);

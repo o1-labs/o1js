@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "keywords": [
@@ -56,7 +56,7 @@
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
-    "dump-vks": "./run src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json",
+    "dump-vks": "./run tests/vk-regression/vk-regression.ts --bundle --dump",
     "format": "prettier --write --ignore-unknown **/*",
     "clean": "rimraf ./dist && rimraf ./src/bindings/compiled/_node_bindings",
     "clean-all": "npm run clean && rimraf ./tests/report && rimraf ./tests/test-artifacts",

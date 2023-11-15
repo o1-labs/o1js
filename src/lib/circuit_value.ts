@@ -4,6 +4,7 @@ import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,
   provablePure,
+  provableTuple,
   HashInput,
   NonMethods,
 } from '../bindings/lib/provable-snarky.js';
@@ -32,6 +33,7 @@ export {
 
 // internal API
 export {
+  provableTuple,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,

@@ -2,10 +2,11 @@ import {
   inverse as modInverse,
   mod,
 } from '../../bindings/crypto/finite_field.js';
+import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists, toVar } from './common.js';
+import { assert, bitSlice, exists, toVars } from './common.js';
 import {
   L,
   lMask,
@@ -16,50 +17,30 @@ import {
   compactMultiRangeCheck,
 } from './range-check.js';
 
-export {
-  ForeignField,
-  Field3,
-  bigint3,
-  Sign,
-  split,
-  collapse,
-  weakBound,
-  assertMul,
-};
+export { ForeignField, Field3, Sign, split, collapse, weakBound, assertMul };
 
+/**
+ * A 3-tuple of Fields, representing a 3-limb bigint.
+ */
 type Field3 = [Field, Field, Field];
 type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
 
 const ForeignField = {
-  // arithmetic
   add(x: Field3, y: Field3, f: bigint) {
-    return sumChain([x, y], [1n], f);
+    return sum([x, y], [1n], f);
   },
   sub(x: Field3, y: Field3, f: bigint) {
-    return sumChain([x, y], [-1n], f);
+    return sum([x, y], [-1n], f);
   },
-  sumChain,
+  sum,
 
-  mul(x: Field3, y: Field3, f: bigint) {
-    return multiply(x, y, f);
-  },
-  inv(x: Field3, f: bigint) {
-    return inverse(x, f);
-  },
-  div(x: Field3, y: Field3, f: bigint, { allowZeroOverZero = false } = {}) {
-    return divide(x, y, f, allowZeroOverZero);
-  },
+  mul: multiply,
+  inv: inverse,
+  div: divide,
 
-  // helper methods
-  from(x: bigint): Field3 {
-    return Field3(split(x));
-  },
-  toBigint(x: Field3): bigint {
-    return collapse(bigint3(x));
-  },
   toBigints<T extends Tuple<Field3>>(...xs: T) {
-    return Tuple.map(xs, ForeignField.toBigint);
+    return Tuple.map(xs, Field3.toBigint);
   },
 };
 
@@ -68,7 +49,7 @@ const ForeignField = {
  *
  * assumes that inputs are range checked, does range check on the result.
  */
-function sumChain(
+function sum(
   x: Field3[],
   sign: Sign[],
   f: bigint,
@@ -78,12 +59,12 @@ function sumChain(
 
   // constant case
   if (x.every((x) => x.every((x) => x.isConstant()))) {
-    let xBig = x.map(ForeignField.toBigint);
+    let xBig = x.map(Field3.toBigint);
     let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
-    return ForeignField.from(mod(sum, f));
+    return Field3.from(mod(sum, f));
   }
-
   // provable case - create chain of ffadd rows
+  x = x.map(toVars);
   let result = x[0];
   for (let i = 0; i < sign.length; i++) {
     ({ result } = singleAdd(result, x[i + 1], sign[i], f));
@@ -92,7 +73,7 @@ function sumChain(
   if (!skipZeroRow) Gates.zero(...result);
 
   // range check result
-  if (!skipRangeCheck) multiRangeCheck(...result);
+  if (!skipRangeCheck) multiRangeCheck(result);
 
   return result;
 }
@@ -140,49 +121,23 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
 
   // constant case
   if (a.every((x) => x.isConstant()) && b.every((x) => x.isConstant())) {
-    let ab = ForeignField.toBigint(a) * ForeignField.toBigint(b);
-    return ForeignField.from(mod(ab, f));
+    let ab = Field3.toBigint(a) * Field3.toBigint(b);
+    return Field3.from(mod(ab, f));
   }
 
   // provable case
   let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(a, b, f);
 
   // limb range checks on quotient and remainder
-  multiRangeCheck(...q);
+  multiRangeCheck(q);
   let r = compactMultiRangeCheck(r01, r2);
 
   // range check on q and r bounds
-  // TODO: this uses one RC too many.. need global RC stack
+  // TODO: this uses one RC too many.. need global RC stack, or get rid of bounds checks
   let r2Bound = weakBound(r2, f);
-  multiRangeCheck(q2Bound, r2Bound, toVar(0n));
+  multiRangeCheck([q2Bound, r2Bound, Field.from(0n)]);
 
   return r;
-}
-
-function assertMul(x: Field3, y: Field3, xy: Field3, f: bigint) {
-  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
-
-  // constant case
-  if (
-    x.every((x) => x.isConstant()) &&
-    y.every((x) => x.isConstant()) &&
-    xy.every((x) => x.isConstant())
-  ) {
-    let xy_ = mod(ForeignField.toBigint(x) * ForeignField.toBigint(y), f);
-    assert(xy_ === ForeignField.toBigint(xy), 'Expected xy to be x*y mod f');
-    return Field.from(0n);
-  }
-
-  // provable case
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
-  let xy01 = xy[0].add(xy[1].mul(1n << L));
-  r01.assertEquals(xy01);
-  r2.assertEquals(xy[2]);
-
-  // range check on quotient
-  multiRangeCheck(...q);
-
-  return q2Bound;
 }
 
 function inverse(x: Field3, f: bigint): Field3 {
@@ -190,65 +145,57 @@ function inverse(x: Field3, f: bigint): Field3 {
 
   // constant case
   if (x.every((x) => x.isConstant())) {
-    let xInv = modInverse(ForeignField.toBigint(x), f);
+    let xInv = modInverse(Field3.toBigint(x), f);
     assert(xInv !== undefined, 'inverse exists');
-    return ForeignField.from(xInv);
+    return Field3.from(xInv);
   }
 
   // provable case
   let xInv = exists(3, () => {
-    let xInv = modInverse(ForeignField.toBigint(x), f);
+    let xInv = modInverse(Field3.toBigint(x), f);
     return xInv === undefined ? [0n, 0n, 0n] : split(xInv);
   });
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, xInv, f);
-
-  // limb range checks on quotient and inverse
-  multiRangeCheck(...q);
-  multiRangeCheck(...xInv);
-  // range check on q and xInv bounds
-  // TODO: this uses one RC too many.. need global RC stack
-  // TODO: make sure that we can just pass non-vars to multiRangeCheck() to get rid of this
+  multiRangeCheck(xInv);
   let xInv2Bound = weakBound(xInv[2], f);
-  multiRangeCheck(q2Bound, xInv2Bound, new Field(0n));
 
-  // assert r === 1
-  r01.assertEquals(1n);
-  r2.assertEquals(0n);
+  let one: Field2 = [Field.from(1n), Field.from(0n)];
+  let q2Bound = assertMul(x, xInv, one, f);
+
+  // range check on q and result bounds
+  // TODO: this uses one RC too many.. need global RC stack
+  multiRangeCheck([q2Bound, xInv2Bound, Field.from(0n)]);
 
   return xInv;
 }
 
-function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
+function divide(
+  x: Field3,
+  y: Field3,
+  f: bigint,
+  { allowZeroOverZero = false } = {}
+) {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
   if (x.every((x) => x.isConstant()) && y.every((x) => x.isConstant())) {
-    let yInv = modInverse(ForeignField.toBigint(y), f);
+    let yInv = modInverse(Field3.toBigint(y), f);
     assert(yInv !== undefined, 'inverse exists');
-    return ForeignField.from(mod(ForeignField.toBigint(x) * yInv, f));
+    return Field3.from(mod(Field3.toBigint(x) * yInv, f));
   }
 
   // provable case
   // to show that z = x/y, we prove that z*y = x and y != 0 (the latter avoids the unconstrained 0/0 case)
   let z = exists(3, () => {
-    let yInv = modInverse(ForeignField.toBigint(y), f);
+    let yInv = modInverse(Field3.toBigint(y), f);
     if (yInv === undefined) return [0n, 0n, 0n];
-    return split(mod(ForeignField.toBigint(x) * yInv, f));
+    return split(mod(Field3.toBigint(x) * yInv, f));
   });
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(z, y, f);
-
-  // limb range checks on quotient and result
-  multiRangeCheck(...q);
-  multiRangeCheck(...z);
-  // range check on q and result bounds
+  multiRangeCheck(z);
   let z2Bound = weakBound(z[2], f);
-  multiRangeCheck(q2Bound, z2Bound, new Field(0n));
+  let q2Bound = assertMul(z, y, x, f);
 
-  // check that r === x
-  // this means we don't have to range check r
-  let x01 = x[0].add(x[1].mul(1n << L));
-  r01.assertEquals(x01);
-  r2.assertEquals(x[2]);
+  // range check on q and result bounds
+  multiRangeCheck([q2Bound, z2Bound, Field.from(0n)]);
 
   if (!allowZeroOverZero) {
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
@@ -262,6 +209,28 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
   }
 
   return z;
+}
+
+/**
+ * Common logic for gadgets that expect a certain multiplication result instead of just using the remainder.
+ */
+function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
+  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
+
+  // range check on quotient
+  multiRangeCheck(q);
+
+  // bind remainder to input xy
+  if (xy.length === 2) {
+    let [xy01, xy2] = xy;
+    r01.assertEquals(xy01);
+    r2.assertEquals(xy2);
+  } else {
+    let xy01 = xy[0].add(xy[1].mul(1n << L));
+    r01.assertEquals(xy01);
+    r2.assertEquals(xy[2]);
+  }
+  return q2Bound;
 }
 
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
@@ -355,18 +324,47 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     negForeignFieldModulus: [f_0, f_1, f_2],
   });
 
+  // multi-range check on intermediate values
+  multiRangeCheck([c0, p10, p110]);
+
   return { r01, r2, q, q2Bound };
 }
 
 function weakBound(x: Field, f: bigint) {
-  let f2 = f >> L2;
-  let f2Bound = (1n << L) - f2 - 1n;
-  return x.add(f2Bound);
+  return x.add(lMask - (f >> L2));
 }
 
-function Field3(x: bigint3): Field3 {
-  return Tuple.map(x, (x) => new Field(x));
-}
+const Field3 = {
+  /**
+   * Turn a bigint into a 3-tuple of Fields
+   */
+  from(x: bigint): Field3 {
+    return Tuple.map(split(x), Field.from);
+  },
+
+  /**
+   * Turn a 3-tuple of Fields into a bigint
+   */
+  toBigint(x: Field3): bigint {
+    return collapse(bigint3(x));
+  },
+
+  /**
+   * Provable<T> interface for `Field3 = [Field, Field, Field]`.
+   *
+   * Note: Witnessing this creates a plain tuple of field elements without any implicit
+   * range checks.
+   */
+  provable: provableTuple([Field, Field, Field]),
+};
+
+type Field2 = [Field, Field];
+const Field2 = {
+  toBigint(x: Field2): bigint {
+    return collapse2(Tuple.map(x, (x) => x.toBigInt()));
+  },
+};
+
 function bigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }

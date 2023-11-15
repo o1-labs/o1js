@@ -253,6 +253,14 @@ function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
 // spec combinators
 
 function array<T, S>(
+  spec: ProvableSpec<T, S>,
+  n: number
+): ProvableSpec<T[], S[]>;
+function array<T, S>(
+  spec: Spec<T, S>,
+  n: Random<number> | number
+): Spec<T[], S[]>;
+function array<T, S>(
   spec: Spec<T, S>,
   n: Random<number> | number
 ): Spec<T[], S[]> {
@@ -260,6 +268,10 @@ function array<T, S>(
     rng: Random.array(spec.rng, n),
     there: (x) => x.map(spec.there),
     back: (x) => x.map(spec.back),
+    provable:
+      typeof n === 'number' && spec.provable
+        ? Provable.Array(spec.provable, n)
+        : undefined,
   };
 }
 
