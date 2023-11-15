@@ -17,7 +17,7 @@ import {
   compactMultiRangeCheck,
 } from './range-check.js';
 
-export { ForeignField, Field3, bigint3, Sign };
+export { ForeignField, Field3, Sign };
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -202,6 +202,9 @@ function divide(
   return z;
 }
 
+/**
+ * Common logic for gadgets that expect a certain multiplication result instead of just using the remainder.
+ */
 function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
   let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
 

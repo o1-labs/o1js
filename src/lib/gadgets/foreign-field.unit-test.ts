@@ -77,7 +77,8 @@ for (let F of fields) {
   eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus), 'mul');
   equivalentProvable({ from: [f], to: f })(
     (x) => F.inverse(x) ?? throwError('no inverse'),
-    (x) => ForeignField.inv(x, F.modulus)
+    (x) => ForeignField.inv(x, F.modulus),
+    'inv'
   );
   eq2(
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
@@ -92,35 +93,38 @@ for (let F of fields) {
   equivalentProvable({ from: [big264, big264], to: big264 })(
     F.add,
     (x, y) => ForeignField.add(x, y, F.modulus),
-    'add'
+    'add unreduced'
   );
   // subtraction doesn't work with unreduced y because the range check on the result prevents x-y < -f
   equivalentProvable({ from: [big264, f], to: big264 })(
     F.sub,
     (x, y) => ForeignField.sub(x, y, F.modulus),
-    'sub'
+    'sub unreduced'
   );
   equivalentProvable({ from: [big258, big258], to: f })(
     F.mul,
     (x, y) => ForeignField.mul(x, y, F.modulus),
-    'mul'
+    'mul unreduced'
   );
   equivalentProvable({ from: [big258], to: f })(
     (x) => F.inverse(x) ?? throwError('no inverse'),
-    (x) => ForeignField.inv(x, F.modulus)
+    (x) => ForeignField.inv(x, F.modulus),
+    'inv unreduced'
   );
   // the div() gadget doesn't work with unreduced x because the backwards check (x/y)*y === x fails
   // and it's not valid with unreduced y because we only assert y != 0, y != f but it can be 2f, 3f, etc.
   // the combination of inv() and mul() is more flexible (but much more expensive, ~40 vs ~30 constraints)
   equivalentProvable({ from: [big258, big258], to: f })(
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
-    (x, y) => ForeignField.mul(x, ForeignField.inv(y, F.modulus), F.modulus)
+    (x, y) => ForeignField.mul(x, ForeignField.inv(y, F.modulus), F.modulus),
+    'div unreduced'
   );
 
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
     (xs, signs) => sum(xs, signs, F),
-    (xs, signs) => ForeignField.sum(xs, signs, F.modulus)
+    (xs, signs) => ForeignField.sum(xs, signs, F.modulus),
+    'sumchain 5'
   );
 
   // sumchain up to 100
@@ -137,7 +141,7 @@ for (let F of fields) {
       let signs = ts.map((t) => t.sign);
       return ForeignField.sum(xs, signs, F.modulus);
     },
-    'sumchain'
+    'sumchain long'
   );
 }
 
@@ -158,21 +162,18 @@ let ffProgram = ZkProgram({
         return ForeignField.sum(xs, signs, F.modulus);
       },
     },
-
     mul: {
       privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
         return ForeignField.mul(x, y, F.modulus);
       },
     },
-
     inv: {
       privateInputs: [Field3.provable],
       method(x) {
         return ForeignField.inv(x, F.modulus);
       },
     },
-
     div: {
       privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
