@@ -23,7 +23,6 @@ import {
   withoutGenerics,
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
-import { ForeignField as ForeignField_ } from './foreign-field.js';
 
 const { ForeignField, Field3 } = Gadgets;
 
@@ -75,14 +74,14 @@ for (let F of fields) {
 
   eq2(F.add, (x, y) => ForeignField.add(x, y, F.modulus), 'add');
   eq2(F.sub, (x, y) => ForeignField.sub(x, y, F.modulus), 'sub');
-  eq2(F.mul, (x, y) => ForeignField_.mul(x, y, F.modulus), 'mul');
+  eq2(F.mul, (x, y) => ForeignField.mul(x, y, F.modulus), 'mul');
   equivalentProvable({ from: [f], to: f })(
     (x) => F.inverse(x) ?? throwError('no inverse'),
-    (x) => ForeignField_.inv(x, F.modulus)
+    (x) => ForeignField.inv(x, F.modulus)
   );
   eq2(
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
-    (x, y) => ForeignField_.div(x, y, F.modulus),
+    (x, y) => ForeignField.div(x, y, F.modulus),
     'div'
   );
 
@@ -103,19 +102,19 @@ for (let F of fields) {
   );
   equivalentProvable({ from: [big258, big258], to: f })(
     F.mul,
-    (x, y) => ForeignField_.mul(x, y, F.modulus),
+    (x, y) => ForeignField.mul(x, y, F.modulus),
     'mul'
   );
   equivalentProvable({ from: [big258], to: f })(
     (x) => F.inverse(x) ?? throwError('no inverse'),
-    (x) => ForeignField_.inv(x, F.modulus)
+    (x) => ForeignField.inv(x, F.modulus)
   );
   // the div() gadget doesn't work with unreduced x because the backwards check (x/y)*y === x fails
   // and it's not valid with unreduced y because we only assert y != 0, y != f but it can be 2f, 3f, etc.
   // the combination of inv() and mul() is more flexible (but much more expensive, ~40 vs ~30 constraints)
   equivalentProvable({ from: [big258, big258], to: f })(
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
-    (x, y) => ForeignField_.mul(x, ForeignField_.inv(y, F.modulus), F.modulus)
+    (x, y) => ForeignField.mul(x, ForeignField.inv(y, F.modulus), F.modulus)
   );
 
   // sumchain of 5
@@ -163,21 +162,21 @@ let ffProgram = ZkProgram({
     mul: {
       privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
-        return ForeignField_.mul(x, y, F.modulus);
+        return ForeignField.mul(x, y, F.modulus);
       },
     },
 
     inv: {
       privateInputs: [Field3.provable],
       method(x) {
-        return ForeignField_.inv(x, F.modulus);
+        return ForeignField.inv(x, F.modulus);
       },
     },
 
     div: {
       privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
-        return ForeignField_.div(x, y, F.modulus);
+        return ForeignField.div(x, y, F.modulus);
       },
     },
   },
@@ -202,14 +201,20 @@ constraintSystem.fromZkProgram(
 let mulChain: GateType[] = ['ForeignFieldMul', 'Zero'];
 let mulLayout = ifNotAllConstant(
   and(
-    contains([mulChain, mrc, mrc, mrc]),
-    withoutGenerics(equals([...mulChain, ...repeat(3, mrc)]))
+    contains([mulChain, mrc, mrc, mrc, mrc]),
+    withoutGenerics(equals([...mulChain, ...repeat(4, mrc)]))
+  )
+);
+let invLayout = ifNotAllConstant(
+  and(
+    contains([mrc, mulChain, mrc, mrc, mrc]),
+    withoutGenerics(equals([...mrc, ...mulChain, ...repeat(3, mrc)]))
   )
 );
 
 constraintSystem.fromZkProgram(ffProgram, 'mul', mulLayout);
-constraintSystem.fromZkProgram(ffProgram, 'inv', mulLayout);
-constraintSystem.fromZkProgram(ffProgram, 'div', mulLayout);
+constraintSystem.fromZkProgram(ffProgram, 'inv', invLayout);
+constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
 
 // tests with proving
 

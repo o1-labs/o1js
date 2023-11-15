@@ -35,15 +35,9 @@ const ForeignField = {
   },
   sum,
 
-  mul(x: Field3, y: Field3, f: bigint) {
-    return multiply(x, y, f);
-  },
-  inv(x: Field3, f: bigint) {
-    return inverse(x, f);
-  },
-  div(x: Field3, y: Field3, f: bigint, { allowZeroOverZero = false } = {}) {
-    return divide(x, y, f, allowZeroOverZero);
-  },
+  mul: multiply,
+  inv: inverse,
+  div: divide,
 };
 
 /**
@@ -165,7 +159,12 @@ function inverse(x: Field3, f: bigint): Field3 {
   return xInv;
 }
 
-function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
+function divide(
+  x: Field3,
+  y: Field3,
+  f: bigint,
+  { allowZeroOverZero = false } = {}
+) {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
