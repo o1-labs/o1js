@@ -28,14 +28,32 @@ import { ForeignField as ForeignField_ } from './foreign-field.js';
 const { ForeignField, Field3 } = Gadgets;
 
 function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
-  let rng = Random.otherField(F);
   return {
-    rng,
+    rng: Random.otherField(F),
     there: Field3.from,
     back: Field3.toBigint,
     provable: Field3.provable,
   };
 }
+
+// for testing with inputs > f
+function unreducedForeignField(
+  maxBits: number,
+  F: FiniteField
+): ProvableSpec<bigint, Gadgets.Field3> {
+  return {
+    rng: Random.bignat(1n << BigInt(maxBits)),
+    there: Field3.from,
+    back: Field3.toBigint,
+    provable: Field3.provable,
+    assertEqual(x, y, message) {
+      // need weak equality here because, while ffadd works on bigints larger than the modulus,
+      // it can't fully reduce them
+      assert(F.equal(x, y), message);
+    },
+  };
+}
+
 let sign = fromRandom(Random.oneOf(1n as const, -1n as const));
 
 let fields = [
@@ -66,6 +84,38 @@ for (let F of fields) {
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
     (x, y) => ForeignField_.div(x, y, F.modulus),
     'div'
+  );
+
+  // tests with inputs that aren't reduced mod f
+  let big264 = unreducedForeignField(264, F); // this is the max size supported by our range checks / ffadd
+  let big258 = unreducedForeignField(258, F); // rough max size supported by ffmul
+
+  equivalentProvable({ from: [big264, big264], to: big264 })(
+    F.add,
+    (x, y) => ForeignField.add(x, y, F.modulus),
+    'add'
+  );
+  // subtraction doesn't work with unreduced y because the range check on the result prevents x-y < -f
+  equivalentProvable({ from: [big264, f], to: big264 })(
+    F.sub,
+    (x, y) => ForeignField.sub(x, y, F.modulus),
+    'sub'
+  );
+  equivalentProvable({ from: [big258, big258], to: f })(
+    F.mul,
+    (x, y) => ForeignField_.mul(x, y, F.modulus),
+    'mul'
+  );
+  equivalentProvable({ from: [big258], to: f })(
+    (x) => F.inverse(x) ?? throwError('no inverse'),
+    (x) => ForeignField_.inv(x, F.modulus)
+  );
+  // the div() gadget doesn't work with unreduced x because the backwards check (x/y)*y === x fails
+  // and it's not valid with unreduced y because we only assert y != 0, y != f but it can be 2f, 3f, etc.
+  // the combination of inv() and mul() is more flexible (but much more expensive, ~40 vs ~30 constraints)
+  equivalentProvable({ from: [big258, big258], to: f })(
+    (x, y) => F.div(x, y) ?? throwError('no inverse'),
+    (x, y) => ForeignField_.mul(x, ForeignField_.inv(y, F.modulus), F.modulus)
   );
 
   // sumchain of 5
