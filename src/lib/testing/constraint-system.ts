@@ -445,9 +445,7 @@ function wiresToPretty(wires: Gate['wires'], row: number) {
     if (wire.row === row) {
       strWires.push(`${col}->${wire.col}`);
     } else {
-      let rowDelta = wire.row - row;
-      let rowStr = rowDelta > 0 ? `+${rowDelta}` : `${rowDelta}`;
-      strWires.push(`${col}->(${rowStr},${wire.col})`);
+      strWires.push(`${col}->(${wire.row},${wire.col})`);
     }
   }
   return strWires.join(', ');
