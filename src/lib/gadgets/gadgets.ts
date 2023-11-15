@@ -370,11 +370,6 @@ const Gadgets = {
      * Foreign field subtraction: `x - y mod f`
      *
      * See {@link ForeignField.add} for assumptions and usage examples.
-     *
-     * @param x left summand
-     * @param y right summand
-     * @param f modulus
-     * @returns x - y mod f
      */
     sub(x: Field3, y: Field3, f: bigint) {
       return ForeignField.sub(x, y, f);
@@ -452,14 +447,18 @@ const Gadgets = {
     },
 
     /**
-     * TODO
+     * Foreign field inverse: `x^(-1) mod f`
+     *
+     * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
      */
     inv(x: Field3, f: bigint) {
       return ForeignField.inv(x, f);
     },
 
     /**
-     * TODO
+     * Foreign field division: `x * y^(-1) mod f`
+     *
+     * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
