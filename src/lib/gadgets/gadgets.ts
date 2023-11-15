@@ -320,7 +320,7 @@ const Gadgets = {
    * A _foreign field_ is a finite field different from the native field of the proof system.
    *
    * The `ForeignField` namespace exposes operations like modular addition and multiplication,
-   * which work for any finite field of size less than 2^256.
+   * which work for any finite field of size less than 2^259.
    *
    * Foreign field elements are represented as 3 limbs of native field elements.
    * Each limb holds 88 bits of the total, in little-endian order.
@@ -411,6 +411,58 @@ const Gadgets = {
      */
     sum(xs: Field3[], signs: (1n | -1n)[], f: bigint) {
       return ForeignField.sum(xs, signs, f);
+    },
+
+    /**
+     * Foreign field multiplication: `x * y mod f`
+     *
+     * The modulus `f` does not need to be prime, but has to be smaller than 2^259.
+     *
+     * **Assumptions**: In addition to the assumption that inputs are in the range [0, 2^88), as in all foreign field gadgets,
+     * this assumes an additional bound on the inputs: `x * y < 2^264 * p`, where p is the native modulus.
+     * We usually assert this bound by proving that `x[2] < f[2] + 1`, where `x[2]` is the most significant limb of x.
+     * To do this, use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
+     * The implication is that x and y are _almost_ reduced modulo f.
+     *
+     * @example
+     * ```ts
+     * // example modulus: secp256k1 prime
+     * let f = (1n << 256n) - (1n << 32n) - 0b1111010001n;
+     *
+     * let x = Provable.witness(Field3.provable, () => Field3.from(f - 1n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
+     *
+     * // range check x, y
+     * Gadgets.multiRangeCheck(x);
+     * Gadgets.multiRangeCheck(y);
+     *
+     * // prove additional bounds
+     * let x2Bound = x[2].add((1n << 88n) - 1n - (f >> 176n));
+     * let y2Bound = y[2].add((1n << 88n) - 1n - (f >> 176n));
+     * Gadgets.multiRangeCheck([x2Bound, y2Bound, Field(0n)]);
+     *
+     * // compute x * y mod f
+     * let z = ForeignField.mul(x, y, f);
+     *
+     * Provable.log(z); // ['2', '0', '0'] = limb representation of 2 = (-1)*(-2) mod f
+     * ```
+     */
+    mul(x: Field3, y: Field3, f: bigint) {
+      return ForeignField.mul(x, y, f);
+    },
+
+    /**
+     * TODO
+     */
+    inv(x: Field3, f: bigint) {
+      return ForeignField.inv(x, f);
+    },
+
+    /**
+     * TODO
+     */
+    div(x: Field3, y: Field3, f: bigint) {
+      return ForeignField.div(x, y, f);
     },
   },
 
