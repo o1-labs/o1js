@@ -308,6 +308,9 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     negForeignFieldModulus: [f_0, f_1, f_2],
   });
 
+  // multi-range check on intermediate values
+  multiRangeCheck([c0, p10, p110]);
+
   return { r01, r2, q, q2Bound };
 }
 
