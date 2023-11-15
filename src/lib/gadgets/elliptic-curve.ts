@@ -20,10 +20,14 @@ import { multiRangeCheck } from './range-check.js';
 import { printGates } from '../testing/constraint-system.js';
 import { sha256 } from 'js-sha256';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
-import { Pallas } from '../../bindings/crypto/elliptic_curve.js';
+import { CurveAffine, Pallas } from '../../bindings/crypto/elliptic_curve.js';
+import { Bool } from '../bool.js';
 
 type Point = { x: Field3; y: Field3 };
-type point = { x: bigint3; y: bigint3; infinity: boolean };
+type point = { x: bigint; y: bigint; infinity: boolean };
+
+type Signature = { r: Field3; s: Field3 };
+type signature = { r: bigint; s: bigint };
 
 function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   // TODO constant case
@@ -121,6 +125,59 @@ function double({ x: x1, y: y1 }: Point, f: bigint) {
   multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
 }
 
+function verifyEcdsa(
+  Curve: CurveAffine,
+  signature: Signature,
+  msgHash: Field3,
+  publicKey: Point
+) {
+  // constant case
+  if (
+    Signature.isConstant(signature) &&
+    Field3.isConstant(msgHash) &&
+    Point.isConstant(publicKey)
+  ) {
+    let isValid = verifyEcdsaConstant(
+      Curve,
+      Signature.toBigint(signature),
+      Field3.toBigint(msgHash),
+      Point.toBigint(publicKey)
+    );
+    assert(isValid, 'invalid signature');
+    return;
+  }
+
+  // provable case
+  // TODO
+}
+
+/**
+ * Bigint implementation of ECDSA verify
+ */
+function verifyEcdsaConstant(
+  Curve: CurveAffine,
+  { r, s }: { r: bigint; s: bigint },
+  msgHash: bigint,
+  publicKey: { x: bigint; y: bigint }
+) {
+  let q = Curve.order;
+  let QA = Curve.fromNonzero(publicKey);
+  if (!Curve.isOnCurve(QA)) return false;
+  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
+  if (r < 1n || r >= Curve.order) return false;
+  if (s < 1n || s >= Curve.order) return false;
+
+  let sInv = inverse(s, q);
+  if (sInv === undefined) throw Error('impossible');
+  let u1 = mod(msgHash * sInv, q);
+  let u2 = mod(r * sInv, q);
+
+  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
+  if (Curve.equal(X, Curve.zero)) return false;
+
+  return mod(X.x, q) === r;
+}
+
 /**
  * For EC scalar multiplication we use an initial point which is subtracted
  * at the end, to avoid encountering the point at infinity.
@@ -148,6 +205,24 @@ function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
   }
   return { x: F.mod(x), y, infinity: false };
 }
+
+const Point = {
+  toBigint({ x, y }: Point): point {
+    return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
+  },
+  isConstant({ x, y }: Point) {
+    return Field3.isConstant(x) && Field3.isConstant(y);
+  },
+};
+
+const Signature = {
+  toBigint({ r, s }: Signature): signature {
+    return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
+  },
+  isConstant({ s, r }: Signature) {
+    return Field3.isConstant(s) && Field3.isConstant(r);
+  },
+};
 
 let csAdd = Provable.constraintSystem(() => {
   let x1 = Provable.witness(Field3.provable, () => Field3.from(0n));
