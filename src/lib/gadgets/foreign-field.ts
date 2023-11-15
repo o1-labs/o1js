@@ -59,7 +59,7 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
   // constant case
-  if (x.every((x) => x.every((x) => x.isConstant()))) {
+  if (x.every(Field3.isConstant)) {
     let xBig = x.map(Field3.toBigint);
     let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
     return Field3.from(mod(sum, f));
@@ -121,7 +121,7 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (a.every((x) => x.isConstant()) && b.every((x) => x.isConstant())) {
+  if (Field3.isConstant(a) && Field3.isConstant(b)) {
     let ab = Field3.toBigint(a) * Field3.toBigint(b);
     return Field3.from(mod(ab, f));
   }
@@ -139,7 +139,7 @@ function inverse(x: Field3, f: bigint): Field3 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (x.every((x) => x.isConstant())) {
+  if (Field3.isConstant(x)) {
     let xInv = modInverse(Field3.toBigint(x), f);
     assert(xInv !== undefined, 'inverse exists');
     return Field3.from(xInv);
@@ -173,7 +173,7 @@ function divide(
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (x.every((x) => x.isConstant()) && y.every((x) => x.isConstant())) {
+  if (Field3.isConstant(x) && Field3.isConstant(y)) {
     let yInv = modInverse(Field3.toBigint(y), f);
     assert(yInv !== undefined, 'inverse exists');
     return Field3.from(mod(Field3.toBigint(x) * yInv, f));
@@ -361,6 +361,13 @@ const Field3 = {
    */
   toBigints<T extends Tuple<Field3>>(...xs: T) {
     return Tuple.map(xs, Field3.toBigint);
+  },
+
+  /**
+   * Check whether a 3-tuple of Fields is constant
+   */
+  isConstant(x: Field3) {
+    return x.every((x) => x.isConstant());
   },
 
   /**
