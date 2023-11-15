@@ -12,7 +12,6 @@ import {
   ForeignField,
   Sum,
   assertRank1,
-  bigint3,
   split,
   weakBound,
 } from './foreign-field.js';
@@ -20,18 +19,36 @@ import { multiRangeCheck } from './range-check.js';
 import { printGates } from '../testing/constraint-system.js';
 import { sha256 } from 'js-sha256';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
-import { CurveAffine, Pallas } from '../../bindings/crypto/elliptic_curve.js';
+import {
+  CurveAffine,
+  Pallas,
+  affineAdd,
+  affineDouble,
+} from '../../bindings/crypto/elliptic_curve.js';
 import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
 
+/**
+ * Non-zero elliptic curve point in affine coordinates.
+ */
 type Point = { x: Field3; y: Field3 };
-type point = { x: bigint; y: bigint; infinity: boolean };
+type point = { x: bigint; y: bigint };
 
+/**
+ * ECDSA signature consisting of two curve scalars.
+ */
 type Signature = { r: Field3; s: Field3 };
 type signature = { r: bigint; s: bigint };
 
-function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
-  // TODO constant case
+function add(p1: Point, p2: Point, f: bigint) {
+  let { x: x1, y: y1 } = p1;
+  let { x: x2, y: y2 } = p2;
+
+  // constant case
+  if (Provable.isConstant(Point, p1) && Provable.isConstant(Point, p2)) {
+    let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f);
+    return Point.from(p3);
+  }
 
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
@@ -78,8 +95,14 @@ function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
-function double({ x: x1, y: y1 }: Point, f: bigint) {
-  // TODO constant case
+function double(p1: Point, f: bigint) {
+  let { x: x1, y: y1 } = p1;
+
+  // constant case
+  if (Provable.isConstant(Point, p1)) {
+    let p3 = affineDouble(Point.toBigint(p1), f);
+    return Point.from(p3);
+  }
 
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
@@ -158,7 +181,7 @@ function verifyEcdsa(
   }
 
   // provable case
-  // TODO should check that the publicKey is a valid point? probably not
+  // TODO should we check that the publicKey is a valid point? probably not
 
   let { r, s } = signature;
   let sInv = ForeignField.inv(s, Curve.order);
@@ -166,14 +189,15 @@ function verifyEcdsa(
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
   let IA = Point.from(ia);
-  let X = varPlusFixedScalarMul(Curve, IA, u1, publicKey, u2, table);
+  let R = varPlusFixedScalarMul(Curve, IA, u1, publicKey, u2, table);
 
   // assert that X != IA, and add -IA
-  Provable.equal(Point, X, IA).assertFalse();
-  X = add(X, Point.from(Curve.negate(ia)), Curve.order);
+  Provable.equal(Point, R, IA).assertFalse();
+  R = add(R, Point.from(Curve.negate(Curve.fromNonzero(ia))), Curve.order);
 
-  // TODO reduce X.x mod the scalar order
-  Provable.assertEqual(Field3.provable, X.x, r);
+  // reduce R.x modulo the curve order
+  let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
+  Provable.assertEqual(Field3.provable, Rx, r);
 }
 
 /**
@@ -260,7 +284,7 @@ const Point = {
   from({ x, y }: point): Point {
     return { x: Field3.from(x), y: Field3.from(y) };
   },
-  toBigint({ x, y }: Point): point {
+  toBigint({ x, y }: Point) {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
 };
