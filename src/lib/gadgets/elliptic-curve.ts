@@ -1,14 +1,12 @@
 import { inverse, mod } from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
-import { provablePure } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
-import { TupleN } from '../util/types.js';
 import { exists } from './common.js';
 import {
   Field3,
-  ForeignField,
-  assertMul,
+  Sum,
+  assertRank1,
   bigint3,
   split,
   weakBound,
@@ -19,9 +17,9 @@ import { printGates } from '../testing/constraint-system.js';
 type Point = { x: Field3; y: Field3 };
 type point = { x: bigint3; y: bigint3; infinity: boolean };
 
-let { sum } = ForeignField;
-
 function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
+  // TODO constant case
+
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
     let [x1_, x2_, y1_, y2_] = Field3.toBigints(x1, x2, y1, y2);
@@ -44,29 +42,21 @@ function add({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, f: bigint) {
   multiRangeCheck(y3);
   let m2Bound = weakBound(m[2], f);
   let x3Bound = weakBound(x3[2], f);
-  // we dont need to bounds check y3[2] because it's never one of the inputs to a multiplication
+  // we dont need to bounds-check y3[2] because it's never one of the inputs to a multiplication
 
   // (x1 - x2)*m = y1 - y2
-  let deltaY = sum([y1, y2], [-1n], f, { skipRangeCheck: true });
-  let deltaX = sum([x1, x2], [-1n], f, {
-    skipRangeCheck: true,
-    skipZeroRow: true,
-  });
-  let qBound1 = assertMul(deltaX, m, deltaY, f);
-  multiRangeCheck(deltaX);
+  let deltaX = new Sum(x1).sub(x2);
+  let deltaY = new Sum(y1).sub(y2);
+  let qBound1 = assertRank1(deltaX, m, deltaY, f);
 
   // m^2 = x1 + x2 + x3
-  let xSum = sum([x1, x2, x3], [1n, 1n], f, { skipRangeCheck: true });
-  let qBound2 = assertMul(m, m, xSum, f);
+  let xSum = new Sum(x1).add(x2).add(x3);
+  let qBound2 = assertRank1(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let ySum = sum([y1, y3], [1n], f, { skipRangeCheck: true });
-  let deltaX1X3 = sum([x1, x3], [-1n], f, {
-    skipRangeCheck: true,
-    skipZeroRow: true,
-  });
-  let qBound3 = assertMul(deltaX1X3, m, ySum, f);
-  multiRangeCheck(deltaX1X3);
+  let deltaX1X3 = new Sum(x1).sub(x3);
+  let ySum = new Sum(y1).add(y3);
+  let qBound3 = assertRank1(deltaX1X3, m, ySum, f);
 
   // bounds checks
   multiRangeCheck([m2Bound, x3Bound, qBound1]);
@@ -86,3 +76,4 @@ let cs = Provable.constraintSystem(() => {
 });
 
 printGates(cs.gates);
+console.log({ digest: cs.digest, rows: cs.rows });

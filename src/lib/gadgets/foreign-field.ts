@@ -26,6 +26,8 @@ export {
   collapse,
   weakBound,
   assertMul,
+  Sum,
+  assertRank1,
 };
 
 /**
@@ -54,12 +56,7 @@ const ForeignField = {
  *
  * assumes that inputs are range checked, does range check on the result.
  */
-function sum(
-  x: Field3[],
-  sign: Sign[],
-  f: bigint,
-  { skipRangeCheck = false, skipZeroRow = false } = {}
-) {
+function sum(x: Field3[], sign: Sign[], f: bigint) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
   // constant case
@@ -75,10 +72,10 @@ function sum(
     ({ result } = singleAdd(result, x[i + 1], sign[i], f));
   }
   // final zero row to hold result
-  if (!skipZeroRow) Gates.zero(...result);
+  Gates.zero(...result);
 
   // range check result
-  if (!skipRangeCheck) multiRangeCheck(result);
+  multiRangeCheck(result);
 
   return result;
 }
@@ -393,4 +390,106 @@ function collapse2([x0, x1]: bigint3 | [bigint, bigint]) {
 }
 function split2(x: bigint): [bigint, bigint] {
   return [x & lMask, (x >> L) & lMask];
+}
+
+/**
+ * Optimized multiplication of sums, like (x + y)*z = a + b + c
+ *
+ * We use two optimizations over naive summing and then multiplying:
+ *
+ * - we skip the range check on the remainder sum, because ffmul is sound with r being a sum of range-checked values
+ * - we chain the first input's sum into the ffmul gate
+ *
+ * As usual, all values are assumed to be range checked, and the left and right multiplication inputs
+ * are assumed to be bounded such that `l * r < 2^264 * (native modulus)`.
+ * However, all extra checks that are needed on the sums are handled here.
+ *
+ * TODO example
+ */
+function assertRank1(
+  x: Field3 | Sum,
+  y: Field3 | Sum,
+  xy: Field3 | Sum,
+  f: bigint
+) {
+  x = Sum.fromUnfinished(x, f);
+  y = Sum.fromUnfinished(y, f);
+  xy = Sum.fromUnfinished(xy, f);
+
+  // finish the y and xy sums with a zero gate
+  let y0 = y.finish(f);
+  let xy0 = xy.finish(f);
+
+  // x is chained into the ffmul gate
+  let x0 = x.finishForChaining(f);
+  let q2Bound = assertMul(x0, y0, xy0, f);
+
+  // we need an extra range check on x and y, but not xy
+  x.rangeCheck();
+  y.rangeCheck();
+
+  return q2Bound;
+}
+
+class Sum {
+  #result?: Field3;
+  #summands: Field3[];
+  #ops: Sign[] = [];
+
+  constructor(x: Field3) {
+    this.#summands = [x];
+  }
+
+  get result() {
+    assert(this.#result !== undefined, 'sum not finished');
+    return this.#result;
+  }
+
+  add(y: Field3) {
+    assert(this.#result === undefined, 'sum already finished');
+    this.#ops.push(1n);
+    this.#summands.push(y);
+    return this;
+  }
+
+  sub(y: Field3) {
+    assert(this.#result === undefined, 'sum already finished');
+    this.#ops.push(-1n);
+    this.#summands.push(y);
+    return this;
+  }
+
+  finish(f: bigint, forChaining = false) {
+    assert(this.#result === undefined, 'sum already finished');
+    let signs = this.#ops;
+    let n = signs.length;
+
+    let x = this.#summands.map(toVars);
+    let result = x[0];
+
+    for (let i = 0; i < n; i++) {
+      ({ result } = singleAdd(result, x[i + 1], signs[i], f));
+    }
+    if (n > 0 && !forChaining) Gates.zero(...result);
+
+    this.#result = result;
+    return result;
+  }
+
+  finishForChaining(f: bigint) {
+    return this.finish(f, true);
+  }
+
+  rangeCheck() {
+    assert(this.#result !== undefined, 'sum not finished');
+    if (this.#ops.length > 0) multiRangeCheck(this.#result);
+  }
+
+  static fromUnfinished(x: Field3 | Sum, f: bigint) {
+    if (x instanceof Sum) {
+      assert(x.#result === undefined, 'sum already finished');
+      return x;
+    }
+    return new Sum(x);
+  }
 }
