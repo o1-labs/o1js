@@ -153,19 +153,15 @@ function inverse(x: Field3, f: bigint): Field3 {
     let xInv = modInverse(Field3.toBigint(x), f);
     return xInv === undefined ? [0n, 0n, 0n] : split(xInv);
   });
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, xInv, f);
-
-  // limb range checks on quotient and inverse
-  multiRangeCheck(q);
   multiRangeCheck(xInv);
-  // range check on q and xInv bounds
-  // TODO: this uses one RC too many.. need global RC stack
   let xInv2Bound = weakBound(xInv[2], f);
-  multiRangeCheck([q2Bound, xInv2Bound, Field.from(0n)]);
 
-  // assert r === 1
-  r01.assertEquals(1n);
-  r2.assertEquals(0n);
+  let one: [Field, Field] = [Field.from(1n), Field.from(0n)];
+  let q2Bound = assertMul(x, xInv, one, f);
+
+  // range check on q and result bounds
+  // TODO: this uses one RC too many.. need global RC stack
+  multiRangeCheck([q2Bound, xInv2Bound, Field.from(0n)]);
 
   return xInv;
 }
@@ -187,20 +183,12 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
     if (yInv === undefined) return [0n, 0n, 0n];
     return split(mod(Field3.toBigint(x) * yInv, f));
   });
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(z, y, f);
-
-  // limb range checks on quotient and result
-  multiRangeCheck(q);
   multiRangeCheck(z);
-  // range check on q and result bounds
   let z2Bound = weakBound(z[2], f);
-  multiRangeCheck([q2Bound, z2Bound, Field.from(0n)]);
+  let q2Bound = assertMul(z, y, x, f);
 
-  // check that r === x
-  // this means we don't have to range check r
-  let x01 = x[0].add(x[1].mul(1n << L));
-  r01.assertEquals(x01);
-  r2.assertEquals(x[2]);
+  // range check on q and result bounds
+  multiRangeCheck([q2Bound, z2Bound, new Field(0n)]);
 
   if (!allowZeroOverZero) {
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
@@ -214,6 +202,48 @@ function divide(x: Field3, y: Field3, f: bigint, allowZeroOverZero = false) {
   }
 
   return z;
+}
+
+function assertMul(
+  x: Field3,
+  y: Field3,
+  xy: Field3 | [Field, Field],
+  f: bigint
+) {
+  assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
+
+  // constant case
+  if (
+    x.every((x) => x.isConstant()) &&
+    y.every((x) => x.isConstant()) &&
+    xy.every((x) => x.isConstant())
+  ) {
+    let xyExpected = mod(Field3.toBigint(x) * Field3.toBigint(y), f);
+    let xyActual =
+      xy.length === 2
+        ? collapse2(Tuple.map(xy, (x) => x.toBigInt()))
+        : Field3.toBigint(xy);
+    assert(xyExpected === xyActual, 'Expected xy to be x*y mod f');
+    return Field.from(0n);
+  }
+
+  // provable case
+  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
+
+  // range check on quotient
+  multiRangeCheck(q);
+
+  // bind remainder to input xy
+  if (xy.length === 2) {
+    let [xy01, xy2] = xy;
+    r01.assertEquals(xy01);
+    r2.assertEquals(xy2);
+  } else {
+    let xy01 = xy[0].add(xy[1].mul(1n << L));
+    r01.assertEquals(xy01);
+    r2.assertEquals(xy[2]);
+  }
+  return q2Bound;
 }
 
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
@@ -307,12 +337,15 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     negForeignFieldModulus: [f_0, f_1, f_2],
   });
 
+  // multi-range check on intermediate values
+  multiRangeCheck([c0, p10, p110]);
+
   return { r01, r2, q, q2Bound };
 }
 
 function weakBound(x: Field, f: bigint) {
   let f2 = f >> L2;
-  let f2Bound = (1n << L) - f2 - 1n;
+  let f2Bound = lMask - f2;
   return x.add(f2Bound);
 }
 
