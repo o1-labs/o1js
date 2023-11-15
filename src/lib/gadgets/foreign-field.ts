@@ -366,6 +366,15 @@ const Field3 = {
   },
 
   /**
+   * Assert that two 3-tuples of Fields are equal
+   */
+  assertEqual(x: Field3, y: Field3) {
+    x[0].assertEquals(y[0]);
+    x[1].assertEquals(y[1]);
+    x[2].assertEquals(y[2]);
+  },
+
+  /**
    * Provable<T> interface for `Field3 = [Field, Field, Field]`.
    *
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
