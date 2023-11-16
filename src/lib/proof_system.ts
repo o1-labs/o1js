@@ -271,6 +271,13 @@ function ZkProgram<
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
+  rawMethods: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['method'];
+  };
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -427,6 +434,9 @@ function ZkProgram<
         Get<StatementType, 'publicOutput'>
       >,
       analyzeMethods,
+      rawMethods: Object.fromEntries(
+        Object.entries(methods).map(([k, v]) => [k, v.method])
+      ) as any,
     },
     provers
   );
