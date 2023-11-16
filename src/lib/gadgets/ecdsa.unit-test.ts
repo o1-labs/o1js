@@ -5,6 +5,7 @@ import { secp256k1Params } from '../../bindings/crypto/elliptic-curve-examples.j
 import { Provable } from '../provable.js';
 import { createField } from '../../bindings/crypto/finite_field.js';
 import { ZkProgram } from '../proof_system.js';
+import { assert } from './common.js';
 
 const Secp256k1 = createCurveAffine(secp256k1Params);
 const BaseField = createField(secp256k1Params.modulus);
@@ -25,7 +26,7 @@ let msgHash =
 
 const ia = EllipticCurve.initialAggregator(BaseField, Secp256k1);
 // TODO doesn't work with windowSize = 3
-const tableConfig = { windowSizeG: 2, windowSizeP: 2 };
+const tableConfig = { windowSizeG: 3, windowSizeP: 3 };
 
 let program = ZkProgram({
   name: 'ecdsa',
@@ -95,3 +96,5 @@ console.timeEnd('ecdsa verify (compile)');
 console.time('ecdsa verify (prove)');
 let proof = await program.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
+
+assert(await program.verify(proof), 'proof verifies');

@@ -221,7 +221,7 @@ function verifyEcdsa(
  * where G, P are any points. The result is not allowed to be zero.
  *
  * We double both points together and leverage a precomputed table
- * of size 2^c to avoid all but every cth addition for t*G.
+ * of size 2^c to avoid all but every cth addition for both s*G and t*P.
  *
  * TODO: could use lookups for picking precomputed multiples, instead of O(2^c) provable switch
  * TODO: custom bit representation for the scalar that avoids 0, to get rid of the degenerate addition case
@@ -267,7 +267,7 @@ function doubleScalarMul(
   let ss = slice(s, { maxBits: b, chunkSize: windowSizeG });
   let ts = slice(t, { maxBits: b, chunkSize: windowSizeP });
 
-  console.log({ b, windowSizeG, windowSizeP, ss: ss.length, ts: ts.length });
+  console.log({ b, windowSizeG, ss: ss.length });
 
   let sum = Point.from(ia);
 
@@ -399,20 +399,21 @@ function slice(
   { maxBits, chunkSize }: { maxBits: number; chunkSize: number }
 ) {
   let l = Number(L);
+  assert(maxBits <= 3 * l, `expected max bits <= 3*${l}, got ${maxBits}`);
 
   // first limb
-  let chunks0 = sliceField(x0, Math.min(l, maxBits), chunkSize);
-  if (maxBits <= l) return chunks0;
+  let result0 = sliceField(x0, Math.min(l, maxBits), chunkSize);
+  if (maxBits <= l) return result0.chunks;
   maxBits -= l;
 
   // second limb
-  let chunks1 = sliceField(x1, Math.min(l, maxBits), chunkSize);
-  if (maxBits <= l) return chunks0.concat(chunks1);
+  let result1 = sliceField(x1, Math.min(l, maxBits), chunkSize, result0);
+  if (maxBits <= l) return result0.chunks.concat(result1.chunks);
   maxBits -= l;
 
   // third limb
-  let chunks2 = sliceField(x2, maxBits, chunkSize);
-  return chunks0.concat(chunks1).concat(chunks2);
+  let result2 = sliceField(x2, maxBits, chunkSize, result1);
+  return result0.chunks.concat(result1.chunks, result2.chunks);
 }
 
 /**
@@ -423,7 +424,12 @@ function slice(
  *
  * Note: This serves as a range check that the input is in [0, 2^maxBits)
  */
-function sliceField(x: Field, maxBits: number, chunkSize: number) {
+function sliceField(
+  x: Field,
+  maxBits: number,
+  chunkSize: number,
+  leftover?: { chunks: Field[]; leftoverSize: number }
+) {
   let bits = exists(maxBits, () => {
     let bits = bigIntToBits(x.toBigInt());
     // normalize length
@@ -436,7 +442,24 @@ function sliceField(x: Field, maxBits: number, chunkSize: number) {
   let chunks = [];
   let sum = Field.from(0n);
 
-  for (let i = 0; i < maxBits; i += chunkSize) {
+  // if there's a leftover chunk from a previous slizeField() call, we complete it
+  if (leftover !== undefined) {
+    let { chunks: previous, leftoverSize: size } = leftover;
+    let remainingChunk = Field.from(0n);
+    for (let i = 0; i < size; i++) {
+      let bit = bits[i];
+      Bool.check(Bool.Unsafe.ofField(bit));
+      remainingChunk = remainingChunk.add(bit.mul(1n << BigInt(i)));
+    }
+    sum = remainingChunk = remainingChunk.seal();
+    let chunk = previous[previous.length - 1];
+    previous[previous.length - 1] = chunk.add(
+      remainingChunk.mul(1n << BigInt(chunkSize - size))
+    );
+  }
+
+  let i = leftover?.leftoverSize ?? 0;
+  for (; i < maxBits; i += chunkSize) {
     // prove that chunk has `chunkSize` bits
     // TODO: this inner sum should be replaced with a more efficient range check when possible
     let chunk = Field.from(0n);
@@ -453,7 +476,8 @@ function sliceField(x: Field, maxBits: number, chunkSize: number) {
   }
   sum.assertEquals(x);
 
-  return chunks;
+  let leftoverSize = i - maxBits;
+  return { chunks, leftoverSize } as const;
 }
 
 /**
