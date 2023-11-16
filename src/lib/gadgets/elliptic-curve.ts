@@ -32,6 +32,14 @@ import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 
+export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
+
+const EllipticCurve = {
+  add,
+  double,
+  initialAggregator,
+};
+
 /**
  * Non-zero elliptic curve point in affine coordinates.
  */
@@ -41,8 +49,8 @@ type point = { x: bigint; y: bigint };
 /**
  * ECDSA signature consisting of two curve scalars.
  */
-type Signature = { r: Field3; s: Field3 };
-type signature = { r: bigint; s: bigint };
+type EcdsaSignature = { r: Field3; s: Field3 };
+type ecdsaSignature = { r: bigint; s: bigint };
 
 function add(p1: Point, p2: Point, f: bigint) {
   let { x: x1, y: y1 } = p1;
@@ -160,7 +168,7 @@ function double(p1: Point, f: bigint) {
 function verifyEcdsa(
   Curve: CurveAffine,
   ia: point,
-  signature: Signature,
+  signature: EcdsaSignature,
   msgHash: Field3,
   publicKey: Point,
   tables?: {
@@ -172,13 +180,13 @@ function verifyEcdsa(
 ) {
   // constant case
   if (
-    Provable.isConstant(Signature, signature) &&
+    Provable.isConstant(EcdsaSignature, signature) &&
     Field3.isConstant(msgHash) &&
     Provable.isConstant(Point, publicKey)
   ) {
     let isValid = verifyEcdsaConstant(
       Curve,
-      Signature.toBigint(signature),
+      EcdsaSignature.toBigint(signature),
       Field3.toBigint(msgHash),
       Point.toBigint(publicKey)
     );
@@ -454,19 +462,19 @@ const Point = {
   },
 };
 
-const Signature = {
+const EcdsaSignature = {
   ...provable({ r: Field3.provable, s: Field3.provable }),
-  from({ r, s }: signature): Signature {
+  from({ r, s }: ecdsaSignature): EcdsaSignature {
     return { r: Field3.from(r), s: Field3.from(s) };
   },
-  toBigint({ r, s }: Signature): signature {
+  toBigint({ r, s }: EcdsaSignature): ecdsaSignature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
   /**
-   * Create a {@link Signature} from a raw 130-char hex string as used in
+   * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
    * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
    */
-  fromHex(rawSignature: string): Signature {
+  fromHex(rawSignature: string): EcdsaSignature {
     let prefix = rawSignature.slice(0, 2);
     let signature = rawSignature.slice(2, 130);
     if (prefix !== '0x' || signature.length < 128) {
@@ -476,8 +484,13 @@ const Signature = {
     }
     let r = BigInt(`0x${signature.slice(0, 64)}`);
     let s = BigInt(`0x${signature.slice(64)}`);
-    return Signature.from({ r, s });
+    return EcdsaSignature.from({ r, s });
   },
+};
+
+const Ecdsa = {
+  verify: verifyEcdsa,
+  Signature: EcdsaSignature,
 };
 
 function gcd(a: number, b: number) {
