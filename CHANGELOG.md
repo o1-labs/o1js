@@ -27,6 +27,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Expose raw provable methods of a `ZkProgram` on `zkProgram.rawMethods` https://github.com/o1-labs/o1js/pull/1241
 
+### Fixed
+
+- Add a parameter to `checkZkappTransaction` for block length to check for transaction inclusion. This fixes a case where `Transaction.wait()` only checked the latest block, which led to an error once the transaction was included in a block that was not the latest. https://github.com/o1-labs/o1js/pull/1239
+
 ## [0.14.1](https://github.com/o1-labs/o1js/compare/e8e7510e1...26363465d)
 
 ### Added
