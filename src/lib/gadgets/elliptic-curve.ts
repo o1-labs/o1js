@@ -399,7 +399,7 @@ function slice(
  * TODO: atm this uses expensive boolean checks for the bits.
  * For larger chunks, we should use more efficient range checks.
  *
- * Note: This serves as a range check that the input is in [0, 2^k) where `k = ceil(maxBits / windowSize) * windowSize`
+ * Note: This serves as a range check that the input is in [0, 2^maxBits)
  */
 function sliceField(x: Field, maxBits: number, chunkSize: number) {
   let bits = exists(maxBits, () => {
@@ -413,11 +413,13 @@ function sliceField(x: Field, maxBits: number, chunkSize: number) {
 
   let chunks = [];
   let sum = Field.from(0n);
+
   for (let i = 0; i < maxBits; i += chunkSize) {
-    // prove that chunk has `windowSize` bits
+    // prove that chunk has `chunkSize` bits
     // TODO: this inner sum should be replaced with a more efficient range check when possible
     let chunk = Field.from(0n);
-    for (let j = 0; j < chunkSize; j++) {
+    let size = Math.min(maxBits - i, chunkSize); // last chunk might be smaller
+    for (let j = 0; j < size; j++) {
       let bit = bits[i + j];
       Bool.check(Bool.Unsafe.ofField(bit));
       chunk = chunk.add(bit.mul(1n << BigInt(j)));
