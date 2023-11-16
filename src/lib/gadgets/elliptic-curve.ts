@@ -15,10 +15,13 @@ import {
   split,
   weakBound,
 } from './foreign-field.js';
-import { multiRangeCheck } from './range-check.js';
+import { L, multiRangeCheck } from './range-check.js';
 import { printGates } from '../testing/constraint-system.js';
 import { sha256 } from 'js-sha256';
-import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
+import {
+  bigIntToBits,
+  bytesToBigInt,
+} from '../../bindings/crypto/bigint-helpers.js';
 import {
   CurveAffine,
   Pallas,
@@ -27,6 +30,7 @@ import {
 } from '../../bindings/crypto/elliptic_curve.js';
 import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
+import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 
 /**
  * Non-zero elliptic curve point in affine coordinates.
@@ -159,9 +163,11 @@ function verifyEcdsa(
   signature: Signature,
   msgHash: Field3,
   publicKey: Point,
-  table?: {
-    windowSize: number; // what we called c before
-    multiples?: point[]; // 0, G, 2*G, ..., (2^c-1)*G
+  tables?: {
+    windowSizeG?: number;
+    multiplesG?: Point[];
+    windowSizeP?: number;
+    multiplesP?: Point[];
   }
 ) {
   // constant case
@@ -182,18 +188,14 @@ function verifyEcdsa(
 
   // provable case
   // TODO should we check that the publicKey is a valid point? probably not
-
   let { r, s } = signature;
   let sInv = ForeignField.inv(s, Curve.order);
   let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
-  let IA = Point.from(ia);
-  let R = varPlusFixedScalarMul(Curve, IA, u1, publicKey, u2, table);
-
-  // assert that X != IA, and add -IA
-  Provable.equal(Point, R, IA).assertFalse();
-  R = add(R, Point.from(Curve.negate(Curve.fromNonzero(ia))), Curve.order);
+  let G = Point.from(Curve.one);
+  let R = doubleScalarMul(Curve, ia, u1, G, u2, publicKey, tables);
+  // this ^ already proves that R != 0
 
   // reduce R.x modulo the curve order
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
@@ -203,25 +205,75 @@ function verifyEcdsa(
 /**
  * Scalar mul that we need for ECDSA:
  *
- * IA + s*P + t*G,
+ * s*G + t*P,
  *
- * where IA is the initial aggregator, P is any point and G is the generator.
+ * where G, P are any points. The result is not allowed to be zero.
  *
  * We double both points together and leverage a precomputed table
  * of size 2^c to avoid all but every cth addition for t*G.
+ *
+ * TODO: could use lookups for picking precomputed multiples, instead of O(2^c) provable switch
+ * TODO: custom bit representation for the scalar that avoids 0, to get rid of the degenerate addition case
+ * TODO: glv trick which cuts down ec doubles by half by splitting s*P = s0*P + s1*endo(P) with s0, s1 in [0, 2^128)
  */
-function varPlusFixedScalarMul(
+function doubleScalarMul(
   Curve: CurveAffine,
-  IA: Point,
+  ia: point,
   s: Field3,
-  P: Point,
+  G: Point,
   t: Field3,
-  table?: {
-    windowSize: number; // what we called c before
-    multiples?: point[]; // 0, G, 2*G, ..., (2^c-1)*G
-  }
+  P: Point,
+  {
+    // what we called c before
+    windowSizeG = 1,
+    // G, ..., (2^c-1)*G
+    multiplesG = undefined as Point[] | undefined,
+    windowSizeP = 1,
+    multiplesP = undefined as Point[] | undefined,
+  } = {}
 ): Point {
-  throw Error('TODO');
+  // parse or build point tables
+  let Gs = getPointTable(Curve, G, windowSizeG, multiplesG);
+  let Ps = getPointTable(Curve, P, windowSizeP, multiplesP);
+
+  // slice scalars
+  let b = Curve.order.toString(2).length;
+  let ss = slice(s, { maxBits: b, chunkSize: windowSizeG });
+  let ts = slice(t, { maxBits: b, chunkSize: windowSizeP });
+
+  let sum = Point.from(ia);
+
+  for (let i = 0; i < b; i++) {
+    if (i % windowSizeG === 0) {
+      // pick point to add based on the scalar chunk
+      let sj = ss[i / windowSizeG];
+      let Gj = windowSizeG === 1 ? G : arrayGet(Point, Gs, sj, { offset: 1 });
+
+      // ec addition
+      let added = add(sum, Gj, Curve.p);
+
+      // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
+      sum = Provable.if(sj.equals(0), Point, sum, added);
+    }
+
+    if (i % windowSizeP === 0) {
+      let tj = ts[i / windowSizeP];
+      let Pj = windowSizeP === 1 ? P : arrayGet(Point, Ps, tj, { offset: 1 });
+      let added = add(sum, Pj, Curve.p);
+      sum = Provable.if(tj.equals(0), Point, sum, added);
+    }
+
+    // jointly double both points
+    sum = double(sum, Curve.p);
+  }
+
+  // the sum is now s*G + t*P + 2^b*IA
+  // we assert that sum != 2^b*IA, and add -2^b*IA to get our result
+  let iaTimes2ToB = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b));
+  Provable.equal(Point, sum, Point.from(iaTimes2ToB)).assertFalse();
+  sum = add(sum, Point.from(Curve.negate(iaTimes2ToB)), Curve.p);
+
+  return sum;
 }
 
 /**
@@ -251,6 +303,30 @@ function verifyEcdsaConstant(
   return mod(X.x, q) === r;
 }
 
+function getPointTable(
+  Curve: CurveAffine,
+  P: Point,
+  windowSize: number,
+  table?: Point[]
+): Point[] {
+  assertPositiveInteger(windowSize, 'invalid window size');
+  let n = (1 << windowSize) - 1; // n >= 1
+
+  assert(table === undefined || table.length === n, 'invalid table');
+  if (table !== undefined) return table;
+
+  table = [P];
+  if (n === 1) return table;
+
+  let Pi = double(P, Curve.p);
+  table.push(Pi);
+  for (let i = 2; i < n; i++) {
+    Pi = add(Pi, P, Curve.p);
+    table.push(Pi);
+  }
+  return table;
+}
+
 /**
  * For EC scalar multiplication we use an initial point which is subtracted
  * at the end, to avoid encountering the point at infinity.
@@ -271,12 +347,101 @@ function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
 
   // increment x until we find a y coordinate
   while (y === undefined) {
+    x = F.add(x, 1n);
     // solve y^2 = x^3 + ax + b
     let x3 = F.mul(F.square(x), x);
     let y2 = F.add(x3, F.mul(a, x) + b);
     y = F.sqrt(y2);
   }
-  return { x: F.mod(x), y, infinity: false };
+  return { x, y, infinity: false };
+}
+
+/**
+ * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `windowSize`
+ *
+ * TODO: atm this uses expensive boolean checks for the bits.
+ * For larger chunks, we should use more efficient range checks.
+ *
+ * Note: This serves as a range check for the input limbs
+ */
+function slice(
+  [x0, x1, x2]: Field3,
+  { maxBits, chunkSize }: { maxBits: number; chunkSize: number }
+) {
+  let l = Number(L);
+
+  // first limb
+  let chunks0 = sliceField(x0, Math.min(l, maxBits), chunkSize);
+  if (maxBits <= l) return chunks0;
+  maxBits -= l;
+
+  // second limb
+  let chunks1 = sliceField(x1, Math.min(l, maxBits), chunkSize);
+  if (maxBits <= l) return chunks0.concat(chunks1);
+  maxBits -= l;
+
+  // third limb
+  let chunks2 = sliceField(x2, maxBits, chunkSize);
+  return chunks0.concat(chunks1).concat(chunks2);
+}
+
+/**
+ * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `windowSize`
+ *
+ * TODO: atm this uses expensive boolean checks for the bits.
+ * For larger chunks, we should use more efficient range checks.
+ *
+ * Note: This serves as a range check that the input is in [0, 2^k) where `k = ceil(maxBits / windowSize) * windowSize`
+ */
+function sliceField(x: Field, maxBits: number, chunkSize: number) {
+  let bits = exists(maxBits, () => {
+    let bits = bigIntToBits(x.toBigInt());
+    // normalize length
+    if (bits.length > maxBits) bits = bits.slice(0, maxBits);
+    if (bits.length < maxBits)
+      bits = bits.concat(Array(maxBits - bits.length).fill(false));
+    return bits.map(BigInt);
+  });
+
+  let chunks = [];
+  let sum = Field.from(0n);
+  for (let i = 0; i < maxBits; i += chunkSize) {
+    // prove that chunk has `windowSize` bits
+    // TODO: this inner sum should be replaced with a more efficient range check when possible
+    let chunk = Field.from(0n);
+    for (let j = 0; j < chunkSize; j++) {
+      let bit = bits[i + j];
+      Bool.check(Bool.Unsafe.ofField(bit));
+      chunk = chunk.add(bit.mul(1n << BigInt(j)));
+    }
+    chunk = chunk.seal();
+    // prove that chunks add up to x
+    sum = sum.add(chunk.mul(1n << BigInt(i)));
+    chunks.push(chunk);
+  }
+  sum.assertEquals(x);
+
+  return chunks;
+}
+
+/**
+ * Get value from array in O(n) constraints.
+ *
+ * If the index is out of bounds, returns all-zeros version of T
+ */
+function arrayGet<T>(
+  type: Provable<T>,
+  array: T[],
+  index: Field,
+  { offset = 0 } = {}
+) {
+  let n = array.length;
+  let oneHot = Array(n);
+  // TODO can we share computation between all those equals()?
+  for (let i = 0; i < n; i++) {
+    oneHot[i] = index.equals(i + offset);
+  }
+  return Provable.switch(oneHot, type, array);
 }
 
 const Point = {
@@ -295,6 +460,16 @@ const Signature = {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
 };
+
+function gcd(a: number, b: number) {
+  if (b > a) [a, b] = [b, a];
+  while (true) {
+    if (b === 0) return a;
+    [a, b] = [b, a % b];
+  }
+}
+
+console.log(gcd(2, 4));
 
 let csAdd = Provable.constraintSystem(() => {
   let x1 = Provable.witness(Field3.provable, () => Field3.from(0n));
