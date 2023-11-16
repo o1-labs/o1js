@@ -205,11 +205,6 @@ function verifyEcdsa(
 
   // reduce R.x modulo the curve order
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
-  Provable.asProver(() => {
-    let [u1_, u2_, Rx_, r_] = Field3.toBigints(u1, u2, Rx, r);
-    let R_ = Point.toBigint(R);
-    console.log({ u1_, u2_, R_, Rx_, r_ });
-  });
   Provable.assertEqual(Field3.provable, Rx, r);
 }
 
@@ -266,8 +261,6 @@ function doubleScalarMul(
   let b = Curve.order.toString(2).length;
   let ss = slice(s, { maxBits: b, chunkSize: windowSizeG });
   let ts = slice(t, { maxBits: b, chunkSize: windowSizeP });
-
-  console.log({ b, windowSizeG, ss: ss.length });
 
   let sum = Point.from(ia);
 
@@ -327,7 +320,6 @@ function verifyEcdsaConstant(
   let u2 = mod(r * sInv, q);
 
   let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
-  console.log({ u1, u2, R: X, Rx: mod(X.x, q), r });
   if (Curve.equal(X, Curve.zero)) return false;
 
   return mod(X.x, q) === r;

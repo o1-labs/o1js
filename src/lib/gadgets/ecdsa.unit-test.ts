@@ -25,8 +25,7 @@ let msgHash =
   );
 
 const ia = EllipticCurve.initialAggregator(BaseField, Secp256k1);
-// TODO doesn't work with windowSize = 3
-const tableConfig = { windowSizeG: 3, windowSizeP: 3 };
+const tableConfig = { windowSizeG: 5, windowSizeP: 3 };
 
 let program = ZkProgram({
   name: 'ecdsa',
