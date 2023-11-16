@@ -250,7 +250,7 @@ function doubleScalarMul(
       let Gj = windowSizeG === 1 ? G : arrayGet(Point, Gs, sj, { offset: 1 });
 
       // ec addition
-      let added = add(sum, Gj, Curve.p);
+      let added = add(sum, Gj, Curve.modulus);
 
       // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
       sum = Provable.if(sj.equals(0), Point, sum, added);
@@ -259,19 +259,19 @@ function doubleScalarMul(
     if (i % windowSizeP === 0) {
       let tj = ts[i / windowSizeP];
       let Pj = windowSizeP === 1 ? P : arrayGet(Point, Ps, tj, { offset: 1 });
-      let added = add(sum, Pj, Curve.p);
+      let added = add(sum, Pj, Curve.modulus);
       sum = Provable.if(tj.equals(0), Point, sum, added);
     }
 
     // jointly double both points
-    sum = double(sum, Curve.p);
+    sum = double(sum, Curve.modulus);
   }
 
   // the sum is now s*G + t*P + 2^b*IA
   // we assert that sum != 2^b*IA, and add -2^b*IA to get our result
   let iaTimes2ToB = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b));
   Provable.equal(Point, sum, Point.from(iaTimes2ToB)).assertFalse();
-  sum = add(sum, Point.from(Curve.negate(iaTimes2ToB)), Curve.p);
+  sum = add(sum, Point.from(Curve.negate(iaTimes2ToB)), Curve.modulus);
 
   return sum;
 }
@@ -318,10 +318,10 @@ function getPointTable(
   table = [P];
   if (n === 1) return table;
 
-  let Pi = double(P, Curve.p);
+  let Pi = double(P, Curve.modulus);
   table.push(Pi);
   for (let i = 2; i < n; i++) {
-    Pi = add(Pi, P, Curve.p);
+    Pi = add(Pi, P, Curve.modulus);
     table.push(Pi);
   }
   return table;
@@ -456,8 +456,27 @@ const Point = {
 
 const Signature = {
   ...provable({ r: Field3.provable, s: Field3.provable }),
+  from({ r, s }: signature): Signature {
+    return { r: Field3.from(r), s: Field3.from(s) };
+  },
   toBigint({ r, s }: Signature): signature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
+  },
+  /**
+   * Create a {@link Signature} from a raw 130-char hex string as used in
+   * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
+   */
+  fromHex(rawSignature: string): Signature {
+    let prefix = rawSignature.slice(0, 2);
+    let signature = rawSignature.slice(2, 130);
+    if (prefix !== '0x' || signature.length < 128) {
+      throw Error(
+        `Signature.fromHex(): Invalid signature, expected hex string 0x... of length at least 130.`
+      );
+    }
+    let r = BigInt(`0x${signature.slice(0, 64)}`);
+    let s = BigInt(`0x${signature.slice(64)}`);
+    return Signature.from({ r, s });
   },
 };
 
