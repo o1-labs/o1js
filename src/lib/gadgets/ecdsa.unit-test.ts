@@ -4,6 +4,7 @@ import { Field3 } from './foreign-field.js';
 import { secp256k1Params } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { createField } from '../../bindings/crypto/finite_field.js';
+import { ZkProgram } from '../proof_system.js';
 
 const Secp256k1 = createCurveAffine(secp256k1Params);
 const BaseField = createField(secp256k1Params.modulus);
@@ -23,14 +24,48 @@ let msgHash =
   );
 
 const ia = EllipticCurve.initialAggregator(BaseField, Secp256k1);
+// TODO doesn't work with windowSize = 3
+const tableConfig = { windowSizeG: 2, windowSizeP: 2 };
 
-function main() {
-  let signature0 = Provable.witness(Ecdsa.Signature, () => signature);
-  Ecdsa.verify(Secp256k1, ia, signature0, msgHash, publicKey, {
-    windowSizeG: 3,
-    windowSizeP: 3,
-  });
-}
+let program = ZkProgram({
+  name: 'ecdsa',
+  methods: {
+    scale: {
+      privateInputs: [],
+      method() {
+        let G = Point.from(Secp256k1.one);
+        let P = Provable.witness(Point, () => publicKey);
+        let R = EllipticCurve.doubleScalarMul(
+          Secp256k1,
+          ia,
+          signature.s,
+          G,
+          signature.r,
+          P,
+          tableConfig
+        );
+        Provable.asProver(() => {
+          console.log(Point.toBigint(R));
+        });
+      },
+    },
+    ecdsa: {
+      privateInputs: [],
+      method() {
+        let signature0 = Provable.witness(Ecdsa.Signature, () => signature);
+        Ecdsa.verify(
+          Secp256k1,
+          ia,
+          signature0,
+          msgHash,
+          publicKey,
+          tableConfig
+        );
+      },
+    },
+  },
+});
+let main = program.rawMethods.ecdsa;
 
 console.time('ecdsa verify (constant)');
 main();
@@ -52,3 +87,11 @@ for (let gate of cs.gates) {
 }
 
 console.log(gateTypes);
+
+console.time('ecdsa verify (compile)');
+await program.compile();
+console.timeEnd('ecdsa verify (compile)');
+
+console.time('ecdsa verify (prove)');
+let proof = await program.ecdsa();
+console.timeEnd('ecdsa verify (prove)');

@@ -3,7 +3,6 @@ import {
   inverse,
   mod,
 } from '../../bindings/crypto/finite_field.js';
-import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
@@ -16,7 +15,6 @@ import {
   weakBound,
 } from './foreign-field.js';
 import { L, multiRangeCheck } from './range-check.js';
-import { printGates } from '../testing/constraint-system.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBits,
@@ -24,7 +22,6 @@ import {
 } from '../../bindings/crypto/bigint-helpers.js';
 import {
   CurveAffine,
-  Pallas,
   affineAdd,
   affineDouble,
 } from '../../bindings/crypto/elliptic_curve.js';
@@ -37,6 +34,7 @@ export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
 const EllipticCurve = {
   add,
   double,
+  doubleScalarMul,
   initialAggregator,
 };
 
@@ -207,6 +205,11 @@ function verifyEcdsa(
 
   // reduce R.x modulo the curve order
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
+  Provable.asProver(() => {
+    let [u1_, u2_, Rx_, r_] = Field3.toBigints(u1, u2, Rx, r);
+    let R_ = Point.toBigint(R);
+    console.log({ u1_, u2_, R_, Rx_, r_ });
+  });
   Provable.assertEqual(Field3.provable, Rx, r);
 }
 
@@ -240,6 +243,21 @@ function doubleScalarMul(
     multiplesP = undefined as Point[] | undefined,
   } = {}
 ): Point {
+  // constant case
+  if (
+    Field3.isConstant(s) &&
+    Field3.isConstant(t) &&
+    Provable.isConstant(Point, G) &&
+    Provable.isConstant(Point, P)
+  ) {
+    let s_ = Field3.toBigint(s);
+    let t_ = Field3.toBigint(t);
+    let G_ = Point.toBigint(G);
+    let P_ = Point.toBigint(P);
+    let R = Curve.add(Curve.scale(G_, s_), Curve.scale(P_, t_));
+    return Point.from(R);
+  }
+
   // parse or build point tables
   let Gs = getPointTable(Curve, G, windowSizeG, multiplesG);
   let Ps = getPointTable(Curve, P, windowSizeP, multiplesP);
@@ -249,9 +267,11 @@ function doubleScalarMul(
   let ss = slice(s, { maxBits: b, chunkSize: windowSizeG });
   let ts = slice(t, { maxBits: b, chunkSize: windowSizeP });
 
+  console.log({ b, windowSizeG, windowSizeP, ss: ss.length, ts: ts.length });
+
   let sum = Point.from(ia);
 
-  for (let i = 0; i < b; i++) {
+  for (let i = b - 1; i >= 0; i--) {
     if (i % windowSizeG === 0) {
       // pick point to add based on the scalar chunk
       let sj = ss[i / windowSizeG];
@@ -270,16 +290,17 @@ function doubleScalarMul(
       let added = add(sum, Pj, Curve.modulus);
       sum = Provable.if(tj.equals(0), Point, sum, added);
     }
+    if (i === 0) break;
 
     // jointly double both points
     sum = double(sum, Curve.modulus);
   }
 
-  // the sum is now s*G + t*P + 2^b*IA
-  // we assert that sum != 2^b*IA, and add -2^b*IA to get our result
-  let iaTimes2ToB = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b));
-  Provable.equal(Point, sum, Point.from(iaTimes2ToB)).assertFalse();
-  sum = add(sum, Point.from(Curve.negate(iaTimes2ToB)), Curve.modulus);
+  // the sum is now s*G + t*P + 2^(b-1)*IA
+  // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
+  let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
+  Provable.equal(Point, sum, Point.from(iaFinal)).assertFalse();
+  sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
 
   return sum;
 }
@@ -306,6 +327,7 @@ function verifyEcdsaConstant(
   let u2 = mod(r * sInv, q);
 
   let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
+  console.log({ u1, u2, R: X, Rx: mod(X.x, q), r });
   if (Curve.equal(X, Curve.zero)) return false;
 
   return mod(X.x, q) === r;
