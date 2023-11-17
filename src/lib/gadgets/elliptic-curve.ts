@@ -82,7 +82,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   multiRangeCheck(y3);
   let mBound = weakBound(m[2], f);
   let x3Bound = weakBound(x3[2], f);
-  // we dont need to bound y3[2] because it's never one of the inputs to a multiplication
+  let y3Bound = weakBound(y3[2], f);
 
   // (x1 - x2)*m = y1 - y2
   let deltaX = new Sum(x1).sub(x2);
@@ -99,7 +99,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   assertRank1(deltaX1X3, m, ySum, f);
 
   // bounds checks
-  multiRangeCheck([mBound, x3Bound, Field.from(0n)]);
+  multiRangeCheck([mBound, x3Bound, y3Bound]);
 
   return { x: x3, y: y3 };
 }
@@ -135,7 +135,7 @@ function double(p1: Point, f: bigint) {
   multiRangeCheck(y3);
   let mBound = weakBound(m[2], f);
   let x3Bound = weakBound(x3[2], f);
-  // we dont need to bound y3[2] because it's never one of the inputs to a multiplication
+  let y3Bound = weakBound(y3[2], f);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
@@ -156,8 +156,7 @@ function double(p1: Point, f: bigint) {
   assertRank1(deltaX1X3, m, ySum, f);
 
   // bounds checks
-  // TODO: there is a secret free spot for two bounds in ForeignField.mul; use it
-  multiRangeCheck([mBound, x3Bound, Field.from(0n)]);
+  multiRangeCheck([mBound, x3Bound, y3Bound]);
 
   return { x: x3, y: y3 };
 }
