@@ -117,16 +117,16 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   }
 
   // provable case
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(a, b, f);
+  let { r01, r2, q } = multiplyNoRangeCheck(a, b, f);
 
   // limb range checks on quotient and remainder
   multiRangeCheck(q);
   let r = compactMultiRangeCheck(r01, r2);
 
-  // range check on q and r bounds
-  // TODO: this uses one RC too many.. need global RC stack, or get rid of bounds checks
+  // range check on r bound
+  // TODO: this uses two RCs too many.. need global RC stack, or get rid of bounds checks
   let r2Bound = weakBound(r2, f);
-  multiRangeCheck([q2Bound, r2Bound, Field.from(0n)]);
+  multiRangeCheck([r2Bound, Field.from(0n), Field.from(0n)]);
 
   return r;
 }
@@ -150,11 +150,11 @@ function inverse(x: Field3, f: bigint): Field3 {
   let xInv2Bound = weakBound(xInv[2], f);
 
   let one: Field2 = [Field.from(1n), Field.from(0n)];
-  let q2Bound = assertMul(x, xInv, one, f);
+  assertMul(x, xInv, one, f);
 
-  // range check on q and result bounds
-  // TODO: this uses one RC too many.. need global RC stack
-  multiRangeCheck([q2Bound, xInv2Bound, Field.from(0n)]);
+  // range check on result bound
+  // TODO: this uses two RCs too many.. need global RC stack
+  multiRangeCheck([xInv2Bound, Field.from(0n), Field.from(0n)]);
 
   return xInv;
 }
@@ -183,10 +183,10 @@ function divide(
   });
   multiRangeCheck(z);
   let z2Bound = weakBound(z[2], f);
-  let q2Bound = assertMul(z, y, x, f);
+  assertMul(z, y, x, f);
 
-  // range check on q and result bounds
-  multiRangeCheck([q2Bound, z2Bound, Field.from(0n)]);
+  // range check on result bound
+  multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
 
   if (!allowZeroOverZero) {
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
@@ -203,10 +203,10 @@ function divide(
 }
 
 /**
- * Common logic for gadgets that expect a certain multiplication result instead of just using the remainder.
+ * Common logic for gadgets that expect a certain multiplication result a priori, instead of just using the remainder.
  */
 function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
+  let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
   // range check on quotient
   multiRangeCheck(q);
@@ -221,9 +221,11 @@ function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
     r01.assertEquals(xy01);
     r2.assertEquals(xy[2]);
   }
-  return q2Bound;
 }
 
+/**
+ * Core building block for all gadgets using foreign field multiplication.
+ */
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   // notation follows https://github.com/o1-labs/rfcs/blob/main/0006-ffmul-revised.md
   let f_ = (1n << L3) - f;
@@ -315,10 +317,14 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     negForeignFieldModulus: [f_0, f_1, f_2],
   });
 
-  // multi-range check on intermediate values
-  multiRangeCheck([c0, p10, p110]);
+  // multi-range check on internal values
+  multiRangeCheck([p10, p110, q2Bound]);
 
-  return { r01, r2, q, q2Bound };
+  // note: this function is supposed to be the most flexible interface to the ffmul gate.
+  // that's why we don't add range checks on q and r here, because there are valid use cases
+  // for not range-checking either of them -- for example, they could be wired to other
+  // variables that are already range-checked, or to constants / public inputs.
+  return { r01, r2, q };
 }
 
 function weakBound(x: Field, f: bigint) {
