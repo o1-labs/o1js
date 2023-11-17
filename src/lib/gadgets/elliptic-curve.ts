@@ -18,6 +18,7 @@ import { l, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBits,
+  bigIntToBytes,
   bytesToBigInt,
 } from '../../bindings/crypto/bigint-helpers.js';
 import {
@@ -355,9 +356,14 @@ function getPointTable(
  * It's important that this point has no known discrete logarithm so that nobody
  * can create an invalid proof of EC scaling.
  */
-function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
+function initialAggregator(Curve: CurveAffine, F: FiniteField) {
+  // hash that identifies the curve
   let h = sha256.create();
-  h.update('o1js:ecdsa');
+  h.update('ecdsa');
+  h.update(bigIntToBytes(Curve.modulus));
+  h.update(bigIntToBytes(Curve.order));
+  h.update(bigIntToBytes(Curve.a));
+  h.update(bigIntToBytes(Curve.b));
   let bytes = h.array();
 
   // bytes represent a 256-bit number
@@ -370,7 +376,7 @@ function initialAggregator(F: FiniteField, { a, b }: { a: bigint; b: bigint }) {
     x = F.add(x, 1n);
     // solve y^2 = x^3 + ax + b
     let x3 = F.mul(F.square(x), x);
-    let y2 = F.add(x3, F.mul(a, x) + b);
+    let y2 = F.add(x3, F.mul(Curve.a, x) + Curve.b);
     y = F.sqrt(y2);
   }
   return { x, y, infinity: false };

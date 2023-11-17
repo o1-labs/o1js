@@ -24,7 +24,7 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-const ia = EllipticCurve.initialAggregator(BaseField, Secp256k1);
+const ia = EllipticCurve.initialAggregator(Secp256k1, BaseField);
 const tableConfig = { windowSizeG: 3, windowSizeP: 3 };
 
 let program = ZkProgram({
