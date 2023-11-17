@@ -14,7 +14,7 @@ import {
   split,
   weakBound,
 } from './foreign-field.js';
-import { L, multiRangeCheck } from './range-check.js';
+import { l, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBits,
@@ -87,20 +87,19 @@ function add(p1: Point, p2: Point, f: bigint) {
   // (x1 - x2)*m = y1 - y2
   let deltaX = new Sum(x1).sub(x2);
   let deltaY = new Sum(y1).sub(y2);
-  let qBound1 = assertRank1(deltaX, m, deltaY, f);
+  assertRank1(deltaX, m, deltaY, f);
 
   // m^2 = x1 + x2 + x3
   let xSum = new Sum(x1).add(x2).add(x3);
-  let qBound2 = assertRank1(m, m, xSum, f);
+  assertRank1(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
   let deltaX1X3 = new Sum(x1).sub(x3);
   let ySum = new Sum(y1).add(y3);
-  let qBound3 = assertRank1(deltaX1X3, m, ySum, f);
+  assertRank1(deltaX1X3, m, ySum, f);
 
   // bounds checks
-  multiRangeCheck([mBound, x3Bound, qBound1]);
-  multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
+  multiRangeCheck([mBound, x3Bound, Field.from(0n)]);
 
   return { x: x3, y: y3 };
 }
@@ -145,20 +144,20 @@ function double(p1: Point, f: bigint) {
   // TODO this assumes the curve has a == 0
   let y1Times2 = new Sum(y1).add(y1);
   let x1x1Times3 = new Sum(x1x1).add(x1x1).add(x1x1);
-  let qBound1 = assertRank1(y1Times2, m, x1x1Times3, f);
+  assertRank1(y1Times2, m, x1x1Times3, f);
 
   // m^2 = 2*x1 + x3
   let xSum = new Sum(x1).add(x1).add(x3);
-  let qBound2 = assertRank1(m, m, xSum, f);
+  assertRank1(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
   let deltaX1X3 = new Sum(x1).sub(x3);
   let ySum = new Sum(y1).add(y3);
-  let qBound3 = assertRank1(deltaX1X3, m, ySum, f);
+  assertRank1(deltaX1X3, m, ySum, f);
 
   // bounds checks
-  multiRangeCheck([mBound, x3Bound, qBound1]);
-  multiRangeCheck([qBound2, qBound3, Field.from(0n)]);
+  // TODO: there is a secret free spot for two bounds in ForeignField.mul; use it
+  multiRangeCheck([mBound, x3Bound, Field.from(0n)]);
 
   return { x: x3, y: y3 };
 }
@@ -390,18 +389,18 @@ function slice(
   [x0, x1, x2]: Field3,
   { maxBits, chunkSize }: { maxBits: number; chunkSize: number }
 ) {
-  let l = Number(L);
-  assert(maxBits <= 3 * l, `expected max bits <= 3*${l}, got ${maxBits}`);
+  let l_ = Number(l);
+  assert(maxBits <= 3 * l_, `expected max bits <= 3*${l_}, got ${maxBits}`);
 
   // first limb
-  let result0 = sliceField(x0, Math.min(l, maxBits), chunkSize);
+  let result0 = sliceField(x0, Math.min(l_, maxBits), chunkSize);
   if (maxBits <= l) return result0.chunks;
-  maxBits -= l;
+  maxBits -= l_;
 
   // second limb
-  let result1 = sliceField(x1, Math.min(l, maxBits), chunkSize, result0);
-  if (maxBits <= l) return result0.chunks.concat(result1.chunks);
-  maxBits -= l;
+  let result1 = sliceField(x1, Math.min(l_, maxBits), chunkSize, result0);
+  if (maxBits <= l_) return result0.chunks.concat(result1.chunks);
+  maxBits -= l_;
 
   // third limb
   let result2 = sliceField(x2, maxBits, chunkSize, result1);
