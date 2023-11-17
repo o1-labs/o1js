@@ -185,12 +185,12 @@
         "digest": "b12ad7e8a3fd28b765e059357dbe9e44"
       },
       "leftShift": {
-        "rows": 7,
-        "digest": "66de39ad3dd5807f760341ec85a6cc41"
+        "rows": 5,
+        "digest": "451f550bf73fecf53c9be82367572cb8"
       },
       "rightShift": {
-        "rows": 7,
-        "digest": "a32264f2d4c3092f30d600fa9506385b"
+        "rows": 5,
+        "digest": "d0793d4a326d480eaa015902dc34bc39"
       },
       "and": {
         "rows": 19,
