@@ -8,12 +8,12 @@ import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
 import { assert, bitSlice, exists, toVars } from './common.js';
 import {
-  L,
+  l,
   lMask,
   multiRangeCheck,
-  L2,
+  l2,
   l2Mask,
-  L3,
+  l3,
   compactMultiRangeCheck,
 } from './range-check.js';
 
@@ -105,7 +105,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
     // do the add with carry
     // note: this "just works" with negative r01
     let r01 = collapse2(x_) + sign * collapse2(y_) - overflow * collapse2(f_);
-    let carry = r01 >> L2;
+    let carry = r01 >> l2;
     r01 &= l2Mask;
     let [r0, r1] = split2(r01);
     let r2 = x_[2] + sign * y_[2] - overflow * f_[2] + carry;
@@ -128,16 +128,16 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   }
 
   // provable case
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(a, b, f);
+  let { r01, r2, q } = multiplyNoRangeCheck(a, b, f);
 
   // limb range checks on quotient and remainder
   multiRangeCheck(q);
   let r = compactMultiRangeCheck(r01, r2);
 
-  // range check on q and r bounds
-  // TODO: this uses one RC too many.. need global RC stack, or get rid of bounds checks
+  // range check on r bound
+  // TODO: this uses two RCs too many.. need global RC stack, or get rid of bounds checks
   let r2Bound = weakBound(r2, f);
-  multiRangeCheck([q2Bound, r2Bound, Field.from(0n)]);
+  multiRangeCheck([r2Bound, Field.from(0n), Field.from(0n)]);
 
   return r;
 }
@@ -161,11 +161,11 @@ function inverse(x: Field3, f: bigint): Field3 {
   let xInv2Bound = weakBound(xInv[2], f);
 
   let one: Field2 = [Field.from(1n), Field.from(0n)];
-  let q2Bound = assertMul(x, xInv, one, f);
+  assertMul(x, xInv, one, f);
 
-  // range check on q and result bounds
-  // TODO: this uses one RC too many.. need global RC stack
-  multiRangeCheck([q2Bound, xInv2Bound, Field.from(0n)]);
+  // range check on result bound
+  // TODO: this uses two RCs too many.. need global RC stack
+  multiRangeCheck([xInv2Bound, Field.from(0n), Field.from(0n)]);
 
   return xInv;
 }
@@ -194,16 +194,16 @@ function divide(
   });
   multiRangeCheck(z);
   let z2Bound = weakBound(z[2], f);
-  let q2Bound = assertMul(z, y, x, f);
+  assertMul(z, y, x, f);
 
-  // range check on q and result bounds
-  multiRangeCheck([q2Bound, z2Bound, Field.from(0n)]);
+  // range check on result bound
+  multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
 
   if (!allowZeroOverZero) {
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
     // this works because we assume y[2] <= f2
     // TODO is this the most efficient way?
-    let y01 = y[0].add(y[1].mul(1n << L));
+    let y01 = y[0].add(y[1].mul(1n << l));
     y01.equals(0n).and(y[2].equals(0n)).assertFalse();
     let [f0, f1, f2] = split(f);
     let f01 = collapse2([f0, f1]);
@@ -214,10 +214,10 @@ function divide(
 }
 
 /**
- * Common logic for gadgets that expect a certain multiplication result instead of just using the remainder.
+ * Common logic for gadgets that expect a certain multiplication result a priori, instead of just using the remainder.
  */
 function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
-  let { r01, r2, q, q2Bound } = multiplyNoRangeCheck(x, y, f);
+  let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
   // range check on quotient
   multiRangeCheck(q);
@@ -228,19 +228,21 @@ function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
     r01.assertEquals(xy01);
     r2.assertEquals(xy2);
   } else {
-    let xy01 = xy[0].add(xy[1].mul(1n << L));
+    let xy01 = xy[0].add(xy[1].mul(1n << l));
     r01.assertEquals(xy01);
     r2.assertEquals(xy[2]);
   }
-  return q2Bound;
 }
 
+/**
+ * Core building block for all gadgets using foreign field multiplication.
+ */
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   // notation follows https://github.com/o1-labs/rfcs/blob/main/0006-ffmul-revised.md
-  let f_ = (1n << L3) - f;
+  let f_ = (1n << l3) - f;
   let [f_0, f_1, f_2] = split(f_);
-  let f2 = f >> L2;
-  let f2Bound = (1n << L) - f2 - 1n;
+  let f2 = f >> l2;
+  let f2Bound = (1n << l) - f2 - 1n;
 
   let witnesses = exists(21, () => {
     // split inputs into 3 limbs
@@ -265,10 +267,10 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     let p11 = collapse2([p110, p111]);
 
     // carry bottom limbs
-    let c0 = (p0 + (p10 << L) - r01) >> L2;
+    let c0 = (p0 + (p10 << l) - r01) >> l2;
 
     // carry top limb
-    let c1 = (p2 - r2 + p11 + c0) >> L;
+    let c1 = (p2 - r2 + p11 + c0) >> l;
 
     // split high carry
     let c1_00 = bitSlice(c1, 0, 12);
@@ -326,14 +328,18 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     negForeignFieldModulus: [f_0, f_1, f_2],
   });
 
-  // multi-range check on intermediate values
-  multiRangeCheck([c0, p10, p110]);
+  // multi-range check on internal values
+  multiRangeCheck([p10, p110, q2Bound]);
 
-  return { r01, r2, q, q2Bound };
+  // note: this function is supposed to be the most flexible interface to the ffmul gate.
+  // that's why we don't add range checks on q and r here, because there are valid use cases
+  // for not range-checking either of them -- for example, they could be wired to other
+  // variables that are already range-checked, or to constants / public inputs.
+  return { r01, r2, q };
 }
 
 function weakBound(x: Field, f: bigint) {
-  return x.add(lMask - (f >> L2));
+  return x.add(lMask - (f >> l2));
 }
 
 const Field3 = {
@@ -386,17 +392,17 @@ function bigint3(x: Field3): bigint3 {
 }
 
 function collapse([x0, x1, x2]: bigint3) {
-  return x0 + (x1 << L) + (x2 << L2);
+  return x0 + (x1 << l) + (x2 << l2);
 }
 function split(x: bigint): bigint3 {
-  return [x & lMask, (x >> L) & lMask, (x >> L2) & lMask];
+  return [x & lMask, (x >> l) & lMask, (x >> l2) & lMask];
 }
 
 function collapse2([x0, x1]: bigint3 | [bigint, bigint]) {
-  return x0 + (x1 << L);
+  return x0 + (x1 << l);
 }
 function split2(x: bigint): [bigint, bigint] {
-  return [x & lMask, (x >> L) & lMask];
+  return [x & lMask, (x >> l) & lMask];
 }
 
 /**
