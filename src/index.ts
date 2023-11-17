@@ -24,6 +24,7 @@ export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
+export * as Gates from './lib/gates.js';
 export * as Mina from './lib/mina.js';
 export type { DeployArgs } from './lib/zkapp.js';
 export {

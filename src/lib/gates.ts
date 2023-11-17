@@ -1,9 +1,9 @@
 import { Snarky } from '../snarky.js';
-import { FieldConst, type Field } from './field.js';
+import { FieldConst, Field, FieldVar } from './field.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
-export { rangeCheck0, rangeCheck1, xor, zero, rotate, generic };
+export { rangeCheck0, rangeCheck1, xor, zero, lookup, addFixedLookupTable, addDynamicLookupTable, rotate, generic };
 
 function rangeCheck0(
   x: Field,
@@ -131,14 +131,19 @@ function zero(a: Field, b: Field, c: Field) {
   Snarky.gates.zero(a.value, b.value, c.value);
 }
 
-function lookup(id: Field, index: Field, value: Field) {
-  Snarky.gates.lookup([id.value, index.value, value.value, index.value, value.value, index.value, value.value]);
+function lookup(id: Field, index: Field, value: Field) {  
+  Snarky.gates.lookup([0, id.value, index.value, value.value, index.value, value.value, index.value, value.value]);
 }
 
-function addFixedLookupTable(id: number, data: [[Field], [Field]]) {
-  Snarky.gates.addFixedLookupTable(id, [data[0].map((x) => x.value), data[1].map((x) => x.value)]);
+function addFixedLookupTable(id: number, indices: Field[], data: Field[]) {
+  Snarky.gates.addFixedLookupTable(
+    id, 
+    MlArray.to([
+      MlArray.to(indices.map((x) => FieldConst.fromBigint(x.toBigInt()))),
+      MlArray.to(data.map((x) => FieldConst.fromBigint(x.toBigInt())))
+    ]))  
 }
 
-function addDynamicLookupTable(id: number, data: [Field]) {
-  Snarky.gates.addRuntimeTableConfig(id, data.map((x) => x.value));
+function addDynamicLookupTable(id: number, data: Field[]) {
+  Snarky.gates.addRuntimeTableConfig(id, MlArray.to(data.map((x) => FieldConst.fromBigint(x.toBigInt()))));
 }
