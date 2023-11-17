@@ -1,6 +1,5 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  Spec,
   equivalentProvable as equivalent,
   equivalentAsync,
   field,
@@ -9,8 +8,26 @@ import {
 import { Fp, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
-import { test, Random } from '../testing/property.js';
-import { Provable } from '../provable.js';
+import { Random } from '../testing/property.js';
+import {
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  and,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
+import { GateType } from '../../snarky.js';
+
+const maybeField = {
+  ...field,
+  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
+    mod(x, Field.ORDER)
+  ),
+};
+
+let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
 let Bitwise = ZkProgram({
   name: 'bitwise',
@@ -19,7 +36,25 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 64);
+        return Gadgets.xor(a, b, 254);
+      },
+    },
+    notUnchecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 254, false);
+      },
+    },
+    notChecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 254, true);
+      },
+    },
+    and: {
+      privateInputs: [Field, Field],
+      method(a: Field, b: Field) {
+        return Gadgets.and(a, b, 64);
       },
     },
     rot: {
@@ -28,53 +63,100 @@ let Bitwise = ZkProgram({
         return Gadgets.rotate(a, 12, 'left');
       },
     },
+    leftShift: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.leftShift(a, 12);
+      },
+    },
+    rightShift: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.rightShift(a, 12);
+      },
+    },
   },
 });
 
 await Bitwise.compile();
 
-let uint = (length: number) => fieldWithRng(Random.biguint(length));
-
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
   equivalent({ from: [uint(length), uint(length)], to: field })(
-    Fp.xor,
+    (x, y) => x ^ y,
     (x, y) => Gadgets.xor(x, y, length)
+  );
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    (x, y) => x & y,
+    (x, y) => Gadgets.and(x, y, length)
+  );
+  // NOT unchecked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, false)
+  );
+  // NOT checked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, true)
   );
 });
 
-test(
-  Random.uint64,
-  Random.nat(64),
-  Random.boolean,
-  (x, n, direction, assert) => {
-    let z = Field(x);
-    let r1 = Fp.rot(x, n, direction ? 'left' : 'right');
-    Provable.runAndCheck(() => {
-      let f = Provable.witness(Field, () => z);
-      let r2 = Gadgets.rotate(f, n, direction ? 'left' : 'right');
-      Provable.asProver(() => assert(r1 === r2.toBigInt()));
-    });
+[2, 4, 8, 16, 32, 64].forEach((length) => {
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.rot(x, 12, 'left'),
+    (x) => Gadgets.rotate(x, 12, 'left')
+  );
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.leftShift(x, 12),
+    (x) => Gadgets.leftShift(x, 12)
+  );
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.rightShift(x, 12),
+    (x) => Gadgets.rightShift(x, 12)
+  );
+});
+
+await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs: 3 })(
+  (x, y) => {
+    return x ^ y;
+  },
+  async (x, y) => {
+    let proof = await Bitwise.xor(x, y);
+    return proof.publicOutput;
   }
 );
 
-let maybeUint64: Spec<bigint, Field> = {
-  ...field,
-  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
-    mod(x, Field.ORDER)
-  ),
-};
+await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
+  (x) => {
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notUnchecked(x);
+    return proof.publicOutput;
+  }
+);
+await equivalentAsync({ from: [maybeField], to: field }, { runs: 3 })(
+  (x) => {
+    if (x > 2n ** 254n) throw Error('Does not fit into 254 bit');
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notChecked(x);
+    return proof.publicOutput;
+  }
+);
 
 await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
+  { from: [maybeField, maybeField], to: field },
   { runs: 3 }
 )(
   (x, y) => {
     if (x >= 2n ** 64n || y >= 2n ** 64n)
       throw Error('Does not fit into 64 bits');
-    return Fp.xor(x, y);
+    return x & y;
   },
   async (x, y) => {
-    let proof = await Bitwise.xor(x, y);
+    let proof = await Bitwise.and(x, y);
     return proof.publicOutput;
   }
 );
@@ -90,25 +172,84 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
   }
 );
 
-function testRot(
-  field: Field,
-  bits: number,
-  mode: 'left' | 'right',
-  result: Field
-) {
-  Provable.runAndCheck(() => {
-    let output = Gadgets.rotate(field, bits, mode);
-    output.assertEquals(result, `rot(${field}, ${bits}, ${mode})`);
-  });
+await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+  (x) => {
+    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
+    return Fp.leftShift(x, 12);
+  },
+  async (x) => {
+    let proof = await Bitwise.leftShift(x);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+  (x) => {
+    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
+    return Fp.rightShift(x, 12);
+  },
+  async (x) => {
+    let proof = await Bitwise.rightShift(x);
+    return proof.publicOutput;
+  }
+);
+
+// check that gate chains stay intact
+
+function xorChain(bits: number) {
+  return repeat(Math.ceil(bits / 16), 'Xor16').concat('Zero');
 }
 
-testRot(Field(0), 0, 'left', Field(0));
-testRot(Field(0), 32, 'right', Field(0));
-testRot(Field(1), 1, 'left', Field(2));
-testRot(Field(1), 63, 'left', Field(9223372036854775808n));
-testRot(Field(256), 4, 'right', Field(16));
-testRot(Field(1234567890), 32, 'right', Field(5302428712241725440));
-testRot(Field(2651214356120862720), 32, 'right', Field(617283945));
-testRot(Field(1153202983878524928), 32, 'right', Field(268500993));
-testRot(Field(6510615555426900570n), 4, 'right', Field(11936128518282651045n));
-testRot(Field(6510615555426900570n), 4, 'right', Field(11936128518282651045n));
+constraintSystem(
+  'xor',
+  { from: [Field, Field] },
+  Bitwise.rawMethods.xor,
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem(
+  'not checked',
+  { from: [Field] },
+  Bitwise.rawMethods.notChecked,
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem(
+  'not unchecked',
+  { from: [Field] },
+  Bitwise.rawMethods.notUnchecked,
+  ifNotAllConstant(contains('Generic'))
+);
+
+constraintSystem(
+  'and',
+  { from: [Field, Field] },
+  Bitwise.rawMethods.and,
+  ifNotAllConstant(contains(xorChain(64)))
+);
+
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0', 'RangeCheck0'];
+let isJustRotate = ifNotAllConstant(
+  and(contains(rotChain), withoutGenerics(equals(rotChain)))
+);
+
+constraintSystem(
+  'rotate',
+  { from: [Field] },
+  Bitwise.rawMethods.rot,
+  isJustRotate
+);
+
+constraintSystem(
+  'left shift',
+  { from: [Field] },
+  Bitwise.rawMethods.leftShift,
+  isJustRotate
+);
+
+constraintSystem(
+  'right shift',
+  { from: [Field] },
+  Bitwise.rawMethods.rightShift,
+  isJustRotate
+);

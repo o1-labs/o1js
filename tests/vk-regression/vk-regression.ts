@@ -1,14 +1,14 @@
 import fs from 'fs';
-import { Voting_ } from './zkapps/voting/voting.js';
-import { Membership_ } from './zkapps/voting/membership.js';
-import { HelloWorld } from './zkapps/hello_world/hello_world.js';
-import { TokenContract, createDex } from './zkapps/dex/dex.js';
-import { GroupCS, BitwiseCS } from './primitive_constraint_system.js';
+import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
+import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
+import { HelloWorld } from '../../src/examples/zkapps/hello_world/hello_world.js';
+import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
+import { GroupCS, BitwiseCS } from './plain-constraint-system.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
 
-// usage ./run ./src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json
+// usage ./run ./tests/regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
@@ -40,7 +40,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   BitwiseCS,
 ];
 
-let filePath = jsonPath ? jsonPath : './src/examples/regression_test.json';
+let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';
 let RegressionJson: {
   [contractName: string]: {
     digest: string;
@@ -57,7 +57,7 @@ try {
 } catch (error) {
   if (!dump) {
     throw Error(
-      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. ./run ./src/examples/vk_regression.ts [--bundle] --dump `
+      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. npm run dump-vks`
     );
   }
 }

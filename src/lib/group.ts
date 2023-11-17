@@ -170,7 +170,7 @@ class Group {
         return s.mul(x1.sub(x3)).sub(y1);
       });
 
-      let [, x, y] = Snarky.group.ecadd(
+      let [, x, y] = Snarky.gates.ecAdd(
         Group.from(x1.seal(), y1.seal()).#toTuple(),
         Group.from(x2.seal(), y2.seal()).#toTuple(),
         Group.from(x3, y3).#toTuple(),

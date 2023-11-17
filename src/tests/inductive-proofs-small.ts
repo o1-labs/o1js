@@ -6,7 +6,7 @@ import {
   shutdown,
   Proof,
 } from '../index.js';
-import { tic, toc } from '../examples/zkapps/tictoc.js';
+import { tic, toc } from '../examples/utils/tic-toc.node.js';
 
 await isReady;
 

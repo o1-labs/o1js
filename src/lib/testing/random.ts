@@ -311,6 +311,7 @@ const Random = Object.assign(Random_, {
   uint32,
   uint64,
   biguint: biguintWithInvalid,
+  bignat: bignatWithInvalid,
   privateKey,
   publicKey,
   scalar,
@@ -658,14 +659,14 @@ function int(min: number, max: number): Random<number> {
  * log-uniform distribution over range [0, max]
  * with bias towards 0, 1, 2
  */
-function nat(max: number): Random<number> {
-  if (max < 0) throw Error('max < 0');
-  if (max === 0) return constant(0);
+function bignat(max: bigint): Random<bigint> {
+  if (max < 0n) throw Error('max < 0');
+  if (max === 0n) return constant(0n);
   let bits = max.toString(2).length;
   let bitBits = bits.toString(2).length;
   // set of special numbers that will appear more often in tests
-  let special = [0, 0, 1];
-  if (max > 1) special.push(2);
+  let special = [0n, 0n, 1n];
+  if (max > 1n) special.push(2n);
   let nSpecial = special.length;
   return {
     create: () => () => {
@@ -681,11 +682,19 @@ function nat(max: number): Random<number> {
         let bitLength = 1 + drawUniformUintBits(bitBits);
         if (bitLength > bits) continue;
         // draw number from [0, 2**bitLength); reject if > max
-        let n = drawUniformUintBits(bitLength);
+        let n = drawUniformBigUintBits(bitLength);
         if (n <= max) return n;
       }
     },
   };
+}
+
+/**
+ * log-uniform distribution over range [0, max]
+ * with bias towards 0, 1, 2
+ */
+function nat(max: number): Random<number> {
+  return map(bignat(BigInt(max)), (n) => Number(n));
 }
 
 function fraction(fixedPrecision = 3) {
@@ -819,6 +828,15 @@ function biguintWithInvalid(bits: number): RandomWithInvalid<bigint> {
   let valid = biguint(bits);
   let max = 1n << BigInt(bits);
   let double = biguint(2 * bits);
+  let negative = map(double, (uint) => -uint - 1n);
+  let tooLarge = map(valid, (uint) => uint + max);
+  let invalid = oneOf(negative, tooLarge);
+  return Object.assign(valid, { invalid });
+}
+
+function bignatWithInvalid(max: bigint): RandomWithInvalid<bigint> {
+  let valid = bignat(max);
+  let double = bignat(2n * max);
   let negative = map(double, (uint) => -uint - 1n);
   let tooLarge = map(valid, (uint) => uint + max);
   let invalid = oneOf(negative, tooLarge);

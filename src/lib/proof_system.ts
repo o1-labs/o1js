@@ -25,9 +25,16 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlPair, MlUnit } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
+import { Cache, readCache, writeCache } from './proof-system/cache.js';
+import {
+  decodeProverKey,
+  encodeProverKey,
+  parseHeader,
+} from './proof-system/prover-keys.js';
+import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
 
 // public API
 export {
@@ -196,14 +203,14 @@ async function verify(
     let output = MlFieldConstArray.to(
       (proof as JsonProof).publicOutput.map(Field)
     );
-    statement = MlTuple(input, output);
+    statement = MlPair(input, output);
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
     let input = toFieldConsts(type.input, proof.publicInput);
     let output = toFieldConsts(type.output, proof.publicOutput);
-    statement = MlTuple(input, output);
+    statement = MlPair(input, output);
   }
   return prettifyStacktracePromise(
     withThreadPool(() =>
@@ -253,7 +260,7 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: () => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache: Cache }) => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -264,6 +271,13 @@ function ZkProgram<
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
+  rawMethods: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['method'];
+  };
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -310,7 +324,7 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile() {
+  async function compile({ cache = Cache.FileSystemDefault } = {}) {
     let methodsMeta = analyzeMethods();
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
@@ -320,6 +334,7 @@ function ZkProgram<
       methods: methodFunctions,
       gates,
       proofSystemTag: selfTag,
+      cache,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -353,7 +368,7 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let [publicOutputFields, proof] = MlTuple.from(result);
+      let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
@@ -389,7 +404,7 @@ function ZkProgram<
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
       );
     }
-    let statement = MlTuple(
+    let statement = MlPair(
       toFieldConsts(publicInputType, proof.publicInput),
       toFieldConsts(publicOutputType, proof.publicOutput)
     );
@@ -419,6 +434,9 @@ function ZkProgram<
         Get<StatementType, 'publicOutput'>
       >,
       analyzeMethods,
+      rawMethods: Object.fromEntries(
+        Object.entries(methods).map(([k, v]) => [k, v.method])
+      ) as any,
     },
     provers
   );
@@ -555,6 +573,7 @@ async function compileProgram({
   methods,
   gates,
   proofSystemTag,
+  cache,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -563,6 +582,7 @@ async function compileProgram({
   methods: ((...args: any) => void)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
+  cache: Cache;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -578,19 +598,44 @@ async function compileProgram({
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
+  let picklesCache: Pickles.Cache = [
+    0,
+    function read_(mlHeader) {
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      let result = readCache(cache, header, (bytes) =>
+        decodeProverKey(mlHeader, bytes)
+      );
+      if (result === undefined) return MlResult.unitError();
+      return MlResult.ok(result);
+    },
+    function write_(mlHeader, value) {
+      if (!cache.canWrite) return MlResult.unitError();
+
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      let didWrite = writeCache(cache, header, encodeProverKey(value));
+
+      if (!didWrite) return MlResult.unitError();
+      return MlResult.ok(undefined);
+    },
+    MlBool(cache.canWrite),
+  ];
+
   let { verificationKey, provers, verify, tag } =
     await prettifyStacktracePromise(
       withThreadPool(async () => {
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
+        setSrsCache(cache);
         try {
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            storable: picklesCache,
             overrideWrapDomain,
           });
         } finally {
           snarkContext.leave(id);
+          unsetSrsCache();
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -679,7 +724,7 @@ function picklesRuleFromFunction(
         proofs.push(proofInstance);
         let input = toFieldVars(type.input, publicInput);
         let output = toFieldVars(type.output, publicOutput);
-        previousStatements.push(MlTuple(input, output));
+        previousStatements.push(MlPair(input, output));
       } else if (arg.type === 'generic') {
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }

@@ -1,27 +1,17 @@
-import {
-  Poseidon,
-  Field,
-  Circuit,
-  circuitMain,
-  public_,
-  isReady,
-} from 'o1js';
+import { Poseidon, Field, Circuit, circuitMain, public_ } from 'o1js';
 
-/* Exercise 0:
-
-Public input: a hash value h
-Prove:
-  I know a value x such that hash(x) = h 
-*/
-
+/**
+ * Public input: a hash value h
+ *
+ * Prove:
+ *   I know a value x such that hash(x) = h
+ */
 class Main extends Circuit {
   @circuitMain
   static main(preimage: Field, @public_ hash: Field) {
     Poseidon.hash([preimage]).assertEquals(hash);
   }
 }
-
-await isReady;
 
 console.log('generating keypair...');
 const kp = await Main.generateKeypair();
