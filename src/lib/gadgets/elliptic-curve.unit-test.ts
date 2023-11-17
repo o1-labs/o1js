@@ -1,4 +1,4 @@
-import { exampleFields } from 'src/bindings/crypto/finite-field-examples.js';
+import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import { Provable } from '../provable.js';
 import { Field3 } from './foreign-field.js';
 import { EllipticCurve } from './elliptic-curve.js';
