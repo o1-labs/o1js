@@ -228,7 +228,7 @@ constraintSystem(
   ifNotAllConstant(contains(xorChain(64)))
 );
 
-let rotChain: GateType[] = ['Rot64', 'RangeCheck0', 'RangeCheck0'];
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0'];
 let isJustRotate = ifNotAllConstant(
   and(contains(rotChain), withoutGenerics(equals(rotChain)))
 );
