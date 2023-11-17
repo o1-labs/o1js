@@ -66,8 +66,8 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   let f_ = split(f);
 
   let [r0, r1, r2, overflow, carry] = exists(5, () => {
-    let x_ = bigint3(x);
-    let y_ = bigint3(y);
+    let x_ = toBigint3(x);
+    let y_ = toBigint3(y);
 
     // figure out if there's overflow
     let r = collapse(x_) + sign * collapse(y_);
@@ -104,7 +104,7 @@ const Field3 = {
    * Turn a 3-tuple of Fields into a bigint
    */
   toBigint(x: Field3): bigint {
-    return collapse(bigint3(x));
+    return collapse(toBigint3(x));
   },
 
   /**
@@ -119,7 +119,7 @@ const Field3 = {
 function toField3(x: bigint3): Field3 {
   return Tuple.map(x, (x) => new Field(x));
 }
-function bigint3(x: Field3): bigint3 {
+function toBigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
 
