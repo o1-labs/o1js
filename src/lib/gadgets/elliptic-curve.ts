@@ -536,11 +536,3 @@ const Ecdsa = {
   verify: verifyEcdsa,
   Signature: EcdsaSignature,
 };
-
-function gcd(a: number, b: number) {
-  if (b > a) [a, b] = [b, a];
-  while (true) {
-    if (b === 0) return a;
-    [a, b] = [b, a % b];
-  }
-}
