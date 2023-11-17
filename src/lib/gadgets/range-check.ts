@@ -3,7 +3,7 @@ import { Gates } from '../gates.js';
 import { bitSlice, exists, toVar, toVars } from './common.js';
 
 export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck };
-export { L, L2, L3, lMask, l2Mask };
+export { l, l2, l3, lMask, l2Mask };
 
 /**
  * Asserts that x is in the range [0, 2^64)
@@ -51,19 +51,19 @@ function rangeCheck64(x: Field) {
 }
 
 // default bigint limb size
-const L = 88n;
-const L2 = 2n * L;
-const L3 = 3n * L;
-const lMask = (1n << L) - 1n;
-const l2Mask = (1n << L2) - 1n;
+const l = 88n;
+const l2 = 2n * l;
+const l3 = 3n * l;
+const lMask = (1n << l) - 1n;
+const l2Mask = (1n << l2) - 1n;
 
 /**
  * Asserts that x, y, z \in [0, 2^88)
  */
 function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
   if (x.isConstant() && y.isConstant() && z.isConstant()) {
-    if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
-      throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);
+    if (x.toBigInt() >> l || y.toBigInt() >> l || z.toBigInt() >> l) {
+      throw Error(`Expected fields to fit in ${l} bits, got ${x}, ${y}, ${z}`);
     }
     return;
   }
@@ -86,9 +86,9 @@ function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
 function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
   // constant case
   if (xy.isConstant() && z.isConstant()) {
-    if (xy.toBigInt() >> L2 || z.toBigInt() >> L) {
+    if (xy.toBigInt() >> l2 || z.toBigInt() >> l) {
       throw Error(
-        `Expected fields to fit in ${L2} and ${L} bits respectively, got ${xy}, ${z}`
+        `Expected fields to fit in ${l2} and ${l} bits respectively, got ${xy}, ${z}`
       );
     }
     let [x, y] = splitCompactLimb(xy.toBigInt());
@@ -107,7 +107,7 @@ function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
 }
 
 function splitCompactLimb(x01: bigint): [bigint, bigint] {
-  return [x01 & lMask, x01 >> L];
+  return [x01 & lMask, x01 >> l];
 }
 
 function rangeCheck0Helper(x: Field, isCompact = false): [Field, Field] {

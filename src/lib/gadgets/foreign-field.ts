@@ -8,12 +8,12 @@ import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple } from '../util/types.js';
 import { assert, bitSlice, exists, toVars } from './common.js';
 import {
-  L,
+  l,
   lMask,
   multiRangeCheck,
-  L2,
+  l2,
   l2Mask,
-  L3,
+  l3,
   compactMultiRangeCheck,
 } from './range-check.js';
 
@@ -94,7 +94,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
     // do the add with carry
     // note: this "just works" with negative r01
     let r01 = collapse2(x_) + sign * collapse2(y_) - overflow * collapse2(f_);
-    let carry = r01 >> L2;
+    let carry = r01 >> l2;
     r01 &= l2Mask;
     let [r0, r1] = split2(r01);
     let r2 = x_[2] + sign * y_[2] - overflow * f_[2] + carry;
@@ -192,7 +192,7 @@ function divide(
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
     // this works because we assume y[2] <= f2
     // TODO is this the most efficient way?
-    let y01 = y[0].add(y[1].mul(1n << L));
+    let y01 = y[0].add(y[1].mul(1n << l));
     y01.equals(0n).and(y[2].equals(0n)).assertFalse();
     let [f0, f1, f2] = split(f);
     let f01 = collapse2([f0, f1]);
@@ -217,7 +217,7 @@ function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
     r01.assertEquals(xy01);
     r2.assertEquals(xy2);
   } else {
-    let xy01 = xy[0].add(xy[1].mul(1n << L));
+    let xy01 = xy[0].add(xy[1].mul(1n << l));
     r01.assertEquals(xy01);
     r2.assertEquals(xy[2]);
   }
@@ -228,10 +228,10 @@ function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
  */
 function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   // notation follows https://github.com/o1-labs/rfcs/blob/main/0006-ffmul-revised.md
-  let f_ = (1n << L3) - f;
+  let f_ = (1n << l3) - f;
   let [f_0, f_1, f_2] = split(f_);
-  let f2 = f >> L2;
-  let f2Bound = (1n << L) - f2 - 1n;
+  let f2 = f >> l2;
+  let f2Bound = (1n << l) - f2 - 1n;
 
   let witnesses = exists(21, () => {
     // split inputs into 3 limbs
@@ -256,10 +256,10 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     let p11 = collapse2([p110, p111]);
 
     // carry bottom limbs
-    let c0 = (p0 + (p10 << L) - r01) >> L2;
+    let c0 = (p0 + (p10 << l) - r01) >> l2;
 
     // carry top limb
-    let c1 = (p2 - r2 + p11 + c0) >> L;
+    let c1 = (p2 - r2 + p11 + c0) >> l;
 
     // split high carry
     let c1_00 = bitSlice(c1, 0, 12);
@@ -328,7 +328,7 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
-  return x.add(lMask - (f >> L2));
+  return x.add(lMask - (f >> l2));
 }
 
 const Field3 = {
@@ -367,15 +367,15 @@ function bigint3(x: Field3): bigint3 {
 }
 
 function collapse([x0, x1, x2]: bigint3) {
-  return x0 + (x1 << L) + (x2 << L2);
+  return x0 + (x1 << l) + (x2 << l2);
 }
 function split(x: bigint): bigint3 {
-  return [x & lMask, (x >> L) & lMask, (x >> L2) & lMask];
+  return [x & lMask, (x >> l) & lMask, (x >> l2) & lMask];
 }
 
 function collapse2([x0, x1]: bigint3 | [bigint, bigint]) {
-  return x0 + (x1 << L);
+  return x0 + (x1 << l);
 }
 function split2(x: bigint): [bigint, bigint] {
-  return [x & lMask, (x >> L) & lMask];
+  return [x & lMask, (x >> l) & lMask];
 }
