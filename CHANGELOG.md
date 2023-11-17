@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/c2f392fe5...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/045faa7...HEAD)
+
+## [0.13.1](https://github.com/o1-labs/o1js/compare/c2f392fe5...045faa7)
 
 ### Breaking changes
 
@@ -28,6 +30,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
+
+### Changed
+
+- Improve prover performance by ~25% https://github.com/o1-labs/o1js/pull/1092
+  - Change internal representation of field elements to be JS bigint instead of Uint8Array
 
 ## [0.13.0](https://github.com/o1-labs/o1js/compare/fbd4b2717...c2f392fe5)
 
