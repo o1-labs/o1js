@@ -202,8 +202,8 @@ constraintSystem.fromZkProgram(
 let mulChain: GateType[] = ['ForeignFieldMul', 'Zero'];
 let mulLayout = ifNotAllConstant(
   and(
-    contains([mulChain, mrc, mrc, mrc, mrc]),
-    withoutGenerics(equals([...mulChain, ...repeat(4, mrc)]))
+    contains([mulChain, mrc, mrc, mrc]),
+    withoutGenerics(equals([...mulChain, ...repeat(3, mrc)]))
   )
 );
 let invLayout = ifNotAllConstant(
