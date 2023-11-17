@@ -200,31 +200,27 @@ function xorChain(bits: number) {
   return repeat(Math.ceil(bits / 16), 'Xor16').concat('Zero');
 }
 
-constraintSystem(
+constraintSystem.fromZkProgram(
+  Bitwise,
   'xor',
-  { from: [Field, Field] },
-  Bitwise.rawMethods.xor,
   ifNotAllConstant(contains(xorChain(254)))
 );
 
-constraintSystem(
-  'not checked',
-  { from: [Field] },
-  Bitwise.rawMethods.notChecked,
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'notChecked',
   ifNotAllConstant(contains(xorChain(254)))
 );
 
-constraintSystem(
-  'not unchecked',
-  { from: [Field] },
-  Bitwise.rawMethods.notUnchecked,
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'notUnchecked',
   ifNotAllConstant(contains('Generic'))
 );
 
-constraintSystem(
+constraintSystem.fromZkProgram(
+  Bitwise,
   'and',
-  { from: [Field, Field] },
-  Bitwise.rawMethods.and,
   ifNotAllConstant(contains(xorChain(64)))
 );
 
@@ -233,23 +229,6 @@ let isJustRotate = ifNotAllConstant(
   and(contains(rotChain), withoutGenerics(equals(rotChain)))
 );
 
-constraintSystem(
-  'rotate',
-  { from: [Field] },
-  Bitwise.rawMethods.rot,
-  isJustRotate
-);
-
-constraintSystem(
-  'left shift',
-  { from: [Field] },
-  Bitwise.rawMethods.leftShift,
-  isJustRotate
-);
-
-constraintSystem(
-  'right shift',
-  { from: [Field] },
-  Bitwise.rawMethods.rightShift,
-  isJustRotate
-);
+constraintSystem.fromZkProgram(Bitwise, 'rot', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'leftShift', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'rightShift', isJustRotate);

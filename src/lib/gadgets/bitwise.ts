@@ -1,7 +1,7 @@
 import { Provable } from '../provable.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
-import * as Gates from '../gates.js';
+import { Gates } from '../gates.js';
 import {
   MAX_BITS,
   assert,

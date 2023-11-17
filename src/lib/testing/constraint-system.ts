@@ -11,6 +11,7 @@ import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
+import { Undefined, ZkProgram } from '../proof_system.js';
 
 export {
   constraintSystem,
@@ -33,7 +34,7 @@ export {
  * You give it a description of inputs and a circuit, as well as a `ConstraintSystemTest` to assert
  * properties on the generated constraint system.
  *
- * As inputs variables, we generate random combinations of constants, variables, add & scale combinators,
+ * As input variables, we generate random combinations of constants, variables, add & scale combinators,
  * to poke for the common problem of gate chains broken by unexpected Generic gates.
  *
  * The `constraintSystemTest` is written using a DSL of property assertions, such as {@link equals} and {@link contains}.
@@ -84,6 +85,37 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
     }
   });
 }
+
+/**
+ * Convenience function to run {@link constraintSystem} on the method of a {@link ZkProgram}.
+ *
+ * @example
+ * ```ts
+ * const program = ZkProgram({ methods: { myMethod: ... }, ... });
+ *
+ * constraintSystem.fromZkProgram(program, 'myMethod', contains('Rot64'));
+ * ```
+ */
+constraintSystem.fromZkProgram = function fromZkProgram<
+  T,
+  K extends keyof T & string
+>(
+  program: { privateInputTypes: T },
+  methodName: K,
+  test: ConstraintSystemTest
+) {
+  let program_: ZkProgram<any, any> = program as any;
+  let from: any = [...program_.privateInputTypes[methodName]];
+  if (program_.publicInputType !== Undefined) {
+    from.unshift(program_.publicInputType);
+  }
+  return constraintSystem(
+    `${program_.name} / ${methodName}()`,
+    { from },
+    program_.rawMethods[methodName],
+    test
+  );
+};
 
 // DSL for writing tests
 
@@ -267,7 +299,7 @@ const print: ConstraintSystemTest = {
   label: '',
 };
 
-function repeat(n: number, gates: GateType | GateType[]): GateType[] {
+function repeat(n: number, gates: GateType | GateType[]): readonly GateType[] {
   gates = Array.isArray(gates) ? gates : [gates];
   return Array<GateType[]>(n).fill(gates).flat();
 }
