@@ -122,12 +122,6 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   // limb range checks on quotient and remainder
   multiRangeCheck(q);
   let r = compactMultiRangeCheck(r01, r2);
-
-  // range check on r bound
-  // TODO: this uses two RCs too many.. need global RC stack, or get rid of bounds checks
-  let r2Bound = weakBound(r2, f);
-  multiRangeCheck([r2Bound, Field.from(0n), Field.from(0n)]);
-
   return r;
 }
 

@@ -413,11 +413,14 @@ const Gadgets = {
      *
      * The modulus `f` does not need to be prime, but has to be smaller than 2^259.
      *
-     * **Assumptions**: In addition to the assumption that inputs are in the range [0, 2^88), as in all foreign field gadgets,
+     * **Assumptions**: In addition to the assumption that input limbs are in the range [0, 2^88), as in all foreign field gadgets,
      * this assumes an additional bound on the inputs: `x * y < 2^264 * p`, where p is the native modulus.
      * We usually assert this bound by proving that `x[2] < f[2] + 1`, where `x[2]` is the most significant limb of x.
      * To do this, use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
      * The implication is that x and y are _almost_ reduced modulo f.
+     *
+     * **Warning**: This gadget does not add the extra bound check on the result.
+     * So, to use the result in another foreign field multiplication, you have to add the bound check on it yourself, again.
      *
      * @example
      * ```ts
@@ -450,6 +453,8 @@ const Gadgets = {
      * Foreign field inverse: `x^(-1) mod f`
      *
      * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
+     *
+     * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      */
     inv(x: Field3, f: bigint) {
       return ForeignField.inv(x, f);
@@ -459,6 +464,8 @@ const Gadgets = {
      * Foreign field division: `x * y^(-1) mod f`
      *
      * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
+     *
+     * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
