@@ -29,7 +29,6 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
-import { ProvablePure } from '../../snarky.js';
 import { arrayGet } from './basic.js';
 
 export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
