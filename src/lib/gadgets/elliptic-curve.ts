@@ -264,17 +264,9 @@ function multiScalarMul(
 
   // parse or build point tables
   let windowSizes = points.map((_, i) => tableConfigs[i]?.windowSize ?? 1);
-  let tables = points.map((P, i) => {
-    let table = getPointTable(
-      Curve,
-      P,
-      windowSizes[i],
-      tableConfigs[i]?.multiples
-    );
-    // add zero point in the beginning
-    table.unshift(Point.from(Curve.zero));
-    return table;
-  });
+  let tables = points.map((P, i) =>
+    getPointTable(Curve, P, windowSizes[i], tableConfigs[i]?.multiples)
+  );
 
   // slice scalars
   let b = Curve.order.toString(2).length;
@@ -351,17 +343,17 @@ function getPointTable(
   table?: Point[]
 ): Point[] {
   assertPositiveInteger(windowSize, 'invalid window size');
-  let n = (1 << windowSize) - 1; // n >= 1
+  let n = 1 << windowSize; // n >= 2
 
   assert(table === undefined || table.length === n, 'invalid table');
   if (table !== undefined) return table;
 
-  table = [P];
-  if (n === 1) return table;
+  table = [Point.from(Curve.zero), P];
+  if (n === 2) return table;
 
   let Pi = double(P, Curve.modulus);
   table.push(Pi);
-  for (let i = 2; i < n; i++) {
+  for (let i = 3; i < n; i++) {
     Pi = add(Pi, P, Curve.modulus);
     table.push(Pi);
   }
