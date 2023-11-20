@@ -370,7 +370,12 @@ function multiScalarMulGlv(
     return Point.from(sum);
   }
 
+  // parse or build point tables
   let windowSizes = points.map((_, i) => tableConfigs[i]?.windowSize ?? 1);
+  let tables = points.map((P, i) =>
+    getPointTable(Curve, P, windowSizes[i], undefined)
+  );
+
   let maxBits = Curve.Endo.decomposeMaxBits;
 
   // decompose scalars and handle signs
@@ -378,28 +383,39 @@ function multiScalarMulGlv(
   let scalars2: Field3[] = Array(n2);
   let points2: Point[] = Array(n2);
   let windowSizes2: number[] = Array(n2);
+  let tables2: Point[][] = Array(n2);
+  let mrcStack: Field[] = [];
 
   for (let i = 0; i < n; i++) {
     let [s0, s1] = decomposeNoRangeCheck(Curve, scalars[i]);
     scalars2[2 * i] = s0.abs;
     scalars2[2 * i + 1] = s1.abs;
 
-    let endoP = endomorphism(Curve, points[i]);
-    points2[2 * i] = negateIf(s0.isNegative, points[i], Curve.modulus);
-    points2[2 * i + 1] = negateIf(s1.isNegative, endoP, Curve.modulus);
+    let table = tables[i];
+    let endoTable = table.map((P, i) => {
+      if (i === 0) return P;
+      let [phiP, betaXBound] = endomorphism(Curve, P);
+      mrcStack.push(betaXBound);
+      return phiP;
+    });
+    tables2[2 * i] = table.map((P) =>
+      negateIf(s0.isNegative, P, Curve.modulus)
+    );
+    tables2[2 * i + 1] = endoTable.map((P) =>
+      negateIf(s1.isNegative, P, Curve.modulus)
+    );
+    points2[2 * i] = tables2[2 * i][1];
+    points2[2 * i + 1] = tables2[2 * i + 1][1];
 
     windowSizes2[2 * i] = windowSizes2[2 * i + 1] = windowSizes[i];
   }
+  reduceMrcStack(mrcStack);
   // from now on everything is the same as if these were the original points and scalars
   points = points2;
+  tables = tables2;
   scalars = scalars2;
   windowSizes = windowSizes2;
   n = n2;
-
-  // parse or build point tables
-  let tables = points.map((P, i) =>
-    getPointTable(Curve, P, windowSizes[i], undefined)
-  );
 
   // slice scalars
   let scalarChunks = scalars.map((s, i) =>
@@ -455,8 +471,7 @@ function negateIf(condition: Field, P: Point, f: bigint) {
 function endomorphism(Curve: CurveAffine, P: Point) {
   let beta = Field3.from(Curve.Endo.base);
   let betaX = ForeignField.mul(beta, P.x, Curve.modulus);
-  // TODO: we need an extra bounds check here?
-  return { x: betaX, y: P.y };
+  return [{ x: betaX, y: P.y }, weakBound(betaX[2], Curve.modulus)] as const;
 }
 
 function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
@@ -711,3 +726,19 @@ const Ecdsa = {
   verify: verifyEcdsa,
   Signature: EcdsaSignature,
 };
+
+// MRC stack
+
+function reduceMrcStack(xs: Field[]) {
+  let n = xs.length;
+  let nRemaining = n % 3;
+  let nFull = (n - nRemaining) / 3;
+  for (let i = 0; i < nFull; i++) {
+    multiRangeCheck([xs[3 * i], xs[3 * i + 1], xs[3 * i + 2]]);
+  }
+  let remaining: Field3 = [Field.from(0n), Field.from(0n), Field.from(0n)];
+  for (let i = 0; i < nRemaining; i++) {
+    remaining[i] = xs[3 * nFull + i];
+  }
+  multiRangeCheck(remaining);
+}
