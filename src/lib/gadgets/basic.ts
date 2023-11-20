@@ -2,8 +2,16 @@ import { Fp } from '../../bindings/crypto/finite_field.js';
 import type { Field } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
+import { Snarky } from '../../snarky.js';
 
-export { arrayGet };
+export { assertBoolean, arrayGet };
+
+/**
+ * Assert that x is either 0 or 1.
+ */
+function assertBoolean(x: Field) {
+  Snarky.field.assertBoolean(x.value);
+}
 
 // TODO: create constant versions of these and expose on Gadgets
 

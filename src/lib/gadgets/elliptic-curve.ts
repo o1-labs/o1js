@@ -29,8 +29,7 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
-import { ProvablePure } from '../../snarky.js';
-import { arrayGet } from './basic.js';
+import { arrayGet, assertBoolean } from './basic.js';
 
 export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
 
@@ -199,7 +198,7 @@ function verifyEcdsa(
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
   let G = Point.from(Curve.one);
-  let R = multiScalarMul(
+  let R = multiScalarMulGlv(
     Curve,
     ia,
     [u1, u2],
@@ -211,6 +210,33 @@ function verifyEcdsa(
   // reduce R.x modulo the curve order
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
   Provable.assertEqual(Field3.provable, Rx, r);
+}
+
+/**
+ * Bigint implementation of ECDSA verify
+ */
+function verifyEcdsaConstant(
+  Curve: CurveAffine,
+  { r, s }: { r: bigint; s: bigint },
+  msgHash: bigint,
+  publicKey: { x: bigint; y: bigint }
+) {
+  let q = Curve.order;
+  let QA = Curve.fromNonzero(publicKey);
+  if (!Curve.isOnCurve(QA)) return false;
+  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
+  if (r < 1n || r >= Curve.order) return false;
+  if (s < 1n || s >= Curve.order) return false;
+
+  let sInv = inverse(s, q);
+  if (sInv === undefined) throw Error('impossible');
+  let u1 = mod(msgHash * sInv, q);
+  let u2 = mod(r * sInv, q);
+
+  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
+  if (Curve.equal(X, Curve.zero)) return false;
+
+  return mod(X.x, q) === r;
 }
 
 /**
@@ -310,31 +336,167 @@ function multiScalarMul(
   return sum;
 }
 
-/**
- * Bigint implementation of ECDSA verify
- */
-function verifyEcdsaConstant(
+function multiScalarMulGlv(
   Curve: CurveAffine,
-  { r, s }: { r: bigint; s: bigint },
-  msgHash: bigint,
-  publicKey: { x: bigint; y: bigint }
-) {
-  let q = Curve.order;
-  let QA = Curve.fromNonzero(publicKey);
-  if (!Curve.isOnCurve(QA)) return false;
-  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
-  if (r < 1n || r >= Curve.order) return false;
-  if (s < 1n || s >= Curve.order) return false;
+  ia: point,
+  scalars: Field3[],
+  points: Point[],
+  tableConfigs: (
+    | {
+        // what we called c before
+        windowSize?: number;
+        // G, ..., (2^c-1)*G
+        multiples?: Point[];
+      }
+    | undefined
+  )[] = []
+): Point {
+  let n = points.length;
+  assert(scalars.length === n, 'Points and scalars lengths must match');
+  assertPositiveInteger(n, 'Expected at least 1 point and scalar');
 
-  let sInv = inverse(s, q);
-  if (sInv === undefined) throw Error('impossible');
-  let u1 = mod(msgHash * sInv, q);
-  let u2 = mod(r * sInv, q);
+  // constant case
+  if (
+    scalars.every(Field3.isConstant) &&
+    points.every((P) => Provable.isConstant(Point, P))
+  ) {
+    // TODO dedicated MSM
+    let s = scalars.map(Field3.toBigint);
+    let P = points.map(Point.toBigint);
+    let sum = Curve.zero;
+    for (let i = 0; i < n; i++) {
+      sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
+    }
+    return Point.from(sum);
+  }
 
-  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
-  if (Curve.equal(X, Curve.zero)) return false;
+  let windowSizes = points.map((_, i) => tableConfigs[i]?.windowSize ?? 1);
+  let maxBits = Curve.Endo.decomposeMaxBits;
 
-  return mod(X.x, q) === r;
+  // decompose scalars and handle signs
+  let n2 = 2 * n;
+  let scalars2: Field3[] = Array(n2);
+  let points2: Point[] = Array(n2);
+  let windowSizes2: number[] = Array(n2);
+
+  for (let i = 0; i < n; i++) {
+    let [s0, s1] = decomposeNoRangeCheck(Curve, scalars[i]);
+    scalars2[2 * i] = s0.abs;
+    scalars2[2 * i + 1] = s1.abs;
+
+    let endoP = endomorphism(Curve, points[i]);
+    points2[2 * i] = negateIf(s0.isNegative, points[i], Curve.modulus);
+    points2[2 * i + 1] = negateIf(s1.isNegative, endoP, Curve.modulus);
+
+    windowSizes2[2 * i] = windowSizes2[2 * i + 1] = windowSizes[i];
+  }
+  // from now on everything is the same as if these were the original points and scalars
+  points = points2;
+  scalars = scalars2;
+  windowSizes = windowSizes2;
+  n = n2;
+
+  // parse or build point tables
+  let tables = points.map((P, i) =>
+    getPointTable(Curve, P, windowSizes[i], undefined)
+  );
+
+  // slice scalars
+  let scalarChunks = scalars.map((s, i) =>
+    slice(s, { maxBits, chunkSize: windowSizes[i] })
+  );
+
+  let sum = Point.from(ia);
+
+  for (let i = maxBits - 1; i >= 0; i--) {
+    // add in multiple of each point
+    for (let j = 0; j < n; j++) {
+      let windowSize = windowSizes[j];
+      if (i % windowSize === 0) {
+        // pick point to add based on the scalar chunk
+        let sj = scalarChunks[j][i / windowSize];
+        let sjP =
+          windowSize === 1 ? points[j] : arrayGetGeneric(Point, tables[j], sj);
+
+        // ec addition
+        let added = add(sum, sjP, Curve.modulus);
+
+        // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
+        sum = Provable.if(sj.equals(0), Point, sum, added);
+      }
+    }
+
+    if (i === 0) break;
+
+    // jointly double all points
+    // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
+    sum = double(sum, Curve.modulus);
+  }
+
+  // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
+  // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
+  let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(maxBits - 1));
+  Provable.equal(Point, sum, Point.from(iaFinal)).assertFalse();
+  sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
+
+  return sum;
+}
+
+function negateIf(condition: Field, P: Point, f: bigint) {
+  let y = Provable.if(
+    Bool.Unsafe.ofField(condition),
+    Field3.provable,
+    P.y,
+    // TODO: do we need an extra bounds check here?
+    ForeignField.sub(Field3.from(0n), P.y, f)
+  );
+  return { x: P.x, y };
+}
+
+function endomorphism(Curve: CurveAffine, P: Point) {
+  let beta = Field3.from(Curve.Endo.base);
+  let betaX = ForeignField.mul(beta, P.x, Curve.modulus);
+  // TODO: do we need an extra bounds check here?
+  return { x: betaX, y: P.y };
+}
+
+function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
+  // witness s0, s1
+  let witnesses = exists(8, () => {
+    let [s0, s1] = Curve.Endo.decompose(Field3.toBigint(s));
+    return [
+      s0.isNegative ? 1n : 0n,
+      ...split(s0.abs),
+      s1.isNegative ? 1n : 0n,
+      ...split(s1.abs),
+    ];
+  });
+  let [s0Negative, s00, s01, s02, s1Negative, s10, s11, s12] = witnesses;
+  let s0: Field3 = [s00, s01, s02];
+  let s1: Field3 = [s10, s11, s12];
+  assertBoolean(s0Negative);
+  assertBoolean(s1Negative);
+  // NOTE: we do NOT range check s0, s1, because they will be split into chunks which also acts as a range check
+
+  // prove that s1*lambda = s - s0
+  let lambda = Provable.if(
+    Bool.Unsafe.ofField(s1Negative),
+    Field3.provable,
+    Field3.from(Curve.Scalar.negate(Curve.Endo.scalar)),
+    Field3.from(Curve.Endo.scalar)
+  );
+  let rhs = Provable.if(
+    Bool.Unsafe.ofField(s0Negative),
+    Field3.provable,
+    new Sum(s).add(s0).finish(Curve.order),
+    new Sum(s).sub(s0).finish(Curve.order)
+  );
+  assertRank1(s1, lambda, rhs, Curve.order);
+
+  return [
+    { isNegative: s0Negative, abs: s0 },
+    { isNegative: s1Negative, abs: s1 },
+  ] as const;
 }
 
 function getPointTable(
