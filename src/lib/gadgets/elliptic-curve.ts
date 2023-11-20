@@ -29,6 +29,8 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
+import { ProvablePure } from '../../snarky.js';
+import { arrayGet } from './basic.js';
 
 export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
 
@@ -262,9 +264,17 @@ function multiScalarMul(
 
   // parse or build point tables
   let windowSizes = points.map((_, i) => tableConfigs[i]?.windowSize ?? 1);
-  let tables = points.map((P, i) =>
-    getPointTable(Curve, P, windowSizes[i], tableConfigs[i]?.multiples)
-  );
+  let tables = points.map((P, i) => {
+    let table = getPointTable(
+      Curve,
+      P,
+      windowSizes[i],
+      tableConfigs[i]?.multiples
+    );
+    // add zero point in the beginning
+    table.unshift(Point.from(Curve.zero));
+    return table;
+  });
 
   // slice scalars
   let b = Curve.order.toString(2).length;
@@ -282,9 +292,7 @@ function multiScalarMul(
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
         let sjP =
-          windowSize === 1
-            ? points[j]
-            : arrayGet(Point, tables[j], sj, { offset: 1 });
+          windowSize === 1 ? points[j] : arrayGetGeneric(Point, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve.modulus);
@@ -491,21 +499,22 @@ function sliceField(
 /**
  * Get value from array in O(n) constraints.
  *
- * If the index is out of bounds, returns all-zeros version of T
+ * Assumes that index is in [0, n), returns an unconstrained result otherwise.
  */
-function arrayGet<T>(
-  type: Provable<T>,
-  array: T[],
-  index: Field,
-  { offset = 0 } = {}
-) {
-  let n = array.length;
-  let oneHot = Array(n);
-  // TODO can we share computation between all those equals()?
-  for (let i = 0; i < n; i++) {
-    oneHot[i] = index.equals(i + offset);
+function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
+  // witness result
+  let a = Provable.witness(type, () => array[Number(index)]);
+  let aFields = type.toFields(a);
+
+  // constrain each field of the result
+  let size = type.sizeInFields();
+  let arrays = array.map(type.toFields);
+
+  for (let j = 0; j < size; j++) {
+    let arrayFieldsJ = arrays.map((x) => x[j]);
+    arrayGet(arrayFieldsJ, index).assertEquals(aFields[j]);
   }
-  return Provable.switch(oneHot, type, array);
+  return a;
 }
 
 const Point = {
