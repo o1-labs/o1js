@@ -35,7 +35,7 @@ export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
 const EllipticCurve = {
   add,
   double,
-  doubleScalarMul,
+  multiScalarMul,
   initialAggregator,
 };
 
@@ -169,10 +169,8 @@ function verifyEcdsa(
   msgHash: Field3,
   publicKey: Point,
   tables?: {
-    windowSizeG?: number;
-    multiplesG?: Point[];
-    windowSizeP?: number;
-    multiplesP?: Point[];
+    G?: { windowSize: number; multiples?: Point[] };
+    P?: { windowSize: number; multiples?: Point[] };
   }
 ) {
   // constant case
@@ -199,7 +197,13 @@ function verifyEcdsa(
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
   let G = Point.from(Curve.one);
-  let R = doubleScalarMul(Curve, ia, u1, G, u2, publicKey, tables);
+  let R = multiScalarMul(
+    Curve,
+    ia,
+    [u1, u2],
+    [G, publicKey],
+    tables && [tables.G, tables.P]
+  );
   // this ^ already proves that R != 0
 
   // reduce R.x modulo the curve order
@@ -208,87 +212,95 @@ function verifyEcdsa(
 }
 
 /**
- * Scalar mul that we need for ECDSA:
+ * Multi-scalar multiplication:
  *
- * s*G + t*P,
+ * s_0 * P_0 + ... + s_(n-1) * P_(n-1)
  *
- * where G, P are any points. The result is not allowed to be zero.
+ * where P_i are any points. The result is not allowed to be zero.
  *
- * We double both points together and leverage a precomputed table
- * of size 2^c to avoid all but every cth addition for both s*G and t*P.
+ * We double all points together and leverage a precomputed table of size 2^c to avoid all but every cth addition.
+ *
+ * Note: this algorithm targets a small number of points, like 2 needed for ECDSA verification.
  *
  * TODO: could use lookups for picking precomputed multiples, instead of O(2^c) provable switch
  * TODO: custom bit representation for the scalar that avoids 0, to get rid of the degenerate addition case
  * TODO: glv trick which cuts down ec doubles by half by splitting s*P = s0*P + s1*endo(P) with s0, s1 in [0, 2^128)
  */
-function doubleScalarMul(
+function multiScalarMul(
   Curve: CurveAffine,
   ia: point,
-  s: Field3,
-  G: Point,
-  t: Field3,
-  P: Point,
-  {
-    // what we called c before
-    windowSizeG = 1,
-    // G, ..., (2^c-1)*G
-    multiplesG = undefined as Point[] | undefined,
-    windowSizeP = 1,
-    multiplesP = undefined as Point[] | undefined,
-  } = {}
+  scalars: Field3[],
+  points: Point[],
+  tableConfigs: (
+    | {
+        // what we called c before
+        windowSize?: number;
+        // G, ..., (2^c-1)*G
+        multiples?: Point[];
+      }
+    | undefined
+  )[] = []
 ): Point {
+  let n = points.length;
+  assert(scalars.length === n, 'Points and scalars lengths must match');
+  assertPositiveInteger(n, 'Expected at least 1 point and scalar');
+
   // constant case
   if (
-    Field3.isConstant(s) &&
-    Field3.isConstant(t) &&
-    Provable.isConstant(Point, G) &&
-    Provable.isConstant(Point, P)
+    scalars.every(Field3.isConstant) &&
+    points.every((P) => Provable.isConstant(Point, P))
   ) {
-    let s_ = Field3.toBigint(s);
-    let t_ = Field3.toBigint(t);
-    let G_ = Point.toBigint(G);
-    let P_ = Point.toBigint(P);
-    let R = Curve.add(Curve.scale(G_, s_), Curve.scale(P_, t_));
-    return Point.from(R);
+    // TODO dedicated MSM
+    let s = scalars.map(Field3.toBigint);
+    let P = points.map(Point.toBigint);
+    let sum = Curve.zero;
+    for (let i = 0; i < n; i++) {
+      sum = Curve.add(sum, Curve.scale(P[i], s[i]));
+    }
+    return Point.from(sum);
   }
 
   // parse or build point tables
-  let Gs = getPointTable(Curve, G, windowSizeG, multiplesG);
-  let Ps = getPointTable(Curve, P, windowSizeP, multiplesP);
+  let windowSizes = points.map((_, i) => tableConfigs[i]?.windowSize ?? 1);
+  let tables = points.map((P, i) =>
+    getPointTable(Curve, P, windowSizes[i], tableConfigs[i]?.multiples)
+  );
 
   // slice scalars
   let b = Curve.order.toString(2).length;
-  let ss = slice(s, { maxBits: b, chunkSize: windowSizeG });
-  let ts = slice(t, { maxBits: b, chunkSize: windowSizeP });
+  let scalarChunks = scalars.map((s, i) =>
+    slice(s, { maxBits: b, chunkSize: windowSizes[i] })
+  );
 
   let sum = Point.from(ia);
 
   for (let i = b - 1; i >= 0; i--) {
-    if (i % windowSizeG === 0) {
-      // pick point to add based on the scalar chunk
-      let sj = ss[i / windowSizeG];
-      let Gj = windowSizeG === 1 ? G : arrayGet(Point, Gs, sj, { offset: 1 });
+    // add in multiple of each point
+    for (let j = 0; j < n; j++) {
+      let windowSize = windowSizes[j];
+      if (i % windowSize === 0) {
+        // pick point to add based on the scalar chunk
+        let sj = scalarChunks[j][i / windowSize];
+        let sjP =
+          windowSize === 1
+            ? points[j]
+            : arrayGet(Point, tables[j], sj, { offset: 1 });
 
-      // ec addition
-      let added = add(sum, Gj, Curve.modulus);
+        // ec addition
+        let added = add(sum, sjP, Curve.modulus);
 
-      // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-      sum = Provable.if(sj.equals(0), Point, sum, added);
+        // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
+        sum = Provable.if(sj.equals(0), Point, sum, added);
+      }
     }
 
-    if (i % windowSizeP === 0) {
-      let tj = ts[i / windowSizeP];
-      let Pj = windowSizeP === 1 ? P : arrayGet(Point, Ps, tj, { offset: 1 });
-      let added = add(sum, Pj, Curve.modulus);
-      sum = Provable.if(tj.equals(0), Point, sum, added);
-    }
     if (i === 0) break;
 
-    // jointly double both points
+    // jointly double all points
     sum = double(sum, Curve.modulus);
   }
 
-  // the sum is now s*G + t*P + 2^(b-1)*IA
+  // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
   Provable.equal(Point, sum, Point.from(iaFinal)).assertFalse();

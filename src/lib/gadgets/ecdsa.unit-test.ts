@@ -25,7 +25,7 @@ let msgHash =
   );
 
 const ia = EllipticCurve.initialAggregator(Secp256k1, BaseField);
-const tableConfig = { windowSizeG: 3, windowSizeP: 3 };
+const tableConfig = { G: { windowSize: 3 }, P: { windowSize: 3 } };
 
 let program = ZkProgram({
   name: 'ecdsa',
@@ -35,14 +35,12 @@ let program = ZkProgram({
       method() {
         let G = Point.from(Secp256k1.one);
         let P = Provable.witness(Point, () => publicKey);
-        let R = EllipticCurve.doubleScalarMul(
+        let R = EllipticCurve.multiScalarMul(
           Secp256k1,
           ia,
-          signature.s,
-          G,
-          signature.r,
-          P,
-          tableConfig
+          [signature.s, signature.r],
+          [G, P],
+          [tableConfig.G, tableConfig.P]
         );
         Provable.asProver(() => {
           console.log(Point.toBigint(R));
