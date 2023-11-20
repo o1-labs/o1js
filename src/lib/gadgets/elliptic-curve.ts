@@ -297,6 +297,7 @@ function multiScalarMul(
     if (i === 0) break;
 
     // jointly double all points
+    // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
     sum = double(sum, Curve.modulus);
   }
 
