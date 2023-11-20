@@ -1019,13 +1019,15 @@ namespace Lightnet {
    * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
    * the data is returned.
    *
-   * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+   * @param options.isRegularAccount Whether to acquire key pair of regular or zkApp account (one with already configured verification key)
+   * @param options.unlockAccount Whether to unlock the account by its public key after acquiring the key pair
    * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
    * @returns Key pair
    */
   export async function acquireKeyPair(
     options: {
       isRegularAccount?: boolean;
+      unlockAccount?: boolean;
       lightnetAccountManagerEndpoint?: string;
     } = {}
   ): Promise<{
@@ -1034,10 +1036,11 @@ namespace Lightnet {
   }> {
     const {
       isRegularAccount = true,
+      unlockAccount = false,
       lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
     } = options;
     const response = await fetch(
-      `${lightnetAccountManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}`,
+      `${lightnetAccountManagerEndpoint}/acquire-account?isRegularAccount=${isRegularAccount}&unlockAccount=${unlockAccount}`,
       {
         method: 'GET',
         headers: {
@@ -1076,6 +1079,85 @@ namespace Lightnet {
     } = options;
     const response = await fetch(
       `${lightnetAccountManagerEndpoint}/release-account`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pk: publicKey,
+        }),
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return data.message as string;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Gets previously acquired key pairs list.
+   *
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Key pairs list or null if the request failed
+   */
+  export async function listAcquiredKeyPairs(options: {
+    lightnetAccountManagerEndpoint?: string;
+  }): Promise<Array<{
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }> | null> {
+    const {
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/list-acquired-accounts`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return data.map((account: any) => ({
+          publicKey: PublicKey.fromBase58(account.pk),
+          privateKey: PrivateKey.fromBase58(account.sk),
+        }));
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Changes account lock status by its public key.
+   *
+   * @param options.isLocked Whether to lock or unlock the account
+   * @param options.publicKey Public key of previously acquired key pair to change the the account lock status for
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Response message from the account manager as string or null if the request failed
+   */
+  export async function changeAccountLockStatus(options: {
+    isLocked: boolean;
+    publicKey: string;
+    lightnetAccountManagerEndpoint?: string;
+  }): Promise<string | null> {
+    const {
+      publicKey,
+      isLocked,
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/${isLocked ? '' : 'un'}lock-account`,
       {
         method: 'PUT',
         headers: {
