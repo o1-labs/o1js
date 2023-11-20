@@ -44,6 +44,7 @@ const ForeignField = {
   sub(x: Field3, y: Field3, f: bigint) {
     return sum([x, y], [-1n], f);
   },
+  negate,
   sum,
 
   mul: multiply,
@@ -77,6 +78,25 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
   // range check result
   multiRangeCheck(result);
 
+  return result;
+}
+
+/**
+ * negate() deserves a special case because we can fix the overflow to -1
+ * and know that a result in range is mapped to a result in range again.
+ */
+function negate(x: Field3, f: bigint) {
+  if (Field3.isConstant(x)) {
+    return sum([Field3.from(0n), x], [-1n], f);
+  }
+  // provable case
+  x = toVars(x);
+  let { result, overflow } = singleAdd(Field3.from(0n), x, -1n, f);
+  Gates.zero(...result);
+  multiRangeCheck(result);
+
+  // fix the overflow to -1
+  overflow.assertEquals(-1n);
   return result;
 }
 

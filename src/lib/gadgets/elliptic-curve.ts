@@ -447,8 +447,7 @@ function negateIf(condition: Field, P: Point, f: bigint) {
     Bool.Unsafe.ofField(condition),
     Field3.provable,
     P.y,
-    // TODO: do we need an extra bounds check here?
-    ForeignField.sub(Field3.from(0n), P.y, f)
+    ForeignField.negate(P.y, f)
   );
   return { x: P.x, y };
 }
@@ -456,7 +455,7 @@ function negateIf(condition: Field, P: Point, f: bigint) {
 function endomorphism(Curve: CurveAffine, P: Point) {
   let beta = Field3.from(Curve.Endo.base);
   let betaX = ForeignField.mul(beta, P.x, Curve.modulus);
-  // TODO: do we need an extra bounds check here?
+  // TODO: we need an extra bounds check here?
   return { x: betaX, y: P.y };
 }
 
