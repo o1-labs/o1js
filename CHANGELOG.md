@@ -30,6 +30,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Gadgets.and()`, new provable method to support bitwise and for native field elements. https://github.com/o1-labs/o1js/pull/1193
 - `Gadgets.multiRangeCheck()` and `Gadgets.compactMultiRangeCheck()`, two building blocks for non-native arithmetic with bigints of size up to 264 bits. https://github.com/o1-labs/o1js/pull/1216
 
+### Fixed
+
+- Removed array reversal of fetched actions, since they are returned in the correct order. https://github.com/o1-labs/o1js/pull/1258
+
 ## [0.14.0](https://github.com/o1-labs/o1js/compare/045faa7...e8e7510e1)
 
 ### Breaking changes
