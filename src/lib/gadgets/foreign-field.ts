@@ -5,8 +5,10 @@ import {
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
+import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists, toVars } from './common.js';
+import { assertOneOf } from './basic.js';
+import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 import {
   l,
   lMask,
@@ -422,14 +424,15 @@ function split2(x: bigint): [bigint, bigint] {
 /**
  * Optimized multiplication of sums, like (x + y)*z = a + b + c
  *
- * We use two optimizations over naive summing and then multiplying:
+ * We use several optimizations over naive summing and then multiplying:
  *
  * - we skip the range check on the remainder sum, because ffmul is sound with r being a sum of range-checked values
+ * - we replace the range check on the input sums with an extra low limb sum using generic gates
  * - we chain the first input's sum into the ffmul gate
  *
  * As usual, all values are assumed to be range checked, and the left and right multiplication inputs
  * are assumed to be bounded such that `l * r < 2^264 * (native modulus)`.
- * However, all extra checks that are needed on the sums are handled here.
+ * However, all extra checks that are needed on the _sums_ are handled here.
  *
  * TODO example
  */
@@ -439,21 +442,17 @@ function assertRank1(
   xy: Field3 | Sum,
   f: bigint
 ) {
-  x = Sum.fromUnfinished(x, f);
-  y = Sum.fromUnfinished(y, f);
-  xy = Sum.fromUnfinished(xy, f);
+  x = Sum.fromUnfinished(x);
+  y = Sum.fromUnfinished(y);
+  xy = Sum.fromUnfinished(xy);
 
   // finish the y and xy sums with a zero gate
-  let y0 = y.finish(f);
+  let y0 = y.finishForMulInput(f);
   let xy0 = xy.finish(f);
 
   // x is chained into the ffmul gate
-  let x0 = x.finishForChaining(f);
+  let x0 = x.finishForMulInput(f, true);
   assertMul(x0, y0, xy0, f);
-
-  // we need an extra range check on x and y, but not xy
-  x.rangeCheck();
-  y.rangeCheck();
 }
 
 class Sum {
@@ -484,10 +483,17 @@ class Sum {
     return this;
   }
 
-  finish(f: bigint, forChaining = false) {
+  finishOne() {
+    let result = this.#summands[0];
+    this.#result = result;
+    return result;
+  }
+
+  finish(f: bigint, isChained = false) {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
+    if (n === 0) return this.finishOne();
 
     let x = this.#summands.map(toVars);
     let result = x[0];
@@ -495,14 +501,90 @@ class Sum {
     for (let i = 0; i < n; i++) {
       ({ result } = singleAdd(result, x[i + 1], signs[i], f));
     }
-    if (n > 0 && !forChaining) Gates.zero(...result);
+    if (!isChained) Gates.zero(...result);
 
     this.#result = result;
     return result;
   }
 
-  finishForChaining(f: bigint) {
-    return this.finish(f, true);
+  // TODO this is complex and should be removed once we fix the ffadd gate to constrain all limbs individually
+  finishForMulInput(f: bigint, isChained = false) {
+    assert(this.#result === undefined, 'sum already finished');
+    let signs = this.#ops;
+    let n = signs.length;
+    if (n === 0) return this.finishOne();
+
+    let x = this.#summands.map(toVars);
+
+    // since the sum becomes a multiplication input, we need to constrain all limbs _individually_.
+    // sadly, ffadd only constrains the low and middle limb together.
+    // we could fix it with a RC just for the lower two limbs
+    // but it's cheaper to add generic gates which handle the lowest limb separately, and avoids the unfilled MRC slot
+    let f_ = split(f);
+
+    // compute witnesses for generic gates -- overflows and carries
+    let nFields = Provable.Array(Field, n);
+    let [overflows, carries] = Provable.witness(
+      provableTuple([nFields, nFields]),
+      () => {
+        let overflows: bigint[] = [];
+        let carries: bigint[] = [];
+
+        let r = Field3.toBigint(x[0]);
+
+        for (let i = 0; i < n; i++) {
+          // this duplicates some of the logic in singleAdd
+          let x_ = split(r);
+          let y_ = bigint3(x[i + 1]);
+          let sign = signs[i];
+
+          // figure out if there's overflow
+          r = r + sign * collapse(y_);
+          let overflow = 0n;
+          if (sign === 1n && r >= f) overflow = 1n;
+          if (sign === -1n && r < 0n) overflow = -1n;
+          if (f === 0n) overflow = 0n;
+          overflows.push(overflow);
+
+          // add with carry, only on the lowest limb
+          let r0 = x_[0] + sign * y_[0] - overflow * f_[0];
+          carries.push(r0 >> l);
+        }
+        return [overflows.map(Field.from), carries.map(Field.from)];
+      }
+    );
+
+    // generic gates for low limbs
+    let x0 = x[0][0];
+    let x0s: Field[] = [];
+    for (let i = 0; i < n; i++) {
+      // constrain carry to 0, 1, or -1
+      let c = carries[i];
+      assertOneOf(c, [0n, 1n, -1n]);
+
+      // x0 <- x0 + s*y0 - o*f0 - c*2^l
+      x0 = toVar(
+        x0
+          .add(x[i + 1][0].mul(signs[i]))
+          .sub(overflows[i].mul(f_[0]))
+          .sub(c.mul(1n << l))
+      );
+      x0s.push(x0);
+    }
+
+    // ffadd chain
+    let result = x[0];
+    for (let i = 0; i < n; i++) {
+      let r = singleAdd(result, x[i + 1], signs[i], f);
+      // wire low limb and overflow to previous values
+      r.result[0].assertEquals(x0s[i]);
+      r.overflow.assertEquals(overflows[i]);
+      result = r.result;
+    }
+    if (!isChained) Gates.zero(...result);
+
+    this.#result = result;
+    return result;
   }
 
   rangeCheck() {
@@ -510,7 +592,7 @@ class Sum {
     if (this.#ops.length > 0) multiRangeCheck(this.#result);
   }
 
-  static fromUnfinished(x: Field3 | Sum, f: bigint) {
+  static fromUnfinished(x: Field3 | Sum) {
     if (x instanceof Sum) {
       assert(x.#result === undefined, 'sum already finished');
       return x;

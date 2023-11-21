@@ -1,10 +1,11 @@
 import { Fp } from '../../bindings/crypto/finite_field.js';
-import type { Field } from '../field.js';
+import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
+import { TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 
-export { assertBoolean, arrayGet };
+export { assertBoolean, arrayGet, assertOneOf };
 
 /**
  * Assert that x is either 0 or 1.
@@ -23,54 +24,104 @@ function assertBoolean(x: Field) {
  * Note: This saves 0.5*n constraints compared to equals() + switch()
  */
 function arrayGet(array: Field[], index: Field) {
-  index = toVar(index);
+  let i = toVar(index);
 
   // witness result
-  let a = existsOne(() => array[Number(index.toBigInt())].toBigInt());
+  let a = existsOne(() => array[Number(i.toBigInt())].toBigInt());
 
-  // we prove a === array[j] + zj*(index - j) for some zj, for all j.
-  // setting j = index, this implies a === array[index]
-  // thanks to our assumption that the index is within bounds, we know that j = index for some j
+  // we prove a === array[j] + zj*(i - j) for some zj, for all j.
+  // setting j = i, this implies a === array[i]
+  // thanks to our assumption that the index i is within bounds, we know that j = i for some j
   let n = array.length;
   for (let j = 0; j < n; j++) {
     let zj = existsOne(() => {
       let zj = Fp.div(
         Fp.sub(a.toBigInt(), array[j].toBigInt()),
-        Fp.sub(index.toBigInt(), Fp.fromNumber(j))
+        Fp.sub(i.toBigInt(), Fp.fromNumber(j))
       );
       return zj ?? 0n;
     });
-    // prove that zj*(index - j) === a - array[j]
+    // prove that zj*(i - j) === a - array[j]
     // TODO abstract this logic into a general-purpose assertMul() gadget,
     // which is able to use the constant coefficient
     // (snarky's assert_r1cs somehow leads to much more constraints than this)
     if (array[j].isConstant()) {
-      // -j*zj + zj*index - a + array[j] === 0
-      Gates.generic(
-        {
-          left: -BigInt(j),
-          right: 0n,
-          out: -1n,
-          mul: 1n,
-          const: array[j].toBigInt(),
-        },
-        { left: zj, right: index, out: a }
-      );
+      // zj*i + (-j)*zj + 0*i + array[j] === a
+      assertBilinear(zj, i, [1n, -BigInt(j), 0n, array[j].toBigInt()], a);
     } else {
       let aMinusAj = toVar(a.sub(array[j]));
-      // -j*zj + zj*index - (a - array[j]) === 0
-      Gates.generic(
-        {
-          left: -BigInt(j),
-          right: 0n,
-          out: -1n,
-          mul: 1n,
-          const: 0n,
-        },
-        { left: zj, right: index, out: aMinusAj }
-      );
+      // zj*i + (-j)*zj + 0*i + 0 === (a - array[j])
+      assertBilinear(zj, i, [1n, -BigInt(j), 0n, 0n], aMinusAj);
     }
   }
 
   return a;
+}
+
+/**
+ * Assert that a value equals one of a finite list of constants:
+ * `(x - c1)*(x - c2)*...*(x - cn) === 0`
+ *
+ * TODO: what prevents us from getting the same efficiency with snarky DSL code?
+ */
+function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
+  let xv = toVar(x);
+  let [c1, c2, ...c] = allowed;
+  let n = c.length;
+  if (n === 0) {
+    // (x - c1)*(x - c2) === 0
+    assertBilinear(xv, xv, [1n, -(c1 + c2), 0n, c1 * c2]);
+    return;
+  }
+  // z = (x - c1)*(x - c2)
+  let z = bilinear(xv, xv, [1n, -(c1 + c2), 0n, c1 * c2]);
+
+  for (let i = 0; i < n; i++) {
+    if (i < n - 1) {
+      // z = z*(x - c)
+      z = bilinear(z, xv, [1n, -c[i], 0n, 0n]);
+    } else {
+      // z*(x - c) === 0
+      assertBilinear(z, xv, [1n, -c[i], 0n, 0n]);
+    }
+  }
+}
+
+// low-level helpers to create generic gates
+
+/**
+ * Compute bilinear function of x and y:
+ * `z = a*x*y + b*x + c*y + d`
+ */
+function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
+  let z = existsOne(() => {
+    let x0 = x.toBigInt();
+    let y0 = y.toBigInt();
+    return a * x0 * y0 + b * x0 + c * y0 + d;
+  });
+  // b*x + c*y - z + a*x*y + d === 0
+  Gates.generic(
+    { left: b, right: c, out: -1n, mul: a, const: d },
+    { left: x, right: y, out: z }
+  );
+  return z;
+}
+
+/**
+ * Assert bilinear equation on x, y and z:
+ * `a*x*y + b*x + c*y + d === z`
+ *
+ * The default for z is 0.
+ */
+function assertBilinear(
+  x: VarField,
+  y: VarField,
+  [a, b, c, d]: TupleN<bigint, 4>,
+  z?: VarField
+) {
+  // b*x + c*y - z + a*x*y + d === z
+  Gates.generic(
+    { left: b, right: c, out: z === undefined ? 0n : -1n, mul: a, const: d },
+    { left: x, right: y, out: z === undefined ? x : z }
+  );
 }
