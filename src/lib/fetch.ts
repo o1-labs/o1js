@@ -951,10 +951,8 @@ async function fetchActions(
       break;
     }
   }
-  // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
-  fetchedActions.reverse();
-  let actionsList: { actions: string[][]; hash: string }[] = [];
 
+  let actionsList: { actions: string[][]; hash: string }[] = [];
   // correct for archive node sending one block too many
   if (
     fetchedActions.length !== 0 &&
