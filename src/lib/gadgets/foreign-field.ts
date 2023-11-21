@@ -81,8 +81,8 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   let f_ = split(f);
 
   let [r0, r1, r2, overflow, carry] = exists(5, () => {
-    let x_ = bigint3(x);
-    let y_ = bigint3(y);
+    let x_ = toBigint3(x);
+    let y_ = toBigint3(y);
 
     // figure out if there's overflow
     let r = collapse(x_) + sign * collapse(y_);
@@ -228,9 +228,9 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   let f2Bound = (1n << l) - f2 - 1n;
 
   let witnesses = exists(21, () => {
-    // split inputs into 3 limbs
-    let [a0, a1, a2] = bigint3(a);
-    let [b0, b1, b2] = bigint3(b);
+    // convert inputs to bigints
+    let [a0, a1, a2] = toBigint3(a);
+    let [b0, b1, b2] = toBigint3(b);
 
     // compute q and r such that a*b = q*f + r
     let ab = collapse([a0, a1, a2]) * collapse([b0, b1, b2]);
@@ -337,7 +337,7 @@ const Field3 = {
    * Turn a 3-tuple of Fields into a bigint
    */
   toBigint(x: Field3): bigint {
-    return collapse(bigint3(x));
+    return collapse(toBigint3(x));
   },
 
   /**
@@ -356,7 +356,7 @@ const Field2 = {
   },
 };
 
-function bigint3(x: Field3): bigint3 {
+function toBigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
 

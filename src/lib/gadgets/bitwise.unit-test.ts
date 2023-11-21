@@ -1,6 +1,6 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  equivalent,
+  equivalentProvable as equivalent,
   equivalentAsync,
   field,
   fieldWithRng,
@@ -224,7 +224,7 @@ constraintSystem.fromZkProgram(
   ifNotAllConstant(contains(xorChain(64)))
 );
 
-let rotChain: GateType[] = ['Rot64', 'RangeCheck0', 'RangeCheck0'];
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0'];
 let isJustRotate = ifNotAllConstant(
   and(contains(rotChain), withoutGenerics(equals(rotChain)))
 );
