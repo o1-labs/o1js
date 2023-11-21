@@ -12,6 +12,7 @@ export {
   existsOne,
   toVars,
   toVar,
+  isVar,
   assert,
   bitSlice,
   witnessSlice,

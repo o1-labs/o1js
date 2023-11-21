@@ -19,7 +19,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
   let n = c.length;
   if (n === 0) {
     // (x - c1)*(x - c2) === 0
-    assertBilinearZero(xv, xv, [1n, -(c1 + c2), 0n, c1 * c2]);
+    assertBilinear(xv, xv, [1n, -(c1 + c2), 0n, c1 * c2]);
     return;
   }
   // z = (x - c1)*(x - c2)
@@ -31,7 +31,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
       z = bilinear(z, xv, [1n, -c[i], 0n, 0n]);
     } else {
       // z*(x - c) === 0
-      assertBilinearZero(z, xv, [1n, -c[i], 0n, 0n]);
+      assertBilinear(z, xv, [1n, -c[i], 0n, 0n]);
     }
   }
 }
@@ -40,7 +40,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
 
 /**
  * Compute bilinear function of x and y:
- * z = a*x*y + b*x + c*y + d
+ * `z = a*x*y + b*x + c*y + d`
  */
 function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
   let z = existsOne(() => {
@@ -57,17 +57,20 @@ function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
 }
 
 /**
- * Assert bilinear equation on x and y:
- * a*x*y + b*x + c*y + d === 0
+ * Assert bilinear equation on x, y and z:
+ * `a*x*y + b*x + c*y + d === z`
+ *
+ * The default for z is 0.
  */
-function assertBilinearZero(
+function assertBilinear(
   x: VarField,
   y: VarField,
-  [a, b, c, d]: TupleN<bigint, 4>
+  [a, b, c, d]: TupleN<bigint, 4>,
+  z?: VarField
 ) {
-  // b*x + c*y + a*x*y + d === 0
+  // b*x + c*y - z? + a*x*y + d === 0
   Gates.generic(
-    { left: b, right: c, out: 0n, mul: a, const: d },
-    { left: x, right: y, out: x }
+    { left: b, right: c, out: z === undefined ? 0n : -1n, mul: a, const: d },
+    { left: x, right: y, out: z === undefined ? x : z }
   );
 }
