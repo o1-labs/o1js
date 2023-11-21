@@ -24,6 +24,7 @@ import {
   withoutGenerics,
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
+import { AnyTuple } from '../util/types.js';
 
 const { ForeignField, Field3 } = Gadgets;
 
@@ -193,7 +194,9 @@ let ffProgram = ZkProgram({
 
 // tests for constraint system
 
-let addChain = repeat(chainLength - 1, 'ForeignFieldAdd').concat('Zero');
+function addChain(length: number) {
+  return repeat(length - 1, 'ForeignFieldAdd').concat('Zero');
+}
 let mrc: GateType[] = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
 
 constraintSystem.fromZkProgram(
@@ -201,8 +204,8 @@ constraintSystem.fromZkProgram(
   'sumchain',
   ifNotAllConstant(
     and(
-      contains([addChain, mrc]),
-      withoutGenerics(equals([...addChain, ...mrc]))
+      contains([addChain(chainLength), mrc]),
+      withoutGenerics(equals([...addChain(chainLength), ...mrc]))
     )
   )
 );
@@ -227,7 +230,7 @@ constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
 
 // tests with proving
 
-const runs = 3;
+const runs = 2;
 
 await ffProgram.compile();
 
@@ -261,16 +264,6 @@ await equivalentAsync({ from: [f, f], to: f }, { runs })(
   'prove div'
 );
 
-// helper
-
-function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
-  let sum = xs[0];
-  for (let i = 0; i < signs.length; i++) {
-    sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
-  }
-  return sum;
-}
-
 // assert mul example
 // (x - y) * (x + y) = x^2 - y^2
 
@@ -303,6 +296,34 @@ function assertMulExampleNaive(
   );
   let rhs = ForeignField.sub(x2, y2, f);
   Provable.assertEqual(Field3.provable, lhs, rhs);
+}
+
+let from2 = { from: [f, f] satisfies AnyTuple };
+let gates = constraintSystem.size(from2, (x, y) =>
+  assertMulExample(x, y, F.modulus)
+);
+let gatesNaive = constraintSystem.size(from2, (x, y) =>
+  assertMulExampleNaive(x, y, F.modulus)
+);
+assert(gates + 10 < gatesNaive, 'assertMul() saves at least 10 constraints');
+
+let addChainedIntoMul: GateType[] = ['ForeignFieldAdd', ...mulChain];
+
+constraintSystem(
+  'assert mul',
+  from2,
+  (x, y) => assertMulExample(x, y, F.modulus),
+  contains([addChain(1), addChain(1), addChainedIntoMul, mrc, mrc])
+);
+
+// helper
+
+function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
+  let sum = xs[0];
+  for (let i = 0; i < signs.length; i++) {
+    sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
+  }
+  return sum;
 }
 
 function throwError<T>(message: string): T {

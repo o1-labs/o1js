@@ -18,6 +18,7 @@ export {
   not,
   and,
   or,
+  satisfies,
   equals,
   contains,
   allConstant,
@@ -183,6 +184,16 @@ function or(...tests: ConstraintSystemTest[]): ConstraintSystemTest {
 }
 
 /**
+ * General test
+ */
+function satisfies(
+  label: string,
+  run: (cs: Gate[], inputs: TypeAndValue<any>[]) => boolean
+): ConstraintSystemTest {
+  return { run, label };
+}
+
+/**
  * Test for precise equality of the constraint system with a given list of gates.
  */
 function equals(gates: readonly GateType[]): ConstraintSystemTest {
@@ -263,14 +274,12 @@ function ifNotAllConstant(test: ConstraintSystemTest): ConstraintSystemTest {
 }
 
 /**
- * Test whether all inputs are constant.
+ * Test whether constraint system is empty.
  */
-const isEmpty: ConstraintSystemTest = {
-  run(cs) {
-    return cs.length === 0;
-  },
-  label: 'cs is empty',
-};
+const isEmpty = satisfies(
+  'constraint system is empty',
+  (cs) => cs.length === 0
+);
 
 /**
  * Modifies a test so that it runs on the constraint system with generic gates filtered out.
@@ -299,6 +308,44 @@ const print: ConstraintSystemTest = {
   },
   label: '',
 };
+
+// Do other useful things with constraint systems
+
+/**
+ * Get constraint system as a list of gates.
+ */
+constraintSystem.gates = function gates<Input extends Tuple<CsVarSpec<any>>>(
+  inputs: { from: Input },
+  main: (...args: CsParams<Input>) => void
+) {
+  let types = inputs.from.map(provable);
+  let { gates } = Provable.constraintSystem(() => {
+    let values = types.map((type) =>
+      Provable.witness(type, (): unknown => {
+        throw Error('not needed');
+      })
+    ) as CsParams<Input>;
+    main(...values);
+  });
+  return gates;
+};
+
+function map<T>(transform: (gates: Gate[]) => T) {
+  return <Input extends Tuple<CsVarSpec<any>>>(
+    inputs: { from: Input },
+    main: (...args: CsParams<Input>) => void
+  ) => transform(constraintSystem.gates(inputs, main));
+}
+
+/**
+ * Get size of constraint system.
+ */
+constraintSystem.size = map((gates) => gates.length);
+
+/**
+ * Print constraint system.
+ */
+constraintSystem.print = map(printGates);
 
 function repeat(n: number, gates: GateType | GateType[]): readonly GateType[] {
   gates = Array.isArray(gates) ? gates : [gates];

@@ -1,8 +1,9 @@
 import { assert } from '../errors.js';
 
-export { Tuple, TupleN };
+export { Tuple, TupleN, AnyTuple };
 
 type Tuple<T> = [T, ...T[]] | [];
+type AnyTuple = Tuple<any>;
 
 const Tuple = {
   map<T extends Tuple<any>, B>(
