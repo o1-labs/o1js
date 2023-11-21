@@ -23,7 +23,7 @@ export {
   bigint3,
   Sign,
   split,
-  collapse,
+  combine,
   weakBound,
   assertMul,
   Sum,
@@ -423,13 +423,11 @@ function assertRank1(
 
   // x is chained into the ffmul gate
   let x0 = x.finishForChaining(f);
-  let q2Bound = assertMul(x0, y0, xy0, f);
+  assertMul(x0, y0, xy0, f);
 
   // we need an extra range check on x and y, but not xy
   x.rangeCheck();
   y.rangeCheck();
-
-  return q2Bound;
 }
 
 class Sum {
