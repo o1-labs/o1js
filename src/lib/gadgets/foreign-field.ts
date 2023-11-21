@@ -470,18 +470,27 @@ class Sum {
     return this;
   }
 
-  #finishOne() {
-    let result = this.#summands[0];
-    this.#result = result;
-    return result;
+  #return(x: Field3) {
+    this.#result = x;
+    return x;
+  }
+
+  isConstant() {
+    return this.#summands.every((x) => x.every((x) => x.isConstant()));
   }
 
   finish(f: bigint, isChained = false) {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
-    if (n === 0) return this.#finishOne();
+    if (n === 0) return this.#return(this.#summands[0]);
 
+    // constant case
+    if (this.isConstant()) {
+      return this.#return(sum(this.#summands, signs, f));
+    }
+
+    // provable case
     let x = this.#summands.map(toVars);
     let result = x[0];
 
@@ -499,8 +508,14 @@ class Sum {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
-    if (n === 0) return this.#finishOne();
+    if (n === 0) return this.#return(this.#summands[0]);
 
+    // constant case
+    if (this.isConstant()) {
+      return this.#return(sum(this.#summands, signs, f));
+    }
+
+    // provable case
     let x = this.#summands.map(toVars);
 
     // since the sum becomes a multiplication input, we need to constrain all limbs _individually_.
