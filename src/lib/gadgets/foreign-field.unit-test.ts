@@ -7,6 +7,7 @@ import {
   equivalentProvable,
   fromRandom,
   record,
+  unit,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
 import { Gadgets } from './gadgets.js';
@@ -84,6 +85,13 @@ for (let F of fields) {
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
     (x, y) => ForeignField.div(x, y, F.modulus),
     'div'
+  );
+
+  // assert mul
+  equivalentProvable({ from: [f, f], to: unit })(
+    (x, y) => assertMulExampleNaive(Field3.from(x), Field3.from(y), F.modulus),
+    (x, y) => assertMulExample(x, y, F.modulus),
+    'assertMul'
   );
 
   // tests with inputs that aren't reduced mod f
@@ -219,9 +227,11 @@ constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
 
 // tests with proving
 
+const runs = 3;
+
 await ffProgram.compile();
 
-await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 3 })(
+await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs })(
   (xs) => sum(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
@@ -231,7 +241,7 @@ await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 3 })(
   'prove chain'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
+await equivalentAsync({ from: [f, f], to: f }, { runs })(
   F.mul,
   async (x, y) => {
     let proof = await ffProgram.mul(x, y);
@@ -241,7 +251,7 @@ await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
   'prove mul'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
+await equivalentAsync({ from: [f, f], to: f }, { runs })(
   (x, y) => F.div(x, y) ?? throwError('no inverse'),
   async (x, y) => {
     let proof = await ffProgram.div(x, y);
@@ -259,6 +269,40 @@ function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
     sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
   }
   return sum;
+}
+
+// assert mul example
+// (x - y) * (x + y) = x^2 - y^2
+
+function assertMulExample(x: Gadgets.Field3, y: Gadgets.Field3, f: bigint) {
+  // witness x^2, y^2
+  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+
+  // assert (x - y) * (x + y) = x^2 - y^2
+  let xMinusY = ForeignField.Sum(x).sub(y);
+  let xPlusY = ForeignField.Sum(x).add(y);
+  let x2MinusY2 = ForeignField.Sum(x2).sub(y2);
+  ForeignField.assertMul(xMinusY, xPlusY, x2MinusY2, f);
+}
+
+function assertMulExampleNaive(
+  x: Gadgets.Field3,
+  y: Gadgets.Field3,
+  f: bigint
+) {
+  // witness x^2, y^2
+  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+
+  // assert (x - y) * (x + y) = x^2 - y^2
+  let lhs = ForeignField.mul(
+    ForeignField.sub(x, y, f),
+    ForeignField.add(x, y, f),
+    f
+  );
+  let rhs = ForeignField.sub(x2, y2, f);
+  Provable.assertEqual(Field3.provable, lhs, rhs);
 }
 
 function throwError<T>(message: string): T {
