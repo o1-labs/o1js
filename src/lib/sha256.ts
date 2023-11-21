@@ -1,3 +1,4 @@
+import { Field } from './field.js';
 import { UInt32, UInt8 } from './int.js';
 import { Provable } from './provable.js';
 
@@ -69,19 +70,11 @@ const SHA256 = {
       // prepare message block
       for (let t = 0; t < 16; t++) W[t] = M[t];
       for (let t = 16; t < 64; t++) {
-        console.log('START');
-        Provable.log(DeltaOne(W[t - 2]));
-        Provable.log(W[t - 7]);
-        Provable.log(DeltaZero(W[t - 15]));
-        Provable.log(W[t - 16]);
-        console.log('---');
-        W[t] = DeltaOne(W[t - 2])
-          .add(W[t - 7])
-          .add(DeltaZero(W[t - 15]))
-          .add(W[t - 16]);
-        Provable.log(W[t]);
+        W[t] = addMod32(
+          addMod32(DeltaOne(W[t - 2]), W[t - 7]),
+          addMod32(DeltaZero(W[t - 15]), W[t - 16])
+        );
       }
-      console.log('END');
       // initialize working variables
       let a = H[0],
         b = H[1],
@@ -94,39 +87,44 @@ const SHA256 = {
 
       // main loop
       for (let t = 0; t < 64; t++) {
-        const T1 = h.add(SigmaOne(e)).add(Ch(e, f, g)).add(K[t]).add(W[t]);
-        const T2 = SigmaOne(a).add(Maj(a, b, c));
+        const T1 = addMod32(
+          addMod32(h, SigmaOne(e)),
+          addMod32(addMod32(Ch(e, f, g), K[t]), W[t])
+        );
+        const T2 = addMod32(SigmaOne(a), Maj(a, b, c));
         h = g;
         g = f;
         f = e;
-        e = d.add(T1);
+        e = addMod32(d, T1);
         d = c;
         c = b;
         b = a;
-        a = T1.add(T2);
+        a = addMod32(T1, T2);
       }
 
       // new intermediate hash value
 
-      H[0] = H[0].add(a);
-      H[1] = H[1].add(b);
-      H[2] = H[2].add(c);
-      H[3] = H[3].add(d);
-      H[4] = H[4].add(e);
-      H[5] = H[5].add(f);
-
-      H[6] = H[6].add(g);
-      H[7] = H[7].add(h);
+      H[0] = addMod32(H[0], a);
+      H[1] = addMod32(H[1], b);
+      H[2] = addMod32(H[2], c);
+      H[3] = addMod32(H[3], d);
+      H[4] = addMod32(H[4], e);
+      H[5] = addMod32(H[5], f);
+      H[6] = addMod32(H[6], g);
+      H[7] = addMod32(H[7], h);
     }
 
-    let hex = [];
-    // for (let h = 0; h < H.length; h++)
-    //hex[h] = ('00000000' + H[h].toBigint().toString(16)).slice(-8);
-    //console.log(hex);
+    /*
+    let hex = '';
+    for (let h = 0; h < H.length; h++)
+      hex = hex + ('00000000' + H[h].toBigint().toString(16)).slice(-8);
+    console.log(hex);
+    */
   },
 };
-UInt32.from(2n ** 31n).add(UInt32.from(1));
-//SHA256.hash('abc');
+
+let cs = Provable.constraintSystem(() => SHA256.hash('abc'));
+console.log(cs);
 function toUInt8(msg: string) {
   return msg.split('').map((c) => UInt8.from(c.charCodeAt(0)));
 }
@@ -175,18 +173,37 @@ function DeltaOne(x: UInt32) {
   let rotr17 = ROTR(17, x);
   let rotr19 = ROTR(19, x);
   let shr10 = SHR(10, x);
-  Provable.log(rotr17.xor(rotr19).xor(shr10));
   return rotr17.xor(rotr19).xor(shr10);
 }
 
 function ROTR(n: number, x: UInt32) {
-  return Provable.witness(UInt32, () => {
+  let xx = Provable.witness(UInt32, () => {
     return UInt32.from(rot(x.toBigint(), n, 'right', 32));
   });
+  xx.mul(1);
+  xx.assertGreaterThan(UInt32.from(0n));
+  return xx;
   //return x.rotate(n, 'right');
 }
 
 function SHR(n: number, x: UInt32) {
   let val = x.rightShift(n);
   return val;
+}
+
+function addMod32(a: UInt32, b: UInt32) {
+  // a + b === q*2^32 + r where r and q are range checked
+  let rq = Provable.witness(Provable.Array(UInt32, 2), () => {
+    let aPlusB = a.value.add(b.value).toBigInt();
+    let q = aPlusB / 2n ** 32n;
+    let r = aPlusB % 2n ** 32n;
+    return [UInt32.from(r), UInt32.from(q)];
+  });
+  let [r, q] = rq;
+
+  a.value.add(b.value).assertEquals(q.value.mul(2n ** 32n).add(r.value));
+  UInt32.check(r);
+  UInt32.check(q);
+
+  return r;
 }
