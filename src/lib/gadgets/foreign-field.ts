@@ -442,6 +442,20 @@ function assertMul(
 
   // x is chained into the ffmul gate
   let x0 = x.finishForMulInput(f, true);
+
+  // constant case
+  if (
+    Field3.isConstant(x0) &&
+    Field3.isConstant(y0) &&
+    Field3.isConstant(xy0)
+  ) {
+    let x_ = Field3.toBigint(x0);
+    let y_ = Field3.toBigint(y0);
+    let xy_ = Field3.toBigint(xy0);
+    assert(mod(x_ * y_, f) === xy_, 'incorrect multiplication result');
+    return;
+  }
+
   assertMulInternal(x0, y0, xy0, f);
 }
 
@@ -483,7 +497,7 @@ class Sum {
   }
 
   isConstant() {
-    return this.#summands.every((x) => x.every((x) => x.isConstant()));
+    return this.#summands.every(Field3.isConstant);
   }
 
   finish(f: bigint, isChained = false) {
