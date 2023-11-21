@@ -85,7 +85,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
     let y_ = toBigint3(y);
 
     // figure out if there's overflow
-    let r = collapse(x_) + sign * collapse(y_);
+    let r = combine(x_) + sign * combine(y_);
     let overflow = 0n;
     if (sign === 1n && r >= f) overflow = 1n;
     if (sign === -1n && r < 0n) overflow = -1n;
@@ -93,7 +93,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
 
     // do the add with carry
     // note: this "just works" with negative r01
-    let r01 = collapse2(x_) + sign * collapse2(y_) - overflow * collapse2(f_);
+    let r01 = combine2(x_) + sign * combine2(y_) - overflow * combine2(f_);
     let carry = r01 >> l2;
     r01 &= l2Mask;
     let [r0, r1] = split2(r01);
@@ -141,6 +141,7 @@ function inverse(x: Field3, f: bigint): Field3 {
     return xInv === undefined ? [0n, 0n, 0n] : split(xInv);
   });
   multiRangeCheck(xInv);
+  // we need to bound xInv because it's a multiplication input
   let xInv2Bound = weakBound(xInv[2], f);
 
   let one: Field2 = [Field.from(1n), Field.from(0n)];
@@ -189,7 +190,7 @@ function divide(
     let y01 = y[0].add(y[1].mul(1n << l));
     y01.equals(0n).and(y[2].equals(0n)).assertFalse();
     let [f0, f1, f2] = split(f);
-    let f01 = collapse2([f0, f1]);
+    let f01 = combine2([f0, f1]);
     y01.equals(f01).and(y[2].equals(f2)).assertFalse();
   }
 
@@ -233,13 +234,13 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     let [b0, b1, b2] = toBigint3(b);
 
     // compute q and r such that a*b = q*f + r
-    let ab = collapse([a0, a1, a2]) * collapse([b0, b1, b2]);
+    let ab = combine([a0, a1, a2]) * combine([b0, b1, b2]);
     let q = ab / f;
     let r = ab - q * f;
 
     let [q0, q1, q2] = split(q);
     let [r0, r1, r2] = split(r);
-    let r01 = collapse2([r0, r1]);
+    let r01 = combine2([r0, r1]);
 
     // compute product terms
     let p0 = a0 * b0 + q0 * f_0;
@@ -247,7 +248,7 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     let p2 = a0 * b2 + a1 * b1 + a2 * b0 + q0 * f_2 + q1 * f_1 + q2 * f_0;
 
     let [p10, p110, p111] = split(p1);
-    let p11 = collapse2([p110, p111]);
+    let p11 = combine2([p110, p111]);
 
     // carry bottom limbs
     let c0 = (p0 + (p10 << l) - r01) >> l2;
@@ -337,7 +338,7 @@ const Field3 = {
    * Turn a 3-tuple of Fields into a bigint
    */
   toBigint(x: Field3): bigint {
-    return collapse(toBigint3(x));
+    return combine(toBigint3(x));
   },
 
   /**
@@ -352,7 +353,7 @@ const Field3 = {
 type Field2 = [Field, Field];
 const Field2 = {
   toBigint(x: Field2): bigint {
-    return collapse2(Tuple.map(x, (x) => x.toBigInt()));
+    return combine2(Tuple.map(x, (x) => x.toBigInt()));
   },
 };
 
@@ -360,14 +361,14 @@ function toBigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
 
-function collapse([x0, x1, x2]: bigint3) {
+function combine([x0, x1, x2]: bigint3) {
   return x0 + (x1 << l) + (x2 << l2);
 }
 function split(x: bigint): bigint3 {
   return [x & lMask, (x >> l) & lMask, (x >> l2) & lMask];
 }
 
-function collapse2([x0, x1]: bigint3 | [bigint, bigint]) {
+function combine2([x0, x1]: bigint3 | [bigint, bigint]) {
   return x0 + (x1 << l);
 }
 function split2(x: bigint): [bigint, bigint] {

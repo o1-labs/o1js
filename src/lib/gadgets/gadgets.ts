@@ -370,6 +370,8 @@ const Gadgets = {
      * Foreign field subtraction: `x - y mod f`
      *
      * See {@link ForeignField.add} for assumptions and usage examples.
+     *
+     * @throws fails if `x - y < -f`, where the result cannot be brought back to a positive number by adding `f` once.
      */
     sub(x: Field3, y: Field3, f: bigint) {
       return ForeignField.sub(x, y, f);
@@ -466,6 +468,8 @@ const Gadgets = {
      * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
      *
      * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
+     *
+     * @throws Different than {@link ForeignField.mul}, this fails on unreduced input `x`, because it checks that `x === (x/y)*y` and the right side will be reduced.
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
