@@ -180,7 +180,18 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
     return Fp.rot(x, 12, 'left');
   },
   async (x) => {
-    let proof = await Bitwise.rot(x);
+    let proof = await Bitwise.rot64(x);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+  (x) => {
+    if (x >= 2n ** 32n) throw Error('Does not fit into 32 bits');
+    return Fp.rot(x, 12, 'left', 32);
+  },
+  async (x) => {
+    let proof = await Bitwise.rot32(x);
     return proof.publicOutput;
   }
 );
