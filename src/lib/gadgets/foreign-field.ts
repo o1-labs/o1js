@@ -7,7 +7,8 @@ import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists, toVars } from './common.js';
+import { assertOneOf } from './basic.js';
+import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 import {
   l,
   lMask,
@@ -426,16 +427,12 @@ function assertRank1(
   xy = Sum.fromUnfinished(xy);
 
   // finish the y and xy sums with a zero gate
-  let y0 = y.finish(f);
+  let y0 = y.finishForMulInput(f);
   let xy0 = xy.finish(f);
 
   // x is chained into the ffmul gate
-  let x0 = x.finish(f, true);
+  let x0 = x.finishForMulInput(f, true);
   assertMul(x0, y0, xy0, f);
-
-  // we need and extra range check on x and y
-  x.rangeCheck();
-  y.rangeCheck();
 }
 
 class Sum {
@@ -490,6 +487,7 @@ class Sum {
     return result;
   }
 
+  // TODO this is complex and should be removed once we fix the ffadd gate to constrain all limbs individually
   finishForMulInput(f: bigint, isChained = false) {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
@@ -537,19 +535,21 @@ class Sum {
     );
 
     // generic gates for low limbs
-    let result0 = x[0][0];
-    let r0s: Field[] = [];
+    let x0 = x[0][0];
+    let x0s: Field[] = [];
     for (let i = 0; i < n; i++) {
       // constrain carry to 0, 1, or -1
       let c = carries[i];
-      c.mul(c.sub(1n)).mul(c.add(1n)).assertEquals(0n);
+      assertOneOf(c, [0n, 1n, -1n]);
 
-      result0 = result0
-        .add(x[i + 1][0].mul(signs[i]))
-        .add(overflows[i].mul(f_[0]))
-        .sub(c.mul(1n << l))
-        .seal();
-      r0s.push(result0);
+      // x0 <- x0 + s*y0 - o*f0 - c*2^l
+      x0 = toVar(
+        x0
+          .add(x[i + 1][0].mul(signs[i]))
+          .sub(overflows[i].mul(f_[0]))
+          .sub(c.mul(1n << l))
+      );
+      x0s.push(x0);
     }
 
     // ffadd chain
@@ -557,7 +557,7 @@ class Sum {
     for (let i = 0; i < n; i++) {
       let r = singleAdd(result, x[i + 1], signs[i], f);
       // wire low limb and overflow to previous values
-      r.result[0].assertEquals(r0s[i]);
+      r.result[0].assertEquals(x0s[i]);
       r.overflow.assertEquals(overflows[i]);
       result = r.result;
     }

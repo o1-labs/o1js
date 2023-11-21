@@ -85,6 +85,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   let mBound = weakBound(m[2], f);
   let x3Bound = weakBound(x3[2], f);
   let y3Bound = weakBound(y3[2], f);
+  multiRangeCheck([mBound, x3Bound, y3Bound]);
 
   // (x1 - x2)*m = y1 - y2
   let deltaX = new Sum(x1).sub(x2);
@@ -99,9 +100,6 @@ function add(p1: Point, p2: Point, f: bigint) {
   let deltaX1X3 = new Sum(x1).sub(x3);
   let ySum = new Sum(y1).add(y3);
   assertRank1(deltaX1X3, m, ySum, f);
-
-  // bounds checks
-  multiRangeCheck([mBound, x3Bound, y3Bound]);
 
   return { x: x3, y: y3 };
 }
