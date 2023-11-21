@@ -212,7 +212,7 @@ function rotate(
       field.toBigInt() < 2n ** BigInt(MAX_BITS),
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
-    return new Field(Fp.rot(field.toBigInt(), bits, direction));
+    return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction));
   }
   const [rotated] = rot(field, bits, direction);
   return rotated;
