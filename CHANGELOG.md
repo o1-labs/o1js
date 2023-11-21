@@ -27,7 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- `Lightnet` namespace API updates https://github.com/o1-labs/o1js/pull/1256
+- `Lightnet` namespace API updates with added `listAcquiredKeyPairs()` method https://github.com/o1-labs/o1js/pull/1256
 - Expose raw provable methods of a `ZkProgram` on `zkProgram.rawMethods` https://github.com/o1-labs/o1js/pull/1241
 - Reduce number of constraints needed by `rotate()`, `leftShift()` and, `rightShift()` gadgets https://github.com/o1-labs/o1js/pull/1201
 
