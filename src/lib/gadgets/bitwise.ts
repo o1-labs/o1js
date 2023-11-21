@@ -212,7 +212,7 @@ function rotate(
       field.toBigInt() < 2n ** BigInt(MAX_BITS),
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
-    return new Field(Fp.rot(field.toBigInt(), bits, direction));
+    return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction));
   }
   const [rotated] = rot(field, bits, direction);
   return rotated;
@@ -276,8 +276,10 @@ function rot(
   );
   // Compute next row
   rangeCheck64(shifted);
-  // Compute following row
-  rangeCheck64(excess);
+  // note: range-checking `shifted` and `field` is enough.
+  // * excess < 2^rot follows from the bound check and the rotation equation in the gate
+  // * rotated < 2^64 follows from rotated = excess + shifted (because shifted has to be a multiple of 2^rot)
+  // for a proof, see https://github.com/o1-labs/o1js/pull/1201
   return [rotated, excess, shifted];
 }
 
