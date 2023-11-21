@@ -5,10 +5,20 @@ import {
   compactMultiRangeCheck,
   multiRangeCheck,
   rangeCheck64,
+  rangeCheck32,
 } from './range-check.js';
-import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
+import {
+  not,
+  rotate32,
+  rotate64,
+  xor,
+  and,
+  leftShift,
+  rightShift,
+} from './bitwise.js';
 import { Field } from '../core.js';
 import { ForeignField, Field3 } from './foreign-field.js';
+import { divMod32, addMod32 } from './arithmetic.js';
 
 export { Gadgets };
 
@@ -39,6 +49,33 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^32).
+   *
+   * This function proves that the provided field element can be represented with 32 bits.
+   * If the field element exceeds 32 bits, an error is thrown.
+   *
+   * @param x - The value to be range-checked.
+   *
+   * @throws Throws an error if the input value exceeds 32 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12345678n));
+   * Gadgets.rangeCheck32(x); // successfully proves 32-bit range
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rangeCheck32(xLarge); // throws an error since input exceeds 32 bits
+   * ```
+   *
+   * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
+   * and don't pass the 32-bit check. If you want to prove that a value lies in the int64 range [-2^31, 2^31),
+   * you could use `rangeCheck32(x.add(1n << 31n))`.
+   */
+  rangeCheck32(x: Field) {
+    return rangeCheck32(x);
+  },
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
    * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
@@ -52,7 +89,7 @@ const Gadgets = {
    * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the rotation.
-   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * To safely use `rotate64()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
@@ -66,17 +103,55 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100));
-   * const y = Gadgets.rotate(x, 2, 'left'); // left rotation by 2 bits
-   * const z = Gadgets.rotate(x, 2, 'right'); // right rotation by 2 bits
+   * const y = Gadgets.rotate64(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate64(x, 2, 'right'); // right rotation by 2 bits
    * y.assertEquals(0b110000);
    * z.assertEquals(0b000011);
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * Gadgets.rotate(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
+   * Gadgets.rotate64(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
-  rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
-    return rotate(field, bits, direction);
+  rotate64(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rotate64(field, bits, direction);
+  },
+  /**
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 32-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
+   * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
+   *
+   * **Important:** The gadget assumes that its input is at most 32 bits in size.
+   *
+   * If the input exceeds 32 bits, the gadget is invalid and fails to prove correct execution of the rotation.
+   * To safely use `rotate32()`, you need to make sure that the value passed in is range-checked to 32 bits;
+   * for example, using {@link Gadgets.rangeCheck32}.
+   *
+   *
+   * @param field {@link Field} element to rotate.
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 32 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(0b001100));
+   * const y = Gadgets.rotate32(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate32(x, 2, 'right'); // right rotation by 2 bits
+   * y.assertEquals(0b110000);
+   * z.assertEquals(0b000011);
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rotate32(xLarge, 32, "left"); // throws an error since input exceeds 32 bits
+   * ```
+   */
+  rotate32(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rotate32(field, bits, direction);
   },
   /**
    * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
@@ -420,6 +495,8 @@ const Gadgets = {
    * **Note:** This interface does not contain any provable methods.
    */
   Field3,
+  divMod32,
+  addMod32,
 };
 
 export namespace Gadgets {
