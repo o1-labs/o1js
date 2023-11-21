@@ -3,6 +3,7 @@ import { Gates } from '../gates.js';
 import { bitSlice, exists, toVar, toVars } from './common.js';
 
 export {
+  rangeCheck32,
   rangeCheck64,
   multiRangeCheck,
   compactMultiRangeCheck,
@@ -11,6 +12,22 @@ export {
   lMask,
   twoLMask,
 };
+
+/**
+ * Asserts that x is in the range [0, 2^32)
+ */
+function rangeCheck32(x: Field) {
+  if (x.isConstant()) {
+    if (x.toBigInt() >= 1n << 32n) {
+      throw Error(`rangeCheck32: expected field to fit in 32 bits, got ${x}`);
+    }
+    return;
+  }
+
+  // can we make this more efficient? its 3 gates :/
+  let actual = x.rangeCheckHelper(32);
+  actual.assertEquals(x);
+}
 
 /**
  * Asserts that x is in the range [0, 2^64)
