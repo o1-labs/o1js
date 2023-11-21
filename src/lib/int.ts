@@ -213,7 +213,7 @@ class UInt64 extends CircuitValue {
    *
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
    *
-   * @param x {@link UInt64} element to compare.
+   * @param x {@link UInt64} element to XOR.
    *
    * @example
    * ```ts
@@ -255,13 +255,16 @@ class UInt64 extends CircuitValue {
    * let a = UInt64.from(0b0101);
    * let b = a.not(false);
    *
-   * b.assertEquals(0b1010);
+   * console.log(b.toBigInt().toString(2));
+   * // 1111111111111111111111111111111111111111111111111111111111111010
    *
    * // NOTing 4 bits with the checked version utilizing the xor gadget
    * let a = UInt64.from(0b0101);
    * let b = a.not();
    *
-   * b.assertEquals(0b1010);
+   * console.log(b.toBigInt().toString(2));
+   * // 1111111111111111111111111111111111111111111111111111111111111010
+   *
    * ```
    *
    * @param a - The value to apply NOT to.
@@ -369,7 +372,7 @@ class UInt64 extends CircuitValue {
    * let a = UInt64.from(3);    // ... 000011
    * let b = UInt64.from(5);    // ... 000101
    *
-   * let c = a.and(b, 2);    // ... 000001
+   * let c = a.and(b);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
