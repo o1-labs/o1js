@@ -39,6 +39,7 @@ import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
+import type { FiniteField } from '../../bindings/crypto/finite_field.js';
 
 export { Random, sample, withHardCoded };
 
@@ -307,6 +308,7 @@ const Random = Object.assign(Random_, {
   reject,
   dice: Object.assign(dice, { ofSize: diceOfSize() }),
   field,
+  otherField: fieldWithInvalid,
   bool,
   uint32,
   uint64,
@@ -843,12 +845,12 @@ function bignatWithInvalid(max: bigint): RandomWithInvalid<bigint> {
   return Object.assign(valid, { invalid });
 }
 
-function fieldWithInvalid(
-  F: typeof Field | typeof Scalar
-): RandomWithInvalid<bigint> {
+function fieldWithInvalid(F: FiniteField): RandomWithInvalid<bigint> {
   let randomField = Random_(F.random);
-  let specialField = oneOf(0n, 1n, F(-1));
-  let field = oneOf<bigint[]>(randomField, randomField, uint64, specialField);
+  let specialField = oneOf(0n, 1n, F.negate(1n));
+  let roughLogSize = 1 << Math.ceil(Math.log2(F.sizeInBits) - 1);
+  let uint = biguint(roughLogSize);
+  let field = oneOf<bigint[]>(randomField, randomField, uint, specialField);
   let tooLarge = map(field, (x) => x + F.modulus);
   let negative = map(field, (x) => -x - 1n);
   let invalid = oneOf(tooLarge, negative);

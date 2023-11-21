@@ -8,6 +8,7 @@ import {
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
+import { ForeignField, Field3 } from './foreign-field.js';
 
 export { Gadgets };
 
@@ -285,7 +286,7 @@ const Gadgets = {
    *
    * @throws Throws an error if one of the input values exceeds 88 bits.
    */
-  multiRangeCheck(limbs: [Field, Field, Field]) {
+  multiRangeCheck(limbs: Field3) {
     multiRangeCheck(limbs);
   },
 
@@ -312,4 +313,118 @@ const Gadgets = {
   compactMultiRangeCheck(xy: Field, z: Field) {
     return compactMultiRangeCheck(xy, z);
   },
+
+  /**
+   * Gadgets for foreign field operations.
+   *
+   * A _foreign field_ is a finite field different from the native field of the proof system.
+   *
+   * The `ForeignField` namespace exposes operations like modular addition and multiplication,
+   * which work for any finite field of size less than 2^256.
+   *
+   * Foreign field elements are represented as 3 limbs of native field elements.
+   * Each limb holds 88 bits of the total, in little-endian order.
+   *
+   * All `ForeignField` gadgets expect that their input limbs are constrained to the range [0, 2^88).
+   * Range checks on outputs are added by the gadget itself.
+   */
+  ForeignField: {
+    /**
+     * Foreign field addition: `x + y mod f`
+     *
+     * The modulus `f` does not need to be prime.
+     *
+     * Inputs and outputs are 3-tuples of native Fields.
+     * Each input limb is assumed to be in the range [0, 2^88), and the gadget is invalid if this is not the case.
+     * The result limbs are guaranteed to be in the same range.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(9n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(10n));
+     *
+     * // range check x and y
+     * Gadgets.multiRangeCheck(x);
+     * Gadgets.multiRangeCheck(y);
+     *
+     * // compute x + y mod 17
+     * let z = ForeignField.add(x, y, 17n);
+     *
+     * Provable.log(z); // ['2', '0', '0'] = limb representation of 2 = 9 + 10 mod 17
+     * ```
+     *
+     * **Warning**: The gadget does not assume that inputs are reduced modulo f,
+     * and does not prove that the result is reduced modulo f.
+     * It only guarantees that the result is in the correct residue class.
+     *
+     * @param x left summand
+     * @param y right summand
+     * @param f modulus
+     * @returns x + y mod f
+     */
+    add(x: Field3, y: Field3, f: bigint) {
+      return ForeignField.add(x, y, f);
+    },
+
+    /**
+     * Foreign field subtraction: `x - y mod f`
+     *
+     * See {@link ForeignField.add} for assumptions and usage examples.
+     *
+     * @param x left summand
+     * @param y right summand
+     * @param f modulus
+     * @returns x - y mod f
+     */
+    sub(x: Field3, y: Field3, f: bigint) {
+      return ForeignField.sub(x, y, f);
+    },
+
+    /**
+     * Foreign field sum: `xs[0] + signs[0] * xs[1] + ... + signs[n-1] * xs[n] mod f`
+     *
+     * This gadget takes a list of inputs and a list of signs (of size one less than the inputs),
+     * and computes a chain of additions or subtractions, depending on the sign.
+     * A sign is of type `1n | -1n`, where `1n` represents addition and `-1n` represents subtraction.
+     *
+     * **Note**: For 3 or more inputs, `sum()` uses fewer constraints than a sequence of `add()` and `sub()` calls,
+     * because we can avoid range checks on intermediate results.
+     *
+     * See {@link ForeignField.add} for assumptions on inputs.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
+     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     *
+     * // range check x, y, z
+     * Gadgets.multiRangeCheck(x);
+     * Gadgets.multiRangeCheck(y);
+     * Gadgets.multiRangeCheck(z);
+     *
+     * // compute x + y - z mod 17
+     * let sum = ForeignField.sum([x, y, z], [1n, -1n], 17n);
+     *
+     * Provable.log(sum); // ['16', '0', '0'] = limb representation of 16 = 4 + 5 - 10 mod 17
+     * ```
+     */
+    sum(xs: Field3[], signs: (1n | -1n)[], f: bigint) {
+      return ForeignField.sum(xs, signs, f);
+    },
+  },
+
+  /**
+   * Helper methods to interact with 3-limb vectors of Fields.
+   *
+   * **Note:** This interface does not contain any provable methods.
+   */
+  Field3,
 };
+
+export namespace Gadgets {
+  /**
+   * A 3-tuple of Fields, representing a 3-limb bigint.
+   */
+  export type Field3 = [Field, Field, Field];
+}

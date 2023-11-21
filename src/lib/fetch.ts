@@ -481,8 +481,8 @@ type LastBlockQueryFailureCheckResponse = {
   }[];
 };
 
-const lastBlockQueryFailureCheck = `{
-  bestChain(maxLength: 1) {
+const lastBlockQueryFailureCheck = (length: number) => `{
+  bestChain(maxLength: ${length}) {
     transactions {
       zkappCommands {
         hash
@@ -496,10 +496,11 @@ const lastBlockQueryFailureCheck = `{
 }`;
 
 async function fetchLatestBlockZkappStatus(
+  blockLength: number,
   graphqlEndpoint = networkConfig.minaEndpoint
 ) {
   let [resp, error] = await makeGraphqlRequest(
-    lastBlockQueryFailureCheck,
+    lastBlockQueryFailureCheck(blockLength),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints
   );
@@ -513,9 +514,8 @@ async function fetchLatestBlockZkappStatus(
   return bestChain;
 }
 
-async function checkZkappTransaction(txnId: string) {
-  let bestChainBlocks = await fetchLatestBlockZkappStatus();
-
+async function checkZkappTransaction(txnId: string, blockLength = 20) {
+  let bestChainBlocks = await fetchLatestBlockZkappStatus(blockLength);
   for (let block of bestChainBlocks.bestChain) {
     for (let zkappCommand of block.transactions.zkappCommands) {
       if (zkappCommand.hash === txnId) {
@@ -1019,7 +1019,7 @@ namespace Lightnet {
    * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
    * the data is returned.
    *
-   * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+   * @param options.isRegularAccount Whether to acquire key pair of regular or zkApp account (one with already configured verification key)
    * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
    * @returns Key pair
    */
@@ -1091,6 +1091,44 @@ namespace Lightnet {
       const data = await response.json();
       if (data) {
         return data.message as string;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Gets previously acquired key pairs list.
+   *
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Key pairs list or null if the request failed
+   */
+  export async function listAcquiredKeyPairs(options: {
+    lightnetAccountManagerEndpoint?: string;
+  }): Promise<Array<{
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }> | null> {
+    const {
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/list-acquired-accounts`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return data.map((account: any) => ({
+          publicKey: PublicKey.fromBase58(account.pk),
+          privateKey: PrivateKey.fromBase58(account.sk),
+        }));
       }
     }
 

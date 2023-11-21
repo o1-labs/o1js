@@ -1,6 +1,6 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  equivalent,
+  equivalentProvable as equivalent,
   equivalentAsync,
   field,
   fieldWithRng,
@@ -9,6 +9,16 @@ import { Fp, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
+import {
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  and,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
+import { GateType } from '../../snarky.js';
 
 const maybeField = {
   ...field,
@@ -183,3 +193,42 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
     return proof.publicOutput;
   }
 );
+
+// check that gate chains stay intact
+
+function xorChain(bits: number) {
+  return repeat(Math.ceil(bits / 16), 'Xor16').concat('Zero');
+}
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'xor',
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'notChecked',
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'notUnchecked',
+  ifNotAllConstant(contains('Generic'))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'and',
+  ifNotAllConstant(contains(xorChain(64)))
+);
+
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0'];
+let isJustRotate = ifNotAllConstant(
+  and(contains(rotChain), withoutGenerics(equals(rotChain)))
+);
+
+constraintSystem.fromZkProgram(Bitwise, 'rot', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'leftShift', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'rightShift', isJustRotate);
