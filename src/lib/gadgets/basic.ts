@@ -16,52 +16,34 @@ export { arrayGet, assertOneOf };
  * Note: This saves 0.5*n constraints compared to equals() + switch()
  */
 function arrayGet(array: Field[], index: Field) {
-  index = toVar(index);
+  let i = toVar(index);
 
   // witness result
-  let a = existsOne(() => array[Number(index.toBigInt())].toBigInt());
+  let a = existsOne(() => array[Number(i.toBigInt())].toBigInt());
 
-  // we prove a === array[j] + zj*(index - j) for some zj, for all j.
-  // setting j = index, this implies a === array[index]
-  // thanks to our assumption that the index is within bounds, we know that j = index for some j
+  // we prove a === array[j] + zj*(i - j) for some zj, for all j.
+  // setting j = i, this implies a === array[i]
+  // thanks to our assumption that the index i is within bounds, we know that j = i for some j
   let n = array.length;
   for (let j = 0; j < n; j++) {
     let zj = existsOne(() => {
       let zj = Fp.div(
         Fp.sub(a.toBigInt(), array[j].toBigInt()),
-        Fp.sub(index.toBigInt(), Fp.fromNumber(j))
+        Fp.sub(i.toBigInt(), Fp.fromNumber(j))
       );
       return zj ?? 0n;
     });
-    // prove that zj*(index - j) === a - array[j]
+    // prove that zj*(i - j) === a - array[j]
     // TODO abstract this logic into a general-purpose assertMul() gadget,
     // which is able to use the constant coefficient
     // (snarky's assert_r1cs somehow leads to much more constraints than this)
     if (array[j].isConstant()) {
-      // -j*zj + zj*index - a + array[j] === 0
-      Gates.generic(
-        {
-          left: -BigInt(j),
-          right: 0n,
-          out: -1n,
-          mul: 1n,
-          const: array[j].toBigInt(),
-        },
-        { left: zj, right: index, out: a }
-      );
+      // zj*i + (-j)*zj + 0*i + array[j] === a
+      assertBilinear(zj, i, [1n, -BigInt(j), 0n, array[j].toBigInt()], a);
     } else {
       let aMinusAj = toVar(a.sub(array[j]));
-      // -j*zj + zj*index - (a - array[j]) === 0
-      Gates.generic(
-        {
-          left: -BigInt(j),
-          right: 0n,
-          out: -1n,
-          mul: 1n,
-          const: 0n,
-        },
-        { left: zj, right: index, out: aMinusAj }
-      );
+      // zj*i + (-j)*zj + 0*i + 0 === (a - array[j])
+      assertBilinear(zj, i, [1n, -BigInt(j), 0n, 0n], aMinusAj);
     }
   }
 
@@ -80,7 +62,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
   let n = c.length;
   if (n === 0) {
     // (x - c1)*(x - c2) === 0
-    assertBilinearZero(xv, xv, [1n, -(c1 + c2), 0n, c1 * c2]);
+    assertBilinear(xv, xv, [1n, -(c1 + c2), 0n, c1 * c2]);
     return;
   }
   // z = (x - c1)*(x - c2)
@@ -92,7 +74,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
       z = bilinear(z, xv, [1n, -c[i], 0n, 0n]);
     } else {
       // z*(x - c) === 0
-      assertBilinearZero(z, xv, [1n, -c[i], 0n, 0n]);
+      assertBilinear(z, xv, [1n, -c[i], 0n, 0n]);
     }
   }
 }
@@ -101,7 +83,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
 
 /**
  * Compute bilinear function of x and y:
- * z = a*x*y + b*x + c*y + d
+ * `z = a*x*y + b*x + c*y + d`
  */
 function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
   let z = existsOne(() => {
@@ -118,17 +100,20 @@ function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
 }
 
 /**
- * Assert bilinear equation on x and y:
- * a*x*y + b*x + c*y + d === 0
+ * Assert bilinear equation on x, y and z:
+ * `a*x*y + b*x + c*y + d === z`
+ *
+ * The default for z is 0.
  */
-function assertBilinearZero(
+function assertBilinear(
   x: VarField,
   y: VarField,
-  [a, b, c, d]: TupleN<bigint, 4>
+  [a, b, c, d]: TupleN<bigint, 4>,
+  z?: VarField
 ) {
-  // b*x + c*y + a*x*y + d === 0
+  // b*x + c*y - z + a*x*y + d === z
   Gates.generic(
-    { left: b, right: c, out: 0n, mul: a, const: d },
-    { left: x, right: y, out: x }
+    { left: b, right: c, out: z === undefined ? 0n : -1n, mul: a, const: d },
+    { left: x, right: y, out: z === undefined ? x : z }
   );
 }
