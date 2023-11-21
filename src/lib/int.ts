@@ -747,7 +747,7 @@ class UInt32 extends CircuitValue {
    * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
    * Web/JavaScript/Reference/Operators/Bitwise_NOT).
    *
-   * **Note:** The NOT gate operates over 64 bit for UInt64 types.
+   * **Note:** The NOT gate operates over 32 bit for UInt32 types.
    *
    * A NOT gate works by returning `1` in each bit position if the
    * corresponding bit of the operand is `0`, and returning `0` if the
@@ -769,13 +769,16 @@ class UInt32 extends CircuitValue {
    * let a = UInt32.from(0b0101);
    * let b = a.not(false);
    *
-   * b.assertEquals(0b1010);
+   * console.log(b.toBigInt().toString(2));
+   * // 11111111111111111111111111111010
    *
    * // NOTing 4 bits with the checked version utilizing the xor gadget
    * let a = UInt32.from(0b0101);
    * let b = a.not();
    *
-   * b.assertEquals(0b1010);
+   * console.log(b.toBigInt().toString(2));
+   * // 11111111111111111111111111111010
+   *
    * ```
    *
    * @param a - The value to apply NOT to.
