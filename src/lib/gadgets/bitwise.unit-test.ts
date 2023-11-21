@@ -57,10 +57,16 @@ let Bitwise = ZkProgram({
         return Gadgets.and(a, b, 64);
       },
     },
-    rot: {
+    rot32: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.rotate(a, 12, 'left');
+        return Gadgets.rotate32(a, 12, 'left');
+      },
+    },
+    rot64: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.rotate64(a, 12, 'left');
       },
     },
     leftShift: {
@@ -104,7 +110,7 @@ await Bitwise.compile();
 [2, 4, 8, 16, 32, 64].forEach((length) => {
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.rot(x, 12, 'left'),
-    (x) => Gadgets.rotate(x, 12, 'left')
+    (x) => Gadgets.rotate64(x, 12, 'left')
   );
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.leftShift(x, 12),
@@ -113,6 +119,13 @@ await Bitwise.compile();
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.rightShift(x, 12),
     (x) => Gadgets.rightShift(x, 12)
+  );
+});
+
+[2, 4, 8, 16, 32].forEach((length) => {
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.rot(x, 12, 'left', 32),
+    (x) => Gadgets.rotate32(x, 12, 'left')
   );
 });
 
@@ -229,6 +242,21 @@ let isJustRotate = ifNotAllConstant(
   and(contains(rotChain), withoutGenerics(equals(rotChain)))
 );
 
-constraintSystem.fromZkProgram(Bitwise, 'rot', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'rot64', isJustRotate);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'rot32',
+  ifNotAllConstant(
+    contains([
+      'Generic',
+      'Generic',
+      'EndoMulScalar',
+      'EndoMulScalar',
+      'Generic',
+    ])
+  )
+);
+
 constraintSystem.fromZkProgram(Bitwise, 'leftShift', isJustRotate);
 constraintSystem.fromZkProgram(Bitwise, 'rightShift', isJustRotate);
