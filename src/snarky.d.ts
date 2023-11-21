@@ -33,6 +33,7 @@ export {
   Snarky,
   Test,
   JsonGate,
+  KimchiGateType,
   MlPublicKey,
   MlPublicKeyVar,
   FeatureFlags,

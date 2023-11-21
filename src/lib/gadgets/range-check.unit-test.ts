@@ -10,7 +10,7 @@ import {
 import { Random } from '../testing/property.js';
 import { assert } from './common.js';
 import { Gadgets } from './gadgets.js';
-import { L } from './range-check.js';
+import { l } from './range-check.js';
 import {
   constraintSystem,
   contains,
@@ -82,7 +82,7 @@ let RangeCheck = ZkProgram({
       privateInputs: [Field, Field],
       method(xy, z) {
         let [x, y] = Gadgets.compactMultiRangeCheck(xy, z);
-        x.add(y.mul(1n << L)).assertEquals(xy);
+        x.add(y.mul(1n << l)).assertEquals(xy);
       },
     },
   },
@@ -104,11 +104,11 @@ await equivalentAsync({ from: [maybeUint(64)], to: boolean }, { runs: 3 })(
 );
 
 await equivalentAsync(
-  { from: [maybeUint(L), uint(L), uint(L)], to: boolean },
+  { from: [maybeUint(l), uint(l), uint(l)], to: boolean },
   { runs: 3 }
 )(
   (x, y, z) => {
-    assert(!(x >> L) && !(y >> L) && !(z >> L), 'multi: not out of range');
+    assert(!(x >> l) && !(y >> l) && !(z >> l), 'multi: not out of range');
     return true;
   },
   async (x, y, z) => {
@@ -118,11 +118,11 @@ await equivalentAsync(
 );
 
 await equivalentAsync(
-  { from: [maybeUint(2n * L), uint(L)], to: boolean },
+  { from: [maybeUint(2n * l), uint(l)], to: boolean },
   { runs: 3 }
 )(
   (xy, z) => {
-    assert(!(xy >> (2n * L)) && !(z >> L), 'compact: not out of range');
+    assert(!(xy >> (2n * l)) && !(z >> l), 'compact: not out of range');
     return true;
   },
   async (xy, z) => {
