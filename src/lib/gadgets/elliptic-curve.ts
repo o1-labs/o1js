@@ -6,14 +6,7 @@ import {
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
-import {
-  Field3,
-  ForeignField,
-  Sum,
-  assertRank1,
-  split,
-  weakBound,
-} from './foreign-field.js';
+import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
 import { l, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
@@ -88,18 +81,18 @@ function add(p1: Point, p2: Point, f: bigint) {
   multiRangeCheck([mBound, x3Bound, y3Bound]);
 
   // (x1 - x2)*m = y1 - y2
-  let deltaX = new Sum(x1).sub(x2);
-  let deltaY = new Sum(y1).sub(y2);
-  assertRank1(deltaX, m, deltaY, f);
+  let deltaX = ForeignField.Sum(x1).sub(x2);
+  let deltaY = ForeignField.Sum(y1).sub(y2);
+  ForeignField.assertMul(deltaX, m, deltaY, f);
 
   // m^2 = x1 + x2 + x3
-  let xSum = new Sum(x1).add(x2).add(x3);
-  assertRank1(m, m, xSum, f);
+  let xSum = ForeignField.Sum(x1).add(x2).add(x3);
+  ForeignField.assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let deltaX1X3 = new Sum(x1).sub(x3);
-  let ySum = new Sum(y1).add(y3);
-  assertRank1(deltaX1X3, m, ySum, f);
+  let deltaX1X3 = ForeignField.Sum(x1).sub(x3);
+  let ySum = ForeignField.Sum(y1).add(y3);
+  ForeignField.assertMul(deltaX1X3, m, ySum, f);
 
   return { x: x3, y: y3 };
 }
@@ -142,18 +135,18 @@ function double(p1: Point, f: bigint) {
 
   // 2*y1*m = 3*x1x1
   // TODO this assumes the curve has a == 0
-  let y1Times2 = new Sum(y1).add(y1);
-  let x1x1Times3 = new Sum(x1x1).add(x1x1).add(x1x1);
-  assertRank1(y1Times2, m, x1x1Times3, f);
+  let y1Times2 = ForeignField.Sum(y1).add(y1);
+  let x1x1Times3 = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
+  ForeignField.assertMul(y1Times2, m, x1x1Times3, f);
 
   // m^2 = 2*x1 + x3
-  let xSum = new Sum(x1).add(x1).add(x3);
-  assertRank1(m, m, xSum, f);
+  let xSum = ForeignField.Sum(x1).add(x1).add(x3);
+  ForeignField.assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let deltaX1X3 = new Sum(x1).sub(x3);
-  let ySum = new Sum(y1).add(y3);
-  assertRank1(deltaX1X3, m, ySum, f);
+  let deltaX1X3 = ForeignField.Sum(x1).sub(x3);
+  let ySum = ForeignField.Sum(y1).add(y3);
+  ForeignField.assertMul(deltaX1X3, m, ySum, f);
 
   // bounds checks
   multiRangeCheck([mBound, x3Bound, y3Bound]);
