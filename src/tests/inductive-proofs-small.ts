@@ -1,14 +1,5 @@
-import {
-  SelfProof,
-  Field,
-  ZkProgram,
-  isReady,
-  shutdown,
-  Proof,
-} from '../index.js';
+import { SelfProof, Field, ZkProgram, Proof } from 'o1js';
 import { tic, toc } from '../examples/utils/tic-toc.node.js';
-
-await isReady;
 
 let MaxProofsVerifiedOne = ZkProgram({
   name: 'recursive-1',
@@ -85,5 +76,3 @@ function testJsonRoundtrip(ProofClass: any, proof: Proof<Field, void>) {
   );
   return ProofClass.fromJSON(jsonProof);
 }
-
-shutdown();
