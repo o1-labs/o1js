@@ -426,6 +426,15 @@ function assertMul(
   y = Sum.fromUnfinished(y);
   xy = Sum.fromUnfinished(xy);
 
+  // conservative estimate to ensure that multiplication bound is satisfied
+  // we assume that all summands si are bounded with si[2] <= f[2] checks, which implies si < 2^k where k := ceil(log(f))
+  // our assertion below gives us
+  // |x|*|y| + q*f + |r| < (x.length * y.length) 2^2k + 2^2k + 2^2k < 3 * 2^(2*258) < 2^264 * (native modulus)
+  assert(
+    BigInt(Math.ceil(Math.sqrt(x.length * y.length))) * f < 1n << 258n,
+    `Foreign modulus is too large for multiplication of sums of lengths ${x.length} and ${y.length}`
+  );
+
   // finish the y and xy sums with a zero gate
   let y0 = y.finishForMulInput(f);
   let xy0 = xy.finish(f);
@@ -447,6 +456,10 @@ class Sum {
   get result() {
     assert(this.#result !== undefined, 'sum not finished');
     return this.#result;
+  }
+
+  get length() {
+    return this.#summands.length;
   }
 
   add(y: Field3) {
