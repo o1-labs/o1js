@@ -14,7 +14,7 @@ import {
   split,
   weakBound,
 } from './foreign-field.js';
-import { l, multiRangeCheck } from './range-check.js';
+import { l, l2, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBits,
@@ -375,6 +375,7 @@ function multiScalarMulGlv(
   );
 
   let maxBits = Curve.Endo.decomposeMaxBits;
+  assert(maxBits < l2, 'decomposed scalars assumed to be < 2*88 bits');
 
   // decompose scalars and handle signs
   let n2 = 2 * n;
@@ -472,23 +473,34 @@ function endomorphism(Curve: CurveAffine, P: Point) {
   return [{ x: betaX, y: P.y }, weakBound(betaX[2], Curve.modulus)] as const;
 }
 
+/**
+ * Decompose s = s0 + s1*lambda where s0, s1 are guaranteed to be small
+ *
+ * Note: This assumes that s0 and s1 are range-checked externally; in scalar multiplication this happens because they are split into chunks.
+ */
 function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
+  assert(
+    Curve.Endo.decomposeMaxBits < l2,
+    'decomposed scalars assumed to be < 2*88 bits'
+  );
   // witness s0, s1
-  let witnesses = exists(8, () => {
+  let witnesses = exists(6, () => {
     let [s0, s1] = Curve.Endo.decompose(Field3.toBigint(s));
+    let [s00, s01] = split(s0.abs);
+    let [s10, s11] = split(s1.abs);
+    // prettier-ignore
     return [
-      s0.isNegative ? 1n : 0n,
-      ...split(s0.abs),
-      s1.isNegative ? 1n : 0n,
-      ...split(s1.abs),
+      s0.isNegative ? 1n : 0n, s00, s01,
+      s1.isNegative ? 1n : 0n, s10, s11,
     ];
   });
-  let [s0Negative, s00, s01, s02, s1Negative, s10, s11, s12] = witnesses;
-  let s0: Field3 = [s00, s01, s02];
-  let s1: Field3 = [s10, s11, s12];
+  let [s0Negative, s00, s01, s1Negative, s10, s11] = witnesses;
+  // we can hard-code highest limb to zero
+  // (in theory this would allow us to hard-code the high quotient limb to zero in the ffmul below, and save 2 RCs.. but not worth it)
+  let s0: Field3 = [s00, s01, Field.from(0n)];
+  let s1: Field3 = [s10, s11, Field.from(0n)];
   assertBoolean(s0Negative);
   assertBoolean(s1Negative);
-  // NOTE: we do NOT range check s0, s1, because they will be split into chunks which also acts as a range check
 
   // prove that s1*lambda = s - s0
   let lambda = Provable.if(
