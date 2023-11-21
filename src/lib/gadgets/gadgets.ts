@@ -8,7 +8,7 @@ import {
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
-import { ForeignField, Field3 } from './foreign-field.js';
+import { ForeignField, Field3, Sum } from './foreign-field.js';
 
 export { Gadgets };
 
@@ -473,6 +473,20 @@ const Gadgets = {
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
+    },
+
+    /**
+     * TODO
+     */
+    assertMul(x: Field3 | Sum, y: Field3 | Sum, z: Field3 | Sum, f: bigint) {
+      return ForeignField.assertMul(x, y, z, f);
+    },
+
+    /**
+     * TODO
+     */
+    Sum(x: Field3) {
+      return ForeignField.Sum(x);
     },
   },
 
