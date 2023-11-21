@@ -10,7 +10,7 @@ export { assertBoolean, arrayGet, assertOneOf };
 /**
  * Assert that x is either 0 or 1.
  */
-function assertBoolean(x: Field) {
+function assertBoolean(x: VarField) {
   Snarky.field.assertBoolean(x.value);
 }
 
