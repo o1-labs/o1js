@@ -1,5 +1,5 @@
 import { Provable } from '../provable.js';
-import { Field, FieldConst, FieldVar, FieldType } from '../field.js';
+import { Field, FieldConst, FieldVar, VarField } from '../field.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
@@ -21,7 +21,7 @@ export {
 
 function existsOne(compute: () => bigint) {
   let varMl = Snarky.existsVar(() => FieldConst.fromBigint(compute()));
-  return new Field(varMl);
+  return VarField(varMl);
 }
 
 function exists<N extends number, C extends () => TupleN<bigint, N>>(
@@ -31,7 +31,7 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   let varsMl = Snarky.exists(n, () =>
     MlArray.mapTo(compute(), FieldConst.fromBigint)
   );
-  let vars = MlArray.mapFrom(varsMl, (v) => new Field(v));
+  let vars = MlArray.mapFrom(varsMl, VarField);
   return TupleN.fromArray(n, vars);
 }
 
@@ -43,12 +43,16 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
  *
  * Same as `Field.seal()` with the difference that `seal()` leaves constants as is.
  */
-function toVar(x: Field | bigint) {
+function toVar(x: Field | bigint): VarField {
   // don't change existing vars
-  if (x instanceof Field && x.value[1] === FieldType.Var) return x;
+  if (isVar(x)) return x;
   let xVar = existsOne(() => Field.from(x).toBigInt());
   xVar.assertEquals(x);
   return xVar;
+}
+
+function isVar(x: Field | bigint): x is VarField {
+  return x instanceof Field && FieldVar.isVar(x.value);
 }
 
 /**
@@ -56,7 +60,7 @@ function toVar(x: Field | bigint) {
  */
 function toVars<T extends Tuple<Field | bigint>>(
   fields: T
-): { [k in keyof T]: Field } {
+): { [k in keyof T]: VarField } {
   return Tuple.map(fields, toVar);
 }
 

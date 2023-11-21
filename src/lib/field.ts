@@ -11,10 +11,12 @@ export { Field };
 
 // internal API
 export {
-  ConstantField,
   FieldType,
   FieldVar,
   FieldConst,
+  ConstantField,
+  VarField,
+  VarFieldVar,
   isField,
   withMessage,
   readVarMessage,
@@ -69,6 +71,7 @@ type FieldVar =
   | [FieldType.Scale, FieldConst, FieldVar];
 
 type ConstantFieldVar = [FieldType.Constant, FieldConst];
+type VarFieldVar = [FieldType.Var, number];
 
 const FieldVar = {
   constant(x: bigint | FieldConst): ConstantFieldVar {
@@ -77,6 +80,9 @@ const FieldVar = {
   },
   isConstant(x: FieldVar): x is ConstantFieldVar {
     return x[0] === FieldType.Constant;
+  },
+  isVar(x: FieldVar): x is VarFieldVar {
+    return x[0] === FieldType.Var;
   },
   add(x: FieldVar, y: FieldVar): FieldVar {
     if (FieldVar.isConstant(x) && x[1][1] === 0n) return y;
@@ -101,6 +107,7 @@ const FieldVar = {
 };
 
 type ConstantField = Field & { value: ConstantFieldVar };
+type VarField = Field & { value: VarFieldVar };
 
 /**
  * A {@link Field} is an element of a prime order [finite field](https://en.wikipedia.org/wiki/Finite_field).
@@ -1039,7 +1046,7 @@ class Field {
   seal() {
     if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
-    return new Field(x);
+    return VarField(x);
   }
 
   /**
@@ -1359,4 +1366,8 @@ To inspect values for debugging, use Provable.log(${varName}). For more advanced
 there is \`Provable.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
 Warning: whatever happens inside asProver() will not be part of the zk proof.
 `;
+}
+
+function VarField(x: VarFieldVar): VarField {
+  return new Field(x) as VarField;
 }
