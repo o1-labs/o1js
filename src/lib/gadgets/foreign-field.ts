@@ -19,18 +19,11 @@ import {
   compactMultiRangeCheck,
 } from './range-check.js';
 
-export {
-  ForeignField,
-  Field3,
-  bigint3,
-  Sign,
-  split,
-  collapse,
-  weakBound,
-  assertMul,
-  Sum,
-  assertRank1,
-};
+// external API
+export { ForeignField, Field3 };
+
+// internal API
+export { bigint3, Sign, split, collapse, weakBound, Sum, assertMul };
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -47,10 +40,14 @@ const ForeignField = {
     return sum([x, y], [-1n], f);
   },
   sum,
+  Sum(x: Field3) {
+    return new Sum(x);
+  },
 
   mul: multiply,
   inv: inverse,
   div: divide,
+  assertMul,
 };
 
 /**
@@ -157,7 +154,7 @@ function inverse(x: Field3, f: bigint): Field3 {
   let xInv2Bound = weakBound(xInv[2], f);
 
   let one: Field2 = [Field.from(1n), Field.from(0n)];
-  assertMul(x, xInv, one, f);
+  assertMulInternal(x, xInv, one, f);
 
   // range check on result bound
   // TODO: this uses two RCs too many.. need global RC stack
@@ -190,7 +187,7 @@ function divide(
   });
   multiRangeCheck(z);
   let z2Bound = weakBound(z[2], f);
-  assertMul(z, y, x, f);
+  assertMulInternal(z, y, x, f);
 
   // range check on result bound
   multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
@@ -212,7 +209,12 @@ function divide(
 /**
  * Common logic for gadgets that expect a certain multiplication result a priori, instead of just using the remainder.
  */
-function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
+function assertMulInternal(
+  x: Field3,
+  y: Field3,
+  xy: Field3 | Field2,
+  f: bigint
+) {
   let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
   // range check on quotient
@@ -413,10 +415,8 @@ function split2(x: bigint): [bigint, bigint] {
  * As usual, all values are assumed to be range checked, and the left and right multiplication inputs
  * are assumed to be bounded such that `l * r < 2^264 * (native modulus)`.
  * However, all extra checks that are needed on the _sums_ are handled here.
- *
- * TODO example
  */
-function assertRank1(
+function assertMul(
   x: Field3 | Sum,
   y: Field3 | Sum,
   xy: Field3 | Sum,
@@ -432,7 +432,7 @@ function assertRank1(
 
   // x is chained into the ffmul gate
   let x0 = x.finishForMulInput(f, true);
-  assertMul(x0, y0, xy0, f);
+  assertMulInternal(x0, y0, xy0, f);
 }
 
 class Sum {
@@ -463,7 +463,7 @@ class Sum {
     return this;
   }
 
-  finishOne() {
+  #finishOne() {
     let result = this.#summands[0];
     this.#result = result;
     return result;
@@ -473,7 +473,7 @@ class Sum {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
-    if (n === 0) return this.finishOne();
+    if (n === 0) return this.#finishOne();
 
     let x = this.#summands.map(toVars);
     let result = x[0];
@@ -492,7 +492,7 @@ class Sum {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
-    if (n === 0) return this.finishOne();
+    if (n === 0) return this.#finishOne();
 
     let x = this.#summands.map(toVars);
 
