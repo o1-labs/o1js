@@ -306,7 +306,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate(this.value, bits, direction);
+    return Gadgets.rotate64(this.value, bits, direction);
   }
 
   /**
@@ -589,8 +589,7 @@ class UInt32 extends CircuitValue {
   }
 
   static check(x: UInt32) {
-    let actual = x.value.rangeCheckHelper(32);
-    actual.assertEquals(x.value);
+    Gadgets.rangeCheck32(x.value);
   }
   static toInput(x: UInt32): HashInput {
     return { packed: [[x.value, 32]] };
@@ -820,7 +819,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate(this.value, bits, direction);
+    return Gadgets.rotate32(this.value, bits, direction);
   }
 
   /**
