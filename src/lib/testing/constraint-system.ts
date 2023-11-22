@@ -347,9 +347,12 @@ constraintSystem.size = map((gates) => gates.length);
  */
 constraintSystem.print = map(printGates);
 
-function repeat(n: number, gates: GateType | GateType[]): readonly GateType[] {
+function repeat(
+  n: number,
+  gates: GateType | readonly GateType[]
+): readonly GateType[] {
   gates = Array.isArray(gates) ? gates : [gates];
-  return Array<GateType[]>(n).fill(gates).flat();
+  return Array<readonly GateType[]>(n).fill(gates).flat();
 }
 
 function toGatess(

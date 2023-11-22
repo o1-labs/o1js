@@ -20,6 +20,7 @@ import {
   contains,
   equals,
   ifNotAllConstant,
+  not,
   repeat,
   withoutGenerics,
 } from '../testing/constraint-system.js';
@@ -313,10 +314,21 @@ constraintSystem(
   'assert mul',
   from2,
   (x, y) => assertMulExample(x, y, F.modulus),
-  contains([addChain(1), addChain(1), addChainedIntoMul, mrc, mrc])
+  and(
+    contains([addChain(1), addChain(1), addChainedIntoMul]),
+    // assertMul() doesn't use any range checks besides on internal values and the quotient
+    containsNTimes(2, mrc)
+  )
 );
 
 // helper
+
+function containsNTimes(n: number, pattern: readonly GateType[]) {
+  return and(
+    contains(repeat(n, pattern)),
+    not(contains(repeat(n + 1, pattern)))
+  );
+}
 
 function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
   let sum = xs[0];
