@@ -25,6 +25,7 @@ export {
   unit,
   array,
   record,
+  map,
   fromRandom,
 };
 export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
@@ -286,6 +287,13 @@ function record<Specs extends { [k in string]: Spec<any, any> }>(
     there: (x) => mapObject(specs, (spec, k) => spec.there(x[k])) as any,
     back: (x) => mapObject(specs, (spec, k) => spec.back(x[k])) as any,
   };
+}
+
+function map<T1, T2, S1, S2>(
+  { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
+  there: (t: T1) => S1
+): Spec<S1, S2> {
+  return { ...to, rng: Random.map(from.rng, there) };
 }
 
 function mapObject<K extends string, T, S>(
