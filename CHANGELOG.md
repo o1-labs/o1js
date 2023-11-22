@@ -21,8 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- Preconditioned asset* in state have been renamed to require* :
-  For example:
+- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions.
   - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
   - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
   - `this.x.assertNothing()` is now `this.x.requireNothing()` https://github.com/o1-labs/o1js/pull/1263
