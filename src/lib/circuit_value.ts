@@ -465,6 +465,26 @@ function Struct<
  * - An `Unconstrained`'s value can only be accessed in auxiliary contexts.
  * - An `Unconstrained` can be empty when compiling, but never empty when running as the prover.
  *   (there is no way to create an empty `Unconstrained` in the prover)
+ *
+ * @example
+ * ```ts
+ * let x = Unconstrained.from(0n);
+ *
+ * class MyContract extends SmartContract {
+ *   `@method` myMethod(x: Unconstrained<bigint>) {
+ *
+ *     Provable.witness(Field, () => {
+ *       // we can access and modify `x` here
+ *       let newValue = x.get() + otherField.toBigInt();
+ *       x.set(newValue);
+ *
+ *       // ...
+ *     });
+ *
+ *     // throws an error!
+ *     x.get();
+ *   }
+ * ```
  */
 class Unconstrained<T> {
   private option:
