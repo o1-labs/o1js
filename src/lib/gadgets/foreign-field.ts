@@ -1,8 +1,12 @@
+/**
+ * Foreign field arithmetic gadgets.
+ */
 import {
   inverse as modInverse,
   mod,
 } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Provable } from '../provable.js';
@@ -23,7 +27,7 @@ import {
 export { ForeignField, Field3 };
 
 // internal API
-export { bigint3, Sign, split, collapse, weakBound, Sum, assertMul };
+export { bigint3, Sign, split, combine, weakBound, Sum, assertMul };
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -91,11 +95,11 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
   let f_ = split(f);
 
   let [r0, r1, r2, overflow, carry] = exists(5, () => {
-    let x_ = bigint3(x);
-    let y_ = bigint3(y);
+    let x_ = toBigint3(x);
+    let y_ = toBigint3(y);
 
     // figure out if there's overflow
-    let r = collapse(x_) + sign * collapse(y_);
+    let r = combine(x_) + sign * combine(y_);
     let overflow = 0n;
     if (sign === 1n && r >= f) overflow = 1n;
     if (sign === -1n && r < 0n) overflow = -1n;
@@ -103,7 +107,7 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
 
     // do the add with carry
     // note: this "just works" with negative r01
-    let r01 = collapse2(x_) + sign * collapse2(y_) - overflow * collapse2(f_);
+    let r01 = combine2(x_) + sign * combine2(y_) - overflow * combine2(f_);
     let carry = r01 >> l2;
     r01 &= l2Mask;
     let [r0, r1] = split2(r01);
@@ -151,6 +155,7 @@ function inverse(x: Field3, f: bigint): Field3 {
     return xInv === undefined ? [0n, 0n, 0n] : split(xInv);
   });
   multiRangeCheck(xInv);
+  // we need to bound xInv because it's a multiplication input
   let xInv2Bound = weakBound(xInv[2], f);
 
   let one: Field2 = [Field.from(1n), Field.from(0n)];
@@ -199,7 +204,7 @@ function divide(
     let y01 = y[0].add(y[1].mul(1n << l));
     y01.equals(0n).and(y[2].equals(0n)).assertFalse();
     let [f0, f1, f2] = split(f);
-    let f01 = collapse2([f0, f1]);
+    let f01 = combine2([f0, f1]);
     y01.equals(f01).and(y[2].equals(f2)).assertFalse();
   }
 
@@ -243,18 +248,18 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
   let f2Bound = (1n << l) - f2 - 1n;
 
   let witnesses = exists(21, () => {
-    // split inputs into 3 limbs
-    let [a0, a1, a2] = bigint3(a);
-    let [b0, b1, b2] = bigint3(b);
+    // convert inputs to bigints
+    let [a0, a1, a2] = toBigint3(a);
+    let [b0, b1, b2] = toBigint3(b);
 
     // compute q and r such that a*b = q*f + r
-    let ab = collapse([a0, a1, a2]) * collapse([b0, b1, b2]);
+    let ab = combine([a0, a1, a2]) * combine([b0, b1, b2]);
     let q = ab / f;
     let r = ab - q * f;
 
     let [q0, q1, q2] = split(q);
     let [r0, r1, r2] = split(r);
-    let r01 = collapse2([r0, r1]);
+    let r01 = combine2([r0, r1]);
 
     // compute product terms
     let p0 = a0 * b0 + q0 * f_0;
@@ -262,7 +267,7 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     let p2 = a0 * b2 + a1 * b1 + a2 * b0 + q0 * f_2 + q1 * f_1 + q2 * f_0;
 
     let [p10, p110, p111] = split(p1);
-    let p11 = collapse2([p110, p111]);
+    let p11 = combine2([p110, p111]);
 
     // carry bottom limbs
     let c0 = (p0 + (p10 << l) - r01) >> l2;
@@ -352,7 +357,7 @@ const Field3 = {
    * Turn a 3-tuple of Fields into a bigint
    */
   toBigint(x: Field3): bigint {
-    return collapse(bigint3(x));
+    return combine(toBigint3(x));
   },
 
   /**
@@ -381,22 +386,22 @@ const Field3 = {
 type Field2 = [Field, Field];
 const Field2 = {
   toBigint(x: Field2): bigint {
-    return collapse2(Tuple.map(x, (x) => x.toBigInt()));
+    return combine2(Tuple.map(x, (x) => x.toBigInt()));
   },
 };
 
-function bigint3(x: Field3): bigint3 {
+function toBigint3(x: Field3): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
 
-function collapse([x0, x1, x2]: bigint3) {
+function combine([x0, x1, x2]: bigint3) {
   return x0 + (x1 << l) + (x2 << l2);
 }
 function split(x: bigint): bigint3 {
   return [x & lMask, (x >> l) & lMask, (x >> l2) & lMask];
 }
 
-function collapse2([x0, x1]: bigint3 | [bigint, bigint]) {
+function combine2([x0, x1]: bigint3 | [bigint, bigint]) {
   return x0 + (x1 << l);
 }
 function split2(x: bigint): [bigint, bigint] {
@@ -441,6 +446,20 @@ function assertMul(
 
   // x is chained into the ffmul gate
   let x0 = x.finishForMulInput(f, true);
+
+  // constant case
+  if (
+    Field3.isConstant(x0) &&
+    Field3.isConstant(y0) &&
+    Field3.isConstant(xy0)
+  ) {
+    let x_ = Field3.toBigint(x0);
+    let y_ = Field3.toBigint(y0);
+    let xy_ = Field3.toBigint(xy0);
+    assert(mod(x_ * y_, f) === xy_, 'incorrect multiplication result');
+    return;
+  }
+
   assertMulInternal(x0, y0, xy0, f);
 }
 
@@ -476,18 +495,27 @@ class Sum {
     return this;
   }
 
-  #finishOne() {
-    let result = this.#summands[0];
-    this.#result = result;
-    return result;
+  #return(x: Field3) {
+    this.#result = x;
+    return x;
+  }
+
+  isConstant() {
+    return this.#summands.every(Field3.isConstant);
   }
 
   finish(f: bigint, isChained = false) {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
-    if (n === 0) return this.#finishOne();
+    if (n === 0) return this.#return(this.#summands[0]);
 
+    // constant case
+    if (this.isConstant()) {
+      return this.#return(sum(this.#summands, signs, f));
+    }
+
+    // provable case
     let x = this.#summands.map(toVars);
     let result = x[0];
 
@@ -505,79 +533,78 @@ class Sum {
     assert(this.#result === undefined, 'sum already finished');
     let signs = this.#ops;
     let n = signs.length;
-    if (n === 0) return this.#finishOne();
+    if (n === 0) return this.#return(this.#summands[0]);
 
-    let x = this.#summands.map(toVars);
+    // constant case
+    if (this.isConstant()) {
+      return this.#return(sum(this.#summands, signs, f));
+    }
+
+    // provable case
+    let xs = this.#summands.map(toVars);
 
     // since the sum becomes a multiplication input, we need to constrain all limbs _individually_.
     // sadly, ffadd only constrains the low and middle limb together.
     // we could fix it with a RC just for the lower two limbs
     // but it's cheaper to add generic gates which handle the lowest limb separately, and avoids the unfilled MRC slot
-    let f_ = split(f);
-
-    // compute witnesses for generic gates -- overflows and carries
-    let nFields = Provable.Array(Field, n);
-    let [overflows, carries] = Provable.witness(
-      provableTuple([nFields, nFields]),
-      () => {
-        let overflows: bigint[] = [];
-        let carries: bigint[] = [];
-
-        let r = Field3.toBigint(x[0]);
-
-        for (let i = 0; i < n; i++) {
-          // this duplicates some of the logic in singleAdd
-          let x_ = split(r);
-          let y_ = bigint3(x[i + 1]);
-          let sign = signs[i];
-
-          // figure out if there's overflow
-          r = r + sign * collapse(y_);
-          let overflow = 0n;
-          if (sign === 1n && r >= f) overflow = 1n;
-          if (sign === -1n && r < 0n) overflow = -1n;
-          if (f === 0n) overflow = 0n;
-          overflows.push(overflow);
-
-          // add with carry, only on the lowest limb
-          let r0 = x_[0] + sign * y_[0] - overflow * f_[0];
-          carries.push(r0 >> l);
-        }
-        return [overflows.map(Field.from), carries.map(Field.from)];
-      }
-    );
+    let f0 = f & lMask;
 
     // generic gates for low limbs
-    let x0 = x[0][0];
+    let x0 = xs[0][0];
     let x0s: Field[] = [];
-    for (let i = 0; i < n; i++) {
-      // constrain carry to 0, 1, or -1
-      let c = carries[i];
-      assertOneOf(c, [0n, 1n, -1n]);
+    let overflows: Field[] = [];
+    let xRef = Unconstrained.witness(() => Field3.toBigint(xs[0]));
 
-      // x0 <- x0 + s*y0 - o*f0 - c*2^l
+    for (let i = 0; i < n; i++) {
+      // compute carry and overflow
+      let [carry, overflow] = exists(2, () => {
+        // this duplicates some of the logic in singleAdd
+        let x = xRef.get();
+        let x0 = x & lMask;
+        let xi = toBigint3(xs[i + 1]);
+        let sign = signs[i];
+
+        // figure out if there's overflow
+        x += sign * combine(xi);
+        let overflow = 0n;
+        if (sign === 1n && x >= f) overflow = 1n;
+        if (sign === -1n && x < 0n) overflow = -1n;
+        if (f === 0n) overflow = 0n;
+        xRef.set(x - overflow * f);
+
+        // add with carry, only on the lowest limb
+        x0 = x0 + sign * xi[0] - overflow * f0;
+        let carry = x0 >> l;
+        return [carry, overflow];
+      });
+      overflows.push(overflow);
+
+      // constrain carry
+      assertOneOf(carry, [0n, 1n, -1n]);
+
+      // x0 <- x0 + s*xi0 - o*f0 - c*2^l
       x0 = toVar(
         x0
-          .add(x[i + 1][0].mul(signs[i]))
-          .sub(overflows[i].mul(f_[0]))
-          .sub(c.mul(1n << l))
+          .add(xs[i + 1][0].mul(signs[i]))
+          .sub(overflow.mul(f0))
+          .sub(carry.mul(1n << l))
       );
       x0s.push(x0);
     }
 
     // ffadd chain
-    let result = x[0];
+    let x = xs[0];
     for (let i = 0; i < n; i++) {
-      let r = singleAdd(result, x[i + 1], signs[i], f);
+      let { result, overflow } = singleAdd(x, xs[i + 1], signs[i], f);
       // wire low limb and overflow to previous values
-      r.result[0].assertEquals(x0s[i]);
-      r.overflow.assertEquals(overflows[i]);
-      result = r.result;
+      result[0].assertEquals(x0s[i]);
+      overflow.assertEquals(overflows[i]);
+      x = result;
     }
-    if (!isChained) Gates.zero(...result);
+    if (!isChained) Gates.zero(...x);
 
-    this.#result = result;
-    return result;
+    this.#result = x;
+    return x;
   }
 
   rangeCheck() {

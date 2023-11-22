@@ -506,6 +506,9 @@ function sortMethodArguments(
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
+    } else if (isAsFields((privateInput as any)?.provable)) {
+      allArgs.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push((privateInput as any).provable);
     } else if (isGeneric(privateInput)) {
       allArgs.push({ type: 'generic', index: genericArgs.length });
       genericArgs.push(privateInput);
