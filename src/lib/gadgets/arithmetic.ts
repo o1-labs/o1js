@@ -23,9 +23,8 @@ function divMod32(n: Field) {
   });
   let [q, r] = qr;
 
-  // I think we can "skip" this here and do it in the caller - see rotate32
-  // rangeCheck32(q);
-  // rangeCheck32(r);
+  rangeCheck32(q);
+  rangeCheck32(r);
 
   n.assertEquals(q.mul(1n << 32n).add(r));
 
