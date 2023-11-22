@@ -88,8 +88,6 @@ for (let F of fields) {
     (x, y) => ForeignField.div(x, y, F.modulus),
     'div'
   );
-
-  // assert mul
   equivalentProvable({ from: [f, f], to: unit })(
     (x, y) => assertMulExampleNaive(Field3.from(x), Field3.from(y), F.modulus),
     (x, y) => assertMulExample(x, y, F.modulus),
@@ -306,7 +304,12 @@ let gates = constraintSystem.size(from2, (x, y) =>
 let gatesNaive = constraintSystem.size(from2, (x, y) =>
   assertMulExampleNaive(x, y, F.modulus)
 );
-assert(gates + 10 < gatesNaive, 'assertMul() saves at least 10 constraints');
+// the assertMul() version should save 11.5 rows:
+// -2*1.5 rows by replacing input MRCs with low-limb ffadd
+// -2*4 rows for avoiding the MRC on both mul() and sub() outputs
+// -1 row for chaining one ffadd into ffmul
+// +0.5 rows for having to combine the two lower result limbs before wiring to ffmul remainder
+assert(gates + 11 <= gatesNaive, 'assertMul() saves at least 11 constraints');
 
 let addChainedIntoMul: GateType[] = ['ForeignFieldAdd', ...mulChain];
 
