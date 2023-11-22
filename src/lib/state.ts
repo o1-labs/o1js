@@ -233,20 +233,7 @@ function createState<T>(): InternalStateType<T> {
     },
 
     assertEquals(state: T) {
-      if (this._contract === undefined)
-        throw Error(
-          'assertEquals can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = getLayoutPosition(this._contract);
-      let stateAsFields = this._contract.stateType.toFields(state);
-      let accountUpdate = this._contract.instance.self;
-      stateAsFields.forEach((x, i) => {
-        AccountUpdate.assertEquals(
-          accountUpdate.body.preconditions.account.state[layout.offset + i],
-          x
-        );
-      });
-      this._contract.wasConstrained = true;
+      this.requireEquals(state);
     },
 
     requireNothing() {
@@ -258,11 +245,7 @@ function createState<T>(): InternalStateType<T> {
     },
 
     assertNothing() {
-      if (this._contract === undefined)
-        throw Error(
-          'assertNothing can only be called when the State is assigned to a SmartContract @state.'
-        );
-      this._contract.wasConstrained = true;
+      this.requireNothing();
     },
 
     get() {
@@ -331,16 +314,14 @@ function createState<T>(): InternalStateType<T> {
       return state;
     },
 
-    getAndRequireEquals(){
+    getAndRequireEquals() {
       let state = this.get();
       this.requireEquals(state);
       return state;
     },
 
     getAndAssertEquals() {
-      let state = this.get();
-      this.assertEquals(state);
-      return state;
+      return this.getAndRequireEquals();
     },
 
     async fetch() {
