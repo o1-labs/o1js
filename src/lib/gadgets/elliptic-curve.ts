@@ -260,8 +260,7 @@ function multiScalarMul(
     slice(s, { maxBits: b, chunkSize: windowSizes[i] })
   );
 
-  // TODO: use Curve.Field
-  ia ??= initialAggregator(Curve, createField(Curve.modulus));
+  ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
 
   for (let i = b - 1; i >= 0; i--) {
@@ -357,7 +356,7 @@ function getPointTable(
  * It's important that this point has no known discrete logarithm so that nobody
  * can create an invalid proof of EC scaling.
  */
-function initialAggregator(Curve: CurveAffine, F: FiniteField) {
+function initialAggregator(Curve: CurveAffine) {
   // hash that identifies the curve
   let h = sha256.create();
   h.update('initial-aggregator');
@@ -369,6 +368,7 @@ function initialAggregator(Curve: CurveAffine, F: FiniteField) {
 
   // bytes represent a 256-bit number
   // use that as x coordinate
+  const F = Curve.Field;
   let x = F.mod(bytesToBigInt(bytes));
   let y: bigint | undefined = undefined;
 
