@@ -49,11 +49,14 @@ function Network(accountUpdate: AccountUpdate): Network {
       let slot = network.globalSlotSinceGenesis.get();
       return globalSlotToTimestamp(slot);
     },
-    getAndAssertEquals() {
-      let slot = network.globalSlotSinceGenesis.getAndAssertEquals();
+    getAndRequireEquals() {
+      let slot = network.globalSlotSinceGenesis.getAndRequireEquals();
       return globalSlotToTimestamp(slot);
     },
-    assertEquals(value: UInt64) {
+    getAndAssertEquals() {
+      return this.getAndRequireEquals();
+    },
+    requireEquals(value: UInt64) {
       let { genesisTimestamp, slotTime } =
         Mina.activeInstance.getNetworkConstants();
       let slot = timestampToGlobalSlot(
@@ -61,14 +64,26 @@ function Network(accountUpdate: AccountUpdate): Network {
         `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
           `i.e., the genesis timestamp plus an integer number of slots.`
       );
-      return network.globalSlotSinceGenesis.assertEquals(slot);
+      return network.globalSlotSinceGenesis.requireEquals(slot);
+    },
+    assertEquals(value: UInt64) {
+      return this.requireEquals(value);
+    },
+    requireBetween(lower: UInt64, upper: UInt64) {
+      let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
+      return network.globalSlotSinceGenesis.requireBetween(
+        slotLower,
+        slotUpper
+      );
     },
     assertBetween(lower: UInt64, upper: UInt64) {
-      let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
-      return network.globalSlotSinceGenesis.assertBetween(slotLower, slotUpper);
+      return this.requireBetween(lower, upper);
+    },
+    requireNothing() {
+      return network.globalSlotSinceGenesis.requireNothing();
     },
     assertNothing() {
-      return network.globalSlotSinceGenesis.assertNothing();
+      return this.requireNothing();
     },
   };
   return { ...network, timestamp };
@@ -118,13 +133,16 @@ function updateSubclass<K extends keyof Update>(
 function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
   let context = getPreconditionContextExn(accountUpdate);
   return {
-    assertBetween(lower: UInt32, upper: UInt32) {
+    requireBetween(lower: UInt32, upper: UInt32) {
       context.constrained.add('validWhile');
       let property: RangeCondition<UInt32> =
         accountUpdate.body.preconditions.validWhile;
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
+    },
+    assertBetween(lower: UInt32, upper: UInt32) {
+      this.requireBetween(lower, upper);
     },
   };
 }
@@ -193,7 +211,7 @@ function preconditionSubClassWithRange<
 ) {
   return {
     ...preconditionSubclass(accountUpdate, longKey, fieldType as any, context),
-    assertBetween(lower: any, upper: any) {
+    requireBetween(lower: any, upper: any) {
       context.constrained.add(longKey);
       let property: RangeCondition<any> = getPath(
         accountUpdate.body.preconditions,
@@ -202,6 +220,9 @@ function preconditionSubClassWithRange<
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
+    },
+    assertBetween(lower: any, upper: any) {
+      this.requireBetween(lower, upper);
     },
   };
 }
@@ -232,12 +253,15 @@ function preconditionSubclass<
         fieldType
       )) as U;
     },
-    getAndAssertEquals() {
+    getAndRequireEquals() {
       let value = obj.get();
-      obj.assertEquals(value);
+      obj.requireEquals(value);
       return value;
     },
-    assertEquals(value: U) {
+    getAndAssertEquals() {
+      return this.getAndRequireEquals();
+    },
+    requireEquals(value: U) {
       context.constrained.add(longKey);
       let property = getPath(
         accountUpdate.body.preconditions,
@@ -255,8 +279,14 @@ function preconditionSubclass<
         setPath(accountUpdate.body.preconditions, longKey, value);
       }
     },
-    assertNothing() {
+    assertEquals(value: U) {
+      this.requireEquals(value);
+    },
+    requireNothing() {
       context.constrained.add(longKey);
+    },
+    assertNothing() {
+      this.requireNothing();
     },
   };
   return obj;
@@ -437,6 +467,10 @@ type Account = PreconditionClassType<AccountPrecondition> & Update;
 
 type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {
+  requireBetween(lower: UInt32, upper: UInt32): void;
+  /**
+   * @deprecated use `requireBetween(lower: U, upper: U)` which is equivalent
+   */
   assertBetween(lower: UInt32, upper: UInt32): void;
 };
 
@@ -452,11 +486,27 @@ type PreconditionBaseTypes<T> = {
 
 type PreconditionSubclassType<U> = {
   get(): U;
+  getAndRequireEquals(): U;
+  /**
+   * @deprecated use `getAndRequireEquals()` which is equivalent
+   */
   getAndAssertEquals(): U;
+  requireEquals(value: U): void;
+  /**
+   * @deprecated use `requireEquals(value: U)` which is equivalent
+   */
   assertEquals(value: U): void;
+  requireNothing(): void;
+  /**
+   * @deprecated use `requireNothing()` which is equivalent
+   */
   assertNothing(): void;
 };
 type PreconditionSubclassRangeType<U> = PreconditionSubclassType<U> & {
+  requireBetween(lower: U, upper: U): void;
+  /**
+   * @deprecated use `requireBetween(lower: U, upper: U)` which is equivalent
+   */
   assertBetween(lower: U, upper: U): void;
 };
 
