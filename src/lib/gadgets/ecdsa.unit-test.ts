@@ -3,7 +3,6 @@ import { Ecdsa, EllipticCurve, Point } from './elliptic-curve.js';
 import { Field3 } from './foreign-field.js';
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
-import { createField } from '../../bindings/crypto/finite_field.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
 
@@ -12,7 +11,6 @@ import { assert } from './common.js';
 
 // full end-to-end test with proving
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
-const BaseField = createField(Secp256k1.modulus);
 
 let publicKey = Point.from({
   x: 49781623198970027997721070672560275063607048368575198229673025608762959476014n,
@@ -28,7 +26,7 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-const ia = EllipticCurve.initialAggregator(Secp256k1, BaseField);
+const ia = EllipticCurve.initialAggregator(Secp256k1);
 const config = { G: { windowSize: 4 }, P: { windowSize: 4 }, ia };
 
 let program = ZkProgram({
