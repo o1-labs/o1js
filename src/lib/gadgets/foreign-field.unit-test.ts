@@ -1,7 +1,6 @@
 import type { FiniteField } from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import {
-  ProvableSpec,
   array,
   equivalentAsync,
   equivalentProvable,
@@ -26,35 +25,13 @@ import {
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
 import { AnyTuple } from '../util/types.js';
+import {
+  foreignField,
+  throwError,
+  unreducedForeignField,
+} from './test-utils.js';
 
 const { ForeignField, Field3 } = Gadgets;
-
-function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
-  return {
-    rng: Random.otherField(F),
-    there: Field3.from,
-    back: Field3.toBigint,
-    provable: Field3.provable,
-  };
-}
-
-// for testing with inputs > f
-function unreducedForeignField(
-  maxBits: number,
-  F: FiniteField
-): ProvableSpec<bigint, Gadgets.Field3> {
-  return {
-    rng: Random.bignat(1n << BigInt(maxBits)),
-    there: Field3.from,
-    back: Field3.toBigint,
-    provable: Field3.provable,
-    assertEqual(x, y, message) {
-      // need weak equality here because, while ffadd works on bigints larger than the modulus,
-      // it can't fully reduce them
-      assert(F.equal(x, y), message);
-    },
-  };
-}
 
 let sign = fromRandom(Random.oneOf(1n as const, -1n as const));
 
@@ -339,8 +316,4 @@ function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
     sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
   }
   return sum;
-}
-
-function throwError<T>(message: string): T {
-  throw Error(message);
 }
