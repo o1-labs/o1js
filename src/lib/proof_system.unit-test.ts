@@ -16,14 +16,12 @@ const EmptyProgram = ZkProgram({
 });
 
 const emptyMethodsMetadata = EmptyProgram.analyzeMethods();
-emptyMethodsMetadata.forEach((methodMetadata) => {
-  expect(methodMetadata).toEqual({
-    rows: 0,
-    digest: '4f5ddea76d29cfcfd8c595f14e31f21b',
-    result: undefined,
-    gates: [],
-    publicInputSize: 0,
-  });
+expect(emptyMethodsMetadata.run).toEqual({
+  rows: 0,
+  digest: '4f5ddea76d29cfcfd8c595f14e31f21b',
+  result: undefined,
+  gates: [],
+  publicInputSize: 0,
 });
 
 class CounterPublicInput extends Struct({
@@ -47,5 +45,5 @@ const CounterProgram = ZkProgram({
   },
 });
 
-const incrementMethodMetadata = CounterProgram.analyzeMethods()[0];
+const incrementMethodMetadata = CounterProgram.analyzeMethods().increment;
 expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));

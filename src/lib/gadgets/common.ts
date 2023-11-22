@@ -60,7 +60,7 @@ function toVars<T extends Tuple<Field | bigint>>(
   return Tuple.map(fields, toVar);
 }
 
-function assert(stmt: boolean, message?: string) {
+function assert(stmt: boolean, message?: string): asserts stmt {
   if (!stmt) {
     throw Error(message ?? 'Assertion failed');
   }
