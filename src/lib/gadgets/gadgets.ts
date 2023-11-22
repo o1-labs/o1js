@@ -495,7 +495,37 @@ const Gadgets = {
    * **Note:** This interface does not contain any provable methods.
    */
   Field3,
+  /**
+   * Division modulo 2^32. The operation decomposes a {@link Field} element into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
+   *
+   * Asserts that both `remainder` and `quotient` are in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
+   *
+   * @example
+   * ```ts
+   * let n = Field((1n << 32n) + 8n)
+   * let { remainder, quotient } = Gadgets.divMod32(n);
+   * // remainder = 8, quotient = 1
+   *
+   * n.assertEquals(quotient.mul(1n << 32n).add(remainder));
+   * ```
+   */
   divMod32,
+
+  /**
+   * Addition modulo 2^32. The operation adds two {@link Field} elements and returns the result modulo 2^32.
+   *
+   * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
+   *
+   * It uses {@link Gadgets.divMod32} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
+   *
+   * @example
+   * ```ts
+   * let a = Field(8n);
+   * let b = Field(1n << 32n);
+   *
+   * Gadgets.addMod32(a, b).assertEquals(Field(8n));
+   * ```
+   *    */
   addMod32,
 };
 
