@@ -1,5 +1,6 @@
 import { provableTuple } from '../circuit_value.js';
 import { Field } from '../core.js';
+import { assert } from '../errors.js';
 import { Provable } from '../provable.js';
 import { rangeCheck32 } from './range-check.js';
 
@@ -7,6 +8,11 @@ export { divMod32, addMod32 };
 
 function divMod32(n: Field) {
   if (n.isConstant()) {
+    assert(
+      n.toBigInt() < 1n << 64n,
+      `n needs to fit in 64bit, but got ${n.toBigInt()}`
+    );
+
     let nBigInt = n.toBigInt();
     let q = nBigInt / (1n << 32n);
     let r = nBigInt - q * (1n << 32n);

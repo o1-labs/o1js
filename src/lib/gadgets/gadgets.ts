@@ -496,7 +496,9 @@ const Gadgets = {
    */
   Field3,
   /**
-   * Division modulo 2^32. The operation decomposes a {@link Field} element into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
+   * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64] into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
+   *
+   * **Note:** The Gadget expects the input to be in the range [0, 2^64]. If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution.
    *
    * Asserts that both `remainder` and `quotient` are in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
@@ -512,11 +514,13 @@ const Gadgets = {
   divMod32,
 
   /**
-   * Addition modulo 2^32. The operation adds two {@link Field} elements and returns the result modulo 2^32.
+   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
    *
    * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
    * It uses {@link Gadgets.divMod32} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
+   *
+   * **Note:** The Gadget expects the input to be in the range [0, 2^64]. If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution.
    *
    * @example
    * ```ts

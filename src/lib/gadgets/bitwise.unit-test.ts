@@ -109,7 +109,7 @@ await Bitwise.compile();
 
 [2, 4, 8, 16, 32, 64].forEach((length) => {
   equivalent({ from: [uint(length)], to: field })(
-    (x) => Fp.rot(x, 12, 'left'),
+    (x) => Fp.rot(x, 12n, 'left'),
     (x) => Gadgets.rotate64(x, 12, 'left')
   );
   equivalent({ from: [uint(length)], to: field })(
@@ -124,7 +124,7 @@ await Bitwise.compile();
 
 [2, 4, 8, 16, 32].forEach((length) => {
   equivalent({ from: [uint(length)], to: field })(
-    (x) => Fp.rot(x, 12, 'left', 32),
+    (x) => Fp.rot(x, 12n, 'left', 32n),
     (x) => Gadgets.rotate32(x, 12, 'left')
   );
 });
@@ -177,7 +177,7 @@ await equivalentAsync(
 await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
   (x) => {
     if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rot(x, 12, 'left');
+    return Fp.rot(x, 12n, 'left');
   },
   async (x) => {
     let proof = await Bitwise.rot64(x);
@@ -188,7 +188,7 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
 await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
   (x) => {
     if (x >= 2n ** 32n) throw Error('Does not fit into 32 bits');
-    return Fp.rot(x, 12, 'left', 32);
+    return Fp.rot(x, 12n, 'left', 32n);
   },
   async (x) => {
     let proof = await Bitwise.rot32(x);
