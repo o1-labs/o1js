@@ -2,6 +2,7 @@ export type { ProvablePure } from './snarky.js';
 export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export { createForeignField, ForeignField } from './lib/foreign-field.js';
+export { ForeignGroup, EllipticCurve } from './lib/elliptic-curve.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export type {
@@ -116,4 +117,4 @@ let isReady = Promise.resolve();
 /**
  * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
  */
-function shutdown() {}
+function shutdown() { }
