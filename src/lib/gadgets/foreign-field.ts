@@ -540,7 +540,7 @@ class Sum {
     }
 
     // provable case
-    let x = this.#summands.map(toVars);
+    let xs = this.#summands.map(toVars);
 
     // since the sum becomes a multiplication input, we need to constrain all limbs _individually_.
     // sadly, ffadd only constrains the low and middle limb together.
@@ -549,6 +549,8 @@ class Sum {
     let f_ = split(f);
 
     // compute witnesses for generic gates -- overflows and carries
+    // TODO: do this alongside the provable computation
+    // need As_prover.ref (= an auxiliary value) to pass the current full result x from one witness block to the next, to determine overflow
     let nFields = Provable.Array(Field, n);
     let [overflows, carries] = Provable.witness(
       provableTuple([nFields, nFields]),
@@ -556,42 +558,43 @@ class Sum {
         let overflows: bigint[] = [];
         let carries: bigint[] = [];
 
-        let r = Field3.toBigint(x[0]);
+        let x = Field3.toBigint(xs[0]);
 
         for (let i = 0; i < n; i++) {
           // this duplicates some of the logic in singleAdd
-          let x_ = split(r);
-          let y_ = toBigint3(x[i + 1]);
+          let x0 = x & lMask;
+          let xi = toBigint3(xs[i + 1]);
           let sign = signs[i];
 
           // figure out if there's overflow
-          r = r + sign * combine(y_);
+          x += sign * combine(xi);
           let overflow = 0n;
-          if (sign === 1n && r >= f) overflow = 1n;
-          if (sign === -1n && r < 0n) overflow = -1n;
+          if (sign === 1n && x >= f) overflow = 1n;
+          if (sign === -1n && x < 0n) overflow = -1n;
           if (f === 0n) overflow = 0n;
           overflows.push(overflow);
+          x -= overflow * f;
 
           // add with carry, only on the lowest limb
-          let r0 = x_[0] + sign * y_[0] - overflow * f_[0];
-          carries.push(r0 >> l);
+          x0 = x0 + sign * xi[0] - overflow * f_[0];
+          carries.push(x0 >> l);
         }
         return [overflows.map(Field.from), carries.map(Field.from)];
       }
     );
 
     // generic gates for low limbs
-    let x0 = x[0][0];
+    let x0 = xs[0][0];
     let x0s: Field[] = [];
     for (let i = 0; i < n; i++) {
       // constrain carry to 0, 1, or -1
       let c = carries[i];
       assertOneOf(c, [0n, 1n, -1n]);
 
-      // x0 <- x0 + s*y0 - o*f0 - c*2^l
+      // x0 <- x0 + s*xi0 - o*f0 - c*2^l
       x0 = toVar(
         x0
-          .add(x[i + 1][0].mul(signs[i]))
+          .add(xs[i + 1][0].mul(signs[i]))
           .sub(overflows[i].mul(f_[0]))
           .sub(c.mul(1n << l))
       );
@@ -599,18 +602,18 @@ class Sum {
     }
 
     // ffadd chain
-    let result = x[0];
+    let x = xs[0];
     for (let i = 0; i < n; i++) {
-      let r = singleAdd(result, x[i + 1], signs[i], f);
+      let { result, overflow } = singleAdd(x, xs[i + 1], signs[i], f);
       // wire low limb and overflow to previous values
-      r.result[0].assertEquals(x0s[i]);
-      r.overflow.assertEquals(overflows[i]);
-      result = r.result;
+      result[0].assertEquals(x0s[i]);
+      overflow.assertEquals(overflows[i]);
+      x = result;
     }
-    if (!isChained) Gates.zero(...result);
+    if (!isChained) Gates.zero(...x);
 
-    this.#result = result;
-    return result;
+    this.#result = x;
+    return x;
   }
 
   rangeCheck() {
