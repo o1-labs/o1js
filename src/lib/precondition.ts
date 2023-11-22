@@ -469,7 +469,7 @@ type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {
   requireBetween(lower: UInt32, upper: UInt32): void;
   /**
-   * @deprecated use `requireBetween(lower: U, upper: U)` which is equivalent
+   * @deprecated use `requireBetween(lower: UInt32, upper: UInt32)` which is equivalent
    */
   assertBetween(lower: UInt32, upper: UInt32): void;
 };
