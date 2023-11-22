@@ -210,7 +210,7 @@ function rotate64(
 
   if (field.isConstant()) {
     assert(
-      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      field.toBigInt() < 1n << BigInt(MAX_BITS),
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
     return new Field(Fp.rot(field.toBigInt(), bits, direction));
@@ -225,6 +225,14 @@ function rotate32(
   direction: 'left' | 'right' = 'left'
 ) {
   assert(bits <= 32 && bits > 0, 'bits must be between 0 and 32');
+
+  if (field.isConstant()) {
+    assert(
+      field.toBigInt() < 1n << 32n,
+      `rotation: expected field to be at most 32 bits, got ${field.toBigInt()}`
+    );
+    return new Field(Fp.rot(field.toBigInt(), bits, direction, 32));
+  }
 
   let { quotient: excess, remainder: shifted } = divMod32(
     field.mul(1n << BigInt(direction === 'left' ? bits : 32 - bits))
