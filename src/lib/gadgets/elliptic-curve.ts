@@ -1,5 +1,6 @@
 import {
   FiniteField,
+  createField,
   inverse,
   mod,
 } from '../../bindings/crypto/finite_field.js';
@@ -129,6 +130,7 @@ function double(p1: Point, f: bigint) {
   let mBound = weakBound(m[2], f);
   let x3Bound = weakBound(x3[2], f);
   let y3Bound = weakBound(y3[2], f);
+  multiRangeCheck([mBound, x3Bound, y3Bound]);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
@@ -148,21 +150,18 @@ function double(p1: Point, f: bigint) {
   let ySum = ForeignField.Sum(y1).add(y3);
   ForeignField.assertMul(deltaX1X3, m, ySum, f);
 
-  // bounds checks
-  multiRangeCheck([mBound, x3Bound, y3Bound]);
-
   return { x: x3, y: y3 };
 }
 
 function verifyEcdsa(
   Curve: CurveAffine,
-  ia: point,
   signature: EcdsaSignature,
   msgHash: Field3,
   publicKey: Point,
-  tables?: {
+  config?: {
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
+    ia?: point;
   }
 ) {
   // constant case
@@ -191,14 +190,16 @@ function verifyEcdsa(
   let G = Point.from(Curve.one);
   let R = multiScalarMul(
     Curve,
-    ia,
     [u1, u2],
     [G, publicKey],
-    tables && [tables.G, tables.P]
+    config && [config.G, config.P],
+    config?.ia
   );
   // this ^ already proves that R != 0
 
   // reduce R.x modulo the curve order
+  // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
+  // it's the callers responsibility to check that the signature is valid/unique in whatever way it makes sense for the application
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
   Provable.assertEqual(Field3.provable, Rx, r);
 }
@@ -220,18 +221,13 @@ function verifyEcdsa(
  */
 function multiScalarMul(
   Curve: CurveAffine,
-  ia: point,
   scalars: Field3[],
   points: Point[],
   tableConfigs: (
-    | {
-        // what we called c before
-        windowSize?: number;
-        // G, ..., (2^c-1)*G
-        multiples?: Point[];
-      }
+    | { windowSize?: number; multiples?: Point[] }
     | undefined
-  )[] = []
+  )[] = [],
+  ia?: point
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
@@ -264,6 +260,8 @@ function multiScalarMul(
     slice(s, { maxBits: b, chunkSize: windowSizes[i] })
   );
 
+  // TODO: use Curve.Field
+  ia ??= initialAggregator(Curve, createField(Curve.modulus));
   let sum = Point.from(ia);
 
   for (let i = b - 1; i >= 0; i--) {
@@ -362,7 +360,7 @@ function getPointTable(
 function initialAggregator(Curve: CurveAffine, F: FiniteField) {
   // hash that identifies the curve
   let h = sha256.create();
-  h.update('ecdsa');
+  h.update('initial-aggregator');
   h.update(bigIntToBytes(Curve.modulus));
   h.update(bigIntToBytes(Curve.order));
   h.update(bigIntToBytes(Curve.a));
@@ -386,12 +384,9 @@ function initialAggregator(Curve: CurveAffine, F: FiniteField) {
 }
 
 /**
- * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `windowSize`
+ * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `chunkSize`
  *
- * TODO: atm this uses expensive boolean checks for the bits.
- * For larger chunks, we should use more efficient range checks.
- *
- * Note: This serves as a range check for the input limbs
+ * This serves as a range check that the input is in [0, 2^maxBits)
  */
 function slice(
   [x0, x1, x2]: Field3,
@@ -402,7 +397,7 @@ function slice(
 
   // first limb
   let result0 = sliceField(x0, Math.min(l_, maxBits), chunkSize);
-  if (maxBits <= l) return result0.chunks;
+  if (maxBits <= l_) return result0.chunks;
   maxBits -= l_;
 
   // second limb
@@ -416,12 +411,16 @@ function slice(
 }
 
 /**
- * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `windowSize`
+ * Provable method for slicing a field element into smaller bit chunks of length `chunkSize`.
  *
- * TODO: atm this uses expensive boolean checks for the bits.
+ * This serves as a range check that the input is in [0, 2^maxBits)
+ *
+ * If `chunkSize` does not divide `maxBits`, the last chunk will be smaller.
+ * We return the number of free bits in the last chunk, and optionally accept such a result from a previous call,
+ * so that this function can be used to slice up a bigint of multiple limbs into homogeneous chunks.
+ *
+ * TODO: atm this uses expensive boolean checks for each bit.
  * For larger chunks, we should use more efficient range checks.
- *
- * Note: This serves as a range check that the input is in [0, 2^maxBits)
  */
 function sliceField(
   x: Field,
