@@ -5,13 +5,10 @@ import { printGates } from '../testing/constraint-system.js';
 import { assert } from './common.js';
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 import { Fp } from '../../bindings/crypto/finite_field.js';
-import {
-  pallasParams,
-  secp256k1Params,
-} from '../../bindings/crypto/elliptic-curve-examples.js';
+import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 
-const Secp256k1 = createCurveAffine(secp256k1Params);
-const Pallas = createCurveAffine(pallasParams);
+const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
+const Pallas = createCurveAffine(CurveParams.Pallas);
 
 let { add, double, initialAggregator } = EllipticCurve;
 
@@ -42,6 +39,6 @@ console.log({ digest: csAdd.digest, rows: csAdd.rows });
 printGates(csDouble.gates);
 console.log({ digest: csDouble.digest, rows: csDouble.rows });
 
-let point = initialAggregator(Pallas, Fp);
+let point = initialAggregator(Pallas);
 console.log({ point });
 assert(Pallas.isOnCurve(point));
