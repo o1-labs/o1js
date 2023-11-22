@@ -213,7 +213,7 @@ function rotate64(
       field.toBigInt() < 1n << BigInt(MAX_BITS),
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
-    return new Field(Fp.rot(field.toBigInt(), bits, direction));
+    return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction));
   }
   const [rotated] = rot64(field, bits, direction);
   return rotated;
@@ -231,7 +231,7 @@ function rotate32(
       field.toBigInt() < 1n << 32n,
       `rotation: expected field to be at most 32 bits, got ${field.toBigInt()}`
     );
-    return new Field(Fp.rot(field.toBigInt(), bits, direction, 32));
+    return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction, 32n));
   }
 
   let { quotient: excess, remainder: shifted } = divMod32(
