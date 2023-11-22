@@ -34,7 +34,14 @@ const GroupCS = constraintSystem('Group Primitive', {
 });
 
 const BitwiseCS = constraintSystem('Bitwise Primitive', {
-  rot() {
+  rot32() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rotate32(a, 2, 'left');
+    Gadgets.rotate32(a, 2, 'right');
+    Gadgets.rotate32(a, 4, 'left');
+    Gadgets.rotate32(a, 4, 'right');
+  },
+  rot64() {
     let a = Provable.witness(Field, () => new Field(12));
     Gadgets.rangeCheck64(a); // `rotate()` doesn't do this
     Gadgets.rotate64(a, 2, 'left');
