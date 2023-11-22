@@ -1,14 +1,18 @@
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 import { Ecdsa, EllipticCurve, Point } from './elliptic-curve.js';
 import { Field3 } from './foreign-field.js';
-import { secp256k1Params } from '../../bindings/crypto/elliptic-curve-examples.js';
+import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { createField } from '../../bindings/crypto/finite_field.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
 
-const Secp256k1 = createCurveAffine(secp256k1Params);
-const BaseField = createField(secp256k1Params.modulus);
+// quick tests
+// TODO
+
+// full end-to-end test with proving
+const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
+const BaseField = createField(Secp256k1.modulus);
 
 let publicKey = Point.from({
   x: 49781623198970027997721070672560275063607048368575198229673025608762959476014n,
