@@ -254,20 +254,5 @@ let isJustRotate = ifNotAllConstant(
 );
 
 constraintSystem.fromZkProgram(Bitwise, 'rot64', isJustRotate);
-
-constraintSystem.fromZkProgram(
-  Bitwise,
-  'rot32',
-  ifNotAllConstant(
-    contains([
-      'Generic',
-      'Generic',
-      'EndoMulScalar',
-      'EndoMulScalar',
-      'Generic',
-    ])
-  )
-);
-
 constraintSystem.fromZkProgram(Bitwise, 'leftShift', isJustRotate);
 constraintSystem.fromZkProgram(Bitwise, 'rightShift', isJustRotate);
