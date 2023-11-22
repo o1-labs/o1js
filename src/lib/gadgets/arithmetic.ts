@@ -10,7 +10,7 @@ function divMod32(n: Field) {
   if (n.isConstant()) {
     assert(
       n.toBigInt() < 1n << 64n,
-      `n needs to fit in 64bit, but got ${n.toBigInt()}`
+      `n needs to fit into 64 bit, but got ${n.toBigInt()}`
     );
 
     let nBigInt = n.toBigInt();
