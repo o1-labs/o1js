@@ -20,7 +20,11 @@ import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet } from './basic.js';
 
+// external API
 export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
+
+// internal API
+export { verifyEcdsaConstant };
 
 const EllipticCurve = {
   add,

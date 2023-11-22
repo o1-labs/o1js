@@ -4,7 +4,6 @@ import { EllipticCurve } from './elliptic-curve.js';
 import { printGates } from '../testing/constraint-system.js';
 import { assert } from './common.js';
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
-import { Fp } from '../../bindings/crypto/finite_field.js';
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
