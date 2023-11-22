@@ -21,16 +21,16 @@ function divMod32(n: Field) {
     let r = nBigInt - q * (1n << 32n);
     return [new Field(q), new Field(r)];
   });
-  let [q, r] = qr;
+  let [quotient, remainder] = qr;
 
-  rangeCheck32(q);
-  rangeCheck32(r);
+  rangeCheck32(quotient);
+  rangeCheck32(remainder);
 
-  n.assertEquals(q.mul(1n << 32n).add(r));
+  n.assertEquals(quotient.mul(1n << 32n).add(remainder));
 
   return {
-    remainder: r,
-    quotient: q,
+    remainder,
+    quotient,
   };
 }
 
