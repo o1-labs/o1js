@@ -1,3 +1,4 @@
+import { provableTuple } from '../circuit_value.js';
 import { Field } from '../core.js';
 import { Provable } from '../provable.js';
 import { rangeCheck32 } from './range-check.js';
@@ -15,13 +16,15 @@ function divMod32(n: Field) {
     };
   }
 
-  let qr = Provable.witness(Provable.Array(Field, 2), () => {
-    let nBigInt = n.toBigInt();
-    let q = nBigInt / (1n << 32n);
-    let r = nBigInt - q * (1n << 32n);
-    return [new Field(q), new Field(r)];
-  });
-  let [quotient, remainder] = qr;
+  let [quotient, remainder] = Provable.witness(
+    provableTuple([Field, Field]),
+    () => {
+      let nBigInt = n.toBigInt();
+      let q = nBigInt / (1n << 32n);
+      let r = nBigInt - q * (1n << 32n);
+      return [new Field(q), new Field(r)];
+    }
+  );
 
   rangeCheck32(quotient);
   rangeCheck32(remainder);
