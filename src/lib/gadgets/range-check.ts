@@ -24,7 +24,6 @@ function rangeCheck32(x: Field) {
     return;
   }
 
-  // can we make this more efficient? its 3 gates :/
   let actual = x.rangeCheckHelper(32);
   actual.assertEquals(x);
 }
