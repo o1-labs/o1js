@@ -6,9 +6,9 @@ import {
   mod,
 } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
@@ -546,57 +546,47 @@ class Sum {
     // sadly, ffadd only constrains the low and middle limb together.
     // we could fix it with a RC just for the lower two limbs
     // but it's cheaper to add generic gates which handle the lowest limb separately, and avoids the unfilled MRC slot
-    let f_ = split(f);
-
-    // compute witnesses for generic gates -- overflows and carries
-    // TODO: do this alongside the provable computation
-    // need As_prover.ref (= an auxiliary value) to pass the current full result x from one witness block to the next, to determine overflow
-    let nFields = Provable.Array(Field, n);
-    let [overflows, carries] = Provable.witness(
-      provableTuple([nFields, nFields]),
-      () => {
-        let overflows: bigint[] = [];
-        let carries: bigint[] = [];
-
-        let x = Field3.toBigint(xs[0]);
-
-        for (let i = 0; i < n; i++) {
-          // this duplicates some of the logic in singleAdd
-          let x0 = x & lMask;
-          let xi = toBigint3(xs[i + 1]);
-          let sign = signs[i];
-
-          // figure out if there's overflow
-          x += sign * combine(xi);
-          let overflow = 0n;
-          if (sign === 1n && x >= f) overflow = 1n;
-          if (sign === -1n && x < 0n) overflow = -1n;
-          if (f === 0n) overflow = 0n;
-          overflows.push(overflow);
-          x -= overflow * f;
-
-          // add with carry, only on the lowest limb
-          x0 = x0 + sign * xi[0] - overflow * f_[0];
-          carries.push(x0 >> l);
-        }
-        return [overflows.map(Field.from), carries.map(Field.from)];
-      }
-    );
+    let f0 = f & lMask;
 
     // generic gates for low limbs
     let x0 = xs[0][0];
     let x0s: Field[] = [];
+    let overflows: Field[] = [];
+    let xRef = Unconstrained.witness(() => Field3.toBigint(xs[0]));
+
     for (let i = 0; i < n; i++) {
-      // constrain carry to 0, 1, or -1
-      let c = carries[i];
-      assertOneOf(c, [0n, 1n, -1n]);
+      // compute carry and overflow
+      let [carry, overflow] = exists(2, () => {
+        // this duplicates some of the logic in singleAdd
+        let x = xRef.get();
+        let x0 = x & lMask;
+        let xi = toBigint3(xs[i + 1]);
+        let sign = signs[i];
+
+        // figure out if there's overflow
+        x += sign * combine(xi);
+        let overflow = 0n;
+        if (sign === 1n && x >= f) overflow = 1n;
+        if (sign === -1n && x < 0n) overflow = -1n;
+        if (f === 0n) overflow = 0n;
+        xRef.set(x - overflow * f);
+
+        // add with carry, only on the lowest limb
+        x0 = x0 + sign * xi[0] - overflow * f0;
+        let carry = x0 >> l;
+        return [carry, overflow];
+      });
+      overflows.push(overflow);
+
+      // constrain carry
+      assertOneOf(carry, [0n, 1n, -1n]);
 
       // x0 <- x0 + s*xi0 - o*f0 - c*2^l
       x0 = toVar(
         x0
           .add(xs[i + 1][0].mul(signs[i]))
-          .sub(overflows[i].mul(f_[0]))
-          .sub(c.mul(1n << l))
+          .sub(overflow.mul(f0))
+          .sub(carry.mul(1n << l))
       );
       x0s.push(x0);
     }
