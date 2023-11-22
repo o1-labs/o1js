@@ -43,6 +43,7 @@ export {
   HashInput,
   InferJson,
   InferredProvable,
+  unconstrained,
 };
 
 type ProvableExtension<T, TJson = any> = {
@@ -453,6 +454,14 @@ function Struct<
   }
   return Struct_ as any;
 }
+
+const unconstrained: Provable<any> = {
+  sizeInFields: () => 0,
+  toFields: () => [],
+  toAuxiliary: (t?: any) => [t],
+  fromFields: (_, [t]) => t,
+  check: () => {},
+};
 
 let primitives = new Set([Field, Bool, Scalar, Group]);
 function isPrimitive(obj: any) {
