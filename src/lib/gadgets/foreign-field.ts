@@ -1,3 +1,6 @@
+/**
+ * Foreign field arithmetic gadgets.
+ */
 import {
   inverse as modInverse,
   mod,

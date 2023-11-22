@@ -1,3 +1,6 @@
+/**
+ * Basic gadgets that only use generic gates
+ */
 import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
