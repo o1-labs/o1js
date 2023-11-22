@@ -1,9 +1,4 @@
-import {
-  FiniteField,
-  createField,
-  inverse,
-  mod,
-} from '../../bindings/crypto/finite_field.js';
+import { inverse, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
@@ -324,6 +319,20 @@ function verifyEcdsaConstant(
   return mod(X.x, q) === r;
 }
 
+/**
+ * Sign a message hash using ECDSA.
+ */
+function signEcdsa(Curve: CurveAffine, msgHash: bigint, privateKey: bigint) {
+  let { Scalar } = Curve;
+  let k = Scalar.random();
+  let R = Curve.scale(Curve.one, k);
+  let r = Scalar.mod(R.x);
+  let kInv = Scalar.inverse(k);
+  assert(kInv !== undefined);
+  let s = Scalar.mul(kInv, Scalar.add(msgHash, Scalar.mul(r, privateKey)));
+  return { r, s };
+}
+
 function getPointTable(
   Curve: CurveAffine,
   P: Point,
@@ -536,6 +545,7 @@ const EcdsaSignature = {
 };
 
 const Ecdsa = {
+  sign: signEcdsa,
   verify: verifyEcdsa,
   Signature: EcdsaSignature,
 };
