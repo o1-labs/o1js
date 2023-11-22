@@ -22,23 +22,27 @@ type State<A> = {
    * Get the current on-chain state.
    *
    * Caution: If you use this method alone inside a smart contract, it does not prove that your contract uses the current on-chain state.
-   * To successfully prove that your contract uses the current on-chain state, you must add an additional `.assertEquals()` statement or use `.getAndAssertEquals()`:
+   * To successfully prove that your contract uses the current on-chain state, you must add an additional `.requireEquals()` statement or use `.getAndRequireEquals()`:
    *
    * ```ts
    * let x = this.x.get();
-   * this.x.assertEquals(x);
+   * this.x.requireEquals(x);
    * ```
    *
    * OR
    *
    * ```ts
-   * let x = this.x.getAndAssertEquals();
+   * let x = this.x.getAndRequireEquals();
    * ```
    */
   get(): A;
   /**
    * Get the current on-chain state and prove it really has to equal the on-chain state,
    * by adding a precondition which the verifying Mina node will check before accepting this transaction.
+   */
+  getAndRequireEquals(): A;
+  /**
+   * @deprecated use `this.state.getAndRequireEquals()` which is equivalent
    */
   getAndAssertEquals(): A;
   /**
@@ -53,9 +57,17 @@ type State<A> = {
    * Prove that the on-chain state has to equal the given state,
    * by adding a precondition which the verifying Mina node will check before accepting this transaction.
    */
+  requireEquals(a: A): void;
+  /**
+   * @deprecated use `this.state.requireEquals()` which is equivalent
+   */
   assertEquals(a: A): void;
   /**
    * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
+   */
+  requireNothing(): void;
+  /**
+   * @deprecated use `this.state.requireNothing()` which is equivalent
    */
   assertNothing(): void;
   /**
@@ -203,6 +215,23 @@ function createState<T>(): InternalStateType<T> {
       });
     },
 
+    requireEquals(state: T) {
+      if (this._contract === undefined)
+        throw Error(
+          'requireEquals can only be called when the State is assigned to a SmartContract @state.'
+        );
+      let layout = getLayoutPosition(this._contract);
+      let stateAsFields = this._contract.stateType.toFields(state);
+      let accountUpdate = this._contract.instance.self;
+      stateAsFields.forEach((x, i) => {
+        AccountUpdate.assertEquals(
+          accountUpdate.body.preconditions.account.state[layout.offset + i],
+          x
+        );
+      });
+      this._contract.wasConstrained = true;
+    },
+
     assertEquals(state: T) {
       if (this._contract === undefined)
         throw Error(
@@ -217,6 +246,14 @@ function createState<T>(): InternalStateType<T> {
           x
         );
       });
+      this._contract.wasConstrained = true;
+    },
+
+    requireNothing() {
+      if (this._contract === undefined)
+        throw Error(
+          'requireNothing can only be called when the State is assigned to a SmartContract @state.'
+        );
       this._contract.wasConstrained = true;
     },
 
@@ -291,6 +328,12 @@ function createState<T>(): InternalStateType<T> {
         this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
+      return state;
+    },
+
+    getAndRequireEquals(){
+      let state = this.get();
+      this.requireEquals(state);
       return state;
     },
 
