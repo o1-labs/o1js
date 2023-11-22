@@ -19,7 +19,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
 
-> No unreleased changes yet
+### Changed
+
+- Preconditioned asset* in state have been renamed to require* :
+  For example:
+  - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
+  - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
+  - `this.x.assertNothing()` is now `this.x.requireNothing()` https://github.com/o1-labs/o1js/pull/1263
 
 ## [0.14.2](https://github.com/o1-labs/o1js/compare/26363465d...1ad7333e9e)
 
