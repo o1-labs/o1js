@@ -24,4 +24,9 @@ class ForeignGroup {
 
         return new ForeignGroup(new ForeignGroupField(result[0]), new ForeignGroupField(result[1]));
     }
+
+    assertEquals(other: ForeignGroup) {
+        this.x.assertEquals(other.x);
+        this.y.assertEquals(other.y);
+    }
 }
