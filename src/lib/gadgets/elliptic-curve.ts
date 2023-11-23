@@ -301,26 +301,25 @@ function multiScalarMul(
  */
 function verifyEcdsaConstant(
   Curve: CurveAffine,
-  { r, s }: { r: bigint; s: bigint },
+  { r, s }: ecdsaSignature,
   msgHash: bigint,
-  publicKey: { x: bigint; y: bigint }
+  publicKey: point
 ) {
-  let q = Curve.order;
-  let QA = Curve.fromNonzero(publicKey);
-  if (!Curve.isOnCurve(QA)) return false;
-  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
+  let pk = Curve.fromNonzero(publicKey);
+  if (!Curve.isOnCurve(pk)) return false;
+  if (Curve.hasCofactor && !Curve.isInSubgroup(pk)) return false;
   if (r < 1n || r >= Curve.order) return false;
   if (s < 1n || s >= Curve.order) return false;
 
-  let sInv = inverse(s, q);
-  if (sInv === undefined) throw Error('impossible');
-  let u1 = mod(msgHash * sInv, q);
-  let u2 = mod(r * sInv, q);
+  let sInv = Curve.Scalar.inverse(s);
+  assert(sInv !== undefined);
+  let u1 = Curve.Scalar.mul(msgHash, sInv);
+  let u2 = Curve.Scalar.mul(r, sInv);
 
-  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
-  if (Curve.equal(X, Curve.zero)) return false;
+  let R = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(pk, u2));
+  if (Curve.equal(R, Curve.zero)) return false;
 
-  return mod(X.x, q) === r;
+  return Curve.Scalar.equal(R.x, r);
 }
 
 /**
