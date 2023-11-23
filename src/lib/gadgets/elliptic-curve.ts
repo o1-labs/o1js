@@ -336,6 +336,10 @@ function signEcdsa(Curve: CurveAffine, msgHash: bigint, privateKey: bigint) {
   return { r, s };
 }
 
+/**
+ * Given a point P, create the list of multiples [0, P, 2P, 3P, ..., (2^windowSize-1) * P].
+ * This method is provable, but won't create any constraints given a constant point.
+ */
 function getPointTable(
   Curve: CurveAffine,
   P: Point,
