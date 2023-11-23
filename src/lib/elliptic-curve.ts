@@ -18,7 +18,7 @@ class ForeignGroup {
     add(other: ForeignGroup) {
         let left: ForeignAffine = [this.x.value, this.y.value];
         let right: ForeignAffine = [other.x.value, other.y.value];
-        console.log("right:", right);
+        console.log("left:", left);
         let result = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
         let modulus = BigInt(ForeignGroup.curve[2]);
         let ForeignGroupField = createForeignField(modulus);
