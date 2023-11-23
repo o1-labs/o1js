@@ -104,7 +104,7 @@ let program = ZkProgram({
       privateInputs: [],
       method() {
         let G = Point.from(Secp256k1.one);
-        let P = Provable.witness(Point, () => publicKey);
+        let P = Provable.witness(Point.provable, () => publicKey);
         let R = EllipticCurve.multiScalarMul(
           Secp256k1,
           [signature.s, signature.r],
@@ -119,7 +119,10 @@ let program = ZkProgram({
     ecdsa: {
       privateInputs: [],
       method() {
-        let signature0 = Provable.witness(Ecdsa.Signature, () => signature);
+        let signature0 = Provable.witness(
+          Ecdsa.Signature.provable,
+          () => signature
+        );
         Ecdsa.verify(Secp256k1, signature0, msgHash, publicKey, config);
       },
     },

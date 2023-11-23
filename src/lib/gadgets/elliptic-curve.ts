@@ -50,7 +50,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   let { x: x2, y: y2 } = p2;
 
   // constant case
-  if (Provable.isConstant(Point, p1) && Provable.isConstant(Point, p2)) {
+  if (Point.isConstant(p1) && Point.isConstant(p2)) {
     let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f);
     return Point.from(p3);
   }
@@ -101,7 +101,7 @@ function double(p1: Point, f: bigint) {
   let { x: x1, y: y1 } = p1;
 
   // constant case
-  if (Provable.isConstant(Point, p1)) {
+  if (Point.isConstant(p1)) {
     let p3 = affineDouble(Point.toBigint(p1), f);
     return Point.from(p3);
   }
@@ -165,9 +165,9 @@ function verifyEcdsa(
 ) {
   // constant case
   if (
-    Provable.isConstant(EcdsaSignature, signature) &&
+    EcdsaSignature.isConstant(signature) &&
     Field3.isConstant(msgHash) &&
-    Provable.isConstant(Point, publicKey)
+    Point.isConstant(publicKey)
   ) {
     let isValid = verifyEcdsaConstant(
       Curve,
@@ -233,10 +233,7 @@ function multiScalarMul(
   assertPositiveInteger(n, 'Expected at least 1 point and scalar');
 
   // constant case
-  if (
-    scalars.every(Field3.isConstant) &&
-    points.every((P) => Provable.isConstant(Point, P))
-  ) {
+  if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
     // TODO dedicated MSM
     let s = scalars.map(Field3.toBigint);
     let P = points.map(Point.toBigint);
@@ -270,13 +267,15 @@ function multiScalarMul(
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
         let sjP =
-          windowSize === 1 ? points[j] : arrayGetGeneric(Point, tables[j], sj);
+          windowSize === 1
+            ? points[j]
+            : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve.modulus);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), Point, sum, added);
+        sum = Provable.if(sj.equals(0), Point.provable, sum, added);
       }
     }
 
@@ -290,7 +289,7 @@ function multiScalarMul(
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  Provable.equal(Point, sum, Point.from(iaFinal)).assertFalse();
+  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
   sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
 
   return sum;
@@ -516,23 +515,27 @@ function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
 }
 
 const Point = {
-  ...provable({ x: Field3.provable, y: Field3.provable }),
   from({ x, y }: point): Point {
     return { x: Field3.from(x), y: Field3.from(y) };
   },
   toBigint({ x, y }: Point) {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
+  isConstant: (P: Point) => Provable.isConstant(Point.provable, P),
+
+  provable: provable({ x: Field3.provable, y: Field3.provable }),
 };
 
 const EcdsaSignature = {
-  ...provable({ r: Field3.provable, s: Field3.provable }),
   from({ r, s }: ecdsaSignature): EcdsaSignature {
     return { r: Field3.from(r), s: Field3.from(s) };
   },
   toBigint({ r, s }: EcdsaSignature): ecdsaSignature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
+  isConstant: (S: EcdsaSignature) =>
+    Provable.isConstant(EcdsaSignature.provable, S),
+
   /**
    * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
    * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
@@ -549,6 +552,8 @@ const EcdsaSignature = {
     let s = BigInt(`0x${signature.slice(64)}`);
     return EcdsaSignature.from({ r, s });
   },
+
+  provable: provable({ r: Field3.provable, s: Field3.provable }),
 };
 
 const Ecdsa = {
