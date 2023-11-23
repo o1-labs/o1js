@@ -10,8 +10,9 @@ import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
-import { foreignField, throwError } from './test-utils.js';
+import { foreignField, throwError, uniformForeignField } from './test-utils.js';
 import {
+  Second,
   equivalentProvable,
   map,
   oneOf,
@@ -29,42 +30,41 @@ for (let Curve of curves) {
   // prepare test inputs
   let field = foreignField(Curve.Field);
   let scalar = foreignField(Curve.Scalar);
-
-  let pseudoPoint = record({ x: field, y: field });
-  let point = map({ from: scalar, to: pseudoPoint }, (x) =>
-    Curve.scale(Curve.one, x)
-  );
+  let privateKey = uniformForeignField(Curve.Scalar);
 
   let pseudoSignature = record({
     signature: record({ r: scalar, s: scalar }),
     msg: scalar,
-    publicKey: point,
+    publicKey: record({ x: field, y: field }),
   });
-  let signatureInputs = record({ privateKey: scalar, msg: scalar });
+
+  let signatureInputs = record({ privateKey, msg: scalar });
+
   let signature = map(
     { from: signatureInputs, to: pseudoSignature },
     ({ privateKey, msg }) => {
-      let signature = Ecdsa.sign(Curve, msg, privateKey);
       let publicKey = Curve.scale(Curve.one, privateKey);
+      let signature = Ecdsa.sign(Curve, msg, privateKey);
       return { signature, msg, publicKey };
     }
   );
 
+  // provable method we want to test
+  const verify = (s: Second<typeof signature>) => {
+    Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+  };
+
   // positive test
   equivalentProvable({ from: [signature], to: unit })(
     () => {},
-    ({ signature, publicKey, msg }) => {
-      Ecdsa.verify(Curve, signature, msg, publicKey);
-    },
+    verify,
     'valid signature verifies'
   );
 
   // negative test
   equivalentProvable({ from: [pseudoSignature], to: unit })(
     () => throwError('invalid signature'),
-    ({ signature, publicKey, msg }) => {
-      Ecdsa.verify(Curve, signature, msg, publicKey);
-    },
+    verify,
     'invalid signature fails'
   );
 
@@ -73,9 +73,7 @@ for (let Curve of curves) {
     ({ signature, publicKey, msg }) => {
       assert(verifyEcdsaConstant(Curve, signature, msg, publicKey), 'verifies');
     },
-    ({ signature, publicKey, msg }) => {
-      Ecdsa.verify(Curve, signature, msg, publicKey);
-    },
+    verify,
     'verify'
   );
 }

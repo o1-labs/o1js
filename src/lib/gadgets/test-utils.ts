@@ -4,7 +4,7 @@ import { Random } from '../testing/random.js';
 import { Gadgets } from './gadgets.js';
 import { assert } from './common.js';
 
-export { foreignField, unreducedForeignField, throwError };
+export { foreignField, unreducedForeignField, uniformForeignField, throwError };
 
 const { Field3 } = Gadgets;
 
@@ -34,6 +34,18 @@ function unreducedForeignField(
       // it can't fully reduce them
       assert(F.equal(x, y), message);
     },
+  };
+}
+
+// for fields that must follow an unbiased distribution, like private keys
+function uniformForeignField(
+  F: FiniteField
+): ProvableSpec<bigint, Gadgets.Field3> {
+  return {
+    rng: Random(F.random),
+    there: Field3.from,
+    back: Field3.toBigint,
+    provable: Field3.provable,
   };
 }
 
