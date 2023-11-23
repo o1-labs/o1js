@@ -21,7 +21,7 @@ import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet } from './basic.js';
 
 // external API
-export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
+export { EllipticCurve, Point, Ecdsa };
 
 // internal API
 export { verifyEcdsaConstant };
@@ -39,11 +39,13 @@ const EllipticCurve = {
 type Point = { x: Field3; y: Field3 };
 type point = { x: bigint; y: bigint };
 
-/**
- * ECDSA signature consisting of two curve scalars.
- */
-type EcdsaSignature = { r: Field3; s: Field3 };
-type ecdsaSignature = { r: bigint; s: bigint };
+namespace Ecdsa {
+  /**
+   * ECDSA signature consisting of two curve scalars.
+   */
+  export type Signature = { r: Field3; s: Field3 };
+  export type signature = { r: bigint; s: bigint };
+}
 
 function add(p1: Point, p2: Point, f: bigint) {
   let { x: x1, y: y1 } = p1;
@@ -154,7 +156,7 @@ function double(p1: Point, f: bigint) {
 
 function verifyEcdsa(
   Curve: CurveAffine,
-  signature: EcdsaSignature,
+  signature: Ecdsa.Signature,
   msgHash: Field3,
   publicKey: Point,
   config?: {
@@ -180,9 +182,11 @@ function verifyEcdsa(
   }
 
   // provable case
-  // TODO should we check that the publicKey is a valid point? probably not
+  // note: usually we don't check validity of inputs, like that the public key is a valid curve point
+  // we make an exception for the two non-standard conditions s != 0 and r != 0,
+  // which are unusual to capture in types and could be considered part of the verification algorithm
   let { r, s } = signature;
-  let sInv = ForeignField.inv(s, Curve.order);
+  let sInv = ForeignField.inv(s, Curve.order); // proves s != 0
   let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
@@ -194,7 +198,10 @@ function verifyEcdsa(
     config && [config.G, config.P],
     config?.ia
   );
-  // this ^ already proves that R != 0
+  // this ^ already proves that R != 0 (part of ECDSA verification)
+  // if b is not a square, then R != 0 already proves that r === R.x != 0, because R.y^2 = b has no solutions
+  // Otherwise we check the condition r != 0 explicitly (important, because r = 0 => u2 = 0 kills the contribution of the private key)
+  if (Curve.Field.isSquare(Curve.b)) ForeignField.inv(r, Curve.modulus);
 
   // reduce R.x modulo the curve order
   // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
@@ -300,7 +307,7 @@ function multiScalarMul(
  */
 function verifyEcdsaConstant(
   Curve: CurveAffine,
-  { r, s }: ecdsaSignature,
+  { r, s }: Ecdsa.signature,
   msgHash: bigint,
   publicKey: point
 ) {
@@ -514,6 +521,8 @@ function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
   return a;
 }
 
+// type/conversion helpers
+
 const Point = {
   from({ x, y }: point): Point {
     return { x: Field3.from(x), y: Field3.from(y) };
@@ -527,20 +536,20 @@ const Point = {
 };
 
 const EcdsaSignature = {
-  from({ r, s }: ecdsaSignature): EcdsaSignature {
+  from({ r, s }: Ecdsa.signature): Ecdsa.Signature {
     return { r: Field3.from(r), s: Field3.from(s) };
   },
-  toBigint({ r, s }: EcdsaSignature): ecdsaSignature {
+  toBigint({ r, s }: Ecdsa.Signature): Ecdsa.signature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
-  isConstant: (S: EcdsaSignature) =>
+  isConstant: (S: Ecdsa.Signature) =>
     Provable.isConstant(EcdsaSignature.provable, S),
 
   /**
    * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
    * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
    */
-  fromHex(rawSignature: string): EcdsaSignature {
+  fromHex(rawSignature: string): Ecdsa.Signature {
     let prefix = rawSignature.slice(0, 2);
     let signature = rawSignature.slice(2, 130);
     if (prefix !== '0x' || signature.length < 128) {
