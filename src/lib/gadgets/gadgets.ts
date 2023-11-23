@@ -9,6 +9,8 @@ import {
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
 import { ForeignField, Field3, Sum } from './foreign-field.js';
+import { Ecdsa, Point } from './elliptic-curve.js';
+import { CurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 
 export { Gadgets };
 
@@ -513,6 +515,49 @@ const Gadgets = {
     Sum(x: Field3) {
       return ForeignField.Sum(x);
     },
+  },
+
+  /**
+   * TODO
+   */
+  Ecdsa: {
+    /**
+     * TODO
+     *
+     * @example
+     * ```ts
+     * let Curve = Curves.Secp256k1; // TODO provide this somehow
+     * // TODO easy way to check that foreign field elements are valid
+     * let signature = { r, s };
+     * // TODO need a way to check that publicKey is on curve
+     * let publicKey = { x, y };
+     *
+     * Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
+     * ```
+     */
+    verify(
+      Curve: CurveAffine,
+      signature: Ecdsa.Signature,
+      msgHash: Field3,
+      publicKey: Point
+    ) {
+      Ecdsa.verify(Curve, signature, msgHash, publicKey);
+    },
+
+    /**
+     * TODO
+     *
+     * should this be here, given that it's not a provable method?
+     * maybe assert that we are not running in provable context
+     */
+    sign(Curve: CurveAffine, msgHash: bigint, privateKey: bigint) {
+      return Ecdsa.sign(Curve, msgHash, privateKey);
+    },
+
+    /**
+     * Non-provable helper methods for interacting with ECDSA signatures.
+     */
+    Signature: Ecdsa.Signature,
   },
 
   /**

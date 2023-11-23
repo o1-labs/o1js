@@ -159,11 +159,11 @@ function verifyEcdsa(
   signature: Ecdsa.Signature,
   msgHash: Field3,
   publicKey: Point,
-  config?: {
+  config: {
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
-  }
+  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
 ) {
   // constant case
   if (
