@@ -1,5 +1,6 @@
 import { Snarky } from '../snarky.js';
 import { ForeignAffine, ForeignField, ForeignFieldVar, createForeignField } from './foreign-field.js';
+import { MlTuple } from './ml/base.js';
 
 export { EllipticCurve, ForeignGroup }
 
@@ -16,8 +17,8 @@ class ForeignGroup {
     }
 
     add(other: ForeignGroup) {
-        let left: ForeignAffine = [this.x.value, this.y.value];
-        let right: ForeignAffine = [other.x.value, other.y.value];
+        let left: ForeignAffine = MlTuple(this.x.value, this.y.value);
+        let right: ForeignAffine = MlTuple(other.x.value, other.y.value);
         console.log("left:", left);
         let result = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
         let modulus = BigInt(ForeignGroup.curve[2]);

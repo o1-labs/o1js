@@ -10,7 +10,7 @@ import {
 } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
-import { MlArray } from './ml/base.js';
+import { MlArray, MlTuple } from './ml/base.js';
 
 // external API
 export { createForeignField, ForeignField };
@@ -23,7 +23,7 @@ const limbBits = 88n;
 type MlForeignField<F> = [_: 0, x0: F, x1: F, x2: F];
 type ForeignFieldVar = MlForeignField<FieldVar>;
 type ForeignFieldConst = MlForeignField<FieldConst>;
-type ForeignAffine = [ForeignFieldVar, ForeignFieldVar];
+type ForeignAffine = MlTuple<ForeignFieldVar, ForeignFieldVar>;
 type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
 
 /**
