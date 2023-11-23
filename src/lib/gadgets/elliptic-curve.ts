@@ -183,9 +183,10 @@ function verifyEcdsa(
 
   // provable case
   // note: usually we don't check validity of inputs, like that the public key is a valid curve point
-  // we make an exception for the two non-standard conditions s != 0 and r != 0,
+  // we make an exception for the two non-standard conditions r != 0 and s != 0,
   // which are unusual to capture in types and could be considered part of the verification algorithm
   let { r, s } = signature;
+  ForeignField.inv(r, Curve.order); // proves r != 0 (important, because r = 0 => u2 = 0 kills the private key contribution)
   let sInv = ForeignField.inv(s, Curve.order); // proves s != 0
   let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
   let u2 = ForeignField.mul(r, sInv, Curve.order);
@@ -199,9 +200,6 @@ function verifyEcdsa(
     config?.ia
   );
   // this ^ already proves that R != 0 (part of ECDSA verification)
-  // if b is not a square, then R != 0 already proves that r === R.x != 0, because R.y^2 = b has no solutions
-  // Otherwise we check the condition r != 0 explicitly (important, because r = 0 => u2 = 0 kills the contribution of the private key)
-  if (Curve.Field.isSquare(Curve.b)) ForeignField.inv(r, Curve.modulus);
 
   // reduce R.x modulo the curve order
   // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
