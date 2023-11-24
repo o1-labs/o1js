@@ -19,16 +19,15 @@ class ForeignGroup {
     add(other: ForeignGroup) {
         let left: ForeignAffine = MlTuple(this.x.value, this.y.value);
         let right: ForeignAffine = MlTuple(other.x.value, other.y.value);
-        console.log("left:", left);
-        let result = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
+        let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
         let modulus = BigInt(ForeignGroup.curve[2]);
         let ForeignGroupField = createForeignField(modulus);
 
-        return new ForeignGroup(new ForeignGroupField(result[0]), new ForeignGroupField(result[1]));
+        return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
     }
 
     assertEquals(other: ForeignGroup) {
-        this.x.assertEquals(other.x);
-        this.y.assertEquals(other.y);
+        this.x.assertEquals(other.x.toBigInt());
+        this.y.assertEquals(other.y.toBigInt());
     }
 }
