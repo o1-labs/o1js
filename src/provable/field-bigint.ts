@@ -64,9 +64,7 @@ const Bool = pseudoClass(
       checkBool(x);
       return x;
     },
-    sizeInBytes() {
-      return 1;
-    },
+    sizeInBytes: 1,
     fromField(x: Field) {
       checkBool(x);
       return x as 0n | 1n;

@@ -62,9 +62,7 @@ const Memo = {
   hash,
   ...withBits(Binable, SIZE * 8),
   ...base58(Binable, versionBytes.userCommandMemo),
-  sizeInBytes() {
-    return SIZE;
-  },
+  sizeInBytes: SIZE,
   emptyValue() {
     return Memo.fromString('');
   },
