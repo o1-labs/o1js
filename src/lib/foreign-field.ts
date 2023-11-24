@@ -53,10 +53,8 @@ type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
  * ```
  *
  * @param modulus the modulus of the finite field you are instantiating
- * @param options
- * - `unsafe: boolean` determines whether `ForeignField` elements are constrained to be valid on creation.
  */
-function createForeignField(modulus: bigint, { unsafe = false } = {}) {
+function createForeignField(modulus: bigint) {
   const p = modulus;
 
   if (p <= 0) {
@@ -145,9 +143,10 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
      * ensuring validity of all our non-native field arithmetic methods.
      */
     assertAlmostFieldElement() {
-      if (this.isConstant()) return;
-      // TODO
-      throw Error('unimplemented');
+      // TODO: this is not very efficient, but the only way to abstract away the complicated
+      // range check assumptions and also not introduce a global context of pending range checks.
+      // we plan to get rid of bounds checks anyway, then this is just a multi-range check
+      Gadgets.ForeignField.assertAlmostFieldElements([this.value], p);
     }
 
     /**

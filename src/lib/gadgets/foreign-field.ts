@@ -5,7 +5,7 @@ import {
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Tuple } from '../util/types.js';
+import { Tuple, TupleN } from '../util/types.js';
 import { assert, bitSlice, exists, toVars } from './common.js';
 import {
   l,
@@ -38,6 +38,8 @@ const ForeignField = {
   mul: multiply,
   inv: inverse,
   div: divide,
+
+  assertAlmostFieldElements,
 };
 
 /**
@@ -324,6 +326,30 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 
 function weakBound(x: Field, f: bigint) {
   return x.add(lMask - (f >> l2));
+}
+
+/**
+ * Apply range checks and weak bounds checks to a list of Field3s.
+ * Optimal if the list length is a multiple of 3.
+ */
+function assertAlmostFieldElements(xs: Field3[], f: bigint) {
+  let bounds: Field[] = [];
+
+  for (let x of xs) {
+    multiRangeCheck(x);
+
+    bounds.push(weakBound(x[2], f));
+    if (TupleN.hasLength(3, bounds)) {
+      multiRangeCheck(bounds);
+      bounds = [];
+    }
+  }
+  if (TupleN.hasLength(1, bounds)) {
+    multiRangeCheck([...bounds, Field.from(0n), Field.from(0n)]);
+  }
+  if (TupleN.hasLength(2, bounds)) {
+    multiRangeCheck([...bounds, Field.from(0n)]);
+  }
 }
 
 const Field3 = {
