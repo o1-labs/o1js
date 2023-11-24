@@ -2,6 +2,7 @@ import type { FiniteField } from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import {
   array,
+  equivalent,
   equivalentAsync,
   equivalentProvable,
   fromRandom,
@@ -30,6 +31,7 @@ import {
   throwError,
   unreducedForeignField,
 } from './test-utils.js';
+import { l2 } from './range-check.js';
 
 const { ForeignField, Field3 } = Gadgets;
 
@@ -105,6 +107,11 @@ for (let F of fields) {
     'div unreduced'
   );
 
+  equivalent({ from: [big264], to: unit })(
+    (x) => assertWeakBound(x, F.modulus),
+    (x) => ForeignField.assertAlmostFieldElements([x], F.modulus)
+  );
+
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
     (xs, signs) => sum(xs, signs, F),
@@ -134,6 +141,7 @@ for (let F of fields) {
 
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
+let big264 = unreducedForeignField(264, F);
 let chainLength = 5;
 let signs = [1n, -1n, -1n, 1n] satisfies (-1n | 1n)[];
 
@@ -145,6 +153,13 @@ let ffProgram = ZkProgram({
       privateInputs: [Provable.Array(Field3.provable, chainLength)],
       method(xs) {
         return ForeignField.sum(xs, signs, F.modulus);
+      },
+    },
+    mulWithBoundsCheck: {
+      privateInputs: [Field3.provable, Field3.provable],
+      method(x, y) {
+        ForeignField.assertAlmostFieldElements([x, y], F.modulus);
+        return ForeignField.mul(x, y, F.modulus);
       },
     },
     mul: {
@@ -220,10 +235,14 @@ await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs })(
   'prove chain'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs })(
-  F.mul,
+await equivalentAsync({ from: [big264, big264], to: f }, { runs })(
+  (x, y) => {
+    assertWeakBound(x, F.modulus);
+    assertWeakBound(y, F.modulus);
+    return F.mul(x, y);
+  },
   async (x, y) => {
-    let proof = await ffProgram.mul(x, y);
+    let proof = await ffProgram.mulWithBoundsCheck(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -316,4 +335,8 @@ function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
     sum = signs[i] === 1n ? F.add(sum, xs[i + 1]) : F.sub(sum, xs[i + 1]);
   }
   return sum;
+}
+
+function assertWeakBound(x: bigint, f: bigint) {
+  assert(x >= 0n && x >> l2 <= f >> l2, 'weak bound');
 }
