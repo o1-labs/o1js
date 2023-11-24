@@ -73,14 +73,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-
-  multiRangeCheck(m);
-  multiRangeCheck(x3);
-  multiRangeCheck(y3);
-  let mBound = weakBound(m[2], f);
-  let x3Bound = weakBound(x3[2], f);
-  let y3Bound = weakBound(y3[2], f);
-  multiRangeCheck([mBound, x3Bound, y3Bound]);
+  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
 
   // (x1 - x2)*m = y1 - y2
   let deltaX = ForeignField.Sum(x1).sub(x2);
@@ -124,14 +117,7 @@ function double(p1: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-
-  multiRangeCheck(m);
-  multiRangeCheck(x3);
-  multiRangeCheck(y3);
-  let mBound = weakBound(m[2], f);
-  let x3Bound = weakBound(x3[2], f);
-  let y3Bound = weakBound(y3[2], f);
-  multiRangeCheck([mBound, x3Bound, y3Bound]);
+  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
