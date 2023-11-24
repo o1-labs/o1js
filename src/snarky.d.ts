@@ -378,6 +378,7 @@ declare const Snarky: {
 
   foreignGroup: {
     add(x: ForeignAffine, y: ForeignAffine, curve: EllipticCurve): ForeignAffine;
+    scale(point: ForeignAffine, scalar: MlArray<BoolVar>, curve: EllipticCurve): ForeignAffine;
   };
 };
 

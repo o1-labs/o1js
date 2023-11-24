@@ -16,10 +16,24 @@ class ForeignGroup {
         this.y = y;
     }
 
+    #toTuple(): ForeignAffine {
+        return [0, this.x.value, this.y.value];
+    }
+
     add(other: ForeignGroup) {
-        let left: ForeignAffine = MlTuple(this.x.value, this.y.value);
-        let right: ForeignAffine = MlTuple(other.x.value, other.y.value);
+        let left = this.#toTuple();
+        let right = other.#toTuple();
         let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
+        let modulus = BigInt(ForeignGroup.curve[2]);
+        let ForeignGroupField = createForeignField(modulus);
+
+        return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+    }
+
+    scale(scalar: ForeignField) {
+        let [, ...bits] = scalar.value;
+        bits.reverse();
+        let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], ForeignGroup.curve);
         let modulus = BigInt(ForeignGroup.curve[2]);
         let ForeignGroupField = createForeignField(modulus);
 
