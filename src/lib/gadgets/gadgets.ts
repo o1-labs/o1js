@@ -515,6 +515,36 @@ const Gadgets = {
     Sum(x: Field3) {
       return ForeignField.Sum(x);
     },
+
+    /**
+     * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
+     * i.e., satisfies the assumptions required by {@link ForeignField.mul} and other gadgets:
+     * - each limb is in the range [0, 2^88)
+     * - the most significant limb is less or equal than the modulus, x[2] <= f[2]
+     *
+     * **Note**: This method is most efficient when the number of input elements is a multiple of 3.
+     *
+     * @throws if any of the assumptions is violated.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
+     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     *
+     * ForeignField.assertAlmostFieldElements([x, y, z], f);
+     *
+     * // now we can use x, y, z as inputs to foreign field multiplication
+     * let xy = ForeignField.mul(x, y, f);
+     * let xyz = ForeignField.mul(xy, z, f);
+     *
+     * // since xy is an input to another multiplication, we need to prove that it is almost reduced again!
+     * ForeignField.assertAlmostFieldElements([xy], f); // TODO: would be more efficient to batch this with 2 other elements
+     * ```
+     */
+    assertAlmostFieldElements(xs: Field3[], f: bigint) {
+      ForeignField.assertAlmostFieldElements(xs, f);
+    },
   },
 
   /**
@@ -550,7 +580,11 @@ const Gadgets = {
      * should this be here, given that it's not a provable method?
      * maybe assert that we are not running in provable context
      */
-    sign(Curve: CurveAffine, msgHash: bigint, privateKey: bigint) {
+    sign(
+      Curve: CurveAffine,
+      msgHash: bigint,
+      privateKey: bigint
+    ): Ecdsa.signature {
       return Ecdsa.sign(Curve, msgHash, privateKey);
     },
 

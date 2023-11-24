@@ -38,6 +38,10 @@ const TupleN = {
     );
     return arr as any;
   },
+
+  hasLength<T, N extends number>(n: N, tuple: T[]): tuple is TupleN<T, N> {
+    return tuple.length === n;
+  },
 };
 
 type TupleRec<T, N extends number, R extends unknown[]> = R['length'] extends N
