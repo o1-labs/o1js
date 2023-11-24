@@ -25,6 +25,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
   - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
   - `this.x.assertNothing()` is now `this.x.requireNothing()` https://github.com/o1-labs/o1js/pull/1263
+  - `this.account.x.assertBetween()` is now `this.account.x.requireBetween()` https://github.com/o1-labs/o1js/pull/1265
+  - `this.account.x.assertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265
+  - `this.account.x.assertNothing()` is now `this.account.x.requireNothing()` https://github.com/o1-labs/o1js/pull/1265
+  - `this.currentSlot.assertBetween(x,y)` is now `this.currentSlot.requireBetween(x,y)` https://github.com/o1-labs/o1js/pull/1265
+  - `this.network.x.getAndAssertEquals()` is now `this.network.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1265
 
 ## [0.14.2](https://github.com/o1-labs/o1js/compare/26363465d...1ad7333e9e)
 
