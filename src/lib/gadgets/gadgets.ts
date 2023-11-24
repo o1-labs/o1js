@@ -420,8 +420,10 @@ const Gadgets = {
      * **Assumptions**: In addition to the assumption that input limbs are in the range [0, 2^88), as in all foreign field gadgets,
      * this assumes an additional bound on the inputs: `x * y < 2^264 * p`, where p is the native modulus.
      * We usually assert this bound by proving that `x[2] < f[2] + 1`, where `x[2]` is the most significant limb of x.
-     * To do this, use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
+     * To do this, we use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
      * The implication is that x and y are _almost_ reduced modulo f.
+     *
+     * All of the above assumptions are checked by {@link ForeignField.assertAlmostFieldElements}.
      *
      * **Warning**: This gadget does not add the extra bound check on the result.
      * So, to use the result in another foreign field multiplication, you have to add the bound check on it yourself, again.
@@ -434,14 +436,8 @@ const Gadgets = {
      * let x = Provable.witness(Field3.provable, () => Field3.from(f - 1n));
      * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
      *
-     * // range check x, y
-     * Gadgets.multiRangeCheck(x);
-     * Gadgets.multiRangeCheck(y);
-     *
-     * // prove additional bounds
-     * let x2Bound = x[2].add((1n << 88n) - 1n - (f >> 176n));
-     * let y2Bound = y[2].add((1n << 88n) - 1n - (f >> 176n));
-     * Gadgets.multiRangeCheck([x2Bound, y2Bound, Field(0n)]);
+     * // range check x, y and prove additional bounds x[2] <= f[2]
+     * ForeignField.assertAlmostFieldElements([x, y], f);
      *
      * // compute x * y mod f
      * let z = ForeignField.mul(x, y, f);
@@ -497,7 +493,13 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * // we assume that x, y, z, a, b, c are range-checked, analogous to `ForeignField.mul()`
+     * // range-check x, y, z, a, b, c
+     * ForeignField.assertAlmostFieldElements([x, y, z], f);
+     * Gadgets.multiRangeCheck(a);
+     * Gadgets.multiRangeCheck(b);
+     * Gadgets.multiRangeCheck(c);
+     *
+     * // create lazy input sums
      * let xMinusY = ForeignField.Sum(x).sub(y);
      * let aPlusBPlusC = ForeignField.Sum(a).add(b).add(c);
      *
