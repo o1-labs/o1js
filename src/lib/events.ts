@@ -1,8 +1,8 @@
 import { prefixes } from '../bindings/crypto/constants.js';
 import { prefixToField } from '../bindings/lib/binable.js';
 import {
-  GenericField,
   GenericProvableExtended,
+  GenericSignableField,
 } from '../bindings/lib/generic.js';
 
 export { createEvents, dataAsHash };
@@ -15,7 +15,7 @@ function createEvents<Field>({
   Field,
   Poseidon,
 }: {
-  Field: GenericField<Field>;
+  Field: GenericSignableField<Field>;
   Poseidon: Poseidon<Field>;
 }) {
   type Event = Field[];

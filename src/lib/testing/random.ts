@@ -23,10 +23,10 @@ import {
   PublicKey,
   StateHash,
 } from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
-import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
+import { genericLayoutFold } from '../../bindings/lib/from-layout-signable.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
-  GenericProvable,
+  GenericSignable,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
@@ -35,7 +35,10 @@ import { randomBytes } from '../../bindings/crypto/random.js';
 import { alphabet } from '../base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
+import {
+  ProvableExtended,
+  Signable,
+} from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
@@ -113,9 +116,9 @@ const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
 type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
-type Provable<T> = GenericProvable<T, bigint>;
+type Signable_<T> = GenericSignable<T, any, bigint>;
 type Generators = {
-  [K in keyof Types]: Types[K] extends Provable<infer U> ? Random<U> : never;
+  [K in keyof Types]: Types[K] extends Signable_<infer U> ? Random<U> : never;
 };
 const Generators: Generators = {
   Field: field,
@@ -138,7 +141,7 @@ const Generators: Generators = {
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
 };
-let typeToBigintGenerator = new Map<Provable<any>, Random<any>>(
+let typeToBigintGenerator = new Map<Signable_<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]
     .map(Object.entries)
     .flat()
@@ -214,7 +217,7 @@ function withInvalidRandomString<T extends string>(rng: Random<T>) {
 }
 
 type JsonGenerators = {
-  [K in keyof Types]: Types[K] extends ProvableExtended<any, infer J>
+  [K in keyof Types]: Types[K] extends Signable<any, infer J>
     ? Random<J>
     : never;
 };
@@ -241,7 +244,7 @@ const JsonGenerators: JsonGenerators = {
   string: base58(nat(50)),
   number: nat(3),
 };
-let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
+let typeToJsonGenerator = new Map<Signable_<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]
     .map(Object.entries)
     .flat()

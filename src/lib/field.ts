@@ -1148,6 +1148,10 @@ class Field {
 
   // ProvableExtended<Field>
 
+  static emptyValue() {
+    return new Field(0n);
+  }
+
   /**
    * Serialize the {@link Field} to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *

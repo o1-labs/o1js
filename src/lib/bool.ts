@@ -295,6 +295,10 @@ class Bool {
     return 1;
   }
 
+  static emptyValue() {
+    return new Bool(false);
+  }
+
   static toInput(x: Bool): { packed: [Field, number][] } {
     return { packed: [[x.toField(), 1] as [Field, number]] };
   }
