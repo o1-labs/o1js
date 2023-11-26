@@ -39,13 +39,13 @@ The `main` branch contains the development version of the code.
 To contribute directly to this project repo, follow these steps to get your changes in the `main` branch as quickly as possible.
 
 1. Create a new issue for your proposed changes or use an existing issue if a relevant one exists.
-1. Write a request for comment (RFC) to outline your proposed changes and motivation, like this [example RFC](https://github.com/o1-labs/o1js/issues/233). Describe your objective and why the change is useful, how it works, and so on.
+2. Write a request for comment (RFC) to outline your proposed changes and motivation, like this [example RFC](https://github.com/o1-labs/o1js/issues/233). Describe your objective and why the change is useful, how it works, and so on.
 
    Note: If you are proposing a smaller change your RFC will be smaller, and that's ok! :)
 
-1. One of the codebase maintainers reviews your RFC and works with you until it is approved.
-1. After your RFC proposal is approved, fork the repository and implement your changes.
-1. Submit a pull request and wait for code review. :)
+3. One of the codebase maintainers reviews your RFC and works with you until it is approved.
+4. After your RFC proposal is approved, fork the repository and implement your changes.
+5. Submit a pull request and wait for code review. :)
 
 Our goal is to include functionality within o1js when the change is likely to be widely useful for developers. For more esoteric functionality, it makes more sense to provide high-quality community packages that can be used alongside o1js.
 
