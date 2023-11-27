@@ -23,7 +23,7 @@ import {
   PublicKey,
   StateHash,
 } from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
-import { genericLayoutFold } from '../../bindings/lib/from-layout-signable.js';
+import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   PrimitiveTypeMap,
@@ -329,7 +329,13 @@ function generatorFromLayout<T>(
   { isJson }: { isJson: boolean }
 ): Random<T> {
   let typeToGenerator = isJson ? typeToJsonGenerator : typeToBigintGenerator;
-  return genericLayoutFold<undefined, Random<any>, TypeMap, Json.TypeMap>(
+  return genericLayoutFold<
+    Signable<any, any>,
+    undefined,
+    Random<any>,
+    TypeMap,
+    Json.TypeMap
+  >(
     TypeMap,
     customTypes,
     {
