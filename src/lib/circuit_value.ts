@@ -442,6 +442,15 @@ function Struct<
       return Object.assign(struct, value);
     }
     /**
+     * Create an instance of this struct filled with default values
+     * @returns an empty instance of this struct
+     */
+    static empty(): T {
+      let value = this.type.empty();
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
+    }
+    /**
      * This method is for internal use, you will probably not need it.
      * Method to make assertions which should be always made whenever a struct of this type is created in a proof.
      * @param value
