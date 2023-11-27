@@ -27,6 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **ECDSA signature verification**: new provable method `Gadgets.Ecdsa.verify()` and helpers on `Gadgets.Ecdsa.Signature` https://github.com/o1-labs/o1js/pull/1240
   - For an example, see `./src/examples/zkprogram/ecdsa`
+- `Crypto` namespace which exposes elliptic curve and finite field arithmetic on bigints, as well as example curve parameters https://github.com/o1-labs/o1js/pull/1240
 - `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
 - `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
 
