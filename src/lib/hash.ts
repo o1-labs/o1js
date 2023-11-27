@@ -173,9 +173,12 @@ const TokenSymbolPure: ProvableExtended<
   toValue({ symbol }) {
     return symbol;
   },
-  fromValue(symbol: string) {
-    let field = prefixToField(symbol);
-    return { symbol, field };
+  fromValue(symbol: string | TokenSymbol) {
+    if (typeof symbol === 'string') {
+      let field = prefixToField(symbol);
+      return { symbol, field };
+    }
+    return symbol;
   },
   toJSON({ symbol }) {
     return symbol;

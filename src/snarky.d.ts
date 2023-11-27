@@ -105,7 +105,7 @@ declare interface Provable<T, TValue> {
   /**
    * Convert provable type from a normal JS type.
    */
-  fromValue: (x: TValue) => T;
+  fromValue: (x: TValue | T) => T;
 }
 
 /**

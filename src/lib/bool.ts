@@ -283,9 +283,10 @@ class Bool {
   /**
    * `Provable<Bool>.fromValue()`
    */
-  static fromValue(x: 0n | 1n) {
+  static fromValue(x: 0n | 1n | Bool) {
     // TODO make `boolean` the value type
-    return new Bool(x === 1n);
+    if (typeof x === 'bigint') return new Bool(x === 1n);
+    return x;
   }
 
   /**

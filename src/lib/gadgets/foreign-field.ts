@@ -354,7 +354,8 @@ const Field3 = {
       return Field3.toBigint(x);
     },
     fromValue(x): Field3 {
-      return Field3.from(x);
+      if (typeof x === 'bigint') return Field3.from(x);
+      return x;
     },
   } satisfies ProvablePureExtended<Field3, bigint, [string, string, string]>,
 };

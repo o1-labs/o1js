@@ -173,6 +173,14 @@ function dataAsHash<T, V, J, Field>({
       return toValue(data);
     },
     fromValue(value) {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'data' in value &&
+        'hash' in value
+      ) {
+        return value as { data: T; hash: Field };
+      }
       return fromValue(value);
     },
     toJSON({ data }) {
