@@ -62,8 +62,13 @@ let SmallField = Random.reject(
   (x) => x.toString(2).length > Fp.sizeInBits - 2
 );
 
-let { equivalent1, equivalent2, equivalentVoid1, equivalentVoid2 } =
-  createEquivalenceTesters(Field, Field);
+let {
+  equivalent1,
+  equivalent2,
+  equivalentBool2,
+  equivalentVoid1,
+  equivalentVoid2,
+} = createEquivalenceTesters(Field, Field);
 
 // arithmetic, both in- and outside provable code
 equivalent2((x, y) => x.add(y), Fp.add);
@@ -83,18 +88,18 @@ equivalent1(
   (x) => x.sqrt(),
   (x) => Fp.sqrt(x) ?? throwError('no sqrt')
 );
-equivalent2(
-  (x, y) => x.equals(y).toField(),
-  (x, y) => BigInt(x === y)
+equivalentBool2(
+  (x, y) => x.equals(y),
+  (x, y) => x === y
 );
-equivalent2(
-  (x, y) => x.lessThan(y).toField(),
-  (x, y) => BigInt(x < y),
+equivalentBool2(
+  (x, y) => x.lessThan(y),
+  (x, y) => x < y,
   SmallField
 );
-equivalent2(
-  (x, y) => x.lessThanOrEqual(y).toField(),
-  (x, y) => BigInt(x <= y),
+equivalentBool2(
+  (x, y) => x.lessThanOrEqual(y),
+  (x, y) => x <= y,
   SmallField
 );
 equivalentVoid2(

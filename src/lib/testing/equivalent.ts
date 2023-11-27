@@ -4,7 +4,7 @@
 import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
-
+import { Bool } from '../bool.js';
 export { createEquivalenceTesters, throwError, handleErrors };
 
 function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
@@ -74,6 +74,77 @@ function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
       });
     });
   }
+
+  function equivalentBool1(
+    op1: (x: Field) => Bool,
+    op2: (x: bigint) => boolean,
+    rng: Random<bigint> = Random.field
+  ) {
+    test(rng, (x0, assert) => {
+      let x = newField(x0);
+      // outside provable code
+      handleErrors(
+        () => op1(x),
+        () => op2(x0),
+        (a, b) => assert(a.toBoolean() === b, 'equal results')
+      );
+      // inside provable code
+      Provable.runAndCheck(() => {
+        x = Provable.witness(Field, () => x);
+        handleErrors(
+          () => op1(x),
+          () => op2(x0),
+          (a, b) =>
+            Provable.asProver(() =>
+              assert(a.toBoolean() === b, 'equal results')
+            )
+        );
+      });
+    });
+  }
+  function equivalentBool2(
+    op1: (x: Field, y: Field | bigint) => Bool,
+    op2: (x: bigint, y: bigint) => boolean,
+    rng: Random<bigint> = Random.field
+  ) {
+    test(rng, rng, (x0, y0, assert) => {
+      let x = newField(x0);
+      let y = newField(y0);
+      // outside provable code
+      handleErrors(
+        () => op1(x, y),
+        () => op2(x0, y0),
+        (a, b) => assert(a.toBoolean() === b, 'equal results')
+      );
+      handleErrors(
+        () => op1(x, y0),
+        () => op2(x0, y0),
+        (a, b) => assert(a.toBoolean() === b, 'equal results')
+      );
+      // inside provable code
+      Provable.runAndCheck(() => {
+        x = Provable.witness(Field, () => x);
+        y = Provable.witness(Field, () => y);
+        handleErrors(
+          () => op1(x, y),
+          () => op2(x0, y0),
+          (a, b) =>
+            Provable.asProver(() =>
+              assert(a.toBoolean() === b, 'equal results')
+            )
+        );
+        handleErrors(
+          () => op1(x, y0),
+          () => op2(x0, y0),
+          (a, b) =>
+            Provable.asProver(() =>
+              assert(a.toBoolean() === b, 'equal results')
+            )
+        );
+      });
+    });
+  }
+
   function equivalentVoid1(
     op1: (x: Field) => void,
     op2: (x: bigint) => void,
@@ -129,7 +200,14 @@ function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
     });
   }
 
-  return { equivalent1, equivalent2, equivalentVoid1, equivalentVoid2 };
+  return {
+    equivalent1,
+    equivalent2,
+    equivalentBool1,
+    equivalentBool2,
+    equivalentVoid1,
+    equivalentVoid2,
+  };
 }
 
 function handleErrors<T, S, R>(

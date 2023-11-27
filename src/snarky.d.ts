@@ -11,6 +11,12 @@ import type {
   MlBytes,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
+import type {
+  ForeignFieldVar,
+  ForeignFieldConst,
+  ForeignAffine,
+} from './lib/foreign-field.js';
+import type { EllipticCurve } from './lib/elliptic-curve.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
@@ -267,10 +273,10 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
-    ];
+        _: 0,
+        constant: MlOption<FieldConst>,
+        terms: MlList<MlTuple<FieldConst, number>>
+      ];
   };
 
   bool: {
@@ -354,6 +360,25 @@ declare const Snarky: {
       absorb(sponge: unknown, x: FieldVar): void;
       squeeze(sponge: unknown): FieldVar;
     };
+  };
+
+  foreignField: {
+    assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
+    sumChain(
+      xs: MlArray<ForeignFieldVar>,
+      ops: MlArray<0 | 1>,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+    mul(
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+  };
+
+  foreignGroup: {
+    add(x: ForeignAffine, y: ForeignAffine, curve: EllipticCurve): ForeignAffine;
+    scale(point: ForeignAffine, scalar: MlArray<BoolVar>, curve: EllipticCurve): ForeignAffine;
   };
 };
 

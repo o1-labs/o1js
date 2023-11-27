@@ -19,6 +19,7 @@ export {
   withMessage,
   readVarMessage,
   toConstantField,
+  checkBitLength,
 };
 
 type FieldConst = [0, bigint];
@@ -76,6 +77,14 @@ const FieldVar = {
   },
   isConstant(x: FieldVar): x is ConstantFieldVar {
     return x[0] === FieldType.Constant;
+  },
+  toConstant(x: FieldVar): FieldConst {
+    if (FieldVar.isConstant(x)) return x[1];
+    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
+    return Snarky.field.readVar(x);
+  },
+  toBigint(x: FieldVar) {
+    return FieldConst.toBigint(FieldVar.toConstant(x));
   },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
@@ -930,15 +939,6 @@ class Field {
     }
   }
 
-  static #checkBitLength(name: string, length: number) {
-    if (length > Fp.sizeInBits)
-      throw Error(
-        `${name}: bit length must be ${Fp.sizeInBits} or less, got ${length}`
-      );
-    if (length <= 0)
-      throw Error(`${name}: bit length must be positive, got ${length}`);
-  }
-
   /**
    * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link Field} element.
    *
@@ -953,7 +953,7 @@ class Field {
    * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
   toBits(length?: number) {
-    if (length !== undefined) Field.#checkBitLength('Field.toBits()', length);
+    if (length !== undefined) checkBitLength('Field.toBits()', length);
     if (this.isConstant()) {
       let bits = Fp.toBits(this.toBigInt());
       if (length !== undefined) {
@@ -980,7 +980,7 @@ class Field {
    */
   static fromBits(bits: (Bool | boolean)[]) {
     let length = bits.length;
-    Field.#checkBitLength('Field.fromBits()', length);
+    checkBitLength('Field.fromBits()', length);
     if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
       let bits_ = bits
         .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
@@ -1008,7 +1008,7 @@ class Field {
    * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
    */
   rangeCheckHelper(length: number) {
-    Field.#checkBitLength('Field.rangeCheckHelper()', length);
+    checkBitLength('Field.rangeCheckHelper()', length);
     if (length % 16 !== 0)
       throw Error(
         'Field.rangeCheckHelper(): `length` has to be a multiple of 16.'
@@ -1263,6 +1263,8 @@ class Field {
   static sizeInBytes() {
     return Fp.sizeInBytes();
   }
+
+  static sizeInBits = Fp.sizeInBits;
 }
 
 const FieldBinable = defineBinable({
@@ -1304,6 +1306,19 @@ function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
+}
+
+function checkBitLength(
+  name: string,
+  length: number,
+  maxLength = Fp.sizeInBits
+) {
+  if (length > maxLength)
+    throw Error(
+      `${name}: bit length must be ${maxLength} or less, got ${length}`
+    );
+  if (length < 0)
+    throw Error(`${name}: bit length must be non-negative, got ${length}`);
 }
 
 function toConstantField(
