@@ -149,7 +149,7 @@ function verifyEcdsa(
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
-  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
+  } = { G: { windowSize: 4 }, P: { windowSize: 3 } }
 ) {
   // constant case
   if (

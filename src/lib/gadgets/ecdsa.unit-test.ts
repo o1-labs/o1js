@@ -95,7 +95,7 @@ let msgHash =
   );
 
 const ia = EllipticCurve.initialAggregator(Secp256k1);
-const config = { G: { windowSize: 4 }, P: { windowSize: 4 }, ia };
+const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
 
 let program = ZkProgram({
   name: 'ecdsa',
@@ -119,11 +119,14 @@ let program = ZkProgram({
     ecdsa: {
       privateInputs: [],
       method() {
-        let signature0 = Provable.witness(
+        let signature_ = Provable.witness(
           Ecdsa.Signature.provable,
           () => signature
         );
-        Ecdsa.verify(Secp256k1, signature0, msgHash, publicKey, config);
+        let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
+        let publicKey_ = Provable.witness(Point.provable, () => publicKey);
+
+        Ecdsa.verify(Secp256k1, signature_, msgHash_, publicKey_, config);
       },
     },
   },
