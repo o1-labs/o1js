@@ -39,6 +39,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `this.account.x.getAndAssertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265
   - `this.account.x.assertBetween()` is now `this.account.x.requireBetween()` https://github.com/o1-labs/o1js/pull/1265
   - `this.network.x.getAndAssertEquals()` is now `this.network.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1265
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `print()` method for pretty-printing the constraint system https://github.com/o1-labs/o1js/pull/1240
 
 ## [0.14.2](https://github.com/o1-labs/o1js/compare/26363465d...1ad7333e9e)
 
