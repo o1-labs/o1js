@@ -109,7 +109,7 @@ const Sign = pseudoClass(
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(checkSign),
     ...BinableBigint<Sign>(1, checkSign),
-    emptyValue() {
+    empty() {
       return 1n;
     },
     toInput(x: Sign): HashInput {

@@ -1148,7 +1148,7 @@ class Field {
 
   // ProvableExtended<Field>
 
-  static emptyValue() {
+  static empty() {
     return new Field(0n);
   }
 

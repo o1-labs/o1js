@@ -192,7 +192,7 @@ function fillPartialAccount(account: PartialAccount): Account {
       map(type, value) {
         // if value exists, use it; otherwise fall back to dummy value
         if (value !== undefined) return value;
-        return type.emptyValue();
+        return type.empty();
       },
       reduceArray(array) {
         return array;

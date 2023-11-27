@@ -5,7 +5,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-  emptyValue,
+  empty,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   AuthRequired,
@@ -81,7 +81,7 @@ const keypair = map(privateKey, (privatekey) => ({
   publicKey: PrivateKey.toPublicKey(privatekey),
 }));
 
-const tokenId = oneOf(TokenId.emptyValue(), field);
+const tokenId = oneOf(TokenId.empty(), field);
 const stateHash = field;
 const authRequired = map(
   oneOf<Json.AuthRequired[]>(
@@ -106,9 +106,9 @@ const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   Actions.fromList
 );
-const actionState = oneOf(ActionState.emptyValue(), field);
-const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
-const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
+const actionState = oneOf(ActionState.empty(), field);
+const verificationKeyHash = oneOf(VerificationKeyHash.empty(), field);
+const receiptChainHash = oneOf(ReceiptChainHash.empty(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
 type Types = typeof TypeMap & typeof customTypes & PrimitiveTypeMap<bigint>;
@@ -365,7 +365,7 @@ function generatorFromLayout<T>(
         } else {
           return mapWithInvalid(isSome, value, (isSome, value) => {
             let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-            if (!isSomeBoolean) return emptyValue(typeData);
+            if (!isSomeBoolean) return empty(typeData);
             return { isSome, value };
           });
         }

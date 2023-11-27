@@ -723,7 +723,7 @@ class Sign extends CircuitValue {
     // x^2 === 1  <=>  x === 1 or x === -1
     x.value.square().assertEquals(Field(1));
   }
-  static emptyValue<T extends AnyConstructor>(): InstanceType<T> {
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
     return Sign.one as any;
   }
   static toInput(x: Sign): HashInput {

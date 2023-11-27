@@ -158,7 +158,7 @@ ${
   !isJson
     ? 'export { Json };\n' +
       `export * from '${leavesRelPath}';\n` +
-      `export { ${fromLayout}, toJSONEssential, emptyValue, Layout, TypeMap };\n`
+      `export { ${fromLayout}, toJSONEssential, empty, Layout, TypeMap };\n`
     : `export * from '${leavesRelPath}';\n` + 'export { TypeMap };\n'
 }
 
@@ -186,7 +186,7 @@ type CustomTypes = { ${customTypes
     .map((c) => `${c.typeName}: ${GeneratedType}<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
-let { ${fromLayout}, toJSONEssential, emptyValue } = ${FromLayout}<
+let { ${fromLayout}, toJSONEssential, empty } = ${FromLayout}<
   TypeMap,
   Json.TypeMap
 >(TypeMap, customTypes);

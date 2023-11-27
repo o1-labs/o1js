@@ -179,7 +179,7 @@ const TokenSymbolPure: ProvableExtended<
   toInput({ field }) {
     return { packed: [[field, 48]] };
   },
-  emptyValue() {
+  empty() {
     return { symbol: '', field: Field(0n) };
   },
 };

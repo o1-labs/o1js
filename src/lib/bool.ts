@@ -295,7 +295,7 @@ class Bool {
     return 1;
   }
 
-  static emptyValue() {
+  static empty() {
     return new Bool(false);
   }
 

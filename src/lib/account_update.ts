@@ -445,7 +445,7 @@ const Body = {
     tokenId?: Field,
     mayUseToken?: MayUseToken
   ): Body {
-    let { body } = Types.AccountUpdate.emptyValue();
+    let { body } = Types.AccountUpdate.empty();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
@@ -463,7 +463,7 @@ const Body = {
   },
 
   dummy(): Body {
-    return Types.AccountUpdate.emptyValue().body;
+    return Types.AccountUpdate.empty().body;
   },
 };
 

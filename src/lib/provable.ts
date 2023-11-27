@@ -567,13 +567,11 @@ function provableArray<A extends FlexibleProvable<any>>(
       );
     },
 
-    emptyValue() {
-      if (!('emptyValue' in type)) {
-        throw Error(
-          'circuitArray.emptyValue: element type has no emptyValue method'
-        );
+    empty() {
+      if (!('empty' in type)) {
+        throw Error('circuitArray.empty: element type has no empty() method');
       }
-      return Array.from({ length }, () => type.emptyValue());
+      return Array.from({ length }, () => type.empty());
     },
   } satisfies ProvableExtended<T[], TJson[]> as any;
 }
