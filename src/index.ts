@@ -81,6 +81,8 @@ export { Nullifier } from './lib/nullifier.js';
 import { ExperimentalZkProgram, ZkProgram } from './lib/proof_system.js';
 export { ZkProgram };
 
+export { Crypto } from './lib/crypto.js';
+
 // experimental APIs
 import { Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';

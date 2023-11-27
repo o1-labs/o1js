@@ -11,6 +11,7 @@ import { Field } from '../core.js';
 import { ForeignField, Field3, Sum } from './foreign-field.js';
 import { Ecdsa, Point } from './elliptic-curve.js';
 import { CurveAffine } from '../../bindings/crypto/elliptic_curve.js';
+import { Crypto } from '../crypto.js';
 
 export { Gadgets };
 
@@ -583,7 +584,7 @@ const Gadgets = {
      * maybe assert that we are not running in provable context
      */
     sign(
-      Curve: CurveAffine,
+      Curve: Crypto.Curve,
       msgHash: bigint,
       privateKey: bigint
     ): Ecdsa.signature {
