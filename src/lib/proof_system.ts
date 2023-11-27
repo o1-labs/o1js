@@ -260,7 +260,10 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: { cache: Cache }) => Promise<{ verificationKey: string }>;
+  compile: (options?: {
+    cache?: Cache;
+    forceRecompile?: boolean;
+  }) => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -338,7 +341,10 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile({ cache = Cache.FileSystemDefault } = {}) {
+  async function compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
     let methodsMeta = methodIntfs.map((methodEntry, i) =>
       analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
     );
@@ -351,6 +357,7 @@ function ZkProgram<
       gates,
       proofSystemTag: selfTag,
       cache,
+      forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
@@ -606,6 +613,7 @@ async function compileProgram({
   gates,
   proofSystemTag,
   cache,
+  forceRecompile,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -615,6 +623,7 @@ async function compileProgram({
   gates: Gate[][];
   proofSystemTag: { name: string };
   cache: Cache;
+  forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -633,6 +642,7 @@ async function compileProgram({
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
+      if (forceRecompile) return MlResult.unitError();
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       let result = readCache(cache, header, (bytes) =>
         decodeProverKey(mlHeader, bytes)
