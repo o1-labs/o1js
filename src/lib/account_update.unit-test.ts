@@ -30,8 +30,6 @@ function createAccountUpdate() {
   // convert accountUpdate to fields in pure JS, leveraging generated code
   let fields2 = Types.AccountUpdate.toFields(accountUpdate);
 
-  console.log(json);
-
   // this is useful console output in the case the test should fail
   if (fields1.length !== fields2.length) {
     console.log(
