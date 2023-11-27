@@ -30,6 +30,14 @@ class ForeignGroup {
         return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
     }
 
+    sub(other: ForeignGroup) {
+        return this.add(other.neg());
+    }
+
+    neg() {
+        return new ForeignGroup(this.x, this.y.neg());
+    }
+
     scale(scalar: ForeignField) {
         let [, ...bits] = scalar.value;
         bits.reverse();
