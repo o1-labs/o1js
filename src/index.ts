@@ -32,7 +32,6 @@ export {
   method,
   declareMethods,
   Account,
-  VerificationKey,
   Reducer,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
@@ -45,6 +44,7 @@ export {
   Empty,
   Undefined,
   Void,
+  VerificationKey,
 } from './lib/proof_system.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
