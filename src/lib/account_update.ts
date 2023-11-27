@@ -1874,9 +1874,11 @@ function addMissingSignatures(
   additionalKeys = [] as PrivateKey[]
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
-  let { commitment, fullCommitment } = transactionCommitments(
-    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand))
-  );
+  let { commitment, fullCommitment } = transactionCommitments({
+    ...Types.ZkappCommand.toValue(zkappCommand),
+    // TODO: represent memo in encoded form already?
+    memo: Memo.toBase58(Memo.fromString(zkappCommand.memo)),
+  });
 
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =

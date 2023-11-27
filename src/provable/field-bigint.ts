@@ -39,6 +39,7 @@ const Field = pseudoClass(
     ...ProvableBigint(checkField),
     ...BinableBigint(Fp.sizeInBits, checkField),
     ...Fp,
+    toBigint: (x: Field) => x,
   }
 );
 

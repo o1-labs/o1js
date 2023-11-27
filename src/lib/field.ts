@@ -1134,6 +1134,13 @@ class Field {
   }
 
   /**
+   * Convert a {@link Field} element to a bigint.
+   */
+  static toBigint(x: Field) {
+    return x.toBigInt();
+  }
+
+  /**
    * `Provable<Field>.fromValue()`
    */
   static fromValue(x: bigint | Field) {
