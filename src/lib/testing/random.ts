@@ -5,7 +5,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-  emptyValue,
+  empty,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   AuthRequired,
@@ -26,7 +26,7 @@ import {
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
-  GenericProvable,
+  PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
@@ -35,7 +35,7 @@ import { randomBytes } from '../../bindings/crypto/random.js';
 import { alphabet } from '../base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
@@ -81,7 +81,7 @@ const keypair = map(privateKey, (privatekey) => ({
   publicKey: PrivateKey.toPublicKey(privatekey),
 }));
 
-const tokenId = oneOf(TokenId.emptyValue(), field);
+const tokenId = oneOf(TokenId.empty(), field);
 const stateHash = field;
 const authRequired = map(
   oneOf<Json.AuthRequired[]>(
@@ -106,16 +106,16 @@ const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   Actions.fromList
 );
-const actionState = oneOf(ActionState.emptyValue(), field);
-const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
-const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
+const actionState = oneOf(ActionState.empty(), field);
+const verificationKeyHash = oneOf(VerificationKeyHash.empty(), field);
+const receiptChainHash = oneOf(ReceiptChainHash.empty(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
-const PrimitiveMap = primitiveTypeMap<bigint>();
-type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
-type Provable<T> = GenericProvable<T, bigint>;
+type Types = typeof TypeMap & typeof customTypes & PrimitiveTypeMap<bigint>;
 type Generators = {
-  [K in keyof Types]: Types[K] extends Provable<infer U> ? Random<U> : never;
+  [K in keyof Types]: Types[K] extends Signable<infer U, any>
+    ? Random<U>
+    : never;
 };
 const Generators: Generators = {
   Field: field,
@@ -138,8 +138,8 @@ const Generators: Generators = {
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
 };
-let typeToBigintGenerator = new Map<Provable<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, Generators[key as keyof Generators]])
@@ -214,7 +214,7 @@ function withInvalidRandomString<T extends string>(rng: Random<T>) {
 }
 
 type JsonGenerators = {
-  [K in keyof Types]: Types[K] extends ProvableExtended<any, infer J>
+  [K in keyof Types]: Types[K] extends Signable<any, infer J>
     ? Random<J>
     : never;
 };
@@ -241,8 +241,8 @@ const JsonGenerators: JsonGenerators = {
   string: base58(nat(50)),
   number: nat(3),
 };
-let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, JsonGenerators[key as keyof JsonGenerators]])
@@ -329,7 +329,13 @@ function generatorFromLayout<T>(
   { isJson }: { isJson: boolean }
 ): Random<T> {
   let typeToGenerator = isJson ? typeToJsonGenerator : typeToBigintGenerator;
-  return genericLayoutFold<undefined, Random<any>, TypeMap, Json.TypeMap>(
+  return genericLayoutFold<
+    Signable<any, any>,
+    undefined,
+    Random<any>,
+    TypeMap,
+    Json.TypeMap
+  >(
     TypeMap,
     customTypes,
     {
@@ -359,7 +365,7 @@ function generatorFromLayout<T>(
         } else {
           return mapWithInvalid(isSome, value, (isSome, value) => {
             let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-            if (!isSomeBoolean) return emptyValue(typeData);
+            if (!isSomeBoolean) return empty(typeData);
             return { isSome, value };
           });
         }
