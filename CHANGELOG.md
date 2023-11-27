@@ -19,8 +19,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
 
+# Breaking changes
+
+- `ZkProgram.compile()` now returns the verification key and its hash, to be consistent with `SmartContract.compile()` https://github.com/o1-labs/o1js/pull/1240
+
 # Added
 
+- **ECDSA signature verification**: new provable method `Gadgets.Ecdsa.verify()` and helpers on `Gadgets.Ecdsa.Signature` https://github.com/o1-labs/o1js/pull/1240
+  - For an example, see `./src/examples/zkprogram/ecdsa`
 - `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
 - `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
 
