@@ -318,7 +318,7 @@ class Bool {
     return BoolBinable.readBytes(bytes, offset);
   }
 
-  static sizeInBytes: 1;
+  static sizeInBytes = 1;
 
   static check(x: Bool): void {
     Snarky.field.assertBoolean(x.value);
