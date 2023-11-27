@@ -273,6 +273,22 @@ class Bool {
   }
 
   /**
+   * `Provable<Bool>.toValue()`
+   */
+  static toValue(x: Bool): 0n | 1n {
+    // TODO make `boolean` the value type
+    return x.toBoolean() ? 1n : 0n;
+  }
+
+  /**
+   * `Provable<Bool>.fromValue()`
+   */
+  static fromValue(x: 0n | 1n) {
+    // TODO make `boolean` the value type
+    return new Bool(x === 1n);
+  }
+
+  /**
    * Serialize a {@link Bool} to a JSON string.
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */

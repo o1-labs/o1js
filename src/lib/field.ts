@@ -1127,6 +1127,20 @@ class Field {
   static check() {}
 
   /**
+   * `Provable<Field>.toValue()`
+   */
+  static toValue(x: Field) {
+    return x.toBigInt();
+  }
+
+  /**
+   * `Provable<Field>.fromValue()`
+   */
+  static fromValue(x: bigint) {
+    return new Field(x);
+  }
+
+  /**
    * This function is the implementation of {@link Provable.toFields} for the {@link Field} type.
    *
    * The result will be always an array of length 1, where the first and only element equals the {@link Field} itself.

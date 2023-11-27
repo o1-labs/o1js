@@ -24,6 +24,7 @@ import {
   constraintSystem,
 } from './provable-context.js';
 import { isBool } from './bool.js';
+import { InferValue } from 'src/bindings/lib/provable-generic.js';
 
 // external API
 export { Provable };
@@ -42,7 +43,7 @@ export {
  *
  * You will find this as the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
  */
-type Provable<T> = Provable_<T>;
+type Provable<T, TValue> = Provable_<T, TValue>;
 
 const Provable = {
   /**
@@ -227,7 +228,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   // rebuild the value from its fields (which are now variables) and aux data
   let aux = type.toAuxiliary(proverValue);
-  let value = (type as Provable<T>).fromFields(fields, aux);
+  let value = (type as Provable<T, any>).fromFields(fields, aux);
 
   // add type-specific constraints
   type.check(value);
@@ -256,7 +257,7 @@ function assertEqualImplicit<T extends ToFieldable>(x: T, y: T) {
     xs[i].assertEquals(ys[i]);
   }
 }
-function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
+function assertEqualExplicit<T>(type: Provable<T, any>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   for (let i = 0; i < xs.length; i++) {
@@ -282,7 +283,7 @@ function equalImplicit<T extends ToFieldable>(x: T, y: T) {
   checkLength('Provable.equal', xs, ys);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
-function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
+function equalExplicit<T>(type: Provable<T, any>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
@@ -307,7 +308,7 @@ function ifField(b: Field, x: Field, y: Field) {
   return b.mul(x.sub(y)).add(y).seal();
 }
 
-function ifExplicit<T>(condition: Bool, type: Provable<T>, x: T, y: T): T {
+function ifExplicit<T>(condition: Bool, type: Provable<T, any>, x: T, y: T): T {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   let b = condition.toField();
@@ -350,7 +351,7 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
         `Provable.if(bool, MyType, x, y)`
     );
   }
-  return ifExplicit(condition, type as any as Provable<T>, x, y);
+  return ifExplicit(condition, type as any as Provable<T, any>, x, y);
 }
 
 function switch_<T, A extends FlexibleProvable<T>>(
@@ -384,12 +385,12 @@ function switch_<T, A extends FlexibleProvable<T>>(
       fields[j] = fields[j].add(maybeField);
     }
   }
-  let aux = auxiliary(type as Provable<T>, () => {
+  let aux = auxiliary(type as Provable<T, any>, () => {
     let i = mask.findIndex((b) => b.toBoolean());
     if (i === -1) return undefined;
     return values[i];
   });
-  return (type as Provable<T>).fromFields(fields, aux);
+  return (type as Provable<T, any>).fromFields(fields, aux);
 }
 
 // logging in provable code
@@ -427,10 +428,10 @@ function checkLength(name: string, xs: Field[], ys: Field[]) {
 function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   let fields = type.toFields(value);
   let aux = type.toAuxiliary?.(value) ?? [];
-  return (type as Provable<T>).fromFields(fields, aux);
+  return (type as Provable<T, any>).fromFields(fields, aux);
 }
 
-function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {
+function auxiliary<T>(type: Provable<T, any>, compute: () => T | undefined) {
   let aux;
   // TODO: this accepts types without .toAuxiliary(), should be changed when all snarky types are moved to TS
   Provable.asProver(() => {
@@ -454,7 +455,7 @@ let memoizationContext = Context.create<MemoizationContext>();
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return Provable.witness<T>(type as Provable<T>, () => {
+  return Provable.witness<T>(type as Provable<T, any>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;
@@ -467,7 +468,7 @@ function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return (type as Provable<T>).fromFields(
+    return (type as Provable<T, any>).fromFields(
       currentValue.fields,
       currentValue.aux
     );
@@ -489,8 +490,9 @@ function provableArray<A extends FlexibleProvable<any>>(
   length: number
 ): InferredProvable<A[]> {
   type T = InferProvable<A>;
+  type TValue = InferValue<A>;
   type TJson = InferJson<A>;
-  let type = elementType as ProvableExtended<T>;
+  let type = elementType as ProvableExtended<T, TValue, TJson>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
@@ -536,6 +538,15 @@ function provableArray<A extends FlexibleProvable<any>>(
         (type as any).check(array[i]);
       }
     },
+
+    toValue(x) {
+      return x.map((v) => type.toValue(v));
+    },
+
+    fromValue(x) {
+      return x.map((v) => type.fromValue(v));
+    },
+
     /**
      * Encodes this structure into a JSON-like object.
      */
@@ -573,5 +584,5 @@ function provableArray<A extends FlexibleProvable<any>>(
       }
       return Array.from({ length }, () => type.empty());
     },
-  } satisfies ProvableExtended<T[], TJson[]> as any;
+  } satisfies ProvableExtended<T[], TValue[], TJson[]> as any;
 }

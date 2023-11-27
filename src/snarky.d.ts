@@ -47,7 +47,7 @@ export {
  *
  * The properties and methods on the provable type exist in all base o1js types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
  */
-declare interface Provable<T> {
+declare interface Provable<T, TValue> {
   /**
    * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
    *
@@ -96,6 +96,16 @@ declare interface Provable<T> {
    * @param value - the element of type `T` to put assertions on.
    */
   check: (value: T) => void;
+
+  /**
+   * Convert provable type to a normal JS type.
+   */
+  toValue: (x: T) => TValue;
+
+  /**
+   * Convert provable type from a normal JS type.
+   */
+  fromValue: (x: TValue) => T;
 }
 
 /**
@@ -106,16 +116,7 @@ declare interface Provable<T> {
  *
  * It includes the same properties and methods as the {@link Provable} interface.
  */
-declare interface ProvablePure<T> extends Provable<T> {
-  /**
-   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
-   *
-   * @param value - the element of type `T` to generate the {@link Field} array from.
-   *
-   * @return A {@link Field} array describing how this `T` element is made up of {@link Field} elements.
-   */
-  toFields: (value: T) => Field[];
-
+declare interface ProvablePure<T, TValue> extends Provable<T, TValue> {
   /**
    * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxiliary" (non-provable) data of `value`.
    * As any element of the interface `ProvablePure<T>` includes no "auxiliary" data by definition, this function always returns a default value.
@@ -136,25 +137,6 @@ declare interface ProvablePure<T> extends Provable<T> {
    * @return An element of type `T` generated from the given provable data.
    */
   fromFields: (fields: Field[]) => T;
-
-  /**
-   * Return the size of the `T` type in terms of {@link Field} type, as {@link Field} is the primitive type.
-   *
-   * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
-   *
-   * @return A `number` representing the size of the `T` type in terms of {@link Field} type.
-   */
-  sizeInFields(): number;
-
-  /**
-   * Add assertions to the proof to check if `value` is a valid member of type `T`.
-   * This function does not return anything, rather creates any number of assertions on the proof to prove `value` is a valid member of the type `T`.
-   *
-   * For instance, calling check function on the type {@link Bool} asserts that the value of the element is either 1 or 0.
-   *
-   * @param value - the element of type `T` to put assertions on.
-   */
-  check: (value: T) => void;
 }
 
 type MlGroup = MlPair<FieldVar, FieldVar>;
