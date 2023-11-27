@@ -662,7 +662,10 @@ class SmartContract {
    * it so that proofs end up in the original finite field). These are fairly expensive operations, so **expect compiling to take at least 20 seconds**,
    * up to several minutes if your circuit is large or your hardware is not optimal for these operations.
    */
-  static async compile({ cache = Cache.FileSystemDefault } = {}) {
+  static async compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (
@@ -690,6 +693,7 @@ class SmartContract {
       gates,
       proofSystemTag: this,
       cache,
+      forceRecompile,
     });
     let verificationKey = {
       data: verificationKey_.data,

@@ -26,7 +26,7 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @method blockheightEquals(y: UInt32) {
     let length = this.network.blockchainLength.get();
-    this.network.blockchainLength.assertEquals(length);
+    this.network.blockchainLength.requireEquals(length);
 
     length.assertEquals(y);
   }
