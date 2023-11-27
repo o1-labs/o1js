@@ -1,7 +1,6 @@
 import { Provable } from '../provable.js';
 import { Field3 } from './foreign-field.js';
 import { EllipticCurve } from './elliptic-curve.js';
-import { printGates } from '../testing/constraint-system.js';
 import { assert } from './common.js';
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
@@ -32,10 +31,10 @@ let csDouble = Provable.constraintSystem(() => {
   double(g, Secp256k1.modulus);
 });
 
-printGates(csAdd.gates);
+csAdd.print();
 console.log({ digest: csAdd.digest, rows: csAdd.rows });
 
-printGates(csDouble.gates);
+csDouble.print();
 console.log({ digest: csDouble.digest, rows: csDouble.rows });
 
 let point = initialAggregator(Pallas);
