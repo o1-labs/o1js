@@ -42,7 +42,7 @@ class Bool {
       this.value = x;
       return;
     }
-    this.value = FieldVar.constant(B(x));
+    this.value = FieldVar.constant(B.toBigint(x));
   }
 
   isConstant(): this is { value: ConstantBoolVar } {
@@ -275,18 +275,16 @@ class Bool {
   /**
    * `Provable<Bool>.toValue()`
    */
-  static toValue(x: Bool): 0n | 1n {
-    // TODO make `boolean` the value type
-    return x.toBoolean() ? 1n : 0n;
+  static toValue(x: Bool): boolean {
+    return x.toBoolean();
   }
 
   /**
    * `Provable<Bool>.fromValue()`
    */
-  static fromValue(x: 0n | 1n | Bool) {
-    // TODO make `boolean` the value type
-    if (typeof x === 'bigint') return new Bool(x === 1n);
-    return x;
+  static fromValue(b: boolean | Bool) {
+    if (typeof b === 'boolean') return new Bool(b);
+    return b;
   }
 
   /**
@@ -366,7 +364,7 @@ class Bool {
 
   static #toVar(x: boolean | Bool): BoolVar {
     if (Bool.#isBool(x)) return x.value;
-    return FieldVar.constant(B(x));
+    return FieldVar.constant(B.toBigint(x));
   }
 }
 

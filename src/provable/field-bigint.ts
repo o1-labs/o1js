@@ -4,13 +4,14 @@ import {
   BinableBigint,
   HashInput,
   ProvableBigint,
+  BinableBool,
 } from '../bindings/lib/provable-bigint.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
 export { pseudoClass, sizeInBits, checkRange, checkField };
 
 type Field = bigint;
-type Bool = 0n | 1n;
+type Bool = boolean;
 type UInt32 = bigint;
 type UInt64 = bigint;
 
@@ -24,6 +25,7 @@ type Sign = 1n | minusOne;
 
 const checkField = checkRange(0n, Fp.modulus, 'Field');
 const checkBool = checkAllowList(new Set([0n, 1n]), 'Bool');
+const checkBoolBytes = checkAllowList(new Set([0, 1]), 'Bool');
 const checkSign = checkAllowList(new Set([1n, minusOne]), 'Sign');
 
 /**
@@ -45,29 +47,35 @@ const Field = pseudoClass(
  */
 const Bool = pseudoClass(
   function Bool(value: boolean): Bool {
-    return BigInt(value) as Bool;
+    return value;
   },
   {
-    ...ProvableBigint<Bool>(checkBool),
-    ...BinableBigint<Bool>(1, checkBool),
+    ...BinableBool(checkBoolBytes),
+    fromBigint(x: Field) {
+      checkBool(x);
+      return x === 0n ? false : true;
+    },
+    toBigint(x: Bool) {
+      return x ? 1n : 0n;
+    },
     toInput(x: Bool): HashInput {
-      return { fields: [], packed: [[x, 1]] };
+      return { fields: [], packed: [[Bool.toBigint(x), 1]] };
     },
     toBoolean(x: Bool) {
-      return !!x;
+      return x;
     },
     toJSON(x: Bool) {
-      return !!x;
+      return x;
     },
     fromJSON(b: boolean) {
-      let x = BigInt(b) as Bool;
-      checkBool(x);
-      return x;
+      return b;
+    },
+    empty() {
+      return false;
     },
     sizeInBytes: 1,
     fromField(x: Field) {
-      checkBool(x);
-      return x as 0n | 1n;
+      return Bool.fromBigint(x);
     },
   }
 );
@@ -156,8 +164,8 @@ function checkRange(lower: bigint, upper: bigint, name: string) {
   };
 }
 
-function checkAllowList(valid: Set<bigint>, name: string) {
-  return (x: bigint) => {
+function checkAllowList<T>(valid: Set<T>, name: string) {
+  return (x: T) => {
     if (!valid.has(x)) {
       throw Error(
         `${name}: input must be one of ${[...valid].join(', ')}, got ${x}`
