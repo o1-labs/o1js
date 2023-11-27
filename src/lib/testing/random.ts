@@ -135,6 +135,7 @@ const Generators: Generators = {
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
+  TransactionVersion: uint32,
 };
 let typeToBigintGenerator = new Map<Provable<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]
@@ -238,6 +239,7 @@ const JsonGenerators: JsonGenerators = {
   null: constant(null),
   string: base58(nat(50)),
   number: nat(3),
+  TransactionVersion: json_.uint32,
 };
 let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]

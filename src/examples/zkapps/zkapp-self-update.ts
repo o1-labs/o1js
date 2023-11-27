@@ -12,6 +12,8 @@ import {
   AccountUpdate,
   Circuit,
   Provable,
+  TransactionVersion,
+  UInt32,
 } from 'snarkyjs';
 
 class Foo extends SmartContract {
@@ -19,7 +21,10 @@ class Foo extends SmartContract {
     super.init();
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.proof(),
+      setVerificationKey: {
+        auth: Permissions.proof(),
+        txnVersion: TransactionVersion.current(),
+      },
     });
   }
 

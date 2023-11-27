@@ -5,6 +5,7 @@ import {
   Permissions,
   PrivateKey,
   UInt64,
+  TransactionVersion,
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
@@ -427,7 +428,10 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: {
+        auth: Permissions.impossible(),
+        txnVersion: TransactionVersion.current(),
+      },
     });
   });
   await tx.prove();
