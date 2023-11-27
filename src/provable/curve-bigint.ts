@@ -11,7 +11,6 @@ import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
 import {
   BinableBigint,
   ProvableBigint,
-  provable,
   signable,
 } from '../bindings/lib/provable-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
@@ -138,7 +137,7 @@ let Base58PrivateKey = base58(BinablePrivateKey, versionBytes.privateKey);
  */
 const PrivateKey = {
   ...Scalar,
-  ...provable(Scalar),
+  ...signable(Scalar),
   ...Base58PrivateKey,
   ...BinablePrivateKey,
   toPublicKey(key: PrivateKey) {
