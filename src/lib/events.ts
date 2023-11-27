@@ -61,6 +61,16 @@ function createEvents<Field>({
     ...Events,
     ...dataAsHash({
       empty: Events.empty,
+      toValue(data: Field[][]) {
+        return data.map((row) => row.map((e) => BigInt(Field.toJSON(e))));
+      },
+      fromValue(value: bigint[][]) {
+        let data = value.map((row) =>
+          row.map((e) => Field.fromJSON(e.toString()))
+        );
+        let hash = Events.hash(data);
+        return { data, hash };
+      },
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -104,10 +114,20 @@ function createEvents<Field>({
     },
   };
 
-  const SequenceEventsProvable = {
+  const ActionsProvable = {
     ...Actions,
     ...dataAsHash({
       empty: Actions.empty,
+      toValue(data: Field[][]) {
+        return data.map((row) => row.map((e) => BigInt(Field.toJSON(e))));
+      },
+      fromValue(value: bigint[][]) {
+        let data = value.map((row) =>
+          row.map((e) => Field.fromJSON(e.toString()))
+        );
+        let hash = Actions.hash(data);
+        return { data, hash };
+      },
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -119,18 +139,22 @@ function createEvents<Field>({
     }),
   };
 
-  return { Events: EventsProvable, Actions: SequenceEventsProvable };
+  return { Events: EventsProvable, Actions: ActionsProvable };
 }
 
-function dataAsHash<T, J, Field>({
+function dataAsHash<T, V, J, Field>({
   empty,
+  toValue,
+  fromValue,
   toJSON,
   fromJSON,
 }: {
   empty: () => { data: T; hash: Field };
+  toValue: (value: T) => V;
+  fromValue: (value: V) => { data: T; hash: Field };
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
-}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> {
+}): GenericProvableExtended<{ data: T; hash: Field }, V, J, Field> {
   return {
     empty,
     sizeInFields() {
@@ -144,6 +168,12 @@ function dataAsHash<T, J, Field>({
     },
     fromFields([hash], [data]) {
       return { data, hash };
+    },
+    toValue({ data }) {
+      return toValue(data);
+    },
+    fromValue(value) {
+      return fromValue(value);
     },
     toJSON({ data }) {
       return toJSON(data);

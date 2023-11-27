@@ -409,6 +409,14 @@ class Group {
     return 2;
   }
 
+  static toValue({ x, y }: Group) {
+    return { x: x.toBigInt(), y: y.toBigInt() };
+  }
+
+  static fromValue(g: { x: bigint; y: bigint }) {
+    return new Group(g);
+  }
+
   /**
    * Serializes a {@link Group} element to a JSON object.
    *
