@@ -26,7 +26,7 @@ import {
 import { genericLayoutFold } from '../../bindings/lib/from-layout-signable.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
-  GenericSignable,
+  PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
@@ -35,10 +35,7 @@ import { randomBytes } from '../../bindings/crypto/random.js';
 import { alphabet } from '../base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import {
-  ProvableExtended,
-  Signable,
-} from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
@@ -114,11 +111,11 @@ const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
 const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
-const PrimitiveMap = primitiveTypeMap<bigint>();
-type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
-type Signable_<T> = GenericSignable<T, any, bigint>;
+type Types = typeof TypeMap & typeof customTypes & PrimitiveTypeMap<bigint>;
 type Generators = {
-  [K in keyof Types]: Types[K] extends Signable_<infer U> ? Random<U> : never;
+  [K in keyof Types]: Types[K] extends Signable<infer U, any>
+    ? Random<U>
+    : never;
 };
 const Generators: Generators = {
   Field: field,
@@ -141,8 +138,8 @@ const Generators: Generators = {
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
 };
-let typeToBigintGenerator = new Map<Signable_<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, Generators[key as keyof Generators]])
@@ -244,8 +241,8 @@ const JsonGenerators: JsonGenerators = {
   string: base58(nat(50)),
   number: nat(3),
 };
-let typeToJsonGenerator = new Map<Signable_<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, JsonGenerators[key as keyof JsonGenerators]])
