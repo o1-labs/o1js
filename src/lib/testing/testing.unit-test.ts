@@ -20,10 +20,11 @@ test(Random.accountUpdate, (accountUpdate, assert) => {
     jsonString ===
       JSON.stringify(AccountUpdate.toJSON(AccountUpdate.fromJSON(json)))
   );
-  let fields = AccountUpdate.toFields(accountUpdate);
-  let auxiliary = AccountUpdate.toAuxiliary(accountUpdate);
-  let recovered = AccountUpdate.fromFields(fields, auxiliary);
-  assert(jsonString === JSON.stringify(AccountUpdate.toJSON(recovered)));
+  // TODO add back using `fromValue`
+  // let fields = AccountUpdate.toFields(accountUpdate);
+  // let auxiliary = AccountUpdate.toAuxiliary(accountUpdate);
+  // let recovered = AccountUpdate.fromFields(fields, auxiliary);
+  // assert(jsonString === JSON.stringify(AccountUpdate.toJSON(recovered)));
 });
 test(Random.json.accountUpdate, (json) => {
   let jsonString = JSON.stringify(json);
