@@ -1,4 +1,4 @@
-import { GenericField, GenericSignableField } from '../bindings/lib/generic.js';
+import { GenericSignableField } from '../bindings/lib/generic.js';
 import { prefixToField } from '../bindings/lib/binable.js';
 
 export { createHashHelpers, HashHelpers };

@@ -566,5 +566,14 @@ function provableArray<A extends FlexibleProvable<any>>(
         HashInput.empty
       );
     },
+
+    emptyValue() {
+      if (!('emptyValue' in type)) {
+        throw Error(
+          'circuitArray.emptyValue: element type has no emptyValue method'
+        );
+      }
+      return Array(length).fill(type.emptyValue());
+    },
   } satisfies ProvableExtended<T[], TJson[]> as any;
 }

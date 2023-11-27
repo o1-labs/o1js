@@ -179,6 +179,9 @@ const TokenSymbolPure: ProvableExtended<
   toInput({ field }) {
     return { packed: [[field, 48]] };
   },
+  emptyValue() {
+    return { symbol: '', field: Field(0n) };
+  },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
   static get empty() {
