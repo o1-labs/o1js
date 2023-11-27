@@ -6,7 +6,7 @@ import assert from 'assert';
 let privateKey = Secp256k1.Scalar.random();
 let publicKey = Secp256k1.scale(Secp256k1.one, privateKey);
 
-// TODO make this use an actual keccak hash
+// TODO use an actual keccak hash
 let messageHash = Secp256k1.Scalar.random();
 
 let signature = Gadgets.Ecdsa.sign(Secp256k1, messageHash, privateKey);
