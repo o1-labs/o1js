@@ -106,11 +106,22 @@ function writeType(typeData, isJson, withTypeMap) {
   };
 }
 
-function writeTsContent(types, isJson, leavesRelPath) {
+function writeTsContent({
+  jsLayout: types,
+  isJson,
+  isProvable,
+  leavesRelPath,
+}) {
   let output = '';
   let dependencies = new Set();
   let converters = {};
   let exports = new Set(isJson ? [] : ['customTypes']);
+
+  let fromLayout = isProvable ? 'provableFromLayout' : 'signableFromLayout';
+  let FromLayout = isProvable ? 'ProvableFromLayout' : 'SignableFromLayout';
+  let GenericType = isProvable ? 'GenericProvableExtended' : 'GenericSignable';
+  let GeneratedType = isProvable ? 'ProvableExtended' : 'Signable';
+
   for (let [Type, value] of Object.entries(types)) {
     let inner = writeType(value, isJson);
     exports.add(Type);
@@ -118,7 +129,7 @@ function writeTsContent(types, isJson, leavesRelPath) {
     mergeObject(converters, inner.converters);
     output += `type ${Type} = ${inner.output};\n\n`;
     if (!isJson) {
-      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any);\n\n`;
+      output += `let ${Type} = ${fromLayout}<${Type}, Json.${Type}>(jsLayout.${Type} as any);\n\n`;
     }
   }
 
@@ -135,8 +146,8 @@ function writeTsContent(types, isJson, leavesRelPath) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { GenericProvableExtended } from '../../lib/generic.js';\n" +
-      "import { ProvableFromLayout, GenericLayout } from '../../lib/from-layout.js';\n" +
+    ? `import { ${GenericType} } from '../../lib/generic.js';\n` +
+      `import { ${FromLayout}, GenericLayout } from '../../lib/from-layout.js';\n` +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -147,7 +158,7 @@ ${
   !isJson
     ? 'export { Json };\n' +
       `export * from '${leavesRelPath}';\n` +
-      'export { provableFromLayout, toJSONEssential, emptyValue, Layout, TypeMap };\n'
+      `export { ${fromLayout}, toJSONEssential, emptyValue, Layout, TypeMap };\n`
     : `export * from '${leavesRelPath}';\n` + 'export { TypeMap };\n'
 }
 
@@ -158,7 +169,7 @@ ${
   (!isJson || '') &&
   `
 const TypeMap: {
-  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
+  [K in keyof TypeMap]: ${GeneratedType}<TypeMap[K], Json.TypeMap[K]>;
 } = {
   ${[...typeMapKeys].join(', ')}
 }
@@ -168,14 +179,14 @@ const TypeMap: {
 ${
   (!isJson || '') &&
   `
-type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
+type ${GeneratedType}<T, TJson> = ${GenericType}<T, TJson, Field>;
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = { ${customTypes
-    .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
+    .map((c) => `${c.typeName}: ${GeneratedType}<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
-let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
+let { ${fromLayout}, toJSONEssential, emptyValue } = ${FromLayout}<
   TypeMap,
   Json.TypeMap
 >(TypeMap, customTypes);
@@ -196,25 +207,27 @@ async function writeTsFile(content, relPath) {
 let genPath = '../../bindings/mina-transaction/gen';
 await ensureDir(genPath);
 
-let jsonTypesContent = writeTsContent(
+let jsonTypesContent = writeTsContent({
   jsLayout,
-  true,
-  '../transaction-leaves-json.js'
-);
+  isJson: true,
+  leavesRelPath: '../transaction-leaves-json.js',
+});
 await writeTsFile(jsonTypesContent, `${genPath}/transaction-json.ts`);
 
-let jsTypesContent = writeTsContent(
+let jsTypesContent = writeTsContent({
   jsLayout,
-  false,
-  '../transaction-leaves.js'
-);
+  isJson: false,
+  isProvable: true,
+  leavesRelPath: '../transaction-leaves.js',
+});
 await writeTsFile(jsTypesContent, `${genPath}/transaction.ts`);
 
-jsTypesContent = writeTsContent(
+jsTypesContent = writeTsContent({
   jsLayout,
-  false,
-  '../transaction-leaves-bigint.js'
-);
+  isJson: false,
+  isProvable: false,
+  leavesRelPath: '../transaction-leaves-bigint.js',
+});
 await writeTsFile(jsTypesContent, `${genPath}/transaction-bigint.ts`);
 
 await writeTsFile(
