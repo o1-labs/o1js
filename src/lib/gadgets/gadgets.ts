@@ -551,20 +551,24 @@ const Gadgets = {
   },
 
   /**
-   * TODO
+   * ECDSA verification gadget and helper methods.
    */
   Ecdsa: {
     /**
-     * TODO
+     * Verify an ECDSA signature.
      *
      * @example
      * ```ts
-     * let Curve = Curves.Secp256k1; // TODO provide this somehow
-     * // TODO easy way to check that foreign field elements are valid
-     * let signature = { r, s };
-     * // TODO need a way to check that publicKey is on curve
-     * let publicKey = { x, y };
+     * const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
      *
+     * // assert that message hash and signature are valid scalar field elements
+     * Gadgets.ForeignField.assertAlmostFieldElements(
+     *   [signature.r, signature.s, msgHash],
+     *   Curve.order
+     * );
+     * // TODO add an easy way to prove that the public key lies on the curve
+     *
+     * // verify signature
      * Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
      * ```
      */
@@ -578,10 +582,9 @@ const Gadgets = {
     },
 
     /**
-     * TODO
+     * Sign a message hash using ECDSA.
      *
-     * should this be here, given that it's not a provable method?
-     * maybe assert that we are not running in provable context
+     * _This method is not provable._
      */
     sign(
       Curve: Crypto.Curve,
