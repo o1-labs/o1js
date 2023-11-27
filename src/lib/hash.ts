@@ -151,6 +151,7 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
 
 const TokenSymbolPure: ProvableExtended<
   { symbol: string; field: Field },
+  string,
   string
 > = {
   toFields({ field }) {
@@ -168,6 +169,13 @@ const TokenSymbolPure: ProvableExtended<
   check({ field }: TokenSymbol) {
     let actual = field.rangeCheckHelper(48);
     actual.assertEquals(field);
+  },
+  toValue({ symbol }) {
+    return symbol;
+  },
+  fromValue(symbol: string) {
+    let field = prefixToField(symbol);
+    return { symbol, field };
   },
   toJSON({ symbol }) {
     return symbol;

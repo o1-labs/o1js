@@ -204,8 +204,8 @@ function public_(target: any, _key: string | symbol, index: number) {
 
 type CircuitData<P, W> = {
   main(publicInput: P, privateInput: W): void;
-  publicInputType: ProvablePure<P>;
-  privateInputType: ProvablePure<W>;
+  publicInputType: ProvablePure<P, any>;
+  privateInputType: ProvablePure<W, any>;
 };
 
 function mainFromCircuitData<P, W>(
@@ -266,7 +266,9 @@ function circuitMain(
 }
 
 // TODO support auxiliary data
-function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
+function provableFromTuple(
+  typs: ProvablePure<any, any>[]
+): ProvablePure<any, any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -300,6 +302,14 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
 
     check(xs: Array<any>) {
       typs.forEach((typ, i) => (typ as any).check(xs[i]));
+    },
+
+    toValue(x) {
+      return typs.map((typ, i) => typ.toValue(x[i]));
+    },
+
+    fromValue(x) {
+      return typs.map((typ, i) => typ.fromValue(x[i]));
     },
   };
 }

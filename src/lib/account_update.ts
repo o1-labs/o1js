@@ -1285,6 +1285,11 @@ class AccountUpdate implements Types.AccountUpdate {
       other
     );
   }
+  static toValue = Types.AccountUpdate.toValue;
+  static fromValue(value: TypesBigint.AccountUpdate): AccountUpdate {
+    let accountUpdate = Types.AccountUpdate.fromValue(value);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
+  }
 
   static witness<T>(
     type: FlexibleProvable<T>,
