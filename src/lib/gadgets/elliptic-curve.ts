@@ -2,8 +2,8 @@ import { inverse, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
-import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l, multiRangeCheck } from './range-check.js';
+import { Field3, ForeignField, split } from './foreign-field.js';
+import { l } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBits,

@@ -616,5 +616,15 @@ export namespace Gadgets {
      */
     export type Sum = Sum_;
   }
+
+  export namespace Ecdsa {
+    /**
+     * ECDSA signature consisting of two curve scalars.
+     */
+    export type Signature = EcdsaSignature;
+    export type signature = ecdsaSignature;
+  }
 }
 type Sum_ = Sum;
+type EcdsaSignature = Ecdsa.Signature;
+type ecdsaSignature = Ecdsa.signature;
