@@ -19,8 +19,8 @@ import {
 } from './testing/equivalent.js';
 
 // types
-Field satisfies Provable<Field>;
-Field satisfies ProvablePure<Field>;
+Field satisfies Provable<Field, bigint>;
+Field satisfies ProvablePure<Field, bigint>;
 Field satisfies ProvableExtended<Field>;
 Field satisfies Binable<Field>;
 
