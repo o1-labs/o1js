@@ -33,7 +33,7 @@ import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
-import { DeepProvableOrValue } from '../bindings/lib/provable-generic.js';
+import { From } from '../bindings/lib/provable-generic.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1288,7 +1288,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static toValue = Types.AccountUpdate.toValue;
   static fromValue(
-    value: DeepProvableOrValue<typeof Types.AccountUpdate> | AccountUpdate
+    value: From<typeof Types.AccountUpdate> | AccountUpdate
   ): AccountUpdate {
     if (value instanceof AccountUpdate) return value;
     let accountUpdate = Types.AccountUpdate.fromValue(value);

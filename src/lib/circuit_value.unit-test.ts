@@ -11,7 +11,7 @@ import { Field } from './core.js';
 import { Bool } from './bool.js';
 import assert from 'assert/strict';
 import { FieldType } from './field.js';
-import { DeepProvableOrValue } from '../bindings/lib/provable-generic.js';
+import { From } from '../bindings/lib/provable-generic.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },
@@ -117,16 +117,16 @@ let myStructInput = {
   pk: { x: 4n, isOdd: true },
   uint: [100n, 5n],
 };
-let myStruct = MyStructPure.from(myStructInput);
+let myStruct = MyStructPure.fromValue(myStructInput);
 
-type FlexibleStruct = DeepProvableOrValue<typeof MyStructPure>;
+type FlexibleStruct = From<typeof MyStructPure>;
 myStruct satisfies FlexibleStruct;
 myStructInput satisfies FlexibleStruct;
 
 expect(myStruct).toBeInstanceOf(MyStructPure);
 expect(MyStructPure.toValue(myStruct)).toEqual(myStructInput);
 
-let myStruct2 = MyStructPure.from(myStruct);
+let myStruct2 = MyStructPure.fromValue(myStruct);
 expect(myStruct2).toBeInstanceOf(MyStructPure);
 expect(myStruct2).toEqual(myStruct);
 

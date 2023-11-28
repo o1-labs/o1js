@@ -15,10 +15,7 @@ import type {
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
 import { Provable } from './provable.js';
-import {
-  DeepProvableOrValue,
-  InferValue,
-} from 'src/bindings/lib/provable-generic.js';
+import { From, InferValue } from 'src/bindings/lib/provable-generic.js';
 
 // external API
 export {
@@ -414,7 +411,7 @@ function Struct<
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
     ? ProvablePure<T, V>
     : Provable<T, V>) & {
-    from: (value: DeepProvableOrValue<A>) => T;
+    fromValue: (value: From<A>) => T;
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
@@ -431,7 +428,7 @@ function Struct<
       Object.assign(this, value);
     }
 
-    static from(value: DeepProvableOrValue<A>): T {
+    static from(value: From<A>): T {
       let x = this.type.fromValue(value as any);
       let struct = Object.create(this.prototype);
       return Object.assign(struct, x);
@@ -514,8 +511,8 @@ function Struct<
     /**
      * `Provable<T>.fromValue()`
      */
-    static fromValue(v: V): T {
-      let value = this.type.fromValue(v);
+    static fromValue(v: From<A>): T {
+      let value = this.type.fromValue(v as any);
       let struct = Object.create(this.prototype);
       return Object.assign(struct, value);
     }

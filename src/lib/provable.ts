@@ -24,10 +24,7 @@ import {
   constraintSystem,
 } from './provable-context.js';
 import { isBool } from './bool.js';
-import {
-  DeepProvableOrValue,
-  InferValue,
-} from 'src/bindings/lib/provable-generic.js';
+import { From, InferValue } from 'src/bindings/lib/provable-generic.js';
 
 // external API
 export { Provable };
@@ -194,10 +191,10 @@ const Provable = {
   inCheckedComputation,
 };
 
-function witness<
-  A extends Provable<any, any>,
-  T extends DeepProvableOrValue<A> = DeepProvableOrValue<A>
->(type: A, compute: () => T): InferProvable<A> {
+function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
+  type: A,
+  compute: () => T
+): InferProvable<A> {
   type S = InferProvable<A>;
   let ctx = snarkContext.get();
 
@@ -596,7 +593,7 @@ function provableArray<A extends FlexibleProvable<any>>(
 
 function from<A extends Provable<any, any>>(
   type: A,
-  value: DeepProvableOrValue<A>
+  value: From<A>
 ): InferProvable<A> {
   return type.fromValue(value);
 }

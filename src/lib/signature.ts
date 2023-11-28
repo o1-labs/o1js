@@ -239,7 +239,7 @@ class PublicKey extends CircuitValue {
   }
   static fromValue<T extends AnyConstructor>(
     this: T,
-    { x, isOdd }: PublicKey | { x: bigint; isOdd: boolean }
+    { x, isOdd }: { x: Field | bigint; isOdd: Bool | boolean }
   ): InstanceType<T> {
     return PublicKey.from({ x: Field.from(x), isOdd: Bool(isOdd) }) as any;
   }

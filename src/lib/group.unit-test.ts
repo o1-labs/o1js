@@ -18,8 +18,8 @@ test(Random.field, Random.field, (a, b, assert) => {
   } = Poseidon.hashToGroup([b])!;
 
   const zero = Group.zero;
-  const g1 = Group.fromCoordinates(x1, y1);
-  const g2 = Group.fromCoordinates(x2, y2);
+  const g1 = Group.from(x1, y1);
+  const g2 = Group.from(x2, y2);
 
   run(g1, g2, (x, y) => x.add(y), assert);
   run(g1.neg(), g2.neg(), (x, y) => x.add(y), assert);

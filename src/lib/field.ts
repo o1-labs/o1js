@@ -1143,7 +1143,7 @@ class Field {
   /**
    * `Provable<Field>.fromValue()`
    */
-  static fromValue(x: bigint | Field) {
+  static fromValue(x: Field | bigint | number | string) {
     return Field.from(x);
   }
 

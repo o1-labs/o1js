@@ -169,9 +169,9 @@ class Group {
       });
 
       let [, x, y] = Snarky.gates.ecAdd(
-        Group.fromCoordinates(x1.seal(), y1.seal()).#toTuple(),
-        Group.fromCoordinates(x2.seal(), y2.seal()).#toTuple(),
-        Group.fromCoordinates(x3, y3).#toTuple(),
+        Group.from(x1.seal(), y1.seal()).#toTuple(),
+        Group.from(x2.seal(), y2.seal()).#toTuple(),
+        Group.from(x3, y3).#toTuple(),
         inf.toField().value,
         same_x.value,
         s.value,
@@ -292,21 +292,6 @@ class Group {
    * Coerces two x and y coordinates into a {@link Group} element.
    */
   static from(
-    g:
-      | {
-          x: FieldVar | Field | number | string | bigint;
-          y: FieldVar | Field | number | string | bigint;
-        }
-      | Group
-  ) {
-    if (g instanceof Group) return g;
-    return new Group({ x: g.x, y: g.y });
-  }
-
-  /**
-   * Coerces two x and y coordinates into a {@link Group} element.
-   */
-  static fromCoordinates(
     x: FieldVar | Field | number | string | bigint,
     y: FieldVar | Field | number | string | bigint
   ) {
@@ -426,7 +411,9 @@ class Group {
     return { x: x.toBigInt(), y: y.toBigInt() };
   }
 
-  static fromValue(g: { x: bigint; y: bigint }) {
+  static fromValue(
+    g: { x: bigint | number | Field; y: bigint | number | Field } | Group
+  ) {
     return new Group(g);
   }
 
