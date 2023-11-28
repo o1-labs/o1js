@@ -14,11 +14,13 @@ import { foreignField, throwError, uniformForeignField } from './test-utils.js';
 import {
   Second,
   equivalentProvable,
+  fromRandom,
   map,
   oneOf,
   record,
   unit,
 } from '../testing/equivalent.js';
+import { Random } from '../testing/random.js';
 
 // quick tests
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
@@ -49,27 +51,39 @@ for (let Curve of curves) {
     }
   );
 
+  // with 30% prob, test the version without GLV even if the curve supports it
+  let noGlv = fromRandom(Random.map(Random.fraction(), (f) => f < 0.3));
+
   // provable method we want to test
-  const verify = (s: Second<typeof signature>) => {
-    Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+  const verify = (s: Second<typeof signature>, noGlv: boolean) => {
+    let hasGlv = Curve.hasEndomorphism;
+    if (noGlv) Curve.hasEndomorphism = false; // hack to force non-GLV version
+    try {
+      Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+    } finally {
+      Curve.hasEndomorphism = hasGlv;
+    }
   };
 
   // positive test
-  equivalentProvable({ from: [signature], to: unit })(
+  equivalentProvable({ from: [signature, noGlv], to: unit })(
     () => {},
     verify,
     'valid signature verifies'
   );
 
   // negative test
-  equivalentProvable({ from: [pseudoSignature], to: unit })(
+  equivalentProvable({ from: [pseudoSignature, noGlv], to: unit })(
     () => throwError('invalid signature'),
     verify,
     'invalid signature fails'
   );
 
   // test against constant implementation, with both invalid and valid signatures
-  equivalentProvable({ from: [oneOf(signature, pseudoSignature)], to: unit })(
+  equivalentProvable({
+    from: [oneOf(signature, pseudoSignature), noGlv],
+    to: unit,
+  })(
     ({ signature, publicKey, msg }) => {
       assert(verifyEcdsaConstant(Curve, signature, msg, publicKey), 'verifies');
     },
