@@ -3,15 +3,7 @@ import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import {
-  Gadgets,
-  Gadgets,
-  Gadgets,
-  Gadgets,
-  Gadgets,
-  Gadgets,
-  Gadgets,
-} from './gadgets/gadgets.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
