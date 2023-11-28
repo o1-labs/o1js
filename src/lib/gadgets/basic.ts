@@ -1,3 +1,6 @@
+/**
+ * Basic gadgets that only use generic gates
+ */
 import { Fp } from '../../bindings/crypto/finite_field.js';
 import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
@@ -119,7 +122,7 @@ function assertBilinear(
   [a, b, c, d]: TupleN<bigint, 4>,
   z?: VarField
 ) {
-  // b*x + c*y - z + a*x*y + d === z
+  // b*x + c*y - z? + a*x*y + d === 0
   Gates.generic(
     { left: b, right: c, out: z === undefined ? 0n : -1n, mul: a, const: d },
     { left: x, right: y, out: z === undefined ? x : z }

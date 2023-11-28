@@ -1,8 +1,9 @@
 import { assert } from '../errors.js';
 
-export { Tuple, TupleN };
+export { Tuple, TupleN, AnyTuple };
 
 type Tuple<T> = [T, ...T[]] | [];
+type AnyTuple = Tuple<any>;
 
 const Tuple = {
   map<T extends Tuple<any>, B>(
@@ -36,6 +37,10 @@ const TupleN = {
       `Expected array of length ${n}, got ${arr.length}`
     );
     return arr as any;
+  },
+
+  hasLength<T, N extends number>(n: N, tuple: T[]): tuple is TupleN<T, N> {
+    return tuple.length === n;
   },
 };
 

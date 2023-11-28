@@ -25,9 +25,18 @@ export {
   unit,
   array,
   record,
+  map,
   fromRandom,
 };
-export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
+export {
+  Spec,
+  ToSpec,
+  FromSpec,
+  SpecFromFunctions,
+  ProvableSpec,
+  First,
+  Second,
+};
 
 // a `Spec` tells us how to compare two functions
 
@@ -108,8 +117,8 @@ function equivalent<
   Out extends ToSpec<any, any>
 >({ from, to }: { from: In; to: Out }) {
   return function run(
-    f1: (...args: Params1<In>) => Result1<Out>,
-    f2: (...args: Params2<In>) => Result2<Out>,
+    f1: (...args: Params1<In>) => First<Out>,
+    f2: (...args: Params2<In>) => Second<Out>,
     label = 'expect equal results'
   ) {
     let generators = from.map((spec) => spec.rng);
@@ -137,8 +146,8 @@ function equivalentAsync<
   Out extends ToSpec<any, any>
 >({ from, to }: { from: In; to: Out }, { runs = 1 } = {}) {
   return async function run(
-    f1: (...args: Params1<In>) => Promise<Result1<Out>> | Result1<Out>,
-    f2: (...args: Params2<In>) => Promise<Result2<Out>> | Result2<Out>,
+    f1: (...args: Params1<In>) => Promise<First<Out>> | First<Out>,
+    f2: (...args: Params2<In>) => Promise<Second<Out>> | Second<Out>,
     label = 'expect equal results'
   ) {
     let generators = from.map((spec) => spec.rng);
@@ -177,8 +186,8 @@ function equivalentProvable<
 >({ from: fromRaw, to }: { from: In; to: Out }) {
   let fromUnions = fromRaw.map(toUnion);
   return function run(
-    f1: (...args: Params1<In>) => Result1<Out>,
-    f2: (...args: Params2<In>) => Result2<Out>,
+    f1: (...args: Params1<In>) => First<Out>,
+    f2: (...args: Params2<In>) => Second<Out>,
     label = 'expect equal results'
   ) {
     let generators = fromUnions.map((spec) => spec.rng);
@@ -278,14 +287,21 @@ function array<T, S>(
 function record<Specs extends { [k in string]: Spec<any, any> }>(
   specs: Specs
 ): Spec<
-  { [k in keyof Specs]: Result1<Specs[k]> },
-  { [k in keyof Specs]: Result2<Specs[k]> }
+  { [k in keyof Specs]: First<Specs[k]> },
+  { [k in keyof Specs]: Second<Specs[k]> }
 > {
   return {
     rng: Random.record(mapObject(specs, (spec) => spec.rng)) as any,
     there: (x) => mapObject(specs, (spec, k) => spec.there(x[k])) as any,
     back: (x) => mapObject(specs, (spec, k) => spec.back(x[k])) as any,
   };
+}
+
+function map<T1, T2, S1, S2>(
+  { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
+  there: (t: T1) => S1
+): Spec<S1, S2> {
+  return { ...to, rng: Random.map(from.rng, there) };
 }
 
 function mapObject<K extends string, T, S>(
@@ -397,9 +413,9 @@ type Params2<Ins extends Tuple<OrUnion<any, any>>> = {
   [k in keyof Ins]: Param2<Ins[k]>;
 };
 
-type Result1<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
+type First<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
   ? Out1
   : never;
-type Result2<Out extends ToSpec<any, any>> = Out extends ToSpec<any, infer Out2>
+type Second<Out extends ToSpec<any, any>> = Out extends ToSpec<any, infer Out2>
   ? Out2
   : never;

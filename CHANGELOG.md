@@ -17,7 +17,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/26363465d...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
+
+# Breaking changes
+
+- `ZkProgram.compile()` now returns the verification key and its hash, to be consistent with `SmartContract.compile()` https://github.com/o1-labs/o1js/pull/1240
+
+# Added
+
+- **ECDSA signature verification**: new provable method `Gadgets.Ecdsa.verify()` and helpers on `Gadgets.Ecdsa.Signature` https://github.com/o1-labs/o1js/pull/1240
+  - For an example, see `./src/examples/zkprogram/ecdsa`
+- `Crypto` namespace which exposes elliptic curve and finite field arithmetic on bigints, as well as example curve parameters https://github.com/o1-labs/o1js/pull/1240
+- `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
+- `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
+
+### Changed
+
+- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions.
+  - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
+  - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
+  - `this.account.x.getAndAssertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265
+  - `this.account.x.assertBetween()` is now `this.account.x.requireBetween()` https://github.com/o1-labs/o1js/pull/1265
+  - `this.network.x.getAndAssertEquals()` is now `this.network.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1265
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `print()` method for pretty-printing the constraint system https://github.com/o1-labs/o1js/pull/1240
+
+## [0.14.2](https://github.com/o1-labs/o1js/compare/26363465d...1ad7333e9e)
 
 ### Breaking changes
 
@@ -32,7 +56,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
+- `Lightnet` namespace API updates with added `listAcquiredKeyPairs()` method https://github.com/o1-labs/o1js/pull/1256
 - Expose raw provable methods of a `ZkProgram` on `zkProgram.rawMethods` https://github.com/o1-labs/o1js/pull/1241
+- Reduce number of constraints needed by `rotate()`, `leftShift()` and, `rightShift()` gadgets https://github.com/o1-labs/o1js/pull/1201
+
+### Fixed
+
+- Add a parameter to `checkZkappTransaction` for block length to check for transaction inclusion. This fixes a case where `Transaction.wait()` only checked the latest block, which led to an error once the transaction was included in a block that was not the latest. https://github.com/o1-labs/o1js/pull/1239
 
 ## [0.14.1](https://github.com/o1-labs/o1js/compare/e8e7510e1...26363465d)
 
@@ -42,6 +72,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Gadgets.leftShift() / Gadgets.rightShift()`, new provable methods to support bitwise shifting. https://github.com/o1-labs/o1js/pull/1194
 - `Gadgets.and()`, new provable method to support bitwise and. https://github.com/o1-labs/o1js/pull/1193
 - `Gadgets.multiRangeCheck()` and `Gadgets.compactMultiRangeCheck()`, two building blocks for non-native arithmetic with bigints of size up to 264 bits. https://github.com/o1-labs/o1js/pull/1216
+
+### Fixed
+
+- Removed array reversal of fetched actions, since they are returned in the correct order. https://github.com/o1-labs/o1js/pull/1258
 
 ## [0.14.0](https://github.com/o1-labs/o1js/compare/045faa7...e8e7510e1)
 
@@ -56,7 +90,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
+- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network) https://github.com/o1-labs/o1js/pull/1167
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
 - `Gadgets.rotate()`, new provable method to support bitwise rotation for native field elements. https://github.com/o1-labs/o1js/pull/1182

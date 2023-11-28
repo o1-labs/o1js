@@ -1,19 +1,8 @@
-import {
-  FiniteField,
-  inverse,
-  mod,
-} from '../../bindings/crypto/finite_field.js';
+import { inverse, mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
-import {
-  Field3,
-  ForeignField,
-  Sum,
-  assertRank1,
-  split,
-  weakBound,
-} from './foreign-field.js';
+import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
 import { l, l2, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
@@ -31,7 +20,11 @@ import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet, assertBoolean } from './basic.js';
 
-export { EllipticCurve, Point, Ecdsa, EcdsaSignature };
+// external API
+export { EllipticCurve, Point, Ecdsa };
+
+// internal API
+export { verifyEcdsaConstant };
 
 const EllipticCurve = {
   add,
@@ -46,18 +39,20 @@ const EllipticCurve = {
 type Point = { x: Field3; y: Field3 };
 type point = { x: bigint; y: bigint };
 
-/**
- * ECDSA signature consisting of two curve scalars.
- */
-type EcdsaSignature = { r: Field3; s: Field3 };
-type ecdsaSignature = { r: bigint; s: bigint };
+namespace Ecdsa {
+  /**
+   * ECDSA signature consisting of two curve scalars.
+   */
+  export type Signature = { r: Field3; s: Field3 };
+  export type signature = { r: bigint; s: bigint };
+}
 
 function add(p1: Point, p2: Point, f: bigint) {
   let { x: x1, y: y1 } = p1;
   let { x: x2, y: y2 } = p2;
 
   // constant case
-  if (Provable.isConstant(Point, p1) && Provable.isConstant(Point, p2)) {
+  if (Point.isConstant(p1) && Point.isConstant(p2)) {
     let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f);
     return Point.from(p3);
   }
@@ -78,28 +73,21 @@ function add(p1: Point, p2: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-
-  multiRangeCheck(m);
-  multiRangeCheck(x3);
-  multiRangeCheck(y3);
-  let mBound = weakBound(m[2], f);
-  let x3Bound = weakBound(x3[2], f);
-  let y3Bound = weakBound(y3[2], f);
-  multiRangeCheck([mBound, x3Bound, y3Bound]);
+  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
 
   // (x1 - x2)*m = y1 - y2
-  let deltaX = new Sum(x1).sub(x2);
-  let deltaY = new Sum(y1).sub(y2);
-  assertRank1(deltaX, m, deltaY, f);
+  let deltaX = ForeignField.Sum(x1).sub(x2);
+  let deltaY = ForeignField.Sum(y1).sub(y2);
+  ForeignField.assertMul(deltaX, m, deltaY, f);
 
   // m^2 = x1 + x2 + x3
-  let xSum = new Sum(x1).add(x2).add(x3);
-  assertRank1(m, m, xSum, f);
+  let xSum = ForeignField.Sum(x1).add(x2).add(x3);
+  ForeignField.assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let deltaX1X3 = new Sum(x1).sub(x3);
-  let ySum = new Sum(y1).add(y3);
-  assertRank1(deltaX1X3, m, ySum, f);
+  let deltaX1X3 = ForeignField.Sum(x1).sub(x3);
+  let ySum = ForeignField.Sum(y1).add(y3);
+  ForeignField.assertMul(deltaX1X3, m, ySum, f);
 
   return { x: x3, y: y3 };
 }
@@ -108,7 +96,7 @@ function double(p1: Point, f: bigint) {
   let { x: x1, y: y1 } = p1;
 
   // constant case
-  if (Provable.isConstant(Point, p1)) {
+  if (Point.isConstant(p1)) {
     let p3 = affineDouble(Point.toBigint(p1), f);
     return Point.from(p3);
   }
@@ -129,54 +117,45 @@ function double(p1: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-
-  multiRangeCheck(m);
-  multiRangeCheck(x3);
-  multiRangeCheck(y3);
-  let mBound = weakBound(m[2], f);
-  let x3Bound = weakBound(x3[2], f);
-  let y3Bound = weakBound(y3[2], f);
+  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
 
   // 2*y1*m = 3*x1x1
   // TODO this assumes the curve has a == 0
-  let y1Times2 = new Sum(y1).add(y1);
-  let x1x1Times3 = new Sum(x1x1).add(x1x1).add(x1x1);
-  assertRank1(y1Times2, m, x1x1Times3, f);
+  let y1Times2 = ForeignField.Sum(y1).add(y1);
+  let x1x1Times3 = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
+  ForeignField.assertMul(y1Times2, m, x1x1Times3, f);
 
   // m^2 = 2*x1 + x3
-  let xSum = new Sum(x1).add(x1).add(x3);
-  assertRank1(m, m, xSum, f);
+  let xSum = ForeignField.Sum(x1).add(x1).add(x3);
+  ForeignField.assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let deltaX1X3 = new Sum(x1).sub(x3);
-  let ySum = new Sum(y1).add(y3);
-  assertRank1(deltaX1X3, m, ySum, f);
-
-  // bounds checks
-  multiRangeCheck([mBound, x3Bound, y3Bound]);
+  let deltaX1X3 = ForeignField.Sum(x1).sub(x3);
+  let ySum = ForeignField.Sum(y1).add(y3);
+  ForeignField.assertMul(deltaX1X3, m, ySum, f);
 
   return { x: x3, y: y3 };
 }
 
 function verifyEcdsa(
   Curve: CurveAffine,
-  ia: point,
-  signature: EcdsaSignature,
+  signature: Ecdsa.Signature,
   msgHash: Field3,
   publicKey: Point,
-  tables?: {
+  config: {
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
-  }
+    ia?: point;
+  } = { G: { windowSize: 4 }, P: { windowSize: 3 } }
 ) {
   // constant case
   if (
-    Provable.isConstant(EcdsaSignature, signature) &&
+    EcdsaSignature.isConstant(signature) &&
     Field3.isConstant(msgHash) &&
-    Provable.isConstant(Point, publicKey)
+    Point.isConstant(publicKey)
   ) {
     let isValid = verifyEcdsaConstant(
       Curve,
@@ -189,23 +168,28 @@ function verifyEcdsa(
   }
 
   // provable case
-  // TODO should we check that the publicKey is a valid point? probably not
+  // note: usually we don't check validity of inputs, like that the public key is a valid curve point
+  // we make an exception for the two non-standard conditions r != 0 and s != 0,
+  // which are unusual to capture in types and could be considered part of the verification algorithm
   let { r, s } = signature;
-  let sInv = ForeignField.inv(s, Curve.order);
+  ForeignField.inv(r, Curve.order); // proves r != 0 (important, because r = 0 => u2 = 0 kills the private key contribution)
+  let sInv = ForeignField.inv(s, Curve.order); // proves s != 0
   let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
   let G = Point.from(Curve.one);
   let R = multiScalarMulGlv(
     Curve,
-    ia,
     [u1, u2],
     [G, publicKey],
-    tables && [tables.G, tables.P]
+    config && [config.G, config.P],
+    config?.ia
   );
-  // this ^ already proves that R != 0
+  // this ^ already proves that R != 0 (part of ECDSA verification)
 
   // reduce R.x modulo the curve order
+  // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
+  // it's the callers responsibility to check that the signature is valid/unique in whatever way it makes sense for the application
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
   Provable.assertEqual(Field3.provable, Rx, r);
 }
@@ -215,26 +199,25 @@ function verifyEcdsa(
  */
 function verifyEcdsaConstant(
   Curve: CurveAffine,
-  { r, s }: { r: bigint; s: bigint },
+  { r, s }: Ecdsa.signature,
   msgHash: bigint,
-  publicKey: { x: bigint; y: bigint }
+  publicKey: point
 ) {
-  let q = Curve.order;
-  let QA = Curve.fromNonzero(publicKey);
-  if (!Curve.isOnCurve(QA)) return false;
-  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
+  let pk = Curve.fromNonzero(publicKey);
+  if (!Curve.isOnCurve(pk)) return false;
+  if (Curve.hasCofactor && !Curve.isInSubgroup(pk)) return false;
   if (r < 1n || r >= Curve.order) return false;
   if (s < 1n || s >= Curve.order) return false;
 
-  let sInv = inverse(s, q);
-  if (sInv === undefined) throw Error('impossible');
-  let u1 = mod(msgHash * sInv, q);
-  let u2 = mod(r * sInv, q);
+  let sInv = Curve.Scalar.inverse(s);
+  assert(sInv !== undefined);
+  let u1 = Curve.Scalar.mul(msgHash, sInv);
+  let u2 = Curve.Scalar.mul(r, sInv);
 
-  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
-  if (Curve.equal(X, Curve.zero)) return false;
+  let R = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(pk, u2));
+  if (Curve.equal(R, Curve.zero)) return false;
 
-  return mod(X.x, q) === r;
+  return Curve.Scalar.equal(R.x, r);
 }
 
 /**
@@ -254,28 +237,20 @@ function verifyEcdsaConstant(
  */
 function multiScalarMul(
   Curve: CurveAffine,
-  ia: point,
   scalars: Field3[],
   points: Point[],
   tableConfigs: (
-    | {
-        // what we called c before
-        windowSize?: number;
-        // G, ..., (2^c-1)*G
-        multiples?: Point[];
-      }
+    | { windowSize?: number; multiples?: Point[] }
     | undefined
-  )[] = []
+  )[] = [],
+  ia?: point
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
   assertPositiveInteger(n, 'Expected at least 1 point and scalar');
 
   // constant case
-  if (
-    scalars.every(Field3.isConstant) &&
-    points.every((P) => Provable.isConstant(Point, P))
-  ) {
+  if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
     // TODO dedicated MSM
     let s = scalars.map(Field3.toBigint);
     let P = points.map(Point.toBigint);
@@ -298,6 +273,7 @@ function multiScalarMul(
     slice(s, { maxBits: b, chunkSize: windowSizes[i] })
   );
 
+  ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
 
   for (let i = b - 1; i >= 0; i--) {
@@ -308,13 +284,15 @@ function multiScalarMul(
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
         let sjP =
-          windowSize === 1 ? points[j] : arrayGetGeneric(Point, tables[j], sj);
+          windowSize === 1
+            ? points[j]
+            : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve.modulus);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), Point, sum, added);
+        sum = Provable.if(sj.equals(0), Point.provable, sum, added);
       }
     }
 
@@ -328,7 +306,7 @@ function multiScalarMul(
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  Provable.equal(Point, sum, Point.from(iaFinal)).assertFalse();
+  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
   sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
 
   return sum;
@@ -336,28 +314,20 @@ function multiScalarMul(
 
 function multiScalarMulGlv(
   Curve: CurveAffine,
-  ia: point,
   scalars: Field3[],
   points: Point[],
   tableConfigs: (
-    | {
-        // what we called c before
-        windowSize?: number;
-        // G, ..., (2^c-1)*G
-        multiples?: Point[];
-      }
+    | { windowSize?: number; multiples?: Point[] }
     | undefined
-  )[] = []
+  )[] = [],
+  ia?: point
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
   assertPositiveInteger(n, 'Expected at least 1 point and scalar');
 
   // constant case
-  if (
-    scalars.every(Field3.isConstant) &&
-    points.every((P) => Provable.isConstant(Point, P))
-  ) {
+  if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
     // TODO dedicated MSM
     let s = scalars.map(Field3.toBigint);
     let P = points.map(Point.toBigint);
@@ -421,6 +391,7 @@ function multiScalarMulGlv(
     slice(s, { maxBits, chunkSize: windowSizes[i] })
   );
 
+  ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
 
   for (let i = maxBits - 1; i >= 0; i--) {
@@ -431,13 +402,15 @@ function multiScalarMulGlv(
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
         let sjP =
-          windowSize === 1 ? points[j] : arrayGetGeneric(Point, tables[j], sj);
+          windowSize === 1
+            ? points[j]
+            : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve.modulus);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), Point, sum, added);
+        sum = Provable.if(sj.equals(0), Point.provable, sum, added);
       }
     }
 
@@ -451,7 +424,7 @@ function multiScalarMulGlv(
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(maxBits - 1));
-  Provable.equal(Point, sum, Point.from(iaFinal)).assertFalse();
+  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
   sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
 
   return sum;
@@ -512,10 +485,10 @@ function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
   let rhs = Provable.if(
     Bool.Unsafe.ofField(s0Negative),
     Field3.provable,
-    new Sum(s).add(s0).finish(Curve.order),
-    new Sum(s).sub(s0).finish(Curve.order)
+    ForeignField.Sum(s).add(s0).finish(Curve.order),
+    ForeignField.Sum(s).sub(s0).finish(Curve.order)
   );
-  assertRank1(s1, lambda, rhs, Curve.order);
+  ForeignField.assertMul(s1, lambda, rhs, Curve.order);
 
   return [
     { isNegative: s0Negative, abs: s0 },
@@ -523,6 +496,24 @@ function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
   ] as const;
 }
 
+/**
+ * Sign a message hash using ECDSA.
+ */
+function signEcdsa(Curve: CurveAffine, msgHash: bigint, privateKey: bigint) {
+  let { Scalar } = Curve;
+  let k = Scalar.random();
+  let R = Curve.scale(Curve.one, k);
+  let r = Scalar.mod(R.x);
+  let kInv = Scalar.inverse(k);
+  assert(kInv !== undefined);
+  let s = Scalar.mul(kInv, Scalar.add(msgHash, Scalar.mul(r, privateKey)));
+  return { r, s };
+}
+
+/**
+ * Given a point P, create the list of multiples [0, P, 2P, 3P, ..., (2^windowSize-1) * P].
+ * This method is provable, but won't create any constraints given a constant point.
+ */
 function getPointTable(
   Curve: CurveAffine,
   P: Point,
@@ -555,10 +546,10 @@ function getPointTable(
  * It's important that this point has no known discrete logarithm so that nobody
  * can create an invalid proof of EC scaling.
  */
-function initialAggregator(Curve: CurveAffine, F: FiniteField) {
+function initialAggregator(Curve: CurveAffine) {
   // hash that identifies the curve
   let h = sha256.create();
-  h.update('ecdsa');
+  h.update('initial-aggregator');
   h.update(bigIntToBytes(Curve.modulus));
   h.update(bigIntToBytes(Curve.order));
   h.update(bigIntToBytes(Curve.a));
@@ -567,6 +558,7 @@ function initialAggregator(Curve: CurveAffine, F: FiniteField) {
 
   // bytes represent a 256-bit number
   // use that as x coordinate
+  const F = Curve.Field;
   let x = F.mod(bytesToBigInt(bytes));
   let y: bigint | undefined = undefined;
 
@@ -582,12 +574,9 @@ function initialAggregator(Curve: CurveAffine, F: FiniteField) {
 }
 
 /**
- * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `windowSize`
+ * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `chunkSize`
  *
- * TODO: atm this uses expensive boolean checks for the bits.
- * For larger chunks, we should use more efficient range checks.
- *
- * Note: This serves as a range check for the input limbs
+ * This serves as a range check that the input is in [0, 2^maxBits)
  */
 function slice(
   [x0, x1, x2]: Field3,
@@ -598,7 +587,7 @@ function slice(
 
   // first limb
   let result0 = sliceField(x0, Math.min(l_, maxBits), chunkSize);
-  if (maxBits <= l) return result0.chunks;
+  if (maxBits <= l_) return result0.chunks;
   maxBits -= l_;
 
   // second limb
@@ -612,12 +601,16 @@ function slice(
 }
 
 /**
- * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `windowSize`
+ * Provable method for slicing a field element into smaller bit chunks of length `chunkSize`.
  *
- * TODO: atm this uses expensive boolean checks for the bits.
+ * This serves as a range check that the input is in [0, 2^maxBits)
+ *
+ * If `chunkSize` does not divide `maxBits`, the last chunk will be smaller.
+ * We return the number of free bits in the last chunk, and optionally accept such a result from a previous call,
+ * so that this function can be used to slice up a bigint of multiple limbs into homogeneous chunks.
+ *
+ * TODO: atm this uses expensive boolean checks for each bit.
  * For larger chunks, we should use more efficient range checks.
- *
- * Note: This serves as a range check that the input is in [0, 2^maxBits)
  */
 function sliceField(
   x: Field,
@@ -696,29 +689,35 @@ function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
   return a;
 }
 
+// type/conversion helpers
+
 const Point = {
-  ...provable({ x: Field3.provable, y: Field3.provable }),
   from({ x, y }: point): Point {
     return { x: Field3.from(x), y: Field3.from(y) };
   },
   toBigint({ x, y }: Point) {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
+  isConstant: (P: Point) => Provable.isConstant(Point.provable, P),
+
+  provable: provable({ x: Field3.provable, y: Field3.provable }),
 };
 
 const EcdsaSignature = {
-  ...provable({ r: Field3.provable, s: Field3.provable }),
-  from({ r, s }: ecdsaSignature): EcdsaSignature {
+  from({ r, s }: Ecdsa.signature): Ecdsa.Signature {
     return { r: Field3.from(r), s: Field3.from(s) };
   },
-  toBigint({ r, s }: EcdsaSignature): ecdsaSignature {
+  toBigint({ r, s }: Ecdsa.Signature): Ecdsa.signature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
+  isConstant: (S: Ecdsa.Signature) =>
+    Provable.isConstant(EcdsaSignature.provable, S),
+
   /**
    * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
    * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
    */
-  fromHex(rawSignature: string): EcdsaSignature {
+  fromHex(rawSignature: string): Ecdsa.Signature {
     let prefix = rawSignature.slice(0, 2);
     let signature = rawSignature.slice(2, 130);
     if (prefix !== '0x' || signature.length < 128) {
@@ -730,9 +729,12 @@ const EcdsaSignature = {
     let s = BigInt(`0x${signature.slice(64)}`);
     return EcdsaSignature.from({ r, s });
   },
+
+  provable: provable({ r: Field3.provable, s: Field3.provable }),
 };
 
 const Ecdsa = {
+  sign: signEcdsa,
   verify: verifyEcdsa,
   Signature: EcdsaSignature,
 };

@@ -1,6 +1,6 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  equivalent,
+  equivalentProvable as equivalent,
   equivalentAsync,
   field,
   fieldWithRng,
@@ -103,7 +103,7 @@ await Bitwise.compile();
 
 [2, 4, 8, 16, 32, 64].forEach((length) => {
   equivalent({ from: [uint(length)], to: field })(
-    (x) => Fp.rot(x, 12, 'left'),
+    (x) => Fp.rot(x, 12n, 'left'),
     (x) => Gadgets.rotate(x, 12, 'left')
   );
   equivalent({ from: [uint(length)], to: field })(
@@ -164,7 +164,7 @@ await equivalentAsync(
 await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
   (x) => {
     if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rot(x, 12, 'left');
+    return Fp.rot(x, 12n, 'left');
   },
   async (x) => {
     let proof = await Bitwise.rot(x);
@@ -224,7 +224,7 @@ constraintSystem.fromZkProgram(
   ifNotAllConstant(contains(xorChain(64)))
 );
 
-let rotChain: GateType[] = ['Rot64', 'RangeCheck0', 'RangeCheck0'];
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0'];
 let isJustRotate = ifNotAllConstant(
   and(contains(rotChain), withoutGenerics(equals(rotChain)))
 );

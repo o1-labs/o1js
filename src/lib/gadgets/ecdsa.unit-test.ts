@@ -1,14 +1,84 @@
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
-import { Ecdsa, EllipticCurve, Point } from './elliptic-curve.js';
+import {
+  Ecdsa,
+  EllipticCurve,
+  Point,
+  verifyEcdsaConstant,
+} from './elliptic-curve.js';
 import { Field3 } from './foreign-field.js';
-import { secp256k1Params } from '../../bindings/crypto/elliptic-curve-examples.js';
+import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
-import { createField } from '../../bindings/crypto/finite_field.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
+import { foreignField, throwError, uniformForeignField } from './test-utils.js';
+import {
+  Second,
+  equivalentProvable,
+  map,
+  oneOf,
+  record,
+  unit,
+} from '../testing/equivalent.js';
 
-const Secp256k1 = createCurveAffine(secp256k1Params);
-const BaseField = createField(secp256k1Params.modulus);
+// quick tests
+const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
+const Pallas = createCurveAffine(CurveParams.Pallas);
+const Vesta = createCurveAffine(CurveParams.Vesta);
+let curves = [Secp256k1, Pallas, Vesta];
+
+for (let Curve of curves) {
+  // prepare test inputs
+  let field = foreignField(Curve.Field);
+  let scalar = foreignField(Curve.Scalar);
+  let privateKey = uniformForeignField(Curve.Scalar);
+
+  let pseudoSignature = record({
+    signature: record({ r: scalar, s: scalar }),
+    msg: scalar,
+    publicKey: record({ x: field, y: field }),
+  });
+
+  let signatureInputs = record({ privateKey, msg: scalar });
+
+  let signature = map(
+    { from: signatureInputs, to: pseudoSignature },
+    ({ privateKey, msg }) => {
+      let publicKey = Curve.scale(Curve.one, privateKey);
+      let signature = Ecdsa.sign(Curve, msg, privateKey);
+      return { signature, msg, publicKey };
+    }
+  );
+
+  // provable method we want to test
+  const verify = (s: Second<typeof signature>) => {
+    Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+  };
+
+  // positive test
+  equivalentProvable({ from: [signature], to: unit })(
+    () => {},
+    verify,
+    'valid signature verifies'
+  );
+
+  // negative test
+  equivalentProvable({ from: [pseudoSignature], to: unit })(
+    () => throwError('invalid signature'),
+    verify,
+    'invalid signature fails'
+  );
+
+  // test against constant implementation, with both invalid and valid signatures
+  equivalentProvable({ from: [oneOf(signature, pseudoSignature)], to: unit })(
+    ({ signature, publicKey, msg }) => {
+      assert(verifyEcdsaConstant(Curve, signature, msg, publicKey), 'verifies');
+    },
+    verify,
+    'verify'
+  );
+}
+
+// full end-to-end test with proving
 
 let publicKey = Point.from({
   x: 49781623198970027997721070672560275063607048368575198229673025608762959476014n,
@@ -24,8 +94,8 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-const ia = EllipticCurve.initialAggregator(Secp256k1, BaseField);
-const tableConfig = { G: { windowSize: 4 }, P: { windowSize: 4 } };
+const ia = EllipticCurve.initialAggregator(Secp256k1);
+const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
 
 let program = ZkProgram({
   name: 'ecdsa',
@@ -34,13 +104,12 @@ let program = ZkProgram({
       privateInputs: [],
       method() {
         let G = Point.from(Secp256k1.one);
-        let P = Provable.witness(Point, () => publicKey);
+        let P = Provable.witness(Point.provable, () => publicKey);
         let R = EllipticCurve.multiScalarMul(
           Secp256k1,
-          ia,
           [signature.s, signature.r],
           [G, P],
-          [tableConfig.G, tableConfig.P]
+          [config.G, config.P]
         );
         Provable.asProver(() => {
           console.log(Point.toBigint(R));
@@ -50,15 +119,14 @@ let program = ZkProgram({
     ecdsa: {
       privateInputs: [],
       method() {
-        let signature0 = Provable.witness(Ecdsa.Signature, () => signature);
-        Ecdsa.verify(
-          Secp256k1,
-          ia,
-          signature0,
-          msgHash,
-          publicKey,
-          tableConfig
+        let signature_ = Provable.witness(
+          Ecdsa.Signature.provable,
+          () => signature
         );
+        let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
+        let publicKey_ = Provable.witness(Point.provable, () => publicKey);
+
+        Ecdsa.verify(Secp256k1, signature_, msgHash_, publicKey_, config);
       },
     },
   },

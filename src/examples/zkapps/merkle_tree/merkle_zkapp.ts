@@ -75,7 +75,7 @@ class Leaderboard extends SmartContract {
 
     // we fetch the on-chain commitment
     let commitment = this.commitment.get();
-    this.commitment.assertEquals(commitment);
+    this.commitment.requireEquals(commitment);
 
     // we check that the account is within the committed Merkle Tree
     path.calculateRoot(account.hash()).assertEquals(commitment);
