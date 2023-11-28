@@ -124,7 +124,12 @@ myStruct satisfies FlexibleStruct;
 myStructInput satisfies FlexibleStruct;
 
 expect(myStruct).toBeInstanceOf(MyStructPure);
-expect(MyStructPure.toValue(myStruct)).toEqual(myStructInput);
+expect(MyStructPure.toValue(myStruct)).toEqual({
+  nested: { a: 1n, b: 2n },
+  other: 3n,
+  pk: { x: 4n, isOdd: true },
+  uint: [100n, 0n],
+});
 
 let myStruct2 = MyStructPure.fromValue(myStruct);
 expect(myStruct2).toBeInstanceOf(MyStructPure);
