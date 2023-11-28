@@ -125,7 +125,7 @@ function state<A>(stateType: FlexibleProvablePure<A>) {
         if (this._?.[key]) throw Error('A @state should only be assigned once');
         v._contract = {
           key,
-          stateType: stateType as ProvablePure<A, any>,
+          stateType: stateType as ProvablePure<A>,
           instance: this,
           class: ZkappClass,
           wasConstrained: false,
@@ -185,7 +185,7 @@ function declareState<T extends typeof SmartContract>(
 // metadata defined by @state, which link state to a particular SmartContract
 type StateAttachedContract<A> = {
   key: string;
-  stateType: ProvablePure<A, any>;
+  stateType: ProvablePure<A>;
   instance: SmartContract;
   class: typeof SmartContract;
   wasRead: boolean;
@@ -399,7 +399,7 @@ function getLayout(scClass: typeof SmartContract) {
 const smartContracts = new WeakMap<
   typeof SmartContract,
   {
-    states: [string, ProvablePure<any, any>][];
+    states: [string, ProvablePure<any>][];
     layout: Map<string, { offset: number; length: number }> | undefined;
   }
 >();

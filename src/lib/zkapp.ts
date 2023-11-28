@@ -96,12 +96,12 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes: Provable<any, any>[] = Reflect.getMetadata(
+  let paramTypes: Provable<any>[] = Reflect.getMetadata(
     'design:paramtypes',
     target,
     methodName
   );
-  let returnType: Provable<any, any> = Reflect.getMetadata(
+  let returnType: Provable<any> = Reflect.getMetadata(
     'design:returntype',
     target,
     methodName
@@ -539,7 +539,7 @@ function computeCallData(
 
 class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: Provable<Result, any> };
+  methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
 
   result?: Result;
@@ -1060,7 +1060,7 @@ super.init();
     {
       type: string;
       event: {
-        data: ProvablePure<any, any>;
+        data: ProvablePure<any>;
         transactionInfo: {
           transactionHash: string;
           transactionStatus: string;
@@ -1276,7 +1276,7 @@ type ReducerReturn<Action> = {
    */
   reduce<State>(
     actions: Action[][],
-    stateType: Provable<State, any>,
+    stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionState: Field },
     options?: {
@@ -1353,7 +1353,7 @@ class ${contract.constructor.name} extends SmartContract {
 
     reduce<S>(
       actionLists: A[][],
-      stateType: Provable<S, any>,
+      stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionState }: { state: S; actionState: Field },
       {
@@ -1458,7 +1458,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         actionsForAccount = actions.map((event) =>
           // putting our string-Fields back into the original action type
           event.actions.map((action) =>
-            (reducer.actionType as ProvablePure<A, any>).fromFields(
+            (reducer.actionType as ProvablePure<A>).fromFields(
               action.map(Field)
             )
           )
@@ -1481,9 +1481,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       return result.map((event) =>
         // putting our string-Fields back into the original action type
         event.actions.map((action) =>
-          (reducer.actionType as ProvablePure<A, any>).fromFields(
-            action.map(Field)
-          )
+          (reducer.actionType as ProvablePure<A>).fromFields(action.map(Field))
         )
       );
     },
@@ -1547,7 +1545,7 @@ function Account(address: PublicKey, tokenId?: Field) {
  */
 function declareMethods<T extends typeof SmartContract>(
   SmartContract: T,
-  methodArguments: Record<string, Provable<unknown, any>[]>
+  methodArguments: Record<string, Provable<unknown>[]>
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];

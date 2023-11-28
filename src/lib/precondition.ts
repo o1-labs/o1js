@@ -206,7 +206,7 @@ function preconditionSubClassWithRange<
 >(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: Provable<U, any>,
+  fieldType: Provable<U>,
   context: PreconditionContext
 ) {
   return {
@@ -233,7 +233,7 @@ function preconditionSubclass<
 >(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: Provable<U, any>,
+  fieldType: Provable<U>,
   context: PreconditionContext
 ) {
   if (fieldType === undefined) {
@@ -295,7 +295,7 @@ function preconditionSubclass<
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: Provable<U, any>
+  fieldType: Provable<U>
 ): U {
   return Provable.witness(fieldType, () => {
     let [accountOrNetwork, ...rest] = longKey.split('.');

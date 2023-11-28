@@ -298,8 +298,8 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any, any> = config.publicInput ?? Undefined;
-  let publicOutputType: ProvablePure<any, any> = config.publicOutput ?? Void;
+  let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
+  let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
 
   let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
@@ -491,7 +491,7 @@ function sortMethodArguments(
   privateInputs: unknown[],
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
-  let witnessArgs: Provable<unknown, any>[] = [];
+  let witnessArgs: Provable<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
   let allArgs: { type: 'proof' | 'witness' | 'generic'; index: number }[] = [];
   let genericArgs: Subclass<typeof GenericArgument>[] = [];
@@ -541,7 +541,7 @@ function sortMethodArguments(
 
 function isAsFields(
   type: unknown
-): type is Provable<unknown, any> & ObjectConstructor {
+): type is Provable<unknown> & ObjectConstructor {
   return (
     (typeof type === 'function' || typeof type === 'object') &&
     type !== null &&
@@ -592,11 +592,11 @@ type MethodInterface = {
   methodName: string;
   // TODO: unify types of arguments
   // "circuit types" should be flexible enough to encompass proofs and callback arguments
-  witnessArgs: Provable<unknown, any>[];
+  witnessArgs: Provable<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
   genericArgs: Subclass<typeof GenericArgument>[];
   allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
-  returnType?: Provable<any, any>;
+  returnType?: Provable<any>;
 };
 
 // reasonable default choice for `overrideWrapDomain`
@@ -613,8 +613,8 @@ async function compileProgram({
   forceRecompile,
   overrideWrapDomain,
 }: {
-  publicInputType: ProvablePure<any, any>;
-  publicOutputType: ProvablePure<any, any>;
+  publicInputType: ProvablePure<any>;
+  publicOutputType: ProvablePure<any>;
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => void)[];
   gates: Gate[][];
@@ -713,7 +713,7 @@ async function compileProgram({
 }
 
 function analyzeMethod<T>(
-  publicInputType: ProvablePure<any, any>,
+  publicInputType: ProvablePure<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
@@ -727,8 +727,8 @@ function analyzeMethod<T>(
 }
 
 function picklesRuleFromFunction(
-  publicInputType: ProvablePure<unknown, any>,
-  publicOutputType: ProvablePure<unknown, any>,
+  publicInputType: ProvablePure<unknown>,
+  publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
@@ -867,7 +867,7 @@ function methodArgumentsToConstant(
 
 let Generic = EmptyNull<Field>();
 
-type TypeAndValue<T> = { type: Provable<T, any>; value: T };
+type TypeAndValue<T> = { type: Provable<T>; value: T };
 
 function methodArgumentTypesAndValues(
   { allArgs, proofArgs, witnessArgs }: MethodInterface,
@@ -895,7 +895,7 @@ function methodArgumentTypesAndValues(
 }
 
 function emptyValue<T>(type: FlexibleProvable<T>): T;
-function emptyValue<T>(type: Provable<T, any>) {
+function emptyValue<T>(type: Provable<T>) {
   return type.fromFields(
     Array(type.sizeInFields()).fill(Field(0)),
     type.toAuxiliary()
@@ -903,7 +903,7 @@ function emptyValue<T>(type: Provable<T, any>) {
 }
 
 function emptyWitness<T>(type: FlexibleProvable<T>): T;
-function emptyWitness<T>(type: Provable<T, any>) {
+function emptyWitness<T>(type: Provable<T>) {
   return Provable.witness(type, () => emptyValue(type));
 }
 
@@ -911,7 +911,7 @@ function getStatementType<
   T,
   O,
   P extends Subclass<typeof Proof> = typeof Proof
->(Proof: P): { input: ProvablePure<T, any>; output: ProvablePure<O, any> } {
+>(Proof: P): { input: ProvablePure<T>; output: ProvablePure<O> } {
   if (
     Proof.publicInputType === undefined ||
     Proof.publicOutputType === undefined
@@ -934,20 +934,17 @@ function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   ) as any as 0 | 1 | 2;
 }
 
-function fromFieldVars<T>(type: ProvablePure<T, any>, fields: MlFieldArray) {
+function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
   return type.fromFields(MlFieldArray.from(fields));
 }
-function toFieldVars<T>(type: ProvablePure<T, any>, value: T) {
+function toFieldVars<T>(type: ProvablePure<T>, value: T) {
   return MlFieldArray.to(type.toFields(value));
 }
 
-function fromFieldConsts<T>(
-  type: ProvablePure<T, any>,
-  fields: MlFieldConstArray
-) {
+function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
   return type.fromFields(MlFieldConstArray.from(fields));
 }
-function toFieldConsts<T>(type: ProvablePure<T, any>, value: T) {
+function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
 }
 
@@ -1059,7 +1056,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
 
-type PrivateInput = Provable<any, any> | Subclass<typeof Proof>;
+type PrivateInput = Provable<any> | Subclass<typeof Proof>;
 
 type Method<
   PublicInput,

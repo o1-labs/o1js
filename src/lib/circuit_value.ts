@@ -65,8 +65,8 @@ type Struct<T> = ProvableExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
 type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
-type FlexibleProvable<T> = Provable<T, any> | Struct<T>;
-type FlexibleProvablePure<T> = ProvablePure<T, any> | StructPure<T>;
+type FlexibleProvable<T> = Provable<T> | Struct<T>;
+type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 
 type Constructor<T> = new (...args: any) => T;
 type AnyConstructor = Constructor<any>;
@@ -427,13 +427,6 @@ function Struct<
     constructor(value: T) {
       Object.assign(this, value);
     }
-
-    static from(value: From<A>): T {
-      let x = this.type.fromValue(value as any);
-      let struct = Object.create(this.prototype);
-      return Object.assign(struct, x);
-    }
-
     /**
      * This method is for internal use, you will probably not need it.
      * @returns the size of this struct in field elements
@@ -651,7 +644,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
 }
 
 function toConstant<T>(type: FlexibleProvable<T>, value: T): T;
-function toConstant<T>(type: Provable<T, any>, value: T): T {
+function toConstant<T>(type: Provable<T>, value: T): T {
   return type.fromFields(
     type.toFields(value).map((x) => x.toConstant()),
     type.toAuxiliary(value)
@@ -659,6 +652,6 @@ function toConstant<T>(type: Provable<T, any>, value: T): T {
 }
 
 function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
-function isConstant<T>(type: Provable<T, any>, value: T): boolean {
+function isConstant<T>(type: Provable<T>, value: T): boolean {
   return type.toFields(value).every((x) => x.isConstant());
 }

@@ -47,7 +47,7 @@ export {
  *
  * The properties and methods on the provable type exist in all base o1js types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
  */
-declare interface Provable<T, TValue> {
+declare interface Provable<T, TValue = any> {
   /**
    * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
    *
@@ -116,7 +116,7 @@ declare interface Provable<T, TValue> {
  *
  * It includes the same properties and methods as the {@link Provable} interface.
  */
-declare interface ProvablePure<T, TValue> extends Provable<T, TValue> {
+declare interface ProvablePure<T, TValue = any> extends Provable<T, TValue> {
   /**
    * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxiliary" (non-provable) data of `value`.
    * As any element of the interface `ProvablePure<T>` includes no "auxiliary" data by definition, this function always returns a default value.
