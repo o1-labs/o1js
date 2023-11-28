@@ -168,8 +168,8 @@ class PublicKey extends CircuitValue {
    * Creates a {@link PublicKey} from a JSON structure element.
    * @returns a {@link PublicKey}.
    */
-  static from(g: { x: Field; isOdd: Bool }) {
-    return PublicKey.fromObject(g);
+  static from(g: { x: Field | bigint; isOdd: Bool | boolean }) {
+    return PublicKey.fromObject({ x: Field.from(g.x), isOdd: Bool(g.isOdd) });
   }
 
   /**
@@ -177,7 +177,7 @@ class PublicKey extends CircuitValue {
    * @returns an empty {@link PublicKey}
    */
   static empty<T extends AnyConstructor>(): InstanceType<T> {
-    return PublicKey.from({ x: Field(0), isOdd: Bool(false) }) as any;
+    return PublicKey.from({ x: 0n, isOdd: false }) as any;
   }
 
   /**
