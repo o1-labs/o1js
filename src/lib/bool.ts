@@ -349,11 +349,6 @@ class Bool {
      * @param x a {@link Field}
      */
     ofField(x: Field) {
-      asProver(() => {
-        let x0 = x.toBigInt();
-        if (x0 !== 0n && x0 !== 1n)
-          throw Error(`Bool.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);
-      });
       return new Bool(x.value);
     },
   };
