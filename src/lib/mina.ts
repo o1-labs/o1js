@@ -1240,7 +1240,7 @@ function getProofsEnabled() {
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
-  let dummy = Types.Account.emptyValue();
+  let dummy = Types.Account.empty();
   if (pubkey) dummy.publicKey = pubkey;
   return dummy;
 }
