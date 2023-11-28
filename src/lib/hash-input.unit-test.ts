@@ -109,7 +109,7 @@ function testInput<T, TJson>(
   let input2 = Module.toInput(value);
   let input1Json = JSON.stringify(input1);
   let input2Json = JSON.stringify(input2);
-  // console.log('snarkyjs', input2Json);
+  // console.log('o1js', input2Json);
   // console.log();
   // console.log('protocol', input1Json);
   let ok1 = input1Json === input2Json;

@@ -22,6 +22,7 @@ export {
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
+export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export * as Mina from './lib/mina.js';
@@ -45,6 +46,7 @@ export {
   Undefined,
   Void,
 } from './lib/proof_system.js';
+export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export {
   Token,
@@ -66,6 +68,7 @@ export {
   setGraphqlEndpoints,
   setArchiveGraphqlEndpoint,
   sendZkapp,
+  Lightnet,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
@@ -75,8 +78,10 @@ export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 
+import { ExperimentalZkProgram, ZkProgram } from './lib/proof_system.js';
+export { ZkProgram };
+
 // experimental APIs
-import { ZkProgram } from './lib/proof_system.js';
 import { Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';
 import { memoizeWitness } from './lib/provable.js';
@@ -86,7 +91,6 @@ const Experimental_ = {
   Callback,
   createChildAccountUpdate,
   memoizeWitness,
-  ZkProgram,
 };
 
 type Callback_<Result> = Callback<Result>;
@@ -96,7 +100,10 @@ type Callback_<Result> = Callback<Result>;
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
 namespace Experimental {
-  export let ZkProgram = Experimental_.ZkProgram;
+  /** @deprecated `ZkProgram` has moved out of the Experimental namespace and is now directly available as a top-level import `ZkProgram`.
+   * The old `Experimental.ZkProgram` API has been deprecated in favor of the new `ZkProgram` top-level import.
+   */
+  export let ZkProgram = ExperimentalZkProgram;
   export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let Callback = Experimental_.Callback;

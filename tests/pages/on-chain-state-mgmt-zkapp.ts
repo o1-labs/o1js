@@ -36,10 +36,8 @@ export class OnChainStateMgmtZkAppPage {
     await this.clearEventsButton.click();
   }
 
-  async checkSnarkyJsInitialization() {
-    await expect(this.eventsContainer).toContainText(
-      'SnarkyJS initialized after'
-    );
+  async checkO1jsInitialization() {
+    await expect(this.eventsContainer).toContainText('o1js initialized after');
   }
 
   async checkDeployedZkApp() {

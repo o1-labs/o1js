@@ -6,11 +6,11 @@ import {
   shutdown,
   Permissions,
   TokenId,
-} from 'snarkyjs';
+} from 'o1js';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 
-import { getProfiler } from '../../profiler.js';
+import { getProfiler } from '../../utils/profiler.js';
 
 await isReady;
 let proofsEnabled = false;
@@ -521,7 +521,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
    * - SC withdraws requested amount of X token from user’s account;
    * - SC sends to user previously calculated amount of Y tokens;
    * - It will be good to check if calculation was done correctly but correctness is not a major concern since we’re checking
-   *   the zkApps/SnarkyJS on/off-chain features, not the current application's logic;
+   *   the zkApps/o1js on/off-chain features, not the current application's logic;
    *   We're checking the balances of both tokens on caller and SC sides.
    */
   dy = (USER_DX * oldBalances.dex.Y) / (oldBalances.dex.X + USER_DX);

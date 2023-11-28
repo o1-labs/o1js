@@ -1,5 +1,5 @@
 /**
- * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in SnarkyJS.
+ * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in o1js.
  */
 
 import { CircuitValue, arrayProp } from './circuit_value.js';
@@ -38,7 +38,7 @@ class MerkleTree {
   constructor(public readonly height: number) {
     this.zeroes = new Array(height);
     this.zeroes[0] = Field(0);
-    for (let i = 1; i < height; i+=1) {
+    for (let i = 1; i < height; i += 1) {
       this.zeroes[i] = Poseidon.hash([this.zeroes[i - 1], this.zeroes[i - 1]]);
     }
   }

@@ -18,6 +18,9 @@ async function buildAndImport(srcPath, { keepFile = false }) {
 
 async function build(srcPath, isWeb = false) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
+  // TODO hack because ts.transpileModule doesn't treat module = 'nodenext' correctly
+  // but `tsc` demands it to be `nodenext`
+  tsConfig.compilerOptions.module = 'esnext';
 
   let outfile = srcPath.replace('.ts', '.tmp.js');
 
@@ -37,6 +40,7 @@ async function build(srcPath, isWeb = false) {
           makeNodeModulesExternal(),
           makeJsooExternal(),
         ],
+    dropLabels: ['CJS'],
   });
 
   let absPath = path.resolve('.', outfile);
@@ -45,6 +49,9 @@ async function build(srcPath, isWeb = false) {
 
 async function buildOne(srcPath) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
+  // TODO hack because ts.transpileModule doesn't treat module = 'nodenext' correctly
+  // but `tsc` demands it to be `nodenext`
+  tsConfig.compilerOptions.module = 'esnext';
 
   let outfile = path.resolve(
     './dist/node',
@@ -73,7 +80,7 @@ const defaultTsConfig = {
     target: 'esnext',
     importHelpers: true,
     strict: true,
-    moduleResolution: 'node',
+    moduleResolution: 'nodenext',
     esModuleInterop: true,
     skipLibCheck: true,
     forceConsistentCasingInFileNames: true,
@@ -110,7 +117,7 @@ function makeNodeModulesExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs|wrapper.js)$/;
+  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
   return {
     name: 'plugin-external',
     setup(build) {

@@ -12,7 +12,7 @@ import {
   UInt32,
   PublicKey,
   Struct,
-} from 'snarkyjs';
+} from 'o1js';
 
 const doProofs = false;
 
@@ -40,7 +40,7 @@ class SimpleZkapp extends SmartContract {
     });
     this.emitEvent('simpleEvent', y);
     let x = this.x.get();
-    this.x.assertEquals(x);
+    this.x.requireEquals(x);
     this.x.set(x.add(y));
   }
 }

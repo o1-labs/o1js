@@ -5,7 +5,7 @@ import {
   UInt64,
   PrivateKey,
   fetchAccount,
-} from 'snarkyjs';
+} from 'o1js';
 import {
   Dex,
   DexTokenHolder,
@@ -15,7 +15,7 @@ import {
 } from './dex-with-actions.js';
 import { TokenContract } from './dex.js';
 import { expect } from 'expect';
-import { tic, toc } from '../tictoc.js';
+import { tic, toc } from '../../utils/tic-toc.node.js';
 
 await isReady;
 

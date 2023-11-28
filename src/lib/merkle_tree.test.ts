@@ -5,7 +5,7 @@ import {
   Field,
   MerkleTree,
   MerkleWitness,
-} from 'snarkyjs';
+} from 'o1js';
 
 describe('Merkle Tree', () => {
   beforeAll(async () => {

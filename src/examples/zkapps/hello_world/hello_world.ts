@@ -1,11 +1,4 @@
-import {
-  Field,
-  PrivateKey,
-  SmartContract,
-  State,
-  method,
-  state,
-} from 'snarkyjs';
+import { Field, PrivateKey, SmartContract, State, method, state } from 'o1js';
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();
@@ -21,12 +14,12 @@ export class HelloWorld extends SmartContract {
 
   @method update(squared: Field, admin: PrivateKey) {
     const x = this.x.get();
-    this.x.assertNothing();
+    this.x.requireNothing();
     x.square().assertEquals(squared);
     this.x.set(squared);
 
     const adminPk = admin.toPublicKey();
 
-    this.account.delegate.assertEquals(adminPk);
+    this.account.delegate.requireEquals(adminPk);
   }
 }

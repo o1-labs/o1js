@@ -1,23 +1,26 @@
 name: "Shared steps for live testing jobs"
 description: "Shared steps for live testing jobs"
+inputs:
+  mina-branch-name:
+    description: "Mina branch name in use by service container"
+    required: true
 runs:
   using: "composite"
   steps:
-    - name: Setup Node
-      uses: actions/setup-node@v3
+    - name: Wait for Mina network readiness
+      uses: o1-labs/wait-for-mina-network-action@v1
       with:
-        node-version: "18"
-    - name: Make helper script executable
-      run: chmod +x tests/scripts/wait-for-docker-services.sh
-      shell: bash
-    - name: Wait for Docker container services to be ready
-      run: ./tests/scripts/wait-for-docker-services.sh 8080
-      shell: bash
-    - name: Build SnarkyJS and Execute Tests
+        mina-graphql-port: 8080
+        max-attempts: 60
+        polling-interval-ms: 10000
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - name: Build o1js and execute tests
       env:
         TEST_TYPE: "Live integration tests"
-        USE_LOCAL_NETWORK: "true"
-      continue-on-error: false
+        USE_CUSTOM_LOCAL_NETWORK: "true"
       run: |
         git submodule update --init --recursive
         npm ci
@@ -26,3 +29,12 @@ runs:
         sh run-ci-tests.sh
         cat profiling.md >> $GITHUB_STEP_SUMMARY
       shell: bash
+    - name: Upload Mina logs
+      uses: actions/upload-artifact@v3
+      continue-on-error: true
+      if: always()
+      with:
+        if-no-files-found: ignore
+        name: mina-logs-${{ inputs.mina-branch-name }}
+        path: /tmp/*.log
+        retention-days: 5

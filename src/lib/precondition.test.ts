@@ -11,7 +11,7 @@ import {
   PublicKey,
   Bool,
   Field,
-} from 'snarkyjs';
+} from 'o1js';
 
 class MyContract extends SmartContract {
   @method shouldMakeCompileThrow() {
@@ -76,6 +76,21 @@ describe('preconditions', () => {
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
+  it('get + requireEquals should not throw', async () => {
+    let nonce = zkapp.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.requireSignature();
+      for (let precondition of implemented) {
+        let p = precondition().get();
+        precondition().requireEquals(p as any);
+      }
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await tx.sign([feePayerKey, zkappKey]).send();
+    // check that tx was applied, by checking nonce was incremented
+    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
   it('get + assertEquals should throw for unimplemented fields', async () => {
     for (let precondition of unimplemented) {
       await expect(
@@ -88,12 +103,39 @@ describe('preconditions', () => {
     }
   });
 
+  it('get + requireEquals should throw for unimplemented fields', async () => {
+    for (let precondition of unimplemented) {
+      await expect(
+        Mina.transaction(feePayer, () => {
+          let p = precondition();
+          p.requireEquals(p.get() as any);
+          AccountUpdate.attachToTransaction(zkapp.self);
+        })
+      ).rejects.toThrow(/not implemented/);
+    }
+  });
+
   it('get + assertBetween should not throw', async () => {
     let nonce = zkapp.account.nonce.get();
     let tx = await Mina.transaction(feePayer, () => {
       for (let precondition of implementedWithRange) {
         let p: any = precondition().get();
         precondition().assertBetween(p.constructor.zero, p);
+      }
+      zkapp.requireSignature();
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await tx.sign([feePayerKey, zkappKey]).send();
+    // check that tx was applied, by checking nonce was incremented
+    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('get + requireBetween should not throw', async () => {
+    let nonce = zkapp.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, () => {
+      for (let precondition of implementedWithRange) {
+        let p: any = precondition().get();
+        precondition().requireBetween(p.constructor.zero, p);
       }
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
@@ -117,12 +159,41 @@ describe('preconditions', () => {
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
+  it('satisfied currentSlot.requireBetween should not throw', async () => {
+    let nonce = zkapp.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.currentSlot.requireBetween(
+        UInt32.from(0),
+        UInt32.from(UInt32.MAXINT())
+      );
+      zkapp.requireSignature();
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await tx.sign([feePayerKey, zkappKey]).send();
+    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
   it('get + assertNothing should not throw', async () => {
     let nonce = zkapp.account.nonce.get();
     let tx = await Mina.transaction(feePayer, () => {
       for (let precondition of implemented) {
         precondition().get();
         precondition().assertNothing();
+      }
+      zkapp.requireSignature();
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await tx.sign([feePayerKey, zkappKey]).send();
+    // check that tx was applied, by checking nonce was incremented
+    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('get + requireNothing should not throw', async () => {
+    let nonce = zkapp.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, () => {
+      for (let precondition of implemented) {
+        precondition().get();
+        precondition().requireNothing();
       }
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
@@ -172,6 +243,19 @@ describe('preconditions', () => {
     }
   });
 
+  it('unsatisfied requireEquals should be rejected (numbers)', async () => {
+    for (let precondition of implementedNumber) {
+      await expect(async () => {
+        let tx = await Mina.transaction(feePayer, () => {
+          let p = precondition().get();
+          precondition().requireEquals(p.add(1) as any);
+          AccountUpdate.attachToTransaction(zkapp.self);
+        });
+        await tx.sign([feePayerKey]).send();
+      }).rejects.toThrow(/unsatisfied/);
+    }
+  });
+
   it('unsatisfied assertEquals should be rejected (booleans)', async () => {
     for (let precondition of implementedBool) {
       let tx = await Mina.transaction(feePayer, () => {
@@ -185,10 +269,32 @@ describe('preconditions', () => {
     }
   });
 
+  it('unsatisfied requireEquals should be rejected (booleans)', async () => {
+    for (let precondition of implementedBool) {
+      let tx = await Mina.transaction(feePayer, () => {
+        let p = precondition().get();
+        precondition().requireEquals(p.not());
+        AccountUpdate.attachToTransaction(zkapp.self);
+      });
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
+    }
+  });
+
   it('unsatisfied assertEquals should be rejected (public key)', async () => {
     let publicKey = PublicKey.from({ x: Field(-1), isOdd: Bool(false) });
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.account.delegate.assertEquals(publicKey);
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
+  });
+
+  it('unsatisfied requireEquals should be rejected (public key)', async () => {
+    let publicKey = PublicKey.from({ x: Field(-1), isOdd: Bool(false) });
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.account.delegate.requireEquals(publicKey);
       AccountUpdate.attachToTransaction(zkapp.self);
     });
     await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
@@ -207,9 +313,30 @@ describe('preconditions', () => {
     }
   });
 
+  it('unsatisfied requireBetween should be rejected', async () => {
+    for (let precondition of implementedWithRange) {
+      let tx = await Mina.transaction(feePayer, () => {
+        let p: any = precondition().get();
+        precondition().requireBetween(p.add(20), p.add(30));
+        AccountUpdate.attachToTransaction(zkapp.self);
+      });
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
+    }
+  });
+
   it('unsatisfied currentSlot.assertBetween should be rejected', async () => {
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.currentSlot.assertBetween(UInt32.from(20), UInt32.from(30));
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
+  });
+
+  it('unsatisfied currentSlot.requireBetween should be rejected', async () => {
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.currentSlot.requireBetween(UInt32.from(20), UInt32.from(30));
       AccountUpdate.attachToTransaction(zkapp.self);
     });
     await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);

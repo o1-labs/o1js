@@ -19,30 +19,28 @@ export {
   withMessage,
   readVarMessage,
   toConstantField,
+  toFp,
   checkBitLength,
 };
 
-type FieldConst = Uint8Array;
+type FieldConst = [0, bigint];
 
 function constToBigint(x: FieldConst): Fp {
-  return Fp.fromBytes([...x]);
+  return x[1];
 }
-function constFromBigint(x: Fp) {
-  return Uint8Array.from(Fp.toBytes(x));
+function constFromBigint(x: Fp): FieldConst {
+  return [0, Fp(x)];
 }
 
 const FieldConst = {
   fromBigint: constFromBigint,
   toBigint: constToBigint,
   equal(x: FieldConst, y: FieldConst) {
-    for (let i = 0, n = Fp.sizeInBytes(); i < n; i++) {
-      if (x[i] !== y[i]) return false;
-    }
-    return true;
+    return x[1] === y[1];
   },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
-  [-1]: constFromBigint(Fp(-1n)),
+  [-1]: constFromBigint(-1n),
 };
 
 enum FieldType {
@@ -81,21 +79,22 @@ const FieldVar = {
   isConstant(x: FieldVar): x is ConstantFieldVar {
     return x[0] === FieldType.Constant;
   },
-  toConstant(x: FieldVar): FieldConst {
-    if (FieldVar.isConstant(x)) return x[1];
-    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
-    return Snarky.field.readVar(x);
-  },
-  toBigint(x: FieldVar) {
-    return FieldConst.toBigint(FieldVar.toConstant(x));
-  },
-  // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
+    if (FieldVar.isConstant(x) && x[1][1] === 0n) return y;
+    if (FieldVar.isConstant(y) && y[1][1] === 0n) return x;
+    if (FieldVar.isConstant(x) && FieldVar.isConstant(y)) {
+      return FieldVar.constant(Fp.add(x[1][1], y[1][1]));
+    }
     return [FieldType.Add, x, y];
   },
-  // TODO: handle (special) constants
-  scale(c: FieldConst, x: FieldVar): FieldVar {
-    return [FieldType.Scale, c, x];
+  scale(c: bigint | FieldConst, x: FieldVar): FieldVar {
+    let c0 = typeof c === 'bigint' ? FieldConst.fromBigint(c) : c;
+    if (c0[1] === 0n) return FieldVar.constant(0n);
+    if (c0[1] === 1n) return x;
+    if (FieldVar.isConstant(x)) {
+      return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
+    }
+    return [FieldType.Scale, c0, x];
   },
   [0]: [FieldType.Constant, FieldConst[0]] satisfies ConstantFieldVar,
   [1]: [FieldType.Constant, FieldConst[1]] satisfies ConstantFieldVar,
@@ -154,15 +153,16 @@ class Field {
       this.value = x.value;
       return;
     }
-    // FieldVar
     if (Array.isArray(x)) {
-      this.value = x;
-      return;
-    }
-    // FieldConst
-    if (x instanceof Uint8Array) {
-      this.value = FieldVar.constant(x);
-      return;
+      if (typeof x[1] === 'bigint') {
+        // FieldConst
+        this.value = FieldVar.constant(x as FieldConst);
+        return;
+      } else {
+        // FieldVar
+        this.value = x as FieldVar;
+        return;
+      }
     }
     // TODO this should handle common values efficiently by reading from a lookup table
     this.value = FieldVar.constant(Fp(x));
@@ -531,7 +531,8 @@ class Field {
    * @return A {@link Field} element equivalent to the modular division of the two value.
    */
   div(y: Field | bigint | number | string) {
-    // TODO this is the same as snarky-ml but could use 1 constraint instead of 2
+    // this intentionally uses 2 constraints instead of 1 to avoid an unconstrained output when dividing 0/0
+    // (in this version, division by 0 is strictly not allowed)
     return this.mul(Field.from(y).inv());
   }
 
@@ -626,7 +627,7 @@ class Field {
     // ^^^ these prove that b = Bool(x === 0):
     // if x = 0, the 2nd equation implies b = 1
     // if x != 0, the 1st implies b = 0
-    return Bool.Unsafe.ofField(new Field(b));
+    return new Bool(b);
   }
 
   /**
@@ -644,10 +645,6 @@ class Field {
    */
   equals(y: Field | bigint | number | string): Bool {
     // x == y is equivalent to x - y == 0
-    // TODO: this is less efficient than possible for equivalence with snarky-ml
-    return this.sub(y).isZero();
-    // more efficient code is commented below
-    /* 
     // if one of the two is constant, we just need the two constraints in `isZero`
     if (this.isConstant() || isConstant(y)) {
       return this.sub(y).isZero();
@@ -658,7 +655,6 @@ class Field {
     );
     Snarky.field.assertEqual(this.sub(y).value, xMinusY);
     return new Field(xMinusY).isZero();
-    */
   }
 
   // internal base method for all comparisons
@@ -676,10 +672,7 @@ class Field {
         );
     });
     let [, less, lessOrEqual] = Snarky.field.compare(maxLength, this.value, y);
-    return {
-      less: Bool.Unsafe.ofField(new Field(less)),
-      lessOrEqual: Bool.Unsafe.ofField(new Field(lessOrEqual)),
-    };
+    return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
   }
 
   /**
@@ -766,8 +759,7 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is greater than another "field-like" value.
    */
   greaterThan(y: Field | bigint | number | string) {
-    // TODO: this is less efficient than possible for equivalence with ml
-    return this.lessThanOrEqual(y).not();
+    return Field.from(y).lessThan(this);
   }
 
   /**
@@ -794,8 +786,7 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is greater than or equal another "field-like" value.
    */
   greaterThanOrEqual(y: Field | bigint | number | string) {
-    // TODO: this is less efficient than possible for equivalence with ml
-    return this.lessThan(y).not();
+    return Field.from(y).lessThanOrEqual(this);
   }
 
   /**
@@ -966,7 +957,7 @@ class Field {
       return bits.map((b) => new Bool(b));
     }
     let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
-    return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
+    return bits.map((b) => new Bool(b));
   }
 
   /**
@@ -1029,18 +1020,16 @@ class Field {
   /**
    * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
    *
-   * In SnarkyJS, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.
+   * In o1js, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.
    *
    *  A new internal variable is created only when the variable is needed in a multiplicative or any higher level constraint (for example multiplication of two {@link Field} elements) to represent the operation.
    *
-   * The `seal()` function tells SnarkyJS to stop building an AST and create a new variable right away.
+   * The `seal()` function tells o1js to stop building an AST and create a new variable right away.
    *
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    // TODO: this is just commented for constraint equivalence with the old version
-    // uncomment to sometimes save constraints
-    // if (this.isConstant()) return this;
+    if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
     return new Field(x);
   }
@@ -1151,6 +1140,10 @@ class Field {
 
   // ProvableExtended<Field>
 
+  static empty() {
+    return new Field(0n);
+  }
+
   /**
    * Serialize the {@link Field} to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *
@@ -1256,27 +1249,26 @@ class Field {
   }
 
   /**
-   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
-   *
-   * As all {@link Field} elements have 31 bits, this function returns 31.
-   *
-   * @return The size of a {@link Field} element - 31.
+   * The size of a {@link Field} element in bytes - 32.
    */
-  static sizeInBytes() {
-    return Fp.sizeInBytes();
-  }
+  static sizeInBytes = Fp.sizeInBytes;
 
+  /**
+   * The size of a {@link Field} element in bits - 255.
+   */
   static sizeInBits = Fp.sizeInBits;
 }
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return [...toConstantField(t, 'toBytes').value[1]];
+    let t0 = toConstantField(t, 'toBytes').toBigInt();
+    return Fp.toBytes(t0);
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
-    return [new Field(uint8array), offset + 32];
+    let x = Fp.fromBytes([...uint8array]);
+    return [new Field(x), offset + 32];
   },
 });
 

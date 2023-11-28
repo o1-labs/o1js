@@ -11,15 +11,15 @@ import {
   MerkleMapWitness,
   Mina,
   AccountUpdate,
-} from 'snarkyjs';
+} from 'o1js';
 
 class PayoutOnlyOnce extends SmartContract {
   @state(Field) nullifierRoot = State<Field>();
   @state(Field) nullifierMessage = State<Field>();
 
   @method payout(nullifier: Nullifier) {
-    let nullifierRoot = this.nullifierRoot.getAndAssertEquals();
-    let nullifierMessage = this.nullifierMessage.getAndAssertEquals();
+    let nullifierRoot = this.nullifierRoot.getAndRequireEquals();
+    let nullifierMessage = this.nullifierMessage.getAndRequireEquals();
 
     // verify the nullifier
     nullifier.verify([nullifierMessage]);
@@ -38,7 +38,7 @@ class PayoutOnlyOnce extends SmartContract {
     this.nullifierRoot.set(newRoot);
 
     // we pay out a reward
-    let balance = this.account.balance.getAndAssertEquals();
+    let balance = this.account.balance.getAndRequireEquals();
 
     let halfBalance = balance.div(2);
     // finally, we send the payout to the public key associated with the nullifier
