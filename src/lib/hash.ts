@@ -199,7 +199,7 @@ const TokenSymbolPure: ProvableExtended<
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
   static from(value: string | TokenSymbol) {
-    return super.fromValue(value) as TokenSymbol;
+    return TokenSymbol.fromValue(value) as TokenSymbol;
   }
 }
 
