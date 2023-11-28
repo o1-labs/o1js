@@ -58,6 +58,7 @@ function inCompileMode() {
 
 function asProver(f: () => void) {
   if (inCheckedComputation()) {
+    // TODO make this start a "witness block" context
     Snarky.run.asProver(f);
   } else {
     f();
@@ -106,7 +107,7 @@ function constraintSystem<T>(f: () => T) {
 
 function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
   let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: hexCoeffs }) => {
-    let coeffs = hexCoeffs.map(hex => parseHexString(hex).toString());
+    let coeffs = hexCoeffs.map((hex) => parseHexString(hex).toString());
     return { type: typ, wires, coeffs };
   });
   return { publicInputSize: cs.public_input_size, gates };
