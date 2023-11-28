@@ -178,7 +178,7 @@ function verifyEcdsa(
   let u2 = ForeignField.mul(r, sInv, Curve.order);
 
   let G = Point.from(Curve.one);
-  let R = multiScalarMulGlv(
+  let R = multiScalarMul(
     Curve,
     [u1, u2],
     [G, publicKey],
@@ -233,7 +233,6 @@ function verifyEcdsaConstant(
  *
  * TODO: could use lookups for picking precomputed multiples, instead of O(2^c) provable switch
  * TODO: custom bit representation for the scalar that avoids 0, to get rid of the degenerate addition case
- * TODO: glv trick which cuts down ec doubles by half by splitting s*P = s0*P + s1*endo(P) with s0, s1 in [0, 2^128)
  */
 function multiScalarMul(
   Curve: CurveAffine,
@@ -248,6 +247,7 @@ function multiScalarMul(
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
   assertPositiveInteger(n, 'Expected at least 1 point and scalar');
+  let useGlv = Curve.hasEndomorphism;
 
   // constant case
   if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
@@ -256,7 +256,11 @@ function multiScalarMul(
     let P = points.map(Point.toBigint);
     let sum = Curve.zero;
     for (let i = 0; i < n; i++) {
-      sum = Curve.add(sum, Curve.scale(P[i], s[i]));
+      if (useGlv) {
+        sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
+      } else {
+        sum = Curve.add(sum, Curve.scale(P[i], s[i]));
+      }
     }
     return Point.from(sum);
   }
@@ -267,124 +271,51 @@ function multiScalarMul(
     getPointTable(Curve, P, windowSizes[i], tableConfigs[i]?.multiples)
   );
 
-  // slice scalars
-  let b = Curve.order.toString(2).length;
-  let scalarChunks = scalars.map((s, i) =>
-    slice(s, { maxBits: b, chunkSize: windowSizes[i] })
-  );
+  let maxBits = Curve.Scalar.sizeInBits;
 
-  ia ??= initialAggregator(Curve);
-  let sum = Point.from(ia);
+  if (useGlv) {
+    maxBits = Curve.Endo.decomposeMaxBits;
+    assert(maxBits < l2, 'decomposed scalars have to be < 2*88 bits');
 
-  for (let i = b - 1; i >= 0; i--) {
-    // add in multiple of each point
-    for (let j = 0; j < n; j++) {
-      let windowSize = windowSizes[j];
-      if (i % windowSize === 0) {
-        // pick point to add based on the scalar chunk
-        let sj = scalarChunks[j][i / windowSize];
-        let sjP =
-          windowSize === 1
-            ? points[j]
-            : arrayGetGeneric(Point.provable, tables[j], sj);
+    // decompose scalars and handle signs
+    let n2 = 2 * n;
+    let scalars2: Field3[] = Array(n2);
+    let points2: Point[] = Array(n2);
+    let windowSizes2: number[] = Array(n2);
+    let tables2: Point[][] = Array(n2);
+    let mrcStack: Field[] = [];
 
-        // ec addition
-        let added = add(sum, sjP, Curve.modulus);
-
-        // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), Point.provable, sum, added);
-      }
-    }
-
-    if (i === 0) break;
-
-    // jointly double all points
-    // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
-    sum = double(sum, Curve.modulus);
-  }
-
-  // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
-  // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
-  let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
-  sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
-
-  return sum;
-}
-
-function multiScalarMulGlv(
-  Curve: CurveAffine,
-  scalars: Field3[],
-  points: Point[],
-  tableConfigs: (
-    | { windowSize?: number; multiples?: Point[] }
-    | undefined
-  )[] = [],
-  ia?: point
-): Point {
-  let n = points.length;
-  assert(scalars.length === n, 'Points and scalars lengths must match');
-  assertPositiveInteger(n, 'Expected at least 1 point and scalar');
-
-  // constant case
-  if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
-    // TODO dedicated MSM
-    let s = scalars.map(Field3.toBigint);
-    let P = points.map(Point.toBigint);
-    let sum = Curve.zero;
     for (let i = 0; i < n; i++) {
-      sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
+      let [s0, s1] = decomposeNoRangeCheck(Curve, scalars[i]);
+      scalars2[2 * i] = s0.abs;
+      scalars2[2 * i + 1] = s1.abs;
+
+      let table = tables[i];
+      let endoTable = table.map((P, i) => {
+        if (i === 0) return P;
+        let [phiP, betaXBound] = endomorphism(Curve, P);
+        mrcStack.push(betaXBound);
+        return phiP;
+      });
+      tables2[2 * i] = table.map((P) =>
+        negateIf(s0.isNegative, P, Curve.modulus)
+      );
+      tables2[2 * i + 1] = endoTable.map((P) =>
+        negateIf(s1.isNegative, P, Curve.modulus)
+      );
+      points2[2 * i] = tables2[2 * i][1];
+      points2[2 * i + 1] = tables2[2 * i + 1][1];
+
+      windowSizes2[2 * i] = windowSizes2[2 * i + 1] = windowSizes[i];
     }
-    return Point.from(sum);
+    reduceMrcStack(mrcStack);
+    // from now on, everything is the same as if these were the original points and scalars
+    points = points2;
+    tables = tables2;
+    scalars = scalars2;
+    windowSizes = windowSizes2;
+    n = n2;
   }
-
-  // parse or build point tables
-  let windowSizes = points.map((_, i) => tableConfigs[i]?.windowSize ?? 1);
-  let tables = points.map((P, i) =>
-    getPointTable(Curve, P, windowSizes[i], undefined)
-  );
-
-  let maxBits = Curve.Endo.decomposeMaxBits;
-  assert(maxBits < l2, 'decomposed scalars assumed to be < 2*88 bits');
-
-  // decompose scalars and handle signs
-  let n2 = 2 * n;
-  let scalars2: Field3[] = Array(n2);
-  let points2: Point[] = Array(n2);
-  let windowSizes2: number[] = Array(n2);
-  let tables2: Point[][] = Array(n2);
-  let mrcStack: Field[] = [];
-
-  for (let i = 0; i < n; i++) {
-    let [s0, s1] = decomposeNoRangeCheck(Curve, scalars[i]);
-    scalars2[2 * i] = s0.abs;
-    scalars2[2 * i + 1] = s1.abs;
-
-    let table = tables[i];
-    let endoTable = table.map((P, i) => {
-      if (i === 0) return P;
-      let [phiP, betaXBound] = endomorphism(Curve, P);
-      mrcStack.push(betaXBound);
-      return phiP;
-    });
-    tables2[2 * i] = table.map((P) =>
-      negateIf(s0.isNegative, P, Curve.modulus)
-    );
-    tables2[2 * i + 1] = endoTable.map((P) =>
-      negateIf(s1.isNegative, P, Curve.modulus)
-    );
-    points2[2 * i] = tables2[2 * i][1];
-    points2[2 * i + 1] = tables2[2 * i + 1][1];
-
-    windowSizes2[2 * i] = windowSizes2[2 * i + 1] = windowSizes[i];
-  }
-  reduceMrcStack(mrcStack);
-  // from now on everything is the same as if these were the original points and scalars
-  points = points2;
-  tables = tables2;
-  scalars = scalars2;
-  windowSizes = windowSizes2;
-  n = n2;
 
   // slice scalars
   let scalarChunks = scalars.map((s, i) =>
