@@ -1,8 +1,17 @@
+import { Snarky } from '../../snarky.js';
+import { Fp } from '../../bindings/crypto/finite_field.js';
+import { Field as FieldProvable } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
-import { bitSlice, exists, toVar, toVars } from './common.js';
+import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 
-export { rangeCheck64, rangeCheck32, multiRangeCheck, compactMultiRangeCheck };
+export {
+  rangeCheck64,
+  rangeCheck32,
+  multiRangeCheck,
+  compactMultiRangeCheck,
+  rangeCheckHelper,
+};
 export { l, l2, l3, lMask, l2Mask };
 
 /**
@@ -16,8 +25,30 @@ function rangeCheck32(x: Field) {
     return;
   }
 
-  let actual = x.rangeCheckHelper(32);
+  let actual = rangeCheckHelper(32, x);
   actual.assertEquals(x);
+}
+
+/**
+ * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
+ */
+function rangeCheckHelper(length: number, x: Field) {
+  assert(
+    length <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
+  );
+  assert(length > 0, `bit length must be positive, got ${length}`);
+  assert(length % 16 === 0, '`length` has to be a multiple of 16.');
+
+  let lengthDiv16 = length / 16;
+  if (x.isConstant()) {
+    let bits = FieldProvable.toBits(x.toBigInt())
+      .slice(0, length)
+      .concat(Array(Fp.sizeInBits - length).fill(false));
+    return new Field(FieldProvable.fromBits(bits));
+  }
+  let y = Snarky.field.truncateToBits16(lengthDiv16, x.value);
+  return new Field(y);
 }
 
 /**

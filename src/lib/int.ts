@@ -3,7 +3,15 @@ import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import { Gadgets } from './gadgets/gadgets.js';
+import {
+  Gadgets,
+  Gadgets,
+  Gadgets,
+  Gadgets,
+  Gadgets,
+  Gadgets,
+  Gadgets,
+} from './gadgets/gadgets.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -67,7 +75,7 @@ class UInt64 extends CircuitValue {
   }
 
   static check(x: UInt64) {
-    let actual = x.value.rangeCheckHelper(64);
+    let actual = Gadgets.rangeCheckHelper(UInt64.NUM_BITS, x.value);
     actual.assertEquals(x.value);
   }
 
@@ -143,11 +151,11 @@ class UInt64 extends CircuitValue {
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    q.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(q);
+    Gadgets.rangeCheckHelper(UInt64.NUM_BITS, q).assertEquals(q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    r.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(r);
+    Gadgets.rangeCheckHelper(UInt64.NUM_BITS, r).assertEquals(r);
 
     let r_ = new UInt64(r);
     let q_ = new UInt64(q);
@@ -183,7 +191,7 @@ class UInt64 extends CircuitValue {
    */
   mul(y: UInt64 | number) {
     let z = this.value.mul(UInt64.from(y).value);
-    z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
+    Gadgets.rangeCheckHelper(UInt64.NUM_BITS, z).assertEquals(z);
     return new UInt64(z);
   }
 
@@ -192,7 +200,7 @@ class UInt64 extends CircuitValue {
    */
   add(y: UInt64 | number) {
     let z = this.value.add(UInt64.from(y).value);
-    z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
+    Gadgets.rangeCheckHelper(UInt64.NUM_BITS, z).assertEquals(z);
     return new UInt64(z);
   }
 
@@ -201,7 +209,7 @@ class UInt64 extends CircuitValue {
    */
   sub(y: UInt64 | number) {
     let z = this.value.sub(UInt64.from(y).value);
-    z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
+    Gadgets.rangeCheckHelper(UInt64.NUM_BITS, z).assertEquals(z);
     return new UInt64(z);
   }
 
@@ -391,12 +399,17 @@ class UInt64 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(yMinusX);
+
+      let xMinusYFits = Gadgets.rangeCheckHelper(
+        UInt64.NUM_BITS,
+        xMinusY
+      ).equals(xMinusY);
+
+      let yMinusXFits = Gadgets.rangeCheckHelper(
+        UInt64.NUM_BITS,
+        yMinusX
+      ).equals(yMinusX);
+
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -412,12 +425,17 @@ class UInt64 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(yMinusX);
+
+      let xMinusYFits = Gadgets.rangeCheckHelper(
+        UInt64.NUM_BITS,
+        xMinusY
+      ).equals(xMinusY);
+
+      let yMinusXFits = Gadgets.rangeCheckHelper(
+        UInt64.NUM_BITS,
+        yMinusX
+      ).equals(yMinusX);
+
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -447,7 +465,10 @@ class UInt64 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
+    Gadgets.rangeCheckHelper(UInt64.NUM_BITS, yMinusX).assertEquals(
+      yMinusX,
+      message
+    );
   }
 
   /**
@@ -661,11 +682,11 @@ class UInt32 extends CircuitValue {
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    q.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(q);
+    Gadgets.rangeCheck32(q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    r.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(r);
+    Gadgets.rangeCheck32(r);
 
     let r_ = new UInt32(r);
     let q_ = new UInt32(q);
@@ -698,7 +719,7 @@ class UInt32 extends CircuitValue {
    */
   mul(y: UInt32 | number) {
     let z = this.value.mul(UInt32.from(y).value);
-    z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
+    Gadgets.rangeCheck32(z);
     return new UInt32(z);
   }
   /**
@@ -706,7 +727,7 @@ class UInt32 extends CircuitValue {
    */
   add(y: UInt32 | number) {
     let z = this.value.add(UInt32.from(y).value);
-    z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
+    Gadgets.rangeCheck32(z);
     return new UInt32(z);
   }
   /**
@@ -714,7 +735,7 @@ class UInt32 extends CircuitValue {
    */
   sub(y: UInt32 | number) {
     let z = this.value.sub(UInt32.from(y).value);
-    z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
+    Gadgets.rangeCheck32(z);
     return new UInt32(z);
   }
 
@@ -904,12 +925,14 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(yMinusX);
+      let xMinusYFits = Gadgets.rangeCheckHelper(
+        UInt32.NUM_BITS,
+        xMinusY
+      ).equals(xMinusY);
+      let yMinusXFits = Gadgets.rangeCheckHelper(
+        UInt32.NUM_BITS,
+        yMinusX
+      ).equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -925,12 +948,14 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(yMinusX);
+      let xMinusYFits = Gadgets.rangeCheckHelper(
+        UInt32.NUM_BITS,
+        xMinusY
+      ).equals(xMinusY);
+      let yMinusXFits = Gadgets.rangeCheckHelper(
+        UInt32.NUM_BITS,
+        yMinusX
+      ).equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -960,7 +985,10 @@ class UInt32 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
+    Gadgets.rangeCheckHelper(UInt32.NUM_BITS, yMinusX).assertEquals(
+      yMinusX,
+      message
+    );
   }
 
   /**

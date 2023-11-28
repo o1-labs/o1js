@@ -6,6 +6,7 @@ import {
   multiRangeCheck,
   rangeCheck64,
   rangeCheck32,
+  rangeCheckHelper,
 } from './range-check.js';
 import {
   not,
@@ -75,6 +76,22 @@ const Gadgets = {
    */
   rangeCheck32(x: Field) {
     return rangeCheck32(x);
+  },
+
+  /**
+   * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
+   *
+   * The `length` has to be a multiple of 16, and has to be between 0 and 255, otherwise the method throws.
+   *
+   * As {@link Field} elements are represented using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness),
+   * the resulting {@link Field} element will equal the original one if it fits in `length` bits.
+   *
+   * @param length - The number of bits to take from this {@link Field} element.
+   *
+   * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
+   */
+  rangeCheckHelper(length: number, x: Field) {
+    return rangeCheckHelper(length, x);
   },
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
