@@ -112,10 +112,10 @@ class MyStructPure extends Struct({
 // Struct.from() works on both js and provable inputs
 
 let myStructInput = {
-  nested: { a: 1n, b: 2n },
+  nested: { a: Field(1), b: 2n },
   other: 3n,
   pk: { x: 4n, isOdd: true },
-  uint: [100n, 5n],
+  uint: [100n, UInt32.zero],
 };
 let myStruct = MyStructPure.fromValue(myStructInput);
 
