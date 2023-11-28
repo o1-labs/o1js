@@ -57,7 +57,7 @@ test(Random.json.publicKey, (publicKeyBase58) => {
   let pkSnarky = PublicKeySnarky.fromBase58(publicKeyBase58);
   let pk = PublicKey.fromJSON(publicKeyBase58);
   expect(pk.x).toEqual(pkSnarky.x.toBigInt());
-  expect(pk.isOdd).toEqual(pkSnarky.isOdd.toField().toBigInt());
+  expect(pk.isOdd).toEqual(pkSnarky.isOdd.toBoolean());
   expect(PublicKey.toJSON(pk)).toEqual(publicKeyBase58);
 });
 
