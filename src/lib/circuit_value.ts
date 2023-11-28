@@ -15,7 +15,10 @@ import type {
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
 import { Provable } from './provable.js';
-import { InferValue } from 'src/bindings/lib/provable-generic.js';
+import {
+  DeepValueOrProvable,
+  InferValue,
+} from 'src/bindings/lib/provable-generic.js';
 
 // external API
 export {
@@ -411,6 +414,7 @@ function Struct<
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
     ? ProvablePure<T, V>
     : Provable<T, V>) & {
+    from: (value: DeepValueOrProvable<A>) => T;
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
@@ -425,6 +429,13 @@ function Struct<
     constructor(value: T) {
       Object.assign(this, value);
     }
+
+    static from(value: DeepValueOrProvable<A>): T {
+      let x = this.type.fromValue(value as any);
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, x);
+    }
+
     /**
      * This method is for internal use, you will probably not need it.
      * @returns the size of this struct in field elements

@@ -174,11 +174,14 @@ const TokenSymbolPure: ProvableExtended<
     return symbol;
   },
   fromValue(symbol: string | TokenSymbol) {
-    if (typeof symbol === 'string') {
-      let field = prefixToField(symbol);
-      return { symbol, field };
-    }
-    return symbol;
+    if (typeof symbol !== 'string') return symbol;
+    let bytesLength = new TextEncoder().encode(symbol).length;
+    if (bytesLength > 6)
+      throw Error(
+        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
+      );
+    let field = prefixToField(symbol);
+    return { symbol, field };
   },
   toJSON({ symbol }) {
     return symbol;
@@ -195,18 +198,8 @@ const TokenSymbolPure: ProvableExtended<
   },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
-  static from(symbol: string): TokenSymbol {
-    let bytesLength = new TextEncoder().encode(symbol).length;
-    if (bytesLength > 6)
-      throw Error(
-        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
-      );
-    let field = prefixToField(symbol);
-    return { symbol, field };
+  static from(value: string | TokenSymbol) {
+    return super.from(value) as TokenSymbol;
   }
 }
 
