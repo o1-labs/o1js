@@ -4,6 +4,7 @@ import {
   equivalentProvable as equivalent,
   equivalentAsync,
   field,
+  record,
 } from '../testing/equivalent.js';
 import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
@@ -11,13 +12,6 @@ import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
 import { provable } from '../circuit_value.js';
 import { assert } from './common.js';
-
-const maybeField = {
-  ...field,
-  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
-    mod(x, Field.ORDER)
-  ),
-};
 
 let Arithmetic = ZkProgram({
   name: 'arithmetic',
@@ -38,31 +32,31 @@ let Arithmetic = ZkProgram({
 await Arithmetic.compile();
 
 const divMod32Helper = (x: bigint) => {
-  let q = x / (1n << 32n);
-  let r = x - q * (1n << 32n);
-  return [r, q];
+  let quotient = x / (1n << 32n);
+  let remainder = x - quotient * (1n << 32n);
+  return { remainder, quotient };
 };
+const divMod32Output = record({ remainder: field, quotient: field });
 
-equivalent({ from: [maybeField], to: array(field, 2) })(
+equivalent({
+  from: [field],
+  to: divMod32Output,
+})(
   (x) => {
     assert(x < 1n << 64n, `x needs to fit in 64bit, but got ${x}`);
     return divMod32Helper(x);
   },
   (x) => {
-    let { remainder, quotient } = Gadgets.divMod32(x);
-    return [remainder, quotient];
+    return Gadgets.divMod32(x);
   }
 );
 
-await equivalentAsync({ from: [maybeField], to: array(field, 2) }, { runs: 3 })(
+await equivalentAsync({ from: [field], to: divMod32Output }, { runs: 3 })(
   (x) => {
     assert(x < 1n << 64n, `x needs to fit in 64bit, but got ${x}`);
     return divMod32Helper(x);
   },
   async (x) => {
-    let {
-      publicOutput: { quotient, remainder },
-    } = await Arithmetic.divMod32(x);
-    return [remainder, quotient];
+    return (await Arithmetic.divMod32(x)).publicOutput;
   }
 );
