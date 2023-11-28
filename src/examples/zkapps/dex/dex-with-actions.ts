@@ -241,13 +241,13 @@ class DexTokenHolder extends SmartContract {
 
     // get total supply of liquidity tokens _before_ applying these actions
     // (each redeem action _decreases_ the supply, so we increase it here)
-    let l = Provable.witness(UInt64, (): UInt64 => {
+    let l = Provable.witness(UInt64, () => {
       let l = dex.totalSupply.get().toBigInt();
       // dex.totalSupply.assertNothing();
       for (let [action] of actions) {
         l += action.dl.toBigInt();
       }
-      return UInt64.from(l);
+      return l;
     });
 
     // get our token balance
