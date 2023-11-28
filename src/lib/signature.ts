@@ -106,6 +106,17 @@ class PrivateKey extends CircuitValue {
       constantScalarToBigint(privateKey.s, 'PrivateKey.toBase58')
     );
   }
+
+  static toValue(v: PrivateKey) {
+    return v.toBigInt();
+  }
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    v: bigint | PrivateKey
+  ): InstanceType<T> {
+    if (v instanceof PrivateKey) return v as any;
+    return PrivateKey.fromBigInt(v) as any;
+  }
 }
 
 // TODO: this doesn't have a non-default check method yet. does it need one?
@@ -221,6 +232,16 @@ class PublicKey extends CircuitValue {
    */
   static fromJSON<T extends AnyConstructor>(this: T, publicKey: string) {
     return PublicKey.fromBase58(publicKey) as InstanceType<T>;
+  }
+
+  static toValue({ x, isOdd }: PublicKey) {
+    return { x: x.toBigInt(), isOdd: isOdd.toBoolean() };
+  }
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    { x, isOdd }: PublicKey | { x: bigint; isOdd: boolean }
+  ): InstanceType<T> {
+    return PublicKey.from({ x: Field.from(x), isOdd: Bool(isOdd) }) as any;
   }
 }
 
