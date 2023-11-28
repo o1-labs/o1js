@@ -41,7 +41,7 @@ type FromSpec<In1, In2> = {
   // `provable` tells us how to create witnesses, to test provable code
   // note: we only allow the second function to be provable;
   // the second because it's more natural to have non-provable types as random generator output
-  provable?: Provable<In2>;
+  provable?: Provable<In2, any>;
 };
 
 type ToSpec<Out1, Out2> = {
@@ -54,7 +54,7 @@ type ToSpec<Out1, Out2> = {
 
 type Spec<T1, T2> = FromSpec<T1, T2> & ToSpec<T1, T2>;
 
-type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2> };
+type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2, any> };
 
 type FuncSpec<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2> = {
   from: {

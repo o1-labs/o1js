@@ -285,6 +285,14 @@ class Scalar {
      */
   }
 
+  static toValue(x: Scalar) {
+    return x.toBigInt();
+  }
+
+  static fromValue(x: bigint) {
+    return Scalar.from(x);
+  }
+
   // ProvableExtended<Scalar>
 
   /**

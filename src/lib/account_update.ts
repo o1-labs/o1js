@@ -33,6 +33,7 @@ import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
+import { From } from '../bindings/lib/provable-generic.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1285,6 +1286,14 @@ class AccountUpdate implements Types.AccountUpdate {
       other
     );
   }
+  static toValue = Types.AccountUpdate.toValue;
+  static fromValue(
+    value: From<typeof Types.AccountUpdate> | AccountUpdate
+  ): AccountUpdate {
+    if (value instanceof AccountUpdate) return value;
+    let accountUpdate = Types.AccountUpdate.fromValue(value);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
+  }
 
   static witness<T>(
     type: FlexibleProvable<T>,
@@ -1869,9 +1878,11 @@ function addMissingSignatures(
   additionalKeys = [] as PrivateKey[]
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
-  let { commitment, fullCommitment } = transactionCommitments(
-    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand))
-  );
+  let { commitment, fullCommitment } = transactionCommitments({
+    ...Types.ZkappCommand.toValue(zkappCommand),
+    // TODO: represent memo in encoded form already?
+    memo: Memo.toBase58(Memo.fromString(zkappCommand.memo)),
+  });
 
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =

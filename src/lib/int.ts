@@ -1,6 +1,7 @@
 import { Field, Bool } from './core.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
+import * as TypesBigint from '../bindings/mina-transaction/transaction-leaves-bigint.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
 
@@ -371,6 +372,16 @@ class UInt64 extends CircuitValue {
   assertGreaterThanOrEqual(y: UInt64, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
+
+  static toValue(x: UInt64) {
+    return x.value.toBigInt();
+  }
+
+  static fromValue<T extends AnyConstructor>(
+    x: bigint | UInt64
+  ): InstanceType<T> {
+    return UInt64.from(x) as any;
+  }
 }
 /**
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
@@ -708,6 +719,16 @@ class UInt32 extends CircuitValue {
   assertGreaterThanOrEqual(y: UInt32, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
+
+  static toValue(x: UInt32) {
+    return x.value.toBigInt();
+  }
+
+  static fromValue<T extends AnyConstructor>(
+    x: bigint | UInt32
+  ): InstanceType<T> {
+    return UInt32.from(x) as any;
+  }
 }
 
 class Sign extends CircuitValue {
@@ -750,6 +771,17 @@ class Sign extends CircuitValue {
   }
   toString() {
     return this.value.toString();
+  }
+
+  static toValue(x: Sign) {
+    return x.value.toBigInt() as TypesBigint.Sign;
+  }
+
+  static fromValue<T extends AnyConstructor>(
+    x: bigint | Sign
+  ): InstanceType<T> {
+    if (x instanceof Sign) return x as any;
+    return new Sign(Field(x)) as any;
   }
 }
 

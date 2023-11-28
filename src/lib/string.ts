@@ -1,5 +1,5 @@
 import { Bool, Field } from '../lib/core.js';
-import { arrayProp, CircuitValue, prop } from './circuit_value.js';
+import { provable, Struct } from './circuit_value.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './hash.js';
 
@@ -7,11 +7,13 @@ export { Character, CircuitString };
 
 const DEFAULT_STRING_LENGTH = 128;
 
-class Character extends CircuitValue {
-  @prop value: Field;
+class Character extends Struct({ value: Field }) {
+  constructor(value: Field | number) {
+    super({ value: Field(value) });
+  }
 
   isNull(): Bool {
-    return this.equals(NullCharacter() as this);
+    return this.value.equals(NullCharacter().value);
   }
 
   toField(): Field {
@@ -24,30 +26,47 @@ class Character extends CircuitValue {
   }
 
   static fromString(str: string) {
-    const char = Field(str.charCodeAt(0));
-    return new Character(char);
+    return new Character(str.charCodeAt(0));
   }
 
   // TODO: Add support for more character sets
   // right now it's 16 bits because 8 not supported :/
-  static check(c: Character) {
+  static check(c: { value: Field }) {
     c.value.rangeCheckHelper(16).assertEquals(c.value);
   }
 }
 
-class CircuitString extends CircuitValue {
-  static maxLength = DEFAULT_STRING_LENGTH;
-  @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
+// construct a provable with a `string` js type
+const RawCircuitString = {
+  ...provable({ values: Provable.Array(Character, DEFAULT_STRING_LENGTH) }),
 
-  // constructor is private because
-  // * we do not want extra logic inside CircuitValue constructors, as a general pattern (to be able to create them generically)
-  // * here, not running extra logic to fill up the characters would be wrong
-  private constructor(values: Character[]) {
-    super(values);
-  }
+  toValue({ values }) {
+    return values
+      .map((x) => x.toString())
+      .join('')
+      .replace(/[^ -~]+/g, '');
+  },
+
+  fromValue(value) {
+    if (typeof value === 'object') return value;
+    return {
+      values: fillWithNull(
+        value.split('').map((x) => Character.fromString(x)),
+        DEFAULT_STRING_LENGTH
+      ),
+    };
+  },
+} satisfies Provable<{ values: Character[] }, string>;
+
+// by using a custom provable as struct input, we override its inference of the js type
+// otherwise the js type would be `{ values: { value: bigint }[] }` instead of `string`
+// TODO: create an API for this that is better integrated with `Struct`
+class CircuitString extends Struct(RawCircuitString) {
+  static maxLength = DEFAULT_STRING_LENGTH;
+
   // this is the publicly accessible constructor
   static fromCharacters(chars: Character[]): CircuitString {
-    return new CircuitString(fillWithNull(chars, this.maxLength));
+    return new CircuitString({ values: fillWithNull(chars, this.maxLength) });
   }
 
   private maxLength() {
@@ -79,6 +98,13 @@ class CircuitString extends CircuitValue {
   }
   private length(): Field {
     return (this as any)._length ?? this.computeLengthAndMask().length;
+  }
+
+  /**
+   * returns true if `this` has the same value as `other`
+   */
+  equals(other: CircuitString) {
+    return Provable.equal(CircuitString, this, other);
   }
 
   /**
@@ -130,18 +156,14 @@ class CircuitString extends CircuitValue {
   }
 
   toString(): string {
-    return this.values
-      .map((x) => x.toString())
-      .join('')
-      .replace(/[^ -~]+/g, '');
+    return CircuitString.toValue(this);
   }
 
   static fromString(str: string): CircuitString {
     if (str.length > this.maxLength) {
       throw Error('CircuitString.fromString: input string exceeds max length!');
     }
-    let characters = str.split('').map((x) => Character.fromString(x));
-    return CircuitString.fromCharacters(characters);
+    return new CircuitString(CircuitString.fromValue(str));
   }
 }
 

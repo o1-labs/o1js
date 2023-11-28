@@ -16,6 +16,7 @@ import {
   l3,
   compactMultiRangeCheck,
 } from './range-check.js';
+import { ProvablePureExtended } from '../circuit_value.js';
 
 export { ForeignField, Field3, Sign };
 
@@ -347,7 +348,16 @@ const Field3 = {
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
    * range checks.
    */
-  provable: provableTuple([Field, Field, Field]),
+  provable: {
+    ...provableTuple([Field, Field, Field]),
+    toValue(x): bigint {
+      return Field3.toBigint(x);
+    },
+    fromValue(x): Field3 {
+      if (typeof x === 'bigint') return Field3.from(x);
+      return x;
+    },
+  } satisfies ProvablePureExtended<Field3, bigint, [string, string, string]>,
 };
 
 type Field2 = [Field, Field];

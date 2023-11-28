@@ -151,6 +151,7 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
 
 const TokenSymbolPure: ProvableExtended<
   { symbol: string; field: Field },
+  string,
   string
 > = {
   toFields({ field }) {
@@ -169,6 +170,19 @@ const TokenSymbolPure: ProvableExtended<
     let actual = field.rangeCheckHelper(48);
     actual.assertEquals(field);
   },
+  toValue({ symbol }) {
+    return symbol;
+  },
+  fromValue(symbol: string | TokenSymbol) {
+    if (typeof symbol !== 'string') return symbol;
+    let bytesLength = new TextEncoder().encode(symbol).length;
+    if (bytesLength > 6)
+      throw Error(
+        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
+      );
+    let field = prefixToField(symbol);
+    return { symbol, field };
+  },
   toJSON({ symbol }) {
     return symbol;
   },
@@ -184,18 +198,8 @@ const TokenSymbolPure: ProvableExtended<
   },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
-  static from(symbol: string): TokenSymbol {
-    let bytesLength = new TextEncoder().encode(symbol).length;
-    if (bytesLength > 6)
-      throw Error(
-        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
-      );
-    let field = prefixToField(symbol);
-    return { symbol, field };
+  static from(value: string | TokenSymbol) {
+    return TokenSymbol.fromValue(value) as TokenSymbol;
   }
 }
 

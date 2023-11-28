@@ -24,6 +24,7 @@ import {
   constraintSystem,
 } from './provable-context.js';
 import { isBool } from './bool.js';
+import { From, InferValue } from '../bindings/lib/provable-generic.js';
 
 // external API
 export { Provable };
@@ -42,7 +43,7 @@ export {
  *
  * You will find this as the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
  */
-type Provable<T> = Provable_<T>;
+type Provable<T, TValue = any> = Provable_<T, TValue>;
 
 const Provable = {
   /**
@@ -56,7 +57,7 @@ const Provable = {
    * ```ts
    * let invX = Provable.witness(Field, () => {
    *   // compute the inverse of `x` outside the circuit, however you like!
-   *   return Field.inv(x));
+   *   return Field.inv(x);
    * }
    * // prove that `invX` is really the inverse of `x`:
    * invX.mul(x).assertEquals(1);
@@ -189,23 +190,24 @@ const Provable = {
   inCheckedComputation,
 };
 
-function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
-  type: S,
+function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
+  type: A,
   compute: () => T
-): T {
+): InferProvable<A> {
+  type S = InferProvable<A>;
   let ctx = snarkContext.get();
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, compute());
+    return clone(type, type.fromValue(compute()));
   }
-  let proverValue: T | undefined = undefined;
+  let proverValue: S | undefined = undefined;
   let fields: Field[];
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
     let [, ...fieldVars] = Snarky.exists(type.sizeInFields(), () => {
-      proverValue = compute();
+      proverValue = type.fromValue(compute());
       let fields = type.toFields(proverValue);
       let fieldConstants = fields.map((x) => x.toConstant().value[1]);
 
@@ -227,7 +229,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   // rebuild the value from its fields (which are now variables) and aux data
   let aux = type.toAuxiliary(proverValue);
-  let value = (type as Provable<T>).fromFields(fields, aux);
+  let value = (type as Provable<S>).fromFields(fields, aux);
 
   // add type-specific constraints
   type.check(value);
@@ -454,7 +456,7 @@ let memoizationContext = Context.create<MemoizationContext>();
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return Provable.witness<T>(type as Provable<T>, () => {
+  return Provable.witness(type as Provable<T>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;
@@ -489,8 +491,9 @@ function provableArray<A extends FlexibleProvable<any>>(
   length: number
 ): InferredProvable<A[]> {
   type T = InferProvable<A>;
+  type TValue = InferValue<A>;
   type TJson = InferJson<A>;
-  let type = elementType as ProvableExtended<T>;
+  let type = elementType as ProvableExtended<T, TValue, TJson>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
@@ -536,6 +539,15 @@ function provableArray<A extends FlexibleProvable<any>>(
         (type as any).check(array[i]);
       }
     },
+
+    toValue(x) {
+      return x.map((v) => type.toValue(v));
+    },
+
+    fromValue(x) {
+      return x.map((v) => type.fromValue(v));
+    },
+
     /**
      * Encodes this structure into a JSON-like object.
      */
@@ -573,5 +585,5 @@ function provableArray<A extends FlexibleProvable<any>>(
       }
       return Array.from({ length }, () => type.empty());
     },
-  } satisfies ProvableExtended<T[], TJson[]> as any;
+  } satisfies ProvableExtended<T[], TValue[], TJson[]> as any;
 }

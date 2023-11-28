@@ -18,7 +18,7 @@ describe('circuit', () => {
     Provable.runAndCheck(() => {
       let x = Provable.witness(Int64, () => Int64.from(-1));
       let y = Provable.witness(Int64, () => Int64.from(-2));
-      let b = Provable.witness(Bool, () => Bool(true));
+      let b = Provable.witness(Bool, () => true);
 
       let z = Provable.if(b, Int64, x, y);
 
@@ -83,7 +83,7 @@ describe('circuit', () => {
 
     Provable.runAndCheck(() => {
       let x = Provable.witness(Field, () => Field(1));
-      let b = Provable.witness(Bool, () => Bool(true));
+      let b = Provable.witness(Bool, () => true);
 
       // positive
       Provable.assertEqual(b, Bool(true));
@@ -124,8 +124,8 @@ describe('circuit', () => {
     }
 
     Provable.runAndCheck(() => {
-      let x = Provable.witness(Field, () => Field(1));
-      let b = Provable.witness(Bool, () => Bool(true));
+      let x = Provable.witness(Field, () => 1);
+      let b = Provable.witness(Bool, () => true);
       let pk = Provable.witness(PublicKey, () => pk1);
 
       expectBoolean(Provable.equal(pk, pk1), true);

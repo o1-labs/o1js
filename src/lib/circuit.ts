@@ -301,5 +301,13 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
     check(xs: Array<any>) {
       typs.forEach((typ, i) => (typ as any).check(xs[i]));
     },
+
+    toValue(x) {
+      return typs.map((typ, i) => typ.toValue(x[i]));
+    },
+
+    fromValue(x) {
+      return typs.map((typ, i) => typ.fromValue(x[i]));
+    },
   };
 }

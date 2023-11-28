@@ -136,8 +136,6 @@ class Group {
       const { x: x1, y: y1 } = this;
       const { x: x2, y: y2 } = g;
 
-      let zero = new Field(0);
-
       let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
 
       let inf = Provable.witness(Bool, () =>
@@ -145,13 +143,13 @@ class Group {
       );
 
       let inf_z = Provable.witness(Field, () => {
-        if (y1.equals(y2).toBoolean()) return zero;
+        if (y1.equals(y2).toBoolean()) return 0n;
         else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
-        else return zero;
+        else return 0n;
       });
 
       let x21_inv = Provable.witness(Field, () => {
-        if (x1.equals(x2).toBoolean()) return zero;
+        if (x1.equals(x2).toBoolean()) return 0n;
         else return x2.sub(x1).inv();
       });
 
@@ -407,6 +405,16 @@ class Group {
    */
   static sizeInFields() {
     return 2;
+  }
+
+  static toValue({ x, y }: Group) {
+    return { x: x.toBigInt(), y: y.toBigInt() };
+  }
+
+  static fromValue(
+    g: { x: bigint | number | Field; y: bigint | number | Field } | Group
+  ) {
+    return new Group(g);
   }
 
   /**

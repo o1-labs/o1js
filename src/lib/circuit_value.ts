@@ -15,6 +15,7 @@ import type {
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
 import { Provable } from './provable.js';
+import { From, InferValue } from '../bindings/lib/provable-generic.js';
 
 // external API
 export {
@@ -52,15 +53,17 @@ type ProvableExtension<T, TJson = any> = {
   empty: () => T;
 };
 
-type ProvableExtended<T, TJson = any> = Provable<T> &
+type ProvableExtended<T, TValue = any, TJson = any> = Provable<T, TValue> &
   ProvableExtension<T, TJson>;
-type ProvablePureExtended<T, TJson = any> = ProvablePure<T> &
+type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
+  T,
+  TValue
+> &
   ProvableExtension<T, TJson>;
 
 type Struct<T> = ProvableExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
-type StructPure<T> = ProvablePure<NonMethods<T>> &
-  ProvableExtension<NonMethods<T>> &
+type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
 type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
@@ -213,6 +216,35 @@ abstract class CircuitValue {
   ): InstanceType<T> {
     const xs: Field[] = (this as any).toFields(t);
     return (this as any).fromFields(xs.map((x) => x.toConstant()));
+  }
+
+  static toValue<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
+    const res: any = {};
+    let fields: [string, any][] = (this as any).prototype._fields ?? [];
+    fields.forEach(([key, propType]) => {
+      res[key] = propType.toValue((v as any)[key]);
+    });
+    return res;
+  }
+
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    value: any
+  ): InstanceType<T> {
+    let props: any = {};
+    let fields: [string, any][] = (this as any).prototype._fields ?? [];
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw Error(`${this.name}.fromValue(): invalid input ${value}`);
+    }
+    for (let i = 0; i < fields.length; ++i) {
+      let [key, propType] = fields[i];
+      if (value[key] === undefined) {
+        throw Error(`${this.name}.fromValue(): invalid input ${value}`);
+      } else {
+        props[key] = propType.fromValue(value[key]);
+      }
+    }
+    return Object.assign(Object.create(this.prototype), props);
   }
 
   static toJSON<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
@@ -371,19 +403,22 @@ function matrixProp<T>(
 function Struct<
   A,
   T extends InferProvable<A> = InferProvable<A>,
+  V extends InferValue<A> = InferValue<A>,
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
   type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
-    ? ProvablePure<T>
-    : Provable<T>) & {
+    ? ProvablePure<T, V>
+    : Provable<T, V>) & {
+    fromValue: (value: From<A>) => T;
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
     };
     toJSON: (x: T) => J;
     fromJSON: (x: J) => T;
+    empty: () => T;
   } {
   class Struct_ {
     static type = provable<A>(type);
@@ -458,6 +493,23 @@ function Struct<
     static check(value: T) {
       return this.type.check(value);
     }
+
+    /**
+     * `Provable<T>.toValue()`
+     */
+    static toValue(x: T): V {
+      return this.type.toValue(x) as V;
+    }
+
+    /**
+     * `Provable<T>.fromValue()`
+     */
+    static fromValue(v: From<A>): T {
+      let value = this.type.fromValue(v as any);
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
+    }
+
     /**
      * This method is for internal use, you will probably not need it.
      * Recover a struct from its raw field elements and auxiliary data.
