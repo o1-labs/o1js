@@ -15,7 +15,7 @@ import type {
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
 import { Provable } from './provable.js';
-import { From, InferValue } from 'src/bindings/lib/provable-generic.js';
+import { From, InferValue } from '../bindings/lib/provable-generic.js';
 
 // external API
 export {

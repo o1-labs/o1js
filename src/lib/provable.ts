@@ -35,7 +35,6 @@ export {
   MemoizationContext,
   memoizeWitness,
   getBlindingValue,
-  from,
 };
 
 // TODO move type declaration here
@@ -200,7 +199,7 @@ function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, from(type, compute()));
+    return clone(type, type.fromValue(compute()));
   }
   let proverValue: S | undefined = undefined;
   let fields: Field[];
@@ -208,7 +207,7 @@ function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
     let [, ...fieldVars] = Snarky.exists(type.sizeInFields(), () => {
-      proverValue = from(type, compute());
+      proverValue = type.fromValue(compute());
       let fields = type.toFields(proverValue);
       let fieldConstants = fields.map((x) => x.toConstant().value[1]);
 
@@ -587,13 +586,4 @@ function provableArray<A extends FlexibleProvable<any>>(
       return Array.from({ length }, () => type.empty());
     },
   } satisfies ProvableExtended<T[], TValue[], TJson[]> as any;
-}
-
-// generic flexible `from()` function
-
-function from<A extends Provable<any, any>>(
-  type: A,
-  value: From<A>
-): InferProvable<A> {
-  return type.fromValue(value);
 }
