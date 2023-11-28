@@ -136,8 +136,6 @@ class Group {
       const { x: x1, y: y1 } = this;
       const { x: x2, y: y2 } = g;
 
-      let zero = new Field(0);
-
       let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
 
       let inf = Provable.witness(Bool, () =>
@@ -145,13 +143,13 @@ class Group {
       );
 
       let inf_z = Provable.witness(Field, () => {
-        if (y1.equals(y2).toBoolean()) return zero;
+        if (y1.equals(y2).toBoolean()) return 0n;
         else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
-        else return zero;
+        else return 0n;
       });
 
       let x21_inv = Provable.witness(Field, () => {
-        if (x1.equals(x2).toBoolean()) return zero;
+        if (x1.equals(x2).toBoolean()) return 0n;
         else return x2.sub(x1).inv();
       });
 
@@ -171,9 +169,9 @@ class Group {
       });
 
       let [, x, y] = Snarky.gates.ecAdd(
-        Group.from(x1.seal(), y1.seal()).#toTuple(),
-        Group.from(x2.seal(), y2.seal()).#toTuple(),
-        Group.from(x3, y3).#toTuple(),
+        Group.fromCoordinates(x1.seal(), y1.seal()).#toTuple(),
+        Group.fromCoordinates(x2.seal(), y2.seal()).#toTuple(),
+        Group.fromCoordinates(x3, y3).#toTuple(),
         inf.toField().value,
         same_x.value,
         s.value,
@@ -294,6 +292,21 @@ class Group {
    * Coerces two x and y coordinates into a {@link Group} element.
    */
   static from(
+    g:
+      | {
+          x: FieldVar | Field | number | string | bigint;
+          y: FieldVar | Field | number | string | bigint;
+        }
+      | Group
+  ) {
+    if (g instanceof Group) return g;
+    return new Group({ x: g.x, y: g.y });
+  }
+
+  /**
+   * Coerces two x and y coordinates into a {@link Group} element.
+   */
+  static fromCoordinates(
     x: FieldVar | Field | number | string | bigint,
     y: FieldVar | Field | number | string | bigint
   ) {
