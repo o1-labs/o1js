@@ -71,7 +71,7 @@ const Gadgets = {
    * ```
    *
    * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
-   * and don't pass the 32-bit check. If you want to prove that a value lies in the int64 range [-2^31, 2^31),
+   * and don't pass the 32-bit check. If you want to prove that a value lies in the int32 range [-2^31, 2^31),
    * you could use `rangeCheck32(x.add(1n << 31n))`.
    */
   rangeCheck32(x: Field) {
