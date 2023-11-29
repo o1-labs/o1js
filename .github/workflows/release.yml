@@ -21,7 +21,6 @@ jobs:
     steps:
       # Since cronjob syntax doesn't support bi-weekly schedule, we need to check if it's an even week or not
       - name: Check if it's an even week
-        id: check-week
         run: |
           WEEK_NUM=$(date +'%V')
           if [ $((WEEK_NUM % 2)) -eq 0 ]; then
@@ -44,7 +43,6 @@ jobs:
           git config --local user.name "GitHub Action"
 
       - name: Bump patch version
-        id: version-bump
         if: ${{ env.RUN_JOB }} == 'true'
         run: |
           git fetch --prune --unshallow
