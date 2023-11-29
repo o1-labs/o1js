@@ -38,7 +38,7 @@ class ForeignField {
    */
   value: Field3;
 
-  private get Class() {
+  get Constructor() {
     return this.constructor as typeof ForeignField;
   }
 
@@ -119,7 +119,7 @@ class ForeignField {
    */
   toConstant(): ForeignField {
     let constantLimbs = Tuple.map(this.value, (l) => l.toConstant());
-    return new this.Class(constantLimbs);
+    return new this.Constructor(constantLimbs);
   }
 
   /**
@@ -167,7 +167,7 @@ class ForeignField {
    * ```
    */
   add(y: ForeignField | bigint | number) {
-    return this.Class.sum([this, y], [1]);
+    return this.Constructor.sum([this, y], [1]);
   }
 
   /**
@@ -178,8 +178,8 @@ class ForeignField {
    * ```
    */
   neg() {
-    let zero: ForeignField = this.Class.from(0n);
-    return this.Class.sum([zero, this], [-1]);
+    let zero: ForeignField = this.Constructor.from(0n);
+    return this.Constructor.sum([zero, this], [-1]);
   }
 
   /**
@@ -190,7 +190,7 @@ class ForeignField {
    * ```
    */
   sub(y: ForeignField | bigint | number) {
-    return this.Class.sum([this, y], [-1]);
+    return this.Constructor.sum([this, y], [-1]);
   }
 
   /**
@@ -222,47 +222,6 @@ class ForeignField {
     return new this.Unreduced(z);
   }
 
-  /**
-   * Finite field multiplication
-   * @example
-   * ```ts
-   * x.mul(y); // x*y mod p
-   * ```
-   */
-  mul(y: AlmostForeignField | bigint | number) {
-    const p = this.modulus;
-    let z = Gadgets.ForeignField.mul(this.value, this.Class.toLimbs(y), p);
-    return new this.Class.Unreduced(z);
-  }
-
-  /**
-   * Multiplicative inverse in the finite field
-   * @example
-   * ```ts
-   * let z = x.inv(); // 1/x mod p
-   * z.mul(x).assertEquals(1);
-   * ```
-   */
-  inv() {
-    const p = this.modulus;
-    let z = Gadgets.ForeignField.inv(this.value, p);
-    return new this.Class.AlmostReduced(z);
-  }
-
-  /**
-   * Division in the finite field, i.e. `x*y^(-1) mod p` where `y^(-1)` is the finite field inverse.
-   * @example
-   * ```ts
-   * let z = x.div(y); // x/y mod p
-   * z.mul(y).assertEquals(x);
-   * ```
-   */
-  div(y: ForeignField | bigint | number) {
-    const p = this.modulus;
-    let z = Gadgets.ForeignField.div(this.value, this.Class.toLimbs(y), p);
-    return new this.Class.AlmostReduced(z);
-  }
-
   // convenience methods
 
   /**
@@ -283,7 +242,11 @@ class ForeignField {
         }
         return;
       }
-      return Provable.assertEqual(this.Class.provable, this, new this.Class(y));
+      return Provable.assertEqual(
+        this.Constructor.provable,
+        this,
+        new this.Constructor(y)
+      );
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -323,7 +286,11 @@ class ForeignField {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() === mod(toBigInt(y), p));
     }
-    return Provable.equal(this.Class.provable, this, new this.Class(y));
+    return Provable.equal(
+      this.Constructor.provable,
+      this,
+      new this.Constructor(y)
+    );
   }
 
   // bit packing
@@ -334,7 +301,7 @@ class ForeignField {
    * This method is provable!
    */
   toBits(length?: number) {
-    const sizeInBits = this.Class.sizeInBits;
+    const sizeInBits = this.Constructor.sizeInBits;
     if (length === undefined) length = sizeInBits;
     checkBitLength('ForeignField.toBits()', length, sizeInBits);
     let [l0, l1, l2] = this.value;
@@ -387,6 +354,49 @@ class ForeignField {
   }
 }
 
+class ForeignFieldWithMul extends ForeignField {
+  /**
+   * Finite field multiplication
+   * @example
+   * ```ts
+   * x.mul(y); // x*y mod p
+   * ```
+   */
+  mul(y: AlmostForeignField | bigint | number) {
+    const p = this.modulus;
+    let z = Gadgets.ForeignField.mul(this.value, toLimbs(y, p), p);
+    return new this.Constructor.Unreduced(z);
+  }
+
+  /**
+   * Multiplicative inverse in the finite field
+   * @example
+   * ```ts
+   * let z = x.inv(); // 1/x mod p
+   * z.mul(x).assertEquals(1);
+   * ```
+   */
+  inv() {
+    const p = this.modulus;
+    let z = Gadgets.ForeignField.inv(this.value, p);
+    return new this.Constructor.AlmostReduced(z);
+  }
+
+  /**
+   * Division in the finite field, i.e. `x*y^(-1) mod p` where `y^(-1)` is the finite field inverse.
+   * @example
+   * ```ts
+   * let z = x.div(y); // x/y mod p
+   * z.mul(y).assertEquals(x);
+   * ```
+   */
+  div(y: ForeignField | bigint | number) {
+    const p = this.modulus;
+    let z = Gadgets.ForeignField.div(this.value, toLimbs(y, p), p);
+    return new this.Constructor.AlmostReduced(z);
+  }
+}
+
 class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
@@ -401,8 +411,12 @@ class UnreducedForeignField extends ForeignField {
   }
 }
 
-class AlmostForeignField extends ForeignField {
+class AlmostForeignField extends ForeignFieldWithMul {
   type: 'AlmostReduced' | 'FullyReduced' = 'AlmostReduced';
+
+  constructor(x: AlmostForeignField | Field3 | bigint | number | string) {
+    super(x);
+  }
 
   static _provable: ProvablePure<AlmostForeignField> | undefined = undefined;
   static get provable() {
@@ -416,8 +430,12 @@ class AlmostForeignField extends ForeignField {
   }
 }
 
-class CanonicalForeignField extends ForeignField {
+class CanonicalForeignField extends ForeignFieldWithMul {
   type = 'FullyReduced' as const;
+
+  constructor(x: CanonicalForeignField | Field3 | bigint | number | string) {
+    super(x);
+  }
 
   static _provable: ProvablePure<CanonicalForeignField> | undefined = undefined;
   static get provable() {
@@ -429,6 +447,14 @@ class CanonicalForeignField extends ForeignField {
     Gadgets.multiRangeCheck(x.value);
     x.assertCanonicalFieldElement();
   }
+}
+
+function toLimbs(
+  x: bigint | number | string | ForeignField,
+  p: bigint
+): Field3 {
+  if (x instanceof ForeignField) return x.value;
+  return Field3.from(mod(BigInt(x), p));
 }
 
 function toBigInt(x: bigint | string | number | ForeignField) {
@@ -469,7 +495,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  *
  * @param modulus the modulus of the finite field you are instantiating
  */
-function createForeignField(modulus: bigint): typeof ForeignField {
+function createForeignField(modulus: bigint): typeof AlmostForeignField {
   assert(
     modulus > 0n,
     `ForeignField: modulus must be positive, got ${modulus}`
@@ -519,7 +545,7 @@ function createForeignField(modulus: bigint): typeof ForeignField {
   AlmostField._variants = variants;
   CanonicalField._variants = variants;
 
-  return UnreducedField;
+  return AlmostField;
 }
 
 // the max foreign field modulus is f_max = floor(sqrt(p * 2^t)), where t = 3*limbBits = 264 and p is the native modulus
