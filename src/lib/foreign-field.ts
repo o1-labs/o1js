@@ -10,9 +10,369 @@ import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 
 // external API
-export { createForeignField, ForeignField };
+export { createForeignField };
+export type { ForeignField };
 
-type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
+class ForeignField {
+  static _modulus: bigint | undefined = undefined;
+
+  // static parameters
+  static get modulus() {
+    assert(this._modulus !== undefined, 'ForeignField class not initialized.');
+    return this._modulus;
+  }
+  get modulus() {
+    return (this.constructor as typeof ForeignField).modulus;
+  }
+  static get sizeInBits() {
+    return this.modulus.toString(2).length;
+  }
+
+  /**
+   * The internal representation of a foreign field element, as a tuple of 3 limbs.
+   */
+  value: Field3;
+
+  /**
+   * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
+   * @example
+   * ```ts
+   * let x = new ForeignField(5);
+   * ```
+   */
+  constructor(x: ForeignField | Field3 | bigint | number | string) {
+    const p = this.modulus;
+    if (x instanceof ForeignField) {
+      this.value = x.value;
+      return;
+    }
+    // Field3
+    if (Array.isArray(x)) {
+      this.value = x;
+      return;
+    }
+    // constant
+    this.value = Field3.from(mod(BigInt(x), p));
+  }
+
+  private static toLimbs(x: bigint | number | string | ForeignField): Field3 {
+    if (x instanceof ForeignField) return x.value;
+    return Field3.from(mod(BigInt(x), this.modulus));
+  }
+  private get class() {
+    return this.constructor as typeof ForeignField;
+  }
+
+  /**
+   * Coerce the input to a {@link ForeignField}.
+   */
+  static from(x: ForeignField | Field3 | bigint | number | string) {
+    if (x instanceof ForeignField) return x;
+    return new this(x);
+  }
+
+  /**
+   * Checks whether this field element is a constant.
+   *
+   * See {@link FieldVar} to understand constants vs variables.
+   */
+  isConstant() {
+    return Field3.isConstant(this.value);
+  }
+
+  /**
+   * Convert this field element to a constant.
+   *
+   * See {@link FieldVar} to understand constants vs variables.
+   *
+   * **Warning**: This function is only useful in {@link Provable.witness} or {@link Provable.asProver} blocks,
+   * that is, in situations where the prover computes a value outside provable code.
+   */
+  toConstant(): ForeignField {
+    let constantLimbs = Tuple.map(this.value, (l) => l.toConstant());
+    return new this.class(constantLimbs);
+  }
+
+  /**
+   * Convert this field element to a bigint.
+   */
+  toBigInt() {
+    return Field3.toBigint(this.value);
+  }
+
+  /**
+   * Assert that this field element lies in the range [0, 2^k),
+   * where k = ceil(log2(p)) and p is the foreign field modulus.
+   *
+   * **Warning**: This check is added to all `ForeignField` elements by default.
+   * You don't have to use it.
+   *
+   * Note: this does not ensure that the field elements is in the canonical range [0, p).
+   * To assert that stronger property, use {@link ForeignField.assertCanonicalFieldElement}.
+   *
+   * We use the weaker property by default because it is cheaper to prove and sufficient for
+   * ensuring validity of all our non-native field arithmetic methods.
+   */
+  static assertAlmostFieldElement(x: ForeignField) {
+    // TODO: this is not very efficient, but the only way to abstract away the complicated
+    // range check assumptions and also not introduce a global context of pending range checks.
+    // we plan to get rid of bounds checks anyway, then this is just a multi-range check
+    Gadgets.ForeignField.assertAlmostFieldElements([x.value], this.modulus);
+  }
+
+  /**
+   * Assert that this field element is fully reduced,
+   * i.e. lies in the range [0, p), where p is the foreign field modulus.
+   */
+  assertCanonicalFieldElement() {
+    const p = this.modulus;
+    this.assertLessThan(p);
+  }
+
+  // arithmetic with full constraints, for safe use
+
+  /**
+   * Finite field addition
+   * @example
+   * ```ts
+   * x.add(2); // x + 2 mod p
+   * ```
+   */
+  add(y: ForeignField | bigint | number) {
+    return this.class.sum([this, y], [1]);
+  }
+
+  /**
+   * Finite field negation
+   * @example
+   * ```ts
+   * x.neg(); // -x mod p = p - x
+   * ```
+   */
+  neg() {
+    return this.class.sum([this.class.from(0n), this], [-1]);
+  }
+
+  /**
+   * Finite field subtraction
+   * @example
+   * ```ts
+   * x.sub(1); // x - 1 mod p
+   * ```
+   */
+  sub(y: ForeignField | bigint | number) {
+    return this.class.sum([this, y], [-1]);
+  }
+
+  /**
+   * Sum (or difference) of multiple finite field elements.
+   *
+   * @example
+   * ```ts
+   * let z = ForeignField.sum([3, 2, 1], [-1, 1]); // 3 - 2 + 1
+   * z.assertEquals(2);
+   * ```
+   *
+   * This method expects a list of ForeignField-like values, `x0,...,xn`,
+   * and a list of "operations" `op1,...,opn` where every op is 1 or -1 (plus or minus),
+   * and returns
+   *
+   * `x0 + op1*x1 + ... + opn*xn`
+   *
+   * where the sum is computed in finite field arithmetic.
+   *
+   * **Important:** For more than two summands, this is significantly more efficient
+   * than chaining calls to {@link ForeignField.add} and {@link ForeignField.sub}.
+   *
+   */
+  static sum(xs: (ForeignField | bigint | number)[], operations: (1 | -1)[]) {
+    const p = this.modulus;
+    let fields = xs.map((x) => this.toLimbs(x));
+    let ops = operations.map((op) => (op === 1 ? 1n : -1n));
+    let z = Gadgets.ForeignField.sum(fields, ops, p);
+    // TODO inefficient: add bound check on the result
+    Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
+    return new this(z);
+  }
+
+  /**
+   * Finite field multiplication
+   * @example
+   * ```ts
+   * x.mul(y); // x*y mod p
+   * ```
+   */
+  mul(y: ForeignField | bigint | number) {
+    const p = this.modulus;
+    let z = Gadgets.ForeignField.mul(this.value, this.class.toLimbs(y), p);
+    // TODO inefficient: add bound check on the result
+    Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
+    return new this.class(z);
+  }
+
+  /**
+   * Multiplicative inverse in the finite field
+   * @example
+   * ```ts
+   * let z = x.inv(); // 1/x mod p
+   * z.mul(x).assertEquals(1);
+   * ```
+   */
+  inv(): ForeignField {
+    const p = this.modulus;
+    let z = Gadgets.ForeignField.inv(this.value, p);
+    return new this.class(z);
+  }
+
+  /**
+   * Division in the finite field, i.e. `x*y^(-1) mod p` where `y^(-1)` is the finite field inverse.
+   * @example
+   * ```ts
+   * let z = x.div(y); // x/y mod p
+   * z.mul(y).assertEquals(x);
+   * ```
+   */
+  div(y: ForeignField | bigint | number) {
+    const p = this.modulus;
+    let z = Gadgets.ForeignField.div(this.value, this.class.toLimbs(y), p);
+    return new this.class(z);
+  }
+
+  // convenience methods
+
+  /**
+   * Assert equality with a ForeignField-like value
+   * @example
+   * ```ts
+   * x.assertEquals(0, "x is zero");
+   * ```
+   */
+  assertEquals(y: ForeignField | bigint | number, message?: string) {
+    const p = this.modulus;
+    try {
+      if (this.isConstant() && isConstant(y)) {
+        let x = this.toBigInt();
+        let y0 = mod(toBigInt(y), p);
+        if (x !== y0) {
+          throw Error(`ForeignField.assertEquals(): ${x} != ${y0}`);
+        }
+        return;
+      }
+      return Provable.assertEqual(
+        this.class.provable,
+        this,
+        this.class.from(y)
+      );
+    } catch (err) {
+      throw withMessage(err, message);
+    }
+  }
+
+  /**
+   * Assert that this field element is less than a constant c: `x < c`.
+   *
+   * The constant must satisfy `0 <= c < 2^264`, otherwise an error is thrown.
+   *
+   * @example
+   * ```ts
+   * x.assertLessThan(10);
+   * ```
+   */
+  assertLessThan(c: bigint | number, message?: string) {
+    assert(
+      c >= 0 && c < 1n << l3,
+      `ForeignField.assertLessThan(): expected c <= c < 2^264, got ${c}`
+    );
+    try {
+      Gadgets.ForeignField.assertLessThan(this.value, toBigInt(c));
+    } catch (err) {
+      throw withMessage(err, message);
+    }
+  }
+
+  /**
+   * Check equality with a ForeignField-like value
+   * @example
+   * ```ts
+   * let isXZero = x.equals(0);
+   * ```
+   */
+  equals(y: ForeignField | bigint | number) {
+    const p = this.modulus;
+    if (this.isConstant() && isConstant(y)) {
+      return new Bool(this.toBigInt() === mod(toBigInt(y), p));
+    }
+    return Provable.equal(this.class.provable, this, this.class.from(y));
+  }
+
+  // bit packing
+
+  /**
+   * Unpack a field element to its bits, as a {@link Bool}[] array.
+   *
+   * This method is provable!
+   */
+  toBits(length?: number) {
+    const sizeInBits = this.class.sizeInBits;
+    if (length === undefined) length = sizeInBits;
+    checkBitLength('ForeignField.toBits()', length, sizeInBits);
+    let [l0, l1, l2] = this.value;
+    let limbSize = Number(l);
+    let xBits = l0.toBits(Math.min(length, limbSize));
+    length -= limbSize;
+    if (length <= 0) return xBits;
+    let yBits = l1.toBits(Math.min(length, limbSize));
+    length -= limbSize;
+    if (length <= 0) return [...xBits, ...yBits];
+    let zBits = l2.toBits(Math.min(length, limbSize));
+    return [...xBits, ...yBits, ...zBits];
+  }
+
+  /**
+   * Create a field element from its bits, as a `Bool[]` array.
+   *
+   * This method is provable!
+   */
+  static fromBits(bits: Bool[]) {
+    let length = bits.length;
+    checkBitLength('ForeignField.fromBits()', length, this.sizeInBits);
+    let limbSize = Number(l);
+    let l0 = Field.fromBits(bits.slice(0 * limbSize, 1 * limbSize));
+    let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
+    let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
+    // note: due to the check on the number of bits, we know we return an "almost valid" field element
+    return this.from([l0, l1, l2]);
+  }
+
+  // Provable<ForeignField>
+
+  static _provable: ProvablePure<ForeignField> | undefined = undefined;
+
+  /**
+   * `Provable<ForeignField>`, see {@link Provable}
+   */
+  static get provable() {
+    assert(this._provable !== undefined, 'ForeignField class not initialized.');
+    return this._provable;
+  }
+
+  /**
+   * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
+   */
+  toFields(): Field[] {
+    return this.value;
+  }
+}
+
+function toBigInt(x: bigint | string | number | ForeignField) {
+  if (x instanceof ForeignField) return x.toBigInt();
+  return BigInt(x);
+}
+
+function isConstant(x: bigint | number | string | ForeignField) {
+  if (x instanceof ForeignField) return x.isConstant();
+  return true;
+}
 
 /**
  * Create a class representing a prime order finite field, which is different from the native {@link Field}.
@@ -42,325 +402,20 @@ type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
  *
  * @param modulus the modulus of the finite field you are instantiating
  */
-function createForeignField(modulus: bigint) {
-  const p = modulus;
+function createForeignField(modulus: bigint): typeof ForeignField {
+  assert(
+    modulus > 0n,
+    `ForeignField: modulus must be positive, got ${modulus}`
+  );
+  assert(
+    modulus < foreignFieldMax,
+    `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`
+  );
 
-  if (p <= 0) {
-    throw Error(`ForeignField: expected modulus to be positive, got ${p}`);
-  }
-  if (p > foreignFieldMax) {
-    throw Error(
-      `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`
-    );
-  }
+  return class ForeignField_ extends ForeignField {
+    static _modulus = modulus;
 
-  let sizeInBits = p.toString(2).length;
-
-  class ForeignField {
-    static modulus = p;
-    value: Field3;
-
-    static #zero = new ForeignField(0);
-
-    /**
-     * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
-     * @example
-     * ```ts
-     * let x = new ForeignField(5);
-     * ```
-     */
-    constructor(x: ForeignField | Field3 | bigint | number | string) {
-      if (x instanceof ForeignField) {
-        this.value = x.value;
-        return;
-      }
-      // Field3
-      if (Array.isArray(x)) {
-        this.value = x;
-        return;
-      }
-      // constant
-      this.value = Field3.from(mod(BigInt(x), p));
-    }
-
-    /**
-     * Coerce the input to a {@link ForeignField}.
-     */
-    static from(x: ForeignField | Field3 | bigint | number | string) {
-      if (x instanceof ForeignField) return x;
-      return new ForeignField(x);
-    }
-
-    /**
-     * Checks whether this field element is a constant.
-     *
-     * See {@link FieldVar} to understand constants vs variables.
-     */
-    isConstant() {
-      return Field3.isConstant(this.value);
-    }
-
-    /**
-     * Convert this field element to a constant.
-     *
-     * See {@link FieldVar} to understand constants vs variables.
-     *
-     * **Warning**: This function is only useful in {@link Provable.witness} or {@link Provable.asProver} blocks,
-     * that is, in situations where the prover computes a value outside provable code.
-     */
-    toConstant(): ForeignField {
-      let constantLimbs = Tuple.map(this.value, (l) => l.toConstant());
-      return new ForeignField(constantLimbs);
-    }
-
-    /**
-     * Convert this field element to a bigint.
-     */
-    toBigInt() {
-      return Field3.toBigint(this.value);
-    }
-
-    /**
-     * Assert that this field element lies in the range [0, 2^k),
-     * where k = ceil(log2(p)) and p is the foreign field modulus.
-     *
-     * **Warning**: This check is added to all `ForeignField` elements by default.
-     * You don't have to use it.
-     *
-     * Note: this does not ensure that the field elements is in the canonical range [0, p).
-     * To assert that stronger property, use {@link ForeignField.assertCanonicalFieldElement}.
-     *
-     * We use the weaker property by default because it is cheaper to prove and sufficient for
-     * ensuring validity of all our non-native field arithmetic methods.
-     */
-    assertAlmostFieldElement() {
-      // TODO: this is not very efficient, but the only way to abstract away the complicated
-      // range check assumptions and also not introduce a global context of pending range checks.
-      // we plan to get rid of bounds checks anyway, then this is just a multi-range check
-      Gadgets.ForeignField.assertAlmostFieldElements([this.value], p);
-    }
-
-    /**
-     * Assert that this field element is fully reduced,
-     * i.e. lies in the range [0, p), where p is the foreign field modulus.
-     */
-    assertCanonicalFieldElement() {
-      this.assertLessThan(p);
-    }
-
-    // arithmetic with full constraints, for safe use
-
-    /**
-     * Finite field addition
-     * @example
-     * ```ts
-     * x.add(2); // x + 2 mod p
-     * ```
-     */
-    add(y: ForeignField | bigint | number) {
-      return ForeignField.sum([this, y], [1]);
-    }
-
-    /**
-     * Finite field negation
-     * @example
-     * ```ts
-     * x.neg(); // -x mod p = p - x
-     * ```
-     */
-    neg() {
-      return ForeignField.sum([ForeignField.#zero, this], [-1]);
-    }
-
-    /**
-     * Finite field subtraction
-     * @example
-     * ```ts
-     * x.sub(1); // x - 1 mod p
-     * ```
-     */
-    sub(y: ForeignField | bigint | number) {
-      return ForeignField.sum([this, y], [-1]);
-    }
-
-    /**
-     * Sum (or difference) of multiple finite field elements.
-     *
-     * @example
-     * ```ts
-     * let z = ForeignField.sum([3, 2, 1], [-1, 1]); // 3 - 2 + 1
-     * z.assertEquals(2);
-     * ```
-     *
-     * This method expects a list of ForeignField-like values, `x0,...,xn`,
-     * and a list of "operations" `op1,...,opn` where every op is 1 or -1 (plus or minus),
-     * and returns
-     *
-     * `x0 + op1*x1 + ... + opn*xn`
-     *
-     * where the sum is computed in finite field arithmetic.
-     *
-     * **Important:** For more than two summands, this is significantly more efficient
-     * than chaining calls to {@link ForeignField.add} and {@link ForeignField.sub}.
-     *
-     */
-    static sum(xs: (ForeignField | bigint | number)[], operations: (1 | -1)[]) {
-      let fields = xs.map(toLimbs);
-      let ops = operations.map((op) => (op === 1 ? 1n : -1n));
-      let z = Gadgets.ForeignField.sum(fields, ops, p);
-      // TODO inefficient: add bound check on the result
-      Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
-      return new ForeignField(z);
-    }
-
-    /**
-     * Finite field multiplication
-     * @example
-     * ```ts
-     * x.mul(y); // x*y mod p
-     * ```
-     */
-    mul(y: ForeignField | bigint | number) {
-      let z = Gadgets.ForeignField.mul(this.value, toLimbs(y), p);
-      // TODO inefficient: add bound check on the result
-      Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
-      return new ForeignField(z);
-    }
-
-    /**
-     * Multiplicative inverse in the finite field
-     * @example
-     * ```ts
-     * let z = x.inv(); // 1/x mod p
-     * z.mul(x).assertEquals(1);
-     * ```
-     */
-    inv(): ForeignField {
-      let z = Gadgets.ForeignField.inv(this.value, p);
-      return new ForeignField(z);
-    }
-
-    /**
-     * Division in the finite field, i.e. `x*y^(-1) mod p` where `y^(-1)` is the finite field inverse.
-     * @example
-     * ```ts
-     * let z = x.div(y); // x/y mod p
-     * z.mul(y).assertEquals(x);
-     * ```
-     */
-    div(y: ForeignField | bigint | number) {
-      let z = Gadgets.ForeignField.div(this.value, toLimbs(y), p);
-      return new ForeignField(z);
-    }
-
-    // convenience methods
-
-    /**
-     * Assert equality with a ForeignField-like value
-     * @example
-     * ```ts
-     * x.assertEquals(0, "x is zero");
-     * ```
-     */
-    assertEquals(y: ForeignField | bigint | number, message?: string) {
-      try {
-        if (this.isConstant() && isConstant(y)) {
-          let x = this.toBigInt();
-          let y0 = toFp(y);
-          if (x !== y0) {
-            throw Error(`ForeignField.assertEquals(): ${x} != ${y0}`);
-          }
-          return;
-        }
-        return Provable.assertEqual(
-          ForeignField.provable,
-          this,
-          ForeignField.from(y)
-        );
-      } catch (err) {
-        throw withMessage(err, message);
-      }
-    }
-
-    /**
-     * Assert that this field element is less than a constant c: `x < c`.
-     *
-     * The constant must satisfy `0 <= c < 2^264`, otherwise an error is thrown.
-     *
-     * @example
-     * ```ts
-     * x.assertLessThan(10);
-     * ```
-     */
-    assertLessThan(c: bigint | number, message?: string) {
-      assert(
-        c >= 0 && c < 1n << l3,
-        `ForeignField.assertLessThan(): expected c <= c < 2^264, got ${c}`
-      );
-      try {
-        Gadgets.ForeignField.assertLessThan(this.value, toBigInt(c));
-      } catch (err) {
-        throw withMessage(err, message);
-      }
-    }
-
-    /**
-     * Check equality with a ForeignField-like value
-     * @example
-     * ```ts
-     * let isXZero = x.equals(0);
-     * ```
-     */
-    equals(y: ForeignField | bigint | number) {
-      if (this.isConstant() && isConstant(y)) {
-        return new Bool(this.toBigInt() === toFp(y));
-      }
-      return Provable.equal(ForeignField.provable, this, ForeignField.from(y));
-    }
-
-    // bit packing
-
-    /**
-     * Unpack a field element to its bits, as a {@link Bool}[] array.
-     *
-     * This method is provable!
-     */
-    toBits(length = sizeInBits) {
-      checkBitLength('ForeignField.toBits()', length, sizeInBits);
-      let [l0, l1, l2] = this.value;
-      let limbSize = Number(l);
-      let xBits = l0.toBits(Math.min(length, limbSize));
-      length -= limbSize;
-      if (length <= 0) return xBits;
-      let yBits = l1.toBits(Math.min(length, limbSize));
-      length -= limbSize;
-      if (length <= 0) return [...xBits, ...yBits];
-      let zBits = l2.toBits(Math.min(length, limbSize));
-      return [...xBits, ...yBits, ...zBits];
-    }
-
-    /**
-     * Create a field element from its bits, as a `Bool[]` array.
-     *
-     * This method is provable!
-     */
-    static fromBits(bits: Bool[]) {
-      let length = bits.length;
-      checkBitLength('ForeignField.fromBits()', length, sizeInBits);
-      let limbSize = Number(l);
-      let l0 = Field.fromBits(bits.slice(0 * limbSize, 1 * limbSize));
-      let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
-      let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
-      // note: due to the check on the number of bits, we know we return an "almost valid" field element
-      return ForeignField.from([l0, l1, l2]);
-    }
-
-    // Provable<ForeignField>
-
-    /**
-     * `Provable<ForeignField>`, see {@link Provable}
-     */
-    static provable: ProvablePure<ForeignField> = {
+    static _provable = {
       toFields(x) {
         return x.value;
       },
@@ -372,41 +427,23 @@ function createForeignField(modulus: bigint) {
       },
       fromFields(fields) {
         let limbs = TupleN.fromArray(3, fields);
-        return new ForeignField(limbs);
+        return new ForeignField_(limbs);
       },
       /**
        * This performs the check in {@link ForeignField.assertAlmostFieldElement}.
        */
       check(x: ForeignField) {
-        x.assertAlmostFieldElement();
+        ForeignField_.assertAlmostFieldElement(x);
       },
     };
 
-    /**
-     * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
-     */
-    toFields(): Field[] {
-      return this.value;
-    }
-  }
-
-  function toBigInt(x: bigint | string | number | ForeignField) {
-    if (x instanceof ForeignField) return x.toBigInt();
-    return BigInt(x);
-  }
-  function toFp(x: bigint | string | number | ForeignField) {
-    return mod(toBigInt(x), p);
-  }
-  function toLimbs(x: bigint | number | string | ForeignField): Field3 {
-    if (x instanceof ForeignField) return x.value;
-    return Field3.from(mod(BigInt(x), p));
-  }
-  function isConstant(x: bigint | number | string | ForeignField) {
-    if (x instanceof ForeignField) return x.isConstant();
-    return true;
-  }
-
-  return ForeignField;
+    // bind public static methods to the class so that they have `this` defined
+    static from = ForeignField.from.bind(ForeignField_);
+    static assertAlmostFieldElement =
+      ForeignField.assertAlmostFieldElement.bind(ForeignField_);
+    static sum = ForeignField.sum.bind(ForeignField_);
+    static fromBits = ForeignField.fromBits.bind(ForeignField_);
+  };
 }
 
 // the max foreign field modulus is f_max = floor(sqrt(p * 2^t)), where t = 3*limbBits = 264 and p is the native modulus
