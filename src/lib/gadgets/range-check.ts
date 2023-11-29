@@ -259,9 +259,9 @@ function rangeCheckHelper(length: number, x: Field) {
 /**
  * Asserts that x is in the range [0, 2^n)
  */
-function rangeCheckN(n: number, x: Field) {
+function rangeCheckN(n: number, x: Field, message?: string) {
   let actual = rangeCheckHelper(n, x);
-  actual.assertEquals(x);
+  actual.assertEquals(x, message);
 }
 
 /**

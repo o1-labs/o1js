@@ -435,7 +435,7 @@ class UInt64 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    Gadgets.isInRangeN(UInt64.NUM_BITS, yMinusX).assertTrue(message);
+    Gadgets.rangeCheckN(UInt64.NUM_BITS, yMinusX, message);
   }
 
   /**
@@ -929,7 +929,7 @@ class UInt32 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    Gadgets.isInRangeN(UInt32.NUM_BITS, yMinusX).assertTrue(message);
+    Gadgets.rangeCheckN(UInt32.NUM_BITS, yMinusX, message);
   }
 
   /**

@@ -87,6 +87,7 @@ const Gadgets = {
    *
    * @param x - The value to be range-checked.
    * @param n - The number of bits to be considered for the range check.
+   * @param message - Optional message to be displayed when the range check fails.
    *
    * @throws Throws an error if the input value exceeds `n` bits.
    *
@@ -99,8 +100,8 @@ const Gadgets = {
    * Gadgets.rangeCheck(32, xLarge); // throws an error since input exceeds 32 bits
    * ```
    */
-  rangeCheckN(n: number, x: Field) {
-    return rangeCheckN(n, x);
+  rangeCheckN(n: number, x: Field, message?: string) {
+    return rangeCheckN(n, x, message);
   },
 
   /**
