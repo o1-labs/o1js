@@ -997,9 +997,6 @@ class Field {
   }
 
   /**
-   *
-   * @deprecated use `Gadgets.rangeCheckHelper` instead.
-   *
    * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
    *
    * The `length` has to be a multiple of 16, and has to be between 0 and 255, otherwise the method throws.

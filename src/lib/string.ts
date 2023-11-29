@@ -32,7 +32,7 @@ class Character extends CircuitValue {
   // TODO: Add support for more character sets
   // right now it's 16 bits because 8 not supported :/
   static check(c: Character) {
-    Gadgets.rangeCheckHelper(16, c.value).assertEquals(c.value);
+    Gadgets.rangeCheckN(16, c.value);
   }
 }
 

@@ -11,6 +11,8 @@ export {
   multiRangeCheck,
   compactMultiRangeCheck,
   rangeCheckHelper,
+  rangeCheckN,
+  isInRangeN,
 };
 export { l, l2, l3, lMask, l2Mask };
 
@@ -27,28 +29,6 @@ function rangeCheck32(x: Field) {
 
   let actual = rangeCheckHelper(32, x);
   actual.assertEquals(x);
-}
-
-/**
- * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
- */
-function rangeCheckHelper(length: number, x: Field) {
-  assert(
-    length <= Fp.sizeInBits,
-    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
-  );
-  assert(length > 0, `bit length must be positive, got ${length}`);
-  assert(length % 16 === 0, '`length` has to be a multiple of 16.');
-
-  let lengthDiv16 = length / 16;
-  if (x.isConstant()) {
-    let bits = FieldProvable.toBits(x.toBigInt())
-      .slice(0, length)
-      .concat(Array(Fp.sizeInBits - length).fill(false));
-    return new Field(FieldProvable.fromBits(bits));
-  }
-  let y = Snarky.field.truncateToBits16(lengthDiv16, x.value);
-  return new Field(y);
 }
 
 /**
@@ -252,4 +232,42 @@ function rangeCheck1Helper(inputs: {
     [z86, z74, z62, z50, z38, z36, z34, z32, z30, z28, z26, z24, z22],
     [z20, z18, z16, x76, x64, y76, y64, z14, z12, z10, z8, z6, z4, z2, z0]
   );
+}
+
+/**
+ * Helper function that creates a new {@link Field} element from the first `length` bits of this {@link Field} element.
+ */
+function rangeCheckHelper(length: number, x: Field) {
+  assert(
+    length <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
+  );
+  assert(length > 0, `bit length must be positive, got ${length}`);
+  assert(length % 16 === 0, '`length` has to be a multiple of 16.');
+
+  let lengthDiv16 = length / 16;
+  if (x.isConstant()) {
+    let bits = FieldProvable.toBits(x.toBigInt())
+      .slice(0, length)
+      .concat(Array(Fp.sizeInBits - length).fill(false));
+    return new Field(FieldProvable.fromBits(bits));
+  }
+  let y = Snarky.field.truncateToBits16(lengthDiv16, x.value);
+  return new Field(y);
+}
+
+/**
+ * Asserts that x is in the range [0, 2^n)
+ */
+function rangeCheckN(n: number, x: Field) {
+  let actual = rangeCheckHelper(n, x);
+  actual.assertEquals(x);
+}
+
+/**
+ * Checks that x is in the range [0, 2^n) and returns a Boolean indicating whether the check passed.
+ */
+function isInRangeN(n: number, x: Field) {
+  let actual = rangeCheckHelper(n, x);
+  return actual.equals(x);
 }

@@ -167,8 +167,7 @@ const TokenSymbolPure: ProvableExtended<
     return 1;
   },
   check({ field }: TokenSymbol) {
-    let actual = Gadgets.rangeCheckHelper(48, field);
-    actual.assertEquals(field);
+    Gadgets.rangeCheckN(48, field);
   },
   toJSON({ symbol }) {
     return symbol;

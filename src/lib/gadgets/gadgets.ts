@@ -6,7 +6,8 @@ import {
   multiRangeCheck,
   rangeCheck64,
   rangeCheck32,
-  rangeCheckHelper,
+  rangeCheckN,
+  isInRangeN,
 } from './range-check.js';
 import {
   not,
@@ -79,20 +80,50 @@ const Gadgets = {
   },
 
   /**
-   * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
+   * Asserts that the input value is in the range [0, 2^n). `n` must be a multiple of 16.
    *
-   * The `length` has to be a multiple of 16, and has to be between 0 and 255, otherwise the method throws.
+   * This function proves that the provided field element can be represented with `n` bits.
+   * If the field element exceeds `n` bits, an error is thrown.
    *
-   * As {@link Field} elements are represented using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness),
-   * the resulting {@link Field} element will equal the original one if it fits in `length` bits.
+   * @param x - The value to be range-checked.
+   * @param n - The number of bits to be considered for the range check.
    *
-   * @param length - The number of bits to take from this {@link Field} element.
+   * @throws Throws an error if the input value exceeds `n` bits.
    *
-   * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12345678n));
+   * Gadgets.rangeCheck(32, x); // successfully proves 32-bit range
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rangeCheck(32, xLarge); // throws an error since input exceeds 32 bits
+   * ```
    */
-  rangeCheckHelper(length: number, x: Field) {
-    return rangeCheckHelper(length, x);
+  rangeCheckN(n: number, x: Field) {
+    return rangeCheckN(n, x);
   },
+
+  /**
+   * Checks whether the input value is in the range [0, 2^n). `n` must be a multiple of 16.
+   *
+   * This function proves that the provided field element can be represented with `n` bits.
+   * If the field element exceeds `n` bits, an error is thrown.
+   *
+   * @param x - The value to be range-checked.
+   * @param n - The number of bits to be considered for the range check.
+   *
+   * @returns a Bool indicating whether the input value is in the range [0, 2^n).
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12345678n));
+   * let inRange = Gadgets.isInRangeN(32, x); // return Bool(true)
+   * ```
+   */
+  isInRangeN(n: number, x: Field) {
+    return isInRangeN(n, x);
+  },
+
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
    * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
