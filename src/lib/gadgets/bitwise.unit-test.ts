@@ -89,7 +89,6 @@ let Bitwise = ZkProgram({
     },
   },
 });
-
 await Bitwise.compile();
 
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
@@ -195,9 +194,8 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
   }
 );
 
-await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [uint(32)], to: uint(32) }, { runs: 30 })(
   (x) => {
-    if (x >= 2n ** 32n) throw Error('Does not fit into 32 bits');
     return Fp.rot(x, 12n, 'left', 32n);
   },
   async (x) => {
@@ -219,7 +217,6 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
 
 await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
   (x) => {
-    console.log('input', x);
     if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
     return Fp.leftShift(x, 12, 32);
   },
