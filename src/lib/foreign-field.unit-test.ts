@@ -12,7 +12,6 @@ import {
 } from './testing/equivalent.js';
 import { test, Random } from './testing/property.js';
 import { Provable } from './provable.js';
-import { ZkProgram } from './proof_system.js';
 import { Circuit, circuitMain } from './circuit.js';
 import { Scalar } from './scalar.js';
 import { l } from './gadgets/range-check.js';
@@ -71,10 +70,10 @@ equivalent({ from: [f], to: f })(
   (x) => Fq.inverse(x) ?? throwError('division by 0'),
   (x) => x.inv()
 );
-// equivalent({ from: [f, f], to: f })(
-//   (x, y) => Fq.div(x, y) ?? throwError('division by 0'),
-//   (x, y) => x.div(y)
-// );
+equivalent({ from: [f, f], to: f })(
+  (x, y) => Fq.div(x, y) ?? throwError('division by 0'),
+  (x, y) => x.div(y)
+);
 
 // equality
 equivalent({ from: [f, f], to: bool })(

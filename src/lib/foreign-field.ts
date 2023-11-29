@@ -208,6 +208,8 @@ function createForeignField(modulus: bigint) {
       let fields = xs.map(toLimbs);
       let ops = operations.map((op) => (op === 1 ? 1n : -1n));
       let z = Gadgets.ForeignField.sum(fields, ops, p);
+      // TODO inefficient: add bound check on the result
+      Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
       return new ForeignField(z);
     }
 
@@ -220,6 +222,8 @@ function createForeignField(modulus: bigint) {
      */
     mul(y: ForeignField | bigint | number) {
       let z = Gadgets.ForeignField.mul(this.value, toLimbs(y), p);
+      // TODO inefficient: add bound check on the result
+      Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
       return new ForeignField(z);
     }
 
@@ -233,6 +237,19 @@ function createForeignField(modulus: bigint) {
      */
     inv(): ForeignField {
       let z = Gadgets.ForeignField.inv(this.value, p);
+      return new ForeignField(z);
+    }
+
+    /**
+     * Division in the finite field, i.e. `x*y^(-1) mod p` where `y^(-1)` is the finite field inverse.
+     * @example
+     * ```ts
+     * let z = x.div(y); // x/y mod p
+     * z.mul(y).assertEquals(x);
+     * ```
+     */
+    div(y: ForeignField | bigint | number) {
+      let z = Gadgets.ForeignField.div(this.value, toLimbs(y), p);
       return new ForeignField(z);
     }
 

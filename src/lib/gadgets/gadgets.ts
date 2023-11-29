@@ -512,8 +512,12 @@ const Gadgets = {
      * ForeignField.assertAlmostFieldElements([xy], f); // TODO: would be more efficient to batch this with 2 other elements
      * ```
      */
-    assertAlmostFieldElements(xs: Field3[], f: bigint) {
-      ForeignField.assertAlmostFieldElements(xs, f);
+    assertAlmostFieldElements(
+      xs: Field3[],
+      f: bigint,
+      { skipMrc = false } = {}
+    ) {
+      ForeignField.assertAlmostFieldElements(xs, f, skipMrc);
     },
 
     /**

@@ -354,11 +354,11 @@ function weakBound(x: Field, f: bigint) {
  * Apply range checks and weak bounds checks to a list of Field3s.
  * Optimal if the list length is a multiple of 3.
  */
-function assertAlmostFieldElements(xs: Field3[], f: bigint) {
+function assertAlmostFieldElements(xs: Field3[], f: bigint, skipMrc = false) {
   let bounds: Field[] = [];
 
   for (let x of xs) {
-    multiRangeCheck(x);
+    if (!skipMrc) multiRangeCheck(x);
 
     bounds.push(weakBound(x[2], f));
     if (TupleN.hasLength(3, bounds)) {
