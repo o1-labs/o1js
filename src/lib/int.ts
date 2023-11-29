@@ -831,6 +831,8 @@ class UInt32 extends CircuitValue {
    *
    * @param bits Amount of bits to shift the {@link UInt32} element to the right. The amount should be between 0 and 32 (or else the shift will fail).
    *
+   * The operation expects the input to be range checked to 32 bit.
+   *
    * @example
    * ```ts
    * const x = UInt32.from(0b001100); // 12 in binary
