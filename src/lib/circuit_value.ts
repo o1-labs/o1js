@@ -384,6 +384,7 @@ function Struct<
     };
     toJSON: (x: T) => J;
     fromJSON: (x: J) => T;
+    empty: () => T;
   } {
   class Struct_ {
     static type = provable<A>(type);
