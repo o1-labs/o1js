@@ -53,14 +53,23 @@ class ForeignField {
       }
     | undefined = undefined;
 
+  /**
+   * Constructor for unreduced field elements.
+   */
   static get Unreduced() {
     assert(this._variants !== undefined, 'ForeignField class not initialized.');
     return this._variants.unreduced;
   }
+  /**
+   * Constructor for field elements that are "almost reduced", i.e. lie in the range [0, 2^ceil(log2(p))).
+   */
   static get AlmostReduced() {
     assert(this._variants !== undefined, 'ForeignField class not initialized.');
     return this._variants.almostReduced;
   }
+  /**
+   * Constructor for field elements that are fully reduced, i.e. lie in the range [0, p).
+   */
   static get Canonical() {
     assert(this._variants !== undefined, 'ForeignField class not initialized.');
     return this._variants.canonical;
@@ -548,7 +557,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * - create your field elements using the {@link ForeignField.AlmostReduced} constructor, or using the `.provable` type on that class.
  * @example
  * ```ts
- * let x = Provable.witness(ForeignField.AlmostReduced.provable, () => new ForeignField.AlmostReduced(5));
+ * let x = Provable.witness(ForeignField.AlmostReduced.provable, () => ForeignField.from(5));
  * ```
  * - create your field elements normally and convert them using `x.assertAlmostReduced()`.
  * @example
@@ -557,7 +566,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * ```
  *
  * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced / "canonical" field elements.
- * To convert to a canonical field element, use {@link ForeignField.assertCanonicalFieldElement}:
+ * To convert to a canonical field element, use {@link assertCanonicalFieldElement}:
  *
  * ```ts
  * x.assertCanonicalFieldElement(); // asserts x < p; returns `CanonicalForeignField`
