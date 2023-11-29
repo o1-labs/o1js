@@ -71,7 +71,7 @@ const Gadgets = {
    * ```
    *
    * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
-   * and don't pass the 32-bit check. If you want to prove that a value lies in the int64 range [-2^31, 2^31),
+   * and don't pass the 32-bit check. If you want to prove that a value lies in the int32 range [-2^31, 2^31),
    * you could use `rangeCheck32(x.add(1n << 31n))`.
    */
   rangeCheck32(x: Field) {
@@ -575,9 +575,9 @@ const Gadgets = {
    */
   Field3,
   /**
-   * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64] into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
+   * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64) into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
    *
-   * **Note:** The Gadget expects the input to be in the range [0, 2^64]. If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution.
+   * **Note:** The gadget acts as a proof that the input is in the range [0, 2^64). If the input exceeds 64 bits, the gadget fails.
    *
    * Asserts that both `remainder` and `quotient` are in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
@@ -599,7 +599,7 @@ const Gadgets = {
    *
    * It uses {@link Gadgets.divMod32} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
    *
-   * **Note:** The Gadget expects the input to be in the range [0, 2^64]. If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution.
+   * **Note:** The gadget assumes both inputs to be in the range [0, 2^64). When called with non-range-checked inputs, be aware that the sum `a + b` can overflow the native field and the gadget can succeed but return an invalid result.
    *
    * @example
    * ```ts
