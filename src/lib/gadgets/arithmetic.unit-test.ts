@@ -32,8 +32,8 @@ let Arithmetic = ZkProgram({
 await Arithmetic.compile();
 
 const divMod32Helper = (x: bigint) => {
-  let quotient = x / (1n << 32n);
-  let remainder = x - quotient * (1n << 32n);
+  let quotient = x >> 32n;
+  let remainder = x - (quotient << 32n);
   return { remainder, quotient };
 };
 const divMod32Output = record({ remainder: field, quotient: field });

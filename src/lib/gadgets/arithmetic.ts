@@ -14,8 +14,8 @@ function divMod32(n: Field) {
     );
 
     let nBigInt = n.toBigInt();
-    let q = nBigInt / (1n << 32n);
-    let r = nBigInt - q * (1n << 32n);
+    let q = nBigInt >> 32n;
+    let r = nBigInt - (q << 32n);
     return {
       remainder: new Field(r),
       quotient: new Field(q),
@@ -26,8 +26,8 @@ function divMod32(n: Field) {
     provableTuple([Field, Field]),
     () => {
       let nBigInt = n.toBigInt();
-      let q = nBigInt / (1n << 32n);
-      let r = nBigInt - q * (1n << 32n);
+      let q = nBigInt >> 32n;
+      let r = nBigInt - (q << 32n);
       return [new Field(q), new Field(r)];
     }
   );

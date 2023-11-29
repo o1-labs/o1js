@@ -239,13 +239,7 @@ class UInt64 extends CircuitValue {
    * corresponding bit of the operand is `0`, and returning `0` if the
    * corresponding bit of the operand is `1`.
    *
-   *
-   * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
-   * the {@link Gadgets.xor} gadget is reused with a second argument to be an
-   * all one bitmask the same length. This approach needs as many rows as an XOR would need
-   * for a single negation. If the `checked` parameter is set to `false`, NOT is
-   * implemented as a subtraction of the input from the all one bitmask. This
-   * implementation is returned by default if no `checked` parameter is provided.
+   * NOT is implemented as a subtraction of the input from the all one bitmask
    *
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
    *
@@ -258,23 +252,13 @@ class UInt64 extends CircuitValue {
    * console.log(b.toBigInt().toString(2));
    * // 1111111111111111111111111111111111111111111111111111111111111010
    *
-   * // NOTing 4 bits with the checked version utilizing the xor gadget
-   * let a = UInt64.from(0b0101);
-   * let b = a.not();
-   *
-   * console.log(b.toBigInt().toString(2));
-   * // 1111111111111111111111111111111111111111111111111111111111111010
-   *
    * ```
    *
    * @param a - The value to apply NOT to.
-   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
-   * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
-   *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
    *
    */
-  not(checked = true) {
-    return Gadgets.not(this.value, UInt64.NUM_BITS, checked);
+  not() {
+    return Gadgets.not(this.value, UInt64.NUM_BITS, false);
   }
 
   /**
@@ -765,13 +749,7 @@ class UInt32 extends CircuitValue {
    * corresponding bit of the operand is `0`, and returning `0` if the
    * corresponding bit of the operand is `1`.
    *
-   *
-   * NOT is implemented in two different ways. If the `checked` parameter is set to `true`
-   * the {@link Gadgets.xor} gadget is reused with a second argument to be an
-   * all one bitmask the same length. This approach needs as many rows as an XOR would need
-   * for a single negation. If the `checked` parameter is set to `false`, NOT is
-   * implemented as a subtraction of the input from the all one bitmask. This
-   * implementation is returned by default if no `checked` parameter is provided.
+   * NOT is implemented as a subtraction of the input from the all one bitmask.
    *
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
    *
@@ -779,28 +757,16 @@ class UInt32 extends CircuitValue {
    * ```ts
    * // NOTing 4 bits with the unchecked version
    * let a = UInt32.from(0b0101);
-   * let b = a.not(false);
-   *
-   * console.log(b.toBigInt().toString(2));
-   * // 11111111111111111111111111111010
-   *
-   * // NOTing 4 bits with the checked version utilizing the xor gadget
-   * let a = UInt32.from(0b0101);
    * let b = a.not();
    *
    * console.log(b.toBigInt().toString(2));
    * // 11111111111111111111111111111010
-   *
    * ```
    *
    * @param a - The value to apply NOT to.
-   * @param checked - Optional boolean to determine if the checked or unchecked not implementation is used. If it
-   * is set to `true` the {@link Gadgets.xor} gadget is reused. If it is set to `false`, NOT is implemented
-   *  as a subtraction of the input from the all one bitmask. It is set to `false` by default if no parameter is provided.
-   *
    */
-  not(checked = true) {
-    return Gadgets.not(this.value, UInt32.NUM_BITS, checked);
+  not() {
+    return Gadgets.not(this.value, UInt32.NUM_BITS, false);
   }
 
   /**
