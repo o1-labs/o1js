@@ -25,18 +25,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `Gadgets.rotate32` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
-- `Gadgets.divMod32` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
-- `Gadgets.rangeCheck32` range check for 32 bit values https://github.com/o1-labs/o1js/pull/1259
-- `Gadgets.rangeCheckHelper` for returning a new Field element of the first `length` bits of an element https://github.com/o1-labs/o1js/pull/1259
-- `Gadgets.addMod32` addition modulo 2^32 https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.rangeCheck32()` range check for 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.rangeCheckHelper()` for returning a new Field element of the first `length` bits of an element https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.addMod32()` addition modulo 2^32 https://github.com/o1-labs/o1js/pull/1259
 - Expose new bitwise gadgets on `UInt32` and `UInt64` https://github.com/o1-labs/o1js/pull/1259
-  - bitwise XOR via `{UInt32, UInt64}.xor`
-  - bitwise NOT via `{UInt32, UInt64}.not`
-  - bitwise ROTATE via `{UInt32, UInt64}.rotate`
-  - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift`
-  - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift`
-  - bitwise AND via `{UInt32, UInt64}.and`
+  - bitwise XOR via `{UInt32, UInt64}.xor()`
+  - bitwise NOT via `{UInt32, UInt64}.not()`
+  - bitwise ROTATE via `{UInt32, UInt64}.rotate()`
+  - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift()`
+  - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift()`
+  - bitwise AND via `{UInt32, UInt64}.and()`
 
 ### Changed
 
