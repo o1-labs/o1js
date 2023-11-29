@@ -3,7 +3,7 @@ import { mod, Fp } from '../bindings/crypto/finite_field.js';
 import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
-import { Tuple, TupleN } from './util/types.js';
+import { Tuple, TupleMap, TupleN } from './util/types.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './gadgets/common.js';
@@ -137,9 +137,11 @@ class ForeignField {
    *
    * Returns the field element as a {@link AlmostForeignField}.
    *
+   * For a more efficient version of this for multiple field elements, see {@link assertAlmostReduced}.
+   *
    * Note: this does not ensure that the field elements is in the canonical range [0, p).
-   * To assert that stronger property, there is {@link ForeignField.assertCanonicalFieldElement}.
-   * You should typically use {@link ForeignField.assertAlmostReduced} though, because it is cheaper to prove and sufficient for
+   * To assert that stronger property, there is {@link assertCanonicalFieldElement}.
+   * You should typically use {@link assertAlmostReduced} though, because it is cheaper to prove and sufficient for
    * ensuring validity of all our non-native field arithmetic methods.
    */
   assertAlmostReduced() {
@@ -150,6 +152,23 @@ class ForeignField {
       skipMrc: true,
     });
     return new this.Constructor.AlmostReduced(this.value);
+  }
+
+  /**
+   * Assert that one or more field elements lie in the range [0, 2^k),
+   * where k = ceil(log2(p)) and p is the foreign field modulus.
+   *
+   * This is most efficient than when checking a multiple of 3 field elements at once.
+   */
+  static assertAlmostReduced<T extends Tuple<ForeignField>>(
+    ...xs: T
+  ): TupleMap<T, AlmostForeignField> {
+    Gadgets.ForeignField.assertAlmostFieldElements(
+      xs.map((x) => x.value),
+      this.modulus,
+      { skipMrc: true }
+    );
+    return Tuple.map(xs, (x) => new this.AlmostReduced(x.value));
   }
 
   /**
