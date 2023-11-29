@@ -96,8 +96,10 @@ class ForeignField {
   /**
    * Coerce the input to a {@link ForeignField}.
    */
-  static from(x: bigint | number | string): CanonicalForeignField {
-    return new this(x) as CanonicalForeignField;
+  static from(x: bigint | number | string): CanonicalForeignField;
+  static from(x: ForeignField | bigint | number | string): ForeignField {
+    if (x instanceof ForeignField) return x;
+    return new this.Canonical(x);
   }
 
   /**
@@ -133,13 +135,14 @@ class ForeignField {
    * Assert that this field element lies in the range [0, 2^k),
    * where k = ceil(log2(p)) and p is the foreign field modulus.
    *
-   * Note: this does not ensure that the field elements is in the canonical range [0, p).
-   * To assert that stronger property, use {@link ForeignField.assertCanonicalFieldElement}.
+   * Returns the field element as a {@link AlmostForeignField}.
    *
-   * You should typically use the weaker property because it is cheaper to prove and sufficient for
+   * Note: this does not ensure that the field elements is in the canonical range [0, p).
+   * To assert that stronger property, there is {@link ForeignField.assertCanonicalFieldElement}.
+   * You should typically use {@link ForeignField.assertAlmostReduced} though, because it is cheaper to prove and sufficient for
    * ensuring validity of all our non-native field arithmetic methods.
    */
-  assertAlmostFieldElement() {
+  assertAlmostReduced() {
     // TODO: this is not very efficient, but the only way to abstract away the complicated
     // range check assumptions and also not introduce a global context of pending range checks.
     // we plan to get rid of bounds checks anyway, then this is just a multi-range check
@@ -152,10 +155,11 @@ class ForeignField {
   /**
    * Assert that this field element is fully reduced,
    * i.e. lies in the range [0, p), where p is the foreign field modulus.
+   *
+   * Returns the field element as a {@link CanonicalForeignField}.
    */
   assertCanonicalFieldElement() {
-    const p = this.modulus;
-    this.assertLessThan(p);
+    this.assertLessThan(this.modulus);
     return new this.Constructor.Canonical(this.value);
   }
 
@@ -228,12 +232,31 @@ class ForeignField {
 
   /**
    * Assert equality with a ForeignField-like value
+   *
    * @example
    * ```ts
    * x.assertEquals(0, "x is zero");
    * ```
+   *
+   * Since asserting equality can also serve as a range check,
+   * this method returns `x` with the appropriate type:
+   *
+   * @example
+   * ```ts
+   * let xChecked = x.assertEquals(1, "x is 1");
+   * xChecked satisfies CanonicalForeignField;
+   * ```
    */
-  assertEquals(y: ForeignField | bigint | number, message?: string) {
+  assertEquals(
+    y: bigint | number | CanonicalForeignField,
+    message?: string
+  ): CanonicalForeignField;
+  assertEquals(y: AlmostForeignField, message?: string): AlmostForeignField;
+  assertEquals(y: ForeignField, message?: string): ForeignField;
+  assertEquals(
+    y: ForeignField | bigint | number,
+    message?: string
+  ): ForeignField {
     const p = this.modulus;
     try {
       if (this.isConstant() && isConstant(y)) {
@@ -242,13 +265,18 @@ class ForeignField {
         if (x !== y0) {
           throw Error(`ForeignField.assertEquals(): ${x} != ${y0}`);
         }
-        return;
+        return new this.Constructor.AlmostReduced(this.value);
       }
-      return Provable.assertEqual(
+      Provable.assertEqual(
         this.Constructor.provable,
         this,
         new this.Constructor(y)
       );
+      if (isConstant(y) || y instanceof ForeignFieldWithMul) {
+        return new this.Constructor.AlmostReduced(this.value);
+      } else {
+        return this;
+      }
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -428,7 +456,7 @@ class AlmostForeignField extends ForeignFieldWithMul {
 
   static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
-    x.assertAlmostFieldElement();
+    x.assertAlmostReduced();
   }
 }
 
@@ -472,6 +500,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
 /**
  * Create a class representing a prime order finite field, which is different from the native {@link Field}.
  *
+ * @example
  * ```ts
  * const SmallField = createForeignField(17n); // the finite field F_17
  * ```
@@ -487,13 +516,36 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * Internally, a foreign field element is represented as three native field elements, each of which
  * represents a limb of 88 bits. Therefore, being a valid foreign field element means that all 3 limbs
  * fit in 88 bits, and the foreign field element altogether is smaller than the modulus p.
+ *
  * Since the full `x < p` check is expensive, by default we only prove a weaker assertion, `x < 2^ceil(log2(p))`,
- * see {@link ForeignField.assertAlmostFieldElement} for more details.
- * If you need to prove that you have a fully reduced field element, use {@link ForeignField.assertCanonicalFieldElement}:
+ * see {@link ForeignField.assertAlmostReduced} for more details.
+ *
+ * This weaker assumption is what we call "almost reduced", and it is represented by the {@link AlmostForeignField} class.
+ * Note that only {@link AlmostForeignField} supports multiplication and inversion, while {@link UnreducedForeignField}
+ * only supports addition and subtraction.
+ *
+ * This function returns the `Unreduced` class, which will cause the minimum amount of range checks to be created by default.
+ * If you want to do multiplication, you have two options:
+ * - create your field elements using the {@link ForeignField.AlmostReduced} constructor, or using the `.provable` type on that class.
+ * @example
+ * ```ts
+ * let x = Provable.witness(ForeignField.AlmostReduced.provable, () => new ForeignField.AlmostReduced(5));
+ * ```
+ * - create your field elements normally and convert them using `x.assertAlmostReduced()`.
+ * @example
+ * ```ts
+ * let xChecked = x.assertAlmostReduced(); // asserts x < 2^ceil(log2(p)); returns `AlmostForeignField`
+ * ```
+ *
+ * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced / "canonical" field elements.
+ * To convert to a canonical field element, use {@link ForeignField.assertCanonicalFieldElement}:
  *
  * ```ts
- * x.assertCanonicalFieldElement(); // x < p
+ * x.assertCanonicalFieldElement(); // asserts x < p; returns `CanonicalForeignField`
  * ```
+ * You will likely not need `CanonicalForeignField`, except possibly for creating your own interfaces which expect fully reduced field elements.
+ *
+ * Base types for all of these classes are separately exported as {@link UnreducedForeignField}, {@link AlmostForeignField} and {@link CanonicalForeignField}.,
  *
  * @param modulus the modulus of the finite field you are instantiating
  */

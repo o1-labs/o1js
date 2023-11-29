@@ -26,7 +26,7 @@ import { assert } from './gadgets/common.js';
 
 class SmallField extends createForeignField(17n) {}
 
-let x = new SmallField(16).assertAlmostFieldElement();
+let x = SmallField.from(16);
 x.assertEquals(-1); // 16 = -1 (mod 17)
 x.mul(x).assertEquals(1); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
 
@@ -113,8 +113,7 @@ let scalarShift = Fq(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
 function unshift(s: ForeignField) {
-  let sMinusShift = s.sub(scalarShift).assertAlmostFieldElement();
-  return sMinusShift.mul(oneHalf);
+  return s.sub(scalarShift).assertAlmostReduced().mul(oneHalf);
 }
 function scaleShifted(point: Group, shiftedScalar: Scalar) {
   let oneHalfGroup = point.scale(oneHalf);
