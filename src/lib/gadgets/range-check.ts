@@ -4,6 +4,7 @@ import { Field as FieldProvable } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
+import { Bool } from '../bool.js';
 
 export {
   rangeCheck64,
@@ -259,7 +260,23 @@ function rangeCheckHelper(length: number, x: Field) {
 /**
  * Asserts that x is in the range [0, 2^n)
  */
-function rangeCheckN(n: number, x: Field, message?: string) {
+function rangeCheckN(n: number, x: Field, message: string = '') {
+  assert(
+    length <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
+  );
+  assert(length > 0, `bit length must be positive, got ${length}`);
+  assert(length % 16 === 0, '`length` has to be a multiple of 16.');
+
+  if (x.isConstant()) {
+    if (x.toBigInt() >= 1n << BigInt(n)) {
+      throw Error(
+        `rangeCheckN: expected field to fit in ${n} bits, got ${x}.\n${message}`
+      );
+    }
+    return;
+  }
+
   let actual = rangeCheckHelper(n, x);
   actual.assertEquals(x, message);
 }
@@ -268,6 +285,17 @@ function rangeCheckN(n: number, x: Field, message?: string) {
  * Checks that x is in the range [0, 2^n) and returns a Boolean indicating whether the check passed.
  */
 function isInRangeN(n: number, x: Field) {
+  assert(
+    length <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
+  );
+  assert(length > 0, `bit length must be positive, got ${length}`);
+  assert(length % 16 === 0, '`length` has to be a multiple of 16.');
+
+  if (x.isConstant()) {
+    return new Bool(x.toBigInt() < 1n << BigInt(n));
+  }
+
   let actual = rangeCheckHelper(n, x);
   return actual.equals(x);
 }
