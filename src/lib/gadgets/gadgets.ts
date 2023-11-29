@@ -599,7 +599,7 @@ const Gadgets = {
    *
    * It uses {@link Gadgets.divMod32} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
    *
-   * **Note:** The Gadget expects the input to be in the range [0, 2^64]. If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution.
+   * **Note:** The gadget assumes both inputs to be in the range [0, 2^64). When called with non-range-checked inputs, be aware that the sum `a + b` can overflow the native field and the gadget can succeed but return an invalid result.
    *
    * @example
    * ```ts
