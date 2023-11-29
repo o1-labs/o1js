@@ -504,6 +504,33 @@ const Gadgets = {
     assertAlmostFieldElements(xs: Field3[], f: bigint) {
       ForeignField.assertAlmostFieldElements(xs, f);
     },
+
+    /**
+     * Prove that x < f for any constant f < 2^264.
+     *
+     * If f is a finite field modulus, this means that the given field element is fully reduced modulo f.
+     * This is a stronger statement than {@link ForeignField.assertAlmostFieldElements}
+     * and also uses more constraints; it should not be needed in most use cases.
+     *
+     * **Note**: This assumes that the limbs of x are in the range [0, 2^88), in contrast to
+     * {@link ForeignField.assertAlmostFieldElements} which adds that check itself.
+     *
+     * @throws if x is greater or equal to f.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(0x1235n));
+     *
+     *  // range check limbs of x
+     * Gadgets.multiRangeCheck(x);
+     *
+     * // prove that x is fully reduced mod f
+     * Gadgets.ForeignField.assertLessThan(x, f);
+     * ```
+     */
+    assertLessThan(x: Field3, f: bigint) {
+      ForeignField.assertLessThan(x, f);
+    },
   },
 
   /**

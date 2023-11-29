@@ -86,7 +86,7 @@ function createForeignField(modulus: bigint) {
         this.value = x.value;
         return;
       }
-      // ForeignFieldVar
+      // Field3
       if (Array.isArray(x)) {
         this.value = x;
         return;
@@ -136,6 +136,9 @@ function createForeignField(modulus: bigint) {
      * Assert that this field element lies in the range [0, 2^k),
      * where k = ceil(log2(p)) and p is the foreign field modulus.
      *
+     * **Warning**: This check is added to all `ForeignField` elements by default.
+     * You don't have to use it.
+     *
      * Note: this does not ensure that the field elements is in the canonical range [0, p).
      * To assert that stronger property, use {@link ForeignField.assertCanonicalFieldElement}.
      *
@@ -150,13 +153,11 @@ function createForeignField(modulus: bigint) {
     }
 
     /**
-     * Assert that this field element lies in the range [0, p),
-     * where p is the foreign field modulus.
+     * Assert that this field element is fully reduced,
+     * i.e. lies in the range [0, p), where p is the foreign field modulus.
      */
     assertCanonicalFieldElement() {
-      if (this.isConstant()) return;
-      // TODO
-      throw Error('unimplemented');
+      Gadgets.ForeignField.assertLessThan(this.value, p);
     }
 
     // arithmetic with full constraints, for safe use
@@ -264,12 +265,28 @@ function createForeignField(modulus: bigint) {
           if (x !== y0) {
             throw Error(`ForeignField.assertEquals(): ${x} != ${y0}`);
           }
+          return;
         }
         return Provable.assertEqual(
           ForeignField.provable,
           this,
           ForeignField.from(y)
         );
+      } catch (err) {
+        throw withMessage(err, message);
+      }
+    }
+
+    /**
+     * Assert that this field element is less than a constant c: `x < c`.
+     * @example
+     * ```ts
+     * x.assertLessThan(10);
+     * ```
+     */
+    assertLessThan(y: bigint | number, message?: string) {
+      try {
+        Gadgets.ForeignField.assertLessThan(this.value, toBigInt(y));
       } catch (err) {
         throw withMessage(err, message);
       }
@@ -361,9 +378,12 @@ function createForeignField(modulus: bigint) {
     }
   }
 
-  function toFp(x: bigint | string | number | ForeignField) {
+  function toBigInt(x: bigint | string | number | ForeignField) {
     if (x instanceof ForeignField) return x.toBigInt();
-    return mod(BigInt(x), p);
+    return BigInt(x);
+  }
+  function toFp(x: bigint | string | number | ForeignField) {
+    return mod(toBigInt(x), p);
   }
   function toLimbs(x: bigint | number | string | ForeignField): Field3 {
     if (x instanceof ForeignField) return x.value;
