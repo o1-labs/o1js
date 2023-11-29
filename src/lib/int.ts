@@ -4,6 +4,7 @@ import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
 import { Gadgets } from './gadgets/gadgets.js';
+import { FILE } from 'dns';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -14,6 +15,12 @@ export { UInt32, UInt64, Int64, Sign };
 class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
+
+  constructor(x: UInt64 | UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
+    else if (!(x instanceof Field)) x = Field(x);
+    super(UInt64.checkConstant(x));
+  }
 
   /**
    * Static method to create a {@link UInt64} with value `0`.
@@ -536,6 +543,12 @@ class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
 
+  constructor(x: UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt32) x = x.value;
+    else if (!(x instanceof Field)) x = Field(x);
+    super(UInt32.checkConstant(x));
+  }
+
   /**
    * Static method to create a {@link UInt32} with value `0`.
    */
@@ -608,6 +621,7 @@ class UInt32 extends CircuitValue {
     if (x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
   }
+
   /**
    * Creates a {@link UInt32} with a value of 4,294,967,295.
    */
