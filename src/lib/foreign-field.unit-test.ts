@@ -1,6 +1,11 @@
 import { ProvablePure } from '../snarky.js';
 import { Field, Group } from './core.js';
-import { ForeignField, createForeignField } from './foreign-field.js';
+import {
+  AlmostForeignField,
+  ForeignField,
+  UnreducedForeignField,
+  createForeignField,
+} from './foreign-field.js';
 import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
 import {
@@ -20,8 +25,10 @@ import { assert } from './gadgets/common.js';
 // toy example - F_17
 
 class SmallField extends createForeignField(17n) {}
-let x = new SmallField(16);
+
+let x: SmallField = new SmallField(16);
 x.assertEquals(-1); // 16 = -1 (mod 17)
+x.assertAlmostFieldElement();
 x.mul(x).assertEquals(1); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
 
 // invalid example - modulus too large
@@ -54,18 +61,24 @@ test(Random.scalar, (x0, assert) => {
 
 // test equivalence of in-SNARK and out-of-SNARK operations
 
-let f: ProvableSpec<bigint, ForeignScalar> = {
+let f: ProvableSpec<bigint, AlmostForeignField> = {
   rng: Random.scalar,
   there: ForeignScalar.from,
   back: (x) => x.toBigInt(),
-  provable: ForeignScalar.provable,
+  provable: ForeignScalar.AlmostReduced.provable,
+};
+let big264: ProvableSpec<bigint, UnreducedForeignField> = {
+  rng: Random.bignat(1n << 264n),
+  there: ForeignScalar.from,
+  back: (x) => x.toBigInt(),
+  provable: ForeignScalar.Unreduced.provable,
 };
 
 // arithmetic
-equivalent({ from: [f, f], to: f })(Fq.add, (x, y) => x.add(y));
-equivalent({ from: [f, f], to: f })(Fq.sub, (x, y) => x.sub(y));
-equivalent({ from: [f], to: f })(Fq.negate, (x) => x.neg());
-equivalent({ from: [f, f], to: f })(Fq.mul, (x, y) => x.mul(y));
+equivalent({ from: [f, f], to: big264 })(Fq.add, (x, y) => x.add(y));
+equivalent({ from: [f, f], to: big264 })(Fq.sub, (x, y) => x.sub(y));
+equivalent({ from: [f], to: big264 })(Fq.negate, (x) => x.neg());
+equivalent({ from: [f, f], to: big264 })(Fq.mul, (x, y) => x.mul(y));
 equivalent({ from: [f], to: f })(
   (x) => Fq.inverse(x) ?? throwError('division by 0'),
   (x) => x.inv()

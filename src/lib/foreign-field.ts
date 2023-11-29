@@ -11,7 +11,12 @@ import { l3, l } from './gadgets/range-check.js';
 
 // external API
 export { createForeignField };
-export type { ForeignField };
+export type {
+  ForeignField,
+  UnreducedForeignField,
+  AlmostForeignField,
+  CanonicalForeignField,
+};
 
 class ForeignField {
   static _modulus: bigint | undefined = undefined;
@@ -32,6 +37,34 @@ class ForeignField {
    * The internal representation of a foreign field element, as a tuple of 3 limbs.
    */
   value: Field3;
+
+  private get Class() {
+    return this.constructor as typeof ForeignField;
+  }
+
+  /**
+   * Sibling classes that represent different ranges of field elements.
+   */
+  static _variants:
+    | {
+        unreduced: typeof UnreducedForeignField;
+        almostReduced: typeof AlmostForeignField;
+        canonical: typeof CanonicalForeignField;
+      }
+    | undefined = undefined;
+
+  static get Unreduced() {
+    assert(this._variants !== undefined, 'ForeignField class not initialized.');
+    return this._variants.unreduced;
+  }
+  static get AlmostReduced() {
+    assert(this._variants !== undefined, 'ForeignField class not initialized.');
+    return this._variants.almostReduced;
+  }
+  static get Canonical() {
+    assert(this._variants !== undefined, 'ForeignField class not initialized.');
+    return this._variants.canonical;
+  }
 
   /**
    * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
@@ -59,16 +92,12 @@ class ForeignField {
     if (x instanceof ForeignField) return x.value;
     return Field3.from(mod(BigInt(x), this.modulus));
   }
-  private get class() {
-    return this.constructor as typeof ForeignField;
-  }
 
   /**
    * Coerce the input to a {@link ForeignField}.
    */
-  static from(x: ForeignField | Field3 | bigint | number | string) {
-    if (x instanceof ForeignField) return x;
-    return new this(x);
+  static from(x: bigint | number | string): CanonicalForeignField {
+    return new this(x) as CanonicalForeignField;
   }
 
   /**
@@ -90,7 +119,7 @@ class ForeignField {
    */
   toConstant(): ForeignField {
     let constantLimbs = Tuple.map(this.value, (l) => l.toConstant());
-    return new this.class(constantLimbs);
+    return new this.Class(constantLimbs);
   }
 
   /**
@@ -104,27 +133,26 @@ class ForeignField {
    * Assert that this field element lies in the range [0, 2^k),
    * where k = ceil(log2(p)) and p is the foreign field modulus.
    *
-   * **Warning**: This check is added to all `ForeignField` elements by default.
-   * You don't have to use it.
-   *
    * Note: this does not ensure that the field elements is in the canonical range [0, p).
    * To assert that stronger property, use {@link ForeignField.assertCanonicalFieldElement}.
    *
-   * We use the weaker property by default because it is cheaper to prove and sufficient for
+   * You should typically use the weaker property because it is cheaper to prove and sufficient for
    * ensuring validity of all our non-native field arithmetic methods.
    */
-  static assertAlmostFieldElement(x: ForeignField) {
+  assertAlmostFieldElement(): asserts this is AlmostForeignField {
     // TODO: this is not very efficient, but the only way to abstract away the complicated
     // range check assumptions and also not introduce a global context of pending range checks.
     // we plan to get rid of bounds checks anyway, then this is just a multi-range check
-    Gadgets.ForeignField.assertAlmostFieldElements([x.value], this.modulus);
+    Gadgets.ForeignField.assertAlmostFieldElements([this.value], this.modulus, {
+      skipMrc: true,
+    });
   }
 
   /**
    * Assert that this field element is fully reduced,
    * i.e. lies in the range [0, p), where p is the foreign field modulus.
    */
-  assertCanonicalFieldElement() {
+  assertCanonicalFieldElement(): asserts this is CanonicalForeignField {
     const p = this.modulus;
     this.assertLessThan(p);
   }
@@ -139,7 +167,7 @@ class ForeignField {
    * ```
    */
   add(y: ForeignField | bigint | number) {
-    return this.class.sum([this, y], [1]);
+    return this.Class.sum([this, y], [1]);
   }
 
   /**
@@ -150,7 +178,8 @@ class ForeignField {
    * ```
    */
   neg() {
-    return this.class.sum([this.class.from(0n), this], [-1]);
+    let zero: ForeignField = this.Class.from(0n);
+    return this.Class.sum([zero, this], [-1]);
   }
 
   /**
@@ -161,7 +190,7 @@ class ForeignField {
    * ```
    */
   sub(y: ForeignField | bigint | number) {
-    return this.class.sum([this, y], [-1]);
+    return this.Class.sum([this, y], [-1]);
   }
 
   /**
@@ -190,9 +219,7 @@ class ForeignField {
     let fields = xs.map((x) => this.toLimbs(x));
     let ops = operations.map((op) => (op === 1 ? 1n : -1n));
     let z = Gadgets.ForeignField.sum(fields, ops, p);
-    // TODO inefficient: add bound check on the result
-    Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
-    return new this(z);
+    return new this.Unreduced(z);
   }
 
   /**
@@ -202,12 +229,10 @@ class ForeignField {
    * x.mul(y); // x*y mod p
    * ```
    */
-  mul(y: ForeignField | bigint | number) {
+  mul(y: AlmostForeignField | bigint | number) {
     const p = this.modulus;
-    let z = Gadgets.ForeignField.mul(this.value, this.class.toLimbs(y), p);
-    // TODO inefficient: add bound check on the result
-    Gadgets.ForeignField.assertAlmostFieldElements([z], p, { skipMrc: true });
-    return new this.class(z);
+    let z = Gadgets.ForeignField.mul(this.value, this.Class.toLimbs(y), p);
+    return new this.Class.Unreduced(z);
   }
 
   /**
@@ -218,10 +243,10 @@ class ForeignField {
    * z.mul(x).assertEquals(1);
    * ```
    */
-  inv(): ForeignField {
+  inv() {
     const p = this.modulus;
     let z = Gadgets.ForeignField.inv(this.value, p);
-    return new this.class(z);
+    return new this.Class.AlmostReduced(z);
   }
 
   /**
@@ -234,8 +259,8 @@ class ForeignField {
    */
   div(y: ForeignField | bigint | number) {
     const p = this.modulus;
-    let z = Gadgets.ForeignField.div(this.value, this.class.toLimbs(y), p);
-    return new this.class(z);
+    let z = Gadgets.ForeignField.div(this.value, this.Class.toLimbs(y), p);
+    return new this.Class.AlmostReduced(z);
   }
 
   // convenience methods
@@ -258,11 +283,7 @@ class ForeignField {
         }
         return;
       }
-      return Provable.assertEqual(
-        this.class.provable,
-        this,
-        this.class.from(y)
-      );
+      return Provable.assertEqual(this.Class.provable, this, new this.Class(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -302,7 +323,7 @@ class ForeignField {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() === mod(toBigInt(y), p));
     }
-    return Provable.equal(this.class.provable, this, this.class.from(y));
+    return Provable.equal(this.Class.provable, this, new this.Class(y));
   }
 
   // bit packing
@@ -313,7 +334,7 @@ class ForeignField {
    * This method is provable!
    */
   toBits(length?: number) {
-    const sizeInBits = this.class.sizeInBits;
+    const sizeInBits = this.Class.sizeInBits;
     if (length === undefined) length = sizeInBits;
     checkBitLength('ForeignField.toBits()', length, sizeInBits);
     let [l0, l1, l2] = this.value;
@@ -341,12 +362,21 @@ class ForeignField {
     let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
     let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
     // note: due to the check on the number of bits, we know we return an "almost valid" field element
-    return this.from([l0, l1, l2]);
+    return new this([l0, l1, l2]) as AlmostForeignField;
   }
 
-  // Provable<ForeignField>
+  /**
+   * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
+   */
+  toFields(): Field[] {
+    return this.value;
+  }
 
-  static _provable: ProvablePure<ForeignField> | undefined = undefined;
+  static check(_: ForeignField) {
+    throw Error('ForeignField.check() not implemented: must use a subclass');
+  }
+
+  static _provable: any = undefined;
 
   /**
    * `Provable<ForeignField>`, see {@link Provable}
@@ -355,12 +385,49 @@ class ForeignField {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
   }
+}
 
-  /**
-   * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
-   */
-  toFields(): Field[] {
-    return this.value;
+class UnreducedForeignField extends ForeignField {
+  type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
+
+  static _provable: ProvablePure<UnreducedForeignField> | undefined = undefined;
+  static get provable() {
+    assert(this._provable !== undefined, 'ForeignField class not initialized.');
+    return this._provable;
+  }
+
+  static check(x: ForeignField): asserts x is UnreducedForeignField {
+    Gadgets.multiRangeCheck(x.value);
+  }
+}
+
+class AlmostForeignField extends ForeignField {
+  type: 'AlmostReduced' | 'FullyReduced' = 'AlmostReduced';
+
+  static _provable: ProvablePure<AlmostForeignField> | undefined = undefined;
+  static get provable() {
+    assert(this._provable !== undefined, 'ForeignField class not initialized.');
+    return this._provable;
+  }
+
+  static check(x: ForeignField): asserts x is AlmostForeignField {
+    Gadgets.multiRangeCheck(x.value);
+    x.assertAlmostFieldElement();
+  }
+}
+
+class CanonicalForeignField extends ForeignField {
+  type = 'FullyReduced' as const;
+
+  static _provable: ProvablePure<CanonicalForeignField> | undefined = undefined;
+  static get provable() {
+    assert(this._provable !== undefined, 'ForeignField class not initialized.');
+    return this._provable;
+  }
+
+  static check(x: ForeignField): asserts x is CanonicalForeignField {
+    Gadgets.multiRangeCheck(x.value);
+    x.assertCanonicalFieldElement();
   }
 }
 
@@ -412,38 +479,47 @@ function createForeignField(modulus: bigint): typeof ForeignField {
     `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`
   );
 
-  return class ForeignField_ extends ForeignField {
+  class UnreducedField extends UnreducedForeignField {
     static _modulus = modulus;
-
-    static _provable = {
-      toFields(x) {
-        return x.value;
-      },
-      toAuxiliary(): [] {
-        return [];
-      },
-      sizeInFields() {
-        return 3;
-      },
-      fromFields(fields) {
-        let limbs = TupleN.fromArray(3, fields);
-        return new ForeignField_(limbs);
-      },
-      /**
-       * This performs the check in {@link ForeignField.assertAlmostFieldElement}.
-       */
-      check(x: ForeignField) {
-        ForeignField_.assertAlmostFieldElement(x);
-      },
-    };
+    static _provable = provable(UnreducedField);
 
     // bind public static methods to the class so that they have `this` defined
-    static from = ForeignField.from.bind(ForeignField_);
-    static assertAlmostFieldElement =
-      ForeignField.assertAlmostFieldElement.bind(ForeignField_);
-    static sum = ForeignField.sum.bind(ForeignField_);
-    static fromBits = ForeignField.fromBits.bind(ForeignField_);
+    static from = ForeignField.from.bind(UnreducedField);
+    static sum = ForeignField.sum.bind(UnreducedField);
+    static fromBits = ForeignField.fromBits.bind(UnreducedField);
+  }
+
+  class AlmostField extends AlmostForeignField {
+    static _modulus = modulus;
+    static _provable = provable(AlmostField);
+
+    // bind public static methods to the class so that they have `this` defined
+    static from = ForeignField.from.bind(AlmostField);
+    static sum = ForeignField.sum.bind(AlmostField);
+    static fromBits = ForeignField.fromBits.bind(AlmostField);
+  }
+
+  class CanonicalField extends CanonicalForeignField {
+    static _modulus = modulus;
+    static _provable = provable(CanonicalField);
+
+    // bind public static methods to the class so that they have `this` defined
+    static from = ForeignField.from.bind(CanonicalField);
+    static sum = ForeignField.sum.bind(CanonicalField);
+    static fromBits = ForeignField.fromBits.bind(CanonicalField);
+  }
+
+  let variants = {
+    unreduced: UnreducedField,
+    almostReduced: AlmostField,
+    canonical: CanonicalField,
   };
+
+  UnreducedField._variants = variants;
+  AlmostField._variants = variants;
+  CanonicalField._variants = variants;
+
+  return UnreducedField;
 }
 
 // the max foreign field modulus is f_max = floor(sqrt(p * 2^t)), where t = 3*limbBits = 264 and p is the native modulus
@@ -452,3 +528,30 @@ function createForeignField(modulus: bigint): typeof ForeignField {
 // f_max >= sqrt(2^254 * 2^264) = 2^259
 const foreignFieldMaxBits = (BigInt(Fp.sizeInBits - 1) + 3n * l) / 2n;
 const foreignFieldMax = 1n << foreignFieldMaxBits;
+
+// provable
+
+type Constructor<T> = new (...args: any[]) => T;
+
+function provable<F extends ForeignField>(
+  Class: Constructor<F> & { check(x: ForeignField): asserts x is F }
+): ProvablePure<F> {
+  return {
+    toFields(x) {
+      return x.value;
+    },
+    toAuxiliary(): [] {
+      return [];
+    },
+    sizeInFields() {
+      return 3;
+    },
+    fromFields(fields) {
+      let limbs = TupleN.fromArray(3, fields);
+      return new Class(limbs);
+    },
+    check(x: ForeignField): asserts x is F {
+      Class.check(x);
+    },
+  };
+}
