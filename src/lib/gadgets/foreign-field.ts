@@ -341,6 +341,12 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
+  // if f0, f1 === 0, we can use a stronger bound x[2] < f2
+  // because this is true for all field elements x in [0,f)
+  if ((f & l2Mask) === 0n) {
+    return x.add(lMask + 1n - (f >> l2));
+  }
+  // otherwise, we use x[2] < f2 + 1, so we allow x[2] === f2
   return x.add(lMask - (f >> l2));
 }
 
