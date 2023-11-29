@@ -8,9 +8,8 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  Gadgets,
-  Provable,
   Bool,
+  PublicKey,
 } from 'o1js';
 
 import { getProfiler } from './utils/profiler.js';

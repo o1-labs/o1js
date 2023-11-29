@@ -73,13 +73,13 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
   },
   leftShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.leftShift(a, 2);
-    Gadgets.leftShift(a, 4);
+    Gadgets.leftShift64(a, 2);
+    Gadgets.leftShift64(a, 4);
   },
   rightShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.rightShift(a, 2);
-    Gadgets.rightShift(a, 4);
+    Gadgets.rightShift64(a, 2);
+    Gadgets.rightShift64(a, 4);
   },
   and() {
     let a = Provable.witness(Field, () => new Field(5n));
