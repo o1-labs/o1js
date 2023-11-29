@@ -139,22 +139,24 @@ class ForeignField {
    * You should typically use the weaker property because it is cheaper to prove and sufficient for
    * ensuring validity of all our non-native field arithmetic methods.
    */
-  assertAlmostFieldElement(): asserts this is AlmostForeignField {
+  assertAlmostFieldElement() {
     // TODO: this is not very efficient, but the only way to abstract away the complicated
     // range check assumptions and also not introduce a global context of pending range checks.
     // we plan to get rid of bounds checks anyway, then this is just a multi-range check
     Gadgets.ForeignField.assertAlmostFieldElements([this.value], this.modulus, {
       skipMrc: true,
     });
+    return new this.Constructor.AlmostReduced(this.value);
   }
 
   /**
    * Assert that this field element is fully reduced,
    * i.e. lies in the range [0, p), where p is the foreign field modulus.
    */
-  assertCanonicalFieldElement(): asserts this is CanonicalForeignField {
+  assertCanonicalFieldElement() {
     const p = this.modulus;
     this.assertLessThan(p);
+    return new this.Constructor.Canonical(this.value);
   }
 
   // arithmetic with full constraints, for safe use
@@ -406,7 +408,7 @@ class UnreducedForeignField extends ForeignField {
     return this._provable;
   }
 
-  static check(x: ForeignField): asserts x is UnreducedForeignField {
+  static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
   }
 }
@@ -424,7 +426,7 @@ class AlmostForeignField extends ForeignFieldWithMul {
     return this._provable;
   }
 
-  static check(x: ForeignField): asserts x is AlmostForeignField {
+  static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
     x.assertAlmostFieldElement();
   }
@@ -443,7 +445,7 @@ class CanonicalForeignField extends ForeignFieldWithMul {
     return this._provable;
   }
 
-  static check(x: ForeignField): asserts x is CanonicalForeignField {
+  static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
     x.assertCanonicalFieldElement();
   }
@@ -495,7 +497,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  *
  * @param modulus the modulus of the finite field you are instantiating
  */
-function createForeignField(modulus: bigint): typeof AlmostForeignField {
+function createForeignField(modulus: bigint): typeof ForeignField {
   assert(
     modulus > 0n,
     `ForeignField: modulus must be positive, got ${modulus}`
@@ -540,12 +542,11 @@ function createForeignField(modulus: bigint): typeof AlmostForeignField {
     almostReduced: AlmostField,
     canonical: CanonicalField,
   };
-
   UnreducedField._variants = variants;
   AlmostField._variants = variants;
   CanonicalField._variants = variants;
 
-  return AlmostField;
+  return UnreducedField;
 }
 
 // the max foreign field modulus is f_max = floor(sqrt(p * 2^t)), where t = 3*limbBits = 264 and p is the native modulus
@@ -560,7 +561,7 @@ const foreignFieldMax = 1n << foreignFieldMaxBits;
 type Constructor<T> = new (...args: any[]) => T;
 
 function provable<F extends ForeignField>(
-  Class: Constructor<F> & { check(x: ForeignField): asserts x is F }
+  Class: Constructor<F> & { check(x: ForeignField): void }
 ): ProvablePure<F> {
   return {
     toFields(x) {
@@ -576,7 +577,7 @@ function provable<F extends ForeignField>(
       let limbs = TupleN.fromArray(3, fields);
       return new Class(limbs);
     },
-    check(x: ForeignField): asserts x is F {
+    check(x: ForeignField) {
       Class.check(x);
     },
   };
