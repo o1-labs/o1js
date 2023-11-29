@@ -95,10 +95,10 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(12345678n));
-   * Gadgets.rangeCheck(32, x); // successfully proves 32-bit range
+   * Gadgets.rangeCheckN(32, x); // successfully proves 32-bit range
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * Gadgets.rangeCheck(32, xLarge); // throws an error since input exceeds 32 bits
+   * Gadgets.rangeCheckN(32, xLarge); // throws an error since input exceeds 32 bits
    * ```
    */
   rangeCheckN(n: number, x: Field, message?: string) {
@@ -109,7 +109,7 @@ const Gadgets = {
    * Checks whether the input value is in the range [0, 2^n). `n` must be a multiple of 16.
    *
    * This function proves that the provided field element can be represented with `n` bits.
-   * If the field element exceeds `n` bits, an error is thrown.
+   * If the field element exceeds `n` bits, `Bool(false)` is returned and `Bool(true)` otherwise.
    *
    * @param x - The value to be range-checked.
    * @param n - The number of bits to be considered for the range check.
@@ -319,7 +319,7 @@ const Gadgets = {
    * y.assertEquals(0b110000); // 48 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * leftShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * leftShift64(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
   leftShift64(field: Field, bits: number) {
@@ -334,23 +334,18 @@ const Gadgets = {
    * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
    * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
    *
-   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   * **Important:** The gadgets assumes that its input is at most 32 bits in size.
    *
-   * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the shift.
+   * The output is range checked to 32 bits.
    *
    * @param field {@link Field} element to shift.
    * @param bits Amount of bits to shift the {@link Field} element to the left. The amount should be between 0 and 32 (or else the shift will fail).
-   *
-   * @throws Throws an error if the input value exceeds 32 bits.
    *
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
    * const y = Gadgets.leftShift32(x, 2); // left shift by 2 bits
    * y.assertEquals(0b110000); // 48 in binary
-   *
-   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * leftShift(xLarge, 32); // throws an error since input exceeds 32 bits
    * ```
    */
   leftShift32(field: Field, bits: number) {

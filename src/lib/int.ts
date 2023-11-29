@@ -4,7 +4,6 @@ import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
 import { Gadgets } from './gadgets/gadgets.js';
-import { FILE } from 'dns';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -804,10 +803,12 @@ class UInt32 extends CircuitValue {
    * This operation is similar to the `<<` shift operation in JavaScript,
    * where bits are shifted to the left, and the overflowing bits are discarded.
    *
-   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
-   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
    *
-   * @param bits Amount of bits to shift the {@link UInt32} element to the left. The amount should be between 0 and 64 (or else the shift will fail).
+   * The operation expects the input to be range checked to 32 bit.
+   *
+   * @param bits Amount of bits to shift the {@link UInt32} element to the left. The amount should be between 0 and 32 (or else the shift will fail).
    *
    * @example
    * ```ts
@@ -825,10 +826,10 @@ class UInt32 extends CircuitValue {
    * This operation is similar to the `>>` shift operation in JavaScript,
    * where bits are shifted to the right, and the overflowing bits are discarded.
    *
-   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
-   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
    *
-   * @param bits Amount of bits to shift the {@link UInt32} element to the right. The amount should be between 0 and 64 (or else the shift will fail).
+   * @param bits Amount of bits to shift the {@link UInt32} element to the right. The amount should be between 0 and 32 (or else the shift will fail).
    *
    * @example
    * ```ts
