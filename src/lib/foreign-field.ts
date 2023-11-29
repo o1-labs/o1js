@@ -6,6 +6,8 @@ import { Bool } from './bool.js';
 import { Tuple, TupleN } from './util/types.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
+import { assert } from './gadgets/common.js';
+import { l3 } from './gadgets/range-check.js';
 
 // external API
 export { createForeignField, ForeignField };
@@ -157,7 +159,7 @@ function createForeignField(modulus: bigint) {
      * i.e. lies in the range [0, p), where p is the foreign field modulus.
      */
     assertCanonicalFieldElement() {
-      Gadgets.ForeignField.assertLessThan(this.value, p);
+      this.assertLessThan(p);
     }
 
     // arithmetic with full constraints, for safe use
@@ -279,14 +281,21 @@ function createForeignField(modulus: bigint) {
 
     /**
      * Assert that this field element is less than a constant c: `x < c`.
+     *
+     * The constant must satisfy `0 <= c < 2^264`, otherwise an error is thrown.
+     *
      * @example
      * ```ts
      * x.assertLessThan(10);
      * ```
      */
-    assertLessThan(y: bigint | number, message?: string) {
+    assertLessThan(c: bigint | number, message?: string) {
+      assert(
+        c >= 0 && c < 1n << l3,
+        `ForeignField.assertLessThan(): expected c <= c < 2^264, got ${c}`
+      );
       try {
-        Gadgets.ForeignField.assertLessThan(this.value, toBigInt(y));
+        Gadgets.ForeignField.assertLessThan(this.value, toBigInt(c));
       } catch (err) {
         throw withMessage(err, message);
       }

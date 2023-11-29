@@ -33,8 +33,10 @@ const ForeignField = {
   sub(x: Field3, y: Field3, f: bigint) {
     return sum([x, y], [-1n], f);
   },
+  negate(x: Field3, f: bigint) {
+    return sum([Field3.from(0n), x], [-1n], f);
+  },
   sum,
-  negate,
 
   mul: multiply,
   inv: inverse,
@@ -49,7 +51,10 @@ const ForeignField = {
       return;
     }
     // provable case
-    negate(x, f); // proves that x < f
+    // we can just use negation (f - 1) - x! because the result is range-checked, it proves that x < f:
+    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0 or 1)
+    ForeignField.negate(x, f - 1n);
   },
 };
 
@@ -79,30 +84,6 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
   // range check result
   multiRangeCheck(result);
 
-  return result;
-}
-
-/**
- * negate() deserves a special case because we can fix the overflow to -1
- * and know that a result in range is mapped to a result in range again.
- *
- * because the result is range-checked, this also proves that x is canonical:
- *
- * `f - x \in [0, 2^3l) => x < x + (f - x) = f`
- */
-function negate(x: Field3, f: bigint) {
-  if (Field3.isConstant(x)) {
-    return sum([Field3.from(0n), x], [-1n], f);
-  }
-  // provable case
-  x = toVars(x);
-  let zero = toVars(Field3.from(0n));
-  let { result, overflow } = singleAdd(zero, x, -1n, f);
-  Gates.zero(...result);
-  multiRangeCheck(result);
-
-  // fix the overflow to -1
-  overflow.assertEquals(-1n);
   return result;
 }
 

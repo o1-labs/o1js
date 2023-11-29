@@ -378,6 +378,17 @@ const Gadgets = {
     },
 
     /**
+     * Foreign field negation: `-x mod f = f - x`
+     *
+     * See {@link ForeignField.add} for assumptions and usage examples.
+     *
+     * @throws fails if `x > f`, where `f - x < 0`.
+     */
+    neg(x: Field3, f: bigint) {
+      return ForeignField.negate(x, f);
+    },
+
+    /**
      * Foreign field sum: `xs[0] + signs[0] * xs[1] + ... + signs[n-1] * xs[n] mod f`
      *
      * This gadget takes a list of inputs and a list of signs (of size one less than the inputs),
