@@ -32,26 +32,17 @@ type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
  * The returned {@link ForeignField} class supports arithmetic modulo `p` (addition and multiplication),
  * as well as helper methods like `assertEquals()` and `equals()`.
  *
- * _Advanced usage:_
+ * _Advanced details:_
  *
  * Internally, a foreign field element is represented as three native field elements, each of which
  * represents a limb of 88 bits. Therefore, being a valid foreign field element means that all 3 limbs
  * fit in 88 bits, and the foreign field element altogether is smaller than the modulus p.
- * With default parameters, new `ForeignField` elements introduced in provable code are automatically
- * constrained to be valid on creation.
- *
- * However, optimized code may want to forgo these automatic checks because in some
- * situations they are redundant. Skipping automatic validity checks can be done
- * by passing the `unsafe: true` flag:
+ * Since the full `x < p` check is expensive, by default we only prove a weaker assertion, `x < 2^ceil(log2(p))`,
+ * see {@link ForeignField.assertAlmostFieldElement} for more details.
+ * If you need to prove that you have a fully reduced field element, use {@link ForeignField.assertCanonicalFieldElement}:
  *
  * ```ts
- * class UnsafeField extends createForeignField(17n, { unsafe: true }) {}
- * ```
- *
- * You then often need to manually add validity checks:
- * ```ts
- * let x: UnsafeField;
- * x.assertValidElement(); // prove that x is a valid foreign field element
+ * x.assertCanonicalFieldElement(); // x < p
  * ```
  *
  * @param modulus the modulus of the finite field you are instantiating
