@@ -342,6 +342,13 @@ const Field3 = {
   },
 
   /**
+   * Check whether a 3-tuple of Fields is constant
+   */
+  isConstant(x: Field3) {
+    return x.every((x) => x.isConstant());
+  },
+
+  /**
    * Provable<T> interface for `Field3 = [Field, Field, Field]`.
    *
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
