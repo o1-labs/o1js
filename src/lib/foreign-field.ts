@@ -7,15 +7,10 @@ import { Tuple, TupleN } from './util/types.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './gadgets/common.js';
-import { l3 } from './gadgets/range-check.js';
+import { l3, l } from './gadgets/range-check.js';
 
 // external API
 export { createForeignField, ForeignField };
-
-// internal API
-export { limbBits };
-
-const limbBits = 88n;
 
 type ForeignField = InstanceType<ReturnType<typeof createForeignField>>;
 
@@ -316,7 +311,7 @@ function createForeignField(modulus: bigint) {
     toBits(length = sizeInBits) {
       checkBitLength('ForeignField.toBits()', length, sizeInBits);
       let [l0, l1, l2] = this.value;
-      let limbSize = Number(limbBits);
+      let limbSize = Number(l);
       let xBits = l0.toBits(Math.min(length, limbSize));
       length -= limbSize;
       if (length <= 0) return xBits;
@@ -335,7 +330,7 @@ function createForeignField(modulus: bigint) {
     static fromBits(bits: Bool[]) {
       let length = bits.length;
       checkBitLength('ForeignField.fromBits()', length, sizeInBits);
-      let limbSize = Number(limbBits);
+      let limbSize = Number(l);
       let l0 = Field.fromBits(bits.slice(0 * limbSize, 1 * limbSize));
       let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
       let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
@@ -401,5 +396,5 @@ function createForeignField(modulus: bigint) {
 // see RFC: https://github.com/o1-labs/proof-systems/blob/1fdb1fd1d112f9d4ee095dbb31f008deeb8150b0/book/src/rfcs/foreign_field_mul.md
 // since p = 2^254 + eps for both Pasta fields with eps small, a fairly tight lower bound is
 // f_max >= sqrt(2^254 * 2^264) = 2^259
-const foreignFieldMaxBits = (BigInt(Fp.sizeInBits - 1) + 3n * limbBits) / 2n;
+const foreignFieldMaxBits = (BigInt(Fp.sizeInBits - 1) + 3n * l) / 2n;
 const foreignFieldMax = 1n << foreignFieldMaxBits;
