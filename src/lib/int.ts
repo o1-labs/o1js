@@ -19,7 +19,7 @@ class UInt64 extends CircuitValue {
   constructor(x: UInt64 | UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
     else if (!(x instanceof Field)) x = Field(x);
-    super(UInt64.checkConstant(x));
+    super(x);
   }
 
   /**
@@ -546,7 +546,7 @@ class UInt32 extends CircuitValue {
   constructor(x: UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt32) x = x.value;
     else if (!(x instanceof Field)) x = Field(x);
-    super(UInt32.checkConstant(x));
+    super(x);
   }
 
   /**
