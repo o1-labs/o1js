@@ -15,8 +15,9 @@ import {
   rotate64,
   xor,
   and,
-  leftShift,
-  rightShift,
+  leftShift64,
+  rightShift64,
+  leftShift32,
 } from './bitwise.js';
 import { Field } from '../core.js';
 import { ForeignField, Field3 } from './foreign-field.js';
@@ -314,17 +315,47 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = Gadgets.leftShift(x, 2); // left shift by 2 bits
+   * const y = Gadgets.leftShift64(x, 2); // left shift by 2 bits
    * y.assertEquals(0b110000); // 48 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
    * leftShift(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
-  leftShift(field: Field, bits: number) {
-    return leftShift(field, bits);
+  leftShift64(field: Field, bits: number) {
+    return leftShift64(field, bits);
   },
 
+  /**
+   * Performs a left shift operation on the provided {@link Field} element.
+   * This operation is similar to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * **Important:** The gadgets assumes that its input is at most 64 bits in size.
+   *
+   * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the shift.
+   *
+   * @param field {@link Field} element to shift.
+   * @param bits Amount of bits to shift the {@link Field} element to the left. The amount should be between 0 and 32 (or else the shift will fail).
+   *
+   * @throws Throws an error if the input value exceeds 32 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
+   * const y = Gadgets.leftShift32(x, 2); // left shift by 2 bits
+   * y.assertEquals(0b110000); // 48 in binary
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * leftShift(xLarge, 32); // throws an error since input exceeds 32 bits
+   * ```
+   */
+  leftShift32(field: Field, bits: number) {
+    return leftShift32(field, bits);
+  },
   /**
    * Performs a right shift operation on the provided {@link Field} element.
    * This is similar to the `>>` shift operation in JavaScript, where bits are moved to the right.
@@ -347,15 +378,15 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = Gadgets.rightShift(x, 2); // right shift by 2 bits
+   * const y = Gadgets.rightShift64(x, 2); // right shift by 2 bits
    * y.assertEquals(0b000011); // 3 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
    * rightShift(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
-  rightShift(field: Field, bits: number) {
-    return rightShift(field, bits);
+  rightShift64(field: Field, bits: number) {
+    return rightShift64(field, bits);
   },
   /**
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).

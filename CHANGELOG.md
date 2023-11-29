@@ -21,11 +21,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
-- Rename `Gadgets.rotate` to `Gadgets.rotate64` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
+- Rename `Gadgets.rotate()` to `Gadgets.rotate64()` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
+- Rename `Gadgets.{leftShift(), rightShift()}` to `Gadgets.{leftShift64(), rightShift64()}` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
 
 ### Added
 
 - `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.leftShift32()` for left shift over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.rangeCheck32()` range check for 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.addMod32()` addition modulo 2^32 https://github.com/o1-labs/o1js/pull/1259

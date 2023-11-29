@@ -69,16 +69,22 @@ let Bitwise = ZkProgram({
         return Gadgets.rotate64(a, 12, 'left');
       },
     },
-    leftShift: {
+    leftShift64: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.leftShift(a, 12);
+        return Gadgets.leftShift64(a, 12);
       },
     },
-    rightShift: {
+    leftShift32: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.rightShift(a, 12);
+        return Gadgets.leftShift32(a, 12);
+      },
+    },
+    rightShift64: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.rightShift64(a, 12);
       },
     },
   },
@@ -114,11 +120,11 @@ await Bitwise.compile();
   );
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.leftShift(x, 12),
-    (x) => Gadgets.leftShift(x, 12)
+    (x) => Gadgets.leftShift64(x, 12)
   );
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.rightShift(x, 12),
-    (x) => Gadgets.rightShift(x, 12)
+    (x) => Gadgets.rightShift64(x, 12)
   );
 });
 
@@ -126,6 +132,10 @@ await Bitwise.compile();
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.rot(x, 12n, 'left', 32n),
     (x) => Gadgets.rotate32(x, 12, 'left')
+  );
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.leftShift(x, 12, 32),
+    (x) => Gadgets.leftShift32(x, 12)
   );
 });
 
@@ -202,7 +212,19 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
     return Fp.leftShift(x, 12);
   },
   async (x) => {
-    let proof = await Bitwise.leftShift(x);
+    let proof = await Bitwise.leftShift64(x);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+  (x) => {
+    console.log('input', x);
+    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
+    return Fp.leftShift(x, 12, 32);
+  },
+  async (x) => {
+    let proof = await Bitwise.leftShift32(x);
     return proof.publicOutput;
   }
 );
@@ -213,7 +235,7 @@ await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
     return Fp.rightShift(x, 12);
   },
   async (x) => {
-    let proof = await Bitwise.rightShift(x);
+    let proof = await Bitwise.rightShift64(x);
     return proof.publicOutput;
   }
 );
@@ -254,5 +276,5 @@ let isJustRotate = ifNotAllConstant(
 );
 
 constraintSystem.fromZkProgram(Bitwise, 'rot64', isJustRotate);
-constraintSystem.fromZkProgram(Bitwise, 'leftShift', isJustRotate);
-constraintSystem.fromZkProgram(Bitwise, 'rightShift', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'leftShift64', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'rightShift64', isJustRotate);

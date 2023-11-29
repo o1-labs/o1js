@@ -317,7 +317,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return Gadgets.leftShift(this.value, bits);
+    return Gadgets.leftShift64(this.value, bits);
   }
 
   /**
@@ -338,7 +338,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return Gadgets.rightShift(this.value, bits);
+    return Gadgets.leftShift64(this.value, bits);
   }
 
   /**
@@ -817,7 +817,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return Gadgets.leftShift(this.value, bits);
+    return Gadgets.leftShift32(this.value, bits);
   }
 
   /**
@@ -838,7 +838,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return Gadgets.rightShift(this.value, bits);
+    return Gadgets.rightShift64(this.value, bits);
   }
 
   /**

@@ -13,7 +13,16 @@ import {
 import { rangeCheck32, rangeCheck64 } from './range-check.js';
 import { divMod32 } from './arithmetic.js';
 
-export { xor, not, rotate64, rotate32, and, rightShift, leftShift };
+export {
+  xor,
+  not,
+  rotate64,
+  rotate32,
+  and,
+  rightShift64,
+  leftShift64,
+  leftShift32,
+};
 
 function not(a: Field, length: number, checked: boolean = false) {
   // check that input length is positive
@@ -310,7 +319,7 @@ function rot64(
   return [rotated, excess, shifted];
 }
 
-function rightShift(field: Field, bits: number) {
+function rightShift64(field: Field, bits: number) {
   assert(
     bits >= 0 && bits <= MAX_BITS,
     `rightShift: expected bits to be between 0 and 64, got ${bits}`
@@ -327,7 +336,7 @@ function rightShift(field: Field, bits: number) {
   return excess;
 }
 
-function leftShift(field: Field, bits: number) {
+function leftShift64(field: Field, bits: number) {
   assert(
     bits >= 0 && bits <= MAX_BITS,
     `rightShift: expected bits to be between 0 and 64, got ${bits}`
@@ -341,5 +350,10 @@ function leftShift(field: Field, bits: number) {
     return new Field(Fp.leftShift(field.toBigInt(), bits));
   }
   const [, , shifted] = rot64(field, bits, 'left');
+  return shifted;
+}
+
+function leftShift32(field: Field, bits: number) {
+  let { remainder: shifted } = divMod32(field.mul(1n << BigInt(bits)));
   return shifted;
 }
