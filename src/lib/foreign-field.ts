@@ -160,7 +160,7 @@ class ForeignField {
     Gadgets.ForeignField.assertAlmostFieldElements([this.value], this.modulus, {
       skipMrc: true,
     });
-    return new this.Constructor.AlmostReduced(this.value);
+    return this.Constructor.AlmostReduced.unsafeFrom(this);
   }
 
   /**
@@ -177,7 +177,7 @@ class ForeignField {
       this.modulus,
       { skipMrc: true }
     );
-    return Tuple.map(xs, (x) => new this.AlmostReduced(x.value));
+    return Tuple.map(xs, this.AlmostReduced.unsafeFrom);
   }
 
   /**
@@ -188,7 +188,7 @@ class ForeignField {
    */
   assertCanonicalFieldElement() {
     this.assertLessThan(this.modulus);
-    return new this.Constructor.Canonical(this.value);
+    return this.Constructor.Canonical.unsafeFrom(this);
   }
 
   // arithmetic with full constraints, for safe use
@@ -486,6 +486,15 @@ class AlmostForeignField extends ForeignFieldWithMul {
     Gadgets.multiRangeCheck(x.value);
     x.assertAlmostReduced();
   }
+
+  /**
+   * Coerce the input to an {@link AlmostForeignField} without additional assertions.
+   *
+   * **Warning:** Only use if you know what you're doing.
+   */
+  static unsafeFrom(x: ForeignField) {
+    return new this(x.value);
+  }
 }
 
 class CanonicalForeignField extends ForeignFieldWithMul {
@@ -504,6 +513,15 @@ class CanonicalForeignField extends ForeignFieldWithMul {
   static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
     x.assertCanonicalFieldElement();
+  }
+
+  /**
+   * Coerce the input to a {@link CanonicalForeignField} without additional assertions.
+   *
+   * **Warning:** Only use if you know what you're doing.
+   */
+  static unsafeFrom(x: ForeignField) {
+    return new this(x.value);
   }
 }
 
@@ -605,6 +623,7 @@ function createForeignField(modulus: bigint): typeof ForeignField {
     static from = ForeignField.from.bind(AlmostField);
     static sum = ForeignField.sum.bind(AlmostField);
     static fromBits = ForeignField.fromBits.bind(AlmostField);
+    static unsafeFrom = AlmostForeignField.unsafeFrom.bind(AlmostField);
   }
 
   class CanonicalField extends CanonicalForeignField {
@@ -615,6 +634,7 @@ function createForeignField(modulus: bigint): typeof ForeignField {
     static from = ForeignField.from.bind(CanonicalField);
     static sum = ForeignField.sum.bind(CanonicalField);
     static fromBits = ForeignField.fromBits.bind(CanonicalField);
+    static unsafeFrom = CanonicalForeignField.unsafeFrom.bind(CanonicalField);
   }
 
   let variants = {
