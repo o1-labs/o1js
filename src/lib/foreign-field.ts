@@ -1,4 +1,3 @@
-import { ProvablePure } from '../snarky.js';
 import { mod, Fp } from '../bindings/crypto/finite_field.js';
 import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
@@ -8,6 +7,7 @@ import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
+import { ProvablePureExtended } from './circuit_value.js';
 
 // external API
 export { createForeignField };
@@ -106,6 +106,7 @@ class ForeignField {
    * Coerce the input to a {@link ForeignField}.
    */
   static from(x: bigint | number | string): CanonicalForeignField;
+  static from(x: ForeignField | bigint | number | string): ForeignField;
   static from(x: ForeignField | bigint | number | string): ForeignField {
     if (x instanceof ForeignField) return x;
     return new this.Canonical(x);
@@ -412,21 +413,6 @@ class ForeignField {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
   }
-
-  /**
-   * Convert foreign field element to JSON
-   */
-  static toJSON(x: ForeignField) {
-    return x.toBigInt().toString();
-  }
-
-  /**
-   * Convert foreign field element from JSON
-   */
-  static fromJSON(x: string) {
-    // TODO be more strict about allowed values
-    return new this(x);
-  }
 }
 
 class ForeignFieldWithMul extends ForeignField {
@@ -475,7 +461,9 @@ class ForeignFieldWithMul extends ForeignField {
 class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
-  static _provable: ProvablePure<UnreducedForeignField> | undefined = undefined;
+  static _provable:
+    | ProvablePureExtended<UnreducedForeignField, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -493,7 +481,9 @@ class AlmostForeignField extends ForeignFieldWithMul {
     super(x);
   }
 
-  static _provable: ProvablePure<AlmostForeignField> | undefined = undefined;
+  static _provable:
+    | ProvablePureExtended<AlmostForeignField, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -521,7 +511,9 @@ class CanonicalForeignField extends ForeignFieldWithMul {
     super(x);
   }
 
-  static _provable: ProvablePure<CanonicalForeignField> | undefined = undefined;
+  static _provable:
+    | ProvablePureExtended<CanonicalForeignField, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -609,7 +601,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  *
  * @param modulus the modulus of the finite field you are instantiating
  */
-function createForeignField(modulus: bigint): typeof ForeignField {
+function createForeignField(modulus: bigint): typeof UnreducedForeignField {
   assert(
     modulus > 0n,
     `ForeignField: modulus must be positive, got ${modulus}`
@@ -676,7 +668,7 @@ type Constructor<T> = new (...args: any[]) => T;
 
 function provable<F extends ForeignField>(
   Class: Constructor<F> & { check(x: ForeignField): void }
-): ProvablePure<F> {
+): ProvablePureExtended<F, string> {
   return {
     toFields(x) {
       return x.value;
@@ -693,6 +685,27 @@ function provable<F extends ForeignField>(
     },
     check(x: ForeignField) {
       Class.check(x);
+    },
+    // ugh
+    toJSON(x: ForeignField) {
+      return x.toBigInt().toString();
+    },
+    fromJSON(x: string) {
+      // TODO be more strict about allowed values
+      return new Class(x);
+    },
+    empty() {
+      return new Class(0n);
+    },
+    toInput(x) {
+      let l_ = Number(l);
+      return {
+        packed: [
+          [x.value[0], l_],
+          [x.value[1], l_],
+          [x.value[2], l_],
+        ],
+      };
     },
   };
 }
