@@ -9,7 +9,7 @@ import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Tuple, TupleN, TupleN } from '../util/types.js';
+import { Tuple, TupleN } from '../util/types.js';
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 import {
