@@ -184,10 +184,6 @@ const TokenSymbolPure: ProvableExtended<
   },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
   static from(symbol: string): TokenSymbol {
     let bytesLength = new TextEncoder().encode(symbol).length;
     if (bytesLength > 6)
