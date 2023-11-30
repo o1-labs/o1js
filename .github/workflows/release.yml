@@ -53,6 +53,10 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      - name: Update CHANGELOG.md
+        run: |
+          npm run update-changelog
+
       - name: Create new release branch
         run: |
           NEW_BRANCH="release/${NEW_VERSION}"
