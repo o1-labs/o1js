@@ -554,6 +554,7 @@ const Gadgets = {
    * ECDSA verification gadget and helper methods.
    */
   Ecdsa: {
+    // TODO add an easy way to prove that the public key lies on the curve, and show in the example
     /**
      * Verify an ECDSA signature.
      *
@@ -566,7 +567,6 @@ const Gadgets = {
      *   [signature.r, signature.s, msgHash],
      *   Curve.order
      * );
-     * // TODO add an easy way to prove that the public key lies on the curve
      *
      * // verify signature
      * Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
