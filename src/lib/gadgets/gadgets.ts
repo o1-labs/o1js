@@ -8,7 +8,10 @@ import {
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
-import { ForeignField, Field3 } from './foreign-field.js';
+import { ForeignField, Field3, Sum } from './foreign-field.js';
+import { Ecdsa, Point } from './elliptic-curve.js';
+import { CurveAffine } from '../../bindings/crypto/elliptic_curve.js';
+import { Crypto } from '../crypto.js';
 
 export { Gadgets };
 
@@ -429,8 +432,10 @@ const Gadgets = {
      * **Assumptions**: In addition to the assumption that input limbs are in the range [0, 2^88), as in all foreign field gadgets,
      * this assumes an additional bound on the inputs: `x * y < 2^264 * p`, where p is the native modulus.
      * We usually assert this bound by proving that `x[2] < f[2] + 1`, where `x[2]` is the most significant limb of x.
-     * To do this, use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
+     * To do this, we use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
      * The implication is that x and y are _almost_ reduced modulo f.
+     *
+     * All of the above assumptions are checked by {@link ForeignField.assertAlmostFieldElements}.
      *
      * **Warning**: This gadget does not add the extra bound check on the result.
      * So, to use the result in another foreign field multiplication, you have to add the bound check on it yourself, again.
@@ -443,14 +448,8 @@ const Gadgets = {
      * let x = Provable.witness(Field3.provable, () => Field3.from(f - 1n));
      * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
      *
-     * // range check x, y
-     * Gadgets.multiRangeCheck(x);
-     * Gadgets.multiRangeCheck(y);
-     *
-     * // prove additional bounds
-     * let x2Bound = x[2].add((1n << 88n) - 1n - (f >> 176n));
-     * let y2Bound = y[2].add((1n << 88n) - 1n - (f >> 176n));
-     * Gadgets.multiRangeCheck([x2Bound, y2Bound, Field(0n)]);
+     * // range check x, y and prove additional bounds x[2] <= f[2]
+     * ForeignField.assertAlmostFieldElements([x, y], f);
      *
      * // compute x * y mod f
      * let z = ForeignField.mul(x, y, f);
@@ -484,6 +483,51 @@ const Gadgets = {
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
+    },
+
+    /**
+     * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
+     *
+     * Note: This is much more efficient than using {@link ForeignField.add} and {@link ForeignField.sub} separately to
+     * compute the multiplication inputs and outputs, and then using {@link ForeignField.mul} to constrain the result.
+     *
+     * The sums passed into this gadgets are "lazy sums" created with {@link ForeignField.Sum}.
+     * You can also pass in plain {@link Field3} elements.
+     *
+     * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link ForeignField.mul}:
+     * - each summand's limbs are in the range [0, 2^88)
+     * - summands that are part of a multiplication input satisfy `x[2] <= f[2]`
+     *
+     * @throws if the modulus is so large that the second assumption no longer suffices for validity of the multiplication.
+     * For small sums and moduli < 2^256, this will not fail.
+     *
+     * @throws if the provided multiplication result is not correct modulo f.
+     *
+     * @example
+     * ```ts
+     * // range-check x, y, z, a, b, c
+     * ForeignField.assertAlmostFieldElements([x, y, z], f);
+     * Gadgets.multiRangeCheck(a);
+     * Gadgets.multiRangeCheck(b);
+     * Gadgets.multiRangeCheck(c);
+     *
+     * // create lazy input sums
+     * let xMinusY = ForeignField.Sum(x).sub(y);
+     * let aPlusBPlusC = ForeignField.Sum(a).add(b).add(c);
+     *
+     * // assert that (x - y)*z = a + b + c mod f
+     * ForeignField.assertMul(xMinusY, z, aPlusBPlusC, f);
+     * ```
+     */
+    assertMul(x: Field3 | Sum, y: Field3 | Sum, z: Field3 | Sum, f: bigint) {
+      return ForeignField.assertMul(x, y, z, f);
+    },
+
+    /**
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link ForeignField.assertMul}.
+     */
+    Sum(x: Field3) {
+      return ForeignField.Sum(x);
     },
 
     /**
@@ -549,6 +593,60 @@ const Gadgets = {
   },
 
   /**
+   * ECDSA verification gadget and helper methods.
+   */
+  Ecdsa: {
+    // TODO add an easy way to prove that the public key lies on the curve, and show in the example
+    /**
+     * Verify an ECDSA signature.
+     *
+     * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
+     * So, to actually prove validity of a signature, you need to assert that the result is true.
+     *
+     * @example
+     * ```ts
+     * const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
+     *
+     * // assert that message hash and signature are valid scalar field elements
+     * Gadgets.ForeignField.assertAlmostFieldElements(
+     *   [signature.r, signature.s, msgHash],
+     *   Curve.order
+     * );
+     *
+     * // verify signature
+     * let isValid = Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
+     * isValid.assertTrue();
+     * ```
+     */
+    verify(
+      Curve: CurveAffine,
+      signature: Ecdsa.Signature,
+      msgHash: Field3,
+      publicKey: Point
+    ) {
+      Ecdsa.verify(Curve, signature, msgHash, publicKey);
+    },
+
+    /**
+     * Sign a message hash using ECDSA.
+     *
+     * _This method is not provable._
+     */
+    sign(
+      Curve: Crypto.Curve,
+      msgHash: bigint,
+      privateKey: bigint
+    ): Ecdsa.signature {
+      return Ecdsa.sign(Curve, msgHash, privateKey);
+    },
+
+    /**
+     * Non-provable helper methods for interacting with ECDSA signatures.
+     */
+    Signature: Ecdsa.Signature,
+  },
+
+  /**
    * Helper methods to interact with 3-limb vectors of Fields.
    *
    * **Note:** This interface does not contain any provable methods.
@@ -561,4 +659,22 @@ export namespace Gadgets {
    * A 3-tuple of Fields, representing a 3-limb bigint.
    */
   export type Field3 = [Field, Field, Field];
+
+  export namespace ForeignField {
+    /**
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link ForeignField.assertMul}.
+     */
+    export type Sum = Sum_;
+  }
+
+  export namespace Ecdsa {
+    /**
+     * ECDSA signature consisting of two curve scalars.
+     */
+    export type Signature = EcdsaSignature;
+    export type signature = ecdsaSignature;
+  }
 }
+type Sum_ = Sum;
+type EcdsaSignature = Ecdsa.Signature;
+type ecdsaSignature = Ecdsa.signature;

@@ -66,7 +66,6 @@ export {
   declareMethods,
   Callback,
   Account,
-  VerificationKey,
   Reducer,
 };
 
@@ -681,11 +680,7 @@ class SmartContract {
     // run methods once to get information that we need already at compile time
     let methodsMeta = this.analyzeMethods();
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
-    let {
-      verificationKey: verificationKey_,
-      provers,
-      verify,
-    } = await compileProgram({
+    let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
       publicOutputType: Empty,
       methodIntfs,
@@ -695,10 +690,6 @@ class SmartContract {
       cache,
       forceRecompile,
     });
-    let verificationKey = {
-      data: verificationKey_.data,
-      hash: Field(verificationKey_.hash),
-    } satisfies VerificationKey;
     this._provers = provers;
     this._verificationKey = verificationKey;
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
@@ -1487,13 +1478,6 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     },
   };
 }
-
-class VerificationKey extends Struct({
-  ...provable({ data: String, hash: Field }),
-  toJSON({ data }: { data: string }) {
-    return data;
-  },
-}) {}
 
 function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
   let body = Body.keepAll(zkapp.address, zkapp.tokenId);

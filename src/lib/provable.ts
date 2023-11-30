@@ -3,6 +3,7 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
+import { FieldVar } from './field.js';
 import { Field, Bool } from './core.js';
 import { Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
@@ -119,6 +120,16 @@ const Provable = {
    * ```
    */
   Array: provableArray,
+  /**
+   * Check whether a value is constant.
+   * See {@link FieldVar} for more information about constants and variables.
+   *
+   * @example
+   * ```ts
+   * let x = Field(42);
+   * Provable.isConstant(x); // true
+   */
+  isConstant,
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
@@ -390,6 +401,10 @@ function switch_<T, A extends FlexibleProvable<T>>(
     return values[i];
   });
   return (type as Provable<T>).fromFields(fields, aux);
+}
+
+function isConstant<T>(type: Provable<T>, x: T): boolean {
+  return type.toFields(x).every((x) => x.isConstant());
 }
 
 // logging in provable code
