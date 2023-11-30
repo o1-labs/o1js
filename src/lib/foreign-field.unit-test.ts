@@ -100,7 +100,7 @@ equivalent({ from: [f, f], to: unit })(
 );
 // doesn't fail in provable mode just because the range check is not checked by runAndCheck
 // TODO check all gates
-equivalentNonProvable({ from: [u264, first(u264)], to: unit })(
+equivalentNonProvable({ from: [f, first(u264)], to: unit })(
   (x, y) => x < y || throwError('not less than'),
   (x, y) => x.assertLessThan(y)
 );
