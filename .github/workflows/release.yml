@@ -56,6 +56,8 @@ jobs:
       - name: Update CHANGELOG.md
         run: |
           npm run update-changelog
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG for new version $NEW_VERSION"
 
       - name: Create new release branch
         run: |
