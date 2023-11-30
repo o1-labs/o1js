@@ -1,29 +1,13 @@
-import { inverse, mod } from '../bindings/crypto/finite_field.js';
-import { CurveAffine } from '../bindings/crypto/elliptic_curve.js';
-import { Snarky } from '../snarky.js';
+import { CurveParams } from '../bindings/crypto/elliptic_curve.js';
 import { Struct, isConstant } from './circuit_value.js';
-import {
-  CurveParams,
-  ForeignCurveClass,
-  affineToMl,
-  createForeignCurve,
-} from './foreign-curve.js';
-import { ForeignField, ForeignFieldVar } from './foreign-field.js';
+import { ForeignCurveClass, createForeignCurve } from './foreign-curve.js';
+import { AlmostForeignField } from './foreign-field.js';
+import { verifyEcdsaConstant } from './gadgets/elliptic-curve.js';
 
 // external API
 export { createEcdsa };
 
-// internal API
-export { ForeignSignatureVar };
-
-type MlSignature<F> = [_: 0, x: F, y: F];
-type ForeignSignatureVar = MlSignature<ForeignFieldVar>;
-
-type Signature = { r: ForeignField; s: ForeignField };
-
-function signatureToMl({ r, s }: Signature): ForeignSignatureVar {
-  return [0, r.value, s.value];
-}
+type Signature = { r: AlmostForeignField; s: AlmostForeignField };
 
 /**
  * Returns a class {@link EcdsaSignature} enabling to parse and verify ECDSA signature in provable code,
@@ -31,12 +15,15 @@ function signatureToMl({ r, s }: Signature): ForeignSignatureVar {
  */
 function createEcdsa(curve: CurveParams | ForeignCurveClass) {
   let Curve0: ForeignCurveClass =
-    'gen' in curve ? createForeignCurve(curve) : curve;
+    'b' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
   class Scalar extends Curve.Scalar {}
   class BaseField extends Curve.BaseField {}
 
-  const Signature: Struct<Signature> = Struct({ r: Scalar, s: Scalar });
+  const Signature: Struct<Signature> = Struct({
+    r: Scalar.provable,
+    s: Scalar.provable,
+  });
 
   class EcdsaSignature extends Signature {
     static Curve = Curve0;
@@ -85,7 +72,7 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
       let publicKey_ = Curve.from(publicKey);
 
       if (isConstant(Signature, this)) {
-        let isValid = verifyEcdsa(
+        let isValid = verifyEcdsaConstant(
           Curve.Bigint,
           { r: this.r.toBigInt(), s: this.s.toBigInt() },
           msgHash_.toBigInt(),
@@ -96,11 +83,7 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
         }
         return;
       }
-      let curve = Curve0._getParams(`${this.constructor.name}.verify`);
-      let signatureMl = signatureToMl(this);
-      let msgHashMl = msgHash_.value;
-      let publicKeyMl = affineToMl(publicKey_);
-      Snarky.ecdsa.verify(signatureMl, msgHashMl, publicKeyMl, curve);
+      throw Error('unimplemented');
     }
 
     /**
@@ -115,40 +98,11 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
           throw Error(`${this.name}.check(): s must be non-zero`);
         return;
       }
-      let curve = Curve0._getParams(`${this.name}.check`);
-      let signatureMl = signatureToMl(signature);
-      Snarky.ecdsa.assertValidSignature(signatureMl, curve);
+      throw Error('unimplemented');
     }
 
     static dummy = new EcdsaSignature({ r: new Scalar(1), s: new Scalar(1) });
   }
 
   return EcdsaSignature;
-}
-
-/**
- * Bigint implementation of ECDSA verify
- */
-function verifyEcdsa(
-  Curve: CurveAffine,
-  { r, s }: { r: bigint; s: bigint },
-  msgHash: bigint,
-  publicKey: { x: bigint; y: bigint }
-) {
-  let q = Curve.order;
-  let QA = Curve.fromNonzero(publicKey);
-  if (!Curve.isOnCurve(QA)) return false;
-  if (Curve.hasCofactor && !Curve.isInSubgroup(QA)) return false;
-  if (r < 1n || r >= Curve.order) return false;
-  if (s < 1n || s >= Curve.order) return false;
-
-  let sInv = inverse(s, q);
-  if (sInv === undefined) throw Error('impossible');
-  let u1 = mod(msgHash * sInv, q);
-  let u2 = mod(r * sInv, q);
-
-  let X = Curve.add(Curve.scale(Curve.one, u1), Curve.scale(QA, u2));
-  if (Curve.equal(X, Curve.zero)) return false;
-
-  return mod(X.x, q) === r;
 }
