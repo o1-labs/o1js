@@ -17,6 +17,7 @@ export {
   id,
 };
 export {
+  spec,
   field,
   fieldWithRng,
   bigintField,
@@ -26,6 +27,8 @@ export {
   array,
   record,
   fromRandom,
+  first,
+  second,
 };
 export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
 
@@ -221,6 +224,41 @@ function equivalentProvable<
   };
 }
 
+// creating specs
+
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there: (x: T) => S;
+  back: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+  provable: Provable<S>;
+}): ProvableSpec<T, S>;
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there: (x: T) => S;
+  back: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): Spec<T, S>;
+function spec<T>(spec: {
+  rng: Random<T>;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): Spec<T, T>;
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there?: (x: T) => S;
+  back?: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+  provable?: Provable<S>;
+}): Spec<T, S> {
+  return {
+    rng: spec.rng,
+    there: spec.there ?? (id as any),
+    back: spec.back ?? (id as any),
+    assertEqual: spec.assertEqual,
+    provable: spec.provable,
+  };
+}
+
 // some useful specs
 
 let unit: ToSpec<void, void> = { back: id, assertEqual() {} };
@@ -299,6 +337,18 @@ function mapObject<K extends string, T, S>(
 
 function fromRandom<T>(rng: Random<T>): Spec<T, T> {
   return { rng, there: id, back: id };
+}
+
+function first<T, S>(spec: Spec<T, S>): Spec<T, T> {
+  return { rng: spec.rng, there: id, back: id };
+}
+function second<T, S>(spec: Spec<T, S>): Spec<S, S> {
+  return {
+    rng: Random.map(spec.rng, spec.there),
+    there: id,
+    back: id,
+    provable: spec.provable,
+  };
 }
 
 // helper to ensure two functions throw equivalent errors
