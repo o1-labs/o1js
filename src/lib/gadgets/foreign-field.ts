@@ -42,6 +42,9 @@ const ForeignField = {
   sub(x: Field3, y: Field3, f: bigint) {
     return sum([x, y], [-1n], f);
   },
+  negate(x: Field3, f: bigint) {
+    return sum([Field3.from(0n), x], [-1n], f);
+  },
   sum,
   Sum(x: Field3) {
     return new Sum(x);
@@ -53,6 +56,21 @@ const ForeignField = {
   assertMul,
 
   assertAlmostFieldElements,
+
+  assertLessThan(x: Field3, f: bigint) {
+    assert(f > 0n, 'assertLessThan: upper bound must be positive');
+
+    // constant case
+    if (Field3.isConstant(x)) {
+      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
+      return;
+    }
+    // provable case
+    // we can just use negation `(f - 1) - x`. because the result is range-checked, it proves that x < f:
+    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0 or 1)
+    ForeignField.negate(x, f - 1n);
+  },
 };
 
 /**
