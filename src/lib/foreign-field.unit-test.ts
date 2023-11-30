@@ -1,11 +1,6 @@
 import { ProvablePure } from '../snarky.js';
 import { Field, Group } from './core.js';
-import {
-  AlmostForeignField,
-  ForeignField,
-  UnreducedForeignField,
-  createForeignField,
-} from './foreign-field.js';
+import { ForeignField, createForeignField } from './foreign-field.js';
 import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
 import {
