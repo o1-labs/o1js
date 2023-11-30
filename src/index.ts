@@ -1,7 +1,12 @@
 export type { ProvablePure } from './snarky.js';
 export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
-export { createForeignField, ForeignField } from './lib/foreign-field.js';
+export {
+  createForeignField,
+  ForeignField,
+  AlmostForeignField,
+  CanonicalForeignField,
+} from './lib/foreign-field.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export type {

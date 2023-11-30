@@ -293,14 +293,16 @@ class ForeignField {
         if (x !== y0) {
           throw Error(`ForeignField.assertEquals(): ${x} != ${y0}`);
         }
-        return new this.Constructor.AlmostReduced(this.value);
+        return new this.Constructor.Canonical(this.value);
       }
       Provable.assertEqual(
         this.Constructor.provable,
         this,
         new this.Constructor(y)
       );
-      if (isConstant(y) || y instanceof ForeignFieldWithMul) {
+      if (isConstant(y) || y instanceof this.Constructor.Canonical) {
+        return new this.Constructor.Canonical(this.value);
+      } else if (y instanceof this.Constructor.AlmostReduced) {
         return new this.Constructor.AlmostReduced(this.value);
       } else {
         return this;
