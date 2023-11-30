@@ -55,8 +55,8 @@ function createForeignCurve(params: CurveParams) {
   // this is necessary to simplify the type of ForeignCurve, to avoid
   // TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize.
   const Affine: Struct<Affine> = Struct({
-    x: BaseField.AlmostReduced.provable,
-    y: BaseField.AlmostReduced.provable,
+    x: BaseField.provable,
+    y: BaseField.provable,
   });
 
   const ConstantCurve = createCurveAffine(params);
@@ -163,7 +163,7 @@ function createForeignCurve(params: CurveParams) {
       throw Error('unimplemented');
     }
 
-    private static assertOnCurve(g: Affine) {
+    static assertOnCurve(g: Affine) {
       if (isConstant(ForeignCurve, g)) {
         let isOnCurve = ConstantCurve.isOnCurve(toConstant(g));
         if (!isOnCurve)
@@ -204,7 +204,7 @@ function createForeignCurve(params: CurveParams) {
       return new ForeignCurve(p);
     }
 
-    private static assertInSubgroup(g: Affine) {
+    static assertInSubgroup(g: Affine) {
       if (isConstant(Affine, g)) {
         let isInGroup = ConstantCurve.isInSubgroup(toConstant(g));
         if (!isInGroup)
