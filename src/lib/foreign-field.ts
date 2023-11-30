@@ -97,11 +97,6 @@ class ForeignField {
     this.value = Field3.from(mod(BigInt(x), p));
   }
 
-  private static toLimbs(x: bigint | number | string | ForeignField): Field3 {
-    if (x instanceof ForeignField) return x.value;
-    return Field3.from(mod(BigInt(x), this.modulus));
-  }
-
   /**
    * Coerce the input to a {@link ForeignField}.
    */
@@ -251,7 +246,7 @@ class ForeignField {
    */
   static sum(xs: (ForeignField | bigint | number)[], operations: (1 | -1)[]) {
     const p = this.modulus;
-    let fields = xs.map((x) => this.toLimbs(x));
+    let fields = xs.map((x) => toLimbs(x, p));
     let ops = operations.map((op) => (op === 1 ? 1n : -1n));
     let z = Gadgets.ForeignField.sum(fields, ops, p);
     return new this.Unreduced(z);
