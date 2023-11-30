@@ -1,41 +1,23 @@
-import { createCurveAffine } from '../bindings/crypto/elliptic_curve.js';
+import {
+  CurveParams,
+  createCurveAffine,
+} from '../bindings/crypto/elliptic_curve.js';
 import { Snarky } from '../snarky.js';
 import { Bool } from './bool.js';
 import type { Group } from './group.js';
 import { Struct, isConstant } from './circuit_value.js';
-import {
-  ForeignField,
-  ForeignFieldConst,
-  ForeignFieldVar,
-  createForeignField,
-} from './foreign-field.js';
-import { MlBigint } from './ml/base.js';
+import { AlmostForeignField, createForeignField } from './foreign-field.js';
 import { MlBoolArray } from './ml/fields.js';
-import { inCheckedComputation } from './provable-context.js';
+import { EllipticCurve, Point } from './gadgets/elliptic-curve.js';
+import { Field3 } from './gadgets/foreign-field.js';
 
 // external API
-export { createForeignCurve, CurveParams };
+export { createForeignCurve };
 
 // internal API
-export {
-  ForeignCurveVar,
-  ForeignCurveConst,
-  MlCurveParams,
-  MlCurveParamsWithIa,
-  ForeignCurveClass,
-  toMl as affineToMl,
-};
+export { ForeignCurveClass };
 
-type MlAffine<F> = [_: 0, x: F, y: F];
-type ForeignCurveVar = MlAffine<ForeignFieldVar>;
-type ForeignCurveConst = MlAffine<ForeignFieldConst>;
-
-type AffineBigint = { x: bigint; y: bigint };
-type Affine = { x: ForeignField; y: ForeignField };
-
-function toMl({ x, y }: Affine): ForeignCurveVar {
-  return [0, x.value, y.value];
-}
+type Affine = { x: AlmostForeignField; y: AlmostForeignField };
 
 type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
 
@@ -58,28 +40,26 @@ type ForeignCurveClass = ReturnType<typeof createForeignCurve>;
  * use the optional `{ unsafe: true }` configuration. See {@link createForeignField} for details.
  * This option is applied to both the scalar field and the base field.
  *
- * @param curve parameters for the elliptic curve you are instantiating
+ * @param params parameters for the elliptic curve you are instantiating
  * @param options
  * - `unsafe: boolean` determines whether `ForeignField` elements are constrained to be valid on creation.
  */
-function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
-  const curveParamsMl = Snarky.foreignCurve.create(MlCurveParams(curve));
-  const curveName = curve.name;
+function createForeignCurve(params: CurveParams) {
+  const Curve = createCurveAffine(params);
 
-  class BaseField extends createForeignField(curve.modulus, { unsafe }) {}
-  class ScalarField extends createForeignField(curve.order, { unsafe }) {}
+  const BaseFieldUnreduced = createForeignField(params.modulus);
+  const ScalarFieldUnreduced = createForeignField(params.order);
+  class BaseField extends BaseFieldUnreduced.AlmostReduced {}
+  class ScalarField extends ScalarFieldUnreduced.AlmostReduced {}
 
   // this is necessary to simplify the type of ForeignCurve, to avoid
   // TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize.
-  const Affine: Struct<Affine> = Struct({ x: BaseField, y: BaseField });
-
-  const ConstantCurve = createCurveAffine({
-    p: curve.modulus,
-    order: curve.order,
-    a: curve.a,
-    b: curve.b,
-    generator: curve.gen,
+  const Affine: Struct<Affine> = Struct({
+    x: BaseField.AlmostReduced.provable,
+    y: BaseField.AlmostReduced.provable,
   });
+
+  const ConstantCurve = createCurveAffine(params);
 
   function toBigint(g: Affine) {
     return { x: g.x.toBigInt(), y: g.y.toBigInt() };
@@ -98,24 +78,13 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
      *
      * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
      */
-    constructor(
-      g:
-        | { x: BaseField | bigint | number; y: BaseField | bigint | number }
-        | ForeignCurveVar
-    ) {
-      let x_: BaseField;
-      let y_: BaseField;
-      // ForeignCurveVar
-      if (Array.isArray(g)) {
-        let [, x, y] = g;
-        x_ = new BaseField(x);
-        y_ = new BaseField(y);
-      } else {
-        let { x, y } = g;
-        x_ = BaseField.from(x);
-        y_ = BaseField.from(y);
-      }
-      super({ x: x_, y: y_ });
+    constructor(g: {
+      x: BaseField | Field3 | bigint | number;
+      y: BaseField | Field3 | bigint | number;
+    }) {
+      let x = new BaseField(g.x);
+      let y = new BaseField(g.y);
+      super({ x, y });
       // don't allow constants that aren't on the curve
       if (this.isConstant()) this.assertOnCurve();
     }
@@ -132,27 +101,11 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
       return new ForeignCurve(g);
     }
 
-    static #curveParamsMlVar: unknown | undefined;
-
-    /**
-     * Initialize usage of the curve. This function has to be called once per provable method to use the curve.
-     */
-    static initialize() {
-      if (!inCheckedComputation()) return;
-      ForeignCurve.#curveParamsMlVar =
-        Snarky.foreignCurve.paramsToVars(curveParamsMl);
+    static generator = new ForeignCurve(params.generator);
+    static modulus = params.modulus;
+    get modulus() {
+      return params.modulus;
     }
-
-    static _getParams(name: string): unknown {
-      if (ForeignCurve.#curveParamsMlVar === undefined) {
-        throw Error(
-          `${name}(): You must call ${this.name}.initialize() once per provable method to use ${curveName}.`
-        );
-      }
-      return ForeignCurve.#curveParamsMlVar;
-    }
-
-    static generator = new ForeignCurve(curve.gen);
 
     /**
      * Checks whether this curve point is constant.
@@ -183,8 +136,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
         let z = ConstantCurve.add(toConstant(this), toConstant(h_));
         return new ForeignCurve(z);
       }
-      let curve = ForeignCurve._getParams(`${this.constructor.name}.add`);
-      let p = Snarky.foreignCurve.add(toMl(this), toMl(h_), curve);
+      let p = EllipticCurve.add(toPoint(this), toPoint(h_), this.modulus);
       return new ForeignCurve(p);
     }
 
@@ -196,8 +148,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
         let z = ConstantCurve.double(toConstant(this));
         return new ForeignCurve(z);
       }
-      let curve = ForeignCurve._getParams(`${this.constructor.name}.double`);
-      let p = Snarky.foreignCurve.double(toMl(this), curve);
+      let p = EllipticCurve.double(toPoint(this), this.modulus);
       return new ForeignCurve(p);
     }
 
@@ -209,12 +160,10 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
         let z = ConstantCurve.negate(toConstant(this));
         return new ForeignCurve(z);
       }
-      let curve = ForeignCurve._getParams(`${this.constructor.name}.negate`);
-      let p = Snarky.foreignCurve.negate(toMl(this), curve);
-      return new ForeignCurve(p);
+      throw Error('unimplemented');
     }
 
-    static #assertOnCurve(g: Affine) {
+    private static assertOnCurve(g: Affine) {
       if (isConstant(ForeignCurve, g)) {
         let isOnCurve = ConstantCurve.isOnCurve(toConstant(g));
         if (!isOnCurve)
@@ -225,8 +174,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
           );
         return;
       }
-      let curve = ForeignCurve._getParams(`${this.name}.assertOnCurve`);
-      Snarky.foreignCurve.assertOnCurve(toMl(g), curve);
+      throw Error('unimplemented');
     }
 
     /**
@@ -234,7 +182,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
      * y^2 = x^3 + ax + b
      */
     assertOnCurve() {
-      ForeignCurve.#assertOnCurve(this);
+      ForeignCurve.assertOnCurve(this);
     }
 
     // TODO wrap this in a `Scalar` type which is a Bool array under the hood?
@@ -242,22 +190,21 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
      * Elliptic curve scalar multiplication, where the scalar is represented as a little-endian
      * array of bits, and each bit is represented by a {@link Bool}.
      */
-    scale(scalar: Bool[]) {
-      if (this.isConstant() && scalar.every((b) => b.isConstant())) {
-        let scalar0 = scalar.map((b) => b.toBoolean());
+    scale(scalar: ScalarField) {
+      if (this.isConstant() && scalar.isConstant()) {
+        let scalar0 = scalar.toBigInt();
         let z = ConstantCurve.scale(toConstant(this), scalar0);
         return new ForeignCurve(z);
       }
-      let curve = ForeignCurve._getParams(`${this.constructor.name}.scale`);
-      let p = Snarky.foreignCurve.scale(
-        toMl(this),
-        MlBoolArray.to(scalar),
-        curve
+      let p = EllipticCurve.multiScalarMul(
+        Curve,
+        [scalar.value],
+        [toPoint(this)]
       );
       return new ForeignCurve(p);
     }
 
-    static #assertInSubgroup(g: Affine) {
+    private static assertInSubgroup(g: Affine) {
       if (isConstant(Affine, g)) {
         let isInGroup = ConstantCurve.isInSubgroup(toConstant(g));
         if (!isInGroup)
@@ -268,8 +215,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
           );
         return;
       }
-      let curve_ = ForeignCurve._getParams(`${curveName}.assertInSubgroup`);
-      Snarky.foreignCurve.checkSubgroup(toMl(g), curve_);
+      throw Error('unimplemented');
     }
 
     /**
@@ -277,7 +223,7 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
      * by performing the scalar multiplication.
      */
     assertInSubgroup() {
-      ForeignCurve.#assertInSubgroup(this);
+      ForeignCurve.assertInSubgroup(this);
     }
 
     /**
@@ -289,10 +235,9 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
      * we don't check that curve elements are valid by default.
      */
     static check(g: Affine) {
-      if (unsafe) return;
       super.check(g); // check that x, y are valid field elements
-      ForeignCurve.#assertOnCurve(g);
-      if (ConstantCurve.hasCofactor) ForeignCurve.#assertInSubgroup(g);
+      ForeignCurve.assertOnCurve(g);
+      if (ConstantCurve.hasCofactor) ForeignCurve.assertInSubgroup(g);
     }
 
     static BaseField = BaseField;
@@ -303,70 +248,6 @@ function createForeignCurve(curve: CurveParams, { unsafe = false } = {}) {
   return ForeignCurve;
 }
 
-/**
- * Parameters defining an elliptic curve in short Weierstraß form
- * y^2 = x^3 + ax + b
- */
-type CurveParams = {
-  /**
-   * Human-friendly name for the curve
-   */
-  name: string;
-  /**
-   * Base field modulus
-   */
-  modulus: bigint;
-  /**
-   * Scalar field modulus = group order
-   */
-  order: bigint;
-  /**
-   * Cofactor = size of EC / order
-   *
-   * This can be left undefined if the cofactor is 1.
-   */
-  cofactor?: bigint;
-  /**
-   * The `a` parameter in the curve equation y^2 = x^3 + ax + b
-   */
-  a: bigint;
-  /**
-   * The `b` parameter in the curve equation y^2 = x^3 + ax + b
-   */
-  b: bigint;
-  /**
-   * Generator point
-   */
-  gen: AffineBigint;
-};
-
-type MlBigintPoint = MlAffine<MlBigint>;
-
-function MlBigintPoint({ x, y }: AffineBigint): MlBigintPoint {
-  return [0, MlBigint(x), MlBigint(y)];
-}
-
-type MlCurveParams = [
-  _: 0,
-  modulus: MlBigint,
-  order: MlBigint,
-  a: MlBigint,
-  b: MlBigint,
-  gen: MlBigintPoint
-];
-type MlCurveParamsWithIa = [
-  ...params: MlCurveParams,
-  ia: [_: 0, acc: MlBigintPoint, neg_acc: MlBigintPoint]
-];
-
-function MlCurveParams(params: CurveParams): MlCurveParams {
-  let { modulus, order, a, b, gen } = params;
-  return [
-    0,
-    MlBigint(modulus),
-    MlBigint(order),
-    MlBigint(a),
-    MlBigint(b),
-    MlBigintPoint(gen),
-  ];
+function toPoint({ x, y }: Affine): Point {
+  return { x: x.value, y: y.value };
 }
