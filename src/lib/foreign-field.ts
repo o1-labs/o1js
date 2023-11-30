@@ -387,7 +387,7 @@ class ForeignField {
     let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
     let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
     // note: due to the check on the number of bits, we know we return an "almost valid" field element
-    return new this([l0, l1, l2]) as AlmostForeignField;
+    return new this.AlmostReduced([l0, l1, l2]);
   }
 
   /**
@@ -546,12 +546,11 @@ function isConstant(x: bigint | number | string | ForeignField) {
 /**
  * Create a class representing a prime order finite field, which is different from the native {@link Field}.
  *
- * @example
  * ```ts
  * const SmallField = createForeignField(17n); // the finite field F_17
  * ```
  *
- * `createForeignField(p)` takes the prime modulus `p` of the finite field as input, as a bigint.
+ * `createForeignField(p)` takes {@link AlmostForeignField} the prime modulus `p` of the finite field as input, as a bigint.
  * We support prime moduli up to a size of 259 bits.
  *
  * The returned {@link ForeignField} class supports arithmetic modulo `p` (addition and multiplication),
@@ -573,23 +572,21 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * This function returns the `Unreduced` class, which will cause the minimum amount of range checks to be created by default.
  * If you want to do multiplication, you have two options:
  * - create your field elements using the {@link ForeignField.AlmostReduced} constructor, or using the `.provable` type on that class.
- * @example
  * ```ts
  * let x = Provable.witness(ForeignField.AlmostReduced.provable, () => ForeignField.from(5));
  * ```
  * - create your field elements normally and convert them using `x.assertAlmostReduced()`.
- * @example
  * ```ts
  * let xChecked = x.assertAlmostReduced(); // asserts x < 2^ceil(log2(p)); returns `AlmostForeignField`
  * ```
  *
- * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced / "canonical" field elements.
+ * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced, "canonical" field elements.
  * To convert to a canonical field element, use {@link assertCanonicalFieldElement}:
  *
  * ```ts
  * x.assertCanonicalFieldElement(); // asserts x < p; returns `CanonicalForeignField`
  * ```
- * You will likely not need `CanonicalForeignField`, except possibly for creating your own interfaces which expect fully reduced field elements.
+ * You will likely not need canonical fields most of the time.
  *
  * Base types for all of these classes are separately exported as {@link UnreducedForeignField}, {@link AlmostForeignField} and {@link CanonicalForeignField}.,
  *
