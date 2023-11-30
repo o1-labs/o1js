@@ -1,8 +1,8 @@
 # Purpose:
-# Automatically bumps the project's patch version bi-weekly on Fridays.
+# Automatically bumps the project's patch version bi-weekly on Tuesdays.
 #
 # Details:
-# - Triggered at 00:00 UTC every Friday; runs on even weeks of the year.
+# - Triggered at 00:00 UTC every Tuesday; runs on even weeks of the year.
 # - Sets up the environment by checking out the repo and setting up Node.js.
 # - Bumps patch version using `npm version patch`, then creates a new branch 'release/x.x.x'.
 # - Pushes changes and creates a PR to `main` using GitHub CLI.
@@ -12,7 +12,7 @@ name: Version Bump
 on:
   workflow_dispatch: # Allow to manually trigger the workflow
   schedule:
-    - cron: "0 0 * * 5" # At 00:00 UTC every Friday
+    - cron: "0 0 * * 2" # At 00:00 UTC every Tuesday
 
 jobs:
   version-bump:
