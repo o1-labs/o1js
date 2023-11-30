@@ -187,9 +187,11 @@ function verifyEcdsa(
   // this ^ already proves that R != 0 (part of ECDSA verification)
 
   // reduce R.x modulo the curve order
-  // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
-  // it's the callers responsibility to check that the signature is valid/unique in whatever way it makes sense for the application
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
+  // we have to check that the result Rx is canonical, we then check if it _exactly_ equal to the input r.
+  // if we would allow non-canonical Rx, a prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
+  // TODO
+
   return Provable.equal(Field3.provable, Rx, r);
 }
 
