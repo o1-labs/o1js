@@ -188,9 +188,10 @@ function verifyEcdsa(
 
   // reduce R.x modulo the curve order
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
-  // we have to check that the result Rx is canonical, we then check if it _exactly_ equal to the input r.
-  // if we would allow non-canonical Rx, a prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
-  // TODO
+
+  // we have to prove that Rx is canonical, because we check signature validity based on whether Rx _exactly_ equals the input r.
+  // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
+  ForeignField.assertLessThan(Rx, Curve.order);
 
   return Provable.equal(Field3.provable, Rx, r);
 }
