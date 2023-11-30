@@ -103,9 +103,9 @@ function createForeignCurve(params: CurveParams) {
 
     static generator = new ForeignCurve(params.generator);
     static modulus = params.modulus;
-    get modulus() {
-      return params.modulus;
-    }
+    // get modulus() {
+    //   return params.modulus;
+    // }
 
     /**
      * Checks whether this curve point is constant.
@@ -136,7 +136,7 @@ function createForeignCurve(params: CurveParams) {
         let z = ConstantCurve.add(toConstant(this), toConstant(h_));
         return new ForeignCurve(z);
       }
-      let p = EllipticCurve.add(toPoint(this), toPoint(h_), this.modulus);
+      let p = EllipticCurve.add(toPoint(this), toPoint(h_), params.modulus);
       return new ForeignCurve(p);
     }
 
@@ -148,7 +148,7 @@ function createForeignCurve(params: CurveParams) {
         let z = ConstantCurve.double(toConstant(this));
         return new ForeignCurve(z);
       }
-      let p = EllipticCurve.double(toPoint(this), this.modulus);
+      let p = EllipticCurve.double(toPoint(this), params.modulus);
       return new ForeignCurve(p);
     }
 

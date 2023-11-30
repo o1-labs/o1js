@@ -1,9 +1,9 @@
 import { createEcdsa } from './foreign-ecdsa.js';
-import { secp256k1Params } from './foreign-curve-params.js';
 import { createForeignCurve } from './foreign-curve.js';
 import { Provable } from './provable.js';
+import { Crypto } from './crypto.js';
 
-class Secp256k1 extends createForeignCurve(secp256k1Params) {}
+class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 
 class EthSignature extends createEcdsa(Secp256k1) {}
 
@@ -22,7 +22,6 @@ let msgHash =
   );
 
 function main() {
-  Secp256k1.initialize();
   let signature0 = Provable.witness(EthSignature, () => signature);
   signature0.verify(msgHash, publicKey);
 }
