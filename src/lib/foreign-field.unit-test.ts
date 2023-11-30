@@ -9,9 +9,11 @@ import {
 import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
 import { expect } from 'expect';
 import {
-  ProvableSpec,
   bool,
   equivalentProvable as equivalent,
+  equivalent as equivalentNonProvable,
+  first,
+  spec,
   throwError,
   unit,
 } from './testing/equivalent.js';
@@ -60,24 +62,24 @@ test(Random.scalar, (x0, assert) => {
 
 // test equivalence of in-SNARK and out-of-SNARK operations
 
-let f: ProvableSpec<bigint, AlmostForeignField> = {
+let f = spec({
   rng: Random.scalar,
   there: ForeignScalar.from,
   back: (x) => x.toBigInt(),
   provable: ForeignScalar.AlmostReduced.provable,
-};
-let big264: ProvableSpec<bigint, UnreducedForeignField> = {
+});
+let u264 = spec({
   rng: Random.bignat(1n << 264n),
   there: ForeignScalar.from,
   back: (x) => x.toBigInt(),
   provable: ForeignScalar.Unreduced.provable,
-};
+});
 
 // arithmetic
-equivalent({ from: [f, f], to: big264 })(Fq.add, (x, y) => x.add(y));
-equivalent({ from: [f, f], to: big264 })(Fq.sub, (x, y) => x.sub(y));
-equivalent({ from: [f], to: big264 })(Fq.negate, (x) => x.neg());
-equivalent({ from: [f, f], to: big264 })(Fq.mul, (x, y) => x.mul(y));
+equivalent({ from: [f, f], to: u264 })(Fq.add, (x, y) => x.add(y));
+equivalent({ from: [f, f], to: u264 })(Fq.sub, (x, y) => x.sub(y));
+equivalent({ from: [f], to: u264 })(Fq.negate, (x) => x.neg());
+equivalent({ from: [f, f], to: u264 })(Fq.mul, (x, y) => x.mul(y));
 equivalent({ from: [f], to: f })(
   (x) => Fq.inverse(x) ?? throwError('division by 0'),
   (x) => x.inv()
@@ -95,6 +97,12 @@ equivalent({ from: [f, f], to: bool })(
 equivalent({ from: [f, f], to: unit })(
   (x, y) => x === y || throwError('not equal'),
   (x, y) => x.assertEquals(y)
+);
+// doesn't fail in provable mode just because the range check is not checked by runAndCheck
+// TODO check all gates
+equivalentNonProvable({ from: [u264, first(u264)], to: unit })(
+  (x, y) => x < y || throwError('not less than'),
+  (x, y) => x.assertLessThan(y)
 );
 
 // toBits / fromBits

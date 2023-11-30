@@ -45,6 +45,8 @@ const ForeignField = {
   assertAlmostFieldElements,
 
   assertLessThan(x: Field3, f: bigint) {
+    assert(f > 0n, 'assertLessThan: upper bound must be positive');
+
     // constant case
     if (Field3.isConstant(x)) {
       assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
