@@ -13,12 +13,13 @@ import { assert } from './common.js';
 import { foreignField, throwError, uniformForeignField } from './test-utils.js';
 import {
   Second,
+  bool,
   equivalentProvable,
   map,
   oneOf,
   record,
-  unit,
 } from '../testing/equivalent.js';
+import { Bool } from '../bool.js';
 
 // quick tests
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
@@ -51,27 +52,27 @@ for (let Curve of curves) {
 
   // provable method we want to test
   const verify = (s: Second<typeof signature>) => {
-    Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+    return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
   };
 
   // positive test
-  equivalentProvable({ from: [signature], to: unit })(
-    () => {},
+  equivalentProvable({ from: [signature], to: bool })(
+    () => true,
     verify,
     'valid signature verifies'
   );
 
   // negative test
-  equivalentProvable({ from: [pseudoSignature], to: unit })(
-    () => throwError('invalid signature'),
+  equivalentProvable({ from: [pseudoSignature], to: bool })(
+    () => false,
     verify,
     'invalid signature fails'
   );
 
   // test against constant implementation, with both invalid and valid signatures
-  equivalentProvable({ from: [oneOf(signature, pseudoSignature)], to: unit })(
+  equivalentProvable({ from: [oneOf(signature, pseudoSignature)], to: bool })(
     ({ signature, publicKey, msg }) => {
-      assert(verifyEcdsaConstant(Curve, signature, msg, publicKey), 'verifies');
+      return verifyEcdsaConstant(Curve, signature, msg, publicKey);
     },
     verify,
     'verify'
@@ -99,6 +100,7 @@ const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
 
 let program = ZkProgram({
   name: 'ecdsa',
+  publicOutput: Bool,
   methods: {
     scale: {
       privateInputs: [],
@@ -111,9 +113,7 @@ let program = ZkProgram({
           [G, P],
           [config.G, config.P]
         );
-        Provable.asProver(() => {
-          console.log(Point.toBigint(R));
-        });
+        return new Bool(true);
       },
     },
     ecdsa: {
@@ -126,7 +126,13 @@ let program = ZkProgram({
         let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
         let publicKey_ = Provable.witness(Point.provable, () => publicKey);
 
-        Ecdsa.verify(Secp256k1, signature_, msgHash_, publicKey_, config);
+        return Ecdsa.verify(
+          Secp256k1,
+          signature_,
+          msgHash_,
+          publicKey_,
+          config
+        );
       },
     },
   },
@@ -163,3 +169,4 @@ let proof = await program.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');
+proof.publicOutput.assertTrue('signature verifies');

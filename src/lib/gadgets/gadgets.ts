@@ -558,6 +558,9 @@ const Gadgets = {
     /**
      * Verify an ECDSA signature.
      *
+     * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
+     * So, to actually prove validity of a signature, you need to assert that the result is true.
+     *
      * @example
      * ```ts
      * const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
@@ -569,7 +572,8 @@ const Gadgets = {
      * );
      *
      * // verify signature
-     * Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
+     * let isValid = Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
+     * isValid.assertTrue();
      * ```
      */
     verify(

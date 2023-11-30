@@ -163,8 +163,7 @@ function verifyEcdsa(
       Field3.toBigint(msgHash),
       Point.toBigint(publicKey)
     );
-    assert(isValid, 'invalid signature');
-    return;
+    return new Bool(isValid);
   }
 
   // provable case
@@ -191,7 +190,7 @@ function verifyEcdsa(
   // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
   // it's the callers responsibility to check that the signature is valid/unique in whatever way it makes sense for the application
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
-  Provable.assertEqual(Field3.provable, Rx, r);
+  return Provable.equal(Field3.provable, Rx, r);
 }
 
 /**
@@ -295,7 +294,8 @@ function verifyEcdsaConstant(
   msgHash: bigint,
   publicKey: point
 ) {
-  let pk = Curve.fromNonzero(publicKey);
+  let pk = Curve.from(publicKey);
+  if (Curve.equal(pk, Curve.zero)) return false;
   if (!Curve.isOnCurve(pk)) return false;
   if (Curve.hasCofactor && !Curve.isInSubgroup(pk)) return false;
   if (r < 1n || r >= Curve.order) return false;
