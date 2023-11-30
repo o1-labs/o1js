@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
 import {
   Dex,
   DexTokenHolder,
@@ -9,11 +9,11 @@ import {
 } from './dex-with-actions.js';
 import { TokenContract } from './dex.js';
 import { expect } from 'expect';
-import { tic, toc } from '../tictoc.js';
+import { tic, toc } from '../../utils/tic-toc.node.js';
 
 await isReady;
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 tic('Happy path with actions');
 console.log();

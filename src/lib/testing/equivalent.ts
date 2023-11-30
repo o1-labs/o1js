@@ -4,239 +4,452 @@
 import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
-import { Bool } from '../bool.js';
+import { Bool, Field } from '../core.js';
 
-export { createEquivalenceTesters, throwError };
+export {
+  equivalent,
+  equivalentProvable,
+  equivalentAsync,
+  oneOf,
+  throwError,
+  handleErrors,
+  deepEqual as defaultAssertEqual,
+  id,
+};
+export {
+  spec,
+  field,
+  fieldWithRng,
+  bigintField,
+  bool,
+  boolean,
+  unit,
+  array,
+  record,
+  fromRandom,
+  first,
+  second,
+};
+export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
 
-function createEquivalenceTesters<Field extends { toBigInt(): bigint }>(
-  Field: Provable<Field>,
-  newField: (x: bigint) => Field
-) {
-  function equivalent1(
-    op1: (x: Field) => Field,
-    op2: (x: bigint) => bigint,
-    rng: Random<bigint> = Random.field
-  ) {
-    test(rng, (x0, assert) => {
-      let x = newField(x0);
-      // outside provable code
-      handleErrors(
-        () => op1(x),
-        () => op2(x0),
-        (a, b) => assert(a.toBigInt() === b, 'equal results')
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        handleErrors(
-          () => op1(x),
-          () => op2(x0),
-          (a, b) =>
-            Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
-        );
-      });
-    });
-  }
-  function equivalent2(
-    op1: (x: Field, y: Field | bigint) => Field,
-    op2: (x: bigint, y: bigint) => bigint,
-    rng: Random<bigint> = Random.field
-  ) {
-    test(rng, rng, (x0, y0, assert) => {
-      let x = newField(x0);
-      let y = newField(y0);
-      // outside provable code
-      handleErrors(
-        () => op1(x, y),
-        () => op2(x0, y0),
-        (a, b) => assert(a.toBigInt() === b, 'equal results')
-      );
-      handleErrors(
-        () => op1(x, y0),
-        () => op2(x0, y0),
-        (a, b) => assert(a.toBigInt() === b, 'equal results')
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        y = Provable.witness(Field, () => y);
-        handleErrors(
-          () => op1(x, y),
-          () => op2(x0, y0),
-          (a, b) =>
-            Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
-        );
-        handleErrors(
-          () => op1(x, y0),
-          () => op2(x0, y0),
-          (a, b) =>
-            Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
-        );
-      });
-    });
-  }
-  function equivalentBool1(
-    op1: (x: Field) => Bool,
-    op2: (x: bigint) => boolean,
-    rng: Random<bigint> = Random.field
-  ) {
-    test(rng, (x0, assert) => {
-      let x = newField(x0);
-      // outside provable code
-      handleErrors(
-        () => op1(x),
-        () => op2(x0),
-        (a, b) => assert(a.toBoolean() === b, 'equal results')
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        handleErrors(
-          () => op1(x),
-          () => op2(x0),
-          (a, b) =>
-            Provable.asProver(() =>
-              assert(a.toBoolean() === b, 'equal results')
-            )
-        );
-      });
-    });
-  }
-  function equivalentBool2(
-    op1: (x: Field, y: Field | bigint) => Bool,
-    op2: (x: bigint, y: bigint) => boolean,
-    rng: Random<bigint> = Random.field
-  ) {
-    test(rng, rng, (x0, y0, assert) => {
-      let x = newField(x0);
-      let y = newField(y0);
-      // outside provable code
-      handleErrors(
-        () => op1(x, y),
-        () => op2(x0, y0),
-        (a, b) => assert(a.toBoolean() === b, 'equal results')
-      );
-      handleErrors(
-        () => op1(x, y0),
-        () => op2(x0, y0),
-        (a, b) => assert(a.toBoolean() === b, 'equal results')
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        y = Provable.witness(Field, () => y);
-        handleErrors(
-          () => op1(x, y),
-          () => op2(x0, y0),
-          (a, b) =>
-            Provable.asProver(() =>
-              assert(a.toBoolean() === b, 'equal results')
-            )
-        );
-        handleErrors(
-          () => op1(x, y0),
-          () => op2(x0, y0),
-          (a, b) =>
-            Provable.asProver(() =>
-              assert(a.toBoolean() === b, 'equal results')
-            )
-        );
-      });
-    });
-  }
-  function equivalentVoid1(
-    op1: (x: Field) => void,
-    op2: (x: bigint) => void,
-    rng: Random<bigint> = Random.field
-  ) {
-    test(rng, (x0) => {
-      let x = newField(x0);
-      // outside provable code
-      handleErrors(
-        () => op1(x),
-        () => op2(x0)
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        handleErrors(
-          () => op1(x),
-          () => op2(x0)
-        );
-      });
-    });
-  }
-  function equivalentVoid2(
-    op1: (x: Field, y: Field | bigint) => void,
-    op2: (x: bigint, y: bigint) => void,
-    rng: Random<bigint> = Random.field
-  ) {
-    test(rng, rng, (x0, y0) => {
-      let x = newField(x0);
-      let y = newField(y0);
-      // outside provable code
-      handleErrors(
-        () => op1(x, y),
-        () => op2(x0, y0)
-      );
-      handleErrors(
-        () => op1(x, y0),
-        () => op2(x0, y0)
-      );
-      // inside provable code
-      Provable.runAndCheck(() => {
-        x = Provable.witness(Field, () => x);
-        y = Provable.witness(Field, () => y);
-        handleErrors(
-          () => op1(x, y),
-          () => op2(x0, y0)
-        );
-        handleErrors(
-          () => op1(x, y0),
-          () => op2(x0, y0)
-        );
-      });
-    });
-  }
+// a `Spec` tells us how to compare two functions
 
-  function handleErrors<T, S, R>(
-    op1: () => T,
-    op2: () => S,
-    useResults?: (a: T, b: S) => R
-  ): R | undefined {
-    let result1: T, result2: S;
-    let error1: Error | undefined;
-    let error2: Error | undefined;
-    try {
-      result1 = op1();
-    } catch (err) {
-      error1 = err as Error;
-    }
-    try {
-      result2 = op2();
-    } catch (err) {
-      error2 = err as Error;
-    }
-    if (!!error1 !== !!error2) {
-      error1 && console.log(error1);
-      error2 && console.log(error2);
-    }
-    deepEqual(!!error1, !!error2, 'equivalent errors');
-    if (!(error1 || error2) && useResults !== undefined) {
-      return useResults(result1!, result2!);
-    }
-  }
+type FromSpec<In1, In2> = {
+  // `rng` creates random inputs to the first function
+  rng: Random<In1>;
 
-  return {
-    equivalent1,
-    equivalent2,
-    equivalentBool1,
-    equivalentBool2,
-    equivalentVoid1,
-    equivalentVoid2,
+  // `there` converts to inputs to the second function
+  there: (x: In1) => In2;
+
+  // `provable` tells us how to create witnesses, to test provable code
+  // note: we only allow the second function to be provable;
+  // the second because it's more natural to have non-provable types as random generator output
+  provable?: Provable<In2>;
+};
+
+type ToSpec<Out1, Out2> = {
+  // `back` converts outputs of the second function back to match the first function
+  back: (x: Out2) => Out1;
+
+  // `assertEqual` to compare outputs against each other; defaults to `deepEqual`
+  assertEqual?: (x: Out1, y: Out1, message: string) => void;
+};
+
+type Spec<T1, T2> = FromSpec<T1, T2> & ToSpec<T1, T2>;
+
+type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2> };
+
+type FuncSpec<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2> = {
+  from: {
+    [k in keyof In1]: k extends keyof In2 ? FromSpec<In1[k], In2[k]> : never;
   };
+  to: ToSpec<Out1, Out2>;
+};
+
+type SpecFromFunctions<
+  F1 extends AnyFunction,
+  F2 extends AnyFunction
+> = FuncSpec<Parameters<F1>, ReturnType<F1>, Parameters<F2>, ReturnType<F2>>;
+
+function id<T>(x: T) {
+  return x;
+}
+
+// unions of specs, to cleanly model function parameters that are unions of types
+
+type FromSpecUnion<T1, T2> = {
+  _isUnion: true;
+  specs: Tuple<FromSpec<T1, T2>>;
+  rng: Random<[number, T1]>;
+};
+
+type OrUnion<T1, T2> = FromSpec<T1, T2> | FromSpecUnion<T1, T2>;
+
+type Union<T> = T[keyof T & number];
+
+function oneOf<In extends Tuple<FromSpec<any, any>>>(
+  ...specs: In
+): FromSpecUnion<Union<Params1<In>>, Union<Params2<In>>> {
+  // the randomly generated value from a union keeps track of which spec it came from
+  let rng = Random.oneOf(
+    ...specs.map((spec, i) =>
+      Random.map(spec.rng, (x) => [i, x] as [number, any])
+    )
+  );
+  return { _isUnion: true, specs, rng };
+}
+
+function toUnion<T1, T2>(spec: OrUnion<T1, T2>): FromSpecUnion<T1, T2> {
+  let specAny = spec as any;
+  return specAny._isUnion ? specAny : oneOf(specAny);
+}
+
+// equivalence tester
+
+function equivalent<
+  In extends Tuple<FromSpec<any, any>>,
+  Out extends ToSpec<any, any>
+>({ from, to }: { from: In; to: Out }) {
+  return function run(
+    f1: (...args: Params1<In>) => Result1<Out>,
+    f2: (...args: Params2<In>) => Result2<Out>,
+    label = 'expect equal results'
+  ) {
+    let generators = from.map((spec) => spec.rng);
+    let assertEqual = to.assertEqual ?? deepEqual;
+    test(...(generators as any[]), (...args) => {
+      args.pop();
+      let inputs = args as Params1<In>;
+      handleErrors(
+        () => f1(...inputs),
+        () =>
+          to.back(
+            f2(...(inputs.map((x, i) => from[i].there(x)) as Params2<In>))
+          ),
+        (x, y) => assertEqual(x, y, label),
+        label
+      );
+    });
+  };
+}
+
+// async equivalence
+
+function equivalentAsync<
+  In extends Tuple<FromSpec<any, any>>,
+  Out extends ToSpec<any, any>
+>({ from, to }: { from: In; to: Out }, { runs = 1 } = {}) {
+  return async function run(
+    f1: (...args: Params1<In>) => Promise<Result1<Out>> | Result1<Out>,
+    f2: (...args: Params2<In>) => Promise<Result2<Out>> | Result2<Out>,
+    label = 'expect equal results'
+  ) {
+    let generators = from.map((spec) => spec.rng);
+    let assertEqual = to.assertEqual ?? deepEqual;
+
+    let nexts = generators.map((g) => g.create());
+
+    for (let i = 0; i < runs; i++) {
+      let args = nexts.map((next) => next());
+      let inputs = args as Params1<In>;
+      try {
+        await handleErrorsAsync(
+          () => f1(...inputs),
+          async () =>
+            to.back(
+              await f2(
+                ...(inputs.map((x, i) => from[i].there(x)) as Params2<In>)
+              )
+            ),
+          (x, y) => assertEqual(x, y, label),
+          label
+        );
+      } catch (err) {
+        console.log(...inputs);
+        throw err;
+      }
+    }
+  };
+}
+
+// equivalence tester for provable code
+
+function equivalentProvable<
+  In extends Tuple<OrUnion<any, any>>,
+  Out extends ToSpec<any, any>
+>({ from: fromRaw, to }: { from: In; to: Out }) {
+  let fromUnions = fromRaw.map(toUnion);
+  return function run(
+    f1: (...args: Params1<In>) => Result1<Out>,
+    f2: (...args: Params2<In>) => Result2<Out>,
+    label = 'expect equal results'
+  ) {
+    let generators = fromUnions.map((spec) => spec.rng);
+    let assertEqual = to.assertEqual ?? deepEqual;
+    test(...generators, (...args) => {
+      args.pop();
+
+      // figure out which spec to use for each argument
+      let from = (args as [number, unknown][]).map(
+        ([j], i) => fromUnions[i].specs[j]
+      );
+      let inputs = (args as [number, unknown][]).map(
+        ([, x]) => x
+      ) as Params1<In>;
+      let inputs2 = inputs.map((x, i) => from[i].there(x)) as Params2<In>;
+
+      // outside provable code
+      handleErrors(
+        () => f1(...inputs),
+        () => f2(...inputs2),
+        (x, y) => assertEqual(x, to.back(y), label),
+        label
+      );
+
+      // inside provable code
+      Provable.runAndCheck(() => {
+        let inputWitnesses = inputs2.map((x, i) => {
+          let provable = from[i].provable;
+          return provable !== undefined
+            ? Provable.witness(provable, () => x)
+            : x;
+        }) as Params2<In>;
+        handleErrors(
+          () => f1(...inputs),
+          () => f2(...inputWitnesses),
+          (x, y) => Provable.asProver(() => assertEqual(x, to.back(y), label))
+        );
+      });
+    });
+  };
+}
+
+// creating specs
+
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there: (x: T) => S;
+  back: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+  provable: Provable<S>;
+}): ProvableSpec<T, S>;
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there: (x: T) => S;
+  back: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): Spec<T, S>;
+function spec<T>(spec: {
+  rng: Random<T>;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): Spec<T, T>;
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there?: (x: T) => S;
+  back?: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+  provable?: Provable<S>;
+}): Spec<T, S> {
+  return {
+    rng: spec.rng,
+    there: spec.there ?? (id as any),
+    back: spec.back ?? (id as any),
+    assertEqual: spec.assertEqual,
+    provable: spec.provable,
+  };
+}
+
+// some useful specs
+
+let unit: ToSpec<void, void> = { back: id, assertEqual() {} };
+
+let field: ProvableSpec<bigint, Field> = {
+  rng: Random.field,
+  there: Field,
+  back: (x) => x.toBigInt(),
+  provable: Field,
+};
+
+let bigintField: Spec<bigint, bigint> = {
+  rng: Random.field,
+  there: id,
+  back: id,
+};
+
+let bool: ProvableSpec<boolean, Bool> = {
+  rng: Random.boolean,
+  there: Bool,
+  back: (x) => x.toBoolean(),
+  provable: Bool,
+};
+let boolean: Spec<boolean, boolean> = fromRandom(Random.boolean);
+
+function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
+  return { ...field, rng };
+}
+
+// spec combinators
+
+function array<T, S>(
+  spec: ProvableSpec<T, S>,
+  n: number
+): ProvableSpec<T[], S[]>;
+function array<T, S>(
+  spec: Spec<T, S>,
+  n: Random<number> | number
+): Spec<T[], S[]>;
+function array<T, S>(
+  spec: Spec<T, S>,
+  n: Random<number> | number
+): Spec<T[], S[]> {
+  return {
+    rng: Random.array(spec.rng, n),
+    there: (x) => x.map(spec.there),
+    back: (x) => x.map(spec.back),
+    provable:
+      typeof n === 'number' && spec.provable
+        ? Provable.Array(spec.provable, n)
+        : undefined,
+  };
+}
+
+function record<Specs extends { [k in string]: Spec<any, any> }>(
+  specs: Specs
+): Spec<
+  { [k in keyof Specs]: Result1<Specs[k]> },
+  { [k in keyof Specs]: Result2<Specs[k]> }
+> {
+  return {
+    rng: Random.record(mapObject(specs, (spec) => spec.rng)) as any,
+    there: (x) => mapObject(specs, (spec, k) => spec.there(x[k])) as any,
+    back: (x) => mapObject(specs, (spec, k) => spec.back(x[k])) as any,
+  };
+}
+
+function mapObject<K extends string, T, S>(
+  t: { [k in K]: T },
+  map: (t: T, k: K) => S
+): { [k in K]: S } {
+  return Object.fromEntries(
+    Object.entries<T>(t).map(([k, v]) => [k, map(v, k as K)])
+  ) as any;
+}
+
+function fromRandom<T>(rng: Random<T>): Spec<T, T> {
+  return { rng, there: id, back: id };
+}
+
+function first<T, S>(spec: Spec<T, S>): Spec<T, T> {
+  return { rng: spec.rng, there: id, back: id };
+}
+function second<T, S>(spec: Spec<T, S>): Spec<S, S> {
+  return {
+    rng: Random.map(spec.rng, spec.there),
+    there: id,
+    back: id,
+    provable: spec.provable,
+  };
+}
+
+// helper to ensure two functions throw equivalent errors
+
+function handleErrors<T, S, R>(
+  op1: () => T,
+  op2: () => S,
+  useResults?: (a: T, b: S) => R,
+  label?: string
+): R | undefined {
+  let result1: T, result2: S;
+  let error1: Error | undefined;
+  let error2: Error | undefined;
+  try {
+    result1 = op1();
+  } catch (err) {
+    error1 = err as Error;
+  }
+  try {
+    result2 = op2();
+  } catch (err) {
+    error2 = err as Error;
+  }
+  if (!!error1 !== !!error2) {
+    error1 && console.log(error1);
+    error2 && console.log(error2);
+  }
+  let message = `${(label && `${label}: `) || ''}equivalent errors`;
+  deepEqual(!!error1, !!error2, message);
+  if (!(error1 || error2) && useResults !== undefined) {
+    return useResults(result1!, result2!);
+  }
+}
+
+async function handleErrorsAsync<T, S, R>(
+  op1: () => T,
+  op2: () => S,
+  useResults?: (a: Awaited<T>, b: Awaited<S>) => R,
+  label?: string
+): Promise<R | undefined> {
+  let result1: Awaited<T>, result2: Awaited<S>;
+  let error1: Error | undefined;
+  let error2: Error | undefined;
+  try {
+    result1 = await op1();
+  } catch (err) {
+    error1 = err as Error;
+  }
+  try {
+    result2 = await op2();
+  } catch (err) {
+    error2 = err as Error;
+  }
+  if (!!error1 !== !!error2) {
+    error1 && console.log(error1);
+    error2 && console.log(error2);
+  }
+  let message = `${(label && `${label}: `) || ''}equivalent errors`;
+  deepEqual(!!error1, !!error2, message);
+  if (!(error1 || error2) && useResults !== undefined) {
+    return useResults(result1!, result2!);
+  }
 }
 
 function throwError(message?: string): any {
   throw Error(message);
 }
+
+// helper types
+
+type AnyFunction = (...args: any) => any;
+
+type Tuple<T> = [] | [T, ...T[]];
+
+// infer input types from specs
+
+type Param1<In extends OrUnion<any, any>> = In extends {
+  there: (x: infer In) => any;
+}
+  ? In
+  : In extends FromSpecUnion<infer T1, any>
+  ? T1
+  : never;
+type Param2<In extends OrUnion<any, any>> = In extends {
+  there: (x: any) => infer In;
+}
+  ? In
+  : In extends FromSpecUnion<any, infer T2>
+  ? T2
+  : never;
+
+type Params1<Ins extends Tuple<OrUnion<any, any>>> = {
+  [k in keyof Ins]: Param1<Ins[k]>;
+};
+type Params2<Ins extends Tuple<OrUnion<any, any>>> = {
+  [k in keyof Ins]: Param2<Ins[k]>;
+};
+
+type Result1<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
+  ? Out1
+  : never;
+type Result2<Out extends ToSpec<any, any>> = Out extends ToSpec<any, infer Out2>
+  ? Out2
+  : never;

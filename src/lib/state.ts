@@ -22,23 +22,27 @@ type State<A> = {
    * Get the current on-chain state.
    *
    * Caution: If you use this method alone inside a smart contract, it does not prove that your contract uses the current on-chain state.
-   * To successfully prove that your contract uses the current on-chain state, you must add an additional `.assertEquals()` statement or use `.getAndAssertEquals()`:
+   * To successfully prove that your contract uses the current on-chain state, you must add an additional `.requireEquals()` statement or use `.getAndRequireEquals()`:
    *
    * ```ts
    * let x = this.x.get();
-   * this.x.assertEquals(x);
+   * this.x.requireEquals(x);
    * ```
    *
    * OR
    *
    * ```ts
-   * let x = this.x.getAndAssertEquals();
+   * let x = this.x.getAndRequireEquals();
    * ```
    */
   get(): A;
   /**
    * Get the current on-chain state and prove it really has to equal the on-chain state,
    * by adding a precondition which the verifying Mina node will check before accepting this transaction.
+   */
+  getAndRequireEquals(): A;
+  /**
+   * @deprecated use `this.state.getAndRequireEquals()` which is equivalent
    */
   getAndAssertEquals(): A;
   /**
@@ -53,9 +57,17 @@ type State<A> = {
    * Prove that the on-chain state has to equal the given state,
    * by adding a precondition which the verifying Mina node will check before accepting this transaction.
    */
+  requireEquals(a: A): void;
+  /**
+   * @deprecated use `this.state.requireEquals()` which is equivalent
+   */
   assertEquals(a: A): void;
   /**
    * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
+   */
+  requireNothing(): void;
+  /**
+   * @deprecated use `this.state.requireNothing()` which is equivalent
    */
   assertNothing(): void;
   /**
@@ -203,10 +215,10 @@ function createState<T>(): InternalStateType<T> {
       });
     },
 
-    assertEquals(state: T) {
+    requireEquals(state: T) {
       if (this._contract === undefined)
         throw Error(
-          'assertEquals can only be called when the State is assigned to a SmartContract @state.'
+          'requireEquals can only be called when the State is assigned to a SmartContract @state.'
         );
       let layout = getLayoutPosition(this._contract);
       let stateAsFields = this._contract.stateType.toFields(state);
@@ -220,12 +232,20 @@ function createState<T>(): InternalStateType<T> {
       this._contract.wasConstrained = true;
     },
 
-    assertNothing() {
+    assertEquals(state: T) {
+      this.requireEquals(state);
+    },
+
+    requireNothing() {
       if (this._contract === undefined)
         throw Error(
-          'assertNothing can only be called when the State is assigned to a SmartContract @state.'
+          'requireNothing can only be called when the State is assigned to a SmartContract @state.'
         );
       this._contract.wasConstrained = true;
+    },
+
+    assertNothing() {
+      this.requireNothing();
     },
 
     get() {
@@ -256,18 +276,23 @@ function createState<T>(): InternalStateType<T> {
             contract.instance.address,
             contract.instance.self.body.tokenId
           );
-        } catch (err) {
+        } catch (err: any) {
           // TODO: there should also be a reasonable error here
           if (inProver_) {
             throw err;
           }
-          throw Error(
+          let message =
             `${contract.key}.get() failed, either:\n` +
-              `1. We can't find this zkapp account in the ledger\n` +
-              `2. Because the zkapp account was not found in the cache. ` +
-              `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
-              `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
-          );
+            `1. We can't find this zkapp account in the ledger\n` +
+            `2. Because the zkapp account was not found in the cache. ` +
+            `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
+            `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`;
+          if (err.message) {
+            err.message = message + `\n\n${err.message}`;
+            throw err;
+          } else {
+            throw Error(message);
+          }
         }
         if (account.zkapp?.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
@@ -289,10 +314,14 @@ function createState<T>(): InternalStateType<T> {
       return state;
     },
 
-    getAndAssertEquals() {
+    getAndRequireEquals() {
       let state = this.get();
-      this.assertEquals(state);
+      this.requireEquals(state);
       return state;
+    },
+
+    getAndAssertEquals() {
+      return this.getAndRequireEquals();
     },
 
     async fetch() {

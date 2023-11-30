@@ -56,6 +56,7 @@ import {
   inProver,
   snarkContext,
 } from './provable-context.js';
+import { Cache } from './proof-system/cache.js';
 
 // external API
 export {
@@ -294,7 +295,7 @@ function wrapMethod(
           Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
 
           // first, clone to protect against the method modifying arguments!
-          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, o1js primitives
           let clonedArgs = cloneCircuitValue(actualArgs);
 
           // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
@@ -374,7 +375,7 @@ function wrapMethod(
         `@method ${methodIntf.methodName}(): Field {\n` +
         `  // ...\n` +
         `}\n\n` +
-        `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
+        `Note: Only types built out of \`Field\` are valid return types. This includes o1js primitive types and custom CircuitValues.`;
       // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
       if (
         ZkappClass._methodMetadata?.[methodIntf.methodName]?.hasReturn &&
@@ -501,7 +502,7 @@ function checkPublicInput(
 /**
  * compute fields to be hashed as callData, in a way that the hash & circuit changes whenever
  * the method signature changes, i.e., the argument / return types represented as lists of field elements and the methodName.
- * see https://github.com/o1-labs/snarkyjs/issues/303#issuecomment-1196441140
+ * see https://github.com/o1-labs/o1js/issues/303#issuecomment-1196441140
  */
 function computeCallData(
   methodIntf: MethodInterface,
@@ -661,7 +662,10 @@ class SmartContract {
    * it so that proofs end up in the original finite field). These are fairly expensive operations, so **expect compiling to take at least 20 seconds**,
    * up to several minutes if your circuit is large or your hardware is not optimal for these operations.
    */
-  static async compile() {
+  static async compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (
@@ -675,18 +679,22 @@ class SmartContract {
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods();
+    let methodsMeta = this.analyzeMethods();
+    let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let {
       verificationKey: verificationKey_,
       provers,
       verify,
-    } = await compileProgram(
-      ZkappPublicInput,
-      Empty,
+    } = await compileProgram({
+      publicInputType: ZkappPublicInput,
+      publicOutputType: Empty,
       methodIntfs,
       methods,
-      this
-    );
+      gates,
+      proofSystemTag: this,
+      cache,
+      forceRecompile,
+    });
     let verificationKey = {
       data: verificationKey_.data,
       hash: Field(verificationKey_.hash),
@@ -1422,15 +1430,15 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       fromActionState: Field,
       config
     ): Field {
-      const stateType = provable(undefined);
+      const stateType = provable(null);
       let { actionState } = this.reduce(
         actionLists,
         stateType,
         (_, action) => {
           callback(action);
-          return undefined;
+          return null;
         },
-        { state: undefined, actionState: fromActionState },
+        { state: null, actionState: fromActionState },
         config
       );
       return actionState;

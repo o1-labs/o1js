@@ -35,10 +35,7 @@ class Group {
    * ```
    */
   static get zero() {
-    return new Group({
-      x: 0,
-      y: 0,
-    });
+    return new Group({ x: 0, y: 0 });
   }
 
   /**
@@ -173,7 +170,7 @@ class Group {
         return s.mul(x1.sub(x3)).sub(y1);
       });
 
-      let [, x, y] = Snarky.group.ecadd(
+      let [, x, y] = Snarky.gates.ecAdd(
         Group.from(x1.seal(), y1.seal()).#toTuple(),
         Group.from(x2.seal(), y2.seal()).#toTuple(),
         Group.from(x3, y3).#toTuple(),
@@ -187,27 +184,15 @@ class Group {
       // similarly to the constant implementation, we check if either operand is zero
       // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
       let gIsZero = g.isZero();
-      let thisIsZero = this.isZero();
-
-      let bothZero = gIsZero.and(thisIsZero);
-
-      let onlyGisZero = gIsZero.and(thisIsZero.not());
-      let onlyThisIsZero = thisIsZero.and(gIsZero.not());
-
+      let onlyThisIsZero = this.isZero().and(gIsZero.not());
       let isNegation = inf;
+      let isNormalAddition = gIsZero.or(onlyThisIsZero).or(isNegation).not();
 
-      let isNewElement = bothZero
-        .not()
-        .and(isNegation.not())
-        .and(onlyThisIsZero.not())
-        .and(onlyGisZero.not());
-
-      const zero_g = Group.zero;
-
+      // note: gIsZero and isNegation are not mutually exclusive, but if both are true, we add 1*0 + 1*0 = 0 which is correct
       return Provable.switch(
-        [bothZero, onlyGisZero, onlyThisIsZero, isNegation, isNewElement],
+        [gIsZero, onlyThisIsZero, isNegation, isNormalAddition],
         Group,
-        [zero_g, this, g, zero_g, new Group({ x, y })]
+        [this, g, Group.zero, new Group({ x, y })]
       );
     }
   }

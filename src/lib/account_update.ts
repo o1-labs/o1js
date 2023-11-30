@@ -18,13 +18,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import {
-  dummyBase64Proof,
-  dummyVerificationKeyHash,
-  Empty,
-  Proof,
-  Prover,
-} from './proof_system.js';
+import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
@@ -32,7 +26,7 @@ import {
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { prefixes } from '../bindings/crypto/constants.js';
+import { mocks, prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 import { MlArray } from './ml/base.js';
@@ -395,7 +389,7 @@ interface Body extends AccountUpdateBody {
    * Events can be collected by archive nodes.
    *
    * [Check out our documentation about
-   * Events!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/events)
+   * Events!](https://docs.minaprotocol.com/zkapps/advanced-o1js/events)
    */
   events: Events;
   /**
@@ -404,7 +398,7 @@ interface Body extends AccountUpdateBody {
    * a {@link Reducer}.
    *
    * [Check out our documentation about
-   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
+   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-o1js/actions-and-reducer)
    */
   actions: Events;
   /**
@@ -451,7 +445,7 @@ const Body = {
     tokenId?: Field,
     mayUseToken?: MayUseToken
   ): Body {
-    let { body } = Types.AccountUpdate.emptyValue();
+    let { body } = Types.AccountUpdate.empty();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
@@ -469,7 +463,7 @@ const Body = {
   },
 
   dummy(): Body {
-    return Types.AccountUpdate.emptyValue().body;
+    return Types.AccountUpdate.empty().body;
   },
 };
 
@@ -608,10 +602,7 @@ type LazyProof = {
   blindingValue: Field;
 };
 
-const AccountId = provable(
-  { tokenOwner: PublicKey, parentTokenId: Field },
-  { customObjectKeys: ['tokenOwner', 'parentTokenId'] }
-);
+const AccountId = provable({ tokenOwner: PublicKey, parentTokenId: Field });
 
 const TokenId = {
   ...Types.TokenId,
@@ -1023,8 +1014,8 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   private static signingInfo = provable({
-    nonce: UInt32,
     isSameAsFeePayer: Bool,
+    nonce: UInt32,
   });
 
   private static getSigningInfo(
@@ -1417,10 +1408,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   static get MayUseToken() {
     return {
-      type: provablePure(
-        { parentsOwnToken: Bool, inheritFromParent: Bool },
-        { customObjectKeys: ['parentsOwnToken', 'inheritFromParent'] }
-      ),
+      type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
       No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
       ParentsOwnToken: {
         parentsOwnToken: Bool(true),
@@ -1808,8 +1796,9 @@ const Authorization = {
     signature ??= {};
     accountUpdate.body.authorizationKind.isSigned = Bool(true);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash =
-      dummyVerificationKeyHash();
+    accountUpdate.body.authorizationKind.verificationKeyHash = Field(
+      mocks.dummyVerificationKeyHash
+    );
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
@@ -1867,8 +1856,9 @@ const Authorization = {
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
-    accountUpdate.body.authorizationKind.verificationKeyHash =
-      dummyVerificationKeyHash();
+    accountUpdate.body.authorizationKind.verificationKeyHash = Field(
+      mocks.dummyVerificationKeyHash
+    );
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },
@@ -1972,10 +1962,7 @@ type ZkappPublicInput = {
   accountUpdate: Field;
   calls: Field;
 };
-let ZkappPublicInput = provablePure(
-  { accountUpdate: Field, calls: Field },
-  { customObjectKeys: ['accountUpdate', 'calls'] }
-);
+let ZkappPublicInput = provablePure({ accountUpdate: Field, calls: Field });
 
 async function addMissingProofs(
   zkappCommand: ZkappCommand,

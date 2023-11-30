@@ -40,7 +40,7 @@ export {
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
- * You will find this as the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
+ * You will find this as the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
  */
 type Provable<T> = Provable_<T>;
 
@@ -565,6 +565,13 @@ function provableArray<A extends FlexibleProvable<any>>(
         (curr, value) => HashInput.append(curr, type.toInput(value)),
         HashInput.empty
       );
+    },
+
+    empty() {
+      if (!('empty' in type)) {
+        throw Error('circuitArray.empty: element type has no empty() method');
+      }
+      return Array.from({ length }, () => type.empty());
     },
   } satisfies ProvableExtended<T[], TJson[]> as any;
 }

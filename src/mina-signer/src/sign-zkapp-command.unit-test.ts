@@ -62,7 +62,7 @@ test(Random.json.publicKey, (publicKeyBase58) => {
 });
 
 // empty account update
-let dummy = AccountUpdate.emptyValue();
+let dummy = AccountUpdate.empty();
 let dummySnarky = AccountUpdateSnarky.dummy();
 expect(AccountUpdate.toJSON(dummy)).toEqual(
   AccountUpdateSnarky.toJSON(dummySnarky)
@@ -162,7 +162,7 @@ test(
     feePayer.authorization = Signature.toBase58(Signature.dummy());
     let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
 
-    // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
+    // o1js fromJSON -> toJSON roundtrip, + consistency with mina-signer
     let zkappCommandSnarky = ZkappCommandSnarky.fromJSON(zkappCommandJson);
     let zkappCommandJsonSnarky = ZkappCommandSnarky.toJSON(zkappCommandSnarky);
     expect(JSON.stringify(zkappCommandJson)).toEqual(
@@ -272,10 +272,10 @@ console.log('to/from json, hashes & signatures are consistent! 🎉');
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
   if (a.body.update.verificationKey.isSome === 1n) {
-    let [, data] = Pickles.dummyVerificationKey();
+    let [, data, hash] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,
-      hash: Field(mocks.dummyVerificationKeyHash),
+      hash: FieldConst.toBigint(hash),
     };
   } else {
     a.body.update.verificationKey.value = {

@@ -4,6 +4,7 @@ import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,
   provablePure,
+  provableTuple,
   HashInput,
   NonMethods,
 } from '../bindings/lib/provable-snarky.js';
@@ -32,6 +33,7 @@ export {
 
 // internal API
 export {
+  provableTuple,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -47,6 +49,7 @@ type ProvableExtension<T, TJson = any> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
   fromJSON: (x: TJson) => T;
+  empty: () => T;
 };
 
 type ProvableExtended<T, TJson = any> = Provable<T> &
@@ -244,6 +247,15 @@ abstract class CircuitValue {
     }
     return Object.assign(Object.create(this.prototype), props);
   }
+
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
+    const fields: [string, any][] = (this as any).prototype._fields ?? [];
+    let props: any = {};
+    fields.forEach(([key, propType]) => {
+      props[key] = propType.empty();
+    });
+    return Object.assign(Object.create(this.prototype), props);
+  }
 }
 
 function prop(this: any, target: any, key: string) {
@@ -287,7 +299,7 @@ function matrixProp<T>(
 }
 
 /**
- * `Struct` lets you declare composite types for use in snarkyjs circuits.
+ * `Struct` lets you declare composite types for use in o1js circuits.
  *
  * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
  * or as event / action types.
@@ -337,7 +349,7 @@ function matrixProp<T>(
  * ```
  *
  * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
- * This, for example, allows you to re-use the same type outside snarkyjs methods, where you might want to store additional metadata.
+ * This, for example, allows you to re-use the same type outside o1js methods, where you might want to store additional metadata.
  *
  * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
  * Here's how we could add the voter's name (a string) as auxiliary data:
@@ -362,8 +374,7 @@ function Struct<
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
-  type: A,
-  options: { customObjectKeys?: string[] } = {}
+  type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
     ? ProvablePure<T>
     : Provable<T>) & {
@@ -375,7 +386,7 @@ function Struct<
     fromJSON: (x: J) => T;
   } {
   class Struct_ {
-    static type = provable<A>(type, options);
+    static type = provable<A>(type);
     static _isStruct: true;
 
     constructor(value: T) {
@@ -427,6 +438,15 @@ function Struct<
      */
     static fromJSON(json: J): T {
       let value = this.type.fromJSON(json);
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
+    }
+    /**
+     * Create an instance of this struct filled with default values
+     * @returns an empty instance of this struct
+     */
+    static empty(): T {
+      let value = this.type.empty();
       let struct = Object.create(this.prototype);
       return Object.assign(struct, value);
     }
@@ -486,7 +506,7 @@ function cloneCircuitValue<T>(obj: T): T {
     ) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-  // snarkyjs primitives aren't cloned
+  // o1js primitives aren't cloned
   if (isPrimitive(obj)) {
     return obj;
   }
@@ -543,7 +563,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
     );
   }
 
-  // the two checks below cover snarkyjs primitives and CircuitValues
+  // the two checks below cover o1js primitives and CircuitValues
   // if we have an .equals method, try to use it
   if ('equals' in a && typeof (a as any).equals === 'function') {
     let isEqual = (a as any).equals(b).toBoolean();

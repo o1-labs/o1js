@@ -4,36 +4,48 @@ import type { BoolVar, Bool } from './lib/bool.js';
 import type { ScalarConst } from './lib/scalar.js';
 import type {
   MlArray,
-  MlTuple,
+  MlPair,
   MlList,
   MlOption,
   MlBool,
   MlBytes,
-  MlBigint,
+  MlResult,
+  MlUnit,
+  MlString,
+  MlTuple,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
-  ForeignFieldVar,
-  ForeignFieldConst,
-} from './lib/foreign-field.js';
+  SnarkKey,
+  SnarkKeyHeader,
+  MlWrapVerificationKey,
+} from './lib/proof-system/prover-keys.js';
+import { getWasm } from './bindings/js/wrapper.js';
 import type {
-  ForeignCurveVar,
-  MlCurveParams,
-  MlCurveParamsWithIa,
-} from './lib/foreign-curve.js';
-import type { ForeignSignatureVar } from './lib/foreign-ecdsa.js';
+  WasmFpSrs,
+  WasmFqSrs,
+} from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
+export {
+  Snarky,
+  Test,
+  JsonGate,
+  KimchiGateType,
+  MlPublicKey,
+  MlPublicKeyVar,
+  FeatureFlags,
+  MlFeatureFlags,
+};
 
 /**
- * `Provable<T>` is the general circuit type interface in SnarkyJS. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
+ * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
  *
- * `Provable<T>` is the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
+ * `Provable<T>` is the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
  *
- * The properties and methods on the provable type exist in all base SnarkyJS types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
+ * The properties and methods on the provable type exist in all base o1js types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
  */
 declare interface Provable<T> {
   /**
@@ -145,7 +157,7 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (value: T) => void;
 }
 
-type MlGroup = MlTuple<FieldVar, FieldVar>;
+type MlGroup = MlPair<FieldVar, FieldVar>;
 
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
@@ -280,8 +292,183 @@ declare const Snarky: {
     ): [
       _: 0,
       constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
+      terms: MlList<MlPair<FieldConst, number>>
     ];
+  };
+
+  gates: {
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+
+    generic(
+      sl: FieldConst,
+      l: FieldVar,
+      sr: FieldConst,
+      r: FieldVar,
+      so: FieldConst,
+      o: FieldVar,
+      sm: FieldConst,
+      sc: FieldConst
+    ): void;
+
+    poseidon(state: MlArray<MlTuple<Field, 3>>): void;
+
+    /**
+     * Low-level Elliptic Curve Addition gate.
+     */
+    ecAdd(
+      p1: MlGroup,
+      p2: MlGroup,
+      p3: MlGroup,
+      inf: FieldVar,
+      same_x: FieldVar,
+      slope: FieldVar,
+      inf_z: FieldVar,
+      x21_inv: FieldVar
+    ): MlGroup;
+
+    ecScale(
+      state: MlArray<
+        [
+          _: 0,
+          accs: MlArray<MlTuple<FieldVar, 2>>,
+          bits: MlArray<FieldVar>,
+          ss: MlArray<FieldVar>,
+          base: MlGroup,
+          nPrev: Field,
+          nNext: Field
+        ]
+      >
+    ): void;
+
+    ecEndoscale(
+      state: MlArray<
+        [
+          _: 0,
+          xt: FieldVar,
+          yt: FieldVar,
+          xp: FieldVar,
+          yp: FieldVar,
+          nAcc: FieldVar,
+          xr: FieldVar,
+          yr: FieldVar,
+          s1: FieldVar,
+          s3: FieldVar,
+          b1: FieldVar,
+          b2: FieldVar,
+          b3: FieldVar,
+          b4: FieldVar
+        ]
+      >,
+      xs: FieldVar,
+      ys: FieldVar,
+      nAcc: FieldVar
+    ): void;
+
+    ecEndoscalar(
+      state: MlArray<
+        [
+          _: 0,
+          n0: FieldVar,
+          n8: FieldVar,
+          a0: FieldVar,
+          b0: FieldVar,
+          a8: FieldVar,
+          b8: FieldVar,
+          x0: FieldVar,
+          x1: FieldVar,
+          x2: FieldVar,
+          x3: FieldVar,
+          x4: FieldVar,
+          x5: FieldVar,
+          x6: FieldVar,
+          x7: FieldVar
+        ]
+      >
+    ): void;
+
+    lookup(input: MlTuple<FieldVar, 7>): void;
+
+    /**
+     * Range check gate
+     *
+     * @param v0 field var to be range checked
+     * @param v0p bits 16 to 88 as 6 12-bit limbs
+     * @param v0c bits 0 to 16 as 8 2-bit limbs
+     * @param compact boolean field elements -- whether to use "compact mode"
+     */
+    rangeCheck0(
+      v0: FieldVar,
+      v0p: MlTuple<FieldVar, 6>,
+      v0c: MlTuple<FieldVar, 8>,
+      compact: FieldConst
+    ): void;
+
+    rangeCheck1(
+      v2: FieldVar,
+      v12: FieldVar,
+      vCurr: MlTuple<FieldVar, 13>,
+      vNext: MlTuple<FieldVar, 15>
+    ): void;
+
+    xor(
+      in1: FieldVar,
+      in2: FieldVar,
+      out: FieldVar,
+      in1_0: FieldVar,
+      in1_1: FieldVar,
+      in1_2: FieldVar,
+      in1_3: FieldVar,
+      in2_0: FieldVar,
+      in2_1: FieldVar,
+      in2_2: FieldVar,
+      in2_3: FieldVar,
+      out_0: FieldVar,
+      out_1: FieldVar,
+      out_2: FieldVar,
+      out_3: FieldVar
+    ): void;
+
+    foreignFieldAdd(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      fieldOverflow: FieldVar,
+      carry: FieldVar,
+      foreignFieldModulus: MlTuple<FieldConst, 3>,
+      sign: FieldConst
+    ): void;
+
+    foreignFieldMul(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      remainder: MlTuple<FieldVar, 2>,
+      quotient: MlTuple<FieldVar, 3>,
+      quotientHiBound: FieldVar,
+      product1: MlTuple<FieldVar, 3>,
+      carry0: FieldVar,
+      carry1p: MlTuple<FieldVar, 7>,
+      carry1c: MlTuple<FieldVar, 4>,
+      foreignFieldModulus2: FieldConst,
+      negForeignFieldModulus: MlTuple<FieldConst, 3>
+    ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    addFixedLookupTable(id: number, data: MlArray<MlArray<FieldConst>>): void;
+
+    addRuntimeTableConfig(id: number, firstColumn: MlArray<FieldConst>): void;
+
+    raw(
+      kind: KimchiGateType,
+      values: MlArray<FieldVar>,
+      coefficients: MlArray<FieldConst>
+    ): void;
   };
 
   bool: {
@@ -297,20 +484,6 @@ declare const Snarky: {
   };
 
   group: {
-    /**
-     * Low-level Elliptic Curve Addition gate.
-     */
-    ecadd(
-      p1: MlGroup,
-      p2: MlGroup,
-      p3: MlGroup,
-      inf: FieldVar,
-      same_x: FieldVar,
-      slope: FieldVar,
-      inf_z: FieldVar,
-      x21_inv: FieldVar
-    ): MlGroup;
-
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 
@@ -358,7 +531,7 @@ declare const Snarky: {
       input: MlArray<FieldVar>
     ): [0, FieldVar, FieldVar, FieldVar];
 
-    hashToGroup(input: MlArray<FieldVar>): MlTuple<FieldVar, FieldVar>;
+    hashToGroup(input: MlArray<FieldVar>): MlPair<FieldVar, FieldVar>;
 
     sponge: {
       create(isChecked: boolean): unknown;
@@ -366,66 +539,54 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
-
-  foreignField: {
-    assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
-    sumChain(
-      xs: MlArray<ForeignFieldVar>,
-      ops: MlArray<0 | 1>,
-      p: ForeignFieldConst
-    ): ForeignFieldVar;
-    mul(
-      x: ForeignFieldVar,
-      y: ForeignFieldVar,
-      p: ForeignFieldConst
-    ): ForeignFieldVar;
-
-    bigintToMl(x: bigint): MlBigint;
-  };
-
-  foreignCurve: {
-    create(params: MlCurveParams): MlCurveParamsWithIa;
-    paramsToVars(params: MlCurveParamsWithIa): unknown;
-    add(
-      g: ForeignCurveVar,
-      h: ForeignCurveVar,
-      curveParams: unknown
-    ): ForeignCurveVar;
-    double(g: ForeignCurveVar, curveParams: unknown): ForeignCurveVar;
-    negate(g: ForeignCurveVar, curveParams: unknown): ForeignCurveVar;
-    assertOnCurve(g: ForeignCurveVar, curveParams: unknown): void;
-    scale(
-      g: ForeignCurveVar,
-      scalar: MlArray<BoolVar>,
-      curveParams: unknown
-    ): ForeignCurveVar;
-    checkSubgroup(g: ForeignCurveVar, curveParams: unknown): void;
-  };
-
-  ecdsa: {
-    verify(
-      signature: ForeignSignatureVar,
-      msgHash: ForeignFieldVar,
-      publicKey: ForeignCurveVar,
-      curveParams: unknown
-    ): void;
-
-    assertValidSignature(
-      signature: ForeignSignatureVar,
-      curveParams: unknown
-    ): void;
-  };
 };
 
+declare enum KimchiGateType {
+  Zero,
+  Generic,
+  Poseidon,
+  CompleteAdd,
+  VarBaseMul,
+  EndoMul,
+  EndoMulScalar,
+  Lookup,
+  CairoClaim,
+  CairoInstruction,
+  CairoFlags,
+  CairoTransition,
+  RangeCheck0,
+  RangeCheck1,
+  ForeignFieldAdd,
+  ForeignFieldMul,
+  Xor16,
+  Rot64,
+}
+
+type GateType =
+  | 'Zero'
+  | 'Generic'
+  | 'Poseidon'
+  | 'CompleteAdd'
+  | 'VarbaseMul'
+  | 'EndoMul'
+  | 'EndoMulScalar'
+  | 'Lookup'
+  | 'RangeCheck0'
+  | 'RangeCheck1'
+  | 'ForeignFieldAdd'
+  | 'ForeignFieldMul'
+  | 'Xor16'
+  | 'Rot64';
+
 type JsonGate = {
-  typ: string;
+  typ: GateType;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
 type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
 type Gate = {
-  type: string;
+  type: GateType;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
@@ -496,7 +657,7 @@ declare const Test: {
   };
 
   poseidon: {
-    hashToGroup(input: MlArray<FieldConst>): MlTuple<FieldConst, FieldConst>;
+    hashToGroup(input: MlArray<FieldConst>): MlPair<FieldConst, FieldConst>;
   };
 
   signature: {
@@ -555,18 +716,70 @@ declare const Test: {
   };
 };
 
+type FeatureFlags = {
+  rangeCheck0: boolean;
+  rangeCheck1: boolean;
+  foreignFieldAdd: boolean;
+  foreignFieldMul: boolean;
+  xor: boolean;
+  rot: boolean;
+  lookup: boolean;
+  runtimeTables: boolean;
+};
+
+type MlFeatureFlags = [
+  _: 0,
+  rangeCheck0: MlBool,
+  rangeCheck1: MlBool,
+  foreignFieldAdd: MlBool,
+  foreignFieldMul: MlBool,
+  xor: MlBool,
+  rot: MlBool,
+  lookup: MlBool,
+  runtimeTables: MlBool
+];
+
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
   type Statement<F> = [_: 0, publicInput: MlArray<F>, publicOutput: MlArray<F>];
+
+  /**
+   * A "rule" is a circuit plus some metadata for `Pickles.compile`
+   */
   type Rule = {
     identifier: string;
+    /**
+     * The main circuit functions
+     */
     main: (publicInput: MlArray<FieldVar>) => {
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
     };
+    /**
+     * Feature flags which enable certain custom gates
+     */
+    featureFlags: MlFeatureFlags;
+    /**
+     * Description of previous proofs to verify in this rule
+     */
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
+
+  /**
+   * Type to configure how Pickles should cache prover keys
+   */
+  type Cache = [
+    _: 0,
+    read: (header: SnarkKeyHeader, path: string) => MlResult<SnarkKey, MlUnit>,
+    write: (
+      header: SnarkKeyHeader,
+      value: SnarkKey,
+      path: string
+    ) => MlResult<undefined, MlUnit>,
+    canWrite: MlBool
+  ];
+
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
@@ -597,7 +810,12 @@ declare const Pickles: {
    */
   compile: (
     rules: MlArray<Pickles.Rule>,
-    signature: { publicInputSize: number; publicOutputSize: number }
+    config: {
+      publicInputSize: number;
+      publicOutputSize: number;
+      storable?: Pickles.Cache;
+      overrideWrapDomain?: 0 | 1 | 2;
+    }
   ) => {
     provers: MlArray<Pickles.Prover>;
     verify: (
@@ -617,17 +835,32 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
-  dummyBase64Proof: () => string;
+  loadSrsFp(): WasmFpSrs;
+  loadSrsFq(): WasmFqSrs;
+
+  dummyProof: <N extends 0 | 1 | 2>(
+    maxProofsVerified: N,
+    domainLog2: number
+  ) => [N, Pickles.Proof];
+
   /**
    * @returns (base64 vk, hash)
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
+  encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
+  decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
+
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
-  proofOfBase64: (
+  proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
-    maxProofsVerified: 0 | 1 | 2
-  ) => [0 | 1 | 2, Pickles.Proof];
+    maxProofsVerified: N
+  ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
+
+  util: {
+    toMlString(s: string): MlString;
+    fromMlString(s: MlString): string;
+  };
 };
