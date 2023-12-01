@@ -77,8 +77,10 @@ class ForeignCurve {
    * Convert this curve point to a point with bigint coordinates.
    */
   toBigint() {
-    // TODO make `infinity` not required in bigint curve APIs
-    return { x: this.x.toBigInt(), y: this.y.toBigInt(), infinity: false };
+    return this.Constructor.Bigint.fromNonzero({
+      x: this.x.toBigInt(),
+      y: this.y.toBigInt(),
+    });
   }
 
   /**
