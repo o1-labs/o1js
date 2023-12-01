@@ -4,7 +4,7 @@
  * https://en.wikipedia.org/wiki/Twisted_Edwards_curve
  * https://en.wikipedia.org/wiki/EdDSA#Ed25519
  */
-import { Provable, Struct, createForeignField } from 'o1js';
+import { Provable, Struct, createForeignField, Gadgets } from 'o1js';
 
 const p = 2n ** 255n - 19n;
 const FpUnreduced = createForeignField(p);
@@ -12,6 +12,8 @@ class Fp extends FpUnreduced.AlmostReduced {}
 
 type Point = { x: Fp; y: Fp };
 const Point = Struct({ x: Fp.provable, y: Fp.provable });
+
+const { ForeignField } = Gadgets;
 
 /** Curve equation:
  *
@@ -50,10 +52,50 @@ function add(p: Point, q: Point): Point {
   return { x: x3r, y: y3r };
 }
 
-let cs = Provable.constraintSystem(() => {
-  let p = Provable.witness(Point, Point.empty);
-  let q = Provable.witness(Point, Point.empty);
+function double(p: Point): Point {
+  let { x: x1, y: y1 } = p;
 
-  let r = add(p, q);
-});
-console.log(cs);
+  // x3 = 2*x1*y1 / (y1^2 - x1^2)
+  // y3 = (y1^2 + x1^2) / (2 - (y1^2 - x1^2))
+  let x1x1 = x1.mul(x1);
+  let y1y1 = y1.mul(y1);
+  let x1y1 = x1.mul(y1);
+
+  // witness x3, y3
+  let { x: x3, y: y3 } = Provable.witness(Point, () => {
+    let d = y1y1.sub(x1x1).assertAlmostReduced();
+    let x3 = x1y1.add(x1x1).assertAlmostReduced().div(d);
+    let y3 = y1y1
+      .add(x1x1)
+      .assertAlmostReduced()
+      .div(Fp.from(2n).sub(d).assertAlmostReduced());
+    return { x: x3, y: y3 };
+  });
+
+  // TODO expose assertMul and Sum on the ForeignField class to make this nicer
+
+  // x3*(y1^2 - x1^2) = x1*y1 + x1*y1
+  ForeignField.assertMul(
+    x3.value,
+    ForeignField.Sum(y1y1.value).sub(x1x1.value),
+    ForeignField.Sum(x1y1.value).add(x1y1.value),
+    Fp.modulus
+  );
+
+  // y3*(2 - (y1^2 - x1^2)) = y1^2 + x1^2
+  ForeignField.assertMul(
+    y3.value,
+    ForeignField.Sum(Fp.from(2n).value).sub(y1y1.value).add(x1x1.value),
+    ForeignField.Sum(y1y1.value).add(x1x1.value),
+    Fp.modulus
+  );
+
+  return { x: x3, y: y3 };
+}
+
+Provable.constraintSystem(() => add(dummy(), dummy())).print();
+Provable.constraintSystem(() => double(dummy())).print();
+
+function dummy() {
+  return Provable.witness(Point, Point.empty);
+}
