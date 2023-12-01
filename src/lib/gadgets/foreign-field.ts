@@ -71,6 +71,30 @@ const ForeignField = {
     // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0 or 1)
     ForeignField.negate(x, f - 1n);
   },
+
+  /**
+   * prove that x != 0 mod f
+   *
+   * assumes that x is almost reduced mod f, so we know that x can at most be 0 or f, but not 2f, 3f,...
+   */
+  assertNonZero(x: Field3, f: bigint) {
+    // constant case
+    if (Field3.isConstant(x)) {
+      assert(Field3.toBigint(x) !== 0n, 'assertNonZero: got x = 0');
+      return;
+    }
+    // provable case
+    // check that x != 0 and x != f
+    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
+
+    // (x01, x2) != (0, 0)
+    x01.equals(0n).and(x[2].equals(0n)).assertFalse();
+    // (x01, x2) != (f01, f2)
+    x01
+      .equals(f & l2Mask)
+      .and(x[2].equals(f >> l2))
+      .assertFalse();
+  },
 };
 
 /**
@@ -217,16 +241,8 @@ function divide(
   multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
 
   if (!allowZeroOverZero) {
-    // assert that y != 0 mod f by checking that it doesn't equal 0 or f
-    // this works because we assume y[2] <= f2
-    // TODO is this the most efficient way?
-    let y01 = y[0].add(y[1].mul(1n << l));
-    y01.equals(0n).and(y[2].equals(0n)).assertFalse();
-    let [f0, f1, f2] = split(f);
-    let f01 = combine2([f0, f1]);
-    y01.equals(f01).and(y[2].equals(f2)).assertFalse();
+    ForeignField.assertNonZero(y, f);
   }
-
   return z;
 }
 
