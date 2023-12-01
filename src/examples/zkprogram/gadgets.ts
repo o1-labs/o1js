@@ -3,8 +3,8 @@ import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
 let cs = Provable.constraintSystem(() => {
   let f = Provable.witness(Field, () => Field(12));
 
-  let res1 = Gadgets.rotate(f, 2, 'left');
-  let res2 = Gadgets.rotate(f, 2, 'right');
+  let res1 = Gadgets.rotate64(f, 2, 'left');
+  let res2 = Gadgets.rotate64(f, 2, 'right');
 
   res1.assertEquals(Field(48));
   res2.assertEquals(Field(3));
@@ -21,8 +21,8 @@ const BitwiseProver = ZkProgram({
       privateInputs: [],
       method: () => {
         let a = Provable.witness(Field, () => Field(48));
-        let actualLeft = Gadgets.rotate(a, 2, 'left');
-        let actualRight = Gadgets.rotate(a, 2, 'right');
+        let actualLeft = Gadgets.rotate64(a, 2, 'left');
+        let actualRight = Gadgets.rotate64(a, 2, 'right');
 
         let expectedLeft = Field(192);
         actualLeft.assertEquals(expectedLeft);

@@ -6,6 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -166,8 +167,7 @@ const TokenSymbolPure: ProvableExtended<
     return 1;
   },
   check({ field }: TokenSymbol) {
-    let actual = field.rangeCheckHelper(48);
-    actual.assertEquals(field);
+    Gadgets.rangeCheckN(48, field);
   },
   toJSON({ symbol }) {
     return symbol;
