@@ -7,7 +7,7 @@ import {
   rangeCheck64,
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
-import { Field } from '../core.js';
+import { Field } from '../field.js';
 import { ForeignField, Field3 } from './foreign-field.js';
 
 export { Gadgets };
