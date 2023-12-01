@@ -78,14 +78,11 @@ const SHA256 = {
       // prepare message block
       for (let t = 0; t <= 15; t++) W[t] = M[t];
       for (let t = 16; t <= 63; t++) {
-        let temp = DeltaOne(W[t - 2])
+        let unreduced = DeltaOne(W[t - 2])
           .value.add(W[t - 7].value)
           .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
-        W[t] = UInt32.from(Gadgets.divMod32(temp).remainder);
-        /*         W[t] = DeltaOne(W[t - 2])
-          .addMod32(W[t - 7])
-          .addMod32(DeltaZero(W[t - 15]).addMod32(W[t - 16])); */
+        W[t] = UInt32.from(Gadgets.divMod32(unreduced).remainder);
       }
 
       // initialize working variables
@@ -100,26 +97,24 @@ const SHA256 = {
 
       // main loop
       for (let t = 0; t <= 63; t++) {
-        const T1 = new UInt32(
-          Gadgets.divMod32(
-            h.value
-              .add(SigmaOne(e).value)
-              .add(Ch(e, f, g).value)
-              .add(K[t].value)
-              .add(W[t].value)
-          ).remainder
-        );
+        const unreducedT1 = h.value
+          .add(SigmaOne(e).value)
+          .add(Ch(e, f, g).value)
+          .add(K[t].value)
+          .add(W[t].value);
 
         const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
 
         h = g;
         g = f;
         f = e;
-        e = d.addMod32(T1);
+        e = UInt32.from(Gadgets.divMod32(d.value.add(unreducedT1)).remainder);
         d = c;
         c = b;
         b = a;
-        a = UInt32.from(Gadgets.divMod32(unreducedT2.add(T1.value)).remainder);
+        a = UInt32.from(
+          Gadgets.divMod32(unreducedT2.add(unreducedT1)).remainder
+        );
       }
 
       // new intermediate hash value
