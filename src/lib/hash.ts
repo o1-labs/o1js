@@ -179,12 +179,11 @@ const TokenSymbolPure: ProvableExtended<
   toInput({ field }) {
     return { packed: [[field, 48]] };
   },
+  empty() {
+    return { symbol: '', field: Field(0n) };
+  },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
   static from(symbol: string): TokenSymbol {
     let bytesLength = new TextEncoder().encode(symbol).length;
     if (bytesLength > 6)

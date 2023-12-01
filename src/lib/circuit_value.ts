@@ -52,6 +52,7 @@ type ProvableExtension<T, TJson = any> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
   fromJSON: (x: TJson) => T;
+  empty: () => T;
 };
 
 type ProvableExtended<T, TJson = any> = Provable<T> &
@@ -249,6 +250,15 @@ abstract class CircuitValue {
     }
     return Object.assign(Object.create(this.prototype), props);
   }
+
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
+    const fields: [string, any][] = (this as any).prototype._fields ?? [];
+    let props: any = {};
+    fields.forEach(([key, propType]) => {
+      props[key] = propType.empty();
+    });
+    return Object.assign(Object.create(this.prototype), props);
+  }
 }
 
 function prop(this: any, target: any, key: string) {
@@ -377,6 +387,7 @@ function Struct<
     };
     toJSON: (x: T) => J;
     fromJSON: (x: J) => T;
+    empty: () => T;
   } {
   class Struct_ {
     static type = provable<A>(type);
@@ -431,6 +442,15 @@ function Struct<
      */
     static fromJSON(json: J): T {
       let value = this.type.fromJSON(json);
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
+    }
+    /**
+     * Create an instance of this struct filled with default values
+     * @returns an empty instance of this struct
+     */
+    static empty(): T {
+      let value = this.type.empty();
       let struct = Object.create(this.prototype);
       return Object.assign(struct, value);
     }

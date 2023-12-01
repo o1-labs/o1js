@@ -20,8 +20,8 @@ function not(a: Field, length: number, checked: boolean = false) {
 
   // Check that length does not exceed maximum field size in bits
   assert(
-    length < Field.sizeInBits(),
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+    length < Field.sizeInBits,
+    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
   );
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
@@ -156,8 +156,8 @@ function and(a: Field, b: Field, length: number) {
 
   // check that length does not exceed maximum field size in bits
   assert(
-    length <= Field.sizeInBits(),
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+    length <= Field.sizeInBits,
+    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
   );
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table

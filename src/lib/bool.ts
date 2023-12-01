@@ -295,6 +295,10 @@ class Bool {
     return 1;
   }
 
+  static empty() {
+    return new Bool(false);
+  }
+
   static toInput(x: Bool): { packed: [Field, number][] } {
     return { packed: [[x.toField(), 1] as [Field, number]] };
   }
@@ -314,9 +318,7 @@ class Bool {
     return BoolBinable.readBytes(bytes, offset);
   }
 
-  static sizeInBytes() {
-    return 1;
-  }
+  static sizeInBytes = 1;
 
   static check(x: Bool): void {
     Snarky.field.assertBoolean(x.value);
