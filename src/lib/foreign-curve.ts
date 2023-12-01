@@ -104,7 +104,7 @@ class ForeignCurve {
    * Elliptic curve negation.
    */
   negate(): ForeignCurve {
-    throw Error('unimplemented');
+    return new this.Constructor({ x: this.x, y: this.y.neg() });
   }
 
   static assertOnCurve(g: ForeignCurve) {

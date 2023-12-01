@@ -29,6 +29,7 @@ export { verifyEcdsaConstant };
 const EllipticCurve = {
   add,
   double,
+  negate,
   multiScalarMul,
   initialAggregator,
 };
@@ -138,6 +139,10 @@ function double(p1: Point, f: bigint) {
   ForeignField.assertMul(deltaX1X3, m, ySum, f);
 
   return { x: x3, y: y3 };
+}
+
+function negate({ x, y }: Point, f: bigint) {
+  return { x, y: ForeignField.negate(y, f) };
 }
 
 /**

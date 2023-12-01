@@ -103,7 +103,7 @@ class ForeignField {
   static from(x: bigint | number | string): CanonicalForeignField;
   static from(x: ForeignField | bigint | number | string): ForeignField;
   static from(x: ForeignField | bigint | number | string): ForeignField {
-    if (x instanceof ForeignField) return x;
+    if (x instanceof this) return x;
     return new this.Canonical(x);
   }
 
@@ -208,8 +208,11 @@ class ForeignField {
    * ```
    */
   neg() {
-    let zero: ForeignField = this.Constructor.from(0n);
-    return this.Constructor.sum([zero, this], [-1]);
+    // this gets a special implementation because negation proves that the return value is almost reduced.
+    // it shows that r = f - x >= 0 or r = 0 (for x=0) over the integers, which implies r < f
+    // see also `Gadgets.ForeignField.assertLessThan()`
+    let xNeg = Gadgets.ForeignField.neg(this.value, this.modulus);
+    return new this.Constructor.AlmostReduced(xNeg);
   }
 
   /**
