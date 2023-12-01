@@ -237,7 +237,8 @@ function assertMulInternal(
   x: Field3,
   y: Field3,
   xy: Field3 | Field2,
-  f: bigint
+  f: bigint,
+  message?: string
 ) {
   let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
@@ -247,12 +248,12 @@ function assertMulInternal(
   // bind remainder to input xy
   if (xy.length === 2) {
     let [xy01, xy2] = xy;
-    r01.assertEquals(xy01);
-    r2.assertEquals(xy2);
+    r01.assertEquals(xy01, message);
+    r2.assertEquals(xy2, message);
   } else {
     let xy01 = xy[0].add(xy[1].mul(1n << l));
-    r01.assertEquals(xy01);
-    r2.assertEquals(xy[2]);
+    r01.assertEquals(xy01, message);
+    r2.assertEquals(xy[2], message);
   }
 }
 
@@ -474,7 +475,8 @@ function assertMul(
   x: Field3 | Sum,
   y: Field3 | Sum,
   xy: Field3 | Sum,
-  f: bigint
+  f: bigint,
+  message?: string
 ) {
   x = Sum.fromUnfinished(x);
   y = Sum.fromUnfinished(y);
@@ -505,11 +507,14 @@ function assertMul(
     let x_ = Field3.toBigint(x0);
     let y_ = Field3.toBigint(y0);
     let xy_ = Field3.toBigint(xy0);
-    assert(mod(x_ * y_, f) === xy_, 'incorrect multiplication result');
+    assert(
+      mod(x_ * y_, f) === xy_,
+      message ?? 'assertMul(): incorrect multiplication result'
+    );
     return;
   }
 
-  assertMulInternal(x0, y0, xy0, f);
+  assertMulInternal(x0, y0, xy0, f, message);
 }
 
 class Sum {
