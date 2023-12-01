@@ -22,6 +22,7 @@ import {
 import { Field } from '../core.js';
 import { ForeignField, Field3 } from './foreign-field.js';
 import { divMod32, addMod32 } from './arithmetic.js';
+import { SHA256 } from './sha256.js';
 
 export { Gadgets };
 
@@ -668,6 +669,9 @@ const Gadgets = {
    * ```
    *    */
   addMod32,
+
+  // TODO: everything
+  SHA256: SHA256,
 };
 
 export namespace Gadgets {
