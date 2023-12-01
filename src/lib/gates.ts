@@ -11,6 +11,7 @@ export {
   zero,
   rotate,
   generic,
+  lookup,
   foreignFieldAdd,
   foreignFieldMul,
 };
@@ -22,6 +23,7 @@ const Gates = {
   zero,
   rotate,
   generic,
+  lookup,
   foreignFieldAdd,
   foreignFieldMul,
   raw,
@@ -147,6 +149,41 @@ function generic(
     FieldConst.fromBigint(coefficients.mul),
     FieldConst.fromBigint(coefficients.const)
   );
+}
+
+/**
+ * **[lookup constraint](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=lookup%20gate#lookup)**
+ *
+ * Lookups allow you to check if a single value, or a series of values, are part of a table. The first case is useful to check for checking if a value belongs to a range (from 0 to 1,000, for example), whereas the second case is useful to check truth tables (for example, checking that three values can be found in the rows of an XOR table) or write and read from a memory vector (where one column is an index, and the other is the value stored at that index).
+ *
+ * @param tableId the [id](https://github.com/o1-labs/proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs) of the lookup table.
+ * @param index0 the index of the first value to lookup.
+ * @param value0 the first value to lookup.
+ * @param index1 the index of the second value to lookup.
+ * @param value1 the second value to lookup.
+ * @param index2 the index of the third value to lookup.
+ * @param value2 the third value to lookup.
+ *
+ */
+function lookup(
+  tableId: Field,
+  index0: Field,
+  value0: Field,
+  index1: Field,
+  value1: Field,
+  index2: Field,
+  value2: Field
+) {
+  Snarky.gates.lookup([
+    0,
+    tableId.value,
+    index0.value,
+    value0.value,
+    index1.value,
+    value1.value,
+    index2.value,
+    value2.value,
+  ]);
 }
 
 function zero(a: Field, b: Field, c: Field) {
