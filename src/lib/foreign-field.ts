@@ -450,7 +450,7 @@ class ForeignFieldWithMul extends ForeignField {
    * z.mul(y).assertEquals(x);
    * ```
    */
-  div(y: ForeignField | bigint | number) {
+  div(y: AlmostForeignField | bigint | number) {
     const p = this.modulus;
     let z = Gadgets.ForeignField.div(this.value, toLimbs(y, p), p);
     return new this.Constructor.AlmostReduced(z);
