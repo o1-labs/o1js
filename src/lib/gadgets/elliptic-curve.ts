@@ -31,6 +31,7 @@ const EllipticCurve = {
   double,
   negate,
   assertOnCurve,
+  scale,
   multiScalarMul,
   initialAggregator,
 };
@@ -156,6 +157,38 @@ function assertOnCurve(p: Point, f: bigint, b: bigint) {
   // x^2 * x = y^2 - b
   let message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
   ForeignField.assertMul(x2, x, y2MinusB, f, message);
+}
+
+/**
+ * EC scalar multiplication, `scalar*point`
+ *
+ * The result is constrained to be not zero.
+ */
+function scale(
+  Curve: CurveAffine,
+  scalar: Field3,
+  point: Point,
+  config: { windowSize?: number; multiples?: Point[] } = { windowSize: 3 }
+) {
+  // constant case
+  if (Field3.isConstant(scalar) && Point.isConstant(point)) {
+    let scalar_ = Field3.toBigint(scalar);
+    let p_ = Point.toBigint(point);
+    let scaled = Curve.scale(p_, scalar_);
+    return Point.from(scaled);
+  }
+
+  // provable case
+  return multiScalarMul(Curve, [scalar], [point], [config]);
+}
+
+// checks whether the elliptic curve point g is in the subgroup defined by [order]g = 0
+function assertInSubgroup(Curve: CurveAffine, p: Point) {
+  const order = Field3.from(Curve.order);
+  // [order]g = 0
+  let orderG = scale(Curve, order, p);
+  // TODO support zero result from scale
+  throw Error('unimplemented');
 }
 
 /**
