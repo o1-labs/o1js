@@ -40,7 +40,6 @@ export {
   cloneCircuitValue,
   circuitValueEquals,
   toConstant,
-  isConstant,
   InferProvable,
   HashInput,
   InferJson,
@@ -688,9 +687,4 @@ function toConstant<T>(type: Provable<T>, value: T): T {
     type.toFields(value).map((x) => x.toConstant()),
     type.toAuxiliary(value)
   );
-}
-
-function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
-function isConstant<T>(type: Provable<T>, value: T): boolean {
-  return type.toFields(value).every((x) => x.isConstant());
 }
