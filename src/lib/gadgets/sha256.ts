@@ -1,7 +1,8 @@
 // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
 
+import { Field } from '../field.js';
 import { UInt32 } from '../int.js';
-import { Provable } from '../provable.js';
+import { Gadgets } from './gadgets.js';
 
 export { SHA256 };
 
@@ -72,15 +73,21 @@ const SHA256 = {
     for (let i = 0; i < N; i++) {
       const M = messageBlocks[i];
       // for each message block of 16 x 32 bytes do:
-      const W = new Array(64);
+      const W: UInt32[] = [];
 
       // prepare message block
       for (let t = 0; t <= 15; t++) W[t] = M[t];
       for (let t = 16; t <= 63; t++) {
-        W[t] = DeltaOne(W[t - 2])
+        let temp = DeltaOne(W[t - 2])
+          .value.add(W[t - 7].value)
+          .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
+
+        W[t] = UInt32.from(Gadgets.divMod32(temp).remainder);
+        /*         W[t] = DeltaOne(W[t - 2])
           .addMod32(W[t - 7])
-          .addMod32(DeltaZero(W[t - 15]).addMod32(W[t - 16]));
+          .addMod32(DeltaZero(W[t - 15]).addMod32(W[t - 16])); */
       }
+
       // initialize working variables
       let a = H[0];
       let b = H[1];
@@ -93,13 +100,17 @@ const SHA256 = {
 
       // main loop
       for (let t = 0; t <= 63; t++) {
-        const T1 = h
-          .addMod32(SigmaOne(e))
-          .addMod32(Ch(e, f, g))
-          .addMod32(K[t])
-          .addMod32(W[t]);
+        const T1 = new UInt32(
+          Gadgets.divMod32(
+            h.value
+              .add(SigmaOne(e).value)
+              .add(Ch(e, f, g).value)
+              .add(K[t].value)
+              .add(W[t].value)
+          ).remainder
+        );
 
-        const T2 = SigmaZero(a).addMod32(Maj(a, b, c));
+        const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
 
         h = g;
         g = f;
@@ -108,7 +119,7 @@ const SHA256 = {
         d = c;
         c = b;
         b = a;
-        a = T1.addMod32(T2);
+        a = UInt32.from(Gadgets.divMod32(unreducedT2.add(T1.value)).remainder);
       }
 
       // new intermediate hash value
