@@ -298,7 +298,13 @@ function multiScalarMul(
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
+  let xEquals = ForeignField.equals(sum.x, iaFinal.x, Curve.modulus);
+  let yEquals = ForeignField.equals(sum.y, iaFinal.y, Curve.modulus);
+  let isZero = xEquals.and(yEquals);
+
+  // TODO: return isZero instead of asserting here
+  isZero.assertFalse();
+
   sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
 
   return sum;
