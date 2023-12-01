@@ -318,7 +318,7 @@ const Gadgets = {
   /**
    * Checks that three {@link Field} elements are less than 2^12 (using only one row) by verifying that they exist in the [RANGE_CHECK_TABLE](https://github.com/o1-labs/proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs).
    *
-   * It's possible to use this to check that values are less than 12 bits by scaling the value by 2^(12 - bits) before passing it in.
+   * It's possible to use this to check that a value is less than x bits by scaling the value by 2^(12 - x) before passing it in (with x < 12).
    *
    * You can find more details about lookups in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=lookup%20gate#lookup)
    *
