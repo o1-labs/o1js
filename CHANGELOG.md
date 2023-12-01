@@ -19,10 +19,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
 
-### Added
-
-- **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
-
 ### Breaking changes
 
 - Rename `Gadgets.rotate()` to `Gadgets.rotate64()` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
@@ -30,6 +26,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
+- `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
+- `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
 - `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.leftShift32()` for left shift over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
