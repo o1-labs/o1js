@@ -19,7 +19,7 @@ import {
   rightShift64,
   leftShift32,
 } from './bitwise.js';
-import { Field } from '../core.js';
+import { Field } from '../field.js';
 import { ForeignField, Field3, Sum } from './foreign-field.js';
 import { divMod32, addMod32 } from './arithmetic.js';
 
