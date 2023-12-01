@@ -3,6 +3,7 @@ import { Provable } from './provable.js';
 import { ZkProgram } from './proof_system.js';
 import { constraintSystem, print } from './testing/constraint-system.js';
 import {
+  KECCAK_DIM,
   ROUND_CONSTANTS,
   theta,
   piRho,
@@ -22,8 +23,8 @@ const KECCAK_TEST_STATE = [
 
 let KeccakBlockTransformation = ZkProgram({
   name: 'KeccakBlockTransformation',
-  publicInput: Provable.Array(Provable.Array(Field, 5), 5),
-  publicOutput: Provable.Array(Provable.Array(Field, 5), 5),
+  publicInput: Provable.Array(Provable.Array(Field, KECCAK_DIM), KECCAK_DIM),
+  publicOutput: Provable.Array(Provable.Array(Field, KECCAK_DIM), KECCAK_DIM),
 
   methods: {
     Theta: {

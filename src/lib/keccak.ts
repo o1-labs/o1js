@@ -74,7 +74,7 @@ const getKeccakStateZeros = (): Field[][] =>
 
 // ROUND TRANSFORMATION
 
-// First algrithm in the compression step of Keccak for 64-bit words.
+// First algorithm in the compression step of Keccak for 64-bit words.
 // C[x] = A[x,0] xor A[x,1] xor A[x,2] xor A[x,3] xor A[x,4]
 // D[x] = C[x-1] xor ROT(C[x+1], 1)
 // E[x,y] = A[x,y] xor D[x]
@@ -93,7 +93,6 @@ const theta = (state: Field[][]): Field[][] => {
   const stateD = Array.from({ length: KECCAK_DIM }, (_, x) =>
     Gadgets.xor(
       stateC[(x + KECCAK_DIM - 1) % KECCAK_DIM],
-      // using (x + m mod m) to avoid negative values
       Gadgets.rotate(stateC[(x + 1) % KECCAK_DIM], 1, 'left'),
       KECCAK_WORD
     )
@@ -137,7 +136,6 @@ function piRho(state: Field[][]): Field[][] {
   // for all x in {0..4} and y in {0..4}: B[y,2x+3y] = ROT(E[x,y], r[x,y])
   for (let x = 0; x < KECCAK_DIM; x++) {
     for (let y = 0; y < KECCAK_DIM; y++) {
-      // No need to use mod since this is always positive
       stateB[y][(2 * x + 3 * y) % KECCAK_DIM] = Gadgets.rotate(
         stateE[x][y],
         ROT_TABLE[x][y],
@@ -168,8 +166,8 @@ function chi(state: Field[][]): Field[][] {
         stateB[x][y],
         Gadgets.and(
           // We can use unchecked NOT because the length of the input is constrained to be 64 bits thanks to the fact that it is the output of a previous Xor64
-          Gadgets.not(stateB[(x + 1) % 5][y], KECCAK_WORD, false),
-          stateB[(x + 2) % 5][y],
+          Gadgets.not(stateB[(x + 1) % KECCAK_DIM][y], KECCAK_WORD, false),
+          stateB[(x + 2) % KECCAK_DIM][y],
           KECCAK_WORD
         ),
         KECCAK_WORD
@@ -214,4 +212,4 @@ function permutation(state: Field[][], rc: Field[]): Field[][] {
 const blockTransformation = (state: Field[][]): Field[][] =>
   permutation(state, ROUND_CONSTANTS);
 
-export { ROUND_CONSTANTS, theta, piRho, chi, iota, round, blockTransformation };
+export { KECCAK_DIM, ROUND_CONSTANTS, theta, piRho, chi, iota, round, blockTransformation };
