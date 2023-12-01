@@ -2,8 +2,30 @@ import assert from 'assert';
 import { Gadgets, Provable, UInt32 } from 'o1js';
 
 const Parser = Gadgets.SHA256.processStringToMessageBlocks;
-
 const Hash = Gadgets.SHA256.hash;
+
+const testVectors = [
+  {
+    msg: '',
+    expected:
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  },
+  {
+    msg: 'duck',
+    expected:
+      '2d2370db2447ff8cf4f3accd68c85aa119a9c893effd200a9b69176e9fc5eb98',
+  },
+  {
+    msg: 'doggo',
+    expected:
+      '8aa89c66e2c453b71400ac832a345d872c33147150267be5402552ee19b3d4ce',
+  },
+  {
+    msg: 'frog',
+    expected:
+      '74fa5327cc0f4e947789dd5e989a61a8242986a596f170640ac90337b1da1ee4',
+  },
+];
 
 const run = (msg: string, expected: string) => {
   let messageBlocks = Provable.witness(
@@ -17,34 +39,23 @@ const run = (msg: string, expected: string) => {
   });
 };
 
-Provable.runAndCheck(() => {
-  run(
-    'duck',
-    '2d2370db2447ff8cf4f3accd68c85aa119a9c893effd200a9b69176e9fc5eb98'
-  );
-  run(
-    'doggo',
-    '8aa89c66e2c453b71400ac832a345d872c33147150267be5402552ee19b3d4ce'
-  );
-  run(
-    'frog',
-    '74fa5327cc0f4e947789dd5e989a61a8242986a596f170640ac90337b1da1ee4'
-  );
+console.log('running plain');
+testVectors.forEach((v) => {
+  run(v.msg, v.expected);
 });
 
+console.log('run and check');
+Provable.runAndCheck(() => {
+  testVectors.forEach((v) => {
+    run(v.msg, v.expected);
+  });
+});
+
+console.log('constraint system');
 let cs = Provable.constraintSystem(() => {
-  run(
-    'duck',
-    '2d2370db2447ff8cf4f3accd68c85aa119a9c893effd200a9b69176e9fc5eb98'
-  );
-  run(
-    'doggo',
-    '8aa89c66e2c453b71400ac832a345d872c33147150267be5402552ee19b3d4ce'
-  );
-  run(
-    'frog',
-    '74fa5327cc0f4e947789dd5e989a61a8242986a596f170640ac90337b1da1ee4'
-  );
+  testVectors.forEach((v) => {
+    run(v.msg, v.expected);
+  });
 });
 
 console.log(cs);
