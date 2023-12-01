@@ -41,7 +41,7 @@ constraintSystem.fromZkProgram(Lookup, 'three12Bit', contains(['Lookup']));
 await Lookup.compile();
 
 await equivalentAsync(
-  { from: [maybeUint(13), maybeUint(13), maybeUint(13)], to: boolean },
+  { from: [maybeUint(12), maybeUint(12), maybeUint(12)], to: boolean },
   { runs: 3 }
 )(
   (x, y, z) => {
