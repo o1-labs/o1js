@@ -30,6 +30,7 @@ const EllipticCurve = {
   add,
   double,
   negate,
+  assertOnCurve,
   multiScalarMul,
   initialAggregator,
 };
@@ -143,6 +144,18 @@ function double(p1: Point, f: bigint) {
 
 function negate({ x, y }: Point, f: bigint) {
   return { x, y: ForeignField.negate(y, f) };
+}
+
+function assertOnCurve(p: Point, f: bigint, b: bigint) {
+  // TODO this assumes the curve has a == 0
+  let { x, y } = p;
+  let x2 = ForeignField.mul(x, x, f);
+  let y2 = ForeignField.mul(y, y, f);
+  let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
+
+  // x^2 * x = y^2 - b
+  let message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
+  ForeignField.assertMul(x2, x, y2MinusB, f, message);
 }
 
 /**

@@ -108,17 +108,7 @@ class ForeignCurve {
   }
 
   static assertOnCurve(g: ForeignCurve) {
-    if (g.isConstant()) {
-      let isOnCurve = this.Bigint.isOnCurve(g.toBigint());
-      if (!isOnCurve)
-        throw Error(
-          `${this.name}.assertOnCurve(): ${JSON.stringify(
-            this.provable.toJSON(g)
-          )} is not on the curve.`
-        );
-      return;
-    }
-    throw Error('unimplemented');
+    EllipticCurve.assertOnCurve(toPoint(g), this.Bigint.modulus, this.Bigint.b);
   }
 
   /**
@@ -174,14 +164,11 @@ class ForeignCurve {
 
   /**
    * Check that this is a valid element of the target subgroup of the curve:
+   * - Check that the coordinates are valid field elements
    * - Use {@link assertOnCurve()} to check that the point lies on the curve
    * - If the curve has cofactor unequal to 1, use {@link assertInSubgroup()}.
-   *
-   * **Exception**: If {@link createForeignCurve} is called with `{ unsafe: true }`,
-   * we don't check that curve elements are valid by default.
    */
   static check(g: ForeignCurve) {
-    // check that x, y are valid field elements
     this.Field.check(g.x);
     this.Field.check(g.y);
     this.assertOnCurve(g);
@@ -195,20 +182,32 @@ class ForeignCurve {
   static _Bigint?: CurveAffine;
   static _Field?: typeof AlmostForeignField;
   static _Scalar?: typeof AlmostForeignField;
+  static _provable?: ProvableExtended<ForeignCurve, { x: string; y: string }>;
+
+  /**
+   * Curve arithmetic on JS bigints.
+   */
   static get Bigint() {
     assert(this._Bigint !== undefined, 'ForeignCurve not initialized');
     return this._Bigint;
   }
+  /**
+   * The base field of this curve as a {@link ForeignField}.
+   */
   static get Field() {
     assert(this._Field !== undefined, 'ForeignCurve not initialized');
     return this._Field;
   }
+  /**
+   * The scalar field of this curve as a {@link ForeignField}.
+   */
   static get Scalar() {
     assert(this._Scalar !== undefined, 'ForeignCurve not initialized');
     return this._Scalar;
   }
-
-  static _provable?: ProvableExtended<ForeignCurve, { x: string; y: string }>;
+  /**
+   * `Provable<ForeignCurve>`
+   */
   static get provable() {
     assert(this._provable !== undefined, 'ForeignCurve not initialized');
     return this._provable;
@@ -244,8 +243,12 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   class Field extends FieldUnreduced.AlmostReduced {}
   class Scalar extends ScalarUnreduced.AlmostReduced {}
 
+  const BigintCurve = createCurveAffine(params);
+  assert(BigintCurve.a === 0n, 'a !=0 is not supported');
+  assert(!BigintCurve.hasCofactor, 'cofactor != 1 is not supported');
+
   class Curve extends ForeignCurve {
-    static _Bigint = createCurveAffine(params);
+    static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
     static _provable = provableFromClass(Curve, {
