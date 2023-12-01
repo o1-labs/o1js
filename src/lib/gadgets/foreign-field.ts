@@ -6,6 +6,7 @@ import {
   mod,
 } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { Bool } from '../bool.js';
 import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
@@ -73,27 +74,32 @@ const ForeignField = {
   },
 
   /**
-   * prove that x != 0 mod f
+   * check whether x = c mod f
    *
-   * assumes that x is almost reduced mod f, so we know that x can at most be 0 or f, but not 2f, 3f,...
+   * c is a constant, and we require c in [0, f)
+   *
+   * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
    */
-  assertNonZero(x: Field3, f: bigint) {
+  equals(x: Field3, c: bigint, f: bigint) {
+    assert(c >= 0n && c < f, 'equals: c must be in [0, f)');
+
     // constant case
     if (Field3.isConstant(x)) {
-      assert(Field3.toBigint(x) !== 0n, 'assertNonZero: got x = 0');
-      return;
+      return new Bool(mod(Field3.toBigint(x), f) === c);
     }
-    // provable case
-    // check that x != 0 and x != f
-    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
 
-    // (x01, x2) != (0, 0)
-    x01.equals(0n).and(x[2].equals(0n)).assertFalse();
-    // (x01, x2) != (f01, f2)
-    x01
-      .equals(f & l2Mask)
-      .and(x[2].equals(f >> l2))
-      .assertFalse();
+    // provable case
+    // check whether x = 0 or x = f
+    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
+    let [c01, c2] = [c & l2Mask, c >> l2];
+    let [cPlusF01, cPlusF2] = [(c + f) & l2Mask, (c + f) >> l2];
+
+    // (x01, x2) = (c01, c2)
+    let isC = x01.equals(c01).and(x[2].equals(c2));
+    // (x01, x2) = (cPlusF01, cPlusF2)
+    let isCPlusF = x01.equals(cPlusF01).and(x[2].equals(cPlusF2));
+
+    return isC.or(isCPlusF);
   },
 };
 
@@ -241,7 +247,7 @@ function divide(
   multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
 
   if (!allowZeroOverZero) {
-    ForeignField.assertNonZero(y, f);
+    ForeignField.equals(y, 0n, f).assertFalse();
   }
   return z;
 }
