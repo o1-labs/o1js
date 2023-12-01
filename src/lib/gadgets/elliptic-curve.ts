@@ -140,6 +140,14 @@ function double(p1: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
+// check whether a point equals a constant point
+// TODO implement the full case of two vars
+function equals(p1: Point, p2: point, f: bigint) {
+  let xEquals = ForeignField.equals(p1.x, p2.x, f);
+  let yEquals = ForeignField.equals(p1.y, p2.y, f);
+  return xEquals.and(yEquals);
+}
+
 /**
  * Verify an ECDSA signature.
  *
@@ -298,11 +306,7 @@ function multiScalarMul(
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  let xEquals = ForeignField.equals(sum.x, iaFinal.x, Curve.modulus);
-  let yEquals = ForeignField.equals(sum.y, iaFinal.y, Curve.modulus);
-  let isZero = xEquals.and(yEquals);
-
-  // TODO: return isZero instead of asserting here
+  let isZero = equals(sum, iaFinal, Curve.modulus);
   isZero.assertFalse();
 
   sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
