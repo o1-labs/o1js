@@ -10,7 +10,7 @@ import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { Tuple, TupleN } from '../util/types.js';
-import { assertOneOf } from './basic.js';
+import { assertNotVectorEquals, assertOneOf } from './basic.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 import {
   l,
@@ -220,11 +220,9 @@ function divide(
     // assert that y != 0 mod f by checking that it doesn't equal 0 or f
     // this works because we assume y[2] <= f2
     // TODO is this the most efficient way?
-    let y01 = y[0].add(y[1].mul(1n << l));
-    y01.equals(0n).and(y[2].equals(0n)).assertFalse();
-    let [f0, f1, f2] = split(f);
-    let f01 = combine2([f0, f1]);
-    y01.equals(f01).and(y[2].equals(f2)).assertFalse();
+    let y01 = toVar(y[0].add(y[1].mul(1n << l)));
+    assertNotVectorEquals([y01, y[2]], [0n, 0n]);
+    assertNotVectorEquals([y01, y[2]], [f & l2Mask, f >> l2]);
   }
 
   return z;

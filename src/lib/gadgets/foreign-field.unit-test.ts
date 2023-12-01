@@ -217,7 +217,8 @@ let invLayout = ifNotAllConstant(
 
 constraintSystem.fromZkProgram(ffProgram, 'mul', mulLayout);
 constraintSystem.fromZkProgram(ffProgram, 'inv', invLayout);
-constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
+// constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
+ffProgram.analyzeMethods().div.print();
 
 // tests with proving
 

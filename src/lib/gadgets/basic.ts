@@ -3,11 +3,11 @@
  */
 import { Fp } from '../../bindings/crypto/finite_field.js';
 import type { Field, VarField } from '../field.js';
-import { existsOne, toVar } from './common.js';
+import { assert, exists, existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
 import { TupleN } from '../util/types.js';
 
-export { arrayGet, assertOneOf };
+export { arrayGet, assertOneOf, assertNotVectorEquals };
 
 // TODO: create constant versions of these and expose on Gadgets
 
@@ -80,6 +80,50 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
       assertBilinear(z, xv, [1n, -c[i], 0n, 0n]);
     }
   }
+}
+
+/**
+ * Assert that x does not equal a constant vector c:
+ *
+ * `(x[0],...,x[n-1]) !== (c[0],...,c[n-1])`
+ *
+ * We prove this by witnessing a vector z such that:
+ *
+ * `sum_i (x[i] - c[i])*z[i] === 1`
+ *
+ * If we had `x[i] === c[i]` for all i, the left-hand side would be 0 regardless of z.
+ */
+function assertNotVectorEquals(x: Field[], c: [bigint, bigint, ...bigint[]]) {
+  let xv = x.map(toVar);
+  let n = c.length;
+  assert(n > 1 && x.length === n, 'vector lengths must match');
+
+  // witness vector z
+  let z = exists(n, () => {
+    let z = Array(n).fill(0n);
+
+    // find index where x[i] !== c[i]
+    let i = x.findIndex((xi, i) => xi.toBigInt() !== c[i]);
+    if (i === -1) return z;
+
+    // z[i] = (x[i] - c[i])^-1
+    z[i] = Fp.inverse(Fp.sub(x[i].toBigInt(), c[i])) ?? 0n;
+    return z;
+  });
+
+  let products = xv.map((xi, i) => {
+    // (xi - ci)*zi = xi*zi + 0*xi - ci*zi + 0
+    return bilinear(xi, z[i], [1n, 0n, -c[i], 0n]);
+  });
+
+  // sum_i (xi - ci)*zi = 1
+  let sum = products[0];
+  for (let i = 1; i < n - 1; i++) {
+    // sum = sum + products[i]
+    sum = bilinear(sum, products[i], [0n, 1n, 1n, 0n]);
+  }
+  // sum + products[n - 1] - 1 === 0
+  assertBilinear(sum, products[n - 1], [0n, 1n, 1n, -1n]);
 }
 
 // low-level helpers to create generic gates
