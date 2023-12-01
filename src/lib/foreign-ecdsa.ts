@@ -1,8 +1,9 @@
 import { CurveParams } from '../bindings/crypto/elliptic_curve.js';
-import { Struct, isConstant } from './circuit_value.js';
-import { ForeignCurveClass, createForeignCurve } from './foreign-curve.js';
+import { Struct } from './circuit_value.js';
+import { ForeignCurve, createForeignCurve } from './foreign-curve.js';
 import { AlmostForeignField } from './foreign-field.js';
 import { verifyEcdsaConstant } from './gadgets/elliptic-curve.js';
+import { Provable } from './provable.js';
 
 // external API
 export { createEcdsa };
@@ -13,12 +14,12 @@ type Signature = { r: AlmostForeignField; s: AlmostForeignField };
  * Returns a class {@link EcdsaSignature} enabling to parse and verify ECDSA signature in provable code,
  * for the given curve.
  */
-function createEcdsa(curve: CurveParams | ForeignCurveClass) {
-  let Curve0: ForeignCurveClass =
+function createEcdsa(curve: CurveParams | typeof ForeignCurve) {
+  let Curve0: typeof ForeignCurve =
     'b' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
   class Scalar extends Curve.Scalar {}
-  class BaseField extends Curve.BaseField {}
+  class BaseField extends Curve.Field {}
 
   const Signature: Struct<Signature> = Struct({
     r: Scalar.provable,
@@ -71,7 +72,7 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
       let msgHash_ = Scalar.from(msgHash);
       let publicKey_ = Curve.from(publicKey);
 
-      if (isConstant(Signature, this)) {
+      if (Provable.isConstant(Signature, this)) {
         let isValid = verifyEcdsaConstant(
           Curve.Bigint,
           { r: this.r.toBigInt(), s: this.s.toBigInt() },
@@ -90,7 +91,7 @@ function createEcdsa(curve: CurveParams | ForeignCurveClass) {
      * Check that r, s are valid scalars and both are non-zero
      */
     static check(signature: { r: Scalar; s: Scalar }) {
-      if (isConstant(Signature, signature)) {
+      if (Provable.isConstant(Signature, signature)) {
         super.check(signature); // check valid scalars
         if (signature.r.toBigInt() === 0n)
           throw Error(`${this.name}.check(): r must be non-zero`);
