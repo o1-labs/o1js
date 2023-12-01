@@ -703,6 +703,10 @@ class UInt32 extends CircuitValue {
     Gadgets.rangeCheck32(z);
     return new UInt32(z);
   }
+
+  addMod32(y: UInt32) {
+    return new UInt32(Gadgets.addMod32(this.value, y.value));
+  }
   /**
    * Subtraction with underflow checking.
    */
@@ -732,7 +736,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   xor(x: UInt32) {
-    return Gadgets.xor(this.value, x.value, UInt32.NUM_BITS);
+    return UInt32.from(Gadgets.xor(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
@@ -763,7 +767,7 @@ class UInt32 extends CircuitValue {
    * @param a - The value to apply NOT to.
    */
   not() {
-    return Gadgets.not(this.value, UInt32.NUM_BITS, false);
+    return UInt32.from(Gadgets.not(this.value, UInt32.NUM_BITS, false));
   }
 
   /**
@@ -795,7 +799,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate32(this.value, bits, direction);
+    return UInt32.from(Gadgets.rotate32(this.value, bits, direction));
   }
 
   /**
@@ -818,7 +822,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return Gadgets.leftShift32(this.value, bits);
+    return UInt32.from(Gadgets.leftShift32(this.value, bits));
   }
 
   /**
@@ -841,7 +845,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return Gadgets.rightShift64(this.value, bits);
+    return UInt32.from(Gadgets.rightShift64(this.value, bits));
   }
 
   /**
@@ -870,7 +874,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   and(x: UInt32) {
-    return Gadgets.and(this.value, x.value, UInt32.NUM_BITS);
+    return UInt32.from(Gadgets.and(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
