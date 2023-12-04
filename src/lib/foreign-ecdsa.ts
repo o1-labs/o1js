@@ -1,9 +1,9 @@
 import { CurveParams } from '../bindings/crypto/elliptic_curve.js';
 import { Struct } from './circuit_value.js';
-import { ForeignCurve, createForeignCurve } from './foreign-curve.js';
+import { ForeignCurve, createForeignCurve, toPoint } from './foreign-curve.js';
 import { AlmostForeignField } from './foreign-field.js';
-import { verifyEcdsaConstant } from './gadgets/elliptic-curve.js';
-import { Provable } from './provable.js';
+import { Field3 } from './gadgets/foreign-field.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 // external API
 export { createEcdsa };
@@ -29,18 +29,22 @@ function createEcdsa(curve: CurveParams | typeof ForeignCurve) {
   class EcdsaSignature extends Signature {
     static Curve = Curve0;
 
+    constructor(signature: {
+      r: Scalar | Field3 | bigint;
+      s: Scalar | Field3 | bigint;
+    }) {
+      super({ r: new Scalar(signature.r), s: new Scalar(signature.s) });
+    }
+
     /**
      * Coerce the input to a {@link EcdsaSignature}.
      */
     static from(signature: {
-      r: Scalar | bigint;
-      s: Scalar | bigint;
+      r: Scalar | Field3 | bigint;
+      s: Scalar | Field3 | bigint;
     }): EcdsaSignature {
-      if (signature instanceof EcdsaSignature) return signature;
-      return new EcdsaSignature({
-        r: Scalar.from(signature.r),
-        s: Scalar.from(signature.s),
-      });
+      if (signature instanceof this) return signature;
+      return new EcdsaSignature(signature);
     }
 
     /**
@@ -48,16 +52,8 @@ function createEcdsa(curve: CurveParams | typeof ForeignCurve) {
      * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
      */
     static fromHex(rawSignature: string): EcdsaSignature {
-      let prefix = rawSignature.slice(0, 2);
-      let signature = rawSignature.slice(2, 130);
-      if (prefix !== '0x' || signature.length < 128) {
-        throw Error(
-          `${this.name}.fromHex(): Invalid signature, expected hex string 0x... of length at least 130.`
-        );
-      }
-      let r = BigInt(`0x${signature.slice(0, 64)}`);
-      let s = BigInt(`0x${signature.slice(64)}`);
-      return new EcdsaSignature({ r: Scalar.from(r), s: Scalar.from(s) });
+      let s = Gadgets.Ecdsa.Signature.fromHex(rawSignature);
+      return new EcdsaSignature(s);
     }
 
     /**
@@ -68,42 +64,23 @@ function createEcdsa(curve: CurveParams | typeof ForeignCurve) {
     verify(
       msgHash: Scalar | bigint,
       publicKey: Curve | { x: BaseField | bigint; y: BaseField | bigint }
-    ): void {
+    ) {
       let msgHash_ = Scalar.from(msgHash);
       let publicKey_ = Curve.from(publicKey);
-
-      if (Provable.isConstant(Signature, this)) {
-        let isValid = verifyEcdsaConstant(
-          Curve.Bigint,
-          { r: this.r.toBigInt(), s: this.s.toBigInt() },
-          msgHash_.toBigInt(),
-          publicKey_.toBigint()
-        );
-        if (!isValid) {
-          throw Error(`${this.constructor.name}.verify(): Invalid signature.`);
-        }
-        return;
-      }
-      throw Error('unimplemented');
-    }
-
-    /**
-     * Check that r, s are valid scalars and both are non-zero
-     */
-    static check(signature: { r: Scalar; s: Scalar }) {
-      if (Provable.isConstant(Signature, signature)) {
-        super.check(signature); // check valid scalars
-        if (signature.r.toBigInt() === 0n)
-          throw Error(`${this.name}.check(): r must be non-zero`);
-        if (signature.s.toBigInt() === 0n)
-          throw Error(`${this.name}.check(): s must be non-zero`);
-        return;
-      }
-      throw Error('unimplemented');
+      return Gadgets.Ecdsa.verify(
+        Curve.Bigint,
+        toObject(this),
+        msgHash_.value,
+        toPoint(publicKey_)
+      );
     }
 
     static dummy = new EcdsaSignature({ r: new Scalar(1), s: new Scalar(1) });
   }
 
   return EcdsaSignature;
+}
+
+function toObject(signature: Signature) {
+  return { r: signature.r.value, s: signature.s.value };
 }
