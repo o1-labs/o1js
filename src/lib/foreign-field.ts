@@ -1,4 +1,9 @@
-import { mod, Fp } from '../bindings/crypto/finite_field.js';
+import {
+  mod,
+  Fp,
+  FiniteField,
+  createField,
+} from '../bindings/crypto/finite_field.js';
 import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
@@ -19,9 +24,14 @@ export type {
 };
 
 class ForeignField {
+  static _Bigint: FiniteField | undefined = undefined;
   static _modulus: bigint | undefined = undefined;
 
   // static parameters
+  static get Bigint() {
+    assert(this._Bigint !== undefined, 'ForeignField class not initialized.');
+    return this._Bigint;
+  }
   static get modulus() {
     assert(this._modulus !== undefined, 'ForeignField class not initialized.');
     return this._modulus;
@@ -389,6 +399,10 @@ class ForeignField {
     return new this.AlmostReduced([l0, l1, l2]);
   }
 
+  static random() {
+    return new this.Canonical(this.Bigint.random());
+  }
+
   /**
    * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
    */
@@ -607,7 +621,10 @@ function createForeignField(modulus: bigint): typeof UnreducedForeignField {
     `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`
   );
 
+  let Bigint = createField(modulus);
+
   class UnreducedField extends UnreducedForeignField {
+    static _Bigint = Bigint;
     static _modulus = modulus;
     static _provable = provable(UnreducedField);
 
@@ -618,6 +635,7 @@ function createForeignField(modulus: bigint): typeof UnreducedForeignField {
   }
 
   class AlmostField extends AlmostForeignField {
+    static _Bigint = Bigint;
     static _modulus = modulus;
     static _provable = provable(AlmostField);
 
@@ -629,6 +647,7 @@ function createForeignField(modulus: bigint): typeof UnreducedForeignField {
   }
 
   class CanonicalField extends CanonicalForeignField {
+    static _Bigint = Bigint;
     static _modulus = modulus;
     static _provable = provable(CanonicalField);
 
