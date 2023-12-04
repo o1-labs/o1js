@@ -90,7 +90,7 @@ class EcdsaSignature {
   >;
 
   /**
-   * Curve arithmetic on JS bigints.
+   * The {@link ForeignCurve} on which the ECDSA signature is defined.
    */
   static get Curve() {
     assert(this._Curve !== undefined, 'EcdsaSignature not initialized');
@@ -106,8 +106,8 @@ class EcdsaSignature {
 }
 
 /**
- * Returns a class {@link EcdsaSignature} enabling to parse and verify ECDSA signature in provable code,
- * for the given curve.
+ * Returns a class {@link EcdsaSignature} enabling to verify ECDSA signatures
+ * on the given curve, in provable code.
  */
 function createEcdsa(curve: CurveParams | typeof ForeignCurve) {
   let Curve0: typeof ForeignCurve =
