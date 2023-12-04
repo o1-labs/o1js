@@ -202,9 +202,8 @@ function scale(
 
 // checks whether the elliptic curve point g is in the subgroup defined by [order]g = 0
 function assertInSubgroup(Curve: CurveAffine, p: Point) {
-  const order = Field3.from(Curve.order);
-  // [order]g = 0
-  scale(Curve, order, p, { mode: 'assert-zero' });
+  if (!Curve.hasCofactor) return;
+  scale(Curve, Field3.from(Curve.order), p, { mode: 'assert-zero' });
 }
 
 // check whether a point equals a constant point

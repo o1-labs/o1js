@@ -10,7 +10,7 @@ import {
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../field.js';
 import { ForeignField, Field3, Sum } from './foreign-field.js';
-import { Ecdsa, Point } from './elliptic-curve.js';
+import { Ecdsa, EllipticCurve, Point } from './elliptic-curve.js';
 import { CurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 import { Crypto } from '../crypto.js';
 
@@ -600,10 +600,73 @@ const Gadgets = {
   },
 
   /**
+   * Operations on elliptic curves in non-native arithmetic.
+   */
+  EllipticCurve: {
+    /**
+     * Elliptic curve addition.
+     */
+    add(p: Point, q: Point, Curve: { modulus: bigint }) {
+      return EllipticCurve.add(p, q, Curve.modulus);
+    },
+
+    /**
+     * Elliptic curve doubling.
+     */
+    double(p: Point, Curve: { modulus: bigint; a: bigint }) {
+      return EllipticCurve.double(p, Curve.modulus, Curve.a);
+    },
+
+    /**
+     * Elliptic curve negation.
+     */
+    negate(p: Point, Curve: { modulus: bigint }) {
+      return EllipticCurve.negate(p, Curve.modulus);
+    },
+
+    /**
+     * Scalar multiplication.
+     */
+    scale(scalar: Field3, p: Point, Curve: CurveAffine) {
+      return EllipticCurve.scale(Curve, scalar, p);
+    },
+
+    /**
+     * Multi-scalar multiplication.
+     */
+    scaleMany(scalars: Field3[], points: Point[], Curve: CurveAffine) {
+      return EllipticCurve.multiScalarMul(Curve, scalars, points);
+    },
+
+    /**
+     * Prove that the given point is on the given curve.
+     *
+     * @example
+     * ```ts
+     * Gadgets.ForeignCurve.assertPointOnCurve(point, Curve);
+     * ```
+     */
+    assertOnCurve(p: Point, Curve: { modulus: bigint; a: bigint; b: bigint }) {
+      EllipticCurve.assertOnCurve(p, Curve);
+    },
+
+    /**
+     * Prove that the given point is in the prime-order subgroup of the given curve.
+     *
+     * @example
+     * ```ts
+     * Gadgets.ForeignCurve.assertInSubgroup(point, Curve);
+     * ```
+     */
+    assertInSubgroup(p: Point, Curve: CurveAffine) {
+      EllipticCurve.assertInSubgroup(Curve, p);
+    },
+  },
+
+  /**
    * ECDSA verification gadget and helper methods.
    */
   Ecdsa: {
-    // TODO add an easy way to prove that the public key lies on the curve, and show in the example
     /**
      * Verify an ECDSA signature.
      *
@@ -619,6 +682,14 @@ const Gadgets = {
      *   [signature.r, signature.s, msgHash],
      *   Curve.order
      * );
+     *
+     * // assert that the public key is valid
+     * Gadgets.ForeignField.assertAlmostReduced(
+     *   [publicKey.x, publicKey.y],
+     *   Curve.modulus
+     * );
+     * Gadgets.EllipticCurve.assertOnCurve(publicKey, Curve);
+     * Gadgets.EllipticCurve.assertInSubgroup(publicKey, Curve);
      *
      * // verify signature
      * let isValid = Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
@@ -674,6 +745,13 @@ export namespace Gadgets {
     export type Sum = Sum_;
   }
 
+  /**
+   * Non-zero elliptic curve point in affine coordinates.
+   *
+   * The coordinates are represented as 3-limb bigints.
+   */
+  export type Point = Point_;
+
   export namespace Ecdsa {
     /**
      * ECDSA signature consisting of two curve scalars.
@@ -683,5 +761,27 @@ export namespace Gadgets {
   }
 }
 type Sum_ = Sum;
+type Point_ = Point;
 type EcdsaSignature = Ecdsa.Signature;
 type ecdsaSignature = Ecdsa.signature;
+
+function verify(signature: Ecdsa.Signature, msgHash: Field3, publicKey: Point) {
+  const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
+  // assert that message hash and signature are valid scalar field elements
+  Gadgets.ForeignField.assertAlmostReduced(
+    [signature.r, signature.s, msgHash],
+    Curve.order
+  );
+
+  // assert that the public key is valid
+  Gadgets.ForeignField.assertAlmostReduced(
+    [publicKey.x, publicKey.y],
+    Curve.modulus
+  );
+  Gadgets.EllipticCurve.assertOnCurve(publicKey, Curve);
+  Gadgets.EllipticCurve.assertInSubgroup(publicKey, Curve);
+
+  // verify signature
+  let isValid = Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
+  isValid.assertTrue();
+}
