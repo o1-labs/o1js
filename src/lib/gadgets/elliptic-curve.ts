@@ -154,7 +154,7 @@ function equals(p1: Point, p2: point, f: bigint) {
  * Details about the `config` parameter:
  * - For both the generator point `G` and public key `P`, `config` allows you to specify:
  *   - the `windowSize` which is used in scalar multiplication for this point.
- *     flexibility is good because the optimal window size is different for constant and non-constant points.
+ *     this flexibility is good because the optimal window size is different for constant and non-constant points.
  *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
  *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
  *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
@@ -475,7 +475,7 @@ function sliceField(
   let chunks = [];
   let sum = Field.from(0n);
 
-  // if there's a leftover chunk from a previous slizeField() call, we complete it
+  // if there's a leftover chunk from a previous sliceField() call, we complete it
   if (leftover !== undefined) {
     let { chunks: previous, leftoverSize: size } = leftover;
     let remainingChunk = Field.from(0n);

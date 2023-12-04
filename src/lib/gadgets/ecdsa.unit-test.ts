@@ -33,7 +33,8 @@ for (let Curve of curves) {
   let scalar = foreignField(Curve.Scalar);
   let privateKey = uniformForeignField(Curve.Scalar);
 
-  let pseudoSignature = record({
+  // correct signature shape, but independently random components, which will never form a valid signature
+  let badSignature = record({
     signature: record({ r: scalar, s: scalar }),
     msg: scalar,
     publicKey: record({ x: field, y: field }),
@@ -42,7 +43,7 @@ for (let Curve of curves) {
   let signatureInputs = record({ privateKey, msg: scalar });
 
   let signature = map(
-    { from: signatureInputs, to: pseudoSignature },
+    { from: signatureInputs, to: badSignature },
     ({ privateKey, msg }) => {
       let publicKey = Curve.scale(Curve.one, privateKey);
       let signature = Ecdsa.sign(Curve, msg, privateKey);
@@ -63,14 +64,14 @@ for (let Curve of curves) {
   );
 
   // negative test
-  equivalentProvable({ from: [pseudoSignature], to: bool })(
+  equivalentProvable({ from: [badSignature], to: bool })(
     () => false,
     verify,
     'invalid signature fails'
   );
 
   // test against constant implementation, with both invalid and valid signatures
-  equivalentProvable({ from: [oneOf(signature, pseudoSignature)], to: bool })(
+  equivalentProvable({ from: [oneOf(signature, badSignature)], to: bool })(
     ({ signature, publicKey, msg }) => {
       return verifyEcdsaConstant(Curve, signature, msg, publicKey);
     },
@@ -102,20 +103,6 @@ let program = ZkProgram({
   name: 'ecdsa',
   publicOutput: Bool,
   methods: {
-    scale: {
-      privateInputs: [],
-      method() {
-        let G = Point.from(Secp256k1.one);
-        let P = Provable.witness(Point.provable, () => publicKey);
-        let R = EllipticCurve.multiScalarMul(
-          Secp256k1,
-          [signature.s, signature.r],
-          [G, P],
-          [config.G, config.P]
-        );
-        return new Bool(true);
-      },
-    },
     ecdsa: {
       privateInputs: [],
       method() {
@@ -137,18 +124,17 @@ let program = ZkProgram({
     },
   },
 });
-let main = program.rawMethods.ecdsa;
 
 console.time('ecdsa verify (constant)');
-main();
+program.rawMethods.ecdsa();
 console.timeEnd('ecdsa verify (constant)');
 
 console.time('ecdsa verify (witness gen / check)');
-Provable.runAndCheck(main);
+Provable.runAndCheck(program.rawMethods.ecdsa);
 console.timeEnd('ecdsa verify (witness gen / check)');
 
 console.time('ecdsa verify (build constraint system)');
-let cs = Provable.constraintSystem(main);
+let cs = program.analyzeMethods().ecdsa;
 console.timeEnd('ecdsa verify (build constraint system)');
 
 let gateTypes: Record<string, number> = {};
