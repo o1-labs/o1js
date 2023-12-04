@@ -38,11 +38,4 @@ console.time('ecdsa verify (build constraint system)');
 let cs = Provable.constraintSystem(main);
 console.timeEnd('ecdsa verify (build constraint system)');
 
-let gateTypes: Record<string, number> = {};
-gateTypes['Total rows'] = cs.rows;
-for (let gate of cs.gates) {
-  gateTypes[gate.type] ??= 0;
-  gateTypes[gate.type]++;
-}
-
-console.log(gateTypes);
+console.log(cs.summary());

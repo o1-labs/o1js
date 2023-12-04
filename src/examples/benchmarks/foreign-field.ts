@@ -1,6 +1,8 @@
-import { Scalar, vestaParams, Provable, createForeignField } from 'snarkyjs';
+import { Scalar, Crypto, Provable, createForeignField } from 'o1js';
 
-class ForeignScalar extends createForeignField(vestaParams.modulus) {}
+class ForeignScalar extends createForeignField(
+  Crypto.CurveParams.Secp256k1.modulus
+).AlmostReduced {}
 
 // TODO ForeignField.random()
 function random() {
@@ -8,8 +10,8 @@ function random() {
 }
 
 function main() {
-  let s = Provable.witness(ForeignScalar, random);
-  let t = Provable.witness(ForeignScalar, random);
+  let s = Provable.witness(ForeignScalar.provable, random);
+  let t = Provable.witness(ForeignScalar.provable, random);
   s.mul(t);
 }
 
@@ -17,19 +19,12 @@ console.time('running constant version');
 main();
 console.timeEnd('running constant version');
 
-// half of this time is spent in `field_to_bignum_bigint`, which is mostly addition of zarith bigints -.-
 console.time('running witness generation & checks');
 Provable.runAndCheck(main);
 console.timeEnd('running witness generation & checks');
 
 console.time('creating constraint system');
-let { gates } = Provable.constraintSystem(main);
+let cs = Provable.constraintSystem(main);
 console.timeEnd('creating constraint system');
 
-let gateTypes: Record<string, number> = {};
-for (let gate of gates) {
-  gateTypes[gate.type] ??= 0;
-  gateTypes[gate.type]++;
-}
-
-console.log(gateTypes);
+console.log(cs.summary());
