@@ -32,6 +32,7 @@ const EllipticCurve = {
   negate,
   assertOnCurve,
   scale,
+  assertInSubgroup,
   multiScalarMul,
   initialAggregator,
 };
@@ -172,27 +173,35 @@ function scale(
   Curve: CurveAffine,
   scalar: Field3,
   point: Point,
-  config: { windowSize?: number; multiples?: Point[] } = { windowSize: 3 }
+  config: {
+    mode?: 'assert-nonzero' | 'assert-zero';
+    windowSize?: number;
+    multiples?: Point[];
+  } = { mode: 'assert-nonzero' }
 ) {
   // constant case
   if (Field3.isConstant(scalar) && Point.isConstant(point)) {
     let scalar_ = Field3.toBigint(scalar);
     let p_ = Point.toBigint(point);
     let scaled = Curve.scale(p_, scalar_);
+    if (config.mode === 'assert-zero') {
+      assert(scaled.infinity, 'scale: expected zero result');
+      return Point.from(Curve.zero);
+    }
+    assert(!scaled.infinity, 'scale: expected non-zero result');
     return Point.from(scaled);
   }
 
   // provable case
-  return multiScalarMul(Curve, [scalar], [point], [config]);
+  config.windowSize ??= Point.isConstant(point) ? 4 : 3;
+  return multiScalarMul(Curve, [scalar], [point], [config], config.mode);
 }
 
 // checks whether the elliptic curve point g is in the subgroup defined by [order]g = 0
 function assertInSubgroup(Curve: CurveAffine, p: Point) {
   const order = Field3.from(Curve.order);
   // [order]g = 0
-  let orderG = scale(Curve, order, p);
-  // TODO support zero result from scale
-  throw Error('unimplemented');
+  scale(Curve, order, p, { mode: 'assert-zero' });
 }
 
 // check whether a point equals a constant point
@@ -261,6 +270,7 @@ function verifyEcdsa(
     [u1, u2],
     [G, publicKey],
     config && [config.G, config.P],
+    'assert-nonzero',
     config?.ia
   );
   // this ^ already proves that R != 0 (part of ECDSA verification)
@@ -280,9 +290,14 @@ function verifyEcdsa(
  *
  * s_0 * P_0 + ... + s_(n-1) * P_(n-1)
  *
- * where P_i are any points. The result is not allowed to be zero.
+ * where P_i are any points.
  *
- * We double all points together and leverage a precomputed table of size 2^c to avoid all but every cth addition.
+ * By default, we prove that the result is not zero.
+ *
+ * If you set the `mode` parameter to `'assert-zero'`, on the other hand,
+ * we assert that the result is zero and just return the constant zero point.
+ *
+ * Implementation: We double all points together and leverage a precomputed table of size 2^c to avoid all but every cth addition.
  *
  * Note: this algorithm targets a small number of points, like 2 needed for ECDSA verification.
  *
@@ -298,6 +313,7 @@ function multiScalarMul(
     | { windowSize?: number; multiples?: Point[] }
     | undefined
   )[] = [],
+  mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero',
   ia?: point
 ): Point {
   let n = points.length;
@@ -362,9 +378,15 @@ function multiScalarMul(
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
   let isZero = equals(sum, iaFinal, Curve.modulus);
-  isZero.assertFalse();
 
-  sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
+  if (mode === 'assert-nonzero') {
+    isZero.assertFalse();
+    sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
+  } else {
+    isZero.assertTrue();
+    // for type consistency with the 'assert-nonzero' case
+    sum = Point.from(Curve.zero);
+  }
 
   return sum;
 }

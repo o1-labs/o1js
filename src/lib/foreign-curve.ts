@@ -125,34 +125,18 @@ class ForeignCurve {
    */
   scale(scalar: AlmostForeignField | bigint | number) {
     let scalar_ = this.Constructor.Scalar.from(scalar);
-    if (this.isConstant() && scalar_.isConstant()) {
-      let z = this.Constructor.Bigint.scale(
-        this.toBigint(),
-        scalar_.toBigInt()
-      );
-      return new this.Constructor(z);
-    }
-    let p = EllipticCurve.multiScalarMul(
+    let p = EllipticCurve.scale(
       this.Constructor.Bigint,
-      [scalar_.value],
-      [toPoint(this)],
-      [{ windowSize: 3 }]
+      scalar_.value,
+      toPoint(this)
     );
     return new this.Constructor(p);
   }
 
   static assertInSubgroup(g: ForeignCurve) {
-    if (g.isConstant()) {
-      let isInGroup = this.Bigint.isInSubgroup(g.toBigint());
-      if (!isInGroup)
-        throw Error(
-          `${this.name}.assertInSubgroup(): ${JSON.stringify(
-            this.provable.toJSON(g)
-          )} is not in the target subgroup.`
-        );
-      return;
+    if (this.Bigint.hasCofactor) {
+      EllipticCurve.assertInSubgroup(this.Bigint, toPoint(g));
     }
-    throw Error('unimplemented');
   }
 
   /**
@@ -173,7 +157,7 @@ class ForeignCurve {
     this.Field.check(g.x);
     this.Field.check(g.y);
     this.assertOnCurve(g);
-    if (this.Bigint.hasCofactor) this.assertInSubgroup(g);
+    this.assertInSubgroup(g);
   }
 
   // dynamic subclassing infra
