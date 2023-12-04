@@ -108,7 +108,9 @@ const theta = (state: Field[][]): Field[][] => {
 };
 
 // Second and third steps in the compression step of Keccak for 64-bit words.
-// B[y,2x+3y] = ROT(E[x,y], r[x,y])
+// pi: A[x,y] = ROT(E[x,y], r[x,y])
+// rho: A[x,y] = A'[y, 2x+3y mod KECCAK_DIM]
+// piRho: B[y,2x+3y] = ROT(E[x,y], r[x,y])
 // which is equivalent to the `rho` algorithm followed by the `pi` algorithm in the Keccak reference as follows:
 // rho:
 // A[0,0] = a[0,0]
