@@ -147,16 +147,20 @@ function negate({ x, y }: Point, f: bigint) {
   return { x, y: ForeignField.negate(y, f) };
 }
 
-function assertOnCurve(p: Point, f: bigint, b: bigint) {
-  // TODO this assumes the curve has a == 0
+function assertOnCurve(
+  p: Point,
+  { modulus: f, a, b }: { modulus: bigint; b: bigint; a: bigint }
+) {
   let { x, y } = p;
   let x2 = ForeignField.mul(x, x, f);
   let y2 = ForeignField.mul(y, y, f);
   let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
 
-  // x^2 * x = y^2 - b
+  // (x^2 + a) * x = y^2 - b
+  let x2PlusA = ForeignField.Sum(x2);
+  if (a !== 0n) x2PlusA = x2PlusA.add(Field3.from(a));
   let message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
-  ForeignField.assertMul(x2, x, y2MinusB, f, message);
+  ForeignField.assertMul(x2PlusA, x, y2MinusB, f, message);
 }
 
 /**

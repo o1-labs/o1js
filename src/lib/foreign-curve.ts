@@ -109,7 +109,7 @@ class ForeignCurve {
   }
 
   static assertOnCurve(g: ForeignCurve) {
-    EllipticCurve.assertOnCurve(toPoint(g), this.Bigint.modulus, this.Bigint.b);
+    EllipticCurve.assertOnCurve(toPoint(g), this.Bigint);
   }
 
   /**
