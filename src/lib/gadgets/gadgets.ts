@@ -764,24 +764,3 @@ type Sum_ = Sum;
 type Point_ = Point;
 type EcdsaSignature = Ecdsa.Signature;
 type ecdsaSignature = Ecdsa.signature;
-
-function verify(signature: Ecdsa.Signature, msgHash: Field3, publicKey: Point) {
-  const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
-  // assert that message hash and signature are valid scalar field elements
-  Gadgets.ForeignField.assertAlmostReduced(
-    [signature.r, signature.s, msgHash],
-    Curve.order
-  );
-
-  // assert that the public key is valid
-  Gadgets.ForeignField.assertAlmostReduced(
-    [publicKey.x, publicKey.y],
-    Curve.modulus
-  );
-  Gadgets.EllipticCurve.assertOnCurve(publicKey, Curve);
-  Gadgets.EllipticCurve.assertInSubgroup(publicKey, Curve);
-
-  // verify signature
-  let isValid = Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
-  isValid.assertTrue();
-}
