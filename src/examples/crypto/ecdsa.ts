@@ -19,7 +19,7 @@ let msgHash =
   );
 
 function main() {
-  let signature0 = Provable.witness(EthSignature, () => signature);
+  let signature0 = Provable.witness(EthSignature.provable, () => signature);
   signature0.verify(msgHash, publicKey);
 }
 

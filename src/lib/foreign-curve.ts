@@ -16,7 +16,7 @@ import { provableFromClass } from '../bindings/lib/provable-snarky.js';
 export { createForeignCurve, ForeignCurve };
 
 // internal API
-export { toPoint };
+export { toPoint, FlexiblePoint };
 
 type FlexiblePoint = {
   x: AlmostForeignField | Field3 | bigint | number;
