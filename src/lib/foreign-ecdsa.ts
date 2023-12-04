@@ -71,6 +71,14 @@ class EcdsaSignature {
     );
   }
 
+  /**
+   * Create an {@link EcdsaSignature} by signing a message hash with a private key.
+   */
+  static sign(msgHash: bigint, privateKey: bigint) {
+    let { r, s } = Gadgets.Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
+    return new this({ r, s });
+  }
+
   // dynamic subclassing infra
   get Constructor() {
     return this.constructor as typeof EcdsaSignature;
