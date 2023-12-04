@@ -229,8 +229,6 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   class Scalar extends ScalarUnreduced.AlmostReduced {}
 
   const BigintCurve = createCurveAffine(params);
-  assert(BigintCurve.a === 0n, 'a !=0 is not supported');
-  assert(!BigintCurve.hasCofactor, 'cofactor != 1 is not supported');
 
   class Curve extends ForeignCurve {
     static _Bigint = BigintCurve;
