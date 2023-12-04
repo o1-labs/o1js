@@ -10,7 +10,7 @@ import { Bool } from '../bool.js';
 import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Tuple, TupleN } from '../util/types.js';
+import { Tuple, TupleN, TupleN } from '../util/types.js';
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 import {
@@ -356,6 +356,12 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
+  // if f0, f1 === 0, we can use a stronger bound x[2] < f2
+  // because this is true for all field elements x in [0,f)
+  if ((f & l2Mask) === 0n) {
+    return x.add(lMask + 1n - (f >> l2));
+  }
+  // otherwise, we use x[2] < f2 + 1, so we allow x[2] === f2
   return x.add(lMask - (f >> l2));
 }
 
@@ -363,11 +369,11 @@ function weakBound(x: Field, f: bigint) {
  * Apply range checks and weak bounds checks to a list of Field3s.
  * Optimal if the list length is a multiple of 3.
  */
-function assertAlmostReduced(xs: Field3[], f: bigint) {
+function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
   let bounds: Field[] = [];
 
   for (let x of xs) {
-    multiRangeCheck(x);
+    if (!skipMrc) multiRangeCheck(x);
 
     bounds.push(weakBound(x[2], f));
     if (TupleN.hasLength(3, bounds)) {
