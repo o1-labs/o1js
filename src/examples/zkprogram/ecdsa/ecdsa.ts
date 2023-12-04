@@ -28,7 +28,7 @@ const ecdsaProgram = ZkProgram({
         msgHash: Gadgets.Field3
       ) {
         // assert that private inputs are valid
-        ForeignField.assertAlmostFieldElements(
+        ForeignField.assertAlmostReduced(
           [signature.r, signature.s, msgHash],
           Secp256k1.order
         );
