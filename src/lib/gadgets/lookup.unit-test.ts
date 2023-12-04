@@ -10,7 +10,16 @@ import {
 import { Random } from '../testing/property.js';
 import { assert } from './common.js';
 import { Gadgets } from './gadgets.js';
-import { constraintSystem, contains } from '../testing/constraint-system.js';
+import {
+  and,
+  constraintSystem,
+  contains,
+  print,
+} from '../testing/constraint-system.js';
+
+let uint = (n: number | bigint): Spec<bigint, Field> => {
+  return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
+};
 
 let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   let uint = Random.bignat((1n << BigInt(n)) - 1n);
@@ -36,13 +45,17 @@ let Lookup = ZkProgram({
 
 // constraint system sanity check
 
-constraintSystem.fromZkProgram(Lookup, 'three12Bit', contains(['Lookup']));
+constraintSystem.fromZkProgram(
+  Lookup,
+  'three12Bit',
+  and(print, contains(['Lookup']))
+);
 
 await Lookup.compile();
 
 await equivalentAsync(
-  { from: [maybeUint(12), maybeUint(12), maybeUint(12)], to: boolean },
-  { runs: 3 }
+  { from: [uint(12), uint(12), uint(12)], to: boolean },
+  { runs: 5 }
 )(
   (x, y, z) => {
     assert(x < 1n << 12n);
