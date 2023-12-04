@@ -160,7 +160,10 @@ function assertOnCurve(
   // (x^2 + a) * x = y^2 - b
   let x2PlusA = ForeignField.Sum(x2);
   if (a !== 0n) x2PlusA = x2PlusA.add(Field3.from(a));
-  let message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
+  let message: string | undefined;
+  if (Point.isConstant(p)) {
+    message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
+  }
   ForeignField.assertMul(x2PlusA, x, y2MinusB, f, message);
 }
 
