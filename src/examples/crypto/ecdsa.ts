@@ -1,7 +1,4 @@
-import { createEcdsa } from './foreign-ecdsa.js';
-import { createForeignCurve } from './foreign-curve.js';
-import { Provable } from './provable.js';
-import { Crypto } from './crypto.js';
+import { Crypto, createForeignCurve, createEcdsa, Provable } from 'o1js';
 
 class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 

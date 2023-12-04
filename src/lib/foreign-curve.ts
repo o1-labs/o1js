@@ -43,7 +43,10 @@ class ForeignCurve {
     this.x = new this.Constructor.Field(g.x);
     this.y = new this.Constructor.Field(g.y);
     // don't allow constants that aren't on the curve
-    if (this.isConstant()) this.assertOnCurve();
+    if (this.isConstant()) {
+      this.assertOnCurve();
+      this.assertInSubgroup();
+    }
   }
 
   /**
@@ -203,24 +206,14 @@ class ForeignCurve {
  * Create a class representing an elliptic curve group, which is different from the native {@link Group}.
  *
  * ```ts
- * const Curve = createForeignCurve(secp256k1Params); // the elliptic curve 'secp256k1'
+ * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
  * ```
  *
  * `createForeignCurve(params)` takes the curve parameters {@link CurveParams} as input.
  * We support `modulus` and `order` to be prime numbers to 259 bits.
  *
  * The returned {@link ForeignCurve} class supports standard elliptic curve operations like point addition and scalar multiplication.
- * It also includes to associated foreign fields: `ForeignCurve.BaseField` and `ForeignCurve.Scalar`, see {@link createForeignField}.
- *
- * _Advanced usage:_
- *
- * To skip automatic validity checks when introducing curve points and scalars into provable code,
- * use the optional `{ unsafe: true }` configuration. See {@link createForeignField} for details.
- * This option is applied to both the scalar field and the base field.
- *
- * @param params parameters for the elliptic curve you are instantiating
- * @param options
- * - `unsafe: boolean` determines whether `ForeignField` elements are constrained to be valid on creation.
+ * It also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   const FieldUnreduced = createForeignField(params.modulus);
