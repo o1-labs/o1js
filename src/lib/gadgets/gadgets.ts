@@ -5,6 +5,7 @@ import {
   compactMultiRangeCheck,
   multiRangeCheck,
   rangeCheck64,
+  rangeCheck8,
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../field.js';
@@ -42,6 +43,16 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^8).
+   *
+   * See {@link Gadgets.rangeCheck64} for analogous details and usage examples.
+   */
+  rangeCheck8(x: Field) {
+    return rangeCheck8(x);
+  },
+
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
    * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
@@ -372,7 +383,7 @@ const Gadgets = {
     /**
      * Foreign field subtraction: `x - y mod f`
      *
-     * See {@link ForeignField.add} for assumptions and usage examples.
+     * See {@link Gadgets.ForeignField.add} for assumptions and usage examples.
      *
      * @throws fails if `x - y < -f`, where the result cannot be brought back to a positive number by adding `f` once.
      */
@@ -401,7 +412,7 @@ const Gadgets = {
      * **Note**: For 3 or more inputs, `sum()` uses fewer constraints than a sequence of `add()` and `sub()` calls,
      * because we can avoid range checks on intermediate results.
      *
-     * See {@link ForeignField.add} for assumptions on inputs.
+     * See {@link Gadgets.ForeignField.add} for assumptions on inputs.
      *
      * @example
      * ```ts
@@ -435,7 +446,7 @@ const Gadgets = {
      * To do this, we use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
      * The implication is that x and y are _almost_ reduced modulo f.
      *
-     * All of the above assumptions are checked by {@link ForeignField.assertAlmostFieldElements}.
+     * All of the above assumptions are checked by {@link Gadgets.ForeignField.assertAlmostReduced}.
      *
      * **Warning**: This gadget does not add the extra bound check on the result.
      * So, to use the result in another foreign field multiplication, you have to add the bound check on it yourself, again.
@@ -449,7 +460,7 @@ const Gadgets = {
      * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
      *
      * // range check x, y and prove additional bounds x[2] <= f[2]
-     * ForeignField.assertAlmostFieldElements([x, y], f);
+     * ForeignField.assertAlmostReduced([x, y], f);
      *
      * // compute x * y mod f
      * let z = ForeignField.mul(x, y, f);
@@ -464,7 +475,7 @@ const Gadgets = {
     /**
      * Foreign field inverse: `x^(-1) mod f`
      *
-     * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
+     * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
      *
      * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      */
@@ -475,11 +486,11 @@ const Gadgets = {
     /**
      * Foreign field division: `x * y^(-1) mod f`
      *
-     * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
+     * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
      *
      * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      *
-     * @throws Different than {@link ForeignField.mul}, this fails on unreduced input `x`, because it checks that `x === (x/y)*y` and the right side will be reduced.
+     * @throws Different than {@link Gadgets.ForeignField.mul}, this fails on unreduced input `x`, because it checks that `x === (x/y)*y` and the right side will be reduced.
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
@@ -488,13 +499,13 @@ const Gadgets = {
     /**
      * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
      *
-     * Note: This is much more efficient than using {@link ForeignField.add} and {@link ForeignField.sub} separately to
-     * compute the multiplication inputs and outputs, and then using {@link ForeignField.mul} to constrain the result.
+     * Note: This is much more efficient than using {@link Gadgets.ForeignField.add} and {@link Gadgets.ForeignField.sub} separately to
+     * compute the multiplication inputs and outputs, and then using {@link Gadgets.ForeignField.mul} to constrain the result.
      *
-     * The sums passed into this gadgets are "lazy sums" created with {@link ForeignField.Sum}.
+     * The sums passed into this gadgets are "lazy sums" created with {@link Gadgets.ForeignField.Sum}.
      * You can also pass in plain {@link Field3} elements.
      *
-     * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link ForeignField.mul}:
+     * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link Gadgets.ForeignField.mul}:
      * - each summand's limbs are in the range [0, 2^88)
      * - summands that are part of a multiplication input satisfy `x[2] <= f[2]`
      *
@@ -506,7 +517,7 @@ const Gadgets = {
      * @example
      * ```ts
      * // range-check x, y, z, a, b, c
-     * ForeignField.assertAlmostFieldElements([x, y, z], f);
+     * ForeignField.assertAlmostReduced([x, y, z], f);
      * Gadgets.multiRangeCheck(a);
      * Gadgets.multiRangeCheck(b);
      * Gadgets.multiRangeCheck(c);
@@ -524,7 +535,7 @@ const Gadgets = {
     },
 
     /**
-     * Lazy sum of {@link Field3} elements, which can be used as input to {@link ForeignField.assertMul}.
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
      */
     Sum(x: Field3) {
       return ForeignField.Sum(x);
@@ -532,7 +543,7 @@ const Gadgets = {
 
     /**
      * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
-     * i.e., satisfies the assumptions required by {@link ForeignField.mul} and other gadgets:
+     * i.e., satisfies the assumptions required by {@link Gadgets.ForeignField.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)
      * - the most significant limb is less or equal than the modulus, x[2] <= f[2]
      *
@@ -546,22 +557,18 @@ const Gadgets = {
      * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
      * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
      *
-     * ForeignField.assertAlmostFieldElements([x, y, z], f);
+     * ForeignField.assertAlmostReduced([x, y, z], f);
      *
      * // now we can use x, y, z as inputs to foreign field multiplication
      * let xy = ForeignField.mul(x, y, f);
      * let xyz = ForeignField.mul(xy, z, f);
      *
      * // since xy is an input to another multiplication, we need to prove that it is almost reduced again!
-     * ForeignField.assertAlmostFieldElements([xy], f); // TODO: would be more efficient to batch this with 2 other elements
+     * ForeignField.assertAlmostReduced([xy], f); // TODO: would be more efficient to batch this with 2 other elements
      * ```
      */
-    assertAlmostFieldElements(
-      xs: Field3[],
-      f: bigint,
-      { skipMrc = false } = {}
-    ) {
-      ForeignField.assertAlmostFieldElements(xs, f, skipMrc);
+    assertAlmostReduced(xs: Field3[], f: bigint, { skipMrc = false } = {}) {
+      ForeignField.assertAlmostReduced(xs, f, skipMrc);
     },
 
     /**
@@ -608,7 +615,7 @@ const Gadgets = {
      * const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
      *
      * // assert that message hash and signature are valid scalar field elements
-     * Gadgets.ForeignField.assertAlmostFieldElements(
+     * Gadgets.ForeignField.assertAlmostReduced(
      *   [signature.r, signature.s, msgHash],
      *   Curve.order
      * );
@@ -662,7 +669,7 @@ export namespace Gadgets {
 
   export namespace ForeignField {
     /**
-     * Lazy sum of {@link Field3} elements, which can be used as input to {@link ForeignField.assertMul}.
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
      */
     export type Sum = Sum_;
   }

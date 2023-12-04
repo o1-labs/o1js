@@ -76,7 +76,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
+  ForeignField.assertAlmostReduced([m, x3, y3], f);
 
   // (x1 - x2)*m = y1 - y2
   let deltaX = ForeignField.Sum(x1).sub(x2);
@@ -95,7 +95,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
-function double(p1: Point, f: bigint) {
+function double(p1: Point, f: bigint, a: bigint) {
   let { x: x1, y: y1 } = p1;
 
   // constant case
@@ -120,16 +120,16 @@ function double(p1: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
+  ForeignField.assertAlmostReduced([m, x3, y3], f);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
 
-  // 2*y1*m = 3*x1x1
-  // TODO this assumes the curve has a == 0
+  // 2*y1*m = 3*x1x1 + a
   let y1Times2 = ForeignField.Sum(y1).add(y1);
-  let x1x1Times3 = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
-  ForeignField.assertMul(y1Times2, m, x1x1Times3, f);
+  let x1x1Times3PlusA = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
+  if (a !== 0n) x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(a));
+  ForeignField.assertMul(y1Times2, m, x1x1Times3PlusA, f);
 
   // m^2 = 2*x1 + x3
   let xSum = ForeignField.Sum(x1).add(x1).add(x3);
@@ -191,13 +191,21 @@ function assertInSubgroup(Curve: CurveAffine, p: Point) {
   throw Error('unimplemented');
 }
 
+// check whether a point equals a constant point
+// TODO implement the full case of two vars
+function equals(p1: Point, p2: point, f: bigint) {
+  let xEquals = ForeignField.equals(p1.x, p2.x, f);
+  let yEquals = ForeignField.equals(p1.y, p2.y, f);
+  return xEquals.and(yEquals);
+}
+
 /**
  * Verify an ECDSA signature.
  *
  * Details about the `config` parameter:
  * - For both the generator point `G` and public key `P`, `config` allows you to specify:
  *   - the `windowSize` which is used in scalar multiplication for this point.
- *     flexibility is good because the optimal window size is different for constant and non-constant points.
+ *     this flexibility is good because the optimal window size is different for constant and non-constant points.
  *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
  *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
  *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
@@ -343,13 +351,15 @@ function multiScalarMul(
 
     // jointly double all points
     // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
-    sum = double(sum, Curve.modulus);
+    sum = double(sum, Curve.modulus, Curve.a);
   }
 
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
+  let isZero = equals(sum, iaFinal, Curve.modulus);
+  isZero.assertFalse();
+
   sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
 
   return sum;
@@ -415,7 +425,7 @@ function getPointTable(
   table = [Point.from(Curve.zero), P];
   if (n === 2) return table;
 
-  let Pi = double(P, Curve.modulus);
+  let Pi = double(P, Curve.modulus, Curve.a);
   table.push(Pi);
   for (let i = 3; i < n; i++) {
     Pi = add(Pi, P, Curve.modulus);
@@ -516,7 +526,7 @@ function sliceField(
   let chunks = [];
   let sum = Field.from(0n);
 
-  // if there's a leftover chunk from a previous slizeField() call, we complete it
+  // if there's a leftover chunk from a previous sliceField() call, we complete it
   if (leftover !== undefined) {
     let { chunks: previous, leftoverSize: size } = leftover;
     let remainingChunk = Field.from(0n);

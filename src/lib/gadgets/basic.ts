@@ -24,7 +24,7 @@ function arrayGet(array: Field[], index: Field) {
   // witness result
   let a = existsOne(() => array[Number(i.toBigInt())].toBigInt());
 
-  // we prove a === array[j] + zj*(i - j) for some zj, for all j.
+  // we prove a === array[j] + z[j]*(i - j) for some z[j], for all j.
   // setting j = i, this implies a === array[i]
   // thanks to our assumption that the index i is within bounds, we know that j = i for some j
   let n = array.length;
@@ -36,7 +36,7 @@ function arrayGet(array: Field[], index: Field) {
       );
       return zj ?? 0n;
     });
-    // prove that zj*(i - j) === a - array[j]
+    // prove that z[j]*(i - j) === a - array[j]
     // TODO abstract this logic into a general-purpose assertMul() gadget,
     // which is able to use the constant coefficient
     // (snarky's assert_r1cs somehow leads to much more constraints than this)
