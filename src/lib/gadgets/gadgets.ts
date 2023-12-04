@@ -44,7 +44,7 @@ const Gadgets = {
   /**
    * Asserts that the input value is in the range [0, 2^8).
    *
-   * See {@link Gadgets.rangeCheck8} for analogous details and usage examples.
+   * See {@link Gadgets.rangeCheck64} for analogous details and usage examples.
    */
   rangeCheck8(x: Field) {
     return rangeCheck8(x);
