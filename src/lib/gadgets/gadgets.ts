@@ -5,6 +5,7 @@ import {
   compactMultiRangeCheck,
   multiRangeCheck,
   rangeCheck64,
+  rangeCheck8,
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../core.js';
@@ -42,6 +43,16 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^8).
+   *
+   * See {@link Gadgets.rangeCheck64} for analogous details and usage examples.
+   */
+  rangeCheck8(x: Field) {
+    return rangeCheck8(x);
+  },
+
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
    * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
