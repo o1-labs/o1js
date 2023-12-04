@@ -56,7 +56,7 @@ const ForeignField = {
   div: divide,
   assertMul,
 
-  assertAlmostFieldElements,
+  assertAlmostReduced,
 
   assertLessThan(x: Field3, f: bigint) {
     assert(f > 0n, 'assertLessThan: upper bound must be positive');
@@ -363,7 +363,7 @@ function weakBound(x: Field, f: bigint) {
  * Apply range checks and weak bounds checks to a list of Field3s.
  * Optimal if the list length is a multiple of 3.
  */
-function assertAlmostFieldElements(xs: Field3[], f: bigint) {
+function assertAlmostReduced(xs: Field3[], f: bigint) {
   let bounds: Field[] = [];
 
   for (let x of xs) {

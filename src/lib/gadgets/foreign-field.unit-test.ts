@@ -109,7 +109,7 @@ for (let F of fields) {
 
   equivalent({ from: [big264], to: unit })(
     (x) => assertWeakBound(x, F.modulus),
-    (x) => ForeignField.assertAlmostFieldElements([x], F.modulus)
+    (x) => ForeignField.assertAlmostReduced([x], F.modulus)
   );
 
   // sumchain of 5
@@ -158,7 +158,7 @@ let ffProgram = ZkProgram({
     mulWithBoundsCheck: {
       privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
-        ForeignField.assertAlmostFieldElements([x, y], F.modulus);
+        ForeignField.assertAlmostReduced([x, y], F.modulus);
         return ForeignField.mul(x, y, F.modulus);
       },
     },

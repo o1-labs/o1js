@@ -73,7 +73,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
+  ForeignField.assertAlmostReduced([m, x3, y3], f);
 
   // (x1 - x2)*m = y1 - y2
   let deltaX = ForeignField.Sum(x1).sub(x2);
@@ -117,7 +117,7 @@ function double(p1: Point, f: bigint, a: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
+  ForeignField.assertAlmostReduced([m, x3, y3], f);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
