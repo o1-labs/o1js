@@ -1,17 +1,18 @@
-import { Scalar, Crypto, Provable, createForeignField } from 'o1js';
+import { Crypto, Provable, createForeignField } from 'o1js';
 
 class ForeignScalar extends createForeignField(
   Crypto.CurveParams.Secp256k1.modulus
-).AlmostReduced {}
-
-// TODO ForeignField.random()
-function random() {
-  return new ForeignScalar(Scalar.random().toBigInt());
-}
+) {}
 
 function main() {
-  let s = Provable.witness(ForeignScalar.provable, random);
-  let t = Provable.witness(ForeignScalar.provable, random);
+  let s = Provable.witness(
+    ForeignScalar.Canonical.provable,
+    ForeignScalar.random
+  );
+  let t = Provable.witness(
+    ForeignScalar.Canonical.provable,
+    ForeignScalar.random
+  );
   s.mul(t);
 }
 
