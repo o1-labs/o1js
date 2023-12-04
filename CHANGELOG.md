@@ -19,6 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
 
+### Added
+
+- `Gadgets.rangeCheck8()` to assert that a value fits in 8 bits https://github.com/o1-labs/o1js/pull/1288
+
 ### Changed
 
 - Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions.
