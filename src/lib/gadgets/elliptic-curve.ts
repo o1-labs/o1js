@@ -24,7 +24,7 @@ import { arrayGet } from './basic.js';
 export { EllipticCurve, Point, Ecdsa };
 
 // internal API
-export { verifyEcdsaConstant };
+export { verifyEcdsaConstant, initialAggregator, simpleMapToCurve };
 
 const EllipticCurve = {
   add,
@@ -34,7 +34,6 @@ const EllipticCurve = {
   scale,
   assertInSubgroup,
   multiScalarMul,
-  initialAggregator,
 };
 
 /**
@@ -475,6 +474,22 @@ function initialAggregator(Curve: CurveAffine) {
   // use that as x coordinate
   const F = Curve.Field;
   let x = F.mod(bytesToBigInt(bytes));
+  return simpleMapToCurve(x, Curve);
+}
+
+function random(Curve: CurveAffine) {
+  let x = Curve.Field.random();
+  return simpleMapToCurve(x, Curve);
+}
+
+/**
+ * Given an x coordinate (base field element), increment it until we find one with
+ * a y coordinate that satisfies the curve equation, and return the point.
+ *
+ * If the curve has a cofactor, multiply by it to get a point in the correct subgroup.
+ */
+function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
+  const F = Curve.Field;
   let y: bigint | undefined = undefined;
 
   // increment x until we find a y coordinate
@@ -485,7 +500,13 @@ function initialAggregator(Curve: CurveAffine) {
     let y2 = F.add(x3, F.mul(Curve.a, x) + Curve.b);
     y = F.sqrt(y2);
   }
-  return { x, y, infinity: false };
+  let p = { x, y, infinity: false };
+
+  // clear cofactor
+  if (Curve.hasCofactor) {
+    p = Curve.scale(p, Curve.cofactor!);
+  }
+  return p;
 }
 
 /**
@@ -614,6 +635,13 @@ const Point = {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
   isConstant: (P: Point) => Provable.isConstant(Point.provable, P),
+
+  /**
+   * Random point on the curve.
+   */
+  random(Curve: CurveAffine) {
+    return Point.from(random(Curve));
+  },
 
   provable: provable({ x: Field3.provable, y: Field3.provable }),
 };

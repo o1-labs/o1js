@@ -1,8 +1,8 @@
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 import {
   Ecdsa,
-  EllipticCurve,
   Point,
+  initialAggregator,
   verifyEcdsaConstant,
 } from './elliptic-curve.js';
 import { Field3 } from './foreign-field.js';
@@ -10,7 +10,7 @@ import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
-import { foreignField, throwError, uniformForeignField } from './test-utils.js';
+import { foreignField, uniformForeignField } from './test-utils.js';
 import {
   Second,
   bool,
@@ -96,7 +96,7 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-const ia = EllipticCurve.initialAggregator(Secp256k1);
+const ia = initialAggregator(Secp256k1);
 const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
 
 let program = ZkProgram({

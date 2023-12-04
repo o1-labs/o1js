@@ -661,6 +661,11 @@ const Gadgets = {
     assertInSubgroup(p: Point, Curve: CurveAffine) {
       EllipticCurve.assertInSubgroup(Curve, p);
     },
+
+    /**
+     * Non-provabe helper methods for interacting with elliptic curves.
+     */
+    Point,
   },
 
   /**
