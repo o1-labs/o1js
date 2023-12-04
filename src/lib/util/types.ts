@@ -1,15 +1,21 @@
 import { assert } from '../errors.js';
 
-export { Tuple, TupleN, AnyTuple };
+export { Tuple, TupleN, AnyTuple, TupleMap };
 
 type Tuple<T> = [T, ...T[]] | [];
 type AnyTuple = Tuple<any>;
+
+type TupleMap<T extends Tuple<any>, B> = [
+  ...{
+    [i in keyof T]: B;
+  }
+];
 
 const Tuple = {
   map<T extends Tuple<any>, B>(
     tuple: T,
     f: (a: T[number]) => B
-  ): [...{ [i in keyof T]: B }] {
+  ): TupleMap<T, B> {
     return tuple.map(f) as any;
   },
 };
@@ -27,7 +33,7 @@ const TupleN = {
   map<T extends Tuple<any>, B>(
     tuple: T,
     f: (a: T[number]) => B
-  ): [...{ [i in keyof T]: B }] {
+  ): TupleMap<T, B> {
     return tuple.map(f) as any;
   },
 
@@ -37,6 +43,10 @@ const TupleN = {
       `Expected array of length ${n}, got ${arr.length}`
     );
     return arr as any;
+  },
+
+  hasLength<T, N extends number>(n: N, tuple: T[]): tuple is TupleN<T, N> {
+    return tuple.length === n;
   },
 };
 

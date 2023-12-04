@@ -19,10 +19,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
 
-# Added
+### Added
 
+- **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
 - `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
 - `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
+- `Gadgets.rangeCheck8()` to assert that a value fits in 8 bits https://github.com/o1-labs/o1js/pull/1288
 
 ### Changed
 
