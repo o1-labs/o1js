@@ -552,7 +552,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * const SmallField = createForeignField(17n); // the finite field F_17
  * ```
  *
- * `createForeignField(p)` takes {@link AlmostForeignField} the prime modulus `p` of the finite field as input, as a bigint.
+ * `createForeignField(p)` takes the prime modulus `p` of the finite field as input, as a bigint.
  * We support prime moduli up to a size of 259 bits.
  *
  * The returned {@link ForeignField} class supports arithmetic modulo `p` (addition and multiplication),
