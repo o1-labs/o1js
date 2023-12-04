@@ -73,34 +73,7 @@ const ForeignField = {
     ForeignField.negate(x, f - 1n);
   },
 
-  /**
-   * check whether x = c mod f
-   *
-   * c is a constant, and we require c in [0, f)
-   *
-   * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
-   */
-  equals(x: Field3, c: bigint, f: bigint) {
-    assert(c >= 0n && c < f, 'equals: c must be in [0, f)');
-
-    // constant case
-    if (Field3.isConstant(x)) {
-      return new Bool(mod(Field3.toBigint(x), f) === c);
-    }
-
-    // provable case
-    // check whether x = 0 or x = f
-    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
-    let [c01, c2] = [c & l2Mask, c >> l2];
-    let [cPlusF01, cPlusF2] = [(c + f) & l2Mask, (c + f) >> l2];
-
-    // (x01, x2) = (c01, c2)
-    let isC = x01.equals(c01).and(x[2].equals(c2));
-    // (x01, x2) = (cPlusF01, cPlusF2)
-    let isCPlusF = x01.equals(cPlusF01).and(x[2].equals(cPlusF2));
-
-    return isC.or(isCPlusF);
-  },
+  equals,
 };
 
 /**
@@ -407,6 +380,43 @@ function assertAlmostFieldElements(xs: Field3[], f: bigint) {
   }
   if (TupleN.hasLength(2, bounds)) {
     multiRangeCheck([...bounds, Field.from(0n)]);
+  }
+}
+
+/**
+ * check whether x = c mod f
+ *
+ * c is a constant, and we require c in [0, f)
+ *
+ * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
+ */
+function equals(x: Field3, c: bigint, f: bigint) {
+  assert(c >= 0n && c < f, 'equals: c must be in [0, f)');
+
+  // constant case
+  if (Field3.isConstant(x)) {
+    return new Bool(mod(Field3.toBigint(x), f) === c);
+  }
+
+  // provable case
+  if (f >= 1n << l2) {
+    // check whether x = 0 or x = f
+    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
+    let [c01, c2] = [c & l2Mask, c >> l2];
+    let [cPlusF01, cPlusF2] = [(c + f) & l2Mask, (c + f) >> l2];
+
+    // (x01, x2) = (c01, c2)
+    let isC = x01.equals(c01).and(x[2].equals(c2));
+    // (x01, x2) = (cPlusF01, cPlusF2)
+    let isCPlusF = x01.equals(cPlusF01).and(x[2].equals(cPlusF2));
+
+    return isC.or(isCPlusF);
+  } else {
+    // if f < 2^2l, the approach above doesn't work (we don't know from x[2] = 0 that x < 2f),
+    // so in that case we assert that x < f and then check whether it's equal to c
+    ForeignField.assertLessThan(x, f);
+    let x012 = toVar(x[0].add(x[1].mul(1n << l)).add(x[2].mul(1n << l2)));
+    return x012.equals(c);
   }
 }
 
