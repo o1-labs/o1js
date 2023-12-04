@@ -92,7 +92,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
-function double(p1: Point, f: bigint) {
+function double(p1: Point, f: bigint, a: bigint) {
   let { x: x1, y: y1 } = p1;
 
   // constant case
@@ -122,11 +122,11 @@ function double(p1: Point, f: bigint) {
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
 
-  // 2*y1*m = 3*x1x1
-  // TODO this assumes the curve has a == 0
+  // 2*y1*m = 3*x1x1 + a
   let y1Times2 = ForeignField.Sum(y1).add(y1);
-  let x1x1Times3 = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
-  ForeignField.assertMul(y1Times2, m, x1x1Times3, f);
+  let x1x1Times3PlusA = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
+  if (a !== 0n) x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(a));
+  ForeignField.assertMul(y1Times2, m, x1x1Times3PlusA, f);
 
   // m^2 = 2*x1 + x3
   let xSum = ForeignField.Sum(x1).add(x1).add(x3);
@@ -300,7 +300,7 @@ function multiScalarMul(
 
     // jointly double all points
     // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
-    sum = double(sum, Curve.modulus);
+    sum = double(sum, Curve.modulus, Curve.a);
   }
 
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
@@ -374,7 +374,7 @@ function getPointTable(
   table = [Point.from(Curve.zero), P];
   if (n === 2) return table;
 
-  let Pi = double(P, Curve.modulus);
+  let Pi = double(P, Curve.modulus, Curve.a);
   table.push(Pi);
   for (let i = 3; i < n; i++) {
     Pi = add(Pi, P, Curve.modulus);
