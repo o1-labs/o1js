@@ -79,6 +79,11 @@ class EcdsaSignature {
     return new this({ r, s });
   }
 
+  static check(signature: EcdsaSignature) {
+    // more efficient than the automatic check, which would do this for each scalar separately
+    this.Curve.Scalar.assertAlmostReduced(signature.r, signature.s);
+  }
+
   // dynamic subclassing infra
   get Constructor() {
     return this.constructor as typeof EcdsaSignature;

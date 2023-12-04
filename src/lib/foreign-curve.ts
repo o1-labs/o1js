@@ -160,8 +160,8 @@ class ForeignCurve {
    * - If the curve has cofactor unequal to 1, use {@link assertInSubgroup()}.
    */
   static check(g: ForeignCurve) {
-    this.Field.check(g.x);
-    this.Field.check(g.y);
+    // more efficient than the automatic check, which would do this for each field separately
+    this.Field.assertAlmostReduced(g.x, g.y);
     this.assertOnCurve(g);
     this.assertInSubgroup(g);
   }
