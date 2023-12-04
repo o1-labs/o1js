@@ -182,20 +182,6 @@ function scale(
     multiples?: Point[];
   } = { mode: 'assert-nonzero' }
 ) {
-  // constant case
-  if (Field3.isConstant(scalar) && Point.isConstant(point)) {
-    let scalar_ = Field3.toBigint(scalar);
-    let p_ = Point.toBigint(point);
-    let scaled = Curve.scale(p_, scalar_);
-    if (config.mode === 'assert-zero') {
-      assert(scaled.infinity, 'scale: expected zero result');
-      return Point.from(Curve.zero);
-    }
-    assert(!scaled.infinity, 'scale: expected non-zero result');
-    return Point.from(scaled);
-  }
-
-  // provable case
   config.windowSize ??= Point.isConstant(point) ? 4 : 3;
   return multiScalarMul(Curve, [scalar], [point], [config], config.mode);
 }
@@ -331,6 +317,11 @@ function multiScalarMul(
     for (let i = 0; i < n; i++) {
       sum = Curve.add(sum, Curve.scale(P[i], s[i]));
     }
+    if (mode === 'assert-zero') {
+      assert(sum.infinity, 'scalar multiplication: expected zero result');
+      return Point.from(Curve.zero);
+    }
+    assert(!sum.infinity, 'scalar multiplication: expected non-zero result');
     return Point.from(sum);
   }
 
