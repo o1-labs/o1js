@@ -4,7 +4,7 @@ import {
   createCurveAffine,
 } from '../bindings/crypto/elliptic_curve.js';
 import type { Group } from './group.js';
-import { ProvableExtended } from './circuit_value.js';
+import { ProvablePureExtended } from './circuit_value.js';
 import { AlmostForeignField, createForeignField } from './foreign-field.js';
 import { EllipticCurve, Point } from './gadgets/elliptic-curve.js';
 import { Field3 } from './gadgets/foreign-field.js';
@@ -173,7 +173,10 @@ class ForeignCurve {
   static _Bigint?: CurveAffine;
   static _Field?: typeof AlmostForeignField;
   static _Scalar?: typeof AlmostForeignField;
-  static _provable?: ProvableExtended<ForeignCurve, { x: string; y: string }>;
+  static _provable?: ProvablePureExtended<
+    ForeignCurve,
+    { x: string; y: string }
+  >;
 
   /**
    * Curve arithmetic on JS bigints.

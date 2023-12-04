@@ -1,6 +1,6 @@
 import { provableFromClass } from '../bindings/lib/provable-snarky.js';
 import { CurveParams } from '../bindings/crypto/elliptic_curve.js';
-import { ProvableExtended } from './circuit_value.js';
+import { ProvablePureExtended } from './circuit_value.js';
 import {
   FlexiblePoint,
   ForeignCurve,
@@ -76,7 +76,10 @@ class EcdsaSignature {
     return this.constructor as typeof EcdsaSignature;
   }
   static _Curve?: typeof ForeignCurve;
-  static _provable?: ProvableExtended<EcdsaSignature, { r: string; s: string }>;
+  static _provable?: ProvablePureExtended<
+    EcdsaSignature,
+    { r: string; s: string }
+  >;
 
   /**
    * Curve arithmetic on JS bigints.
