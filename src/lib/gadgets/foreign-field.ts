@@ -5,7 +5,7 @@ import {
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Tuple } from '../util/types.js';
+import { Tuple, TupleN } from '../util/types.js';
 import { assert, bitSlice, exists, toVars } from './common.js';
 import {
   l,
@@ -33,11 +33,31 @@ const ForeignField = {
   sub(x: Field3, y: Field3, f: bigint) {
     return sum([x, y], [-1n], f);
   },
+  negate(x: Field3, f: bigint) {
+    return sum([Field3.from(0n), x], [-1n], f);
+  },
   sum,
 
   mul: multiply,
   inv: inverse,
   div: divide,
+
+  assertAlmostFieldElements,
+
+  assertLessThan(x: Field3, f: bigint) {
+    assert(f > 0n, 'assertLessThan: upper bound must be positive');
+
+    // constant case
+    if (Field3.isConstant(x)) {
+      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
+      return;
+    }
+    // provable case
+    // we can just use negation (f - 1) - x! because the result is range-checked, it proves that x < f:
+    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0 or 1)
+    ForeignField.negate(x, f - 1n);
+  },
 };
 
 /**
@@ -323,7 +343,37 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
+  // if f0, f1 === 0, we can use a stronger bound x[2] < f2
+  // because this is true for all field elements x in [0,f)
+  if ((f & l2Mask) === 0n) {
+    return x.add(lMask + 1n - (f >> l2));
+  }
+  // otherwise, we use x[2] < f2 + 1, so we allow x[2] === f2
   return x.add(lMask - (f >> l2));
+}
+
+/**
+ * Apply range checks and weak bounds checks to a list of Field3s.
+ * Optimal if the list length is a multiple of 3.
+ */
+function assertAlmostFieldElements(xs: Field3[], f: bigint, skipMrc = false) {
+  let bounds: Field[] = [];
+
+  for (let x of xs) {
+    if (!skipMrc) multiRangeCheck(x);
+
+    bounds.push(weakBound(x[2], f));
+    if (TupleN.hasLength(3, bounds)) {
+      multiRangeCheck(bounds);
+      bounds = [];
+    }
+  }
+  if (TupleN.hasLength(1, bounds)) {
+    multiRangeCheck([...bounds, Field.from(0n), Field.from(0n)]);
+  }
+  if (TupleN.hasLength(2, bounds)) {
+    multiRangeCheck([...bounds, Field.from(0n)]);
+  }
 }
 
 const Field3 = {
@@ -339,6 +389,13 @@ const Field3 = {
    */
   toBigint(x: Field3): bigint {
     return combine(toBigint3(x));
+  },
+
+  /**
+   * Check whether a 3-tuple of Fields is constant
+   */
+  isConstant(x: Field3) {
+    return x.every((x) => x.isConstant());
   },
 
   /**

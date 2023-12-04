@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
 - `Gadgets.rangeCheck8()` to assert that a value fits in 8 bits https://github.com/o1-labs/o1js/pull/1288
 
 ### Changed

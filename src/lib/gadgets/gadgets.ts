@@ -8,7 +8,7 @@ import {
   rangeCheck8,
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
-import { Field } from '../core.js';
+import { Field } from '../field.js';
 import { ForeignField, Field3 } from './foreign-field.js';
 
 export { Gadgets };
@@ -389,6 +389,17 @@ const Gadgets = {
     },
 
     /**
+     * Foreign field negation: `-x mod f = f - x`
+     *
+     * See {@link ForeignField.add} for assumptions and usage examples.
+     *
+     * @throws fails if `x > f`, where `f - x < 0`.
+     */
+    neg(x: Field3, f: bigint) {
+      return ForeignField.negate(x, f);
+    },
+
+    /**
      * Foreign field sum: `xs[0] + signs[0] * xs[1] + ... + signs[n-1] * xs[n] mod f`
      *
      * This gadget takes a list of inputs and a list of signs (of size one less than the inputs),
@@ -484,6 +495,67 @@ const Gadgets = {
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
+    },
+
+    /**
+     * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
+     * i.e., satisfies the assumptions required by {@link ForeignField.mul} and other gadgets:
+     * - each limb is in the range [0, 2^88)
+     * - the most significant limb is less or equal than the modulus, x[2] <= f[2]
+     *
+     * **Note**: This method is most efficient when the number of input elements is a multiple of 3.
+     *
+     * @throws if any of the assumptions is violated.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
+     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     *
+     * ForeignField.assertAlmostFieldElements([x, y, z], f);
+     *
+     * // now we can use x, y, z as inputs to foreign field multiplication
+     * let xy = ForeignField.mul(x, y, f);
+     * let xyz = ForeignField.mul(xy, z, f);
+     *
+     * // since xy is an input to another multiplication, we need to prove that it is almost reduced again!
+     * ForeignField.assertAlmostFieldElements([xy], f); // TODO: would be more efficient to batch this with 2 other elements
+     * ```
+     */
+    assertAlmostFieldElements(
+      xs: Field3[],
+      f: bigint,
+      { skipMrc = false } = {}
+    ) {
+      ForeignField.assertAlmostFieldElements(xs, f, skipMrc);
+    },
+
+    /**
+     * Prove that x < f for any constant f < 2^264.
+     *
+     * If f is a finite field modulus, this means that the given field element is fully reduced modulo f.
+     * This is a stronger statement than {@link ForeignField.assertAlmostFieldElements}
+     * and also uses more constraints; it should not be needed in most use cases.
+     *
+     * **Note**: This assumes that the limbs of x are in the range [0, 2^88), in contrast to
+     * {@link ForeignField.assertAlmostFieldElements} which adds that check itself.
+     *
+     * @throws if x is greater or equal to f.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(0x1235n));
+     *
+     *  // range check limbs of x
+     * Gadgets.multiRangeCheck(x);
+     *
+     * // prove that x is fully reduced mod f
+     * Gadgets.ForeignField.assertLessThan(x, f);
+     * ```
+     */
+    assertLessThan(x: Field3, f: bigint) {
+      ForeignField.assertLessThan(x, f);
     },
   },
 
