@@ -7,7 +7,7 @@ import {
   rangeCheck64,
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
-import { Field } from '../core.js';
+import { Field } from '../field.js';
 import { ForeignField, Field3, Sum } from './foreign-field.js';
 import { Ecdsa, Point } from './elliptic-curve.js';
 import { CurveAffine } from '../../bindings/crypto/elliptic_curve.js';
