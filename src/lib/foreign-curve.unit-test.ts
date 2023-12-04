@@ -20,11 +20,9 @@ function main() {
   Provable.assertEqual(Vesta.provable, h0, new Vesta(h));
 
   h0.assertOnCurve();
-  // TODO super slow
-  // h0.assertInSubgroup();
+  h0.assertInSubgroup();
 
   let scalar0 = Provable.witness(Fp.provable, () => new Fp(scalar));
-  // TODO super slow
   let p0 = h0.scale(scalar0);
   Provable.assertEqual(Vesta.provable, p0, new Vesta(p));
 }
@@ -38,10 +36,11 @@ Provable.runAndCheck(main);
 console.timeEnd('running witness generation & checks');
 
 console.time('creating constraint system');
-let { gates } = Provable.constraintSystem(main);
+let { gates, rows } = Provable.constraintSystem(main);
 console.timeEnd('creating constraint system');
 
 let gateTypes: Record<string, number> = {};
+gateTypes['Total rows'] = rows;
 for (let gate of gates) {
   gateTypes[gate.type] ??= 0;
   gateTypes[gate.type]++;
