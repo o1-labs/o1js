@@ -96,7 +96,8 @@ class ForeignCurve {
    * Elliptic curve doubling.
    */
   double() {
-    let p = EllipticCurve.double(toPoint(this), this.modulus);
+    let Curve = this.Constructor.Bigint;
+    let p = EllipticCurve.double(toPoint(this), Curve.modulus, Curve.a);
     return new this.Constructor(p);
   }
 
