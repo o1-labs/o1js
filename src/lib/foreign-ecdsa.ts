@@ -13,7 +13,7 @@ import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 
 // external API
-export { createEcdsa };
+export { createEcdsa, EcdsaSignature };
 
 type FlexibleSignature =
   | EcdsaSignature
@@ -60,6 +60,8 @@ class EcdsaSignature {
    *
    * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
    * So, to actually prove validity of a signature, you need to assert that the result is true.
+   *
+   * @throws if one of the signature scalars is zero or if the public key is not on the curve.
    *
    * @example
    * ```ts
@@ -138,10 +140,11 @@ class EcdsaSignature {
 }
 
 /**
- * Returns a class {@link EcdsaSignature} enabling to verify ECDSA signatures
- * on the given curve, in provable code.
+ * Create a class {@link EcdsaSignature} for verifying ECDSA signatures on the given curve.
  */
-function createEcdsa(curve: CurveParams | typeof ForeignCurve) {
+function createEcdsa(
+  curve: CurveParams | typeof ForeignCurve
+): typeof EcdsaSignature {
   let Curve0: typeof ForeignCurve =
     'b' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}

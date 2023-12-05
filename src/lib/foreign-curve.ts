@@ -32,10 +32,13 @@ class ForeignCurve {
 
   /**
    * Create a new {@link ForeignCurve} from an object representing the (affine) x and y coordinates.
+   *
    * @example
    * ```ts
    * let x = new ForeignCurve({ x: 1n, y: 1n });
    * ```
+   *
+   * **Important**: By design, there is no way for a `ForeignCurve` to represent the zero point.
    *
    * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
    */
@@ -60,12 +63,21 @@ class ForeignCurve {
     return new this(g);
   }
 
+  /**
+   * The constant generator point.
+   */
   static get generator() {
     return new this(this.Bigint.one);
   }
+  /**
+   * The size of the curve's base field.
+   */
   static get modulus() {
     return this.Bigint.modulus;
   }
+  /**
+   * The size of the curve's base field.
+   */
   get modulus() {
     return this.Constructor.Bigint.modulus;
   }
@@ -91,6 +103,21 @@ class ForeignCurve {
 
   /**
    * Elliptic curve addition.
+   *
+   * **Important**: this is _incomplete addition_ and does not handle any of the degenerate cases:
+   * - inputs are equal (where you need to use {@link double})
+   * - inputs are inverses of each other, so that the result is the zero point
+   * - the second input is constant and not on the curve
+   *
+   * In the case that both inputs are equal, the result of this method is garbage
+   * and can be manipulated arbitrarily by a malicious prover.
+   *
+   * @throws if the inputs are inverses of each other.
+   *
+   * @example
+   * ```ts
+   * let r = p.add(q); // r = p + q
+   * ```
    */
   add(h: ForeignCurve | FlexiblePoint) {
     let Curve = this.Constructor.Bigint;
@@ -101,6 +128,11 @@ class ForeignCurve {
 
   /**
    * Elliptic curve doubling.
+   *
+   * @example
+   * ```ts
+   * let r = p.double(); // r = 2 * p
+   * ```
    */
   double() {
     let Curve = this.Constructor.Bigint;
@@ -110,9 +142,33 @@ class ForeignCurve {
 
   /**
    * Elliptic curve negation.
+   *
+   * @example
+   * ```ts
+   * let r = p.negate(); // r = -p
+   * ```
    */
   negate(): ForeignCurve {
     return new this.Constructor({ x: this.x, y: this.y.neg() });
+  }
+
+  /**
+   * Elliptic curve scalar multiplication, where the scalar is represented as a {@link ForeignField} element.
+   *
+   * **Important**: this proves that the result of the scalar multiplication is not the zero point.
+   *
+   * @throws if the scalar multiplication results in the zero point; for example, if the scalar is zero.
+   *
+   * @example
+   * ```ts
+   * let r = p.scale(s); // r = s * p
+   * ```
+   */
+  scale(scalar: AlmostForeignField | bigint | number) {
+    let Curve = this.Constructor.Bigint;
+    let scalar_ = this.Constructor.Scalar.from(scalar);
+    let p = EllipticCurve.scale(scalar_.value, toPoint(this), Curve);
+    return new this.Constructor(p);
   }
 
   static assertOnCurve(g: ForeignCurve) {
@@ -121,20 +177,10 @@ class ForeignCurve {
 
   /**
    * Assert that this point lies on the elliptic curve, which means it satisfies the equation
-   * y^2 = x^3 + ax + b
+   * `y^2 = x^3 + ax + b`
    */
   assertOnCurve() {
     this.Constructor.assertOnCurve(this);
-  }
-
-  /**
-   * Elliptic curve scalar multiplication, where the scalar is represented as a {@link ForeignField} element.
-   */
-  scale(scalar: AlmostForeignField | bigint | number) {
-    let Curve = this.Constructor.Bigint;
-    let scalar_ = this.Constructor.Scalar.from(scalar);
-    let p = EllipticCurve.scale(scalar_.value, toPoint(this), Curve);
-    return new this.Constructor(p);
   }
 
   static assertInSubgroup(g: ForeignCurve) {
@@ -144,8 +190,10 @@ class ForeignCurve {
   }
 
   /**
-   * Assert than this point lies in the subgroup defined by order*P = 0,
-   * by performing the scalar multiplication.
+   * Assert that this point lies in the subgroup defined by `order*P = 0`.
+   *
+   * Note: this is a no-op if the curve has cofactor equal to 1. Otherwise
+   * it performs the full scalar multiplication `order*P` and is expensive.
    */
   assertInSubgroup() {
     this.Constructor.assertInSubgroup(this);
@@ -213,11 +261,13 @@ class ForeignCurve {
  * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
  * ```
  *
- * `createForeignCurve(params)` takes the curve parameters {@link CurveParams} as input.
- * We support `modulus` and `order` to be prime numbers to 259 bits.
+ * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
+ * We support `modulus` and `order` to be prime numbers up to 259 bits.
  *
- * The returned {@link ForeignCurve} class supports standard elliptic curve operations like point addition and scalar multiplication.
- * It also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
+ * The returned {@link ForeignCurve} class represents a _non-zero curve point_ and supports standard
+ * elliptic curve operations like point addition and scalar multiplication.
+ *
+ * {@link ForeignCurve} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   const FieldUnreduced = createForeignField(params.modulus);
