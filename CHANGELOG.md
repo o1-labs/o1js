@@ -21,6 +21,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [0.14.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
 
+### Breaking changes
+
+- `ZkProgram.compile()` now returns the verification key and its hash, to be consistent with `SmartContract.compile()` https://github.com/o1-labs/o1js/pull/1292 [@rpanic](https://github.com/rpanic)
+
 ### Added
 
 - **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
