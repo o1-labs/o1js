@@ -104,26 +104,47 @@ class ForeignCurve {
   /**
    * Elliptic curve addition.
    *
-   * **Important**: this is _incomplete addition_ and does not handle any of the degenerate cases:
-   * - inputs are equal (where you need to use {@link double})
-   * - inputs are inverses of each other, so that the result is the zero point
-   * - the second input is constant and not on the curve
-   *
-   * In the case that both inputs are equal, the result of this method is garbage
-   * and can be manipulated arbitrarily by a malicious prover.
-   *
-   * @throws if the inputs are inverses of each other.
-   *
-   * @example
    * ```ts
    * let r = p.add(q); // r = p + q
    * ```
+   *
+   * **Important**: this is _incomplete addition_ and does not handle the degenerate cases:
+   * - Inputs are equal, `g = h` (where you would use {@link double}).
+   *   In this case, the result of this method is garbage and can be manipulated arbitrarily by a malicious prover.
+   * - Inputs are inverses of each other, `g = -h`, so that the result would be the zero point.
+   *   In this case, the proof fails.
+   *
+   * If you want guaranteed soundness regardless of the input, use {@link addSafe} instead.
+   *
+   * @throws if the inputs are inverses of each other.
    */
   add(h: ForeignCurve | FlexiblePoint) {
     let Curve = this.Constructor.Bigint;
     let h_ = this.Constructor.from(h);
     let p = EllipticCurve.add(toPoint(this), toPoint(h_), Curve);
     return new this.Constructor(p);
+  }
+
+  /**
+   * Safe elliptic curve addition.
+   *
+   * This is the same as {@link add}, but additionally proves that the inputs are not equal.
+   * Therefore, the method is guaranteed to either fail or return a valid addition result.
+   *
+   * **Beware**: this is more expensive than {@link add}, and is still incomplete in that
+   * it does not succeed on equal or inverse inputs.
+   *
+   * @throws if the inputs are equal or inverses of each other.
+   */
+  addSafe(h: ForeignCurve | FlexiblePoint) {
+    let h_ = this.Constructor.from(h);
+
+    // prove that we have x1 != x2 => g != +-h
+    let x1 = this.x.assertCanonical();
+    let x2 = h_.x.assertCanonical();
+    x1.equals(x2).assertFalse();
+
+    return this.add(h_);
   }
 
   /**
