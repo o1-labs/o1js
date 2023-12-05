@@ -260,10 +260,9 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: {
-    cache?: Cache;
-    forceRecompile?: boolean;
-  }) => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+    verificationKey: { data: string; hash: Field } 
+  }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -361,7 +360,7 @@ function ZkProgram<
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
-    return { verificationKey: verificationKey.data };
+    return { verificationKey };
   }
 
   function toProver<K extends keyof Types & string>(
