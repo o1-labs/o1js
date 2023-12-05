@@ -1,6 +1,7 @@
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
 import {
   Ecdsa,
+  EllipticCurve,
   Point,
   initialAggregator,
   verifyEcdsaConstant,
@@ -12,6 +13,7 @@ import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
 import { foreignField, uniformForeignField } from './test-utils.js';
 import {
+  First,
   Second,
   bool,
   equivalentProvable,
@@ -53,21 +55,34 @@ for (let Curve of curves) {
 
   // provable method we want to test
   const verify = (s: Second<typeof signature>) => {
+    // invalid public key can lead to either a failing constraint, or verify() returning false
+    EllipticCurve.assertOnCurve(s.publicKey, Curve);
     return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+  };
+
+  // input validation equivalent to the one implicit in verify()
+  const checkInputs = ({
+    signature: { r, s },
+    publicKey,
+  }: First<typeof signature>) => {
+    assert(r !== 0n && s !== 0n, 'invalid signature');
+    let pk = Curve.fromNonzero(publicKey);
+    assert(Curve.isOnCurve(pk), 'invalid public key');
+    return true;
   };
 
   // positive test
   equivalentProvable({ from: [signature], to: bool, verbose: true })(
     () => true,
     verify,
-    `${Curve.name}: valid signature verifies`
+    `${Curve.name}: verifies`
   );
 
   // negative test
   equivalentProvable({ from: [badSignature], to: bool, verbose: true })(
-    () => false,
+    (s) => checkInputs(s) && false,
     verify,
-    `${Curve.name}: invalid signature fails`
+    `${Curve.name}: fails`
   );
 
   // test against constant implementation, with both invalid and valid signatures
@@ -77,6 +92,7 @@ for (let Curve of curves) {
     verbose: true,
   })(
     ({ signature, publicKey, msg }) => {
+      checkInputs({ signature, publicKey, msg });
       return verifyEcdsaConstant(Curve, signature, msg, publicKey);
     },
     verify,
