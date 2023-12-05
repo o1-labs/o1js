@@ -50,9 +50,10 @@ namespace Ecdsa {
   export type signature = { r: bigint; s: bigint };
 }
 
-function add(p1: Point, p2: Point, f: bigint) {
+function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
   let { x: x1, y: y1 } = p1;
   let { x: x2, y: y2 } = p2;
+  let f = Curve.modulus;
 
   // constant case
   if (Point.isConstant(p1) && Point.isConstant(p2)) {
@@ -95,8 +96,9 @@ function add(p1: Point, p2: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
-function double(p1: Point, f: bigint, a: bigint) {
+function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
   let { x: x1, y: y1 } = p1;
+  let f = Curve.modulus;
 
   // constant case
   if (Point.isConstant(p1)) {
@@ -128,7 +130,8 @@ function double(p1: Point, f: bigint, a: bigint) {
   // 2*y1*m = 3*x1x1 + a
   let y1Times2 = ForeignField.Sum(y1).add(y1);
   let x1x1Times3PlusA = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
-  if (a !== 0n) x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(a));
+  if (Curve.a !== 0n)
+    x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(Curve.a));
   ForeignField.assertMul(y1Times2, m, x1x1Times3PlusA, f);
 
   // m^2 = 2*x1 + x3
@@ -143,8 +146,8 @@ function double(p1: Point, f: bigint, a: bigint) {
   return { x: x3, y: y3 };
 }
 
-function negate({ x, y }: Point, f: bigint) {
-  return { x, y: ForeignField.negate(y, f) };
+function negate({ x, y }: Point, Curve: { modulus: bigint }) {
+  return { x, y: ForeignField.negate(y, Curve.modulus) };
 }
 
 function assertOnCurve(
@@ -172,9 +175,9 @@ function assertOnCurve(
  * The result is constrained to be not zero.
  */
 function scale(
-  Curve: CurveAffine,
   scalar: Field3,
   point: Point,
+  Curve: CurveAffine,
   config: {
     mode?: 'assert-nonzero' | 'assert-zero';
     windowSize?: number;
@@ -182,20 +185,20 @@ function scale(
   } = { mode: 'assert-nonzero' }
 ) {
   config.windowSize ??= Point.isConstant(point) ? 4 : 3;
-  return multiScalarMul(Curve, [scalar], [point], [config], config.mode);
+  return multiScalarMul([scalar], [point], Curve, [config], config.mode);
 }
 
 // checks whether the elliptic curve point g is in the subgroup defined by [order]g = 0
-function assertInSubgroup(Curve: CurveAffine, p: Point) {
+function assertInSubgroup(p: Point, Curve: CurveAffine) {
   if (!Curve.hasCofactor) return;
-  scale(Curve, Field3.from(Curve.order), p, { mode: 'assert-zero' });
+  scale(Field3.from(Curve.order), p, Curve, { mode: 'assert-zero' });
 }
 
 // check whether a point equals a constant point
 // TODO implement the full case of two vars
-function equals(p1: Point, p2: point, f: bigint) {
-  let xEquals = ForeignField.equals(p1.x, p2.x, f);
-  let yEquals = ForeignField.equals(p1.y, p2.y, f);
+function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
+  let xEquals = ForeignField.equals(p1.x, p2.x, Curve.modulus);
+  let yEquals = ForeignField.equals(p1.y, p2.y, Curve.modulus);
   return xEquals.and(yEquals);
 }
 
@@ -253,9 +256,9 @@ function verifyEcdsa(
 
   let G = Point.from(Curve.one);
   let R = multiScalarMul(
-    Curve,
     [u1, u2],
     [G, publicKey],
+    Curve,
     config && [config.G, config.P],
     'assert-nonzero',
     config?.ia
@@ -293,9 +296,9 @@ function verifyEcdsa(
  * TODO: glv trick which cuts down ec doubles by half by splitting s*P = s0*P + s1*endo(P) with s0, s1 in [0, 2^128)
  */
 function multiScalarMul(
-  Curve: CurveAffine,
   scalars: Field3[],
   points: Point[],
+  Curve: CurveAffine,
   tableConfigs: (
     | { windowSize?: number; multiples?: Point[] }
     | undefined
@@ -352,7 +355,7 @@ function multiScalarMul(
             : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
-        let added = add(sum, sjP, Curve.modulus);
+        let added = add(sum, sjP, Curve);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
         sum = Provable.if(sj.equals(0), Point.provable, sum, added);
@@ -363,17 +366,17 @@ function multiScalarMul(
 
     // jointly double all points
     // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
-    sum = double(sum, Curve.modulus, Curve.a);
+    sum = double(sum, Curve);
   }
 
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(b - 1));
-  let isZero = equals(sum, iaFinal, Curve.modulus);
+  let isZero = equals(sum, iaFinal, Curve);
 
   if (mode === 'assert-nonzero') {
     isZero.assertFalse();
-    sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
+    sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve);
   } else {
     isZero.assertTrue();
     // for type consistency with the 'assert-nonzero' case
@@ -443,10 +446,10 @@ function getPointTable(
   table = [Point.from(Curve.zero), P];
   if (n === 2) return table;
 
-  let Pi = double(P, Curve.modulus, Curve.a);
+  let Pi = double(P, Curve);
   table.push(Pi);
   for (let i = 3; i < n; i++) {
-    Pi = add(Pi, P, Curve.modulus);
+    Pi = add(Pi, P, Curve);
     table.push(Pi);
   }
   return table;

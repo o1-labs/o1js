@@ -93,8 +93,9 @@ class ForeignCurve {
    * Elliptic curve addition.
    */
   add(h: ForeignCurve | FlexiblePoint) {
+    let Curve = this.Constructor.Bigint;
     let h_ = this.Constructor.from(h);
-    let p = EllipticCurve.add(toPoint(this), toPoint(h_), this.modulus);
+    let p = EllipticCurve.add(toPoint(this), toPoint(h_), Curve);
     return new this.Constructor(p);
   }
 
@@ -103,7 +104,7 @@ class ForeignCurve {
    */
   double() {
     let Curve = this.Constructor.Bigint;
-    let p = EllipticCurve.double(toPoint(this), Curve.modulus, Curve.a);
+    let p = EllipticCurve.double(toPoint(this), Curve);
     return new this.Constructor(p);
   }
 
@@ -130,18 +131,15 @@ class ForeignCurve {
    * Elliptic curve scalar multiplication, where the scalar is represented as a {@link ForeignField} element.
    */
   scale(scalar: AlmostForeignField | bigint | number) {
+    let Curve = this.Constructor.Bigint;
     let scalar_ = this.Constructor.Scalar.from(scalar);
-    let p = EllipticCurve.scale(
-      this.Constructor.Bigint,
-      scalar_.value,
-      toPoint(this)
-    );
+    let p = EllipticCurve.scale(scalar_.value, toPoint(this), Curve);
     return new this.Constructor(p);
   }
 
   static assertInSubgroup(g: ForeignCurve) {
     if (this.Bigint.hasCofactor) {
-      EllipticCurve.assertInSubgroup(this.Bigint, toPoint(g));
+      EllipticCurve.assertInSubgroup(toPoint(g), this.Bigint);
     }
   }
 

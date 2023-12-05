@@ -607,35 +607,35 @@ const Gadgets = {
      * Elliptic curve addition.
      */
     add(p: Point, q: Point, Curve: { modulus: bigint }) {
-      return EllipticCurve.add(p, q, Curve.modulus);
+      return EllipticCurve.add(p, q, Curve);
     },
 
     /**
      * Elliptic curve doubling.
      */
     double(p: Point, Curve: { modulus: bigint; a: bigint }) {
-      return EllipticCurve.double(p, Curve.modulus, Curve.a);
+      return EllipticCurve.double(p, Curve);
     },
 
     /**
      * Elliptic curve negation.
      */
     negate(p: Point, Curve: { modulus: bigint }) {
-      return EllipticCurve.negate(p, Curve.modulus);
+      return EllipticCurve.negate(p, Curve);
     },
 
     /**
      * Scalar multiplication.
      */
     scale(scalar: Field3, p: Point, Curve: CurveAffine) {
-      return EllipticCurve.scale(Curve, scalar, p);
+      return EllipticCurve.scale(scalar, p, Curve);
     },
 
     /**
      * Multi-scalar multiplication.
      */
     scaleMany(scalars: Field3[], points: Point[], Curve: CurveAffine) {
-      return EllipticCurve.multiScalarMul(Curve, scalars, points);
+      return EllipticCurve.multiScalarMul(scalars, points, Curve);
     },
 
     /**
@@ -659,7 +659,7 @@ const Gadgets = {
      * ```
      */
     assertInSubgroup(p: Point, Curve: CurveAffine) {
-      EllipticCurve.assertInSubgroup(Curve, p);
+      EllipticCurve.assertInSubgroup(p, Curve);
     },
 
     /**

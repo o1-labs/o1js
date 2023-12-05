@@ -48,19 +48,19 @@ for (let Curve of curves) {
 
   equivalentProvable({ from: [unequalPair], to: point, verbose: true })(
     ([p, q]) => Curve.add(p, q),
-    ([p, q]) => EllipticCurve.add(p, q, Curve.modulus),
+    ([p, q]) => EllipticCurve.add(p, q, Curve),
     `${Curve.name} add`
   );
 
   equivalentProvable({ from: [point], to: point, verbose: true })(
     Curve.double,
-    (p) => EllipticCurve.double(p, Curve.modulus, Curve.a),
+    (p) => EllipticCurve.double(p, Curve),
     `${Curve.name} double`
   );
 
   equivalentProvable({ from: [point], to: point, verbose: true })(
     Curve.negate,
-    (p) => EllipticCurve.negate(p, Curve.modulus),
+    (p) => EllipticCurve.negate(p, Curve),
     `${Curve.name} negate`
   );
 
@@ -76,7 +76,7 @@ for (let Curve of curves) {
       assert(!sp.infinity, 'expect nonzero');
       return sp;
     },
-    (p, s) => EllipticCurve.scale(Curve, s, p),
+    (p, s) => EllipticCurve.scale(s, p, Curve),
     `${Curve.name} scale`
   );
 }
