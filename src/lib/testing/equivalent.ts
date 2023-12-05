@@ -237,7 +237,7 @@ function equivalentProvable<
       let ms = (performance.now() - start).toFixed(1);
       let runs = nRuns.toString().padStart(2, ' ');
       console.log(
-        `${label.padEnd(20, ' ')}\t success on ${runs} runs in ${ms}ms.`
+        `${label.padEnd(20, ' ')}    success on ${runs} runs in ${ms}ms.`
       );
     }
   };
