@@ -57,26 +57,30 @@ for (let Curve of curves) {
   };
 
   // positive test
-  equivalentProvable({ from: [signature], to: bool })(
+  equivalentProvable({ from: [signature], to: bool, verbose: true })(
     () => true,
     verify,
-    'valid signature verifies'
+    `${Curve.name}: valid signature verifies`
   );
 
   // negative test
-  equivalentProvable({ from: [badSignature], to: bool })(
+  equivalentProvable({ from: [badSignature], to: bool, verbose: true })(
     () => false,
     verify,
-    'invalid signature fails'
+    `${Curve.name}: invalid signature fails`
   );
 
   // test against constant implementation, with both invalid and valid signatures
-  equivalentProvable({ from: [oneOf(signature, badSignature)], to: bool })(
+  equivalentProvable({
+    from: [oneOf(signature, badSignature)],
+    to: bool,
+    verbose: true,
+  })(
     ({ signature, publicKey, msg }) => {
       return verifyEcdsaConstant(Curve, signature, msg, publicKey);
     },
     verify,
-    'verify'
+    `${Curve.name}: verify`
   );
 }
 
