@@ -58,7 +58,32 @@ class EcdsaSignature {
   /**
    * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
    *
-   * This method proves that the signature is valid, and throws if it isn't.
+   * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
+   * So, to actually prove validity of a signature, you need to assert that the result is true.
+   *
+   * @example
+   * ```ts
+   * // create classes for your curve
+   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
+   * class Scalar extends Secp256k1.Scalar {}
+   * class Ecdsa extends createEcdsa(Secp256k1) {}
+   *
+   * // outside provable code: create inputs
+   * let privateKey = Scalar.random();
+   * let publicKey = Secp256k1.generator.scale(privateKey);
+   * let messageHash = Scalar.random();
+   * let signature = Ecdsa.sign(messageHash.toBigInt(), privateKey.toBigInt());
+   *
+   * // ...
+   * // in provable code: create input witnesses (or use method inputs, or constants)
+   * let pk = Provable.witness(Secp256k1.provable, () => publicKey);
+   * let msgHash = Provable.witness(Scalar.Canonical.provable, () => messageHash);
+   * let sig = Provable.witness(Ecdsa.provable, () => signature);
+   *
+   * // verify signature
+   * let isValid = sig.verify(msgHash, pk);
+   * isValid.assertTrue('signature verifies');
+   * ```
    */
   verify(msgHash: AlmostForeignField | bigint, publicKey: FlexiblePoint) {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
@@ -73,6 +98,8 @@ class EcdsaSignature {
 
   /**
    * Create an {@link EcdsaSignature} by signing a message hash with a private key.
+   *
+   * Note: This method is not provable, and only takes JS bigints as input.
    */
   static sign(msgHash: bigint, privateKey: bigint) {
     let { r, s } = Gadgets.Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
