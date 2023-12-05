@@ -6,6 +6,7 @@ import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
 import { Bool, Field } from '../core.js';
 import { provable } from '../circuit_value.js';
+import { assert } from '../gadgets/common.js';
 
 export {
   equivalent,
@@ -185,11 +186,17 @@ function equivalentAsync<
 
 // equivalence tester for provable code
 
+function isProvable(spec: FromSpecUnion<any, any>) {
+  return spec.specs.some((spec) => spec.provable);
+}
+
 function equivalentProvable<
   In extends Tuple<OrUnion<any, any>>,
   Out extends ToSpec<any, any>
 >({ from: fromRaw, to, verbose }: { from: In; to: Out; verbose?: boolean }) {
   let fromUnions = fromRaw.map(toUnion);
+  assert(fromUnions.some(isProvable), 'equivalentProvable: no provable input');
+
   return function run(
     f1: (...args: Params1<In>) => First<Out>,
     f2: (...args: Params2<In>) => Second<Out>,
