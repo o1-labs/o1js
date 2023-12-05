@@ -1,7 +1,14 @@
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
-import { equivalentProvable, map, spec } from '../testing/equivalent.js';
+import {
+  array,
+  equivalentProvable,
+  map,
+  onlyIf,
+  spec,
+} from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
+import { assert } from './common.js';
 import { Point, simpleMapToCurve } from './elliptic-curve.js';
 import { Gadgets } from './gadgets.js';
 import { foreignField } from './test-utils.js';
@@ -29,37 +36,44 @@ for (let Curve of curves) {
     provable: Point.provable,
   });
 
-  // valid random points
+  // valid random point
   let point = map({ from: field, to: badPoint }, (x) =>
     simpleMapToCurve(x, Curve)
   );
 
+  // two random points that are not equal, so are a valid input to EC addition
+  let unequalPair = onlyIf(array(point, 2), ([p, q]) => !Curve.equal(p, q));
+
   // gadgets
 
   // add
-  equivalentProvable({ from: [point, point], to: point })(
-    Curve.add,
-    (p, q) => Gadgets.EllipticCurve.add(p, q, Curve),
+  equivalentProvable({ from: [unequalPair], to: point, verbose: true })(
+    ([p, q]) => Curve.add(p, q),
+    ([p, q]) => Gadgets.EllipticCurve.add(p, q, Curve),
     'add'
   );
 
   // double
-  equivalentProvable({ from: [point], to: point })(
+  equivalentProvable({ from: [point], to: point, verbose: true })(
     Curve.double,
     (p) => Gadgets.EllipticCurve.double(p, Curve),
     'double'
   );
 
   // negate
-  equivalentProvable({ from: [point], to: point })(
+  equivalentProvable({ from: [point], to: point, verbose: true })(
     Curve.negate,
     (p) => Gadgets.EllipticCurve.negate(p, Curve),
     'negate'
   );
 
   // scale
-  equivalentProvable({ from: [point, scalar], to: point })(
-    Curve.scale,
+  equivalentProvable({ from: [point, scalar], to: point, verbose: true })(
+    (p, s) => {
+      let sp = Curve.scale(p, s);
+      assert(!sp.infinity, 'expect nonzero');
+      return sp;
+    },
     (p, s) => Gadgets.EllipticCurve.scale(s, p, Curve),
     'scale'
   );
