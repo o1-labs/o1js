@@ -341,25 +341,6 @@ class ForeignField {
     }
   }
 
-  /**
-   * Check equality with a ForeignField-like value
-   * @example
-   * ```ts
-   * let isXZero = x.equals(0);
-   * ```
-   */
-  equals(y: ForeignField | bigint | number) {
-    const p = this.modulus;
-    if (this.isConstant() && isConstant(y)) {
-      return new Bool(this.toBigInt() === mod(toBigInt(y), p));
-    }
-    return Provable.equal(
-      this.Constructor.provable,
-      this,
-      new this.Constructor(y)
-    );
-  }
-
   // bit packing
 
   /**
@@ -541,6 +522,25 @@ class CanonicalForeignField extends ForeignFieldWithMul {
    */
   static unsafeFrom(x: ForeignField) {
     return new this(x.value);
+  }
+
+  /**
+   * Check equality with a ForeignField-like value.
+   *
+   * @example
+   * ```ts
+   * let isXZero = x.equals(0);
+   * ```
+   *
+   * Note: This method only exists on canonical fields; on unreduced fields, it would be easy to
+   * misuse, because not being exactly equal does not imply being unequal modulo p.
+   */
+  equals(y: CanonicalForeignField | bigint | number) {
+    return Provable.equal(
+      this.Constructor.provable,
+      this,
+      new this.Constructor(y)
+    );
   }
 }
 
