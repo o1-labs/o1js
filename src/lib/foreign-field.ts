@@ -10,6 +10,7 @@ import { Bool } from './bool.js';
 import { Tuple, TupleMap, TupleN } from './util/types.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
+import { ForeignField as FF } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './circuit_value.js';
@@ -155,7 +156,7 @@ class ForeignField {
    * For a more efficient version of this for multiple field elements, see {@link assertAlmostReduced}.
    *
    * Note: this does not ensure that the field elements is in the canonical range [0, p).
-   * To assert that stronger property, there is {@link assertCanonicalFieldElement}.
+   * To assert that stronger property, there is {@link assertCanonical}.
    * You should typically use {@link assertAlmostReduced} though, because it is cheaper to prove and sufficient for
    * ensuring validity of all our non-native field arithmetic methods.
    */
@@ -190,7 +191,7 @@ class ForeignField {
    *
    * Returns the field element as a {@link CanonicalForeignField}.
    */
-  assertCanonicalFieldElement() {
+  assertCanonical() {
     this.assertLessThan(this.modulus);
     return this.Constructor.Canonical.unsafeFrom(this);
   }
@@ -493,6 +494,18 @@ class AlmostForeignField extends ForeignFieldWithMul {
   static unsafeFrom(x: ForeignField) {
     return new this(x.value);
   }
+
+  /**
+   * Check equality with a constant value.
+   *
+   * @example
+   * ```ts
+   * let isXZero = x.equals(0);
+   * ```
+   */
+  equals(y: bigint | number) {
+    return FF.equals(this.value, BigInt(y), this.modulus);
+  }
 }
 
 class CanonicalForeignField extends ForeignFieldWithMul {
@@ -512,7 +525,7 @@ class CanonicalForeignField extends ForeignFieldWithMul {
 
   static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
-    x.assertCanonicalFieldElement();
+    x.assertCanonical();
   }
 
   /**
@@ -529,18 +542,18 @@ class CanonicalForeignField extends ForeignFieldWithMul {
    *
    * @example
    * ```ts
-   * let isXZero = x.equals(0);
+   * let isEqual = x.equals(y);
    * ```
    *
    * Note: This method only exists on canonical fields; on unreduced fields, it would be easy to
    * misuse, because not being exactly equal does not imply being unequal modulo p.
    */
   equals(y: CanonicalForeignField | bigint | number) {
-    return Provable.equal(
-      this.Constructor.provable,
-      this,
-      new this.Constructor(y)
-    );
+    let [x0, x1, x2] = this.value;
+    let [y0, y1, y2] = toLimbs(y, this.modulus);
+    let x01 = x0.add(x1.mul(1n << l)).seal();
+    let y01 = y0.add(y1.mul(1n << l)).seal();
+    return x01.equals(y01).and(x2.equals(y2));
   }
 }
 
@@ -600,10 +613,10 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * ```
  *
  * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced, "canonical" field elements.
- * To convert to a canonical field element, use {@link assertCanonicalFieldElement}:
+ * To convert to a canonical field element, use {@link assertCanonical}:
  *
  * ```ts
- * x.assertCanonicalFieldElement(); // asserts x < p; returns `CanonicalForeignField`
+ * x.assertCanonical(); // asserts x < p; returns `CanonicalForeignField`
  * ```
  * You will likely not need canonical fields most of the time.
  *
