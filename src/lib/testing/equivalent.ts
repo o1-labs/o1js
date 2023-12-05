@@ -230,7 +230,8 @@ function equivalentProvable<
         handleErrors(
           () => f1(...inputs),
           () => f2(...inputWitnesses),
-          (x, y) => Provable.asProver(() => assertEqual(x, to.back(y), label))
+          (x, y) => Provable.asProver(() => assertEqual(x, to.back(y), label)),
+          label
         );
       });
     });
