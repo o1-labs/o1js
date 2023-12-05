@@ -43,7 +43,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           npm ci
-          npm run build:node
+          npm run build
           touch profiling.md
           sh run-ci-tests.sh
           cat profiling.md >> $GITHUB_STEP_SUMMARY
@@ -93,7 +93,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           npm ci
-          npm run build:node
+          npm run build
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
         if: github.ref == 'refs/heads/main'
