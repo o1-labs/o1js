@@ -2,8 +2,7 @@
 set -e
 shopt -s globstar # to expand '**' into nested directories./
 
-# run the build:test
-npm run build:test
+npm run build
 
 # find all unit tests in dist/node and run them
 # TODO it would be nice to make this work on Mac
