@@ -5,6 +5,7 @@ import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
 import { Bool, Field } from '../core.js';
+import { provable } from '../circuit_value.js';
 
 export {
   equivalent,
@@ -338,10 +339,14 @@ function record<Specs extends { [k in string]: Spec<any, any> }>(
   { [k in keyof Specs]: First<Specs[k]> },
   { [k in keyof Specs]: Second<Specs[k]> }
 > {
+  let isProvable = Object.values(specs).every((spec) => spec.provable);
   return {
     rng: Random.record(mapObject(specs, (spec) => spec.rng)) as any,
     there: (x) => mapObject(specs, (spec, k) => spec.there(x[k])) as any,
     back: (x) => mapObject(specs, (spec, k) => spec.back(x[k])) as any,
+    provable: isProvable
+      ? provable(mapObject(specs, (spec) => spec.provable) as any)
+      : undefined,
   };
 }
 
