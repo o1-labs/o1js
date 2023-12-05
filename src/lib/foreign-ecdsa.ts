@@ -56,6 +56,13 @@ class EcdsaSignature {
   }
 
   /**
+   * Convert this signature to an object with bigint fields.
+   */
+  toBigInt() {
+    return { r: this.r.toBigInt(), s: this.s.toBigInt() };
+  }
+
+  /**
    * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
    *
    * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
