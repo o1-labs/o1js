@@ -10,7 +10,7 @@ import {
 import { AlmostForeignField } from './foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { Field3 } from './gadgets/foreign-field.js';
-import { Gadgets } from './gadgets/gadgets.js';
+import { Ecdsa } from './gadgets/elliptic-curve.js';
 
 // external API
 export { createEcdsa, EcdsaSignature };
@@ -51,7 +51,7 @@ class EcdsaSignature {
    * [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/#typed-transaction-envelope).
    */
   static fromHex(rawSignature: string): EcdsaSignature {
-    let s = Gadgets.Ecdsa.Signature.fromHex(rawSignature);
+    let s = Ecdsa.Signature.fromHex(rawSignature);
     return new this(s);
   }
 
@@ -97,7 +97,7 @@ class EcdsaSignature {
   verify(msgHash: AlmostForeignField | bigint, publicKey: FlexiblePoint) {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
-    return Gadgets.Ecdsa.verify(
+    return Ecdsa.verify(
       this.Constructor.Curve.Bigint,
       toObject(this),
       msgHash_.value,
@@ -111,7 +111,7 @@ class EcdsaSignature {
    * Note: This method is not provable, and only takes JS bigints as input.
    */
   static sign(msgHash: bigint, privateKey: bigint) {
-    let { r, s } = Gadgets.Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
+    let { r, s } = Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
     return new this({ r, s });
   }
 
