@@ -1,7 +1,8 @@
 // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
-
 import { Field } from '../field.js';
 import { UInt32 } from '../int.js';
+import { TupleN } from '../util/types.js';
+import { assert, bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
 
 export { SHA256 };
@@ -149,18 +150,12 @@ function Maj(x: UInt32, y: UInt32, z: UInt32) {
 }
 
 function SigmaZero(x: UInt32) {
-  let rotr2 = ROTR(2, x);
-  let rotr13 = ROTR(13, x);
-  let rotr22 = ROTR(22, x);
-
+  let [rotr2, rotr13, rotr22] = ROTR3(x, [2, 13, 22]);
   return rotr2.xor(rotr13).xor(rotr22);
 }
 
 function SigmaOne(x: UInt32) {
-  let rotr6 = ROTR(6, x);
-  let rotr11 = ROTR(11, x);
-  let rotr25 = ROTR(25, x);
-
+  let [rotr6, rotr11, rotr25] = ROTR3(x, [6, 11, 25]);
   return rotr6.xor(rotr11).xor(rotr25);
 }
 
@@ -188,4 +183,73 @@ function ROTR(n: number, x: UInt32) {
 function SHR(n: number, x: UInt32) {
   let val = x.rightShift(n);
   return val;
+}
+
+function ROTR3Simple(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
+  let [r0, r1, r2] = bits;
+  return [ROTR(r0, u), ROTR(r1, u), ROTR(r2, u)];
+}
+
+function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
+  if (u.isConstant()) return ROTR3Simple(u, bits);
+
+  let [r0, r1, r2] = bits; // TODO assert bits are sorted
+  let x = u.value;
+
+  let d0 = r0;
+  let d1 = r1 - r0;
+  let d2 = r2 - r1;
+  let d3 = 32 - r2;
+
+  // decompose x into 4 chunks of size d0, d1, d2, d3
+  let [x0, x1, x2, x3] = exists(4, () => {
+    let xx = x.toBigInt();
+    return [
+      bitSlice(xx, 0, d0),
+      bitSlice(xx, r0, d1),
+      bitSlice(xx, r1, d2),
+      bitSlice(xx, r2, d3),
+    ];
+  });
+
+  // range check each chunk
+  rangeCheckNSmall(x0, d0);
+  rangeCheckNSmall(x1, d1);
+  rangeCheckNSmall(x2, d2);
+  assert(d3 <= 16, 'expected d3 <= 16');
+  rangeCheckNSmall(x3, 16); // cheaper and sufficient
+
+  // prove x decomposition
+
+  // x === x0 + x1*2^d0 + x2*2^(d0+d1) + x3*2^(d0+d1+d2)
+  let x23 = x2.add(x3.mul(1 << d2)).seal();
+  let x123 = x1.add(x23.mul(1 << d1)).seal();
+  x0.add(x123.mul(1 << d0)).assertEquals(x);
+
+  // reassemble chunks into rotated values
+
+  // rotr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2) + x0*2^(d1+d2+d3)
+  let xRotR0 = x123.add(x0.mul(1 << (d1 + d2 + d3))).seal();
+
+  // rotr(x, r1) = x2 + x3*2^d2 + x0*2^(d2+d3) + x1*2^(d2+d3+d0)
+  let x01 = x0.add(x1.mul(1 << d0)).seal();
+  let xRotR1 = x23.add(x01.mul(1 << (d2 + d3))).seal();
+
+  // rotr(x, r2) = x3 + x0*2^d3 + x1*2^(d3+d0) + x2*2^(d3+d0+d1)
+  let x012 = x01.add(x2.mul(1 << (d0 + d1))).seal();
+  let xRotR2 = x3.add(x012.mul(1 << d3)).seal();
+
+  return TupleN.map([xRotR0, xRotR1, xRotR2], (x) => UInt32.from(x));
+}
+
+function rangeCheckNSmall(x: Field, n: number) {
+  assert(n <= 16, 'expected n <= 16');
+
+  // x < 2^16
+  x.rangeCheckHelper(16).assertEquals(x);
+  if (n === 16) return;
+
+  // 2^(16-n)*x < 2^16, which implies x < 2^n
+  let xScaled = x.mul(1 << (16 - n)).seal();
+  xScaled.rangeCheckHelper(16).assertEquals(xScaled);
 }
