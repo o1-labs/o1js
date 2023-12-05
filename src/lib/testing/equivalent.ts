@@ -27,6 +27,7 @@ export {
   array,
   record,
   map,
+  onlyIf,
   fromRandom,
   first,
   second,
@@ -186,7 +187,7 @@ function equivalentAsync<
 function equivalentProvable<
   In extends Tuple<OrUnion<any, any>>,
   Out extends ToSpec<any, any>
->({ from: fromRaw, to }: { from: In; to: Out }) {
+>({ from: fromRaw, to, verbose }: { from: In; to: Out; verbose?: boolean }) {
   let fromUnions = fromRaw.map(toUnion);
   return function run(
     f1: (...args: Params1<In>) => First<Out>,
@@ -195,7 +196,9 @@ function equivalentProvable<
   ) {
     let generators = fromUnions.map((spec) => spec.rng);
     let assertEqual = to.assertEqual ?? deepEqual;
-    test(...generators, (...args) => {
+
+    let start = performance.now();
+    let nRuns = test.custom({ minRuns: 5 })(...generators, (...args) => {
       args.pop();
 
       // figure out which spec to use for each argument
@@ -230,6 +233,11 @@ function equivalentProvable<
         );
       });
     });
+    if (verbose) {
+      let ms = (performance.now() - start).toFixed(1);
+      let runs = nRuns.toString().padStart(2, ' ');
+      console.log(`${label}:\t succeeded with ${runs} runs in ${ms}ms.`);
+    }
   };
 }
 
@@ -340,6 +348,10 @@ function map<T1, T2, S1, S2>(
   there: (t: T1) => S1
 ): Spec<S1, S2> {
   return { ...to, rng: Random.map(from.rng, there) };
+}
+
+function onlyIf<T, S>(spec: Spec<T, S>, onlyIf: (t: T) => boolean): Spec<T, S> {
+  return { ...spec, rng: Random.reject(spec.rng, (x) => !onlyIf(x)) };
 }
 
 function mapObject<K extends string, T, S>(
