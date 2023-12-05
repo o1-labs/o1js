@@ -236,7 +236,9 @@ function equivalentProvable<
     if (verbose) {
       let ms = (performance.now() - start).toFixed(1);
       let runs = nRuns.toString().padStart(2, ' ');
-      console.log(`${label}:\t succeeded with ${runs} runs in ${ms}ms.`);
+      console.log(
+        `${label.padEnd(20, ' ')}\t success on ${runs} runs in ${ms}ms.`
+      );
     }
   };
 }
