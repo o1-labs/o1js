@@ -10,9 +10,6 @@ import {
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../field.js';
 import { ForeignField, Field3, Sum } from './foreign-field.js';
-import { Ecdsa, Point } from './elliptic-curve.js';
-import { CurveAffine } from '../../bindings/crypto/elliptic_curve.js';
-import { Crypto } from '../crypto.js';
 
 export { Gadgets };
 
@@ -600,60 +597,6 @@ const Gadgets = {
   },
 
   /**
-   * ECDSA verification gadget and helper methods.
-   */
-  Ecdsa: {
-    // TODO add an easy way to prove that the public key lies on the curve, and show in the example
-    /**
-     * Verify an ECDSA signature.
-     *
-     * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
-     * So, to actually prove validity of a signature, you need to assert that the result is true.
-     *
-     * @example
-     * ```ts
-     * const Curve = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
-     *
-     * // assert that message hash and signature are valid scalar field elements
-     * Gadgets.ForeignField.assertAlmostReduced(
-     *   [signature.r, signature.s, msgHash],
-     *   Curve.order
-     * );
-     *
-     * // verify signature
-     * let isValid = Gadgets.Ecdsa.verify(Curve, signature, msgHash, publicKey);
-     * isValid.assertTrue();
-     * ```
-     */
-    verify(
-      Curve: CurveAffine,
-      signature: Ecdsa.Signature,
-      msgHash: Field3,
-      publicKey: Point
-    ) {
-      Ecdsa.verify(Curve, signature, msgHash, publicKey);
-    },
-
-    /**
-     * Sign a message hash using ECDSA.
-     *
-     * _This method is not provable._
-     */
-    sign(
-      Curve: Crypto.Curve,
-      msgHash: bigint,
-      privateKey: bigint
-    ): Ecdsa.signature {
-      return Ecdsa.sign(Curve, msgHash, privateKey);
-    },
-
-    /**
-     * Non-provable helper methods for interacting with ECDSA signatures.
-     */
-    Signature: Ecdsa.Signature,
-  },
-
-  /**
    * Helper methods to interact with 3-limb vectors of Fields.
    *
    * **Note:** This interface does not contain any provable methods.
@@ -673,15 +616,5 @@ export namespace Gadgets {
      */
     export type Sum = Sum_;
   }
-
-  export namespace Ecdsa {
-    /**
-     * ECDSA signature consisting of two curve scalars.
-     */
-    export type Signature = EcdsaSignature;
-    export type signature = ecdsaSignature;
-  }
 }
 type Sum_ = Sum;
-type EcdsaSignature = Ecdsa.Signature;
-type ecdsaSignature = Ecdsa.signature;

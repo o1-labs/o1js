@@ -10,7 +10,7 @@ import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
-import { foreignField, throwError, uniformForeignField } from './test-utils.js';
+import { foreignField, uniformForeignField } from './test-utils.js';
 import {
   Second,
   bool,
