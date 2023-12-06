@@ -735,8 +735,10 @@ class UInt32 extends CircuitValue {
    * c.assertEquals(0b0110);
    * ```
    */
-  xor(x: UInt32) {
-    return UInt32.from(Gadgets.xor(this.value, x.value, UInt32.NUM_BITS));
+  xor(x: UInt32 | Field) {
+    return UInt32.from(
+      Gadgets.xor(this.value, UInt32.from(x).value, UInt32.NUM_BITS)
+    );
   }
 
   /**
