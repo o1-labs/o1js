@@ -7,6 +7,7 @@ import {
   equivalentProvable,
   fromRandom,
   record,
+  unit,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
 import { Gadgets } from './gadgets.js';
@@ -19,10 +20,12 @@ import {
   contains,
   equals,
   ifNotAllConstant,
+  not,
   repeat,
   withoutGenerics,
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
+import { AnyTuple } from '../util/types.js';
 
 const { ForeignField, Field3 } = Gadgets;
 
@@ -84,6 +87,24 @@ for (let F of fields) {
     (x, y) => F.div(x, y) ?? throwError('no inverse'),
     (x, y) => ForeignField.div(x, y, F.modulus),
     'div'
+  );
+  equivalentProvable({ from: [f, f], to: unit })(
+    (x, y) => assertMulExampleNaive(Field3.from(x), Field3.from(y), F.modulus),
+    (x, y) => assertMulExample(x, y, F.modulus),
+    'assertMul'
+  );
+  // test for assertMul which mostly tests the negative case because for random inputs, we expect
+  // (x - y) * z != a + b
+  equivalentProvable({ from: [f, f, f, f, f], to: unit })(
+    (x, y, z, a, b) => assert(F.mul(F.sub(x, y), z) === F.add(a, b)),
+    (x, y, z, a, b) =>
+      ForeignField.assertMul(
+        ForeignField.Sum(x).sub(y),
+        z,
+        ForeignField.Sum(a).add(b),
+        F.modulus
+      ),
+    'assertMul negative'
   );
 
   // tests with inputs that aren't reduced mod f
@@ -185,7 +206,9 @@ let ffProgram = ZkProgram({
 
 // tests for constraint system
 
-let addChain = repeat(chainLength - 1, 'ForeignFieldAdd').concat('Zero');
+function addChain(length: number) {
+  return repeat(length - 1, 'ForeignFieldAdd').concat('Zero');
+}
 let mrc: GateType[] = ['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'];
 
 constraintSystem.fromZkProgram(
@@ -193,8 +216,8 @@ constraintSystem.fromZkProgram(
   'sumchain',
   ifNotAllConstant(
     and(
-      contains([addChain, mrc]),
-      withoutGenerics(equals([...addChain, ...mrc]))
+      contains([addChain(chainLength), mrc]),
+      withoutGenerics(equals([...addChain(chainLength), ...mrc]))
     )
   )
 );
@@ -219,9 +242,11 @@ constraintSystem.fromZkProgram(ffProgram, 'div', invLayout);
 
 // tests with proving
 
+const runs = 2;
+
 await ffProgram.compile();
 
-await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 3 })(
+await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs })(
   (xs) => sum(xs, signs, F),
   async (xs) => {
     let proof = await ffProgram.sumchain(xs);
@@ -231,7 +256,7 @@ await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs: 3 })(
   'prove chain'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
+await equivalentAsync({ from: [f, f], to: f }, { runs })(
   F.mul,
   async (x, y) => {
     let proof = await ffProgram.mul(x, y);
@@ -241,7 +266,7 @@ await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
   'prove mul'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
+await equivalentAsync({ from: [f, f], to: f }, { runs })(
   (x, y) => F.div(x, y) ?? throwError('no inverse'),
   async (x, y) => {
     let proof = await ffProgram.div(x, y);
@@ -251,7 +276,75 @@ await equivalentAsync({ from: [f, f], to: f }, { runs: 3 })(
   'prove div'
 );
 
+// assert mul example
+// (x - y) * (x + y) = x^2 - y^2
+
+function assertMulExample(x: Gadgets.Field3, y: Gadgets.Field3, f: bigint) {
+  // witness x^2, y^2
+  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+
+  // assert (x - y) * (x + y) = x^2 - y^2
+  let xMinusY = ForeignField.Sum(x).sub(y);
+  let xPlusY = ForeignField.Sum(x).add(y);
+  let x2MinusY2 = ForeignField.Sum(x2).sub(y2);
+  ForeignField.assertMul(xMinusY, xPlusY, x2MinusY2, f);
+}
+
+function assertMulExampleNaive(
+  x: Gadgets.Field3,
+  y: Gadgets.Field3,
+  f: bigint
+) {
+  // witness x^2, y^2
+  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+
+  // assert (x - y) * (x + y) = x^2 - y^2
+  let lhs = ForeignField.mul(
+    ForeignField.sub(x, y, f),
+    ForeignField.add(x, y, f),
+    f
+  );
+  let rhs = ForeignField.sub(x2, y2, f);
+  Provable.assertEqual(Field3.provable, lhs, rhs);
+}
+
+let from2 = { from: [f, f] satisfies AnyTuple };
+let gates = constraintSystem.size(from2, (x, y) =>
+  assertMulExample(x, y, F.modulus)
+);
+let gatesNaive = constraintSystem.size(from2, (x, y) =>
+  assertMulExampleNaive(x, y, F.modulus)
+);
+// the assertMul() version should save 11.5 rows:
+// -2*1.5 rows by replacing input MRCs with low-limb ffadd
+// -2*4 rows for avoiding the MRC on both mul() and sub() outputs
+// -1 row for chaining one ffadd into ffmul
+// +0.5 rows for having to combine the two lower result limbs before wiring to ffmul remainder
+assert(gates + 11 <= gatesNaive, 'assertMul() saves at least 11 constraints');
+
+let addChainedIntoMul: GateType[] = ['ForeignFieldAdd', ...mulChain];
+
+constraintSystem(
+  'assert mul',
+  from2,
+  (x, y) => assertMulExample(x, y, F.modulus),
+  and(
+    contains([addChain(1), addChain(1), addChainedIntoMul]),
+    // assertMul() doesn't use any range checks besides on internal values and the quotient
+    containsNTimes(2, mrc)
+  )
+);
+
 // helper
+
+function containsNTimes(n: number, pattern: readonly GateType[]) {
+  return and(
+    contains(repeat(n, pattern)),
+    not(contains(repeat(n + 1, pattern)))
+  );
+}
 
 function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
   let sum = xs[0];

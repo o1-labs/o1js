@@ -9,7 +9,7 @@ import {
 } from './range-check.js';
 import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
 import { Field } from '../field.js';
-import { ForeignField, Field3 } from './foreign-field.js';
+import { ForeignField, Field3, Sum } from './foreign-field.js';
 
 export { Gadgets };
 
@@ -498,6 +498,45 @@ const Gadgets = {
     },
 
     /**
+     * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
+     *
+     * Note: This is much more efficient than using {@link ForeignField.add} and {@link ForeignField.sub} separately to
+     * compute the multiplication inputs and outputs, and then using {@link ForeignField.mul} to constrain the result.
+     *
+     * The sums passed into this method are "lazy sums" created with {@link ForeignField.Sum}.
+     * You can also pass in plain {@link Field3} elements.
+     *
+     * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link ForeignField.mul}:
+     * - each summand's limbs are in the range [0, 2^88)
+     * - summands that are part of a multiplication input satisfy `x[2] <= f[2]`
+     *
+     * @throws if the modulus is so large that the second assumption no longer suffices for validity of the multiplication.
+     * For small sums and moduli < 2^256, this will not fail.
+     *
+     * @throws if the provided multiplication result is not correct modulo f.
+     *
+     * @example
+     * ```ts
+     * // we assume that x, y, z, a, b, c are range-checked, analogous to `ForeignField.mul()`
+     * let xMinusY = ForeignField.Sum(x).sub(y);
+     * let aPlusBPlusC = ForeignField.Sum(a).add(b).add(c);
+     *
+     * // assert that (x - y)*z = a + b + c mod f
+     * ForeignField.assertMul(xMinusY, z, aPlusBPlusC, f);
+     * ```
+     */
+    assertMul(x: Field3 | Sum, y: Field3 | Sum, z: Field3 | Sum, f: bigint) {
+      return ForeignField.assertMul(x, y, z, f);
+    },
+
+    /**
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link ForeignField.assertMul}.
+     */
+    Sum(x: Field3) {
+      return ForeignField.Sum(x);
+    },
+
+    /**
      * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
      * i.e., satisfies the assumptions required by {@link ForeignField.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)
@@ -572,4 +611,12 @@ export namespace Gadgets {
    * A 3-tuple of Fields, representing a 3-limb bigint.
    */
   export type Field3 = [Field, Field, Field];
+
+  export namespace ForeignField {
+    /**
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link ForeignField.assertMul}.
+     */
+    export type Sum = Sum_;
+  }
 }
+type Sum_ = Sum;

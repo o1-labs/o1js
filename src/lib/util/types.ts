@@ -1,8 +1,9 @@
 import { assert } from '../errors.js';
 
-export { Tuple, TupleN, TupleMap };
+export { Tuple, TupleN, AnyTuple, TupleMap };
 
 type Tuple<T> = [T, ...T[]] | [];
+type AnyTuple = Tuple<any>;
 
 type TupleMap<T extends Tuple<any>, B> = [
   ...{

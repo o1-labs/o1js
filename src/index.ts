@@ -14,6 +14,7 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
+  Unconstrained,
 } from './lib/circuit_value.js';
 export {
   CircuitValue,
