@@ -93,6 +93,19 @@ for (let F of fields) {
     (x, y) => assertMulExample(x, y, F.modulus),
     'assertMul'
   );
+  // test for assertMul which mostly tests the negative case because for random inputs, we expect
+  // (x - y) * z != a + b
+  equivalentProvable({ from: [f, f, f, f, f], to: unit })(
+    (x, y, z, a, b) => assert(F.mul(F.sub(x, y), z) === F.add(a, b)),
+    (x, y, z, a, b) =>
+      ForeignField.assertMul(
+        ForeignField.Sum(x).sub(y),
+        z,
+        ForeignField.Sum(a).add(b),
+        F.modulus
+      ),
+    'assertMul negative'
+  );
 
   // tests with inputs that aren't reduced mod f
   let big264 = unreducedForeignField(264, F); // this is the max size supported by our range checks / ffadd
