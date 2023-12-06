@@ -51,7 +51,7 @@
     "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
-    "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json",
+    "build:examples": "npm run build && rimraf ./dist/examples && npx tsc -p tsconfig.examples.json",
     "build:docs": "npx typedoc --tsconfig ./tsconfig.web.json",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
