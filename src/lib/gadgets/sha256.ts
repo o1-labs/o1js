@@ -190,6 +190,7 @@ function ROTR3Simple(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
   return [ROTR(r0, u), ROTR(r1, u), ROTR(r2, u)];
 }
 
+// assumes that outputs are range-checked to 32 bits externally
 function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
   if (u.isConstant()) return ROTR3Simple(u, bits);
 
@@ -213,11 +214,12 @@ function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
   });
 
   // range check each chunk
-  rangeCheckNSmall(x0, d0);
-  rangeCheckNSmall(x1, d1);
-  rangeCheckNSmall(x2, d2);
-  assert(d3 <= 16, 'expected d3 <= 16');
-  rangeCheckNSmall(x3, 16); // cheaper and sufficient
+  // we only need to range check to 16 bits relying on the requirement that
+  // the rotated values are range-checked to 32 bits later; see comments below
+  rangeCheckNSmall(x0, 16);
+  rangeCheckNSmall(x1, 16);
+  rangeCheckNSmall(x2, 16);
+  rangeCheckNSmall(x3, 16);
 
   // prove x decomposition
 
@@ -225,19 +227,23 @@ function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
   let x23 = x2.add(x3.mul(1 << d2)).seal();
   let x123 = x1.add(x23.mul(1 << d1)).seal();
   x0.add(x123.mul(1 << d0)).assertEquals(x);
+  // ^ proves that 2^(32-d3)*x3 < x < 2^32 => x3 < 2^d3
 
   // reassemble chunks into rotated values
 
   // rotr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2) + x0*2^(d1+d2+d3)
   let xRotR0 = x123.add(x0.mul(1 << (d1 + d2 + d3))).seal();
+  // ^ proves that 2^(32-d0)*x0 < xRotR0 => x0 < 2^d0 if we check xRotR0 < 2^32 later
 
   // rotr(x, r1) = x2 + x3*2^d2 + x0*2^(d2+d3) + x1*2^(d2+d3+d0)
   let x01 = x0.add(x1.mul(1 << d0)).seal();
   let xRotR1 = x23.add(x01.mul(1 << (d2 + d3))).seal();
+  // ^ proves that 2^(32-d1)*x1 < xRotR1 => x1 < 2^d1 if we check xRotR1 < 2^32 later
 
   // rotr(x, r2) = x3 + x0*2^d3 + x1*2^(d3+d0) + x2*2^(d3+d0+d1)
   let x012 = x01.add(x2.mul(1 << (d0 + d1))).seal();
   let xRotR2 = x3.add(x012.mul(1 << d3)).seal();
+  // ^ proves that 2^(32-d2)*x2 < xRotR2 => x2 < 2^d2 if we check xRotR2 < 2^32 later
 
   return TupleN.map([xRotR0, xRotR1, xRotR2], (x) => UInt32.from(x));
 }
