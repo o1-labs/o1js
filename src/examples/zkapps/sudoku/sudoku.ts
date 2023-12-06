@@ -8,7 +8,7 @@ import {
   isReady,
   Poseidon,
   Struct,
-  Circuit,
+  Provable,
 } from 'o1js';
 
 export { Sudoku, SudokuZkApp };

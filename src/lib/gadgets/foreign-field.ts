@@ -69,7 +69,7 @@ const ForeignField = {
     // provable case
     // we can just use negation `(f - 1) - x`. because the result is range-checked, it proves that x < f:
     // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
-    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0 or 1)
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
     ForeignField.negate(x, f - 1n);
   },
 
@@ -641,6 +641,9 @@ class Sum {
     let overflows: Field[] = [];
     let xRef = Unconstrained.witness(() => Field3.toBigint(xs[0]));
 
+    // this loop mirrors the computation that a chain of ffadd gates does,
+    // but everything is done only on the lowest limb and using generic gates.
+    // the output is a sequence of low limbs (x0) and overflows, which will be wired to the ffadd results at each step.
     for (let i = 0; i < n; i++) {
       // compute carry and overflow
       let [carry, overflow] = exists(2, () => {

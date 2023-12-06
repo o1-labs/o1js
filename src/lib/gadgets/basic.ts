@@ -117,6 +117,10 @@ function assertBilinear(
   // b*x + c*y - z? + a*x*y + d === 0
   Gates.generic(
     { left: b, right: c, out: z === undefined ? 0n : -1n, mul: a, const: d },
-    { left: x, right: y, out: z === undefined ? x : z }
+    { left: x, right: y, out: z === undefined ? emptyCell() : z }
   );
+}
+
+function emptyCell() {
+  return existsOne(() => 0n);
 }

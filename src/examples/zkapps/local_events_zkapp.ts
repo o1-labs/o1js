@@ -91,7 +91,7 @@ let events = await zkapp.fetchEvents(UInt32.from(0));
 console.log(events);
 console.log('---- emitted events: ----');
 // fetches all events from zkapp starting block height 0 and ending at block height 10
-events = await zkapp.fetchEvents(UInt32.from(0), UInt64.from(10));
+events = await zkapp.fetchEvents(UInt32.from(0), UInt32.from(10));
 console.log(events);
 console.log('---- emitted events: ----');
 // fetches all events

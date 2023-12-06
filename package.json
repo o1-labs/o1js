@@ -49,7 +49,7 @@
     "bindings": "cd ../../.. && ./scripts/update-snarkyjs-bindings.sh && cd src/lib/snarkyjs",
     "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/buildNode.js",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
-    "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
+    "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json",
     "build:docs": "npx typedoc --tsconfig ./tsconfig.web.json",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "node src/build/copy-artifacts.js && rimraf ./dist/node && npx tsc -p tsconfig.node.json && node src/build/copy-to-dist.js && NODE_ENV=production node src/build/buildNode.js",
