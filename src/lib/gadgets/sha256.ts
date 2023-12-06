@@ -2,7 +2,7 @@
 import { Field } from '../field.js';
 import { UInt32 } from '../int.js';
 import { TupleN } from '../util/types.js';
-import { bitSlice, exists, existsOne, toBigints } from './common.js';
+import { bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
 
 export { SHA256 };

@@ -17,7 +17,6 @@ export {
   witnessSlice,
   witnessNextValue,
   divideWithRemainder,
-  toBigints,
 };
 
 function existsOne(compute: () => bigint) {
@@ -59,17 +58,6 @@ function toVars<T extends Tuple<Field | bigint>>(
   fields: T
 ): { [k in keyof T]: Field } {
   return Tuple.map(fields, toVar);
-}
-
-/**
- * Convert several Fields to bigints.
- */
-function toBigints<
-  T extends Tuple<{ toBigInt(): bigint } | { toBigint(): bigint }>
->(...fields: T) {
-  return Tuple.map(fields, (x) =>
-    'toBigInt' in x ? x.toBigInt() : x.toBigint()
-  );
 }
 
 function assert(stmt: boolean, message?: string): asserts stmt {
