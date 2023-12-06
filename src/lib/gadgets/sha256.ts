@@ -2,7 +2,7 @@
 import { Field } from '../field.js';
 import { UInt32 } from '../int.js';
 import { TupleN } from '../util/types.js';
-import { assert, bitSlice, exists } from './common.js';
+import { bitSlice, exists, existsOne, toBigints } from './common.js';
 import { Gadgets } from './gadgets.js';
 
 export { SHA256 };
@@ -142,11 +142,22 @@ function Ch(x: UInt32, y: UInt32, z: UInt32) {
 }
 
 function Maj(x: UInt32, y: UInt32, z: UInt32) {
-  let xAndY = x.and(y);
-  let xAndZ = x.and(z);
-  let yAndZ = y.and(z);
+  if (x.isConstant() && y.isConstant() && z.isConstant()) {
+    let [x0, y0, z0] = toBigints(x, y, z);
+    return UInt32.from((x0 & y0) ^ (x0 & z0) ^ (y0 & z0));
+  }
 
-  return xAndY.xor(xAndZ).xor(yAndZ);
+  let maj = existsOne(() => {
+    let [x0, y0, z0] = toBigints(x, y, z);
+    return (x0 & y0) ^ (x0 & z0) ^ (y0 & z0);
+  });
+
+  // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z) can be alternatively expressed as
+  // x + y + z = 2*maj(x, y, z) + (x ^ y ^ z)
+  let sum = x.value.add(y.value).add(z.value).seal();
+  let xor = x.xor(y).xor(z);
+  maj.mul(2).add(xor.value).assertEquals(sum);
+  return UInt32.from(maj);
 }
 
 function SigmaZero(x: UInt32) {
