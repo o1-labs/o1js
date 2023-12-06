@@ -1,63 +1,136 @@
 import { Field } from './field.js';
 import { Provable } from './provable.js';
-import { preNist, nistSha3, ethereum } from './keccak.js';
-import { sha3_256, keccak_256 } from '@noble/hashes/sha3';
+import { Keccak } from './keccak.js';
+import { keccak_256, sha3_256, keccak_512, sha3_512 } from '@noble/hashes/sha3';
 import { ZkProgram } from './proof_system.js';
+import { Random } from './testing/random.js';
+import { array, equivalentAsync, fieldWithRng } from './testing/equivalent.js';
+import { constraintSystem, contains } from './testing/constraint-system.js';
 
+const PREIMAGE_LENGTH = 75;
+const RUNS = 1;
 
-let Keccak = ZkProgram({
-  name: 'keccak',
-  publicInput: Provable.Array(Field, 100),
+let uint = (length: number) => fieldWithRng(Random.biguint(length));
+
+let Keccak256 = ZkProgram({
+  name: 'keccak256',
+  publicInput: Provable.Array(Field, PREIMAGE_LENGTH),
   publicOutput: Provable.Array(Field, 32),
   methods: {
-    preNist: {
-      privateInputs: [],
-      method(preImage) {
-        return preNist(256, preImage);
-      },
-    },
-    nistSha3: {
-      privateInputs: [],
-      method(preImage) {
-        return nistSha3(256, preImage);
-      },
-    },
     ethereum: {
       privateInputs: [],
       method(preImage) {
-        return ethereum(preImage);
+        return Keccak.ethereum(preImage);
+      },
+    },
+    // No need for preNist Keccak_256 because it's identical to ethereum
+    nistSha3: {
+      privateInputs: [],
+      method(preImage) {
+        return Keccak.nistSha3(256, preImage);
       },
     },
   },
 });
 
-console.log("compiling keccak");
-await Keccak.compile();
-console.log("done compiling keccak");
+await Keccak256.compile();
 
-const runs = 2;
+await equivalentAsync(
+  {
+    from: [array(uint(8), PREIMAGE_LENGTH)],
+    to: array(uint(8), 32),
+  },
+  { runs: RUNS }
+)(
+  (x) => {
+    let uint8Array = new Uint8Array(x.map(Number));
+    let result = keccak_256(uint8Array);
+    return Array.from(result).map(BigInt);
+  },
+  async (x) => {
+    let proof = await Keccak256.ethereum(x);
+    return proof.publicOutput;
+  }
+);
 
-let preImage = [
-  236, 185, 24, 61, 138, 249, 61, 13, 226, 103, 152, 232, 104, 234, 170, 26,
-  46, 54, 157, 146, 17, 240, 10, 193, 214, 110, 134, 47, 97, 241, 172, 198,
-  80, 95, 136, 185, 62, 156, 246, 210, 207, 129, 93, 162, 215, 77, 3, 38,
-  194, 86, 75, 100, 64, 87, 6, 18, 4, 159, 235, 53, 87, 124, 216, 241, 179,
-  201, 111, 168, 72, 181, 28, 65, 142, 243, 224, 69, 58, 178, 114, 3, 112,
-  23, 15, 208, 103, 231, 114, 64, 89, 172, 240, 81, 27, 215, 129, 3, 16,
-  173, 133, 160,
-]
+await equivalentAsync(
+  {
+    from: [array(uint(8), PREIMAGE_LENGTH)],
+    to: array(uint(8), 32),
+  },
+  { runs: RUNS }
+)(
+  (x) => {
+    let thing = x.map(Number);
+    let result = sha3_256(new Uint8Array(thing));
+    return Array.from(result).map(BigInt);
+  },
+  async (x) => {
+    let proof = await Keccak256.nistSha3(x);
+    return proof.publicOutput;
+  }
+);
 
-let preNistProof = await Keccak.preNist(preImage.map(Field.from));
-console.log(preNistProof.publicOutput.toString());
-console.log(keccak_256(new Uint8Array(preImage)));
-let nistSha3Proof = await Keccak.nistSha3(preImage.map(Field.from));
-console.log(nistSha3Proof.publicOutput.toString());
-console.log(sha3_256(new Uint8Array(preImage)));
-let ethereumProof = await Keccak.ethereum(preImage.map(Field.from));
-console.log(ethereumProof.publicOutput.toString());
+// let Keccak512 = ZkProgram({
+//   name: 'keccak512',
+//   publicInput: Provable.Array(Field, PREIMAGE_LENGTH),
+//   publicOutput: Provable.Array(Field, 64),
+//   methods: {
+//     preNist: {
+//       privateInputs: [],
+//       method(preImage) {
+//         return Keccak.preNist(512, preImage, 'Big', 'Big', true);
+//       },
+//     },
+//     nistSha3: {
+//       privateInputs: [],
+//       method(preImage) {
+//         return Keccak.nistSha3(512, preImage, 'Big', 'Big', true);
+//       },
+//     },
+//   },
+// });
 
-console.log('verifying');
-preNistProof.verify();
-nistSha3Proof.verify();
-ethereumProof.verify();
-console.log('done verifying');
+// await Keccak512.compile();
+
+// await equivalentAsync(
+//   {
+//     from: [array(uint(8), PREIMAGE_LENGTH)],
+//     to: array(uint(8), 64),
+//   },
+//   { runs: RUNS }
+// )(
+//   (x) => {
+//     let uint8Array = new Uint8Array(x.map(Number));
+//     let result = keccak_512(uint8Array);
+//     return Array.from(result).map(BigInt);
+//   },
+//   async (x) => {
+//     let proof = await Keccak512.preNist(x);
+//     return proof.publicOutput;
+//   }
+// );
+
+// await equivalentAsync(
+//   {
+//     from: [array(uint(8), PREIMAGE_LENGTH)],
+//     to: array(uint(8), 64),
+//   },
+//   { runs: RUNS }
+// )(
+//   (x) => {
+//     let thing = x.map(Number);
+//     let result = sha3_512(new Uint8Array(thing));
+//     return Array.from(result).map(BigInt);
+//   },
+//   async (x) => {
+//     let proof = await Keccak512.nistSha3(x);
+//     return proof.publicOutput;
+//   }
+// );
+
+constraintSystem.fromZkProgram(
+  Keccak256,
+  'ethereum',
+  contains([['Generic'], ['Xor16'], ['Zero'], ['Rot64'], ['RangeCheck0']])
+);

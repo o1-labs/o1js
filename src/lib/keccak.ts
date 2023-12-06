@@ -5,7 +5,39 @@ import { existsOne, exists } from './gadgets/common.js';
 import { TupleN } from './util/types.js';
 import { rangeCheck8 } from './gadgets/range-check.js';
 
-export { preNist, nistSha3, ethereum };
+export { Keccak };
+
+const Keccak = {
+  /** TODO */
+  preNist(
+    len: number,
+    message: Field[],
+    inpEndian: 'Big' | 'Little' = 'Big',
+    outEndian: 'Big' | 'Little' = 'Big',
+    byteChecks: boolean = false
+  ) {
+    return preNist(len, message, inpEndian, outEndian, byteChecks);
+  },
+  /** TODO */
+  nistSha3(
+    len: number,
+    message: Field[],
+    inpEndian: 'Big' | 'Little' = 'Big',
+    outEndian: 'Big' | 'Little' = 'Big',
+    byteChecks: boolean = false
+  ) {
+    return nistSha3(len, message, inpEndian, outEndian, byteChecks);
+  },
+  /** TODO */
+  ethereum(
+    message: Field[],
+    inpEndian: 'Big' | 'Little' = 'Big',
+    outEndian: 'Big' | 'Little' = 'Big',
+    byteChecks: boolean = false
+  ) {
+    return ethereum(message, inpEndian, outEndian, byteChecks);
+  },
+};
 
 // KECCAK CONSTANTS
 
@@ -72,6 +104,9 @@ const ROUND_CONSTANTS = [
   0x8000000080008008n,
 ];
 
+// AUXILARY FUNCTIONS
+
+// Auxiliary function to check composition of 8 bytes into a 64-bit word
 function checkBytesToWord(word: Field, wordBytes: Field[]): void {
   let composition = wordBytes.reduce((acc, x, i) => {
     const shift = Field.from(2n ** BigInt(8 * i));
@@ -80,6 +115,8 @@ function checkBytesToWord(word: Field, wordBytes: Field[]): void {
 
   word.assertEquals(composition);
 }
+
+// KECCAK STATE FUNCTIONS
 
 // Return a keccak state where all lanes are equal to 0
 const getKeccakStateZeros = (): Field[][] =>
@@ -105,11 +142,10 @@ function getKeccakStateOfBytes(bytestring: Field[]): Field[][] {
       }
     }
   }
-
   return state;
 }
 
-// Converts a state of cvars to a list of bytes as cvars and creates constraints for it
+// Converts a state of Fields to a list of bytes as Fields and creates constraints for it
 function keccakStateToBytes(state: Field[][]): Field[] {
   const stateLengthInBytes = KECCAK_STATE_LENGTH / 8;
   const bytestring: Field[] = Array.from(
@@ -141,20 +177,21 @@ function keccakStateToBytes(state: Field[][]): Field[] {
       checkBytesToWord(state[x][y], word_bytes);
     }
   }
-
   return bytestring;
 }
 
+// XOR two states together and return the result
 function keccakStateXor(a: Field[][], b: Field[][]): Field[][] {
   assert(
     a.length === KECCAK_DIM && a[0].length === KECCAK_DIM,
-    'Invalid input1 dimensions'
+    'Invalid a dimensions'
   );
   assert(
     b.length === KECCAK_DIM && b[0].length === KECCAK_DIM,
-    'Invalid input2 dimensions'
+    'Invalid b dimensions'
   );
 
+  // Calls Gadgets.xor on each pair (x,y) of the states input1 and input2 and outputs the output Fields as a new matrix
   return a.map((row, rowIndex) =>
     row.map((element, columnIndex) =>
       Gadgets.xor(element, b[rowIndex][columnIndex], 64)
@@ -181,8 +218,7 @@ function padNist(message: Field[], rate: number): Field[] {
   const extraBytes = bytesToPad(rate, message.length);
 
   // 0x06 0x00 ... 0x00 0x80 or 0x86
-  const lastField = BigInt(2) ** BigInt(7);
-  const last = Field.from(lastField);
+  const last = Field.from(BigInt(2) ** BigInt(7));
 
   // Create the padding vector
   const pad = Array(extraBytes).fill(Field.from(0));
@@ -205,8 +241,7 @@ function pad101(message: Field[], rate: number): Field[] {
   const extraBytes = bytesToPad(rate, message.length);
 
   // 0x01 0x00 ... 0x00 0x80 or 0x81
-  const lastField = BigInt(2) ** BigInt(7);
-  const last = Field.from(lastField);
+  const last = Field.from(BigInt(2) ** BigInt(7));
 
   // Create the padding vector
   const pad = Array(extraBytes).fill(Field.from(0));
@@ -354,6 +389,8 @@ function permutation(state: Field[][], rc: Field[]): Field[][] {
   );
 }
 
+// KECCAK SPONGE
+
 // Absorb padded message into a keccak state with given rate and capacity
 function absorb(
   paddedMessage: Field[],
@@ -363,13 +400,12 @@ function absorb(
 ): Field[][] {
   let state = getKeccakStateZeros();
 
-  // split into blocks of rate bits
-  // for each block of rate bits in the padded message -> this is rate/8 bytes
-  const chunks = [];
   // (capacity / 8) zero bytes
   const zeros = Array(capacity / 8).fill(Field.from(0));
 
   for (let i = 0; i < paddedMessage.length; i += rate / 8) {
+    // split into blocks of rate bits
+    // for each block of rate bits in the padded message -> this is rate/8 bytes
     const block = paddedMessage.slice(i, i + rate / 8);
     // pad the block with 0s to up to 1600 bits
     const paddedBlock = block.concat(zeros);
@@ -385,7 +421,6 @@ function absorb(
     const statePerm = permutation(stateXor, rc);
     state = statePerm;
   }
-
   return state;
 }
 
@@ -396,6 +431,7 @@ function squeeze(
   rate: number,
   rc: Field[]
 ): Field[] {
+  // Copies a section of bytes in the bytestring into the output array
   const copy = (
     bytestring: Field[],
     outputArray: Field[],
@@ -421,6 +457,7 @@ function squeeze(
   const bytestring = keccakStateToBytes(state);
   const outputBytes = bytestring.slice(0, bytesPerSqueeze);
   copy(outputBytes, outputArray, 0, bytesPerSqueeze);
+
   // for the rest of squeezes
   for (let i = 1; i < squeezes; i++) {
     // apply the permutation function to the state
@@ -430,9 +467,9 @@ function squeeze(
     const outputBytesI = bytestringI.slice(0, bytesPerSqueeze);
     copy(outputBytesI, outputArray, bytesPerSqueeze * i, bytesPerSqueeze);
   }
+
   // Obtain the hash selecting the first bitlength/8 bytes of the output array
   const hashed = outputArray.slice(0, length / 8);
-
   return hashed;
 }
 
@@ -449,7 +486,7 @@ function sponge(
     throw new Error('Invalid padded message length');
   }
 
-  // setup cvars for round constants
+  // load round constants into Fields
   let rc = exists(24, () => TupleN.fromArray(24, ROUND_CONSTANTS));
 
   // absorb
@@ -462,12 +499,12 @@ function sponge(
 }
 
 // TODO(jackryanservia): Use lookup argument once issue is resolved
-// Checks in the circuit that a list of cvars are at most 8 bits each
+// Checks in the circuit that a list of Fields are at most 8 bits each
 function checkBytes(inputs: Field[]): void {
   inputs.map(rangeCheck8);
 }
 
-// Keccak hash function with input message passed as list of Cvar bytes.
+// Keccak hash function with input message passed as list of Field bytes.
 // The message will be parsed as follows:
 // - the first byte of the message will be the least significant byte of the first word of the state (A[0][0])
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
@@ -482,14 +519,17 @@ function hash(
   nistVersion: boolean
 ): Field[] {
   assert(capacity > 0, 'capacity must be positive');
-  assert(capacity < KECCAK_STATE_LENGTH, 'capacity must be less than 1600');
+  assert(
+    capacity < KECCAK_STATE_LENGTH,
+    'capacity must be less than KECCAK_STATE_LENGTH'
+  );
   assert(length > 0, 'length must be positive');
   assert(length % 8 === 0, 'length must be a multiple of 8');
 
-  // Set input to Big Endian format
+  // Input endianness conversion
   let messageFormatted = inpEndian === 'Big' ? message : message.reverse();
 
-  // Check each cvar input is 8 bits at most if it was not done before at creation time
+  // Check each Field input is 8 bits at most if it was not done before at creation time
   if (byteChecks) {
     checkBytes(messageFormatted);
   }
@@ -505,19 +545,17 @@ function hash(
 
   const hash = sponge(padded, length, capacity, rate);
 
-  // Check each cvar output is 8 bits at most. Always because they are created here
+  // Always check each Field output is 8 bits at most because they are created here
   checkBytes(hash);
 
   // Set input to desired endianness
   const hashFormatted = outEndian === 'Big' ? hash : hash.reverse();
 
-  // Check each cvar output is 8 bits at most
   return hashFormatted;
 }
 
 // Gadget for NIST SHA-3 function for output lengths 224/256/384/512.
 // Input and output endianness can be specified. Default is big endian.
-// Note that when calling with output length 256 this is equivalent to the ethereum function
 function nistSha3(
   len: number,
   message: Field[],
@@ -550,10 +588,10 @@ function nistSha3(
 // Gadget for Keccak hash function for the parameters used in Ethereum.
 // Input and output endianness can be specified. Default is big endian.
 function ethereum(
+  message: Field[] = [],
   inpEndian: 'Big' | 'Little' = 'Big',
   outEndian: 'Big' | 'Little' = 'Big',
-  byteChecks: boolean = false,
-  message: Field[] = []
+  byteChecks: boolean = false
 ): Field[] {
   return hash(inpEndian, outEndian, byteChecks, message, 256, 512, false);
 }
@@ -572,7 +610,7 @@ function preNist(
     case 224:
       return hash(inpEndian, outEndian, byteChecks, message, 224, 448, false);
     case 256:
-      return ethereum(inpEndian, outEndian, byteChecks, message);
+      return ethereum(message, inpEndian, outEndian, byteChecks);
     case 384:
       return hash(inpEndian, outEndian, byteChecks, message, 384, 768, false);
     case 512:
