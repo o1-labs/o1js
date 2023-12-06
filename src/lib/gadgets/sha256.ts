@@ -138,7 +138,9 @@ const SHA256 = {
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
   let xAndY = x.and(y);
   let xNotAndZ = x.not().and(z);
-  return xAndY.xor(xNotAndZ);
+  // because of the occurence of x and ~x, the bits of (x & y) and (~x & z) are disjoint
+  // therefore, we can use + instead of XOR which is faster in a circuit
+  return UInt32.from(xAndY.value.add(xNotAndZ.value).seal());
 }
 
 function Maj(x: UInt32, y: UInt32, z: UInt32) {
