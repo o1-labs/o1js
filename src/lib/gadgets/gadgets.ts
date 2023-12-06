@@ -503,7 +503,7 @@ const Gadgets = {
      * Note: This is much more efficient than using {@link ForeignField.add} and {@link ForeignField.sub} separately to
      * compute the multiplication inputs and outputs, and then using {@link ForeignField.mul} to constrain the result.
      *
-     * The sums passed into this gadgets are "lazy sums" created with {@link ForeignField.Sum}.
+     * The sums passed into this method are "lazy sums" created with {@link ForeignField.Sum}.
      * You can also pass in plain {@link Field3} elements.
      *
      * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link ForeignField.mul}:
