@@ -251,17 +251,6 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
   return UInt32.from(xRotR0).xor(xRotR1).xor(xRotR2);
 }
 
-function rangeCheckNSmall(x: Field, n: number) {
-  assert(n <= 16, 'expected n <= 16');
-
-  // x < 2^16
-  rangeCheck16(x);
-  if (n === 16) return;
-
-  // 2^(16-n)*x < 2^16, which implies x < 2^n
-  rangeCheck16(x.mul(1 << (16 - n)).seal());
-}
-
 function rangeCheck16(x: Field) {
   x.rangeCheckHelper(16).assertEquals(x);
 }
