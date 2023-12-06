@@ -216,10 +216,10 @@ function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
   // range check each chunk
   // we only need to range check to 16 bits relying on the requirement that
   // the rotated values are range-checked to 32 bits later; see comments below
-  rangeCheckNSmall(x0, 16);
-  rangeCheckNSmall(x1, 16);
-  rangeCheckNSmall(x2, 16);
-  rangeCheckNSmall(x3, 16);
+  rangeCheck16(x0);
+  rangeCheck16(x1);
+  rangeCheck16(x2);
+  rangeCheck16(x3);
 
   // prove x decomposition
 
@@ -252,10 +252,13 @@ function rangeCheckNSmall(x: Field, n: number) {
   assert(n <= 16, 'expected n <= 16');
 
   // x < 2^16
-  x.rangeCheckHelper(16).assertEquals(x);
+  rangeCheck16(x);
   if (n === 16) return;
 
   // 2^(16-n)*x < 2^16, which implies x < 2^n
-  let xScaled = x.mul(1 << (16 - n)).seal();
-  xScaled.rangeCheckHelper(16).assertEquals(xScaled);
+  rangeCheck16(x.mul(1 << (16 - n)).seal());
+}
+
+function rangeCheck16(x: Field) {
+  x.rangeCheckHelper(16).assertEquals(x);
 }
