@@ -136,29 +136,20 @@ const SHA256 = {
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
-  let xAndY = x.and(y);
-  let xNotAndZ = x.not().and(z);
-  // because of the occurence of x and ~x, the bits of (x & y) and (~x & z) are disjoint
-  // therefore, we can use + instead of XOR which is faster in a circuit
-  return UInt32.from(xAndY.value.add(xNotAndZ.value).seal());
+  // ch(x, y, z) = (x & y) ^ (~x & z)
+  //             = (x & y) + (~x & z) (since x & ~x = 0)
+  let xAndY = x.and(y).value;
+  let xNotAndZ = x.not().and(z).value;
+  let ch = xAndY.add(xNotAndZ).seal();
+  return UInt32.from(ch);
 }
 
 function Maj(x: UInt32, y: UInt32, z: UInt32) {
-  if (x.isConstant() && y.isConstant() && z.isConstant()) {
-    let [x0, y0, z0] = toBigints(x, y, z);
-    return UInt32.from((x0 & y0) ^ (x0 & z0) ^ (y0 & z0));
-  }
-
-  let maj = existsOne(() => {
-    let [x0, y0, z0] = toBigints(x, y, z);
-    return (x0 & y0) ^ (x0 & z0) ^ (y0 & z0);
-  });
-
-  // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z) can be alternatively expressed as
-  // x + y + z = 2*maj(x, y, z) + (x ^ y ^ z)
+  // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z)
+  //              = (x + y + z - (x ^ y ^ z)) / 2
   let sum = x.value.add(y.value).add(z.value).seal();
-  let xor = x.xor(y).xor(z);
-  maj.mul(2).add(xor.value).assertEquals(sum);
+  let xor = x.xor(y).xor(z).value;
+  let maj = sum.sub(xor).div(2).seal();
   return UInt32.from(maj);
 }
 
