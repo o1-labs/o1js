@@ -150,30 +150,21 @@ function Maj(x: UInt32, y: UInt32, z: UInt32) {
 }
 
 function SigmaZero(x: UInt32) {
-  let [rotr2, rotr13, rotr22] = ROTR3(x, [2, 13, 22]);
-  return rotr2.xor(rotr13).xor(rotr22);
+  return sigma(x, [2, 13, 22]);
 }
 
 function SigmaOne(x: UInt32) {
-  let [rotr6, rotr11, rotr25] = ROTR3(x, [6, 11, 25]);
-  return rotr6.xor(rotr11).xor(rotr25);
+  return sigma(x, [6, 11, 25]);
 }
 
 // lowercase sigma = delta to avoid confusing function names
 
 function DeltaZero(x: UInt32) {
-  let rotr7 = ROTR(7, x);
-  let rotr18 = ROTR(18, x);
-  let shr3 = SHR(3, x);
-
-  return rotr7.xor(rotr18).xor(shr3);
+  return sigma(x, [3, 7, 18], true);
 }
 
 function DeltaOne(x: UInt32) {
-  let rotr17 = ROTR(17, x);
-  let rotr19 = ROTR(19, x);
-  let shr10 = SHR(10, x);
-  return rotr17.xor(rotr19).xor(shr10);
+  return sigma(x, [10, 17, 19], true);
 }
 
 function ROTR(n: number, x: UInt32) {
@@ -185,14 +176,16 @@ function SHR(n: number, x: UInt32) {
   return val;
 }
 
-function ROTR3Simple(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
+function sigmaSimple(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
   let [r0, r1, r2] = bits;
-  return [ROTR(r0, u), ROTR(r1, u), ROTR(r2, u)];
+  let rot0 = firstShifted ? SHR(r0, u) : ROTR(r0, u);
+  let rot1 = ROTR(r1, u);
+  let rot2 = ROTR(r2, u);
+  return rot0.xor(rot1).xor(rot2);
 }
 
-// assumes that outputs are range-checked to 32 bits externally
-function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
-  if (u.isConstant()) return ROTR3Simple(u, bits);
+function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
+  if (u.isConstant()) return sigmaSimple(u, bits, firstShifted);
 
   let [r0, r1, r2] = bits; // TODO assert bits are sorted
   let x = u.value;
@@ -231,9 +224,19 @@ function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
 
   // reassemble chunks into rotated values
 
-  // rotr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2) + x0*2^(d1+d2+d3)
-  let xRotR0 = x123.add(x0.mul(1 << (d1 + d2 + d3))).seal();
-  // ^ proves that 2^(32-d0)*x0 < xRotR0 => x0 < 2^d0 if we check xRotR0 < 2^32 later
+  let xRotR0: Field;
+
+  if (!firstShifted) {
+    // rotr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2) + x0*2^(d1+d2+d3)
+    xRotR0 = x123.add(x0.mul(1 << (d1 + d2 + d3))).seal();
+    // ^ proves that 2^(32-d0)*x0 < xRotR0 => x0 < 2^d0 if we check xRotR0 < 2^32 later
+  } else {
+    // shr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2)
+    xRotR0 = x123;
+
+    // finish x0 < 2^d0 proof:
+    rangeCheck16(x0.mul(1 << (16 - d0)).seal());
+  }
 
   // rotr(x, r1) = x2 + x3*2^d2 + x0*2^(d2+d3) + x1*2^(d2+d3+d0)
   let x01 = x0.add(x1.mul(1 << d0)).seal();
@@ -245,7 +248,7 @@ function ROTR3(u: UInt32, bits: TupleN<number, 3>): TupleN<UInt32, 3> {
   let xRotR2 = x3.add(x012.mul(1 << d3)).seal();
   // ^ proves that 2^(32-d2)*x2 < xRotR2 => x2 < 2^d2 if we check xRotR2 < 2^32 later
 
-  return TupleN.map([xRotR0, xRotR1, xRotR2], (x) => UInt32.from(x));
+  return UInt32.from(xRotR0).xor(xRotR1).xor(xRotR2);
 }
 
 function rangeCheckNSmall(x: Field, n: number) {
