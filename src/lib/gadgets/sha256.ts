@@ -83,7 +83,7 @@ const SHA256 = {
           .value.add(W[t - 7].value)
           .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
-        W[t] = UInt32.from(Gadgets.divMod32(unreduced).remainder);
+        W[t] = UInt32.from(Gadgets.divMod32(unreduced, 16).remainder);
       }
 
       // initialize working variables
@@ -109,12 +109,14 @@ const SHA256 = {
         h = g;
         g = f;
         f = e;
-        e = UInt32.from(Gadgets.divMod32(d.value.add(unreducedT1)).remainder);
+        e = UInt32.from(
+          Gadgets.divMod32(d.value.add(unreducedT1), 16).remainder
+        );
         d = c;
         c = b;
         b = a;
         a = UInt32.from(
-          Gadgets.divMod32(unreducedT2.add(unreducedT1)).remainder
+          Gadgets.divMod32(unreducedT2.add(unreducedT1), 16).remainder
         );
       }
 
