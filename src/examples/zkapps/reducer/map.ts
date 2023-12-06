@@ -1,0 +1,179 @@
+import {
+  Field,
+  Struct,
+  method,
+  PrivateKey,
+  SmartContract,
+  Mina,
+  AccountUpdate,
+  Reducer,
+  provable,
+  PublicKey,
+  Bool,
+  Poseidon,
+  Provable,
+} from 'o1js';
+
+class Option extends Struct({
+  isSome: Bool,
+  value: Field,
+}) {}
+
+const KeyValuePair = provable({
+  key: Field,
+  value: Field,
+});
+
+class StorageContract extends SmartContract {
+  reducer = Reducer({
+    actionType: KeyValuePair,
+  });
+
+  @method set(key: PublicKey, value: Field) {
+    this.reducer.dispatch({ key: Poseidon.hash(key.toFields()), value });
+  }
+
+  @method get(key: PublicKey): Option {
+    let pendingActions = this.reducer.getActions({
+      fromActionState: Reducer.initialActionState,
+    });
+
+    let keyHash = Poseidon.hash(key.toFields());
+
+    let { state: optionValue } = this.reducer.reduce(
+      pendingActions,
+      Option,
+      (
+        _state: Option,
+        _action: {
+          key: Field;
+          value: Field;
+        }
+      ) => {
+        let currentMatch = keyHash.equals(_action.key);
+        return {
+          isSome: currentMatch.or(_state.isSome),
+          value: Provable.if(currentMatch, _action.value, _state.value),
+        };
+      },
+      {
+        state: Option.empty(),
+        actionState: Reducer.initialActionState,
+      },
+      { maxTransactionsWithActions: k }
+    );
+
+    return optionValue;
+  }
+}
+
+let k = 1 << 4;
+
+let Local = Mina.LocalBlockchain();
+Mina.setActiveInstance(Local);
+let cs = StorageContract.analyzeMethods();
+
+console.log(`method size for a "mapping" contract with ${k} entries`);
+console.log('get rows:', cs['get'].rows);
+console.log('set rows:', cs['set'].rows);
+
+// a test account that pays all the fees, and puts additional funds into the zkapp
+let feePayerKey = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
+
+// the zkapp account
+let zkappKey = PrivateKey.fromBase58(
+  'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
+);
+let zkappAddress = zkappKey.toPublicKey();
+let zkapp = new StorageContract(zkappAddress);
+
+await StorageContract.compile();
+
+let tx = await Mina.transaction(feePayer, () => {
+  AccountUpdate.fundNewAccount(feePayer);
+  zkapp.deploy();
+});
+await tx.sign([feePayerKey, zkappKey]).send();
+
+console.log('deployed');
+
+let map: { key: PublicKey; value: Field }[] = [];
+map[0] = {
+  key: PrivateKey.random().toPublicKey(),
+  value: Field(192),
+};
+map[1] = {
+  key: PrivateKey.random().toPublicKey(),
+  value: Field(151),
+};
+map[2] = {
+  key: PrivateKey.random().toPublicKey(),
+  value: Field(781),
+};
+
+let key = map[0].key;
+let value = map[0].value;
+console.log(`setting key ${key.toBase58()} with value ${value}`);
+
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.set(key, value);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+
+key = map[1].key;
+value = map[1].value;
+console.log(`setting key ${key.toBase58()} with value ${value}`);
+
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.set(key, value);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+
+key = map[2].key;
+value = map[2].value;
+console.log(`setting key ${key.toBase58()} with value ${value}`);
+
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.set(key, value);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+
+key = map[0].key;
+value = map[0].value;
+console.log(`getting key ${key.toBase58()} with value ${value}`);
+
+let result: any;
+tx = await Mina.transaction(feePayer, () => {
+  result = zkapp.get(key);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+
+console.log('found correct match?', result.isSome.toBoolean());
+console.log('matches expected value?', result.value.equals(value).toBoolean());
+
+key = map[1].key;
+value = map[1].value;
+console.log(`getting key ${key.toBase58()} with value ${value}`);
+
+tx = await Mina.transaction(feePayer, () => {
+  result = zkapp.get(key);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+
+console.log('found correct match?', result.isSome.toBoolean());
+console.log('matches expected value?', result.value.equals(value).toBoolean());
+
+console.log(`getting key invalid key`);
+tx = await Mina.transaction(feePayer, () => {
+  result = zkapp.get(PrivateKey.random().toPublicKey());
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+
+console.log('should be isSome(false)', result.isSome.toBoolean());
