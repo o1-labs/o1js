@@ -42,7 +42,7 @@ console.log('program digest', MyProgram.digest());
 
 console.log('compiling MyProgram...');
 let { verificationKey } = await MyProgram.compile();
-console.log('verification key', verificationKey.slice(0, 10) + '..');
+console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
 let proof = await MyProgram.baseCase(Field(0));
@@ -52,7 +52,7 @@ proof = testJsonRoundtrip(MyProof, proof);
 proof satisfies Proof<Field, void>;
 
 console.log('verify...');
-let ok = await verify(proof.toJSON(), verificationKey);
+let ok = await verify(proof.toJSON(), verificationKey.data);
 console.log('ok?', ok);
 
 console.log('verify alternative...');
@@ -64,7 +64,7 @@ proof = await MyProgram.inductiveCase(Field(1), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
-ok = await verify(proof, verificationKey);
+ok = await verify(proof, verificationKey.data);
 console.log('ok?', ok);
 
 console.log('verify alternative...');
@@ -76,7 +76,7 @@ proof = await MyProgram.inductiveCase(Field(2), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
-ok = await verify(proof.toJSON(), verificationKey);
+ok = await verify(proof.toJSON(), verificationKey.data);
 
 console.log('ok?', ok && proof.publicInput.toString() === '2');
 

@@ -1,8 +1,8 @@
 import type { FiniteField } from '../../bindings/crypto/finite_field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import {
-  ProvableSpec,
   array,
+  equivalent,
   equivalentAsync,
   equivalentProvable,
   fromRandom,
@@ -26,35 +26,14 @@ import {
 } from '../testing/constraint-system.js';
 import { GateType } from '../../snarky.js';
 import { AnyTuple } from '../util/types.js';
+import {
+  foreignField,
+  throwError,
+  unreducedForeignField,
+} from './test-utils.js';
+import { l2 } from './range-check.js';
 
 const { ForeignField, Field3 } = Gadgets;
-
-function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
-  return {
-    rng: Random.otherField(F),
-    there: Field3.from,
-    back: Field3.toBigint,
-    provable: Field3.provable,
-  };
-}
-
-// for testing with inputs > f
-function unreducedForeignField(
-  maxBits: number,
-  F: FiniteField
-): ProvableSpec<bigint, Gadgets.Field3> {
-  return {
-    rng: Random.bignat(1n << BigInt(maxBits)),
-    there: Field3.from,
-    back: Field3.toBigint,
-    provable: Field3.provable,
-    assertEqual(x, y, message) {
-      // need weak equality here because, while ffadd works on bigints larger than the modulus,
-      // it can't fully reduce them
-      assert(F.equal(x, y), message);
-    },
-  };
-}
 
 let sign = fromRandom(Random.oneOf(1n as const, -1n as const));
 
@@ -141,6 +120,11 @@ for (let F of fields) {
     'div unreduced'
   );
 
+  equivalent({ from: [big264], to: unit })(
+    (x) => assertWeakBound(x, F.modulus),
+    (x) => ForeignField.assertAlmostReduced([x], F.modulus)
+  );
+
   // sumchain of 5
   equivalentProvable({ from: [array(f, 5), array(sign, 4)], to: f })(
     (xs, signs) => sum(xs, signs, F),
@@ -170,6 +154,7 @@ for (let F of fields) {
 
 let F = exampleFields.secp256k1;
 let f = foreignField(F);
+let big264 = unreducedForeignField(264, F);
 let chainLength = 5;
 let signs = [1n, -1n, -1n, 1n] satisfies (-1n | 1n)[];
 
@@ -181,6 +166,13 @@ let ffProgram = ZkProgram({
       privateInputs: [Provable.Array(Field3.provable, chainLength)],
       method(xs) {
         return ForeignField.sum(xs, signs, F.modulus);
+      },
+    },
+    mulWithBoundsCheck: {
+      privateInputs: [Field3.provable, Field3.provable],
+      method(x, y) {
+        ForeignField.assertAlmostReduced([x, y], F.modulus);
+        return ForeignField.mul(x, y, F.modulus);
       },
     },
     mul: {
@@ -256,10 +248,14 @@ await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs })(
   'prove chain'
 );
 
-await equivalentAsync({ from: [f, f], to: f }, { runs })(
-  F.mul,
+await equivalentAsync({ from: [big264, big264], to: f }, { runs })(
+  (x, y) => {
+    assertWeakBound(x, F.modulus);
+    assertWeakBound(y, F.modulus);
+    return F.mul(x, y);
+  },
   async (x, y) => {
-    let proof = await ffProgram.mul(x, y);
+    let proof = await ffProgram.mulWithBoundsCheck(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -354,6 +350,6 @@ function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {
   return sum;
 }
 
-function throwError<T>(message: string): T {
-  throw Error(message);
+function assertWeakBound(x: bigint, f: bigint) {
+  assert(x >= 0n && x >> l2 <= f >> l2, 'weak bound');
 }

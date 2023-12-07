@@ -157,7 +157,7 @@ class ForeignField {
     // TODO: this is not very efficient, but the only way to abstract away the complicated
     // range check assumptions and also not introduce a global context of pending range checks.
     // we plan to get rid of bounds checks anyway, then this is just a multi-range check
-    Gadgets.ForeignField.assertAlmostFieldElements([this.value], this.modulus, {
+    Gadgets.ForeignField.assertAlmostReduced([this.value], this.modulus, {
       skipMrc: true,
     });
     return this.Constructor.AlmostReduced.unsafeFrom(this);
@@ -172,7 +172,7 @@ class ForeignField {
   static assertAlmostReduced<T extends Tuple<ForeignField>>(
     ...xs: T
   ): TupleMap<T, AlmostForeignField> {
-    Gadgets.ForeignField.assertAlmostFieldElements(
+    Gadgets.ForeignField.assertAlmostReduced(
       xs.map((x) => x.value),
       this.modulus,
       { skipMrc: true }
