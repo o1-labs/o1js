@@ -9,23 +9,13 @@ export { Keccak };
 
 const Keccak = {
   /** TODO */
-  preNist(
-    len: number,
-    message: Field[],
-    inpEndian: 'Big' | 'Little' = 'Big',
-    outEndian: 'Big' | 'Little' = 'Big',
-    byteChecks: boolean = false
-  ) {
-    return preNist(len, message, inpEndian, outEndian, byteChecks);
-  },
-  /** TODO */
   nistSha3(
     len: number,
     message: Field[],
     inpEndian: 'Big' | 'Little' = 'Big',
     outEndian: 'Big' | 'Little' = 'Big',
     byteChecks: boolean = false
-  ) {
+  ): Field[] {
     return nistSha3(len, message, inpEndian, outEndian, byteChecks);
   },
   /** TODO */
@@ -34,8 +24,18 @@ const Keccak = {
     inpEndian: 'Big' | 'Little' = 'Big',
     outEndian: 'Big' | 'Little' = 'Big',
     byteChecks: boolean = false
-  ) {
+  ): Field[] {
     return ethereum(message, inpEndian, outEndian, byteChecks);
+  },
+  /** TODO */
+  preNist(
+    len: number,
+    message: Field[],
+    inpEndian: 'Big' | 'Little' = 'Big',
+    outEndian: 'Big' | 'Little' = 'Big',
+    byteChecks: boolean = false
+  ): Field[] {
+    return preNist(len, message, inpEndian, outEndian, byteChecks);
   },
 };
 
@@ -60,7 +60,7 @@ const KECCAK_STATE_LENGTH = KECCAK_DIM ** 2 * KECCAK_WORD;
 const KECCAK_ROUNDS = 12 + 2 * KECCAK_ELL;
 
 // Creates the 5x5 table of rotation offset for Keccak modulo 64
-//  | x \ y |  0 |  1 |  2 |  3 |  4 |
+//  | i \ j |  0 |  1 |  2 |  3 |  4 |
 //  | ----- | -- | -- | -- | -- | -- |
 //  | 0     |  0 | 36 |  3 | 41 | 18 |
 //  | 1     |  1 | 44 | 10 | 45 |  2 |
@@ -106,13 +106,14 @@ const ROUND_CONSTANTS = [
 
 // AUXILARY FUNCTIONS
 
-// Auxiliary function to check composition of 8 bytes into a 64-bit word
-function checkBytesToWord(word: Field, wordBytes: Field[]): void {
-  let composition = wordBytes.reduce((acc, x, i) => {
-    const shift = Field.from(2n ** BigInt(8 * i));
-    return acc.add(x.mul(shift));
+// Auxiliary function to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
+function checkBytesToWord(wordBytes: Field[], word: Field): void {
+  const composition = wordBytes.reduce((acc, value, idx) => {
+    const shift = 1n << BigInt(8 * idx);
+    return acc.add(value.mul(shift));
   }, Field.from(0));
 
+  // Create constraints to check that the word is composed correctly from bytes
   word.assertEquals(composition);
 }
 
@@ -124,21 +125,24 @@ const getKeccakStateZeros = (): Field[][] =>
 
 // Converts a list of bytes to a matrix of Field elements
 function getKeccakStateOfBytes(bytestring: Field[]): Field[][] {
-  assert(bytestring.length === 200, 'improper bytestring length');
+  assert(
+    bytestring.length === 200,
+    'improper bytestring length (should be 200)'
+  );
 
   const bytestringArray = Array.from(bytestring);
   const state: Field[][] = getKeccakStateZeros();
 
-  for (let y = 0; y < KECCAK_DIM; y++) {
-    for (let x = 0; x < KECCAK_DIM; x++) {
-      const idx = BYTES_PER_WORD * (KECCAK_DIM * y + x);
-      // Create an array containing the 8 bytes starting on idx that correspond to the word in [x,y]
+  for (let j = 0; j < KECCAK_DIM; j++) {
+    for (let i = 0; i < KECCAK_DIM; i++) {
+      const idx = BYTES_PER_WORD * (KECCAK_DIM * j + i);
+      // Create an array containing the 8 bytes starting on idx that correspond to the word in [i,j]
       const wordBytes = bytestringArray.slice(idx, idx + BYTES_PER_WORD);
 
-      for (let z = 0; z < BYTES_PER_WORD; z++) {
-        // Field element containing value 2^(8*z)
-        const shift = Field.from(2n ** BigInt(8 * z));
-        state[x][y] = state[x][y].add(shift.mul(wordBytes[z]));
+      for (let k = 0; k < BYTES_PER_WORD; k++) {
+        // Field element containing value 2^(8*k)
+        const shift = 1n << BigInt(8 * k);
+        state[i][j] = state[i][j].add(wordBytes[k].mul(shift));
       }
     }
   }
@@ -152,29 +156,24 @@ function keccakStateToBytes(state: Field[][]): Field[] {
     { length: stateLengthInBytes },
     (_, idx) =>
       existsOne(() => {
-        // idx = z + 8 * ((dim * y) + x)
-        const z = idx % BYTES_PER_WORD;
-        const x = Math.floor(idx / BYTES_PER_WORD) % KECCAK_DIM;
-        const y = Math.floor(idx / BYTES_PER_WORD / KECCAK_DIM);
-        // [7 6 5 4 3 2 1 0] [x=0,y=1] [x=0,y=2] [x=0,y=3] [x=0,y=4]
-        //        [x=1,y=0] [x=1,y=1] [x=1,y=2] [x=1,y=3] [x=1,y=4]
-        //        [x=2,y=0] [x=2,y=1] [x=2,y=2] [x=2,y=3] [x=2,y=4]
-        //        [x=3,y=0] [x=3,y=1] [x=3,y=2] [x=3,y=3] [x=3,y=4]
-        //        [x=4,y=0] [x=4,y=1] [x=4,y=0] [x=4,y=3] [x=4,y=4]
-        const word = state[x][y].toBigInt();
-        const byte = (word >> BigInt(8 * z)) & BigInt('0xff');
+        // idx = k + 8 * ((dim * j) + i)
+        const i = Math.floor(idx / BYTES_PER_WORD) % KECCAK_DIM;
+        const j = Math.floor(idx / BYTES_PER_WORD / KECCAK_DIM);
+        const k = idx % BYTES_PER_WORD;
+        const word = state[i][j].toBigInt();
+        const byte = (word >> BigInt(8 * k)) & 0xffn;
         return byte;
       })
   );
 
   // Check all words are composed correctly from bytes
-  for (let y = 0; y < KECCAK_DIM; y++) {
-    for (let x = 0; x < KECCAK_DIM; x++) {
-      const idx = BYTES_PER_WORD * (KECCAK_DIM * y + x);
-      // Create an array containing the 8 bytes starting on idx that correspond to the word in [x,y]
+  for (let j = 0; j < KECCAK_DIM; j++) {
+    for (let i = 0; i < KECCAK_DIM; i++) {
+      const idx = BYTES_PER_WORD * (KECCAK_DIM * j + i);
+      // Create an array containing the 8 bytes starting on idx that correspond to the word in [i,j]
       const word_bytes = bytestring.slice(idx, idx + BYTES_PER_WORD);
       // Assert correct decomposition of bytes from state
-      checkBytesToWord(state[x][y], word_bytes);
+      checkBytesToWord(word_bytes, state[i][j]);
     }
   }
   return bytestring;
@@ -184,18 +183,16 @@ function keccakStateToBytes(state: Field[][]): Field[] {
 function keccakStateXor(a: Field[][], b: Field[][]): Field[][] {
   assert(
     a.length === KECCAK_DIM && a[0].length === KECCAK_DIM,
-    'Invalid a dimensions'
+    `invalid \`a\` dimensions (should be ${KECCAK_DIM})`
   );
   assert(
     b.length === KECCAK_DIM && b[0].length === KECCAK_DIM,
-    'Invalid b dimensions'
+    `invalid \`b\` dimensions (should be ${KECCAK_DIM})`
   );
 
-  // Calls Gadgets.xor on each pair (x,y) of the states input1 and input2 and outputs the output Fields as a new matrix
-  return a.map((row, rowIndex) =>
-    row.map((element, columnIndex) =>
-      Gadgets.xor(element, b[rowIndex][columnIndex], 64)
-    )
+  // Calls Gadgets.xor on each pair (i,j) of the states input1 and input2 and outputs the output Fields as a new matrix
+  return a.map((row, i) =>
+    row.map((value, j) => Gadgets.xor(value, b[i][j], 64))
   );
 }
 
@@ -255,21 +252,21 @@ function pad101(message: Field[], rate: number): Field[] {
 // ROUND TRANSFORMATION
 
 // First algorithm in the compression step of Keccak for 64-bit words.
-// C[x] = A[x,0] xor A[x,1] xor A[x,2] xor A[x,3] xor A[x,4]
-// D[x] = C[x-1] xor ROT(C[x+1], 1)
-// E[x,y] = A[x,y] xor D[x]
+// C[i] = A[i,0] xor A[i,1] xor A[i,2] xor A[i,3] xor A[i,4]
+// D[i] = C[i-1] xor ROT(C[i+1], 1)
+// E[i,j] = A[i,j] xor D[i]
 // In the Keccak reference, it corresponds to the `theta` algorithm.
-// We use the first index of the state array as the x coordinate and the second index as the y coordinate.
+// We use the first index of the state array as the i coordinate and the second index as the j coordinate.
 const theta = (state: Field[][]): Field[][] => {
   const stateA = state;
 
   // XOR the elements of each row together
-  // for all x in {0..4}: C[x] = A[x,0] xor A[x,1] xor A[x,2] xor A[x,3] xor A[x,4]
+  // for all i in {0..4}: C[i] = A[i,0] xor A[i,1] xor A[i,2] xor A[i,3] xor A[i,4]
   const stateC = stateA.map((row) =>
-    row.reduce((acc, next) => Gadgets.xor(acc, next, KECCAK_WORD))
+    row.reduce((acc, value) => Gadgets.xor(acc, value, KECCAK_WORD))
   );
 
-  // for all x in {0..4}: D[x] = C[x-1] xor ROT(C[x+1], 1)
+  // for all i in {0..4}: D[i] = C[i-1] xor ROT(C[i+1], 1)
   const stateD = Array.from({ length: KECCAK_DIM }, (_, x) =>
     Gadgets.xor(
       stateC[(x + KECCAK_DIM - 1) % KECCAK_DIM],
@@ -278,7 +275,7 @@ const theta = (state: Field[][]): Field[][] => {
     )
   );
 
-  // for all x in {0..4} and y in {0..4}: E[x,y] = A[x,y] xor D[x]
+  // for all i in {0..4} and j in {0..4}: E[i,j] = A[i,j] xor D[i]
   const stateE = stateA.map((row, index) =>
     row.map((elem) => Gadgets.xor(elem, stateD[index], KECCAK_WORD))
   );
@@ -287,40 +284,40 @@ const theta = (state: Field[][]): Field[][] => {
 };
 
 // Second and third steps in the compression step of Keccak for 64-bit words.
-// pi: A[x,y] = ROT(E[x,y], r[x,y])
-// rho: A[x,y] = A'[y, 2x+3y mod KECCAK_DIM]
-// piRho: B[y,2x+3y] = ROT(E[x,y], r[x,y])
+// pi: A[i,j] = ROT(E[i,j], r[i,j])
+// rho: A[i,j] = A'[j, 2i+3j mod KECCAK_DIM]
+// piRho: B[j,2i+3j] = ROT(E[i,j], r[i,j])
 // which is equivalent to the `rho` algorithm followed by the `pi` algorithm in the Keccak reference as follows:
 // rho:
 // A[0,0] = a[0,0]
-// | x |  =  | 1 |
-// | y |  =  | 0 |
+// | i |  =  | 1 |
+// | j |  =  | 0 |
 // for t = 0 to 23 do
-//   A[x,y] = ROT(a[x,y], (t+1)(t+2)/2 mod 64)))
-//   | x |  =  | 0  1 |   | x |
+//   A[i,j] = ROT(a[i,j], (t+1)(t+2)/2 mod 64)))
+//   | i |  =  | 0  1 |   | i |
 //   |   |  =  |      | * |   |
-//   | y |  =  | 2  3 |   | y |
+//   | j |  =  | 2  3 |   | j |
 // end for
 // pi:
-// for x = 0 to 4 do
-//   for y = 0 to 4 do
-//     | X |  =  | 0  1 |   | x |
+// for i = 0 to 4 do
+//   for j = 0 to 4 do
+//     | I |  =  | 0  1 |   | i |
 //     |   |  =  |      | * |   |
-//     | Y |  =  | 2  3 |   | y |
-//     A[X,Y] = a[x,y]
+//     | J |  =  | 2  3 |   | j |
+//     A[I,J] = a[i,j]
 //   end for
 // end for
-// We use the first index of the state array as the x coordinate and the second index as the y coordinate.
+// We use the first index of the state array as the i coordinate and the second index as the j coordinate.
 function piRho(state: Field[][]): Field[][] {
   const stateE = state;
   const stateB: Field[][] = getKeccakStateZeros();
 
-  // for all x in {0..4} and y in {0..4}: B[y,2x+3y] = ROT(E[x,y], r[x,y])
-  for (let x = 0; x < KECCAK_DIM; x++) {
-    for (let y = 0; y < KECCAK_DIM; y++) {
-      stateB[y][(2 * x + 3 * y) % KECCAK_DIM] = Gadgets.rotate(
-        stateE[x][y],
-        ROT_TABLE[x][y],
+  // for all i in {0..4} and j in {0..4}: B[y,2x+3y] = ROT(E[i,j], r[i,j])
+  for (let i = 0; i < KECCAK_DIM; i++) {
+    for (let j = 0; j < KECCAK_DIM; j++) {
+      stateB[j][(2 * i + 3 * j) % KECCAK_DIM] = Gadgets.rotate(
+        stateE[i][j],
+        ROT_TABLE[i][j],
         'left'
       );
     }
@@ -330,26 +327,26 @@ function piRho(state: Field[][]): Field[][] {
 }
 
 // Fourth step of the compression function of Keccak for 64-bit words.
-// F[x,y] = B[x,y] xor ((not B[x+1,y]) and B[x+2,y])
+// F[i,j] = B[i,j] xor ((not B[i+1,j]) and B[i+2,j])
 // It corresponds to the chi algorithm in the Keccak reference.
-// for y = 0 to 4 do
-//   for x = 0 to 4 do
-//     A[x,y] = a[x,y] xor ((not a[x+1,y]) and a[x+2,y])
+// for j = 0 to 4 do
+//   for i = 0 to 4 do
+//     A[i,j] = a[i,j] xor ((not a[i+1,j]) and a[i+2,j])
 //   end for
 // end for
 function chi(state: Field[][]): Field[][] {
   const stateB = state;
   const stateF = getKeccakStateZeros();
 
-  // for all x in {0..4} and y in {0..4}: F[x,y] = B[x,y] xor ((not B[x+1,y]) and B[x+2,y])
-  for (let x = 0; x < KECCAK_DIM; x++) {
-    for (let y = 0; y < KECCAK_DIM; y++) {
-      stateF[x][y] = Gadgets.xor(
-        stateB[x][y],
+  // for all i in {0..4} and j in {0..4}: F[i,j] = B[i,j] xor ((not B[i+1,j]) and B[i+2,j])
+  for (let i = 0; i < KECCAK_DIM; i++) {
+    for (let j = 0; j < KECCAK_DIM; j++) {
+      stateF[i][j] = Gadgets.xor(
+        stateB[i][j],
         Gadgets.and(
           // We can use unchecked NOT because the length of the input is constrained to be 64 bits thanks to the fact that it is the output of a previous Xor64
-          Gadgets.not(stateB[(x + 1) % KECCAK_DIM][y], KECCAK_WORD, false),
-          stateB[(x + 2) % KECCAK_DIM][y],
+          Gadgets.not(stateB[(i + 1) % KECCAK_DIM][j], KECCAK_WORD, false),
+          stateB[(i + 2) % KECCAK_DIM][j],
           KECCAK_WORD
         ),
         KECCAK_WORD
@@ -383,10 +380,7 @@ function round(state: Field[][], rc: Field): Field[][] {
 
 // Keccak permutation function with a constant number of rounds
 function permutation(state: Field[][], rc: Field[]): Field[][] {
-  return rc.reduce(
-    (currentState, rcValue) => round(currentState, rcValue),
-    state
-  );
+  return rc.reduce((acc, value) => round(acc, value), state);
 }
 
 // KECCAK SPONGE
@@ -403,16 +397,16 @@ function absorb(
   // (capacity / 8) zero bytes
   const zeros = Array(capacity / 8).fill(Field.from(0));
 
-  for (let i = 0; i < paddedMessage.length; i += rate / 8) {
+  for (let idx = 0; idx < paddedMessage.length; idx += rate / 8) {
     // split into blocks of rate bits
     // for each block of rate bits in the padded message -> this is rate/8 bytes
-    const block = paddedMessage.slice(i, i + rate / 8);
+    const block = paddedMessage.slice(idx, idx + rate / 8);
     // pad the block with 0s to up to 1600 bits
     const paddedBlock = block.concat(zeros);
     // padded with zeros each block until they are 1600 bit long
     assert(
       paddedBlock.length * 8 === KECCAK_STATE_LENGTH,
-      'improper Keccak block length'
+      `improper Keccak block length (should be ${KECCAK_STATE_LENGTH})`
     );
     const blockState = getKeccakStateOfBytes(paddedBlock);
     // xor the state with the padded block
@@ -438,8 +432,8 @@ function squeeze(
     start: number,
     length: number
   ) => {
-    for (let i = 0; i < length; i++) {
-      outputArray[start + i] = bytestring[i];
+    for (let idx = 0; idx < length; idx++) {
+      outputArray[start + idx] = bytestring[idx];
     }
   };
 
@@ -487,7 +481,7 @@ function sponge(
   }
 
   // load round constants into Fields
-  let rc = exists(24, () => TupleN.fromArray(24, ROUND_CONSTANTS));
+  const rc = exists(24, () => TupleN.fromArray(24, ROUND_CONSTANTS));
 
   // absorb
   const state = absorb(paddedMessage, capacity, rate, rc);
@@ -518,37 +512,34 @@ function hash(
   capacity: number,
   nistVersion: boolean
 ): Field[] {
+  // Throw errors if used improperly
   assert(capacity > 0, 'capacity must be positive');
   assert(
     capacity < KECCAK_STATE_LENGTH,
-    'capacity must be less than KECCAK_STATE_LENGTH'
+    `capacity must be less than ${KECCAK_STATE_LENGTH}`
   );
   assert(length > 0, 'length must be positive');
   assert(length % 8 === 0, 'length must be a multiple of 8');
 
   // Input endianness conversion
-  let messageFormatted = inpEndian === 'Big' ? message : message.reverse();
+  const messageFormatted = inpEndian === 'Big' ? message : message.reverse();
 
   // Check each Field input is 8 bits at most if it was not done before at creation time
-  if (byteChecks) {
-    checkBytes(messageFormatted);
-  }
+  byteChecks && checkBytes(messageFormatted);
 
   const rate = KECCAK_STATE_LENGTH - capacity;
 
-  let padded;
-  if (nistVersion) {
-    padded = padNist(messageFormatted, rate);
-  } else {
-    padded = pad101(messageFormatted, rate);
-  }
+  const padded =
+    nistVersion === true
+      ? padNist(messageFormatted, rate)
+      : pad101(messageFormatted, rate);
 
   const hash = sponge(padded, length, capacity, rate);
 
   // Always check each Field output is 8 bits at most because they are created here
   checkBytes(hash);
 
-  // Set input to desired endianness
+  // Output endianness conversion
   const hashFormatted = outEndian === 'Big' ? hash : hash.reverse();
 
   return hashFormatted;
@@ -563,26 +554,18 @@ function nistSha3(
   outEndian: 'Big' | 'Little' = 'Big',
   byteChecks: boolean = false
 ): Field[] {
-  let output: Field[];
-
   switch (len) {
     case 224:
-      output = hash(inpEndian, outEndian, byteChecks, message, 224, 448, true);
-      break;
+      return hash(inpEndian, outEndian, byteChecks, message, 224, 448, true);
     case 256:
-      output = hash(inpEndian, outEndian, byteChecks, message, 256, 512, true);
-      break;
+      return hash(inpEndian, outEndian, byteChecks, message, 256, 512, true);
     case 384:
-      output = hash(inpEndian, outEndian, byteChecks, message, 384, 768, true);
-      break;
+      return hash(inpEndian, outEndian, byteChecks, message, 384, 768, true);
     case 512:
-      output = hash(inpEndian, outEndian, byteChecks, message, 512, 1024, true);
-      break;
+      return hash(inpEndian, outEndian, byteChecks, message, 512, 1024, true);
     default:
       throw new Error('Invalid length');
   }
-
-  return output;
 }
 
 // Gadget for Keccak hash function for the parameters used in Ethereum.

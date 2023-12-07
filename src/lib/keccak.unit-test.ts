@@ -7,12 +7,15 @@ import { Random } from './testing/random.js';
 import { array, equivalentAsync, fieldWithRng } from './testing/equivalent.js';
 import { constraintSystem, contains } from './testing/constraint-system.js';
 
+// TODO(jackryanservia): Add test to assert fail for byte that's larger than 255
+// TODO(jackryanservia): Add random length with three runs
+
 const PREIMAGE_LENGTH = 75;
 const RUNS = 1;
 
-let uint = (length: number) => fieldWithRng(Random.biguint(length));
+const uint = (length: number) => fieldWithRng(Random.biguint(length));
 
-let Keccak256 = ZkProgram({
+const Keccak256 = ZkProgram({
   name: 'keccak256',
   publicInput: Provable.Array(Field, PREIMAGE_LENGTH),
   publicOutput: Provable.Array(Field, 32),
@@ -43,12 +46,12 @@ await equivalentAsync(
   { runs: RUNS }
 )(
   (x) => {
-    let uint8Array = new Uint8Array(x.map(Number));
-    let result = keccak_256(uint8Array);
+    const uint8Array = new Uint8Array(x.map(Number));
+    const result = keccak_256(uint8Array);
     return Array.from(result).map(BigInt);
   },
   async (x) => {
-    let proof = await Keccak256.ethereum(x);
+    const proof = await Keccak256.ethereum(x);
     return proof.publicOutput;
   }
 );
@@ -61,17 +64,17 @@ await equivalentAsync(
   { runs: RUNS }
 )(
   (x) => {
-    let thing = x.map(Number);
-    let result = sha3_256(new Uint8Array(thing));
+    const thing = x.map(Number);
+    const result = sha3_256(new Uint8Array(thing));
     return Array.from(result).map(BigInt);
   },
   async (x) => {
-    let proof = await Keccak256.nistSha3(x);
+    const proof = await Keccak256.nistSha3(x);
     return proof.publicOutput;
   }
 );
 
-// let Keccak512 = ZkProgram({
+// const Keccak512 = ZkProgram({
 //   name: 'keccak512',
 //   publicInput: Provable.Array(Field, PREIMAGE_LENGTH),
 //   publicOutput: Provable.Array(Field, 64),
@@ -101,12 +104,12 @@ await equivalentAsync(
 //   { runs: RUNS }
 // )(
 //   (x) => {
-//     let uint8Array = new Uint8Array(x.map(Number));
-//     let result = keccak_512(uint8Array);
+//     const uint8Array = new Uint8Array(x.map(Number));
+//     const result = keccak_512(uint8Array);
 //     return Array.from(result).map(BigInt);
 //   },
 //   async (x) => {
-//     let proof = await Keccak512.preNist(x);
+//     const proof = await Keccak512.preNist(x);
 //     return proof.publicOutput;
 //   }
 // );
@@ -119,12 +122,12 @@ await equivalentAsync(
 //   { runs: RUNS }
 // )(
 //   (x) => {
-//     let thing = x.map(Number);
-//     let result = sha3_512(new Uint8Array(thing));
+//     const thing = x.map(Number);
+//     const result = sha3_512(new Uint8Array(thing));
 //     return Array.from(result).map(BigInt);
 //   },
 //   async (x) => {
-//     let proof = await Keccak512.nistSha3(x);
+//     const proof = await Keccak512.nistSha3(x);
 //     return proof.publicOutput;
 //   }
 // );
