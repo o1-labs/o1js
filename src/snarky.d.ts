@@ -541,6 +541,7 @@ declare const Pickles: {
       publicInputSize: number;
       publicOutputSize: number;
       overrideWrapDomain?: 0 | 1 | 2;
+      chunkSize: number;
     }
   ) => {
     provers: MlArray<Pickles.Prover>;

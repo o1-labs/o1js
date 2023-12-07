@@ -208,7 +208,10 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: () => Promise<{ verificationKey: string }>;
+  compile: (options?: {
+    chunkSize?: number;
+    wrapDomain?: 0 | 1 | 2;
+  }) => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -506,7 +509,8 @@ async function compileProgram(
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
   proofSystemTag: { name: string },
-  overrideWrapDomain?: 0 | 1 | 2
+  overrideWrapDomain?: 0 | 1 | 2,
+  chunkSize?: number
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
@@ -530,6 +534,7 @@ async function compileProgram(
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
             overrideWrapDomain,
+            chunkSize: 2,
           });
         } finally {
           snarkContext.leave(id);
