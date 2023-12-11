@@ -65,8 +65,7 @@ const dummyProof = await RealProof.dummy(undefined, undefined, 0);
 for (let proof of [fakeProof, dummyProof]) {
   // zkprogram rejects proof
   await assert.rejects(async () => {
-    const brokenProof = await RecursiveProgram.verifyReal(proof);
-    assert(await verify(brokenProof, programVk.data));
+    await RecursiveProgram.verifyReal(proof);
   }, 'recursive program rejects fake proof');
 
   // contract rejects proof
@@ -86,7 +85,7 @@ assert(
   'recursive program accepts real proof'
 );
 
-// contract rejects proof
+// contract accepts proof
 let tx = await Mina.transaction(() => zkApp.verifyReal(realProof));
 let [contractProof] = await tx.prove();
 assert(
