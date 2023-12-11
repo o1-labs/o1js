@@ -17,6 +17,7 @@ import type {
 import { Provable } from './provable.js';
 import { assert } from './errors.js';
 import { inCheckedComputation } from './provable-context.js';
+import { Proof } from './proof_system.js';
 
 // external API
 export {
@@ -564,7 +565,7 @@ and Provable.asProver() blocks, which execute outside the proof.
   };
 }
 
-let primitives = new Set([Field, Bool, Scalar, Group]);
+let primitives = new Set([Field, Bool, Scalar, Group, Proof]);
 function isPrimitive(obj: any) {
   for (let P of primitives) {
     if (obj instanceof P) return true;
