@@ -1,12 +1,9 @@
 import {
-  Bool,
   Mina,
   PrivateKey,
   SmartContract,
-  State,
   UInt64,
   method,
-  state,
   ZkProgram,
   verify,
 } from 'o1js';
@@ -53,43 +50,40 @@ const BrokenProgram = ZkProgram({
   },
 });
 
-class Broken extends SmartContract {
-  @state(Bool) isValid = State<Bool>();
-
-  init() {
-    super.init();
-    this.isValid.set(Bool(false));
-  }
-
-  @method setValid(proof: BrokenProof) {
+class BrokenContract extends SmartContract {
+  @method verifyReal(proof: BrokenProof) {
     proof.verify();
-    this.isValid.set(Bool(true));
   }
 }
 
-const Local = Mina.LocalBlockchain({ proofsEnabled: true });
-Mina.setActiveInstance(Local);
-
-let { privateKey: deployerKey, publicKey: deployerAccount } =
-  Local.testAccounts[0];
-let { privateKey: senderKey, publicKey: senderAccount } = Local.testAccounts[1];
-let zkAppPrivateKey = PrivateKey.random();
-let zkAppAddress = zkAppPrivateKey.toPublicKey();
-
-let zkApp = new Broken(zkAppAddress);
+Mina.setActiveInstance(Mina.LocalBlockchain());
+let zkApp = new BrokenContract(PrivateKey.random().toPublicKey());
 
 tic('compile');
 await RealProof.compile();
 await FakeProof.compile();
-let { verificationKey } = await BrokenProgram.compile();
+let { verificationKey: contractVk } = await BrokenContract.compile();
+let { verificationKey: programVk } = await BrokenProgram.compile();
 toc();
 
-tic('fake proof');
+tic('create fake proof');
 const value = UInt64.from(99999);
 const fakeProof = await FakeProof.make(value);
 toc();
 
-tic('broken proof');
-const brokenProof = await BrokenProgram.verifyReal(fakeProof);
-let ok = await verify(brokenProof, verificationKey.data);
-assert(ok);
+await assert.rejects(async () => {
+  tic('verify fake proof in program');
+  const brokenProof = await BrokenProgram.verifyReal(fakeProof);
+  assert(await verify(brokenProof, programVk.data));
+  toc();
+}, 'recursive program rejects fake proof');
+
+await assert.rejects(async () => {
+  tic('verify fake proof in contract');
+  let tx = await Mina.transaction(() => zkApp.verifyReal(fakeProof));
+  let proof = (await tx.prove()).find((p) => p !== undefined);
+  assert(proof !== undefined);
+  console.dir(proof, { depth: 5 });
+  assert(await verify(proof, contractVk.data));
+  toc();
+}, 'recursive contract rejects fake proof');
