@@ -5,6 +5,7 @@ import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
 import { Bool, Field } from '../core.js';
+import { AnyFunction, Tuple } from '../util/types.js';
 
 export {
   equivalent,
@@ -432,12 +433,6 @@ async function handleErrorsAsync<T, S, R>(
 function throwError(message?: string): any {
   throw Error(message);
 }
-
-// helper types
-
-type AnyFunction = (...args: any) => any;
-
-type Tuple<T> = [] | [T, ...T[]];
 
 // infer input types from specs
 
