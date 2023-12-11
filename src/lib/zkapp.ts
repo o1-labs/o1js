@@ -22,7 +22,6 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-  Struct,
   toConstant,
 } from './circuit_value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
@@ -196,7 +195,8 @@ function wrapMethod(
             let id = memoizationContext.enter({ ...context, blindingValue });
             let result: unknown;
             try {
-              result = method.apply(this, actualArgs.map(cloneCircuitValue));
+              let clonedArgs = actualArgs.map(cloneCircuitValue);
+              result = method.apply(this, clonedArgs);
             } finally {
               memoizationContext.leave(id);
             }
