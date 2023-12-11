@@ -2,7 +2,6 @@ import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
 import { existsOne, exists } from './gadgets/common.js';
-import { TupleN } from './util/types.js';
 import { rangeCheck8 } from './gadgets/range-check.js';
 
 export { Keccak };
@@ -359,17 +358,17 @@ function chi(state: Field[][]): Field[][] {
 
 // Fifth step of the permutation function of Keccak for 64-bit words.
 // It takes the word located at the position (0,0) of the state and XORs it with the round constant.
-function iota(state: Field[][], rc: Field): Field[][] {
+function iota(state: Field[][], rc: bigint): Field[][] {
   const stateG = state;
 
-  stateG[0][0] = Gadgets.xor(stateG[0][0], rc, KECCAK_WORD);
+  stateG[0][0] = Gadgets.xor(stateG[0][0], Field.from(rc), KECCAK_WORD);
 
   return stateG;
 }
 
 // One round of the Keccak permutation function.
 // iota o chi o pi o rho o theta
-function round(state: Field[][], rc: Field): Field[][] {
+function round(state: Field[][], rc: bigint): Field[][] {
   const stateA = state;
   const stateE = theta(stateA);
   const stateB = piRho(stateE);
@@ -379,7 +378,7 @@ function round(state: Field[][], rc: Field): Field[][] {
 }
 
 // Keccak permutation function with a constant number of rounds
-function permutation(state: Field[][], rc: Field[]): Field[][] {
+function permutation(state: Field[][], rc: bigint[]): Field[][] {
   return rc.reduce((acc, value) => round(acc, value), state);
 }
 
@@ -390,7 +389,7 @@ function absorb(
   paddedMessage: Field[],
   capacity: number,
   rate: number,
-  rc: Field[]
+  rc: bigint[]
 ): Field[][] {
   let state = getKeccakStateZeros();
 
@@ -423,7 +422,7 @@ function squeeze(
   state: Field[][],
   length: number,
   rate: number,
-  rc: Field[]
+  rc: bigint[]
 ): Field[] {
   // Copies a section of bytes in the bytestring into the output array
   const copy = (
@@ -480,8 +479,8 @@ function sponge(
     throw new Error('Invalid padded message length');
   }
 
-  // load round constants into Fields
-  const rc = exists(24, () => TupleN.fromArray(24, ROUND_CONSTANTS));
+  // load round constants
+  const rc = ROUND_CONSTANTS;
 
   // absorb
   const state = absorb(paddedMessage, capacity, rate, rc);
