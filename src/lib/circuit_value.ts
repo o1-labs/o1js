@@ -565,7 +565,7 @@ and Provable.asProver() blocks, which execute outside the proof.
   };
 }
 
-let primitives = new Set([Field, Bool, Scalar, Group, Proof]);
+let primitives = new Set([Field, Bool, Scalar, Group]);
 function isPrimitive(obj: any) {
   for (let P of primitives) {
     if (obj instanceof P) return true;
@@ -598,8 +598,11 @@ function cloneCircuitValue<T>(obj: T): T {
     ) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-  // o1js primitives aren't cloned
+  // o1js primitives and proofs aren't cloned
   if (isPrimitive(obj)) {
+    return obj;
+  }
+  if (obj instanceof Proof) {
     return obj;
   }
 
