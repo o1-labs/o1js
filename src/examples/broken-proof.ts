@@ -10,12 +10,11 @@ import {
 import { tic, toc } from './utils/tic-toc.node.js';
 import assert from 'assert';
 
-const RealProof = ZkProgram({
+const RealProgram = ZkProgram({
   name: 'real',
   methods: {
     make: {
       privateInputs: [UInt64],
-
       method(value: UInt64) {
         let expected = UInt64.from(34);
         value.assertEquals(expected);
@@ -24,66 +23,64 @@ const RealProof = ZkProgram({
   },
 });
 
-const FakeProof = ZkProgram({
+const FakeProgram = ZkProgram({
   name: 'fake',
   methods: {
-    make: {
-      privateInputs: [UInt64],
-
-      method(value: UInt64) {},
-    },
+    make: { privateInputs: [UInt64], method(_: UInt64) {} },
   },
 });
 
-class BrokenProof extends ZkProgram.Proof(RealProof) {}
+class RealProof extends ZkProgram.Proof(RealProgram) {}
 
-const BrokenProgram = ZkProgram({
+const RecursiveProgram = ZkProgram({
   name: 'broken',
   methods: {
     verifyReal: {
-      privateInputs: [BrokenProof],
-
-      method(proof: BrokenProof) {
+      privateInputs: [RealProof],
+      method(proof: RealProof) {
         proof.verify();
       },
     },
   },
 });
 
-class BrokenContract extends SmartContract {
-  @method verifyReal(proof: BrokenProof) {
+class RecursiveContract extends SmartContract {
+  @method verifyReal(proof: RealProof) {
     proof.verify();
   }
 }
 
 Mina.setActiveInstance(Mina.LocalBlockchain());
-let zkApp = new BrokenContract(PrivateKey.random().toPublicKey());
 
 tic('compile');
-await RealProof.compile();
-await FakeProof.compile();
-let { verificationKey: contractVk } = await BrokenContract.compile();
-let { verificationKey: programVk } = await BrokenProgram.compile();
+await RealProgram.compile();
+await FakeProgram.compile();
+let { verificationKey: contractVk } = await RecursiveContract.compile();
+let { verificationKey: programVk } = await RecursiveProgram.compile();
 toc();
 
 tic('create fake proof');
 const value = UInt64.from(99999);
-const fakeProof = await FakeProof.make(value);
+const fakeProof = await FakeProgram.make(value);
 toc();
 
+tic('verify fake proof in program');
 await assert.rejects(async () => {
-  tic('verify fake proof in program');
-  const brokenProof = await BrokenProgram.verifyReal(fakeProof);
+  const brokenProof = await RecursiveProgram.verifyReal(fakeProof);
   assert(await verify(brokenProof, programVk.data));
-  toc();
 }, 'recursive program rejects fake proof');
+toc();
 
+let publicKey = PrivateKey.random().toPublicKey();
+let zkApp = new RecursiveContract(publicKey);
+
+tic('verify fake proof in contract');
 await assert.rejects(async () => {
-  tic('verify fake proof in contract');
-  let tx = await Mina.transaction(() => zkApp.verifyReal(fakeProof));
+  let tx = await Mina.transaction(() => {
+    zkApp.verifyReal(fakeProof);
+  });
   let proof = (await tx.prove()).find((p) => p !== undefined);
   assert(proof !== undefined);
-  console.dir(proof, { depth: 5 });
   assert(await verify(proof, contractVk.data));
-  toc();
 }, 'recursive contract rejects fake proof');
+toc();
