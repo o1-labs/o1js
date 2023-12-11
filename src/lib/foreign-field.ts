@@ -149,7 +149,7 @@ class ForeignField {
    * For a more efficient version of this for multiple field elements, see {@link assertAlmostReduced}.
    *
    * Note: this does not ensure that the field elements is in the canonical range [0, p).
-   * To assert that stronger property, there is {@link assertCanonicalFieldElement}.
+   * To assert that stronger property, there is {@link assertCanonical}.
    * You should typically use {@link assertAlmostReduced} though, because it is cheaper to prove and sufficient for
    * ensuring validity of all our non-native field arithmetic methods.
    */
@@ -186,7 +186,7 @@ class ForeignField {
    *
    * Returns the field element as a {@link CanonicalForeignField}.
    */
-  assertCanonicalFieldElement() {
+  assertCanonical() {
     this.assertLessThan(this.modulus);
     return this.Constructor.Canonical.unsafeFrom(this);
   }
@@ -514,7 +514,7 @@ class CanonicalForeignField extends ForeignFieldWithMul {
 
   static check(x: ForeignField) {
     Gadgets.multiRangeCheck(x.value);
-    x.assertCanonicalFieldElement();
+    x.assertCanonical();
   }
 
   /**
@@ -583,10 +583,10 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * ```
  *
  * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced, "canonical" field elements.
- * To convert to a canonical field element, use {@link assertCanonicalFieldElement}:
+ * To convert to a canonical field element, use {@link ForeignField.assertCanonical}:
  *
  * ```ts
- * x.assertCanonicalFieldElement(); // asserts x < p; returns `CanonicalForeignField`
+ * x.assertCanonical(); // asserts x < p; returns `CanonicalForeignField`
  * ```
  * You will likely not need canonical fields most of the time.
  *

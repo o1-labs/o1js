@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/7acf19d0d...HEAD)
+
+## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
 
 ### Breaking changes
 
@@ -35,7 +37,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions.
+- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions. [@LuffySama-Dev](https://github.com/LuffySama-Dev)
   - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
   - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
   - `this.account.x.getAndAssertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265

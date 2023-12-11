@@ -52,7 +52,7 @@ proof = testJsonRoundtrip(MyProof, proof);
 proof satisfies Proof<Field, void>;
 
 console.log('verify...');
-let ok = await verify(proof.toJSON(), verificationKey.data);
+let ok = await verify(proof.toJSON(), verificationKey);
 console.log('ok?', ok);
 
 console.log('verify alternative...');
@@ -64,7 +64,7 @@ proof = await MyProgram.inductiveCase(Field(1), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
-ok = await verify(proof, verificationKey.data);
+ok = await verify(proof, verificationKey);
 console.log('ok?', ok);
 
 console.log('verify alternative...');
@@ -76,7 +76,7 @@ proof = await MyProgram.inductiveCase(Field(2), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
-ok = await verify(proof.toJSON(), verificationKey.data);
+ok = await verify(proof.toJSON(), verificationKey);
 
 console.log('ok?', ok && proof.publicInput.toString() === '2');
 
