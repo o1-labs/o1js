@@ -1,5 +1,4 @@
 import {
-  AccountUpdate,
   Bool,
   Mina,
   PrivateKey,
@@ -9,11 +8,12 @@ import {
   method,
   state,
   ZkProgram,
+  verify,
 } from 'o1js';
 import { tic, toc } from './utils/tic-toc.node.js';
 import assert from 'assert';
 
-export const RealProof = ZkProgram({
+const RealProof = ZkProgram({
   name: 'real',
   methods: {
     make: {
@@ -27,20 +27,31 @@ export const RealProof = ZkProgram({
   },
 });
 
-export const FakeProof = ZkProgram({
+const FakeProof = ZkProgram({
   name: 'fake',
   methods: {
     make: {
       privateInputs: [UInt64],
 
-      method(value: UInt64) {
-        Bool(true).assertTrue();
-      },
+      method(value: UInt64) {},
     },
   },
 });
 
 class BrokenProof extends ZkProgram.Proof(RealProof) {}
+
+const BrokenProgram = ZkProgram({
+  name: 'broken',
+  methods: {
+    verifyReal: {
+      privateInputs: [BrokenProof],
+
+      method(proof: BrokenProof) {
+        proof.verify();
+      },
+    },
+  },
+});
 
 class Broken extends SmartContract {
   @state(Bool) isValid = State<Bool>();
@@ -52,7 +63,6 @@ class Broken extends SmartContract {
 
   @method setValid(proof: BrokenProof) {
     proof.verify();
-
     this.isValid.set(Bool(true));
   }
 }
@@ -71,33 +81,15 @@ let zkApp = new Broken(zkAppAddress);
 tic('compile');
 await RealProof.compile();
 await FakeProof.compile();
-await Broken.compile();
+let { verificationKey } = await BrokenProgram.compile();
 toc();
 
-// local deploy
-tic('deploy');
-const deployTxn = await Mina.transaction(deployerAccount, () => {
-  AccountUpdate.fundNewAccount(deployerAccount);
-  zkApp.deploy();
-});
-await deployTxn.prove();
-await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
-toc();
-
-// accepts a fake proof
 tic('fake proof');
 const value = UInt64.from(99999);
 const fakeProof = await FakeProof.make(value);
 toc();
 
-tic('set valid');
-const txn = await Mina.transaction(senderAccount, () => {
-  zkApp.setValid(fakeProof);
-});
-let proofs = await txn.prove();
-toc();
-console.log(proofs.find((p) => p !== undefined));
-await txn.sign([senderKey]).send();
-
-const isValid = zkApp.isValid.get();
-assert(isValid);
+tic('broken proof');
+const brokenProof = await BrokenProgram.verifyReal(fakeProof);
+let ok = await verify(brokenProof, verificationKey.data);
+assert(ok);
