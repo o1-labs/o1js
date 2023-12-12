@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ProvablePure } from '../snarky.js';
+import { ProvablePure, Snarky } from '../snarky.js';
 import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,
@@ -15,6 +15,9 @@ import type {
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
 import { Provable } from './provable.js';
+import { assert } from './errors.js';
+import { inCheckedComputation } from './provable-context.js';
+import { Proof } from './proof_system.js';
 
 // external API
 export {
@@ -43,6 +46,7 @@ export {
   HashInput,
   InferJson,
   InferredProvable,
+  Unconstrained,
 };
 
 type ProvableExtension<T, TJson = any> = {
@@ -474,6 +478,93 @@ function Struct<
   return Struct_ as any;
 }
 
+/**
+ * Container which holds an unconstrained value. This can be used to pass values
+ * between the out-of-circuit blocks in provable code.
+ *
+ * Invariants:
+ * - An `Unconstrained`'s value can only be accessed in auxiliary contexts.
+ * - An `Unconstrained` can be empty when compiling, but never empty when running as the prover.
+ *   (there is no way to create an empty `Unconstrained` in the prover)
+ *
+ * @example
+ * ```ts
+ * let x = Unconstrained.from(0n);
+ *
+ * class MyContract extends SmartContract {
+ *   `@method` myMethod(x: Unconstrained<bigint>) {
+ *
+ *     Provable.witness(Field, () => {
+ *       // we can access and modify `x` here
+ *       let newValue = x.get() + otherField.toBigInt();
+ *       x.set(newValue);
+ *
+ *       // ...
+ *     });
+ *
+ *     // throws an error!
+ *     x.get();
+ *   }
+ * ```
+ */
+class Unconstrained<T> {
+  private option:
+    | { isSome: true; value: T }
+    | { isSome: false; value: undefined };
+
+  private constructor(isSome: boolean, value?: T) {
+    this.option = { isSome, value: value as any };
+  }
+
+  /**
+   * Read an unconstrained value.
+   *
+   * Note: Can only be called outside provable code.
+   */
+  get(): T {
+    if (inCheckedComputation() && !Snarky.run.inProverBlock())
+      throw Error(`You cannot use Unconstrained.get() in provable code.
+
+The only place where you can read unconstrained values is in Provable.witness()
+and Provable.asProver() blocks, which execute outside the proof.
+`);
+    assert(this.option.isSome, 'Empty `Unconstrained`'); // never triggered
+    return this.option.value;
+  }
+
+  /**
+   * Modify the unconstrained value.
+   */
+  set(value: T) {
+    this.option = { isSome: true, value };
+  }
+
+  /**
+   * Create an `Unconstrained` with the given `value`.
+   */
+  static from<T>(value: T) {
+    return new Unconstrained(true, value);
+  }
+
+  /**
+   * Create an `Unconstrained` from a witness computation.
+   */
+  static witness<T>(compute: () => T) {
+    return Provable.witness(
+      Unconstrained.provable,
+      () => new Unconstrained(true, compute())
+    );
+  }
+
+  static provable: Provable<Unconstrained<any>> = {
+    sizeInFields: () => 0,
+    toFields: () => [],
+    toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
+    fromFields: (_, [t]) => t,
+    check: () => {},
+  };
+}
+
 let primitives = new Set([Field, Bool, Scalar, Group]);
 function isPrimitive(obj: any) {
   for (let P of primitives) {
@@ -507,8 +598,11 @@ function cloneCircuitValue<T>(obj: T): T {
     ) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-  // o1js primitives aren't cloned
+  // o1js primitives and proofs aren't cloned
   if (isPrimitive(obj)) {
+    return obj;
+  }
+  if (obj instanceof Proof) {
     return obj;
   }
 
