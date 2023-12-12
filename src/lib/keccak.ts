@@ -395,16 +395,10 @@ function absorb(
 }
 
 // Squeeze state until it has a desired length in bits
-function squeeze(
-  state: Field[][],
-  length: number,
-  rate: number,
-  rc: bigint[]
-): Field[] {
-  let newState = state;
-
+function squeeze(state: Field[][], length: number, rate: number): Field[] {
   // number of squeezes
   const squeezes = Math.floor(length / rate) + 1;
+  assert(squeezes === 1, 'squeezes should be 1');
   // multiple of rate that is larger than output_length, in bytes
   const outputLength = squeezes * rate;
   // array with sufficient space to store the output
@@ -414,17 +408,6 @@ function squeeze(
   const outputBytes = bytestring.slice(0, rate);
   // copies a section of bytes in the bytestring into the output array
   outputArray.splice(0, rate, ...outputBytes);
-
-  // for the rest of squeezes
-  for (let i = 1; i < squeezes; i++) {
-    // apply the permutation function to the state
-    newState = permutation(newState, rc);
-    // append the output of the permutation function to the output
-    const bytestringI = keccakStateToBytes(state);
-    const outputBytesI = bytestringI.slice(0, rate);
-    // copies a section of bytes in the bytestring into the output array
-    outputArray.splice(rate * i, rate, ...outputBytesI);
-  }
 
   // Obtain the hash selecting the first bitlength bytes of the output array
   const hashed = outputArray.slice(0, length);
@@ -450,7 +433,7 @@ function sponge(
   const state = absorb(paddedMessage, capacity, rate, rc);
 
   // squeeze
-  const hashed = squeeze(state, length, rate, rc);
+  const hashed = squeeze(state, length, rate);
 
   return hashed;
 }
