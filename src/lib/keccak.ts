@@ -46,6 +46,9 @@ const BYTES_PER_WORD = KECCAK_WORD / 8;
 // Length of the state in bits, meaning the 5x5 matrix of words in bits (1600)
 const KECCAK_STATE_LENGTH = KECCAK_DIM ** 2 * KECCAK_WORD;
 
+// Length of the state in bytes, meaning the 5x5 matrix of words in bytes (200)
+const KECCAK_STATE_LENGTH_BYTES = KECCAK_STATE_LENGTH / 8;
+
 // Number of rounds of the Keccak permutation function depending on the value `l` (24)
 const KECCAK_ROUNDS = 12 + 2 * KECCAK_ELL;
 
@@ -141,9 +144,8 @@ function getKeccakStateOfBytes(bytestring: Field[]): Field[][] {
 
 // Converts a state of Fields to a list of bytes as Fields and creates constraints for it
 function keccakStateToBytes(state: Field[][]): Field[] {
-  const stateLengthInBytes = KECCAK_STATE_LENGTH / 8;
   const bytestring: Field[] = Array.from(
-    { length: stateLengthInBytes },
+    { length: KECCAK_STATE_LENGTH_BYTES },
     (_, idx) =>
       existsOne(() => {
         // idx = k + 8 * ((dim * j) + i)
@@ -361,19 +363,19 @@ function absorb(
 ): Field[][] {
   let state = getKeccakStateZeros();
 
-  // (capacity / 8) zero bytes
-  const zeros = Array(capacity / 8).fill(Field.from(0));
+  // array of capacity zero bytes
+  const zeros = Array(capacity).fill(Field.from(0));
 
-  for (let idx = 0; idx < paddedMessage.length; idx += rate / 8) {
+  for (let idx = 0; idx < paddedMessage.length; idx += rate) {
     // split into blocks of rate bits
-    // for each block of rate bits in the padded message -> this is rate/8 bytes
-    const block = paddedMessage.slice(idx, idx + rate / 8);
-    // pad the block with 0s to up to 1600 bits
+    // for each block of rate bits in the padded message -> this is rate bytes
+    const block = paddedMessage.slice(idx, idx + rate);
+    // pad the block with 0s to up to 200 bytes
     const paddedBlock = block.concat(zeros);
-    // padded with zeros each block until they are 1600 bit long
+    // padded with zeros each block until they are 200 bytes long
     assert(
-      paddedBlock.length * 8 === KECCAK_STATE_LENGTH,
-      `improper Keccak block length (should be ${KECCAK_STATE_LENGTH})`
+      paddedBlock.length === KECCAK_STATE_LENGTH_BYTES,
+      `improper Keccak block length (should be ${KECCAK_STATE_LENGTH_BYTES})`
     );
     const blockState = getKeccakStateOfBytes(paddedBlock);
     // xor the state with the padded block
@@ -394,19 +396,17 @@ function squeeze(
 ): Field[] {
   let newState = state;
 
-  // bytes per squeeze
-  const bytesPerSqueeze = rate / 8;
   // number of squeezes
   const squeezes = Math.floor(length / rate) + 1;
   // multiple of rate that is larger than output_length, in bytes
-  const outputLength = squeezes * bytesPerSqueeze;
+  const outputLength = squeezes * rate;
   // array with sufficient space to store the output
   const outputArray = Array(outputLength).fill(Field.from(0));
   // first state to be squeezed
   const bytestring = keccakStateToBytes(state);
-  const outputBytes = bytestring.slice(0, bytesPerSqueeze);
+  const outputBytes = bytestring.slice(0, rate);
   // copies a section of bytes in the bytestring into the output array
-  outputArray.splice(0, bytesPerSqueeze, ...outputBytes);
+  outputArray.splice(0, rate, ...outputBytes);
 
   // for the rest of squeezes
   for (let i = 1; i < squeezes; i++) {
@@ -414,18 +414,17 @@ function squeeze(
     newState = permutation(newState, rc);
     // append the output of the permutation function to the output
     const bytestringI = keccakStateToBytes(state);
-    const outputBytesI = bytestringI.slice(0, bytesPerSqueeze);
+    const outputBytesI = bytestringI.slice(0, rate);
     // copies a section of bytes in the bytestring into the output array
-    outputArray.splice(bytesPerSqueeze * i, bytesPerSqueeze, ...outputBytesI);
+    outputArray.splice(rate * i, rate, ...outputBytesI);
   }
 
-  // Obtain the hash selecting the first bitlength/8 bytes of the output array
-  const hashed = outputArray.slice(0, length / 8);
+  // Obtain the hash selecting the first bitlength bytes of the output array
+  const hashed = outputArray.slice(0, length);
   return hashed;
 }
 
-// Keccak sponge function for 1600 bits of state width
-// Need to split the message into blocks of 1088 bits.
+// Keccak sponge function for 200 bytes of state width
 function sponge(
   paddedMessage: Field[],
   length: number,
@@ -433,7 +432,7 @@ function sponge(
   rate: number
 ): Field[] {
   // check that the padded message is a multiple of rate
-  if ((paddedMessage.length * 8) % rate !== 0) {
+  if (paddedMessage.length % rate !== 0) {
     throw new Error('Invalid padded message length');
   }
 
@@ -459,7 +458,7 @@ function checkBytes(inputs: Field[]): void {
 // The message will be parsed as follows:
 // - the first byte of the message will be the least significant byte of the first word of the state (A[0][0])
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
-// - then, {0} pad will take place to finish the 1600 bits of the state.
+// - then, {0} pad will take place to finish the 200 bytes of the state.
 function hash(
   byteChecks: boolean = false,
   message: Field[] = [],
@@ -470,16 +469,15 @@ function hash(
   // Throw errors if used improperly
   assert(capacity > 0, 'capacity must be positive');
   assert(
-    capacity < KECCAK_STATE_LENGTH,
-    `capacity must be less than ${KECCAK_STATE_LENGTH}`
+    capacity < KECCAK_STATE_LENGTH_BYTES,
+    `capacity must be less than ${KECCAK_STATE_LENGTH_BYTES}`
   );
   assert(length > 0, 'length must be positive');
-  assert(length % 8 === 0, 'length must be a multiple of 8');
 
   // Check each Field input is 8 bits at most if it was not done before at creation time
   byteChecks && checkBytes(message);
 
-  const rate = KECCAK_STATE_LENGTH - capacity;
+  const rate = KECCAK_STATE_LENGTH_BYTES - capacity;
 
   const padded = pad(message, rate, nistVersion);
 
@@ -497,12 +495,7 @@ function nistSha3(
   message: Field[],
   byteChecks: boolean = false
 ): Field[] {
-  return hash(byteChecks, message, len, 2 * len, true);
-}
-
-// Gadget for Keccak hash function for the parameters used in Ethereum.
-function ethereum(message: Field[] = [], byteChecks: boolean = false): Field[] {
-  return hash(byteChecks, message, 256, 512, false);
+  return hash(byteChecks, message, len / 8, len / 4, true);
 }
 
 // Gadget for pre-NIST SHA-3 function for output lengths 224/256/384/512.
@@ -512,5 +505,10 @@ function preNist(
   message: Field[],
   byteChecks: boolean = false
 ): Field[] {
-  return hash(byteChecks, message, len, 2 * len, false);
+  return hash(byteChecks, message, len / 8, len / 4, false);
+}
+
+// Gadget for Keccak hash function for the parameters used in Ethereum.
+function ethereum(message: Field[] = [], byteChecks: boolean = false): Field[] {
+  return preNist(256, message, byteChecks);
 }
