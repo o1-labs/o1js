@@ -1,106 +1,120 @@
 import { Field } from './field.js';
 import { Provable } from './provable.js';
+import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
-import { constraintSystem, print } from './testing/constraint-system.js';
+import { Random } from './testing/random.js';
+import { array, equivalentAsync, fieldWithRng } from './testing/equivalent.js';
+import { constraintSystem, contains } from './testing/constraint-system.js';
 import {
-  KECCAK_DIM,
-  ROUND_CONSTANTS,
-  theta,
-  piRho,
-  chi,
-  iota,
-  round,
-  blockTransformation,
-} from './keccak.js';
+  keccak_224,
+  keccak_256,
+  keccak_384,
+  keccak_512,
+  sha3_224,
+  sha3_256,
+  sha3_384,
+  sha3_512,
+} from '@noble/hashes/sha3';
 
-const KECCAK_TEST_STATE = [
-  [0, 0, 0, 0, 0],
-  [0, 0, 1, 0, 0],
-  [1, 0, 0, 0, 0],
-  [0, 0, 0, 1, 0],
-  [0, 1, 0, 0, 0],
-].map((row) => row.map((elem) => Field.from(elem)));
+const RUNS = 1;
 
-let KeccakBlockTransformation = ZkProgram({
-  name: 'KeccakBlockTransformation',
-  publicInput: Provable.Array(Provable.Array(Field, KECCAK_DIM), KECCAK_DIM),
-  publicOutput: Provable.Array(Provable.Array(Field, KECCAK_DIM), KECCAK_DIM),
+const testImplementations = {
+  sha3: {
+    224: sha3_224,
+    256: sha3_256,
+    384: sha3_384,
+    512: sha3_512,
+  },
+  preNist: {
+    224: keccak_224,
+    256: keccak_256,
+    384: keccak_384,
+    512: keccak_512,
+  },
+};
 
+const uint = (length: number) => fieldWithRng(Random.biguint(length));
+
+// Choose a test length at random
+const digestLength = [224, 256, 384, 512][Math.floor(Math.random() * 4)] as
+  | 224
+  | 256
+  | 384
+  | 512;
+
+// Digest length in bytes
+const digestLengthBytes = digestLength / 8;
+
+// Chose a random preimage length
+const preImageLength = Math.floor(digestLength / (Math.random() * 4 + 2));
+
+// No need to test Ethereum because it's just a special case of preNist
+const KeccakProgram = ZkProgram({
+  name: 'keccak-test',
+  publicInput: Provable.Array(Field, preImageLength),
+  publicOutput: Provable.Array(Field, digestLengthBytes),
   methods: {
-    Theta: {
+    nistSha3: {
       privateInputs: [],
-      method(input: Field[][]) {
-        return theta(input);
+      method(preImage) {
+        return Keccak.nistSha3(digestLength, preImage);
       },
     },
-    PiRho: {
+    preNist: {
       privateInputs: [],
-      method(input: Field[][]) {
-        return piRho(input);
-      },
-    },
-    Chi: {
-      privateInputs: [],
-      method(input: Field[][]) {
-        return chi(input);
-      },
-    },
-    Iota: {
-      privateInputs: [],
-      method(input: Field[][]) {
-        return iota(input, ROUND_CONSTANTS[0]);
-      },
-    },
-    Round: {
-      privateInputs: [],
-      method(input: Field[][]) {
-        return round(input, ROUND_CONSTANTS[0]);
-      },
-    },
-    BlockTransformation: {
-      privateInputs: [],
-      method(input: Field[][]) {
-        return blockTransformation(input);
+      method(preImage) {
+        return Keccak.preNist(digestLength, preImage);
       },
     },
   },
 });
 
-// constraintSystem.fromZkProgram(
-//   KeccakBlockTransformation,
-//   'BlockTransformation',
-//   print
-// );
+await KeccakProgram.compile();
 
-console.log('KECCAK_TEST_STATE: ', KECCAK_TEST_STATE.toString());
-
-console.log('Compiling...');
-await KeccakBlockTransformation.compile();
-console.log('Done!');
-console.log('Generating proof...');
-let proof0 = await KeccakBlockTransformation.BlockTransformation(
-  KECCAK_TEST_STATE
+// SHA-3
+await equivalentAsync(
+  {
+    from: [array(uint(8), preImageLength)],
+    to: array(uint(8), digestLengthBytes),
+  },
+  { runs: RUNS }
+)(
+  (x) => {
+    const byteArray = new Uint8Array(x.map(Number));
+    const result = testImplementations.sha3[digestLength](byteArray);
+    return Array.from(result).map(BigInt);
+  },
+  async (x) => {
+    const proof = await KeccakProgram.nistSha3(x);
+    await KeccakProgram.verify(proof);
+    return proof.publicOutput;
+  }
 );
-console.log('Done!');
-console.log('Output:', proof0.publicOutput.toString());
-console.log('Verifying...');
-proof0.verify();
-console.log('Done!');
 
-/*
-[RUST IMPLEMENTATION OUTPUT](https://github.com/BaldyAsh/keccak-rust)
+// PreNIST Keccak
+await equivalentAsync(
+  {
+    from: [array(uint(8), preImageLength)],
+    to: array(uint(8), digestLengthBytes),
+  },
+  { runs: RUNS }
+)(
+  (x) => {
+    const byteArray = new Uint8Array(x.map(Number));
+    const result = testImplementations.preNist[digestLength](byteArray);
+    return Array.from(result).map(BigInt);
+  },
+  async (x) => {
+    const proof = await KeccakProgram.preNist(x);
+    await KeccakProgram.verify(proof);
+    return proof.publicOutput;
+  }
+);
 
-INPUT:
-[[0, 0, 0, 0, 0],
- [0, 0, 1, 0, 0],
- [1, 0, 0, 0, 0],
- [0, 0, 0, 1, 0],
- [0, 1, 0, 0, 0]]
-
-OUTPUT:
-[[8771753707458093707, 14139250443469741764, 11827767624278131459, 2757454755833177578, 5758014717183214102],
-[3389583698920935946, 1287099063347104936, 15030403046357116816, 17185756281681305858, 9708367831595350450],
-[1416127551095004411, 16037937966823201128, 9518790688640222300, 1997971396112921437, 4893561083608951508],
-[8048617297177300085, 10306645194383020789, 2789881727527423094, 7603160281577405588, 12935834807086847890],
-[9476112750389234330, 13193683191463706918, 4460519148532423021, 7183125267124224670, 1393214916959060614]]
-*/
+// This takes a while and doesn't do much, so I commented it out
+// Constraint system sanity check
+// constraintSystem.fromZkProgram(
+//   KeccakTest,
+//   'preNist',
+//   contains([['Generic'], ['Xor16'], ['Zero'], ['Rot64'], ['RangeCheck0']])
+// );
