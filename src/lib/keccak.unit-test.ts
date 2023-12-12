@@ -42,14 +42,17 @@ const digestLength = [224, 256, 384, 512][Math.floor(Math.random() * 4)] as
   | 384
   | 512;
 
+// Digest length in bytes
+const digestLengthBytes = digestLength / 8;
+
 // Chose a random preimage length
-const preImageLength = digestLength / Math.floor(Math.random() * 4 + 2);
+const preImageLength = Math.floor(digestLength / (Math.random() * 4 + 2));
 
 // No need to test Ethereum because it's just a special case of preNist
 const KeccakProgram = ZkProgram({
   name: 'keccak-test',
   publicInput: Provable.Array(Field, preImageLength),
-  publicOutput: Provable.Array(Field, digestLength / 8),
+  publicOutput: Provable.Array(Field, digestLengthBytes),
   methods: {
     nistSha3: {
       privateInputs: [],
@@ -72,7 +75,7 @@ await KeccakProgram.compile();
 await equivalentAsync(
   {
     from: [array(uint(8), preImageLength)],
-    to: array(uint(8), digestLength / 8),
+    to: array(uint(8), digestLengthBytes),
   },
   { runs: RUNS }
 )(
@@ -92,7 +95,7 @@ await equivalentAsync(
 await equivalentAsync(
   {
     from: [array(uint(8), preImageLength)],
-    to: array(uint(8), digestLength / 8),
+    to: array(uint(8), digestLengthBytes),
   },
   { runs: RUNS }
 )(
