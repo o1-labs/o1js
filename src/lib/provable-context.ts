@@ -1,5 +1,5 @@
 import { Context } from './global-context.js';
-import { Gate, JsonGate, Snarky } from '../snarky.js';
+import { Gate, GateType, JsonGate, Snarky } from '../snarky.js';
 import { parseHexString } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite_field.js';
@@ -104,6 +104,15 @@ function constraintSystem<T>(f: () => T) {
       publicInputSize,
       print() {
         printGates(gates);
+      },
+      summary() {
+        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+        gateTypes['Total rows'] = rows;
+        for (let gate of gates) {
+          gateTypes[gate.type] ??= 0;
+          gateTypes[gate.type]!++;
+        }
+        return gateTypes;
       },
     };
   } catch (error) {

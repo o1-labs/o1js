@@ -3,6 +3,7 @@ import {
   Ecdsa,
   EllipticCurve,
   Point,
+  initialAggregator,
   verifyEcdsaConstant,
 } from './elliptic-curve.js';
 import { Field3 } from './foreign-field.js';
@@ -12,6 +13,7 @@ import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
 import { foreignField, uniformForeignField } from './test-utils.js';
 import {
+  First,
   Second,
   bool,
   equivalentProvable,
@@ -53,30 +55,48 @@ for (let Curve of curves) {
 
   // provable method we want to test
   const verify = (s: Second<typeof signature>) => {
+    // invalid public key can lead to either a failing constraint, or verify() returning false
+    EllipticCurve.assertOnCurve(s.publicKey, Curve);
     return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
   };
 
+  // input validation equivalent to the one implicit in verify()
+  const checkInputs = ({
+    signature: { r, s },
+    publicKey,
+  }: First<typeof signature>) => {
+    assert(r !== 0n && s !== 0n, 'invalid signature');
+    let pk = Curve.fromNonzero(publicKey);
+    assert(Curve.isOnCurve(pk), 'invalid public key');
+    return true;
+  };
+
   // positive test
-  equivalentProvable({ from: [signature], to: bool })(
+  equivalentProvable({ from: [signature], to: bool, verbose: true })(
     () => true,
     verify,
-    'valid signature verifies'
+    `${Curve.name}: verifies`
   );
 
   // negative test
-  equivalentProvable({ from: [badSignature], to: bool })(
-    () => false,
+  equivalentProvable({ from: [badSignature], to: bool, verbose: true })(
+    (s) => checkInputs(s) && false,
     verify,
-    'invalid signature fails'
+    `${Curve.name}: fails`
   );
 
   // test against constant implementation, with both invalid and valid signatures
-  equivalentProvable({ from: [oneOf(signature, badSignature)], to: bool })(
+  equivalentProvable({
+    from: [oneOf(signature, badSignature)],
+    to: bool,
+    verbose: true,
+  })(
     ({ signature, publicKey, msg }) => {
+      checkInputs({ signature, publicKey, msg });
       return verifyEcdsaConstant(Curve, signature, msg, publicKey);
     },
     verify,
-    'verify'
+    `${Curve.name}: verify`
   );
 }
 
@@ -96,7 +116,7 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-const ia = EllipticCurve.initialAggregator(Secp256k1);
+const ia = initialAggregator(Secp256k1);
 const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
 
 let program = ZkProgram({
@@ -137,14 +157,7 @@ console.time('ecdsa verify (build constraint system)');
 let cs = program.analyzeMethods().ecdsa;
 console.timeEnd('ecdsa verify (build constraint system)');
 
-let gateTypes: Record<string, number> = {};
-gateTypes['Total rows'] = cs.rows;
-for (let gate of cs.gates) {
-  gateTypes[gate.type] ??= 0;
-  gateTypes[gate.type]++;
-}
-
-console.log(gateTypes);
+console.log(cs.summary());
 
 console.time('ecdsa verify (compile)');
 await program.compile();

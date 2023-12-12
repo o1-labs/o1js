@@ -84,8 +84,8 @@ equivalent({ from: [f, f], to: f })(
   (x, y) => x.div(y)
 );
 
-// equality
-equivalent({ from: [f, f], to: bool })(
+// equality with a constant
+equivalent({ from: [f, first(f)], to: bool })(
   (x, y) => x === y,
   (x, y) => x.equals(y)
 );

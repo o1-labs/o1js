@@ -19,6 +19,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/7acf19d0d...HEAD)
 
+### Added
+
+- Non-native elliptic curve operations exposed through `createForeignCurve()` class factory https://github.com/o1-labs/o1js/pull/1007
+- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007
+  - For an example, see `./src/examples/crypto/ecdsa`
+
 ## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
 
 ### Breaking changes

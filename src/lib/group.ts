@@ -2,7 +2,7 @@ import { Field, FieldVar, isField } from './field.js';
 import { Scalar } from './scalar.js';
 import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { GroupAffine, Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 
@@ -73,15 +73,7 @@ class Group {
   }
 
   // helpers
-  static #fromAffine({
-    x,
-    y,
-    infinity,
-  }: {
-    x: bigint;
-    y: bigint;
-    infinity: boolean;
-  }) {
+  static #fromAffine({ x, y, infinity }: GroupAffine) {
     return infinity ? Group.zero : new Group({ x, y });
   }
 

@@ -3,7 +3,6 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
-import { FieldVar } from './field.js';
 import { Field, Bool } from './core.js';
 import { Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
@@ -127,7 +126,8 @@ const Provable = {
    * @example
    * ```ts
    * let x = Field(42);
-   * Provable.isConstant(x); // true
+   * Provable.isConstant(Field, x); // true
+   * ```
    */
   isConstant,
   /**

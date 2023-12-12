@@ -1,13 +1,19 @@
-import { ProvablePure } from '../snarky.js';
-import { mod, Fp } from '../bindings/crypto/finite_field.js';
+import {
+  mod,
+  Fp,
+  FiniteField,
+  createField,
+} from '../bindings/crypto/finite_field.js';
 import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { Tuple, TupleMap, TupleN } from './util/types.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
+import { ForeignField as FF } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
+import { ProvablePureExtended } from './circuit_value.js';
 
 // external API
 export { createForeignField };
@@ -19,9 +25,14 @@ export type {
 };
 
 class ForeignField {
+  static _Bigint: FiniteField | undefined = undefined;
   static _modulus: bigint | undefined = undefined;
 
   // static parameters
+  static get Bigint() {
+    assert(this._Bigint !== undefined, 'ForeignField class not initialized.');
+    return this._Bigint;
+  }
   static get modulus() {
     assert(this._modulus !== undefined, 'ForeignField class not initialized.');
     return this._modulus;
@@ -97,17 +108,13 @@ class ForeignField {
     this.value = Field3.from(mod(BigInt(x), p));
   }
 
-  private static toLimbs(x: bigint | number | string | ForeignField): Field3 {
-    if (x instanceof ForeignField) return x.value;
-    return Field3.from(mod(BigInt(x), this.modulus));
-  }
-
   /**
    * Coerce the input to a {@link ForeignField}.
    */
   static from(x: bigint | number | string): CanonicalForeignField;
+  static from(x: ForeignField | bigint | number | string): ForeignField;
   static from(x: ForeignField | bigint | number | string): ForeignField {
-    if (x instanceof ForeignField) return x;
+    if (x instanceof this) return x;
     return new this.Canonical(x);
   }
 
@@ -157,10 +164,8 @@ class ForeignField {
     // TODO: this is not very efficient, but the only way to abstract away the complicated
     // range check assumptions and also not introduce a global context of pending range checks.
     // we plan to get rid of bounds checks anyway, then this is just a multi-range check
-    Gadgets.ForeignField.assertAlmostReduced([this.value], this.modulus, {
-      skipMrc: true,
-    });
-    return this.Constructor.AlmostReduced.unsafeFrom(this);
+    let [x] = this.Constructor.assertAlmostReduced(this);
+    return x;
   }
 
   /**
@@ -212,8 +217,11 @@ class ForeignField {
    * ```
    */
   neg() {
-    let zero: ForeignField = this.Constructor.from(0n);
-    return this.Constructor.sum([zero, this], [-1]);
+    // this gets a special implementation because negation proves that the return value is almost reduced.
+    // it shows that r = f - x >= 0 or r = 0 (for x=0) over the integers, which implies r < f
+    // see also `Gadgets.ForeignField.assertLessThan()`
+    let xNeg = Gadgets.ForeignField.neg(this.value, this.modulus);
+    return new this.Constructor.AlmostReduced(xNeg);
   }
 
   /**
@@ -250,7 +258,7 @@ class ForeignField {
    */
   static sum(xs: (ForeignField | bigint | number)[], operations: (1 | -1)[]) {
     const p = this.modulus;
-    let fields = xs.map((x) => this.toLimbs(x));
+    let fields = xs.map((x) => toLimbs(x, p));
     let ops = operations.map((op) => (op === 1 ? 1n : -1n));
     let z = Gadgets.ForeignField.sum(fields, ops, p);
     return new this.Unreduced(z);
@@ -334,25 +342,6 @@ class ForeignField {
     }
   }
 
-  /**
-   * Check equality with a ForeignField-like value
-   * @example
-   * ```ts
-   * let isXZero = x.equals(0);
-   * ```
-   */
-  equals(y: ForeignField | bigint | number) {
-    const p = this.modulus;
-    if (this.isConstant() && isConstant(y)) {
-      return new Bool(this.toBigInt() === mod(toBigInt(y), p));
-    }
-    return Provable.equal(
-      this.Constructor.provable,
-      this,
-      new this.Constructor(y)
-    );
-  }
-
   // bit packing
 
   /**
@@ -390,6 +379,10 @@ class ForeignField {
     let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
     // note: due to the check on the number of bits, we know we return an "almost valid" field element
     return new this.AlmostReduced([l0, l1, l2]);
+  }
+
+  static random() {
+    return new this.Canonical(this.Bigint.random());
   }
 
   /**
@@ -460,7 +453,9 @@ class ForeignFieldWithMul extends ForeignField {
 class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
-  static _provable: ProvablePure<UnreducedForeignField> | undefined = undefined;
+  static _provable:
+    | ProvablePureExtended<UnreducedForeignField, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -478,7 +473,9 @@ class AlmostForeignField extends ForeignFieldWithMul {
     super(x);
   }
 
-  static _provable: ProvablePure<AlmostForeignField> | undefined = undefined;
+  static _provable:
+    | ProvablePureExtended<AlmostForeignField, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -497,6 +494,18 @@ class AlmostForeignField extends ForeignFieldWithMul {
   static unsafeFrom(x: ForeignField) {
     return new this(x.value);
   }
+
+  /**
+   * Check equality with a constant value.
+   *
+   * @example
+   * ```ts
+   * let isXZero = x.equals(0);
+   * ```
+   */
+  equals(y: bigint | number) {
+    return FF.equals(this.value, BigInt(y), this.modulus);
+  }
 }
 
 class CanonicalForeignField extends ForeignFieldWithMul {
@@ -506,7 +515,9 @@ class CanonicalForeignField extends ForeignFieldWithMul {
     super(x);
   }
 
-  static _provable: ProvablePure<CanonicalForeignField> | undefined = undefined;
+  static _provable:
+    | ProvablePureExtended<CanonicalForeignField, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -524,6 +535,25 @@ class CanonicalForeignField extends ForeignFieldWithMul {
    */
   static unsafeFrom(x: ForeignField) {
     return new this(x.value);
+  }
+
+  /**
+   * Check equality with a ForeignField-like value.
+   *
+   * @example
+   * ```ts
+   * let isEqual = x.equals(y);
+   * ```
+   *
+   * Note: This method only exists on canonical fields; on unreduced fields, it would be easy to
+   * misuse, because not being exactly equal does not imply being unequal modulo p.
+   */
+  equals(y: CanonicalForeignField | bigint | number) {
+    let [x0, x1, x2] = this.value;
+    let [y0, y1, y2] = toLimbs(y, this.modulus);
+    let x01 = x0.add(x1.mul(1n << l)).seal();
+    let y01 = y0.add(y1.mul(1n << l)).seal();
+    return x01.equals(y01).and(x2.equals(y2));
   }
 }
 
@@ -594,7 +624,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  *
  * @param modulus the modulus of the finite field you are instantiating
  */
-function createForeignField(modulus: bigint): typeof ForeignField {
+function createForeignField(modulus: bigint): typeof UnreducedForeignField {
   assert(
     modulus > 0n,
     `ForeignField: modulus must be positive, got ${modulus}`
@@ -604,7 +634,10 @@ function createForeignField(modulus: bigint): typeof ForeignField {
     `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`
   );
 
+  let Bigint = createField(modulus);
+
   class UnreducedField extends UnreducedForeignField {
+    static _Bigint = Bigint;
     static _modulus = modulus;
     static _provable = provable(UnreducedField);
 
@@ -615,6 +648,7 @@ function createForeignField(modulus: bigint): typeof ForeignField {
   }
 
   class AlmostField extends AlmostForeignField {
+    static _Bigint = Bigint;
     static _modulus = modulus;
     static _provable = provable(AlmostField);
 
@@ -626,6 +660,7 @@ function createForeignField(modulus: bigint): typeof ForeignField {
   }
 
   class CanonicalField extends CanonicalForeignField {
+    static _Bigint = Bigint;
     static _modulus = modulus;
     static _provable = provable(CanonicalField);
 
@@ -661,7 +696,7 @@ type Constructor<T> = new (...args: any[]) => T;
 
 function provable<F extends ForeignField>(
   Class: Constructor<F> & { check(x: ForeignField): void }
-): ProvablePure<F> {
+): ProvablePureExtended<F, string> {
   return {
     toFields(x) {
       return x.value;
@@ -678,6 +713,27 @@ function provable<F extends ForeignField>(
     },
     check(x: ForeignField) {
       Class.check(x);
+    },
+    // ugh
+    toJSON(x: ForeignField) {
+      return x.toBigInt().toString();
+    },
+    fromJSON(x: string) {
+      // TODO be more strict about allowed values
+      return new Class(x);
+    },
+    empty() {
+      return new Class(0n);
+    },
+    toInput(x) {
+      let l_ = Number(l);
+      return {
+        packed: [
+          [x.value[0], l_],
+          [x.value[1], l_],
+          [x.value[2], l_],
+        ],
+      };
     },
   };
 }

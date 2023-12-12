@@ -7,6 +7,8 @@ export {
   AlmostForeignField,
   CanonicalForeignField,
 } from './lib/foreign-field.js';
+export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
+export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export type {
