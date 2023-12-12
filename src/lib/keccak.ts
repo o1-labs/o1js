@@ -1,7 +1,7 @@
 import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
-import { existsOne, exists } from './gadgets/common.js';
+import { existsOne } from './gadgets/common.js';
 import { rangeCheck8 } from './gadgets/range-check.js';
 
 export { Keccak };
@@ -11,30 +11,21 @@ const Keccak = {
   nistSha3(
     len: 224 | 256 | 384 | 512,
     message: Field[],
-    inpEndian: 'Big' | 'Little' = 'Big',
-    outEndian: 'Big' | 'Little' = 'Big',
     byteChecks: boolean = false
   ): Field[] {
-    return nistSha3(len, message, inpEndian, outEndian, byteChecks);
+    return nistSha3(len, message, byteChecks);
   },
   /** TODO */
-  ethereum(
-    message: Field[],
-    inpEndian: 'Big' | 'Little' = 'Big',
-    outEndian: 'Big' | 'Little' = 'Big',
-    byteChecks: boolean = false
-  ): Field[] {
-    return ethereum(message, inpEndian, outEndian, byteChecks);
+  ethereum(message: Field[], byteChecks: boolean = false): Field[] {
+    return ethereum(message, byteChecks);
   },
   /** TODO */
   preNist(
     len: 224 | 256 | 384 | 512,
     message: Field[],
-    inpEndian: 'Big' | 'Little' = 'Big',
-    outEndian: 'Big' | 'Little' = 'Big',
     byteChecks: boolean = false
   ): Field[] {
-    return preNist(len, message, inpEndian, outEndian, byteChecks);
+    return preNist(len, message, byteChecks);
   },
 };
 
@@ -503,8 +494,6 @@ function checkBytes(inputs: Field[]): void {
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
 // - then, {0} pad will take place to finish the 1600 bits of the state.
 function hash(
-  inpEndian: 'Big' | 'Little' = 'Big',
-  outEndian: 'Big' | 'Little' = 'Big',
   byteChecks: boolean = false,
   message: Field[] = [],
   length: number,
@@ -520,62 +509,42 @@ function hash(
   assert(length > 0, 'length must be positive');
   assert(length % 8 === 0, 'length must be a multiple of 8');
 
-  // Input endianness conversion
-  const messageFormatted = inpEndian === 'Big' ? message : message.reverse();
-
   // Check each Field input is 8 bits at most if it was not done before at creation time
-  byteChecks && checkBytes(messageFormatted);
+  byteChecks && checkBytes(message);
 
   const rate = KECCAK_STATE_LENGTH - capacity;
 
   const padded =
-    nistVersion === true
-      ? padNist(messageFormatted, rate)
-      : pad101(messageFormatted, rate);
+    nistVersion === true ? padNist(message, rate) : pad101(message, rate);
 
   const hash = sponge(padded, length, capacity, rate);
 
   // Always check each Field output is 8 bits at most because they are created here
   checkBytes(hash);
 
-  // Output endianness conversion
-  const hashFormatted = outEndian === 'Big' ? hash : hash.reverse();
-
-  return hashFormatted;
+  return hash;
 }
 
 // Gadget for NIST SHA-3 function for output lengths 224/256/384/512.
-// Input and output endianness can be specified. Default is big endian.
 function nistSha3(
   len: 224 | 256 | 384 | 512,
   message: Field[],
-  inpEndian: 'Big' | 'Little' = 'Big',
-  outEndian: 'Big' | 'Little' = 'Big',
   byteChecks: boolean = false
 ): Field[] {
-  return hash(inpEndian, outEndian, byteChecks, message, len, 2 * len, true);
+  return hash(byteChecks, message, len, 2 * len, true);
 }
 
 // Gadget for Keccak hash function for the parameters used in Ethereum.
-// Input and output endianness can be specified. Default is big endian.
-function ethereum(
-  message: Field[] = [],
-  inpEndian: 'Big' | 'Little' = 'Big',
-  outEndian: 'Big' | 'Little' = 'Big',
-  byteChecks: boolean = false
-): Field[] {
-  return hash(inpEndian, outEndian, byteChecks, message, 256, 512, false);
+function ethereum(message: Field[] = [], byteChecks: boolean = false): Field[] {
+  return hash(byteChecks, message, 256, 512, false);
 }
 
 // Gadget for pre-NIST SHA-3 function for output lengths 224/256/384/512.
-// Input and output endianness can be specified. Default is big endian.
 // Note that when calling with output length 256 this is equivalent to the ethereum function
 function preNist(
   len: 224 | 256 | 384 | 512,
   message: Field[],
-  inpEndian: 'Big' | 'Little' = 'Big',
-  outEndian: 'Big' | 'Little' = 'Big',
   byteChecks: boolean = false
 ): Field[] {
-  return hash(inpEndian, outEndian, byteChecks, message, len, 2 * len, false);
+  return hash(byteChecks, message, len, 2 * len, false);
 }
