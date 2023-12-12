@@ -97,19 +97,6 @@ const ROUND_CONSTANTS = [
   0x8000000080008008n,
 ];
 
-// AUXILARY FUNCTIONS
-
-// Auxiliary function to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
-function checkBytesToWord(wordBytes: Field[], word: Field): void {
-  const composition = wordBytes.reduce((acc, value, idx) => {
-    const shift = 1n << BigInt(8 * idx);
-    return acc.add(value.mul(shift));
-  }, Field.from(0));
-
-  // Create constraints to check that the word is composed correctly from bytes
-  word.assertEquals(composition);
-}
-
 // KECCAK STATE FUNCTIONS
 
 // Return a keccak state where all lanes are equal to 0
@@ -133,12 +120,7 @@ function getKeccakStateOfBytes(bytestring: Field[]): Field[][] {
       const idx = BYTES_PER_WORD * (KECCAK_DIM * j + i);
       // Create an array containing the 8 bytes starting on idx that correspond to the word in [i,j]
       const wordBytes = bytestringArray.slice(idx, idx + BYTES_PER_WORD);
-
-      for (let k = 0; k < BYTES_PER_WORD; k++) {
-        // Field element containing value 2^(8*k)
-        const shift = 1n << BigInt(8 * k);
-        state[i][j] = state[i][j].add(wordBytes[k].mul(shift));
-      }
+      state[i][j] = bytesToWord(wordBytes);
     }
   }
   return state;
@@ -167,7 +149,7 @@ function keccakStateToBytes(state: Field[][]): Field[] {
       // Create an array containing the 8 bytes starting on idx that correspond to the word in [i,j]
       const word_bytes = bytestring.slice(idx, idx + BYTES_PER_WORD);
       // Assert correct decomposition of bytes from state
-      checkBytesToWord(word_bytes, state[i][j]);
+      bytesToWord(word_bytes).assertEquals(state[i][j]);
     }
   }
   return bytestring;
@@ -438,12 +420,6 @@ function sponge(
   return hashed;
 }
 
-// TODO(jackryanservia): Use lookup argument once issue is resolved
-// Checks in the circuit that a list of Fields are at most 8 bits each
-function checkBytes(inputs: Field[]): void {
-  inputs.map(rangeCheck8);
-}
-
 // Keccak hash function with input message passed as list of Field bytes.
 // The message will be parsed as follows:
 // - the first byte of the message will be the least significant byte of the first word of the state (A[0][0])
@@ -501,4 +477,20 @@ function preNist(
 // Gadget for Keccak hash function for the parameters used in Ethereum.
 function ethereum(message: Field[] = [], byteChecks: boolean = false): Field[] {
   return preNist(256, message, byteChecks);
+}
+
+// AUXILARY FUNCTIONS
+
+// TODO(jackryanservia): Use lookup argument once issue is resolved
+// Checks in the circuit that a list of Fields are at most 8 bits each
+function checkBytes(inputs: Field[]): void {
+  inputs.map(rangeCheck8);
+}
+
+// Auxiliary function to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
+function bytesToWord(wordBytes: Field[]): Field {
+  return wordBytes.reduce((acc, value, idx) => {
+    const shift = 1n << BigInt(8 * idx);
+    return acc.add(value.mul(shift));
+  }, Field.from(0));
 }
