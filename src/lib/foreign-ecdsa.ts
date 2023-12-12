@@ -13,6 +13,7 @@ import { Field3 } from './gadgets/foreign-field.js';
 import { Ecdsa } from './gadgets/elliptic-curve.js';
 import { Field } from './field.js';
 import { l } from './gadgets/range-check.js';
+import { Keccak } from './keccak.js';
 
 // external API
 export { createEcdsa, EcdsaSignature };
@@ -65,7 +66,7 @@ class EcdsaSignature {
   }
 
   /**
-   * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
+   * Verify the ECDSA signature given the message (an array of bytes) and public key (a {@link Curve} point).
    *
    * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
    * So, to actually prove validity of a signature, you need to assert that the result is true.
@@ -79,22 +80,37 @@ class EcdsaSignature {
    * class Scalar extends Secp256k1.Scalar {}
    * class Ecdsa extends createEcdsa(Secp256k1) {}
    *
+   * let message = 'my message';
+   * let messageBytes = new TextEncoder().encode(message);
+   *
    * // outside provable code: create inputs
    * let privateKey = Scalar.random();
    * let publicKey = Secp256k1.generator.scale(privateKey);
-   * let messageHash = Scalar.random();
-   * let signature = Ecdsa.sign(messageHash.toBigInt(), privateKey.toBigInt());
+   * let signature = Ecdsa.sign(messageBytes, privateKey.toBigInt());
    *
    * // ...
    * // in provable code: create input witnesses (or use method inputs, or constants)
    * let pk = Provable.witness(Secp256k1.provable, () => publicKey);
-   * let msgHash = Provable.witness(Scalar.Canonical.provable, () => messageHash);
+   * let msg = Provable.witness(Provable.Array(Field, 9), () => messageBytes.map(Field));
    * let sig = Provable.witness(Ecdsa.provable, () => signature);
    *
    * // verify signature
-   * let isValid = sig.verifySignedHash(msgHash, pk);
+   * let isValid = sig.verify(msg, pk);
    * isValid.assertTrue('signature verifies');
    * ```
+   */
+  verify(message: Field[], publicKey: FlexiblePoint) {
+    let msgHashBytes = Keccak.ethereum(message);
+    let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
+    return this.verifySignedHash(msgHash, publicKey);
+  }
+
+  /**
+   * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
+   *
+   * This is a building block of {@link EcdsaSignature.verify}, where the input message is also hashed.
+   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
+   * choosing the hashing algorithm.
    */
   verifySignedHash(
     msgHash: AlmostForeignField | bigint,
@@ -111,11 +127,27 @@ class EcdsaSignature {
   }
 
   /**
-   * Create an {@link EcdsaSignature} by signing a message hash with a private key.
+   * Create an {@link EcdsaSignature} by signing a message with a private key.
    *
    * Note: This method is not provable, and only takes JS bigints as input.
    */
-  static sign(msgHash: bigint, privateKey: bigint) {
+  static sign(message: (bigint | number)[] | Uint8Array, privateKey: bigint) {
+    let msgFields = [...message].map(Field.from);
+    let msgHashBytes = Keccak.ethereum(msgFields);
+    let msgHash = keccakOutputToScalar(msgHashBytes, this.Curve);
+    return this.signHash(msgHash.toBigInt(), privateKey);
+  }
+
+  /**
+   * Create an {@link EcdsaSignature} by signing a message hash with a private key.
+   *
+   * This is a building block of {@link EcdsaSignature.sign}, where the input message is also hashed.
+   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
+   * choosing the hashing algorithm.
+   *
+   * Note: This method is not provable, and only takes JS bigints as input.
+   */
+  static signHash(msgHash: bigint, privateKey: bigint) {
     let { r, s } = Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
     return new this({ r, s });
   }
@@ -196,7 +228,7 @@ function toObject(signature: EcdsaSignature) {
  * - takes a 32 bytes hash
  * - converts them to 3 limbs which collectively have L_n <= 256 bits
  */
-function keccakOutputToLimbs(hash: Field[], Curve: typeof ForeignCurve) {
+function keccakOutputToScalar(hash: Field[], Curve: typeof ForeignCurve) {
   const L_n = Curve.Scalar.sizeInBits;
   // keep it simple for now, avoid dealing with dropping bits
   // TODO: what does "leftmost bits" mean? big-endian or little-endian?
