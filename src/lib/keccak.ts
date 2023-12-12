@@ -41,9 +41,6 @@ const KECCAK_STATE_LENGTH = KECCAK_DIM ** 2 * KECCAK_WORD;
 // Length of the state in bytes, meaning the 5x5 matrix of words in bytes (200)
 const KECCAK_STATE_LENGTH_BYTES = KECCAK_STATE_LENGTH / 8;
 
-// Number of rounds of the Keccak permutation function depending on the value `l` (24)
-const KECCAK_ROUNDS = 12 + 2 * KECCAK_ELL;
-
 // Creates the 5x5 table of rotation offset for Keccak modulo 64
 //  | i \ j |  0 |  1 |  2 |  3 |  4 |
 //  | ----- | -- | -- | -- | -- | -- |
