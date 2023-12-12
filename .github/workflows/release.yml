@@ -51,15 +51,18 @@ jobs:
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Install npm dependencies
+        if: ${{ env.RUN_JOB }} == 'true'
         run: npm install
 
       - name: Update CHANGELOG.md
+        if: ${{ env.RUN_JOB }} == 'true'
         run: |
           npm run update-changelog
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG for new version $NEW_VERSION"
 
       - name: Create new release branch
+        if: ${{ env.RUN_JOB }} == 'true'
         run: |
           NEW_BRANCH="release/${NEW_VERSION}"
           git checkout -b $NEW_BRANCH
