@@ -67,7 +67,7 @@ The following branches are compatible:
 |            | berkeley -> berkeley -> berkeley |
 |            | develop -> develop -> develop    |
 
-If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work in progress as a draft to raise visibility!
+If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work-in-progress as a draft PR to raise visibility!
 
 **Default to `main` as the base branch**.
 
