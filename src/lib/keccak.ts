@@ -1,8 +1,8 @@
 import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
-import { exists } from './gadgets/common.js';
 import { rangeCheck8 } from './gadgets/range-check.js';
+import { Provable } from './provable.js';
 
 export { Keccak };
 
@@ -478,11 +478,10 @@ function bytesToWord(wordBytes: Field[]): Field {
 }
 
 function wordToBytes(word: Field): Field[] {
-  let bytes = exists(BYTES_PER_WORD, () => {
+  let bytes = Provable.witness(Provable.Array(Field, BYTES_PER_WORD), () => {
     let w = word.toBigInt();
-    return Array.from(
-      { length: BYTES_PER_WORD },
-      (_, k) => (w >> BigInt(8 * k)) & 0xffn
+    return Array.from({ length: BYTES_PER_WORD }, (_, k) =>
+      Field.from((w >> BigInt(8 * k)) & 0xffn)
     );
   });
   // range-check
