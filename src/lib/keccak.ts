@@ -8,7 +8,7 @@ export { Keccak };
 
 const Keccak = {
   /** TODO */
-  nistSha3(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+  nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
     return nistSha3(len, message);
   },
   /** TODO */
@@ -16,8 +16,37 @@ const Keccak = {
     return ethereum(message);
   },
   /** TODO */
-  preNist(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+  preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
     return preNist(len, message);
+  },
+
+  /**
+   * Low-level API to access Keccak operating on 64-bit words.
+   *
+   * @example
+   * ```ts
+   * const message = [0x02, 0x03, 0x04, 0x05].map(Field.from);
+   * const padded = Keccak.LowLevel.padMessage(message, 256, false);
+   * const hash = Keccak.LowLevel.hash(padded, 256);
+   * // hash is an array of 4 Field elements of 64 bits each
+   * ```
+   */
+  LowLevel: {
+    hash(paddedMessage: Field[], length: 256 | 384 | 512): Field[] {
+      length /= 64;
+      let capacity = length * 2;
+      let rate = 25 - capacity;
+      return sponge(paddedMessage, length, capacity, rate);
+    },
+
+    padMessage(
+      message: Field[],
+      length: 256 | 384 | 512,
+      isNist: boolean
+    ): Field[] {
+      let paddedBytes = pad(message, 200 - length / 4, isNist);
+      return bytesToWords(paddedBytes);
+    },
   },
 };
 
@@ -362,14 +391,14 @@ function hash(
   return hashBytes;
 }
 
-// Gadget for NIST SHA-3 function for output lengths 224/256/384/512.
-function nistSha3(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+// Gadget for NIST SHA-3 function for output lengths 256/384/512.
+function nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
   return hash(message, len / 8, len / 4, true);
 }
 
-// Gadget for pre-NIST SHA-3 function for output lengths 224/256/384/512.
+// Gadget for pre-NIST SHA-3 function for output lengths 256/384/512.
 // Note that when calling with output length 256 this is equivalent to the ethereum function
-function preNist(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+function preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
   return hash(message, len / 8, len / 4, false);
 }
 
