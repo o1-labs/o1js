@@ -415,18 +415,6 @@ function squeeze(
   rate: number,
   rc: bigint[]
 ): Field[] {
-  // Copies a section of bytes in the bytestring into the output array
-  const copy = (
-    bytestring: Field[],
-    outputArray: Field[],
-    start: number,
-    length: number
-  ) => {
-    for (let idx = 0; idx < length; idx++) {
-      outputArray[start + idx] = bytestring[idx];
-    }
-  };
-
   let newState = state;
 
   // bytes per squeeze
@@ -440,7 +428,8 @@ function squeeze(
   // first state to be squeezed
   const bytestring = keccakStateToBytes(state);
   const outputBytes = bytestring.slice(0, bytesPerSqueeze);
-  copy(outputBytes, outputArray, 0, bytesPerSqueeze);
+  // copies a section of bytes in the bytestring into the output array
+  outputArray.splice(0, bytesPerSqueeze, ...outputBytes);
 
   // for the rest of squeezes
   for (let i = 1; i < squeezes; i++) {
@@ -449,7 +438,8 @@ function squeeze(
     // append the output of the permutation function to the output
     const bytestringI = keccakStateToBytes(state);
     const outputBytesI = bytestringI.slice(0, bytesPerSqueeze);
-    copy(outputBytesI, outputArray, bytesPerSqueeze * i, bytesPerSqueeze);
+    // copies a section of bytes in the bytestring into the output array
+    outputArray.splice(bytesPerSqueeze * i, bytesPerSqueeze, ...outputBytesI);
   }
 
   // Obtain the hash selecting the first bitlength/8 bytes of the output array
