@@ -8,24 +8,16 @@ export { Keccak };
 
 const Keccak = {
   /** TODO */
-  nistSha3(
-    len: 224 | 256 | 384 | 512,
-    message: Field[],
-    byteChecks: boolean = false
-  ): Field[] {
-    return nistSha3(len, message, byteChecks);
+  nistSha3(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+    return nistSha3(len, message);
   },
   /** TODO */
-  ethereum(message: Field[], byteChecks: boolean = false): Field[] {
-    return ethereum(message, byteChecks);
+  ethereum(message: Field[]): Field[] {
+    return ethereum(message);
   },
   /** TODO */
-  preNist(
-    len: 224 | 256 | 384 | 512,
-    message: Field[],
-    byteChecks: boolean = false
-  ): Field[] {
-    return preNist(len, message, byteChecks);
+  preNist(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+    return preNist(len, message);
   },
 };
 
@@ -426,8 +418,7 @@ function sponge(
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
 // - then, {0} pad will take place to finish the 200 bytes of the state.
 function hash(
-  byteChecks: boolean = false,
-  message: Field[] = [],
+  message: Field[],
   length: number,
   capacity: number,
   nistVersion: boolean
@@ -439,9 +430,6 @@ function hash(
     `capacity must be less than ${KECCAK_STATE_LENGTH_BYTES}`
   );
   assert(length > 0, 'length must be positive');
-
-  // Check each Field input is 8 bits at most if it was not done before at creation time
-  byteChecks && checkBytes(message);
 
   const rate = KECCAK_STATE_LENGTH_BYTES - capacity;
 
@@ -456,27 +444,19 @@ function hash(
 }
 
 // Gadget for NIST SHA-3 function for output lengths 224/256/384/512.
-function nistSha3(
-  len: 224 | 256 | 384 | 512,
-  message: Field[],
-  byteChecks: boolean = false
-): Field[] {
-  return hash(byteChecks, message, len / 8, len / 4, true);
+function nistSha3(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+  return hash(message, len / 8, len / 4, true);
 }
 
 // Gadget for pre-NIST SHA-3 function for output lengths 224/256/384/512.
 // Note that when calling with output length 256 this is equivalent to the ethereum function
-function preNist(
-  len: 224 | 256 | 384 | 512,
-  message: Field[],
-  byteChecks: boolean = false
-): Field[] {
-  return hash(byteChecks, message, len / 8, len / 4, false);
+function preNist(len: 224 | 256 | 384 | 512, message: Field[]): Field[] {
+  return hash(message, len / 8, len / 4, false);
 }
 
 // Gadget for Keccak hash function for the parameters used in Ethereum.
-function ethereum(message: Field[] = [], byteChecks: boolean = false): Field[] {
-  return preNist(256, message, byteChecks);
+function ethereum(message: Field[]): Field[] {
+  return preNist(256, message);
 }
 
 // AUXILARY FUNCTIONS
