@@ -119,8 +119,10 @@ const getKeccakStateZeros = (): Field[][] =>
 // Converts a list of bytes to a matrix of Field elements
 function getKeccakStateOfBytes(bytestring: Field[]): Field[][] {
   assert(
-    bytestring.length === 200,
-    'improper bytestring length (should be 200)'
+    bytestring.length === KECCAK_DIM ** 2 * BYTES_PER_WORD,
+    `improper bytestring length (should be ${
+      KECCAK_DIM ** 2 * BYTES_PER_WORD
+    }})`
   );
 
   const bytestringArray = Array.from(bytestring);
@@ -197,7 +199,7 @@ function bytesToPad(rate: number, length: number): number {
 
 // Pads a message M as:
 // M || pad[x](|M|)
-// The padded message will begin with the message and end with the padding rule (below) to fulfill a length that is a multiple of rate (in bytes).
+// The padded message will start with the message argument followed by the padding rule (below) to fulfill a length that is a multiple of rate (in bytes).
 // If nist is true, then the padding rule is 0x06 ..0*..1.
 // If nist is false, then the padding rule is 10*1.
 function pad(message: Field[], rate: number, nist: boolean): Field[] {
@@ -361,6 +363,15 @@ function absorb(
   rate: number,
   rc: bigint[]
 ): Field[][] {
+  assert(
+    rate + capacity === KECCAK_STATE_LENGTH_BYTES,
+    `invalid rate or capacity (rate + capacity should be ${KECCAK_STATE_LENGTH_BYTES})`
+  );
+  assert(
+    paddedMessage.length % rate === 0,
+    'invalid padded message length (should be multiple of rate)'
+  );
+
   let state = getKeccakStateZeros();
 
   // array of capacity zero bytes
@@ -370,13 +381,9 @@ function absorb(
     // split into blocks of rate bits
     // for each block of rate bits in the padded message -> this is rate bytes
     const block = paddedMessage.slice(idx, idx + rate);
-    // pad the block with 0s to up to 200 bytes
+    // pad the block with 0s to up to KECCAK_STATE_LENGTH_BYTES bytes
     const paddedBlock = block.concat(zeros);
-    // padded with zeros each block until they are 200 bytes long
-    assert(
-      paddedBlock.length === KECCAK_STATE_LENGTH_BYTES,
-      `improper Keccak block length (should be ${KECCAK_STATE_LENGTH_BYTES})`
-    );
+    // convert the padded block byte array to a Keccak state
     const blockState = getKeccakStateOfBytes(paddedBlock);
     // xor the state with the padded block
     const stateXor = keccakStateXor(state, blockState);
