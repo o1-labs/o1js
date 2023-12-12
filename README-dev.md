@@ -67,6 +67,12 @@ The following branches are compatible:
 |            | berkeley -> berkeley -> berkeley |
 |            | develop -> develop -> develop    |
 
+If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work-in-progress as a draft PR to raise visibility!
+
+**Default to `main` as the base branch**.
+
+The other base branches (`berkeley`, `develop`) are only used in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `berkeley` and `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
+
 ## Run the GitHub actions locally
 
 <!-- The test example should stay in sync with a real value set in .github/workflows/build-actions.yml -->
