@@ -35,11 +35,9 @@ const testImplementations = {
 const uint = (length: number) => fieldWithRng(Random.biguint(length));
 
 // Choose a test length at random
-const digestLength = [224, 256, 384, 512][Math.floor(Math.random() * 4)] as
-  | 224
-  | 256
-  | 384
-  | 512;
+const digestLength = ([224, 256, 384, 512] as const)[
+  Math.floor(Math.random() * 4)
+];
 
 // Digest length in bytes
 const digestLengthBytes = digestLength / 8;
