@@ -4,7 +4,6 @@ import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
 import { Random } from './testing/random.js';
 import { array, equivalentAsync, fieldWithRng } from './testing/equivalent.js';
-import { constraintSystem, contains } from './testing/constraint-system.js';
 import {
   keccak_224,
   keccak_256,
@@ -110,11 +109,3 @@ await equivalentAsync(
     return proof.publicOutput;
   }
 );
-
-// This takes a while and doesn't do much, so I commented it out
-// Constraint system sanity check
-// constraintSystem.fromZkProgram(
-//   KeccakTest,
-//   'preNist',
-//   contains([['Generic'], ['Xor16'], ['Zero'], ['Rot64'], ['RangeCheck0']])
-// );
