@@ -190,49 +190,26 @@ function keccakStateXor(a: Field[][], b: Field[][]): Field[][] {
 
 // Computes the number of required extra bytes to pad a message of length bytes
 function bytesToPad(rate: number, length: number): number {
-  return Math.floor(rate / 8) - (length % Math.floor(rate / 8));
+  return rate - (length % rate);
 }
 
 // Pads a message M as:
 // M || pad[x](|M|)
-// Padding rule 0x06 ..0*..1.
-// The padded message vector will start with the message vector
-// followed by the 0*1 rule to fulfill a length that is a multiple of rate (in bytes)
-// (This means a 0110 sequence, followed with as many 0s as needed, and a final 1 bit)
-function padNist(message: Field[], rate: number): Field[] {
+// The padded message will begin with the message and end with the padding rule (below) to fulfill a length that is a multiple of rate (in bytes).
+// If nist is true, then the padding rule is 0x06 ..0*..1.
+// If nist is false, then the padding rule is 10*1.
+function pad(message: Field[], rate: number, nist: boolean): Field[] {
   // Find out desired length of the padding in bytes
   // If message is already rate bits, need to pad full rate again
   const extraBytes = bytesToPad(rate, message.length);
 
   // 0x06 0x00 ... 0x00 0x80 or 0x86
-  const last = Field.from(BigInt(2) ** BigInt(7));
+  const first = nist ? 0x06n : 0x01n;
+  const last = 0x80n;
 
   // Create the padding vector
   const pad = Array(extraBytes).fill(Field.from(0));
-  pad[0] = Field.from(6);
-  pad[extraBytes - 1] = pad[extraBytes - 1].add(last);
-
-  // Return the padded message
-  return [...message, ...pad];
-}
-
-// Pads a message M as:
-// M || pad[x](|M|)
-// Padding rule 10*1.
-// The padded message vector will start with the message vector
-// followed by the 10*1 rule to fulfill a length that is a multiple of rate (in bytes)
-// (This means a 1 bit, followed with as many 0s as needed, and a final 1 bit)
-function pad101(message: Field[], rate: number): Field[] {
-  // Find out desired length of the padding in bytes
-  // If message is already rate bits, need to pad full rate again
-  const extraBytes = bytesToPad(rate, message.length);
-
-  // 0x01 0x00 ... 0x00 0x80 or 0x81
-  const last = Field.from(BigInt(2) ** BigInt(7));
-
-  // Create the padding vector
-  const pad = Array(extraBytes).fill(Field.from(0));
-  pad[0] = Field.from(1);
+  pad[0] = Field.from(first);
   pad[extraBytes - 1] = pad[extraBytes - 1].add(last);
 
   // Return the padded message
@@ -504,8 +481,7 @@ function hash(
 
   const rate = KECCAK_STATE_LENGTH - capacity;
 
-  const padded =
-    nistVersion === true ? padNist(message, rate) : pad101(message, rate);
+  const padded = pad(message, rate, nistVersion);
 
   const hash = sponge(padded, length, capacity, rate);
 
