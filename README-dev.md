@@ -2,6 +2,16 @@
 
 This README includes information that is helpful for o1js core contributors.
 
+## Setting up the repo on your local
+
+After cloning the repo, you must fetch external submodules for the following examples to work. 
+
+```sh
+git clone https://github.com/o1-labs/o1js.git
+cd o1js
+git submodule update --init --recursive
+```
+
 ## Run examples using Node.js
 
 ```sh
