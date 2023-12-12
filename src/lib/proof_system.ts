@@ -190,7 +190,7 @@ class Proof<Input, Output> {
 
 async function verify(
   proof: Proof<any, any> | JsonProof,
-  verificationKey: string
+  verificationKey: string | VerificationKey
 ) {
   let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement<FieldConst>;
@@ -215,10 +215,12 @@ async function verify(
     let output = toFieldConsts(type.output, proof.publicOutput);
     statement = MlPair(input, output);
   }
+  let vk =
+    typeof verificationKey === 'string'
+      ? verificationKey
+      : verificationKey.data;
   return prettifyStacktracePromise(
-    withThreadPool(() =>
-      Pickles.verify(statement, picklesProof, verificationKey)
-    )
+    withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
 }
 
