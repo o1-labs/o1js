@@ -9,7 +9,7 @@ export { Keccak };
 const Keccak = {
   /** TODO */
   nistSha3(
-    len: number,
+    len: 224 | 256 | 384 | 512,
     message: Field[],
     inpEndian: 'Big' | 'Little' = 'Big',
     outEndian: 'Big' | 'Little' = 'Big',
@@ -28,7 +28,7 @@ const Keccak = {
   },
   /** TODO */
   preNist(
-    len: number,
+    len: 224 | 256 | 384 | 512,
     message: Field[],
     inpEndian: 'Big' | 'Little' = 'Big',
     outEndian: 'Big' | 'Little' = 'Big',
@@ -547,24 +547,13 @@ function hash(
 // Gadget for NIST SHA-3 function for output lengths 224/256/384/512.
 // Input and output endianness can be specified. Default is big endian.
 function nistSha3(
-  len: number,
+  len: 224 | 256 | 384 | 512,
   message: Field[],
   inpEndian: 'Big' | 'Little' = 'Big',
   outEndian: 'Big' | 'Little' = 'Big',
   byteChecks: boolean = false
 ): Field[] {
-  switch (len) {
-    case 224:
-      return hash(inpEndian, outEndian, byteChecks, message, 224, 448, true);
-    case 256:
-      return hash(inpEndian, outEndian, byteChecks, message, 256, 512, true);
-    case 384:
-      return hash(inpEndian, outEndian, byteChecks, message, 384, 768, true);
-    case 512:
-      return hash(inpEndian, outEndian, byteChecks, message, 512, 1024, true);
-    default:
-      throw new Error('Invalid length');
-  }
+  return hash(inpEndian, outEndian, byteChecks, message, len, 2 * len, true);
 }
 
 // Gadget for Keccak hash function for the parameters used in Ethereum.
@@ -582,22 +571,11 @@ function ethereum(
 // Input and output endianness can be specified. Default is big endian.
 // Note that when calling with output length 256 this is equivalent to the ethereum function
 function preNist(
-  len: number,
+  len: 224 | 256 | 384 | 512,
   message: Field[],
   inpEndian: 'Big' | 'Little' = 'Big',
   outEndian: 'Big' | 'Little' = 'Big',
   byteChecks: boolean = false
 ): Field[] {
-  switch (len) {
-    case 224:
-      return hash(inpEndian, outEndian, byteChecks, message, 224, 448, false);
-    case 256:
-      return ethereum(message, inpEndian, outEndian, byteChecks);
-    case 384:
-      return hash(inpEndian, outEndian, byteChecks, message, 384, 768, false);
-    case 512:
-      return hash(inpEndian, outEndian, byteChecks, message, 512, 1024, false);
-    default:
-      throw new Error('Invalid length');
-  }
+  return hash(inpEndian, outEndian, byteChecks, message, len, 2 * len, false);
 }
