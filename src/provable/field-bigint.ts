@@ -6,12 +6,11 @@ import {
   ProvableBigint,
 } from '../bindings/lib/provable-bigint.js';
 
-export { Field, Bool, UInt8, UInt32, UInt64, Sign };
+export { Field, Bool, UInt32, UInt64, Sign };
 export { pseudoClass, sizeInBits, checkRange, checkField };
 
 type Field = bigint;
 type Bool = 0n | 1n;
-type UInt8 = bigint;
 type UInt32 = bigint;
 type UInt64 = bigint;
 
@@ -98,7 +97,6 @@ function Unsigned(bits: number) {
     }
   );
 }
-const UInt8 = Unsigned(8);
 const UInt32 = Unsigned(32);
 const UInt64 = Unsigned(64);
 

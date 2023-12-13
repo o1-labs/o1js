@@ -525,18 +525,7 @@ declare const Snarky: {
     };
   };
 
-  sha: {
-    create(
-      message: MlArray<FieldVar>,
-      nist: boolean,
-      length: number
-    ): MlArray<FieldVar>;
-
-    fieldBytesFromHex(hex: string): MlArray<FieldVar>;
-
-    checkBits(value: FieldVar, bits: number): void;
-  };
-
+  // TODO: implement in TS
   poseidon: {
     update(
       state: MlArray<FieldVar>,

@@ -8,44 +8,14 @@ import {
   method,
   Permissions,
   Struct,
-} from 'snarkyjs';
+  Provable,
+} from 'o1js';
 
 let initialCommitment: Field = Field(0);
 
 // 32 UInts
 export class HashInput extends Struct({
-  data: [
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-    UInt8,
-  ],
+  data: Provable.Array(UInt8, 32),
 }) {}
 
 export class HashStorage extends SmartContract {
