@@ -65,7 +65,7 @@ const Keccak = {
    *
    * The function applies the pre-NIST Keccak hash function to a list of byte-sized {@link Field} elements and is flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
-   * {@link Keccak.preNist} accepts a list of byte-sized {@link Field} elements as its input. However, input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
+   * {@link Keccak.preNist} accepts a list of big-endian byte-sized {@link Field} elements as its input. However, input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
    *
    * The hash output is ensured to conform to the chosen bit length and is a list of big-endian byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
    *
