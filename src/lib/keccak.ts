@@ -26,7 +26,7 @@ const Keccak = {
    * let preimage = [5, 6, 19, 28, 19].map(Field);
    * let digest256 = Keccak.nistSha3(256, preimage);
    * let digest384 = Keccak.nistSha3(384, preimage);
-   * let digest512= Keccak.nistSha3(512, preimage);
+   * let digest512 = Keccak.nistSha3(512, preimage);
    * ```
    *
    */
