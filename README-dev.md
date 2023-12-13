@@ -13,8 +13,8 @@ Before starting, ensure you have the following tools installed:
 
 - [Git](https://git-scm.com/)
 - [Node.js and npm](https://nodejs.org/)
-- [Dune](https://github.com/ocaml/dune)
-- [Cargo](https://www.rust-lang.org/learn/get-started)
+- [Dune](https://github.com/ocaml/dune) (only needed when compiling o1js from source)
+- [Cargo](https://www.rust-lang.org/learn/get-started) (only needed when compiling o1js from source)
 
 After cloning the repository, you need to fetch the submodules:
 
