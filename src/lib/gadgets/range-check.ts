@@ -2,7 +2,13 @@ import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 
-export { rangeCheck64, rangeCheck8, multiRangeCheck, compactMultiRangeCheck };
+export {
+  rangeCheck64,
+  rangeCheck8,
+  rangeCheck16,
+  multiRangeCheck,
+  compactMultiRangeCheck,
+};
 export { l, l2, l3, lMask, l2Mask };
 
 /**
@@ -206,6 +212,18 @@ function rangeCheck1Helper(inputs: {
     [z86, z74, z62, z50, z38, z36, z34, z32, z30, z28, z26, z24, z22],
     [z20, z18, z16, x76, x64, y76, y64, z14, z12, z10, z8, z6, z4, z2, z0]
   );
+}
+
+function rangeCheck16(x: Field) {
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << 16n,
+      `rangeCheck16: expected field to fit in 8 bits, got ${x}`
+    );
+    return;
+  }
+  // check that x fits in 16 bits
+  x.rangeCheckHelper(16).assertEquals(x);
 }
 
 function rangeCheck8(x: Field) {

@@ -4,6 +4,7 @@
 import {
   compactMultiRangeCheck,
   multiRangeCheck,
+  rangeCheck16,
   rangeCheck64,
   rangeCheck8,
 } from './range-check.js';
@@ -39,6 +40,15 @@ const Gadgets = {
    */
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
+  },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^16).
+   *
+   * See {@link Gadgets.rangeCheck64} for analogous details and usage examples.
+   */
+  rangeCheck16(x: Field) {
+    return rangeCheck16(x);
   },
 
   /**
