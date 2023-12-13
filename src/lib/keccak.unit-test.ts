@@ -1,9 +1,7 @@
-import { Field } from './field.js';
-import { Provable } from './provable.js';
 import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
 import { Random } from './testing/random.js';
-import { array, equivalentAsync, fieldWithRng } from './testing/equivalent.js';
+import { equivalentAsync, spec } from './testing/equivalent.js';
 import {
   keccak_224,
   keccak_256,
@@ -14,6 +12,7 @@ import {
   sha3_384,
   sha3_512,
 } from '@noble/hashes/sha3';
+import { Bytes } from './provable-types/provable-types.js';
 
 const RUNS = 1;
 
@@ -32,8 +31,6 @@ const testImplementations = {
   },
 };
 
-const uint = (length: number) => fieldWithRng(Random.biguint(length));
-
 // Choose a test length at random
 const digestLength = ([256, 384, 512] as const)[Math.floor(Math.random() * 4)];
 
@@ -46,18 +43,18 @@ const preImageLength = Math.floor(digestLength / (Math.random() * 4 + 2));
 // No need to test Ethereum because it's just a special case of preNist
 const KeccakProgram = ZkProgram({
   name: 'keccak-test',
-  publicInput: Provable.Array(Field, preImageLength),
-  publicOutput: Provable.Array(Field, digestLengthBytes),
+  publicInput: Bytes(preImageLength).provable,
+  publicOutput: Bytes(digestLengthBytes).provable,
   methods: {
     nistSha3: {
       privateInputs: [],
-      method(preImage) {
+      method(preImage: Bytes) {
         return Keccak.nistSha3(digestLength, preImage);
       },
     },
     preNist: {
       privateInputs: [],
-      method(preImage) {
+      method(preImage: Bytes) {
         return Keccak.preNist(digestLength, preImage);
       },
     },
@@ -66,42 +63,38 @@ const KeccakProgram = ZkProgram({
 
 await KeccakProgram.compile();
 
+const bytes = (length: number) => {
+  const Bytes_ = Bytes(length);
+  return spec<Uint8Array, Bytes>({
+    rng: Random.map(Random.bytes(length), (x) => Uint8Array.from(x)),
+    there: Bytes_.from,
+    back: (x) => x.toBytes(),
+    provable: Bytes_.provable,
+  });
+};
+
 // SHA-3
 await equivalentAsync(
   {
-    from: [array(uint(8), preImageLength)],
-    to: array(uint(8), digestLengthBytes),
+    from: [bytes(preImageLength)],
+    to: bytes(digestLengthBytes),
   },
   { runs: RUNS }
-)(
-  (x) => {
-    const byteArray = new Uint8Array(x.map(Number));
-    const result = testImplementations.sha3[digestLength](byteArray);
-    return Array.from(result).map(BigInt);
-  },
-  async (x) => {
-    const proof = await KeccakProgram.nistSha3(x);
-    await KeccakProgram.verify(proof);
-    return proof.publicOutput;
-  }
-);
+)(testImplementations.sha3[digestLength], async (x) => {
+  const proof = await KeccakProgram.nistSha3(x);
+  await KeccakProgram.verify(proof);
+  return proof.publicOutput;
+});
 
 // PreNIST Keccak
 await equivalentAsync(
   {
-    from: [array(uint(8), preImageLength)],
-    to: array(uint(8), digestLengthBytes),
+    from: [bytes(preImageLength)],
+    to: bytes(digestLengthBytes),
   },
   { runs: RUNS }
-)(
-  (x) => {
-    const byteArray = new Uint8Array(x.map(Number));
-    const result = testImplementations.preNist[digestLength](byteArray);
-    return Array.from(result).map(BigInt);
-  },
-  async (x) => {
-    const proof = await KeccakProgram.preNist(x);
-    await KeccakProgram.verify(proof);
-    return proof.publicOutput;
-  }
-);
+)(testImplementations.preNist[digestLength], async (x) => {
+  const proof = await KeccakProgram.preNist(x);
+  await KeccakProgram.verify(proof);
+  return proof.publicOutput;
+});
