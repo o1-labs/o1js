@@ -3,23 +3,24 @@ import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
 import { Provable } from './provable.js';
 import { chunk } from './util/arrays.js';
-import { Bytes } from './provable-types/provable-types.js';
+import { FlexibleBytes } from './provable-types/bytes.js';
 import { UInt8 } from './int.js';
+import { Bytes } from './provable-types/provable-types.js';
 
 export { Keccak };
 
 const Keccak = {
   /** TODO */
-  nistSha3(len: 256 | 384 | 512, message: Bytes) {
-    return nistSha3(len, message);
+  nistSha3(len: 256 | 384 | 512, message: FlexibleBytes) {
+    return nistSha3(len, Bytes.from(message));
   },
   /** TODO */
-  ethereum(message: Bytes) {
-    return ethereum(message);
+  ethereum(message: FlexibleBytes) {
+    return ethereum(Bytes.from(message));
   },
   /** TODO */
-  preNist(len: 256 | 384 | 512, message: Bytes) {
-    return preNist(len, message);
+  preNist(len: 256 | 384 | 512, message: FlexibleBytes) {
+    return preNist(len, Bytes.from(message));
   },
 };
 
@@ -347,7 +348,7 @@ function hash(
   const rate = KECCAK_STATE_LENGTH_WORDS - capacity;
 
   // apply padding, convert to words, and hash
-  const paddedBytes = pad(message.data, rate * BYTES_PER_WORD, nistVersion);
+  const paddedBytes = pad(message.bytes, rate * BYTES_PER_WORD, nistVersion);
   const padded = bytesToWords(paddedBytes);
 
   const hash = sponge(padded, length, capacity, rate);
