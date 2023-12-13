@@ -11,17 +11,11 @@ const Keccak = {
    * Implementation of [NIST SHA-3](https://www.nist.gov/publications/sha-3-derived-functions-cshake-kmac-tuplehash-and-parallelhash) Hash Function.
    * Supports output lengths of 256, 384, or 512 bits.
    *
-   * Functionality:
-   * - Applies the SHA-3 hash function to a list of byte-sized {@link Field} elements.
-   * - Flexible to handle varying output lengths (256, 384, 512 bits) as specified.
+   * Applies the SHA-3 hash function to a list of byte-sized {@link Field} elements, flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
-   * Input Expectations:
-   * - The function accepts a list of byte-sized {@link Field} elements as its input.
-   * - Input values should be range-checked externally before being passed to this function.
+   * The function accepts a list of byte-sized {@link Field} elements as its input. However, the input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
    *
-   * Output Expectations:
-   * - Ensures that the hash output conforms to the chosen bit length.
-   * - The output is a list of byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
+   * The output is ensured to conform to the chosen bit length and is a list of byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
    *
    * @param len - Desired output length in bits. Valid options: 256, 384, 512.
    * @param message - List of byte-sized {@link Field} elements representing the message to hash.
@@ -45,13 +39,10 @@ const Keccak = {
    *
    * Primarily used in Ethereum for hashing transactions, messages, and other types of payloads.
    *
-   * Input Expectations:
-   * - Expects an input as a list of byte-sized {@link Field} elements.
-   * - The input should be range checked before calling this function, as this function does not perform internal range checking. This can be done using {@link Gadgets.rangeCheck8}.
+   * The function expects an input as a list of byte-sized {@link Field} elements. However, the input should be range checked before calling this function,
+   * as this function does not perform internal range checking. This can be done using {@link Gadgets.rangeCheck8}.
    *
-   * Output Specifications:
-   * - Produces an output which is a list of byte-sized {@link Field} elements.
-   * - Ensures output is within the specified range using {@link Gadgets.rangeCheck8}.
+   * Produces an output which is a list of byte-sized {@link Field} elements and ensures output is within the specified range using {@link Gadgets.rangeCheck8}.
    *
    * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
    *
@@ -70,17 +61,11 @@ const Keccak = {
    * Pre-NIST SHA-3 is a variant of the Keccak hash function, which was standardized by NIST in 2015.
    * This variant was used in Ethereum before the NIST standardization, by specifying `len` as 256 bits you can obtain the same hash function as used by Ethereum {@link Keccak.ethereum}.
    *
-   * Functionality:
-   * - Applies the pre-SHA-3 hash function to a list of byte-sized {@link Field} elements.
-   * - Flexible to handle varying output lengths (256, 384, 512 bits) as specified.
+   * The function applies the pre-SHA-3 hash function to a list of byte-sized {@link Field} elements and is flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
-   * Input Expectations:
-   * - The function accepts a list of byte-sized {@link Field} elements as its input.
-   * - Input values should be range-checked externally before being passed to this function.
+   * {@link Keccak.preNist} accepts a list of byte-sized {@link Field} elements as its input. However, input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
    *
-   * Output Expectations:
-   * - Ensures that the hash output conforms to the chosen bit length.
-   * - The output is a list of byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
+   * The hash output is ensured to conform to the chosen bit length and is a list of byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
    *
    * @param len - Desired output length in bits. Valid options: 256, 384, 512.
    * @param message - List of byte-sized {@link Field} elements representing the message to hash.
