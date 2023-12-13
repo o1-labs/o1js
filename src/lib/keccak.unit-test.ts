@@ -1,7 +1,11 @@
 import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
-import { Random } from './testing/random.js';
-import { equivalentAsync, spec } from './testing/equivalent.js';
+import { Random, sample } from './testing/random.js';
+import {
+  equivalentAsync,
+  equivalentProvable,
+  spec,
+} from './testing/equivalent.js';
 import {
   keccak_224,
   keccak_256,
@@ -31,8 +35,41 @@ const testImplementations = {
   },
 };
 
+const lengths = [256, 384, 512] as const;
+
+// witness construction checks
+
+const bytes = (length: number) => {
+  const Bytes_ = Bytes(length);
+  return spec<Uint8Array, Bytes>({
+    rng: Random.map(Random.bytes(length), (x) => Uint8Array.from(x)),
+    there: Bytes_.from,
+    back: (x) => x.toBytes(),
+    provable: Bytes_.provable,
+  });
+};
+
+for (let length of lengths) {
+  let [preimageLength] = sample(Random.nat(100), 1);
+  console.log(`Testing ${length} with preimage length ${preimageLength}`);
+  let inputBytes = bytes(preimageLength);
+  let outputBytes = bytes(length / 8);
+
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
+    testImplementations.sha3[length],
+    (x) => Keccak.nistSha3(length, x),
+    `sha3 ${length}`
+  );
+
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
+    testImplementations.preNist[length],
+    (x) => Keccak.preNist(length, x),
+    `keccak ${length}`
+  );
+}
+
 // Choose a test length at random
-const digestLength = ([256, 384, 512] as const)[Math.floor(Math.random() * 3)];
+const digestLength = lengths[Math.floor(Math.random() * 3)];
 
 // Digest length in bytes
 const digestLengthBytes = digestLength / 8;
@@ -62,16 +99,6 @@ const KeccakProgram = ZkProgram({
 });
 
 await KeccakProgram.compile();
-
-const bytes = (length: number) => {
-  const Bytes_ = Bytes(length);
-  return spec<Uint8Array, Bytes>({
-    rng: Random.map(Random.bytes(length), (x) => Uint8Array.from(x)),
-    there: Bytes_.from,
-    back: (x) => x.toBytes(),
-    provable: Bytes_.provable,
-  });
-};
 
 // SHA-3
 await equivalentAsync(
