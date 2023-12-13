@@ -16,7 +16,6 @@ export {
   assert,
   bitSlice,
   witnessSlice,
-  witnessNextValue,
   divideWithRemainder,
 };
 
@@ -82,10 +81,6 @@ function witnessSlice(f: Field, start: number, length: number) {
     let n = f.toBigInt();
     return new Field((n >> BigInt(start)) & ((1n << BigInt(length)) - 1n));
   });
-}
-
-function witnessNextValue(current: Field) {
-  return Provable.witness(Field, () => new Field(current.toBigInt() >> 16n));
 }
 
 function divideWithRemainder(numerator: bigint, denominator: bigint) {

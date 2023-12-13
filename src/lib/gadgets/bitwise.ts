@@ -6,9 +6,10 @@ import {
   MAX_BITS,
   assert,
   witnessSlice,
-  witnessNextValue,
   divideWithRemainder,
   toVar,
+  exists,
+  bitSlice,
 } from './common.js';
 import { rangeCheck64 } from './range-check.js';
 
@@ -81,66 +82,71 @@ function xor(a: Field, b: Field, length: number) {
 }
 
 // builds a xor chain
-function buildXor(
-  a: Field,
-  b: Field,
-  expectedOutput: Field,
-  padLength: number
-) {
+function buildXor(a: Field, b: Field, out: Field, padLength: number) {
   // construct the chain of XORs until padLength is 0
   while (padLength !== 0) {
     // slices the inputs into 4x 4bit-sized chunks
-    // slices of a
-    let in1_0 = witnessSlice(a, 0, 4);
-    let in1_1 = witnessSlice(a, 4, 4);
-    let in1_2 = witnessSlice(a, 8, 4);
-    let in1_3 = witnessSlice(a, 12, 4);
+    let slices = exists(15, () => {
+      let a0 = a.toBigInt();
+      let b0 = b.toBigInt();
+      let out0 = out.toBigInt();
+      return [
+        // slices of a
+        bitSlice(a0, 0, 4),
+        bitSlice(a0, 4, 4),
+        bitSlice(a0, 8, 4),
+        bitSlice(a0, 12, 4),
 
-    // slices of b
-    let in2_0 = witnessSlice(b, 0, 4);
-    let in2_1 = witnessSlice(b, 4, 4);
-    let in2_2 = witnessSlice(b, 8, 4);
-    let in2_3 = witnessSlice(b, 12, 4);
+        // slices of b
+        bitSlice(b0, 0, 4),
+        bitSlice(b0, 4, 4),
+        bitSlice(b0, 8, 4),
+        bitSlice(b0, 12, 4),
 
-    // slices of expected output
-    let out0 = witnessSlice(expectedOutput, 0, 4);
-    let out1 = witnessSlice(expectedOutput, 4, 4);
-    let out2 = witnessSlice(expectedOutput, 8, 4);
-    let out3 = witnessSlice(expectedOutput, 12, 4);
+        // slices of expected output
+        bitSlice(out0, 0, 4),
+        bitSlice(out0, 4, 4),
+        bitSlice(out0, 8, 4),
+        bitSlice(out0, 12, 4),
+
+        // next values
+        a0 >> 16n,
+        b0 >> 16n,
+        out0 >> 16n,
+      ];
+    });
+
+    // prettier-ignore
+    let [
+      in1_0, in1_1, in1_2, in1_3,
+      in2_0, in2_1, in2_2, in2_3,
+      out0, out1, out2, out3,
+      aNext, bNext, outNext
+    ] = slices;
 
     // assert that the xor of the slices is correct, 16 bit at a time
+    // prettier-ignore
     Gates.xor(
-      a,
-      b,
-      expectedOutput,
-      in1_0,
-      in1_1,
-      in1_2,
-      in1_3,
-      in2_0,
-      in2_1,
-      in2_2,
-      in2_3,
-      out0,
-      out1,
-      out2,
-      out3
+      a, b, out,
+      in1_0, in1_1, in1_2, in1_3,
+      in2_0, in2_1, in2_2, in2_3,
+      out0, out1, out2, out3
     );
 
     // update the values for the next loop iteration
-    a = witnessNextValue(a);
-    b = witnessNextValue(b);
-    expectedOutput = witnessNextValue(expectedOutput);
+    a = aNext;
+    b = bNext;
+    out = outNext;
     padLength = padLength - 16;
   }
 
   // inputs are zero and length is zero, add the zero check - we reached the end of our chain
-  Gates.zero(a, b, expectedOutput);
+  Gates.zero(a, b, out);
 
   let zero = new Field(0);
   zero.assertEquals(a);
   zero.assertEquals(b);
-  zero.assertEquals(expectedOutput);
+  zero.assertEquals(out);
 }
 
 function and(a: Field, b: Field, length: number) {
@@ -160,15 +166,8 @@ function and(a: Field, b: Field, length: number) {
   if (a.isConstant() && b.isConstant()) {
     let max = 1n << BigInt(padLength);
 
-    assert(
-      a.toBigInt() < max,
-      `${a.toBigInt()} does not fit into ${padLength} bits`
-    );
-
-    assert(
-      b.toBigInt() < max,
-      `${b.toBigInt()} does not fit into ${padLength} bits`
-    );
+    assert(a.toBigInt() < max, `${a} does not fit into ${padLength} bits`);
+    assert(b.toBigInt() < max, `${b} does not fit into ${padLength} bits`);
 
     return new Field(a.toBigInt() & b.toBigInt());
   }
