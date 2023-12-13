@@ -5,7 +5,7 @@ import {
   State,
   method,
   state,
-} from 'snarkyjs';
+} from 'o1js';
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();

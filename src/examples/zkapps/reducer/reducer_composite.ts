@@ -12,7 +12,7 @@ import {
   Struct,
   Reducer,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 import assert from 'node:assert/strict';
 import { getProfiler } from '../../profiler.js';
 

@@ -21,7 +21,7 @@ import {
   Mina,
   InferProvable,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 
 import { TokenContract, randomAccounts } from './dex.js';
 

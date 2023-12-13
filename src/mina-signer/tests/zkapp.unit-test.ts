@@ -84,7 +84,7 @@ expect(
   client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates)
 ).toBe(0.002);
 
-// same transaction signed with snarkyjs (OCaml implementation) gives the same result
+// same transaction signed with o1js (OCaml implementation) gives the same result
 
 let transactionJson = {
   ...exampleZkappCommand,

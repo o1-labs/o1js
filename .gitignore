@@ -5,6 +5,6 @@ o1labs*.tgz
 tests/report/
 tests/test-artifacts/
 profiling.md
-snarkyjs-reference
+o1js-reference
 *.tmp.js
 _build/

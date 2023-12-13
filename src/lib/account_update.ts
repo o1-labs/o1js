@@ -389,7 +389,7 @@ interface Body extends AccountUpdateBody {
    * Events can be collected by archive nodes.
    *
    * [Check out our documentation about
-   * Events!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/events)
+   * Events!](https://docs.minaprotocol.com/zkapps/advanced-o1js/events)
    */
   events: Events;
   /**
@@ -398,7 +398,7 @@ interface Body extends AccountUpdateBody {
    * a {@link Reducer}.
    *
    * [Check out our documentation about
-   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
+   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-o1js/actions-and-reducer)
    */
   actions: Events;
   /**
@@ -602,10 +602,7 @@ type LazyProof = {
   blindingValue: Field;
 };
 
-const AccountId = provable(
-  { tokenOwner: PublicKey, parentTokenId: Field },
-  { customObjectKeys: ['tokenOwner', 'parentTokenId'] }
-);
+const AccountId = provable({ tokenOwner: PublicKey, parentTokenId: Field });
 
 const TokenId = {
   ...Types.TokenId,
@@ -1017,8 +1014,8 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   private static signingInfo = provable({
-    nonce: UInt32,
     isSameAsFeePayer: Bool,
+    nonce: UInt32,
   });
 
   private static getSigningInfo(
@@ -1411,10 +1408,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   static get MayUseToken() {
     return {
-      type: provablePure(
-        { parentsOwnToken: Bool, inheritFromParent: Bool },
-        { customObjectKeys: ['parentsOwnToken', 'inheritFromParent'] }
-      ),
+      type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
       No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
       ParentsOwnToken: {
         parentsOwnToken: Bool(true),
@@ -1968,10 +1962,7 @@ type ZkappPublicInput = {
   accountUpdate: Field;
   calls: Field;
 };
-let ZkappPublicInput = provablePure(
-  { accountUpdate: Field, calls: Field },
-  { customObjectKeys: ['accountUpdate', 'calls'] }
-);
+let ZkappPublicInput = provablePure({ accountUpdate: Field, calls: Field });
 
 async function addMissingProofs(
   zkappCommand: ZkappCommand,

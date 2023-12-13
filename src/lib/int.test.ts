@@ -8,7 +8,7 @@ import {
   Field,
   Bool,
   Sign,
-} from 'snarkyjs';
+} from 'o1js';
 
 describe('int', () => {
   beforeAll(async () => {
