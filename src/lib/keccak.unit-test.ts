@@ -32,7 +32,7 @@ const testImplementations = {
 };
 
 // Choose a test length at random
-const digestLength = ([256, 384, 512] as const)[Math.floor(Math.random() * 4)];
+const digestLength = ([256, 384, 512] as const)[Math.floor(Math.random() * 3)];
 
 // Digest length in bytes
 const digestLengthBytes = digestLength / 8;
