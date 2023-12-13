@@ -44,6 +44,8 @@ const Keccak = {
    *
    * Produces an output which is a list of big-endian byte-sized {@link Field} elements and ensures output is within the specified range using {@link Gadgets.rangeCheck8}.
    *
+   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
+   *
    * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
    *
    * ```ts
