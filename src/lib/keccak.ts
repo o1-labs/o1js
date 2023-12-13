@@ -61,7 +61,7 @@ const Keccak = {
    * Pre-NIST SHA-3 is a variant of the Keccak hash function, which was standardized by NIST in 2015.
    * This variant was used in Ethereum before the NIST standardization, by specifying `len` as 256 bits you can obtain the same hash function as used by Ethereum {@link Keccak.ethereum}.
    *
-   * The function applies the pre-SHA-3 hash function to a list of byte-sized {@link Field} elements and is flexible to handle varying output lengths (256, 384, 512 bits) as specified.
+   * The function applies the pre-NIST Keccak hash function to a list of byte-sized {@link Field} elements and is flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
    * {@link Keccak.preNist} accepts a list of byte-sized {@link Field} elements as its input. However, input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
    *
