@@ -5,7 +5,6 @@ import { Gates } from '../gates.js';
 import {
   MAX_BITS,
   assert,
-  witnessSlice,
   divideWithRemainder,
   toVar,
   exists,
@@ -243,27 +242,34 @@ function rot(
   // TODO this is an abstraction leak, but not clear to me how to improve
   toVar(0n);
 
+  // slice the bound into chunks
+  let boundSlices = exists(12, () => {
+    let bound0 = bound.toBigInt();
+    return [
+      bitSlice(bound0, 52, 12), // bits 52-64
+      bitSlice(bound0, 40, 12), // bits 40-52
+      bitSlice(bound0, 28, 12), // bits 28-40
+      bitSlice(bound0, 16, 12), // bits 16-28
+
+      bitSlice(bound0, 14, 2), // bits 14-16
+      bitSlice(bound0, 12, 2), // bits 12-14
+      bitSlice(bound0, 10, 2), // bits 10-12
+      bitSlice(bound0, 8, 2), // bits 8-10
+      bitSlice(bound0, 6, 2), // bits 6-8
+      bitSlice(bound0, 4, 2), // bits 4-6
+      bitSlice(bound0, 2, 2), // bits 2-4
+      bitSlice(bound0, 0, 2), // bits 0-2
+    ];
+  });
+  let [b52, b40, b28, b16, b14, b12, b10, b8, b6, b4, b2, b0] = boundSlices;
+
   // Compute current row
   Gates.rotate(
     field,
     rotated,
     excess,
-    [
-      witnessSlice(bound, 52, 12), // bits 52-64
-      witnessSlice(bound, 40, 12), // bits 40-52
-      witnessSlice(bound, 28, 12), // bits 28-40
-      witnessSlice(bound, 16, 12), // bits 16-28
-    ],
-    [
-      witnessSlice(bound, 14, 2), // bits 14-16
-      witnessSlice(bound, 12, 2), // bits 12-14
-      witnessSlice(bound, 10, 2), // bits 10-12
-      witnessSlice(bound, 8, 2), // bits 8-10
-      witnessSlice(bound, 6, 2), // bits 6-8
-      witnessSlice(bound, 4, 2), // bits 4-6
-      witnessSlice(bound, 2, 2), // bits 2-4
-      witnessSlice(bound, 0, 2), // bits 0-2
-    ],
+    [b52, b40, b28, b16],
+    [b14, b12, b10, b8, b6, b4, b2, b0],
     big2PowerRot
   );
   // Compute next row
