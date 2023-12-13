@@ -20,7 +20,7 @@ class Bytes {
 
     // assert that data is not too long
     assert(
-      bytes.length < size,
+      bytes.length <= size,
       `Expected at most ${size} bytes, got ${bytes.length}`
     );
 
