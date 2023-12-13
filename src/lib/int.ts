@@ -1090,45 +1090,36 @@ class UInt8 extends Struct({
   /**
    * Get the quotient and remainder of a {@link UInt8} value divided by another {@link UInt8} element.
    *
-   * @param value - a {@link UInt8} to get the quotient and remainder of another {@link UInt8}.
+   * @param y - a {@link UInt8} to get the quotient and remainder of another {@link UInt8}.
    *
    * @return The quotient and remainder of the two values.
    */
-  divMod(value: UInt8 | number) {
+  divMod(y: UInt8 | bigint | number) {
     let x = this.value;
-    let y_ = UInt8.from(value).value;
+    let y_ = UInt8.from(y).value.seal();
 
     if (this.value.isConstant() && y_.isConstant()) {
       let xn = x.toBigInt();
       let yn = y_.toBigInt();
       let q = xn / yn;
       let r = xn - q * yn;
-      return {
-        quotient: UInt8.from(Field(q)),
-        rest: UInt8.from(Field(r)),
-      };
+      return { quotient: UInt8.from(q), rest: UInt8.from(r) };
     }
 
-    y_ = y_.seal();
-    let q = Provable.witness(
-      Field,
-      () => new Field(x.toBigInt() / y_.toBigInt())
-    );
-
-    // TODO: Enable when rangeCheck works in proofs
-    // UInt8.#rangeCheck(q);
-
-    // TODO: Could be a bit more efficient
+    // prove that x === q * y + r, where 0 <= r < y
+    let q = Provable.witness(Field, () => Field(x.toBigInt() / y_.toBigInt()));
     let r = x.sub(q.mul(y_)).seal();
 
-    // TODO: Enable when rangeCheck works in proofs
-    // UInt8.#rangeCheck(r);
+    // q, r being 16 bits is enough for them to be 8 bits,
+    // thanks to the === x check and the r < y check below
+    Gadgets.rangeCheck16(q);
+    Gadgets.rangeCheck16(r);
 
-    let r_ = UInt8.from(r);
-    let q_ = UInt8.from(q);
+    let rest = UInt8.from(r);
+    let quotient = UInt8.from(q);
 
-    r_.assertLessThan(UInt8.from(y_));
-    return { quotient: q_, rest: r_ };
+    rest.assertLessThan(UInt8.from(y_));
+    return { quotient, rest };
   }
 
   /**
