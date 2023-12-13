@@ -16,3 +16,4 @@ type Bytes = InternalBytes;
 function Bytes(size: number) {
   return createBytes(size);
 }
+Bytes.from = InternalBytes.from;

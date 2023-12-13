@@ -5,29 +5,31 @@ import { chunkString } from '../util/arrays.js';
 import { Provable } from '../provable.js';
 import { UInt8 } from '../int.js';
 
-export { Bytes, createBytes };
+export { Bytes, createBytes, FlexibleBytes };
+
+type FlexibleBytes = Bytes | (UInt8 | bigint | number)[] | Uint8Array;
 
 /**
  * A provable type representing an array of bytes.
  */
 class Bytes {
-  data: UInt8[];
+  bytes: UInt8[];
 
-  constructor(data: UInt8[]) {
+  constructor(bytes: UInt8[]) {
     let size = (this.constructor as typeof Bytes).size;
 
     // assert that data is not too long
     assert(
-      data.length < size,
-      `Expected at most ${size} bytes, got ${data.length}`
+      bytes.length < size,
+      `Expected at most ${size} bytes, got ${bytes.length}`
     );
 
     // pad the data with zeros
     let padding = Array.from(
-      { length: size - data.length },
+      { length: size - bytes.length },
       () => new UInt8(0)
     );
-    this.data = data.concat(padding);
+    this.bytes = bytes.concat(padding);
   }
 
   /**
@@ -35,12 +37,17 @@ class Bytes {
    *
    * Inputs smaller than `this.size` are padded with zero bytes.
    */
-  static from(data: (UInt8 | bigint | number)[] | Uint8Array) {
+  static from(data: (UInt8 | bigint | number)[] | Uint8Array | Bytes): Bytes {
+    if (data instanceof Bytes) return data;
+    if (this._size === undefined) {
+      let Bytes_ = createBytes(data.length);
+      return Bytes_.from(data);
+    }
     return new this([...data].map(UInt8.from));
   }
 
   toBytes(): Uint8Array {
-    return Uint8Array.from(this.data.map((x) => x.toNumber()));
+    return Uint8Array.from(this.bytes.map((x) => x.toNumber()));
   }
 
   /**
@@ -67,14 +74,17 @@ class Bytes {
    * Convert {@link Bytes} to a hex string.
    */
   toHex(xs: Bytes): string {
-    return xs.data
+    return xs.bytes
       .map((x) => x.toBigInt().toString(16).padStart(2, '0'))
       .join('');
   }
 
   // dynamic subclassing infra
   static _size?: number;
-  static _provable?: ProvablePureExtended<Bytes, { data: { value: string }[] }>;
+  static _provable?: ProvablePureExtended<
+    Bytes,
+    { bytes: { value: string }[] }
+  >;
 
   /**
    * The size of the {@link Bytes}.
@@ -82,6 +92,10 @@ class Bytes {
   static get size() {
     assert(this._size !== undefined, 'Bytes not initialized');
     return this._size;
+  }
+
+  get length() {
+    return this.bytes.length;
   }
 
   /**
@@ -97,7 +111,7 @@ function createBytes(size: number): typeof Bytes {
   return class Bytes_ extends Bytes {
     static _size = size;
     static _provable = provableFromClass(Bytes_, {
-      data: Provable.Array(UInt8, size),
+      bytes: Provable.Array(UInt8, size),
     });
   };
 }
