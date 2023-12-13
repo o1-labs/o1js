@@ -1,9 +1,10 @@
 import { test, Random } from './testing/property.js';
 import { UInt8 } from './int.js';
-import { Hash } from './hash.js';
+import { Hash } from './hashes-combined.js';
 import { Provable } from './provable.js';
 import { expect } from 'expect';
 import assert from 'assert';
+import { Bytes } from './provable-types/provable-types.js';
 
 let RandomUInt8 = Random.map(Random.uint8, (x) => UInt8.from(x));
 
@@ -13,16 +14,14 @@ test(Random.uint8, Random.uint8, (x, y, assert) => {
   assert(z instanceof UInt8);
   assert(z.toBigInt() === x);
   assert(z.toString() === x.toString());
-  assert(z.isConstant());
 
   assert((z = new UInt8(x)) instanceof UInt8 && z.toBigInt() === x);
   assert((z = new UInt8(z)) instanceof UInt8 && z.toBigInt() === x);
-  assert((z = new UInt8(z.value)) instanceof UInt8 && z.toBigInt() === x);
+  assert((z = new UInt8(z.value.value)) instanceof UInt8 && z.toBigInt() === x);
 
   z = new UInt8(y);
   assert(z instanceof UInt8);
   assert(z.toString() === y.toString());
-  assert(z.toJSON() === y.toString());
 });
 
 // handles all numbers up to 2^8
@@ -50,29 +49,27 @@ function checkHashInCircuit() {
       .create()()
       .map((x) => Provable.witness(UInt8, () => UInt8.from(x)));
 
-    checkHashConversions(data);
+    checkHashConversions(Bytes.from(data));
   });
 }
 
-function checkHashConversions(data: UInt8[]) {
+function checkHashConversions(data: Bytes) {
   Provable.asProver(() => {
-    expectDigestToEqualHex(Hash.SHA224.hash(data));
-    expectDigestToEqualHex(Hash.SHA256.hash(data));
-    expectDigestToEqualHex(Hash.SHA384.hash(data));
-    expectDigestToEqualHex(Hash.SHA512.hash(data));
+    expectDigestToEqualHex(Hash.SHA3_256.hash(data));
+    expectDigestToEqualHex(Hash.SHA3_384.hash(data));
+    expectDigestToEqualHex(Hash.SHA3_512.hash(data));
     expectDigestToEqualHex(Hash.Keccak256.hash(data));
   });
 }
 
-function expectDigestToEqualHex(digest: UInt8[]) {
-  const hex = UInt8.toHex(digest);
-  expect(equals(digest, UInt8.fromHex(hex))).toBe(true);
+function expectDigestToEqualHex(digest: Bytes) {
+  const hex = digest.toHex();
+  expect(digest).toEqual(Bytes.fromHex(hex));
 }
 
-function equals(a: UInt8[], b: UInt8[]): boolean {
+function equals(a: Bytes, b: Bytes): boolean {
   if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) a[i].assertEquals(b[i]);
-
+  for (let i = 0; i < a.length; i++) a.bytes[i].assertEquals(b.bytes[i]);
   return true;
 }
 
@@ -246,24 +243,21 @@ function testExpected({
   Provable.runAndCheck(() => {
     assert(message.length % 2 === 0);
 
-    let fields = UInt8.fromHex(message);
-    let expectedHash = UInt8.fromHex(expected);
+    let fields = Bytes.fromHex(message);
+    let expectedHash = Bytes.fromHex(expected);
 
     Provable.asProver(() => {
       if (nist) {
-        let hashed;
+        let hashed: Bytes;
         switch (length) {
-          case 224:
-            hashed = Hash.SHA224.hash(fields);
-            break;
           case 256:
-            hashed = Hash.SHA256.hash(fields);
+            hashed = Hash.SHA3_256.hash(fields);
             break;
           case 384:
-            hashed = Hash.SHA384.hash(fields);
+            hashed = Hash.SHA3_384.hash(fields);
             break;
           case 512:
-            hashed = Hash.SHA512.hash(fields);
+            hashed = Hash.SHA3_512.hash(fields);
             break;
           default:
             assert(false);

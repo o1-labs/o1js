@@ -9,17 +9,9 @@ export {
 } from './lib/foreign-field.js';
 export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
-export { TokenSymbol } from './lib/hash.js';
-
-import { Poseidon } from './lib/hash.js';
-import { Keccak } from './lib/keccak.js';
-
-const Hash = {
-  hash: Poseidon.hash,
-  Poseidon,
-  Keccak,
-};
-export { Poseidon, Keccak, Hash };
+export { Poseidon, TokenSymbol } from './lib/hash.js';
+export { Keccak } from './lib/keccak.js';
+export { Hash } from './lib/hashes-combined.js';
 
 export * from './lib/signature.js';
 export type {

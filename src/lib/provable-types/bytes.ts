@@ -73,8 +73,8 @@ class Bytes {
   /**
    * Convert {@link Bytes} to a hex string.
    */
-  toHex(xs: Bytes): string {
-    return xs.bytes
+  toHex(): string {
+    return this.bytes
       .map((x) => x.toBigInt().toString(16).padStart(2, '0'))
       .join('');
   }
