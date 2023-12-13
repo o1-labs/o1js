@@ -58,7 +58,7 @@ expect(accountUpdateRecovered.lazyAuthorization).not.toEqual(
 /**
  * Provable.runAndCheck() can be used to run a circuit in "prover mode".
  * That means
- * -) witness() and asProver() blocks are excuted
+ * -) witness() and asProver() blocks are executed
  * -) constraints are checked; failing assertions throw an error
  */
 Provable.runAndCheck(() => {
