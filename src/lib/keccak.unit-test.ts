@@ -4,7 +4,6 @@ import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
 import { Random } from './testing/random.js';
 import { array, equivalentAsync, fieldWithRng } from './testing/equivalent.js';
-import { constraintSystem, contains } from './testing/constraint-system.js';
 import {
   keccak_224,
   keccak_256,
@@ -36,11 +35,7 @@ const testImplementations = {
 const uint = (length: number) => fieldWithRng(Random.biguint(length));
 
 // Choose a test length at random
-const digestLength = [224, 256, 384, 512][Math.floor(Math.random() * 4)] as
-  | 224
-  | 256
-  | 384
-  | 512;
+const digestLength = ([256, 384, 512] as const)[Math.floor(Math.random() * 4)];
 
 // Digest length in bytes
 const digestLengthBytes = digestLength / 8;
@@ -110,11 +105,3 @@ await equivalentAsync(
     return proof.publicOutput;
   }
 );
-
-// This takes a while and doesn't do much, so I commented it out
-// Constraint system sanity check
-// constraintSystem.fromZkProgram(
-//   KeccakTest,
-//   'preNist',
-//   contains([['Generic'], ['Xor16'], ['Zero'], ['Rot64'], ['RangeCheck0']])
-// );

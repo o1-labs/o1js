@@ -1,31 +1,23 @@
 import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
-import { existsOne } from './gadgets/common.js';
 import { rangeCheck8 } from './gadgets/range-check.js';
+import { Provable } from './provable.js';
 
 export { Keccak };
 
 const Keccak = {
   /** TODO */
-  nistSha3(
-    len: 224 | 256 | 384 | 512,
-    message: Field[],
-    byteChecks: boolean = false
-  ): Field[] {
-    return nistSha3(len, message, byteChecks);
+  nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
+    return nistSha3(len, message);
   },
   /** TODO */
-  ethereum(message: Field[], byteChecks: boolean = false): Field[] {
-    return ethereum(message, byteChecks);
+  ethereum(message: Field[]): Field[] {
+    return ethereum(message);
   },
   /** TODO */
-  preNist(
-    len: 224 | 256 | 384 | 512,
-    message: Field[],
-    byteChecks: boolean = false
-  ): Field[] {
-    return preNist(len, message, byteChecks);
+  preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
+    return preNist(len, message);
   },
 };
 
@@ -43,14 +35,14 @@ const KECCAK_WORD = 2 ** KECCAK_ELL;
 // Number of bytes that fit in a word (8)
 const BYTES_PER_WORD = KECCAK_WORD / 8;
 
+// Length of the state in words, 5x5 = 25
+const KECCAK_STATE_LENGTH_WORDS = KECCAK_DIM ** 2;
+
 // Length of the state in bits, meaning the 5x5 matrix of words in bits (1600)
-const KECCAK_STATE_LENGTH = KECCAK_DIM ** 2 * KECCAK_WORD;
+const KECCAK_STATE_LENGTH = KECCAK_STATE_LENGTH_WORDS * KECCAK_WORD;
 
 // Length of the state in bytes, meaning the 5x5 matrix of words in bytes (200)
 const KECCAK_STATE_LENGTH_BYTES = KECCAK_STATE_LENGTH / 8;
-
-// Number of rounds of the Keccak permutation function depending on the value `l` (24)
-const KECCAK_ROUNDS = 12 + 2 * KECCAK_ELL;
 
 // Creates the 5x5 table of rotation offset for Keccak modulo 64
 //  | i \ j |  0 |  1 |  2 |  3 |  4 |
@@ -97,99 +89,6 @@ const ROUND_CONSTANTS = [
   0x8000000080008008n,
 ];
 
-// AUXILARY FUNCTIONS
-
-// Auxiliary function to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
-function checkBytesToWord(wordBytes: Field[], word: Field): void {
-  const composition = wordBytes.reduce((acc, value, idx) => {
-    const shift = 1n << BigInt(8 * idx);
-    return acc.add(value.mul(shift));
-  }, Field.from(0));
-
-  // Create constraints to check that the word is composed correctly from bytes
-  word.assertEquals(composition);
-}
-
-// KECCAK STATE FUNCTIONS
-
-// Return a keccak state where all lanes are equal to 0
-const getKeccakStateZeros = (): Field[][] =>
-  Array.from(Array(KECCAK_DIM), (_) => Array(KECCAK_DIM).fill(Field.from(0)));
-
-// Converts a list of bytes to a matrix of Field elements
-function getKeccakStateOfBytes(bytestring: Field[]): Field[][] {
-  assert(
-    bytestring.length === KECCAK_DIM ** 2 * BYTES_PER_WORD,
-    `improper bytestring length (should be ${
-      KECCAK_DIM ** 2 * BYTES_PER_WORD
-    }})`
-  );
-
-  const bytestringArray = Array.from(bytestring);
-  const state: Field[][] = getKeccakStateZeros();
-
-  for (let j = 0; j < KECCAK_DIM; j++) {
-    for (let i = 0; i < KECCAK_DIM; i++) {
-      const idx = BYTES_PER_WORD * (KECCAK_DIM * j + i);
-      // Create an array containing the 8 bytes starting on idx that correspond to the word in [i,j]
-      const wordBytes = bytestringArray.slice(idx, idx + BYTES_PER_WORD);
-
-      for (let k = 0; k < BYTES_PER_WORD; k++) {
-        // Field element containing value 2^(8*k)
-        const shift = 1n << BigInt(8 * k);
-        state[i][j] = state[i][j].add(wordBytes[k].mul(shift));
-      }
-    }
-  }
-  return state;
-}
-
-// Converts a state of Fields to a list of bytes as Fields and creates constraints for it
-function keccakStateToBytes(state: Field[][]): Field[] {
-  const bytestring: Field[] = Array.from(
-    { length: KECCAK_STATE_LENGTH_BYTES },
-    (_, idx) =>
-      existsOne(() => {
-        // idx = k + 8 * ((dim * j) + i)
-        const i = Math.floor(idx / BYTES_PER_WORD) % KECCAK_DIM;
-        const j = Math.floor(idx / BYTES_PER_WORD / KECCAK_DIM);
-        const k = idx % BYTES_PER_WORD;
-        const word = state[i][j].toBigInt();
-        const byte = (word >> BigInt(8 * k)) & 0xffn;
-        return byte;
-      })
-  );
-
-  // Check all words are composed correctly from bytes
-  for (let j = 0; j < KECCAK_DIM; j++) {
-    for (let i = 0; i < KECCAK_DIM; i++) {
-      const idx = BYTES_PER_WORD * (KECCAK_DIM * j + i);
-      // Create an array containing the 8 bytes starting on idx that correspond to the word in [i,j]
-      const word_bytes = bytestring.slice(idx, idx + BYTES_PER_WORD);
-      // Assert correct decomposition of bytes from state
-      checkBytesToWord(word_bytes, state[i][j]);
-    }
-  }
-  return bytestring;
-}
-
-// XOR two states together and return the result
-function keccakStateXor(a: Field[][], b: Field[][]): Field[][] {
-  assert(
-    a.length === KECCAK_DIM && a[0].length === KECCAK_DIM,
-    `invalid \`a\` dimensions (should be ${KECCAK_DIM})`
-  );
-  assert(
-    b.length === KECCAK_DIM && b[0].length === KECCAK_DIM,
-    `invalid \`b\` dimensions (should be ${KECCAK_DIM})`
-  );
-
-  // Calls Gadgets.xor on each pair (i,j) of the states input1 and input2 and outputs the output Fields as a new matrix
-  return a.map((row, i) =>
-    row.map((value, j) => Gadgets.xor(value, b[i][j], 64))
-  );
-}
-
 // KECCAK HASH FUNCTION
 
 // Computes the number of required extra bytes to pad a message of length bytes
@@ -233,22 +132,19 @@ const theta = (state: Field[][]): Field[][] => {
 
   // XOR the elements of each row together
   // for all i in {0..4}: C[i] = A[i,0] xor A[i,1] xor A[i,2] xor A[i,3] xor A[i,4]
-  const stateC = stateA.map((row) =>
-    row.reduce((acc, value) => Gadgets.xor(acc, value, KECCAK_WORD))
-  );
+  const stateC = stateA.map((row) => row.reduce(xor));
 
   // for all i in {0..4}: D[i] = C[i-1] xor ROT(C[i+1], 1)
-  const stateD = Array.from({ length: KECCAK_DIM }, (_, x) =>
-    Gadgets.xor(
-      stateC[(x + KECCAK_DIM - 1) % KECCAK_DIM],
-      Gadgets.rotate(stateC[(x + 1) % KECCAK_DIM], 1, 'left'),
-      KECCAK_WORD
+  const stateD = Array.from({ length: KECCAK_DIM }, (_, i) =>
+    xor(
+      stateC[(i + KECCAK_DIM - 1) % KECCAK_DIM],
+      Gadgets.rotate(stateC[(i + 1) % KECCAK_DIM], 1, 'left')
     )
   );
 
   // for all i in {0..4} and j in {0..4}: E[i,j] = A[i,j] xor D[i]
   const stateE = stateA.map((row, index) =>
-    row.map((elem) => Gadgets.xor(elem, stateD[index], KECCAK_WORD))
+    row.map((elem) => xor(elem, stateD[index]))
   );
 
   return stateE;
@@ -281,9 +177,9 @@ const theta = (state: Field[][]): Field[][] => {
 // We use the first index of the state array as the i coordinate and the second index as the j coordinate.
 function piRho(state: Field[][]): Field[][] {
   const stateE = state;
-  const stateB: Field[][] = getKeccakStateZeros();
+  const stateB = State.zeros();
 
-  // for all i in {0..4} and j in {0..4}: B[y,2x+3y] = ROT(E[i,j], r[i,j])
+  // for all i in {0..4} and j in {0..4}: B[j,2i+3j] = ROT(E[i,j], r[i,j])
   for (let i = 0; i < KECCAK_DIM; i++) {
     for (let j = 0; j < KECCAK_DIM; j++) {
       stateB[j][(2 * i + 3 * j) % KECCAK_DIM] = Gadgets.rotate(
@@ -307,20 +203,19 @@ function piRho(state: Field[][]): Field[][] {
 // end for
 function chi(state: Field[][]): Field[][] {
   const stateB = state;
-  const stateF = getKeccakStateZeros();
+  const stateF = State.zeros();
 
   // for all i in {0..4} and j in {0..4}: F[i,j] = B[i,j] xor ((not B[i+1,j]) and B[i+2,j])
   for (let i = 0; i < KECCAK_DIM; i++) {
     for (let j = 0; j < KECCAK_DIM; j++) {
-      stateF[i][j] = Gadgets.xor(
+      stateF[i][j] = xor(
         stateB[i][j],
         Gadgets.and(
           // We can use unchecked NOT because the length of the input is constrained to be 64 bits thanks to the fact that it is the output of a previous Xor64
           Gadgets.not(stateB[(i + 1) % KECCAK_DIM][j], KECCAK_WORD, false),
           stateB[(i + 2) % KECCAK_DIM][j],
           KECCAK_WORD
-        ),
-        KECCAK_WORD
+        )
       );
     }
   }
@@ -333,7 +228,7 @@ function chi(state: Field[][]): Field[][] {
 function iota(state: Field[][], rc: bigint): Field[][] {
   const stateG = state;
 
-  stateG[0][0] = Gadgets.xor(stateG[0][0], Field.from(rc), KECCAK_WORD);
+  stateG[0][0] = xor(stateG[0][0], Field.from(rc));
 
   return stateG;
 }
@@ -350,8 +245,8 @@ function round(state: Field[][], rc: bigint): Field[][] {
 }
 
 // Keccak permutation function with a constant number of rounds
-function permutation(state: Field[][], rc: bigint[]): Field[][] {
-  return rc.reduce((acc, value) => round(acc, value), state);
+function permutation(state: Field[][], rcs: bigint[]): Field[][] {
+  return rcs.reduce((state, rc) => round(state, rc), state);
 }
 
 // KECCAK SPONGE
@@ -362,55 +257,45 @@ function absorb(
   capacity: number,
   rate: number,
   rc: bigint[]
-): Field[][] {
+): State {
   assert(
-    rate + capacity === KECCAK_STATE_LENGTH_BYTES,
-    `invalid rate or capacity (rate + capacity should be ${KECCAK_STATE_LENGTH_BYTES})`
+    rate + capacity === KECCAK_STATE_LENGTH_WORDS,
+    `invalid rate or capacity (rate + capacity should be ${KECCAK_STATE_LENGTH_WORDS})`
   );
   assert(
     paddedMessage.length % rate === 0,
     'invalid padded message length (should be multiple of rate)'
   );
 
-  let state = getKeccakStateZeros();
+  let state = State.zeros();
 
-  // array of capacity zero bytes
+  // array of capacity zero words
   const zeros = Array(capacity).fill(Field.from(0));
 
   for (let idx = 0; idx < paddedMessage.length; idx += rate) {
-    // split into blocks of rate bits
-    // for each block of rate bits in the padded message -> this is rate bytes
+    // split into blocks of rate words
     const block = paddedMessage.slice(idx, idx + rate);
-    // pad the block with 0s to up to KECCAK_STATE_LENGTH_BYTES bytes
+    // pad the block with 0s to up to KECCAK_STATE_LENGTH_WORDS words
     const paddedBlock = block.concat(zeros);
-    // convert the padded block byte array to a Keccak state
-    const blockState = getKeccakStateOfBytes(paddedBlock);
+    // convert the padded block to a Keccak state
+    const blockState = State.fromWords(paddedBlock);
     // xor the state with the padded block
-    const stateXor = keccakStateXor(state, blockState);
+    const stateXor = State.xor(state, blockState);
     // apply the permutation function to the xored state
-    const statePerm = permutation(stateXor, rc);
-    state = statePerm;
+    state = permutation(stateXor, rc);
   }
   return state;
 }
 
-// Squeeze state until it has a desired length in bits
-function squeeze(state: Field[][], length: number, rate: number): Field[] {
+// Squeeze state until it has a desired length in words
+function squeeze(state: State, length: number, rate: number): Field[] {
   // number of squeezes
   const squeezes = Math.floor(length / rate) + 1;
   assert(squeezes === 1, 'squeezes should be 1');
-  // multiple of rate that is larger than output_length, in bytes
-  const outputLength = squeezes * rate;
-  // array with sufficient space to store the output
-  const outputArray = Array(outputLength).fill(Field.from(0));
-  // first state to be squeezed
-  const bytestring = keccakStateToBytes(state);
-  const outputBytes = bytestring.slice(0, rate);
-  // copies a section of bytes in the bytestring into the output array
-  outputArray.splice(0, rate, ...outputBytes);
 
-  // Obtain the hash selecting the first bitlength bytes of the output array
-  const hashed = outputArray.slice(0, length);
+  // Obtain the hash selecting the first `length` words of the output array
+  const words = State.toWords(state);
+  const hashed = words.slice(0, length);
   return hashed;
 }
 
@@ -422,26 +307,14 @@ function sponge(
   rate: number
 ): Field[] {
   // check that the padded message is a multiple of rate
-  if (paddedMessage.length % rate !== 0) {
-    throw new Error('Invalid padded message length');
-  }
-
-  // load round constants
-  const rc = ROUND_CONSTANTS;
+  assert(paddedMessage.length % rate === 0, 'Invalid padded message length');
 
   // absorb
-  const state = absorb(paddedMessage, capacity, rate, rc);
+  const state = absorb(paddedMessage, capacity, rate, ROUND_CONSTANTS);
 
   // squeeze
   const hashed = squeeze(state, length, rate);
-
   return hashed;
-}
-
-// TODO(jackryanservia): Use lookup argument once issue is resolved
-// Checks in the circuit that a list of Fields are at most 8 bits each
-function checkBytes(inputs: Field[]): void {
-  inputs.map(rangeCheck8);
 }
 
 // Keccak hash function with input message passed as list of Field bytes.
@@ -450,8 +323,7 @@ function checkBytes(inputs: Field[]): void {
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
 // - then, {0} pad will take place to finish the 200 bytes of the state.
 function hash(
-  byteChecks: boolean = false,
-  message: Field[] = [],
+  message: Field[],
   length: number,
   capacity: number,
   nistVersion: boolean
@@ -464,41 +336,144 @@ function hash(
   );
   assert(length > 0, 'length must be positive');
 
-  // Check each Field input is 8 bits at most if it was not done before at creation time
-  byteChecks && checkBytes(message);
+  // convert capacity and length to word units
+  assert(capacity % BYTES_PER_WORD === 0, 'length must be a multiple of 8');
+  capacity /= BYTES_PER_WORD;
+  assert(length % BYTES_PER_WORD === 0, 'length must be a multiple of 8');
+  length /= BYTES_PER_WORD;
 
-  const rate = KECCAK_STATE_LENGTH_BYTES - capacity;
+  const rate = KECCAK_STATE_LENGTH_WORDS - capacity;
 
-  const padded = pad(message, rate, nistVersion);
+  // apply padding, convert to words, and hash
+  const paddedBytes = pad(message, rate * BYTES_PER_WORD, nistVersion);
+  const padded = bytesToWords(paddedBytes);
 
   const hash = sponge(padded, length, capacity, rate);
+  const hashBytes = wordsToBytes(hash);
 
-  // Always check each Field output is 8 bits at most because they are created here
-  checkBytes(hash);
-
-  return hash;
+  return hashBytes;
 }
 
-// Gadget for NIST SHA-3 function for output lengths 224/256/384/512.
-function nistSha3(
-  len: 224 | 256 | 384 | 512,
-  message: Field[],
-  byteChecks: boolean = false
-): Field[] {
-  return hash(byteChecks, message, len / 8, len / 4, true);
+// Gadget for NIST SHA-3 function for output lengths 256/384/512.
+function nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
+  return hash(message, len / 8, len / 4, true);
 }
 
-// Gadget for pre-NIST SHA-3 function for output lengths 224/256/384/512.
+// Gadget for pre-NIST SHA-3 function for output lengths 256/384/512.
 // Note that when calling with output length 256 this is equivalent to the ethereum function
-function preNist(
-  len: 224 | 256 | 384 | 512,
-  message: Field[],
-  byteChecks: boolean = false
-): Field[] {
-  return hash(byteChecks, message, len / 8, len / 4, false);
+function preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
+  return hash(message, len / 8, len / 4, false);
 }
 
 // Gadget for Keccak hash function for the parameters used in Ethereum.
-function ethereum(message: Field[] = [], byteChecks: boolean = false): Field[] {
-  return preNist(256, message, byteChecks);
+function ethereum(message: Field[]): Field[] {
+  return preNist(256, message);
+}
+
+// FUNCTIONS ON KECCAK STATE
+
+type State = Field[][];
+const State = {
+  /**
+   * Create a state of all zeros
+   */
+  zeros(): State {
+    return Array.from(Array(KECCAK_DIM), (_) =>
+      Array(KECCAK_DIM).fill(Field.from(0))
+    );
+  },
+
+  /**
+   * Flatten state to words
+   */
+  toWords(state: State): Field[] {
+    const words = Array<Field>(KECCAK_STATE_LENGTH_WORDS);
+    for (let j = 0; j < KECCAK_DIM; j++) {
+      for (let i = 0; i < KECCAK_DIM; i++) {
+        words[KECCAK_DIM * j + i] = state[i][j];
+      }
+    }
+    return words;
+  },
+
+  /**
+   * Compose words to state
+   */
+  fromWords(words: Field[]): State {
+    const state = State.zeros();
+    for (let j = 0; j < KECCAK_DIM; j++) {
+      for (let i = 0; i < KECCAK_DIM; i++) {
+        state[i][j] = words[KECCAK_DIM * j + i];
+      }
+    }
+    return state;
+  },
+
+  /**
+   * XOR two states together and return the result
+   */
+  xor(a: State, b: State): State {
+    assert(
+      a.length === KECCAK_DIM && a[0].length === KECCAK_DIM,
+      `invalid \`a\` dimensions (should be ${KECCAK_DIM})`
+    );
+    assert(
+      b.length === KECCAK_DIM && b[0].length === KECCAK_DIM,
+      `invalid \`b\` dimensions (should be ${KECCAK_DIM})`
+    );
+
+    // Calls xor() on each pair (i,j) of the states input1 and input2 and outputs the output Fields as a new matrix
+    return a.map((row, i) => row.map((x, j) => xor(x, b[i][j])));
+  },
+};
+
+// AUXILARY FUNCTIONS
+
+// Auxiliary functions to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
+
+function bytesToWord(wordBytes: Field[]): Field {
+  return wordBytes.reduce((acc, value, idx) => {
+    const shift = 1n << BigInt(8 * idx);
+    return acc.add(value.mul(shift));
+  }, Field.from(0));
+}
+
+function wordToBytes(word: Field): Field[] {
+  let bytes = Provable.witness(Provable.Array(Field, BYTES_PER_WORD), () => {
+    let w = word.toBigInt();
+    return Array.from({ length: BYTES_PER_WORD }, (_, k) =>
+      Field.from((w >> BigInt(8 * k)) & 0xffn)
+    );
+  });
+  // range-check
+  // TODO(jackryanservia): Use lookup argument once issue is resolved
+  bytes.forEach(rangeCheck8);
+
+  // check decomposition
+  bytesToWord(bytes).assertEquals(word);
+
+  return bytes;
+}
+
+function bytesToWords(bytes: Field[]): Field[] {
+  return chunk(bytes, BYTES_PER_WORD).map(bytesToWord);
+}
+
+function wordsToBytes(words: Field[]): Field[] {
+  return words.flatMap(wordToBytes);
+}
+
+function chunk<T>(array: T[], size: number): T[][] {
+  assert(array.length % size === 0, 'invalid input length');
+  return Array.from({ length: array.length / size }, (_, i) =>
+    array.slice(size * i, size * (i + 1))
+  );
+}
+
+// xor which avoids doing anything on 0 inputs
+// (but doesn't range-check the other input in that case)
+function xor(x: Field, y: Field): Field {
+  if (x.isConstant() && x.toBigInt() === 0n) return y;
+  if (y.isConstant() && y.toBigInt() === 0n) return x;
+  return Gadgets.xor(x, y, 64);
 }
