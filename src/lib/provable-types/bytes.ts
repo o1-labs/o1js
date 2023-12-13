@@ -50,6 +50,10 @@ class Bytes {
     return Uint8Array.from(this.bytes.map((x) => x.toNumber()));
   }
 
+  toFields() {
+    return this.bytes.map((x) => x.value);
+  }
+
   /**
    * Create {@link Bytes} from a string.
    *

@@ -202,6 +202,35 @@
       "hash": ""
     }
   },
+  "Hashes": {
+    "digest": "Hashes",
+    "methods": {
+      "SHA256": {
+        "rows": 14494,
+        "digest": "949539824d56622702d9ac048e8111e9"
+      },
+      "SHA384": {
+        "rows": 14541,
+        "digest": "93dedf5824cab797d48e7a98c53c6bf3"
+      },
+      "SHA512": {
+        "rows": 14588,
+        "digest": "3756008585b30a3951ed6455a7fbcdb0"
+      },
+      "Keccak256": {
+        "rows": 14493,
+        "digest": "1ab08bd64002a0dd0a82f74df445de05"
+      },
+      "Poseidon": {
+        "rows": 208,
+        "digest": "afa1f9920f1f657ab015c02f9b2f6c52"
+      }
+    },
+    "verificationKey": {
+      "data": "",
+      "hash": ""
+    }
+  },
   "ecdsa-only": {
     "digest": "2113edb508f10afee42dd48aec81ac7d06805d76225b0b97300501136486bb30",
     "methods": {

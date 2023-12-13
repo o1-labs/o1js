@@ -1,4 +1,4 @@
-import { Field, Group, Gadgets, Provable, Scalar, Hash, UInt8 } from 'o1js';
+import { Field, Group, Gadgets, Provable, Scalar, Hash, Bytes } from 'o1js';
 
 export { GroupCS, BitwiseCS, HashCS };
 
@@ -84,39 +84,27 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
   },
 });
 
-const HashCS = constraintSystem('Hashes', {
-  SHA224() {
-    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
-      Provable.witness(UInt8, () => UInt8.from(x))
-    );
-    Hash.SHA224.hash(xs);
-  },
+const Bytes32 = Bytes(32);
+const bytes32 = Bytes32.from([]);
 
+const HashCS = constraintSystem('Hashes', {
   SHA256() {
-    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
-      Provable.witness(UInt8, () => UInt8.from(x))
-    );
-    Hash.SHA256.hash(xs);
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.SHA3_256.hash(xs);
   },
 
   SHA384() {
-    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
-      Provable.witness(UInt8, () => UInt8.from(x))
-    );
-    Hash.SHA384.hash(xs);
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.SHA3_384.hash(xs);
   },
 
   SHA512() {
-    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
-      Provable.witness(UInt8, () => UInt8.from(x))
-    );
-    Hash.SHA512.hash(xs);
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.SHA3_512.hash(xs);
   },
 
   Keccak256() {
-    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
-      Provable.witness(UInt8, () => UInt8.from(x))
-    );
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
     Hash.Keccak256.hash(xs);
   },
 

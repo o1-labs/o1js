@@ -1,4 +1,4 @@
-import { Secp256k1, Ecdsa, keccakAndEcdsa, Message32, ecdsa } from './ecdsa.js';
+import { Secp256k1, Ecdsa, keccakAndEcdsa, ecdsa, Bytes32 } from './ecdsa.js';
 import assert from 'assert';
 
 // create an example ecdsa signature
@@ -6,7 +6,7 @@ import assert from 'assert';
 let privateKey = Secp256k1.Scalar.random();
 let publicKey = Secp256k1.generator.scale(privateKey);
 
-let message = Message32.from("what's up");
+let message = Bytes32.fromString("what's up");
 
 let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
