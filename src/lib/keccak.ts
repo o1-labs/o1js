@@ -8,7 +8,7 @@ export { Keccak };
 
 const Keccak = {
   /**
-   * Implementation of [NIST SHA-3](https://www.nist.gov/publications/sha-3-derived-functions-cshake-kmac-tuplehash-and-parallelhash) Hash Function.
+   * Implementation of [NIST SHA-3](https://csrc.nist.gov/pubs/fips/202/final) Hash Function.
    * Supports output lengths of 256, 384, or 512 bits.
    *
    * Applies the SHA-3 hash function to a list of byte-sized {@link Field} elements, flexible to handle varying output lengths (256, 384, 512 bits) as specified.
