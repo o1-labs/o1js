@@ -132,22 +132,19 @@ const theta = (state: Field[][]): Field[][] => {
 
   // XOR the elements of each row together
   // for all i in {0..4}: C[i] = A[i,0] xor A[i,1] xor A[i,2] xor A[i,3] xor A[i,4]
-  const stateC = stateA.map((row) =>
-    row.reduce((acc, value) => Gadgets.xor(acc, value, KECCAK_WORD))
-  );
+  const stateC = stateA.map((row) => row.reduce(xor));
 
   // for all i in {0..4}: D[i] = C[i-1] xor ROT(C[i+1], 1)
-  const stateD = Array.from({ length: KECCAK_DIM }, (_, x) =>
-    Gadgets.xor(
-      stateC[(x + KECCAK_DIM - 1) % KECCAK_DIM],
-      Gadgets.rotate(stateC[(x + 1) % KECCAK_DIM], 1, 'left'),
-      KECCAK_WORD
+  const stateD = Array.from({ length: KECCAK_DIM }, (_, i) =>
+    xor(
+      stateC[(i + KECCAK_DIM - 1) % KECCAK_DIM],
+      Gadgets.rotate(stateC[(i + 1) % KECCAK_DIM], 1, 'left')
     )
   );
 
   // for all i in {0..4} and j in {0..4}: E[i,j] = A[i,j] xor D[i]
   const stateE = stateA.map((row, index) =>
-    row.map((elem) => Gadgets.xor(elem, stateD[index], KECCAK_WORD))
+    row.map((elem) => xor(elem, stateD[index]))
   );
 
   return stateE;
@@ -182,7 +179,7 @@ function piRho(state: Field[][]): Field[][] {
   const stateE = state;
   const stateB = State.zeros();
 
-  // for all i in {0..4} and j in {0..4}: B[y,2x+3y] = ROT(E[i,j], r[i,j])
+  // for all i in {0..4} and j in {0..4}: B[j,2i+3j] = ROT(E[i,j], r[i,j])
   for (let i = 0; i < KECCAK_DIM; i++) {
     for (let j = 0; j < KECCAK_DIM; j++) {
       stateB[j][(2 * i + 3 * j) % KECCAK_DIM] = Gadgets.rotate(
@@ -211,15 +208,14 @@ function chi(state: Field[][]): Field[][] {
   // for all i in {0..4} and j in {0..4}: F[i,j] = B[i,j] xor ((not B[i+1,j]) and B[i+2,j])
   for (let i = 0; i < KECCAK_DIM; i++) {
     for (let j = 0; j < KECCAK_DIM; j++) {
-      stateF[i][j] = Gadgets.xor(
+      stateF[i][j] = xor(
         stateB[i][j],
         Gadgets.and(
           // We can use unchecked NOT because the length of the input is constrained to be 64 bits thanks to the fact that it is the output of a previous Xor64
           Gadgets.not(stateB[(i + 1) % KECCAK_DIM][j], KECCAK_WORD, false),
           stateB[(i + 2) % KECCAK_DIM][j],
           KECCAK_WORD
-        ),
-        KECCAK_WORD
+        )
       );
     }
   }
@@ -232,7 +228,7 @@ function chi(state: Field[][]): Field[][] {
 function iota(state: Field[][], rc: bigint): Field[][] {
   const stateG = state;
 
-  stateG[0][0] = Gadgets.xor(stateG[0][0], Field.from(rc), KECCAK_WORD);
+  stateG[0][0] = xor(stateG[0][0], Field.from(rc));
 
   return stateG;
 }
@@ -249,8 +245,8 @@ function round(state: Field[][], rc: bigint): Field[][] {
 }
 
 // Keccak permutation function with a constant number of rounds
-function permutation(state: Field[][], rc: bigint[]): Field[][] {
-  return rc.reduce((acc, value) => round(acc, value), state);
+function permutation(state: Field[][], rcs: bigint[]): Field[][] {
+  return rcs.reduce((state, rc) => round(state, rc), state);
 }
 
 // KECCAK SPONGE
@@ -273,12 +269,11 @@ function absorb(
 
   let state = State.zeros();
 
-  // array of capacity zero bytes
+  // array of capacity zero words
   const zeros = Array(capacity).fill(Field.from(0));
 
   for (let idx = 0; idx < paddedMessage.length; idx += rate) {
-    // split into blocks of rate bits
-    // for each block of rate bits in the padded message -> this is rate bytes
+    // split into blocks of rate words
     const block = paddedMessage.slice(idx, idx + rate);
     // pad the block with 0s to up to KECCAK_STATE_LENGTH_WORDS words
     const paddedBlock = block.concat(zeros);
@@ -298,10 +293,8 @@ function squeeze(state: State, length: number, rate: number): Field[] {
   const squeezes = Math.floor(length / rate) + 1;
   assert(squeezes === 1, 'squeezes should be 1');
 
-  // first state to be squeezed
-  const words = State.toWords(state);
-
   // Obtain the hash selecting the first `length` words of the output array
+  const words = State.toWords(state);
   const hashed = words.slice(0, length);
   return hashed;
 }
@@ -321,7 +314,6 @@ function sponge(
 
   // squeeze
   const hashed = squeeze(state, length, rate);
-
   return hashed;
 }
 
@@ -430,10 +422,8 @@ const State = {
       `invalid \`b\` dimensions (should be ${KECCAK_DIM})`
     );
 
-    // Calls Gadgets.xor on each pair (i,j) of the states input1 and input2 and outputs the output Fields as a new matrix
-    return a.map((row, i) =>
-      row.map((value, j) => Gadgets.xor(value, b[i][j], 64))
-    );
+    // Calls xor() on each pair (i,j) of the states input1 and input2 and outputs the output Fields as a new matrix
+    return a.map((row, i) => row.map((x, j) => xor(x, b[i][j])));
   },
 };
 
@@ -478,4 +468,12 @@ function chunk<T>(array: T[], size: number): T[][] {
   return Array.from({ length: array.length / size }, (_, i) =>
     array.slice(size * i, size * (i + 1))
   );
+}
+
+// xor which avoids doing anything on 0 inputs
+// (but doesn't range-check the other input in that case)
+function xor(x: Field, y: Field): Field {
+  if (x.isConstant() && x.toBigInt() === 0n) return y;
+  if (y.isConstant() && y.toBigInt() === 0n) return x;
+  return Gadgets.xor(x, y, 64);
 }
