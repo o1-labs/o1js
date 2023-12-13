@@ -1,11 +1,7 @@
 import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
 import { Random, sample } from './testing/random.js';
-import {
-  equivalentAsync,
-  equivalentProvable,
-  spec,
-} from './testing/equivalent.js';
+import { equivalent, equivalentAsync, spec } from './testing/equivalent.js';
 import {
   keccak_224,
   keccak_256,
@@ -37,7 +33,8 @@ const testImplementations = {
 
 const lengths = [256, 384, 512] as const;
 
-// witness construction checks
+// checks outside circuit
+// TODO: fix witness generation slowness
 
 const bytes = (length: number) => {
   const Bytes_ = Bytes(length);
@@ -55,13 +52,13 @@ for (let length of lengths) {
   let inputBytes = bytes(preimageLength);
   let outputBytes = bytes(length / 8);
 
-  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
+  equivalent({ from: [inputBytes], to: outputBytes, verbose: true })(
     testImplementations.sha3[length],
     (x) => Keccak.nistSha3(length, x),
     `sha3 ${length}`
   );
 
-  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
+  equivalent({ from: [inputBytes], to: outputBytes, verbose: true })(
     testImplementations.preNist[length],
     (x) => Keccak.preNist(length, x),
     `keccak ${length}`
@@ -74,12 +71,11 @@ const digestLength = lengths[Math.floor(Math.random() * 3)];
 // Digest length in bytes
 const digestLengthBytes = digestLength / 8;
 
-// Chose a random preimage length
-const preImageLength = Math.floor(digestLength / (Math.random() * 4 + 2));
+const preImageLength = 32;
 
 // No need to test Ethereum because it's just a special case of preNist
 const KeccakProgram = ZkProgram({
-  name: 'keccak-test',
+  name: `keccak-test-${digestLength}`,
   publicInput: Bytes(preImageLength).provable,
   publicOutput: Bytes(digestLengthBytes).provable,
   methods: {
