@@ -44,7 +44,7 @@ The compiled artifacts are stored under `src/bindings/compiled`, and are version
 If you wish to rebuild the OCaml and Rust artifacts, you must be able to build the Mina repo before building the bindings. See the [Mina Dev Readme](https://github.com/MinaProtocol/mina/blob/develop/README-dev.md) for more information. Once you have configured your environment to build Mina, you can build the bindings:
 
 ```sh
-npm run build:bindings
+npm run build:update-bindings
 ```
 
 This will build the OCaml and Rust artifacts, and copy them to the `src/bindings/compiled` directory.
@@ -82,9 +82,13 @@ These types are used by o1js to ensure that the constants used in the protocol a
 
 ### Branch Compatibility
 
-When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
+If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work-in-progress as a draft PR to raise visibility! When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
 
 #### How to Use the Branches
+
+**Default to `main` as the base branch**.
+
+The other base branches (`berkeley`, `develop`) are only used in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `berkeley` and `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
 
 | Repository | mina -> o1js -> o1js-bindings    |
 | ---------- | -------------------------------- |
@@ -97,8 +101,6 @@ When working with submodules and various interconnected parts of the stack, ensu
 - `berkeley`: The berkeley branch is maintained across all three repositories. This branch is used for features and updates specific to the Berkeley release of the project.
 
 - `develop`: The develop branch is also maintained across all three repositories. It is used for ongoing development, testing new features, and integration work.
-
-o1js is mostly used to write Mina Smart Contracts and must be compatible with the latest Berkeley Testnet, or soon Mainnet.
 
 ### Running Tests
 
@@ -127,6 +129,16 @@ npm run build:web
 npm run e2e:prepare-server
 npm run test:e2e
 npm run e2e:show-report
+```
+
+### Run the GitHub actions locally
+
+<!-- The test example should stay in sync with a real value set in .github/workflows/build-actions.yml -->
+
+You can execute the CI locally by using [act](https://github.com/nektos/act). First generate a GitHub token and use:
+
+```sh
+act -j Build-And-Test-Server --matrix test_type:"Simple integration tests" -s $GITHUB_TOKEN
 ```
 
 ### Releasing

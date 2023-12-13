@@ -1,5 +1,5 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
-import type { Field, FieldConst, FieldVar } from './lib/field.js';
+import type { Field, FieldConst, FieldVar, VarFieldVar } from './lib/field.js';
 import type { BoolVar, Bool } from './lib/bool.js';
 import type { ScalarConst } from './lib/scalar.js';
 import type {
@@ -33,6 +33,7 @@ export {
   Snarky,
   Test,
   JsonGate,
+  KimchiGateType,
   MlPublicKey,
   MlPublicKeyVar,
   FeatureFlags,
@@ -180,11 +181,11 @@ declare const Snarky: {
   exists(
     sizeInFields: number,
     compute: () => MlArray<FieldConst>
-  ): MlArray<FieldVar>;
+  ): MlArray<VarFieldVar>;
   /**
    * witness a single field element variable
    */
-  existsVar(compute: () => FieldConst): FieldVar;
+  existsVar(compute: () => FieldConst): VarFieldVar;
 
   /**
    * APIs that have to do with running provable code
@@ -280,7 +281,7 @@ declare const Snarky: {
      * returns a new witness from an AST
      * (implemented with toConstantAndTerms)
      */
-    seal(x: FieldVar): FieldVar;
+    seal(x: FieldVar): VarFieldVar;
     /**
      * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
      * returns `(c, [(c0, i0), ..., (cn, in)])`;

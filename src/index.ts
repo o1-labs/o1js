@@ -1,6 +1,14 @@
 export type { ProvablePure } from './snarky.js';
 export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
+export {
+  createForeignField,
+  ForeignField,
+  AlmostForeignField,
+  CanonicalForeignField,
+} from './lib/foreign-field.js';
+export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
+export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export type {
@@ -8,6 +16,7 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
+  Unconstrained,
 } from './lib/circuit_value.js';
 export {
   CircuitValue,
@@ -31,7 +40,6 @@ export {
   method,
   declareMethods,
   Account,
-  VerificationKey,
   Reducer,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
@@ -44,6 +52,7 @@ export {
   Empty,
   Undefined,
   Void,
+  VerificationKey,
 } from './lib/proof_system.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
@@ -79,6 +88,8 @@ export { Nullifier } from './lib/nullifier.js';
 
 import { ExperimentalZkProgram, ZkProgram } from './lib/proof_system.js';
 export { ZkProgram };
+
+export { Crypto } from './lib/crypto.js';
 
 // experimental APIs
 import { Callback } from './lib/zkapp.js';

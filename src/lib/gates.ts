@@ -1,9 +1,31 @@
-import { Snarky } from '../snarky.js';
+import { KimchiGateType, Snarky } from '../snarky.js';
 import { FieldConst, type Field } from './field.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
-export { rangeCheck0, rangeCheck1, xor, zero, rotate, generic };
+export {
+  Gates,
+  rangeCheck0,
+  rangeCheck1,
+  xor,
+  zero,
+  rotate,
+  generic,
+  foreignFieldAdd,
+  foreignFieldMul,
+};
+
+const Gates = {
+  rangeCheck0,
+  rangeCheck1,
+  xor,
+  zero,
+  rotate,
+  generic,
+  foreignFieldAdd,
+  foreignFieldMul,
+  raw,
+};
 
 function rangeCheck0(
   x: Field,
@@ -129,4 +151,92 @@ function generic(
 
 function zero(a: Field, b: Field, c: Field) {
   Snarky.gates.zero(a.value, b.value, c.value);
+}
+
+/**
+ * bigint addition which allows for field overflow and carry
+ *
+ * - `l01 + sign*r01 - overflow*f01 - carry*2^2l === r01`
+ * - `l2  + sign*r2  - overflow*f2  + carry      === r2`
+ * - overflow is 0 or sign
+ * - carry is 0, 1 or -1
+ *
+ * assumes that the result is placed in the first 3 cells of the next row!
+ */
+function foreignFieldAdd({
+  left,
+  right,
+  overflow,
+  carry,
+  modulus,
+  sign,
+}: {
+  left: TupleN<Field, 3>;
+  right: TupleN<Field, 3>;
+  overflow: Field;
+  carry: Field;
+  modulus: TupleN<bigint, 3>;
+  sign: 1n | -1n;
+}) {
+  Snarky.gates.foreignFieldAdd(
+    MlTuple.mapTo(left, (x) => x.value),
+    MlTuple.mapTo(right, (x) => x.value),
+    overflow.value,
+    carry.value,
+    MlTuple.mapTo(modulus, FieldConst.fromBigint),
+    FieldConst.fromBigint(sign)
+  );
+}
+
+/**
+ * Foreign field multiplication
+ */
+function foreignFieldMul(inputs: {
+  left: TupleN<Field, 3>;
+  right: TupleN<Field, 3>;
+  remainder: TupleN<Field, 2>;
+  quotient: TupleN<Field, 3>;
+  quotientHiBound: Field;
+  product1: TupleN<Field, 3>;
+  carry0: Field;
+  carry1p: TupleN<Field, 7>;
+  carry1c: TupleN<Field, 4>;
+  foreignFieldModulus2: bigint;
+  negForeignFieldModulus: TupleN<bigint, 3>;
+}) {
+  let {
+    left,
+    right,
+    remainder,
+    quotient,
+    quotientHiBound,
+    product1,
+    carry0,
+    carry1p,
+    carry1c,
+    foreignFieldModulus2,
+    negForeignFieldModulus,
+  } = inputs;
+
+  Snarky.gates.foreignFieldMul(
+    MlTuple.mapTo(left, (x) => x.value),
+    MlTuple.mapTo(right, (x) => x.value),
+    MlTuple.mapTo(remainder, (x) => x.value),
+    MlTuple.mapTo(quotient, (x) => x.value),
+    quotientHiBound.value,
+    MlTuple.mapTo(product1, (x) => x.value),
+    carry0.value,
+    MlTuple.mapTo(carry1p, (x) => x.value),
+    MlTuple.mapTo(carry1c, (x) => x.value),
+    FieldConst.fromBigint(foreignFieldModulus2),
+    MlTuple.mapTo(negForeignFieldModulus, FieldConst.fromBigint)
+  );
+}
+
+function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
+  Snarky.gates.raw(
+    kind,
+    MlArray.to(values.map((x) => x.value)),
+    MlArray.to(coefficients.map(FieldConst.fromBigint))
+  );
 }

@@ -11,15 +11,18 @@ export { Field };
 
 // internal API
 export {
-  ConstantField,
   FieldType,
   FieldVar,
   FieldConst,
+  ConstantField,
+  VarField,
+  VarFieldVar,
   isField,
   withMessage,
   readVarMessage,
   toConstantField,
   toFp,
+  checkBitLength,
 };
 
 type FieldConst = [0, bigint];
@@ -28,7 +31,7 @@ function constToBigint(x: FieldConst): Fp {
   return x[1];
 }
 function constFromBigint(x: Fp): FieldConst {
-  return [0, x];
+  return [0, Fp(x)];
 }
 
 const FieldConst = {
@@ -39,7 +42,7 @@ const FieldConst = {
   },
   [0]: constFromBigint(0n),
   [1]: constFromBigint(1n),
-  [-1]: constFromBigint(Fp(-1n)),
+  [-1]: constFromBigint(-1n),
 };
 
 enum FieldType {
@@ -69,6 +72,7 @@ type FieldVar =
   | [FieldType.Scale, FieldConst, FieldVar];
 
 type ConstantFieldVar = [FieldType.Constant, FieldConst];
+type VarFieldVar = [FieldType.Var, number];
 
 const FieldVar = {
   constant(x: bigint | FieldConst): ConstantFieldVar {
@@ -78,13 +82,25 @@ const FieldVar = {
   isConstant(x: FieldVar): x is ConstantFieldVar {
     return x[0] === FieldType.Constant;
   },
-  // TODO: handle (special) constants
+  isVar(x: FieldVar): x is VarFieldVar {
+    return x[0] === FieldType.Var;
+  },
   add(x: FieldVar, y: FieldVar): FieldVar {
+    if (FieldVar.isConstant(x) && x[1][1] === 0n) return y;
+    if (FieldVar.isConstant(y) && y[1][1] === 0n) return x;
+    if (FieldVar.isConstant(x) && FieldVar.isConstant(y)) {
+      return FieldVar.constant(Fp.add(x[1][1], y[1][1]));
+    }
     return [FieldType.Add, x, y];
   },
-  // TODO: handle (special) constants
-  scale(c: FieldConst, x: FieldVar): FieldVar {
-    return [FieldType.Scale, c, x];
+  scale(c: bigint | FieldConst, x: FieldVar): FieldVar {
+    let c0 = typeof c === 'bigint' ? FieldConst.fromBigint(c) : c;
+    if (c0[1] === 0n) return FieldVar.constant(0n);
+    if (c0[1] === 1n) return x;
+    if (FieldVar.isConstant(x)) {
+      return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
+    }
+    return [FieldType.Scale, c0, x];
   },
   [0]: [FieldType.Constant, FieldConst[0]] satisfies ConstantFieldVar,
   [1]: [FieldType.Constant, FieldConst[1]] satisfies ConstantFieldVar,
@@ -92,6 +108,7 @@ const FieldVar = {
 };
 
 type ConstantField = Field & { value: ConstantFieldVar };
+type VarField = Field & { value: VarFieldVar };
 
 /**
  * A {@link Field} is an element of a prime order [finite field](https://en.wikipedia.org/wiki/Finite_field).
@@ -922,15 +939,6 @@ class Field {
     }
   }
 
-  static #checkBitLength(name: string, length: number) {
-    if (length > Fp.sizeInBits)
-      throw Error(
-        `${name}: bit length must be ${Fp.sizeInBits} or less, got ${length}`
-      );
-    if (length <= 0)
-      throw Error(`${name}: bit length must be positive, got ${length}`);
-  }
-
   /**
    * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link Field} element.
    *
@@ -945,7 +953,7 @@ class Field {
    * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
   toBits(length?: number) {
-    if (length !== undefined) Field.#checkBitLength('Field.toBits()', length);
+    if (length !== undefined) checkBitLength('Field.toBits()', length);
     if (this.isConstant()) {
       let bits = Fp.toBits(this.toBigInt());
       if (length !== undefined) {
@@ -972,7 +980,7 @@ class Field {
    */
   static fromBits(bits: (Bool | boolean)[]) {
     let length = bits.length;
-    Field.#checkBitLength('Field.fromBits()', length);
+    checkBitLength('Field.fromBits()', length);
     if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
       let bits_ = bits
         .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
@@ -1000,7 +1008,7 @@ class Field {
    * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
    */
   rangeCheckHelper(length: number) {
-    Field.#checkBitLength('Field.rangeCheckHelper()', length);
+    checkBitLength('Field.rangeCheckHelper()', length);
     if (length % 16 !== 0)
       throw Error(
         'Field.rangeCheckHelper(): `length` has to be a multiple of 16.'
@@ -1030,7 +1038,7 @@ class Field {
   seal() {
     if (this.isConstant()) return this;
     let x = Snarky.field.seal(this.value);
-    return new Field(x);
+    return VarField(x);
   }
 
   /**
@@ -1139,6 +1147,10 @@ class Field {
 
   // ProvableExtended<Field>
 
+  static empty() {
+    return new Field(0n);
+  }
+
   /**
    * Serialize the {@link Field} to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in unreadable output.
    *
@@ -1244,26 +1256,14 @@ class Field {
   }
 
   /**
-   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
-   *
-   * As all {@link Field} elements have 32 bytes, this function returns 32.
-   *
-   * @return The size of a {@link Field} element - 32.
+   * The size of a {@link Field} element in bytes - 32.
    */
-  static sizeInBytes() {
-    return Fp.sizeInBytes();
-  }
+  static sizeInBytes = Fp.sizeInBytes;
 
   /**
-   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
-   *
-   * As all {@link Field} elements have 255 bits, this function returns 255.
-   *
-   * @return The size of a {@link Field} element in bits - 255.
+   * The size of a {@link Field} element in bits - 255.
    */
-  static sizeInBits() {
-    return Fp.sizeInBits;
-  }
+  static sizeInBits = Fp.sizeInBits;
 }
 
 const FieldBinable = defineBinable({
@@ -1305,6 +1305,19 @@ function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
+}
+
+function checkBitLength(
+  name: string,
+  length: number,
+  maxLength = Fp.sizeInBits
+) {
+  if (length > maxLength)
+    throw Error(
+      `${name}: bit length must be ${maxLength} or less, got ${length}`
+    );
+  if (length < 0)
+    throw Error(`${name}: bit length must be non-negative, got ${length}`);
 }
 
 function toConstantField(
@@ -1350,4 +1363,8 @@ To inspect values for debugging, use Provable.log(${varName}). For more advanced
 there is \`Provable.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
 Warning: whatever happens inside asProver() will not be part of the zk proof.
 `;
+}
+
+function VarField(x: VarFieldVar): VarField {
+  return new Field(x) as VarField;
 }

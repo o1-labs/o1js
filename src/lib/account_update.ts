@@ -445,7 +445,7 @@ const Body = {
     tokenId?: Field,
     mayUseToken?: MayUseToken
   ): Body {
-    let { body } = Types.AccountUpdate.emptyValue();
+    let { body } = Types.AccountUpdate.empty();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
@@ -463,7 +463,7 @@ const Body = {
   },
 
   dummy(): Body {
-    return Types.AccountUpdate.emptyValue().body;
+    return Types.AccountUpdate.empty().body;
   },
 };
 
@@ -1277,6 +1277,9 @@ class AccountUpdate implements Types.AccountUpdate {
     return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
   static toInput = Types.AccountUpdate.toInput;
+  static empty() {
+    return AccountUpdate.dummy();
+  }
   static check = Types.AccountUpdate.check;
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
     let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);

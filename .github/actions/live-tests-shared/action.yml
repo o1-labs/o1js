@@ -14,7 +14,7 @@ runs:
         max-attempts: 60
         polling-interval-ms: 10000
     - name: Setup Node
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
     - name: Build o1js and execute tests
@@ -24,7 +24,7 @@ runs:
       run: |
         git submodule update --init --recursive
         npm ci
-        npm run build:node
+        npm run build
         touch profiling.md
         sh run-ci-tests.sh
         cat profiling.md >> $GITHUB_STEP_SUMMARY

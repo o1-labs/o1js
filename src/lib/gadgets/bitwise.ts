@@ -1,13 +1,14 @@
 import { Provable } from '../provable.js';
 import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
-import * as Gates from '../gates.js';
+import { Gates } from '../gates.js';
 import {
   MAX_BITS,
   assert,
   witnessSlice,
   witnessNextValue,
   divideWithRemainder,
+  toVar,
 } from './common.js';
 import { rangeCheck64 } from './range-check.js';
 
@@ -19,8 +20,8 @@ function not(a: Field, length: number, checked: boolean = false) {
 
   // Check that length does not exceed maximum field size in bits
   assert(
-    length < Field.sizeInBits(),
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+    length < Field.sizeInBits,
+    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
   );
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
@@ -37,18 +38,12 @@ function not(a: Field, length: number, checked: boolean = false) {
   }
 
   // create a bitmask with all ones
-  let allOnesF = new Field(2n ** BigInt(length) - 1n);
-
-  let allOnes = Provable.witness(Field, () => {
-    return allOnesF;
-  });
-
-  allOnesF.assertEquals(allOnes);
+  let allOnes = new Field(2n ** BigInt(length) - 1n);
 
   if (checked) {
     return xor(a, allOnes, length);
   } else {
-    return allOnes.sub(a);
+    return allOnes.sub(a).seal();
   }
 }
 
@@ -161,8 +156,8 @@ function and(a: Field, b: Field, length: number) {
 
   // check that length does not exceed maximum field size in bits
   assert(
-    length <= Field.sizeInBits(),
-    `Length ${length} exceeds maximum of ${Field.sizeInBits()} bits.`
+    length <= Field.sizeInBits,
+    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
   );
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
@@ -217,7 +212,7 @@ function rotate(
       field.toBigInt() < 2n ** BigInt(MAX_BITS),
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
-    return new Field(Fp.rot(field.toBigInt(), bits, direction));
+    return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction));
   }
   const [rotated] = rot(field, bits, direction);
   return rotated;
@@ -252,6 +247,10 @@ function rot(
     }
   );
 
+  // flush zero var to prevent broken gate chain (zero is used in rangeCheck64)
+  // TODO this is an abstraction leak, but not clear to me how to improve
+  toVar(0n);
+
   // Compute current row
   Gates.rotate(
     field,
@@ -277,8 +276,10 @@ function rot(
   );
   // Compute next row
   rangeCheck64(shifted);
-  // Compute following row
-  rangeCheck64(excess);
+  // note: range-checking `shifted` and `field` is enough.
+  // * excess < 2^rot follows from the bound check and the rotation equation in the gate
+  // * rotated < 2^64 follows from rotated = excess + shifted (because shifted has to be a multiple of 2^rot)
+  // for a proof, see https://github.com/o1-labs/o1js/pull/1201
   return [rotated, excess, shifted];
 }
 

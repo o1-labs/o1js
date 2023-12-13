@@ -18,6 +18,8 @@ import {
   FlexibleProvablePure,
   InferProvable,
   ProvablePureExtended,
+  Struct,
+  provable,
   provablePure,
   toConstant,
 } from './circuit_value.js';
@@ -25,7 +27,7 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlResult, MlPair, MlUnit } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
 import { Cache, readCache, writeCache } from './proof-system/cache.js';
@@ -47,6 +49,7 @@ export {
   Empty,
   Undefined,
   Void,
+  VerificationKey,
 };
 
 // internal API
@@ -187,7 +190,7 @@ class Proof<Input, Output> {
 
 async function verify(
   proof: Proof<any, any> | JsonProof,
-  verificationKey: string
+  verificationKey: string | VerificationKey
 ) {
   let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement<FieldConst>;
@@ -212,10 +215,12 @@ async function verify(
     let output = toFieldConsts(type.output, proof.publicOutput);
     statement = MlPair(input, output);
   }
+  let vk =
+    typeof verificationKey === 'string'
+      ? verificationKey
+      : verificationKey.data;
   return prettifyStacktracePromise(
-    withThreadPool(() =>
-      Pickles.verify(statement, picklesProof, verificationKey)
-    )
+    withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
 }
 
@@ -260,7 +265,9 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: { cache: Cache }) => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+    verificationKey: { data: string; hash: Field };
+  }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -268,9 +275,25 @@ function ZkProgram<
     >
   ) => Promise<boolean>;
   digest: () => string;
-  analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
+  analyzeMethods: () => {
+    [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+  };
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
+  privateInputTypes: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['privateInputs'];
+  };
+  rawMethods: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['method'];
+  };
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -279,8 +302,8 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = config.publicInput! ?? Undefined;
-  let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
+  let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
+  let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
 
   let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
@@ -294,17 +317,22 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
-  let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
-  let methodIntfs = keys.map((key) =>
+  let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
   );
-  let methodFunctions = keys.map((key) => methods[key].method);
+  let methodFunctions = methodKeys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
   function analyzeMethods() {
-    return methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
-    );
+    return Object.fromEntries(
+      methodIntfs.map((methodEntry, i) => [
+        methodEntry.methodName,
+        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]),
+      ])
+    ) as any as {
+      [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+    };
   }
 
   let compileOutput:
@@ -317,8 +345,13 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile({ cache = Cache.FileSystemDefault } = {}) {
-    let methodsMeta = analyzeMethods();
+  async function compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
+    let methodsMeta = methodIntfs.map((methodEntry, i) =>
+      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    );
     let gates = methodsMeta.map((m) => m.gates);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
@@ -328,10 +361,11 @@ function ZkProgram<
       gates,
       proofSystemTag: selfTag,
       cache,
+      forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
-    return { verificationKey: verificationKey.data };
+    return { verificationKey };
   }
 
   function toProver<K extends keyof Types & string>(
@@ -387,7 +421,7 @@ function ZkProgram<
     }
     return [key, prove];
   }
-  let provers = Object.fromEntries(keys.map(toProver)) as {
+  let provers = Object.fromEntries(methodKeys.map(toProver)) as {
     [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
   };
 
@@ -420,17 +454,33 @@ function ZkProgram<
       compile,
       verify,
       digest,
+      analyzeMethods,
       publicInputType: publicInputType as ProvableOrUndefined<
         Get<StatementType, 'publicInput'>
       >,
       publicOutputType: publicOutputType as ProvableOrVoid<
         Get<StatementType, 'publicOutput'>
       >,
-      analyzeMethods,
+      privateInputTypes: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].privateInputs])
+      ) as any,
+      rawMethods: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].method])
+      ) as any,
     },
     provers
   );
 }
+
+type ZkProgram<
+  S extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  T extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+> = ReturnType<typeof ZkProgram<S, T>>;
 
 let i = 0;
 
@@ -438,6 +488,13 @@ class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
 > {}
+
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
 
 function sortMethodArguments(
   programName: string,
@@ -467,6 +524,9 @@ function sortMethodArguments(
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
+    } else if (isAsFields((privateInput as any)?.provable)) {
+      allArgs.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push((privateInput as any).provable);
     } else if (isGeneric(privateInput)) {
       allArgs.push({ type: 'generic', index: genericArgs.length });
       genericArgs.push(privateInput);
@@ -564,6 +624,7 @@ async function compileProgram({
   gates,
   proofSystemTag,
   cache,
+  forceRecompile,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -573,6 +634,7 @@ async function compileProgram({
   gates: Gate[][];
   proofSystemTag: { name: string };
   cache: Cache;
+  forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -591,6 +653,7 @@ async function compileProgram({
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
+      if (forceRecompile) return MlResult.unitError();
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       let result = readCache(cache, header, (bytes) =>
         decodeProverKey(mlHeader, bytes)
@@ -915,6 +978,7 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
+ExperimentalZkProgram.Proof = ZkProgram.Proof;
 
 function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   return withThreadPool(

@@ -122,7 +122,7 @@ for (let i = 0; i < 10; i++) {
         [0xffff_ffff_ffff_ffffn, 64],
       ],
     },
-    AccountUpdate.toInput(AccountUpdate.emptyValue()),
+    AccountUpdate.toInput(AccountUpdate.empty()),
   ];
   for (let msg of messages) {
     checkCanVerify(msg, key, publicKey);

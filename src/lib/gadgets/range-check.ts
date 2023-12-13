@@ -1,8 +1,9 @@
 import { Field } from '../field.js';
-import * as Gates from '../gates.js';
-import { bitSlice, exists } from './common.js';
+import { Gates } from '../gates.js';
+import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 
-export { rangeCheck64, multiRangeCheck, compactMultiRangeCheck, L };
+export { rangeCheck64, rangeCheck8, multiRangeCheck, compactMultiRangeCheck };
+export { l, l2, l3, lMask, l2Mask };
 
 /**
  * Asserts that x is in the range [0, 2^64)
@@ -50,24 +51,29 @@ function rangeCheck64(x: Field) {
 }
 
 // default bigint limb size
-const L = 88n;
-const twoL = 2n * L;
-const lMask = (1n << L) - 1n;
+const l = 88n;
+const l2 = 2n * l;
+const l3 = 3n * l;
+const lMask = (1n << l) - 1n;
+const l2Mask = (1n << l2) - 1n;
 
 /**
  * Asserts that x, y, z \in [0, 2^88)
  */
 function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
   if (x.isConstant() && y.isConstant() && z.isConstant()) {
-    if (x.toBigInt() >> L || y.toBigInt() >> L || z.toBigInt() >> L) {
-      throw Error(`Expected fields to fit in ${L} bits, got ${x}, ${y}, ${z}`);
+    if (x.toBigInt() >> l || y.toBigInt() >> l || z.toBigInt() >> l) {
+      throw Error(`Expected fields to fit in ${l} bits, got ${x}, ${y}, ${z}`);
     }
     return;
   }
+  // ensure we are using pure variables
+  [x, y, z] = toVars([x, y, z]);
+  let zero = toVar(0n);
 
   let [x64, x76] = rangeCheck0Helper(x);
   let [y64, y76] = rangeCheck0Helper(y);
-  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: new Field(0) });
+  rangeCheck1Helper({ x64, x76, y64, y76, z, yz: zero });
 }
 
 /**
@@ -80,14 +86,16 @@ function multiRangeCheck([x, y, z]: [Field, Field, Field]) {
 function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
   // constant case
   if (xy.isConstant() && z.isConstant()) {
-    if (xy.toBigInt() >> twoL || z.toBigInt() >> L) {
+    if (xy.toBigInt() >> l2 || z.toBigInt() >> l) {
       throw Error(
-        `Expected fields to fit in ${twoL} and ${L} bits respectively, got ${xy}, ${z}`
+        `Expected fields to fit in ${l2} and ${l} bits respectively, got ${xy}, ${z}`
       );
     }
     let [x, y] = splitCompactLimb(xy.toBigInt());
     return [new Field(x), new Field(y), z];
   }
+  // ensure we are using pure variables
+  [xy, z] = toVars([xy, z]);
 
   let [x, y] = exists(2, () => splitCompactLimb(xy.toBigInt()));
 
@@ -99,7 +107,7 @@ function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
 }
 
 function splitCompactLimb(x01: bigint): [bigint, bigint] {
-  return [x01 & lMask, x01 >> L];
+  return [x01 & lMask, x01 >> l];
 }
 
 function rangeCheck0Helper(x: Field, isCompact = false): [Field, Field] {
@@ -198,4 +206,20 @@ function rangeCheck1Helper(inputs: {
     [z86, z74, z62, z50, z38, z36, z34, z32, z30, z28, z26, z24, z22],
     [z20, z18, z16, x76, x64, y76, y64, z14, z12, z10, z8, z6, z4, z2, z0]
   );
+}
+
+function rangeCheck8(x: Field) {
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << 8n,
+      `rangeCheck8: expected field to fit in 8 bits, got ${x}`
+    );
+    return;
+  }
+
+  // check that x fits in 16 bits
+  x.rangeCheckHelper(16).assertEquals(x);
+  // check that 2^8 x fits in 16 bits
+  let x256 = x.mul(1 << 8).seal();
+  x256.rangeCheckHelper(16).assertEquals(x256);
 }
