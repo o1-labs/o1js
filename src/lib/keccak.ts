@@ -11,7 +11,7 @@ const Keccak = {
    * Implementation of [NIST SHA-3](https://csrc.nist.gov/pubs/fips/202/final) Hash Function.
    * Supports output lengths of 256, 384, or 512 bits.
    *
-   * Applies the SHA-3 hash function to a list of byte-sized {@link Field} elements, flexible to handle varying output lengths (256, 384, 512 bits) as specified.
+   * Applies the SHA-3 hash function to a list of big-endian byte-sized {@link Field} elements, flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
    * The function accepts a list of byte-sized {@link Field} elements as its input. However, the input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
    *
