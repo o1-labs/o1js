@@ -65,9 +65,7 @@ const Bool = pseudoClass(
       checkBool(x);
       return x;
     },
-    sizeInBytes() {
-      return 1;
-    },
+    sizeInBytes: 1,
     fromField(x: Field) {
       checkBool(x);
       return x as 0n | 1n;
@@ -113,7 +111,7 @@ const Sign = pseudoClass(
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(checkSign),
     ...BinableBigint<Sign>(1, checkSign),
-    emptyValue() {
+    empty() {
       return 1n;
     },
     toInput(x: Sign): HashInput {

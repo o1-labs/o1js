@@ -15,7 +15,7 @@ import {
   Experimental,
   Int64,
   TokenId,
-} from 'snarkyjs';
+} from 'o1js';
 
 const tokenSymbol = 'TOKEN';
 

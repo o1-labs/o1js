@@ -1,9 +1,10 @@
 import 'reflect-metadata';
-import { ProvablePure } from '../snarky.js';
+import { ProvablePure, Snarky } from '../snarky.js';
 import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,
   provablePure,
+  provableTuple,
   HashInput,
   NonMethods,
 } from '../bindings/lib/provable-snarky.js';
@@ -14,6 +15,9 @@ import type {
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
 import { Provable } from './provable.js';
+import { assert } from './errors.js';
+import { inCheckedComputation } from './provable-context.js';
+import { Proof } from './proof_system.js';
 
 // external API
 export {
@@ -32,21 +36,23 @@ export {
 
 // internal API
 export {
+  provableTuple,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
   toConstant,
-  isConstant,
   InferProvable,
   HashInput,
   InferJson,
   InferredProvable,
+  Unconstrained,
 };
 
 type ProvableExtension<T, TJson = any> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
   fromJSON: (x: TJson) => T;
+  empty: () => T;
 };
 
 type ProvableExtended<T, TJson = any> = Provable<T> &
@@ -244,6 +250,15 @@ abstract class CircuitValue {
     }
     return Object.assign(Object.create(this.prototype), props);
   }
+
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
+    const fields: [string, any][] = (this as any).prototype._fields ?? [];
+    let props: any = {};
+    fields.forEach(([key, propType]) => {
+      props[key] = propType.empty();
+    });
+    return Object.assign(Object.create(this.prototype), props);
+  }
 }
 
 function prop(this: any, target: any, key: string) {
@@ -287,7 +302,7 @@ function matrixProp<T>(
 }
 
 /**
- * `Struct` lets you declare composite types for use in snarkyjs circuits.
+ * `Struct` lets you declare composite types for use in o1js circuits.
  *
  * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
  * or as event / action types.
@@ -337,7 +352,7 @@ function matrixProp<T>(
  * ```
  *
  * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
- * This, for example, allows you to re-use the same type outside snarkyjs methods, where you might want to store additional metadata.
+ * This, for example, allows you to re-use the same type outside o1js methods, where you might want to store additional metadata.
  *
  * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
  * Here's how we could add the voter's name (a string) as auxiliary data:
@@ -362,8 +377,7 @@ function Struct<
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
-  type: A,
-  options: { customObjectKeys?: string[] } = {}
+  type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
     ? ProvablePure<T>
     : Provable<T>) & {
@@ -373,9 +387,10 @@ function Struct<
     };
     toJSON: (x: T) => J;
     fromJSON: (x: J) => T;
+    empty: () => T;
   } {
   class Struct_ {
-    static type = provable<A>(type, options);
+    static type = provable<A>(type);
     static _isStruct: true;
 
     constructor(value: T) {
@@ -431,6 +446,15 @@ function Struct<
       return Object.assign(struct, value);
     }
     /**
+     * Create an instance of this struct filled with default values
+     * @returns an empty instance of this struct
+     */
+    static empty(): T {
+      let value = this.type.empty();
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
+    }
+    /**
      * This method is for internal use, you will probably not need it.
      * Method to make assertions which should be always made whenever a struct of this type is created in a proof.
      * @param value
@@ -451,6 +475,93 @@ function Struct<
     }
   }
   return Struct_ as any;
+}
+
+/**
+ * Container which holds an unconstrained value. This can be used to pass values
+ * between the out-of-circuit blocks in provable code.
+ *
+ * Invariants:
+ * - An `Unconstrained`'s value can only be accessed in auxiliary contexts.
+ * - An `Unconstrained` can be empty when compiling, but never empty when running as the prover.
+ *   (there is no way to create an empty `Unconstrained` in the prover)
+ *
+ * @example
+ * ```ts
+ * let x = Unconstrained.from(0n);
+ *
+ * class MyContract extends SmartContract {
+ *   `@method` myMethod(x: Unconstrained<bigint>) {
+ *
+ *     Provable.witness(Field, () => {
+ *       // we can access and modify `x` here
+ *       let newValue = x.get() + otherField.toBigInt();
+ *       x.set(newValue);
+ *
+ *       // ...
+ *     });
+ *
+ *     // throws an error!
+ *     x.get();
+ *   }
+ * ```
+ */
+class Unconstrained<T> {
+  private option:
+    | { isSome: true; value: T }
+    | { isSome: false; value: undefined };
+
+  private constructor(isSome: boolean, value?: T) {
+    this.option = { isSome, value: value as any };
+  }
+
+  /**
+   * Read an unconstrained value.
+   *
+   * Note: Can only be called outside provable code.
+   */
+  get(): T {
+    if (inCheckedComputation() && !Snarky.run.inProverBlock())
+      throw Error(`You cannot use Unconstrained.get() in provable code.
+
+The only place where you can read unconstrained values is in Provable.witness()
+and Provable.asProver() blocks, which execute outside the proof.
+`);
+    assert(this.option.isSome, 'Empty `Unconstrained`'); // never triggered
+    return this.option.value;
+  }
+
+  /**
+   * Modify the unconstrained value.
+   */
+  set(value: T) {
+    this.option = { isSome: true, value };
+  }
+
+  /**
+   * Create an `Unconstrained` with the given `value`.
+   */
+  static from<T>(value: T) {
+    return new Unconstrained(true, value);
+  }
+
+  /**
+   * Create an `Unconstrained` from a witness computation.
+   */
+  static witness<T>(compute: () => T) {
+    return Provable.witness(
+      Unconstrained.provable,
+      () => new Unconstrained(true, compute())
+    );
+  }
+
+  static provable: Provable<Unconstrained<any>> = {
+    sizeInFields: () => 0,
+    toFields: () => [],
+    toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
+    fromFields: (_, [t]) => t,
+    check: () => {},
+  };
 }
 
 let primitives = new Set([Field, Bool, Scalar, Group]);
@@ -486,8 +597,11 @@ function cloneCircuitValue<T>(obj: T): T {
     ) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-  // snarkyjs primitives aren't cloned
+  // o1js primitives and proofs aren't cloned
   if (isPrimitive(obj)) {
+    return obj;
+  }
+  if (obj instanceof Proof) {
     return obj;
   }
 
@@ -543,7 +657,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
     );
   }
 
-  // the two checks below cover snarkyjs primitives and CircuitValues
+  // the two checks below cover o1js primitives and CircuitValues
   // if we have an .equals method, try to use it
   if ('equals' in a && typeof (a as any).equals === 'function') {
     let isEqual = (a as any).equals(b).toBoolean();
@@ -577,9 +691,4 @@ function toConstant<T>(type: Provable<T>, value: T): T {
     type.toFields(value).map((x) => x.toConstant()),
     type.toAuxiliary(value)
   );
-}
-
-function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
-function isConstant<T>(type: Provable<T>, value: T): boolean {
-  return type.toFields(value).every((x) => x.isConstant());
 }

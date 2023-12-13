@@ -66,7 +66,7 @@ const Poseidon = {
     if (isConstant(input)) {
       let result = PoseidonBigint.hashToGroup(toBigints(input));
       assert(result !== undefined, 'hashToGroup works on all inputs');
-      let { x, y } = result!;
+      let { x, y } = result;
       return {
         x: Field(x),
         y: { x0: Field(y.x0), x1: Field(y.x1) },
@@ -181,12 +181,11 @@ const TokenSymbolPure: ProvableExtended<
   toInput({ field }) {
     return { packed: [[field, 48]] };
   },
+  empty() {
+    return { symbol: '', field: Field(0n) };
+  },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
   static from(symbol: string): TokenSymbol {
     let bytesLength = new TextEncoder().encode(symbol).length;
     if (bytesLength > 6)

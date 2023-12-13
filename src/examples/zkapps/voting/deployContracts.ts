@@ -7,7 +7,7 @@ import {
   PrivateKey,
   SmartContract,
   Reducer,
-} from 'snarkyjs';
+} from 'o1js';
 import { VotingAppParams } from './factory.js';
 
 import { Membership_ } from './membership.js';

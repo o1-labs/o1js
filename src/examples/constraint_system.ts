@@ -1,8 +1,8 @@
-import { Field, Poseidon, Provable } from 'snarkyjs';
+import { Field, Poseidon, Provable } from 'o1js';
 
 let hash = Poseidon.hash([Field(1), Field(-1)]);
 
-let { rows, digest, gates, publicInputSize } = Provable.constraintSystem(() => {
+let { rows, digest, publicInputSize, print } = Provable.constraintSystem(() => {
   let x = Provable.witness(Field, () => Field(1));
   let y = Provable.witness(Field, () => Field(-1));
   x.add(y).assertEquals(Field(0));
@@ -10,5 +10,5 @@ let { rows, digest, gates, publicInputSize } = Provable.constraintSystem(() => {
   z.assertEquals(hash);
 });
 
-console.log(JSON.stringify(gates));
+print();
 console.log({ rows, digest, publicInputSize });

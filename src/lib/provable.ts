@@ -40,7 +40,7 @@ export {
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
- * You will find this as the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
+ * You will find this as the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
  */
 type Provable<T> = Provable_<T>;
 
@@ -119,6 +119,17 @@ const Provable = {
    * ```
    */
   Array: provableArray,
+  /**
+   * Check whether a value is constant.
+   * See {@link FieldVar} for more information about constants and variables.
+   *
+   * @example
+   * ```ts
+   * let x = Field(42);
+   * Provable.isConstant(Field, x); // true
+   * ```
+   */
+  isConstant,
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
@@ -392,6 +403,10 @@ function switch_<T, A extends FlexibleProvable<T>>(
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
+function isConstant<T>(type: Provable<T>, x: T): boolean {
+  return type.toFields(x).every((x) => x.isConstant());
+}
+
 // logging in provable code
 
 function log(...args: any) {
@@ -565,6 +580,13 @@ function provableArray<A extends FlexibleProvable<any>>(
         (curr, value) => HashInput.append(curr, type.toInput(value)),
         HashInput.empty
       );
+    },
+
+    empty() {
+      if (!('empty' in type)) {
+        throw Error('circuitArray.empty: element type has no empty() method');
+      }
+      return Array.from({ length }, () => type.empty());
     },
   } satisfies ProvableExtended<T[], TJson[]> as any;
 }

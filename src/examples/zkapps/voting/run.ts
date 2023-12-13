@@ -1,4 +1,4 @@
-import { Bool, PrivateKey, UInt32, UInt64 } from 'snarkyjs';
+import { Bool, PrivateKey, UInt32, UInt64 } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import {
   ElectionPreconditions,
@@ -8,11 +8,11 @@ import {
 import { OffchainStorage } from './off_chain_storage.js';
 import { Member } from './member.js';
 import { testSet } from './test.js';
-import { getProfiler } from '../../profiler.js';
+import { getProfiler } from '../../utils/profiler.js';
 
 console.log('Running Voting script...');
 
-// I really hope this factory pattern works with SnarkyJS' contracts
+// I really hope this factory pattern works with o1js' contracts
 // one voting instance always consists of three contracts: two membership contracts and one voting contract
 // this pattern will hopefully help us deploy multiple sets of voting apps
 // with different preconditions efficiently for integration tests

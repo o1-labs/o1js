@@ -21,7 +21,7 @@ import {
   UInt32,
   TokenId,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 
 export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
 
@@ -61,10 +61,10 @@ function createDex({
       // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
       // but for that, we need the @method argument generalization
       let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
-      let dexXBalance = dexXUpdate.account.balance.getAndAssertEquals();
+      let dexXBalance = dexXUpdate.account.balance.getAndRequireEquals();
 
       let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
-      let dexYBalance = dexYUpdate.account.balance.getAndAssertEquals();
+      let dexYBalance = dexYUpdate.account.balance.getAndRequireEquals();
 
       // // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
@@ -103,7 +103,7 @@ function createDex({
 
       // update l supply
       let l = this.totalSupply.get();
-      this.totalSupply.assertEquals(l);
+      this.totalSupply.requireEquals(l);
       this.totalSupply.set(l.add(dl));
       return dl;
     }
@@ -195,7 +195,7 @@ function createDex({
       // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
       this.token.burn({ address: user, amount: dl });
       let l = this.totalSupply.get();
-      this.totalSupply.assertEquals(l);
+      this.totalSupply.requireEquals(l);
       this.totalSupply.set(l.sub(dl));
       return l;
     }
@@ -227,7 +227,7 @@ function createDex({
 
       // in return, we give dy back
       let y = this.account.balance.get();
-      this.account.balance.assertEquals(y);
+      this.account.balance.requireEquals(y);
       // we can safely divide by l here because the Dex contract logic wouldn't allow burnLiquidity if not l>0
       let dy = y.mul(dl).div(l);
       // just subtract the balance, user gets their part one level higher
@@ -256,7 +256,7 @@ function createDex({
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
-      this.account.balance.assertEquals(x);
+      this.account.balance.requireEquals(x);
       let dx = x.mul(dl).div(l);
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
@@ -276,7 +276,7 @@ function createDex({
       // get balances
       let x = tokenX.getBalance(this.address);
       let y = this.account.balance.get();
-      this.account.balance.assertEquals(y);
+      this.account.balance.requireEquals(y);
       // send x from user to us (i.e., to the same address as this but with the other token)
       tokenX.transfer(user, this.address, dx);
       // compute and send dy
@@ -300,7 +300,7 @@ function createDex({
       let tokenX = new TokenContract(otherTokenAddress);
       let x = tokenX.getBalance(this.address);
       let y = this.account.balance.get();
-      this.account.balance.assertEquals(y);
+      this.account.balance.requireEquals(y);
       tokenX.transfer(user, this.address, dx);
 
       // this formula has been changed - we just give the user an additional 15 token
@@ -394,7 +394,7 @@ class TokenContract extends SmartContract {
       amount: UInt64.MAXINT(),
     });
     // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.assertEquals(Bool(true));
+    receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
     this.balance.subInPlace(Mina.accountCreationFee());
   }
@@ -410,7 +410,7 @@ class TokenContract extends SmartContract {
       amount: UInt64.from(10n ** 6n),
     });
     // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.assertEquals(Bool(true));
+    receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
     this.balance.subInPlace(Mina.accountCreationFee());
   }
@@ -477,7 +477,7 @@ class TokenContract extends SmartContract {
   @method getBalance(publicKey: PublicKey): UInt64 {
     let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
     let balance = accountUpdate.account.balance.get();
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
     return balance;

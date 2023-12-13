@@ -70,9 +70,11 @@ class UInt64 extends CircuitValue {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
+
   static toInput(x: UInt64): HashInput {
     return { packed: [[x.value, 64]] };
   }
+
   /**
    * Encodes this structure into a JSON-like object.
    */
@@ -457,6 +459,7 @@ class UInt32 extends CircuitValue {
   static MAXINT() {
     return new UInt32(Field((1n << 32n) - 1n));
   }
+
   /**
    * Integer division with remainder.
    *
@@ -721,8 +724,8 @@ class Sign extends CircuitValue {
     // x^2 === 1  <=>  x === 1 or x === -1
     x.value.square().assertEquals(Field(1));
   }
-  static emptyValue(): Sign {
-    return Sign.one;
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
+    return Sign.one as any;
   }
   static toInput(x: Sign): HashInput {
     return { packed: [[x.isPositive().toField(), 1]] };

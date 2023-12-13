@@ -17,7 +17,7 @@ import {
   Permissions,
   DeployArgs,
   UInt32,
-} from 'snarkyjs';
+} from 'o1js';
 
 const doProofs = false;
 
@@ -26,7 +26,7 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @method blockheightEquals(y: UInt32) {
     let length = this.network.blockchainLength.get();
-    this.network.blockchainLength.assertEquals(length);
+    this.network.blockchainLength.requireEquals(length);
 
     length.assertEquals(y);
   }

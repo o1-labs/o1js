@@ -3,7 +3,8 @@ import { Struct } from './circuit_value.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
 import { MerkleMapWitness } from './merkle_map.js';
-import { PublicKey, scaleShifted } from './signature.js';
+import { PrivateKey, PublicKey, scaleShifted } from './signature.js';
+import { Provable } from './provable.js';
 
 export { Nullifier };
 
@@ -12,7 +13,7 @@ export { Nullifier };
  * Nullifiers are used as a public commitment to a specific anonymous account,
  * to forbid actions like double spending, or allow a consistent identity between anonymous actions.
  *
- * RFC: https://github.com/o1-labs/snarkyjs/issues/756
+ * RFC: https://github.com/o1-labs/o1js/issues/756
  *
  * Paper: https://eprint.iacr.org/2022/1255.pdf
  */
@@ -61,9 +62,13 @@ class Nullifier extends Struct({
       x,
       y: { x0 },
     } = Poseidon.hashToGroup([...message, ...pk_fields]);
+
+    // check to prevent the prover from using the second square root and forging a non-unique nullifier
+    x0.isEven().assertTrue();
+
     let h_m_pk = Group.fromFields([x, x0]);
 
-    // shifted scalar see https://github.com/o1-labs/snarkyjs/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
+    // shifted scalar see https://github.com/o1-labs/o1js/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
     // pk^c
     let pk_c = scaleShifted(this.publicKey, Scalar.fromBits(c.toBits()));
 
@@ -164,5 +169,65 @@ class Nullifier extends Struct({
    */
   getPublicKey() {
     return PublicKey.fromGroup(this.publicKey);
+  }
+
+  /**
+   *
+   * _Note_: This is *not* the recommended way to create a Nullifier in production. Please use mina-signer to create Nullifiers.
+   * Also, this function cannot be run within provable code to avoid unintended creations of Nullifiers - a Nullifier should never be created inside proveable code (e.g. a smart contract) directly, but rather created inside the users wallet (or other secure enclaves, so the private key never leaves that enclave).
+   *
+   * PLUME: An ECDSA Nullifier Scheme for Unique
+   * Pseudonymity within Zero Knowledge Proofs
+   * https://eprint.iacr.org/2022/1255.pdf chapter 3 page 14
+   */
+  static createTestNullifier(message: Field[], sk: PrivateKey): JsonNullifier {
+    if (Provable.inCheckedComputation()) {
+      throw Error(
+        'This function cannot not be run within provable code. If you want to create a Nullifier, run this method outside provable code or use mina-signer to do so.'
+      );
+    }
+    const Hash2 = Poseidon.hash;
+    const Hash = Poseidon.hashToGroup;
+
+    const pk = sk.toPublicKey().toGroup();
+
+    const G = Group.generator;
+
+    const r = Scalar.random();
+
+    const gm = Hash([...message, ...Group.toFields(pk)]);
+
+    const h_m_pk = Group({ x: gm.x, y: gm.y.x0 });
+
+    const nullifier = h_m_pk.scale(sk.toBigInt());
+    const h_m_pk_r = h_m_pk.scale(r.toBigInt());
+
+    const g_r = G.scale(r.toBigInt());
+
+    const c = Hash2([
+      ...Group.toFields(G),
+      ...Group.toFields(pk),
+      ...Group.toFields(h_m_pk),
+      ...Group.toFields(nullifier),
+      ...Group.toFields(g_r),
+      ...Group.toFields(h_m_pk_r),
+    ]);
+
+    // operations on scalars (r) should be in Fq, rather than Fp
+    // while c is in Fp (due to Poseidon.hash), c needs to be handled as an element from Fq
+    const s = r.add(sk.s.mul(Scalar.from(c.toBigInt())));
+
+    return {
+      publicKey: pk.toJSON(),
+      private: {
+        c: c.toString(),
+        g_r: g_r.toJSON(),
+        h_m_pk_r: h_m_pk_r.toJSON(),
+      },
+      public: {
+        nullifier: nullifier.toJSON(),
+        s: s.toJSON(),
+      },
+    };
   }
 }
