@@ -5,8 +5,6 @@ import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { FieldVar, withMessage } from './field.js';
-import { chunkString } from './util/arrays.js';
-
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
 
@@ -1267,7 +1265,16 @@ class UInt8 extends Struct({
   }
 
   /**
-   * Serialize the {@link UInt8} to a bigint, e.g. for printing.
+   * Serialize the {@link UInt8} to a number.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toNumber() {
+    return Number(this.value.toBigInt());
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a bigint.
    *
    * **Warning**: This operation is not provable.
    */
@@ -1296,15 +1303,6 @@ class UInt8 extends Struct({
    */
   toUInt64(): UInt64 {
     return new UInt64(this.value);
-  }
-
-  // TODO: these might be better on a separate `Bytes` class
-  static fromHex(xs: string): UInt8[] {
-    let bytes = chunkString(xs, 2).map((s) => parseInt(s, 16));
-    return bytes.map(UInt8.from);
-  }
-  static toHex(xs: UInt8[]): string {
-    return xs.map((x) => x.toBigInt().toString(16).padStart(2, '0')).join('');
   }
 
   /**
