@@ -43,7 +43,7 @@ This will compile the TypeScript source files, making it ready for use. The comp
 
 If you need to regenerate the OCaml and WebAssembly artifacts, you can do so within the o1js repo. The [bindings](https://github.com/o1-labs/o1js-bindings) and [Mina](https://github.com/MinaProtocol/mina) repos are both submodules of o1js, so you can build them from within the o1js repo.
 
-o1js depends on OCaml code that is transplied to JavaScript using [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml), and Rust code that is transpiled to WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack). These artifacts allow o1js to call into [Pickles](https://github.com/o1-labs/snarkyhttps://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/README.md), [snarky](https://github.com/o1-labs/snarky), and [Kimchi](https://github.com/o1-labs/proof-systems) to write zk-SNARKs and zkApps.
+o1js depends on OCaml code that is transpiled to JavaScript using [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml), and Rust code that is transpiled to WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack). These artifacts allow o1js to call into [Pickles](https://github.com/o1-labs/snarkyhttps://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/README.md), [snarky](https://github.com/o1-labs/snarky), and [Kimchi](https://github.com/o1-labs/proof-systems) to write zk-SNARKs and zkApps.
 
 The compiled artifacts are stored under `src/bindings/compiled`, and are version-controlled to simplify the build process for end-users.
 
