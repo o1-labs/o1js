@@ -6,10 +6,9 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
-import { Keccak } from './keccak.js';
 
 // external API
-export { Poseidon, TokenSymbol, Hash };
+export { Poseidon, TokenSymbol };
 
 // internal API
 export {
@@ -24,19 +23,19 @@ export {
 };
 
 class Sponge {
-  private sponge: unknown;
+  #sponge: unknown;
 
   constructor() {
     let isChecked = Provable.inCheckedComputation();
-    this.sponge = Snarky.poseidon.sponge.create(isChecked);
+    this.#sponge = Snarky.poseidon.sponge.create(isChecked);
   }
 
   absorb(x: Field) {
-    Snarky.poseidon.sponge.absorb(this.sponge, x.value);
+    Snarky.poseidon.sponge.absorb(this.#sponge, x.value);
   }
 
   squeeze(): Field {
-    return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
+    return Field(Snarky.poseidon.sponge.squeeze(this.#sponge));
   }
 }
 
@@ -206,9 +205,3 @@ function isConstant(fields: Field[]) {
 function toBigints(fields: Field[]) {
   return fields.map((x) => x.toBigInt());
 }
-
-const Hash = {
-  hash: Poseidon.hash,
-  Poseidon,
-  Keccak,
-};
