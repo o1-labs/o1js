@@ -39,7 +39,7 @@ const Keccak = {
    *
    * Primarily used in Ethereum for hashing transactions, messages, and other types of payloads.
    *
-   * The function expects an input as a list of byte-sized {@link Field} elements. However, the input should be range checked before calling this function,
+   * The function expects an input as a list of big-endian byte-sized {@link Field} elements. However, the input should be range checked before calling this function,
    * as this function does not perform internal range checking. This can be done using {@link Gadgets.rangeCheck8}.
    *
    * Produces an output which is a list of byte-sized {@link Field} elements and ensures output is within the specified range using {@link Gadgets.rangeCheck8}.
