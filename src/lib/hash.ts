@@ -4,10 +4,9 @@ import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
-import { UInt8 } from './int.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
-import { MlArray } from './ml/base.js';
+import { Keccak } from './keccak.js';
 
 // external API
 export { Poseidon, TokenSymbol, Hash };
@@ -208,29 +207,8 @@ function toBigints(fields: Field[]) {
   return fields.map((x) => x.toBigInt());
 }
 
-function buildSHA(length: 224 | 256 | 384 | 512, nist: boolean) {
-  return {
-    hash(message: UInt8[]): UInt8[] {
-      return Snarky.sha
-        .create(MlArray.to(message.map((f) => f.toField().value)), nist, length)
-        .map((f) => UInt8.from(Field(f)))
-        .slice(1);
-    },
-  };
-}
-
 const Hash = {
   hash: Poseidon.hash,
-
-  Poseidon: Poseidon,
-
-  SHA224: buildSHA(224, true),
-
-  SHA256: buildSHA(256, true),
-
-  SHA384: buildSHA(384, true),
-
-  SHA512: buildSHA(512, true),
-
-  Keccak256: buildSHA(256, false),
+  Poseidon,
+  Keccak,
 };
