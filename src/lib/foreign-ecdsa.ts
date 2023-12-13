@@ -11,6 +11,9 @@ import { AlmostForeignField } from './foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Ecdsa } from './gadgets/elliptic-curve.js';
+import { Field } from './field.js';
+import { l } from './gadgets/range-check.js';
+import { Keccak } from './keccak.js';
 
 // external API
 export { createEcdsa, EcdsaSignature };
@@ -63,7 +66,7 @@ class EcdsaSignature {
   }
 
   /**
-   * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
+   * Verify the ECDSA signature given the message (an array of bytes) and public key (a {@link Curve} point).
    *
    * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
    * So, to actually prove validity of a signature, you need to assert that the result is true.
@@ -77,24 +80,42 @@ class EcdsaSignature {
    * class Scalar extends Secp256k1.Scalar {}
    * class Ecdsa extends createEcdsa(Secp256k1) {}
    *
+   * let message = 'my message';
+   * let messageBytes = new TextEncoder().encode(message);
+   *
    * // outside provable code: create inputs
    * let privateKey = Scalar.random();
    * let publicKey = Secp256k1.generator.scale(privateKey);
-   * let messageHash = Scalar.random();
-   * let signature = Ecdsa.sign(messageHash.toBigInt(), privateKey.toBigInt());
+   * let signature = Ecdsa.sign(messageBytes, privateKey.toBigInt());
    *
    * // ...
    * // in provable code: create input witnesses (or use method inputs, or constants)
    * let pk = Provable.witness(Secp256k1.provable, () => publicKey);
-   * let msgHash = Provable.witness(Scalar.Canonical.provable, () => messageHash);
+   * let msg = Provable.witness(Provable.Array(Field, 9), () => messageBytes.map(Field));
    * let sig = Provable.witness(Ecdsa.provable, () => signature);
    *
    * // verify signature
-   * let isValid = sig.verify(msgHash, pk);
+   * let isValid = sig.verify(msg, pk);
    * isValid.assertTrue('signature verifies');
    * ```
    */
-  verify(msgHash: AlmostForeignField | bigint, publicKey: FlexiblePoint) {
+  verify(message: Field[], publicKey: FlexiblePoint) {
+    let msgHashBytes = Keccak.ethereum(message);
+    let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
+    return this.verifySignedHash(msgHash, publicKey);
+  }
+
+  /**
+   * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
+   *
+   * This is a building block of {@link EcdsaSignature.verify}, where the input message is also hashed.
+   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
+   * choosing the hashing algorithm.
+   */
+  verifySignedHash(
+    msgHash: AlmostForeignField | bigint,
+    publicKey: FlexiblePoint
+  ) {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
     return Ecdsa.verify(
@@ -106,11 +127,27 @@ class EcdsaSignature {
   }
 
   /**
-   * Create an {@link EcdsaSignature} by signing a message hash with a private key.
+   * Create an {@link EcdsaSignature} by signing a message with a private key.
    *
    * Note: This method is not provable, and only takes JS bigints as input.
    */
-  static sign(msgHash: bigint, privateKey: bigint) {
+  static sign(message: (bigint | number)[] | Uint8Array, privateKey: bigint) {
+    let msgFields = [...message].map(Field.from);
+    let msgHashBytes = Keccak.ethereum(msgFields);
+    let msgHash = keccakOutputToScalar(msgHashBytes, this.Curve);
+    return this.signHash(msgHash.toBigInt(), privateKey);
+  }
+
+  /**
+   * Create an {@link EcdsaSignature} by signing a message hash with a private key.
+   *
+   * This is a building block of {@link EcdsaSignature.sign}, where the input message is also hashed.
+   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
+   * choosing the hashing algorithm.
+   *
+   * Note: This method is not provable, and only takes JS bigints as input.
+   */
+  static signHash(msgHash: bigint, privateKey: bigint) {
     let { r, s } = Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
     return new this({ r, s });
   }
@@ -169,4 +206,52 @@ function createEcdsa(
 
 function toObject(signature: EcdsaSignature) {
   return { r: signature.r.value, s: signature.s.value };
+}
+
+/**
+ * Provable method to convert keccak256 hash output to ECDSA scalar = "message hash"
+ *
+ * Spec from [Wikipedia](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm):
+ *
+ * > Let z be the L_n leftmost bits of e, where L_{n} is the bit length of the group order n.
+ * > (Note that z can be greater than n but not longer.)
+ *
+ * The output z is used as input to a multiplication:
+ *
+ * > Calculate u_1 = z s^(-1) mod n ...
+ *
+ * That means we don't need to reduce z mod n: The fact that it has bitlength <= n makes it
+ * almost reduced which is enough for the multiplication to be correct.
+ * (using a weaker notion of "almost reduced" than what we usually prove, but sufficient for all uses of it: `z < 2^ceil(log(n))`)
+ *
+ * In summary, this method just:
+ * - takes a 32 bytes hash
+ * - converts them to 3 limbs which collectively have L_n <= 256 bits
+ */
+function keccakOutputToScalar(hash: Field[], Curve: typeof ForeignCurve) {
+  const L_n = Curve.Scalar.sizeInBits;
+  // keep it simple for now, avoid dealing with dropping bits
+  // TODO: what does "leftmost bits" mean? big-endian or little-endian?
+  // @noble/curves uses a right shift, dropping the least significant bits:
+  // https://github.com/paulmillr/noble-curves/blob/4007ee975bcc6410c2e7b504febc1d5d625ed1a4/src/abstract/weierstrass.ts#L933
+  assert(L_n === 256, `Scalar sizes ${L_n} !== 256 not supported`);
+  assert(hash.length === 32, `hash length ${hash.length} !== 32 not supported`);
+
+  // piece together into limbs
+  // bytes are big-endian, so the first byte is the most significant
+  assert(l === 88n);
+  let x2 = bytesToLimbBE(hash.slice(0, 10));
+  let x1 = bytesToLimbBE(hash.slice(10, 21));
+  let x0 = bytesToLimbBE(hash.slice(21, 32));
+
+  return new Curve.Scalar.AlmostReduced([x0, x1, x2]);
+}
+
+function bytesToLimbBE(bytes: Field[]) {
+  let n = bytes.length;
+  let limb = bytes[0];
+  for (let i = 1; i < n; i++) {
+    limb = limb.mul(1n << 8n).add(bytes[i]);
+  }
+  return limb.seal();
 }
