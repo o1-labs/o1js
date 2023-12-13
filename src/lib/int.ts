@@ -3,7 +3,9 @@ import { AnyConstructor, CircuitValue, Struct, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import { Snarky } from '../snarky.js';
+import { Gadgets } from './gadgets/gadgets.js';
+import { withMessage } from './field.js';
+import { chunkString } from './util/arrays.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -976,28 +978,12 @@ class UInt8 extends Struct({
    * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a {@link UInt8}.
    * The max value of a {@link UInt8} is `2^8 - 1 = 255`.
    *
-   *
    * **Warning**: Cannot overflow past 255, an error is thrown if the result is greater than 255.
    */
   constructor(x: number | bigint | string | Field | UInt8) {
-    if (x instanceof UInt8) return x;
-
+    if (x instanceof UInt8) x = x.value;
     super({ value: Field(x) });
-    this.check();
-  }
-
-  /**
-   * Static method to create a {@link UInt8} with value `0`.
-   */
-  static get zero() {
-    return UInt8.from(0);
-  }
-
-  /**
-   * Static method to create a {@link UInt8} with value `1`.
-   */
-  static get one() {
-    return UInt8.from(1);
+    UInt8.checkConstant(this.value);
   }
 
   /**
@@ -1158,27 +1144,15 @@ class UInt8 extends Struct({
    * The method will throw if one of the inputs exceeds 8 bits.
    *
    *
-   * @param value - the {@link UInt8} value to compare with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare with this {@link UInt8}.
    *
    * @return A {@link Bool} representing if this {@link UInt8} is less than or equal another {@link UInt8} value.
    */
-  lessThanOrEqual(y: UInt8) {
+  lessThanOrEqual(y: UInt8): Bool {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
-    } else {
-      // TODO: Enable when rangeCheck works in proofs
-      // let xMinusY = this.value.sub(y.value).seal();
-      // UInt8.#rangeCheck(xMinusY);
-
-      // let yMinusX = xMinusY.neg();
-      // UInt8.#rangeCheck(yMinusX);
-
-      // x <= y if y - x fits in 64 bits
-      // return yMinusX;
-
-      // TODO: Remove this when rangeCheck works in proofs
-      return this.value.lessThanOrEqual(y.value);
     }
+    throw Error('Not implemented');
   }
 
   /**
@@ -1193,14 +1167,15 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare with this {@link UInt8}.
    *
    * @return A {@link Bool} representing if this {@link UInt8} is less than another {@link UInt8} value.
    */
-  lessThan(value: UInt8) {
-    return this.lessThanOrEqual(value).and(
-      this.value.equals(value.value).not()
-    );
+  lessThan(y: UInt8): Bool {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() < y.value.toBigInt());
+    }
+    throw Error('Not implemented');
   }
 
   /**
@@ -1213,11 +1188,22 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
-  assertLessThan(value: UInt8, message?: string) {
-    this.lessThan(value).assertEquals(true, message);
+  assertLessThan(y: UInt8, message?: string) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      let x0 = this.value.toBigInt();
+      let y0 = y.value.toBigInt();
+      if (x0 >= y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt8.assertLessThan: expected ${x0} < ${y0}`);
+      }
+      return;
+    }
+    // x < y  <=>  x + 1 <= y
+    let xPlus1 = new UInt8(this.value.add(1));
+    xPlus1.assertLessThanOrEqual(y, message);
   }
 
   /**
@@ -1230,25 +1216,26 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
-  assertLessThanOrEqual(value: UInt8, message?: string) {
-    if (this.value.isConstant() && value.value.isConstant()) {
+  assertLessThanOrEqual(y: UInt8, message?: string) {
+    if (this.value.isConstant() && y.value.isConstant()) {
       let x0 = this.value.toBigInt();
-      let y0 = value.value.toBigInt();
+      let y0 = y.value.toBigInt();
       if (x0 > y0) {
         if (message !== undefined) throw Error(message);
         throw Error(`UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
       }
       return;
     }
-    // TODO: Enable when rangeCheck works in proofs
-    // let yMinusX = value.value.sub(this.value).seal();
-    // UInt8.#rangeCheck(yMinusX);
-
-    // TODO: Remove this when rangeCheck works in proofs
-    return this.lessThanOrEqual(value).assertEquals(true, message);
+    try {
+      // x <= y  <=>  y - x >= 0  <=>  y - x in [0, 2^8)
+      let yMinusX = y.value.sub(this.value).seal();
+      Gadgets.rangeCheck8(yMinusX);
+    } catch (err) {
+      throw withMessage(err, message);
+    }
   }
 
   /**
@@ -1263,12 +1250,12 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods currently only support Field elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare with this {@link UInt8}.
    *
    * @return A {@link Bool} representing if this {@link UInt8} is greater than another {@link UInt8} value.
    */
-  greaterThan(value: UInt8) {
-    return value.lessThan(this);
+  greaterThan(y: UInt8) {
+    return y.lessThan(this);
   }
 
   /**
@@ -1283,12 +1270,12 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare with this {@link Field}.
+   * @param y - the {@link UInt8} value to compare with this {@link Field}.
    *
    * @return A {@link Bool} representing if this {@link UInt8} is greater than or equal another {@link UInt8} value.
    */
-  greaterThanOrEqual(value: UInt8) {
-    return this.lessThan(value).not();
+  greaterThanOrEqual(y: UInt8) {
+    return this.lessThan(y).not();
   }
 
   /**
@@ -1301,11 +1288,11 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
-  assertGreaterThan(value: UInt8, message?: string) {
-    value.assertLessThan(this, message);
+  assertGreaterThan(y: UInt8, message?: string) {
+    y.assertLessThan(this, message);
   }
 
   /**
@@ -1318,11 +1305,11 @@ class UInt8 extends Struct({
    * **Warning**: Comparison methods only support UInt8 elements of size <= 8 bits in provable code.
    * The method will throw if one of the inputs exceeds 8 bits.
    *
-   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
-  assertGreaterThanOrEqual(value: UInt8, message?: string) {
-    value.assertLessThanOrEqual(this, message);
+  assertGreaterThanOrEqual(y: UInt8, message?: string) {
+    y.assertLessThanOrEqual(this, message);
   }
 
   /**
@@ -1330,11 +1317,11 @@ class UInt8 extends Struct({
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
-   * @param value - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
-  assertEquals(value: number | bigint | UInt8, message?: string) {
-    let y_ = new UInt8(value);
+  assertEquals(y: number | bigint | UInt8, message?: string) {
+    let y_ = new UInt8(y);
     this.toField().assertEquals(y_.toField(), message);
   }
 
@@ -1395,23 +1382,8 @@ class UInt8 extends Struct({
    *
    * @param value - the {@link UInt8} element to check.
    */
-  check() {
-    // TODO: Enable when rangeCheck works in proofs
-    // UInt8.#rangeCheck(this.value);
-    this.value.toBits(UInt8.NUM_BITS);
-  }
-
-  /**
-   * Implementation of {@link Provable.fromFields} for the {@link UInt8} type.
-   *
-   * **Warning**: This function is designed for internal use. It is not intended to be used by a zkApp developer.
-   *
-   * @param fields - an array of {@link UInt8} serialized from {@link Field} elements.
-   *
-   * @return An array of {@link UInt8} elements of the given array.
-   */
-  fromFields(xs: Field[]): UInt8[] {
-    return xs.map((x) => new UInt8(x));
+  static check(x: { value: Field }) {
+    Gadgets.rangeCheck8(x.value);
   }
 
   /**
@@ -1443,9 +1415,7 @@ class UInt8 extends Struct({
    * @return A {@link UInt32} equivalent to the {@link UInt8}.
    */
   toUInt32(): UInt32 {
-    let uint32 = new UInt32(this.value);
-    UInt32.check(uint32);
-    return uint32;
+    return new UInt32(this.value);
   }
 
   /**
@@ -1460,9 +1430,7 @@ class UInt8 extends Struct({
    * @return A {@link UInt64} equivalent to the {@link UInt8}.
    * */
   toUInt64(): UInt64 {
-    let uint64 = new UInt64(this.value);
-    UInt64.check(uint64);
-    return uint64;
+    return new UInt64(this.value);
   }
 
   /**
@@ -1487,59 +1455,34 @@ class UInt8 extends Struct({
     return this.value.isConstant();
   }
 
+  // TODO: these might be better on a separate `Bytes` class
   static fromHex(xs: string): UInt8[] {
-    return Snarky.sha
-      .fieldBytesFromHex(xs)
-      .map((x) => UInt8.from(Field(x)))
-      .slice(1);
+    let bytes = chunkString(xs, 2).map((s) => parseInt(s, 16));
+    return bytes.map(UInt8.from);
   }
-
   static toHex(xs: UInt8[]): string {
-    return xs
-      .map((x) => x.value)
-      .map((f) => Field.toBytes(f)[0].toString(16).padStart(2, '0'))
-      .join('');
+    return xs.map((x) => x.toBigInt().toString(16).padStart(2, '0')).join('');
   }
 
   /**
    * Creates a {@link UInt8} with a value of 255.
    */
   static MAXINT() {
-    return new UInt8(Field((1n << BigInt(this.NUM_BITS)) - 1n));
+    return new UInt8(Field((1n << BigInt(UInt8.NUM_BITS)) - 1n));
   }
 
   /**
    * Creates a new {@link UInt8}.
    */
-  static from(
-    x: UInt8 | UInt64 | UInt32 | Field | number | string | bigint | number[]
-  ) {
+  static from(x: UInt8 | UInt64 | UInt32 | Field | number | bigint) {
     if (x instanceof UInt64 || x instanceof UInt32 || x instanceof UInt8)
       x = x.value;
-
-    if (Array.isArray(x)) {
-      return new this(Field.fromBytes(x));
-    }
-
-    return new this(this.checkConstant(Field(x)));
+    return new UInt8(UInt8.checkConstant(Field(x)));
   }
 
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return x;
-    x.toBits(UInt8.NUM_BITS);
+    Gadgets.rangeCheck8(x);
     return x;
   }
-
-  // TODO: rangeCheck does not prove as of yet, waiting on https://github.com/MinaProtocol/mina/pull/12524 to merge.
-  static #rangeCheck(x: UInt8 | Field) {
-    if (isUInt8(x)) x = x.value;
-    if (x.isConstant()) this.checkConstant(x);
-
-    // Throws an error if the value is not in the range [0, 2^UInt8.NUM_BITS - 1]
-    Snarky.sha.checkBits(x.value, UInt8.NUM_BITS);
-  }
-}
-
-function isUInt8(x: unknown): x is UInt8 {
-  return x instanceof UInt8;
 }

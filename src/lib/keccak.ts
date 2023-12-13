@@ -3,6 +3,7 @@ import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
 import { rangeCheck8 } from './gadgets/range-check.js';
 import { Provable } from './provable.js';
+import { chunk } from './util/arrays.js';
 
 export { Keccak };
 
@@ -461,13 +462,6 @@ function bytesToWords(bytes: Field[]): Field[] {
 
 function wordsToBytes(words: Field[]): Field[] {
   return words.flatMap(wordToBytes);
-}
-
-function chunk<T>(array: T[], size: number): T[][] {
-  assert(array.length % size === 0, 'invalid input length');
-  return Array.from({ length: array.length / size }, (_, i) =>
-    array.slice(size * i, size * (i + 1))
-  );
 }
 
 // xor which avoids doing anything on 0 inputs
