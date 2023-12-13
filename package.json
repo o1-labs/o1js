@@ -45,10 +45,15 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "dev": "npx tsc -p tsconfig.node.json && node src/build/copy-to-dist.js",
+<<<<<<< HEAD
     "make:no-types": "npm run clean && make -C ../../.. snarkyjs_no_types",
     "bindings": "cd ../../.. && ./scripts/update-snarkyjs-bindings.sh && cd src/lib/snarkyjs",
+=======
+>>>>>>> cb6190dfa... refactor(package.json): streamline script commands for better readability and maintainability
     "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/buildNode.js",
-    "build:bindings": "./src/bindings/scripts/update-snarkyjs-bindings.sh",
+    "build:bindings": "./src/bindings/scripts/build-snarkyjs-node.sh",
+    "build:update-bindings": "./src/bindings/scripts/update-snarkyjs-bindings.sh",
+    "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
     "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
