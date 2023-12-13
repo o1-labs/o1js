@@ -67,10 +67,10 @@ To compile the wasm code, a combination of Cargo and Dune is used. Both build fi
 
 For the wasm build, the output files are:
 
-- `plonk_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types of .wasm or .js files.
-- `plonk_wasm.d.ts`: TypeScript definition file for plonk_wasm.js.
 - `plonk_wasm_bg.wasm`: The compiled WebAssembly binary.
+- `plonk_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types of .wasm or .js files.
 - `plonk_wasm.js`: JavaScript file that wraps the WASM code for use in Node.js.
+- `plonk_wasm.d.ts`: TypeScript definition file for plonk_wasm.js.
 
 ### Generated Constant Types
 
