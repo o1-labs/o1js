@@ -57,7 +57,7 @@ const Keccak = {
     return ethereum(message);
   },
   /**
-   * Implementation of [pre-NIST SHA-3](https://csrc.nist.gov/pubs/fips/202/final) Hash Function.
+   * Implementation of [pre-NIST Keccak](https://keccak.team/keccak.html) hash function.
    * Supports output lengths of 256, 384, or 512 bits.
    *
    * Pre-NIST SHA-3 is a variant of the Keccak hash function, which was standardized by NIST in 2015.
