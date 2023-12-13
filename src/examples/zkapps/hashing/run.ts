@@ -1,9 +1,5 @@
-import { HashStorage, HashInput } from './hash.js';
-import { Mina, PrivateKey, AccountUpdate, UInt8 } from 'snarkyjs';
-import { getProfiler } from '../../profiler.js';
-
-const HashProfier = getProfiler('Hash');
-HashProfier.start('Hash test flow');
+import { HashStorage } from './hash.js';
+import { Mina, PrivateKey, AccountUpdate, Bytes } from 'o1js';
 
 let txn;
 let proofsEnabled = true;
@@ -25,9 +21,7 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 const zkAppInstance = new HashStorage(zkAppAddress);
 
 // 0, 1, 2, 3, ..., 32
-const hashData = new HashInput({
-  data: Array.from({ length: 32 }, (_, i) => i).map((x) => UInt8.from(x)),
-});
+const hashData = Bytes.from(Array.from({ length: 32 }, (_, i) => i));
 
 console.log('Deploying Hash Example....');
 txn = await Mina.transaction(feePayer.publicKey, () => {
@@ -41,15 +35,6 @@ const initialState =
 
 let currentState;
 console.log('Initial State', initialState);
-
-console.log(`Updating commitment from ${initialState} using SHA224 ...`);
-txn = await Mina.transaction(feePayer.publicKey, () => {
-  zkAppInstance.SHA224(hashData);
-});
-await txn.prove();
-await txn.sign([feePayer.privateKey]).send();
-currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
-console.log(`Current state successfully updated to ${currentState}`);
 
 console.log(`Updating commitment from ${initialState} using SHA256 ...`);
 txn = await Mina.transaction(feePayer.publicKey, () => {
@@ -86,5 +71,3 @@ await txn.prove();
 await txn.sign([feePayer.privateKey]).send();
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 console.log(`Current state successfully updated to ${currentState}`);
-
-HashProfier.stop().store();
