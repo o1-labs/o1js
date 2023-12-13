@@ -25,6 +25,7 @@ import type {
   WasmFpSrs,
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
+import type { KimchiGateType } from './lib/gates.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -33,7 +34,6 @@ export {
   Snarky,
   Test,
   JsonGate,
-  KimchiGateType,
   MlPublicKey,
   MlPublicKeyVar,
   FeatureFlags,
@@ -541,27 +541,6 @@ declare const Snarky: {
     };
   };
 };
-
-declare enum KimchiGateType {
-  Zero,
-  Generic,
-  Poseidon,
-  CompleteAdd,
-  VarBaseMul,
-  EndoMul,
-  EndoMulScalar,
-  Lookup,
-  CairoClaim,
-  CairoInstruction,
-  CairoFlags,
-  CairoTransition,
-  RangeCheck0,
-  RangeCheck1,
-  ForeignFieldAdd,
-  ForeignFieldMul,
-  Xor16,
-  Rot64,
-}
 
 type GateType =
   | 'Zero'
