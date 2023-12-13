@@ -193,7 +193,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     zkapp.requireSignature();
   }
 
-  // for letting a zkapp do whatever it wants, as long as no tokens are transfered
+  // for letting a zkapp do whatever it wants, as long as no tokens are transferred
   // TODO: atm, we have to restrict the zkapp to have no children
   //       -> need to be able to witness a general layout of account updates
   @method approveZkapp(callback: Experimental.Callback<any>) {
