@@ -70,7 +70,7 @@ const Keccak = {
    * The hash output is ensured to conform to the chosen bit length and is a list of big-endian byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
    *
    * @param len - Desired output length in bits. Valid options: 256, 384, 512.
-   * @param message - List of byte-sized {@link Field} elements representing the message to hash.
+   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
    *
    * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
    *
