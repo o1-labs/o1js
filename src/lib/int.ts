@@ -1291,6 +1291,10 @@ class UInt8 extends Struct({
     Gadgets.rangeCheck8(x.value);
   }
 
+  static toInput(x: { value: Field }): HashInput {
+    return { packed: [[x.value, 8]] };
+  }
+
   /**
    * Turns a {@link UInt8} into a {@link UInt32}.
    */
