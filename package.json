@@ -42,11 +42,14 @@
     "node": ">=16.4.0"
   },
   "scripts": {
-    "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
+    "type-check": "tsc --noEmit",
+    "dev": "npx tsc -p tsconfig.node.json && node src/build/copy-to-dist.js",
     "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/buildNode.js",
     "build:bindings": "./src/bindings/scripts/build-snarkyjs-node.sh",
     "build:update-bindings": "./src/bindings/scripts/update-snarkyjs-bindings.sh",
     "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
+    "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
     "build:docs": "npx typedoc",
