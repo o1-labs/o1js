@@ -11,6 +11,7 @@ export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export { Keccak } from './lib/keccak.js';
+export { Hash } from './lib/hashes-combined.js';
 
 export * from './lib/signature.js';
 export type {
@@ -31,7 +32,8 @@ export {
 } from './lib/circuit_value.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
-export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
+export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';
+export { Bytes } from './lib/provable-types/provable-types.js';
 export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
