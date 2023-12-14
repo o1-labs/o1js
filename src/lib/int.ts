@@ -973,18 +973,24 @@ class UInt8 extends Struct({
   static NUM_BITS = 8;
 
   /**
-   * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a {@link UInt8}.
+   * Create a {@link UInt8} from a bigint or number.
    * The max value of a {@link UInt8} is `2^8 - 1 = 255`.
    *
    * **Warning**: Cannot overflow past 255, an error is thrown if the result is greater than 255.
    */
-  constructor(x: number | bigint | string | FieldVar | UInt8) {
+  constructor(x: number | bigint | FieldVar | UInt8) {
     if (x instanceof UInt8) x = x.value.value;
     super({ value: Field(x) });
     UInt8.checkConstant(this.value);
   }
 
   static Unsafe = {
+    /**
+     * Create a {@link UInt8} from a {@link Field} without constraining its range.
+     *
+     * **Warning**: This is unsafe, because it does not prove that the input {@link Field} actually fits in 8 bits.\
+     * Only use this if you know what you are doing, otherwise use the safe {@link UInt8.from}.
+     */
     fromField(x: Field) {
       return new UInt8(x.value);
     },
