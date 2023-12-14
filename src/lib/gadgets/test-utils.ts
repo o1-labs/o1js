@@ -1,10 +1,17 @@
 import type { FiniteField } from '../../bindings/crypto/finite_field.js';
-import { ProvableSpec } from '../testing/equivalent.js';
+import { ProvableSpec, spec } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
 import { Gadgets } from './gadgets.js';
 import { assert } from './common.js';
+import { Bytes } from '../provable-types/provable-types.js';
 
-export { foreignField, unreducedForeignField, uniformForeignField, throwError };
+export {
+  foreignField,
+  unreducedForeignField,
+  uniformForeignField,
+  bytes,
+  throwError,
+};
 
 const { Field3 } = Gadgets;
 
@@ -47,6 +54,16 @@ function uniformForeignField(
     back: Field3.toBigint,
     provable: Field3.provable,
   };
+}
+
+function bytes(length: number) {
+  const Bytes_ = Bytes(length);
+  return spec<Uint8Array, Bytes>({
+    rng: Random.map(Random.bytes(length), (x) => Uint8Array.from(x)),
+    there: Bytes_.from,
+    back: (x) => x.toBytes(),
+    provable: Bytes_.provable,
+  });
 }
 
 // helper

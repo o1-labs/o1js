@@ -18,3 +18,4 @@ function Bytes(size: number) {
 }
 Bytes.from = InternalBytes.from;
 Bytes.fromHex = InternalBytes.fromHex;
+Bytes.fromString = InternalBytes.fromString;

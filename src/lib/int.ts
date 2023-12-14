@@ -973,16 +973,28 @@ class UInt8 extends Struct({
   static NUM_BITS = 8;
 
   /**
-   * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a {@link UInt8}.
+   * Create a {@link UInt8} from a bigint or number.
    * The max value of a {@link UInt8} is `2^8 - 1 = 255`.
    *
    * **Warning**: Cannot overflow past 255, an error is thrown if the result is greater than 255.
    */
-  constructor(x: number | bigint | string | FieldVar | UInt8) {
+  constructor(x: number | bigint | FieldVar | UInt8) {
     if (x instanceof UInt8) x = x.value.value;
     super({ value: Field(x) });
     UInt8.checkConstant(this.value);
   }
+
+  static Unsafe = {
+    /**
+     * Create a {@link UInt8} from a {@link Field} without constraining its range.
+     *
+     * **Warning**: This is unsafe, because it does not prove that the input {@link Field} actually fits in 8 bits.\
+     * Only use this if you know what you are doing, otherwise use the safe {@link UInt8.from}.
+     */
+    fromField(x: Field) {
+      return new UInt8(x.value);
+    },
+  };
 
   /**
    * Add a {@link UInt8} to another {@link UInt8} without allowing overflow.
@@ -999,7 +1011,7 @@ class UInt8 extends Struct({
   add(y: UInt8 | bigint | number) {
     let z = this.value.add(UInt8.from(y).value);
     Gadgets.rangeCheck8(z);
-    return UInt8.from(z);
+    return UInt8.Unsafe.fromField(z);
   }
 
   /**
@@ -1017,7 +1029,7 @@ class UInt8 extends Struct({
   sub(y: UInt8 | bigint | number) {
     let z = this.value.sub(UInt8.from(y).value);
     Gadgets.rangeCheck8(z);
-    return UInt8.from(z);
+    return UInt8.Unsafe.fromField(z);
   }
 
   /**
@@ -1035,7 +1047,7 @@ class UInt8 extends Struct({
   mul(y: UInt8 | bigint | number) {
     let z = this.value.mul(UInt8.from(y).value);
     Gadgets.rangeCheck8(z);
-    return UInt8.from(z);
+    return UInt8.Unsafe.fromField(z);
   }
 
   /**
@@ -1097,8 +1109,8 @@ class UInt8 extends Struct({
     Gadgets.rangeCheck16(q);
     Gadgets.rangeCheck16(r);
 
-    let remainder = UInt8.from(r);
-    let quotient = UInt8.from(q);
+    let remainder = UInt8.Unsafe.fromField(r);
+    let quotient = UInt8.Unsafe.fromField(q);
 
     remainder.assertLessThan(y);
     return { quotient, remainder };
@@ -1291,6 +1303,10 @@ class UInt8 extends Struct({
     Gadgets.rangeCheck8(x.value);
   }
 
+  static toInput(x: { value: Field }): HashInput {
+    return { packed: [[x.value, 8]] };
+  }
+
   /**
    * Turns a {@link UInt8} into a {@link UInt32}.
    */
@@ -1327,8 +1343,7 @@ class UInt8 extends Struct({
   }
 
   private static checkConstant(x: Field) {
-    if (!x.isConstant()) return x.value;
+    if (!x.isConstant()) return;
     Gadgets.rangeCheck8(x);
-    return x.value;
   }
 }
