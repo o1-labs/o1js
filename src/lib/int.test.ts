@@ -1,28 +1,15 @@
 import {
-  isReady,
   Provable,
-  shutdown,
   Int64,
   UInt64,
   UInt32,
+  UInt8,
   Field,
   Bool,
   Sign,
 } from 'o1js';
 
 describe('int', () => {
-  beforeAll(async () => {
-    await isReady;
-  });
-
-  afterAll(async () => {
-    // Use a timeout to defer the execution of `shutdown()` until Jest processes all tests.
-    // `shutdown()` exits the process when it's done cleanup so we want to delay it's execution until Jest is done
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
-
   const NUMBERMAX = 2 ** 53 - 1; //  JavaScript numbers can only safely store integers in the range -(2^53 − 1) to 2^53 − 1
 
   describe('Int64', () => {
@@ -2145,6 +2132,852 @@ describe('int', () => {
           it('should be the same as 2^53-1', () => {
             const x = UInt32.from(String(NUMBERMAX));
             expect(x.value).toEqual(Field(String(NUMBERMAX)));
+          });
+        });
+      });
+    });
+  });
+
+  describe('UInt8', () => {
+    const NUMBERMAX = UInt8.MAXINT().value;
+
+    describe('Inside circuit', () => {
+      describe('add', () => {
+        it('1+1=2', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.add(y).assertEquals(2);
+            });
+          }).not.toThrow();
+        });
+
+        it('100+100=200', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(100));
+              const y = Provable.witness(UInt8, () => new UInt8(100));
+              x.add(y).assertEquals(new UInt8(200));
+            });
+          }).not.toThrow();
+        });
+
+        it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
+          const n = ((1n << 8n) - 2n) / 2n;
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(n));
+              const y = Provable.witness(UInt8, () => new UInt8(n));
+              x.add(y).add(1).assertEquals(UInt8.MAXINT());
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on overflow addition', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.add(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('sub', () => {
+        it('1-1=0', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.sub(y).assertEquals(new UInt8(0));
+            });
+          }).not.toThrow();
+        });
+
+        it('100-50=50', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(100));
+              const y = Provable.witness(UInt8, () => new UInt8(50));
+              x.sub(y).assertEquals(new UInt8(50));
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on sub if results in negative number', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(0));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.sub(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('mul', () => {
+        it('1x2=2', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(2));
+              x.mul(y).assertEquals(new UInt8(2));
+            });
+          }).not.toThrow();
+        });
+
+        it('1x0=0', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(0));
+              x.mul(y).assertEquals(new UInt8(0));
+            });
+          }).not.toThrow();
+        });
+
+        it('12x20=240', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(12));
+              const y = Provable.witness(UInt8, () => new UInt8(20));
+              x.mul(y).assertEquals(new UInt8(240));
+            });
+          }).not.toThrow();
+        });
+
+        it('MAXINTx1=MAXINT', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.mul(y).assertEquals(UInt8.MAXINT());
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on overflow multiplication', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(2));
+              x.mul(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('div', () => {
+        it('2/1=2', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(2));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.div(y).assertEquals(new UInt8(2));
+            });
+          }).not.toThrow();
+        });
+
+        it('0/1=0', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(0));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.div(y).assertEquals(new UInt8(0));
+            });
+          }).not.toThrow();
+        });
+
+        it('20/10=2', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(20));
+              const y = Provable.witness(UInt8, () => new UInt8(10));
+              x.div(y).assertEquals(new UInt8(2));
+            });
+          }).not.toThrow();
+        });
+
+        it('MAXINT/1=MAXINT', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.div(y).assertEquals(UInt8.MAXINT());
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on division by zero', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(0));
+              x.div(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('mod', () => {
+        it('1%1=0', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.mod(y).assertEquals(new UInt8(0));
+            });
+          }).not.toThrow();
+        });
+
+        it('50%32=18', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(50));
+              const y = Provable.witness(UInt8, () => new UInt8(32));
+              x.mod(y).assertEquals(new UInt8(18));
+            });
+          }).not.toThrow();
+        });
+
+        it('MAXINT%7=3', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(7));
+              x.mod(y).assertEquals(new UInt8(3));
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on mod by zero', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => new UInt8(0));
+              x.mod(y).assertEquals(new UInt8(1));
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('assertLt', () => {
+        it('1<2=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(2));
+              x.assertLessThan(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('1<1=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertLessThan(y);
+            });
+          }).toThrow();
+        });
+
+        it('2<1=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(2));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertLessThan(y);
+            });
+          }).toThrow();
+        });
+
+        it('10<100=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(10));
+              const y = Provable.witness(UInt8, () => new UInt8(100));
+              x.assertLessThan(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('100<10=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(100));
+              const y = Provable.witness(UInt8, () => new UInt8(10));
+              x.assertLessThan(y);
+            });
+          }).toThrow();
+        });
+
+        it('MAXINT<MAXINT=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => UInt8.MAXINT());
+              x.assertLessThan(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('assertLessThanOrEqual', () => {
+        it('1<=1=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertLessThanOrEqual(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('2<=1=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(2));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertLessThanOrEqual(y);
+            });
+          }).toThrow();
+        });
+
+        it('10<=100=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(10));
+              const y = Provable.witness(UInt8, () => new UInt8(100));
+              x.assertLessThanOrEqual(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('100<=10=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(100));
+              const y = Provable.witness(UInt8, () => new UInt8(10));
+              x.assertLessThanOrEqual(y);
+            });
+          }).toThrow();
+        });
+
+        it('MAXINT<=MAXINT=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => UInt8.MAXINT());
+              x.assertLessThanOrEqual(y);
+            });
+          }).not.toThrow();
+        });
+      });
+
+      describe('assertGreaterThan', () => {
+        it('2>1=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(2));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertGreaterThan(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('1>1=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertGreaterThan(y);
+            });
+          }).toThrow();
+        });
+
+        it('1>2=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(2));
+              x.assertGreaterThan(y);
+            });
+          }).toThrow();
+        });
+
+        it('100>10=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(100));
+              const y = Provable.witness(UInt8, () => new UInt8(10));
+              x.assertGreaterThan(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('10>100=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1000));
+              const y = Provable.witness(UInt8, () => new UInt8(100000));
+              x.assertGreaterThan(y);
+            });
+          }).toThrow();
+        });
+
+        it('MAXINT>MAXINT=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => UInt8.MAXINT());
+              x.assertGreaterThan(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('assertGreaterThanOrEqual', () => {
+        it('1<=1=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(1));
+              x.assertGreaterThanOrEqual(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('1>=2=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(1));
+              const y = Provable.witness(UInt8, () => new UInt8(2));
+              x.assertGreaterThanOrEqual(y);
+            });
+          }).toThrow();
+        });
+
+        it('100>=10=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(100));
+              const y = Provable.witness(UInt8, () => new UInt8(10));
+              x.assertGreaterThanOrEqual(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('10>=100=false', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => new UInt8(10));
+              const y = Provable.witness(UInt8, () => new UInt8(100));
+              x.assertGreaterThanOrEqual(y);
+            });
+          }).toThrow();
+        });
+
+        it('MAXINT>=MAXINT=true', () => {
+          expect(() => {
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(UInt8, () => UInt8.MAXINT());
+              const y = Provable.witness(UInt8, () => UInt8.MAXINT());
+              x.assertGreaterThanOrEqual(y);
+            });
+          }).not.toThrow();
+        });
+      });
+
+      describe('from() ', () => {
+        describe('fromNumber()', () => {
+          it('should be the same as Field(1)', () => {
+            expect(() => {
+              Provable.runAndCheck(() => {
+                const x = Provable.witness(UInt8, () => UInt8.from(1));
+                const y = Provable.witness(UInt8, () => new UInt8(1));
+                x.assertEquals(y);
+              });
+            }).not.toThrow();
+          });
+        });
+      });
+    });
+
+    describe('Outside of circuit', () => {
+      describe('add', () => {
+        it('1+1=2', () => {
+          expect(new UInt8(1).add(1).toString()).toEqual('2');
+        });
+
+        it('50+50=100', () => {
+          expect(new UInt8(50).add(50).toString()).toEqual('100');
+        });
+
+        it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
+          const value = ((1n << 8n) - 2n) / 2n;
+          expect(
+            new UInt8(value).add(new UInt8(value)).add(new UInt8(1)).toString()
+          ).toEqual(UInt8.MAXINT().toString());
+        });
+
+        it('should throw on overflow addition', () => {
+          expect(() => {
+            UInt8.MAXINT().add(1);
+          }).toThrow();
+        });
+      });
+
+      describe('sub', () => {
+        it('1-1=0', () => {
+          expect(new UInt8(1).sub(1).toString()).toEqual('0');
+        });
+
+        it('100-50=50', () => {
+          expect(new UInt8(100).sub(50).toString()).toEqual('50');
+        });
+
+        it('should throw on sub if results in negative number', () => {
+          expect(() => {
+            UInt8.from(0).sub(1);
+          }).toThrow();
+        });
+      });
+
+      describe('mul', () => {
+        it('1x2=2', () => {
+          expect(new UInt8(1).mul(2).toString()).toEqual('2');
+        });
+
+        it('1x0=0', () => {
+          expect(new UInt8(1).mul(0).toString()).toEqual('0');
+        });
+
+        it('12x20=240', () => {
+          expect(new UInt8(12).mul(20).toString()).toEqual('240');
+        });
+
+        it('MAXINTx1=MAXINT', () => {
+          expect(UInt8.MAXINT().mul(1).toString()).toEqual(
+            UInt8.MAXINT().toString()
+          );
+        });
+
+        it('should throw on overflow multiplication', () => {
+          expect(() => {
+            UInt8.MAXINT().mul(2);
+          }).toThrow();
+        });
+      });
+
+      describe('div', () => {
+        it('2/1=2', () => {
+          expect(new UInt8(2).div(1).toString()).toEqual('2');
+        });
+
+        it('0/1=0', () => {
+          expect(new UInt8(0).div(1).toString()).toEqual('0');
+        });
+
+        it('20/10=2', () => {
+          expect(new UInt8(20).div(10).toString()).toEqual('2');
+        });
+
+        it('MAXINT/1=MAXINT', () => {
+          expect(UInt8.MAXINT().div(1).toString()).toEqual(
+            UInt8.MAXINT().toString()
+          );
+        });
+
+        it('should throw on division by zero', () => {
+          expect(() => {
+            UInt8.MAXINT().div(0);
+          }).toThrow();
+        });
+      });
+
+      describe('mod', () => {
+        it('1%1=0', () => {
+          expect(new UInt8(1).mod(1).toString()).toEqual('0');
+        });
+
+        it('50%32=18', () => {
+          expect(new UInt8(50).mod(32).toString()).toEqual('18');
+        });
+
+        it('MAXINT%7=3', () => {
+          expect(UInt8.MAXINT().mod(7).toString()).toEqual('3');
+        });
+
+        it('should throw on mod by zero', () => {
+          expect(() => {
+            UInt8.MAXINT().mod(0);
+          }).toThrow();
+        });
+      });
+
+      describe('lessThan', () => {
+        it('1<2=true', () => {
+          expect(new UInt8(1).lessThan(new UInt8(2))).toEqual(Bool(true));
+        });
+
+        it('1<1=false', () => {
+          expect(new UInt8(1).lessThan(new UInt8(1))).toEqual(Bool(false));
+        });
+
+        it('2<1=false', () => {
+          expect(new UInt8(2).lessThan(new UInt8(1))).toEqual(Bool(false));
+        });
+
+        it('10<100=true', () => {
+          expect(new UInt8(10).lessThan(new UInt8(100))).toEqual(Bool(true));
+        });
+
+        it('100<10=false', () => {
+          expect(new UInt8(100).lessThan(new UInt8(10))).toEqual(Bool(false));
+        });
+
+        it('MAXINT<MAXINT=false', () => {
+          expect(UInt8.MAXINT().lessThan(UInt8.MAXINT())).toEqual(Bool(false));
+        });
+      });
+
+      describe('lessThanOrEqual', () => {
+        it('1<=1=true', () => {
+          expect(new UInt8(1).lessThanOrEqual(new UInt8(1))).toEqual(
+            Bool(true)
+          );
+        });
+
+        it('2<=1=false', () => {
+          expect(new UInt8(2).lessThanOrEqual(new UInt8(1))).toEqual(
+            Bool(false)
+          );
+        });
+
+        it('10<=100=true', () => {
+          expect(new UInt8(10).lessThanOrEqual(new UInt8(100))).toEqual(
+            Bool(true)
+          );
+        });
+
+        it('100<=10=false', () => {
+          expect(new UInt8(100).lessThanOrEqual(new UInt8(10))).toEqual(
+            Bool(false)
+          );
+        });
+
+        it('MAXINT<=MAXINT=true', () => {
+          expect(UInt8.MAXINT().lessThanOrEqual(UInt8.MAXINT())).toEqual(
+            Bool(true)
+          );
+        });
+      });
+
+      describe('assertLessThanOrEqual', () => {
+        it('1<=1=true', () => {
+          expect(() => {
+            new UInt8(1).assertLessThanOrEqual(new UInt8(1));
+          }).not.toThrow();
+        });
+
+        it('2<=1=false', () => {
+          expect(() => {
+            new UInt8(2).assertLessThanOrEqual(new UInt8(1));
+          }).toThrow();
+        });
+
+        it('10<=100=true', () => {
+          expect(() => {
+            new UInt8(10).assertLessThanOrEqual(new UInt8(100));
+          }).not.toThrow();
+        });
+
+        it('100<=10=false', () => {
+          expect(() => {
+            new UInt8(100).assertLessThanOrEqual(new UInt8(10));
+          }).toThrow();
+        });
+
+        it('MAXINT<=MAXINT=true', () => {
+          expect(() => {
+            UInt8.MAXINT().assertLessThanOrEqual(UInt8.MAXINT());
+          }).not.toThrow();
+        });
+      });
+
+      describe('greaterThan', () => {
+        it('2>1=true', () => {
+          expect(new UInt8(2).greaterThan(new UInt8(1))).toEqual(Bool(true));
+        });
+
+        it('1>1=false', () => {
+          expect(new UInt8(1).greaterThan(new UInt8(1))).toEqual(Bool(false));
+        });
+
+        it('1>2=false', () => {
+          expect(new UInt8(1).greaterThan(new UInt8(2))).toEqual(Bool(false));
+        });
+
+        it('100>10=true', () => {
+          expect(new UInt8(100).greaterThan(new UInt8(10))).toEqual(Bool(true));
+        });
+
+        it('10>100=false', () => {
+          expect(new UInt8(10).greaterThan(new UInt8(100))).toEqual(
+            Bool(false)
+          );
+        });
+
+        it('MAXINT>MAXINT=false', () => {
+          expect(UInt8.MAXINT().greaterThan(UInt8.MAXINT())).toEqual(
+            Bool(false)
+          );
+        });
+      });
+
+      describe('assertGreaterThan', () => {
+        it('1>1=false', () => {
+          expect(() => {
+            new UInt8(1).assertGreaterThan(new UInt8(1));
+          }).toThrow();
+        });
+
+        it('2>1=true', () => {
+          expect(() => {
+            new UInt8(2).assertGreaterThan(new UInt8(1));
+          }).not.toThrow();
+        });
+
+        it('10>100=false', () => {
+          expect(() => {
+            new UInt8(10).assertGreaterThan(new UInt8(100));
+          }).toThrow();
+        });
+
+        it('100000>1000=true', () => {
+          expect(() => {
+            new UInt8(100).assertGreaterThan(new UInt8(10));
+          }).not.toThrow();
+        });
+
+        it('MAXINT>MAXINT=false', () => {
+          expect(() => {
+            UInt8.MAXINT().assertGreaterThan(UInt8.MAXINT());
+          }).toThrow();
+        });
+      });
+
+      describe('greaterThanOrEqual', () => {
+        it('2>=1=true', () => {
+          expect(new UInt8(2).greaterThanOrEqual(new UInt8(1))).toEqual(
+            Bool(true)
+          );
+        });
+
+        it('1>=1=true', () => {
+          expect(new UInt8(1).greaterThanOrEqual(new UInt8(1))).toEqual(
+            Bool(true)
+          );
+        });
+
+        it('1>=2=false', () => {
+          expect(new UInt8(1).greaterThanOrEqual(new UInt8(2))).toEqual(
+            Bool(false)
+          );
+        });
+
+        it('100>=10=true', () => {
+          expect(new UInt8(100).greaterThanOrEqual(new UInt8(10))).toEqual(
+            Bool(true)
+          );
+        });
+
+        it('10>=100=false', () => {
+          expect(new UInt8(10).greaterThanOrEqual(new UInt8(100))).toEqual(
+            Bool(false)
+          );
+        });
+
+        it('MAXINT>=MAXINT=true', () => {
+          expect(UInt8.MAXINT().greaterThanOrEqual(UInt8.MAXINT())).toEqual(
+            Bool(true)
+          );
+        });
+      });
+
+      describe('assertGreaterThanOrEqual', () => {
+        it('1>=1=true', () => {
+          expect(() => {
+            new UInt8(1).assertGreaterThanOrEqual(new UInt8(1));
+          }).not.toThrow();
+        });
+
+        it('2>=1=true', () => {
+          expect(() => {
+            new UInt8(2).assertGreaterThanOrEqual(new UInt8(1));
+          }).not.toThrow();
+        });
+
+        it('10>=100=false', () => {
+          expect(() => {
+            new UInt8(10).assertGreaterThanOrEqual(new UInt8(100));
+          }).toThrow();
+        });
+
+        it('100>=10=true', () => {
+          expect(() => {
+            new UInt8(100).assertGreaterThanOrEqual(new UInt8(10));
+          }).not.toThrow();
+        });
+
+        it('MAXINT>=MAXINT=true', () => {
+          expect(() => {
+            UInt32.MAXINT().assertGreaterThanOrEqual(UInt32.MAXINT());
+          }).not.toThrow();
+        });
+      });
+
+      describe('toString()', () => {
+        it('should be the same as Field(0)', async () => {
+          const x = new UInt8(0);
+          const y = Field(0);
+          expect(x.toString()).toEqual(y.toString());
+        });
+        it('should be the same as 2^8-1', async () => {
+          const x = new UInt8(NUMBERMAX.toBigInt());
+          const y = Field(String(NUMBERMAX));
+          expect(x.toString()).toEqual(y.toString());
+        });
+      });
+
+      describe('check()', () => {
+        it('should pass checking a MAXINT', () => {
+          expect(() => {
+            UInt8.check(UInt8.MAXINT());
+          }).not.toThrow();
+        });
+
+        it('should throw checking over MAXINT', () => {
+          const x = UInt8.MAXINT();
+          expect(() => {
+            UInt8.check(x.add(1));
+          }).toThrow();
+        });
+      });
+
+      describe('from() ', () => {
+        describe('fromNumber()', () => {
+          it('should be the same as Field(1)', () => {
+            const x = UInt8.from(1);
+            expect(x.value).toEqual(Field(1));
+          });
+
+          it('should be the same as 2^53-1', () => {
+            const x = UInt8.from(NUMBERMAX);
+            expect(x.value).toEqual(NUMBERMAX);
           });
         });
       });

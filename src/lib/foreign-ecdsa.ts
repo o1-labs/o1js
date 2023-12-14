@@ -11,9 +11,10 @@ import { AlmostForeignField } from './foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { Ecdsa } from './gadgets/elliptic-curve.js';
-import { Field } from './field.js';
 import { l } from './gadgets/range-check.js';
 import { Keccak } from './keccak.js';
+import { Bytes } from './provable-types/provable-types.js';
+import { UInt8 } from './int.js';
 
 // external API
 export { createEcdsa, EcdsaSignature };
@@ -99,7 +100,7 @@ class EcdsaSignature {
    * isValid.assertTrue('signature verifies');
    * ```
    */
-  verify(message: Field[], publicKey: FlexiblePoint) {
+  verify(message: Bytes, publicKey: FlexiblePoint) {
     let msgHashBytes = Keccak.ethereum(message);
     let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
     return this.verifySignedHash(msgHash, publicKey);
@@ -132,8 +133,7 @@ class EcdsaSignature {
    * Note: This method is not provable, and only takes JS bigints as input.
    */
   static sign(message: (bigint | number)[] | Uint8Array, privateKey: bigint) {
-    let msgFields = [...message].map(Field.from);
-    let msgHashBytes = Keccak.ethereum(msgFields);
+    let msgHashBytes = Keccak.ethereum(message);
     let msgHash = keccakOutputToScalar(msgHashBytes, this.Curve);
     return this.signHash(msgHash.toBigInt(), privateKey);
   }
@@ -228,7 +228,7 @@ function toObject(signature: EcdsaSignature) {
  * - takes a 32 bytes hash
  * - converts them to 3 limbs which collectively have L_n <= 256 bits
  */
-function keccakOutputToScalar(hash: Field[], Curve: typeof ForeignCurve) {
+function keccakOutputToScalar(hash: Bytes, Curve: typeof ForeignCurve) {
   const L_n = Curve.Scalar.sizeInBits;
   // keep it simple for now, avoid dealing with dropping bits
   // TODO: what does "leftmost bits" mean? big-endian or little-endian?
@@ -240,14 +240,15 @@ function keccakOutputToScalar(hash: Field[], Curve: typeof ForeignCurve) {
   // piece together into limbs
   // bytes are big-endian, so the first byte is the most significant
   assert(l === 88n);
-  let x2 = bytesToLimbBE(hash.slice(0, 10));
-  let x1 = bytesToLimbBE(hash.slice(10, 21));
-  let x0 = bytesToLimbBE(hash.slice(21, 32));
+  let x2 = bytesToLimbBE(hash.bytes.slice(0, 10));
+  let x1 = bytesToLimbBE(hash.bytes.slice(10, 21));
+  let x0 = bytesToLimbBE(hash.bytes.slice(21, 32));
 
   return new Curve.Scalar.AlmostReduced([x0, x1, x2]);
 }
 
-function bytesToLimbBE(bytes: Field[]) {
+function bytesToLimbBE(bytes_: UInt8[]) {
+  let bytes = bytes_.map((x) => x.value);
   let n = bytes.length;
   let limb = bytes[0];
   for (let i = 1; i < n; i++) {

@@ -1,8 +1,11 @@
 import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
-import { rangeCheck8 } from './gadgets/range-check.js';
 import { Provable } from './provable.js';
+import { chunk } from './util/arrays.js';
+import { FlexibleBytes } from './provable-types/bytes.js';
+import { UInt8 } from './int.js';
+import { Bytes } from './provable-types/provable-types.js';
 
 export { Keccak };
 
@@ -13,25 +16,25 @@ const Keccak = {
    *
    * Applies the SHA-3 hash function to a list of big-endian byte-sized {@link Field} elements, flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
-   * The function accepts a list of byte-sized {@link Field} elements as its input. However, the input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
+   * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]` of `Uint8Array` to perform a hash outside provable code.
    *
-   * The output is ensured to conform to the chosen bit length and is a list of big-endian byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
+   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   * Both input and output bytes are big-endian.
    *
    * @param len - Desired output length in bits. Valid options: 256, 384, 512.
-   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
-   *
-   * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
+   * @param message - Big-endian {@link Bytes} representing the message to hash.
    *
    * ```ts
-   * let preimage = [5, 6, 19, 28, 19].map(Field);
+   * let preimage = Bytes.fromString("hello world");
    * let digest256 = Keccak.nistSha3(256, preimage);
    * let digest384 = Keccak.nistSha3(384, preimage);
    * let digest512 = Keccak.nistSha3(512, preimage);
    * ```
    *
    */
-  nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
-    return nistSha3(len, message);
+  nistSha3(len: 256 | 384 | 512, message: FlexibleBytes) {
+    return nistSha3(len, Bytes.from(message));
   },
   /**
    * Ethereum-Compatible Keccak-256 Hash Function.
@@ -39,22 +42,20 @@ const Keccak = {
    *
    * Primarily used in Ethereum for hashing transactions, messages, and other types of payloads.
    *
-   * The function expects an input as a list of big-endian byte-sized {@link Field} elements. However, the input should be range checked before calling this function,
-   * as this function does not perform internal range checking. This can be done using {@link Gadgets.rangeCheck8}.
+   * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]` of `Uint8Array` to perform a hash outside provable code.
    *
-   * Produces an output which is a list of big-endian byte-sized {@link Field} elements and ensures output is within the specified range using {@link Gadgets.rangeCheck8}.
+   * Produces an output of {@link Bytes} of length 32. Both input and output bytes are big-endian.
    *
-   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
-   *
-   * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
+   * @param message - Big-endian {@link Bytes} representing the message to hash.
    *
    * ```ts
-   * let preimage = [5, 6, 19, 28, 19].map(Field);
+   * let preimage = Bytes.fromString("hello world");
    * let digest = Keccak.ethereum(preimage);
    * ```
    */
-  ethereum(message: Field[]): Field[] {
-    return ethereum(message);
+  ethereum(message: FlexibleBytes) {
+    return ethereum(Bytes.from(message));
   },
   /**
    * Implementation of [pre-NIST Keccak](https://keccak.team/keccak.html) hash function.
@@ -65,25 +66,25 @@ const Keccak = {
    *
    * The function applies the pre-NIST Keccak hash function to a list of byte-sized {@link Field} elements and is flexible to handle varying output lengths (256, 384, 512 bits) as specified.
    *
-   * {@link Keccak.preNist} accepts a list of big-endian byte-sized {@link Field} elements as its input. However, input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
+   * {@link Keccak.preNist} accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]` of `Uint8Array` to perform a hash outside provable code.
    *
-   * The hash output is ensured to conform to the chosen bit length and is a list of big-endian byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
+   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   * Both input and output bytes are big-endian.
    *
    * @param len - Desired output length in bits. Valid options: 256, 384, 512.
-   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
-   *
-   * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
+   * @param message - Big-endian {@link Bytes} representing the message to hash.
    *
    * ```ts
-   * let preimage = [5, 6, 19, 28, 19].map(Field);
+   * let preimage = Bytes.fromString("hello world");
    * let digest256 = Keccak.preNist(256, preimage);
    * let digest384 = Keccak.preNist(384, preimage);
    * let digest512= Keccak.preNist(512, preimage);
    * ```
    *
    */
-  preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
-    return preNist(len, message);
+  preNist(len: 256 | 384 | 512, message: FlexibleBytes) {
+    return preNist(len, Bytes.from(message));
   },
 };
 
@@ -167,7 +168,7 @@ function bytesToPad(rate: number, length: number): number {
 // The padded message will start with the message argument followed by the padding rule (below) to fulfill a length that is a multiple of rate (in bytes).
 // If nist is true, then the padding rule is 0x06 ..0*..1.
 // If nist is false, then the padding rule is 10*1.
-function pad(message: Field[], rate: number, nist: boolean): Field[] {
+function pad(message: UInt8[], rate: number, nist: boolean): UInt8[] {
   // Find out desired length of the padding in bytes
   // If message is already rate bits, need to pad full rate again
   const extraBytes = bytesToPad(rate, message.length);
@@ -177,8 +178,8 @@ function pad(message: Field[], rate: number, nist: boolean): Field[] {
   const last = 0x80n;
 
   // Create the padding vector
-  const pad = Array(extraBytes).fill(Field.from(0));
-  pad[0] = Field.from(first);
+  const pad = Array<UInt8>(extraBytes).fill(UInt8.from(0));
+  pad[0] = UInt8.from(first);
   pad[extraBytes - 1] = pad[extraBytes - 1].add(last);
 
   // Return the padded message
@@ -389,11 +390,11 @@ function sponge(
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
 // - then, {0} pad will take place to finish the 200 bytes of the state.
 function hash(
-  message: Field[],
+  message: Bytes,
   length: number,
   capacity: number,
   nistVersion: boolean
-): Field[] {
+): UInt8[] {
   // Throw errors if used improperly
   assert(capacity > 0, 'capacity must be positive');
   assert(
@@ -411,7 +412,7 @@ function hash(
   const rate = KECCAK_STATE_LENGTH_WORDS - capacity;
 
   // apply padding, convert to words, and hash
-  const paddedBytes = pad(message, rate * BYTES_PER_WORD, nistVersion);
+  const paddedBytes = pad(message.bytes, rate * BYTES_PER_WORD, nistVersion);
   const padded = bytesToWords(paddedBytes);
 
   const hash = sponge(padded, length, capacity, rate);
@@ -421,18 +422,20 @@ function hash(
 }
 
 // Gadget for NIST SHA-3 function for output lengths 256/384/512.
-function nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
-  return hash(message, len / 8, len / 4, true);
+function nistSha3(len: 256 | 384 | 512, message: Bytes): Bytes {
+  let bytes = hash(message, len / 8, len / 4, true);
+  return BytesOfBitlength[len].from(bytes);
 }
 
 // Gadget for pre-NIST SHA-3 function for output lengths 256/384/512.
 // Note that when calling with output length 256 this is equivalent to the ethereum function
-function preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
-  return hash(message, len / 8, len / 4, false);
+function preNist(len: 256 | 384 | 512, message: Bytes): Bytes {
+  let bytes = hash(message, len / 8, len / 4, false);
+  return BytesOfBitlength[len].from(bytes);
 }
 
 // Gadget for Keccak hash function for the parameters used in Ethereum.
-function ethereum(message: Field[]): Field[] {
+function ethereum(message: Bytes): Bytes {
   return preNist(256, message);
 }
 
@@ -493,27 +496,36 @@ const State = {
   },
 };
 
+// AUXILIARY TYPES
+
+class Bytes32 extends Bytes(32) {}
+class Bytes48 extends Bytes(48) {}
+class Bytes64 extends Bytes(64) {}
+
+const BytesOfBitlength = {
+  256: Bytes32,
+  384: Bytes48,
+  512: Bytes64,
+};
+
 // AUXILARY FUNCTIONS
 
 // Auxiliary functions to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
 
-function bytesToWord(wordBytes: Field[]): Field {
-  return wordBytes.reduce((acc, value, idx) => {
+function bytesToWord(wordBytes: UInt8[]): Field {
+  return wordBytes.reduce((acc, byte, idx) => {
     const shift = 1n << BigInt(8 * idx);
-    return acc.add(value.mul(shift));
+    return acc.add(byte.value.mul(shift));
   }, Field.from(0));
 }
 
-function wordToBytes(word: Field): Field[] {
-  let bytes = Provable.witness(Provable.Array(Field, BYTES_PER_WORD), () => {
+function wordToBytes(word: Field): UInt8[] {
+  let bytes = Provable.witness(Provable.Array(UInt8, BYTES_PER_WORD), () => {
     let w = word.toBigInt();
     return Array.from({ length: BYTES_PER_WORD }, (_, k) =>
-      Field.from((w >> BigInt(8 * k)) & 0xffn)
+      UInt8.from((w >> BigInt(8 * k)) & 0xffn)
     );
   });
-  // range-check
-  // TODO(jackryanservia): Use lookup argument once issue is resolved
-  bytes.forEach(rangeCheck8);
 
   // check decomposition
   bytesToWord(bytes).assertEquals(word);
@@ -521,19 +533,12 @@ function wordToBytes(word: Field): Field[] {
   return bytes;
 }
 
-function bytesToWords(bytes: Field[]): Field[] {
+function bytesToWords(bytes: UInt8[]): Field[] {
   return chunk(bytes, BYTES_PER_WORD).map(bytesToWord);
 }
 
-function wordsToBytes(words: Field[]): Field[] {
+function wordsToBytes(words: Field[]): UInt8[] {
   return words.flatMap(wordToBytes);
-}
-
-function chunk<T>(array: T[], size: number): T[][] {
-  assert(array.length % size === 0, 'invalid input length');
-  return Array.from({ length: array.length / size }, (_, i) =>
-    array.slice(size * i, size * (i + 1))
-  );
 }
 
 // xor which avoids doing anything on 0 inputs

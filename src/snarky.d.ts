@@ -525,6 +525,7 @@ declare const Snarky: {
     };
   };
 
+  // TODO: implement in TS
   poseidon: {
     update(
       state: MlArray<FieldVar>,

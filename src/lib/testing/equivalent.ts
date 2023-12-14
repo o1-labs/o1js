@@ -122,7 +122,7 @@ function toUnion<T1, T2>(spec: OrUnion<T1, T2>): FromSpecUnion<T1, T2> {
 function equivalent<
   In extends Tuple<FromSpec<any, any>>,
   Out extends ToSpec<any, any>
->({ from, to }: { from: In; to: Out }) {
+>({ from, to, verbose }: { from: In; to: Out; verbose?: boolean }) {
   return function run(
     f1: (...args: Params1<In>) => First<Out>,
     f2: (...args: Params2<In>) => Second<Out>,
@@ -130,7 +130,8 @@ function equivalent<
   ) {
     let generators = from.map((spec) => spec.rng);
     let assertEqual = to.assertEqual ?? deepEqual;
-    test(...(generators as any[]), (...args) => {
+    let start = performance.now();
+    let nRuns = test(...(generators as any[]), (...args) => {
       args.pop();
       let inputs = args as Params1<In>;
       handleErrors(
@@ -143,6 +144,14 @@ function equivalent<
         label
       );
     });
+
+    if (verbose) {
+      let ms = (performance.now() - start).toFixed(1);
+      let runs = nRuns.toString().padStart(2, ' ');
+      console.log(
+        `${label.padEnd(20, ' ')}    success on ${runs} runs in ${ms}ms.`
+      );
+    }
   };
 }
 

@@ -7,7 +7,7 @@ import {
   ecdsa,
   keccakAndEcdsa,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
-import { GroupCS, BitwiseCS } from './plain-constraint-system.js';
+import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
@@ -42,6 +42,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   createDex().Dex,
   GroupCS,
   BitwiseCS,
+  HashCS,
   ecdsa,
   keccakAndEcdsa,
 ];
