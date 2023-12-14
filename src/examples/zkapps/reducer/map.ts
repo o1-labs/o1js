@@ -64,17 +64,11 @@ class StorageContract extends SmartContract {
     let { state: optionValue } = this.reducer.reduce(
       pendingActions,
       Option,
-      (
-        _state: Option,
-        _action: {
-          key: Field;
-          value: Field;
-        }
-      ) => {
-        let currentMatch = keyHash.equals(_action.key);
+      (state, action) => {
+        let currentMatch = keyHash.equals(action.key);
         return {
-          isSome: currentMatch.or(_state.isSome),
-          value: Provable.if(currentMatch, _action.value, _state.value),
+          isSome: currentMatch.or(state.isSome),
+          value: Provable.if(currentMatch, action.value, state.value),
         };
       },
       {
