@@ -11,7 +11,7 @@ import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
 
-export { BoolVar, Bool, isBool };
+export { BoolVar, Bool };
 
 // same representation, but use a different name to communicate intent / constraints
 type BoolVar = FieldVar;
@@ -368,10 +368,6 @@ function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
   }
 
   return x.isConstant();
-}
-
-function isBool(x: unknown) {
-  return x instanceof Bool;
 }
 
 function toBoolean(x: boolean | Bool): boolean {

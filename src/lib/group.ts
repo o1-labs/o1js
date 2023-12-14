@@ -1,4 +1,4 @@
-import { Field, FieldVar, isField } from './field.js';
+import { Field, FieldVar } from './field.js';
 import { Scalar } from './scalar.js';
 import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
@@ -48,8 +48,8 @@ class Group {
     x: FieldVar | Field | number | string | bigint;
     y: FieldVar | Field | number | string | bigint;
   }) {
-    this.x = isField(x) ? x : new Field(x);
-    this.y = isField(y) ? y : new Field(y);
+    this.x = x instanceof Field ? x : new Field(x);
+    this.y = y instanceof Field ? y : new Field(y);
 
     if (this.#isConstant()) {
       // we also check the zero element (0, 0) here

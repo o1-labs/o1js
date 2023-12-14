@@ -17,7 +17,6 @@ export {
   ConstantField,
   VarField,
   VarFieldVar,
-  isField,
   withMessage,
   readVarMessage,
   toConstantField,
@@ -1246,10 +1245,6 @@ const FieldBinable = defineBinable({
 });
 
 // internal helper functions
-
-function isField(x: unknown): x is Field {
-  return x instanceof Field;
-}
 
 function isConstant(
   x: bigint | number | string | Field
