@@ -7,15 +7,81 @@ import { Provable } from './provable.js';
 export { Keccak };
 
 const Keccak = {
-  /** TODO */
+  /**
+   * Implementation of [NIST SHA-3](https://csrc.nist.gov/pubs/fips/202/final) Hash Function.
+   * Supports output lengths of 256, 384, or 512 bits.
+   *
+   * Applies the SHA-3 hash function to a list of big-endian byte-sized {@link Field} elements, flexible to handle varying output lengths (256, 384, 512 bits) as specified.
+   *
+   * The function accepts a list of byte-sized {@link Field} elements as its input. However, the input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
+   *
+   * The output is ensured to conform to the chosen bit length and is a list of big-endian byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
+   *
+   * @param len - Desired output length in bits. Valid options: 256, 384, 512.
+   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
+   *
+   * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
+   *
+   * ```ts
+   * let preimage = [5, 6, 19, 28, 19].map(Field);
+   * let digest256 = Keccak.nistSha3(256, preimage);
+   * let digest384 = Keccak.nistSha3(384, preimage);
+   * let digest512 = Keccak.nistSha3(512, preimage);
+   * ```
+   *
+   */
   nistSha3(len: 256 | 384 | 512, message: Field[]): Field[] {
     return nistSha3(len, message);
   },
-  /** TODO */
+  /**
+   * Ethereum-Compatible Keccak-256 Hash Function.
+   * This is a specialized variant of {@link Keccak.preNist} configured for a 256-bit output length.
+   *
+   * Primarily used in Ethereum for hashing transactions, messages, and other types of payloads.
+   *
+   * The function expects an input as a list of big-endian byte-sized {@link Field} elements. However, the input should be range checked before calling this function,
+   * as this function does not perform internal range checking. This can be done using {@link Gadgets.rangeCheck8}.
+   *
+   * Produces an output which is a list of big-endian byte-sized {@link Field} elements and ensures output is within the specified range using {@link Gadgets.rangeCheck8}.
+   *
+   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
+   *
+   * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
+   *
+   * ```ts
+   * let preimage = [5, 6, 19, 28, 19].map(Field);
+   * let digest = Keccak.ethereum(preimage);
+   * ```
+   */
   ethereum(message: Field[]): Field[] {
     return ethereum(message);
   },
-  /** TODO */
+  /**
+   * Implementation of [pre-NIST Keccak](https://keccak.team/keccak.html) hash function.
+   * Supports output lengths of 256, 384, or 512 bits.
+   *
+   * Keccak won the SHA-3 competition and was slightly altered before being standardized as SHA-3 by NIST in 2015.
+   * This variant was used in Ethereum before the NIST standardization, by specifying `len` as 256 bits you can obtain the same hash function as used by Ethereum {@link Keccak.ethereum}.
+   *
+   * The function applies the pre-NIST Keccak hash function to a list of byte-sized {@link Field} elements and is flexible to handle varying output lengths (256, 384, 512 bits) as specified.
+   *
+   * {@link Keccak.preNist} accepts a list of big-endian byte-sized {@link Field} elements as its input. However, input values should be range-checked externally before being passed to this function. This can be done using {@link Gadgets.rangeCheck8}.
+   *
+   * The hash output is ensured to conform to the chosen bit length and is a list of big-endian byte-sized {@link Field} elements, range-checked using {@link Gadgets.rangeCheck8}.
+   *
+   * @param len - Desired output length in bits. Valid options: 256, 384, 512.
+   * @param message - Big-endian list of byte-sized {@link Field} elements representing the message to hash.
+   *
+   * _Note:_ This function does not perform internal range checking on the input, this can be done by using {@link Gadgets.rangeCheck8}.
+   *
+   * ```ts
+   * let preimage = [5, 6, 19, 28, 19].map(Field);
+   * let digest256 = Keccak.preNist(256, preimage);
+   * let digest384 = Keccak.preNist(384, preimage);
+   * let digest512= Keccak.preNist(512, preimage);
+   * ```
+   *
+   */
   preNist(len: 256 | 384 | 512, message: Field[]): Field[] {
     return preNist(len, message);
   },
