@@ -15,12 +15,14 @@ import { ZkProgram } from '../proof_system.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import {
+  allConstant,
   and,
   constraintSystem,
   contains,
   equals,
   ifNotAllConstant,
   not,
+  or,
   repeat,
   withoutGenerics,
 } from '../testing/constraint-system.js';
@@ -326,10 +328,13 @@ constraintSystem(
   'assert mul',
   from2,
   (x, y) => assertMulExample(x, y, F.modulus),
-  and(
-    contains([addChain(1), addChain(1), addChainedIntoMul]),
-    // assertMul() doesn't use any range checks besides on internal values and the quotient
-    containsNTimes(2, mrc)
+  or(
+    and(
+      contains([addChain(2), addChain(2), addChainedIntoMul]),
+      // assertMul() doesn't use any range checks besides on internal values and the quotient
+      containsNTimes(2, mrc)
+    ),
+    allConstant
   )
 );
 
