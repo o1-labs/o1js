@@ -156,7 +156,7 @@ class Field {
    * Coerce anything "field-like" (bigint, number, string, and {@link Field}) to a Field.
    */
   constructor(x: bigint | number | string | Field | FieldVar | FieldConst) {
-    if (Field.#isField(x)) {
+    if (x instanceof Field) {
       this.value = x.value;
       return;
     }
@@ -176,21 +176,9 @@ class Field {
   }
 
   // helpers
-  static #isField(
-    x: bigint | number | string | Field | FieldVar | FieldConst
-  ): x is Field {
-    return x instanceof Field;
-  }
-  static #toConst(x: bigint | number | string | ConstantField): FieldConst {
-    if (Field.#isField(x)) return x.value[1];
-    return FieldConst.fromBigint(Fp(x));
-  }
-  static #toVar(x: bigint | number | string | Field): FieldVar {
-    if (Field.#isField(x)) return x.value;
-    return FieldVar.constant(Fp(x));
-  }
+
   static from(x: bigint | number | string | Field): Field {
-    if (Field.#isField(x)) return x;
+    if (x instanceof Field) return x;
     return new Field(x);
   }
 
@@ -216,10 +204,6 @@ class Field {
     return this.value[0] === FieldType.Constant;
   }
 
-  #toConstant(name: string): ConstantField {
-    return toConstantField(this, name, 'x', 'field element');
-  }
-
   /**
    * Create a {@link Field} element equivalent to this {@link Field} element's value,
    * but is a constant.
@@ -234,7 +218,7 @@ class Field {
    * @return A constant {@link Field} element equivalent to this {@link Field} element.
    */
   toConstant(): ConstantField {
-    return this.#toConstant('toConstant');
+    return toConstant(this, 'toConstant');
   }
 
   /**
@@ -251,7 +235,7 @@ class Field {
    * @return A bigint equivalent to the bigint representation of the Field.
    */
   toBigInt() {
-    let x = this.#toConstant('toBigInt');
+    let x = toConstant(this, 'toBigInt');
     return FieldConst.toBigint(x.value[1]);
   }
 
@@ -269,7 +253,7 @@ class Field {
    * @return A string equivalent to the string representation of the Field.
    */
   toString() {
-    return this.#toConstant('toString').toBigInt().toString();
+    return toConstant(this, 'toString').toBigInt().toString();
   }
 
   /**
@@ -290,7 +274,7 @@ class Field {
         }
         return;
       }
-      Snarky.field.assertEqual(this.value, Field.#toVar(y));
+      Snarky.field.assertEqual(this.value, toFieldVar(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -329,7 +313,7 @@ class Field {
       return new Field(Fp.add(this.toBigInt(), toFp(y)));
     }
     // return new AST node Add(x, y)
-    let z = Snarky.field.add(this.value, Field.#toVar(y));
+    let z = Snarky.field.add(this.value, toFieldVar(y));
     return new Field(z);
   }
 
@@ -456,7 +440,7 @@ class Field {
     }
     // if one of the factors is constant, return Scale AST node
     if (isConstant(y)) {
-      let z = Snarky.field.scale(Field.#toConst(y), this.value);
+      let z = Snarky.field.scale(toFieldConst(y), this.value);
       return new Field(z);
     }
     if (this.isConstant()) {
@@ -664,24 +648,6 @@ class Field {
     return new Field(xMinusY).isZero();
   }
 
-  // internal base method for all comparisons
-  #compare(y: FieldVar) {
-    // TODO: support all bit lengths
-    let maxLength = Fp.sizeInBits - 2;
-    asProver(() => {
-      let actualLength = Math.max(
-        this.toBigInt().toString(2).length,
-        new Field(y).toBigInt().toString(2).length
-      );
-      if (actualLength > maxLength)
-        throw Error(
-          `Provable comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
-        );
-    });
-    let [, less, lessOrEqual] = Snarky.field.compare(maxLength, this.value, y);
-    return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
-  }
-
   /**
    * Check if this {@link Field} is less than another "field-like" value.
    * Returns a {@link Bool}, which is a provable type and can be used prove to the validity of this statement.
@@ -709,7 +675,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() < toFp(y));
     }
-    return this.#compare(Field.#toVar(y)).less;
+    return compare(this, toFieldVar(y)).less;
   }
 
   /**
@@ -739,7 +705,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() <= toFp(y));
     }
-    return this.#compare(Field.#toVar(y)).lessOrEqual;
+    return compare(this, toFieldVar(y)).lessOrEqual;
   }
 
   /**
@@ -817,7 +783,7 @@ class Field {
         }
         return;
       }
-      let { less } = this.#compare(Field.#toVar(y));
+      let { less } = compare(this, toFieldVar(y));
       less.assertTrue();
     } catch (err) {
       throw withMessage(err, message);
@@ -845,7 +811,7 @@ class Field {
         }
         return;
       }
-      let { lessOrEqual } = this.#compare(Field.#toVar(y));
+      let { lessOrEqual } = compare(this, toFieldVar(y));
       lessOrEqual.assertTrue();
     } catch (err) {
       throw withMessage(err, message);
@@ -1165,7 +1131,7 @@ class Field {
    * @return A string equivalent to the JSON representation of the {@link Field}.
    */
   toJSON() {
-    return this.#toConstant('toJSON').toString();
+    return toConstant(this, 'toJSON').toString();
   }
 
   /**
@@ -1279,6 +1245,8 @@ const FieldBinable = defineBinable({
   },
 });
 
+// internal helper functions
+
 function isField(x: unknown): x is Field {
   return x instanceof Field;
 }
@@ -1301,10 +1269,38 @@ function toFp(x: bigint | number | string | Field): Fp {
   return (x as Field).toBigInt();
 }
 
+function toFieldConst(x: bigint | number | string | ConstantField): FieldConst {
+  if (x instanceof Field) return x.value[1];
+  return FieldConst.fromBigint(Fp(x));
+}
+
+function toFieldVar(x: bigint | number | string | Field): FieldVar {
+  if (x instanceof Field) return x.value;
+  return FieldVar.constant(Fp(x));
+}
+
 function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
+}
+
+// internal base method for all comparisons
+function compare(x: Field, y: FieldVar) {
+  // TODO: support all bit lengths
+  let maxLength = Fp.sizeInBits - 2;
+  asProver(() => {
+    let actualLength = Math.max(
+      x.toBigInt().toString(2).length,
+      new Field(y).toBigInt().toString(2).length
+    );
+    if (actualLength > maxLength)
+      throw Error(
+        `Provable comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
+      );
+  });
+  let [, less, lessOrEqual] = Snarky.field.compare(maxLength, x.value, y);
+  return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
 }
 
 function checkBitLength(
@@ -1318,6 +1314,10 @@ function checkBitLength(
     );
   if (length < 0)
     throw Error(`${name}: bit length must be non-negative, got ${length}`);
+}
+
+function toConstant(x: Field, name: string): ConstantField {
+  return toConstantField(x, name, 'x', 'field element');
 }
 
 function toConstantField(
