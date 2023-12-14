@@ -98,14 +98,12 @@ console.log(`method size for a "mapping" contract with ${k} entries`);
 console.log('get rows:', cs['get'].rows);
 console.log('set rows:', cs['set'].rows);
 
-// a test account that pays all the fees, and puts additional funds into the zkapp
+// a test account that pays all the fees
 let feePayerKey = Local.testAccounts[0].privateKey;
 let feePayer = Local.testAccounts[0].publicKey;
 
 // the zkapp account
-let zkappKey = PrivateKey.fromBase58(
-  'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
-);
+let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 let zkapp = new StorageContract(zkappAddress);
 
@@ -119,19 +117,20 @@ await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('deployed');
 
-let map: { key: PublicKey; value: Field }[] = [];
-map[0] = {
-  key: PrivateKey.random().toPublicKey(),
-  value: Field(192),
-};
-map[1] = {
-  key: PrivateKey.random().toPublicKey(),
-  value: Field(151),
-};
-map[2] = {
-  key: PrivateKey.random().toPublicKey(),
-  value: Field(781),
-};
+let map: { key: PublicKey; value: Field }[] = [
+  {
+    key: PrivateKey.random().toPublicKey(),
+    value: Field(192),
+  },
+  {
+    key: PrivateKey.random().toPublicKey(),
+    value: Field(151),
+  },
+  {
+    key: PrivateKey.random().toPublicKey(),
+    value: Field(781),
+  },
+];
 
 let key = map[0].key;
 let value = map[0].value;
