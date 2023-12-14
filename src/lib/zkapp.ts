@@ -601,7 +601,7 @@ class SmartContract {
   address: PublicKey;
   tokenId: Field;
 
-  #executionState: ExecutionState | undefined;
+  private _executionState: ExecutionState | undefined;
 
   // here we store various metadata associated with a SmartContract subclass.
   // by initializing all of these to `undefined`, we ensure that
@@ -758,8 +758,8 @@ class SmartContract {
     else this.init();
     let initUpdate = this.self;
     // switch back to the deploy account update so the user can make modifications to it
-    this.#executionState = {
-      transactionId: this.#executionState!.transactionId,
+    this._executionState = {
+      transactionId: this._executionState!.transactionId,
       accountUpdate,
     };
     // check if the entire state was overwritten, show a warning if not
@@ -853,10 +853,10 @@ super.init();
     // it won't create new updates and add them to a transaction implicitly
     if (inSmartContract && inSmartContract.this === this) {
       let accountUpdate = inSmartContract.selfUpdate;
-      this.#executionState = { accountUpdate, transactionId };
+      this._executionState = { accountUpdate, transactionId };
       return accountUpdate;
     }
-    let executionState = this.#executionState;
+    let executionState = this._executionState;
     if (
       executionState !== undefined &&
       executionState.transactionId === transactionId
@@ -866,7 +866,7 @@ super.init();
     // if in a transaction, but outside a @method call, we implicitly create an account update
     // which is stable during the current transaction -- as long as it doesn't get overridden by a method call
     let accountUpdate = selfAccountUpdate(this);
-    this.#executionState = { transactionId, accountUpdate };
+    this._executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
   // same as this.self, but explicitly creates a _new_ account update
@@ -877,11 +877,11 @@ super.init();
     let inTransaction = Mina.currentTransaction.has();
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     let accountUpdate = selfAccountUpdate(this);
-    this.#executionState = { transactionId, accountUpdate };
+    this._executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
 
-  #_senderState: { sender: PublicKey; transactionId: number };
+  private _senderState: { sender: PublicKey; transactionId: number };
 
   /**
    * The public key of the current transaction's sender account.
@@ -900,11 +900,11 @@ super.init();
       );
     }
     let transactionId = Mina.currentTransaction.id();
-    if (this.#_senderState?.transactionId === transactionId) {
-      return this.#_senderState.sender;
+    if (this._senderState?.transactionId === transactionId) {
+      return this._senderState.sender;
     } else {
       let sender = Provable.witness(PublicKey, () => Mina.sender());
-      this.#_senderState = { transactionId, sender };
+      this._senderState = { transactionId, sender };
       return sender;
     }
   }
@@ -1195,7 +1195,7 @@ super.init();
                 publicInput,
                 ...args
               );
-              accountUpdate = instance.#executionState!.accountUpdate;
+              accountUpdate = instance._executionState!.accountUpdate;
               return result;
             }
           );
