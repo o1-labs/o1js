@@ -984,6 +984,12 @@ class UInt8 extends Struct({
     UInt8.checkConstant(this.value);
   }
 
+  static Unsafe = {
+    fromField(x: Field) {
+      return new UInt8(x.value);
+    },
+  };
+
   /**
    * Add a {@link UInt8} to another {@link UInt8} without allowing overflow.
    *
@@ -999,7 +1005,7 @@ class UInt8 extends Struct({
   add(y: UInt8 | bigint | number) {
     let z = this.value.add(UInt8.from(y).value);
     Gadgets.rangeCheck8(z);
-    return UInt8.from(z);
+    return UInt8.Unsafe.fromField(z);
   }
 
   /**
@@ -1017,7 +1023,7 @@ class UInt8 extends Struct({
   sub(y: UInt8 | bigint | number) {
     let z = this.value.sub(UInt8.from(y).value);
     Gadgets.rangeCheck8(z);
-    return UInt8.from(z);
+    return UInt8.Unsafe.fromField(z);
   }
 
   /**
@@ -1035,7 +1041,7 @@ class UInt8 extends Struct({
   mul(y: UInt8 | bigint | number) {
     let z = this.value.mul(UInt8.from(y).value);
     Gadgets.rangeCheck8(z);
-    return UInt8.from(z);
+    return UInt8.Unsafe.fromField(z);
   }
 
   /**
@@ -1097,8 +1103,8 @@ class UInt8 extends Struct({
     Gadgets.rangeCheck16(q);
     Gadgets.rangeCheck16(r);
 
-    let remainder = UInt8.from(r);
-    let quotient = UInt8.from(q);
+    let remainder = UInt8.Unsafe.fromField(r);
+    let quotient = UInt8.Unsafe.fromField(q);
 
     remainder.assertLessThan(y);
     return { quotient, remainder };
@@ -1331,8 +1337,7 @@ class UInt8 extends Struct({
   }
 
   private static checkConstant(x: Field) {
-    if (!x.isConstant()) return x.value;
+    if (!x.isConstant()) return;
     Gadgets.rangeCheck8(x);
-    return x.value;
   }
 }
