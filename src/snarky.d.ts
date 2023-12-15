@@ -14,7 +14,9 @@ import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
   ForeignFieldVar,
   ForeignFieldConst,
+  ForeignAffine,
 } from './lib/foreign-field.js';
+import type { EllipticCurve } from './lib/elliptic-curve.js';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate };
 
@@ -379,6 +381,11 @@ declare const Snarky: {
       y: ForeignFieldVar,
       p: ForeignFieldConst
     ): ForeignFieldVar;
+  };
+
+  foreignGroup: {
+    add(x: ForeignAffine, y: ForeignAffine, curve: EllipticCurve): ForeignAffine;
+    scale(point: ForeignAffine, scalar: MlArray<BoolVar>, curve: EllipticCurve): ForeignAffine;
   };
 };
 
