@@ -16,6 +16,7 @@ class Circuit {
 
   /**
    * Generates a proving key and a verification key for this circuit.
+   * Uses Pasta fields.
    * @example
    * ```ts
    * const keypair = await MyCircuit.generateKeypair();
@@ -27,6 +28,25 @@ class Circuit {
     return prettifyStacktracePromise(
       withThreadPool(async () => {
         let keypair = Snarky.circuit.compile(main, publicInputSize);
+        return new Keypair(keypair);
+      })
+    );
+  }
+
+  /**
+   * Generates a proving key and a verification key for this circuit.
+   * Uses Bn254 Fields.
+   * @example
+   * ```ts
+   * const keypair = await MyCircuit.generateKeypairBn254();
+   * ```
+   */
+  static generateKeypairBn254() {
+    let main = mainFromCircuitData(this._main);
+    let publicInputSize = this._main.publicInputType.sizeInFields();
+    return prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let keypair = Snarky.circuit.compileBn254(main, publicInputSize);
         return new Keypair(keypair);
       })
     );

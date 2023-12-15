@@ -271,10 +271,10 @@ declare const Snarky: {
     toConstantAndTerms(
       x: FieldVar
     ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
-    ];
+        _: 0,
+        constant: MlOption<FieldConst>,
+        terms: MlList<MlTuple<FieldConst, number>>
+      ];
   };
 
   bool: {
@@ -312,9 +312,16 @@ declare const Snarky: {
    */
   circuit: {
     /**
-     * Generates a proving key and a verification key for the provable function `main`
+     * Generates a proving key and a verification key for the provable function `main`.
+     * Uses Pasta fields.
      */
     compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+
+    /**
+     * Generates a proving key and a verification key for the provable function `main`.
+     * Uses Bn254 fields.
+     */
+    compileBn254(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
