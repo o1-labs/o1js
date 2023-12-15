@@ -1,15 +1,12 @@
 import { ZkProgram } from '../proof_system.js';
 import {
-  array,
   equivalentProvable as equivalent,
   equivalentAsync,
   field,
   record,
 } from '../testing/equivalent.js';
-import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
-import { Random } from '../testing/property.js';
 import { provable } from '../circuit_value.js';
 import { assert } from './common.js';
 
