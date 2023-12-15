@@ -373,7 +373,7 @@ const Gadgets = {
   /**
    * Performs a right shift operation on the provided {@link Field} element.
    * This is similar to the `>>` shift operation in JavaScript, where bits are moved to the right.
-   * The `rightShift` function utilizes the rotation method internally to implement this operation.
+   * The `rightShift64` function utilizes the rotation method internally to implement this operation.
    *
    * * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
    * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
@@ -381,7 +381,7 @@ const Gadgets = {
    * **Important:** The gadgets assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the shift.
-   * To safely use `rightShift()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * To safely use `rightShift64()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to shift.
@@ -396,7 +396,7 @@ const Gadgets = {
    * y.assertEquals(0b000011); // 3 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rightShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * rightShift64(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
   rightShift64(field: Field, bits: number) {
