@@ -205,7 +205,7 @@ const theta = (state: Field[][]): Field[][] => {
   const stateD = Array.from({ length: KECCAK_DIM }, (_, i) =>
     xor(
       stateC[(i + KECCAK_DIM - 1) % KECCAK_DIM],
-      Gadgets.rotate(stateC[(i + 1) % KECCAK_DIM], 1, 'left')
+      Gadgets.rotate64(stateC[(i + 1) % KECCAK_DIM], 1, 'left')
     )
   );
 
@@ -249,7 +249,7 @@ function piRho(state: Field[][]): Field[][] {
   // for all i in {0..4} and j in {0..4}: B[j,2i+3j] = ROT(E[i,j], r[i,j])
   for (let i = 0; i < KECCAK_DIM; i++) {
     for (let j = 0; j < KECCAK_DIM; j++) {
-      stateB[j][(2 * i + 3 * j) % KECCAK_DIM] = Gadgets.rotate(
+      stateB[j][(2 * i + 3 * j) % KECCAK_DIM] = Gadgets.rotate64(
         stateE[i][j],
         ROT_TABLE[i][j],
         'left'
