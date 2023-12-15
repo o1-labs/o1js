@@ -231,7 +231,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   xor(x: UInt64) {
-    return Gadgets.xor(this.value, x.value, UInt64.NUM_BITS);
+    return new UInt64(Gadgets.xor(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -264,7 +264,7 @@ class UInt64 extends CircuitValue {
    *
    */
   not() {
-    return Gadgets.not(this.value, UInt64.NUM_BITS, false);
+    return new UInt64(Gadgets.not(this.value, UInt64.NUM_BITS, false));
   }
 
   /**
@@ -296,7 +296,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate64(this.value, bits, direction);
+    return new UInt64(Gadgets.rotate64(this.value, bits, direction));
   }
 
   /**
@@ -317,7 +317,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return Gadgets.leftShift64(this.value, bits);
+    return new UInt64(Gadgets.leftShift64(this.value, bits));
   }
 
   /**
@@ -338,7 +338,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return Gadgets.leftShift64(this.value, bits);
+    return new UInt64(Gadgets.leftShift64(this.value, bits));
   }
 
   /**
@@ -367,7 +367,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   and(x: UInt64) {
-    return Gadgets.and(this.value, x.value, UInt64.NUM_BITS);
+    return new UInt64(Gadgets.and(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -733,7 +733,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   xor(x: UInt32) {
-    return Gadgets.xor(this.value, x.value, UInt32.NUM_BITS);
+    return new UInt32(Gadgets.xor(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
@@ -764,7 +764,7 @@ class UInt32 extends CircuitValue {
    * @param a - The value to apply NOT to.
    */
   not() {
-    return Gadgets.not(this.value, UInt32.NUM_BITS, false);
+    return new UInt32(Gadgets.not(this.value, UInt32.NUM_BITS, false));
   }
 
   /**
@@ -796,7 +796,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate32(this.value, bits, direction);
+    return new UInt32(Gadgets.rotate32(this.value, bits, direction));
   }
 
   /**
@@ -819,7 +819,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return Gadgets.leftShift32(this.value, bits);
+    return new UInt32(Gadgets.leftShift32(this.value, bits));
   }
 
   /**
@@ -842,7 +842,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return Gadgets.rightShift64(this.value, bits);
+    return new UInt32(Gadgets.rightShift64(this.value, bits));
   }
 
   /**
