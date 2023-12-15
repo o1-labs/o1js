@@ -2,7 +2,7 @@
 import { Field } from '../field.js';
 import { UInt32 } from '../int.js';
 import { TupleN } from '../util/types.js';
-import { assert, bitSlice, exists } from './common.js';
+import { bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
 
 export { SHA256 };
@@ -83,7 +83,7 @@ const SHA256 = {
           .value.add(W[t - 7].value)
           .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
-        W[t] = UInt32.from(Gadgets.divMod32(unreduced).remainder);
+        W[t] = UInt32.from(Gadgets.divMod32(unreduced, 16).remainder);
       }
 
       // initialize working variables
@@ -109,12 +109,14 @@ const SHA256 = {
         h = g;
         g = f;
         f = e;
-        e = UInt32.from(Gadgets.divMod32(d.value.add(unreducedT1)).remainder);
+        e = UInt32.from(
+          Gadgets.divMod32(d.value.add(unreducedT1), 16).remainder
+        );
         d = c;
         c = b;
         b = a;
         a = UInt32.from(
-          Gadgets.divMod32(unreducedT2.add(unreducedT1)).remainder
+          Gadgets.divMod32(unreducedT2.add(unreducedT1), 16).remainder
         );
       }
 
@@ -136,17 +138,21 @@ const SHA256 = {
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
-  let xAndY = x.and(y);
-  let xNotAndZ = x.not().and(z);
-  return xAndY.xor(xNotAndZ);
+  // ch(x, y, z) = (x & y) ^ (~x & z)
+  //             = (x & y) + (~x & z) (since x & ~x = 0)
+  let xAndY = x.and(y).value;
+  let xNotAndZ = x.not().and(z).value;
+  let ch = xAndY.add(xNotAndZ).seal();
+  return UInt32.from(ch);
 }
 
 function Maj(x: UInt32, y: UInt32, z: UInt32) {
-  let xAndY = x.and(y);
-  let xAndZ = x.and(z);
-  let yAndZ = y.and(z);
-
-  return xAndY.xor(xAndZ).xor(yAndZ);
+  // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z)
+  //              = (x + y + z - (x ^ y ^ z)) / 2
+  let sum = x.value.add(y.value).add(z.value).seal();
+  let xor = x.xor(y).xor(z).value;
+  let maj = sum.sub(xor).div(2).seal();
+  return UInt32.from(maj);
 }
 
 function SigmaZero(x: UInt32) {
