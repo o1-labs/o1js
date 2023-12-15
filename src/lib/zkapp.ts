@@ -729,7 +729,7 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
-    let accountUpdate = this.newSelf();
+    let accountUpdate = this.newSelf('deploy');
     verificationKey ??= (this.constructor as typeof SmartContract)
       ._verificationKey;
     if (verificationKey === undefined) {
@@ -873,10 +873,10 @@ super.init();
   /**
    * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
    */
-  newSelf(): AccountUpdate {
+  newSelf(methodName?: string): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
-    let accountUpdate = selfAccountUpdate(this);
+    let accountUpdate = selfAccountUpdate(this, methodName);
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
