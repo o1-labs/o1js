@@ -1,12 +1,18 @@
+/**
+ * Foreign field arithmetic gadgets.
+ */
 import {
   inverse as modInverse,
   mod,
 } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { Bool } from '../bool.js';
+import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { Tuple } from '../util/types.js';
-import { assert, bitSlice, exists, toVars } from './common.js';
+import { Tuple, TupleN } from '../util/types.js';
+import { assertOneOf } from './basic.js';
+import { assert, bitSlice, exists, toVar, toVars } from './common.js';
 import {
   l,
   lMask,
@@ -17,7 +23,11 @@ import {
   compactMultiRangeCheck,
 } from './range-check.js';
 
-export { ForeignField, Field3, Sign };
+// external API
+export { ForeignField, Field3 };
+
+// internal API
+export { bigint3, Sign, split, combine, weakBound, Sum, assertMul };
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -33,11 +43,37 @@ const ForeignField = {
   sub(x: Field3, y: Field3, f: bigint) {
     return sum([x, y], [-1n], f);
   },
+  negate(x: Field3, f: bigint) {
+    return sum([Field3.from(0n), x], [-1n], f);
+  },
   sum,
+  Sum(x: Field3) {
+    return new Sum(x);
+  },
 
   mul: multiply,
   inv: inverse,
   div: divide,
+  assertMul,
+
+  assertAlmostReduced,
+
+  assertLessThan(x: Field3, f: bigint) {
+    assert(f > 0n, 'assertLessThan: upper bound must be positive');
+
+    // constant case
+    if (Field3.isConstant(x)) {
+      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
+      return;
+    }
+    // provable case
+    // we can just use negation `(f - 1) - x`. because the result is range-checked, it proves that x < f:
+    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
+    ForeignField.negate(x, f - 1n);
+  },
+
+  equals,
 };
 
 /**
@@ -49,7 +85,7 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
   // constant case
-  if (x.every((x) => x.every((x) => x.isConstant()))) {
+  if (x.every(Field3.isConstant)) {
     let xBig = x.map(Field3.toBigint);
     let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
     return Field3.from(mod(sum, f));
@@ -111,7 +147,7 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (a.every((x) => x.isConstant()) && b.every((x) => x.isConstant())) {
+  if (Field3.isConstant(a) && Field3.isConstant(b)) {
     let ab = Field3.toBigint(a) * Field3.toBigint(b);
     return Field3.from(mod(ab, f));
   }
@@ -129,7 +165,7 @@ function inverse(x: Field3, f: bigint): Field3 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (x.every((x) => x.isConstant())) {
+  if (Field3.isConstant(x)) {
     let xInv = modInverse(Field3.toBigint(x), f);
     assert(xInv !== undefined, 'inverse exists');
     return Field3.from(xInv);
@@ -145,7 +181,7 @@ function inverse(x: Field3, f: bigint): Field3 {
   let xInv2Bound = weakBound(xInv[2], f);
 
   let one: Field2 = [Field.from(1n), Field.from(0n)];
-  assertMul(x, xInv, one, f);
+  assertMulInternal(x, xInv, one, f);
 
   // range check on result bound
   // TODO: this uses two RCs too many.. need global RC stack
@@ -163,7 +199,7 @@ function divide(
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (x.every((x) => x.isConstant()) && y.every((x) => x.isConstant())) {
+  if (Field3.isConstant(x) && Field3.isConstant(y)) {
     let yInv = modInverse(Field3.toBigint(y), f);
     assert(yInv !== undefined, 'inverse exists');
     return Field3.from(mod(Field3.toBigint(x) * yInv, f));
@@ -178,29 +214,27 @@ function divide(
   });
   multiRangeCheck(z);
   let z2Bound = weakBound(z[2], f);
-  assertMul(z, y, x, f);
+  assertMulInternal(z, y, x, f);
 
   // range check on result bound
   multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
 
   if (!allowZeroOverZero) {
-    // assert that y != 0 mod f by checking that it doesn't equal 0 or f
-    // this works because we assume y[2] <= f2
-    // TODO is this the most efficient way?
-    let y01 = y[0].add(y[1].mul(1n << l));
-    y01.equals(0n).and(y[2].equals(0n)).assertFalse();
-    let [f0, f1, f2] = split(f);
-    let f01 = combine2([f0, f1]);
-    y01.equals(f01).and(y[2].equals(f2)).assertFalse();
+    ForeignField.equals(y, 0n, f).assertFalse();
   }
-
   return z;
 }
 
 /**
  * Common logic for gadgets that expect a certain multiplication result a priori, instead of just using the remainder.
  */
-function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
+function assertMulInternal(
+  x: Field3,
+  y: Field3,
+  xy: Field3 | Field2,
+  f: bigint,
+  message?: string
+) {
   let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
   // range check on quotient
@@ -209,12 +243,12 @@ function assertMul(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint) {
   // bind remainder to input xy
   if (xy.length === 2) {
     let [xy01, xy2] = xy;
-    r01.assertEquals(xy01);
-    r2.assertEquals(xy2);
+    r01.assertEquals(xy01, message);
+    r2.assertEquals(xy2, message);
   } else {
     let xy01 = xy[0].add(xy[1].mul(1n << l));
-    r01.assertEquals(xy01);
-    r2.assertEquals(xy[2]);
+    r01.assertEquals(xy01, message);
+    r2.assertEquals(xy[2], message);
   }
 }
 
@@ -323,7 +357,74 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
+  // if f0, f1 === 0, we can use a stronger bound x[2] < f2
+  // because this is true for all field elements x in [0,f)
+  if ((f & l2Mask) === 0n) {
+    return x.add(lMask + 1n - (f >> l2));
+  }
+  // otherwise, we use x[2] < f2 + 1, so we allow x[2] === f2
   return x.add(lMask - (f >> l2));
+}
+
+/**
+ * Apply range checks and weak bounds checks to a list of Field3s.
+ * Optimal if the list length is a multiple of 3.
+ */
+function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
+  let bounds: Field[] = [];
+
+  for (let x of xs) {
+    if (!skipMrc) multiRangeCheck(x);
+
+    bounds.push(weakBound(x[2], f));
+    if (TupleN.hasLength(3, bounds)) {
+      multiRangeCheck(bounds);
+      bounds = [];
+    }
+  }
+  if (TupleN.hasLength(1, bounds)) {
+    multiRangeCheck([...bounds, Field.from(0n), Field.from(0n)]);
+  }
+  if (TupleN.hasLength(2, bounds)) {
+    multiRangeCheck([...bounds, Field.from(0n)]);
+  }
+}
+
+/**
+ * check whether x = c mod f
+ *
+ * c is a constant, and we require c in [0, f)
+ *
+ * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
+ */
+function equals(x: Field3, c: bigint, f: bigint) {
+  assert(c >= 0n && c < f, 'equals: c must be in [0, f)');
+
+  // constant case
+  if (Field3.isConstant(x)) {
+    return new Bool(mod(Field3.toBigint(x), f) === c);
+  }
+
+  // provable case
+  if (f >= 1n << l2) {
+    // check whether x = 0 or x = f
+    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
+    let [c01, c2] = [c & l2Mask, c >> l2];
+    let [cPlusF01, cPlusF2] = [(c + f) & l2Mask, (c + f) >> l2];
+
+    // (x01, x2) = (c01, c2)
+    let isC = x01.equals(c01).and(x[2].equals(c2));
+    // (x01, x2) = (cPlusF01, cPlusF2)
+    let isCPlusF = x01.equals(cPlusF01).and(x[2].equals(cPlusF2));
+
+    return isC.or(isCPlusF);
+  } else {
+    // if f < 2^2l, the approach above doesn't work (we don't know from x[2] = 0 that x < 2f),
+    // so in that case we assert that x < f and then check whether it's equal to c
+    ForeignField.assertLessThan(x, f);
+    let x012 = toVar(x[0].add(x[1].mul(1n << l)).add(x[2].mul(1n << l2)));
+    return x012.equals(c);
+  }
 }
 
 const Field3 = {
@@ -339,6 +440,20 @@ const Field3 = {
    */
   toBigint(x: Field3): bigint {
     return combine(toBigint3(x));
+  },
+
+  /**
+   * Turn several 3-tuples of Fields into bigints
+   */
+  toBigints<T extends Tuple<Field3>>(...xs: T) {
+    return Tuple.map(xs, Field3.toBigint);
+  },
+
+  /**
+   * Check whether a 3-tuple of Fields is constant
+   */
+  isConstant(x: Field3) {
+    return x.every((x) => x.isConstant());
   },
 
   /**
@@ -373,4 +488,224 @@ function combine2([x0, x1]: bigint3 | [bigint, bigint]) {
 }
 function split2(x: bigint): [bigint, bigint] {
   return [x & lMask, (x >> l) & lMask];
+}
+
+/**
+ * Optimized multiplication of sums, like (x + y)*z = a + b + c
+ *
+ * We use several optimizations over naive summing and then multiplying:
+ *
+ * - we skip the range check on the remainder sum, because ffmul is sound with r being a sum of range-checked values
+ * - we replace the range check on the input sums with an extra low limb sum using generic gates
+ * - we chain the first input's sum into the ffmul gate
+ *
+ * As usual, all values are assumed to be range checked, and the left and right multiplication inputs
+ * are assumed to be bounded such that `l * r < 2^264 * (native modulus)`.
+ * However, all extra checks that are needed on the _sums_ are handled here.
+ */
+function assertMul(
+  x: Field3 | Sum,
+  y: Field3 | Sum,
+  xy: Field3 | Sum,
+  f: bigint,
+  message?: string
+) {
+  x = Sum.fromUnfinished(x);
+  y = Sum.fromUnfinished(y);
+  xy = Sum.fromUnfinished(xy);
+
+  // conservative estimate to ensure that multiplication bound is satisfied
+  // we assume that all summands si are bounded with si[2] <= f[2] checks, which implies si < 2^k where k := ceil(log(f))
+  // our assertion below gives us
+  // |x|*|y| + q*f + |r| < (x.length * y.length) 2^2k + 2^2k + 2^2k < 3 * 2^(2*258) < 2^264 * (native modulus)
+  assert(
+    BigInt(Math.ceil(Math.sqrt(x.length * y.length))) * f < 1n << 258n,
+    `Foreign modulus is too large for multiplication of sums of lengths ${x.length} and ${y.length}`
+  );
+
+  // finish the y and xy sums with a zero gate
+  let y0 = y.finishForMulInput(f);
+  let xy0 = xy.finish(f);
+
+  // x is chained into the ffmul gate
+  let x0 = x.finishForMulInput(f, true);
+
+  // constant case
+  if (
+    Field3.isConstant(x0) &&
+    Field3.isConstant(y0) &&
+    Field3.isConstant(xy0)
+  ) {
+    let x_ = Field3.toBigint(x0);
+    let y_ = Field3.toBigint(y0);
+    let xy_ = Field3.toBigint(xy0);
+    assert(
+      mod(x_ * y_, f) === xy_,
+      message ?? 'assertMul(): incorrect multiplication result'
+    );
+    return;
+  }
+
+  assertMulInternal(x0, y0, xy0, f, message);
+}
+
+class Sum {
+  #result?: Field3;
+  #summands: Field3[];
+  #ops: Sign[] = [];
+
+  constructor(x: Field3) {
+    this.#summands = [x];
+  }
+
+  get result() {
+    assert(this.#result !== undefined, 'sum not finished');
+    return this.#result;
+  }
+
+  get length() {
+    return this.#summands.length;
+  }
+
+  add(y: Field3) {
+    assert(this.#result === undefined, 'sum already finished');
+    this.#ops.push(1n);
+    this.#summands.push(y);
+    return this;
+  }
+
+  sub(y: Field3) {
+    assert(this.#result === undefined, 'sum already finished');
+    this.#ops.push(-1n);
+    this.#summands.push(y);
+    return this;
+  }
+
+  #return(x: Field3) {
+    this.#result = x;
+    return x;
+  }
+
+  isConstant() {
+    return this.#summands.every(Field3.isConstant);
+  }
+
+  finish(f: bigint, isChained = false) {
+    assert(this.#result === undefined, 'sum already finished');
+    let signs = this.#ops;
+    let n = signs.length;
+    if (n === 0) return this.#return(this.#summands[0]);
+
+    // constant case
+    if (this.isConstant()) {
+      return this.#return(sum(this.#summands, signs, f));
+    }
+
+    // provable case
+    let x = this.#summands.map(toVars);
+    let result = x[0];
+
+    for (let i = 0; i < n; i++) {
+      ({ result } = singleAdd(result, x[i + 1], signs[i], f));
+    }
+    if (!isChained) Gates.zero(...result);
+
+    this.#result = result;
+    return result;
+  }
+
+  // TODO this is complex and should be removed once we fix the ffadd gate to constrain all limbs individually
+  finishForMulInput(f: bigint, isChained = false) {
+    assert(this.#result === undefined, 'sum already finished');
+    let signs = this.#ops;
+    let n = signs.length;
+    if (n === 0) return this.#return(this.#summands[0]);
+
+    // constant case
+    if (this.isConstant()) {
+      return this.#return(sum(this.#summands, signs, f));
+    }
+
+    // provable case
+    let xs = this.#summands.map(toVars);
+
+    // since the sum becomes a multiplication input, we need to constrain all limbs _individually_.
+    // sadly, ffadd only constrains the low and middle limb together.
+    // we could fix it with a RC just for the lower two limbs
+    // but it's cheaper to add generic gates which handle the lowest limb separately, and avoids the unfilled MRC slot
+    let f0 = f & lMask;
+
+    // generic gates for low limbs
+    let x0 = xs[0][0];
+    let x0s: Field[] = [];
+    let overflows: Field[] = [];
+    let xRef = Unconstrained.witness(() => Field3.toBigint(xs[0]));
+
+    // this loop mirrors the computation that a chain of ffadd gates does,
+    // but everything is done only on the lowest limb and using generic gates.
+    // the output is a sequence of low limbs (x0) and overflows, which will be wired to the ffadd results at each step.
+    for (let i = 0; i < n; i++) {
+      // compute carry and overflow
+      let [carry, overflow] = exists(2, () => {
+        // this duplicates some of the logic in singleAdd
+        let x = xRef.get();
+        let x0 = x & lMask;
+        let xi = toBigint3(xs[i + 1]);
+        let sign = signs[i];
+
+        // figure out if there's overflow
+        x += sign * combine(xi);
+        let overflow = 0n;
+        if (sign === 1n && x >= f) overflow = 1n;
+        if (sign === -1n && x < 0n) overflow = -1n;
+        if (f === 0n) overflow = 0n;
+        xRef.set(x - overflow * f);
+
+        // add with carry, only on the lowest limb
+        x0 = x0 + sign * xi[0] - overflow * f0;
+        let carry = x0 >> l;
+        return [carry, overflow];
+      });
+      overflows.push(overflow);
+
+      // constrain carry
+      assertOneOf(carry, [0n, 1n, -1n]);
+
+      // x0 <- x0 + s*xi0 - o*f0 - c*2^l
+      x0 = toVar(
+        x0
+          .add(xs[i + 1][0].mul(signs[i]))
+          .sub(overflow.mul(f0))
+          .sub(carry.mul(1n << l))
+      );
+      x0s.push(x0);
+    }
+
+    // ffadd chain
+    let x = xs[0];
+    for (let i = 0; i < n; i++) {
+      let { result, overflow } = singleAdd(x, xs[i + 1], signs[i], f);
+      // wire low limb and overflow to previous values
+      result[0].assertEquals(x0s[i]);
+      overflow.assertEquals(overflows[i]);
+      x = result;
+    }
+    if (!isChained) Gates.zero(...x);
+
+    this.#result = x;
+    return x;
+  }
+
+  rangeCheck() {
+    assert(this.#result !== undefined, 'sum not finished');
+    if (this.#ops.length > 0) multiRangeCheck(this.#result);
+  }
+
+  static fromUnfinished(x: Field3 | Sum) {
+    if (x instanceof Sum) {
+      assert(x.#result === undefined, 'sum already finished');
+      return x;
+    }
+    return new Sum(x);
+  }
 }

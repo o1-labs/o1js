@@ -1277,6 +1277,9 @@ class AccountUpdate implements Types.AccountUpdate {
     return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
   static toInput = Types.AccountUpdate.toInput;
+  static empty() {
+    return AccountUpdate.dummy();
+  }
   static check = Types.AccountUpdate.check;
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
     let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);

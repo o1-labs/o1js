@@ -8,6 +8,7 @@ case $TEST_TYPE in
   ./run src/examples/simple_zkapp.ts --bundle
   ./run src/examples/zkapps/reducer/reducer_composite.ts --bundle
   ./run src/examples/zkapps/composability.ts --bundle
+  ./run src/tests/fake-proof.ts
   ;;
 
 "Voting integration tests")
