@@ -5,7 +5,7 @@ import {
   circuitMain,
   public_,
   isReady,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

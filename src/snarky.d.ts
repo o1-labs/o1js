@@ -18,11 +18,11 @@ export { ProvablePure, Provable, Ledger, Pickles, Gate };
 export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
 
 /**
- * `Provable<T>` is the general circuit type interface in SnarkyJS. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
+ * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
  *
- * `Provable<T>` is the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
+ * `Provable<T>` is the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
  *
- * The properties and methods on the provable type exist in all base SnarkyJS types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
+ * The properties and methods on the provable type exist in all base o1js types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
  */
 declare interface Provable<T> {
   /**
@@ -360,7 +360,7 @@ declare const Snarky: {
 type JsonGate = {
   typ: string;
   wires: { row: number; col: number }[];
-  coeffs: number[][];
+  coeffs: string[];
 };
 type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 

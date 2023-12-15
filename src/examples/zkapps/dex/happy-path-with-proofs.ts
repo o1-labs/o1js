@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';

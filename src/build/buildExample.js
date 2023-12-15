@@ -37,6 +37,7 @@ async function build(srcPath, isWeb = false) {
           makeNodeModulesExternal(),
           makeJsooExternal(),
         ],
+    dropLabels: ['CJS'],
   });
 
   let absPath = path.resolve('.', outfile);
@@ -110,7 +111,7 @@ function makeNodeModulesExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs|wrapper.js)$/;
+  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
   return {
     name: 'plugin-external',
     setup(build) {

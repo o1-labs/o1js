@@ -1,6 +1,6 @@
 // Merkle Tree and off chain storage
 
-import { Field, MerkleTree } from 'snarkyjs';
+import { Field, MerkleTree } from 'o1js';
 
 export { OffchainStorage };
 

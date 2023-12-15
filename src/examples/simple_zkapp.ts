@@ -10,7 +10,7 @@ import {
   AccountUpdate,
   Bool,
   PublicKey,
-} from 'snarkyjs';
+} from 'o1js';
 import { getProfiler } from './profiler.js';
 
 const doProofs = true;

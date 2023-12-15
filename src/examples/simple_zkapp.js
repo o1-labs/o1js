@@ -1,5 +1,5 @@
 /**
- * Demonstrates how to use snarkyjs in pure JavaScript
+ * Demonstrates how to use o1js in pure JavaScript
  *
  * Decorators `@method` and `@state` are replaced by `declareState` and `declareMethods`.
  */
@@ -14,7 +14,7 @@ import {
   declareState,
   declareMethods,
   shutdown,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

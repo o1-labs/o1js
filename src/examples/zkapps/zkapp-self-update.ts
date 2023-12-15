@@ -12,7 +12,7 @@ import {
   AccountUpdate,
   Circuit,
   Provable,
-} from 'snarkyjs';
+} from 'o1js';
 
 class Foo extends SmartContract {
   init() {

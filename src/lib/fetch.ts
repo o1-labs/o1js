@@ -1059,7 +1059,7 @@ async function makeGraphqlRequest(
         // If the request timed out, try the next 2 endpoints
         timeoutErrors.push({ url1, url2, error });
       } else {
-        // If the request failed for some other reason (e.g. SnarkyJS error), return the error
+        // If the request failed for some other reason (e.g. o1js error), return the error
         return [undefined, error] as [undefined, FetchError];
       }
     }
