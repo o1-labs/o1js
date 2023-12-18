@@ -367,7 +367,6 @@ function multiScalarMul(
 
   if (useGlv) {
     maxBits = Curve.Endo.decomposeMaxBits;
-    assert(maxBits < l2, 'decomposed scalars have to be < 2*88 bits');
 
     // decompose scalars and handle signs
     let n2 = 2 * n;
