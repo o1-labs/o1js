@@ -464,8 +464,8 @@ function negateIf(condition: Field, P: Point, f: bigint) {
   let y = Provable.if(
     Bool.Unsafe.ofField(condition),
     Field3.provable,
-    P.y,
-    ForeignField.negate(P.y, f)
+    ForeignField.negate(P.y, f),
+    P.y
   );
   return { x: P.x, y };
 }
