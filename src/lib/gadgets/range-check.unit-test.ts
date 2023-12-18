@@ -41,6 +41,13 @@ constraintSystem(
 );
 
 constraintSystem(
+  'range check 8',
+  { from: [Field] },
+  Gadgets.rangeCheck8,
+  ifNotAllConstant(withoutGenerics(equals(['EndoMulScalar', 'EndoMulScalar'])))
+);
+
+constraintSystem(
   'multi-range check',
   { from: [Field, Field, Field] },
   (x, y, z) => Gadgets.multiRangeCheck([x, y, z]),
@@ -72,6 +79,12 @@ let RangeCheck = ZkProgram({
         Gadgets.rangeCheck64(x);
       },
     },
+    check8: {
+      privateInputs: [Field],
+      method(x) {
+        Gadgets.rangeCheck8(x);
+      },
+    },
     checkMulti: {
       privateInputs: [Field, Field, Field],
       method(x, y, z) {
@@ -91,8 +104,9 @@ let RangeCheck = ZkProgram({
 await RangeCheck.compile();
 
 // TODO: we use this as a test because there's no way to check custom gates quickly :(
+const runs = 2;
 
-await equivalentAsync({ from: [maybeUint(64)], to: boolean }, { runs: 3 })(
+await equivalentAsync({ from: [maybeUint(64)], to: boolean }, { runs })(
   (x) => {
     assert(x < 1n << 64n);
     return true;
@@ -103,9 +117,20 @@ await equivalentAsync({ from: [maybeUint(64)], to: boolean }, { runs: 3 })(
   }
 );
 
+await equivalentAsync({ from: [maybeUint(8)], to: boolean }, { runs })(
+  (x) => {
+    assert(x < 1n << 8n);
+    return true;
+  },
+  async (x) => {
+    let proof = await RangeCheck.check8(x);
+    return await RangeCheck.verify(proof);
+  }
+);
+
 await equivalentAsync(
   { from: [maybeUint(l), uint(l), uint(l)], to: boolean },
-  { runs: 3 }
+  { runs }
 )(
   (x, y, z) => {
     assert(!(x >> l) && !(y >> l) && !(z >> l), 'multi: not out of range');
@@ -119,7 +144,7 @@ await equivalentAsync(
 
 await equivalentAsync(
   { from: [maybeUint(2n * l), uint(l)], to: boolean },
-  { runs: 3 }
+  { runs }
 )(
   (xy, z) => {
     assert(!(xy >> (2n * l)) && !(z >> l), 'compact: not out of range');

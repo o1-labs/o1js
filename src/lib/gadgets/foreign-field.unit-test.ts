@@ -15,12 +15,14 @@ import { ZkProgram } from '../proof_system.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import {
+  allConstant,
   and,
   constraintSystem,
   contains,
   equals,
   ifNotAllConstant,
   not,
+  or,
   repeat,
   withoutGenerics,
 } from '../testing/constraint-system.js';
@@ -72,6 +74,19 @@ for (let F of fields) {
     (x, y) => assertMulExample(x, y, F.modulus),
     'assertMul'
   );
+  // test for assertMul which mostly tests the negative case because for random inputs, we expect
+  // (x - y) * z != a + b
+  equivalentProvable({ from: [f, f, f, f, f], to: unit })(
+    (x, y, z, a, b) => assert(F.mul(F.sub(x, y), z) === F.add(a, b)),
+    (x, y, z, a, b) =>
+      ForeignField.assertMul(
+        ForeignField.Sum(x).sub(y),
+        z,
+        ForeignField.Sum(a).add(b),
+        F.modulus
+      ),
+    'assertMul negative'
+  );
 
   // tests with inputs that aren't reduced mod f
   let big264 = unreducedForeignField(264, F); // this is the max size supported by our range checks / ffadd
@@ -109,7 +124,7 @@ for (let F of fields) {
 
   equivalent({ from: [big264], to: unit })(
     (x) => assertWeakBound(x, F.modulus),
-    (x) => ForeignField.assertAlmostFieldElements([x], F.modulus)
+    (x) => ForeignField.assertAlmostReduced([x], F.modulus)
   );
 
   // sumchain of 5
@@ -158,7 +173,7 @@ let ffProgram = ZkProgram({
     mulWithBoundsCheck: {
       privateInputs: [Field3.provable, Field3.provable],
       method(x, y) {
-        ForeignField.assertAlmostFieldElements([x, y], F.modulus);
+        ForeignField.assertAlmostReduced([x, y], F.modulus);
         return ForeignField.mul(x, y, F.modulus);
       },
     },
@@ -313,10 +328,13 @@ constraintSystem(
   'assert mul',
   from2,
   (x, y) => assertMulExample(x, y, F.modulus),
-  and(
-    contains([addChain(1), addChain(1), addChainedIntoMul]),
-    // assertMul() doesn't use any range checks besides on internal values and the quotient
-    containsNTimes(2, mrc)
+  or(
+    and(
+      contains([addChain(2), addChain(2), addChainedIntoMul]),
+      // assertMul() doesn't use any range checks besides on internal values and the quotient
+      containsNTimes(2, mrc)
+    ),
+    allConstant
   )
 );
 

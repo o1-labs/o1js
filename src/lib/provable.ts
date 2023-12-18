@@ -3,7 +3,6 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
-import { FieldVar } from './field.js';
 import { Field, Bool } from './core.js';
 import { Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
@@ -14,7 +13,6 @@ import {
   InferProvable,
   InferredProvable,
 } from '../bindings/lib/provable-snarky.js';
-import { isField } from './field.js';
 import {
   inCheckedComputation,
   inProver,
@@ -24,7 +22,6 @@ import {
   runUnchecked,
   constraintSystem,
 } from './provable-context.js';
-import { isBool } from './bool.js';
 
 // external API
 export { Provable };
@@ -127,7 +124,8 @@ const Provable = {
    * @example
    * ```ts
    * let x = Field(42);
-   * Provable.isConstant(x); // true
+   * Provable.isConstant(Field, x); // true
+   * ```
    */
   isConstant,
   /**
@@ -345,11 +343,7 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
     );
   // TODO remove second condition once we have consolidated field class back into one
   // if (type !== y.constructor) {
-  if (
-    type !== y.constructor &&
-    !(isField(x) && isField(y)) &&
-    !(isBool(x) && isBool(y))
-  ) {
+  if (type !== y.constructor) {
     throw Error(
       'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +
         `Provable.if(bool, MyType, x, y)`
@@ -580,6 +574,13 @@ function provableArray<A extends FlexibleProvable<any>>(
         (curr, value) => HashInput.append(curr, type.toInput(value)),
         HashInput.empty
       );
+    },
+
+    empty() {
+      if (!('empty' in type)) {
+        throw Error('circuitArray.empty: element type has no empty() method');
+      }
+      return Array.from({ length }, () => type.empty());
     },
   } satisfies ProvableExtended<T[], TJson[]> as any;
 }

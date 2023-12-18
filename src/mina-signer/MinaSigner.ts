@@ -85,9 +85,9 @@ class Client {
     ) {
       throw Error('Public key not derivable from private key');
     }
-    let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
+    let dummy = ZkappCommand.toJSON(ZkappCommand.empty());
     dummy.feePayer.body.publicKey = publicKey;
-    dummy.memo = Memo.toBase58(Memo.emptyValue());
+    dummy.memo = Memo.toBase58(Memo.empty());
     let signed = signZkappCommand(dummy, privateKey, this.network);
     let ok = verifyZkappCommandSignature(signed, publicKey, this.network);
     if (!ok) throw Error('Could not sign a transaction with private key');

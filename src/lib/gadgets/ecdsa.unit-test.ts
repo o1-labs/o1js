@@ -3,6 +3,7 @@ import {
   Ecdsa,
   EllipticCurve,
   Point,
+  initialAggregator,
   verifyEcdsaConstant,
 } from './elliptic-curve.js';
 import { Field3 } from './foreign-field.js';
@@ -10,16 +11,18 @@ import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { ZkProgram } from '../proof_system.js';
 import { assert } from './common.js';
-import { foreignField, throwError, uniformForeignField } from './test-utils.js';
+import { foreignField, uniformForeignField } from './test-utils.js';
 import {
+  First,
   Second,
+  bool,
   equivalentProvable,
   fromRandom,
   map,
   oneOf,
   record,
-  unit,
 } from '../testing/equivalent.js';
+import { Bool } from '../bool.js';
 import { Random } from '../testing/random.js';
 
 // quick tests
@@ -34,7 +37,8 @@ for (let Curve of curves) {
   let scalar = foreignField(Curve.Scalar);
   let privateKey = uniformForeignField(Curve.Scalar);
 
-  let pseudoSignature = record({
+  // correct signature shape, but independently random components, which will never form a valid signature
+  let badSignature = record({
     signature: record({ r: scalar, s: scalar }),
     msg: scalar,
     publicKey: record({ x: field, y: field }),
@@ -43,7 +47,7 @@ for (let Curve of curves) {
   let signatureInputs = record({ privateKey, msg: scalar });
 
   let signature = map(
-    { from: signatureInputs, to: pseudoSignature },
+    { from: signatureInputs, to: badSignature },
     ({ privateKey, msg }) => {
       let publicKey = Curve.scale(Curve.one, privateKey);
       let signature = Ecdsa.sign(Curve, msg, privateKey);
@@ -56,39 +60,55 @@ for (let Curve of curves) {
 
   // provable method we want to test
   const verify = (s: Second<typeof signature>, noGlv: boolean) => {
+    // invalid public key can lead to either a failing constraint, or verify() returning false
+    EllipticCurve.assertOnCurve(s.publicKey, Curve);
+
     let hasGlv = Curve.hasEndomorphism;
     if (noGlv) Curve.hasEndomorphism = false; // hack to force non-GLV version
     try {
-      Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+      return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
     } finally {
       Curve.hasEndomorphism = hasGlv;
     }
   };
 
+  // input validation equivalent to the one implicit in verify()
+  const checkInputs = ({
+    signature: { r, s },
+    publicKey,
+  }: First<typeof signature>) => {
+    assert(r !== 0n && s !== 0n, 'invalid signature');
+    let pk = Curve.fromNonzero(publicKey);
+    assert(Curve.isOnCurve(pk), 'invalid public key');
+    return true;
+  };
+
   // positive test
-  equivalentProvable({ from: [signature, noGlv], to: unit })(
-    () => {},
+  equivalentProvable({ from: [signature, noGlv], to: bool, verbose: true })(
+    () => true,
     verify,
-    'valid signature verifies'
+    `${Curve.name}: verifies`
   );
 
   // negative test
-  equivalentProvable({ from: [pseudoSignature, noGlv], to: unit })(
-    () => throwError('invalid signature'),
+  equivalentProvable({ from: [badSignature, noGlv], to: bool, verbose: true })(
+    (s) => checkInputs(s) && false,
     verify,
-    'invalid signature fails'
+    `${Curve.name}: fails`
   );
 
   // test against constant implementation, with both invalid and valid signatures
   equivalentProvable({
-    from: [oneOf(signature, pseudoSignature), noGlv],
-    to: unit,
+    from: [oneOf(signature, badSignature), noGlv],
+    to: bool,
+    verbose: true,
   })(
     ({ signature, publicKey, msg }) => {
-      assert(verifyEcdsaConstant(Curve, signature, msg, publicKey), 'verifies');
+      checkInputs({ signature, publicKey, msg });
+      return verifyEcdsaConstant(Curve, signature, msg, publicKey);
     },
     verify,
-    'verify'
+    `${Curve.name}: verify`
   );
 }
 
@@ -108,28 +128,13 @@ let msgHash =
     0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
   );
 
-const ia = EllipticCurve.initialAggregator(Secp256k1);
+const ia = initialAggregator(Secp256k1);
 const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
 
 let program = ZkProgram({
   name: 'ecdsa',
+  publicOutput: Bool,
   methods: {
-    scale: {
-      privateInputs: [],
-      method() {
-        let G = Point.from(Secp256k1.one);
-        let P = Provable.witness(Point.provable, () => publicKey);
-        let R = EllipticCurve.multiScalarMul(
-          Secp256k1,
-          [signature.s, signature.r],
-          [G, P],
-          [config.G, config.P]
-        );
-        Provable.asProver(() => {
-          console.log(Point.toBigint(R));
-        });
-      },
-    },
     ecdsa: {
       privateInputs: [],
       method() {
@@ -140,33 +145,31 @@ let program = ZkProgram({
         let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
         let publicKey_ = Provable.witness(Point.provable, () => publicKey);
 
-        Ecdsa.verify(Secp256k1, signature_, msgHash_, publicKey_, config);
+        return Ecdsa.verify(
+          Secp256k1,
+          signature_,
+          msgHash_,
+          publicKey_,
+          config
+        );
       },
     },
   },
 });
-let main = program.rawMethods.ecdsa;
 
 console.time('ecdsa verify (constant)');
-main();
+program.rawMethods.ecdsa();
 console.timeEnd('ecdsa verify (constant)');
 
 console.time('ecdsa verify (witness gen / check)');
-Provable.runAndCheck(main);
+Provable.runAndCheck(program.rawMethods.ecdsa);
 console.timeEnd('ecdsa verify (witness gen / check)');
 
 console.time('ecdsa verify (build constraint system)');
-let cs = Provable.constraintSystem(main);
+let cs = program.analyzeMethods().ecdsa;
 console.timeEnd('ecdsa verify (build constraint system)');
 
-let gateTypes: Record<string, number> = {};
-gateTypes['Total rows'] = cs.rows;
-for (let gate of cs.gates) {
-  gateTypes[gate.type] ??= 0;
-  gateTypes[gate.type]++;
-}
-
-console.log(gateTypes);
+console.log(cs.summary());
 
 console.time('ecdsa verify (compile)');
 await program.compile();
@@ -177,3 +180,4 @@ let proof = await program.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');
+proof.publicOutput.assertTrue('signature verifies');

@@ -389,7 +389,7 @@ function drawFieldVar(): FieldVar {
   let fieldType = drawFieldType();
   switch (fieldType) {
     case FieldType.Constant: {
-      return FieldVar.constant(17n);
+      return FieldVar.constant(1n);
     }
     case FieldType.Var: {
       return [FieldType.Var, 0];
@@ -397,10 +397,14 @@ function drawFieldVar(): FieldVar {
     case FieldType.Add: {
       let x = drawFieldVar();
       let y = drawFieldVar();
+      // prevent blow-up of constant size
+      if (x[0] === FieldType.Constant && y[0] === FieldType.Constant) return x;
       return FieldVar.add(x, y);
     }
     case FieldType.Scale: {
       let x = drawFieldVar();
+      // prevent blow-up of constant size
+      if (x[0] === FieldType.Constant) return x;
       return FieldVar.scale(3n, x);
     }
   }

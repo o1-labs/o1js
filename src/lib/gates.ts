@@ -1,5 +1,6 @@
-import { KimchiGateType, Snarky } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { FieldConst, type Field } from './field.js';
+import { exists } from './gadgets/common.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
@@ -13,6 +14,7 @@ export {
   generic,
   foreignFieldAdd,
   foreignFieldMul,
+  KimchiGateType,
 };
 
 const Gates = {
@@ -150,7 +152,7 @@ function generic(
 }
 
 function zero(a: Field, b: Field, c: Field) {
-  Snarky.gates.zero(a.value, b.value, c.value);
+  raw(KimchiGateType.Zero, [a, b, c], []);
 }
 
 /**
@@ -234,9 +236,32 @@ function foreignFieldMul(inputs: {
 }
 
 function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
+  let n = values.length;
+  let padding = exists(15 - n, () => Array(15 - n).fill(0n));
   Snarky.gates.raw(
     kind,
-    MlArray.to(values.map((x) => x.value)),
+    MlArray.to(values.concat(padding).map((x) => x.value)),
     MlArray.to(coefficients.map(FieldConst.fromBigint))
   );
+}
+
+enum KimchiGateType {
+  Zero,
+  Generic,
+  Poseidon,
+  CompleteAdd,
+  VarBaseMul,
+  EndoMul,
+  EndoMulScalar,
+  Lookup,
+  CairoClaim,
+  CairoInstruction,
+  CairoFlags,
+  CairoTransition,
+  RangeCheck0,
+  RangeCheck1,
+  ForeignFieldAdd,
+  ForeignFieldMul,
+  Xor16,
+  Rot64,
 }

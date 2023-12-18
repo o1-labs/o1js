@@ -6,6 +6,7 @@ import {
   mod,
 } from '../../bindings/crypto/finite_field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { Bool } from '../bool.js';
 import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
@@ -42,7 +43,9 @@ const ForeignField = {
   sub(x: Field3, y: Field3, f: bigint) {
     return sum([x, y], [-1n], f);
   },
-  negate,
+  negate(x: Field3, f: bigint) {
+    return sum([Field3.from(0n), x], [-1n], f);
+  },
   sum,
   Sum(x: Field3) {
     return new Sum(x);
@@ -53,7 +56,24 @@ const ForeignField = {
   div: divide,
   assertMul,
 
-  assertAlmostFieldElements,
+  assertAlmostReduced,
+
+  assertLessThan(x: Field3, f: bigint) {
+    assert(f > 0n, 'assertLessThan: upper bound must be positive');
+
+    // constant case
+    if (Field3.isConstant(x)) {
+      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
+      return;
+    }
+    // provable case
+    // we can just use negation `(f - 1) - x`. because the result is range-checked, it proves that x < f:
+    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
+    ForeignField.negate(x, f - 1n);
+  },
+
+  equals,
 };
 
 /**
@@ -219,16 +239,8 @@ function divide(
   multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
 
   if (!allowZeroOverZero) {
-    // assert that y != 0 mod f by checking that it doesn't equal 0 or f
-    // this works because we assume y[2] <= f2
-    // TODO is this the most efficient way?
-    let y01 = y[0].add(y[1].mul(1n << l));
-    y01.equals(0n).and(y[2].equals(0n)).assertFalse();
-    let [f0, f1, f2] = split(f);
-    let f01 = combine2([f0, f1]);
-    y01.equals(f01).and(y[2].equals(f2)).assertFalse();
+    ForeignField.equals(y, 0n, f).assertFalse();
   }
-
   return z;
 }
 
@@ -239,7 +251,8 @@ function assertMulInternal(
   x: Field3,
   y: Field3,
   xy: Field3 | Field2,
-  f: bigint
+  f: bigint,
+  message?: string
 ) {
   let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
@@ -249,12 +262,12 @@ function assertMulInternal(
   // bind remainder to input xy
   if (xy.length === 2) {
     let [xy01, xy2] = xy;
-    r01.assertEquals(xy01);
-    r2.assertEquals(xy2);
+    r01.assertEquals(xy01, message);
+    r2.assertEquals(xy2, message);
   } else {
     let xy01 = xy[0].add(xy[1].mul(1n << l));
-    r01.assertEquals(xy01);
-    r2.assertEquals(xy[2]);
+    r01.assertEquals(xy01, message);
+    r2.assertEquals(xy[2], message);
   }
 }
 
@@ -363,6 +376,12 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
 }
 
 function weakBound(x: Field, f: bigint) {
+  // if f0, f1 === 0, we can use a stronger bound x[2] < f2
+  // because this is true for all field elements x in [0,f)
+  if ((f & l2Mask) === 0n) {
+    return x.add(lMask + 1n - (f >> l2));
+  }
+  // otherwise, we use x[2] < f2 + 1, so we allow x[2] === f2
   return x.add(lMask - (f >> l2));
 }
 
@@ -370,11 +389,11 @@ function weakBound(x: Field, f: bigint) {
  * Apply range checks and weak bounds checks to a list of Field3s.
  * Optimal if the list length is a multiple of 3.
  */
-function assertAlmostFieldElements(xs: Field3[], f: bigint) {
+function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
   let bounds: Field[] = [];
 
   for (let x of xs) {
-    multiRangeCheck(x);
+    if (!skipMrc) multiRangeCheck(x);
 
     bounds.push(weakBound(x[2], f));
     if (TupleN.hasLength(3, bounds)) {
@@ -387,6 +406,43 @@ function assertAlmostFieldElements(xs: Field3[], f: bigint) {
   }
   if (TupleN.hasLength(2, bounds)) {
     multiRangeCheck([...bounds, Field.from(0n)]);
+  }
+}
+
+/**
+ * check whether x = c mod f
+ *
+ * c is a constant, and we require c in [0, f)
+ *
+ * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
+ */
+function equals(x: Field3, c: bigint, f: bigint) {
+  assert(c >= 0n && c < f, 'equals: c must be in [0, f)');
+
+  // constant case
+  if (Field3.isConstant(x)) {
+    return new Bool(mod(Field3.toBigint(x), f) === c);
+  }
+
+  // provable case
+  if (f >= 1n << l2) {
+    // check whether x = 0 or x = f
+    let x01 = toVar(x[0].add(x[1].mul(1n << l)));
+    let [c01, c2] = [c & l2Mask, c >> l2];
+    let [cPlusF01, cPlusF2] = [(c + f) & l2Mask, (c + f) >> l2];
+
+    // (x01, x2) = (c01, c2)
+    let isC = x01.equals(c01).and(x[2].equals(c2));
+    // (x01, x2) = (cPlusF01, cPlusF2)
+    let isCPlusF = x01.equals(cPlusF01).and(x[2].equals(cPlusF2));
+
+    return isC.or(isCPlusF);
+  } else {
+    // if f < 2^2l, the approach above doesn't work (we don't know from x[2] = 0 that x < 2f),
+    // so in that case we assert that x < f and then check whether it's equal to c
+    ForeignField.assertLessThan(x, f);
+    let x012 = toVar(x[0].add(x[1].mul(1n << l)).add(x[2].mul(1n << l2)));
+    return x012.equals(c);
   }
 }
 
@@ -470,7 +526,8 @@ function assertMul(
   x: Field3 | Sum,
   y: Field3 | Sum,
   xy: Field3 | Sum,
-  f: bigint
+  f: bigint,
+  message?: string
 ) {
   x = Sum.fromUnfinished(x);
   y = Sum.fromUnfinished(y);
@@ -501,11 +558,14 @@ function assertMul(
     let x_ = Field3.toBigint(x0);
     let y_ = Field3.toBigint(y0);
     let xy_ = Field3.toBigint(xy0);
-    assert(mod(x_ * y_, f) === xy_, 'incorrect multiplication result');
+    assert(
+      mod(x_ * y_, f) === xy_,
+      message ?? 'assertMul(): incorrect multiplication result'
+    );
     return;
   }
 
-  assertMulInternal(x0, y0, xy0, f);
+  assertMulInternal(x0, y0, xy0, f, message);
 }
 
 class Sum {
@@ -600,6 +660,9 @@ class Sum {
     let overflows: Field[] = [];
     let xRef = Unconstrained.witness(() => Field3.toBigint(xs[0]));
 
+    // this loop mirrors the computation that a chain of ffadd gates does,
+    // but everything is done only on the lowest limb and using generic gates.
+    // the output is a sequence of low limbs (x0) and overflows, which will be wired to the ffadd results at each step.
     for (let i = 0; i < n; i++) {
       // compute carry and overflow
       let [carry, overflow] = exists(2, () => {

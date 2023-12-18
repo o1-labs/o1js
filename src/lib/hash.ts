@@ -13,7 +13,7 @@ export { Poseidon, TokenSymbol };
 // internal API
 export {
   HashInput,
-  Hash,
+  HashHelpers,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
@@ -23,19 +23,19 @@ export {
 };
 
 class Sponge {
-  private sponge: unknown;
+  #sponge: unknown;
 
   constructor() {
     let isChecked = Provable.inCheckedComputation();
-    this.sponge = Snarky.poseidon.sponge.create(isChecked);
+    this.#sponge = Snarky.poseidon.sponge.create(isChecked);
   }
 
   absorb(x: Field) {
-    Snarky.poseidon.sponge.absorb(this.sponge, x.value);
+    Snarky.poseidon.sponge.absorb(this.#sponge, x.value);
   }
 
   squeeze(): Field {
-    return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
+    return Field(Snarky.poseidon.sponge.squeeze(this.#sponge));
   }
 }
 
@@ -105,8 +105,8 @@ function hashConstant(input: Field[]) {
   return Field(PoseidonBigint.hash(toBigints(input)));
 }
 
-const Hash = createHashHelpers(Field, Poseidon);
-let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { salt, emptyHashWithPrefix, hashWithPrefix } = HashHelpers;
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {
@@ -179,12 +179,11 @@ const TokenSymbolPure: ProvableExtended<
   toInput({ field }) {
     return { packed: [[field, 48]] };
   },
+  empty() {
+    return { symbol: '', field: Field(0n) };
+  },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
   static from(symbol: string): TokenSymbol {
     let bytesLength = new TextEncoder().encode(symbol).length;
     if (bytesLength > 6)

@@ -24,13 +24,16 @@ import { arrayGet, assertBoolean } from './basic.js';
 export { EllipticCurve, Point, Ecdsa };
 
 // internal API
-export { verifyEcdsaConstant };
+export { verifyEcdsaConstant, initialAggregator, simpleMapToCurve };
 
 const EllipticCurve = {
   add,
   double,
+  negate,
+  assertOnCurve,
+  scale,
+  assertInSubgroup,
   multiScalarMul,
-  initialAggregator,
 };
 
 /**
@@ -47,9 +50,10 @@ namespace Ecdsa {
   export type signature = { r: bigint; s: bigint };
 }
 
-function add(p1: Point, p2: Point, f: bigint) {
+function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
   let { x: x1, y: y1 } = p1;
   let { x: x2, y: y2 } = p2;
+  let f = Curve.modulus;
 
   // constant case
   if (Point.isConstant(p1) && Point.isConstant(p2)) {
@@ -73,7 +77,7 @@ function add(p1: Point, p2: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
+  ForeignField.assertAlmostReduced([m, x3, y3], f);
 
   // (x1 - x2)*m = y1 - y2
   let deltaX = ForeignField.Sum(x1).sub(x2);
@@ -92,8 +96,9 @@ function add(p1: Point, p2: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
-function double(p1: Point, f: bigint) {
+function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
   let { x: x1, y: y1 } = p1;
+  let f = Curve.modulus;
 
   // constant case
   if (Point.isConstant(p1)) {
@@ -117,16 +122,17 @@ function double(p1: Point, f: bigint) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostFieldElements([m, x3, y3], f);
+  ForeignField.assertAlmostReduced([m, x3, y3], f);
 
   // x1^2 = x1x1
   let x1x1 = ForeignField.mul(x1, x1, f);
 
-  // 2*y1*m = 3*x1x1
-  // TODO this assumes the curve has a == 0
+  // 2*y1*m = 3*x1x1 + a
   let y1Times2 = ForeignField.Sum(y1).add(y1);
-  let x1x1Times3 = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
-  ForeignField.assertMul(y1Times2, m, x1x1Times3, f);
+  let x1x1Times3PlusA = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
+  if (Curve.a !== 0n)
+    x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(Curve.a));
+  ForeignField.assertMul(y1Times2, m, x1x1Times3PlusA, f);
 
   // m^2 = 2*x1 + x3
   let xSum = ForeignField.Sum(x1).add(x1).add(x3);
@@ -140,6 +146,78 @@ function double(p1: Point, f: bigint) {
   return { x: x3, y: y3 };
 }
 
+function negate({ x, y }: Point, Curve: { modulus: bigint }) {
+  return { x, y: ForeignField.negate(y, Curve.modulus) };
+}
+
+function assertOnCurve(
+  p: Point,
+  { modulus: f, a, b }: { modulus: bigint; b: bigint; a: bigint }
+) {
+  let { x, y } = p;
+  let x2 = ForeignField.mul(x, x, f);
+  let y2 = ForeignField.mul(y, y, f);
+  let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
+
+  // (x^2 + a) * x = y^2 - b
+  let x2PlusA = ForeignField.Sum(x2);
+  if (a !== 0n) x2PlusA = x2PlusA.add(Field3.from(a));
+  let message: string | undefined;
+  if (Point.isConstant(p)) {
+    message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
+  }
+  ForeignField.assertMul(x2PlusA, x, y2MinusB, f, message);
+}
+
+/**
+ * EC scalar multiplication, `scalar*point`
+ *
+ * The result is constrained to be not zero.
+ */
+function scale(
+  scalar: Field3,
+  point: Point,
+  Curve: CurveAffine,
+  config: {
+    mode?: 'assert-nonzero' | 'assert-zero';
+    windowSize?: number;
+    multiples?: Point[];
+  } = { mode: 'assert-nonzero' }
+) {
+  config.windowSize ??= Point.isConstant(point) ? 4 : 3;
+  return multiScalarMul([scalar], [point], Curve, [config], config.mode);
+}
+
+// checks whether the elliptic curve point g is in the subgroup defined by [order]g = 0
+function assertInSubgroup(p: Point, Curve: CurveAffine) {
+  if (!Curve.hasCofactor) return;
+  scale(Field3.from(Curve.order), p, Curve, { mode: 'assert-zero' });
+}
+
+// check whether a point equals a constant point
+// TODO implement the full case of two vars
+function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
+  let xEquals = ForeignField.equals(p1.x, p2.x, Curve.modulus);
+  let yEquals = ForeignField.equals(p1.y, p2.y, Curve.modulus);
+  return xEquals.and(yEquals);
+}
+
+/**
+ * Verify an ECDSA signature.
+ *
+ * Details about the `config` parameter:
+ * - For both the generator point `G` and public key `P`, `config` allows you to specify:
+ *   - the `windowSize` which is used in scalar multiplication for this point.
+ *     this flexibility is good because the optimal window size is different for constant and non-constant points.
+ *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
+ *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
+ *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
+ *     if these are not provided, they are computed on the fly.
+ *     for the constant G, computing multiples costs no constraints, so passing them in makes no real difference.
+ *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
+ *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
+ * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
+ */
 function verifyEcdsa(
   Curve: CurveAffine,
   signature: Ecdsa.Signature,
@@ -163,8 +241,7 @@ function verifyEcdsa(
       Field3.toBigint(msgHash),
       Point.toBigint(publicKey)
     );
-    assert(isValid, 'invalid signature');
-    return;
+    return new Bool(isValid);
   }
 
   // provable case
@@ -179,19 +256,23 @@ function verifyEcdsa(
 
   let G = Point.from(Curve.one);
   let R = multiScalarMul(
-    Curve,
     [u1, u2],
     [G, publicKey],
+    Curve,
     config && [config.G, config.P],
+    'assert-nonzero',
     config?.ia
   );
   // this ^ already proves that R != 0 (part of ECDSA verification)
 
   // reduce R.x modulo the curve order
-  // note: we don't check that the result Rx is canonical, because Rx === r and r is an input:
-  // it's the callers responsibility to check that the signature is valid/unique in whatever way it makes sense for the application
   let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
-  Provable.assertEqual(Field3.provable, Rx, r);
+
+  // we have to prove that Rx is canonical, because we check signature validity based on whether Rx _exactly_ equals the input r.
+  // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
+  ForeignField.assertLessThan(Rx, Curve.order);
+
+  return Provable.equal(Field3.provable, Rx, r);
 }
 
 /**
@@ -203,8 +284,8 @@ function verifyEcdsaConstant(
   msgHash: bigint,
   publicKey: point
 ) {
-  let pk = Curve.fromNonzero(publicKey);
-  if (!Curve.isOnCurve(pk)) return false;
+  let pk = Curve.from(publicKey);
+  if (Curve.equal(pk, Curve.zero)) return false;
   if (Curve.hasCofactor && !Curve.isInSubgroup(pk)) return false;
   if (r < 1n || r >= Curve.order) return false;
   if (s < 1n || s >= Curve.order) return false;
@@ -225,9 +306,14 @@ function verifyEcdsaConstant(
  *
  * s_0 * P_0 + ... + s_(n-1) * P_(n-1)
  *
- * where P_i are any points. The result is not allowed to be zero.
+ * where P_i are any points.
  *
- * We double all points together and leverage a precomputed table of size 2^c to avoid all but every cth addition.
+ * By default, we prove that the result is not zero.
+ *
+ * If you set the `mode` parameter to `'assert-zero'`, on the other hand,
+ * we assert that the result is zero and just return the constant zero point.
+ *
+ * Implementation: We double all points together and leverage a precomputed table of size 2^c to avoid all but every cth addition.
  *
  * Note: this algorithm targets a small number of points, like 2 needed for ECDSA verification.
  *
@@ -235,13 +321,14 @@ function verifyEcdsaConstant(
  * TODO: custom bit representation for the scalar that avoids 0, to get rid of the degenerate addition case
  */
 function multiScalarMul(
-  Curve: CurveAffine,
   scalars: Field3[],
   points: Point[],
+  Curve: CurveAffine,
   tableConfigs: (
     | { windowSize?: number; multiples?: Point[] }
     | undefined
   )[] = [],
+  mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero',
   ia?: point
 ): Point {
   let n = points.length;
@@ -262,6 +349,11 @@ function multiScalarMul(
         sum = Curve.add(sum, Curve.scale(P[i], s[i]));
       }
     }
+    if (mode === 'assert-zero') {
+      assert(sum.infinity, 'scalar multiplication: expected zero result');
+      return Point.from(Curve.zero);
+    }
+    assert(!sum.infinity, 'scalar multiplication: expected non-zero result');
     return Point.from(sum);
   }
 
@@ -338,7 +430,7 @@ function multiScalarMul(
             : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
-        let added = add(sum, sjP, Curve.modulus);
+        let added = add(sum, sjP, Curve);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
         sum = Provable.if(sj.equals(0), Point.provable, sum, added);
@@ -349,14 +441,22 @@ function multiScalarMul(
 
     // jointly double all points
     // (note: the highest couple of bits will not create any constraints because sum is constant; no need to handle that explicitly)
-    sum = double(sum, Curve.modulus);
+    sum = double(sum, Curve);
   }
 
   // the sum is now 2^(b-1)*IA + sum_i s_i*P_i
   // we assert that sum != 2^(b-1)*IA, and add -2^(b-1)*IA to get our result
   let iaFinal = Curve.scale(Curve.fromNonzero(ia), 1n << BigInt(maxBits - 1));
-  Provable.equal(Point.provable, sum, Point.from(iaFinal)).assertFalse();
-  sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve.modulus);
+  let isZero = equals(sum, iaFinal, Curve);
+
+  if (mode === 'assert-nonzero') {
+    isZero.assertFalse();
+    sum = add(sum, Point.from(Curve.negate(iaFinal)), Curve);
+  } else {
+    isZero.assertTrue();
+    // for type consistency with the 'assert-nonzero' case
+    sum = Point.from(Curve.zero);
+  }
 
   return sum;
 }
@@ -460,10 +560,10 @@ function getPointTable(
   table = [Point.from(Curve.zero), P];
   if (n === 2) return table;
 
-  let Pi = double(P, Curve.modulus);
+  let Pi = double(P, Curve);
   table.push(Pi);
   for (let i = 3; i < n; i++) {
-    Pi = add(Pi, P, Curve.modulus);
+    Pi = add(Pi, P, Curve);
     table.push(Pi);
   }
   return table;
@@ -491,6 +591,22 @@ function initialAggregator(Curve: CurveAffine) {
   // use that as x coordinate
   const F = Curve.Field;
   let x = F.mod(bytesToBigInt(bytes));
+  return simpleMapToCurve(x, Curve);
+}
+
+function random(Curve: CurveAffine) {
+  let x = Curve.Field.random();
+  return simpleMapToCurve(x, Curve);
+}
+
+/**
+ * Given an x coordinate (base field element), increment it until we find one with
+ * a y coordinate that satisfies the curve equation, and return the point.
+ *
+ * If the curve has a cofactor, multiply by it to get a point in the correct subgroup.
+ */
+function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
+  const F = Curve.Field;
   let y: bigint | undefined = undefined;
 
   // increment x until we find a y coordinate
@@ -501,7 +617,13 @@ function initialAggregator(Curve: CurveAffine) {
     let y2 = F.add(x3, F.mul(Curve.a, x) + Curve.b);
     y = F.sqrt(y2);
   }
-  return { x, y, infinity: false };
+  let p = { x, y, infinity: false };
+
+  // clear cofactor
+  if (Curve.hasCofactor) {
+    p = Curve.scale(p, Curve.cofactor!);
+  }
+  return p;
 }
 
 /**
@@ -561,7 +683,7 @@ function sliceField(
   let chunks = [];
   let sum = Field.from(0n);
 
-  // if there's a leftover chunk from a previous slizeField() call, we complete it
+  // if there's a leftover chunk from a previous sliceField() call, we complete it
   if (leftover !== undefined) {
     let { chunks: previous, leftoverSize: size } = leftover;
     let remainingChunk = Field.from(0n);
@@ -630,6 +752,13 @@ const Point = {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
   isConstant: (P: Point) => Provable.isConstant(Point.provable, P),
+
+  /**
+   * Random point on the curve.
+   */
+  random(Curve: CurveAffine) {
+    return Point.from(random(Curve));
+  },
 
   provable: provable({ x: Field3.provable, y: Field3.provable }),
 };
