@@ -124,7 +124,7 @@ namespace Experimental {
   export type Callback<Result> = Callback_<Result>;
 }
 
-Error.stackTraceLimit = 1000;
+Error.stackTraceLimit = 100000;
 
 // deprecated stuff
 export { isReady, shutdown };

@@ -100,6 +100,24 @@ it('pickles rule creation', async () => {
   );
 });
 
+// compile works with large inputs
+
+const N = 100_000;
+
+const program = ZkProgram({
+  name: 'large-array-program',
+  methods: {
+    baseCase: {
+      privateInputs: [Provable.Array(Field, N)],
+      method(_: Field[]) {},
+    },
+  },
+});
+
+it('can compile program with large input', async () => {
+  await program.compile();
+});
+
 // regression tests for some zkprograms
 const emptyMethodsMetadata = EmptyProgram.analyzeMethods();
 expect(emptyMethodsMetadata.run).toEqual(
