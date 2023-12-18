@@ -106,25 +106,6 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
 }
 
 /**
- * negate() deserves a special case because we can fix the overflow to -1
- * and know that a result in range is mapped to a result in range again.
- */
-function negate(x: Field3, f: bigint) {
-  if (Field3.isConstant(x)) {
-    return sum([Field3.from(0n), x], [-1n], f);
-  }
-  // provable case
-  x = toVars(x);
-  let { result, overflow } = singleAdd(Field3.from(0n), x, -1n, f);
-  Gates.zero(...result);
-  multiRangeCheck(result);
-
-  // fix the overflow to -1
-  overflow.assertEquals(-1n);
-  return result;
-}
-
-/**
  * core building block for non-native addition
  *
  * **warning**: this just adds the `foreignFieldAdd` row;
