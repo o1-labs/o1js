@@ -1,3 +1,4 @@
+import { Gadgets } from './gadgets/gadgets.js';
 import { Poseidon } from './hash.js';
 import { Keccak } from './keccak.js';
 import { Bytes } from './provable-types/provable-types.js';
@@ -34,6 +35,19 @@ const Hash = {
    * See {@link Hash.hash} for details and usage examples.
    */
   Poseidon,
+
+  /**
+   * The SHA2 hash function with an output length of 256 bits.
+   */
+  SHA2_256: {
+    /**
+     * Hashes the given bytes using SHA2-256.
+     *
+     * This is an alias for `Gadgets.SHA256.hash(bytes)`.\
+     * See {@link Gadgets.SHA256.hash} for details and usage examples.
+     */
+    hash: Gadgets.SHA256.hash,
+  },
 
   /**
    * The SHA3 hash function with an output length of 256 bits.
