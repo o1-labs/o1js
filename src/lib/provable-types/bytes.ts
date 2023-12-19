@@ -4,6 +4,7 @@ import { assert } from '../gadgets/common.js';
 import { chunkString } from '../util/arrays.js';
 import { Provable } from '../provable.js';
 import { UInt8 } from '../int.js';
+import { randomBytes } from '../../bindings/crypto/random.js';
 
 export { Bytes, createBytes, FlexibleBytes };
 
@@ -61,6 +62,14 @@ class Bytes {
    */
   static fromString(s: string) {
     let bytes = new TextEncoder().encode(s);
+    return this.from(bytes);
+  }
+
+  /**
+   * Create random {@link Bytes} using secure builtin randomness.
+   */
+  static random() {
+    let bytes = randomBytes(this.size);
     return this.from(bytes);
   }
 
