@@ -1,8 +1,10 @@
 import { Bytes, Gadgets, ZkProgram } from 'o1js';
 
+export { SHA256Program };
+
 class Bytes12 extends Bytes(12) {}
 
-let SHA256 = ZkProgram({
+let SHA256Program = ZkProgram({
   name: 'sha256',
   publicOutput: Bytes(32).provable,
   methods: {
@@ -15,12 +17,12 @@ let SHA256 = ZkProgram({
   },
 });
 
-await SHA256.compile();
+await SHA256Program.compile();
 let preimage = Bytes12.fromString('hello world!');
 
-let proof = await SHA256.sha256(preimage);
+let proof = await SHA256Program.sha256(preimage);
 
-let isValid = await SHA256.verify(proof);
+let isValid = await SHA256Program.verify(proof);
 
 if (
   proof.publicOutput.toHex() !==
