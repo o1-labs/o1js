@@ -1277,6 +1277,9 @@ class AccountUpdate implements Types.AccountUpdate {
     return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
   static toInput = Types.AccountUpdate.toInput;
+  static empty() {
+    return AccountUpdate.dummy();
+  }
   static check = Types.AccountUpdate.check;
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
     let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);
@@ -1502,6 +1505,15 @@ class AccountUpdate implements Types.AccountUpdate {
         body[key] = JSON.stringify(body[key]) as any;
       }
     }
+    if (body.authorizationKind?.isProved === false) {
+      delete (body as any).authorizationKind?.verificationKeyHash;
+    }
+    if (
+      body.authorizationKind?.isProved === false &&
+      body.authorizationKind?.isSigned === false
+    ) {
+      delete (body as any).authorizationKind;
+    }
     if (
       jsonUpdate.authorization !== undefined ||
       body.authorizationKind?.isProved === true ||
@@ -1509,6 +1521,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ) {
       (body as any).authorization = jsonUpdate.authorization;
     }
+
     body.mayUseToken = {
       parentsOwnToken: this.body.mayUseToken.parentsOwnToken.toBoolean(),
       inheritFromParent: this.body.mayUseToken.inheritFromParent.toBoolean(),

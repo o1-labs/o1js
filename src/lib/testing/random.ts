@@ -66,6 +66,7 @@ function sample<T>(rng: Random<T>, size: number) {
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const bool = map(boolean, Bool);
+const uint8 = biguintWithInvalid(8);
 const uint32 = biguintWithInvalid(32);
 const uint64 = biguintWithInvalid(64);
 const byte = Random_(drawRandomByte);
@@ -187,17 +188,20 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint64Json = toString(
-  oneOf(uint64.invalid, nonInteger, nonNumericString)
+const invalidUint8Json = toString(
+  oneOf(uint8.invalid, nonInteger, nonNumericString)
 );
 const invalidUint32Json = toString(
   oneOf(uint32.invalid, nonInteger, nonNumericString)
 );
+const invalidUint64Json = toString(
+  oneOf(uint64.invalid, nonInteger, nonNumericString)
+);
 
 // some json versions of those types
 let json_ = {
-  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
+  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -310,6 +314,7 @@ const Random = Object.assign(Random_, {
   field,
   otherField: fieldWithInvalid,
   bool,
+  uint8,
   uint32,
   uint64,
   biguint: biguintWithInvalid,

@@ -6,7 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
-import { Gadgets } from './gadgets/gadgets.js';
+import { rangeCheckN } from './gadgets/range-check.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -14,7 +14,7 @@ export { Poseidon, TokenSymbol };
 // internal API
 export {
   HashInput,
-  Hash,
+  HashHelpers,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
@@ -24,19 +24,19 @@ export {
 };
 
 class Sponge {
-  private sponge: unknown;
+  #sponge: unknown;
 
   constructor() {
     let isChecked = Provable.inCheckedComputation();
-    this.sponge = Snarky.poseidon.sponge.create(isChecked);
+    this.#sponge = Snarky.poseidon.sponge.create(isChecked);
   }
 
   absorb(x: Field) {
-    Snarky.poseidon.sponge.absorb(this.sponge, x.value);
+    Snarky.poseidon.sponge.absorb(this.#sponge, x.value);
   }
 
   squeeze(): Field {
-    return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
+    return Field(Snarky.poseidon.sponge.squeeze(this.#sponge));
   }
 }
 
@@ -106,8 +106,8 @@ function hashConstant(input: Field[]) {
   return Field(PoseidonBigint.hash(toBigints(input)));
 }
 
-const Hash = createHashHelpers(Field, Poseidon);
-let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { salt, emptyHashWithPrefix, hashWithPrefix } = HashHelpers;
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {
@@ -167,7 +167,7 @@ const TokenSymbolPure: ProvableExtended<
     return 1;
   },
   check({ field }: TokenSymbol) {
-    Gadgets.rangeCheckN(48, field);
+    rangeCheckN(48, field);
   },
   toJSON({ symbol }) {
     return symbol;

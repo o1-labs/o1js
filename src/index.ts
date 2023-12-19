@@ -7,7 +7,12 @@ export {
   AlmostForeignField,
   CanonicalForeignField,
 } from './lib/foreign-field.js';
+export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
+export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
+export { Keccak } from './lib/keccak.js';
+export { Hash } from './lib/hashes-combined.js';
+
 export * from './lib/signature.js';
 export type {
   ProvableExtended,
@@ -27,7 +32,8 @@ export {
 } from './lib/circuit_value.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
-export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
+export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';
+export { Bytes } from './lib/provable-types/provable-types.js';
 export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
@@ -38,7 +44,6 @@ export {
   method,
   declareMethods,
   Account,
-  VerificationKey,
   Reducer,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
@@ -51,6 +56,7 @@ export {
   Empty,
   Undefined,
   Void,
+  VerificationKey,
 } from './lib/proof_system.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
@@ -87,6 +93,8 @@ export { Nullifier } from './lib/nullifier.js';
 import { ExperimentalZkProgram, ZkProgram } from './lib/proof_system.js';
 export { ZkProgram };
 
+export { Crypto } from './lib/crypto.js';
+
 // experimental APIs
 import { Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';
@@ -116,7 +124,7 @@ namespace Experimental {
   export type Callback<Result> = Callback_<Result>;
 }
 
-Error.stackTraceLimit = 1000;
+Error.stackTraceLimit = 100000;
 
 // deprecated stuff
 export { isReady, shutdown };

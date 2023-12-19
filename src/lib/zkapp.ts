@@ -22,7 +22,6 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-  Struct,
   toConstant,
 } from './circuit_value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
@@ -66,7 +65,6 @@ export {
   declareMethods,
   Callback,
   Account,
-  VerificationKey,
   Reducer,
 };
 
@@ -197,7 +195,8 @@ function wrapMethod(
             let id = memoizationContext.enter({ ...context, blindingValue });
             let result: unknown;
             try {
-              result = method.apply(this, actualArgs.map(cloneCircuitValue));
+              let clonedArgs = actualArgs.map(cloneCircuitValue);
+              result = method.apply(this, clonedArgs);
             } finally {
               memoizationContext.leave(id);
             }
@@ -681,11 +680,7 @@ class SmartContract {
     // run methods once to get information that we need already at compile time
     let methodsMeta = this.analyzeMethods();
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
-    let {
-      verificationKey: verificationKey_,
-      provers,
-      verify,
-    } = await compileProgram({
+    let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
       publicOutputType: Empty,
       methodIntfs,
@@ -695,10 +690,6 @@ class SmartContract {
       cache,
       forceRecompile,
     });
-    let verificationKey = {
-      data: verificationKey_.data,
-      hash: Field(verificationKey_.hash),
-    } satisfies VerificationKey;
     this._provers = provers;
     this._verificationKey = verificationKey;
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
@@ -738,7 +729,7 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
-    let accountUpdate = this.newSelf();
+    let accountUpdate = this.newSelf('deploy');
     verificationKey ??= (this.constructor as typeof SmartContract)
       ._verificationKey;
     if (verificationKey === undefined) {
@@ -882,10 +873,10 @@ super.init();
   /**
    * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
    */
-  newSelf(): AccountUpdate {
+  newSelf(methodName?: string): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
-    let accountUpdate = selfAccountUpdate(this);
+    let accountUpdate = selfAccountUpdate(this, methodName);
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
@@ -1487,13 +1478,6 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     },
   };
 }
-
-class VerificationKey extends Struct({
-  ...provable({ data: String, hash: Field }),
-  toJSON({ data }: { data: string }) {
-    return data;
-  },
-}) {}
 
 function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
   let body = Body.keepAll(zkapp.address, zkapp.tokenId);

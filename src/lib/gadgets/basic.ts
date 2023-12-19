@@ -1,14 +1,65 @@
 /**
  * Basic gadgets that only use generic gates
  */
+import { Fp } from '../../bindings/crypto/finite_field.js';
 import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
 import { TupleN } from '../util/types.js';
+import { Snarky } from '../../snarky.js';
 
-export { assertOneOf };
+export { assertBoolean, arrayGet, assertOneOf };
+
+/**
+ * Assert that x is either 0 or 1.
+ */
+function assertBoolean(x: VarField) {
+  Snarky.field.assertBoolean(x.value);
+}
 
 // TODO: create constant versions of these and expose on Gadgets
+
+/**
+ * Get value from array in O(n) rows.
+ *
+ * Assumes that index is in [0, n), returns an unconstrained result otherwise.
+ *
+ * Note: This saves 0.5*n constraints compared to equals() + switch()
+ */
+function arrayGet(array: Field[], index: Field) {
+  let i = toVar(index);
+
+  // witness result
+  let a = existsOne(() => array[Number(i.toBigInt())].toBigInt());
+
+  // we prove a === array[j] + z[j]*(i - j) for some z[j], for all j.
+  // setting j = i, this implies a === array[i]
+  // thanks to our assumption that the index i is within bounds, we know that j = i for some j
+  let n = array.length;
+  for (let j = 0; j < n; j++) {
+    let zj = existsOne(() => {
+      let zj = Fp.div(
+        Fp.sub(a.toBigInt(), array[j].toBigInt()),
+        Fp.sub(i.toBigInt(), Fp.fromNumber(j))
+      );
+      return zj ?? 0n;
+    });
+    // prove that z[j]*(i - j) === a - array[j]
+    // TODO abstract this logic into a general-purpose assertMul() gadget,
+    // which is able to use the constant coefficient
+    // (snarky's assert_r1cs somehow leads to much more constraints than this)
+    if (array[j].isConstant()) {
+      // zj*i + (-j)*zj + 0*i + array[j] === a
+      assertBilinear(zj, i, [1n, -BigInt(j), 0n, array[j].toBigInt()], a);
+    } else {
+      let aMinusAj = toVar(a.sub(array[j]));
+      // zj*i + (-j)*zj + 0*i + 0 === (a - array[j])
+      assertBilinear(zj, i, [1n, -BigInt(j), 0n, 0n], aMinusAj);
+    }
+  }
+
+  return a;
+}
 
 /**
  * Assert that a value equals one of a finite list of constants:
@@ -74,6 +125,10 @@ function assertBilinear(
   // b*x + c*y - z? + a*x*y + d === 0
   Gates.generic(
     { left: b, right: c, out: z === undefined ? 0n : -1n, mul: a, const: d },
-    { left: x, right: y, out: z === undefined ? x : z }
+    { left: x, right: y, out: z === undefined ? emptyCell() : z }
   );
+}
+
+function emptyCell() {
+  return existsOne(() => 0n);
 }

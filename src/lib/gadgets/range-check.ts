@@ -14,6 +14,8 @@ export {
   rangeCheckHelper,
   rangeCheckN,
   isInRangeN,
+  rangeCheck8,
+  rangeCheck16,
 };
 export { l, l2, l3, lMask, l2Mask };
 
@@ -298,4 +300,32 @@ function isInRangeN(n: number, x: Field) {
 
   let actual = rangeCheckHelper(n, x);
   return actual.equals(x);
+}
+
+function rangeCheck16(x: Field) {
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << 16n,
+      `rangeCheck16: expected field to fit in 8 bits, got ${x}`
+    );
+    return;
+  }
+  // check that x fits in 16 bits
+  x.rangeCheckHelper(16).assertEquals(x);
+}
+
+function rangeCheck8(x: Field) {
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << 8n,
+      `rangeCheck8: expected field to fit in 8 bits, got ${x}`
+    );
+    return;
+  }
+
+  // check that x fits in 16 bits
+  x.rangeCheckHelper(16).assertEquals(x);
+  // check that 2^8 x fits in 16 bits
+  let x256 = x.mul(1 << 8).seal();
+  x256.rangeCheckHelper(16).assertEquals(x256);
 }

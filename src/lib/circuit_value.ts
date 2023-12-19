@@ -17,6 +17,7 @@ import type {
 import { Provable } from './provable.js';
 import { assert } from './errors.js';
 import { inCheckedComputation } from './provable-context.js';
+import { Proof } from './proof_system.js';
 
 // external API
 export {
@@ -40,7 +41,6 @@ export {
   cloneCircuitValue,
   circuitValueEquals,
   toConstant,
-  isConstant,
   InferProvable,
   HashInput,
   InferJson,
@@ -597,8 +597,11 @@ function cloneCircuitValue<T>(obj: T): T {
     ) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-  // o1js primitives aren't cloned
+  // o1js primitives and proofs aren't cloned
   if (isPrimitive(obj)) {
+    return obj;
+  }
+  if (obj instanceof Proof) {
     return obj;
   }
 
@@ -688,9 +691,4 @@ function toConstant<T>(type: Provable<T>, value: T): T {
     type.toFields(value).map((x) => x.toConstant()),
     type.toAuxiliary(value)
   );
-}
-
-function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
-function isConstant<T>(type: Provable<T>, value: T): boolean {
-  return type.toFields(value).every((x) => x.isConstant());
 }
