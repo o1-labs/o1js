@@ -1,12 +1,13 @@
 import { Field, Bool } from './core.js';
-import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
+import { AnyConstructor, CircuitValue, Struct, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
 import { Gadgets } from './gadgets/gadgets.js';
 
+import { FieldVar, withMessage } from './field.js';
 // external API
-export { UInt32, UInt64, Int64, Sign };
+export { UInt8, UInt32, UInt64, Int64, Sign };
 
 /**
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
@@ -230,7 +231,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   xor(x: UInt64) {
-    return Gadgets.xor(this.value, x.value, UInt64.NUM_BITS);
+    return new UInt64(Gadgets.xor(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -263,7 +264,7 @@ class UInt64 extends CircuitValue {
    *
    */
   not() {
-    return Gadgets.not(this.value, UInt64.NUM_BITS, false);
+    return new UInt64(Gadgets.not(this.value, UInt64.NUM_BITS, false));
   }
 
   /**
@@ -295,7 +296,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return Gadgets.rotate64(this.value, bits, direction);
+    return new UInt64(Gadgets.rotate64(this.value, bits, direction));
   }
 
   /**
@@ -316,7 +317,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return Gadgets.leftShift64(this.value, bits);
+    return new UInt64(Gadgets.leftShift64(this.value, bits));
   }
 
   /**
@@ -337,7 +338,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return Gadgets.leftShift64(this.value, bits);
+    return new UInt64(Gadgets.leftShift64(this.value, bits));
   }
 
   /**
@@ -366,7 +367,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   and(x: UInt64) {
-    return Gadgets.and(this.value, x.value, UInt64.NUM_BITS);
+    return new UInt64(Gadgets.and(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -703,10 +704,6 @@ class UInt32 extends CircuitValue {
     Gadgets.rangeCheck32(z);
     return new UInt32(z);
   }
-
-  addMod32(y: UInt32) {
-    return new UInt32(Gadgets.addMod32(this.value, y.value));
-  }
   /**
    * Subtraction with underflow checking.
    */
@@ -735,10 +732,8 @@ class UInt32 extends CircuitValue {
    * c.assertEquals(0b0110);
    * ```
    */
-  xor(x: UInt32 | Field) {
-    return UInt32.from(
-      Gadgets.xor(this.value, UInt32.from(x).value, UInt32.NUM_BITS)
-    );
+  xor(x: UInt32) {
+    return new UInt32(Gadgets.xor(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
@@ -769,7 +764,7 @@ class UInt32 extends CircuitValue {
    * @param a - The value to apply NOT to.
    */
   not() {
-    return UInt32.from(Gadgets.not(this.value, UInt32.NUM_BITS, false));
+    return new UInt32(Gadgets.not(this.value, UInt32.NUM_BITS, false));
   }
 
   /**
@@ -801,7 +796,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return UInt32.from(Gadgets.rotate32(this.value, bits, direction));
+    return new UInt32(Gadgets.rotate32(this.value, bits, direction));
   }
 
   /**
@@ -824,7 +819,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return UInt32.from(Gadgets.leftShift32(this.value, bits));
+    return new UInt32(Gadgets.leftShift32(this.value, bits));
   }
 
   /**
@@ -847,7 +842,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return UInt32.from(Gadgets.rightShift64(this.value, bits));
+    return new UInt32(Gadgets.rightShift64(this.value, bits));
   }
 
   /**
@@ -876,7 +871,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   and(x: UInt32) {
-    return UInt32.from(Gadgets.and(this.value, x.value, UInt32.NUM_BITS));
+    return new UInt32(Gadgets.and(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
@@ -1289,5 +1284,389 @@ class Int64 extends CircuitValue implements BalanceChange {
    */
   isPositive() {
     return this.sgn.isPositive();
+  }
+}
+
+/**
+ * A 8 bit unsigned integer with values ranging from 0 to 255.
+ */
+class UInt8 extends Struct({
+  value: Field,
+}) {
+  static NUM_BITS = 8;
+
+  /**
+   * Create a {@link UInt8} from a bigint or number.
+   * The max value of a {@link UInt8} is `2^8 - 1 = 255`.
+   *
+   * **Warning**: Cannot overflow past 255, an error is thrown if the result is greater than 255.
+   */
+  constructor(x: number | bigint | FieldVar | UInt8) {
+    if (x instanceof UInt8) x = x.value.value;
+    super({ value: Field(x) });
+    UInt8.checkConstant(this.value);
+  }
+
+  static Unsafe = {
+    /**
+     * Create a {@link UInt8} from a {@link Field} without constraining its range.
+     *
+     * **Warning**: This is unsafe, because it does not prove that the input {@link Field} actually fits in 8 bits.\
+     * Only use this if you know what you are doing, otherwise use the safe {@link UInt8.from}.
+     */
+    fromField(x: Field) {
+      return new UInt8(x.value);
+    },
+  };
+
+  /**
+   * Add a {@link UInt8} to another {@link UInt8} without allowing overflow.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(3);
+   * const sum = x.add(5);
+   * sum.assertEquals(8);
+   * ```
+   *
+   * @throws if the result is greater than 255.
+   */
+  add(y: UInt8 | bigint | number) {
+    let z = this.value.add(UInt8.from(y).value);
+    Gadgets.rangeCheck8(z);
+    return UInt8.Unsafe.fromField(z);
+  }
+
+  /**
+   * Subtract a {@link UInt8} from another {@link UInt8} without allowing underflow.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(8);
+   * const difference = x.sub(5);
+   * difference.assertEquals(3);
+   * ```
+   *
+   * @throws if the result is less than 0.
+   */
+  sub(y: UInt8 | bigint | number) {
+    let z = this.value.sub(UInt8.from(y).value);
+    Gadgets.rangeCheck8(z);
+    return UInt8.Unsafe.fromField(z);
+  }
+
+  /**
+   * Multiply a {@link UInt8} by another {@link UInt8} without allowing overflow.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(3);
+   * const product = x.mul(5);
+   * product.assertEquals(15);
+   * ```
+   *
+   * @throws if the result is greater than 255.
+   */
+  mul(y: UInt8 | bigint | number) {
+    let z = this.value.mul(UInt8.from(y).value);
+    Gadgets.rangeCheck8(z);
+    return UInt8.Unsafe.fromField(z);
+  }
+
+  /**
+   * Divide a {@link UInt8} by another {@link UInt8}.
+   * This is integer division that rounds down.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(7);
+   * const quotient = x.div(2);
+   * quotient.assertEquals(3);
+   * ```
+   */
+  div(y: UInt8 | bigint | number) {
+    return this.divMod(y).quotient;
+  }
+
+  /**
+   * Get the remainder a {@link UInt8} of division of another {@link UInt8}.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(50);
+   * const mod = x.mod(30);
+   * mod.assertEquals(20);
+   * ```
+   */
+  mod(y: UInt8 | bigint | number) {
+    return this.divMod(y).remainder;
+  }
+
+  /**
+   * Get the quotient and remainder of a {@link UInt8} divided by another {@link UInt8}:
+   *
+   * `x == y * q + r`, where `0 <= r < y`.
+   *
+   * @param y - a {@link UInt8} to get the quotient and remainder of another {@link UInt8}.
+   *
+   * @return The quotient `q` and remainder `r`.
+   */
+  divMod(y: UInt8 | bigint | number) {
+    let x = this.value;
+    let y_ = UInt8.from(y).value.seal();
+
+    if (this.value.isConstant() && y_.isConstant()) {
+      let xn = x.toBigInt();
+      let yn = y_.toBigInt();
+      let q = xn / yn;
+      let r = xn - q * yn;
+      return { quotient: UInt8.from(q), remainder: UInt8.from(r) };
+    }
+
+    // prove that x === q * y + r, where 0 <= r < y
+    let q = Provable.witness(Field, () => Field(x.toBigInt() / y_.toBigInt()));
+    let r = x.sub(q.mul(y_)).seal();
+
+    // q, r being 16 bits is enough for them to be 8 bits,
+    // thanks to the === x check and the r < y check below
+    Gadgets.rangeCheck16(q);
+    Gadgets.rangeCheck16(r);
+
+    let remainder = UInt8.Unsafe.fromField(r);
+    let quotient = UInt8.Unsafe.fromField(q);
+
+    remainder.assertLessThan(y);
+    return { quotient, remainder };
+  }
+
+  /**
+   * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(3).lessThanOrEqual(UInt8.from(5));
+   * ```
+   */
+  lessThanOrEqual(y: UInt8 | bigint | number): Bool {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      return Bool(this.toBigInt() <= y_.toBigInt());
+    }
+    throw Error('Not implemented');
+  }
+
+  /**
+   * Check if this {@link UInt8} is less than another {@link UInt8} value.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(2).lessThan(UInt8.from(3));
+   * ```
+   */
+  lessThan(y: UInt8 | bigint | number): Bool {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      return Bool(this.toBigInt() < y_.toBigInt());
+    }
+    throw Error('Not implemented');
+  }
+
+  /**
+   * Assert that this {@link UInt8} is less than another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThan(y: UInt8 | bigint | number, message?: string) {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      let x0 = this.toBigInt();
+      let y0 = y_.toBigInt();
+      if (x0 >= y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt8.assertLessThan: expected ${x0} < ${y0}`);
+      }
+      return;
+    }
+    // x < y  <=>  x + 1 <= y
+    let xPlus1 = new UInt8(this.value.add(1).value);
+    xPlus1.assertLessThanOrEqual(y, message);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is less than or equal to another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThanOrEqual(y: UInt8 | bigint | number, message?: string) {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      let x0 = this.toBigInt();
+      let y0 = y_.toBigInt();
+      if (x0 > y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
+      }
+      return;
+    }
+    try {
+      // x <= y  <=>  y - x >= 0  which is implied by  y - x in [0, 2^16)
+      let yMinusX = y_.value.sub(this.value).seal();
+      Gadgets.rangeCheck16(yMinusX);
+    } catch (err) {
+      throw withMessage(err, message);
+    }
+  }
+
+  /**
+   * Check if this {@link UInt8} is greater than another {@link UInt8}.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * // 5 > 3
+   * UInt8.from(5).greaterThan(3);
+   * ```
+   */
+  greaterThan(y: UInt8 | bigint | number) {
+    return UInt8.from(y).lessThan(this);
+  }
+
+  /**
+   * Check if this {@link UInt8} is greater than or equal another {@link UInt8} value.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * // 3 >= 3
+   * UInt8.from(3).greaterThanOrEqual(3);
+   * ```
+   */
+  greaterThanOrEqual(y: UInt8 | bigint | number) {
+    return UInt8.from(y).lessThanOrEqual(this);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is greater than another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThan(y: UInt8 | bigint | number, message?: string) {
+    UInt8.from(y).assertLessThan(this, message);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is greater than or equal to another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThanOrEqual(y: UInt8, message?: string) {
+    UInt8.from(y).assertLessThanOrEqual(this, message);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is equal another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertEquals(y: UInt8 | bigint | number, message?: string) {
+    let y_ = UInt8.from(y);
+    this.value.assertEquals(y_.value, message);
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a string, e.g. for printing.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toString() {
+    return this.value.toString();
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a number.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toNumber() {
+    return Number(this.value.toBigInt());
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a bigint.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toBigInt() {
+    return this.value.toBigInt();
+  }
+
+  /**
+   * {@link Provable.check} for {@link UInt8}.
+   * Proves that the input is in the [0, 255] range.
+   */
+  static check(x: { value: Field } | Field) {
+    if (x instanceof Field) x = { value: x };
+    Gadgets.rangeCheck8(x.value);
+  }
+
+  static toInput(x: { value: Field }): HashInput {
+    return { packed: [[x.value, 8]] };
+  }
+
+  /**
+   * Turns a {@link UInt8} into a {@link UInt32}.
+   */
+  toUInt32(): UInt32 {
+    return new UInt32(this.value);
+  }
+
+  /**
+   * Turns a {@link UInt8} into a {@link UInt64}.
+   */
+  toUInt64(): UInt64 {
+    return new UInt64(this.value);
+  }
+
+  /**
+   * Creates a {@link UInt8} with a value of 255.
+   */
+  static MAXINT() {
+    return new UInt8((1n << BigInt(UInt8.NUM_BITS)) - 1n);
+  }
+
+  /**
+   * Creates a new {@link UInt8}.
+   */
+  static from(x: UInt8 | UInt64 | UInt32 | Field | number | bigint) {
+    if (x instanceof UInt8) return x;
+    if (x instanceof UInt64 || x instanceof UInt32 || x instanceof Field) {
+      // if the input could be larger than 8 bits, we have to prove that it is not
+      let xx = x instanceof Field ? { value: x } : x;
+      UInt8.check(xx);
+      return new UInt8(xx.value.value);
+    }
+    return new UInt8(x);
+  }
+
+  private static checkConstant(x: Field) {
+    if (!x.isConstant()) return;
+    Gadgets.rangeCheck8(x);
   }
 }

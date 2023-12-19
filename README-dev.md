@@ -2,6 +2,16 @@
 
 This README includes information that is helpful for o1js core contributors.
 
+## Setting up the repo on your local
+
+After cloning the repo, you must fetch external submodules for the following examples to work. 
+
+```sh
+git clone https://github.com/o1-labs/o1js.git
+cd o1js
+git submodule update --init --recursive
+```
+
 ## Run examples using Node.js
 
 ```sh
@@ -66,6 +76,12 @@ The following branches are compatible:
 | branches   | o1js-main -> main -> main        |
 |            | berkeley -> berkeley -> berkeley |
 |            | develop -> develop -> develop    |
+
+If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work-in-progress as a draft PR to raise visibility!
+
+**Default to `main` as the base branch**.
+
+The other base branches (`berkeley`, `develop`) are only used in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `berkeley` and `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
 
 ## Run the GitHub actions locally
 

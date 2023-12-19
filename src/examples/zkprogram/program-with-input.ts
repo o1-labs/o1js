@@ -42,7 +42,7 @@ console.log('program digest', MyProgram.digest());
 
 console.log('compiling MyProgram...');
 let { verificationKey } = await MyProgram.compile();
-console.log('verification key', verificationKey.slice(0, 10) + '..');
+console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
 let proof = await MyProgram.baseCase(Field(0));

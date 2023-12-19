@@ -1,4 +1,4 @@
-import { provable, Struct } from './circuit_value.js';
+import { provable, Struct, Unconstrained } from './circuit_value.js';
 import { UInt32 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { expect } from 'expect';
@@ -96,6 +96,7 @@ class MyStructPure extends Struct({
 class MyTuple extends Struct([PublicKey, String]) {}
 
 let targetString = 'some particular string';
+let targetBigint = 99n;
 let gotTargetString = false;
 
 // create a smart contract and pass auxiliary data to a method
@@ -106,10 +107,21 @@ class MyContract extends SmartContract {
   // this works because MyStructPure only contains field elements
   @state(MyStructPure) x = State<MyStructPure>();
 
-  @method myMethod(value: MyStruct, tuple: MyTuple, update: AccountUpdate) {
+  @method myMethod(
+    value: MyStruct,
+    tuple: MyTuple,
+    update: AccountUpdate,
+    unconstrained: Unconstrained<bigint>
+  ) {
     // check if we can pass in string values
     if (value.other === targetString) gotTargetString = true;
     value.uint[0].assertEquals(UInt32.zero);
+
+    // cannot access unconstrained values in provable code
+    if (Provable.inCheckedComputation())
+      expect(() => unconstrained.get()).toThrow(
+        'You cannot use Unconstrained.get() in provable code.'
+      );
 
     Provable.asProver(() => {
       let err = 'wrong value in prover';
@@ -119,6 +131,9 @@ class MyContract extends SmartContract {
       if (update.lazyAuthorization?.kind !== 'lazy-signature') throw Error(err);
       if (update.lazyAuthorization.privateKey?.toBase58() !== key.toBase58())
         throw Error(err);
+
+      // check if we can pass in unconstrained values
+      if (unconstrained.get() !== targetBigint) throw Error(err);
     });
   }
 }
@@ -141,7 +156,8 @@ let tx = await transaction(() => {
       uint: [UInt32.from(0), UInt32.from(10)],
     },
     [address, targetString],
-    accountUpdate
+    accountUpdate,
+    Unconstrained.from(targetBigint)
   );
 });
 

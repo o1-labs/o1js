@@ -5,6 +5,9 @@ import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
 import { Bool, Field } from '../core.js';
+import { AnyFunction, Tuple } from '../util/types.js';
+import { provable } from '../circuit_value.js';
+import { assert } from '../gadgets/common.js';
 
 export {
   equivalent,
@@ -17,6 +20,7 @@ export {
   id,
 };
 export {
+  spec,
   field,
   fieldWithRng,
   bigintField,
@@ -25,9 +29,21 @@ export {
   unit,
   array,
   record,
+  map,
+  onlyIf,
   fromRandom,
+  first,
+  second,
 };
-export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec };
+export {
+  Spec,
+  ToSpec,
+  FromSpec,
+  SpecFromFunctions,
+  ProvableSpec,
+  First,
+  Second,
+};
 
 // a `Spec` tells us how to compare two functions
 
@@ -106,15 +122,16 @@ function toUnion<T1, T2>(spec: OrUnion<T1, T2>): FromSpecUnion<T1, T2> {
 function equivalent<
   In extends Tuple<FromSpec<any, any>>,
   Out extends ToSpec<any, any>
->({ from, to }: { from: In; to: Out }) {
+>({ from, to, verbose }: { from: In; to: Out; verbose?: boolean }) {
   return function run(
-    f1: (...args: Params1<In>) => Result1<Out>,
-    f2: (...args: Params2<In>) => Result2<Out>,
+    f1: (...args: Params1<In>) => First<Out>,
+    f2: (...args: Params2<In>) => Second<Out>,
     label = 'expect equal results'
   ) {
     let generators = from.map((spec) => spec.rng);
     let assertEqual = to.assertEqual ?? deepEqual;
-    test(...(generators as any[]), (...args) => {
+    let start = performance.now();
+    let nRuns = test(...(generators as any[]), (...args) => {
       args.pop();
       let inputs = args as Params1<In>;
       handleErrors(
@@ -127,6 +144,14 @@ function equivalent<
         label
       );
     });
+
+    if (verbose) {
+      let ms = (performance.now() - start).toFixed(1);
+      let runs = nRuns.toString().padStart(2, ' ');
+      console.log(
+        `${label.padEnd(20, ' ')}    success on ${runs} runs in ${ms}ms.`
+      );
+    }
   };
 }
 
@@ -137,8 +162,8 @@ function equivalentAsync<
   Out extends ToSpec<any, any>
 >({ from, to }: { from: In; to: Out }, { runs = 1 } = {}) {
   return async function run(
-    f1: (...args: Params1<In>) => Promise<Result1<Out>> | Result1<Out>,
-    f2: (...args: Params2<In>) => Promise<Result2<Out>> | Result2<Out>,
+    f1: (...args: Params1<In>) => Promise<First<Out>> | First<Out>,
+    f2: (...args: Params2<In>) => Promise<Second<Out>> | Second<Out>,
     label = 'expect equal results'
   ) {
     let generators = from.map((spec) => spec.rng);
@@ -171,19 +196,27 @@ function equivalentAsync<
 
 // equivalence tester for provable code
 
+function isProvable(spec: FromSpecUnion<any, any>) {
+  return spec.specs.some((spec) => spec.provable);
+}
+
 function equivalentProvable<
   In extends Tuple<OrUnion<any, any>>,
   Out extends ToSpec<any, any>
->({ from: fromRaw, to }: { from: In; to: Out }) {
+>({ from: fromRaw, to, verbose }: { from: In; to: Out; verbose?: boolean }) {
   let fromUnions = fromRaw.map(toUnion);
+  assert(fromUnions.some(isProvable), 'equivalentProvable: no provable input');
+
   return function run(
-    f1: (...args: Params1<In>) => Result1<Out>,
-    f2: (...args: Params2<In>) => Result2<Out>,
+    f1: (...args: Params1<In>) => First<Out>,
+    f2: (...args: Params2<In>) => Second<Out>,
     label = 'expect equal results'
   ) {
     let generators = fromUnions.map((spec) => spec.rng);
     let assertEqual = to.assertEqual ?? deepEqual;
-    test(...generators, (...args) => {
+
+    let start = performance.now();
+    let nRuns = test.custom({ minRuns: 5 })(...generators, (...args) => {
       args.pop();
 
       // figure out which spec to use for each argument
@@ -214,10 +247,53 @@ function equivalentProvable<
         handleErrors(
           () => f1(...inputs),
           () => f2(...inputWitnesses),
-          (x, y) => Provable.asProver(() => assertEqual(x, to.back(y), label))
+          (x, y) => Provable.asProver(() => assertEqual(x, to.back(y), label)),
+          label
         );
       });
     });
+    if (verbose) {
+      let ms = (performance.now() - start).toFixed(1);
+      let runs = nRuns.toString().padStart(2, ' ');
+      console.log(
+        `${label.padEnd(20, ' ')}    success on ${runs} runs in ${ms}ms.`
+      );
+    }
+  };
+}
+
+// creating specs
+
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there: (x: T) => S;
+  back: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+  provable: Provable<S>;
+}): ProvableSpec<T, S>;
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there: (x: T) => S;
+  back: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): Spec<T, S>;
+function spec<T>(spec: {
+  rng: Random<T>;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): Spec<T, T>;
+function spec<T, S>(spec: {
+  rng: Random<T>;
+  there?: (x: T) => S;
+  back?: (x: S) => T;
+  assertEqual?: (x: T, y: T, message: string) => void;
+  provable?: Provable<S>;
+}): Spec<T, S> {
+  return {
+    rng: spec.rng,
+    there: spec.there ?? (id as any),
+    back: spec.back ?? (id as any),
+    assertEqual: spec.assertEqual,
+    provable: spec.provable,
   };
 }
 
@@ -278,14 +354,29 @@ function array<T, S>(
 function record<Specs extends { [k in string]: Spec<any, any> }>(
   specs: Specs
 ): Spec<
-  { [k in keyof Specs]: Result1<Specs[k]> },
-  { [k in keyof Specs]: Result2<Specs[k]> }
+  { [k in keyof Specs]: First<Specs[k]> },
+  { [k in keyof Specs]: Second<Specs[k]> }
 > {
+  let isProvable = Object.values(specs).every((spec) => spec.provable);
   return {
     rng: Random.record(mapObject(specs, (spec) => spec.rng)) as any,
     there: (x) => mapObject(specs, (spec, k) => spec.there(x[k])) as any,
     back: (x) => mapObject(specs, (spec, k) => spec.back(x[k])) as any,
+    provable: isProvable
+      ? provable(mapObject(specs, (spec) => spec.provable) as any)
+      : undefined,
   };
+}
+
+function map<T1, T2, S1, S2>(
+  { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
+  there: (t: T1) => S1
+): Spec<S1, S2> {
+  return { ...to, rng: Random.map(from.rng, there) };
+}
+
+function onlyIf<T, S>(spec: Spec<T, S>, onlyIf: (t: T) => boolean): Spec<T, S> {
+  return { ...spec, rng: Random.reject(spec.rng, (x) => !onlyIf(x)) };
 }
 
 function mapObject<K extends string, T, S>(
@@ -299,6 +390,18 @@ function mapObject<K extends string, T, S>(
 
 function fromRandom<T>(rng: Random<T>): Spec<T, T> {
   return { rng, there: id, back: id };
+}
+
+function first<T, S>(spec: Spec<T, S>): Spec<T, T> {
+  return { rng: spec.rng, there: id, back: id };
+}
+function second<T, S>(spec: Spec<T, S>): Spec<S, S> {
+  return {
+    rng: Random.map(spec.rng, spec.there),
+    there: id,
+    back: id,
+    provable: spec.provable,
+  };
 }
 
 // helper to ensure two functions throw equivalent errors
@@ -367,12 +470,6 @@ function throwError(message?: string): any {
   throw Error(message);
 }
 
-// helper types
-
-type AnyFunction = (...args: any) => any;
-
-type Tuple<T> = [] | [T, ...T[]];
-
 // infer input types from specs
 
 type Param1<In extends OrUnion<any, any>> = In extends {
@@ -397,9 +494,9 @@ type Params2<Ins extends Tuple<OrUnion<any, any>>> = {
   [k in keyof Ins]: Param2<Ins[k]>;
 };
 
-type Result1<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
+type First<Out extends ToSpec<any, any>> = Out extends ToSpec<infer Out1, any>
   ? Out1
   : never;
-type Result2<Out extends ToSpec<any, any>> = Out extends ToSpec<any, infer Out2>
+type Second<Out extends ToSpec<any, any>> = Out extends ToSpec<any, infer Out2>
   ? Out2
   : never;
