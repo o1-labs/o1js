@@ -1,15 +1,7 @@
-import {
-  Bytes,
-  Field,
-  Gadgets,
-  Provable,
-  UInt32,
-  UInt64,
-  UInt8,
-  ZkProgram,
-} from 'o1js';
+import { Bytes, Gadgets, ZkProgram } from 'o1js';
 
-/* 
+class Bytes12 extends Bytes(12) {}
+
 let SHA256 = ZkProgram({
   name: 'sha256',
   publicOutput: Bytes(32).provable,
@@ -23,17 +15,16 @@ let SHA256 = ZkProgram({
   },
 });
 
-await SHA256.compile(); */
-class BytesN extends Bytes(58) {}
+await SHA256.compile();
+let preimage = Bytes12.fromString('hello world!');
 
-let preimage = BytesN.fromString('hello world!');
+let proof = await SHA256.sha256(preimage);
 
-Gadgets.SHA256.hash(preimage);
+let isValid = await SHA256.verify(proof);
 
-function toHex(xs: UInt32[]) {
-  let hex = '';
-  for (let h = 0; h < xs.length; h++)
-    hex = hex + ('00000000' + xs[h].toBigint().toString(16)).slice(-8);
-
-  return hex;
-}
+if (
+  proof.publicOutput.toHex() !==
+  '7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9'
+)
+  throw new Error('Invalid sha256 digest!');
+if (!isValid) throw new Error('Invalid proof');
