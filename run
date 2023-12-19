@@ -1,1 +1,1 @@
-node --enable-source-maps src/build/run.js $@
+node --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
