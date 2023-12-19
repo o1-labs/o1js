@@ -9,41 +9,6 @@ import { Gadgets } from './gadgets.js';
 
 export { SHA256 };
 
-function processStringToMessageBlocks(s: string) {
-  let msgBits = s
-    .split('')
-    .map((c) => {
-      let binary = c.charCodeAt(0).toString(2);
-      return '00000000'.substr(binary.length) + binary;
-    })
-    .join('');
-
-  let l = msgBits.length;
-  msgBits = msgBits + '1';
-
-  // calculate k in l + 1 +k = 448 mod 512
-  let remainder = (448 - (l + 1)) % 512;
-
-  let k = (remainder + 512) % 512;
-  let padding = '0'.repeat(k);
-  msgBits = msgBits + padding;
-  let lBits = l.toString(2);
-  msgBits = msgBits + '0'.repeat(64 - lBits.length) + lBits;
-
-  let bitBlocks32 = [];
-  for (let i = 0; i < msgBits.length; i += 32) {
-    bitBlocks32.push(UInt32.from(BigInt('0b' + msgBits.substr(i, 32))));
-  }
-
-  let lengthBlocks = bitBlocks32.length;
-  let blocks = [];
-  for (let i = 0; i < lengthBlocks; i += 16) {
-    let block = bitBlocks32.slice(i, i + 16);
-    blocks.push(block);
-  }
-  return blocks;
-}
-
 function padding(data: FlexibleBytes): UInt32[][] {
   // pad the data with zeros to reach the desired length
   let zeroPadded = Bytes.from(data);
@@ -63,9 +28,9 @@ function padding(data: FlexibleBytes): UInt32[][] {
     Provable.Array(UInt8, totalPaddingLength),
     () => {
       let padding = (
-        '1' +
-        '0'.repeat(k) +
-        '0'.repeat(64 - l.toString(2).length) +
+        '1' + // append 1 bit
+        '0'.repeat(k) + // append k zero bits
+        '0'.repeat(64 - l.toString(2).length) + // append 64bit containing the length of the original message
         l.toString(2)
       ).match(/.{1,8}/g)!;
 
@@ -75,23 +40,24 @@ function padding(data: FlexibleBytes): UInt32[][] {
   );
 
   // concatenate the padding with the original padded data
-  let messageBlocks = zeroPadded.bytes.concat(padding);
+  let paddedMessage = zeroPadded.bytes.concat(padding);
 
   // split the message into 32bit chunks
   let chunks: UInt32[] = [];
 
-  for (let i = 0; i < messageBlocks.length; i += 4) {
-    chunks.push(concat(messageBlocks.slice(i, i + 4)));
+  for (let i = 0; i < paddedMessage.length; i += 4) {
+    chunks.push(concat(paddedMessage.slice(i, i + 4)));
   }
 
-  // split message blocks into 16 element sized blocks
-  let xs: UInt32[][] = [];
+  // split message into 16 element sized message blocks
+  let messageBlocks: UInt32[][] = [];
   for (let i = 0; i < chunks.length; i += 16) {
-    xs.push(chunks.slice(i, i + 16));
+    messageBlocks.push(chunks.slice(i, i + 16));
   }
-  return xs;
+  return messageBlocks;
 }
 
+// concatenate bytes into a 32bit word using bit shifting
 function concat(xs: UInt8[]) {
   let target = new Field(0);
   xs.forEach((x) => {
@@ -101,31 +67,44 @@ function concat(xs: UInt8[]) {
   return new UInt32(target);
 }
 
+// decompose a 32bit word into 4 bytes
+function decomposeToBytes(a: UInt32) {
+  let field = a.value;
+  let ys = [];
+  for (let i = 0; i < 4; i++) {
+    let { quotient, remainder } = Gadgets.divMod32(field.mul(1n << 8n));
+    field = remainder;
+    ys.push(quotient);
+  }
+
+  // UInt8.from does a rangeCheck8
+  return ys.map(UInt8.from);
+}
+
+// constants §4.2.2
+const K = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+].map((k) => UInt32.from(k));
+
 const SHA256 = {
   hash(data: FlexibleBytes) {
-    const message = Bytes.from(data);
-    // constants §4.2.2
-    const K = [
-      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-      0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-      0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-      0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-      0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-      0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-      0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-      0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-      0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-    ].map((k) => UInt32.from(k));
-
     // initial hash values §5.3.3
     const H = [
       0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
       0x1f83d9ab, 0x5be0cd19,
     ].map((h) => UInt32.from(h));
 
-    // TODO: correct dynamic preprocessing §6.2
+    // preprocessing §6.2
     // padding the message $5.1.1 into blocks that are a multiple of 512
     let messageBlocks = padding(data);
 
@@ -192,9 +171,13 @@ const SHA256 = {
       H[7] = H[7].addMod32(h);
     }
 
-    return H;
+    let ys: UInt8[] = [];
+    H.forEach((x) => {
+      ys.push(...decomposeToBytes(x));
+    });
+
+    return Bytes.from(ys);
   },
-  processStringToMessageBlocks: processStringToMessageBlocks,
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
