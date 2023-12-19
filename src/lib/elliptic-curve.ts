@@ -1,5 +1,6 @@
 import { Snarky } from '../snarky.js';
-import { ForeignAffine, ForeignField, ForeignFieldVar, createForeignField } from './foreign-field.js';
+import { Field } from './field.js';
+import { ForeignAffine, ForeignField, createForeignField } from './foreign-field.js';
 import { MlTuple } from './ml/base.js';
 
 export { EllipticCurve, ForeignGroup }
@@ -51,5 +52,32 @@ class ForeignGroup {
     assertEquals(other: ForeignGroup) {
         this.x.assertEquals(other.x.toBigInt());
         this.y.assertEquals(other.y.toBigInt());
+    }
+
+    /**
+     * Part of the {@link Provable} interface.
+     * 
+     * Returns `2 * ForeignField.sizeInFields()` which is 6
+     */
+    static sizeInFields() {
+        return 6;
+    }
+
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Deserializes a {@link ForeignGroup} element from a list of field elements.
+     * Assumes the following format `[...x, ...y]`
+     */
+    static fromFields(fields: Field[]) {
+        const modulus = BigInt(ForeignGroup.curve[2]);
+        const ForeignGroupField = createForeignField(modulus);
+
+        const xFields = fields.slice(0, 3);
+        const yFields = fields.slice(3);
+        const x = ForeignGroupField.fromFields(xFields);
+        const y = ForeignGroupField.fromFields(yFields);
+
+        return new ForeignGroup(x, y);
     }
 }
