@@ -13,8 +13,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Removed_ for now removed features.
     _Fixed_ for any bug fixes.
     _Security_ in case of vulnerabilities.
-
-
  -->
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/7acf19d0d...HEAD)
@@ -43,6 +41,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift()`
   - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift()`
   - bitwise AND via `{UInt32, UInt64}.and()`
+
+### Fixed
+
+- Fix stack overflows when calling provable methods with large inputs https://github.com/o1-labs/o1js/pull/1334
 
 ## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
 
