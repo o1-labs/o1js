@@ -1,15 +1,38 @@
+import { Snarky } from '../../snarky.js';
+import { Fp } from '../../bindings/crypto/finite_field.js';
+import { Field as FieldProvable } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
+import { Bool } from '../bool.js';
 
 export {
   rangeCheck64,
-  rangeCheck8,
-  rangeCheck16,
+  rangeCheck32,
   multiRangeCheck,
   compactMultiRangeCheck,
+  rangeCheckHelper,
+  rangeCheckN,
+  isInRangeN,
+  rangeCheck8,
+  rangeCheck16,
 };
 export { l, l2, l3, lMask, l2Mask };
+
+/**
+ * Asserts that x is in the range [0, 2^32)
+ */
+function rangeCheck32(x: Field) {
+  if (x.isConstant()) {
+    if (x.toBigInt() >= 1n << 32n) {
+      throw Error(`rangeCheck32: expected field to fit in 32 bits, got ${x}`);
+    }
+    return;
+  }
+
+  let actual = rangeCheckHelper(32, x);
+  actual.assertEquals(x);
+}
 
 /**
  * Asserts that x is in the range [0, 2^64)
@@ -212,6 +235,71 @@ function rangeCheck1Helper(inputs: {
     [z86, z74, z62, z50, z38, z36, z34, z32, z30, z28, z26, z24, z22],
     [z20, z18, z16, x76, x64, y76, y64, z14, z12, z10, z8, z6, z4, z2, z0]
   );
+}
+
+/**
+ * Helper function that creates a new {@link Field} element from the first `length` bits of this {@link Field} element.
+ */
+function rangeCheckHelper(length: number, x: Field) {
+  assert(
+    length <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
+  );
+  assert(length > 0, `bit length must be positive, got ${length}`);
+  assert(length % 16 === 0, '`length` has to be a multiple of 16.');
+
+  let lengthDiv16 = length / 16;
+  if (x.isConstant()) {
+    let bits = FieldProvable.toBits(x.toBigInt())
+      .slice(0, length)
+      .concat(Array(Fp.sizeInBits - length).fill(false));
+    return new Field(FieldProvable.fromBits(bits));
+  }
+  let y = Snarky.field.truncateToBits16(lengthDiv16, x.value);
+  return new Field(y);
+}
+
+/**
+ * Asserts that x is in the range [0, 2^n)
+ */
+function rangeCheckN(n: number, x: Field, message: string = '') {
+  assert(
+    n <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${n}`
+  );
+  assert(n > 0, `bit length must be positive, got ${n}`);
+  assert(n % 16 === 0, '`length` has to be a multiple of 16.');
+
+  if (x.isConstant()) {
+    if (x.toBigInt() >= 1n << BigInt(n)) {
+      throw Error(
+        `rangeCheckN: expected field to fit in ${n} bits, got ${x}.\n${message}`
+      );
+    }
+    return;
+  }
+
+  let actual = rangeCheckHelper(n, x);
+  actual.assertEquals(x, message);
+}
+
+/**
+ * Checks that x is in the range [0, 2^n) and returns a Boolean indicating whether the check passed.
+ */
+function isInRangeN(n: number, x: Field) {
+  assert(
+    n <= Fp.sizeInBits,
+    `bit length must be ${Fp.sizeInBits} or less, got ${n}`
+  );
+  assert(n > 0, `bit length must be positive, got ${n}`);
+  assert(n % 16 === 0, '`length` has to be a multiple of 16.');
+
+  if (x.isConstant()) {
+    return new Bool(x.toBigInt() < 1n << BigInt(n));
+  }
+
+  let actual = rangeCheckHelper(n, x);
+  return actual.equals(x);
 }
 
 function rangeCheck16(x: Field) {

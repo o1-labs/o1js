@@ -17,11 +17,13 @@ import {
   Second,
   bool,
   equivalentProvable,
+  fromRandom,
   map,
   oneOf,
   record,
 } from '../testing/equivalent.js';
 import { Bool } from '../bool.js';
+import { Random } from '../testing/random.js';
 
 // quick tests
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
@@ -53,11 +55,21 @@ for (let Curve of curves) {
     }
   );
 
+  // with 30% prob, test the version without GLV even if the curve supports it
+  let noGlv = fromRandom(Random.map(Random.fraction(), (f) => f < 0.3));
+
   // provable method we want to test
-  const verify = (s: Second<typeof signature>) => {
+  const verify = (s: Second<typeof signature>, noGlv: boolean) => {
     // invalid public key can lead to either a failing constraint, or verify() returning false
     EllipticCurve.assertOnCurve(s.publicKey, Curve);
-    return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+
+    let hasGlv = Curve.hasEndomorphism;
+    if (noGlv) Curve.hasEndomorphism = false; // hack to force non-GLV version
+    try {
+      return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+    } finally {
+      Curve.hasEndomorphism = hasGlv;
+    }
   };
 
   // input validation equivalent to the one implicit in verify()
@@ -72,14 +84,14 @@ for (let Curve of curves) {
   };
 
   // positive test
-  equivalentProvable({ from: [signature], to: bool, verbose: true })(
+  equivalentProvable({ from: [signature, noGlv], to: bool, verbose: true })(
     () => true,
     verify,
     `${Curve.name}: verifies`
   );
 
   // negative test
-  equivalentProvable({ from: [badSignature], to: bool, verbose: true })(
+  equivalentProvable({ from: [badSignature, noGlv], to: bool, verbose: true })(
     (s) => checkInputs(s) && false,
     verify,
     `${Curve.name}: fails`
@@ -87,7 +99,7 @@ for (let Curve of curves) {
 
   // test against constant implementation, with both invalid and valid signatures
   equivalentProvable({
-    from: [oneOf(signature, badSignature)],
+    from: [oneOf(signature, badSignature), noGlv],
     to: bool,
     verbose: true,
   })(
