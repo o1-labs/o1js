@@ -7,7 +7,7 @@ import { bytes } from './test-utils.js';
 import { equivalent } from '../testing/equivalent.js';
 import { Random, sample } from '../testing/random.js';
 
-sample(Random.nat(100), 10).forEach((preimageLength) => {
+sample(Random.nat(400), 25).forEach((preimageLength) => {
   let inputBytes = bytes(preimageLength);
   let outputBytes = bytes(256 / 8);
 

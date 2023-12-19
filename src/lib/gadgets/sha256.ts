@@ -22,6 +22,10 @@ function padding(data: FlexibleBytes): UInt32[][] {
 
   let l = data.length * 8; // length in bits
   let k = (448 - (l + 1)) % 512;
+
+  // pad for new blog size
+  if (k < 0) k += 512;
+
   let totalPaddingLength = (k + 1 + 64) / 8; // total length of the padding
 
   let padding = Provable.witness(
