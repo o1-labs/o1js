@@ -871,7 +871,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   and(x: UInt32) {
-    return Gadgets.and(this.value, x.value, UInt32.NUM_BITS);
+    return new UInt32(Gadgets.and(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
