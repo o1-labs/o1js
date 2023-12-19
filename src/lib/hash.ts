@@ -6,7 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
-import { Gadgets } from './gadgets/gadgets.js';
+import { Gadgets } from '../index.js';
 
 // external API
 export { Poseidon, TokenSymbol };
