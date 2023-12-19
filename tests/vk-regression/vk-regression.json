@@ -168,7 +168,11 @@
   "Bitwise Primitive": {
     "digest": "Bitwise Primitive",
     "methods": {
-      "rot": {
+      "rot32": {
+        "rows": 31,
+        "digest": "3e39e3f7bfdef1c546700c0294407fc2"
+      },
+      "rot64": {
         "rows": 10,
         "digest": "c38703de755b10edf77bf24269089274"
       },

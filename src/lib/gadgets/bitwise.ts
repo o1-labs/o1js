@@ -10,9 +10,19 @@ import {
   exists,
   bitSlice,
 } from './common.js';
-import { rangeCheck64 } from './range-check.js';
+import { rangeCheck32, rangeCheck64 } from './range-check.js';
+import { divMod32 } from './arithmetic.js';
 
-export { xor, not, rotate, and, rightShift, leftShift };
+export {
+  xor,
+  not,
+  rotate64,
+  rotate32,
+  and,
+  rightShift64,
+  leftShift64,
+  leftShift32,
+};
 
 function not(a: Field, length: number, checked: boolean = false) {
   // check that input length is positive
@@ -187,7 +197,7 @@ function and(a: Field, b: Field, length: number) {
   return outputAnd;
 }
 
-function rotate(
+function rotate64(
   field: Field,
   bits: number,
   direction: 'left' | 'right' = 'left'
@@ -200,16 +210,42 @@ function rotate(
 
   if (field.isConstant()) {
     assert(
-      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      field.toBigInt() < 1n << BigInt(MAX_BITS),
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
     return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction));
   }
-  const [rotated] = rot(field, bits, direction);
+  const [rotated] = rot64(field, bits, direction);
   return rotated;
 }
 
-function rot(
+function rotate32(
+  field: Field,
+  bits: number,
+  direction: 'left' | 'right' = 'left'
+) {
+  assert(bits <= 32 && bits > 0, 'bits must be between 0 and 32');
+
+  if (field.isConstant()) {
+    assert(
+      field.toBigInt() < 1n << 32n,
+      `rotation: expected field to be at most 32 bits, got ${field.toBigInt()}`
+    );
+    return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction, 32n));
+  }
+
+  let { quotient: excess, remainder: shifted } = divMod32(
+    field.mul(1n << BigInt(direction === 'left' ? bits : 32 - bits))
+  );
+
+  let rotated = shifted.add(excess);
+
+  rangeCheck32(rotated);
+
+  return rotated;
+}
+
+function rot64(
   field: Field,
   bits: number,
   direction: 'left' | 'right' = 'left'
@@ -281,7 +317,7 @@ function rot(
   return [rotated, excess, shifted];
 }
 
-function rightShift(field: Field, bits: number) {
+function rightShift64(field: Field, bits: number) {
   assert(
     bits >= 0 && bits <= MAX_BITS,
     `rightShift: expected bits to be between 0 and 64, got ${bits}`
@@ -294,11 +330,11 @@ function rightShift(field: Field, bits: number) {
     );
     return new Field(Fp.rightShift(field.toBigInt(), bits));
   }
-  const [, excess] = rot(field, bits, 'right');
+  const [, excess] = rot64(field, bits, 'right');
   return excess;
 }
 
-function leftShift(field: Field, bits: number) {
+function leftShift64(field: Field, bits: number) {
   assert(
     bits >= 0 && bits <= MAX_BITS,
     `rightShift: expected bits to be between 0 and 64, got ${bits}`
@@ -311,6 +347,11 @@ function leftShift(field: Field, bits: number) {
     );
     return new Field(Fp.leftShift(field.toBigInt(), bits));
   }
-  const [, , shifted] = rot(field, bits, 'left');
+  const [, , shifted] = rot64(field, bits, 'left');
+  return shifted;
+}
+
+function leftShift32(field: Field, bits: number) {
+  let { remainder: shifted } = divMod32(field.mul(1n << BigInt(bits)));
   return shifted;
 }

@@ -34,13 +34,20 @@ const GroupCS = constraintSystem('Group Primitive', {
 });
 
 const BitwiseCS = constraintSystem('Bitwise Primitive', {
-  rot() {
+  rot32() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rotate32(a, 2, 'left');
+    Gadgets.rotate32(a, 2, 'right');
+    Gadgets.rotate32(a, 4, 'left');
+    Gadgets.rotate32(a, 4, 'right');
+  },
+  rot64() {
     let a = Provable.witness(Field, () => new Field(12));
     Gadgets.rangeCheck64(a); // `rotate()` doesn't do this
-    Gadgets.rotate(a, 2, 'left');
-    Gadgets.rotate(a, 2, 'right');
-    Gadgets.rotate(a, 4, 'left');
-    Gadgets.rotate(a, 4, 'right');
+    Gadgets.rotate64(a, 2, 'left');
+    Gadgets.rotate64(a, 2, 'right');
+    Gadgets.rotate64(a, 4, 'left');
+    Gadgets.rotate64(a, 4, 'right');
   },
   xor() {
     let a = Provable.witness(Field, () => new Field(5n));
@@ -66,13 +73,13 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
   },
   leftShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.leftShift(a, 2);
-    Gadgets.leftShift(a, 4);
+    Gadgets.leftShift64(a, 2);
+    Gadgets.leftShift64(a, 4);
   },
   rightShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.rightShift(a, 2);
-    Gadgets.rightShift(a, 4);
+    Gadgets.rightShift64(a, 2);
+    Gadgets.rightShift64(a, 4);
   },
   and() {
     let a = Provable.witness(Field, () => new Field(5n));
