@@ -630,6 +630,13 @@ class UInt32 extends CircuitValue {
   }
 
   /**
+   * Addition modulo 2^32. Check {@link Gadgets.addMod32} for a detailed description.
+   */
+  addMod32(y: UInt32) {
+    return new UInt32(Gadgets.addMod32(this.value, y.value));
+  }
+
+  /**
    * Integer division with remainder.
    *
    * `x.divMod(y)` returns the quotient and the remainder.

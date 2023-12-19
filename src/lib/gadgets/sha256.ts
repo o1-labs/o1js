@@ -1,6 +1,8 @@
 // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
 import { Field } from '../field.js';
-import { UInt32 } from '../int.js';
+import { UInt32, UInt8 } from '../int.js';
+import { Bytes, FlexibleBytes, createBytes } from '../provable-types/bytes.js';
+import { Provable } from '../provable.js';
 import { TupleN } from '../util/types.js';
 import { bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
@@ -42,8 +44,66 @@ function processStringToMessageBlocks(s: string) {
   return blocks;
 }
 
+function padding(data: FlexibleBytes): UInt32[][] {
+  // pad the data with zeros to reach the desired length
+  let zeroPadded = Bytes.from(data);
+
+  // now pad the data to reach the format expected by sha256
+  // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
+  // l + 1 + k = 448 mod 512
+  // then append a 64bit block containing the length of the original message in bits
+  // TODO: question, most values are witnessed because we dont need to prove the padding.
+  // The user is incentivized to provide the correct padding because otherwise the hash will be wrong.
+
+  let l = data.length * 8; // length in bits
+  let k = (448 - (l + 1)) % 512;
+  let totalPaddingLength = (k + 1 + 64) / 8; // total length of the padding
+
+  let padding = Provable.witness(
+    Provable.Array(UInt8, totalPaddingLength),
+    () => {
+      let padding = (
+        '1' +
+        '0'.repeat(k) +
+        '0'.repeat(64 - l.toString(2).length) +
+        l.toString(2)
+      ).match(/.{1,8}/g)!;
+
+      let xs = padding.map((x) => UInt8.from(BigInt('0b' + x)));
+      return xs;
+    }
+  );
+
+  // concatenate the padding with the original padded data
+  let messageBlocks = zeroPadded.bytes.concat(padding);
+
+  // split the message into 32bit chunks
+  let chunks: UInt32[] = [];
+
+  for (let i = 0; i < messageBlocks.length; i += 4) {
+    chunks.push(concat(messageBlocks.slice(i, i + 4)));
+  }
+
+  // split message blocks into 16 element sized blocks
+  let xs: UInt32[][] = [];
+  for (let i = 0; i < chunks.length; i += 16) {
+    xs.push(chunks.slice(i, i + 16));
+  }
+  return xs;
+}
+
+function concat(xs: UInt8[]) {
+  let target = new Field(0);
+  xs.forEach((x) => {
+    target = Gadgets.leftShift32(target, 8).add(x.value);
+  });
+  Gadgets.rangeCheck32(target);
+  return new UInt32(target);
+}
+
 const SHA256 = {
-  hash(data: UInt32[][]) {
+  hash(data: FlexibleBytes) {
+    const message = Bytes.from(data);
     // constants §4.2.2
     const K = [
       0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
@@ -67,13 +127,13 @@ const SHA256 = {
 
     // TODO: correct dynamic preprocessing §6.2
     // padding the message $5.1.1 into blocks that are a multiple of 512
-    let messageBlocks = data;
+    let messageBlocks = padding(data);
 
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
       const M = messageBlocks[i];
-      // for each message block of 16 x 32 bytes do:
+      // for each message block of 16 x 32bit do:
       const W: UInt32[] = [];
 
       // prepare message block
@@ -254,7 +314,7 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
   let xRotR2 = x3.add(x012.mul(1 << d3)).seal();
   // ^ proves that 2^(32-d2)*x2 < xRotR2 => x2 < 2^d2 if we check xRotR2 < 2^32 later
 
-  return UInt32.from(xRotR0).xor(xRotR1).xor(xRotR2);
+  return UInt32.from(xRotR0).xor(new UInt32(xRotR1)).xor(new UInt32(xRotR2));
 }
 
 function rangeCheck16(x: Field) {
