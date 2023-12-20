@@ -7,3 +7,6 @@ tests/test-artifacts/
 profiling.md
 o1js-reference
 *.tmp.js
+_build/
+src/config/
+src/config.mlh

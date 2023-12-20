@@ -6,8 +6,16 @@ import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
 import { TupleN } from '../util/types.js';
+import { Snarky } from '../../snarky.js';
 
-export { arrayGet, assertOneOf };
+export { assertBoolean, arrayGet, assertOneOf };
+
+/**
+ * Assert that x is either 0 or 1.
+ */
+function assertBoolean(x: VarField) {
+  Snarky.field.assertBoolean(x.value);
+}
 
 // TODO: create constant versions of these and expose on Gadgets
 

@@ -482,7 +482,7 @@ function LocalBlockchain({
             account,
             update,
             commitments,
-            proofsEnabled
+            this.proofsEnabled
           );
         }
       }
@@ -587,7 +587,7 @@ function LocalBlockchain({
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
       let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
-        proofsEnabled,
+        proofsEnabled: this.proofsEnabled,
         fetchMode: 'test',
       });
       let hasProofs = tx.transaction.accountUpdates.some(
@@ -595,7 +595,7 @@ function LocalBlockchain({
       );
       return createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
-        proofsEnabled,
+        proofsEnabled: this.proofsEnabled,
       });
     },
     applyJsonTransaction(json: string) {
@@ -666,7 +666,7 @@ function LocalBlockchain({
       networkState.totalCurrency = currency;
     },
     setProofsEnabled(newProofsEnabled: boolean) {
-      proofsEnabled = newProofsEnabled;
+      this.proofsEnabled = newProofsEnabled;
     },
   };
 }
