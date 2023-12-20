@@ -17,12 +17,20 @@ let SHA256Program = ZkProgram({
   },
 });
 
+console.time('compile');
 await SHA256Program.compile();
+console.timeEnd('compile');
+
 let preimage = Bytes12.fromString('hello world!');
 
-let proof = await SHA256Program.sha256(preimage);
+console.log('sha256 rows:', SHA256Program.analyzeMethods().sha256.rows);
 
+console.time('prove');
+let proof = await SHA256Program.sha256(preimage);
+console.timeEnd('prove');
 let isValid = await SHA256Program.verify(proof);
+
+console.log('digest:', proof.publicOutput.toHex());
 
 if (
   proof.publicOutput.toHex() !==
