@@ -1,6 +1,10 @@
 import { Keccak } from './keccak.js';
 import { ZkProgram } from './proof_system.js';
-import { equivalent, equivalentAsync } from './testing/equivalent.js';
+import {
+  equivalentProvable,
+  equivalent,
+  equivalentAsync,
+} from './testing/equivalent.js';
 import {
   keccak_224,
   keccak_256,
@@ -47,13 +51,13 @@ for (let length of lengths) {
   let inputBytes = bytes(preimageLength);
   let outputBytes = bytes(length / 8);
 
-  equivalent({ from: [inputBytes], to: outputBytes, verbose: true })(
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
     testImplementations.sha3[length],
     (x) => Keccak.nistSha3(length, x),
     `sha3 ${length}`
   );
 
-  equivalent({ from: [inputBytes], to: outputBytes, verbose: true })(
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
     testImplementations.preNist[length],
     (x) => Keccak.preNist(length, x),
     `keccak ${length}`
