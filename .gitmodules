@@ -1,3 +1,6 @@
 [submodule "src/snarkyjs-bindings"]
 	path = src/bindings
 	url = https://github.com/o1-labs/snarkyjs-bindings.git
+[submodule "src/mina"]
+	path = src/mina
+	url = https://github.com/MinaProtocol/mina.git

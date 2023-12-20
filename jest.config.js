@@ -3,6 +3,7 @@ export default {
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   transformIgnorePatterns: ['node_modules/', 'dist/node/'],
+  modulePathIgnorePatterns: ['src/mina/'],
   globals: {
     'ts-jest': {
       useESM: true,
