@@ -15,7 +15,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/7acf19d0d...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/19115a159...HEAD)
+
+## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
 
 ### Breaking changes
 
@@ -25,10 +27,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Non-native elliptic curve operations exposed through `createForeignCurve()` class factory https://github.com/o1-labs/o1js/pull/1007
-- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007
-
+- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007 https://github.com/o1-labs/o1js/pull/1307
   - For an example, see `./src/examples/crypto/ecdsa`
-
+- **Keccak/SHA3 hash function** exposed on `Keccak` namespace https://github.com/o1-labs/o1js/pull/1291
+- `Hash` namespace which holds all hash functions https://github.com/o1-labs/o1js/pull/999
+  - `Bytes`, provable type to hold a byte array, which serves as input and output for Keccak variants
+  - `UInt8`, provable type to hold a single byte, which is constrained to be in the 0 to 255 range
 - `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.leftShift32()` for left shift over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
@@ -41,10 +45,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift()`
   - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift()`
   - bitwise AND via `{UInt32, UInt64}.and()`
+- Example for using actions to store a map data structure https://github.com/o1-labs/o1js/pull/1300
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `summary()` method to return a summary of the constraints used by a method https://github.com/o1-labs/o1js/pull/1007
 
 ### Fixed
 
 - Fix stack overflows when calling provable methods with large inputs https://github.com/o1-labs/o1js/pull/1334
+- Fix `Local.setProofsEnabled()` which would not get picked up by `deploy()` https://github.com/o1-labs/o1js/pull/1330
+- Remove usage of private class fields in core types like `Field`, for better type compatibility between different o1js versions https://github.com/o1-labs/o1js/pull/1319
 
 ## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
 
