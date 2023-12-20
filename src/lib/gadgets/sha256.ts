@@ -1,7 +1,7 @@
 // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
 import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
-import { Bytes, FlexibleBytes, createBytes } from '../provable-types/bytes.js';
+import { Bytes, FlexibleBytes } from '../provable-types/bytes.js';
 import { Provable } from '../provable.js';
 import { TupleN } from '../util/types.js';
 import { bitSlice, exists } from './common.js';
@@ -11,37 +11,29 @@ export { SHA256 };
 
 function padding(data: FlexibleBytes): UInt32[][] {
   // pad the data with zeros to reach the desired length
+  // this is because we need to inherit to a static sized Bytes array. unrelated to sha256
   let zeroPadded = Bytes.from(data);
 
   // now pad the data to reach the format expected by sha256
   // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
   // l + 1 + k = 448 mod 512
   // then append a 64bit block containing the length of the original message in bits
-  // TODO: question, most values are witnessed because we dont need to prove the padding.
-  // The user is incentivized to provide the correct padding because otherwise the hash will be wrong.
 
-  let l = data.length * 8; // length in bits
+  let l = zeroPadded.length * 8; // length in bits
   let k = (448 - (l + 1)) % 512;
 
-  // pad for new blog size
+  // pad message exceeds 512bit and needs a new block
   if (k < 0) k += 512;
 
-  let totalPaddingLength = (k + 1 + 64) / 8; // total length of the padding
+  let paddingBits = (
+    '1' + // append 1 bit
+    '0'.repeat(k) + // append k zero bits
+    '0'.repeat(64 - l.toString(2).length) + // append 64bit containing the length of the original message
+    l.toString(2)
+  ).match(/.{1,8}/g)!; // this should always be devisable by 8
 
-  let padding = Provable.witness(
-    Provable.Array(UInt8, totalPaddingLength),
-    () => {
-      let padding = (
-        '1' + // append 1 bit
-        '0'.repeat(k) + // append k zero bits
-        '0'.repeat(64 - l.toString(2).length) + // append 64bit containing the length of the original message
-        l.toString(2)
-      ).match(/.{1,8}/g)!;
-
-      let xs = padding.map((x) => UInt8.from(BigInt('0b' + x)));
-      return xs;
-    }
-  );
+  // map the padding bit string to UInt8 elements
+  let padding = paddingBits.map((x) => UInt8.from(BigInt('0b' + x)));
 
   // concatenate the padding with the original padded data
   let paddedMessage = zeroPadded.bytes.concat(padding);
@@ -50,10 +42,12 @@ function padding(data: FlexibleBytes): UInt32[][] {
   let chunks: UInt32[] = [];
 
   for (let i = 0; i < paddedMessage.length; i += 4) {
-    chunks.push(concat(paddedMessage.slice(i, i + 4)));
+    // chunk 4 bytes into one UInt32, as expected by SHA256
+    chunks.push(concatToUInt32(paddedMessage.slice(i, i + 4)));
   }
 
   // split message into 16 element sized message blocks
+  // SHA256 expects n-blocks of 512bit each, 16*32bit = 512bit
   let messageBlocks: UInt32[][] = [];
   for (let i = 0; i < chunks.length; i += 16) {
     messageBlocks.push(chunks.slice(i, i + 16));
@@ -62,11 +56,13 @@ function padding(data: FlexibleBytes): UInt32[][] {
 }
 
 // concatenate bytes into a 32bit word using bit shifting
-function concat(xs: UInt8[]) {
+function concatToUInt32(xs: UInt8[]) {
   let target = new Field(0);
   xs.forEach((x) => {
+    // for each element we shift the target by 8 bits and add the element
     target = Gadgets.leftShift32(target, 8).add(x.value);
   });
+  // making sure its actually 32bit
   Gadgets.rangeCheck32(target);
   return new UInt32(target);
 }
@@ -76,12 +72,14 @@ function decomposeToBytes(a: UInt32) {
   let field = a.value;
   let ys = [];
   for (let i = 0; i < 4; i++) {
+    // for each byte we rotate the element and get the excess bits (8 at a time) and construct a UInt8 of it
     let { quotient, remainder } = Gadgets.divMod32(field.mul(1n << 8n));
+    // "shift" the element by 8 bit to get the next byte sequence during the next iteration
     field = remainder;
     ys.push(quotient);
   }
 
-  // UInt8.from does a rangeCheck8
+  // UInt8.from does a rangeCheck8 for Field elements
   return ys.map(UInt8.from);
 }
 
