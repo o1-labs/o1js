@@ -167,7 +167,6 @@ const SHA256 = {
       }
 
       // new intermediate hash value
-
       H[0] = H[0].addMod32(a);
       H[1] = H[1].addMod32(b);
       H[2] = H[2].addMod32(c);
@@ -177,13 +176,6 @@ const SHA256 = {
       H[6] = H[6].addMod32(g);
       H[7] = H[7].addMod32(h);
     }
-
-    /*
-    let ys: UInt8[] = [];
-    H.forEach((x) => {
-      ys.push(...decomposeToBytes(x));
-    });
-    */
 
     // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
     return Bytes.from(H.map((x) => decomposeToBytes(x)).flat());
