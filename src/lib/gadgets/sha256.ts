@@ -2,7 +2,6 @@
 import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
 import { Bytes, FlexibleBytes } from '../provable-types/bytes.js';
-import { Provable } from '../provable.js';
 import { TupleN } from '../util/types.js';
 import { bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
