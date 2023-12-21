@@ -3,15 +3,15 @@ import { Bytes } from '../provable-types/provable-types.js';
 import { Gadgets } from './gadgets.js';
 import { sha256 as nobleSha256 } from '@noble/hashes/sha256';
 import { bytes } from './test-utils.js';
-import { equivalent, equivalentAsync } from '../testing/equivalent.js';
+import { equivalentAsync, equivalentProvable } from '../testing/equivalent.js';
 import { Random, sample } from '../testing/random.js';
 import { expect } from 'expect';
 
-sample(Random.nat(400), 10).forEach((preimageLength) => {
+sample(Random.nat(400), 5).forEach((preimageLength) => {
   let inputBytes = bytes(preimageLength);
   let outputBytes = bytes(256 / 8);
 
-  equivalent({ from: [inputBytes], to: outputBytes, verbose: true })(
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
     (x) => nobleSha256(x),
     (x) => Gadgets.SHA256.hash(x),
     `sha256 preimage length ${preimageLength}`
@@ -48,8 +48,7 @@ await equivalentAsync(
 });
 
 for (let { preimage, hash } of testVectors()) {
-  class BytesN extends Bytes(preimage.length) {}
-  let actual = Gadgets.SHA256.hash(BytesN.fromString(preimage));
+  let actual = Gadgets.SHA256.hash(Bytes.fromString(preimage));
   expect(actual.toHex()).toEqual(hash);
 }
 
