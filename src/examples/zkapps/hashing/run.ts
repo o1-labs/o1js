@@ -9,7 +9,7 @@ Mina.setActiveInstance(Local);
 
 if (proofsEnabled) {
   console.log('Proofs enabled');
-  HashStorage.compile();
+  await HashStorage.compile();
 }
 
 // test accounts that pays all the fees, and puts additional funds into the zkapp
@@ -20,7 +20,7 @@ const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
 const zkAppInstance = new HashStorage(zkAppAddress);
 
-// 0, 1, 2, 3, ..., 32
+// 0, 1, 2, 3, ..., 31
 const hashData = Bytes.from(Array.from({ length: 32 }, (_, i) => i));
 
 console.log('Deploying Hash Example....');
