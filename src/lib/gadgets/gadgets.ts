@@ -801,15 +801,14 @@ const Gadgets = {
   /**
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
    *
-   * Applies the SHA2-256 hash function to a list of big-endian byte-sized elements.
+   * Applies the SHA2-256 hash function to a list of byte-sized elements.
    *
    * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
    * Alternatively, you can pass plain `number[]`, `bigint[]` or `Uint8Array` to perform a hash outside provable code.
    *
    * Produces an output of {@link Bytes} that conforms to the chosen bit length.
-   * Both input and output bytes are big-endian.
    *
-   * @param data - Big-endian {@link Bytes} representing the message to hash.
+   * @param data - {@link Bytes} representing the message to hash.
    *
    * ```ts
    * let preimage = Bytes.fromString("hello world");
