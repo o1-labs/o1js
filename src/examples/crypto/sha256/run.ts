@@ -1,7 +1,5 @@
 import { Bytes12, SHA256Program } from './sha256.js';
 
-console.log('sha256 rows:', SHA256Program.analyzeMethods().sha256.rows);
-
 console.time('compile');
 await SHA256Program.compile();
 console.timeEnd('compile');
