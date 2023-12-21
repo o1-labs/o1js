@@ -7,7 +7,7 @@ import {
   ecdsa,
   keccakAndEcdsa,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
-import { SHA256Program } from '../../src/examples/crypto/sha256.js';
+import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
 
 // toggle this for quick iteration when debugging vk regressions
