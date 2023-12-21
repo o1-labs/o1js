@@ -1,7 +1,10 @@
 // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
+import { mod } from '../../bindings/crypto/finite_field.js';
 import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
-import { Bytes, FlexibleBytes } from '../provable-types/bytes.js';
+import { FlexibleBytes } from '../provable-types/bytes.js';
+import { Bytes } from '../provable-types/provable-types.js';
+import { chunk } from '../util/arrays.js';
 import { TupleN } from '../util/types.js';
 import { bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
@@ -9,20 +12,17 @@ import { Gadgets } from './gadgets.js';
 export { SHA256 };
 
 function padding(data: FlexibleBytes): UInt32[][] {
-  // pad the data with zeros to reach the desired length
-  // this is because we need to inherit to a static sized Bytes array. unrelated to sha256
-  let zeroPadded = Bytes.from(data);
+  // create a provable Bytes instance from the input data
+  // the Bytes class will be static sized according to the length of the input data
+  let message = Bytes.from(data);
 
   // now pad the data to reach the format expected by sha256
   // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
   // l + 1 + k = 448 mod 512
   // then append a 64bit block containing the length of the original message in bits
 
-  let l = zeroPadded.length * 8; // length in bits
-  let k = (448 - (l + 1)) % 512;
-
-  // pad message exceeds 512bit and needs a new block
-  if (k < 0) k += 512;
+  let l = message.length * 8; // length in bits
+  let k = Number(mod(448n - (BigInt(l) + 1n), 512n));
 
   let paddingBits = (
     '1' + // append 1 bit
@@ -35,7 +35,7 @@ function padding(data: FlexibleBytes): UInt32[][] {
   let padding = paddingBits.map((x) => UInt8.from(BigInt('0b' + x)));
 
   // concatenate the padding with the original padded data
-  let paddedMessage = zeroPadded.bytes.concat(padding);
+  let paddedMessage = message.bytes.concat(padding);
 
   // split the message into 32bit chunks
   let chunks: UInt32[] = [];
@@ -47,11 +47,7 @@ function padding(data: FlexibleBytes): UInt32[][] {
 
   // split message into 16 element sized message blocks
   // SHA256 expects n-blocks of 512bit each, 16*32bit = 512bit
-  let messageBlocks: UInt32[][] = [];
-  for (let i = 0; i < chunks.length; i += 16) {
-    messageBlocks.push(chunks.slice(i, i + 16));
-  }
-  return messageBlocks;
+  return chunk(chunks, 16);
 }
 
 // concatenate bytes into a 32bit word using bit shifting
