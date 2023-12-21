@@ -1,21 +1,6 @@
-import { Bytes, Gadgets, ZkProgram } from 'o1js';
+import { Bytes12, SHA256Program } from './sha256.js';
 
-export { SHA256Program };
-
-class Bytes12 extends Bytes(12) {}
-
-let SHA256Program = ZkProgram({
-  name: 'sha256',
-  publicOutput: Bytes(32).provable,
-  methods: {
-    sha256: {
-      privateInputs: [Bytes12.provable],
-      method(xs: Bytes12) {
-        return Gadgets.SHA256.hash(xs);
-      },
-    },
-  },
-});
+console.log('sha256 rows:', SHA256Program.analyzeMethods().sha256.rows);
 
 console.time('compile');
 await SHA256Program.compile();
