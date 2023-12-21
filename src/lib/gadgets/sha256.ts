@@ -4,9 +4,10 @@ import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../provable-types/bytes.js';
 import { Bytes } from '../provable-types/provable-types.js';
+import { Provable } from '../provable.js';
 import { chunk } from '../util/arrays.js';
 import { TupleN } from '../util/types.js';
-import { bitSlice, exists } from './common.js';
+import { bitSlice, bytesToWord, exists, wordToBytes } from './common.js';
 import { Gadgets } from './gadgets.js';
 import { rangeCheck16 } from './range-check.js';
 
@@ -65,24 +66,15 @@ function padding(data: FlexibleBytes): UInt32[][] {
 
   for (let i = 0; i < paddedMessage.length; i += 4) {
     // chunk 4 bytes into one UInt32, as expected by SHA256
-    chunks.push(concatToUInt32(paddedMessage.slice(i, i + 4)));
+    // bytesToWord expects little endian, so we reverse the bytes
+    chunks.push(
+      UInt32.from(bytesToWord(paddedMessage.slice(i, i + 4).reverse()))
+    );
   }
 
   // split message into 16 element sized message blocks
   // SHA256 expects n-blocks of 512bit each, 16*32bit = 512bit
   return chunk(chunks, 16);
-}
-
-// concatenate bytes into a 32bit word using bit shifting
-function concatToUInt32(xs: UInt8[]) {
-  let target = new Field(0);
-  xs.forEach((x) => {
-    // for each element we shift the target by 8 bits and add the element
-    target = Gadgets.leftShift32(target, 8).add(x.value);
-  });
-  // making sure its actually 32bit
-  Gadgets.rangeCheck32(target);
-  return new UInt32(target);
 }
 
 // decompose a 32bit word into 4 bytes
@@ -177,7 +169,8 @@ const SHA256 = {
     }
 
     // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
-    return Bytes.from(H.map((x) => decomposeToBytes(x)).flat());
+    // wordToBytes expects little endian, so we reverse the bytes
+    return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
   },
 };
 
