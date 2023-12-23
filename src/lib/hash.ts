@@ -7,6 +7,7 @@ import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
 import { rangeCheckN } from './gadgets/range-check.js';
+import { TupleN } from './util/types.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -45,13 +46,13 @@ const Poseidon = {
     if (isConstant(input)) {
       return Field(PoseidonBigint.hash(toBigints(input)));
     }
-    return Poseidon.update(this.initialState(), input)[0];
+    return Poseidon.update(Poseidon.initialState(), input)[0];
   },
 
   update(state: [Field, Field, Field], input: Field[]) {
     if (isConstant(state) && isConstant(input)) {
       let newState = PoseidonBigint.update(toBigints(state), toBigints(input));
-      return newState.map(Field);
+      return TupleN.fromArray(3, newState.map(Field));
     }
 
     let newState = Snarky.poseidon.update(

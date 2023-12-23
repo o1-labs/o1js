@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/19115a159...HEAD)
 
+### Fixed
+
+- Fix bug in `Hash.hash()` which always resulted in an error https://github.com/o1-labs/o1js/pull/1346
+
 ## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
 
 ### Breaking changes
