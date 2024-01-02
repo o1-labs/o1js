@@ -59,7 +59,7 @@ async function buildWeb({ production }) {
   await Promise.all([tscPromise, copyPromise]);
 
   if (minify) {
-    let o1jsWebPath = './dist/web/web_bindings/snarky_js_web.bc.js';
+    let o1jsWebPath = './dist/web/web_bindings/o1js_web.bc.js';
     let o1jsWeb = await readFile(o1jsWebPath, 'utf8');
     let { code } = await esbuild.transform(o1jsWeb, {
       target,
