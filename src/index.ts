@@ -13,6 +13,8 @@ export { Poseidon, TokenSymbol } from './lib/hash.js';
 export { Keccak } from './lib/keccak.js';
 export { Hash } from './lib/hashes-combined.js';
 
+export { assert } from './lib/gadgets/common.js';
+
 export * from './lib/signature.js';
 export type {
   ProvableExtended,

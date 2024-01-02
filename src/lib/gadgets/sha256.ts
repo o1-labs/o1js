@@ -4,7 +4,6 @@ import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../provable-types/bytes.js';
 import { Bytes } from '../provable-types/provable-types.js';
-import { Provable } from '../provable.js';
 import { chunk } from '../util/arrays.js';
 import { TupleN } from '../util/types.js';
 import { bitSlice, bytesToWord, exists, wordToBytes } from './common.js';
