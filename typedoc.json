@@ -7,7 +7,7 @@
   "exclude": ["dist/**/*", "src/mina-signer/**/*", "src/examples/**/*"],
   "entryPoints": [
     "src/index.ts",
-    "src/snarky.d.ts",
+    "src/o1js.d.ts",
     "src/lib/field.ts",
     "src/lib/group.ts",
     "src/lib/bool.ts"

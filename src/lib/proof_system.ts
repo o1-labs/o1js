@@ -11,7 +11,7 @@ import {
   MlFeatureFlags,
   Gate,
   GateType,
-} from '../snarky.js';
+} from '../o1js.js';
 import { Field, Bool } from './core.js';
 import {
   FlexibleProvable,

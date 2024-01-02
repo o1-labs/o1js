@@ -1,4 +1,4 @@
-import { ProvablePure } from '../snarky.js';
+import { ProvablePure } from '../o1js.js';
 import { FlexibleProvablePure } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';

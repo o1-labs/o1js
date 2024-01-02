@@ -2,7 +2,7 @@
  * this file contains conversion functions between JS and OCaml
  */
 
-import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
+import type { MlPublicKey, MlPublicKeyVar } from '../../o1js.js';
 import { HashInput } from '../circuit_value.js';
 import { Bool, Field } from '../core.js';
 import { FieldConst, FieldVar } from '../field.js';

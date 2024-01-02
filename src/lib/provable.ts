@@ -4,7 +4,7 @@
  * - the main interface for types that can be used in provable code
  */
 import { Field, Bool } from './core.js';
-import { Provable as Provable_, Snarky } from '../snarky.js';
+import { Provable as Provable_, Snarky } from '../o1js.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
 import { Context } from './global-context.js';
 import {

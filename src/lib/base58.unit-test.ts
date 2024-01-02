@@ -1,5 +1,5 @@
 import { fromBase58Check, toBase58Check } from './base58.js';
-import { Test } from '../snarky.js';
+import { Test } from '../o1js.js';
 import { expect } from 'expect';
 import { test, Random, withHardCoded } from './testing/property.js';
 

@@ -9,7 +9,7 @@ import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
-import { Pickles, getWasm } from '../../snarky.js';
+import { Pickles, getWasm } from '../../o1js.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { MlString } from '../ml/base.js';

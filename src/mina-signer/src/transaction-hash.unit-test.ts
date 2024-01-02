@@ -1,4 +1,4 @@
-import { Ledger, Test } from '../../snarky.js';
+import { Ledger, Test } from '../../o1js.js';
 import {
   Common,
   hashPayment,
@@ -180,7 +180,12 @@ function paymentToOcamlV1({
       common: commonToOcamlV1(common),
       body: [
         'Payment',
-        { source_pk: common.feePayer, receiver_pk: receiver, amount, token_id: '1' },
+        {
+          source_pk: common.feePayer,
+          receiver_pk: receiver,
+          amount,
+          token_id: '1',
+        },
       ],
     },
     signer: common.feePayer,
@@ -220,7 +225,10 @@ function delegationToOcamlV1({
       common: commonToOcamlV1(common),
       body: [
         'Stake_delegation',
-        ['Set_delegate', { delegator: common.feePayer, new_delegate: newDelegate }],
+        [
+          'Set_delegate',
+          { delegator: common.feePayer, new_delegate: newDelegate },
+        ],
       ],
     },
     signer: common.feePayer,

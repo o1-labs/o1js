@@ -16,7 +16,7 @@ import { packToFields } from './hash.js';
 import { Random, test } from './testing/property.js';
 import { MlHashInput } from './ml/conversion.js';
 import { MlFieldConstArray } from './ml/fields.js';
-import { Test } from '../snarky.js';
+import { Test } from '../o1js.js';
 
 let { hashInputFromJson } = Test;
 

@@ -8,7 +8,7 @@ import {
   Types,
   Provable,
 } from '../index.js';
-import { Test } from '../snarky.js';
+import { Test } from '../o1js.js';
 import { expect } from 'expect';
 
 let address = PrivateKey.random().toPublicKey();

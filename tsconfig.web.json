@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./src/index.ts", "./src/snarky.js", "./src/**/*.web.ts"],
+  "include": ["./src/index.ts", "./src/o1js.js", "./src/**/*.web.ts"],
   "compilerOptions": {
     "outDir": "dist/web"
   }

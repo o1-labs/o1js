@@ -51,7 +51,7 @@ async function buildWeb({ production }) {
   // copy over pure js files
   let copyPromise = copy({
     './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
-    './src/snarky.d.ts': './dist/web/snarky.d.ts',
+    './src/o1js.d.ts': './dist/web/o1js.d.ts',
     './src/bindings/js/wrapper.web.js': './dist/web/bindings/js/wrapper.js',
     './src/bindings/js/web/': './dist/web/bindings/js/web/',
   });

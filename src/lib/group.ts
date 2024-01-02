@@ -1,6 +1,6 @@
 import { Field, FieldVar } from './field.js';
 import { Scalar } from './scalar.js';
-import { Snarky } from '../snarky.js';
+import { Snarky } from '../o1js.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { GroupAffine, Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';

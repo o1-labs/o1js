@@ -1,4 +1,4 @@
-import { Snarky, Provable } from '../snarky.js';
+import { Snarky, Provable } from '../o1js.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';

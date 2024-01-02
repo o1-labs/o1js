@@ -10,7 +10,7 @@ import {
   sortMethodArguments,
 } from './proof_system.js';
 import { expect } from 'expect';
-import { Pickles, ProvablePure, Snarky } from '../snarky.js';
+import { Pickles, ProvablePure, Snarky } from '../o1js.js';
 import { AnyFunction } from './util/types.js';
 import { snarkContext } from './provable-context.js';
 import { it } from 'node:test';

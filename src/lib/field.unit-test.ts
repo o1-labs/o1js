@@ -1,4 +1,4 @@
-import { ProvablePure } from '../snarky.js';
+import { ProvablePure } from '../o1js.js';
 import { Field } from './core.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { test, Random } from './testing/property.js';
