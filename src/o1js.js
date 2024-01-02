@@ -1,5 +1,5 @@
 import './bindings/crypto/bindings.js';
-import { getSnarky, getWasm, withThreadPool } from './bindings/js/wrapper.js';
+import { getO1js, getWasm, withThreadPool } from './bindings/js/wrapper.js';
 import snarkySpec from './bindings/js/snarky-class-spec.js';
 import { proxyClasses } from './bindings/js/proxy.js';
 
@@ -8,7 +8,7 @@ let isReadyBoolean = true;
 let isItReady = () => isReadyBoolean;
 
 let { Snarky, Ledger, Pickles, Test } = proxyClasses(
-  getSnarky,
+  getO1js,
   isItReady,
   snarkySpec
 );
