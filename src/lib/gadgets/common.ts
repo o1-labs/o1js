@@ -2,7 +2,7 @@ import { Field, FieldConst, FieldVar, VarField } from '../field.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
-import { UInt8 } from '../int.js';
+import { UInt8 } from '../../index.js';
 import { Provable } from '../provable.js';
 import { chunk } from '../util/arrays.js';
 
