@@ -367,6 +367,12 @@ declare const Snarky: {
       absorb(sponge: unknown, x: FieldVar): void;
       squeeze(sponge: unknown): FieldVar;
     };
+
+    foreignSponge: {
+      create(isChecked: boolean): unknown;
+      absorb(sponge: unknown, x: ForeignFieldVar): void;
+      squeeze(sponge: unknown): ForeignFieldVar;
+    };
   };
 
   foreignField: {

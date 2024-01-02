@@ -6,6 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
+import { ForeignField, createForeignField } from './foreign-field.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -36,6 +37,25 @@ class Sponge {
 
   squeeze(): Field {
     return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
+  }
+}
+
+class ForeignSponge {
+  private sponge: unknown;
+  private ForeignFieldClass;
+
+  constructor(modulus: bigint) {
+    this.ForeignFieldClass = createForeignField(modulus);
+    let isChecked = Provable.inCheckedComputation();
+    this.sponge = Snarky.poseidon.foreignSponge.create(isChecked);
+  }
+
+  absorb(x: ForeignField) {
+    Snarky.poseidon.foreignSponge.absorb(this.sponge, x.value);
+  }
+
+  squeeze(): ForeignField {
+    return new this.ForeignFieldClass(Snarky.poseidon.foreignSponge.squeeze(this.sponge));
   }
 }
 
@@ -99,6 +119,7 @@ const Poseidon = {
   },
 
   Sponge,
+  ForeignSponge,
 };
 
 function hashConstant(input: Field[]) {
