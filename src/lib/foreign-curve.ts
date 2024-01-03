@@ -10,7 +10,7 @@ import { EllipticCurve, Point } from './gadgets/elliptic-curve.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { Provable } from './provable.js';
-import { provableFromClass } from '../bindings/lib/provable-snarky.js';
+import { provableFromClass } from '../bindings/lib/provable-o1js.js';
 
 // external API
 export { createForeignCurve, ForeignCurve };
