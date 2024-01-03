@@ -297,7 +297,7 @@ class Field {
    * const sum = x.add(Field(-7));
    *
    * // If you try to print sum - `console.log(sum.toBigInt())` - you will realize that it prints a very big integer because this is modular arithmetic, and 1 + (-7) circles around the field to become p - 6.
-   * // You can use the reverse operation of addition (substraction) to prove the sum is calculated correctly.
+   * // You can use the reverse operation of addition (subtraction) to prove the sum is calculated correctly.
    *
    * sum.sub(x).assertEquals(Field(-7));
    * sum.sub(Field(-7)).assertEquals(x);
@@ -345,7 +345,7 @@ class Field {
   }
 
   /**
-   * Substract another "field-like" value from this {@link Field} element.
+   * subtract another "field-like" value from this {@link Field} element.
    *
    * @example
    * ```ts
@@ -355,7 +355,7 @@ class Field {
    * difference.assertEquals(Field(-2));
    * ```
    *
-   * **Warning**: This is a modular substraction in the pasta field.
+   * **Warning**: This is a modular subtraction in the pasta field.
    *
    * @example
    * ```ts
@@ -363,11 +363,11 @@ class Field {
    * const difference = x.sub(Field(2));
    *
    * // If you try to print difference - `console.log(difference.toBigInt())` - you will realize that it prints a very big integer because this is modular arithmetic, and 1 - 2 circles around the field to become p - 1.
-   * // You can use the reverse operation of substraction (addition) to prove the difference is calculated correctly.
+   * // You can use the reverse operation of subtraction (addition) to prove the difference is calculated correctly.
    * difference.add(Field(2)).assertEquals(x);
    * ```
    *
-   * @param value - a "field-like" value to substract from the {@link Field}.
+   * @param value - a "field-like" value to subtract from the {@link Field}.
    *
    * @return A {@link Field} element equivalent to the modular difference of the two value.
    */
