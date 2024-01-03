@@ -12,7 +12,7 @@ name: Version Bump
 on:
   workflow_dispatch: # Allow to manually trigger the workflow
   schedule:
-    - cron: "0 0 * * 2" # At 00:00 UTC every Tuesday
+    - cron: '0 0 * * 2' # At 00:00 UTC every Tuesday
 
 jobs:
   version-bump:
@@ -23,10 +23,9 @@ jobs:
       - name: Check if it's an even week
         run: |
           WEEK_NUM=$(date +'%V')
-          if [ $((WEEK_NUM % 2)) -eq 0 ]; then
-            echo "RUN_JOB=true" >> $GITHUB_ENV
-          else
-            echo "RUN_JOB=false" >> $GITHUB_ENV
+          if [ $((WEEK_NUM % 2)) -ne 0 ]; then
+            echo "Odd week number ($WEEK_NUM), terminating job."
+            exit 1
           fi
 
       - name: Check out the repository
@@ -35,7 +34,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: '18'
 
       - name: Configure Git
         run: |
@@ -43,7 +42,6 @@ jobs:
           git config --local user.name "GitHub Action"
 
       - name: Bump patch version
-        if: ${{ env.RUN_JOB }} == 'true'
         run: |
           git fetch --prune --unshallow
           NEW_VERSION=$(npm version patch)
@@ -51,18 +49,15 @@ jobs:
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Install npm dependencies
-        if: ${{ env.RUN_JOB }} == 'true'
         run: npm install
 
       - name: Update CHANGELOG.md
-        if: ${{ env.RUN_JOB }} == 'true'
         run: |
           npm run update-changelog
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG for new version $NEW_VERSION"
 
       - name: Create new release branch
-        if: ${{ env.RUN_JOB }} == 'true'
         run: |
           NEW_BRANCH="release/${NEW_VERSION}"
           git checkout -b $NEW_BRANCH
