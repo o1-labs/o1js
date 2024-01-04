@@ -1,4 +1,4 @@
-import { Ledger } from '../o1js.js';
+import { Ledger } from '../snarky.js';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';

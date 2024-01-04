@@ -6,7 +6,7 @@ import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
 import { TupleN } from '../util/types.js';
-import { Snarky } from '../../o1js.js';
+import { Snarky } from '../../snarky.js';
 
 export { assertBoolean, arrayGet, assertOneOf };
 

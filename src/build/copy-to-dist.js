@@ -3,7 +3,7 @@ import { copyFromTo } from './utils.js';
 
 await copyFromTo(
   [
-    'src/o1js.d.ts',
+    'src/snarky.d.ts',
     'src/bindings/compiled/_node_bindings',
     'src/bindings/compiled/node_bindings/plonk_wasm.d.cts',
   ],

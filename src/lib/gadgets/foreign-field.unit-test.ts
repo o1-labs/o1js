@@ -26,7 +26,7 @@ import {
   repeat,
   withoutGenerics,
 } from '../testing/constraint-system.js';
-import { GateType } from '../../o1js.js';
+import { GateType } from '../../snarky.js';
 import { AnyTuple } from '../util/types.js';
 import {
   foreignField,

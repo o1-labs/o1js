@@ -6,7 +6,7 @@ import {
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
-import { Pickles, Test } from '../o1js.js';
+import { Pickles, Test } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,

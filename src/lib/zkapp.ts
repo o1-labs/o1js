@@ -1,4 +1,4 @@
-import { Gate, Pickles, ProvablePure } from '../o1js.js';
+import { Gate, Pickles, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,

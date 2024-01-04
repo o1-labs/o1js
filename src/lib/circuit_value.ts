@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ProvablePure, Snarky } from '../o1js.js';
+import { ProvablePure, Snarky } from '../snarky.js';
 import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,

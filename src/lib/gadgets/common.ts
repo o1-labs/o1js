@@ -1,6 +1,6 @@
 import { Field, FieldConst, FieldVar, VarField } from '../field.js';
 import { Tuple, TupleN } from '../util/types.js';
-import { Snarky } from '../../o1js.js';
+import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
 
 const MAX_BITS = 64 as const;

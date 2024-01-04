@@ -1,4 +1,4 @@
-import { Ledger, Test } from '../../o1js.js';
+import { Ledger, Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
 import { Field, Bool } from '../core.js';
 import { PrivateKey, PublicKey } from '../signature.js';

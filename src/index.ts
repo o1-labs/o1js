@@ -1,5 +1,5 @@
-export type { ProvablePure } from './o1js.js';
-export { Ledger } from './o1js.js';
+export type { ProvablePure } from './snarky.js';
+export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export {
   createForeignField,

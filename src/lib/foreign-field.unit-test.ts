@@ -1,4 +1,4 @@
-import { ProvablePure } from '../o1js.js';
+import { ProvablePure } from '../snarky.js';
 import { Field, Group } from './core.js';
 import { ForeignField, createForeignField } from './foreign-field.js';
 import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';

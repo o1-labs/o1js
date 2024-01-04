@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { Ledger, Test, Pickles } from '../../o1js.js';
+import { Ledger, Test, Pickles } from '../../snarky.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,

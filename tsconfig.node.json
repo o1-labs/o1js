@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "./src/index.ts",
-    "./src/o1js.js",
+    "./src/snarky.js",
     "./src/bindings/js/wrapper.js",
     "./src/mina-signer/src",
     "./src/mina-signer/MinaSigner.ts",

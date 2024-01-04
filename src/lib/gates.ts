@@ -1,4 +1,4 @@
-import { Snarky } from '../o1js.js';
+import { Snarky } from '../snarky.js';
 import { FieldConst, type Field } from './field.js';
 import { exists } from './gadgets/common.js';
 import { MlArray, MlTuple } from './ml/base.js';

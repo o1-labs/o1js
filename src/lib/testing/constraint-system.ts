@@ -4,7 +4,7 @@
  * An essential feature is that `constraintSystem()` automatically generates a
  * variety of fieldvar types for the inputs: constants, variables, and combinators.
  */
-import { Gate, GateType } from '../../o1js.js';
+import { Gate, GateType } from '../../snarky.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
 import { Field, FieldType, FieldVar } from '../field.js';
 import { Provable } from '../provable.js';

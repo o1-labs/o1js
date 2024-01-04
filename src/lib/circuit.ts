@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ProvablePure, Snarky } from '../o1js.js';
+import { ProvablePure, Snarky } from '../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable } from './provable.js';

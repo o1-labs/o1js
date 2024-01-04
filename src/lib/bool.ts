@@ -1,4 +1,4 @@
-import { Snarky } from '../o1js.js';
+import { Snarky } from '../snarky.js';
 import {
   Field,
   FieldConst,
