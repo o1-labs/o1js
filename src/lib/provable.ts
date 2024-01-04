@@ -63,6 +63,7 @@ const Provable = {
    * ```
    */
   witness,
+  witnessBn254,
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -235,6 +236,52 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
   return value;
 }
 
+function witnessBn254<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
+  type: S,
+  compute: () => T
+): T {
+  let ctx = snarkContext.get();
+
+  // outside provable code, we just call the callback and return its cloned result
+  if (!inCheckedComputation() || ctx.inWitnessBlock) {
+    return clone(type, compute());
+  }
+  let proverValue: T | undefined = undefined;
+  let fields: Field[];
+
+  let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
+  try {
+    let [, ...fieldVars] = Snarky.existsBn254(type.sizeInFields(), () => {
+      proverValue = compute();
+      let fields = type.toFields(proverValue);
+      let fieldConstants = fields.map((x) => x.toConstant().value[1]);
+
+      // TODO: enable this check
+      // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
+      // if (fields.length !== type.sizeInFields()) {
+      //   throw Error(
+      //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
+      //       fields.length
+      //     }.`
+      //   );
+      // }
+      return [0, ...fieldConstants];
+    });
+    fields = fieldVars.map(Field);
+  } finally {
+    snarkContext.leave(id);
+  }
+
+  // rebuild the value from its fields (which are now variables) and aux data
+  let aux = type.toAuxiliary(proverValue);
+  let value = (type as Provable<T>).fromFields(fields, aux);
+
+  // add type-specific constraints
+  type.check(value);
+
+  return value;
+}
+
 type ToFieldable = { toFields(): Field[] };
 
 // general provable methods
@@ -329,8 +376,8 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
   if (type === undefined)
     throw Error(
       `You called Provable.if(bool, x, y) with an argument x that has no constructor, which is not supported.\n` +
-        `If x, y are Structs or other custom types, you can use the following:\n` +
-        `Provable.if(bool, MyType, x, y)`
+      `If x, y are Structs or other custom types, you can use the following:\n` +
+      `Provable.if(bool, MyType, x, y)`
     );
   // TODO remove second condition once we have consolidated field class back into one
   // if (type !== y.constructor) {
@@ -341,13 +388,13 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
   ) {
     throw Error(
       'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +
-        `Provable.if(bool, MyType, x, y)`
+      `Provable.if(bool, MyType, x, y)`
     );
   }
   if (!('fromFields' in type && 'toFields' in type)) {
     throw Error(
       'Provable.if: Invalid argument type. Try using an explicit type argument:\n' +
-        `Provable.if(bool, MyType, x, y)`
+      `Provable.if(bool, MyType, x, y)`
     );
   }
   return ifExplicit(condition, type as any as Provable<T>, x, y);

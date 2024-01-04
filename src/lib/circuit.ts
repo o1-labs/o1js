@@ -42,7 +42,7 @@ class Circuit {
    * ```
    */
   static generateKeypairBn254() {
-    let main = mainFromCircuitData(this._main);
+    let main = mainFromCircuitDataBn254(this._main);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     return prettifyStacktracePromise(
       withThreadPool(async () => {
@@ -240,6 +240,27 @@ function mainFromCircuitData<P, W>(
         MlFieldArray.from(publicInputFields)
       );
       let privateInput_ = Provable.witness(
+        data.privateInputType,
+        () => privateInput as W
+      );
+      data.main(publicInput, privateInput_);
+    } finally {
+      snarkContext.leave(id);
+    }
+  };
+}
+
+function mainFromCircuitDataBn254<P, W>(
+  data: CircuitData<P, W>,
+  privateInput?: W
+): Snarky.Main {
+  return function main(publicInputFields: MlFieldArray) {
+    let id = snarkContext.enter({ inCheckedComputation: true });
+    try {
+      let publicInput = data.publicInputType.fromFields(
+        MlFieldArray.from(publicInputFields)
+      );
+      let privateInput_ = Provable.witnessBn254(
         data.privateInputType,
         () => privateInput as W
       );

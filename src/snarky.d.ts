@@ -156,7 +156,7 @@ declare namespace Snarky {
  */
 declare const Snarky: {
   /**
-   * witness `sizeInFields` field element variables
+   * witness `sizeInFields` Pasta field element variables
    *
    * Note: this is called "exists" because in a proof, you use it like this:
    * > "I prove that there exists x, such that (some statement)"
@@ -169,6 +169,17 @@ declare const Snarky: {
    * witness a single field element variable
    */
   existsVar(compute: () => FieldConst): FieldVar;
+
+  /**
+  * witness `sizeInFields` Bn254 field element variables
+  *
+  * Note: this is called "exists" because in a proof, you use it like this:
+  * > "I prove that there exists x, such that (some statement)"
+  */
+  existsBn254(
+    sizeInFields: number,
+    compute: () => MlArray<FieldConst>
+  ): MlArray<FieldVar>;
 
   /**
    * APIs that have to do with running provable code
