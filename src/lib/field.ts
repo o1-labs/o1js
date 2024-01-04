@@ -345,7 +345,7 @@ class Field {
   }
 
   /**
-   * subtract another "field-like" value from this {@link Field} element.
+   * Subtract another "field-like" value from this {@link Field} element.
    *
    * @example
    * ```ts
