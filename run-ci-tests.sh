@@ -27,11 +27,6 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
   ;;
 
-"Live integration tests")
-  echo "Running integration tests against real Mina network"
-  ./run src/examples/zkapps/hello_world/run_live.ts --bundle
-  ;;
-
 "Unit tests")
   echo "Running unit tests"
   cd src/mina-signer

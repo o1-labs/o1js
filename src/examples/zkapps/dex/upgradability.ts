@@ -1,32 +1,18 @@
-import {
-  AccountUpdate,
-  Mina,
-  isReady,
-  Permissions,
-  PrivateKey,
-  UInt64,
-} from 'o1js';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
+import { AccountUpdate, Mina, Permissions, PrivateKey, UInt64 } from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
-
-await isReady;
+import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
 let proofsEnabled = false;
-
 console.log('starting upgradeability tests');
-
 await upgradeabilityTests({
   withVesting: false,
 });
 console.log('all upgradeability tests were successful! 🎉');
-
 console.log('starting atomic actions tests');
-
 await atomicActionsTest({
   withVesting: false,
 });
-
 console.log('all atomic actions tests were successful!');
 
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
@@ -310,7 +296,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy dex contracts...');
 
-  tx = await Mina.transaction(feePayerKey, () => {
+  tx = await Mina.transaction(feePayerAddress, () => {
     // pay fees for creating 3 dex accounts
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();

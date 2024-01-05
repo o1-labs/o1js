@@ -1,10 +1,8 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
-import { tic, toc } from '../../utils/tic-toc.node.js';
+import { AccountUpdate, Mina, UInt64 } from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
-
-await isReady;
+import { tic, toc } from '../../utils/tic-toc.node.js';
+import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
 const TokenProfiler = getProfiler('Token with Proofs');
 TokenProfiler.start('Token with proofs test flow');
@@ -12,7 +10,6 @@ let proofsEnabled = true;
 
 tic('Happy path with proofs');
 console.log();
-
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
