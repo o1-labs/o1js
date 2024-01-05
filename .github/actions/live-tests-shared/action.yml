@@ -25,7 +25,7 @@ runs:
         npm ci
         npm run build
         touch profiling.md
-        sh run-ci-live-tests.sh
+        bash run-ci-live-tests.sh
         cat profiling.md >> $GITHUB_STEP_SUMMARY
       shell: bash
     - name: Upload Mina logs
