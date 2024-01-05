@@ -2,6 +2,7 @@ import { Snarky } from '../snarky.js';
 import { Field } from './field.js';
 import { ForeignAffine, ForeignField, createForeignField } from './foreign-field.js';
 import { MlTuple } from './ml/base.js';
+import { Provable } from './provable.js';
 
 export { EllipticCurve, ForeignGroup }
 
@@ -50,8 +51,11 @@ class ForeignGroup {
     }
 
     assertEquals(other: ForeignGroup) {
-        this.x.assertEquals(other.x.toBigInt());
-        this.y.assertEquals(other.y.toBigInt());
+        let modulus = BigInt(ForeignGroup.curve[2]);
+        let ForeignGroupField = createForeignField(modulus);
+
+        Provable.assertEqual(ForeignGroupField, this.x, other.x);
+        Provable.assertEqual(ForeignGroupField, this.y, other.y);
     }
 
     /**
