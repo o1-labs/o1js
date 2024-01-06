@@ -1,29 +1,27 @@
 import {
   Account,
+  AccountUpdate,
   Bool,
-  Circuit,
   DeployArgs,
   Field,
   Int64,
-  isReady,
-  method,
   Mina,
-  AccountUpdate,
   Permissions,
   PrivateKey,
+  Provable,
   PublicKey,
   SmartContract,
+  State,
+  Struct,
+  TokenId,
+  UInt32,
   UInt64,
   VerificationKey,
-  Struct,
-  State,
+  method,
   state,
-  UInt32,
-  TokenId,
-  Provable,
 } from 'o1js';
 
-export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
+export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
@@ -493,9 +491,8 @@ const savedKeys = [
   'EKEyPVU37EGw8CdGtUYnfDcBT2Eu7B6rSdy64R68UHYbrYbVJett',
 ];
 
-await isReady;
 let { keys, addresses } = randomAccounts(
-  false,
+  process.env.USE_CUSTOM_LOCAL_NETWORK === 'true',
   'tokenX',
   'tokenY',
   'dex',
