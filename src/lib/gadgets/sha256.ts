@@ -122,7 +122,8 @@ const SHA256 = {
           .add(SigmaOne(e).value)
           .add(Ch(e, f, g).value)
           .add(K[t].value)
-          .add(W[t].value);
+          .add(W[t].value)
+          .seal();
 
         // T2 is also unreduced
         const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
