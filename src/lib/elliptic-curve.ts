@@ -1,5 +1,6 @@
 import { Snarky } from '../snarky.js';
 import { Field } from './field.js';
+import { FieldBn254 } from './field_bn254.js';
 import { ForeignAffine, ForeignField, createForeignField } from './foreign-field.js';
 import { MlTuple } from './ml/base.js';
 import { Provable } from './provable.js';
@@ -51,11 +52,21 @@ class ForeignGroup {
     }
 
     assertEquals(other: ForeignGroup) {
-        let modulus = BigInt(ForeignGroup.curve[2]);
-        let ForeignGroupField = createForeignField(modulus);
+        this.#assertEqualBn254(other.x);
+        this.#assertEqualBn254(other.y);
+    }
 
-        Provable.assertEqual(ForeignGroupField, this.x, other.x);
-        Provable.assertEqual(ForeignGroupField, this.y, other.y);
+    #assertEqualBn254(otherX: ForeignField) {
+        let thisXs = this.#foreignFieldtoFieldsBn254(this.x);
+        let otherXs = this.#foreignFieldtoFieldsBn254(otherX);
+        for (let i = 0; i < thisXs.length; i++) {
+            thisXs[i].assertEquals(otherXs[i]);
+        }
+    }
+
+    #foreignFieldtoFieldsBn254(x: ForeignField) {
+        let [, ...limbs] = x.value;
+        return limbs.map((x) => new FieldBn254(x));
     }
 
     /**

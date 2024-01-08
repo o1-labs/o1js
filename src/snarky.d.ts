@@ -290,6 +290,13 @@ declare const Snarky: {
       ];
   };
 
+  fieldBn254: {
+    /**
+     * x === y without handling of constants
+     */
+    assertEqual(x: FieldVar, y: FieldVar): void;
+  };
+
   bool: {
     not(x: BoolVar): BoolVar;
 

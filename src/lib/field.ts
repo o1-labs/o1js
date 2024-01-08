@@ -1125,7 +1125,7 @@ class Field {
    *
    * @param value - the {@link Field} element to check.
    */
-  static check() {}
+  static check() { }
 
   /**
    * This function is the implementation of {@link Provable.toFields} for the {@link Field} type.
