@@ -4,7 +4,7 @@ import { assert } from './errors.js';
 import { FlexibleBytes } from './provable-types/bytes.js';
 import { UInt8 } from './int.js';
 import { Bytes } from './provable-types/provable-types.js';
-import { bytesToWords, wordsToBytes } from './gadgets/common.js';
+import { bytesToWords, wordsToBytes } from './gadgets/bit-slices.js';
 
 export { Keccak };
 

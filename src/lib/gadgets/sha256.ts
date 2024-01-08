@@ -6,7 +6,8 @@ import { FlexibleBytes } from '../provable-types/bytes.js';
 import { Bytes } from '../provable-types/provable-types.js';
 import { chunk } from '../util/arrays.js';
 import { TupleN } from '../util/types.js';
-import { bitSlice, bytesToWord, exists, wordToBytes } from './common.js';
+import { bytesToWord, wordToBytes } from './bit-slices.js';
+import { bitSlice, exists } from './common.js';
 import { Gadgets } from './gadgets.js';
 import { rangeCheck16 } from './range-check.js';
 

@@ -1,11 +1,15 @@
 import { provableFromClass } from '../../bindings/lib/provable-snarky.js';
-import { ProvablePureExtended } from '../circuit_value.js';
+import type { ProvablePureExtended } from '../circuit_value.js';
 import { assert } from '../gadgets/common.js';
 import { chunkString } from '../util/arrays.js';
 import { Provable } from '../provable.js';
 import { UInt8 } from '../int.js';
 
-export { Bytes, createBytes, FlexibleBytes };
+// external API
+export { Bytes };
+
+// internal API
+export { createBytes, FlexibleBytes };
 
 type FlexibleBytes = Bytes | (UInt8 | bigint | number)[] | Uint8Array;
 
