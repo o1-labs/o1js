@@ -6,9 +6,9 @@ import { FlexibleBytes } from '../provable-types/bytes.js';
 import { Bytes } from '../provable-types/provable-types.js';
 import { chunk } from '../util/arrays.js';
 import { TupleN } from '../util/types.js';
+import { divMod32 } from './arithmetic.js';
 import { bytesToWord, wordToBytes } from './bit-slices.js';
 import { bitSlice, exists } from './common.js';
-import { Gadgets } from './gadgets.js';
 import { rangeCheck16 } from './range-check.js';
 
 export { SHA256 };
@@ -83,7 +83,7 @@ function decomposeToBytes(a: UInt32) {
   let ys = [];
   for (let i = 0; i < 4; i++) {
     // for each byte we rotate the element and get the excess bits (8 at a time) and construct a UInt8 of it
-    let { quotient, remainder } = Gadgets.divMod32(field.mul(1n << 8n));
+    let { quotient, remainder } = divMod32(field.mul(1n << 8n));
     // "shift" the element by 8 bit to get the next byte sequence during the next iteration
     field = remainder;
     ys.push(quotient);
@@ -118,7 +118,7 @@ const SHA256 = {
           .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
         // mod 32bit the unreduced field element
-        W[t] = UInt32.from(Gadgets.divMod32(unreduced, 16).remainder);
+        W[t] = UInt32.from(divMod32(unreduced, 16).remainder);
       }
 
       // initialize working variables
@@ -146,15 +146,11 @@ const SHA256 = {
         h = g;
         g = f;
         f = e;
-        e = UInt32.from(
-          Gadgets.divMod32(d.value.add(unreducedT1), 16).remainder
-        ); // mod 32bit the unreduced field element
+        e = UInt32.from(divMod32(d.value.add(unreducedT1), 16).remainder); // mod 32bit the unreduced field element
         d = c;
         c = b;
         b = a;
-        a = UInt32.from(
-          Gadgets.divMod32(unreducedT2.add(unreducedT1), 16).remainder
-        ); // mod 32bit
+        a = UInt32.from(divMod32(unreducedT2.add(unreducedT1), 16).remainder); // mod 32bit
       }
 
       // new intermediate hash value
