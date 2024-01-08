@@ -272,5 +272,7 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
   let xRotR2 = x3.add(x012.mul(1 << d3)).seal();
   // ^ proves that 2^(32-d2)*x2 < xRotR2 => x2 < 2^d2 if we check xRotR2 < 2^32 later
 
+  // since xor() is implicitly range-checking both of its inputs, this provides the missing
+  // proof that xRotR0, xRotR1, xRotR2 < 2^32, which implies x0 < 2^d0, x1 < 2^d1, x2 < 2^d2
   return UInt32.from(xRotR0).xor(new UInt32(xRotR1)).xor(new UInt32(xRotR2));
 }
