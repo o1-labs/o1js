@@ -540,7 +540,30 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
+
+  lowLevel: {
+    fieldVec(): unknown;
+    getState(): SnarkyState;
+  };
 };
+
+type Ref<T> = [0, T];
+
+type Vector = unknown;
+
+type SnarkyState = [
+  _: 0,
+  system: MlOption<unknown>,
+  input: Vector,
+  aux: Vector,
+  eval_constraints: MlBool,
+  num_inputs: number,
+  next_auxiliary: Ref<number>,
+  has_witness: MlBool,
+  stack: MlList<MlString>,
+  is_running: MlBool,
+  log_constraint: unknown
+];
 
 type GateType =
   | 'Zero'
