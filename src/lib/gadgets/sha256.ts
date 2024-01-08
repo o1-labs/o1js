@@ -77,22 +77,6 @@ function padding(data: FlexibleBytes): UInt32[][] {
   return chunk(chunks, 16);
 }
 
-// decompose a 32bit word into 4 bytes
-function decomposeToBytes(a: UInt32) {
-  let field = a.value;
-  let ys = [];
-  for (let i = 0; i < 4; i++) {
-    // for each byte we rotate the element and get the excess bits (8 at a time) and construct a UInt8 of it
-    let { quotient, remainder } = divMod32(field.mul(1n << 8n));
-    // "shift" the element by 8 bit to get the next byte sequence during the next iteration
-    field = remainder;
-    ys.push(quotient);
-  }
-
-  // UInt8.from does a rangeCheck8 for Field elements
-  return ys.map(UInt8.from);
-}
-
 const SHA256 = {
   hash(data: FlexibleBytes) {
     // preprocessing §6.2
