@@ -26,6 +26,7 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
+import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -542,20 +543,38 @@ declare const Snarky: {
   };
 
   lowLevel: {
-    fieldVec(): unknown;
-    getState(): SnarkyState;
+    state: Ref<SnarkyState>;
+    setState(state: SnarkyState): void;
+    createState(
+      numInputs: number,
+      evalConstraints: MlBool,
+      withWitness: MlBool,
+      logConstraint: MlOption<
+        (
+          atLabelBoundary: MlOption<unknown>,
+          constraint: MlOption<SnarkyConstraint>
+        ) => void
+      >
+    ): [
+      _: 0,
+      state: SnarkyState,
+      input: FieldVector,
+      aux: FieldVector,
+      system: ConstraintSystem
+    ];
   };
 };
 
-type Ref<T> = [0, T];
+type Ref<T> = [_: 0, contents: T];
 
-type Vector = unknown;
+type SnarkyVector = [0, [unknown, number, FieldVector]];
+type ConstraintSystem = unknown;
 
 type SnarkyState = [
   _: 0,
-  system: MlOption<unknown>,
-  input: Vector,
-  aux: Vector,
+  system: MlOption<ConstraintSystem>,
+  input: SnarkyVector,
+  aux: SnarkyVector,
   eval_constraints: MlBool,
   num_inputs: number,
   next_auxiliary: Ref<number>,
@@ -563,6 +582,12 @@ type SnarkyState = [
   stack: MlList<MlString>,
   is_running: MlBool,
   log_constraint: unknown
+];
+
+type SnarkyConstraint = [
+  _: 0,
+  basic: [number, unknown], // actually this is an enum
+  annotation: MlOption<MlString>
 ];
 
 type GateType =
