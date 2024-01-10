@@ -10,7 +10,7 @@ let cs = runCircuit(
     Gadgets.rangeCheck16(y);
     Gadgets.rangeCheck64(y);
   },
-  { withWitness: true }
+  { withWitness: false }
 );
 
 console.log(cs);
