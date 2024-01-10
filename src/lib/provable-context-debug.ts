@@ -41,21 +41,9 @@ function runCircuit(
       let constraintLog = getGateTypeAndData(mlConstraint);
       constraints.push(constraintLog);
 
-      // TODO remove
-      if (constraints.length < 5)
-        console.log(prettifyStacktrace(Error(constraintLog.type)));
-      // console.log(constraintLog);
       if (expectedConstraints !== undefined) {
         let expected = expectedConstraints[constraints.length - 1];
-        // assertDeepEqual(constraintLog, expected, 'constraint mismatch');
-        if (!deepEqual(constraintLog, expected)) {
-          console.log('actual', constraints);
-          console.log(
-            'expected',
-            expectedConstraints.slice(0, constraints.length)
-          );
-          throw Error('constraint mismatch');
-        }
+        assertDeepEqual(constraintLog, expected, 'constraint mismatch');
       }
     })
   );
@@ -97,13 +85,13 @@ function getGateTypeAndData(constraint: SnarkyConstraint): ConstraintLog {
   let [, basic] = constraint;
   switch (basic[1][1].c) {
     case SnarkyConstraintType.Boolean:
-      return { type: 'Boolean', data: basic[2] };
+      return { type: 'Boolean', data: basic.slice(2) };
     case SnarkyConstraintType.Equal:
-      return { type: 'Equal', data: basic[2] };
+      return { type: 'Equal', data: basic.slice(2) };
     case SnarkyConstraintType.Square:
-      return { type: 'Square', data: basic[2] };
+      return { type: 'Square', data: basic.slice(2) };
     case SnarkyConstraintType.R1CS:
-      return { type: 'R1CS', data: basic[2] };
+      return { type: 'R1CS', data: basic.slice(2) };
     case SnarkyConstraintType.Added:
       // why can't TS narrow this?
       let [plonkConstraint, ...data] = basic[2] as [PlonkConstraint, ...any];
