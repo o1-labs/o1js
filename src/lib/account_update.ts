@@ -4,7 +4,7 @@ import {
   provable,
   provablePure,
 } from './circuit_value.js';
-import { memoizationContext, memoizeWitness, Provable } from './provable.js';
+import { memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
 import { Pickles, Test } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
@@ -18,7 +18,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
+import { Proof, Prover } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
@@ -29,9 +29,7 @@ import { hashWithPrefix, packToFields } from './hash.js';
 import { mocks, prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
-import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
-import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
 
 // external API
@@ -98,8 +96,8 @@ type Preconditions = AccountUpdateBody['preconditions'];
  */
 type SetOrKeep<T> = { isSome: Bool; value: T };
 
-const True = () => Bool(true);
-const False = () => Bool(false);
+const True = Bool(true);
+const False = Bool(false);
 
 /**
  * One specific permission value.
@@ -116,45 +114,45 @@ let Permission = {
    * Modification is impossible.
    */
   impossible: (): Permission => ({
-    constant: True(),
-    signatureNecessary: True(),
-    signatureSufficient: False(),
+    constant: True,
+    signatureNecessary: True,
+    signatureSufficient: False,
   }),
 
   /**
    * Modification is always permitted
    */
   none: (): Permission => ({
-    constant: True(),
-    signatureNecessary: False(),
-    signatureSufficient: True(),
+    constant: True,
+    signatureNecessary: False,
+    signatureSufficient: True,
   }),
 
   /**
    * Modification is permitted by zkapp proofs only
    */
   proof: (): Permission => ({
-    constant: False(),
-    signatureNecessary: False(),
-    signatureSufficient: False(),
+    constant: False,
+    signatureNecessary: False,
+    signatureSufficient: False,
   }),
 
   /**
    * Modification is permitted by signatures only, using the private key of the zkapp account
    */
   signature: (): Permission => ({
-    constant: False(),
-    signatureNecessary: True(),
-    signatureSufficient: True(),
+    constant: False,
+    signatureNecessary: True,
+    signatureSufficient: True,
   }),
 
   /**
    * Modification is permitted by zkapp proofs or signatures
    */
   proofOrSignature: (): Permission => ({
-    constant: False(),
-    signatureNecessary: False(),
-    signatureSufficient: True(),
+    constant: False,
+    signatureNecessary: False,
+    signatureSufficient: True,
   }),
 };
 
