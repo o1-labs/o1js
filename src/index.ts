@@ -48,6 +48,9 @@ export {
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
 
+// TODO expose this in a cleaner way
+export { runAsIfProver } from './lib/mina/zkapp-proof.js';
+
 export type { JsonProof } from './lib/proof_system.js';
 export {
   Proof,

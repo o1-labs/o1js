@@ -8,8 +8,8 @@ import {
   gateTypeToString,
 } from './gates.js';
 import { MlArray, MlBool, MlOption, MlString, MlTuple } from './ml/base.js';
-import { snarkContext } from './provable-context.js';
-import { assertDeepEqual } from './util/nested.js';
+import { SnarkContext, snarkContext } from './provable-context.js';
+import { assertDeepEqual, deepEqual } from './util/nested.js';
 
 export { runCircuit, SnarkyConstraint, ConstraintLog, MlConstraintSystem };
 
@@ -19,10 +19,12 @@ function runCircuit(
     withWitness,
     evalConstraints,
     expectedConstraints,
+    snarkContext: ctx = {},
   }: {
     withWitness: boolean;
     evalConstraints?: boolean;
     expectedConstraints?: ConstraintLog[];
+    snarkContext?: SnarkContext;
   }
 ) {
   const snarkyState = Snarky.lowLevel.state;
@@ -37,15 +39,28 @@ function runCircuit(
       let mlConstraint = MlOption.from(maybeConstraint);
       if (mlConstraint === undefined) return;
       let constraintLog = getGateTypeAndData(mlConstraint);
-      if (expectedConstraints !== undefined) {
-        let expected = expectedConstraints[constraints.length];
-        assertDeepEqual(constraintLog, expected, 'constraint mismatch');
-      }
       constraints.push(constraintLog);
+
+      // TODO remove
+      if (constraints.length < 5)
+        console.log(prettifyStacktrace(Error(constraintLog.type)));
+      // console.log(constraintLog);
+      if (expectedConstraints !== undefined) {
+        let expected = expectedConstraints[constraints.length - 1];
+        // assertDeepEqual(constraintLog, expected, 'constraint mismatch');
+        if (!deepEqual(constraintLog, expected)) {
+          console.log('actual', constraints);
+          console.log(
+            'expected',
+            expectedConstraints.slice(0, constraints.length)
+          );
+          throw Error('constraint mismatch');
+        }
+      }
     })
   );
 
-  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+  let id = snarkContext.enter({ inCheckedComputation: true, ...ctx });
   let [, oldState] = snarkyState;
   snarkyState[1] = state;
   let counters = Snarky.lowLevel.pushActiveCounter();

@@ -10,12 +10,19 @@ import {
   ZkappPublicInput,
   zkAppProver,
 } from '../account_update.js';
+import { assert } from '../gadgets/common.js';
 import { MlArray } from '../ml/base.js';
 import { MlFieldConstArray } from '../ml/fields.js';
-import { Empty, Proof, dummyBase64Proof } from '../proof_system.js';
-import { memoizationContext } from '../provable.js';
+import {
+  Empty,
+  Proof,
+  dummyBase64Proof,
+  methodArgumentsToVars,
+} from '../proof_system.js';
+import { runCircuit } from '../provable-context-debug.js';
+import { Provable, memoizationContext } from '../provable.js';
 
-export { addMissingProofs };
+export { addMissingProofs, runAsIfProver };
 
 type AccountUpdateProved = AccountUpdate & {
   lazyAuthorization?: LazySignature;
@@ -149,4 +156,49 @@ function getZkappProver({ methodName, ZkappClass }: LazyProof) {
   let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
   if (i === -1) throw Error(methodError);
   return provers[i];
+}
+
+// for debugging prove/compile discrepancies
+// TODO run this automatically when detecting some problem
+
+function runAsIfProver(transaction: ZkappCommand, index: number) {
+  let accountUpdate = transaction.accountUpdates[index];
+  accountUpdate = AccountUpdate.clone(accountUpdate);
+
+  assert(
+    accountUpdate.lazyAuthorization?.kind === 'lazy-proof',
+    'Account update is not associated with a provable method call'
+  );
+
+  let { methodName, ZkappClass, args } = accountUpdate.lazyAuthorization;
+  let metadata = ZkappClass._methodMetadata?.[methodName];
+  let methodIntf = ZkappClass._methods?.find(
+    (m) => m.methodName === methodName
+  );
+
+  assert(
+    metadata !== undefined && methodIntf !== undefined,
+    `No metadata found for zkapp method ${methodName}()`
+  );
+
+  let publicInput = accountUpdate.toPublicInput();
+  let proverData = { transaction, accountUpdate, index };
+
+  runCircuit(
+    () => {
+      let [pk, tid, ...otherArgs] = methodArgumentsToVars(
+        [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+        methodIntf!
+      ).args;
+      publicInput = Provable.witness(ZkappPublicInput, () => publicInput);
+
+      let instance = new ZkappClass(pk, tid);
+      (instance as any)[methodName](publicInput, ...otherArgs);
+    },
+    {
+      withWitness: true,
+      snarkContext: { proverData, inAnalyze: true },
+      expectedConstraints: metadata.expectedConstraints,
+    }
+  );
 }

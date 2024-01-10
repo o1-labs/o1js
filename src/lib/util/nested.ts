@@ -10,13 +10,16 @@ type Nested =
   | Nested[]
   | { [key: string]: Nested };
 
-function assertDeepEqual(a: Nested, b: Nested, message?: string) {
-  if (!deepEqual(a, b)) {
+function assertDeepEqual(actual: Nested, expected: Nested, message?: string) {
+  if (!deepEqual(actual, expected)) {
+    (BigInt.prototype as any).toJSON = function () {
+      return this.toString();
+    };
     let fullMessage = `assertDeepEqual failed: ${message ?? ''}
     
 Inputs:
-${JSON.stringify(a)}
-${JSON.stringify(b)}
+actual:   ${JSON.stringify(actual)}
+expected: ${JSON.stringify(expected)}
 `;
     throw Error(fullMessage);
   }
