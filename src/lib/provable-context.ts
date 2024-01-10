@@ -95,17 +95,13 @@ function runUnchecked(f: () => void) {
   }
 }
 
-function constraintSystem<T>(f: () => T) {
+function constraintSystem(f: () => void) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
-    let result: T;
-    let { rows, digest, json } = Snarky.run.constraintSystem(() => {
-      result = f();
-    });
+    let { rows, digest, json } = Snarky.run.constraintSystem(f);
     return {
       rows,
       digest,
-      result: result! as T,
       ...constraintSystemFromJson(json),
     };
   } catch (error) {
