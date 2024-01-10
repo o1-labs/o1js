@@ -170,7 +170,8 @@ function runAsIfProver(transaction: ZkappCommand, index: number) {
     'Account update is not associated with a provable method call'
   );
 
-  let { methodName, ZkappClass, args } = accountUpdate.lazyAuthorization;
+  let { methodName, ZkappClass, args, memoized, blindingValue } =
+    accountUpdate.lazyAuthorization;
   let metadata = ZkappClass._methodMetadata?.[methodName];
   let methodIntf = ZkappClass._methods?.find(
     (m) => m.methodName === methodName
@@ -186,14 +187,23 @@ function runAsIfProver(transaction: ZkappCommand, index: number) {
 
   runCircuit(
     () => {
-      let [pk, tid, ...otherArgs] = methodArgumentsToVars(
-        [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
-        methodIntf!
-      ).args;
-      publicInput = Provable.witness(ZkappPublicInput, () => publicInput);
+      let id = memoizationContext.enter({
+        memoized,
+        currentIndex: 0,
+        blindingValue,
+      });
+      try {
+        let [pk, tid, ...otherArgs] = methodArgumentsToVars(
+          [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+          methodIntf!
+        ).args;
+        publicInput = Provable.witness(ZkappPublicInput, () => publicInput);
 
-      let instance = new ZkappClass(pk, tid);
-      (instance as any)[methodName](publicInput, ...otherArgs);
+        let instance = new ZkappClass(pk, tid);
+        (instance as any)[methodName](publicInput, ...otherArgs);
+      } finally {
+        memoizationContext.leave(id);
+      }
     },
     {
       withWitness: true,
