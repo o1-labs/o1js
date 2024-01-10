@@ -39,6 +39,8 @@ export {
   MlPublicKeyVar,
   FeatureFlags,
   MlFeatureFlags,
+  SnarkyState,
+  SnarkyConstraint,
 };
 
 /**
@@ -543,8 +545,7 @@ declare const Snarky: {
   };
 
   lowLevel: {
-    state: Ref<SnarkyState>;
-    setState(state: SnarkyState): void;
+    state: MlRef<SnarkyState>;
     createState(
       numInputs: number,
       evalConstraints: MlBool,
@@ -562,10 +563,13 @@ declare const Snarky: {
       aux: FieldVector,
       system: ConstraintSystem
     ];
+
+    pushActiveCounter(): MlList<number>;
+    resetActiveCounter(counters: MlList<number>): void;
   };
 };
 
-type Ref<T> = [_: 0, contents: T];
+type MlRef<T> = [_: 0, contents: T];
 
 type SnarkyVector = [0, [unknown, number, FieldVector]];
 type ConstraintSystem = unknown;
@@ -577,10 +581,12 @@ type SnarkyState = [
   aux: SnarkyVector,
   eval_constraints: MlBool,
   num_inputs: number,
-  next_auxiliary: Ref<number>,
+  next_auxiliary: MlRef<number>,
   has_witness: MlBool,
   stack: MlList<MlString>,
+  handler: unknown,
   is_running: MlBool,
+  as_prover: MlRef<MlBool>,
   log_constraint: unknown
 ];
 
