@@ -26,6 +26,7 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
+import type { SnarkyConstraint } from './lib/provable-context-debug.js';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
@@ -40,7 +41,6 @@ export {
   FeatureFlags,
   MlFeatureFlags,
   SnarkyState,
-  SnarkyConstraint,
 };
 
 /**
@@ -588,12 +588,6 @@ type SnarkyState = [
   is_running: MlBool,
   as_prover: MlRef<MlBool>,
   log_constraint: unknown
-];
-
-type SnarkyConstraint = [
-  _: 0,
-  basic: [number, unknown], // actually this is an enum
-  annotation: MlOption<MlString>
 ];
 
 type GateType =
