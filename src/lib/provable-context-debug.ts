@@ -9,7 +9,7 @@ import {
 } from './gates.js';
 import { MlArray, MlBool, MlOption, MlString, MlTuple } from './ml/base.js';
 import { SnarkContext, snarkContext } from './provable-context.js';
-import { assertDeepEqual, deepEqual } from './util/nested.js';
+import { assertDeepEqual } from './util/nested.js';
 
 export { runCircuit, SnarkyConstraint, ConstraintLog, MlConstraintSystem };
 
@@ -19,11 +19,13 @@ function runCircuit(
     withWitness,
     evalConstraints,
     expectedConstraints,
+    unexpectedConstraintMessage,
     snarkContext: ctx = {},
   }: {
     withWitness: boolean;
     evalConstraints?: boolean;
     expectedConstraints?: ConstraintLog[];
+    unexpectedConstraintMessage?: string;
     snarkContext?: SnarkContext;
   }
 ) {
@@ -35,7 +37,7 @@ function runCircuit(
     numInputs,
     MlBool(evalConstraints ?? true),
     MlBool(withWitness),
-    MlOption((_label, maybeConstraint) => {
+    MlOption(function collectConstraints(_label, maybeConstraint) {
       let mlConstraint = MlOption.from(maybeConstraint);
       if (mlConstraint === undefined) return;
       let constraintLog = getGateTypeAndData(mlConstraint);
@@ -43,7 +45,12 @@ function runCircuit(
 
       if (expectedConstraints !== undefined) {
         let expected = expectedConstraints[constraints.length - 1];
-        assertDeepEqual(constraintLog, expected, 'constraint mismatch');
+        assertDeepEqual(
+          constraintLog,
+          expected,
+          unexpectedConstraintMessage ??
+            'Generated constraint generated did not match expected constraint'
+        );
       }
     })
   );

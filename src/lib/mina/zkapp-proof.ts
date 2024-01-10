@@ -124,7 +124,19 @@ async function createZkappProof(
       try {
         return await prover(publicInputFields, MlArray.to(previousProofs));
       } catch (err) {
-        console.error(`Error when proving ${ZkappClass.name}.${methodName}()`);
+        console.error(
+          `\n\nError when proving ${ZkappClass.name}.${methodName}()`
+        );
+        if (
+          err instanceof Error &&
+          err.message.includes('FieldVector.get(): Index out of bounds')
+        ) {
+          runAsIfProver(transaction, index);
+          console.error(
+            'This is likely due to a mismatch between the circuit at compile and proving time.\n'
+          );
+        }
+
         throw err;
       } finally {
         memoizationContext.leave(id);
@@ -159,7 +171,6 @@ function getZkappProver({ methodName, ZkappClass }: LazyProof) {
 }
 
 // for debugging prove/compile discrepancies
-// TODO run this automatically when detecting some problem
 
 function runAsIfProver(transaction: ZkappCommand, index: number) {
   let accountUpdate = transaction.accountUpdates[index];
@@ -209,6 +220,9 @@ function runAsIfProver(transaction: ZkappCommand, index: number) {
       withWitness: true,
       snarkContext: { proverData, inAnalyze: true },
       expectedConstraints: metadata.expectedConstraints,
+      unexpectedConstraintMessage:
+        'Constraint generated during prove() was different than the constraint generated at this location in compile().\n' +
+        'See the stack trace below for where this constraint originated.',
     }
   );
 }

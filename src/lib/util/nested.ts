@@ -15,9 +15,8 @@ function assertDeepEqual(actual: Nested, expected: Nested, message?: string) {
     (BigInt.prototype as any).toJSON = function () {
       return this.toString();
     };
-    let fullMessage = `assertDeepEqual failed: ${message ?? ''}
-    
-Inputs:
+    let fullMessage = `${message ? `${message}\n\n` : ''}Deep equality failed:
+
 actual:   ${JSON.stringify(actual)}
 expected: ${JSON.stringify(expected)}
 `;
