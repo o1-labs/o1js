@@ -1,5 +1,11 @@
 import { Context } from './global-context.js';
-import { Gate, GateType, JsonGate, Snarky } from '../snarky.js';
+import {
+  Gate,
+  GateType,
+  JsonConstraintSystem,
+  JsonGate,
+  Snarky,
+} from '../snarky.js';
 import { parseHexString32 } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite_field.js';
@@ -19,6 +25,7 @@ export {
   inCompileMode,
   gatesFromJson,
   printGates,
+  constraintSystemFromJson,
 };
 
 // global circuit-related context
@@ -95,31 +102,37 @@ function constraintSystem<T>(f: () => T) {
     let { rows, digest, json } = Snarky.run.constraintSystem(() => {
       result = f();
     });
-    let { gates, publicInputSize } = gatesFromJson(json);
     return {
       rows,
       digest,
       result: result! as T,
-      gates,
-      publicInputSize,
-      print() {
-        printGates(gates);
-      },
-      summary() {
-        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
-        gateTypes['Total rows'] = rows;
-        for (let gate of gates) {
-          gateTypes[gate.type] ??= 0;
-          gateTypes[gate.type]!++;
-        }
-        return gateTypes;
-      },
+      ...constraintSystemFromJson(json),
     };
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }
+}
+
+function constraintSystemFromJson(json: JsonConstraintSystem) {
+  let { gates, publicInputSize } = gatesFromJson(json);
+  return {
+    gates,
+    publicInputSize,
+    print() {
+      printGates(gates);
+    },
+    summary() {
+      let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+      gateTypes['Total rows'] = gates.length;
+      for (let gate of gates) {
+        gateTypes[gate.type] ??= 0;
+        gateTypes[gate.type]!++;
+      }
+      return gateTypes;
+    },
+  };
 }
 
 // helpers

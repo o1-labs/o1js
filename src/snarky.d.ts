@@ -26,7 +26,10 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
-import type { SnarkyConstraint } from './lib/provable-context-debug.js';
+import type {
+  SnarkyConstraint,
+  MlConstraintSystem,
+} from './lib/provable-context-debug.js';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
@@ -41,6 +44,7 @@ export {
   FeatureFlags,
   MlFeatureFlags,
   SnarkyState,
+  JsonConstraintSystem,
 };
 
 /**
@@ -561,11 +565,17 @@ declare const Snarky: {
       state: SnarkyState,
       input: FieldVector,
       aux: FieldVector,
-      system: ConstraintSystem
+      system: MlConstraintSystem
     ];
 
     pushActiveCounter(): MlList<number>;
     resetActiveCounter(counters: MlList<number>): void;
+
+    constraintSystem: {
+      getRows(system: MlConstraintSystem): number;
+      digest(system: MlConstraintSystem): string;
+      toJson(system: MlConstraintSystem): JsonConstraintSystem;
+    };
   };
 };
 

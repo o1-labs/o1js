@@ -1,4 +1,3 @@
-import { FieldVector } from '../bindings/crypto/bindings/vector.js';
 import { Snarky, SnarkyState } from '../snarky.js';
 import { prettifyStacktrace } from './errors.js';
 import { FieldConst, FieldVar } from './field.js';
@@ -12,10 +11,10 @@ import { MlArray, MlBool, MlOption, MlString, MlTuple } from './ml/base.js';
 import { snarkContext } from './provable-context.js';
 import { assertDeepEqual } from './util/nested.js';
 
-export { runCircuit, SnarkyConstraint };
+export { runCircuit, SnarkyConstraint, MlConstraintSystem };
 
-function runCircuit(
-  main: () => void,
+function runCircuit<T>(
+  main: () => T,
   {
     withWitness,
     evalConstraints,
@@ -28,7 +27,6 @@ function runCircuit(
 ) {
   const snarkyState = Snarky.lowLevel.state;
   let numInputs = 0;
-
   let constraints: ConstraintLog[] = [];
 
   let [, state, input, aux, system] = Snarky.lowLevel.createState(
@@ -51,8 +49,9 @@ function runCircuit(
   let [, oldState] = snarkyState;
   snarkyState[1] = state;
   let counters = Snarky.lowLevel.pushActiveCounter();
+  let result: T;
   try {
-    main();
+    result = main();
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
@@ -63,7 +62,11 @@ function runCircuit(
 
   let witness = MlArray.mapFrom(aux, FieldConst.toBigint);
 
-  return { constraints, witness };
+  return { constraints, witness, result, system };
+}
+
+class MlConstraintSystem {
+  // opaque
 }
 
 type ConstraintLog = { type: ConstraintType; data: any };
