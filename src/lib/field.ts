@@ -118,7 +118,7 @@ type VarField = Field & { value: VarFieldVar };
  * You can create a new Field from everything "field-like" (`bigint`, integer `number`, decimal `string`, `Field`).
  * @example
  * ```
- * Field(10n); // Field contruction from a big integer
+ * Field(10n); // Field construction from a big integer
  * Field(100); // Field construction from a number
  * Field("1"); // Field construction from a decimal string
  * ```
