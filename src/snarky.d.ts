@@ -145,6 +145,7 @@ type MlGroup = MlTuple<FieldVar, FieldVar>;
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
   type Keypair = unknown;
+  type KeypairBn254 = unknown;
   type VerificationKey = unknown;
   type Proof = unknown;
 }
@@ -341,7 +342,7 @@ declare const Snarky: {
      * Generates a proving key and a verification key for the provable function `main`.
      * Uses Bn254 fields.
      */
-    compileBn254(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+    compileBn254(main: Snarky.Main, publicInputSize: number): Snarky.KeypairBn254;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
@@ -369,6 +370,15 @@ declare const Snarky: {
        * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
        */
       getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
+    };
+
+    keypairBn254: {
+      getVerificationKey(keypair: Snarky.KeypairBn254): Snarky.VerificationKey;
+      /**
+       * Returns a low-level JSON representation of the circuit:
+       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+       */
+      getConstraintSystemJSON(keypair: Snarky.KeypairBn254): JsonConstraintSystem;
     };
   };
 

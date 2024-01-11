@@ -192,6 +192,39 @@ class Keypair {
   }
 }
 
+class KeypairBn254 {
+  value: Snarky.KeypairBn254;
+
+  constructor(value: Snarky.KeypairBn254) {
+    this.value = value;
+  }
+
+  verificationKey() {
+    return new VerificationKey(
+      Snarky.circuit.keypairBn254.getVerificationKey(this.value)
+    );
+  }
+
+  /**
+   * Returns a low-level JSON representation of the {@link Circuit} from its {@link Keypair}:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   * @example
+   * ```ts
+   * const keypair = await MyCircuit.generateKeypairBn254();
+   * const gates = keypair.constraintSystem();
+   * ```
+   */
+  constraintSystem() {
+    try {
+      return gatesFromJson(
+        Snarky.circuit.keypairBn254.getConstraintSystemJSON(this.value)
+      ).gates;
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    }
+  }
+}
+
 /**
  * Proofs can be verified using a {@link VerificationKey} and the public input.
  */
