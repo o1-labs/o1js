@@ -91,6 +91,8 @@ if (doProofs) {
   console.time('compile');
   await SimpleZkapp.compile();
   console.timeEnd('compile');
+} else {
+  SimpleZkapp.analyzeMethods();
 }
 
 console.log('deploy');
