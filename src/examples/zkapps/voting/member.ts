@@ -52,8 +52,8 @@ export class Member extends CircuitValue {
     return this;
   }
 
-  static empty() {
-    return new Member(PublicKey.empty(), UInt64.zero);
+  static empty<T extends new (...args: any) => any>(): InstanceType<T> {
+    return new Member(PublicKey.empty(), UInt64.zero) as any;
   }
 
   static from(publicKey: PublicKey, balance: UInt64) {

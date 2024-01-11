@@ -149,8 +149,8 @@ console.assert(!signature.verify(pubKey, msg1).toBoolean());
 */
 
 /* You can initialize elements as literals as follows: */
-let g0 = new Group(-1, 2);
-let g1 = new Group({ x: -2, y: 2 });
+let g0 = Group.from(-1, 2);
+let g1 = new Group({ x: -1, y: 2 });
 
 /* There is also a predefined generator. */
 let g2 = Group.generator;

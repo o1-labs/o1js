@@ -12,7 +12,7 @@ import {
   state,
   State,
 } from 'o1js';
-import { getProfiler } from '../profiler.js';
+import { getProfiler } from '../utils/profiler.js';
 
 const doProofs = true;
 

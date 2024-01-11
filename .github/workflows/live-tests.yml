@@ -1,4 +1,4 @@
-name: Test o1js against real network
+name: Test o1js against the real network
 on:
   push:
     branches:
@@ -19,7 +19,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:rampup-latest-lightnet
+        image: o1labs/mina-local-network:o1js-main-latest-lightnet
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
@@ -32,11 +32,11 @@ jobs:
           - /tmp:/root/logs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
-          mina-branch-name: rampup
+          mina-branch-name: o1js-main
 
   berkeley-branch:
     timeout-minutes: 25
@@ -57,7 +57,7 @@ jobs:
           - /tmp:/root/logs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -82,7 +82,7 @@ jobs:
           - /tmp:/root/logs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

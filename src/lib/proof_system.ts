@@ -4,13 +4,22 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { ProvablePure, Pickles } from '../snarky.js';
+import {
+  ProvablePure,
+  Pickles,
+  FeatureFlags,
+  MlFeatureFlags,
+  Gate,
+  GateType,
+} from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
   ProvablePureExtended,
+  Struct,
+  provable,
   provablePure,
   toConstant,
 } from './circuit_value.js';
@@ -18,9 +27,16 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlTuple } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
+import { Cache, readCache, writeCache } from './proof-system/cache.js';
+import {
+  decodeProverKey,
+  encodeProverKey,
+  parseHeader,
+} from './proof-system/prover-keys.js';
+import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
 
 // public API
 export {
@@ -28,10 +44,12 @@ export {
   SelfProof,
   JsonProof,
   ZkProgram,
+  ExperimentalZkProgram,
   verify,
   Empty,
   Undefined,
   Void,
+  VerificationKey,
 };
 
 // internal API
@@ -132,11 +150,47 @@ class Proof<Input, Output> {
     this.proof = proof; // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
   }
+
+  /**
+   * Dummy proof. This can be useful for ZkPrograms that handle the base case in the same
+   * method as the inductive case, using a pattern like this:
+   *
+   * ```ts
+   * method(proof: SelfProof<I, O>, isRecursive: Bool) {
+   *   proof.verifyIf(isRecursive);
+   *   // ...
+   * }
+   * ```
+   *
+   * To use such a method in the base case, you need a dummy proof:
+   *
+   * ```ts
+   * let dummy = await MyProof.dummy(publicInput, publicOutput, 1);
+   * await myProgram.myMethod(dummy, Bool(false));
+   * ```
+   *
+   * **Note**: The types of `publicInput` and `publicOutput`, as well as the `maxProofsVerified` parameter,
+   * must match your ZkProgram. `maxProofsVerified` is the maximum number of proofs that any of your methods take as arguments.
+   */
+  static async dummy<Input, OutPut>(
+    publicInput: Input,
+    publicOutput: OutPut,
+    maxProofsVerified: 0 | 1 | 2,
+    domainLog2: number = 14
+  ): Promise<Proof<Input, OutPut>> {
+    let dummyRaw = await dummyProof(maxProofsVerified, domainLog2);
+    return new this({
+      publicInput,
+      publicOutput,
+      proof: dummyRaw,
+      maxProofsVerified,
+    });
+  }
 }
 
 async function verify(
   proof: Proof<any, any> | JsonProof,
-  verificationKey: string
+  verificationKey: string | VerificationKey
 ) {
   let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement<FieldConst>;
@@ -152,19 +206,21 @@ async function verify(
     let output = MlFieldConstArray.to(
       (proof as JsonProof).publicOutput.map(Field)
     );
-    statement = MlTuple(input, output);
+    statement = MlPair(input, output);
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
     let input = toFieldConsts(type.input, proof.publicInput);
     let output = toFieldConsts(type.output, proof.publicOutput);
-    statement = MlTuple(input, output);
+    statement = MlPair(input, output);
   }
+  let vk =
+    typeof verificationKey === 'string'
+      ? verificationKey
+      : verificationKey.data;
   return prettifyStacktracePromise(
-    withThreadPool(() =>
-      Pickles.verify(statement, picklesProof, verificationKey)
-    )
+    withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
 }
 
@@ -197,6 +253,7 @@ function ZkProgram<
   }
 >(
   config: StatementType & {
+    name: string;
     methods: {
       [I in keyof Types]: Method<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -208,7 +265,9 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: () => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+    verificationKey: { data: string; hash: Field };
+  }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -216,9 +275,25 @@ function ZkProgram<
     >
   ) => Promise<boolean>;
   digest: () => string;
-  analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
+  analyzeMethods: () => {
+    [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+  };
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
+  privateInputTypes: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['privateInputs'];
+  };
+  rawMethods: {
+    [I in keyof Types]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      Types[I]
+    >['method'];
+  };
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -227,10 +302,10 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = config.publicInput! ?? Undefined;
-  let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
+  let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
+  let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
 
-  let selfTag = { name: `Program${i++}` };
+  let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
   >;
@@ -242,12 +317,23 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
-  let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
-  let methodIntfs = keys.map((key) =>
+  let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
   );
-  let methodFunctions = keys.map((key) => methods[key].method);
+  let methodFunctions = methodKeys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
+
+  function analyzeMethods() {
+    return Object.fromEntries(
+      methodIntfs.map((methodEntry, i) => [
+        methodEntry.methodName,
+        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]),
+      ])
+    ) as any as {
+      [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+    };
+  }
 
   let compileOutput:
     | {
@@ -259,17 +345,27 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile() {
-    let { provers, verify, verificationKey } = await compileProgram(
+  async function compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
+    let methodsMeta = methodIntfs.map((methodEntry, i) =>
+      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    );
+    let gates = methodsMeta.map((m) => m.gates);
+    let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
       methodIntfs,
-      methodFunctions,
-      selfTag,
-      config.overrideWrapDomain
-    );
+      methods: methodFunctions,
+      gates,
+      proofSystemTag: selfTag,
+      cache,
+      forceRecompile,
+      overrideWrapDomain: config.overrideWrapDomain,
+    });
     compileOutput = { provers, verify };
-    return { verificationKey: verificationKey.data };
+    return { verificationKey };
   }
 
   function toProver<K extends keyof Types & string>(
@@ -299,7 +395,7 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let [publicOutputFields, proof] = MlTuple.from(result);
+      let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
@@ -325,7 +421,7 @@ function ZkProgram<
     }
     return [key, prove];
   }
-  let provers = Object.fromEntries(keys.map(toProver)) as {
+  let provers = Object.fromEntries(methodKeys.map(toProver)) as {
     [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
   };
 
@@ -335,7 +431,7 @@ function ZkProgram<
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
       );
     }
-    let statement = MlTuple(
+    let statement = MlPair(
       toFieldConsts(publicInputType, proof.publicInput),
       toFieldConsts(publicOutputType, proof.publicOutput)
     );
@@ -352,29 +448,39 @@ function ZkProgram<
     return hash.toBigInt().toString(16);
   }
 
-  function analyzeMethods() {
-    return methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
-    );
-  }
-
   return Object.assign(
     selfTag,
     {
       compile,
       verify,
       digest,
+      analyzeMethods,
       publicInputType: publicInputType as ProvableOrUndefined<
         Get<StatementType, 'publicInput'>
       >,
       publicOutputType: publicOutputType as ProvableOrVoid<
         Get<StatementType, 'publicOutput'>
       >,
-      analyzeMethods,
+      privateInputTypes: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].privateInputs])
+      ) as any,
+      rawMethods: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].method])
+      ) as any,
     },
     provers
   );
 }
+
+type ZkProgram<
+  S extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  T extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+> = ReturnType<typeof ZkProgram<S, T>>;
 
 let i = 0;
 
@@ -382,6 +488,13 @@ class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
 > {}
+
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
 
 function sortMethodArguments(
   programName: string,
@@ -411,6 +524,9 @@ function sortMethodArguments(
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
+    } else if (isAsFields((privateInput as any)?.provable)) {
+      allArgs.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push((privateInput as any).provable);
     } else if (isGeneric(privateInput)) {
       allArgs.push({ type: 'generic', index: genericArgs.length });
       genericArgs.push(privateInput);
@@ -500,39 +616,79 @@ type MethodInterface = {
 // reasonable default choice for `overrideWrapDomain`
 const maxProofsToWrapDomain = { 0: 0, 1: 1, 2: 1 } as const;
 
-async function compileProgram(
-  publicInputType: ProvablePure<any>,
-  publicOutputType: ProvablePure<any>,
-  methodIntfs: MethodInterface[],
-  methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string },
-  overrideWrapDomain?: 0 | 1 | 2
-) {
+async function compileProgram({
+  publicInputType,
+  publicOutputType,
+  methodIntfs,
+  methods,
+  gates,
+  proofSystemTag,
+  cache,
+  forceRecompile,
+  overrideWrapDomain,
+}: {
+  publicInputType: ProvablePure<any>;
+  publicOutputType: ProvablePure<any>;
+  methodIntfs: MethodInterface[];
+  methods: ((...args: any) => void)[];
+  gates: Gate[][];
+  proofSystemTag: { name: string };
+  cache: Cache;
+  forceRecompile: boolean;
+  overrideWrapDomain?: 0 | 1 | 2;
+}) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       publicInputType,
       publicOutputType,
       methods[i],
       proofSystemTag,
-      methodEntry
+      methodEntry,
+      gates[i]
     )
   );
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
+
+  let picklesCache: Pickles.Cache = [
+    0,
+    function read_(mlHeader) {
+      if (forceRecompile) return MlResult.unitError();
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      let result = readCache(cache, header, (bytes) =>
+        decodeProverKey(mlHeader, bytes)
+      );
+      if (result === undefined) return MlResult.unitError();
+      return MlResult.ok(result);
+    },
+    function write_(mlHeader, value) {
+      if (!cache.canWrite) return MlResult.unitError();
+
+      let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
+      let didWrite = writeCache(cache, header, encodeProverKey(value));
+
+      if (!didWrite) return MlResult.unitError();
+      return MlResult.ok(undefined);
+    },
+    MlBool(cache.canWrite),
+  ];
 
   let { verificationKey, provers, verify, tag } =
     await prettifyStacktracePromise(
       withThreadPool(async () => {
         let result: ReturnType<typeof Pickles.compile>;
         let id = snarkContext.enter({ inCompile: true });
+        setSrsCache(cache);
         try {
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            storable: picklesCache,
             overrideWrapDomain,
           });
         } finally {
           snarkContext.leave(id);
+          unsetSrsCache();
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -589,7 +745,8 @@ function picklesRuleFromFunction(
   publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
+  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
+  gates: Gate[]
 ): Pickles.Rule {
   function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
@@ -620,7 +777,7 @@ function picklesRuleFromFunction(
         proofs.push(proofInstance);
         let input = toFieldVars(type.input, publicInput);
         let output = toFieldVars(type.output, publicOutput);
-        previousStatements.push(MlTuple(input, output));
+        previousStatements.push(MlPair(input, output));
       } else if (arg.type === 'generic') {
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
@@ -664,9 +821,13 @@ function picklesRuleFromFunction(
       return { isSelf: false, tag: compiledTag };
     }
   });
+
+  let featureFlags = computeFeatureFlags(gates);
+
   return {
     identifier: methodName,
     main,
+    featureFlags,
     proofsToVerify: MlArray.to(proofsToVerify),
   };
 }
@@ -817,9 +978,57 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
+ExperimentalZkProgram.Proof = ZkProgram.Proof;
 
-function dummyBase64Proof() {
-  return withThreadPool(async () => Pickles.dummyBase64Proof());
+function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
+  return withThreadPool(
+    async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
+  );
+}
+
+async function dummyBase64Proof() {
+  let proof = await dummyProof(2, 15);
+  return Pickles.proofToBase64([2, proof]);
+}
+
+// what feature flags to set to enable certain gate types
+
+const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
+  RangeCheck0: 'rangeCheck0',
+  RangeCheck1: 'rangeCheck1',
+  ForeignFieldAdd: 'foreignFieldAdd',
+  ForeignFieldMul: 'foreignFieldMul',
+  Xor16: 'xor',
+  Rot64: 'rot',
+  Lookup: 'lookup',
+};
+
+function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
+  let flags: FeatureFlags = {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  };
+  for (let gate of gates) {
+    let flag = gateToFlag[gate.type];
+    if (flag !== undefined) flags[flag] = true;
+  }
+  return [
+    0,
+    MlBool(flags.rangeCheck0),
+    MlBool(flags.rangeCheck1),
+    MlBool(flags.foreignFieldAdd),
+    MlBool(flags.foreignFieldMul),
+    MlBool(flags.xor),
+    MlBool(flags.rot),
+    MlBool(flags.lookup),
+    MlBool(flags.runtimeTables),
+  ];
 }
 
 // helpers for circuit context
@@ -913,3 +1122,30 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
+
+// deprecated experimental API
+
+function ExperimentalZkProgram<
+  StatementType extends {
+    publicInput?: FlexibleProvablePure<any>;
+    publicOutput?: FlexibleProvablePure<any>;
+  },
+  Types extends {
+    [I in string]: Tuple<PrivateInput>;
+  }
+>(
+  config: StatementType & {
+    name?: string;
+    methods: {
+      [I in keyof Types]: Method<
+        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+        Types[I]
+      >;
+    };
+    overrideWrapDomain?: 0 | 1 | 2;
+  }
+) {
+  let config_ = { ...config, name: config.name ?? `Program${i++}` };
+  return ZkProgram<StatementType, Types>(config_);
+}

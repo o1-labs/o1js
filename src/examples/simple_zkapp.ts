@@ -11,7 +11,7 @@ import {
   Bool,
   PublicKey,
 } from 'o1js';
-import { getProfiler } from './profiler.js';
+import { getProfiler } from './utils/profiler.js';
 
 const doProofs = true;
 
@@ -28,11 +28,11 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method update(y: Field): Field {
-    this.account.provedState.assertEquals(Bool(true));
-    this.network.timestamp.assertBetween(beforeGenesis, UInt64.MAXINT());
+    this.account.provedState.requireEquals(Bool(true));
+    this.network.timestamp.requireBetween(beforeGenesis, UInt64.MAXINT());
     this.emitEvent('update', y);
     let x = this.x.get();
-    this.x.assertEquals(x);
+    this.x.requireEquals(x);
     let newX = x.add(y);
     this.x.set(newX);
     return newX;
@@ -43,7 +43,7 @@ class SimpleZkapp extends SmartContract {
    * @param caller the privileged account
    */
   @method payout(caller: PrivateKey) {
-    this.account.provedState.assertEquals(Bool(true));
+    this.account.provedState.requireEquals(Bool(true));
 
     // check that caller is the privileged account
     let callerAddress = caller.toPublicKey();
@@ -51,10 +51,10 @@ class SimpleZkapp extends SmartContract {
 
     // assert that the caller account is new - this way, payout can only happen once
     let callerAccountUpdate = AccountUpdate.create(callerAddress);
-    callerAccountUpdate.account.isNew.assertEquals(Bool(true));
+    callerAccountUpdate.account.isNew.requireEquals(Bool(true));
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
-    this.account.balance.assertEquals(balance);
+    this.account.balance.requireEquals(balance);
     let halfBalance = balance.div(2);
     this.send({ to: callerAccountUpdate, amount: halfBalance });
 
@@ -77,7 +77,9 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 // a special account that is allowed to pull out half of the zkapp balance, once
-let privilegedKey = PrivateKey.random();
+let privilegedKey = PrivateKey.fromBase58(
+  'EKEeoESE2A41YQnSht9f7mjiKpJSeZ4jnfHXYatYi8xJdYSxWBep'
+);
 let privilegedAddress = privilegedKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
@@ -86,7 +88,9 @@ let zkapp = new SimpleZkapp(zkappAddress);
 
 if (doProofs) {
   console.log('compile');
+  console.time('compile');
   await SimpleZkapp.compile();
+  console.timeEnd('compile');
 }
 
 console.log('deploy');

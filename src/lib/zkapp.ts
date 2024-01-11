@@ -22,7 +22,6 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-  Struct,
   toConstant,
 } from './circuit_value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
@@ -56,6 +55,7 @@ import {
   inProver,
   snarkContext,
 } from './provable-context.js';
+import { Cache } from './proof-system/cache.js';
 
 // external API
 export {
@@ -65,7 +65,6 @@ export {
   declareMethods,
   Callback,
   Account,
-  VerificationKey,
   Reducer,
 };
 
@@ -196,7 +195,8 @@ function wrapMethod(
             let id = memoizationContext.enter({ ...context, blindingValue });
             let result: unknown;
             try {
-              result = method.apply(this, actualArgs.map(cloneCircuitValue));
+              let clonedArgs = actualArgs.map(cloneCircuitValue);
+              result = method.apply(this, clonedArgs);
             } finally {
               memoizationContext.leave(id);
             }
@@ -661,7 +661,10 @@ class SmartContract {
    * it so that proofs end up in the original finite field). These are fairly expensive operations, so **expect compiling to take at least 20 seconds**,
    * up to several minutes if your circuit is large or your hardware is not optimal for these operations.
    */
-  static async compile() {
+  static async compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (
@@ -675,22 +678,18 @@ class SmartContract {
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods();
-    let {
-      verificationKey: verificationKey_,
-      provers,
-      verify,
-    } = await compileProgram(
-      ZkappPublicInput,
-      Empty,
+    let methodsMeta = this.analyzeMethods();
+    let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
+    let { verificationKey, provers, verify } = await compileProgram({
+      publicInputType: ZkappPublicInput,
+      publicOutputType: Empty,
       methodIntfs,
       methods,
-      this
-    );
-    let verificationKey = {
-      data: verificationKey_.data,
-      hash: Field(verificationKey_.hash),
-    } satisfies VerificationKey;
+      gates,
+      proofSystemTag: this,
+      cache,
+      forceRecompile,
+    });
     this._provers = provers;
     this._verificationKey = verificationKey;
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
@@ -730,7 +729,7 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
-    let accountUpdate = this.newSelf();
+    let accountUpdate = this.newSelf('deploy');
     verificationKey ??= (this.constructor as typeof SmartContract)
       ._verificationKey;
     if (verificationKey === undefined) {
@@ -874,10 +873,10 @@ super.init();
   /**
    * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
    */
-  newSelf(): AccountUpdate {
+  newSelf(methodName?: string): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
-    let accountUpdate = selfAccountUpdate(this);
+    let accountUpdate = selfAccountUpdate(this, methodName);
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
@@ -1479,13 +1478,6 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     },
   };
 }
-
-class VerificationKey extends Struct({
-  ...provable({ data: String, hash: Field }),
-  toJSON({ data }: { data: string }) {
-    return data;
-  },
-}) {}
 
 function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
   let body = Body.keepAll(zkapp.address, zkapp.tokenId);

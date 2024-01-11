@@ -144,3 +144,41 @@ act -j Build-And-Test-Server --matrix test_type:"Simple integration tests" -s $G
 ### Releasing
 
 To release a new version of o1js, you must first update the version number in `package.json`. Then, you can create a new pull request to merge your changes into the main branch. Once the pull request is merged, a CI job will automatically publish the new version to npm.
+
+## Test zkApps against the local blockchain network
+
+In order to be able to test zkApps against the local blockchain network, you need to spin up such a network first.  
+You can do so in several ways.
+
+1. Using [zkapp-cli](https://www.npmjs.com/package/zkapp-cli)'s sub commands:
+
+   ```shell
+   zk lightnet start # start the local network
+   # Do your tests and other interactions with the network
+   zk lightnet logs # manage the logs of the local network
+   zk lightnet explorer # visualize the local network state
+   zk lightnet stop # stop the local network
+   ```
+
+   Please refer to `zk lightnet --help` for more information.
+
+2. Using the corresponding [Docker image](https://hub.docker.com/r/o1labs/mina-local-network) manually:
+
+   ```shell
+   docker run --rm --pull=missing -it \
+     --env NETWORK_TYPE="single-node" \
+     --env PROOF_LEVEL="none" \
+     --env LOG_LEVEL="Trace" \
+     -p 3085:3085 \
+     -p 5432:5432 \
+     -p 8080:8080 \
+     -p 8181:8181 \
+     -p 8282:8282 \
+     o1labs/mina-local-network:o1js-main-latest-lightnet
+   ```
+
+   Please refer to the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-network) for more information.
+
+Next up, you will need the Mina blockchain accounts information in order to be used in your zkApp.  
+Once the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.  
+The corresponding example can be found here: [src/examples/zkapps/hello_world/run_live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello_world/run_live.ts)

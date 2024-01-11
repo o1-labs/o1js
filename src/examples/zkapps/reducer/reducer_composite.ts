@@ -14,7 +14,7 @@ import {
   Provable,
 } from 'o1js';
 import assert from 'node:assert/strict';
-import { getProfiler } from '../../profiler.js';
+import { getProfiler } from '../../utils/profiler.js';
 
 await isReady;
 
@@ -44,9 +44,9 @@ class CounterZkapp extends SmartContract {
   @method rollupIncrements() {
     // get previous counter & actions hash, assert that they're the same as on-chain values
     let counter = this.counter.get();
-    this.counter.assertEquals(counter);
+    this.counter.requireEquals(counter);
     let actionState = this.actionState.get();
-    this.actionState.assertEquals(actionState);
+    this.actionState.requireEquals(actionState);
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({

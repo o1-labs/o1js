@@ -8,6 +8,7 @@ case $TEST_TYPE in
   ./run src/examples/simple_zkapp.ts --bundle
   ./run src/examples/zkapps/reducer/reducer_composite.ts --bundle
   ./run src/examples/zkapps/composability.ts --bundle
+  ./run src/tests/fake-proof.ts
   ;;
 
 "Voting integration tests")
@@ -42,7 +43,7 @@ case $TEST_TYPE in
 
 "Verification Key Regression Check")
   echo "Running Regression checks"
-  ./run ./src/examples/vk_regression.ts --bundle
+  ./run ./tests/vk-regression/vk-regression.ts --bundle
   ;;
 
 "CommonJS test")

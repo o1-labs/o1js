@@ -6,6 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
+import { rangeCheckN } from './gadgets/range-check.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -13,7 +14,7 @@ export { Poseidon, TokenSymbol };
 // internal API
 export {
   HashInput,
-  Hash,
+  HashHelpers,
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
@@ -23,19 +24,19 @@ export {
 };
 
 class Sponge {
-  private sponge: unknown;
+  #sponge: unknown;
 
   constructor() {
     let isChecked = Provable.inCheckedComputation();
-    this.sponge = Snarky.poseidon.sponge.create(isChecked);
+    this.#sponge = Snarky.poseidon.sponge.create(isChecked);
   }
 
   absorb(x: Field) {
-    Snarky.poseidon.sponge.absorb(this.sponge, x.value);
+    Snarky.poseidon.sponge.absorb(this.#sponge, x.value);
   }
 
   squeeze(): Field {
-    return Field(Snarky.poseidon.sponge.squeeze(this.sponge));
+    return Field(Snarky.poseidon.sponge.squeeze(this.#sponge));
   }
 }
 
@@ -64,7 +65,7 @@ const Poseidon = {
     if (isConstant(input)) {
       let result = PoseidonBigint.hashToGroup(toBigints(input));
       assert(result !== undefined, 'hashToGroup works on all inputs');
-      let { x, y } = result!;
+      let { x, y } = result;
       return {
         x: Field(x),
         y: { x0: Field(y.x0), x1: Field(y.x1) },
@@ -105,8 +106,8 @@ function hashConstant(input: Field[]) {
   return Field(PoseidonBigint.hash(toBigints(input)));
 }
 
-const Hash = createHashHelpers(Field, Poseidon);
-let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { salt, emptyHashWithPrefix, hashWithPrefix } = HashHelpers;
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {
@@ -166,8 +167,7 @@ const TokenSymbolPure: ProvableExtended<
     return 1;
   },
   check({ field }: TokenSymbol) {
-    let actual = field.rangeCheckHelper(48);
-    actual.assertEquals(field);
+    rangeCheckN(48, field);
   },
   toJSON({ symbol }) {
     return symbol;
@@ -179,12 +179,11 @@ const TokenSymbolPure: ProvableExtended<
   toInput({ field }) {
     return { packed: [[field, 48]] };
   },
+  empty() {
+    return { symbol: '', field: Field(0n) };
+  },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static get empty() {
-    return { symbol: '', field: Field(0) };
-  }
-
   static from(symbol: string): TokenSymbol {
     let bytesLength = new TextEncoder().encode(symbol).length;
     if (bytesLength > 6)
