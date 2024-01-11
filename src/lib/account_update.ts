@@ -1347,6 +1347,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.body.mayUseToken.inheritFromParent.assertFalse();
       return;
     }
+    accountUpdate.children.callsType = { type: 'None' };
     let childArray: AccountUpdatesLayout[] =
       typeof childLayout === 'number'
         ? Array(childLayout).fill(AccountUpdate.Layout.NoChildren)
