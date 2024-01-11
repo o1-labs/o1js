@@ -233,7 +233,7 @@ function debugInconsistentConstraint(transaction: ZkappCommand, index: number) {
     },
     {
       withWitness: true,
-      snarkContext: { proverData, inAnalyze: true },
+      snarkContext: { proverData, inProver: true },
       expectedConstraints,
       unexpectedConstraintMessage:
         'Constraint generated during prove() was different than the constraint generated at this location in compile().\n' +
