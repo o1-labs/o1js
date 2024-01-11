@@ -508,7 +508,7 @@ const BytesOfBitlength = {
   512: Bytes64,
 };
 
-// AUXILARY FUNCTIONS
+// AUXILIARY FUNCTIONS
 
 // Auxiliary functions to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
 
