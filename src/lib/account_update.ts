@@ -1096,11 +1096,37 @@ class AccountUpdate implements Types.AccountUpdate {
     return { accountUpdate, calls };
   }
 
+  toPrettyLayout() {
+    let indent = 0;
+    let layout = '';
+    let i = 0;
+
+    let print = (a: AccountUpdate) => {
+      layout +=
+        ' '.repeat(indent) +
+        `AccountUpdate(${i}, ${a.label || '<no label>'}, ${
+          a.children.callsType.type
+        })` +
+        '\n';
+      i++;
+      indent += 2;
+      for (let child of a.children.accountUpdates) {
+        print(child);
+      }
+      indent -= 2;
+    };
+
+    print(this);
+    return layout;
+  }
+
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
     return new AccountUpdate(Body.keepAll(address, tokenId));
   }
   static dummy() {
-    return new AccountUpdate(Body.dummy());
+    let dummy = new AccountUpdate(Body.dummy());
+    dummy.label = 'Dummy';
+    return dummy;
   }
   isDummy() {
     return this.body.publicKey.isEmpty();
