@@ -1,4 +1,4 @@
-export { assertDeepEqual, deepEqual };
+export { assertDeepEqual, deepEqual, stringify };
 
 type Nested =
   | number
@@ -12,13 +12,10 @@ type Nested =
 
 function assertDeepEqual(actual: Nested, expected: Nested, message?: string) {
   if (!deepEqual(actual, expected)) {
-    (BigInt.prototype as any).toJSON = function () {
-      return this.toString();
-    };
     let fullMessage = `${message ? `${message}\n\n` : ''}Deep equality failed:
 
-actual:   ${JSON.stringify(actual)}
-expected: ${JSON.stringify(expected)}
+actual:   ${stringify(actual)}
+expected: ${stringify(expected)}
 `;
     throw Error(fullMessage);
   }
@@ -43,4 +40,30 @@ function deepEqual(a: Nested, b: Nested): boolean {
     if (!deepEqual(a[key], b[key])) return false;
   }
   return true;
+}
+
+function stringify(x: Nested): string {
+  if (typeof x === 'object') {
+    if (x === null) return 'null';
+    if (Array.isArray(x)) return `[${x.map(stringify).join(', ')}]`;
+    let result = '{ ';
+    for (let key in x) {
+      if (result.length > 2) result += ', ';
+      result += `${key}: ${stringify(x[key])}`;
+    }
+    return result + ' }';
+  }
+  switch (typeof x) {
+    case 'string':
+      return `"${x}"`;
+    case 'bigint':
+      return `${x.toString()}n`;
+    case 'number':
+    case 'boolean':
+      return x.toString();
+    case 'undefined':
+      return 'undefined';
+    default:
+      throw Error(`Unexpected type ${typeof x}`);
+  }
 }

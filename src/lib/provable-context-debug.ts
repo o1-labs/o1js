@@ -9,7 +9,7 @@ import {
 } from './gates.js';
 import { MlArray, MlBool, MlOption, MlString, MlTuple } from './ml/base.js';
 import { SnarkContext, snarkContext } from './provable-context.js';
-import { assertDeepEqual } from './util/nested.js';
+import { deepEqual, stringify } from './util/nested.js';
 
 export { runCircuit, SnarkyConstraint, ConstraintLog, MlConstraintSystem };
 
@@ -17,16 +17,18 @@ function runCircuit(
   main: () => void,
   {
     withWitness,
-    evalConstraints,
+    evalConstraints = true,
     expectedConstraints,
     unexpectedConstraintMessage,
     snarkContext: ctx = {},
+    createDebugTraces = false,
   }: {
     withWitness: boolean;
     evalConstraints?: boolean;
     expectedConstraints?: ConstraintLog[];
     unexpectedConstraintMessage?: string;
     snarkContext?: SnarkContext;
+    createDebugTraces?: boolean;
   }
 ) {
   const snarkyState = Snarky.lowLevel.state;
@@ -35,22 +37,37 @@ function runCircuit(
 
   let [, state, input, aux, system] = Snarky.lowLevel.createState(
     numInputs,
-    MlBool(evalConstraints ?? true),
+    MlBool(evalConstraints),
     MlBool(withWitness),
     MlOption(function collectConstraints(_label, maybeConstraint) {
       let mlConstraint = MlOption.from(maybeConstraint);
       if (mlConstraint === undefined) return;
-      let constraintLog = getGateTypeAndData(mlConstraint);
-      constraints.push(constraintLog);
+      let constraint = getGateTypeAndData(mlConstraint);
+      let debug = createDebugTraces ? new Error(constraint.type) : undefined;
+      constraints.push({ constraint, debug });
 
       if (expectedConstraints !== undefined) {
         let expected = expectedConstraints[constraints.length - 1];
-        assertDeepEqual(
-          constraintLog,
-          expected,
+        let ok = deepEqual(constraint, expected.constraint);
+        if (ok) return;
+
+        let message =
           unexpectedConstraintMessage ??
-            'Generated constraint generated did not match expected constraint'
-        );
+          'Generated constraint generated did not match expected constraint..\n' +
+            'See the stack traces below for where this constraint originated.';
+
+        let expectedStackTrace =
+          expected.debug?.stack !== undefined
+            ? `\nStack trace for the expected constraint:\n\n${expected.debug.stack}\n`
+            : '';
+
+        let fullMessage = `${message}\n\nDeep equality failed:\n
+actual:   ${stringify(constraint)}
+expected: ${stringify(expected.constraint)}
+${expectedStackTrace}
+Stack trace for the actual constraint:
+`;
+        throw Error(fullMessage);
       }
     })
   );
@@ -79,7 +96,10 @@ class MlConstraintSystem {
   // opaque
 }
 
-type ConstraintLog = { type: ConstraintType; data: any };
+type ConstraintLog = {
+  constraint: { type: ConstraintType; data: any };
+  debug?: Error;
+};
 
 type ConstraintType =
   | KimchiGateTypeString
@@ -88,7 +108,9 @@ type ConstraintType =
   | 'Square'
   | 'R1CS';
 
-function getGateTypeAndData(constraint: SnarkyConstraint): ConstraintLog {
+function getGateTypeAndData(
+  constraint: SnarkyConstraint
+): ConstraintLog['constraint'] {
   let [, basic] = constraint;
   switch (basic[1][1].c) {
     case SnarkyConstraintType.Boolean:

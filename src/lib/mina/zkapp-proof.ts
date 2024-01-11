@@ -17,12 +17,14 @@ import {
   Empty,
   Proof,
   dummyBase64Proof,
+  emptyWitness,
   methodArgumentsToVars,
+  synthesizeMethodArguments,
 } from '../proof_system.js';
 import { runCircuit } from '../provable-context-debug.js';
 import { Provable, memoizationContext } from '../provable.js';
 
-export { addMissingProofs, runAsIfProver };
+export { addMissingProofs };
 
 type AccountUpdateProved = AccountUpdate & {
   lazyAuthorization?: LazySignature;
@@ -131,12 +133,8 @@ async function createZkappProof(
           err instanceof Error &&
           err.message.includes('FieldVector.get(): Index out of bounds')
         ) {
-          runAsIfProver(transaction, index);
-          console.error(
-            'This is likely due to a mismatch between the circuit at compile and proving time.\n'
-          );
+          debugInconsistentConstraint(transaction, index);
         }
-
         throw err;
       } finally {
         memoizationContext.leave(id);
@@ -172,7 +170,7 @@ function getZkappProver({ methodName, ZkappClass }: LazyProof) {
 
 // for debugging prove/compile discrepancies
 
-function runAsIfProver(transaction: ZkappCommand, index: number) {
+function debugInconsistentConstraint(transaction: ZkappCommand, index: number) {
   let accountUpdate = transaction.accountUpdates[index];
   accountUpdate = AccountUpdate.clone(accountUpdate);
 
@@ -183,19 +181,33 @@ function runAsIfProver(transaction: ZkappCommand, index: number) {
 
   let { methodName, ZkappClass, args, memoized, blindingValue } =
     accountUpdate.lazyAuthorization;
-  let metadata = ZkappClass._methodMetadata?.[methodName];
   let methodIntf = ZkappClass._methods?.find(
     (m) => m.methodName === methodName
   );
 
-  assert(
-    metadata !== undefined && methodIntf !== undefined,
-    `No metadata found for zkapp method ${methodName}()`
+  // run circuit in compile mode to get expected constraints
+  let { constraints: expectedConstraints } = runCircuit(
+    () => {
+      let [pk, tid, ...otherArgs] = synthesizeMethodArguments(
+        methodIntf!,
+        true
+      ) as any[];
+      let publicInput = emptyWitness(ZkappPublicInput);
+
+      let instance = new ZkappClass(pk, tid);
+      (instance as any)[methodName](publicInput, ...otherArgs);
+    },
+    {
+      withWitness: false,
+      snarkContext: { inAnalyze: true },
+      createDebugTraces: true,
+    }
   );
 
   let publicInput = accountUpdate.toPublicInput();
   let proverData = { transaction, accountUpdate, index };
 
+  // and a second time in prove mode to get actual constraints
   runCircuit(
     () => {
       let id = memoizationContext.enter({
@@ -208,10 +220,13 @@ function runAsIfProver(transaction: ZkappCommand, index: number) {
           [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
           methodIntf!
         ).args;
-        publicInput = Provable.witness(ZkappPublicInput, () => publicInput);
+        let publicInput_ = Provable.witness(
+          ZkappPublicInput,
+          () => publicInput
+        );
 
         let instance = new ZkappClass(pk, tid);
-        (instance as any)[methodName](publicInput, ...otherArgs);
+        (instance as any)[methodName](publicInput_, ...otherArgs);
       } finally {
         memoizationContext.leave(id);
       }
@@ -219,10 +234,10 @@ function runAsIfProver(transaction: ZkappCommand, index: number) {
     {
       withWitness: true,
       snarkContext: { proverData, inAnalyze: true },
-      expectedConstraints: metadata.expectedConstraints,
+      expectedConstraints,
       unexpectedConstraintMessage:
         'Constraint generated during prove() was different than the constraint generated at this location in compile().\n' +
-        'See the stack trace below for where this constraint originated.',
+        'See the stack traces below for where this constraint originated.',
     }
   );
 }
