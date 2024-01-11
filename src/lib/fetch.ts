@@ -31,6 +31,7 @@ export {
   getCachedAccount,
   getCachedNetwork,
   getCachedActions,
+  getCachedGenesisConstants,
   addCachedAccount,
   networkConfig,
   setGraphqlEndpoint,
@@ -216,6 +217,12 @@ type FetchError = {
 type ActionStatesStringified = {
   [K in keyof ActionStates]: string;
 };
+type GenesisConstants = {
+  genesisTimestamp: string;
+  coinbase: number;
+  accountCreationFee: number;
+};
+
 // Specify 5min as the default timeout
 const defaultTimeout = 5 * 60 * 1000;
 
@@ -257,6 +264,7 @@ let actionsToFetch = {} as Record<
     graphqlEndpoint: string;
   }
 >;
+let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
@@ -361,6 +369,23 @@ function getCachedActions(
 ) {
   return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.actions;
+}
+
+function getCachedGenesisConstants(
+  graphqlEndpoint = networkConfig.minaEndpoint
+): GenesisConstants {
+  let genesisConstants = genesisConstantsCache[graphqlEndpoint];
+  if (genesisConstants === undefined) {
+    fetchGenesisConstants(graphqlEndpoint)
+      .then((fetchedGenesisConstants) => {
+        genesisConstantsCache[graphqlEndpoint] = fetchedGenesisConstants;
+        genesisConstants = fetchedGenesisConstants;
+      })
+      .catch((error) => {
+        throw Error(error.message);
+      });
+  }
+  return genesisConstants;
 }
 
 /**
@@ -819,6 +844,13 @@ const getActionsQuery = (
   }
 }`;
 };
+const genesisConstantsQuery = `{
+    genesisConstants {
+      genesisTimestamp
+      coinbase
+      accountCreationFee
+    }
+  }`;
 
 /**
  * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
@@ -1007,6 +1039,25 @@ async function fetchActions(
   });
   addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
+}
+
+/**
+ * Fetches genesis constants.
+ */
+async function fetchGenesisConstants(
+  graphqlEndpoint = networkConfig.minaEndpoint
+): Promise<GenesisConstants> {
+  let [resp, error] = await makeGraphqlRequest(
+    genesisConstantsQuery,
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
+  );
+  if (error) throw Error(error.statusText);
+  const genesisConstants = resp?.data?.genesisConstants;
+  if (genesisConstants === undefined) {
+    throw Error('Failed to fetch genesis constants.');
+  }
+  return genesisConstants as GenesisConstants;
 }
 
 namespace Lightnet {

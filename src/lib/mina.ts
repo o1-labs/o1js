@@ -343,7 +343,7 @@ interface Mina {
   getNetworkConstants(): {
     genesisTimestamp: UInt64;
     /**
-     * Duration of 1 slot in millisecondw
+     * Duration of 1 slot in milliseconds
      */
     slotTime: UInt64;
     accountCreationFee: UInt64;
@@ -737,19 +737,18 @@ function Network(
     );
   }
 
-  // copied from mina/genesis_ledgers/berkeley.json
-  // TODO fetch from graphql instead of hardcoding
-  const genesisTimestampString = '2023-02-23T20:00:01Z';
-  const genesisTimestamp = UInt64.from(
-    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
-  );
   // TODO also fetch from graphql
   const slotTime = UInt64.from(3 * 60 * 1000);
   return {
     accountCreationFee: () => accountCreationFee,
     getNetworkConstants() {
       return {
-        genesisTimestamp,
+        genesisTimestamp: UInt64.from(
+          Date.parse(
+            Fetch.getCachedGenesisConstants(minaGraphqlEndpoint)
+              .genesisTimestamp
+          )
+        ),
         slotTime,
         accountCreationFee,
       };
