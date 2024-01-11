@@ -440,10 +440,6 @@ class TokenContract extends SmartContract {
     to: PublicKey,
     amount: UInt64
   ) {
-    // TODO: THIS IS INSECURE. The proper version has a prover error (compile != prove) that must be fixed
-    // this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
-
-    // THIS IS HOW IT SHOULD BE DONE:
     // approve a layout of two grandchildren, both of which can't inherit the token permission
     let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
     this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
