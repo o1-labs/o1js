@@ -1280,7 +1280,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     this.toField().assertEquals(y_.toField(), message);
   }
   /**
-   * Checks if the value is postive.
+   * Checks if the value is positive.
    */
   isPositive() {
     return this.sgn.isPositive();

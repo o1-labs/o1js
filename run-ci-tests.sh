@@ -47,7 +47,7 @@ case $TEST_TYPE in
   ;;
 
 *)
-  echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"
+  echo "ERROR: Invalid environment variable, not clear what tests to run! $CI_NODE_INDEX"
   exit 1
   ;;
 esac
