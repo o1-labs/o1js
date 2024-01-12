@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ProvablePure, Snarky } from '../snarky.js';
+import { ProvablePure, ProvableBn254, Snarky } from '../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable } from './provable.js';
@@ -7,7 +7,7 @@ import { snarkContext, gatesFromJson } from './provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from './errors.js';
 
 // external API
-export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };
+export { public_, circuitMain, Circuit, CircuitBn254, Keypair, Proof, VerificationKey };
 
 class Circuit {
   // circuit-writing interface
@@ -33,27 +33,10 @@ class Circuit {
     );
   }
 
-  /**
-   * Generates a proving key and a verification key for this circuit.
-   * Uses Bn254 Fields.
-   * @example
-   * ```ts
-   * const keypair = await MyCircuit.generateKeypairBn254();
-   * ```
-   */
-  static generateKeypairBn254() {
-    let main = mainFromCircuitDataBn254(this._main);
-    let publicInputSize = this._main.publicInputType.sizeInFields();
-    return prettifyStacktracePromise(
-      withThreadPool(async () => {
-        let keypair = Snarky.circuitBn254.compile(main, publicInputSize);
-        return new KeypairBn254(keypair);
-      })
-    );
-  }
 
   /**
    * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
+   * Uses Pasta fields.
    * @example
    * ```ts
    * const keypair = await MyCircuit.generateKeypair();
@@ -159,6 +142,57 @@ class Circuit {
   static log = Provable.log;
 }
 
+class CircuitBn254 {
+  // circuit-writing interface
+
+  static _main: CircuitDataBn254<any, any>;
+
+  /**
+   * Generates a proving key and a verification key for this circuit.
+   * Uses Bn254 Fields.
+   * @example
+   * ```ts
+   * const keypair = await MyCircuit.generateKeypairBn254();
+   * ```
+   */
+  static generateKeypair() {
+    let main = mainFromCircuitDataBn254(this._main);
+    let publicInputSize = this._main.publicInputType.sizeInFields();
+    return prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let keypair = Snarky.circuitBn254.compile(main, publicInputSize);
+        return new KeypairBn254(keypair);
+      })
+    );
+  }
+
+  /**
+   * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
+   * Uses Bn254 fields.
+   * @example
+   * ```ts
+   * const keypair = await MyCircuit.generateKeypairBn254();
+   * const proof = await MyCircuit.proveBn254(privateInput, publicInput, keypair);
+   * ```
+   */
+  static prove(privateInput: any[], publicInput: any[], keypair: KeypairBn254) {
+    let main = mainFromCircuitDataBn254(this._main, privateInput);
+    let publicInputSize = this._main.publicInputType.sizeInFields();
+    let publicInputFields = this._main.publicInputType.toFields(publicInput);
+    return prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let proof = Snarky.circuitBn254.prove(
+          main,
+          publicInputSize,
+          MlFieldConstArray.toBn254(publicInputFields),
+          keypair.value
+        );
+        return new Proof(proof);
+      })
+    );
+  }
+}
+
 class Keypair {
   value: Snarky.Keypair;
 
@@ -262,6 +296,12 @@ type CircuitData<P, W> = {
   privateInputType: ProvablePure<W>;
 };
 
+type CircuitDataBn254<P, W> = {
+  main(publicInput: P, privateInput: W): void;
+  publicInputType: ProvableBn254<P>;
+  privateInputType: ProvableBn254<W>;
+};
+
 function mainFromCircuitData<P, W>(
   data: CircuitData<P, W>,
   privateInput?: W
@@ -284,14 +324,14 @@ function mainFromCircuitData<P, W>(
 }
 
 function mainFromCircuitDataBn254<P, W>(
-  data: CircuitData<P, W>,
+  data: CircuitDataBn254<P, W>,
   privateInput?: W
 ): Snarky.Main {
   return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
       let publicInput = data.publicInputType.fromFields(
-        MlFieldArray.from(publicInputFields)
+        MlFieldArray.fromBn254(publicInputFields)
       );
       let privateInput_ = Provable.witnessBn254(
         data.privateInputType,

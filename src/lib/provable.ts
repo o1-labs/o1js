@@ -4,7 +4,7 @@
  * - the main interface for types that can be used in provable code
  */
 import { Field, Bool } from './core.js';
-import { Provable as Provable_, Snarky } from '../snarky.js';
+import { ProvableBn254, Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
 import { Context } from './global-context.js';
 import {
@@ -24,6 +24,7 @@ import {
   constraintSystem,
 } from './provable-context.js';
 import { isBool } from './bool.js';
+import { FieldBn254 } from './field_bn254.js';
 
 // external API
 export { Provable };
@@ -236,7 +237,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
   return value;
 }
 
-function witnessBn254<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
+function witnessBn254<T, S extends ProvableBn254<T> = ProvableBn254<T>>(
   type: S,
   compute: () => T
 ): T {
@@ -244,10 +245,10 @@ function witnessBn254<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, compute());
+    return cloneBn254(type, compute());
   }
   let proverValue: T | undefined = undefined;
-  let fields: Field[];
+  let fields: FieldBn254[];
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
@@ -267,14 +268,13 @@ function witnessBn254<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
       // }
       return [0, ...fieldConstants];
     });
-    fields = fieldVars.map(Field);
+    fields = fieldVars.map((fieldVar) => new FieldBn254(fieldVar));
   } finally {
     snarkContext.leave(id);
   }
 
-  // rebuild the value from its fields (which are now variables) and aux data
-  let aux = type.toAuxiliary(proverValue);
-  let value = (type as Provable<T>).fromFields(fields, aux);
+  // rebuild the value from its fields (which are now variables)
+  let value = (type as ProvableBn254<T>).fromFields(fields);
 
   // add type-specific constraints
   type.check(value);
@@ -475,6 +475,11 @@ function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   let fields = type.toFields(value);
   let aux = type.toAuxiliary?.(value) ?? [];
   return (type as Provable<T>).fromFields(fields, aux);
+}
+
+function cloneBn254<T, S extends ProvableBn254<T>>(type: S, value: T): T {
+  let fields = type.toFields(value);
+  return (type as ProvableBn254<T>).fromFields(fields);
 }
 
 function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {

@@ -17,8 +17,9 @@ import type {
   ForeignAffine,
 } from './lib/foreign-field.js';
 import type { EllipticCurve } from './lib/elliptic-curve.js';
+import { FieldBn254 } from './lib/field_bn254.ts';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { ProvablePure, Provable, ProvableBn254, Ledger, Pickles, Gate };
 
 // internal
 export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
@@ -137,6 +138,13 @@ declare interface ProvablePure<T> extends Provable<T> {
    *
    * @param value - the element of type `T` to put assertions on.
    */
+  check: (value: T) => void;
+}
+
+declare interface ProvableBn254<T> {
+  toFields: (value: T) => FieldBn254[];
+  fromFields: (fields: FieldBn254[]) => T;
+  sizeInFields(): number;
   check: (value: T) => void;
 }
 
@@ -393,6 +401,17 @@ declare const Snarky: {
        */
       getConstraintSystemJSON(keypair: Snarky.KeypairBn254): JsonConstraintSystem;
     };
+
+    /**
+     * Proves a statement using the private input, public input and the keypair of the circuit.
+     * Returns a KZG proof in JSON format.
+     */
+    prove(
+      main: Snarky.Main,
+      publicInputSize: number,
+      publicInput: MlArray<FieldConst>,
+      keypair: Snarky.KeypairBn254
+    ): string;
   };
 
   poseidon: {

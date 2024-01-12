@@ -364,8 +364,8 @@ function Struct<
 >(
   type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
-    ? ProvablePure<T>
-    : Provable<T>) & {
+  ? ProvablePure<T>
+  : Provable<T>) & {
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
