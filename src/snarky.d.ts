@@ -329,7 +329,7 @@ declare const Snarky: {
   };
 
   /**
-   * The circuit API is a low level interface to create zero-knowledge proofs
+   * The circuit API is a low level interface to create zero-knowledge proofs using Pasta fields
    */
   circuit: {
     /**
@@ -337,12 +337,6 @@ declare const Snarky: {
      * Uses Pasta fields.
      */
     compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
-
-    /**
-     * Generates a proving key and a verification key for the provable function `main`.
-     * Uses Bn254 fields.
-     */
-    compileBn254(main: Snarky.Main, publicInputSize: number): Snarky.KeypairBn254;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
@@ -373,6 +367,25 @@ declare const Snarky: {
     };
 
     keypairBn254: {
+      getVerificationKey(keypair: Snarky.KeypairBn254): Snarky.VerificationKey;
+      /**
+       * Returns a low-level JSON representation of the circuit:
+       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+       */
+      getConstraintSystemJSON(keypair: Snarky.KeypairBn254): JsonConstraintSystem;
+    };
+  };
+
+  /**
+   * The circuit API is a low level interface to create zero-knowledge proofs using Bn254 fields
+   */
+  circuitBn254: {
+    /**
+     * Generates a proving key and a verification key for the provable function `main`.
+     */
+    compile(main: Snarky.Main, publicInputSize: number): Snarky.KeypairBn254;
+
+    keypair: {
       getVerificationKey(keypair: Snarky.KeypairBn254): Snarky.VerificationKey;
       /**
        * Returns a low-level JSON representation of the circuit:

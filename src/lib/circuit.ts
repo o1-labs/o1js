@@ -46,7 +46,7 @@ class Circuit {
     let publicInputSize = this._main.publicInputType.sizeInFields();
     return prettifyStacktracePromise(
       withThreadPool(async () => {
-        let keypair = Snarky.circuit.compileBn254(main, publicInputSize);
+        let keypair = Snarky.circuitBn254.compile(main, publicInputSize);
         return new KeypairBn254(keypair);
       })
     );
