@@ -1,25 +1,26 @@
 import 'reflect-metadata';
-import { ProvablePure, ProvableBn254, Snarky } from '../snarky.js';
+import { ProvableBn254, Snarky } from '../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable } from './provable.js';
 import { snarkContext, gatesFromJson } from './provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from './errors.js';
+import { Proof, VerificationKey } from './circuit.js';
 
 // external API
-export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };
+export { circuitMainBn254, CircuitBn254, KeypairBn254 };
 
-class Circuit {
+class CircuitBn254 {
   // circuit-writing interface
 
   static _main: CircuitData<any, any>;
 
   /**
    * Generates a proving key and a verification key for this circuit.
-   * Uses Pasta fields.
+   * Uses Bn254 Fields.
    * @example
    * ```ts
-   * const keypair = await MyCircuit.generateKeypair();
+   * const keypair = await MyCircuit.generateKeypairBn254();
    * ```
    */
   static generateKeypair() {
@@ -27,131 +28,49 @@ class Circuit {
     let publicInputSize = this._main.publicInputType.sizeInFields();
     return prettifyStacktracePromise(
       withThreadPool(async () => {
-        let keypair = Snarky.circuit.compile(main, publicInputSize);
-        return new Keypair(keypair);
+        let keypair = Snarky.circuitBn254.compile(main, publicInputSize);
+        return new KeypairBn254(keypair);
       })
     );
   }
 
-
   /**
    * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
-   * Uses Pasta fields.
+   * Uses Bn254 fields.
    * @example
    * ```ts
-   * const keypair = await MyCircuit.generateKeypair();
-   * const proof = await MyCircuit.prove(privateInput, publicInput, keypair);
+   * const keypair = await MyCircuit.generateKeypairBn254();
+   * const proof = await MyCircuit.proveBn254(privateInput, publicInput, keypair);
    * ```
    */
-  static prove(privateInput: any[], publicInput: any[], keypair: Keypair) {
+  static prove(privateInput: any[], publicInput: any[], keypair: KeypairBn254) {
     let main = mainFromCircuitData(this._main, privateInput);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
     return prettifyStacktracePromise(
       withThreadPool(async () => {
-        let proof = Snarky.circuit.prove(
+        let proof = Snarky.circuitBn254.prove(
           main,
           publicInputSize,
-          MlFieldConstArray.to(publicInputFields),
+          MlFieldConstArray.toBn254(publicInputFields),
           keypair.value
         );
         return new Proof(proof);
       })
     );
   }
-
-  /**
-   * Verifies a proof using the public input, the proof, and the initial {@link Keypair} of the circuit.
-   * @example
-   * ```ts
-   * const keypair = await MyCircuit.generateKeypair();
-   * const proof = await MyCircuit.prove(privateInput, publicInput, keypair);
-   * const isValid = await MyCircuit.verify(publicInput, keypair.vk, proof);
-   * ```
-   */
-  static verify(
-    publicInput: any[],
-    verificationKey: VerificationKey,
-    proof: Proof
-  ) {
-    let publicInputFields = this._main.publicInputType.toFields(publicInput);
-    return prettifyStacktracePromise(
-      withThreadPool(async () =>
-        Snarky.circuit.verify(
-          MlFieldConstArray.to(publicInputFields),
-          proof.value,
-          verificationKey.value
-        )
-      )
-    );
-  }
-
-  // utility namespace, moved to `Provable`
-
-  /**
-   * @deprecated use {@link Provable.witness}
-   */
-  static witness = Provable.witness;
-  /**
-   * @deprecated use {@link Provable.asProver}
-   */
-  static asProver = Provable.asProver;
-  /**
-   * @deprecated use {@link Provable.runAndCheck}
-   */
-  static runAndCheck = Provable.runAndCheck;
-  /**
-   * @deprecated use {@link Provable.runUnchecked}
-   */
-  static runUnchecked = Provable.runUnchecked;
-  /**
-   * @deprecated use {@link Provable.constraintSystem}
-   */
-  static constraintSystem = Provable.constraintSystem;
-  /**
-   * @deprecated use {@link Provable.Array}
-   */
-  static array = Provable.Array;
-  /**
-   * @deprecated use {@link Provable.assertEqual}
-   */
-  static assertEqual = Provable.assertEqual;
-  /**
-   * @deprecated use {@link Provable.equal}
-   */
-  static equal = Provable.equal;
-  /**
-   * @deprecated use {@link Provable.if}
-   */
-  static if = Provable.if;
-  /**
-   * @deprecated use {@link Provable.switch}
-   */
-  static switch = Provable.switch;
-  /**
-   * @deprecated use {@link Provable.inProver}
-   */
-  static inProver = Provable.inProver;
-  /**
-   * @deprecated use {@link Provable.inCheckedComputation}
-   */
-  static inCheckedComputation = Provable.inCheckedComputation;
-  /**
-   * @deprecated use {@link Provable.log}
-   */
-  static log = Provable.log;
 }
 
-class Keypair {
-  value: Snarky.Keypair;
+class KeypairBn254 {
+  value: Snarky.KeypairBn254;
 
-  constructor(value: Snarky.Keypair) {
+  constructor(value: Snarky.KeypairBn254) {
     this.value = value;
   }
 
   verificationKey() {
     return new VerificationKey(
-      Snarky.circuit.keypair.getVerificationKey(this.value)
+      Snarky.circuit.keypairBn254.getVerificationKey(this.value)
     );
   }
 
@@ -160,14 +79,14 @@ class Keypair {
    * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
    * @example
    * ```ts
-   * const keypair = await MyCircuit.generateKeypair();
-   * const json = MyProvable.witnessFromKeypair(keypair);
+   * const keypair = await MyCircuit.generateKeypairBn254();
+   * const gates = keypair.constraintSystem();
    * ```
    */
   constraintSystem() {
     try {
       return gatesFromJson(
-        Snarky.circuit.keypair.getConstraintSystemJSON(this.value)
+        Snarky.circuit.keypairBn254.getConstraintSystemJSON(this.value)
       ).gates;
     } catch (error) {
       throw prettifyStacktrace(error);
@@ -175,41 +94,10 @@ class Keypair {
   }
 }
 
-/**
- * Proofs can be verified using a {@link VerificationKey} and the public input.
- */
-class Proof {
-  value: Snarky.Proof;
-
-  constructor(value: Snarky.Proof) {
-    this.value = value;
-  }
-}
-
-/**
- * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
- */
-class VerificationKey {
-  value: Snarky.VerificationKey;
-
-  constructor(value: Snarky.VerificationKey) {
-    this.value = value;
-  }
-}
-
-function public_(target: any, _key: string | symbol, index: number) {
-  // const fieldType = Reflect.getMetadata('design:paramtypes', target, key);
-
-  if (target._public === undefined) {
-    target._public = [];
-  }
-  target._public.push(index);
-}
-
 type CircuitData<P, W> = {
   main(publicInput: P, privateInput: W): void;
-  publicInputType: ProvablePure<P>;
-  privateInputType: ProvablePure<W>;
+  publicInputType: ProvableBn254<P>;
+  privateInputType: ProvableBn254<W>;
 };
 
 function mainFromCircuitData<P, W>(
@@ -220,9 +108,9 @@ function mainFromCircuitData<P, W>(
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
       let publicInput = data.publicInputType.fromFields(
-        MlFieldArray.from(publicInputFields)
+        MlFieldArray.fromBn254(publicInputFields)
       );
-      let privateInput_ = Provable.witness(
+      let privateInput_ = Provable.witnessBn254(
         data.privateInputType,
         () => privateInput as W
       );
@@ -233,8 +121,8 @@ function mainFromCircuitData<P, W>(
   };
 }
 
-function circuitMain(
-  target: typeof Circuit,
+function circuitMainBn254(
+  target: typeof CircuitBn254,
   propertyName: string,
   _descriptor?: PropertyDescriptor
 ): any {
@@ -270,7 +158,7 @@ function circuitMain(
 }
 
 // TODO support auxiliary data
-function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
+function provableFromTuple(typs: ProvableBn254<any>[]): ProvableBn254<any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -285,10 +173,6 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
         res.push(...typs[i].toFields(t[i]));
       }
       return res;
-    },
-
-    toAuxiliary() {
-      return [];
     },
 
     fromFields: (xs: Array<any>) => {
