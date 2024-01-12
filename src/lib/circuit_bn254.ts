@@ -70,7 +70,7 @@ class KeypairBn254 {
 
   verificationKey() {
     return new VerificationKey(
-      Snarky.circuit.keypairBn254.getVerificationKey(this.value)
+      Snarky.circuitBn254.keypair.getVerificationKey(this.value)
     );
   }
 
@@ -86,7 +86,7 @@ class KeypairBn254 {
   constraintSystem() {
     try {
       return gatesFromJson(
-        Snarky.circuit.keypairBn254.getConstraintSystemJSON(this.value)
+        Snarky.circuitBn254.keypair.getConstraintSystemJSON(this.value)
       ).gates;
     } catch (error) {
       throw prettifyStacktrace(error);

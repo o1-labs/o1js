@@ -373,15 +373,6 @@ declare const Snarky: {
        */
       getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
     };
-
-    keypairBn254: {
-      getVerificationKey(keypair: Snarky.KeypairBn254): Snarky.VerificationKey;
-      /**
-       * Returns a low-level JSON representation of the circuit:
-       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-       */
-      getConstraintSystemJSON(keypair: Snarky.KeypairBn254): JsonConstraintSystem;
-    };
   };
 
   /**
