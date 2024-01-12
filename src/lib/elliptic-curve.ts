@@ -79,19 +79,34 @@ class ForeignGroup {
     }
 
     /**
-     * Part of the {@link Provable} interface.
+   * Part of the {@link ProvableBn254} interface.
+   *
+   * Returns an array containing this {@link ForeignGroup} element as an array of {@link FieldBn254} elements.
+   */
+    toFields() {
+        const modulus = BigInt(ForeignGroup.curve[2]);
+        const ForeignGroupField = createForeignField(modulus);
+
+        const xFields = ForeignGroupField.toFieldsBn254(this.x);
+        const yFields = ForeignGroupField.toFieldsBn254(this.y);
+
+        return [...xFields, ...yFields];
+    }
+
+    /**
+     * Part of the {@link ProvableBn254} interface.
      *
      * Deserializes a {@link ForeignGroup} element from a list of field elements.
      * Assumes the following format `[...x, ...y]`
      */
-    static fromFields(fields: Field[]) {
+    static fromFields(fields: FieldBn254[]) {
         const modulus = BigInt(ForeignGroup.curve[2]);
         const ForeignGroupField = createForeignField(modulus);
 
         const xFields = fields.slice(0, 3);
         const yFields = fields.slice(3);
-        const x = ForeignGroupField.fromFields(xFields);
-        const y = ForeignGroupField.fromFields(yFields);
+        const x = ForeignGroupField.fromFieldsBn254(xFields);
+        const y = ForeignGroupField.fromFieldsBn254(yFields);
 
         return new ForeignGroup(x, y);
     }

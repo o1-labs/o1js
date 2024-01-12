@@ -11,6 +11,7 @@ import {
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { MlArray, MlTuple } from './ml/base.js';
+import { FieldBn254 } from './field_bn254.js';
 
 // external API
 export { createForeignField, ForeignField };
@@ -367,6 +368,11 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
       return limbs.map((x) => new Field(x));
     }
 
+    static toFieldsBn254(x: ForeignField) {
+      let [, ...limbs] = x.value;
+      return limbs.map((x) => new FieldBn254(x));
+    }
+
     /**
      * Instance version of `Provable<ForeignField>.toFields`, see {@link Provable.toFields}
      */
@@ -393,6 +399,12 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     static fromFields(fields: Field[]) {
       let fieldVars = fields.map((x) => x.value);
       let limbs = arrayToTuple(fieldVars, 3, 'ForeignField.fromFields()');
+      return new ForeignField([0, ...limbs]);
+    }
+
+    static fromFieldsBn254(fields: FieldBn254[]) {
+      let fieldVars = fields.map((x) => x.value);
+      let limbs = arrayToTuple(fieldVars, 3, 'ForeignField.fromFieldsBn254()');
       return new ForeignField([0, ...limbs]);
     }
 
