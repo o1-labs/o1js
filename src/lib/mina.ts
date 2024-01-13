@@ -65,6 +65,7 @@ export {
   // for internal testing only
   filterGroups,
 };
+
 interface TransactionId {
   isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
@@ -161,6 +162,15 @@ type DeprecatedFeePayerSpec =
 type ActionStates = {
   fromActionState?: Field;
   endActionState?: Field;
+};
+
+type NetworkConstants = {
+  genesisTimestamp: UInt64;
+  /**
+   * Duration of 1 slot in milliseconds
+   */
+  slotTime: UInt64;
+  accountCreationFee: UInt64;
 };
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -340,14 +350,7 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
-  getNetworkConstants(): {
-    genesisTimestamp: UInt64;
-    /**
-     * Duration of 1 slot in milliseconds
-     */
-    slotTime: UInt64;
-    accountCreationFee: UInt64;
-  };
+  getNetworkConstants(): NetworkConstants;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (
@@ -369,6 +372,11 @@ interface Mina {
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
+const defaultNetworkConstants = {
+  genesisTimestamp: UInt64.from(0),
+  slotTime: UInt64.from(3 * 60 * 1000),
+  accountCreationFee: UInt64.from(defaultAccountCreationFee),
+};
 
 /**
  * A mock Mina blockchain running locally and useful for testing.
@@ -737,21 +745,29 @@ function Network(
     );
   }
 
-  // TODO also fetch from graphql
-  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
     accountCreationFee: () => accountCreationFee,
     getNetworkConstants() {
-      return {
-        genesisTimestamp: UInt64.from(
-          Date.parse(
-            Fetch.getCachedGenesisConstants(minaGraphqlEndpoint)
-              .genesisTimestamp
-          )
-        ),
-        slotTime,
-        accountCreationFee,
-      };
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        const genesisConstants =
+          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        return genesisConstants !== undefined
+          ? genesisToNetworkConstants(genesisConstants)
+          : defaultNetworkConstants;
+      }
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        const genesisConstants =
+          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        if (genesisConstants !== undefined)
+          return genesisToNetworkConstants(genesisConstants);
+      }
+      throw Error(
+        `getNetworkConstants: Could not fetch network constants from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
+      );
     },
     currentSlot() {
       throw Error(
@@ -813,7 +829,7 @@ function Network(
         if (network !== undefined) return network;
       }
       throw Error(
-        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint}`
+        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
       );
     },
     async sendTransaction(txn: Transaction) {
@@ -1590,4 +1606,16 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
     );
   }
   await waitForFunding(address);
+}
+
+function genesisToNetworkConstants(
+  genesisConstants: Fetch.GenesisConstants
+): NetworkConstants {
+  return {
+    genesisTimestamp: UInt64.from(
+      Date.parse(genesisConstants.genesisTimestamp)
+    ),
+    slotTime: UInt64.from(genesisConstants.slotDuration),
+    accountCreationFee: UInt64.from(genesisConstants.accountCreationFee),
+  };
 }

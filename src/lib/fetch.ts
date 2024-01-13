@@ -19,6 +19,7 @@ import {
 export {
   fetchAccount,
   fetchLastBlock,
+  fetchGenesisConstants,
   checkZkappTransaction,
   parseFetchedAccount,
   markAccountToBeFetched,
@@ -45,7 +46,8 @@ export {
   removeJsonQuotes,
   fetchEvents,
   fetchActions,
-  Lightnet
+  Lightnet,
+  type GenesisConstants,
 };
 
 type NetworkConfig = {
@@ -221,6 +223,10 @@ type GenesisConstants = {
   genesisTimestamp: string;
   coinbase: number;
   accountCreationFee: number;
+  epochDuration: number;
+  k: number;
+  slotDuration: number;
+  slotsPerEpoch: number;
 };
 
 // Specify 5min as the default timeout
@@ -341,6 +347,7 @@ async function fetchMissingData(
       (async () => {
         try {
           await fetchLastBlock(graphqlEndpoint);
+          await fetchGenesisConstants(graphqlEndpoint);
           delete networksToFetch[network[0]];
         } catch {}
       })()
@@ -374,18 +381,7 @@ function getCachedActions(
 function getCachedGenesisConstants(
   graphqlEndpoint = networkConfig.minaEndpoint
 ): GenesisConstants {
-  let genesisConstants = genesisConstantsCache[graphqlEndpoint];
-  if (genesisConstants === undefined) {
-    fetchGenesisConstants(graphqlEndpoint)
-      .then((fetchedGenesisConstants) => {
-        genesisConstantsCache[graphqlEndpoint] = fetchedGenesisConstants;
-        genesisConstants = fetchedGenesisConstants;
-      })
-      .catch((error) => {
-        throw Error(error.message);
-      });
-  }
-  return genesisConstants;
+  return genesisConstantsCache[graphqlEndpoint];
 }
 
 /**
@@ -850,6 +846,14 @@ const genesisConstantsQuery = `{
       coinbase
       accountCreationFee
     }
+    daemonStatus {
+      consensusConfiguration {
+        epochDuration
+        k
+        slotDuration
+        slotsPerEpoch
+      }
+    }
   }`;
 
 /**
@@ -1054,10 +1058,22 @@ async function fetchGenesisConstants(
   );
   if (error) throw Error(error.statusText);
   const genesisConstants = resp?.data?.genesisConstants;
-  if (genesisConstants === undefined) {
+  const consensusConfiguration =
+    resp?.data?.daemonStatus?.consensusConfiguration;
+  if (genesisConstants === undefined || consensusConfiguration === undefined) {
     throw Error('Failed to fetch genesis constants.');
   }
-  return genesisConstants as GenesisConstants;
+  const data = {
+    genesisTimestamp: genesisConstants.genesisTimestamp,
+    coinbase: Number(genesisConstants.coinbase),
+    accountCreationFee: Number(genesisConstants.accountCreationFee),
+    epochDuration: Number(consensusConfiguration.epochDuration),
+    k: Number(consensusConfiguration.k),
+    slotDuration: Number(consensusConfiguration.slotDuration),
+    slotsPerEpoch: Number(consensusConfiguration.slotsPerEpoch),
+  };
+  genesisConstantsCache[graphqlEndpoint] = data;
+  return data as GenesisConstants;
 }
 
 namespace Lightnet {
