@@ -416,7 +416,7 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
   let self = context.isSelf ? 'this' : 'accountUpdate';
   let dummyPreconditions = Preconditions.ignoreAll();
   for (let preconditionPath of context.read) {
-    // check if every precondition that was read was also contrained
+    // check if every precondition that was read was also constrained
     if (context.constrained.has(preconditionPath)) continue;
 
     // check if the precondition was modified manually, which is also a valid way of avoiding an error
