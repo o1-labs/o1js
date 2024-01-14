@@ -178,7 +178,7 @@ class UInt64 extends CircuitValue {
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisble by `y`.
+   * `x - z` is divisible by `y`.
    */
   mod(y: UInt64 | number) {
     return this.divMod(y).rest;
@@ -683,7 +683,7 @@ class UInt32 extends CircuitValue {
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisble by `y`.
+   * `x - z` is divisible by `y`.
    */
   mod(y: UInt32 | number) {
     return this.divMod(y).rest;
@@ -1253,7 +1253,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisble by `y`.
+   * `x - z` is divisible by `y`.
    */
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
