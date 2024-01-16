@@ -3,7 +3,7 @@
   "include": ["./src/examples/**/*.ts"],
   "exclude": [],
   "compilerOptions": {
-    "outDir": "dist/node",
+    "outDir": "dist/",
     "importHelpers": false
   }
 }
