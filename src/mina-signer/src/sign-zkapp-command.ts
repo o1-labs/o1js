@@ -180,7 +180,7 @@ function accountUpdateFromFeePayer({
   body: { fee, nonce, publicKey, validUntil },
   authorization: signature,
 }: FeePayer): AccountUpdate {
-  let { body } = AccountUpdate.emptyValue();
+  let { body } = AccountUpdate.empty();
   body.publicKey = publicKey;
   body.balanceChange = { magnitude: fee, sgn: Sign(-1) };
   body.incrementNonce = Bool(true);

@@ -13,23 +13,84 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Removed_ for now removed features.
     _Fixed_ for any bug fixes.
     _Security_ in case of vulnerabilities.
-
-
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/1ad7333e9e...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/08ba27329...HEAD)
+
+### Fixed
+
+- Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
+
+## [0.15.2](https://github.com/o1-labs/o1js/compare/1ad7333e9e...08ba27329)
+
+### Fixed
+
+- Fix bug in `Hash.hash()` which always resulted in an error https://github.com/o1-labs/o1js/pull/1346
+
+## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
+
+### Breaking changes
+
+- Rename `Gadgets.rotate()` to `Gadgets.rotate64()` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
+- Rename `Gadgets.{leftShift(), rightShift()}` to `Gadgets.{leftShift64(), rightShift64()}` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
+
+### Added
+
+- Non-native elliptic curve operations exposed through `createForeignCurve()` class factory https://github.com/o1-labs/o1js/pull/1007
+- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007 https://github.com/o1-labs/o1js/pull/1307
+  - For an example, see `./src/examples/crypto/ecdsa`
+- **Keccak/SHA3 hash function** exposed on `Keccak` namespace https://github.com/o1-labs/o1js/pull/1291
+- `Hash` namespace which holds all hash functions https://github.com/o1-labs/o1js/pull/999
+  - `Bytes`, provable type to hold a byte array, which serves as input and output for Keccak variants
+  - `UInt8`, provable type to hold a single byte, which is constrained to be in the 0 to 255 range
+- `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.leftShift32()` for left shift over 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.rangeCheck32()` range check for 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.addMod32()` addition modulo 2^32 https://github.com/o1-labs/o1js/pull/1259
+- Expose new bitwise gadgets on `UInt32` and `UInt64` https://github.com/o1-labs/o1js/pull/1259
+  - bitwise XOR via `{UInt32, UInt64}.xor()`
+  - bitwise NOT via `{UInt32, UInt64}.not()`
+  - bitwise ROTATE via `{UInt32, UInt64}.rotate()`
+  - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift()`
+  - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift()`
+  - bitwise AND via `{UInt32, UInt64}.and()`
+- Example for using actions to store a map data structure https://github.com/o1-labs/o1js/pull/1300
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `summary()` method to return a summary of the constraints used by a method https://github.com/o1-labs/o1js/pull/1007
+
+### Fixed
+
+- Fix stack overflows when calling provable methods with large inputs https://github.com/o1-labs/o1js/pull/1334
+- Fix `Local.setProofsEnabled()` which would not get picked up by `deploy()` https://github.com/o1-labs/o1js/pull/1330
+- Remove usage of private class fields in core types like `Field`, for better type compatibility between different o1js versions https://github.com/o1-labs/o1js/pull/1319
+
+## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
+
+### Breaking changes
+
+- `ZkProgram.compile()` now returns the verification key and its hash, to be consistent with `SmartContract.compile()` https://github.com/o1-labs/o1js/pull/1292 [@rpanic](https://github.com/rpanic)
+
+### Added
+
+- **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
+- `Crypto` namespace which exposes elliptic curve and finite field arithmetic on bigints, as well as example curve parameters https://github.com/o1-labs/o1js/pull/1240
+- `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
+- `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
+- `Gadgets.rangeCheck8()` to assert that a value fits in 8 bits https://github.com/o1-labs/o1js/pull/1288
 
 ### Changed
 
-- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions.
+- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions. [@LuffySama-Dev](https://github.com/LuffySama-Dev)
   - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
   - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
-  - `this.x.assertNothing()` is now `this.x.requireNothing()` https://github.com/o1-labs/o1js/pull/1263
+  - `this.account.x.getAndAssertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265
   - `this.account.x.assertBetween()` is now `this.account.x.requireBetween()` https://github.com/o1-labs/o1js/pull/1265
-  - `this.account.x.assertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265
-  - `this.account.x.assertNothing()` is now `this.account.x.requireNothing()` https://github.com/o1-labs/o1js/pull/1265
-  - `this.currentSlot.assertBetween(x,y)` is now `this.currentSlot.requireBetween(x,y)` https://github.com/o1-labs/o1js/pull/1265
   - `this.network.x.getAndAssertEquals()` is now `this.network.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1265
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `print()` method for pretty-printing the constraint system https://github.com/o1-labs/o1js/pull/1240
+
+### Fixed
+
+- Fix missing recursive verification of proofs in smart contracts https://github.com/o1-labs/o1js/pull/1302
 
 ## [0.14.2](https://github.com/o1-labs/o1js/compare/26363465d...1ad7333e9e)
 

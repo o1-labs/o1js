@@ -1,16 +1,7 @@
-import {
-  isReady,
-  Mina,
-  AccountUpdate,
-  UInt64,
-  shutdown,
-  TokenId,
-} from 'o1js';
+import { AccountUpdate, Mina, TokenId, UInt64 } from 'o1js';
 import { TokenContract, addresses, keys, tokenIds } from './dex.js';
 
-await isReady;
 let doProofs = true;
-
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
@@ -32,9 +23,9 @@ await TokenContract.compile();
 let tokenX = new TokenContract(addresses.tokenX);
 
 console.log('deploy & init token contracts...');
-tx = await Mina.transaction(userKey, () => {
+tx = await Mina.transaction(userAddress, () => {
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
-  let feePayerUpdate = AccountUpdate.createSigned(userKey);
+  let feePayerUpdate = AccountUpdate.createSigned(userAddress);
   feePayerUpdate.balance.subInPlace(accountFee.mul(1));
   tokenX.deploy();
 });
@@ -43,9 +34,9 @@ tx.sign([keys.tokenX]);
 await tx.send();
 
 console.log('arbitrary token minting...');
-tx = await Mina.transaction(userKey, () => {
+tx = await Mina.transaction(userAddress, () => {
   // pay fees for creating user's token X account
-  AccountUpdate.createSigned(userKey).balance.subInPlace(accountFee.mul(1));
+  AccountUpdate.createSigned(userAddress).balance.subInPlace(accountFee.mul(1));
   // 😈😈😈 mint any number of tokens to our account 😈😈😈
   let tokenContract = new TokenContract(addresses.tokenX);
   tokenContract.token.mint({
@@ -61,5 +52,3 @@ console.log(
   'User tokens: ',
   Mina.getBalance(userAddress, tokenIds.X).value.toBigInt()
 );
-
-shutdown();

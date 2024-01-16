@@ -8,6 +8,7 @@ case $TEST_TYPE in
   ./run src/examples/simple_zkapp.ts --bundle
   ./run src/examples/zkapps/reducer/reducer_composite.ts --bundle
   ./run src/examples/zkapps/composability.ts --bundle
+  ./run src/tests/fake-proof.ts
   ;;
 
 "Voting integration tests")
@@ -24,11 +25,6 @@ case $TEST_TYPE in
 "DEX integration test with proofs")
   echo "Running DEX integration test with proofs"
   ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
-  ;;
-
-"Live integration tests")
-  echo "Running integration tests against real Mina network"
-  ./run src/examples/zkapps/hello_world/run_live.ts --bundle
   ;;
 
 "Unit tests")
@@ -51,7 +47,7 @@ case $TEST_TYPE in
   ;;
 
 *)
-  echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"
+  echo "ERROR: Invalid environment variable, not clear what tests to run! $CI_NODE_INDEX"
   exit 1
   ;;
 esac

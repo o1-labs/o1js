@@ -4,11 +4,26 @@
 import {
   compactMultiRangeCheck,
   multiRangeCheck,
+  rangeCheck16,
   rangeCheck64,
+  rangeCheck32,
+  rangeCheckN,
+  isInRangeN,
+  rangeCheck8,
 } from './range-check.js';
-import { not, rotate, xor, and, leftShift, rightShift } from './bitwise.js';
+import {
+  not,
+  rotate32,
+  rotate64,
+  xor,
+  and,
+  leftShift64,
+  rightShift64,
+  leftShift32,
+} from './bitwise.js';
 import { Field } from '../core.js';
-import { ForeignField, Field3 } from './foreign-field.js';
+import { ForeignField, Field3, Sum } from './foreign-field.js';
+import { divMod32, addMod32 } from './arithmetic.js';
 
 export { Gadgets };
 
@@ -39,6 +54,97 @@ const Gadgets = {
   rangeCheck64(x: Field) {
     return rangeCheck64(x);
   },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^32).
+   *
+   * This function proves that the provided field element can be represented with 32 bits.
+   * If the field element exceeds 32 bits, an error is thrown.
+   *
+   * @param x - The value to be range-checked.
+   *
+   * @throws Throws an error if the input value exceeds 32 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12345678n));
+   * Gadgets.rangeCheck32(x); // successfully proves 32-bit range
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rangeCheck32(xLarge); // throws an error since input exceeds 32 bits
+   * ```
+   *
+   * **Note**: Small "negative" field element inputs are interpreted as large integers close to the field size,
+   * and don't pass the 32-bit check. If you want to prove that a value lies in the int32 range [-2^31, 2^31),
+   * you could use `rangeCheck32(x.add(1n << 31n))`.
+   */
+  rangeCheck32(x: Field) {
+    return rangeCheck32(x);
+  },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^n). `n` must be a multiple of 16.
+   *
+   * This function proves that the provided field element can be represented with `n` bits.
+   * If the field element exceeds `n` bits, an error is thrown.
+   *
+   * @param x - The value to be range-checked.
+   * @param n - The number of bits to be considered for the range check.
+   * @param message - Optional message to be displayed when the range check fails.
+   *
+   * @throws Throws an error if the input value exceeds `n` bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12345678n));
+   * Gadgets.rangeCheckN(32, x); // successfully proves 32-bit range
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rangeCheckN(32, xLarge); // throws an error since input exceeds 32 bits
+   * ```
+   */
+  rangeCheckN(n: number, x: Field, message?: string) {
+    return rangeCheckN(n, x, message);
+  },
+
+  /**
+   * Checks whether the input value is in the range [0, 2^n). `n` must be a multiple of 16.
+   *
+   * This function proves that the provided field element can be represented with `n` bits.
+   * If the field element exceeds `n` bits, `Bool(false)` is returned and `Bool(true)` otherwise.
+   *
+   * @param x - The value to be range-checked.
+   * @param n - The number of bits to be considered for the range check.
+   *
+   * @returns a Bool indicating whether the input value is in the range [0, 2^n).
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(12345678n));
+   * let inRange = Gadgets.isInRangeN(32, x); // return Bool(true)
+   * ```
+   */
+  isInRangeN(n: number, x: Field) {
+    return isInRangeN(n, x);
+  },
+  /*
+   * Asserts that the input value is in the range [0, 2^16).
+   *
+   * See {@link Gadgets.rangeCheck64} for analogous details and usage examples.
+   */
+  rangeCheck16(x: Field) {
+    return rangeCheck16(x);
+  },
+
+  /**
+   * Asserts that the input value is in the range [0, 2^8).
+   *
+   * See {@link Gadgets.rangeCheck64} for analogous details and usage examples.
+   */
+  rangeCheck8(x: Field) {
+    return rangeCheck8(x);
+  },
+
   /**
    * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
    * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
@@ -52,7 +158,7 @@ const Gadgets = {
    * **Important:** The gadget assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the rotation.
-   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * To safely use `rotate64()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
@@ -66,17 +172,55 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100));
-   * const y = Gadgets.rotate(x, 2, 'left'); // left rotation by 2 bits
-   * const z = Gadgets.rotate(x, 2, 'right'); // right rotation by 2 bits
+   * const y = Gadgets.rotate64(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate64(x, 2, 'right'); // right rotation by 2 bits
    * y.assertEquals(0b110000);
    * z.assertEquals(0b000011);
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * Gadgets.rotate(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
+   * Gadgets.rotate64(xLarge, 32, "left"); // throws an error since input exceeds 64 bits
    * ```
    */
-  rotate(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
-    return rotate(field, bits, direction);
+  rotate64(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rotate64(field, bits, direction);
+  },
+  /**
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 32-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
+   * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
+   *
+   * **Important:** The gadget assumes that its input is at most 32 bits in size.
+   *
+   * If the input exceeds 32 bits, the gadget is invalid and fails to prove correct execution of the rotation.
+   * To safely use `rotate32()`, you need to make sure that the value passed in is range-checked to 32 bits;
+   * for example, using {@link Gadgets.rangeCheck32}.
+   *
+   *
+   * @param field {@link Field} element to rotate.
+   * @param bits amount of bits to rotate this {@link Field} element with.
+   * @param direction left or right rotation direction.
+   *
+   * @throws Throws an error if the input value exceeds 32 bits.
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(0b001100));
+   * const y = Gadgets.rotate32(x, 2, 'left'); // left rotation by 2 bits
+   * const z = Gadgets.rotate32(x, 2, 'right'); // right rotation by 2 bits
+   * y.assertEquals(0b110000);
+   * z.assertEquals(0b000011);
+   *
+   * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
+   * Gadgets.rotate32(xLarge, 32, "left"); // throws an error since input exceeds 32 bits
+   * ```
+   */
+  rotate32(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
+    return rotate32(field, bits, direction);
   },
   /**
    * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
@@ -190,21 +334,46 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = Gadgets.leftShift(x, 2); // left shift by 2 bits
+   * const y = Gadgets.leftShift64(x, 2); // left shift by 2 bits
    * y.assertEquals(0b110000); // 48 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * leftShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * leftShift64(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
-  leftShift(field: Field, bits: number) {
-    return leftShift(field, bits);
+  leftShift64(field: Field, bits: number) {
+    return leftShift64(field, bits);
   },
 
   /**
+   * Performs a left shift operation on the provided {@link Field} element.
+   * This operation is similar to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * **Important:** The gadgets assumes that its input is at most 32 bits in size.
+   *
+   * The output is range checked to 32 bits.
+   *
+   * @param field {@link Field} element to shift.
+   * @param bits Amount of bits to shift the {@link Field} element to the left. The amount should be between 0 and 32 (or else the shift will fail).
+   *
+   * @example
+   * ```ts
+   * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
+   * const y = Gadgets.leftShift32(x, 2); // left shift by 2 bits
+   * y.assertEquals(0b110000); // 48 in binary
+   * ```
+   */
+  leftShift32(field: Field, bits: number) {
+    return leftShift32(field, bits);
+  },
+  /**
    * Performs a right shift operation on the provided {@link Field} element.
    * This is similar to the `>>` shift operation in JavaScript, where bits are moved to the right.
-   * The `rightShift` function utilizes the rotation method internally to implement this operation.
+   * The `rightShift64` function utilizes the rotation method internally to implement this operation.
    *
    * * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
    * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
@@ -212,7 +381,7 @@ const Gadgets = {
    * **Important:** The gadgets assumes that its input is at most 64 bits in size.
    *
    * If the input exceeds 64 bits, the gadget is invalid and fails to prove correct execution of the shift.
-   * To safely use `rightShift()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * To safely use `rightShift64()`, you need to make sure that the value passed in is range-checked to 64 bits;
    * for example, using {@link Gadgets.rangeCheck64}.
    *
    * @param field {@link Field} element to shift.
@@ -223,15 +392,15 @@ const Gadgets = {
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(0b001100)); // 12 in binary
-   * const y = Gadgets.rightShift(x, 2); // right shift by 2 bits
+   * const y = Gadgets.rightShift64(x, 2); // right shift by 2 bits
    * y.assertEquals(0b000011); // 3 in binary
    *
    * const xLarge = Provable.witness(Field, () => Field(12345678901234567890123456789012345678n));
-   * rightShift(xLarge, 32); // throws an error since input exceeds 64 bits
+   * rightShift64(xLarge, 32); // throws an error since input exceeds 64 bits
    * ```
    */
-  rightShift(field: Field, bits: number) {
-    return rightShift(field, bits);
+  rightShift64(field: Field, bits: number) {
+    return rightShift64(field, bits);
   },
   /**
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
@@ -369,12 +538,23 @@ const Gadgets = {
     /**
      * Foreign field subtraction: `x - y mod f`
      *
-     * See {@link ForeignField.add} for assumptions and usage examples.
+     * See {@link Gadgets.ForeignField.add} for assumptions and usage examples.
      *
      * @throws fails if `x - y < -f`, where the result cannot be brought back to a positive number by adding `f` once.
      */
     sub(x: Field3, y: Field3, f: bigint) {
       return ForeignField.sub(x, y, f);
+    },
+
+    /**
+     * Foreign field negation: `-x mod f = f - x`
+     *
+     * See {@link ForeignField.add} for assumptions and usage examples.
+     *
+     * @throws fails if `x > f`, where `f - x < 0`.
+     */
+    neg(x: Field3, f: bigint) {
+      return ForeignField.negate(x, f);
     },
 
     /**
@@ -387,7 +567,7 @@ const Gadgets = {
      * **Note**: For 3 or more inputs, `sum()` uses fewer constraints than a sequence of `add()` and `sub()` calls,
      * because we can avoid range checks on intermediate results.
      *
-     * See {@link ForeignField.add} for assumptions on inputs.
+     * See {@link Gadgets.ForeignField.add} for assumptions on inputs.
      *
      * @example
      * ```ts
@@ -418,8 +598,10 @@ const Gadgets = {
      * **Assumptions**: In addition to the assumption that input limbs are in the range [0, 2^88), as in all foreign field gadgets,
      * this assumes an additional bound on the inputs: `x * y < 2^264 * p`, where p is the native modulus.
      * We usually assert this bound by proving that `x[2] < f[2] + 1`, where `x[2]` is the most significant limb of x.
-     * To do this, use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
+     * To do this, we use an 88-bit range check on `2^88 - x[2] - (f[2] + 1)`, and same for y.
      * The implication is that x and y are _almost_ reduced modulo f.
+     *
+     * All of the above assumptions are checked by {@link Gadgets.ForeignField.assertAlmostReduced}.
      *
      * **Warning**: This gadget does not add the extra bound check on the result.
      * So, to use the result in another foreign field multiplication, you have to add the bound check on it yourself, again.
@@ -432,14 +614,8 @@ const Gadgets = {
      * let x = Provable.witness(Field3.provable, () => Field3.from(f - 1n));
      * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
      *
-     * // range check x, y
-     * Gadgets.multiRangeCheck(x);
-     * Gadgets.multiRangeCheck(y);
-     *
-     * // prove additional bounds
-     * let x2Bound = x[2].add((1n << 88n) - 1n - (f >> 176n));
-     * let y2Bound = y[2].add((1n << 88n) - 1n - (f >> 176n));
-     * Gadgets.multiRangeCheck([x2Bound, y2Bound, Field(0n)]);
+     * // range check x, y and prove additional bounds x[2] <= f[2]
+     * ForeignField.assertAlmostReduced([x, y], f);
      *
      * // compute x * y mod f
      * let z = ForeignField.mul(x, y, f);
@@ -454,7 +630,7 @@ const Gadgets = {
     /**
      * Foreign field inverse: `x^(-1) mod f`
      *
-     * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
+     * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
      *
      * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      */
@@ -465,14 +641,116 @@ const Gadgets = {
     /**
      * Foreign field division: `x * y^(-1) mod f`
      *
-     * See {@link ForeignField.mul} for assumptions on inputs and usage examples.
+     * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
      *
      * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      *
-     * @throws Different than {@link ForeignField.mul}, this fails on unreduced input `x`, because it checks that `x === (x/y)*y` and the right side will be reduced.
+     * @throws Different than {@link Gadgets.ForeignField.mul}, this fails on unreduced input `x`, because it checks that `x === (x/y)*y` and the right side will be reduced.
      */
     div(x: Field3, y: Field3, f: bigint) {
       return ForeignField.div(x, y, f);
+    },
+
+    /**
+     * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
+     *
+     * Note: This is much more efficient than using {@link Gadgets.ForeignField.add} and {@link Gadgets.ForeignField.sub} separately to
+     * compute the multiplication inputs and outputs, and then using {@link Gadgets.ForeignField.mul} to constrain the result.
+     *
+     * The sums passed into this method are "lazy sums" created with {@link Gadgets.ForeignField.Sum}.
+     * You can also pass in plain {@link Field3} elements.
+     *
+     * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link Gadgets.ForeignField.mul}:
+     * - each summand's limbs are in the range [0, 2^88)
+     * - summands that are part of a multiplication input satisfy `x[2] <= f[2]`
+     *
+     * @throws if the modulus is so large that the second assumption no longer suffices for validity of the multiplication.
+     * For small sums and moduli < 2^256, this will not fail.
+     *
+     * @throws if the provided multiplication result is not correct modulo f.
+     *
+     * @example
+     * ```ts
+     * // range-check x, y, z, a, b, c
+     * ForeignField.assertAlmostReduced([x, y, z], f);
+     * Gadgets.multiRangeCheck(a);
+     * Gadgets.multiRangeCheck(b);
+     * Gadgets.multiRangeCheck(c);
+     *
+     * // create lazy input sums
+     * let xMinusY = ForeignField.Sum(x).sub(y);
+     * let aPlusBPlusC = ForeignField.Sum(a).add(b).add(c);
+     *
+     * // assert that (x - y)*z = a + b + c mod f
+     * ForeignField.assertMul(xMinusY, z, aPlusBPlusC, f);
+     * ```
+     */
+    assertMul(x: Field3 | Sum, y: Field3 | Sum, z: Field3 | Sum, f: bigint) {
+      return ForeignField.assertMul(x, y, z, f);
+    },
+
+    /**
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
+     */
+    Sum(x: Field3) {
+      return ForeignField.Sum(x);
+    },
+
+    /**
+     * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
+     * i.e., satisfies the assumptions required by {@link Gadgets.ForeignField.mul} and other gadgets:
+     * - each limb is in the range [0, 2^88)
+     * - the most significant limb is less or equal than the modulus, x[2] <= f[2]
+     *
+     * **Note**: This method is most efficient when the number of input elements is a multiple of 3.
+     *
+     * @throws if any of the assumptions is violated.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
+     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
+     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     *
+     * ForeignField.assertAlmostReduced([x, y, z], f);
+     *
+     * // now we can use x, y, z as inputs to foreign field multiplication
+     * let xy = ForeignField.mul(x, y, f);
+     * let xyz = ForeignField.mul(xy, z, f);
+     *
+     * // since xy is an input to another multiplication, we need to prove that it is almost reduced again!
+     * ForeignField.assertAlmostReduced([xy], f); // TODO: would be more efficient to batch this with 2 other elements
+     * ```
+     */
+    assertAlmostReduced(xs: Field3[], f: bigint, { skipMrc = false } = {}) {
+      ForeignField.assertAlmostReduced(xs, f, skipMrc);
+    },
+
+    /**
+     * Prove that x < f for any constant f < 2^264.
+     *
+     * If f is a finite field modulus, this means that the given field element is fully reduced modulo f.
+     * This is a stronger statement than {@link ForeignField.assertAlmostReduced}
+     * and also uses more constraints; it should not be needed in most use cases.
+     *
+     * **Note**: This assumes that the limbs of x are in the range [0, 2^88), in contrast to
+     * {@link ForeignField.assertAlmostReduced} which adds that check itself.
+     *
+     * @throws if x is greater or equal to f.
+     *
+     * @example
+     * ```ts
+     * let x = Provable.witness(Field3.provable, () => Field3.from(0x1235n));
+     *
+     *  // range check limbs of x
+     * Gadgets.multiRangeCheck(x);
+     *
+     * // prove that x is fully reduced mod f
+     * Gadgets.ForeignField.assertLessThan(x, f);
+     * ```
+     */
+    assertLessThan(x: Field3, f: bigint) {
+      ForeignField.assertLessThan(x, f);
     },
   },
 
@@ -482,6 +760,42 @@ const Gadgets = {
    * **Note:** This interface does not contain any provable methods.
    */
   Field3,
+  /**
+   * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64) into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
+   *
+   * **Note:** The gadget acts as a proof that the input is in the range [0, 2^64). If the input exceeds 64 bits, the gadget fails.
+   *
+   * Asserts that both `remainder` and `quotient` are in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
+   *
+   * @example
+   * ```ts
+   * let n = Field((1n << 32n) + 8n)
+   * let { remainder, quotient } = Gadgets.divMod32(n);
+   * // remainder = 8, quotient = 1
+   *
+   * n.assertEquals(quotient.mul(1n << 32n).add(remainder));
+   * ```
+   */
+  divMod32,
+
+  /**
+   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
+   *
+   * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
+   *
+   * It uses {@link Gadgets.divMod32} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
+   *
+   * **Note:** The gadget assumes both inputs to be in the range [0, 2^64). When called with non-range-checked inputs, be aware that the sum `a + b` can overflow the native field and the gadget can succeed but return an invalid result.
+   *
+   * @example
+   * ```ts
+   * let a = Field(8n);
+   * let b = Field(1n << 32n);
+   *
+   * Gadgets.addMod32(a, b).assertEquals(Field(8n));
+   * ```
+   *    */
+  addMod32,
 };
 
 export namespace Gadgets {
@@ -489,4 +803,12 @@ export namespace Gadgets {
    * A 3-tuple of Fields, representing a 3-limb bigint.
    */
   export type Field3 = [Field, Field, Field];
+
+  export namespace ForeignField {
+    /**
+     * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
+     */
+    export type Sum = Sum_;
+  }
 }
+type Sum_ = Sum;

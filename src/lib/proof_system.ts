@@ -18,6 +18,8 @@ import {
   FlexibleProvablePure,
   InferProvable,
   ProvablePureExtended,
+  Struct,
+  provable,
   provablePure,
   toConstant,
 } from './circuit_value.js';
@@ -25,7 +27,7 @@ import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlResult, MlPair, MlUnit } from './ml/base.js';
+import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
 import { FieldConst, FieldVar } from './field.js';
 import { Cache, readCache, writeCache } from './proof-system/cache.js';
@@ -47,6 +49,7 @@ export {
   Empty,
   Undefined,
   Void,
+  VerificationKey,
 };
 
 // internal API
@@ -187,7 +190,7 @@ class Proof<Input, Output> {
 
 async function verify(
   proof: Proof<any, any> | JsonProof,
-  verificationKey: string
+  verificationKey: string | VerificationKey
 ) {
   let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement<FieldConst>;
@@ -212,10 +215,12 @@ async function verify(
     let output = toFieldConsts(type.output, proof.publicOutput);
     statement = MlPair(input, output);
   }
+  let vk =
+    typeof verificationKey === 'string'
+      ? verificationKey
+      : verificationKey.data;
   return prettifyStacktracePromise(
-    withThreadPool(() =>
-      Pickles.verify(statement, picklesProof, verificationKey)
-    )
+    withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
 }
 
@@ -260,7 +265,9 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: { cache: Cache }) => Promise<{ verificationKey: string }>;
+  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+    verificationKey: { data: string; hash: Field };
+  }>;
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -338,7 +345,10 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile({ cache = Cache.FileSystemDefault } = {}) {
+  async function compile({
+    cache = Cache.FileSystemDefault,
+    forceRecompile = false,
+  } = {}) {
     let methodsMeta = methodIntfs.map((methodEntry, i) =>
       analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
     );
@@ -351,10 +361,11 @@ function ZkProgram<
       gates,
       proofSystemTag: selfTag,
       cache,
+      forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
     });
     compileOutput = { provers, verify };
-    return { verificationKey: verificationKey.data };
+    return { verificationKey };
   }
 
   function toProver<K extends keyof Types & string>(
@@ -478,6 +489,13 @@ class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicOutput
 > {}
 
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
+
 function sortMethodArguments(
   programName: string,
   methodName: string,
@@ -506,6 +524,9 @@ function sortMethodArguments(
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
+    } else if (isAsFields((privateInput as any)?.provable)) {
+      allArgs.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push((privateInput as any).provable);
     } else if (isGeneric(privateInput)) {
       allArgs.push({ type: 'generic', index: genericArgs.length });
       genericArgs.push(privateInput);
@@ -603,6 +624,7 @@ async function compileProgram({
   gates,
   proofSystemTag,
   cache,
+  forceRecompile,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -612,6 +634,7 @@ async function compileProgram({
   gates: Gate[][];
   proofSystemTag: { name: string };
   cache: Cache;
+  forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -630,6 +653,7 @@ async function compileProgram({
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
+      if (forceRecompile) return MlResult.unitError();
       let header = parseHeader(proofSystemTag.name, methodIntfs, mlHeader);
       let result = readCache(cache, header, (bytes) =>
         decodeProverKey(mlHeader, bytes)

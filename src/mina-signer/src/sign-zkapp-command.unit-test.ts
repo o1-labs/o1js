@@ -62,7 +62,7 @@ test(Random.json.publicKey, (publicKeyBase58) => {
 });
 
 // empty account update
-let dummy = AccountUpdate.emptyValue();
+let dummy = AccountUpdate.empty();
 let dummySnarky = AccountUpdateSnarky.dummy();
 expect(AccountUpdate.toJSON(dummy)).toEqual(
   AccountUpdateSnarky.toJSON(dummySnarky)

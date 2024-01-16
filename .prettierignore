@@ -2,4 +2,4 @@ src/bindings/compiled/web_bindings/**/plonk_wasm*
 src/bindings/compiled/web_bindings/**/*.bc.js
 src/bindings/compiled/node_bindings/*
 dist/**/*
-src/bindings/kimchi/js/**/*.js
+src/mina/**/*

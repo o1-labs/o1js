@@ -445,7 +445,7 @@ const Body = {
     tokenId?: Field,
     mayUseToken?: MayUseToken
   ): Body {
-    let { body } = Types.AccountUpdate.emptyValue();
+    let { body } = Types.AccountUpdate.empty();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
@@ -463,7 +463,7 @@ const Body = {
   },
 
   dummy(): Body {
-    return Types.AccountUpdate.emptyValue().body;
+    return Types.AccountUpdate.empty().body;
   },
 };
 
@@ -1096,11 +1096,37 @@ class AccountUpdate implements Types.AccountUpdate {
     return { accountUpdate, calls };
   }
 
+  toPrettyLayout() {
+    let indent = 0;
+    let layout = '';
+    let i = 0;
+
+    let print = (a: AccountUpdate) => {
+      layout +=
+        ' '.repeat(indent) +
+        `AccountUpdate(${i}, ${a.label || '<no label>'}, ${
+          a.children.callsType.type
+        })` +
+        '\n';
+      i++;
+      indent += 2;
+      for (let child of a.children.accountUpdates) {
+        print(child);
+      }
+      indent -= 2;
+    };
+
+    print(this);
+    return layout;
+  }
+
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
     return new AccountUpdate(Body.keepAll(address, tokenId));
   }
   static dummy() {
-    return new AccountUpdate(Body.dummy());
+    let dummy = new AccountUpdate(Body.dummy());
+    dummy.label = 'Dummy';
+    return dummy;
   }
   isDummy() {
     return this.body.publicKey.isEmpty();
@@ -1277,6 +1303,9 @@ class AccountUpdate implements Types.AccountUpdate {
     return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
   static toInput = Types.AccountUpdate.toInput;
+  static empty() {
+    return AccountUpdate.dummy();
+  }
   static check = Types.AccountUpdate.check;
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
     let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);
@@ -1318,6 +1347,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.body.mayUseToken.inheritFromParent.assertFalse();
       return;
     }
+    accountUpdate.children.callsType = { type: 'None' };
     let childArray: AccountUpdatesLayout[] =
       typeof childLayout === 'number'
         ? Array(childLayout).fill(AccountUpdate.Layout.NoChildren)
@@ -1502,6 +1532,15 @@ class AccountUpdate implements Types.AccountUpdate {
         body[key] = JSON.stringify(body[key]) as any;
       }
     }
+    if (body.authorizationKind?.isProved === false) {
+      delete (body as any).authorizationKind?.verificationKeyHash;
+    }
+    if (
+      body.authorizationKind?.isProved === false &&
+      body.authorizationKind?.isSigned === false
+    ) {
+      delete (body as any).authorizationKind;
+    }
     if (
       jsonUpdate.authorization !== undefined ||
       body.authorizationKind?.isProved === true ||
@@ -1509,6 +1548,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ) {
       (body as any).authorization = jsonUpdate.authorization;
     }
+
     body.mayUseToken = {
       parentsOwnToken: this.body.mayUseToken.parentsOwnToken.toBoolean(),
       inheritFromParent: this.body.mayUseToken.inheritFromParent.toBoolean(),
