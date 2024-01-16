@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/08ba27329...HEAD)
 
+### Added
+
+- **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
+
 ### Fixed
 
 - Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
