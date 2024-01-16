@@ -265,3 +265,15 @@ enum KimchiGateType {
   Xor16,
   Rot64,
 }
+
+function lookup(id: Field, index: Field, value: Field) {
+  Snarky.gates.lookup([id.value, index.value, value.value, index.value, value.value, index.value, value.value]);
+}
+
+function addFixedLookupTable(id: number, data: [[Field], [Field]]) {
+  Snarky.gates.addFixedLookupTable(id, [data[0].map((x) => x.value), data[1].map((x) => x.value)]);
+}
+
+function addDynamicLookupTable(id: number, data: [Field]) {
+  Snarky.gates.addRuntimeTableConfig(id, data.map((x) => x.value));
+}
