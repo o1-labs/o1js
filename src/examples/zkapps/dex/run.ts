@@ -1,20 +1,9 @@
-import {
-  isReady,
-  Mina,
-  AccountUpdate,
-  UInt64,
-  shutdown,
-  Permissions,
-  TokenId,
-} from 'o1js';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
-
+import { AccountUpdate, Mina, Permissions, TokenId, UInt64 } from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
+import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
-await isReady;
 let proofsEnabled = false;
-
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
@@ -536,5 +525,3 @@ async function main({ withVesting }: { withVesting: boolean }) {
 
   DexProfiler.stop().store();
 }
-
-shutdown();

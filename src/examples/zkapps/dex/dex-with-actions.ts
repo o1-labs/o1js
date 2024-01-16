@@ -5,27 +5,26 @@
  */
 import {
   Account,
-  method,
   AccountUpdate,
-  PublicKey,
-  SmartContract,
-  UInt64,
-  Struct,
-  State,
-  state,
-  TokenId,
-  Reducer,
   Field,
-  Permissions,
-  isReady,
-  Mina,
   InferProvable,
+  Mina,
+  Permissions,
   Provable,
+  PublicKey,
+  Reducer,
+  SmartContract,
+  State,
+  Struct,
+  TokenId,
+  UInt64,
+  method,
+  state,
 } from 'o1js';
 
 import { TokenContract, randomAccounts } from './dex.js';
 
-export { Dex, DexTokenHolder, addresses, keys, tokenIds, getTokenBalances };
+export { Dex, DexTokenHolder, addresses, getTokenBalances, keys, tokenIds };
 
 class RedeemAction extends Struct({ address: PublicKey, dl: UInt64 }) {}
 
@@ -133,7 +132,7 @@ class Dex extends SmartContract {
     // calculate dy outside circuit
     let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
     let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
-    if (x.value.isConstant() && x.value.isZero().toBoolean()) {
+    if (x.value.isConstant() && x.value.equals(0).toBoolean()) {
       throw Error(
         'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
       );
@@ -314,9 +313,8 @@ class DexTokenHolder extends SmartContract {
   }
 }
 
-await isReady;
 let { keys, addresses } = randomAccounts(
-  false,
+  process.env.USE_CUSTOM_LOCAL_NETWORK === 'true',
   'tokenX',
   'tokenY',
   'dex',

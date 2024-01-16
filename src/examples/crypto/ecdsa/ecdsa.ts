@@ -27,14 +27,6 @@ const keccakAndEcdsa = ZkProgram({
         return signature.verify(message, publicKey);
       },
     },
-
-    sha3: {
-      privateInputs: [],
-      method(message: Bytes32) {
-        Keccak.nistSha3(256, message);
-        return Bool(true);
-      },
-    },
   },
 });
 

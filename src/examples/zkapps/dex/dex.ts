@@ -1,29 +1,27 @@
 import {
   Account,
+  AccountUpdate,
   Bool,
-  Circuit,
   DeployArgs,
   Field,
   Int64,
-  isReady,
-  method,
   Mina,
-  AccountUpdate,
   Permissions,
   PrivateKey,
+  Provable,
   PublicKey,
   SmartContract,
+  State,
+  Struct,
+  TokenId,
+  UInt32,
   UInt64,
   VerificationKey,
-  Struct,
-  State,
+  method,
   state,
-  UInt32,
-  TokenId,
-  Provable,
 } from 'o1js';
 
-export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
+export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
@@ -442,17 +440,13 @@ class TokenContract extends SmartContract {
     to: PublicKey,
     amount: UInt64
   ) {
-    // TODO: THIS IS INSECURE. The proper version has a prover error (compile != prove) that must be fixed
-    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
-
-    // THIS IS HOW IT SHOULD BE DONE:
-    // // approve a layout of two grandchildren, both of which can't inherit the token permission
-    // let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
-    // this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
-    // zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
-    // let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
-    // grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
-    // grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
+    // approve a layout of two grandchildren, both of which can't inherit the token permission
+    let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
+    this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
+    zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
+    let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
+    grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
+    grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
 
     // see if balance change cancels the amount sent
     let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
@@ -493,9 +487,8 @@ const savedKeys = [
   'EKEyPVU37EGw8CdGtUYnfDcBT2Eu7B6rSdy64R68UHYbrYbVJett',
 ];
 
-await isReady;
 let { keys, addresses } = randomAccounts(
-  false,
+  process.env.USE_CUSTOM_LOCAL_NETWORK === 'true',
   'tokenX',
   'tokenY',
   'dex',
