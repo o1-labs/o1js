@@ -7,7 +7,6 @@ export { tic, toc };
 let timingStack: [string | undefined, number][] = [];
 
 function tic(label?: string) {
-  if (label) console.log(`${label}... `);
   timingStack.push([label, performance.now()]);
 }
 
