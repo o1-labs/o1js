@@ -131,7 +131,9 @@ async function createZkappProof(
         );
         if (
           err instanceof Error &&
-          err.message.includes('FieldVector.get(): Index out of bounds')
+          (err.message.includes('FieldVector.get(): Index out of bounds') ||
+            err.message.includes('rest of division by vanishing polynomial') ||
+            err.message.includes('Constraint unsatisfied'))
         ) {
           debugInconsistentConstraint(transaction, index);
         }
