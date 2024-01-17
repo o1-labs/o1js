@@ -48,12 +48,14 @@ function padding(data: FlexibleBytes): UInt32[][] {
   let l = message.length * 8; // length in bits
   let k = Number(mod(448n - (BigInt(l) + 1n), 512n));
 
+  let lBinary = l.toString(2);
+
   let paddingBits = (
     '1' + // append 1 bit
     '0'.repeat(k) + // append k zero bits
-    '0'.repeat(64 - l.toString(2).length) + // append 64bit containing the length of the original message
-    l.toString(2)
-  ).match(/.{1,8}/g)!; // this should always be devisable by 8
+    '0'.repeat(64 - lBinary.length) + // append 64bit containing the length of the original message
+    lBinary
+  ).match(/.{1,8}/g)!; // this should always be divisible by 8
 
   // map the padding bit string to UInt8 elements
   let padding = paddingBits.map((x) => UInt8.from(BigInt('0b' + x)));
