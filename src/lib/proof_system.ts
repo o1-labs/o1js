@@ -11,7 +11,6 @@ import {
   MlFeatureFlags,
   Gate,
   GateType,
-  Snarky,
 } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
@@ -26,7 +25,7 @@ import {
 } from './circuit_value.js';
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
-import { constraintSystemFromJson, snarkContext } from './provable-context.js';
+import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
@@ -38,7 +37,6 @@ import {
   parseHeader,
 } from './proof-system/prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
-import { runCircuit } from './provable-context-debug.js';
 
 // public API
 export {
@@ -734,22 +732,13 @@ function analyzeMethod<T>(
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
-  let { constraints, system } = runCircuit(
-    () => {
-      let args = synthesizeMethodArguments(methodIntf, true);
-      let publicInput = emptyWitness(publicInputType);
-      if (publicInputType === Undefined || publicInputType === Void) {
-        method(...args);
-      } else {
-        method(publicInput, ...args);
-      }
-    },
-    { withWitness: false, snarkContext: { inAnalyze: true } }
-  );
-  let digest = Snarky.lowLevel.constraintSystem.digest(system);
-  let csJson = Snarky.lowLevel.constraintSystem.toJson(system);
-  let cs = constraintSystemFromJson(csJson);
-  return { constraints, rows: cs.gates.length, digest, ...cs };
+  return Provable.constraintSystem(() => {
+    let args = synthesizeMethodArguments(methodIntf, true);
+    let publicInput = emptyWitness(publicInputType);
+    if (publicInputType === Undefined || publicInputType === Void)
+      return method(...args);
+    return method(publicInput, ...args);
+  });
 }
 
 function picklesRuleFromFunction(

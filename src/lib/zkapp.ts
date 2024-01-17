@@ -56,7 +56,6 @@ import {
   snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
-import type { ConstraintLog } from './provable-context-debug.js';
 
 // external API
 export {
@@ -617,7 +616,6 @@ class SmartContract {
       digest: string;
       hasReturn: boolean;
       gates: Gate[];
-      expectedConstraints?: ConstraintLog[];
     }
   >; // keyed by method name
   static _provers?: Pickles.Prover[];
@@ -1189,7 +1187,7 @@ super.init();
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
           let hasReturn = false;
-          let { rows, digest, gates, constraints } = analyzeMethod(
+          let { rows, digest, gates } = analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             (publicInput, publicKey, tokenId, ...args) => {
@@ -1208,7 +1206,6 @@ super.init();
             digest,
             hasReturn,
             gates,
-            expectedConstraints: constraints,
           };
         }
       } finally {
