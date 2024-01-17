@@ -1,3 +1,11 @@
+/**
+ * This contains a runner for provable code which is has advanced powers
+ * compared to the provable code runners found in `./provable-context.ts`,
+ * and can be used for debugging expected vs received constraints.
+ *
+ * To achieve this, it uses low-level hooks into snarky's internal state and
+ * contains code to interpret constraints in the format that snarky logs them in.
+ */
 import { Snarky } from '../snarky.js';
 import { prettifyStacktrace } from './errors.js';
 import { FieldConst, FieldVar } from './field.js';
@@ -13,6 +21,17 @@ import { deepEqual, stringify } from './util/nested.js';
 
 export { runCircuit, SnarkyConstraint, ConstraintLog, MlConstraintSystem };
 
+/**
+ * Run a circuit `main()` with various advanced options:
+ *
+ * - `withWitness`: whether to run witness blocks and collect the witness
+ * - `evalConstraints`: whether to throw on unsatisfied constraints
+ * - `expectedConstraints`: a list of constraints from a precious `runCircuit()` call to compare against
+ * - `unexpectedConstraintMessage`: a message to throw if the constraints don't match
+ * - `snarkContext`: extra inputs to the {@link SnarkContext} this runs in
+ * - `createDebugTraces`: whether to create a stack trace for each constraint, that can be be printed
+ *   in a future run to show where an expected constraint originated
+ */
 function runCircuit(
   main: () => void,
   {

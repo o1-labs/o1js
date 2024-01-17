@@ -1,3 +1,10 @@
+/**
+ * This contains functions to manage the global context for provable code:
+ *
+ * - A global `snarkContext` which tells us whether we're in a provable context,
+ *   and contains a small amount of global state on top of snarky's internal state.
+ * - Various "runners" which execute provable code in different modes.
+ */
 import { Context } from './global-context.js';
 import {
   Gate,
