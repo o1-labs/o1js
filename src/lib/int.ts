@@ -3,9 +3,12 @@ import { AnyConstructor, CircuitValue, Struct, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
-import { Gadgets } from './gadgets/gadgets.js';
-
+import * as RangeCheck from './gadgets/range-check.js';
+import * as Bitwise from './gadgets/bitwise.js';
+import { addMod32 } from './gadgets/arithmetic.js';
+import type { Gadgets } from './gadgets/gadgets.js';
 import { FieldVar, withMessage } from './field.js';
+
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
 
@@ -74,7 +77,7 @@ class UInt64 extends CircuitValue {
   }
 
   static check(x: UInt64) {
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, x.value);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, x.value);
   }
 
   static toInput(x: UInt64): HashInput {
@@ -149,11 +152,11 @@ class UInt64 extends CircuitValue {
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, q);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, r);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, r);
 
     let r_ = new UInt64(r);
     let q_ = new UInt64(q);
@@ -189,7 +192,7 @@ class UInt64 extends CircuitValue {
    */
   mul(y: UInt64 | number) {
     let z = this.value.mul(UInt64.from(y).value);
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, z);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
     return new UInt64(z);
   }
 
@@ -198,7 +201,7 @@ class UInt64 extends CircuitValue {
    */
   add(y: UInt64 | number) {
     let z = this.value.add(UInt64.from(y).value);
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, z);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
     return new UInt64(z);
   }
 
@@ -207,7 +210,7 @@ class UInt64 extends CircuitValue {
    */
   sub(y: UInt64 | number) {
     let z = this.value.sub(UInt64.from(y).value);
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, z);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
     return new UInt64(z);
   }
 
@@ -231,7 +234,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   xor(x: UInt64) {
-    return new UInt64(Gadgets.xor(this.value, x.value, UInt64.NUM_BITS));
+    return new UInt64(Bitwise.xor(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -264,7 +267,7 @@ class UInt64 extends CircuitValue {
    *
    */
   not() {
-    return new UInt64(Gadgets.not(this.value, UInt64.NUM_BITS, false));
+    return new UInt64(Bitwise.not(this.value, UInt64.NUM_BITS, false));
   }
 
   /**
@@ -296,7 +299,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return new UInt64(Gadgets.rotate64(this.value, bits, direction));
+    return new UInt64(Bitwise.rotate64(this.value, bits, direction));
   }
 
   /**
@@ -317,7 +320,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return new UInt64(Gadgets.leftShift64(this.value, bits));
+    return new UInt64(Bitwise.leftShift64(this.value, bits));
   }
 
   /**
@@ -338,7 +341,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return new UInt64(Gadgets.leftShift64(this.value, bits));
+    return new UInt64(Bitwise.leftShift64(this.value, bits));
   }
 
   /**
@@ -367,7 +370,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   and(x: UInt64) {
-    return new UInt64(Gadgets.and(this.value, x.value, UInt64.NUM_BITS));
+    return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -382,9 +385,9 @@ class UInt64 extends CircuitValue {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
 
-      let xMinusYFits = Gadgets.isInRangeN(UInt64.NUM_BITS, xMinusY);
+      let xMinusYFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, xMinusY);
 
-      let yMinusXFits = Gadgets.isInRangeN(UInt64.NUM_BITS, yMinusX);
+      let yMinusXFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, yMinusX);
 
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
@@ -402,9 +405,9 @@ class UInt64 extends CircuitValue {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
 
-      let xMinusYFits = Gadgets.isInRangeN(UInt64.NUM_BITS, xMinusY);
+      let xMinusYFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, xMinusY);
 
-      let yMinusXFits = Gadgets.isInRangeN(UInt64.NUM_BITS, yMinusX);
+      let yMinusXFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, yMinusX);
 
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
@@ -435,7 +438,7 @@ class UInt64 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    Gadgets.rangeCheckN(UInt64.NUM_BITS, yMinusX, message);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, yMinusX, message);
   }
 
   /**
@@ -583,7 +586,7 @@ class UInt32 extends CircuitValue {
   }
 
   static check(x: UInt32) {
-    Gadgets.rangeCheck32(x.value);
+    RangeCheck.rangeCheck32(x.value);
   }
   static toInput(x: UInt32): HashInput {
     return { packed: [[x.value, 32]] };
@@ -630,6 +633,13 @@ class UInt32 extends CircuitValue {
   }
 
   /**
+   * Addition modulo 2^32. Check {@link Gadgets.addMod32} for a detailed description.
+   */
+  addMod32(y: UInt32) {
+    return new UInt32(addMod32(this.value, y.value));
+  }
+
+  /**
    * Integer division with remainder.
    *
    * `x.divMod(y)` returns the quotient and the remainder.
@@ -656,11 +666,11 @@ class UInt32 extends CircuitValue {
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    Gadgets.rangeCheck32(q);
+    RangeCheck.rangeCheck32(q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    Gadgets.rangeCheck32(r);
+    RangeCheck.rangeCheck32(r);
 
     let r_ = new UInt32(r);
     let q_ = new UInt32(q);
@@ -693,7 +703,7 @@ class UInt32 extends CircuitValue {
    */
   mul(y: UInt32 | number) {
     let z = this.value.mul(UInt32.from(y).value);
-    Gadgets.rangeCheck32(z);
+    RangeCheck.rangeCheck32(z);
     return new UInt32(z);
   }
   /**
@@ -701,7 +711,7 @@ class UInt32 extends CircuitValue {
    */
   add(y: UInt32 | number) {
     let z = this.value.add(UInt32.from(y).value);
-    Gadgets.rangeCheck32(z);
+    RangeCheck.rangeCheck32(z);
     return new UInt32(z);
   }
   /**
@@ -709,7 +719,7 @@ class UInt32 extends CircuitValue {
    */
   sub(y: UInt32 | number) {
     let z = this.value.sub(UInt32.from(y).value);
-    Gadgets.rangeCheck32(z);
+    RangeCheck.rangeCheck32(z);
     return new UInt32(z);
   }
 
@@ -733,7 +743,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   xor(x: UInt32) {
-    return new UInt32(Gadgets.xor(this.value, x.value, UInt32.NUM_BITS));
+    return new UInt32(Bitwise.xor(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
@@ -764,7 +774,7 @@ class UInt32 extends CircuitValue {
    * @param a - The value to apply NOT to.
    */
   not() {
-    return new UInt32(Gadgets.not(this.value, UInt32.NUM_BITS, false));
+    return new UInt32(Bitwise.not(this.value, UInt32.NUM_BITS, false));
   }
 
   /**
@@ -796,7 +806,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return new UInt32(Gadgets.rotate32(this.value, bits, direction));
+    return new UInt32(Bitwise.rotate32(this.value, bits, direction));
   }
 
   /**
@@ -819,7 +829,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return new UInt32(Gadgets.leftShift32(this.value, bits));
+    return new UInt32(Bitwise.leftShift32(this.value, bits));
   }
 
   /**
@@ -842,7 +852,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return new UInt32(Gadgets.rightShift64(this.value, bits));
+    return new UInt32(Bitwise.rightShift64(this.value, bits));
   }
 
   /**
@@ -871,7 +881,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   and(x: UInt32) {
-    return new UInt32(Gadgets.and(this.value, x.value, UInt32.NUM_BITS));
+    return new UInt32(Bitwise.and(this.value, x.value, UInt32.NUM_BITS));
   }
 
   /**
@@ -885,8 +895,8 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = Gadgets.isInRangeN(UInt32.NUM_BITS, xMinusY);
-      let yMinusXFits = Gadgets.isInRangeN(UInt32.NUM_BITS, yMinusX);
+      let xMinusYFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, xMinusY);
+      let yMinusXFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -902,8 +912,8 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = Gadgets.isInRangeN(UInt32.NUM_BITS, xMinusY);
-      let yMinusXFits = Gadgets.isInRangeN(UInt32.NUM_BITS, yMinusX);
+      let xMinusYFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, xMinusY);
+      let yMinusXFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -933,7 +943,7 @@ class UInt32 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    Gadgets.rangeCheckN(UInt32.NUM_BITS, yMinusX, message);
+    RangeCheck.rangeCheckN(UInt32.NUM_BITS, yMinusX, message);
   }
 
   /**
@@ -1333,7 +1343,7 @@ class UInt8 extends Struct({
    */
   add(y: UInt8 | bigint | number) {
     let z = this.value.add(UInt8.from(y).value);
-    Gadgets.rangeCheck8(z);
+    RangeCheck.rangeCheck8(z);
     return UInt8.Unsafe.fromField(z);
   }
 
@@ -1351,7 +1361,7 @@ class UInt8 extends Struct({
    */
   sub(y: UInt8 | bigint | number) {
     let z = this.value.sub(UInt8.from(y).value);
-    Gadgets.rangeCheck8(z);
+    RangeCheck.rangeCheck8(z);
     return UInt8.Unsafe.fromField(z);
   }
 
@@ -1369,7 +1379,7 @@ class UInt8 extends Struct({
    */
   mul(y: UInt8 | bigint | number) {
     let z = this.value.mul(UInt8.from(y).value);
-    Gadgets.rangeCheck8(z);
+    RangeCheck.rangeCheck8(z);
     return UInt8.Unsafe.fromField(z);
   }
 
@@ -1429,8 +1439,8 @@ class UInt8 extends Struct({
 
     // q, r being 16 bits is enough for them to be 8 bits,
     // thanks to the === x check and the r < y check below
-    Gadgets.rangeCheck16(q);
-    Gadgets.rangeCheck16(r);
+    RangeCheck.rangeCheck16(q);
+    RangeCheck.rangeCheck16(r);
 
     let remainder = UInt8.Unsafe.fromField(r);
     let quotient = UInt8.Unsafe.fromField(q);
@@ -1519,7 +1529,7 @@ class UInt8 extends Struct({
     try {
       // x <= y  <=>  y - x >= 0  which is implied by  y - x in [0, 2^16)
       let yMinusX = y_.value.sub(this.value).seal();
-      Gadgets.rangeCheck16(yMinusX);
+      RangeCheck.rangeCheck16(yMinusX);
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -1623,7 +1633,7 @@ class UInt8 extends Struct({
    */
   static check(x: { value: Field } | Field) {
     if (x instanceof Field) x = { value: x };
-    Gadgets.rangeCheck8(x.value);
+    RangeCheck.rangeCheck8(x.value);
   }
 
   static toInput(x: { value: Field }): HashInput {
@@ -1667,6 +1677,6 @@ class UInt8 extends Struct({
 
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return;
-    Gadgets.rangeCheck8(x);
+    RangeCheck.rangeCheck8(x);
   }
 }

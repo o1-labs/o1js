@@ -1,12 +1,13 @@
+import { Bool } from '../bool.js';
 import { provableTuple } from '../circuit_value.js';
 import { Field } from '../core.js';
 import { assert } from '../errors.js';
 import { Provable } from '../provable.js';
-import { rangeCheck32 } from './range-check.js';
+import { rangeCheck32, rangeCheckN } from './range-check.js';
 
 export { divMod32, addMod32 };
 
-function divMod32(n: Field) {
+function divMod32(n: Field, quotientBits = 32) {
   if (n.isConstant()) {
     assert(
       n.toBigInt() < 1n << 64n,
@@ -32,7 +33,11 @@ function divMod32(n: Field) {
     }
   );
 
-  rangeCheck32(quotient);
+  if (quotientBits === 1) {
+    Bool.check(Bool.Unsafe.ofField(quotient));
+  } else {
+    rangeCheckN(quotientBits, quotient);
+  }
   rangeCheck32(remainder);
 
   n.assertEquals(quotient.mul(1n << 32n).add(remainder));
@@ -44,5 +49,5 @@ function divMod32(n: Field) {
 }
 
 function addMod32(x: Field, y: Field) {
-  return divMod32(x.add(y)).remainder;
+  return divMod32(x.add(y), 1).remainder;
 }
