@@ -10,6 +10,7 @@ import { Bool } from '../bool.js';
 import { Unconstrained } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
+import { modifiedField } from '../provable-types/fields.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, exists, toVar, toVars } from './common.js';
@@ -427,6 +428,12 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
+const provableLimb = modifiedField({
+  toInput(x) {
+    return { packed: [[x, Number(l)]] };
+  },
+});
+
 const Field3 = {
   /**
    * Turn a bigint into a 3-tuple of Fields
@@ -462,7 +469,7 @@ const Field3 = {
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
    * range checks.
    */
-  provable: provableTuple([Field, Field, Field]),
+  provable: provableTuple([provableLimb, provableLimb, provableLimb]),
 };
 
 type Field2 = [Field, Field];
