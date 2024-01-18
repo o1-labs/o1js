@@ -24,7 +24,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
-- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1375
+- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
 
 ### Fixed
 
