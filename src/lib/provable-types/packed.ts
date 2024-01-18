@@ -12,6 +12,39 @@ import { fields } from './fields.js';
 
 export { Packed };
 
+/**
+ * Packed<T> is a "packed" representation of any type T.
+ *
+ * "Packed" means that field elements which take up fewer than 254 bits are packed together into
+ * as few field elements as possible.
+ *
+ * For example, you can pack several Bools (1 bit) or UInt32s (32 bits) into a single field element.
+ *
+ * Using a packed representation can make sense in provable code where the number of constraints
+ * depends on the number of field elements per value.
+ *
+ * For example, `Provable.if(bool, x, y)` takes O(n) constraints, where n is the number of field
+ * elements in x and y.
+ *
+ * Usage:
+ *
+ * ```ts
+ * // define a packed type from a type
+ * let PackedType = Packed.create(MyType);
+ *
+ * // pack a value
+ * let packed = PackedType.pack(value);
+ *
+ * // ... operations on packed values, more efficient than on plain values ...
+ *
+ * // unpack a value
+ * let value = packed.unpack();
+ * ```
+ *
+ * **Warning**: Packing only makes sense where packing actually reduces the number of field elements.
+ * For example, it doesn't make sense to pack a _single_ Bool, because it will be 1 field element before
+ * and after packing. On the other hand, it does makes sense to pack a type that holds 10 or 20 Bools.
+ */
 class Packed<T> {
   packed: Field[];
   value: Unconstrained<T>;
