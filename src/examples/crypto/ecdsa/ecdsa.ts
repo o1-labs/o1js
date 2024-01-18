@@ -4,7 +4,6 @@ import {
   createEcdsa,
   createForeignCurve,
   Bool,
-  Keccak,
   Bytes,
 } from 'o1js';
 
