@@ -49,17 +49,40 @@ class Packed<T> {
   packed: Field[];
   value: Unconstrained<T>;
 
+  /**
+   * Create a packed representation of `type`. You can then use `PackedType.pack(x)` to pack a value.
+   */
+  static create<T>(type: ProvableExtended<T>): typeof Packed<T> {
+    // compute size of packed representation
+    let input = type.toInput(type.empty());
+    let packedSize = countFields(input);
+
+    return class Packed_ extends Packed<T> {
+      static _innerProvable = type;
+      static _provable = provableFromClass(Packed_, {
+        packed: fields(packedSize),
+        value: Unconstrained.provable,
+      }) as ProvableHashable<Packed<T>>;
+    };
+  }
+
   constructor(packed: Field[], value: Unconstrained<T>) {
     this.packed = packed;
     this.value = value;
   }
 
+  /**
+   * Pack a value.
+   */
   static pack<T>(x: T): Packed<T> {
     let input = this.innerProvable.toInput(x);
     let packed = packToFields(input);
     return new this(packed, Unconstrained.from(x));
   }
 
+  /**
+   * Unpack a value.
+   */
   unpack(): T {
     let value = Provable.witness(this.Constructor.innerProvable, () =>
       this.value.get()
@@ -79,22 +102,7 @@ class Packed<T> {
     return this.packed;
   }
 
-  hash() {
-    return Poseidon.hash(this.packed);
-  }
-
-  static createProvable<T>(
-    type: ProvableExtended<T>
-  ): ProvableHashable<Packed<T>> {
-    let input = type.toInput(type.empty());
-    let packedSize = countFields(input);
-
-    return provableFromClass(this, {
-      packed: fields(packedSize),
-      value: Unconstrained.provable,
-    }) as ProvableHashable<Packed<T>>;
-  }
-
+  // dynamic subclassing infra
   static _provable: ProvableHashable<Packed<any>> | undefined;
   static _innerProvable: ProvableExtended<any> | undefined;
 
@@ -109,13 +117,6 @@ class Packed<T> {
   static get innerProvable(): ProvableExtended<any> {
     assert(this._innerProvable !== undefined, 'Packed not initialized');
     return this._innerProvable;
-  }
-
-  static create<T>(type: ProvableExtended<T>): typeof Packed<T> {
-    return class Packed_ extends Packed<T> {
-      static _provable = Packed_.createProvable(type);
-      static _innerProvable = type;
-    };
   }
 }
 
