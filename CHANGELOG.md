@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/08ba27329...HEAD)
 
+### Breaking changes
+
+- Reduce number of constraints of ECDSA verification by 5%, which breaks deployed contracts using ECDSA https://github.com/o1-labs/o1js/pull/1376
+
 ### Added
 
 - **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
