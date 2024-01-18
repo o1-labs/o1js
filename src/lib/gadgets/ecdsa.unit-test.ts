@@ -129,7 +129,7 @@ let msgHash =
   );
 
 const ia = initialAggregator(Secp256k1);
-const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
+const config = { G: { windowSize: 4 }, P: { windowSize: 4 }, ia };
 
 let program = ZkProgram({
   name: 'ecdsa',
