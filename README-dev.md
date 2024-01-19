@@ -147,7 +147,9 @@ act -j Build-And-Test-Server --matrix test_type:"Simple integration tests" -s $G
 
 To release a new version of o1js, you must first update the version number in `package.json`. Then, you can create a new pull request to merge your changes into the main branch. Once the pull request is merged, a CI job will automatically publish the new version to npm.
 
-## Test zkApps against the local blockchain network
+## Testing and Debugging
+
+### Test zkApps against the local blockchain network
 
 In order to be able to test zkApps against the local blockchain network, you need to spin up such a network first.  
 You can do so in several ways.
@@ -184,3 +186,19 @@ You can do so in several ways.
 Next up, you will need the Mina blockchain accounts information in order to be used in your zkApp.  
 Once the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.  
 The corresponding example can be found here: [src/examples/zkapps/hello_world/run_live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello_world/run_live.ts)
+
+### Profiling o1js
+
+To enhance the development experience and optimize the performance of o1js, we provide a setup that allows you to use the Chrome Debugger alongside Node.js. This setup is particularly useful when you want to profile the performance of your zkApp or o1js.
+
+#### Using the `run-debug` script
+
+We have included a script named `run-debug` to facilitate this process. To use this script, run:
+
+```sh
+./run-debug <path-to-your-zkapp> --bundle
+```
+
+This script initializes a Node.js process with the `--inspect-brk` flag, which starts the Node.js inspector and breaks before the user script starts (i.e., it pauses execution until a debugger is attached). The `--enable-source-maps` flag ensures that source maps are utilized, allowing easy debugging of o1js code directly.
+
+Once the Node.js process is running, you can open the Chrome browser and navigate to `chrome://inspect` to attach the Chrome Debugger to the Node.js process. This will allow you to set breakpoints, inspect variables, and profile the performance of your zkApp or o1js. For more information on how to use the Chrome Debugger, see the [official documentation](https://developer.chrome.com/docs/devtools/).
