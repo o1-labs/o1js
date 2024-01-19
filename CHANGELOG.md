@@ -25,6 +25,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
 
+### Changed
+
+- Improve performance of Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+
 ## [0.15.2](https://github.com/o1-labs/o1js/compare/1ad7333e9e...08ba27329)
 
 ### Fixed
