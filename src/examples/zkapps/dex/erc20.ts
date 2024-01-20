@@ -85,7 +85,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
 
     // since this is the only method of this zkApp that resets the entire state, provedState: true implies
     // that this function was run. Since it can be run only once, this implies it was run exactly once

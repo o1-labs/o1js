@@ -1247,7 +1247,7 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
     accountUpdate.label = 'AccountUpdate.fundNewAccount()';
-    let fee = Mina.accountCreationFee();
+    let fee = Mina.getNetworkConstants().accountCreationFee;
     numberOfAccounts ??= 1;
     if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
     else fee = fee.add(UInt64.from(numberOfAccounts.initialBalance ?? 0));

@@ -4,7 +4,6 @@ import { TokenContract, addresses, keys, tokenIds } from './dex.js';
 let doProofs = true;
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
-let accountFee = Mina.accountCreationFee();
 
 let [{ privateKey: userKey, publicKey: userAddress }] = Local.testAccounts;
 let tx;
@@ -26,7 +25,9 @@ console.log('deploy & init token contracts...');
 tx = await Mina.transaction(userAddress, () => {
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(userAddress);
-  feePayerUpdate.balance.subInPlace(accountFee.mul(1));
+  feePayerUpdate.balance.subInPlace(
+    Mina.getNetworkConstants().accountCreationFee.mul(1)
+  );
   tokenX.deploy();
 });
 await tx.prove();
@@ -36,7 +37,9 @@ await tx.send();
 console.log('arbitrary token minting...');
 tx = await Mina.transaction(userAddress, () => {
   // pay fees for creating user's token X account
-  AccountUpdate.createSigned(userAddress).balance.subInPlace(accountFee.mul(1));
+  AccountUpdate.createSigned(userAddress).balance.subInPlace(
+    Mina.getNetworkConstants().accountCreationFee.mul(1)
+  );
   // 😈😈😈 mint any number of tokens to our account 😈😈😈
   let tokenContract = new TokenContract(addresses.tokenX);
   tokenContract.token.mint({

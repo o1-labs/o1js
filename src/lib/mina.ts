@@ -51,6 +51,7 @@ export {
   getAccount,
   hasAccount,
   getBalance,
+  getNetworkConstants,
   getNetworkState,
   accountCreationFee,
   sendTransaction,
@@ -64,6 +65,7 @@ export {
   getProofsEnabled,
   // for internal testing only
   filterGroups,
+  type NetworkConstants
 };
 
 interface TransactionId {
@@ -351,6 +353,9 @@ interface Mina {
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   getNetworkConstants(): NetworkConstants;
+  /**
+   * @deprecated use {@link getNetworkConstants}
+   */
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (
@@ -372,7 +377,7 @@ interface Mina {
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
-const defaultNetworkConstants = {
+const defaultNetworkConstants: NetworkConstants = {
   genesisTimestamp: UInt64.from(0),
   slotTime: UInt64.from(3 * 60 * 1000),
   accountCreationFee: UInt64.from(defaultAccountCreationFee),
@@ -382,16 +387,13 @@ const defaultNetworkConstants = {
  * A mock Mina blockchain running locally and useful for testing.
  */
 function LocalBlockchain({
-  accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
   enforceTransactionLimits = true,
 } = {}) {
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
-
   const ledger = Ledger.create();
-
   let networkState = defaultNetworkState();
 
   function addAccount(publicKey: PublicKey, balance: string) {
@@ -420,12 +422,14 @@ function LocalBlockchain({
 
   return {
     proofsEnabled,
-    accountCreationFee: () => UInt64.from(accountCreationFee),
+    /**
+   * @deprecated use {@link Mina.getNetworkConstants}
+   */
+    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
+        ...defaultNetworkConstants,
         genesisTimestamp,
-        accountCreationFee: UInt64.from(accountCreationFee),
-        slotTime: UInt64.from(slotTime),
       };
     },
     currentSlot() {
@@ -498,7 +502,7 @@ function LocalBlockchain({
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(zkappCommandJson),
-          String(accountCreationFee),
+          defaultNetworkConstants.accountCreationFee.toString(),
           JSON.stringify(networkState)
         );
       } catch (err: any) {
@@ -507,7 +511,7 @@ function LocalBlockchain({
           // TODO: label updates, and try to give precise explanations about what went wrong
           let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
-            accountCreationFee,
+            accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
           });
         } finally {
           throw err;
@@ -609,7 +613,7 @@ function LocalBlockchain({
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(
         json,
-        String(accountCreationFee),
+        defaultNetworkConstants.accountCreationFee.toString(),
         JSON.stringify(networkState)
       );
     },
@@ -699,7 +703,6 @@ function Network(
       }
     | string
 ): Mina {
-  let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
@@ -746,7 +749,10 @@ function Network(
   }
 
   return {
-    accountCreationFee: () => accountCreationFee,
+    /**
+   * @deprecated use {@link Mina.getNetworkConstants}
+   */
+    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
@@ -765,9 +771,7 @@ function Network(
         if (genesisConstants !== undefined)
           return genesisToNetworkConstants(genesisConstants);
       }
-      throw Error(
-        `getNetworkConstants: Could not fetch network constants from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
-      );
+      return defaultNetworkConstants;
     },
     currentSlot() {
       throw Error(
@@ -1009,9 +1013,12 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 }
 
 let activeInstance: Mina = {
-  accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
+  /**
+   * @deprecated use {@link Mina.getNetworkConstants}
+   */
+  accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
   getNetworkConstants() {
-    throw new Error('must call Mina.setActiveInstance first');
+    return defaultNetworkConstants;
   },
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
@@ -1193,6 +1200,13 @@ function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
 }
 
 /**
+ * @return Data associated with the current Mina network constants.
+ */
+function getNetworkConstants() {
+  return activeInstance.getNetworkConstants();
+}
+
+/**
  * @return Data associated with the current state of the Mina network.
  */
 function getNetworkState() {
@@ -1208,6 +1222,7 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
 
 /**
  * Returns the default account creation fee.
+ * @deprecated use {@link Mina.getNetworkConstants}
  */
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
