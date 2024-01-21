@@ -343,7 +343,7 @@ describe('Token', () => {
       token contract can transfer tokens with a signature
       tested cases:
         - sends tokens and updates the balance of the receiver
-        - fails if no account creation fee is payed for the new token account
+        - fails if no account creation fee is paid for the new token account
         - fails if we transfer more than the balance amount
     */
     describe('Transfer', () => {

@@ -24,11 +24,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     - [default](https://github.com/o1-labs/o1js/pull/1367/files#diff-ef2c3547d64a8eaa8253cd82b3623288f3271e14f1dc893a0a3ddc1ff4b9688fR7) network constants if used outside of the transaction scope.
     - [actual](https://github.com/o1-labs/o1js/pull/1367/files#diff-437f2c15df7c90ad8154c5de1677ec0838d51859bcc0a0cefd8a0424b5736f31R1051) network constants if used within the transaction scope.
 
+### Added
+
+- **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
+
+### Fixed
+
+- Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
+
 ## [0.15.2](https://github.com/o1-labs/o1js/compare/1ad7333e9e...08ba27329)
 
 ### Fixed
 
-- Fix bug in `Hash.hash()` which always resulted in an error. https://github.com/o1-labs/o1js/pull/1346
+- Fix bug in `Hash.hash()` which always resulted in an error https://github.com/o1-labs/o1js/pull/1346
 
 ## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
 
@@ -60,6 +68,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - bitwise AND via `{UInt32, UInt64}.and()`
 - Example for using actions to store a map data structure https://github.com/o1-labs/o1js/pull/1300
 - `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `summary()` method to return a summary of the constraints used by a method https://github.com/o1-labs/o1js/pull/1007
+- `assert()` asserts that a given statement is true https://github.com/o1-labs/o1js/pull/1285
 
 ### Fixed
 
