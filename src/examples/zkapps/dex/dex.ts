@@ -394,7 +394,7 @@ class TokenContract extends SmartContract {
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 
   /**
@@ -410,7 +410,7 @@ class TokenContract extends SmartContract {
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
