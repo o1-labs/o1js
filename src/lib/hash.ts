@@ -66,6 +66,17 @@ const Poseidon = {
     return MlFieldArray.from(newState) as [Field, Field, Field];
   },
 
+  hashWithPrefix(prefix: string, input: Field[]) {
+    let init = Poseidon.update(Poseidon.initialState(), [
+      prefixToField(prefix),
+    ]);
+    return Poseidon.update(init, input)[0];
+  },
+
+  initialState(): [Field, Field, Field] {
+    return [Field(0), Field(0), Field(0)];
+  },
+
   hashToGroup(input: Field[]) {
     if (isConstant(input)) {
       let result = PoseidonBigint.hashToGroup(toBigints(input));
@@ -116,10 +127,6 @@ const Poseidon = {
     let input = type.toInput(value);
     let packed = packToFields(input);
     return Poseidon.hash(packed);
-  },
-
-  initialState(): [Field, Field, Field] {
-    return [Field(0), Field(0), Field(0)];
   },
 
   Sponge,
