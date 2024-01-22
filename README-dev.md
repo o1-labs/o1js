@@ -96,7 +96,9 @@ The other base branches (`berkeley`, `develop`) are only used in specific scenar
 |            | berkeley -> berkeley -> berkeley |
 |            | develop -> develop -> develop    |
 
-- `o1js-main`: The o1js-main branch in the Mina repository corresponds to the main branch in both o1js and o1js-bindings repositories. This is where stable releases and ramp-up features are maintained.
+- `o1js-main`: The o1js-main branch in the Mina repository corresponds to the main branch in both o1js and o1js-bindings repositories. This is where stable releases and ramp-up features are maintained. The o1js-main branch runs in parallel to the Mina `berkeley` branch and does not have a subset or superset relationship with it. The branching structure is as follows (<- means direction to merge):
+
+  - `develop` <- `o1js-main` <- `current testnet` - Typically, the current testnet often corresponds to the rampup branch.
 
 - `berkeley`: The berkeley branch is maintained across all three repositories. This branch is used for features and updates specific to the Berkeley release of the project.
 

@@ -7,6 +7,7 @@ import {
   ecdsa,
   keccakAndEcdsa,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
+import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
 
 // toggle this for quick iteration when debugging vk regressions
@@ -45,6 +46,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   HashCS,
   ecdsa,
   keccakAndEcdsa,
+  SHA256Program,
 ];
 
 let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';

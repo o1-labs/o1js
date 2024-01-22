@@ -27,11 +27,6 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
   ;;
 
-"Live integration tests")
-  echo "Running integration tests against real Mina network"
-  ./run src/examples/zkapps/hello_world/run_live.ts --bundle
-  ;;
-
 "Unit tests")
   echo "Running unit tests"
   cd src/mina-signer
@@ -52,7 +47,7 @@ case $TEST_TYPE in
   ;;
 
 *)
-  echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"
+  echo "ERROR: Invalid environment variable, not clear what tests to run! $CI_NODE_INDEX"
   exit 1
   ;;
 esac

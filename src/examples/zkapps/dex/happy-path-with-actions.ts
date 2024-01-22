@@ -1,23 +1,19 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
+import { expect } from 'expect';
+import { AccountUpdate, Mina, UInt64 } from 'o1js';
+import { tic, toc } from '../../utils/tic-toc.node.js';
 import {
   Dex,
   DexTokenHolder,
   addresses,
+  getTokenBalances,
   keys,
   tokenIds,
-  getTokenBalances,
 } from './dex-with-actions.js';
 import { TokenContract } from './dex.js';
-import { expect } from 'expect';
-import { tic, toc } from '../../utils/tic-toc.node.js';
-
-await isReady;
 
 let proofsEnabled = true;
-
 tic('Happy path with actions');
 console.log();
-
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: true,

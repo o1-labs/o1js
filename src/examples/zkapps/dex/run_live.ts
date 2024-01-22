@@ -1,11 +1,14 @@
+import { expect } from 'expect';
 import {
-  isReady,
-  Mina,
   AccountUpdate,
-  UInt64,
+  Lightnet,
+  Mina,
   PrivateKey,
+  UInt64,
   fetchAccount,
 } from 'o1js';
+import os from 'os';
+import { tic, toc } from '../../utils/tic-toc.node.js';
 import {
   Dex,
   DexTokenHolder,
@@ -14,30 +17,36 @@ import {
   tokenIds,
 } from './dex-with-actions.js';
 import { TokenContract } from './dex.js';
-import { expect } from 'expect';
-import { tic, toc } from '../../utils/tic-toc.node.js';
 
-await isReady;
-
+const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 // setting this to a higher number allows you to skip a few transactions, to pick up after an error
 const successfulTransactions = 0;
 
-tic('Run DEX with actions, happy path, on Berkeley');
+tic('Run DEX with actions, happy path, against real network.');
 console.log();
-
-let Berkeley = Mina.Network({
-  mina: 'https://berkeley.minascan.io/graphql',
-  archive: 'https://archive-node-api.p42.xyz',
+const network = Mina.Network({
+  mina: useCustomLocalNetwork
+    ? 'http://localhost:8080/graphql'
+    : 'https://berkeley.minascan.io/graphql',
+  archive: useCustomLocalNetwork
+    ? 'http://localhost:8282'
+    : 'https://api.minascan.io/archive/berkeley/v1/graphql',
+  lightnetAccountManager: 'http://localhost:8181',
 });
-Mina.setActiveInstance(Berkeley);
+Mina.setActiveInstance(network);
 let accountFee = Mina.accountCreationFee();
 
 let tx, pendingTx: Mina.TransactionId, balances, oldBalances;
 
 // compile contracts & wait for fee payer to be funded
-let { sender, senderKey } = await ensureFundedAccount(
-  'EKDrVGPC6iVRqB2bMMakNBTdEi8M1TqMn5TViLe9bafcpEExPYui'
-);
+const senderKey = useCustomLocalNetwork
+  ? (await Lightnet.acquireKeyPair()).privateKey
+  : PrivateKey.random();
+const sender = senderKey.toPublicKey();
+if (!useCustomLocalNetwork) {
+  console.log(`Funding the fee payer account.`);
+  await ensureFundedAccount(senderKey.toBase58());
+}
 
 TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
@@ -255,6 +264,12 @@ if (successfulTransactions <= 8) {
 
 toc();
 console.log('dex happy path with actions was successful! 🎉');
+console.log();
+// Tear down
+const keyPairReleaseMessage = await Lightnet.releaseKeyPair({
+  publicKey: sender.toBase58(),
+});
+if (keyPairReleaseMessage) console.info(keyPairReleaseMessage);
 
 async function ensureFundedAccount(privateKeyBase58: string) {
   let senderKey = PrivateKey.fromBase58(privateKeyBase58);
@@ -271,7 +286,10 @@ async function ensureFundedAccount(privateKeyBase58: string) {
 function logPendingTransaction(pendingTx: Mina.TransactionId) {
   if (!pendingTx.isSuccess) throw Error('transaction failed');
   console.log(
-    `tx sent: https://berkeley.minaexplorer.com/transaction/${pendingTx.hash()}`
+    'tx sent: ' +
+      (useCustomLocalNetwork
+        ? `file://${os.homedir()}/.cache/zkapp-cli/lightnet/explorer/<version>/index.html?target=transaction&hash=${pendingTx.hash()}`
+        : `https://minascan.io/berkeley/tx/${pendingTx.hash()}?type=zk-tx`)
   );
 }
 
