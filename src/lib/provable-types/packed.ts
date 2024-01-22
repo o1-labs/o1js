@@ -172,13 +172,18 @@ class Hashed<T> {
   /**
    * Create a hashed representation of `type`. You can then use `HashedType.hash(x)` to wrap a value in a `Hashed`.
    */
-  static create<T>(type: ProvableExtended<T>): typeof Hashed<T> {
+  static create<T>(
+    type: ProvableExtended<T>,
+    hash?: (t: T) => Field
+  ): typeof Hashed<T> {
     return class Hashed_ extends Hashed<T> {
       static _innerProvable = type;
       static _provable = provableFromClass(Hashed_, {
         hash: Field,
         value: Unconstrained.provable,
       }) as ProvableHashable<Hashed<T>>;
+
+      static _hash = (hash ?? Hashed._hash) satisfies (t: T) => Field;
     };
   }
 
@@ -187,13 +192,17 @@ class Hashed<T> {
     this.value = value;
   }
 
+  static _hash(t: any) {
+    let input = this.innerProvable.toInput(t);
+    let packed = packToFields(input);
+    return Poseidon.hash(packed);
+  }
+
   /**
    * Wrap a value, and represent it by its hash in provable code.
    */
   static hash<T>(x: T): Hashed<T> {
-    let input = this.innerProvable.toInput(x);
-    let packed = packToFields(input);
-    let hash = Poseidon.hash(packed);
+    let hash = this._hash(x);
     return new this(hash, Unconstrained.from(x));
   }
 
@@ -206,9 +215,7 @@ class Hashed<T> {
     );
 
     // prove that the value hashes to the hash
-    let input = this.Constructor.innerProvable.toInput(value);
-    let packed = packToFields(input);
-    let hash = Poseidon.hash(packed);
+    let hash = this.Constructor._hash(value);
     this.hash.assertEquals(hash);
 
     return value;
