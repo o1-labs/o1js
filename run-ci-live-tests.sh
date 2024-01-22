@@ -17,6 +17,8 @@ echo ""
 HELLO_WORLD_PROC=$!
 ./run src/examples/zkapps/dex/run_live.ts --bundle | add_prefix "DEX" &
 DEX_PROC=$!
+./run src/examples/fetch_live.ts --bundle | add_prefix "FETCH" &
+FETCH_PROC=$!
 
 # Wait for each process and capture their exit statuses
 FAILURE=0
@@ -31,6 +33,13 @@ wait $DEX_PROC
 if [ $? -ne 0 ]; then
   echo ""
   echo "DEX test failed."
+  echo ""
+  FAILURE=1
+fi
+wait $FETCH_PROC
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "FETCH test failed."
   echo ""
   FAILURE=1
 fi

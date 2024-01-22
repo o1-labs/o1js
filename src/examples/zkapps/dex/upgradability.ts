@@ -23,7 +23,6 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
-  let accountFee = Mina.accountCreationFee();
   let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
     Local.testAccounts;
   let tx, balances;
@@ -51,6 +50,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
     // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayerAddress, 2);
     feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
@@ -227,7 +227,6 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
-  let accountFee = Mina.accountCreationFee();
   let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
     Local.testAccounts;
   let tx, balances, oldBalances;
@@ -259,6 +258,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
     // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
     let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
     feePayerUpdate.balance.subInPlace(accountFee.mul(2));
@@ -309,10 +309,15 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('transfer tokens to user');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee.mul(1) },
+    {
+      sender: feePayerAddress,
+      fee: Mina.getNetworkConstants().accountCreationFee.mul(1),
+    },
     () => {
       let feePayer = AccountUpdate.createSigned(feePayerAddress);
-      feePayer.balance.subInPlace(Mina.accountCreationFee().mul(4));
+      feePayer.balance.subInPlace(
+        Mina.getNetworkConstants().accountCreationFee.mul(4)
+      );
       feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
       feePayer.send({ to: addresses.user2, amount: 20e9 });
       // transfer to fee payer so they can provide initial liquidity
@@ -364,7 +369,10 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('supply liquidity -- base');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee.mul(1) },
+    {
+      sender: feePayerAddress,
+      fee: Mina.getNetworkConstants().accountCreationFee.mul(1),
+    },
     () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
       modifiedDex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));

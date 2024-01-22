@@ -19,7 +19,6 @@ let Local = Mina.LocalBlockchain({
   enforceTransactionLimits: true,
 });
 Mina.setActiveInstance(Local);
-let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
   Local.testAccounts;
 let tx, balances, oldBalances;
@@ -44,6 +43,7 @@ let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 tic('deploy & init token contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
+  const accountFee = Mina.getNetworkConstants().accountCreationFee;
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
   feePayerUpdate.balance.subInPlace(accountFee.mul(2));
@@ -61,7 +61,7 @@ tic('deploy dex contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 3 dex accounts
   AccountUpdate.createSigned(feePayerAddress).balance.subInPlace(
-    accountFee.mul(3)
+    Mina.getNetworkConstants().accountCreationFee.mul(3)
   );
   dex.deploy();
   dexTokenHolderX.deploy();
