@@ -15,6 +15,8 @@ export {
   foreignFieldAdd,
   foreignFieldMul,
   KimchiGateType,
+  KimchiGateTypeString,
+  gateTypeToString,
 };
 
 const Gates = {
@@ -265,3 +267,31 @@ enum KimchiGateType {
   Xor16,
   Rot64,
 }
+
+function gateTypeToString(gate: KimchiGateType) {
+  return KimchiGateTypeToString[gate];
+}
+
+type KimchiGateTypeString =
+  (typeof KimchiGateTypeToString)[keyof typeof KimchiGateTypeToString];
+
+const KimchiGateTypeToString = {
+  [KimchiGateType.Zero]: 'Zero',
+  [KimchiGateType.Generic]: 'Generic',
+  [KimchiGateType.Poseidon]: 'Poseidon',
+  [KimchiGateType.CompleteAdd]: 'CompleteAdd',
+  [KimchiGateType.VarBaseMul]: 'VarBaseMul',
+  [KimchiGateType.EndoMul]: 'EndoMul',
+  [KimchiGateType.EndoMulScalar]: 'EndoMulScalar',
+  [KimchiGateType.Lookup]: 'Lookup',
+  [KimchiGateType.CairoClaim]: 'CairoClaim',
+  [KimchiGateType.CairoInstruction]: 'CairoInstruction',
+  [KimchiGateType.CairoFlags]: 'CairoFlags',
+  [KimchiGateType.CairoTransition]: 'CairoTransition',
+  [KimchiGateType.RangeCheck0]: 'RangeCheck0',
+  [KimchiGateType.RangeCheck1]: 'RangeCheck1',
+  [KimchiGateType.ForeignFieldAdd]: 'ForeignFieldAdd',
+  [KimchiGateType.ForeignFieldMul]: 'ForeignFieldMul',
+  [KimchiGateType.Xor16]: 'Xor16',
+  [KimchiGateType.Rot64]: 'Rot64',
+} as const;

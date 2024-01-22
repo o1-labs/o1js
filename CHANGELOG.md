@@ -28,6 +28,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
 
+### Changed
+
+- Massively improved error reporting when detecting mismatches in the constraints generated in `compile()` vs `prove()` https://github.com/o1-labs/o1js/pull/1363
+  - Made possible by new internal tooling to collect constraints, along with their stack trace, when they are added by snarky .
+
 ### Fixed
 
 - Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364

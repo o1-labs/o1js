@@ -1,5 +1,18 @@
+/**
+ * This contains functions to manage the global context for provable code:
+ *
+ * - A global `snarkContext` which tells us whether we're in a provable context,
+ *   and contains a small amount of global state on top of snarky's internal state.
+ * - Various "runners" which execute provable code in different modes.
+ */
 import { Context } from './global-context.js';
-import { Gate, GateType, JsonGate, Snarky } from '../snarky.js';
+import {
+  Gate,
+  GateType,
+  JsonConstraintSystem,
+  JsonGate,
+  Snarky,
+} from '../snarky.js';
 import { parseHexString32 } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite_field.js';
@@ -19,6 +32,7 @@ export {
   inCompileMode,
   gatesFromJson,
   printGates,
+  constraintSystemFromJson,
 };
 
 // global circuit-related context
@@ -88,38 +102,40 @@ function runUnchecked(f: () => void) {
   }
 }
 
-function constraintSystem<T>(f: () => T) {
+function constraintSystem(f: () => void) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
-    let result: T;
-    let { rows, digest, json } = Snarky.run.constraintSystem(() => {
-      result = f();
-    });
-    let { gates, publicInputSize } = gatesFromJson(json);
+    let { rows, digest, json } = Snarky.run.constraintSystem(f);
     return {
       rows,
       digest,
-      result: result! as T,
-      gates,
-      publicInputSize,
-      print() {
-        printGates(gates);
-      },
-      summary() {
-        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
-        gateTypes['Total rows'] = rows;
-        for (let gate of gates) {
-          gateTypes[gate.type] ??= 0;
-          gateTypes[gate.type]!++;
-        }
-        return gateTypes;
-      },
+      ...constraintSystemFromJson(json),
     };
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }
+}
+
+function constraintSystemFromJson(json: JsonConstraintSystem) {
+  let { gates, publicInputSize } = gatesFromJson(json);
+  return {
+    gates,
+    publicInputSize,
+    print() {
+      printGates(gates);
+    },
+    summary() {
+      let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+      gateTypes['Total rows'] = gates.length;
+      for (let gate of gates) {
+        gateTypes[gate.type] ??= 0;
+        gateTypes[gate.type]!++;
+      }
+      return gateTypes;
+    },
+  };
 }
 
 // helpers
