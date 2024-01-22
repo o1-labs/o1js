@@ -21,7 +21,6 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
-  Unconstrained,
 } from './lib/circuit_value.js';
 export {
   CircuitValue,
@@ -31,6 +30,7 @@ export {
   provable,
   provablePure,
   Struct,
+  Unconstrained,
 } from './lib/circuit_value.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
