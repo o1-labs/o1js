@@ -38,33 +38,33 @@ class CallForest extends MerkleList.create(CallTree, merkleListHash) {
   }
 }
 
-class ForestMayUseToken extends Struct({
+class Layer extends Struct({
   forest: CallForest.provable,
   mayUseToken: AccountUpdate.MayUseToken.type,
 }) {}
-const PendingForests = MerkleList.create<ForestMayUseToken>(ForestMayUseToken);
+const ParentLayers = MerkleList.create<Layer>(Layer);
 
 type MayUseToken = AccountUpdate['body']['mayUseToken'];
 const MayUseToken = AccountUpdate.MayUseToken;
 
 class PartialCallForest {
-  current: ForestMayUseToken;
-  pending: MerkleList<ForestMayUseToken>;
+  currentLayer: Layer;
+  nonEmptyParentLayers: MerkleList<Layer>;
 
   constructor(forest: CallForest, mayUseToken: MayUseToken) {
-    this.current = { forest, mayUseToken };
-    this.pending = PendingForests.empty();
+    this.currentLayer = { forest, mayUseToken };
+    this.nonEmptyParentLayers = ParentLayers.empty();
   }
 
   popAccountUpdate(selfToken: Field) {
     // get next account update from the current forest (might be a dummy)
-    let { accountUpdate, calls } = this.current.forest.pop();
+    let { accountUpdate, calls } = this.currentLayer.forest.pop();
     let forest = new CallForest(calls);
-    let restOfForest = this.current.forest;
+    let restOfForest = this.currentLayer.forest;
 
-    this.pending.pushIf(restOfForest.notEmpty(), {
+    this.nonEmptyParentLayers.pushIf(restOfForest.notEmpty(), {
       forest: restOfForest,
-      mayUseToken: this.current.mayUseToken,
+      mayUseToken: this.currentLayer.mayUseToken,
     });
 
     // check if this account update / it's children can use the token
@@ -73,7 +73,7 @@ class PartialCallForest {
     let canAccessThisToken = Provable.equal(
       MayUseToken.type,
       update.body.mayUseToken,
-      this.current.mayUseToken
+      this.currentLayer.mayUseToken
     );
     let isSelf = TokenId.derive(update.publicKey, update.tokenId).equals(
       selfToken
@@ -92,25 +92,27 @@ class PartialCallForest {
       CallForest.empty()
     );
 
-    // if the current forest is empty, switch to the next pending forest
-    let current = { forest, mayUseToken: MayUseToken.InheritFromParent };
+    // if the current forest is empty, step up to the next non-empty parent layer
+    // invariant: the current layer will _never_ be empty _except_ at the point where we stepped
+    // through the entire forest and there are no remaining parent layers
+    let currentLayer = { forest, mayUseToken: MayUseToken.InheritFromParent };
     let currentIsEmpty = forest.isEmpty();
 
-    let pendingForests = this.pending.clone();
-    let next = this.pending.pop();
-    let nextPendingForests = this.pending;
+    let parentLayers = this.nonEmptyParentLayers.clone();
+    let nextParentLayer = this.nonEmptyParentLayers.pop();
+    let parentLayersIfSteppingUp = this.nonEmptyParentLayers;
 
-    this.current = Provable.if(
+    this.currentLayer = Provable.if(
       currentIsEmpty,
-      ForestMayUseToken,
-      next,
-      current
+      Layer,
+      nextParentLayer,
+      currentLayer
     );
-    this.pending = Provable.if(
+    this.nonEmptyParentLayers = Provable.if(
       currentIsEmpty,
-      PendingForests.provable,
-      nextPendingForests,
-      pendingForests
+      ParentLayers.provable,
+      parentLayersIfSteppingUp,
+      parentLayers
     );
 
     return { update, usesThisToken };
