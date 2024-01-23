@@ -60,13 +60,18 @@ class PartialCallForest {
   }
 
   /**
-   * Make a single step through a tree of account updates.
+   * Make a single step along a tree of account updates.
    *
-   * This function will visit each account update in the tree exactly once when called repeatedly,
-   * and the internal state of `PartialCallForest` represents the work still to be done.
+   * This function is guaranteed to visit each account update in the tree that uses the token
+   * exactly once, when called repeatedly.
    *
-   * Makes a best effort to avoid visiting account updates that are not using the token and in particular, to avoid returning dummy updates
-   * -- but both can't be ruled out, so we're returning { update, usesThisToken } and let the caller handle the irrelevant case.
+   * The internal state of `PartialCallForest` represents the work still to be done, and
+   * can be passed from one proof to the next.
+   *
+   * The method makes a best effort to avoid visiting account updates that are not using the token,
+   * and in particular, to avoid returning dummy updates.
+   * However, neither can be ruled out. We're returning { update, usesThisToken: Bool } and let the
+   * caller handle the irrelevant case where `usesThisToken` is false.
    */
   nextAccountUpdate(selfToken: Field) {
     // get next account update from the current forest (might be a dummy)
