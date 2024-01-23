@@ -1,4 +1,5 @@
 import {
+  Bool,
   Field,
   Provable,
   ProvableExtended,
@@ -15,23 +16,27 @@ function WithHash<T>(type: ProvableHashable<T>): Provable<WithHash<T>> {
   return Struct({ previousHash: Field, element: type });
 }
 
+const emptyHash = Field(0);
+
 type WithStackHash<T> = {
   hash: Field;
   stack: Unconstrained<WithHash<T>[]>;
 };
 function WithStackHash<T>(): ProvableExtended<WithStackHash<T>> {
-  return Struct({ hash: Field, stack: Unconstrained.provable });
+  return class extends Struct({ hash: Field, stack: Unconstrained.provable }) {
+    static empty(): WithStackHash<T> {
+      return { hash: emptyHash, stack: Unconstrained.from([]) };
+    }
+  };
 }
-
-const emptyHash = Field(0);
 
 class MerkleList<T> {
   hash: Field;
   stack: Unconstrained<WithHash<T>[]>;
 
-  constructor(hash: Field, value: WithHash<T>[]) {
+  constructor(hash: Field, value: Unconstrained<WithHash<T>[]>) {
     this.hash = hash;
-    this.stack = Unconstrained.from(value);
+    this.stack = value;
   }
 
   isEmpty() {
@@ -39,7 +44,7 @@ class MerkleList<T> {
   }
 
   static empty(): MerkleList<any> {
-    return new this(emptyHash, []);
+    return new this(emptyHash, Unconstrained.from([]));
   }
 
   push(element: T) {
@@ -47,6 +52,20 @@ class MerkleList<T> {
     this.hash = this.nextHash(previousHash, element);
     Provable.asProver(() => {
       this.stack.set([...this.stack.get(), { previousHash, element }]);
+    });
+  }
+
+  pushIf(condition: Bool, element: T) {
+    let previousHash = this.hash;
+    this.hash = Provable.if(
+      condition,
+      this.nextHash(previousHash, element),
+      previousHash
+    );
+    Provable.asProver(() => {
+      if (condition.toBoolean()) {
+        this.stack.set([...this.stack.get(), { previousHash, element }]);
+      }
     });
   }
 
