@@ -11,7 +11,14 @@ import {
 import { provableFromClass } from 'src/bindings/lib/provable-snarky.js';
 import { packToFields } from 'src/lib/hash.js';
 
-export { MerkleList, WithHash, WithStackHash, emptyHash, ProvableHashable };
+export {
+  MerkleArray,
+  MerkleList,
+  WithHash,
+  WithStackHash,
+  emptyHash,
+  ProvableHashable,
+};
 
 function merkleListHash<T>(provable: ProvableHashable<T>, prefix = '') {
   return function nextHash(hash: Field, value: T) {
@@ -181,3 +188,159 @@ type ProvableHashable<T> = Provable<T> & {
   toInput: (x: T) => HashInput;
   empty: () => T;
 };
+
+// merkle array
+
+type MerkleArrayBase<T> = {
+  readonly array: Unconstrained<WithHash<T>[]>;
+  readonly fullHash: Field;
+
+  currentHash: Field;
+  currentIndex: Unconstrained<number>;
+};
+
+/**
+ * MerkleArray is similar to a MerkleList, but it maintains the entire array througout a computation,
+ * instead of needlessly mutating itself / throwing away context while stepping through it.
+ *
+ * We maintain two commitments, both of which are equivalent to a Merkle list hash starting _from the end_ of the array:
+ * - One to the entire array, to prove that we start iterating at the beginning.
+ * - One to the array from the current index until the end, to efficiently step forward.
+ */
+class MerkleArray<T> implements MerkleArrayBase<T> {
+  // fixed parts
+  readonly array: Unconstrained<WithHash<T>[]>;
+  readonly fullHash: Field;
+
+  // mutable parts
+  currentHash: Field;
+  currentIndex: Unconstrained<number>;
+
+  constructor(value: MerkleArrayBase<T>) {
+    Object.assign(this, value);
+  }
+
+  isEmpty() {
+    return this.fullHash.equals(emptyHash);
+  }
+  isAtEnd() {
+    return this.currentHash.equals(emptyHash);
+  }
+  assertAtStart() {
+    return this.currentHash.assertEquals(this.fullHash);
+  }
+
+  next() {
+    // next corresponds to `pop()` in MerkleList
+    // it returns a dummy element if we're at the end of the array
+    let index = Unconstrained.witness(() => this.currentIndex.get() + 1);
+
+    let { previousHash, element } = Provable.witness(
+      WithHash(this.innerProvable),
+      () =>
+        this.array.get()[index.get()] ?? {
+          previousHash: this.fullHash,
+          element: this.innerProvable.empty(),
+        }
+    );
+
+    let isDummy = this.isAtEnd();
+    let correctHash = this.nextHash(previousHash, element);
+    let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
+    this.currentHash.assertEquals(requiredHash);
+
+    this.currentIndex.setTo(index);
+    this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
+
+    return Provable.if(
+      isDummy,
+      this.innerProvable,
+      this.innerProvable.empty(),
+      element
+    );
+  }
+
+  clone(): MerkleArray<T> {
+    let array = Unconstrained.witness(() => [...this.array.get()]);
+    let currentIndex = Unconstrained.witness(() => this.currentIndex.get());
+    return new this.Constructor({
+      array,
+      fullHash: this.fullHash,
+      currentHash: this.currentHash,
+      currentIndex,
+    });
+  }
+
+  /**
+   * Create a Merkle list type
+   */
+  static create<T>(
+    type: ProvableHashable<T>,
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(type)
+  ): typeof MerkleArray<T> & {
+    from: (array: T[]) => MerkleArray<T>;
+    provable: ProvableHashable<MerkleArray<T>>;
+  } {
+    return class MerkleArray_ extends MerkleArray<T> {
+      static _innerProvable = type;
+
+      static _provable = provableFromClass(MerkleArray_, {
+        array: Unconstrained.provable,
+        fullHash: Field,
+        currentHash: Field,
+        currentIndex: Unconstrained.provable,
+      }) as ProvableHashable<MerkleArray<T>>;
+
+      static _nextHash = nextHash;
+
+      static from(array: T[]): MerkleArray<T> {
+        let n = array.length;
+        let arrayWithHashes = Array<WithHash<T>>(n);
+        let currentHash = emptyHash;
+
+        for (let i = n - 1; i >= 0; i--) {
+          arrayWithHashes[i] = { previousHash: currentHash, element: array[i] };
+          currentHash = nextHash(currentHash, array[i]);
+        }
+
+        return new this({
+          array: Unconstrained.from(arrayWithHashes),
+          fullHash: currentHash,
+          currentHash: currentHash,
+          currentIndex: Unconstrained.from(0),
+        });
+      }
+
+      static get provable(): ProvableHashable<MerkleArray<T>> {
+        assert(this._provable !== undefined, 'MerkleArray not initialized');
+        return this._provable;
+      }
+    };
+  }
+
+  // dynamic subclassing infra
+  static _nextHash: ((hash: Field, t: any) => Field) | undefined;
+
+  static _provable: ProvableHashable<MerkleArray<any>> | undefined;
+  static _innerProvable: ProvableHashable<any> | undefined;
+
+  get Constructor() {
+    return this.constructor as typeof MerkleArray;
+  }
+
+  nextHash(hash: Field, t: T): Field {
+    assert(
+      this.Constructor._nextHash !== undefined,
+      'MerkleArray not initialized'
+    );
+    return this.Constructor._nextHash(hash, t);
+  }
+
+  get innerProvable(): ProvableHashable<T> {
+    assert(
+      this.Constructor._innerProvable !== undefined,
+      'MerkleArray not initialized'
+    );
+    return this.Constructor._innerProvable;
+  }
+}
