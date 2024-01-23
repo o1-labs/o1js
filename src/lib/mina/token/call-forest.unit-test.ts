@@ -1,6 +1,6 @@
 import { Random, test } from '../../testing/property.js';
 import { RandomTransaction } from '../../../mina-signer/src/random-transaction.js';
-import { CallForest, PartialCallForest } from './call-forest.js';
+import { CallForest, HashedAccountUpdate } from './call-forest.js';
 import {
   AccountUpdate,
   CallForest as ProvableCallForest,
@@ -41,24 +41,36 @@ const callForest: Random<SimpleCallForest> = Random.map(
 
 // tests begin here
 
-test.custom({ timeBudget: 10000 })(callForest, (forestBigint) => {
-  // reference: bigint callforest hash from mina-signer
-  let stackHash = callForestHash(forestBigint);
+test.custom({ timeBudget: 10000, logFailures: false })(
+  callForest,
+  (forestBigint) => {
+    // reference: bigint callforest hash from mina-signer
+    let stackHash = callForestHash(forestBigint);
 
-  let updates = callForestToNestedArray(
-    mapCallForest(forestBigint, accountUpdateFromBigint)
-  );
+    let updates = callForestToNestedArray(
+      mapCallForest(forestBigint, accountUpdateFromBigint)
+    );
 
-  console.log({ length: updates.length });
+    console.log({ length: updates.length });
 
-  let dummyParent = AccountUpdate.dummy();
-  dummyParent.children.accountUpdates = updates;
+    let dummyParent = AccountUpdate.dummy();
+    dummyParent.children.accountUpdates = updates;
 
-  let hash = ProvableCallForest.hashChildren(dummyParent);
-  hash.assertEquals(stackHash);
+    let hash = ProvableCallForest.hashChildren(dummyParent);
+    hash.assertEquals(stackHash);
 
-  let forest = CallForest.fromAccountUpdates(updates);
-});
+    let nodes = updates.map((update) => {
+      let accountUpdate = HashedAccountUpdate.hash(update);
+      let calls = CallForest.fromAccountUpdates(update.children.accountUpdates);
+      return { accountUpdate, calls };
+    });
+
+    console.log({ nodes: nodes.map((n) => n.calls.hash.toBigInt()) });
+
+    let forest = CallForest.fromAccountUpdates(updates);
+    forest.hash.assertEquals(stackHash);
+  }
+);
 
 // call forest helpers
 
