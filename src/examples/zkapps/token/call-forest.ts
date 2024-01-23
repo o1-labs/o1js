@@ -59,14 +59,24 @@ class PartialCallForest {
     this.unfinishedParentLayers = ParentLayers.empty();
   }
 
+  /**
+   * Make a single step through a tree of account updates.
+   *
+   * This function will visit each account update in the tree exactly once when called repeatedly,
+   * and the internal state of `PartialCallForest` represents the work still to be done.
+   *
+   * Makes a best effort to avoid visiting account updates that are not using the token and in particular, to avoid returning dummy updates
+   * -- but both can't be ruled out, so we're returning { update, usesThisToken } and let the caller handle the irrelevant case.
+   */
   nextAccountUpdate(selfToken: Field) {
     // get next account update from the current forest (might be a dummy)
+    // and step down into the layer of its children
     let { accountUpdate, calls } = this.currentLayer.forest.next();
     let forest = CallForest.startIterating(calls);
-    let parentLayer = this.currentLayer.forest;
+    let parentForest = this.currentLayer.forest;
 
-    this.unfinishedParentLayers.pushIf(parentLayer.isAtEnd(), {
-      forest: parentLayer,
+    this.unfinishedParentLayers.pushIf(parentForest.isAtEnd().not(), {
+      forest: parentForest,
       mayUseToken: this.currentLayer.mayUseToken,
     });
 
