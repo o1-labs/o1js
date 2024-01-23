@@ -18,6 +18,8 @@ import {
 
 export { CallForest, PartialCallForest };
 
+export { HashedAccountUpdate };
+
 class HashedAccountUpdate extends Hashed.create(
   AccountUpdate,
   hashAccountUpdate
