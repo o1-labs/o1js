@@ -162,7 +162,8 @@ const accountUpdate = mapWithInvalid(
       a.body.authorizationKind.isProved = Bool(false);
     }
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = Field(0);
+      a.body.authorizationKind.verificationKeyHash =
+        VerificationKeyHash.empty();
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;

@@ -1,3 +1,4 @@
+import { prefixes } from '../../../provable/poseidon-bigint.js';
 import {
   AccountUpdate,
   Field,
@@ -6,18 +7,20 @@ import {
   Provable,
   Struct,
   TokenId,
-} from 'o1js';
+} from '../../../index.js';
 import {
   MerkleArray,
   MerkleArrayBase,
   MerkleList,
   ProvableHashable,
+  genericHash,
 } from './merkle-list.js';
 
 export { CallForest, PartialCallForest };
 
-class HashedAccountUpdate extends Hashed.create(AccountUpdate, (a) =>
-  a.hash()
+class HashedAccountUpdate extends Hashed.create(
+  AccountUpdate,
+  hashAccountUpdate
 ) {}
 
 type CallTree = {
@@ -57,6 +60,10 @@ class PartialCallForest {
   constructor(forest: CallForest, mayUseToken: MayUseToken) {
     this.currentLayer = { forest, mayUseToken };
     this.unfinishedParentLayers = ParentLayers.empty();
+  }
+
+  static create(forest: CallForest) {
+    return new PartialCallForest(forest, MayUseToken.ParentsOwnToken);
   }
 
   /**
@@ -149,4 +156,8 @@ function hashCons(forestHash: Field, nodeHash: Field) {
     forestHash,
     nodeHash,
   ]);
+}
+
+function hashAccountUpdate(update: AccountUpdate) {
+  return genericHash(AccountUpdate, prefixes.body, update);
 }

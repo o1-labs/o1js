@@ -7,8 +7,8 @@ import {
   Unconstrained,
   assert,
 } from 'o1js';
-import { provableFromClass } from 'src/bindings/lib/provable-snarky.js';
-import { packToFields } from 'src/lib/hash.js';
+import { provableFromClass } from '../../../bindings/lib/provable-snarky.js';
+import { packToFields } from '../../hash.js';
 
 export {
   MerkleArray,
@@ -19,7 +19,18 @@ export {
   WithStackHash,
   emptyHash,
   ProvableHashable,
+  genericHash,
 };
+
+function genericHash<T>(
+  provable: ProvableHashable<T>,
+  prefix: string,
+  value: T
+) {
+  let input = provable.toInput(value);
+  let packed = packToFields(input);
+  return Poseidon.hashWithPrefix(prefix, packed);
+}
 
 function merkleListHash<T>(provable: ProvableHashable<T>, prefix = '') {
   return function nextHash(hash: Field, value: T) {
