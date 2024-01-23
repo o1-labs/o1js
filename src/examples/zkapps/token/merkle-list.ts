@@ -81,7 +81,7 @@ class MerkleList<T> {
     });
   }
 
-  pop(): T {
+  popExn(): T {
     let { previousHash, element } = this.popWitness();
 
     let requiredHash = this.nextHash(previousHash, element);
@@ -91,7 +91,7 @@ class MerkleList<T> {
     return element;
   }
 
-  popOrDummy(): T {
+  pop(): T {
     let { previousHash, element } = this.popWitness();
 
     let isEmpty = this.isEmpty();
@@ -102,6 +102,11 @@ class MerkleList<T> {
     this.hash = Provable.if(isEmpty, emptyHash, previousHash);
     let provable = this.innerProvable;
     return Provable.if(isEmpty, provable, provable.empty(), element);
+  }
+
+  clone(): MerkleList<T> {
+    let stack = Unconstrained.witness(() => [...this.stack.get()]);
+    return new this.Constructor(this.hash, stack);
   }
 
   /**

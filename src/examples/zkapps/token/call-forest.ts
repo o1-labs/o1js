@@ -1,4 +1,4 @@
-import { AccountUpdate, Field, Hashed, Poseidon, Struct } from 'o1js';
+import { AccountUpdate, Field, Hashed, Poseidon, Provable, Struct } from 'o1js';
 import { MerkleList, ProvableHashable, WithStackHash } from './merkle-list.js';
 
 export { CallForest };
@@ -60,12 +60,32 @@ class PartialCallForest {
     let restOfForest = this.forest;
 
     this.pendingForests.pushIf(restOfForest.isEmpty().not(), restOfForest);
-    this.forest = forest;
 
     // TODO add a notion of 'current token' to partial call forest,
     // or as input to this method
     // TODO replace forest with empty forest if account update can't access current token
     let update = accountUpdate.unhash();
+
+    let currentIsEmpty = forest.isEmpty();
+
+    let pendingForests = this.pendingForests.clone();
+    let nextForest = this.pendingForests.pop();
+    let newPendingForests = this.pendingForests;
+
+    this.forest = Provable.if(
+      currentIsEmpty,
+      CallForest.provable,
+      nextForest,
+      forest
+    );
+    this.pendingForests = Provable.if(
+      currentIsEmpty,
+      PendingForests.provable,
+      newPendingForests,
+      pendingForests
+    );
+
+    return update;
   }
 }
 
