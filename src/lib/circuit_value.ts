@@ -539,6 +539,13 @@ and Provable.asProver() blocks, which execute outside the proof.
   }
 
   /**
+   * Set the unconstrained value to the same as another `Unconstrained`.
+   */
+  setTo(value: Unconstrained<T>) {
+    this.option = value.option;
+  }
+
+  /**
    * Create an `Unconstrained` with the given `value`.
    */
   static from<T>(value: T) {
