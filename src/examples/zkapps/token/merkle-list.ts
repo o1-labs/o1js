@@ -1,6 +1,7 @@
 import {
   Bool,
   Field,
+  Poseidon,
   Provable,
   ProvableExtended,
   Struct,
@@ -8,25 +9,15 @@ import {
   assert,
 } from 'o1js';
 import { provableFromClass } from 'src/bindings/lib/provable-snarky.js';
+import { packToFields } from 'src/lib/hash.js';
 
 export { MerkleList, WithHash, WithStackHash, emptyHash, ProvableHashable };
 
-type WithHash<T> = { previousHash: Field; element: T };
-function WithHash<T>(type: ProvableHashable<T>): Provable<WithHash<T>> {
-  return Struct({ previousHash: Field, element: type });
-}
-
-const emptyHash = Field(0);
-
-type WithStackHash<T> = {
-  hash: Field;
-  stack: Unconstrained<WithHash<T>[]>;
-};
-function WithStackHash<T>(): ProvableExtended<WithStackHash<T>> {
-  return class extends Struct({ hash: Field, stack: Unconstrained.provable }) {
-    static empty(): WithStackHash<T> {
-      return { hash: emptyHash, stack: Unconstrained.from([]) };
-    }
+function merkleListHash<T>(provable: ProvableHashable<T>, prefix = '') {
+  return function nextHash(hash: Field, value: T) {
+    let input = provable.toInput(value);
+    let packed = packToFields(input);
+    return Poseidon.hashWithPrefix(prefix, [hash, ...packed]);
   };
 }
 
@@ -34,17 +25,16 @@ class MerkleList<T> {
   hash: Field;
   stack: Unconstrained<WithHash<T>[]>;
 
-  constructor(hash: Field, value: Unconstrained<WithHash<T>[]>) {
+  constructor({ hash, stack }: WithStackHash<T>) {
     this.hash = hash;
-    this.stack = value;
+    this.stack = stack;
   }
 
   isEmpty() {
     return this.hash.equals(emptyHash);
   }
-
-  static empty(): MerkleList<any> {
-    return new this(emptyHash, Unconstrained.from([]));
+  notEmpty() {
+    return this.hash.equals(emptyHash).not();
   }
 
   push(element: T) {
@@ -106,7 +96,7 @@ class MerkleList<T> {
 
   clone(): MerkleList<T> {
     let stack = Unconstrained.witness(() => [...this.stack.get()]);
-    return new this.Constructor(this.hash, stack);
+    return new this.Constructor({ hash: this.hash, stack });
   }
 
   /**
@@ -114,8 +104,11 @@ class MerkleList<T> {
    */
   static create<T>(
     type: ProvableHashable<T>,
-    nextHash: (hash: Field, t: T) => Field
-  ): typeof MerkleList<T> {
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(type)
+  ): typeof MerkleList<T> & {
+    empty: () => MerkleList<T>;
+    provable: ProvableHashable<MerkleList<T>>;
+  } {
     return class MerkleList_ extends MerkleList<T> {
       static _innerProvable = type;
 
@@ -125,6 +118,15 @@ class MerkleList<T> {
       }) as ProvableHashable<MerkleList<T>>;
 
       static _nextHash = nextHash;
+
+      static empty(): MerkleList<T> {
+        return new this({ hash: emptyHash, stack: Unconstrained.from([]) });
+      }
+
+      static get provable(): ProvableHashable<MerkleList<T>> {
+        assert(this._provable !== undefined, 'MerkleList not initialized');
+        return this._provable;
+      }
     };
   }
 
@@ -146,10 +148,6 @@ class MerkleList<T> {
     return this.Constructor._nextHash(hash, t);
   }
 
-  static get provable(): ProvableHashable<MerkleList<any>> {
-    assert(this._provable !== undefined, 'MerkleList not initialized');
-    return this._provable;
-  }
   get innerProvable(): ProvableHashable<T> {
     assert(
       this.Constructor._innerProvable !== undefined,
@@ -157,6 +155,25 @@ class MerkleList<T> {
     );
     return this.Constructor._innerProvable;
   }
+}
+
+type WithHash<T> = { previousHash: Field; element: T };
+function WithHash<T>(type: ProvableHashable<T>): Provable<WithHash<T>> {
+  return Struct({ previousHash: Field, element: type });
+}
+
+const emptyHash = Field(0);
+
+type WithStackHash<T> = {
+  hash: Field;
+  stack: Unconstrained<WithHash<T>[]>;
+};
+function WithStackHash<T>(): ProvableExtended<WithStackHash<T>> {
+  return class extends Struct({ hash: Field, stack: Unconstrained.provable }) {
+    static empty(): WithStackHash<T> {
+      return { hash: emptyHash, stack: Unconstrained.from([]) };
+    }
+  };
 }
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
