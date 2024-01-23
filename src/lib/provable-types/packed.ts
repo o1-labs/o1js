@@ -173,7 +173,7 @@ class Hashed<T> {
    * Create a hashed representation of `type`. You can then use `HashedType.hash(x)` to wrap a value in a `Hashed`.
    */
   static create<T>(
-    type: ProvableExtended<T>,
+    type: ProvableHashable<T>,
     hash?: (t: T) => Field
   ): typeof Hashed<T> {
     return class Hashed_ extends Hashed<T> {
@@ -227,7 +227,7 @@ class Hashed<T> {
 
   // dynamic subclassing infra
   static _provable: ProvableHashable<Hashed<any>> | undefined;
-  static _innerProvable: ProvableExtended<any> | undefined;
+  static _innerProvable: ProvableHashable<any> | undefined;
 
   get Constructor(): typeof Hashed {
     return this.constructor as typeof Hashed;
@@ -237,7 +237,7 @@ class Hashed<T> {
     assert(this._provable !== undefined, 'Hashed not initialized');
     return this._provable;
   }
-  static get innerProvable(): ProvableExtended<any> {
+  static get innerProvable(): ProvableHashable<any> {
     assert(this._innerProvable !== undefined, 'Hashed not initialized');
     return this._innerProvable;
   }
