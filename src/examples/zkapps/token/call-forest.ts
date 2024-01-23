@@ -7,7 +7,12 @@ import {
   Struct,
   TokenId,
 } from 'o1js';
-import { MerkleList, ProvableHashable, WithStackHash } from './merkle-list.js';
+import {
+  MerkleArray,
+  MerkleArrayBase,
+  MerkleList,
+  ProvableHashable,
+} from './merkle-list.js';
 
 export { CallForest, PartialCallForest };
 
@@ -17,24 +22,22 @@ class HashedAccountUpdate extends Hashed.create(AccountUpdate, (a) =>
 
 type CallTree = {
   accountUpdate: Hashed<AccountUpdate>;
-  calls: WithStackHash<CallTree>;
+  calls: MerkleArrayBase<CallTree>;
 };
 const CallTree: ProvableHashable<CallTree> = Struct({
   accountUpdate: HashedAccountUpdate.provable,
-  calls: WithStackHash<CallTree>(),
+  calls: MerkleArrayBase<CallTree>(),
 });
 
-class CallForest extends MerkleList.create(CallTree, merkleListHash) {
-  static fromAccountUpdates(updates: AccountUpdate[]) {
-    let forest = CallForest.empty();
-
-    for (let update of [...updates].reverse()) {
+class CallForest extends MerkleArray.create(CallTree, merkleListHash) {
+  static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
+    let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
       let calls = CallForest.fromAccountUpdates(update.children.accountUpdates);
-      forest.push({ accountUpdate, calls });
-    }
+      return { accountUpdate, calls };
+    });
 
-    return forest;
+    return CallForest.from(nodes);
   }
 }
 
@@ -49,21 +52,21 @@ const MayUseToken = AccountUpdate.MayUseToken;
 
 class PartialCallForest {
   currentLayer: Layer;
-  nonEmptyParentLayers: MerkleList<Layer>;
+  unfinishedParentLayers: MerkleList<Layer>;
 
   constructor(forest: CallForest, mayUseToken: MayUseToken) {
     this.currentLayer = { forest, mayUseToken };
-    this.nonEmptyParentLayers = ParentLayers.empty();
+    this.unfinishedParentLayers = ParentLayers.empty();
   }
 
-  popAccountUpdate(selfToken: Field) {
+  nextAccountUpdate(selfToken: Field) {
     // get next account update from the current forest (might be a dummy)
-    let { accountUpdate, calls } = this.currentLayer.forest.pop();
-    let forest = new CallForest(calls);
-    let restOfForest = this.currentLayer.forest;
+    let { accountUpdate, calls } = this.currentLayer.forest.next();
+    let forest = CallForest.startIterating(calls);
+    let parentLayer = this.currentLayer.forest;
 
-    this.nonEmptyParentLayers.pushIf(restOfForest.notEmpty(), {
-      forest: restOfForest,
+    this.unfinishedParentLayers.pushIf(parentLayer.isAtEnd(), {
+      forest: parentLayer,
       mayUseToken: this.currentLayer.mayUseToken,
     });
 
@@ -83,33 +86,28 @@ class PartialCallForest {
       .equals(selfToken)
       .and(canAccessThisToken);
 
-    // if we don't have to check the children, replace forest with an empty one
-    let checkSubtree = canAccessThisToken.and(isSelf.not());
-    forest = Provable.if(
-      checkSubtree,
-      CallForest.provable,
-      forest,
-      CallForest.empty()
-    );
+    // if we don't have to check the children, ignore the forest by jumping to its end
+    let skipSubtree = canAccessThisToken.not().or(isSelf);
+    forest.jumpToEndIf(skipSubtree);
 
-    // if the current forest is empty, step up to the next non-empty parent layer
-    // invariant: the current layer will _never_ be empty _except_ at the point where we stepped
-    // through the entire forest and there are no remaining parent layers
+    // if we're at the end of the current layer, step up to the next unfinished parent layer
+    // invariant: the new current layer will _never_ be finished _except_ at the point where we stepped
+    // through the entire forest and there are no remaining parent layers to finish
     let currentLayer = { forest, mayUseToken: MayUseToken.InheritFromParent };
-    let currentIsEmpty = forest.isEmpty();
+    let currentIsFinished = forest.isAtEnd();
 
-    let parentLayers = this.nonEmptyParentLayers.clone();
-    let nextParentLayer = this.nonEmptyParentLayers.pop();
-    let parentLayersIfSteppingUp = this.nonEmptyParentLayers;
+    let parentLayers = this.unfinishedParentLayers.clone();
+    let nextParentLayer = this.unfinishedParentLayers.pop();
+    let parentLayersIfSteppingUp = this.unfinishedParentLayers;
 
     this.currentLayer = Provable.if(
-      currentIsEmpty,
+      currentIsFinished,
       Layer,
       nextParentLayer,
       currentLayer
     );
-    this.nonEmptyParentLayers = Provable.if(
-      currentIsEmpty,
+    this.unfinishedParentLayers = Provable.if(
+      currentIsFinished,
       ParentLayers.provable,
       parentLayersIfSteppingUp,
       parentLayers
