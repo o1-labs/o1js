@@ -16,11 +16,12 @@ const CallTree: ProvableHashable<CallTree> = Struct({
   calls: WithStackHash<CallTree>(),
 });
 
-class CallForest extends MerkleList.create(CallTree, function (hash, tree) {
-  return hashCons(hash, hashNode(tree));
-}) {
+class CallForest extends MerkleList.create(CallTree, nextHash) {
   static empty(): CallForest {
     return super.empty();
+  }
+  static from(value: WithStackHash<CallTree>): CallForest {
+    return new this(value.hash, value.stack);
   }
 
   static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
@@ -33,6 +34,11 @@ class CallForest extends MerkleList.create(CallTree, function (hash, tree) {
     }
 
     return forest;
+  }
+
+  pop() {
+    let { accountUpdate, calls } = super.pop();
+    return { accountUpdate, calls: CallForest.from(calls) };
   }
 }
 
@@ -48,9 +54,26 @@ class PartialCallForest {
     this.forest = forest;
     this.pendingForests = PendingForests.empty();
   }
+
+  popAccountUpdate() {
+    let { accountUpdate, calls: forest } = this.forest.pop();
+    let restOfForest = this.forest;
+
+    this.pendingForests.pushIf(restOfForest.isEmpty().not(), restOfForest);
+    this.forest = forest;
+
+    // TODO add a notion of 'current token' to partial call forest,
+    // or as input to this method
+    // TODO replace forest with empty forest if account update can't access current token
+    let update = accountUpdate.unhash();
+  }
 }
 
 // how to hash a forest
+
+function nextHash(forestHash: Field, tree: CallTree) {
+  return hashCons(forestHash, hashNode(tree));
+}
 
 function hashNode(tree: CallTree) {
   return Poseidon.hashWithPrefix('MinaAcctUpdateNode**', [
