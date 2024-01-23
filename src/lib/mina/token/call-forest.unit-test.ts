@@ -18,16 +18,23 @@ import {
 let [, data, hashMl] = Pickles.dummyVerificationKey();
 let verificationKey = { data, hash: hashMl[1] };
 
+let accountUpdates = Random.array(
+  RandomTransaction.accountUpdateWithCallDepth,
+  Random.int(0, 50),
+  { reset: true }
+);
+
 const callForest: Random<SimpleCallForest> = Random.map(
-  RandomTransaction.zkappCommand,
-  (txBigint) => {
-    let flatUpdates = txBigint.accountUpdates.map((a) => {
+  accountUpdates,
+  (accountUpdates) => {
+    let flatUpdates = accountUpdates.map((a) => {
       // fix verification key
       if (a.body.update.verificationKey.isSome) {
         a.body.update.verificationKey.value = verificationKey;
       }
       return a;
     });
+    console.log({ totalLength: flatUpdates.length });
     return accountUpdatesToCallForest(flatUpdates);
   }
 );
