@@ -1,7 +1,15 @@
-import { AccountUpdate, Field, Hashed, Poseidon, Provable, Struct } from 'o1js';
+import {
+  AccountUpdate,
+  Field,
+  Hashed,
+  Poseidon,
+  Provable,
+  Struct,
+  TokenId,
+} from 'o1js';
 import { MerkleList, ProvableHashable, WithStackHash } from './merkle-list.js';
 
-export { CallForest };
+export { CallForest, PartialCallForest };
 
 class HashedAccountUpdate extends Hashed.create(AccountUpdate, (a) =>
   a.hash()
@@ -16,15 +24,8 @@ const CallTree: ProvableHashable<CallTree> = Struct({
   calls: WithStackHash<CallTree>(),
 });
 
-class CallForest extends MerkleList.create(CallTree, nextHash) {
-  static empty(): CallForest {
-    return super.empty();
-  }
-  static from(value: WithStackHash<CallTree>): CallForest {
-    return new this(value.hash, value.stack);
-  }
-
-  static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
+class CallForest extends MerkleList.create(CallTree, merkleListHash) {
+  static fromAccountUpdates(updates: AccountUpdate[]) {
     let forest = CallForest.empty();
 
     for (let update of [...updates].reverse()) {
@@ -35,63 +36,90 @@ class CallForest extends MerkleList.create(CallTree, nextHash) {
 
     return forest;
   }
-
-  pop() {
-    let { accountUpdate, calls } = super.pop();
-    return { accountUpdate, calls: CallForest.from(calls) };
-  }
 }
 
-const PendingForests = MerkleList.create(CallForest.provable, (hash, t) =>
-  Poseidon.hash([hash, t.hash])
-);
+class ForestMayUseToken extends Struct({
+  forest: CallForest.provable,
+  mayUseToken: AccountUpdate.MayUseToken.type,
+}) {}
+const PendingForests = MerkleList.create<ForestMayUseToken>(ForestMayUseToken);
+
+type MayUseToken = AccountUpdate['body']['mayUseToken'];
+const MayUseToken = AccountUpdate.MayUseToken;
 
 class PartialCallForest {
-  forest: CallForest;
-  pendingForests: MerkleList<CallForest>;
+  current: ForestMayUseToken;
+  pending: MerkleList<ForestMayUseToken>;
 
-  constructor(forest: CallForest) {
-    this.forest = forest;
-    this.pendingForests = PendingForests.empty();
+  constructor(forest: CallForest, mayUseToken: MayUseToken) {
+    this.current = { forest, mayUseToken };
+    this.pending = PendingForests.empty();
   }
 
-  popAccountUpdate() {
-    let { accountUpdate, calls: forest } = this.forest.pop();
-    let restOfForest = this.forest;
+  popAccountUpdate(selfToken: Field) {
+    // get next account update from the current forest (might be a dummy)
+    let { accountUpdate, calls } = this.current.forest.pop();
+    let forest = new CallForest(calls);
+    let restOfForest = this.current.forest;
 
-    this.pendingForests.pushIf(restOfForest.isEmpty().not(), restOfForest);
+    this.pending.pushIf(restOfForest.notEmpty(), {
+      forest: restOfForest,
+      mayUseToken: this.current.mayUseToken,
+    });
 
-    // TODO add a notion of 'current token' to partial call forest,
-    // or as input to this method
-    // TODO replace forest with empty forest if account update can't access current token
+    // check if this account update / it's children can use the token
     let update = accountUpdate.unhash();
 
+    let canAccessThisToken = Provable.equal(
+      MayUseToken.type,
+      update.body.mayUseToken,
+      this.current.mayUseToken
+    );
+    let isSelf = TokenId.derive(update.publicKey, update.tokenId).equals(
+      selfToken
+    );
+
+    let usesThisToken = update.tokenId
+      .equals(selfToken)
+      .and(canAccessThisToken);
+
+    // if we don't have to check the children, replace forest with an empty one
+    let checkSubtree = canAccessThisToken.and(isSelf.not());
+    forest = Provable.if(
+      checkSubtree,
+      CallForest.provable,
+      forest,
+      CallForest.empty()
+    );
+
+    // if the current forest is empty, switch to the next pending forest
+    let current = { forest, mayUseToken: MayUseToken.InheritFromParent };
     let currentIsEmpty = forest.isEmpty();
 
-    let pendingForests = this.pendingForests.clone();
-    let nextForest = this.pendingForests.pop();
-    let newPendingForests = this.pendingForests;
+    let pendingForests = this.pending.clone();
+    let next = this.pending.pop();
+    let nextPendingForests = this.pending;
 
-    this.forest = Provable.if(
+    this.current = Provable.if(
       currentIsEmpty,
-      CallForest.provable,
-      nextForest,
-      forest
+      ForestMayUseToken,
+      next,
+      current
     );
-    this.pendingForests = Provable.if(
+    this.pending = Provable.if(
       currentIsEmpty,
       PendingForests.provable,
-      newPendingForests,
+      nextPendingForests,
       pendingForests
     );
 
-    return update;
+    return { update, usesThisToken };
   }
 }
 
 // how to hash a forest
 
-function nextHash(forestHash: Field, tree: CallTree) {
+function merkleListHash(forestHash: Field, tree: CallTree) {
   return hashCons(forestHash, hashNode(tree));
 }
 
