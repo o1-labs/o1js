@@ -8,7 +8,7 @@ import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
 import { Poseidon, packToFields } from '../hash.js';
 import { Provable } from '../provable.js';
-import { fields } from './fields.js';
+import { fields, modifiedField } from './fields.js';
 
 export { Packed, Hashed };
 
@@ -120,7 +120,10 @@ class Packed<T> {
   }
 }
 
-type ProvableHashable<T> = Provable<T> & { toInput: (x: T) => HashInput };
+type ProvableHashable<T> = Provable<T> & {
+  toInput: (x: T) => HashInput;
+  empty: () => T;
+};
 
 function countFields(input: HashInput) {
   let n = input.fields?.length ?? 0;
@@ -176,10 +179,13 @@ class Hashed<T> {
     type: ProvableHashable<T>,
     hash?: (t: T) => Field
   ): typeof Hashed<T> {
+    hash ??= Hashed._hash;
+    let dummyHash = hash(type.empty());
+
     return class Hashed_ extends Hashed<T> {
       static _innerProvable = type;
       static _provable = provableFromClass(Hashed_, {
-        hash: Field,
+        hash: modifiedField({ empty: () => dummyHash }),
         value: Unconstrained.provable,
       }) as ProvableHashable<Hashed<T>>;
 
