@@ -63,6 +63,10 @@ class Packed<T> {
         packed: fields(packedSize),
         value: Unconstrained.provable,
       }) as ProvableHashable<Packed<T>>;
+
+      static empty(): Packed<T> {
+        return Packed_.pack(type.empty());
+      }
     };
   }
 
@@ -190,6 +194,10 @@ class Hashed<T> {
       }) as ProvableHashable<Hashed<T>>;
 
       static _hash = (hash ?? Hashed._hash) satisfies (t: T) => Field;
+
+      static empty(): Hashed<T> {
+        return new this(dummyHash, Unconstrained.from(type.empty()));
+      }
     };
   }
 
