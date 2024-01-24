@@ -39,40 +39,27 @@ const callForest: Random<SimpleCallForest> = Random.map(
   }
 );
 
-// tests begin here
+// TESTS
+
+// correctly hashes a call forest
 
 test.custom({ timeBudget: 10000, logFailures: false })(
   callForest,
   (forestBigint) => {
     // reference: bigint callforest hash from mina-signer
-    let stackHash = callForestHash(forestBigint);
+    let expectedHash = callForestHash(forestBigint);
 
+    // convert to o1js-style list of nested `AccountUpdate`s
     let updates = callForestToNestedArray(
       mapCallForest(forestBigint, accountUpdateFromBigint)
     );
 
-    console.log({ length: updates.length });
-
-    let dummyParent = AccountUpdate.dummy();
-    dummyParent.children.accountUpdates = updates;
-
-    let hash = ProvableCallForest.hashChildren(dummyParent);
-    hash.assertEquals(stackHash);
-
-    let nodes = updates.map((update) => {
-      let accountUpdate = HashedAccountUpdate.hash(update);
-      let calls = CallForest.fromAccountUpdates(update.children.accountUpdates);
-      return { accountUpdate, calls };
-    });
-
-    console.log({ nodes: nodes.map((n) => n.calls.hash.toBigInt()) });
-
     let forest = CallForest.fromAccountUpdates(updates);
-    forest.hash.assertEquals(stackHash);
+    forest.hash.assertEquals(expectedHash);
   }
 );
 
-// call forest helpers
+// HELPERS
 
 type AbstractSimpleCallForest<A> = {
   accountUpdate: A;
