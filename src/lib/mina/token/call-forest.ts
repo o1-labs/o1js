@@ -148,15 +148,15 @@ function merkleListHash(forestHash: Field, tree: CallTree) {
 }
 
 function hashNode(tree: CallTree) {
-  return Poseidon.hashWithPrefix('MinaAcctUpdateNode**', [
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
     tree.calls.hash,
   ]);
 }
 function hashCons(forestHash: Field, nodeHash: Field) {
-  return Poseidon.hashWithPrefix('MinaAcctUpdateCons**', [
-    forestHash,
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateCons, [
     nodeHash,
+    forestHash,
   ]);
 }
 
