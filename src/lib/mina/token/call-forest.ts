@@ -16,7 +16,7 @@ import {
   genericHash,
 } from './merkle-list.js';
 
-export { CallForest, PartialCallForest };
+export { CallForest, PartialCallForest, hashAccountUpdate };
 
 export { HashedAccountUpdate };
 
@@ -58,14 +58,20 @@ const MayUseToken = AccountUpdate.MayUseToken;
 class PartialCallForest {
   currentLayer: Layer;
   unfinishedParentLayers: MerkleList<Layer>;
+  selfToken: Field;
 
-  constructor(forest: CallForest, mayUseToken: MayUseToken) {
+  constructor(forest: CallForest, mayUseToken: MayUseToken, selfToken: Field) {
     this.currentLayer = { forest, mayUseToken };
     this.unfinishedParentLayers = ParentLayers.empty();
+    this.selfToken = selfToken;
   }
 
-  static create(forest: CallForest) {
-    return new PartialCallForest(forest, MayUseToken.ParentsOwnToken);
+  static create(forest: CallForest, selfToken: Field) {
+    return new PartialCallForest(
+      forest,
+      MayUseToken.ParentsOwnToken,
+      selfToken
+    );
   }
 
   /**
@@ -82,7 +88,7 @@ class PartialCallForest {
    * However, neither can be ruled out. We're returning { update, usesThisToken: Bool } and let the
    * caller handle the irrelevant case where `usesThisToken` is false.
    */
-  nextAccountUpdate(selfToken: Field) {
+  next() {
     // get next account update from the current forest (might be a dummy)
     // and step down into the layer of its children
     let { accountUpdate, calls } = this.currentLayer.forest.next();
@@ -103,11 +109,11 @@ class PartialCallForest {
       this.currentLayer.mayUseToken
     );
     let isSelf = TokenId.derive(update.publicKey, update.tokenId).equals(
-      selfToken
+      this.selfToken
     );
 
     let usesThisToken = update.tokenId
-      .equals(selfToken)
+      .equals(this.selfToken)
       .and(canAccessThisToken);
 
     // if we don't have to check the children, ignore the forest by jumping to its end
@@ -137,7 +143,7 @@ class PartialCallForest {
       parentLayers
     );
 
-    return { update, usesThisToken };
+    return { accountUpdate: update, usesThisToken };
   }
 }
 
