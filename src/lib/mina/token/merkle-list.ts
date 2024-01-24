@@ -268,7 +268,7 @@ class MerkleArray<T> implements MerkleArrayIterator<T> {
       array,
       hash,
       currentHash: hash,
-      currentIndex: Unconstrained.from(0),
+      currentIndex: Unconstrained.from(-1),
     });
   }
   assertAtStart() {
@@ -302,7 +302,7 @@ class MerkleArray<T> implements MerkleArrayIterator<T> {
       WithHash(this.innerProvable),
       () =>
         this.array.get()[index.get()] ?? {
-          previousHash: this.hash,
+          previousHash: emptyHash,
           element: this.innerProvable.empty(),
         }
     );
@@ -372,8 +372,8 @@ class MerkleArray<T> implements MerkleArrayIterator<T> {
         return new this({
           array: Unconstrained.from(arrayWithHashes),
           hash: currentHash,
-          currentHash: currentHash,
-          currentIndex: Unconstrained.from(0),
+          currentHash,
+          currentIndex: Unconstrained.from(-1),
         });
       }
 
