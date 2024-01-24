@@ -2,7 +2,7 @@ import { Random, test } from '../../testing/property.js';
 import { RandomTransaction } from '../../../mina-signer/src/random-transaction.js';
 import {
   CallForest,
-  PartialCallForest as CallForestIterator,
+  CallForestIterator,
   hashAccountUpdate,
 } from './call-forest.js';
 import {

@@ -14,9 +14,9 @@ import {
   ProvableHashable,
   genericHash,
 } from './merkle-list.js';
-import { Field, Bool } from '../../core.js';
+import { Field } from '../../core.js';
 
-export { CallForest, PartialCallForest, hashAccountUpdate };
+export { CallForest, CallForestIterator, hashAccountUpdate };
 
 export { HashedAccountUpdate };
 
@@ -55,7 +55,13 @@ const ParentLayers = MerkleList.create<Layer>(Layer);
 type MayUseToken = AccountUpdate['body']['mayUseToken'];
 const MayUseToken = AccountUpdate.MayUseToken;
 
-class PartialCallForest {
+/**
+ * Data structure to represent a forest tree of account updates that is being iterated over.
+ *
+ * Important: Since this is to be used for token manager contracts to process it's entire subtree
+ * of account updates, the iterator skips subtrees that don't inherit token permissions.
+ */
+class CallForestIterator {
   currentLayer: Layer;
   unfinishedParentLayers: MerkleList<Layer>;
   selfToken: Field;
@@ -67,7 +73,7 @@ class PartialCallForest {
   }
 
   static create(forest: CallForest, selfToken: Field) {
-    return new PartialCallForest(
+    return new CallForestIterator(
       forest,
       MayUseToken.ParentsOwnToken,
       selfToken
@@ -79,9 +85,6 @@ class PartialCallForest {
    *
    * This function is guaranteed to visit each account update in the tree that uses the token
    * exactly once, when called repeatedly.
-   *
-   * The internal state of `PartialCallForest` represents the work still to be done, and
-   * can be passed from one proof to the next.
    *
    * The method makes a best effort to avoid visiting account updates that are not using the token,
    * and in particular, to avoid returning dummy updates.
@@ -112,9 +115,7 @@ class PartialCallForest {
       this.selfToken
     );
 
-    let usesThisToken = update.tokenId
-      .equals(this.selfToken)
-      .and(canAccessThisToken);
+    let usesThisToken = update.tokenId.equals(this.selfToken);
 
     // if we don't have to check the children, ignore the forest by jumping to its end
     let skipSubtree = canAccessThisToken.not().or(isSelf);
@@ -146,6 +147,22 @@ class PartialCallForest {
     return { accountUpdate: update, usesThisToken };
   }
 }
+
+// helper class to represent the position in a tree = the last visited node
+
+// every entry in the array is a layer
+// so if there are two entries, we last visited a node in the second layer
+// this index is the index of the node in that layer
+type TreePosition = { index: number; isDone: boolean }[];
+// const TreePosition = {
+//   stepDown(position: TreePosition, numberOfChildren: number) {
+//     position.push({ index: 0, isDone: false });
+//   },
+//   stepUp(position: TreePosition) {
+//     position.pop();
+//     position[position.length - 1].index++;
+//   },
+// };
 
 // how to hash a forest
 
