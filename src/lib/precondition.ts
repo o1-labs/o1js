@@ -58,7 +58,7 @@ function Network(accountUpdate: AccountUpdate): Network {
     },
     requireEquals(value: UInt64) {
       let { genesisTimestamp, slotTime } =
-        Mina.activeInstance.getNetworkConstants();
+        Mina.getNetworkConstants();
       let slot = timestampToGlobalSlot(
         value,
         `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
@@ -319,12 +319,12 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
 
 function globalSlotToTimestamp(slot: UInt32) {
   let { genesisTimestamp, slotTime } =
-    Mina.activeInstance.getNetworkConstants();
+    Mina.getNetworkConstants();
   return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
 }
 function timestampToGlobalSlot(timestamp: UInt64, message: string) {
   let { genesisTimestamp, slotTime } =
-    Mina.activeInstance.getNetworkConstants();
+    Mina.getNetworkConstants();
   let { quotient: slot, rest } = timestamp
     .sub(genesisTimestamp)
     .divMod(slotTime);
@@ -340,7 +340,7 @@ function timestampToGlobalSlotRange(
   // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
   // also, we should clamp to the UInt32 max range [0, 2**32-1]
   let { genesisTimestamp, slotTime } =
-    Mina.activeInstance.getNetworkConstants();
+    Mina.getNetworkConstants();
   let tsLowerInt = Int64.from(tsLower)
     .sub(genesisTimestamp)
     .add(slotTime)
