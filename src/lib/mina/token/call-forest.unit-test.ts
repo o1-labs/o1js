@@ -39,7 +39,7 @@ const accountUpdate = Random.map(accountUpdateBigint, accountUpdateFromBigint);
 
 const arrayOf = <T>(x: Random<T>) =>
   // `reset: true` to start callDepth at 0 for each array
-  Random.array(x, Random.int(20, 50), { reset: true });
+  Random.array(x, 10, { reset: true });
 
 const flatAccountUpdatesBigint = arrayOf(accountUpdateBigint);
 const flatAccountUpdates = arrayOf(accountUpdate);
@@ -66,6 +66,31 @@ test.custom({ timeBudget: 1000, logFailures: false })(
   }
 );
 
+// traverses the top level of a call forest in correct order
+// i.e., CallForest.next() works
+
+test.custom({ timeBudget: 10000, logFailures: false })(
+  flatAccountUpdates,
+  (flatUpdates) => {
+    // convert to o1js-style list of nested `AccountUpdate`s
+    let updates = callForestToNestedArray(
+      accountUpdatesToCallForest(flatUpdates)
+    );
+    let forest = CallForest.fromAccountUpdates(updates);
+
+    let n = updates.length;
+    for (let i = 0; i < n; i++) {
+      let expected = updates[i];
+      let actual = forest.next().accountUpdate.value.get();
+      assertEqual(actual, expected);
+    }
+
+    // doing next again should return a dummy
+    let actual = forest.next().accountUpdate.value.get();
+    assertEqual(actual, AccountUpdate.dummy());
+  }
+);
+
 // traverses a call forest in correct depth-first order
 
 test.custom({ timeBudget: 10000, logFailures: false, minRuns: 1, maxRuns: 1 })(
@@ -75,6 +100,10 @@ test.custom({ timeBudget: 10000, logFailures: false, minRuns: 1, maxRuns: 1 })(
     let updates = callForestToNestedArray(
       accountUpdatesToCallForest(flatUpdates)
     );
+
+    let dummyParent = AccountUpdate.dummy();
+    dummyParent.children.accountUpdates = updates;
+    console.log(dummyParent.toPrettyLayout());
 
     let forest = CallForest.fromAccountUpdates(updates);
     let tokenId = Field.random();
@@ -87,19 +116,30 @@ test.custom({ timeBudget: 10000, logFailures: false, minRuns: 1, maxRuns: 1 })(
       assert.deepStrictEqual(flatUpdates2[i], flatUpdates[i]);
 
       let expected = flatUpdates[i];
+      let expectedHash = hashAccountUpdate(expected).toBigInt();
       let actual = partialForest.next().accountUpdate;
+      let actualHash = hashAccountUpdate(actual).toBigInt();
 
-      console.log(
-        'expected: ',
-        expected.body.callDepth,
-        expected.body.publicKey.toBase58(),
-        hashAccountUpdate(expected).toBigInt()
-      );
+      let isCorrect = String(expectedHash === actualHash).padStart(5, ' ');
+
       console.log(
         'actual:   ',
         actual.body.callDepth,
+        isCorrect,
         actual.body.publicKey.toBase58(),
-        hashAccountUpdate(actual).toBigInt()
+        actualHash
+      );
+    }
+    console.log();
+
+    for (let i = 0; i < n; i++) {
+      let expected = flatUpdates[i];
+      console.log(
+        'expected: ',
+        expected.body.callDepth,
+        ' true',
+        expected.body.publicKey.toBase58(),
+        hashAccountUpdate(expected).toBigInt()
       );
     }
   }
@@ -119,4 +159,13 @@ function callForestToNestedArray(
     accountUpdate.children.accountUpdates = callForestToNestedArray(children);
     return accountUpdate;
   });
+}
+
+function assertEqual(actual: AccountUpdate, expected: AccountUpdate) {
+  let actualHash = hashAccountUpdate(actual).toBigInt();
+  let expectedHash = hashAccountUpdate(expected).toBigInt();
+
+  assert.deepStrictEqual(actual.body, expected.body);
+  assert.deepStrictEqual(actual.authorization, expected.authorization);
+  assert.deepStrictEqual(actualHash, expectedHash);
 }
