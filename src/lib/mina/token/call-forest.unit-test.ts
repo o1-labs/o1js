@@ -39,7 +39,7 @@ const accountUpdate = Random.map(accountUpdateBigint, accountUpdateFromBigint);
 
 const arrayOf = <T>(x: Random<T>) =>
   // `reset: true` to start callDepth at 0 for each array
-  Random.array(x, 10, { reset: true });
+  Random.array(x, Random.int(10, 40), { reset: true });
 
 const flatAccountUpdatesBigint = arrayOf(accountUpdateBigint);
 const flatAccountUpdates = arrayOf(accountUpdate);
@@ -69,7 +69,7 @@ test.custom({ timeBudget: 1000, logFailures: false })(
 // traverses the top level of a call forest in correct order
 // i.e., CallForest.next() works
 
-test.custom({ timeBudget: 10000, logFailures: false })(
+test.custom({ timeBudget: 1000, logFailures: false })(
   flatAccountUpdates,
   (flatUpdates) => {
     // convert to o1js-style list of nested `AccountUpdate`s
@@ -85,13 +85,46 @@ test.custom({ timeBudget: 10000, logFailures: false })(
       assertEqual(actual, expected);
     }
 
-    // doing next again should return a dummy
+    // doing next() again should return a dummy
     let actual = forest.next().accountUpdate.value.get();
     assertEqual(actual, AccountUpdate.dummy());
   }
 );
 
-// traverses a call forest in correct depth-first order
+// traverses a call forest in correct depth-first order,
+// assuming we don't skip any subtrees
+
+test.custom({ timeBudget: 10000, logFailures: false })(
+  flatAccountUpdates,
+  (flatUpdates) => {
+    // convert to o1js-style list of nested `AccountUpdate`s
+    let updates = callForestToNestedArray(
+      accountUpdatesToCallForest(flatUpdates)
+    );
+
+    let forest = CallForest.fromAccountUpdates(updates);
+    let tokenId = Field.random();
+    let partialForest = PartialCallForest.create(forest, tokenId);
+
+    let flatUpdates2 = ProvableCallForest.toFlatList(updates, false);
+
+    let n = flatUpdates.length;
+    for (let i = 0; i < n; i++) {
+      assert.deepStrictEqual(flatUpdates2[i], flatUpdates[i]);
+
+      let expected = flatUpdates[i];
+      let actual = partialForest.next({ skipSubtrees: false }).accountUpdate;
+      assertEqual(actual, expected);
+    }
+
+    // doing next() again should return a dummy
+    let actual = partialForest.next({ skipSubtrees: false }).accountUpdate;
+    assertEqual(actual, AccountUpdate.dummy());
+  }
+);
+
+// TODO
+// traverses a call forest in correct depth-first order, when skipping subtrees
 
 test.custom({ timeBudget: 10000, logFailures: false, minRuns: 1, maxRuns: 1 })(
   flatAccountUpdates,
@@ -117,7 +150,7 @@ test.custom({ timeBudget: 10000, logFailures: false, minRuns: 1, maxRuns: 1 })(
 
       let expected = flatUpdates[i];
       let expectedHash = hashAccountUpdate(expected).toBigInt();
-      let actual = partialForest.next().accountUpdate;
+      let actual = partialForest.next({ skipSubtrees: false }).accountUpdate;
       let actualHash = hashAccountUpdate(actual).toBigInt();
 
       let isCorrect = String(expectedHash === actualHash).padStart(5, ' ');
@@ -166,6 +199,13 @@ function assertEqual(actual: AccountUpdate, expected: AccountUpdate) {
   let expectedHash = hashAccountUpdate(expected).toBigInt();
 
   assert.deepStrictEqual(actual.body, expected.body);
-  assert.deepStrictEqual(actual.authorization, expected.authorization);
+  assert.deepStrictEqual(
+    actual.authorization.proof,
+    expected.authorization.proof
+  );
+  assert.deepStrictEqual(
+    actual.authorization.signature,
+    expected.authorization.signature
+  );
   assert.deepStrictEqual(actualHash, expectedHash);
 }

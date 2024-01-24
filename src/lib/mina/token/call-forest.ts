@@ -1,7 +1,6 @@
 import { prefixes } from '../../../provable/poseidon-bigint.js';
 import {
   AccountUpdate,
-  Field,
   Hashed,
   Poseidon,
   Provable,
@@ -15,6 +14,7 @@ import {
   ProvableHashable,
   genericHash,
 } from './merkle-list.js';
+import { Field, Bool } from '../../core.js';
 
 export { CallForest, PartialCallForest, hashAccountUpdate };
 
@@ -88,7 +88,7 @@ class PartialCallForest {
    * However, neither can be ruled out. We're returning { update, usesThisToken: Bool } and let the
    * caller handle the irrelevant case where `usesThisToken` is false.
    */
-  next() {
+  next({ skipSubtrees = true } = {}) {
     // get next account update from the current forest (might be a dummy)
     // and step down into the layer of its children
     let { accountUpdate, calls } = this.currentLayer.forest.next();
@@ -117,7 +117,9 @@ class PartialCallForest {
       .and(canAccessThisToken);
 
     // if we don't have to check the children, ignore the forest by jumping to its end
-    let skipSubtree = canAccessThisToken.not().or(isSelf);
+    let skipSubtree = skipSubtrees
+      ? canAccessThisToken.not().or(isSelf)
+      : new Bool(false);
     forest.jumpToEndIf(skipSubtree);
 
     // if we're at the end of the current layer, step up to the next unfinished parent layer
