@@ -66,9 +66,7 @@ class MerkleList<T> implements MerkleListBase<T> {
   push(element: T) {
     let previousHash = this.hash;
     this.hash = this.nextHash(previousHash, element);
-    Provable.asProver(() => {
-      this.data.set([...this.data.get(), { previousHash, element }]);
-    });
+    this.data.updateAsProver((data) => [...data, { previousHash, element }]);
   }
 
   pushIf(condition: Bool, element: T) {
@@ -78,11 +76,9 @@ class MerkleList<T> implements MerkleListBase<T> {
       this.nextHash(previousHash, element),
       previousHash
     );
-    Provable.asProver(() => {
-      if (condition.toBoolean()) {
-        this.data.set([...this.data.get(), { previousHash, element }]);
-      }
-    });
+    this.data.updateAsProver((data) =>
+      condition.toBoolean() ? [...data, { previousHash, element }] : data
+    );
   }
 
   private popWitness() {
@@ -196,27 +192,19 @@ type MerkleListIterator<T> = {
   readonly hash: Field;
   readonly data: Unconstrained<WithHash<T>[]>;
 
+  /**
+   * The merkle list hash of `[data[currentIndex], ..., data[length-1]]` (when hashing from right to left).
+   *
+   * For example:
+   * - If `currentIndex === 0`, then `currentHash === this.hash` is the hash of the entire array.
+   * - If `currentIndex === length`, then `currentHash === emptyHash` is the hash of an empty array.
+   */
   currentHash: Field;
+  /**
+   * The index of the element that will be returned by the next call to `next()`.
+   */
   currentIndex: Unconstrained<number>;
 };
-
-function MerkleListIterator<T>(): ProvableHashable<MerkleListIterator<T>> {
-  return class extends Struct({
-    hash: Field,
-    data: Unconstrained.provable,
-    currentHash: Field,
-    currentIndex: Unconstrained.provable,
-  }) {
-    static empty(): MerkleListIterator<T> {
-      return {
-        hash: emptyHash,
-        data: Unconstrained.from([]),
-        currentHash: emptyHash,
-        currentIndex: Unconstrained.from(0),
-      };
-    }
-  };
-}
 
 /**
  * MerkleArray is similar to a MerkleList, but it maintains the entire array througout a computation,
@@ -244,7 +232,7 @@ class MerkleArray<T> implements MerkleListIterator<T> {
       data,
       hash,
       currentHash: hash,
-      currentIndex: Unconstrained.from(-1),
+      currentIndex: Unconstrained.from(0),
     });
   }
   assertAtStart() {
@@ -272,12 +260,10 @@ class MerkleArray<T> implements MerkleListIterator<T> {
   next() {
     // next corresponds to `pop()` in MerkleList
     // it returns a dummy element if we're at the end of the array
-    let index = Unconstrained.witness(() => this.currentIndex.get() + 1);
-
     let { previousHash, element } = Provable.witness(
       WithHash(this.innerProvable),
       () =>
-        this.data.get()[index.get()] ?? {
+        this.data.get()[this.currentIndex.get()] ?? {
           previousHash: emptyHash,
           element: this.innerProvable.empty(),
         }
@@ -288,7 +274,9 @@ class MerkleArray<T> implements MerkleListIterator<T> {
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
     this.currentHash.assertEquals(requiredHash);
 
-    this.currentIndex.setTo(index);
+    this.currentIndex.updateAsProver((i) =>
+      Math.min(i + 1, this.data.get().length)
+    );
     this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
 
     return Provable.if(
@@ -349,7 +337,7 @@ class MerkleArray<T> implements MerkleListIterator<T> {
           data: Unconstrained.from(arrayWithHashes),
           hash: currentHash,
           currentHash,
-          currentIndex: Unconstrained.from(-1),
+          currentIndex: Unconstrained.from(0),
         });
       }
 
