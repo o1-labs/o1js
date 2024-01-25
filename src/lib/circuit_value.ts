@@ -562,6 +562,16 @@ and Provable.asProver() blocks, which execute outside the proof.
     );
   }
 
+  /**
+   * Update an `Unconstrained` by a witness computation.
+   */
+  updateAsProver(compute: (value: T) => T) {
+    return Provable.asProver(() => {
+      let value = this.get();
+      this.set(compute(value));
+    });
+  }
+
   static provable: Provable<Unconstrained<any>> & {
     toInput: (x: Unconstrained<any>) => {
       fields?: Field[];
