@@ -9,7 +9,7 @@ import {
 } from '../../../index.js';
 import {
   MerkleArray,
-  MerkleArrayBase,
+  MerkleListBase,
   MerkleList,
   ProvableHashable,
   genericHash,
@@ -27,11 +27,11 @@ class HashedAccountUpdate extends Hashed.create(
 
 type CallTree = {
   accountUpdate: Hashed<AccountUpdate>;
-  calls: MerkleArrayBase<CallTree>;
+  calls: MerkleListBase<CallTree>;
 };
 const CallTree: ProvableHashable<CallTree> = Struct({
   accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleArrayBase<CallTree>(),
+  calls: MerkleListBase<CallTree>(),
 });
 
 class CallForest extends MerkleArray.create(CallTree, merkleListHash) {
