@@ -12,7 +12,6 @@ export {
   MerkleArray,
   WithHash,
   emptyHash,
-  ProvableHashable,
   genericHash,
   merkleListHash,
 };
