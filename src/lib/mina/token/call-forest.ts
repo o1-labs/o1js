@@ -16,7 +16,7 @@ import {
 } from './merkle-list.js';
 import { Field } from '../../core.js';
 
-export { CallForest, CallForestIterator, hashAccountUpdate };
+export { CallForest, CallForestArray, CallForestIterator, hashAccountUpdate };
 
 export { HashedAccountUpdate };
 
@@ -34,7 +34,7 @@ const CallTree: ProvableHashable<CallTree> = Struct({
   calls: MerkleListBase<CallTree>(),
 });
 
-class CallForest extends MerkleArray.create(CallTree, merkleListHash) {
+class CallForest extends MerkleList.create(CallTree, merkleListHash) {
   static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
     let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
@@ -46,8 +46,10 @@ class CallForest extends MerkleArray.create(CallTree, merkleListHash) {
   }
 }
 
+class CallForestArray extends MerkleArray.createFromList(CallForest) {}
+
 class Layer extends Struct({
-  forest: CallForest.provable,
+  forest: CallForestArray.provable,
   mayUseToken: AccountUpdate.MayUseToken.type,
 }) {}
 const ParentLayers = MerkleList.create<Layer>(Layer);
@@ -66,7 +68,11 @@ class CallForestIterator {
   unfinishedParentLayers: MerkleList<Layer>;
   selfToken: Field;
 
-  constructor(forest: CallForest, mayUseToken: MayUseToken, selfToken: Field) {
+  constructor(
+    forest: CallForestArray,
+    mayUseToken: MayUseToken,
+    selfToken: Field
+  ) {
     this.currentLayer = { forest, mayUseToken };
     this.unfinishedParentLayers = ParentLayers.empty();
     this.selfToken = selfToken;
@@ -74,7 +80,7 @@ class CallForestIterator {
 
   static create(forest: CallForest, selfToken: Field) {
     return new CallForestIterator(
-      forest,
+      CallForestArray.startIterating(forest),
       MayUseToken.ParentsOwnToken,
       selfToken
     );
@@ -95,7 +101,7 @@ class CallForestIterator {
     // get next account update from the current forest (might be a dummy)
     // and step down into the layer of its children
     let { accountUpdate, calls } = this.currentLayer.forest.next();
-    let forest = CallForest.startIterating(calls);
+    let forest = CallForestArray.startIterating(calls);
     let parentForest = this.currentLayer.forest;
 
     this.unfinishedParentLayers.pushIf(parentForest.isAtEnd().not(), {
