@@ -56,6 +56,7 @@ import {
   snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
+import { assert } from './gadgets/common.js';
 
 // external API
 export {
@@ -472,6 +473,11 @@ function wrapMethod(
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);
       accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
+
+      // assert that the callee account update has proof authorization. everything else would have much worse security trade-offs,
+      // because a one-time change of the callee semantics by using a signature could go unnoticed even if we monitor the callee's
+      // onchain verification key
+      assert(accountUpdate.body.authorizationKind.isProved, 'callee is proved');
 
       // assert that the inputs & outputs we have match what the callee put on its callData
       let callDataFields = computeCallData(
