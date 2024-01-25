@@ -9,7 +9,7 @@ export {
 } from './lib/foreign-field.js';
 export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
-export { Poseidon, TokenSymbol } from './lib/hash.js';
+export { Poseidon, TokenSymbol, ProvableHashable } from './lib/hash.js';
 export { Keccak } from './lib/keccak.js';
 export { Hash } from './lib/hashes-combined.js';
 
@@ -40,11 +40,7 @@ export { Packed, Hashed } from './lib/provable-types/packed.js';
 export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
-export {
-  MerkleList,
-  MerkleArray,
-  ProvableHashable,
-} from './lib/provable-types/merkle-list.js';
+export { MerkleList, MerkleArray } from './lib/provable-types/merkle-list.js';
 
 export * as Mina from './lib/mina.js';
 export type { DeployArgs } from './lib/zkapp.js';
