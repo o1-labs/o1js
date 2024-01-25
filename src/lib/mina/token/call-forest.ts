@@ -159,22 +159,6 @@ class CallForestIterator {
   }
 }
 
-// helper class to represent the position in a tree = the last visited node
-
-// every entry in the array is a layer
-// so if there are two entries, we last visited a node in the second layer
-// this index is the index of the node in that layer
-type TreePosition = { index: number; isDone: boolean }[];
-// const TreePosition = {
-//   stepDown(position: TreePosition, numberOfChildren: number) {
-//     position.push({ index: 0, isDone: false });
-//   },
-//   stepUp(position: TreePosition) {
-//     position.pop();
-//     position[position.length - 1].index++;
-//   },
-// };
-
 // how to hash a forest
 
 function merkleListHash(forestHash: Field, tree: CallTree) {
