@@ -1,12 +1,8 @@
-import {
-  AccountUpdate,
-  Bool,
-  DeployArgs,
-  Permissions,
-  PublicKey,
-  SmartContract,
-  UInt64,
-} from '../../../index.js';
+import { Bool } from '../../core.js';
+import { UInt64 } from '../../int.js';
+import { PublicKey } from '../../signature.js';
+import { AccountUpdate, Permissions } from '../../account_update.js';
+import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { CallForest, CallForestIterator } from './call-forest.js';
 
 export { TokenContract };

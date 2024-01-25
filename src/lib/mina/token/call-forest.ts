@@ -1,21 +1,17 @@
 import { prefixes } from '../../../provable/poseidon-bigint.js';
-import {
-  AccountUpdate,
-  Hashed,
-  Poseidon,
-  Provable,
-  Struct,
-  TokenId,
-  assert,
-} from '../../../index.js';
+import { AccountUpdate, TokenId } from '../../account_update.js';
+import { Field } from '../../core.js';
+import { Provable } from '../../provable.js';
+import { Struct } from '../../circuit_value.js';
+import { assert } from '../../gadgets/common.js';
+import { Poseidon, ProvableHashable } from '../../hash.js';
+import { Hashed } from '../../provable-types/packed.js';
 import {
   MerkleArray,
   MerkleListBase,
   MerkleList,
-  ProvableHashable,
   genericHash,
 } from '../../provable-types/merkle-list.js';
-import { Field } from '../../core.js';
 
 export { CallForest, CallForestArray, CallForestIterator, hashAccountUpdate };
 
