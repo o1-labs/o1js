@@ -13,7 +13,7 @@ import {
   MerkleList,
   ProvableHashable,
   genericHash,
-} from './merkle-list.js';
+} from '../../provable-types/merkle-list.js';
 import { Field } from '../../core.js';
 
 export { CallForest, CallForestArray, CallForestIterator, hashAccountUpdate };
