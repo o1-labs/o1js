@@ -154,8 +154,11 @@ class CallForestIterator {
     return { accountUpdate: update, usesThisToken };
   }
 
-  assertFinished() {
-    assert(this.currentLayer.forest.isAtEnd(), 'CallForest not finished');
+  assertFinished(message?: string) {
+    assert(
+      this.currentLayer.forest.isAtEnd(),
+      message ?? 'CallForest not finished'
+    );
   }
 }
 

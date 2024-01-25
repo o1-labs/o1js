@@ -2,66 +2,71 @@ import {
   AccountUpdate,
   Bool,
   DeployArgs,
-  Int64,
-  method,
-  Mina,
   Permissions,
-  Provable,
   PublicKey,
   SmartContract,
   UInt64,
 } from '../../../index.js';
 import { CallForest, CallForestIterator } from './call-forest.js';
 
-export { TransferableTokenContract };
+export { TokenContract };
 
 // it's fine to have this restriction, because the protocol also has a limit of ~20
 // TODO find out precise protocol limit
 const MAX_ACCOUNT_UPDATES = 20;
 
 /**
- * Attempt at a standardized token contract which seemlessly supports all of the following model use cases:
- *
- * **Transfer** { from, to, amount }, supporting the various configurations:
- *
- * - from `send: signature` to `receive: none` (classical end-user transfer)
- * - from `send: signature` to `receive: signature` (atypical end-user transfer)
- * - from `send: signature` to `receive: proof` (deposit into zkapp w/ strict setup)
- *
- * - from `send: proof` to `receive: none` (typical transfer from zkapp)
- * - from `send: proof` to `receive: signature` (transfer from zkapp to atypical end-user)
- * - from `send: proof` to `receive: proof` (transfer from zkapp to zkapp w/ strict setup)
+ * Base token contract which
+ * - implements the `Approvable` API with some easy bit left to be defined by subclasses
+ * - implements the `Transferable` API as a wrapper around the `Approvable` API
  */
-class TransferableTokenContract extends SmartContract {
-  // APPROVABLE API
+class TokenContract extends SmartContract {
+  // change default permissions - important that token contracts use an access permission
 
-  @method
-  approveUpdates(updatesList: CallForest) {
-    let forest = CallForestIterator.create(updatesList, this.token.id);
-    let totalBalanceChange = Int64.zero;
+  deploy(args?: DeployArgs) {
+    super.deploy(args);
+    this.account.permissions.set({
+      ...Permissions.default(),
+      access: Permissions.proofOrSignature(),
+    });
+  }
 
-    // iterate through the forest and accumulate balance changes
+  // APPROVABLE API has to be specified by subclasses,
+  // but the hard part is `approveEachUpdate()`
+
+  approveUpdates(_: CallForest) {
+    throw Error(
+      'TokenContract.approveUpdates() must be implemented by subclasses'
+    );
+  }
+
+  forEachUpdate(
+    updates: CallForest,
+    callback: (update: AccountUpdate, usesToken: Bool) => void
+  ) {
+    let forest = CallForestIterator.create(updates, this.token.id);
+
+    // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
       let { accountUpdate, usesThisToken } = forest.next();
 
-      totalBalanceChange = totalBalanceChange.add(
-        Provable.if(usesThisToken, accountUpdate.balanceChange, Int64.zero)
-      );
+      callback(accountUpdate, usesThisToken);
 
+      // add update to our children
       this.self.adopt(accountUpdate);
     }
 
     // prove that we checked all updates
-    forest.assertFinished();
-
-    // prove that the total balance change is zero
-    totalBalanceChange.assertEquals(0);
+    forest.assertFinished(
+      `Number of account updates to approve exceed ` +
+        `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
+    );
 
     // skip hashing our child account updates in the method wrapper
     // since we just did that in the loop above
     this.self.children.callsType = {
       type: 'WitnessEquals',
-      value: updatesList.hash,
+      value: updates.hash,
     };
   }
 
@@ -86,41 +91,4 @@ class TransferableTokenContract extends SmartContract {
     let forest = CallForest.fromAccountUpdates([from, to]);
     this.approveUpdates(forest);
   }
-
-  // BELOW: example implementation specific to this token
-
-  // constant supply
-  SUPPLY = UInt64.from(10n ** 18n);
-
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      access: Permissions.proofOrSignature(),
-    });
-  }
-
-  @method init() {
-    super.init();
-
-    // mint the entire supply to the token account with the same address as this contract
-    let receiver = this.token.mint({
-      address: this.address,
-      amount: this.SUPPLY,
-    });
-
-    // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.requireEquals(Bool(true));
-
-    // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
-  }
 }
-
-// TESTS
-
-TransferableTokenContract.analyzeMethods({ printSummary: true });
-
-console.time('compile');
-await TransferableTokenContract.compile();
-console.timeEnd('compile');
