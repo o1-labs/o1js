@@ -116,3 +116,11 @@ class TransferableTokenContract extends SmartContract {
     this.balance.subInPlace(Mina.accountCreationFee());
   }
 }
+
+// TESTS
+
+TransferableTokenContract.analyzeMethods({ printSummary: true });
+
+console.time('compile');
+await TransferableTokenContract.compile();
+console.timeEnd('compile');

@@ -1164,7 +1164,7 @@ super.init();
    *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
-  static analyzeMethods() {
+  static analyzeMethods({ printSummary = false } = {}) {
     let ZkappClass = this as typeof SmartContract;
     let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
@@ -1186,7 +1186,7 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, result, gates } = analyzeMethod(
+          let { rows, digest, result, gates, summary } = analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             (publicInput, publicKey, tokenId, ...args) => {
@@ -1206,6 +1206,7 @@ super.init();
             hasReturn: result !== undefined,
             gates,
           };
+          if (printSummary) console.log(methodIntf.methodName, summary());
         }
       } finally {
         if (insideSmartContract) smartContractContext.leave(id!);
