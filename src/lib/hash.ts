@@ -14,6 +14,7 @@ export { Poseidon, TokenSymbol };
 
 // internal API
 export {
+  ProvableHashable,
   HashInput,
   HashHelpers,
   emptyHashWithPrefix,
@@ -22,6 +23,11 @@ export {
   packToFields,
   emptyReceiptChainHash,
   hashConstant,
+};
+
+type ProvableHashable<T> = Provable<T> & {
+  toInput: (x: T) => HashInput;
+  empty: () => T;
 };
 
 class Sponge {

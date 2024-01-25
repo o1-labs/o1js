@@ -6,9 +6,9 @@ import {
   Struct,
   Unconstrained,
   assert,
-} from 'o1js';
+} from '../../../index.js';
 import { provableFromClass } from '../../../bindings/lib/provable-snarky.js';
-import { packToFields } from '../../hash.js';
+import { packToFields, ProvableHashable } from '../../hash.js';
 
 export {
   MerkleListBase,
@@ -32,6 +32,9 @@ function WithHash<T>(type: ProvableHashable<T>): ProvableHashable<WithHash<T>> {
   return Struct({ previousHash: Field, element: type });
 }
 
+/**
+ * Common base type for {@link MerkleList} and {@link MerkleArray}
+ */
 type MerkleListBase<T> = {
   hash: Field;
   data: Unconstrained<WithHash<T>[]>;
@@ -47,6 +50,25 @@ function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
 
 // merkle list
 
+/**
+ * Dynamic-length list which is represented as a single hash
+ *
+ * Supported operations are {@link push()} and {@link pop()} and some variants thereof.
+ *
+ * **Important:** `push()` adds elements to the _start_ of the internal array and `pop()` removes them from the start.
+ * This is so that the hash which represents the list is consistent with {@link MerkleArray},
+ * and so a `MerkleList` can be used as input to `MerkleArray.startIterating(list)` (which will then iterate starting from the last pushed element).
+ *
+ * A Merkle list is generic over its element types, so before using it you must create a subclass for your element type:
+ *
+ * ```ts
+ * class MyList extends MerkleList.create(MyType) {}
+ *
+ * // now use it
+ * let list = MyList.empty();
+ * list.push(new MyType(...));
+ * ```
+ */
 class MerkleList<T> implements MerkleListBase<T> {
   hash: Field;
   data: Unconstrained<WithHash<T>[]>;
@@ -59,14 +81,11 @@ class MerkleList<T> implements MerkleListBase<T> {
   isEmpty() {
     return this.hash.equals(emptyHash);
   }
-  notEmpty() {
-    return this.hash.equals(emptyHash).not();
-  }
 
   push(element: T) {
     let previousHash = this.hash;
     this.hash = this.nextHash(previousHash, element);
-    this.data.updateAsProver((data) => [...data, { previousHash, element }]);
+    this.data.updateAsProver((data) => [{ previousHash, element }, ...data]);
   }
 
   pushIf(condition: Bool, element: T) {
@@ -77,18 +96,18 @@ class MerkleList<T> implements MerkleListBase<T> {
       previousHash
     );
     this.data.updateAsProver((data) =>
-      condition.toBoolean() ? [...data, { previousHash, element }] : data
+      condition.toBoolean() ? [{ previousHash, element }, ...data] : data
     );
   }
 
   private popWitness() {
     return Provable.witness(WithHash(this.innerProvable), () => {
-      let value = this.data.get();
-      let head = value.at(-1) ?? {
+      let [value, ...data] = this.data.get();
+      let head = value ?? {
         previousHash: emptyHash,
         element: this.innerProvable.empty(),
       };
-      this.data.set(value.slice(0, -1));
+      this.data.set(data);
       return head;
     });
   }
@@ -96,8 +115,8 @@ class MerkleList<T> implements MerkleListBase<T> {
   popExn(): T {
     let { previousHash, element } = this.popWitness();
 
-    let requiredHash = this.nextHash(previousHash, element);
-    this.hash.assertEquals(requiredHash);
+    let currentHash = this.nextHash(previousHash, element);
+    this.hash.assertEquals(currentHash);
 
     this.hash = previousHash;
     return element;
@@ -105,11 +124,11 @@ class MerkleList<T> implements MerkleListBase<T> {
 
   pop(): T {
     let { previousHash, element } = this.popWitness();
-
     let isEmpty = this.isEmpty();
-    let correctHash = this.nextHash(previousHash, element);
-    let requiredHash = Provable.if(isEmpty, emptyHash, correctHash);
-    this.hash.assertEquals(requiredHash);
+
+    let currentHash = this.nextHash(previousHash, element);
+    currentHash = Provable.if(isEmpty, emptyHash, currentHash);
+    this.hash.assertEquals(currentHash);
 
     this.hash = Provable.if(isEmpty, emptyHash, previousHash);
     let provable = this.innerProvable;
@@ -123,6 +142,15 @@ class MerkleList<T> implements MerkleListBase<T> {
 
   /**
    * Create a Merkle list type
+   *
+   * Optionally, you can tell `create()` how to do the hash that pushed a new list element, by passing a `nextHash` function.
+   *
+   * @example
+   * ```ts
+   * class MyList extends MerkleList.create(Field, (hash, x) =>
+   *   Poseidon.hashWithPrefix('custom', [hash, x])
+   * ) {}
+   * ```
    */
   static create<T>(
     type: ProvableHashable<T>,
@@ -163,12 +191,12 @@ class MerkleList<T> implements MerkleListBase<T> {
     return this.constructor as typeof MerkleList;
   }
 
-  nextHash(hash: Field, t: T): Field {
+  nextHash(hash: Field, value: T): Field {
     assert(
       this.Constructor._nextHash !== undefined,
       'MerkleList not initialized'
     );
-    return this.Constructor._nextHash(hash, t);
+    return this.Constructor._nextHash(hash, value);
   }
 
   get innerProvable(): ProvableHashable<T> {
@@ -179,12 +207,6 @@ class MerkleList<T> implements MerkleListBase<T> {
     return this.Constructor._innerProvable;
   }
 }
-
-type HashInput = { fields?: Field[]; packed?: [Field, number][] };
-type ProvableHashable<T> = Provable<T> & {
-  toInput: (x: T) => HashInput;
-  empty: () => T;
-};
 
 // merkle array
 
