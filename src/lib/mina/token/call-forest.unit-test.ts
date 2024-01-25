@@ -88,25 +88,25 @@ test(flatAccountUpdates, (flatUpdates) => {
 });
 
 // traverses the top level of a call forest in correct order
-// i.e., CallForest.next() works
+// i.e., CallForestArray works
 
 test.custom({ timeBudget: 1000 })(flatAccountUpdates, (flatUpdates) => {
   // prepare call forest from flat account updates
   let updates = callForestToNestedArray(
     accountUpdatesToCallForest(flatUpdates)
   );
-  let forest = CallForest.fromAccountUpdates(updates);
+  let forest = CallForest.fromAccountUpdates(updates).startIterating();
 
   // step through top-level by calling forest.next() repeatedly
   let n = updates.length;
   for (let i = 0; i < n; i++) {
     let expected = updates[i];
-    let actual = forest.next().accountUpdate.value.get();
+    let actual = forest.next().accountUpdate.unhash();
     assertEqual(actual, expected);
   }
 
   // doing next() again should return a dummy
-  let actual = forest.next().accountUpdate.value.get();
+  let actual = forest.next().accountUpdate.unhash();
   assertEqual(actual, AccountUpdate.dummy());
 });
 
