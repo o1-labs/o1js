@@ -6,16 +6,89 @@ import {
   method,
   Mina,
   Permissions,
+  Provable,
   PublicKey,
   SmartContract,
   UInt64,
-  VerificationKey,
-} from 'o1js';
+} from '../../../index.js';
+import { CallForest, CallForestIterator } from './call-forest.js';
+
+export { TransferableTokenContract };
+
+// it's fine to have this restriction, because the protocol also has a limit of ~20
+// TODO find out precise protocol limit
+const MAX_ACCOUNT_UPDATES = 20;
 
 /**
- * Simple token with API flexible enough to handle all our use cases
+ * Attempt at a standardized token contract which seemlessly supports all of the following model use cases:
+ *
+ * **Transfer** { from, to, amount }, supporting the various configurations:
+ *
+ * - from `send: signature` to `receive: none` (classical end-user transfer)
+ * - from `send: signature` to `receive: signature` (atypical end-user transfer)
+ * - from `send: signature` to `receive: proof` (deposit into zkapp w/ strict setup)
+ *
+ * - from `send: proof` to `receive: none` (typical transfer from zkapp)
+ * - from `send: proof` to `receive: signature` (transfer from zkapp to atypical end-user)
+ * - from `send: proof` to `receive: proof` (transfer from zkapp to zkapp w/ strict setup)
  */
-class TokenContract extends SmartContract {
+class TransferableTokenContract extends SmartContract {
+  // APPROVABLE API
+
+  @method
+  approveUpdates(updatesList: CallForest) {
+    let forest = CallForestIterator.create(updatesList, this.token.id);
+    let totalBalanceChange = Int64.zero;
+
+    // iterate through the forest and accumulate balance changes
+    for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
+      let { accountUpdate, usesThisToken } = forest.next();
+
+      totalBalanceChange = totalBalanceChange.add(
+        Provable.if(usesThisToken, accountUpdate.balanceChange, Int64.zero)
+      );
+
+      this.self.adopt(accountUpdate);
+    }
+
+    // prove that we checked all updates
+    forest.assertFinished();
+
+    // prove that the total balance change is zero
+    totalBalanceChange.assertEquals(0);
+
+    // skip hashing our child account updates in the method wrapper
+    // since we just did that in the loop above
+    this.self.children.callsType = {
+      type: 'WitnessEquals',
+      value: updatesList.hash,
+    };
+  }
+
+  // TRANSFERABLE API - simple wrapper around Approvable API
+
+  transfer(
+    from: PublicKey | AccountUpdate,
+    to: PublicKey | AccountUpdate,
+    amount: UInt64
+  ) {
+    // coerce the inputs to AccountUpdate and pass to `approveUpdates()`
+    let tokenId = this.token.id;
+    if (from instanceof PublicKey) {
+      from = AccountUpdate.defaultAccountUpdate(from, tokenId);
+    }
+    if (to instanceof PublicKey) {
+      to = AccountUpdate.defaultAccountUpdate(to, tokenId);
+    }
+    from.balance.subInPlace(amount);
+    to.balance.addInPlace(amount);
+
+    let forest = CallForest.fromAccountUpdates([from, to]);
+    this.approveUpdates(forest);
+  }
+
+  // BELOW: example implementation specific to this token
+
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
 
@@ -41,69 +114,5 @@ class TokenContract extends SmartContract {
 
     // pay fees for opened account
     this.balance.subInPlace(Mina.accountCreationFee());
-  }
-
-  // this is a very standardized deploy method. instead, we could also take the account update from a callback
-  // => need callbacks for signatures
-  @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
-    let tokenId = this.token.id;
-    let zkapp = AccountUpdate.create(address, tokenId);
-    zkapp.account.permissions.set(Permissions.default());
-    zkapp.account.verificationKey.set(verificationKey);
-    zkapp.requireSignature();
-  }
-
-  @method approveUpdate(zkappUpdate: AccountUpdate) {
-    this.approve(zkappUpdate);
-    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
-    balanceChange.assertEquals(Int64.from(0));
-  }
-
-  // FIXME: remove this
-  @method approveAny(zkappUpdate: AccountUpdate) {
-    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
-  }
-
-  // let a zkapp send tokens to someone, provided the token supply stays constant
-  @method approveUpdateAndSend(
-    zkappUpdate: AccountUpdate,
-    to: PublicKey,
-    amount: UInt64
-  ) {
-    // approve a layout of two grandchildren, both of which can't inherit the token permission
-    let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
-    this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
-    zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
-    let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
-    grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
-    grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
-
-    // see if balance change cancels the amount sent
-    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
-    balanceChange.assertEquals(Int64.from(amount).neg());
-    // add same amount of tokens to the receiving address
-    this.token.mint({ address: to, amount });
-  }
-
-  transfer(from: PublicKey, to: PublicKey | AccountUpdate, amount: UInt64) {
-    if (to instanceof PublicKey)
-      return this.transferToAddress(from, to, amount);
-    if (to instanceof AccountUpdate)
-      return this.transferToUpdate(from, to, amount);
-  }
-  @method transferToAddress(from: PublicKey, to: PublicKey, value: UInt64) {
-    this.token.send({ from, to, amount: value });
-  }
-  @method transferToUpdate(from: PublicKey, to: AccountUpdate, value: UInt64) {
-    this.token.send({ from, to, amount: value });
-  }
-
-  @method getBalance(publicKey: PublicKey): UInt64 {
-    let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
-    let balance = accountUpdate.account.balance.get();
-    accountUpdate.account.balance.requireEquals(
-      accountUpdate.account.balance.get()
-    );
-    return balance;
   }
 }

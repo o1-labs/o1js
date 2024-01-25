@@ -6,6 +6,7 @@ import {
   Provable,
   Struct,
   TokenId,
+  assert,
 } from '../../../index.js';
 import {
   MerkleArray,
@@ -151,6 +152,10 @@ class CallForestIterator {
     );
 
     return { accountUpdate: update, usesThisToken };
+  }
+
+  assertFinished() {
+    assert(this.currentLayer.forest.isAtEnd(), 'CallForest not finished');
   }
 }
 

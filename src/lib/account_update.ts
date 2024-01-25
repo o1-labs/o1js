@@ -671,7 +671,8 @@ class AccountUpdate implements Types.AccountUpdate {
     callsType:
       | { type: 'None' }
       | { type: 'Witness' }
-      | { type: 'Equals'; value: Field };
+      | { type: 'Equals'; value: Field }
+      | { type: 'WitnessEquals'; value: Field };
     accountUpdates: AccountUpdate[];
   } = {
     callsType: { type: 'None' },
@@ -874,6 +875,13 @@ class AccountUpdate implements Types.AccountUpdate {
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
+  /**
+   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this.
+   */
+  adopt(childUpdate: AccountUpdate) {
+    makeChildAccountUpdate(this, childUpdate);
+  }
+
   get balance() {
     let accountUpdate = this;
 
@@ -887,6 +895,13 @@ class AccountUpdate implements Types.AccountUpdate {
         accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
       },
     };
+  }
+
+  get balanceChange() {
+    return Int64.fromObject(this.body.balanceChange);
+  }
+  set balanceChange(x: Int64) {
+    this.body.balanceChange = x;
   }
 
   get update(): Update {
@@ -1610,6 +1625,9 @@ const CallForest = {
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
       return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
+    }
+    if (callsType.type === 'WitnessEquals') {
+      return callsType.value;
     }
     let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals' && Provable.inCheckedComputation()) {
