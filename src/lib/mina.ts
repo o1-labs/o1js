@@ -33,6 +33,7 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
+import { NetworkId } from 'src/mina-signer/src/TSTypes.js';
 
 export {
   createTransaction,
@@ -65,8 +66,11 @@ export {
   getProofsEnabled,
   // for internal testing only
   filterGroups,
-  type NetworkConstants
+  type NetworkConstants,
+  networkId
 };
+
+let networkId: NetworkId = 'testnet';
 
 interface TransactionId {
   isSuccess: boolean;
@@ -685,22 +689,21 @@ function LocalBlockchain({
 // assert type compatibility without preventing LocalBlockchain to return additional properties / methods
 LocalBlockchain satisfies (...args: any) => Mina;
 
+type MinaNetworkEndpoints = {
+  mina: string | string[];
+  archive?: string | string[];
+  lightnetAccountManager?: string;
+};
+
 /**
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(endpoints: {
-  mina: string | string[];
-  archive?: string | string[];
-  lightnetAccountManager?: string;
-}): Mina;
+function Network(endpoints: MinaNetworkEndpoints): Mina;
 function Network(
   input:
-    | {
-        mina: string | string[];
-        archive?: string | string[];
-        lightnetAccountManager?: string;
-      }
+    | { networkId: NetworkId; endpoints: MinaNetworkEndpoints }
+    | MinaNetworkEndpoints
     | string
 ): Mina {
   let minaGraphqlEndpoint: string;
@@ -711,6 +714,10 @@ function Network(
     minaGraphqlEndpoint = input;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (input && typeof input === 'object') {
+    if ('endpoints' in input) {
+      networkId = input.networkId;
+      input = input.endpoints;
+    }
     if (!input.mina)
       throw new Error(
         "Network: malformed input. Please provide an object with 'mina' endpoint."
@@ -1406,7 +1413,7 @@ async function verifyAccountUpdate(
       isValidSignature = verifyAccountUpdateSignature(
         TypesBigint.AccountUpdate.fromJSON(accountUpdateJson),
         transactionCommitments,
-        'testnet'
+        networkId
       );
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;

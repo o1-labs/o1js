@@ -1,6 +1,6 @@
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import * as Json from './src/TSTypes.js';
-import type { SignedLegacy, Signed, Network } from './src/TSTypes.js';
+import type { SignedLegacy, Signed, NetworkId } from './src/TSTypes.js';
 
 import {
   isPayment,
@@ -39,9 +39,9 @@ export { Client as default };
 const defaultValidUntil = '4294967295';
 
 class Client {
-  private network: Network;
+  private network: NetworkId; // TODO: Rename to "networkId" for consistency with remaining codebase.
 
-  constructor(options: { network: Network }) {
+  constructor(options: { network: NetworkId }) {
     if (!options?.network) {
       throw Error('Invalid Specified Network');
     }
@@ -124,7 +124,7 @@ class Client {
    */
   signFields(fields: bigint[], privateKey: Json.PrivateKey): Signed<bigint[]> {
     let privateKey_ = PrivateKey.fromBase58(privateKey);
-    let signature = sign({ fields }, privateKey_, 'testnet');
+    let signature = sign({ fields }, privateKey_, this.network);
     return {
       signature: Signature.toBase58(signature),
       publicKey: PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_)),
@@ -144,7 +144,7 @@ class Client {
       Signature.fromBase58(signature),
       { fields: data },
       PublicKey.fromBase58(publicKey),
-      'testnet'
+      this.network
     );
   }
 
