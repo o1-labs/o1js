@@ -1,11 +1,10 @@
 import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './errors.js';
-import { Provable } from './provable.js';
-import { chunk } from './util/arrays.js';
 import { FlexibleBytes } from './provable-types/bytes.js';
 import { UInt8 } from './int.js';
 import { Bytes } from './provable-types/provable-types.js';
+import { bytesToWords, wordsToBytes } from './gadgets/bit-slices.js';
 
 export { Keccak };
 
@@ -507,39 +506,6 @@ const BytesOfBitlength = {
   384: Bytes48,
   512: Bytes64,
 };
-
-// AUXILIARY FUNCTIONS
-
-// Auxiliary functions to check the composition of 8 byte values (LE) into a 64-bit word and create constraints for it
-
-function bytesToWord(wordBytes: UInt8[]): Field {
-  return wordBytes.reduce((acc, byte, idx) => {
-    const shift = 1n << BigInt(8 * idx);
-    return acc.add(byte.value.mul(shift));
-  }, Field.from(0));
-}
-
-function wordToBytes(word: Field): UInt8[] {
-  let bytes = Provable.witness(Provable.Array(UInt8, BYTES_PER_WORD), () => {
-    let w = word.toBigInt();
-    return Array.from({ length: BYTES_PER_WORD }, (_, k) =>
-      UInt8.from((w >> BigInt(8 * k)) & 0xffn)
-    );
-  });
-
-  // check decomposition
-  bytesToWord(bytes).assertEquals(word);
-
-  return bytes;
-}
-
-function bytesToWords(bytes: UInt8[]): Field[] {
-  return chunk(bytes, BYTES_PER_WORD).map(bytesToWord);
-}
-
-function wordsToBytes(words: Field[]): UInt8[] {
-  return words.flatMap(wordToBytes);
-}
 
 // xor which avoids doing anything on 0 inputs
 // (but doesn't range-check the other input in that case)
