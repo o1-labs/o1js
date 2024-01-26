@@ -19,7 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- Improve performance of Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+- Improve performance of Wasm Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+  - Speeds up local blockchain tests without proving by ~40%
+- Improve performance of Field inverse https://github.com/o1-labs/o1js/pull/1373
+  - Speeds up proving by ~2-4%
 
 ## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
 
