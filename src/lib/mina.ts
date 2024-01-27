@@ -33,7 +33,8 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
-import { NetworkId } from 'src/mina-signer/src/TSTypes.js';
+import { NetworkId } from '../mina-signer/src/TSTypes.js';
+import * as Config from './mina/config.js';
 
 export {
   createTransaction,
@@ -67,10 +68,7 @@ export {
   // for internal testing only
   filterGroups,
   type NetworkConstants,
-  networkId
 };
-
-let networkId: NetworkId = 'testnet';
 
 interface TransactionId {
   isSuccess: boolean;
@@ -715,7 +713,7 @@ function Network(
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (input && typeof input === 'object') {
     if ('endpoints' in input) {
-      networkId = input.networkId;
+      Config.setNetworkId(input.networkId);
       input = input.endpoints;
     }
     if (!input.mina)
@@ -1413,7 +1411,7 @@ async function verifyAccountUpdate(
       isValidSignature = verifyAccountUpdateSignature(
         TypesBigint.AccountUpdate.fromJSON(accountUpdateJson),
         transactionCommitments,
-        networkId
+        Config.getNetworkId()
       );
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;
