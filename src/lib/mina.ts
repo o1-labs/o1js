@@ -699,7 +699,7 @@ type MinaNetworkEndpoints = {
 function Network(graphqlEndpoint: string): Mina;
 function Network(endpoints: MinaNetworkEndpoints): Mina;
 function Network(
-  input:
+  options:
     | { networkId: NetworkId; endpoints: MinaNetworkEndpoints }
     | MinaNetworkEndpoints
     | string
@@ -708,43 +708,43 @@ function Network(
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
 
-  if (input && typeof input === 'string') {
-    minaGraphqlEndpoint = input;
+  if (options && typeof options === 'string') {
+    minaGraphqlEndpoint = options;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
-  } else if (input && typeof input === 'object') {
-    if ('endpoints' in input) {
-      Config.setNetworkId(input.networkId);
-      input = input.endpoints;
+  } else if (options && typeof options === 'object') {
+    if ('endpoints' in options) {
+      Config.setNetworkId(options.networkId);
+      options = options.endpoints;
     }
-    if (!input.mina)
+    if (!options.mina)
       throw new Error(
         "Network: malformed input. Please provide an object with 'mina' endpoint."
       );
-    if (Array.isArray(input.mina) && input.mina.length !== 0) {
-      minaGraphqlEndpoint = input.mina[0];
+    if (Array.isArray(options.mina) && options.mina.length !== 0) {
+      minaGraphqlEndpoint = options.mina[0];
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
-      Fetch.setMinaGraphqlFallbackEndpoints(input.mina.slice(1));
-    } else if (typeof input.mina === 'string') {
-      minaGraphqlEndpoint = input.mina;
+      Fetch.setMinaGraphqlFallbackEndpoints(options.mina.slice(1));
+    } else if (typeof options.mina === 'string') {
+      minaGraphqlEndpoint = options.mina;
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
     }
 
-    if (input.archive !== undefined) {
-      if (Array.isArray(input.archive) && input.archive.length !== 0) {
-        archiveEndpoint = input.archive[0];
+    if (options.archive !== undefined) {
+      if (Array.isArray(options.archive) && options.archive.length !== 0) {
+        archiveEndpoint = options.archive[0];
         Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
-        Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
-      } else if (typeof input.archive === 'string') {
-        archiveEndpoint = input.archive;
+        Fetch.setArchiveGraphqlFallbackEndpoints(options.archive.slice(1));
+      } else if (typeof options.archive === 'string') {
+        archiveEndpoint = options.archive;
         Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
       }
     }
 
     if (
-      input.lightnetAccountManager !== undefined &&
-      typeof input.lightnetAccountManager === 'string'
+      options.lightnetAccountManager !== undefined &&
+      typeof options.lightnetAccountManager === 'string'
     ) {
-      lightnetAccountManagerEndpoint = input.lightnetAccountManager;
+      lightnetAccountManagerEndpoint = options.lightnetAccountManager;
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
   } else {
