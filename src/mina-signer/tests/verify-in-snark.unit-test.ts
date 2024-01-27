@@ -4,11 +4,13 @@ import Client from '../MinaSigner.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
 import { expect } from 'expect';
 import { Provable } from '../../lib/provable.js';
+import * as MinaConfig from '../../lib/mina/config.js';
 
 let fields = [10n, 20n, 30n, 340817401n, 2091283n, 1n, 0n];
 let privateKey = 'EKENaWFuAiqktsnWmxq8zaoR8bSgVdscsghJE5tV6hPoNm8qBKWM';
 
 // sign with mina-signer
+MinaConfig.setNetworkId('mainnet');
 let client = new Client({ network: 'mainnet' });
 let signed = client.signFields(fields, privateKey);
 

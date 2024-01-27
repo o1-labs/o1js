@@ -33,7 +33,7 @@ import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
-import * as Config from './mina/config.js';
+import * as MinaConfig from './mina/config.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1935,7 +1935,7 @@ function addMissingSignatures(
     let signature = signFieldElement(
       fullCommitment,
       privateKey.toBigInt(),
-      Config.getNetworkId()
+      MinaConfig.getNetworkId()
     );
     return { body, authorization: Signature.toBase58(signature) };
   }
@@ -1968,7 +1968,7 @@ function addMissingSignatures(
     let signature = signFieldElement(
       transactionCommitment,
       privateKey.toBigInt(),
-      Config.getNetworkId()
+      MinaConfig.getNetworkId()
     );
     Authorization.setSignature(accountUpdate, Signature.toBase58(signature));
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };

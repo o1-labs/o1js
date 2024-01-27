@@ -14,7 +14,7 @@ import {
 import { prefixes } from '../bindings/crypto/constants.js';
 import { constantScalarToBigint } from './scalar.js';
 import { toConstantField } from './field.js';
-import * as Config from './mina/config.js';
+import * as MinaConfig from './mina/config.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -244,13 +244,13 @@ class Signature extends CircuitValue {
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
         BigInt(d.toJSON()),
-        Config.getNetworkId()
+        MinaConfig.getNetworkId()
       )
     );
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
-      Config.getNetworkId() === 'mainnet'
+      MinaConfig.getNetworkId() === 'mainnet'
         ? prefixes.signatureMainnet
         : prefixes.signatureTestnet,
       msg.concat([publicKey.x, publicKey.y, r])
@@ -269,7 +269,7 @@ class Signature extends CircuitValue {
   verify(publicKey: PublicKey, msg: Field[]): Bool {
     const point = publicKey.toGroup();
     let h = hashWithPrefix(
-      Config.getNetworkId() === 'mainnet'
+      MinaConfig.getNetworkId() === 'mainnet'
         ? prefixes.signatureMainnet
         : prefixes.signatureTestnet,
       msg.concat([point.x, point.y, this.r])
