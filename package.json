@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "keywords": [
@@ -44,8 +44,8 @@
   "scripts": {
     "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
     "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/buildNode.js",
-    "build:bindings": "./src/bindings/scripts/build-snarkyjs-node.sh",
-    "build:update-bindings": "./src/bindings/scripts/update-snarkyjs-bindings.sh",
+    "build:bindings": "./src/bindings/scripts/build-o1js-node.sh",
+    "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "npm run build && rimraf ./dist/examples && npx tsc -p tsconfig.examples.json",
