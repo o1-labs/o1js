@@ -43,6 +43,17 @@ for (let Curve of curves) {
     msg: scalar,
     publicKey: record({ x: field, y: field }),
   });
+  badSignature.rng = Random.withHardCoded(badSignature.rng, {
+    signature: {
+      r: 3243632040670678816425112099743675011873398345579979202080647260629177216981n,
+      s: 0n,
+    },
+    msg: 0n,
+    publicKey: {
+      x: 28948022309329048855892746252171976963363056481941560715954676764349967630336n,
+      y: 2n,
+    },
+  });
 
   let signatureInputs = record({ privateKey, msg: scalar });
 
