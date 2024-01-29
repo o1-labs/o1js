@@ -1,20 +1,14 @@
-import { Bool, Int64, method, Mina, Provable, UInt64 } from '../../../index.js';
-import { CallForest } from './call-forest.js';
-import { TokenContract } from './token-contract.js';
+import {
+  Bool,
+  Int64,
+  method,
+  Mina,
+  Provable,
+  UInt64,
+  CallForest,
+  TokenContract,
+} from '../../../index.js';
 
-/**
- * Attempt at a standardized token contract which seemlessly supports all of the following model use cases:
- *
- * **Transfer** { from, to, amount }, supporting the various configurations:
- *
- * - from `send: signature` to `receive: none` (classical end-user transfer)
- * - from `send: signature` to `receive: signature` (atypical end-user transfer)
- * - from `send: signature` to `receive: proof` (deposit into zkapp w/ strict setup)
- *
- * - from `send: proof` to `receive: none` (typical transfer from zkapp)
- * - from `send: proof` to `receive: signature` (transfer from zkapp to atypical end-user)
- * - from `send: proof` to `receive: proof` (transfer from zkapp to zkapp w/ strict setup)
- */
 class ExampleTokenContract extends TokenContract {
   // APPROVABLE API
 
