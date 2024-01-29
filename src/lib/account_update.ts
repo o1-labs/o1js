@@ -1620,6 +1620,10 @@ const CallForest = {
   // hashes a accountUpdate's children (and their children, and ...) to compute
   // the `calls` field of ZkappPublicInput
   hashChildren(update: AccountUpdate): Field {
+    if (!Provable.inCheckedComputation()) {
+      return CallForest.hashChildrenBase(update);
+    }
+
     let { callsType } = update.children;
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
@@ -1630,7 +1634,7 @@ const CallForest = {
       return callsType.value;
     }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals' && Provable.inCheckedComputation()) {
+    if (callsType.type === 'Equals') {
       calls.assertEquals(callsType.value);
     }
     return calls;

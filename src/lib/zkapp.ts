@@ -446,16 +446,11 @@ function wrapMethod(
       };
 
       // we have to run the called contract inside a witness block, to not affect the caller's circuit
-      // however, if this is a nested call -- the caller is already called by another contract --,
-      // then we're already in a witness block, and shouldn't open another one
-      let { accountUpdate, result } =
-        methodCallDepth === 0
-          ? AccountUpdate.witness<any>(
-              returnType ?? provable(null),
-              runCalledContract,
-              { skipCheck: true }
-            )
-          : runCalledContract();
+      let { accountUpdate, result } = AccountUpdate.witness<any>(
+        returnType ?? provable(null),
+        runCalledContract,
+        { skipCheck: true }
+      );
 
       // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
