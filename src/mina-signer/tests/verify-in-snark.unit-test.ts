@@ -19,18 +19,14 @@ expect(ok).toEqual(true);
 // sign with o1js and check that we get the same signature
 let fieldsSnarky = fields.map(Field);
 let privateKeySnarky = PrivateKey.fromBase58(privateKey);
-let signatureSnarky = Signature.create(
-  privateKeySnarky,
-  fieldsSnarky,
-  client.getNetworkId()
-);
+let signatureSnarky = Signature.create(privateKeySnarky, fieldsSnarky);
 expect(signatureSnarky.toBase58()).toEqual(signed.signature);
 
 // verify out-of-snark with o1js
 let publicKey = privateKeySnarky.toPublicKey();
 let signature = Signature.fromBase58(signed.signature);
 Provable.assertEqual(Signature, signature, signatureSnarky);
-signature.verify(publicKey, fieldsSnarky, client.getNetworkId()).assertTrue();
+signature.verify(publicKey, fieldsSnarky).assertTrue();
 
 // verify in-snark with o1js
 const Message = Provable.Array(Field, fields.length);
@@ -41,9 +37,7 @@ const MyProgram = ZkProgram({
     verifySignature: {
       privateInputs: [Signature, Message],
       method(signature: Signature, message: Field[]) {
-        signature
-          .verify(publicKey, message, client.getNetworkId())
-          .assertTrue();
+        signature.verify(publicKey, message).assertTrue();
       },
     },
   },
@@ -61,9 +55,7 @@ let invalidSigned = client.signFields(fields, wrongKey);
 let invalidSignature = Signature.fromBase58(invalidSigned.signature);
 
 // can't verify out of snark
-invalidSignature
-  .verify(publicKey, fieldsSnarky, client.getNetworkId())
-  .assertFalse();
+invalidSignature.verify(publicKey, fieldsSnarky).assertFalse();
 
 // can't verify in snark
 await expect(() =>
@@ -76,7 +68,7 @@ let wrongFields = [...fieldsSnarky];
 wrongFields[0] = wrongFields[0].add(1);
 
 // can't verify out of snark
-signature.verify(publicKey, wrongFields, client.getNetworkId()).assertFalse();
+signature.verify(publicKey, wrongFields).assertFalse();
 
 // can't verify in snark
 await expect(() =>

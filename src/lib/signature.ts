@@ -14,7 +14,6 @@ import {
 import { prefixes } from '../bindings/crypto/constants.js';
 import { constantScalarToBigint } from './scalar.js';
 import { toConstantField } from './field.js';
-import { NetworkId } from 'src/mina-signer/src/TSTypes.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -236,7 +235,7 @@ class Signature extends CircuitValue {
    * Signs a message using a {@link PrivateKey}.
    * @returns a {@link Signature}
    */
-  static create(privKey: PrivateKey, msg: Field[], networkId: NetworkId = 'testnet'): Signature {
+  static create(privKey: PrivateKey, msg: Field[]): Signature {
     const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
     const kPrime = Scalar.fromBigInt(
@@ -244,15 +243,13 @@ class Signature extends CircuitValue {
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
         BigInt(d.toJSON()),
-        networkId
+        'testnet'
       )
     );
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
-      networkId === 'mainnet'
-        ? prefixes.signatureMainnet
-        : prefixes.signatureTestnet,
+      prefixes.signatureTestnet,
       msg.concat([publicKey.x, publicKey.y, r])
     );
     // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
@@ -266,12 +263,10 @@ class Signature extends CircuitValue {
    * Verifies the {@link Signature} using a message and the corresponding {@link PublicKey}.
    * @returns a {@link Bool}
    */
-  verify(publicKey: PublicKey, msg: Field[], networkId: NetworkId = 'testnet'): Bool {
+  verify(publicKey: PublicKey, msg: Field[]): Bool {
     const point = publicKey.toGroup();
     let h = hashWithPrefix(
-      networkId === 'mainnet'
-        ? prefixes.signatureMainnet
-        : prefixes.signatureTestnet,
+      prefixes.signatureTestnet,
       msg.concat([point.x, point.y, this.r])
     );
     // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
