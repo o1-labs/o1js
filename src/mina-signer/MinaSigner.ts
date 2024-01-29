@@ -124,7 +124,7 @@ class Client {
    */
   signFields(fields: bigint[], privateKey: Json.PrivateKey): Signed<bigint[]> {
     let privateKey_ = PrivateKey.fromBase58(privateKey);
-    let signature = sign({ fields }, privateKey_, this.network);
+    let signature = sign({ fields }, privateKey_, 'testnet');
     return {
       signature: Signature.toBase58(signature),
       publicKey: PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_)),

@@ -34,7 +34,6 @@ import {
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
 import { NetworkId } from '../mina-signer/src/TSTypes.js';
-import * as MinaConfig from './mina/config.js';
 
 export {
   createTransaction,
@@ -53,6 +52,7 @@ export {
   getAccount,
   hasAccount,
   getBalance,
+  getNetworkId,
   getNetworkConstants,
   getNetworkState,
   accountCreationFee,
@@ -376,6 +376,7 @@ interface Mina {
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
+  getNetworkId(): NetworkId;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -391,12 +392,23 @@ const defaultNetworkConstants: NetworkConstants = {
 function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
+  networkId = 'testnet' as NetworkId,
 } = {}) {
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
   const ledger = Ledger.create();
   let networkState = defaultNetworkState();
+  let minaNetworkId: NetworkId = 'testnet';
+
+  if (networkId) {
+    if (networkId !== 'mainnet' && networkId !== 'testnet') {
+      throw Error(
+        "Invalid network id specified. Please use 'mainnet' or 'testnet'"
+      );
+    }
+    minaNetworkId = networkId;
+  }
 
   function addAccount(publicKey: PublicKey, balance: string) {
     ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
@@ -423,6 +435,7 @@ function LocalBlockchain({
   > = {};
 
   return {
+    getNetworkId: () => minaNetworkId,
     proofsEnabled,
     /**
    * @deprecated use {@link Mina.getNetworkConstants}
@@ -496,7 +509,8 @@ function LocalBlockchain({
             account,
             update,
             commitments,
-            this.proofsEnabled
+            this.proofsEnabled,
+            this.getNetworkId()
           );
         }
       }
@@ -687,23 +701,27 @@ function LocalBlockchain({
 // assert type compatibility without preventing LocalBlockchain to return additional properties / methods
 LocalBlockchain satisfies (...args: any) => Mina;
 
-type MinaNetworkEndpoints = {
-  mina: string | string[];
-  archive?: string | string[];
-  lightnetAccountManager?: string;
-};
-
 /**
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(endpoints: MinaNetworkEndpoints): Mina;
+function Network(options: {
+  networkId?: NetworkId;
+  mina: string | string[];
+  archive?: string | string[];
+  lightnetAccountManager?: string;
+}): Mina;
 function Network(
   options:
-    | { networkId: NetworkId; endpoints: MinaNetworkEndpoints }
-    | MinaNetworkEndpoints
+    | {
+        networkId?: NetworkId;
+        mina: string | string[];
+        archive?: string | string[];
+        lightnetAccountManager?: string;
+      }
     | string
 ): Mina {
+  let minaNetworkId: NetworkId = 'testnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
@@ -712,9 +730,13 @@ function Network(
     minaGraphqlEndpoint = options;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (options && typeof options === 'object') {
-    if ('endpoints' in options) {
-      MinaConfig.setNetworkId(options.networkId);
-      options = options.endpoints;
+    if (options.networkId) {
+      if (options.networkId !== 'mainnet' && options.networkId !== 'testnet') {
+        throw Error(
+          "Invalid network id specified. Please use 'mainnet' or 'testnet'"
+        );
+      }
+      minaNetworkId = options.networkId;
     }
     if (!options.mina)
       throw new Error(
@@ -754,6 +776,7 @@ function Network(
   }
 
   return {
+    getNetworkId: () => minaNetworkId,
     /**
    * @deprecated use {@link Mina.getNetworkConstants}
    */
@@ -1018,6 +1041,7 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 }
 
 let activeInstance: Mina = {
+  getNetworkId: () => 'testnet',
   /**
    * @deprecated use {@link Mina.getNetworkConstants}
    */
@@ -1205,6 +1229,13 @@ function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
 }
 
 /**
+ * @return The current Mina network ID.
+ */
+function getNetworkId() {
+  return activeInstance.getNetworkId();
+}
+
+/**
  * @return Data associated with the current Mina network constants.
  */
 function getNetworkConstants() {
@@ -1303,7 +1334,8 @@ async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
   transactionCommitments: { commitment: bigint; fullCommitment: bigint },
-  proofsEnabled: boolean
+  proofsEnabled: boolean,
+  networkId: NetworkId
 ): Promise<void> {
   // check that that top-level updates have mayUseToken = No
   // (equivalent check exists in the Mina node)
@@ -1411,7 +1443,7 @@ async function verifyAccountUpdate(
       isValidSignature = verifyAccountUpdateSignature(
         TypesBigint.AccountUpdate.fromJSON(accountUpdateJson),
         transactionCommitments,
-        MinaConfig.getNetworkId()
+        networkId
       );
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;

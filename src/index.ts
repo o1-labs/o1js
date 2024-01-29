@@ -40,7 +40,6 @@ export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export * as Mina from './lib/mina.js';
-export * as MinaConfig from './lib/mina/config.js';
 export type { DeployArgs } from './lib/zkapp.js';
 export {
   SmartContract,
