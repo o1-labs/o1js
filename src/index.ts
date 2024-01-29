@@ -41,6 +41,10 @@ export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export { MerkleList, MerkleArray } from './lib/provable-types/merkle-list.js';
+export {
+  CallForest,
+  CallForestIterator,
+} from './lib/mina/token/call-forest.js';
 
 export * as Mina from './lib/mina.js';
 export type { DeployArgs } from './lib/zkapp.js';
