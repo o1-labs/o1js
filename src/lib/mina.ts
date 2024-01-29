@@ -399,16 +399,7 @@ function LocalBlockchain({
   const genesisTimestamp = UInt64.from(startTime);
   const ledger = Ledger.create();
   let networkState = defaultNetworkState();
-  let minaNetworkId: NetworkId = 'testnet';
-
-  if (networkId) {
-    if (networkId !== 'mainnet' && networkId !== 'testnet') {
-      throw Error(
-        "Invalid network id specified. Please use 'mainnet' or 'testnet'"
-      );
-    }
-    minaNetworkId = networkId;
-  }
+  let minaNetworkId: NetworkId = networkId;
 
   function addAccount(publicKey: PublicKey, balance: string) {
     ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
@@ -731,11 +722,6 @@ function Network(
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (options && typeof options === 'object') {
     if (options.networkId) {
-      if (options.networkId !== 'mainnet' && options.networkId !== 'testnet') {
-        throw Error(
-          "Invalid network id specified. Please use 'mainnet' or 'testnet'"
-        );
-      }
       minaNetworkId = options.networkId;
     }
     if (!options.mina)
