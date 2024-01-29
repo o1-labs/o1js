@@ -1,5 +1,6 @@
 import { Bool } from '../../core.js';
-import { UInt64 } from '../../int.js';
+import { UInt64, Int64 } from '../../int.js';
+import { Provable } from '../../provable.js';
 import { PublicKey } from '../../signature.js';
 import { AccountUpdate, Permissions } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
@@ -28,7 +29,7 @@ class TokenContract extends SmartContract {
   }
 
   // APPROVABLE API has to be specified by subclasses,
-  // but the hard part is `approveEachUpdate()`
+  // but the hard part is `forEachUpdate()`
 
   approveUpdates(_: CallForest) {
     throw Error(
@@ -36,6 +37,11 @@ class TokenContract extends SmartContract {
     );
   }
 
+  /**
+   * Iterate through the account updates in `updates` and apply `callback` to each.
+   *
+   * This method is provable and is suitable as a base for implementing `approveUpdates()`.
+   */
   forEachUpdate(
     updates: CallForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
@@ -66,8 +72,36 @@ class TokenContract extends SmartContract {
     };
   }
 
+  /**
+   * Use `forEachUpdate()` to prove that the total balance change of child account updates is zero.
+   *
+   * This is provided out of the box as it is both a good example, and probably the most common implementation, of `approveUpdates()`.
+   */
+  checkZeroBalanceChange(updates: CallForest) {
+    let totalBalanceChange = Int64.zero;
+
+    this.forEachUpdate(updates, (accountUpdate, usesToken) => {
+      totalBalanceChange = totalBalanceChange.add(
+        Provable.if(usesToken, accountUpdate.balanceChange, Int64.zero)
+      );
+    });
+
+    // prove that the total balance change is zero
+    totalBalanceChange.assertEquals(0);
+  }
+
+  /**
+   * Convenience method for approving a single account update.
+   */
+  approveAccountUpdate(accountUpdate: AccountUpdate) {
+    this.approveUpdates(CallForest.fromAccountUpdates([accountUpdate]));
+  }
+
   // TRANSFERABLE API - simple wrapper around Approvable API
 
+  /**
+   * Transfer `amount` of tokens from `from` to `to`.
+   */
   transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
