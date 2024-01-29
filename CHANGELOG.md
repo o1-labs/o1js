@@ -24,6 +24,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improve performance of Field inverse https://github.com/o1-labs/o1js/pull/1373
   - Speeds up proving by ~2-4%
 
+### Added
+
+- Target `network ID` configuration. https://github.com/o1-labs/o1js/pull/1387
+  - Defaults to the `testnet` (as it was before).
+
 ## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
 
 ### Breaking changes
