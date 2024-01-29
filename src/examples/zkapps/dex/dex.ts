@@ -2,9 +2,6 @@ import {
   Account,
   AccountUpdate,
   Bool,
-  DeployArgs,
-  Field,
-  Int64,
   Mina,
   Permissions,
   PrivateKey,
@@ -19,6 +16,8 @@ import {
   VerificationKey,
   method,
   state,
+  TokenContract as BaseTokenContract,
+  CallForest,
 } from 'o1js';
 
 export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
@@ -144,7 +143,7 @@ function createDex({
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dxdy = dexX.redeemLiquidity(this.sender, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, this.sender, dx);
       return dxdy;
     }
 
@@ -159,7 +158,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
+      tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
     }
 
@@ -174,7 +173,7 @@ function createDex({
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dx = dexX.swap(this.sender, dy, this.tokenY);
-      tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, this.sender, dx);
       return dx;
     }
 
@@ -208,7 +207,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
+      tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
     }
   }
@@ -250,7 +249,7 @@ function createDex({
       let result = dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
-      tokenY.approveUpdateAndSend(dexY.self, user, dy);
+      tokenY.transfer(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
@@ -371,14 +370,7 @@ function createDex({
 /**
  * Simple token with API flexible enough to handle all our use cases
  */
-class TokenContract extends SmartContract {
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      access: Permissions.proofOrSignature(),
-    });
-  }
+class TokenContract extends BaseTokenContract {
   @method init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract
@@ -413,6 +405,11 @@ class TokenContract extends SmartContract {
     this.balance.subInPlace(Mina.accountCreationFee());
   }
 
+  @method
+  approveBase(forest: CallForest) {
+    this.checkZeroBalanceChange(forest);
+  }
+
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
@@ -423,50 +420,50 @@ class TokenContract extends SmartContract {
     zkapp.requireSignature();
   }
 
-  @method approveUpdate(zkappUpdate: AccountUpdate) {
-    this.approve(zkappUpdate);
-    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
-    balanceChange.assertEquals(Int64.from(0));
-  }
+  // @method _approveUpdate(zkappUpdate: AccountUpdate) {
+  //   this.approve(zkappUpdate);
+  //   let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
+  //   balanceChange.assertEquals(Int64.from(0));
+  // }
 
-  // FIXME: remove this
-  @method approveAny(zkappUpdate: AccountUpdate) {
-    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
-  }
+  // // FIXME: remove this
+  // @method _approveAny(zkappUpdate: AccountUpdate) {
+  //   this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
+  // }
 
-  // let a zkapp send tokens to someone, provided the token supply stays constant
-  @method approveUpdateAndSend(
-    zkappUpdate: AccountUpdate,
-    to: PublicKey,
-    amount: UInt64
-  ) {
-    // approve a layout of two grandchildren, both of which can't inherit the token permission
-    let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
-    this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
-    zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
-    let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
-    grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
-    grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
+  // // let a zkapp send tokens to someone, provided the token supply stays constant
+  // @method _approveUpdateAndSend(
+  //   zkappUpdate: AccountUpdate,
+  //   to: PublicKey,
+  //   amount: UInt64
+  // ) {
+  //   // approve a layout of two grandchildren, both of which can't inherit the token permission
+  //   let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
+  //   this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
+  //   zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
+  //   let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
+  //   grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
+  //   grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
 
-    // see if balance change cancels the amount sent
-    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
-    balanceChange.assertEquals(Int64.from(amount).neg());
-    // add same amount of tokens to the receiving address
-    this.token.mint({ address: to, amount });
-  }
+  //   // see if balance change cancels the amount sent
+  //   let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
+  //   balanceChange.assertEquals(Int64.from(amount).neg());
+  //   // add same amount of tokens to the receiving address
+  //   this.token.mint({ address: to, amount });
+  // }
 
-  transfer(from: PublicKey, to: PublicKey | AccountUpdate, amount: UInt64) {
-    if (to instanceof PublicKey)
-      return this.transferToAddress(from, to, amount);
-    if (to instanceof AccountUpdate)
-      return this.transferToUpdate(from, to, amount);
-  }
-  @method transferToAddress(from: PublicKey, to: PublicKey, value: UInt64) {
-    this.token.send({ from, to, amount: value });
-  }
-  @method transferToUpdate(from: PublicKey, to: AccountUpdate, value: UInt64) {
-    this.token.send({ from, to, amount: value });
-  }
+  // _transfer(from: PublicKey, to: PublicKey | AccountUpdate, amount: UInt64) {
+  //   if (to instanceof PublicKey)
+  //     return this._transferToAddress(from, to, amount);
+  //   if (to instanceof AccountUpdate)
+  //     return this._transferToUpdate(from, to, amount);
+  // }
+  // @method _transferToAddress(from: PublicKey, to: PublicKey, value: UInt64) {
+  //   this.token.send({ from, to, amount: value });
+  // }
+  // @method _transferToUpdate(from: PublicKey, to: AccountUpdate, value: UInt64) {
+  //   this.token.send({ from, to, amount: value });
+  // }
 
   @method getBalance(publicKey: PublicKey): UInt64 {
     let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
@@ -501,19 +498,6 @@ let tokenIds = {
   Y: TokenId.derive(addresses.tokenY),
   lqXY: TokenId.derive(addresses.dex),
 };
-
-/**
- * Sum of balances of the account update and all its descendants
- */
-function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
-  let myTokenId = accountUpdate.body.tokenId;
-  let myBalance = Int64.fromObject(accountUpdate.body.balanceChange);
-  let balance = Provable.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
-  for (let child of accountUpdate.children.accountUpdates) {
-    balance = balance.add(balanceSum(child, tokenId));
-  }
-  return balance;
-}
 
 /**
  * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.

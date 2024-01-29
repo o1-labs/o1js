@@ -65,9 +65,9 @@ tx = await Mina.transaction(feePayerAddress, () => {
   );
   dex.deploy();
   dexTokenHolderX.deploy();
-  tokenX.approveUpdate(dexTokenHolderX.self);
+  tokenX.approveAccountUpdate(dexTokenHolderX.self);
   dexTokenHolderY.deploy();
-  tokenY.approveUpdate(dexTokenHolderY.self);
+  tokenY.approveAccountUpdate(dexTokenHolderY.self);
 });
 await tx.prove();
 await tx.sign([feePayerKey, keys.dex]).send();
@@ -129,7 +129,7 @@ console.log(getTokenBalances());
 tic('redeem liquidity, step 2a (get back token X)');
 tx = await Mina.transaction(addresses.user, () => {
   dexTokenHolderX.redeemLiquidityFinalize();
-  tokenX.approveAny(dexTokenHolderX.self);
+  tokenX.approveAccountUpdate(dexTokenHolderX.self);
 });
 await tx.prove();
 await tx.sign([keys.user]).send();
@@ -140,7 +140,7 @@ console.log(getTokenBalances());
 tic('redeem liquidity, step 2b (get back token Y)');
 tx = await Mina.transaction(addresses.user, () => {
   dexTokenHolderY.redeemLiquidityFinalize();
-  tokenY.approveAny(dexTokenHolderY.self);
+  tokenY.approveAccountUpdate(dexTokenHolderY.self);
 });
 await tx.prove();
 await tx.sign([keys.user]).send();

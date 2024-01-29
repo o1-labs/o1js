@@ -188,7 +188,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.token.id);
     let dy = dexY.swap(this.sender, dx, this.tokenX);
-    tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
+    tokenY.transfer(dexY.self, this.sender, dy);
     return dy;
   }
 
@@ -206,7 +206,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.token.id);
     let dx = dexX.swap(this.sender, dy, this.tokenY);
-    tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
+    tokenX.transfer(dexX.self, this.sender, dx);
     return dx;
   }
 

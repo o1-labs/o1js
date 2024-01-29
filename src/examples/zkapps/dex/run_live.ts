@@ -100,9 +100,9 @@ if (successfulTransactions <= 1) {
     AccountUpdate.createSigned(sender).balance.subInPlace(accountFee.mul(3));
     dex.deploy();
     dexTokenHolderX.deploy();
-    tokenX.approveUpdate(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
     dexTokenHolderY.deploy();
-    tokenY.approveUpdate(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.dex]).send();
@@ -203,7 +203,7 @@ if (successfulTransactions <= 6) {
   tic('redeem liquidity, step 2a (get back token X)');
   tx = await Mina.transaction(userSpec, () => {
     dexTokenHolderX.redeemLiquidityFinalize();
-    tokenX.approveAny(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -222,7 +222,7 @@ if (successfulTransactions <= 7) {
   tic('redeem liquidity, step 2b (get back token Y)');
   tx = await Mina.transaction(userSpec, () => {
     dexTokenHolderY.redeemLiquidityFinalize();
-    tokenY.approveAny(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
