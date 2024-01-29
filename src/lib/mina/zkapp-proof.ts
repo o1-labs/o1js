@@ -110,39 +110,42 @@ async function createZkappProof(
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
   let publicInput = accountUpdate.toPublicInput();
+  console.dir({ publicInput1: publicInput }, { depth: null });
+
   let publicInputFields = MlFieldConstArray.to(
     ZkappPublicInput.toFields(publicInput)
   );
+  let proof: unknown;
 
-  let [, , proof] = await zkAppProver.run(
-    [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
-    { transaction, accountUpdate, index },
-    async () => {
-      let id = memoizationContext.enter({
-        memoized,
-        currentIndex: 0,
-        blindingValue,
-      });
-      try {
-        return await prover(publicInputFields, MlArray.to(previousProofs));
-      } catch (err) {
-        console.error(
-          `\n\nError when proving ${ZkappClass.name}.${methodName}()`
-        );
-        if (
-          err instanceof Error &&
-          (err.message.includes('FieldVector.get(): Index out of bounds') ||
-            err.message.includes('rest of division by vanishing polynomial') ||
-            err.message.includes('Constraint unsatisfied'))
-        ) {
-          debugInconsistentConstraint(transaction, index);
+  try {
+    [, , proof] = await zkAppProver.run(
+      [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+      { transaction, accountUpdate, index },
+      async () => {
+        let id = memoizationContext.enter({
+          memoized,
+          currentIndex: 0,
+          blindingValue,
+        });
+        try {
+          return await prover(publicInputFields, MlArray.to(previousProofs));
+        } finally {
+          memoizationContext.leave(id);
         }
-        throw err;
-      } finally {
-        memoizationContext.leave(id);
       }
+    );
+  } catch (err) {
+    console.error(`\n\nError when proving ${ZkappClass.name}.${methodName}()`);
+    if (
+      err instanceof Error &&
+      (err.message.includes('FieldVector.get(): Index out of bounds') ||
+        err.message.includes('rest of division by vanishing polynomial') ||
+        err.message.includes('Constraint unsatisfied'))
+    ) {
+      debugInconsistentConstraint(transaction, index);
     }
-  );
+    throw err;
+  }
 
   let maxProofsVerified = ZkappClass._maxProofsVerified!;
   const Proof = ZkappClass.Proof();
@@ -176,6 +179,9 @@ function debugInconsistentConstraint(transaction: ZkappCommand, index: number) {
   let accountUpdate = transaction.accountUpdates[index];
   accountUpdate = AccountUpdate.clone(accountUpdate);
 
+  let publicInput = accountUpdate.toPublicInput();
+  console.dir({ publicInput2: publicInput }, { depth: null });
+
   assert(
     accountUpdate.lazyAuthorization?.kind === 'lazy-proof',
     'Account update is not associated with a provable method call'
@@ -206,7 +212,6 @@ function debugInconsistentConstraint(transaction: ZkappCommand, index: number) {
     }
   );
 
-  let publicInput = accountUpdate.toPublicInput();
   let proverData = { transaction, accountUpdate, index };
 
   // and a second time in prove mode to get actual constraints
