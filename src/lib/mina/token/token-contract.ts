@@ -93,6 +93,7 @@ abstract class TokenContract extends SmartContract {
    * Approve a single account update (with arbitrarily many children).
    */
   approveAccountUpdate(accountUpdate: AccountUpdate) {
+    AccountUpdate.unlink(accountUpdate);
     this.approveBase(CallForest.fromAccountUpdates([accountUpdate]));
   }
 
@@ -100,6 +101,7 @@ abstract class TokenContract extends SmartContract {
    * Approve a list of account updates (with arbitrarily many children).
    */
   approveAccountUpdates(accountUpdates: AccountUpdate[]) {
+    accountUpdates.forEach(AccountUpdate.unlink);
     this.approveBase(CallForest.fromAccountUpdates(accountUpdates));
   }
 
@@ -127,6 +129,8 @@ abstract class TokenContract extends SmartContract {
     }
     from.balanceChange = Int64.from(amount).neg();
     to.balanceChange = Int64.from(amount);
+    AccountUpdate.unlink(from);
+    AccountUpdate.unlink(to);
 
     let forest = CallForest.fromAccountUpdates([from, to]);
     this.approveBase(forest);
