@@ -67,9 +67,9 @@ tx = await Mina.transaction(feePayerAddress, () => {
   );
   dex.deploy();
   dexTokenHolderX.deploy();
-  tokenX.approveUpdate(dexTokenHolderX.self);
+  tokenX.approveAccountUpdate(dexTokenHolderX.self);
   dexTokenHolderY.deploy();
-  tokenY.approveUpdate(dexTokenHolderY.self);
+  tokenY.approveAccountUpdate(dexTokenHolderY.self);
 });
 await tx.prove();
 await tx.sign([feePayerKey, keys.dex]).send();
@@ -109,6 +109,10 @@ let USER_DL = 100n;
 tx = await Mina.transaction(addresses.user, () => {
   dex.redeemLiquidity(UInt64.from(USER_DL));
 });
+
+console.log(tx.transaction.accountUpdates[0].toPrettyLayout());
+console.log(tx.toPretty());
+
 await tx.prove();
 await tx.sign([keys.user]).send();
 toc();

@@ -100,9 +100,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
     dexTokenHolderX.deploy();
-    tokenX.approveUpdate(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
     dexTokenHolderY.deploy();
-    tokenY.approveUpdate(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);
@@ -360,6 +360,10 @@ async function main({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   tx.sign([keys.user]);
+
+  console.log(tx.transaction.accountUpdates[0].toPrettyLayout());
+  console.log(tx.toPretty());
+
   await tx.send();
   [oldBalances, balances] = [balances, getTokenBalances()];
   console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
