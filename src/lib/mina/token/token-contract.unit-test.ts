@@ -13,7 +13,7 @@ class ExampleTokenContract extends TokenContract {
   // APPROVABLE API
 
   @method
-  approveUpdates(updates: CallForest) {
+  approveBase(updates: CallForest) {
     let totalBalanceChange = Int64.zero;
 
     this.forEachUpdate(updates, (accountUpdate, usesToken) => {

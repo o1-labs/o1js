@@ -17,7 +17,7 @@ const MAX_ACCOUNT_UPDATES = 20;
  * - implements the `Approvable` API with some easy bit left to be defined by subclasses
  * - implements the `Transferable` API as a wrapper around the `Approvable` API
  */
-class TokenContract extends SmartContract {
+abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
 
   deploy(args?: DeployArgs) {
@@ -31,11 +31,7 @@ class TokenContract extends SmartContract {
   // APPROVABLE API has to be specified by subclasses,
   // but the hard part is `forEachUpdate()`
 
-  approveUpdates(_: CallForest) {
-    throw Error(
-      'TokenContract.approveUpdates() must be implemented by subclasses'
-    );
-  }
+  abstract approveBase(forest: CallForest): void;
 
   /**
    * Iterate through the account updates in `updates` and apply `callback` to each.
@@ -51,11 +47,7 @@ class TokenContract extends SmartContract {
     // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
       let { accountUpdate, usesThisToken } = forest.next();
-
       callback(accountUpdate, usesThisToken);
-
-      // add update to our children
-      this.self.adopt(accountUpdate);
     }
 
     // prove that we checked all updates
@@ -70,6 +62,13 @@ class TokenContract extends SmartContract {
       type: 'WitnessEquals',
       value: updates.hash,
     };
+
+    // make top-level updates our children
+    Provable.asProver(() => {
+      updates.data.get().forEach((update) => {
+        this.self.adopt(update.element.accountUpdate.value.get());
+      });
+    });
   }
 
   /**
@@ -91,10 +90,17 @@ class TokenContract extends SmartContract {
   }
 
   /**
-   * Convenience method for approving a single account update.
+   * Approve a single account update (with arbitrarily many children).
    */
   approveAccountUpdate(accountUpdate: AccountUpdate) {
-    this.approveUpdates(CallForest.fromAccountUpdates([accountUpdate]));
+    this.approveBase(CallForest.fromAccountUpdates([accountUpdate]));
+  }
+
+  /**
+   * Approve a list of account updates (with arbitrarily many children).
+   */
+  approveAccountUpdates(accountUpdates: AccountUpdate[]) {
+    this.approveBase(CallForest.fromAccountUpdates(accountUpdates));
   }
 
   // TRANSFERABLE API - simple wrapper around Approvable API
@@ -111,14 +117,18 @@ class TokenContract extends SmartContract {
     let tokenId = this.token.id;
     if (from instanceof PublicKey) {
       from = AccountUpdate.defaultAccountUpdate(from, tokenId);
+      from.requireSignature();
+      from.label = `${this.constructor.name}.transfer() (from)`;
     }
     if (to instanceof PublicKey) {
       to = AccountUpdate.defaultAccountUpdate(to, tokenId);
+
+      to.label = `${this.constructor.name}.transfer() (to)`;
     }
-    from.balance.subInPlace(amount);
-    to.balance.addInPlace(amount);
+    from.balanceChange = Int64.from(amount).neg();
+    to.balanceChange = Int64.from(amount);
 
     let forest = CallForest.fromAccountUpdates([from, to]);
-    this.approveUpdates(forest);
+    this.approveBase(forest);
   }
 }
