@@ -64,6 +64,7 @@ export {
   analyzeMethod,
   emptyValue,
   emptyWitness,
+  methodArgumentsToVars,
   synthesizeMethodArguments,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
@@ -830,6 +831,46 @@ function picklesRuleFromFunction(
     featureFlags,
     proofsToVerify: MlArray.to(proofsToVerify),
   };
+}
+
+// TODO share logic with picklesRuleFromFunction
+
+function methodArgumentsToVars(
+  argsWithoutPublicInput: any[],
+  { allArgs, proofArgs, witnessArgs }: MethodInterface
+) {
+  let finalArgs = [];
+  let proofs: Proof<any, any>[] = [];
+  let previousStatements: Pickles.Statement<FieldVar>[] = [];
+  for (let i = 0; i < allArgs.length; i++) {
+    let arg = allArgs[i];
+    if (arg.type === 'witness') {
+      let type = witnessArgs[arg.index];
+      finalArgs[i] = Provable.witness(type, () => {
+        return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+      });
+    } else if (arg.type === 'proof') {
+      let Proof = proofArgs[arg.index];
+      let type = getStatementType(Proof);
+      let proof_ = (argsWithoutPublicInput?.[i] as Proof<any, any>) ?? {
+        proof: undefined,
+        publicInput: emptyValue(type.input),
+        publicOutput: emptyValue(type.output),
+      };
+      let { proof, publicInput, publicOutput } = proof_;
+      publicInput = Provable.witness(type.input, () => publicInput);
+      publicOutput = Provable.witness(type.output, () => publicOutput);
+      let proofInstance = new Proof({ publicInput, publicOutput, proof });
+      finalArgs[i] = proofInstance;
+      proofs.push(proofInstance);
+      let input = toFieldVars(type.input, publicInput);
+      let output = toFieldVars(type.output, publicOutput);
+      previousStatements.push(MlPair(input, output));
+    } else if (arg.type === 'generic') {
+      finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
+    }
+  }
+  return { args: finalArgs, proofs, previousStatements };
 }
 
 function synthesizeMethodArguments(

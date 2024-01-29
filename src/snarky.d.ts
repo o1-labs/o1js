@@ -26,6 +26,11 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
+import type {
+  SnarkyConstraint,
+  MlConstraintSystem,
+} from './lib/provable-context-debug.js';
+import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -38,6 +43,8 @@ export {
   MlPublicKeyVar,
   FeatureFlags,
   MlFeatureFlags,
+  SnarkyState,
+  JsonConstraintSystem,
 };
 
 /**
@@ -540,7 +547,58 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
+
+  lowLevel: {
+    state: MlRef<SnarkyState>;
+    createState(
+      numInputs: number,
+      evalConstraints: MlBool,
+      withWitness: MlBool,
+      logConstraint: MlOption<
+        (
+          atLabelBoundary: MlOption<unknown>,
+          constraint: MlOption<SnarkyConstraint>
+        ) => void
+      >
+    ): [
+      _: 0,
+      state: SnarkyState,
+      input: FieldVector,
+      aux: FieldVector,
+      system: MlConstraintSystem
+    ];
+
+    pushActiveCounter(): MlList<number>;
+    resetActiveCounter(counters: MlList<number>): void;
+
+    constraintSystem: {
+      getRows(system: MlConstraintSystem): number;
+      digest(system: MlConstraintSystem): string;
+      toJson(system: MlConstraintSystem): JsonConstraintSystem;
+    };
+  };
 };
+
+type MlRef<T> = [_: 0, contents: T];
+
+type SnarkyVector = [0, [unknown, number, FieldVector]];
+type ConstraintSystem = unknown;
+
+type SnarkyState = [
+  _: 0,
+  system: MlOption<ConstraintSystem>,
+  input: SnarkyVector,
+  aux: SnarkyVector,
+  eval_constraints: MlBool,
+  num_inputs: number,
+  next_auxiliary: MlRef<number>,
+  has_witness: MlBool,
+  stack: MlList<MlString>,
+  handler: unknown,
+  is_running: MlBool,
+  as_prover: MlRef<MlBool>,
+  log_constraint: unknown
+];
 
 type GateType =
   | 'Zero'

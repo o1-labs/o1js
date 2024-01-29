@@ -1192,7 +1192,8 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, result, gates, summary } = analyzeMethod(
+          let hasReturn = false;
+          let { rows, digest, gates, summary } = analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             (publicInput, publicKey, tokenId, ...args) => {
@@ -1201,15 +1202,15 @@ super.init();
                 publicInput,
                 ...args
               );
+              hasReturn = result !== undefined;
               accountUpdate = instance.#executionState!.accountUpdate;
-              return result;
             }
           );
           methodMetadata[methodIntf.methodName] = {
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
-            hasReturn: result !== undefined,
+            hasReturn,
             gates,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());

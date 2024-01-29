@@ -3,7 +3,6 @@ import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import {
-  addMissingProofs,
   addMissingSignatures,
   FeePayerUnsigned,
   ZkappCommand,
@@ -33,6 +32,7 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
+import { addMissingProofs } from './mina/zkapp-proof.js';
 
 export {
   createTransaction,
