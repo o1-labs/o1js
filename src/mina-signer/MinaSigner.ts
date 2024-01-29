@@ -493,6 +493,15 @@ class Client {
     let sk = PrivateKey.fromBase58(privateKeyBase58);
     return createNullifier(message, sk);
   }
+
+  /**
+   * Returns the network ID.
+   * 
+   * @returns {NetworkId} The network ID.
+   */
+  getNetworkId(): NetworkId {
+    return this.network;
+  }
 }
 
 function validNonNegative(n: number | string | bigint): string {
