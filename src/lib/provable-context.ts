@@ -8,6 +8,7 @@ export {
   snarkContext,
   SnarkContext,
   asProver,
+  asProverBn254, 
   runAndCheck,
   runUnchecked,
   constraintSystem,
@@ -59,6 +60,14 @@ function inCompileMode() {
 function asProver(f: () => void) {
   if (inCheckedComputation()) {
     Snarky.run.asProver(f);
+  } else {
+    f();
+  }
+}
+
+function asProverBn254(f: () => void) {
+  if (inCheckedComputation()) {
+    Snarky.run.asProverBn254(f);
   } else {
     f();
   }

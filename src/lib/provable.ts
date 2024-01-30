@@ -19,6 +19,7 @@ import {
   inProver,
   snarkContext,
   asProver,
+  asProverBn254,
   runAndCheck,
   runUnchecked,
   constraintSystem,
@@ -131,7 +132,7 @@ const Provable = {
    */
   log,
   /**
-   * Runs code as a prover.
+   * Runs code as a prover using Pasta backend.
    * @example
    * ```ts
    * Provable.asProver(() => {
@@ -140,6 +141,16 @@ const Provable = {
    * ```
    */
   asProver,
+  /**
+   * Runs code as a prover using Bn254 backend.
+   * @example
+   * ```ts
+   * Provable.asProverBn254(() => {
+   *   // Your prover code here
+   * });
+   * ```
+   */
+  asProverBn254,
   /**
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example

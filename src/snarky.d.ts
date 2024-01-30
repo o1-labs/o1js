@@ -195,9 +195,13 @@ declare const Snarky: {
    */
   run: {
     /**
-     * Runs code as a prover.
+     * Runs code as a prover with Pasta backend.
      */
     asProver(f: () => void): void;
+    /**
+     * Runs code as a prover with Bn254 backend.
+     */
+    asProverBn254(f: () => void): void;
     /**
      * Check whether we are inside an asProver or exists block
      */
