@@ -41,11 +41,6 @@ export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export { MerkleList, MerkleArray } from './lib/provable-types/merkle-list.js';
-export {
-  CallForest,
-  CallForestIterator,
-} from './lib/mina/token/call-forest.js';
-export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export * as Mina from './lib/mina.js';
 export type { DeployArgs } from './lib/zkapp.js';
@@ -77,6 +72,12 @@ export {
   Permissions,
   ZkappPublicInput,
 } from './lib/account_update.js';
+
+export {
+  CallForest,
+  CallForestIterator,
+} from './lib/mina/token/call-forest.js';
+export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/fetch.js';
 export {

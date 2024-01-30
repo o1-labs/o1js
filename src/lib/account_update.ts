@@ -15,9 +15,17 @@ import {
 } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
-import * as Mina from './mina.js';
-import { SmartContract } from './zkapp.js';
-import * as Precondition from './precondition.js';
+import type { SmartContract } from './zkapp.js';
+import {
+  Preconditions,
+  Account,
+  Network,
+  CurrentSlot,
+  preconditions,
+  OrIgnore,
+  ClosedInterval,
+  getAccountPreconditions,
+} from './precondition.js';
 import { Proof, Prover } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
@@ -28,10 +36,12 @@ import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { mocks, prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
-import { assert } from './errors.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
-import { CallForestUnderConstruction } from './mina/token/call-forest.js';
+import type { CallForestUnderConstruction } from './mina/token/call-forest.js';
+import { currentTransaction } from './mina/transaction-context.js';
+import { isSmartContract } from './mina/smart-contract-base.js';
+import { activeInstance } from './mina/mina-instance.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -87,11 +97,6 @@ type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
 type MayUseToken = AccountUpdateBody['mayUseToken'];
-
-/**
- * Preconditions for the network and accounts
- */
-type Preconditions = AccountUpdateBody['preconditions'];
 
 /**
  * Either set a value or keep it the same.
@@ -485,107 +490,6 @@ type FeePayerUnsigned = FeePayer & {
   lazyAuthorization?: LazySignature | undefined;
 };
 
-/**
- * Either check a value or ignore it.
- *
- * Used within [[ AccountPredicate ]]s and [[ ProtocolStatePredicate ]]s.
- */
-type OrIgnore<T> = { isSome: Bool; value: T };
-
-/**
- * An interval representing all the values between `lower` and `upper` inclusive
- * of both the `lower` and `upper` values.
- *
- * @typeParam A something with an ordering where one can quantify a lower and
- *            upper bound.
- */
-type ClosedInterval<T> = { lower: T; upper: T };
-
-type NetworkPrecondition = Preconditions['network'];
-let NetworkPrecondition = {
-  ignoreAll(): NetworkPrecondition {
-    let stakingEpochData = {
-      ledger: { hash: ignore(Field(0)), totalCurrency: ignore(uint64()) },
-      seed: ignore(Field(0)),
-      startCheckpoint: ignore(Field(0)),
-      lockCheckpoint: ignore(Field(0)),
-      epochLength: ignore(uint32()),
-    };
-    let nextEpochData = cloneCircuitValue(stakingEpochData);
-    return {
-      snarkedLedgerHash: ignore(Field(0)),
-      blockchainLength: ignore(uint32()),
-      minWindowDensity: ignore(uint32()),
-      totalCurrency: ignore(uint64()),
-      globalSlotSinceGenesis: ignore(uint32()),
-      stakingEpochData,
-      nextEpochData,
-    };
-  },
-};
-
-/**
- * Ignores a `dummy`
- *
- * @param dummy The value to ignore
- * @returns Always an ignored value regardless of the input.
- */
-function ignore<T>(dummy: T): OrIgnore<T> {
-  return { isSome: Bool(false), value: dummy };
-}
-
-/**
- * Ranges between all uint32 values
- */
-const uint32 = () => ({ lower: UInt32.from(0), upper: UInt32.MAXINT() });
-
-/**
- * Ranges between all uint64 values
- */
-const uint64 = () => ({ lower: UInt64.from(0), upper: UInt64.MAXINT() });
-
-type AccountPrecondition = Preconditions['account'];
-const AccountPrecondition = {
-  ignoreAll(): AccountPrecondition {
-    let appState: Array<OrIgnore<Field>> = [];
-    for (let i = 0; i < ZkappStateLength; ++i) {
-      appState.push(ignore(Field(0)));
-    }
-    return {
-      balance: ignore(uint64()),
-      nonce: ignore(uint32()),
-      receiptChainHash: ignore(Field(0)),
-      delegate: ignore(PublicKey.empty()),
-      state: appState,
-      actionState: ignore(Actions.emptyActionState()),
-      provedState: ignore(Bool(false)),
-      isNew: ignore(Bool(false)),
-    };
-  },
-  nonce(nonce: UInt32): AccountPrecondition {
-    let p = AccountPrecondition.ignoreAll();
-    AccountUpdate.assertEquals(p.nonce, nonce);
-    return p;
-  },
-};
-
-type GlobalSlotPrecondition = Preconditions['validWhile'];
-const GlobalSlotPrecondition = {
-  ignoreAll(): GlobalSlotPrecondition {
-    return ignore(uint32());
-  },
-};
-
-const Preconditions = {
-  ignoreAll(): Preconditions {
-    return {
-      account: AccountPrecondition.ignoreAll(),
-      network: NetworkPrecondition.ignoreAll(),
-      validWhile: GlobalSlotPrecondition.ignoreAll(),
-    };
-  },
-};
-
 type Control = Types.AccountUpdate['authorization'];
 type LazyNone = {
   kind: 'lazy-none';
@@ -666,9 +570,9 @@ class AccountUpdate implements Types.AccountUpdate {
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
     undefined;
-  account: Precondition.Account;
-  network: Precondition.Network;
-  currentSlot: Precondition.CurrentSlot;
+  account: Account;
+  network: Network;
+  currentSlot: CurrentSlot;
   children: {
     callsType:
       | { type: 'None' }
@@ -691,10 +595,7 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, currentSlot } = Precondition.preconditions(
-      this,
-      isSelf
-    );
+    let { account, network, currentSlot } = preconditions(this, isSelf);
     this.account = account;
     this.network = network;
     this.currentSlot = currentSlot;
@@ -733,7 +634,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountLike: PublicKey | AccountUpdate | SmartContract,
       label: string
     ) {
-      if (accountLike instanceof SmartContract) {
+      if (isSmartContract(accountLike)) {
         accountLike = accountLike.self;
       }
       if (accountLike instanceof AccountUpdate) {
@@ -845,7 +746,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (to instanceof AccountUpdate) {
       receiver = to;
       receiver.body.tokenId.assertEquals(this.body.tokenId);
-    } else if (to instanceof SmartContract) {
+    } else if (isSmartContract(to)) {
       receiver = to.self;
       receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
@@ -1049,13 +950,11 @@ class AccountUpdate implements Types.AccountUpdate {
     let publicKey = update.body.publicKey;
     let tokenId =
       update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
-    let nonce = Number(
-      Precondition.getAccountPreconditions(update.body).nonce.toString()
-    );
+    let nonce = Number(getAccountPreconditions(update.body).nonce.toString());
     // if the fee payer is the same account update as this one, we have to start
     // the nonce predicate at one higher, bc the fee payer already increases its
     // nonce
-    let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
+    let isFeePayer = currentTransaction()?.sender?.equals(publicKey);
     let isSameAsFeePayer = !!isFeePayer
       ?.and(tokenId.equals(TokenId.default))
       .toBoolean();
@@ -1063,7 +962,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEachPredecessor(
-      Mina.currentTransaction.get().accountUpdates,
+      currentTransaction.get().accountUpdates,
       update as AccountUpdate,
       (otherUpdate) => {
         let shouldIncreaseNonce = otherUpdate.publicKey
@@ -1180,7 +1079,7 @@ class AccountUpdate implements Types.AccountUpdate {
         self.label || 'Unlabeled'
       } > AccountUpdate.create()`;
     } else {
-      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+      currentTransaction()?.accountUpdates.push(accountUpdate);
       accountUpdate.label = `Mina.transaction > AccountUpdate.create()`;
     }
     return accountUpdate;
@@ -1199,8 +1098,8 @@ class AccountUpdate implements Types.AccountUpdate {
       if (selfUpdate === accountUpdate) return;
       insideContract.this.self.approve(accountUpdate);
     } else {
-      if (!Mina.currentTransaction.has()) return;
-      let updates = Mina.currentTransaction.get().accountUpdates;
+      if (!currentTransaction.has()) return;
+      let updates = currentTransaction.get().accountUpdates;
       if (!updates.find((update) => update.id === accountUpdate.id)) {
         updates.push(accountUpdate);
       }
@@ -1212,7 +1111,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static unlink(accountUpdate: AccountUpdate) {
     let siblings =
       accountUpdate.parent?.children.accountUpdates ??
-      Mina.currentTransaction()?.accountUpdates;
+      currentTransaction()?.accountUpdates;
     if (siblings === undefined) return;
     let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
     if (i !== undefined && i !== -1) {
@@ -1290,7 +1189,7 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
     accountUpdate.label = 'AccountUpdate.fundNewAccount()';
-    let fee = Mina.accountCreationFee();
+    let fee = activeInstance.getNetworkConstants().accountCreationFee;
     numberOfAccounts ??= 1;
     if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
     else fee = fee.add(UInt64.from(numberOfAccounts.initialBalance ?? 0));
@@ -1860,57 +1759,6 @@ const Authorization = {
     );
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
-  },
-  setProofAuthorizationKind(
-    { body, id }: AccountUpdate,
-    priorAccountUpdates?: AccountUpdate[]
-  ) {
-    body.authorizationKind.isSigned = Bool(false);
-    body.authorizationKind.isProved = Bool(true);
-    let hash = Provable.witness(Field, () => {
-      let proverData = zkAppProver.getData();
-      let isProver = proverData !== undefined;
-      assert(
-        isProver || priorAccountUpdates !== undefined,
-        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
-      );
-      let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
-      priorAccountUpdates ??= proverData.transaction.accountUpdates;
-      priorAccountUpdates = priorAccountUpdates.filter(
-        (a) => a.id !== myAccountUpdateId
-      );
-      let priorAccountUpdatesFlat = CallForest.toFlatList(
-        priorAccountUpdates,
-        false
-      );
-      let accountUpdate = [...priorAccountUpdatesFlat]
-        .reverse()
-        .find((body_) =>
-          body_.update.verificationKey.isSome
-            .and(body_.tokenId.equals(body.tokenId))
-            .and(body_.publicKey.equals(body.publicKey))
-            .toBoolean()
-        );
-      if (accountUpdate !== undefined) {
-        return accountUpdate.body.update.verificationKey.value.hash;
-      }
-      try {
-        let account = Mina.getAccount(body.publicKey, body.tokenId);
-        return account.zkapp?.verificationKey?.hash ?? Field(0);
-      } catch {
-        return Field(0);
-      }
-    });
-    body.authorizationKind.verificationKeyHash = hash;
-  },
-  setLazyProof(
-    accountUpdate: AccountUpdate,
-    proof: Omit<LazyProof, 'kind'>,
-    priorAccountUpdates: AccountUpdate[]
-  ) {
-    Authorization.setProofAuthorizationKind(accountUpdate, priorAccountUpdates);
-    accountUpdate.authorization = {};
-    accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
