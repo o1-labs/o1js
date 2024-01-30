@@ -62,8 +62,6 @@ import { assert } from './gadgets/common.js';
 import { CallForestUnderConstruction } from './mina/token/call-forest.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
 
-console.log('importing zkapp');
-
 // external API
 export {
   SmartContract,

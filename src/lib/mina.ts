@@ -72,6 +72,15 @@ export {
   // for internal testing only
   filterGroups,
 };
+
+// patch active instance so that we can still create basic transactions without giving Mina network details
+setActiveInstance({
+  ...activeInstance,
+  async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
+    return createTransaction(sender, f, 0);
+  },
+});
+
 interface TransactionId {
   isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
