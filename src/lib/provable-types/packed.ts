@@ -183,8 +183,16 @@ class Hashed<T> {
     type: ProvableHashable<T>,
     hash?: (t: T) => Field
   ): typeof Hashed<T> {
-    hash ??= Hashed._hash;
-    let dummyHash = hash(type.empty());
+    // default hash function
+    let _hash =
+      hash ??
+      function hash(t: T) {
+        let input = type.toInput(t);
+        let packed = packToFields(input);
+        return Poseidon.hash(packed);
+      };
+
+    let dummyHash = _hash(type.empty());
 
     return class Hashed_ extends Hashed<T> {
       static _innerProvable = type;
@@ -193,7 +201,7 @@ class Hashed<T> {
         value: Unconstrained.provable,
       }) as ProvableHashable<Hashed<T>>;
 
-      static _hash = (hash ?? Hashed._hash) satisfies (t: T) => Field;
+      static _hash = _hash satisfies (t: T) => Field;
 
       static empty(): Hashed<T> {
         return new this(dummyHash, Unconstrained.from(type.empty()));
@@ -206,10 +214,8 @@ class Hashed<T> {
     this.value = value;
   }
 
-  static _hash(t: any) {
-    let input = this.innerProvable.toInput(t);
-    let packed = packToFields(input);
-    return Poseidon.hash(packed);
+  static _hash(_: any): Field {
+    assert(false, 'Hashed not initialized');
   }
 
   /**
