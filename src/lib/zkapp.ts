@@ -58,8 +58,8 @@ import {
   snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
-import { SmartContractBase } from './mina/smart-contract-base.js';
 import { assert } from './gadgets/common.js';
+import { SmartContractBase } from './mina/smart-contract-base.js';
 
 // external API
 export {
