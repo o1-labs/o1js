@@ -20,7 +20,6 @@ import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
 import { Empty, Proof, verify } from './proof_system.js';
-import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
@@ -33,6 +32,15 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
+import { FetchMode, currentTransaction } from './mina/transaction-context.js';
+import {
+  activeInstance,
+  setActiveInstance,
+  Mina,
+  FeePayerSpec,
+  DeprecatedFeePayerSpec,
+  ActionStates,
+} from './mina/mina-instance.js';
 
 export {
   createTransaction,
@@ -40,7 +48,6 @@ export {
   Network,
   LocalBlockchain,
   currentTransaction,
-  CurrentTransaction,
   Transaction,
   TransactionId,
   activeInstance,
@@ -113,54 +120,6 @@ const Transaction = {
     let transaction = ZkappCommand.fromJSON(json);
     return newTransaction(transaction, activeInstance.proofsEnabled);
   },
-};
-
-type FetchMode = 'fetch' | 'cached' | 'test';
-type CurrentTransaction = {
-  sender?: PublicKey;
-  accountUpdates: AccountUpdate[];
-  fetchMode: FetchMode;
-  isFinalRunOutsideCircuit: boolean;
-  numberOfRuns: 0 | 1 | undefined;
-};
-
-let currentTransaction = Context.create<CurrentTransaction>();
-
-/**
- * Allows you to specify information about the fee payer account and the transaction.
- */
-type FeePayerSpec =
-  | PublicKey
-  | {
-      sender: PublicKey;
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    }
-  | undefined;
-
-type DeprecatedFeePayerSpec =
-  | PublicKey
-  | PrivateKey
-  | ((
-      | {
-          feePayerKey: PrivateKey;
-          sender?: PublicKey;
-        }
-      | {
-          feePayerKey?: PrivateKey;
-          sender: PublicKey;
-        }
-    ) & {
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    })
-  | undefined;
-
-type ActionStates = {
-  fromActionState?: Field;
-  endActionState?: Field;
 };
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -329,43 +288,6 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     },
   };
   return self;
-}
-
-interface Mina {
-  transaction(
-    sender: DeprecatedFeePayerSpec,
-    f: () => void
-  ): Promise<Transaction>;
-  currentSlot(): UInt32;
-  hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
-  getAccount(publicKey: PublicKey, tokenId?: Field): Account;
-  getNetworkState(): NetworkValue;
-  getNetworkConstants(): {
-    genesisTimestamp: UInt64;
-    /**
-     * Duration of 1 slot in millisecondw
-     */
-    slotTime: UInt64;
-    accountCreationFee: UInt64;
-  };
-  accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): Promise<TransactionId>;
-  fetchEvents: (
-    publicKey: PublicKey,
-    tokenId?: Field,
-    filterOptions?: Fetch.EventActionFilterOptions
-  ) => ReturnType<typeof Fetch.fetchEvents>;
-  fetchActions: (
-    publicKey: PublicKey,
-    actionStates?: ActionStates,
-    tokenId?: Field
-  ) => ReturnType<typeof Fetch.fetchActions>;
-  getActions: (
-    publicKey: PublicKey,
-    actionStates?: ActionStates,
-    tokenId?: Field
-  ) => { hash: string; actions: string[][] }[];
-  proofsEnabled: boolean;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -991,92 +913,6 @@ function Network(
  */
 function BerkeleyQANet(graphqlEndpoint: string) {
   return Network(graphqlEndpoint);
-}
-
-let activeInstance: Mina = {
-  accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
-  getNetworkConstants() {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  currentSlot: () => {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-    if (
-      !currentTransaction.has() ||
-      currentTransaction.get().fetchMode === 'cached'
-    ) {
-      return !!Fetch.getCachedAccount(
-        publicKey,
-        tokenId,
-        Fetch.networkConfig.minaEndpoint
-      );
-    }
-    return false;
-  },
-  getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-    if (currentTransaction()?.fetchMode === 'test') {
-      Fetch.markAccountToBeFetched(
-        publicKey,
-        tokenId,
-        Fetch.networkConfig.minaEndpoint
-      );
-      return dummyAccount(publicKey);
-    }
-    if (
-      !currentTransaction.has() ||
-      currentTransaction.get().fetchMode === 'cached'
-    ) {
-      let account = Fetch.getCachedAccount(
-        publicKey,
-        tokenId,
-        Fetch.networkConfig.minaEndpoint
-      );
-      if (account === undefined)
-        throw Error(
-          `${reportGetAccountError(
-            publicKey.toBase58(),
-            TokenId.toBase58(tokenId)
-          )}\n\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
-        );
-      return account;
-    }
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  getNetworkState() {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  sendTransaction() {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
-    return createTransaction(sender, f, 0);
-  },
-  fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
-    throw Error('must call Mina.setActiveInstance first');
-  },
-  fetchActions(
-    _publicKey: PublicKey,
-    _actionStates?: ActionStates,
-    _tokenId: Field = TokenId.default
-  ) {
-    throw Error('must call Mina.setActiveInstance first');
-  },
-  getActions(
-    _publicKey: PublicKey,
-    _actionStates?: ActionStates,
-    _tokenId: Field = TokenId.default
-  ) {
-    throw Error('must call Mina.setActiveInstance first');
-  },
-  proofsEnabled: true,
-};
-
-/**
- * Set the currently used Mina instance.
- */
-function setActiveInstance(m: Mina) {
-  activeInstance = m;
 }
 
 /**

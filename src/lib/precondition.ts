@@ -1,14 +1,19 @@
 import { Bool, Field } from './core.js';
-import { circuitValueEquals } from './circuit_value.js';
+import { circuitValueEquals, cloneCircuitValue } from './circuit_value.js';
 import { Provable } from './provable.js';
-import * as Mina from './mina.js';
-import { Actions, AccountUpdate, Preconditions } from './account_update.js';
+import { activeInstance as Mina } from './mina/mina-instance.js';
+import type { AccountUpdate } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
 import { Layout } from '../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
 import { PublicKey } from './signature.js';
-import { ZkappUri } from '../bindings/mina-transaction/transaction-leaves.js';
+import {
+  Actions,
+  ZkappUri,
+} from '../bindings/mina-transaction/transaction-leaves.js';
+import type { Types } from '../bindings/mina-transaction/types.js';
+import { ZkappStateLength } from './mina/mina-instance.js';
 
 export {
   preconditions,
@@ -20,6 +25,145 @@ export {
   AccountValue,
   NetworkValue,
   getAccountPreconditions,
+  Preconditions,
+  OrIgnore,
+  ClosedInterval,
+};
+
+type AccountUpdateBody = Types.AccountUpdate['body'];
+
+/**
+ * Preconditions for the network and accounts
+ */
+type Preconditions = AccountUpdateBody['preconditions'];
+
+/**
+ * Either check a value or ignore it.
+ *
+ * Used within [[ AccountPredicate ]]s and [[ ProtocolStatePredicate ]]s.
+ */
+type OrIgnore<T> = { isSome: Bool; value: T };
+
+/**
+ * An interval representing all the values between `lower` and `upper` inclusive
+ * of both the `lower` and `upper` values.
+ *
+ * @typeParam A something with an ordering where one can quantify a lower and
+ *            upper bound.
+ */
+type ClosedInterval<T> = { lower: T; upper: T };
+
+type NetworkPrecondition = Preconditions['network'];
+let NetworkPrecondition = {
+  ignoreAll(): NetworkPrecondition {
+    let stakingEpochData = {
+      ledger: { hash: ignore(Field(0)), totalCurrency: ignore(uint64()) },
+      seed: ignore(Field(0)),
+      startCheckpoint: ignore(Field(0)),
+      lockCheckpoint: ignore(Field(0)),
+      epochLength: ignore(uint32()),
+    };
+    let nextEpochData = cloneCircuitValue(stakingEpochData);
+    return {
+      snarkedLedgerHash: ignore(Field(0)),
+      blockchainLength: ignore(uint32()),
+      minWindowDensity: ignore(uint32()),
+      totalCurrency: ignore(uint64()),
+      globalSlotSinceGenesis: ignore(uint32()),
+      stakingEpochData,
+      nextEpochData,
+    };
+  },
+};
+
+/**
+ * Ignores a `dummy`
+ *
+ * @param dummy The value to ignore
+ * @returns Always an ignored value regardless of the input.
+ */
+function ignore<T>(dummy: T): OrIgnore<T> {
+  return { isSome: Bool(false), value: dummy };
+}
+
+/**
+ * Ranges between all uint32 values
+ */
+const uint32 = () => ({ lower: UInt32.from(0), upper: UInt32.MAXINT() });
+
+/**
+ * Ranges between all uint64 values
+ */
+const uint64 = () => ({ lower: UInt64.from(0), upper: UInt64.MAXINT() });
+
+/**
+ * Fix a property to a certain value.
+ *
+ * @param property The property to constrain
+ * @param value The value it is fixed to
+ *
+ * Example: To fix the account nonce of a SmartContract to 0, you can use
+ *
+ * ```ts
+ * \@method onlyRunsWhenNonceIsZero() {
+ *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
+ *   // ...
+ * }
+ * ```
+ */
+function assertEquals<T extends object>(
+  property: OrIgnore<ClosedInterval<T> | T>,
+  value: T
+) {
+  property.isSome = Bool(true);
+  if ('lower' in property.value && 'upper' in property.value) {
+    property.value.lower = value;
+    property.value.upper = value;
+  } else {
+    property.value = value;
+  }
+}
+
+type AccountPrecondition = Preconditions['account'];
+const AccountPrecondition = {
+  ignoreAll(): AccountPrecondition {
+    let appState: Array<OrIgnore<Field>> = [];
+    for (let i = 0; i < ZkappStateLength; ++i) {
+      appState.push(ignore(Field(0)));
+    }
+    return {
+      balance: ignore(uint64()),
+      nonce: ignore(uint32()),
+      receiptChainHash: ignore(Field(0)),
+      delegate: ignore(PublicKey.empty()),
+      state: appState,
+      actionState: ignore(Actions.emptyActionState()),
+      provedState: ignore(Bool(false)),
+      isNew: ignore(Bool(false)),
+    };
+  },
+  nonce(nonce: UInt32): AccountPrecondition {
+    let p = AccountPrecondition.ignoreAll();
+    assertEquals(p.nonce, nonce);
+    return p;
+  },
+};
+
+type GlobalSlotPrecondition = Preconditions['validWhile'];
+const GlobalSlotPrecondition = {
+  ignoreAll(): GlobalSlotPrecondition {
+    return ignore(uint32());
+  },
+};
+
+const Preconditions = {
+  ignoreAll(): Preconditions {
+    return {
+      account: AccountPrecondition.ignoreAll(),
+      network: NetworkPrecondition.ignoreAll(),
+      validWhile: GlobalSlotPrecondition.ignoreAll(),
+    };
+  },
 };
 
 function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
@@ -57,8 +201,7 @@ function Network(accountUpdate: AccountUpdate): Network {
       return this.getAndRequireEquals();
     },
     requireEquals(value: UInt64) {
-      let { genesisTimestamp, slotTime } =
-        Mina.activeInstance.getNetworkConstants();
+      let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
       let slot = timestampToGlobalSlot(
         value,
         `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
@@ -318,13 +461,11 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
 }
 
 function globalSlotToTimestamp(slot: UInt32) {
-  let { genesisTimestamp, slotTime } =
-    Mina.activeInstance.getNetworkConstants();
+  let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
   return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
 }
 function timestampToGlobalSlot(timestamp: UInt64, message: string) {
-  let { genesisTimestamp, slotTime } =
-    Mina.activeInstance.getNetworkConstants();
+  let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
   let { quotient: slot, rest } = timestamp
     .sub(genesisTimestamp)
     .divMod(slotTime);
@@ -339,8 +480,7 @@ function timestampToGlobalSlotRange(
   // we need `slotLower <= current slot <= slotUpper` to imply `tsLower <= current timestamp <= tsUpper`
   // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
   // also, we should clamp to the UInt32 max range [0, 2**32-1]
-  let { genesisTimestamp, slotTime } =
-    Mina.activeInstance.getNetworkConstants();
+  let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
   let tsLowerInt = Int64.from(tsLower)
     .sub(genesisTimestamp)
     .add(slotTime)
@@ -452,7 +592,6 @@ const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
 
 // exported types
 
-type NetworkPrecondition = Preconditions['network'];
 type NetworkValue = PreconditionBaseTypes<NetworkPrecondition>;
 type RawNetwork = PreconditionClassType<NetworkPrecondition>;
 type Network = RawNetwork & {
@@ -461,9 +600,9 @@ type Network = RawNetwork & {
 
 // TODO: should we add account.state?
 // then can just use circuitArray(Field, 8) as the type
-type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
-type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
-type Account = PreconditionClassType<AccountPrecondition> & Update;
+type AccountPreconditionNoState = Omit<Preconditions['account'], 'state'>;
+type AccountValue = PreconditionBaseTypes<AccountPreconditionNoState>;
+type Account = PreconditionClassType<AccountPreconditionNoState> & Update;
 
 type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {
@@ -552,7 +691,7 @@ type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
 type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
-  [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
+  [S in PreconditionFlatEntry<AccountPreconditionNoState> as `account.${S[0]}`]: S[2];
 } & { validWhile: PreconditionFlatEntry<CurrentSlotPrecondition>[2] };
 
 type LongKey = keyof FlatPreconditionValue;

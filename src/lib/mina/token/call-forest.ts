@@ -16,7 +16,7 @@ import {
 
 export { CallForest, CallForestArray, CallForestIterator, hashAccountUpdate };
 
-export { HashedAccountUpdate, CallForestUnderConstruction };
+export { CallForestUnderConstruction };
 
 class HashedAccountUpdate extends Hashed.create(
   AccountUpdate,
