@@ -33,6 +33,7 @@ import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
+import { CallForestUnderConstruction } from './mina/token/call-forest.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -67,6 +68,7 @@ type SmartContractContext = {
   this: SmartContract;
   methodCallDepth: number;
   selfUpdate: AccountUpdate;
+  selfCalls: CallForestUnderConstruction;
 };
 let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,

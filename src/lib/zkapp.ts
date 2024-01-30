@@ -57,6 +57,7 @@ import {
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
+import { CallForestUnderConstruction } from './mina/token/call-forest.js';
 
 // external API
 export {
@@ -165,6 +166,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: 0,
         selfUpdate: selfAccountUpdate(this, methodName),
+        selfCalls: CallForestUnderConstruction.empty(),
       };
       let id = smartContractContext.enter(context);
       try {
@@ -363,6 +365,7 @@ function wrapMethod(
       this: this,
       methodCallDepth: methodCallDepth + 1,
       selfUpdate: selfAccountUpdate(this, methodName),
+      selfCalls: CallForestUnderConstruction.empty(),
     };
     let id = smartContractContext.enter(innerContext);
     try {
