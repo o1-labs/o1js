@@ -83,8 +83,16 @@ const FieldVar = {
     // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
     return Snarky.field.readVar(x);
   },
+  toConstantBn254(x: FieldVar): FieldConst {
+    if (FieldVar.isConstant(x)) return x[1];
+    // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
+    return Snarky.fieldBn254.readVar(x);
+  },
   toBigint(x: FieldVar) {
     return FieldConst.toBigint(FieldVar.toConstant(x));
+  },
+  toBigintBn254(x: FieldVar) {
+    return FieldConst.toBigint(FieldVar.toConstantBn254(x));
   },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {

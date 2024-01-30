@@ -308,6 +308,10 @@ declare const Snarky: {
      * x === y without handling of constants
      */
     assertEqual(x: FieldVar, y: FieldVar): void;
+    /**
+     * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
+     */
+    readVar(x: FieldVar): FieldConst;
   };
 
   bool: {

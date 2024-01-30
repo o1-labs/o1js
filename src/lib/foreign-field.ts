@@ -150,6 +150,13 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     }
 
     /**
+     * Convert this field element to a bigint.
+     */
+    toBigIntBn254() {
+      return ForeignFieldVar.toBigintBn254(this.value);
+    }
+
+    /**
      * Assert that this field element lies in the range [0, p),
      * where p is the foreign field modulus.
      */
@@ -485,6 +492,9 @@ const ForeignFieldVar = {
   },
   toBigint([, ...limbs]: ForeignFieldVar): bigint {
     return from3Limbs(mapTuple(limbs, FieldVar.toBigint));
+  },
+  toBigintBn254([, ...limbs]: ForeignFieldVar): bigint {
+    return from3Limbs(mapTuple(limbs, FieldVar.toBigintBn254));
   },
   [0]: [0, FieldVar[0], FieldVar[0], FieldVar[0]] satisfies ForeignFieldVar,
   [1]: [0, FieldVar[1], FieldVar[0], FieldVar[0]] satisfies ForeignFieldVar,
