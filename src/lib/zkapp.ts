@@ -16,6 +16,8 @@ import {
   ZkappPublicInput,
   ZkappStateLength,
   SmartContractContext,
+  LazyProof,
+  CallForest,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -56,6 +58,8 @@ import {
   snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
+import { SmartContractBase } from './mina/smart-contract-base.js';
+import { assert } from './gadgets/common.js';
 
 // external API
 export {
@@ -209,7 +213,7 @@ function wrapMethod(
               blindingValue
             );
             accountUpdate.body.callData = Poseidon.hash(callDataFields);
-            Authorization.setProofAuthorizationKind(accountUpdate);
+            ProofAuthorization.setKind(accountUpdate);
 
             // TODO: currently commented out, but could come back in some form when we add caller to the public input
             // // compute `caller` field from `isDelegateCall` and a context determined by the transaction
@@ -331,7 +335,7 @@ function wrapMethod(
           accountUpdate.body.callData = Poseidon.hash(callDataFields);
 
           if (!Authorization.hasAny(accountUpdate)) {
-            Authorization.setLazyProof(
+            ProofAuthorization.setLazyProof(
               accountUpdate,
               {
                 methodName: methodIntf.methodName,
@@ -425,7 +429,7 @@ function wrapMethod(
         accountUpdate.body.callData = hashConstant(callDataFields);
 
         if (!Authorization.hasAny(accountUpdate)) {
-          Authorization.setLazyProof(
+          ProofAuthorization.setLazyProof(
             accountUpdate,
             {
               methodName: methodIntf.methodName,
@@ -597,7 +601,7 @@ class Callback<Result> extends GenericArgument {
  * ```
  *
  */
-class SmartContract {
+class SmartContract extends SmartContractBase {
   address: PublicKey;
   tokenId: Field;
 
@@ -635,6 +639,7 @@ class SmartContract {
   }
 
   constructor(address: PublicKey, tokenId?: Field) {
+    super();
     this.address = address;
     this.tokenId = tokenId ?? TokenId.default;
     Object.defineProperty(this, 'reducer', {
@@ -1557,6 +1562,57 @@ const Reducer: (<
   'initialActionState',
   { get: Actions.emptyActionState }
 ) as any;
+
+const ProofAuthorization = {
+  setKind({ body, id }: AccountUpdate, priorAccountUpdates?: AccountUpdate[]) {
+    body.authorizationKind.isSigned = Bool(false);
+    body.authorizationKind.isProved = Bool(true);
+    let hash = Provable.witness(Field, () => {
+      let proverData = zkAppProver.getData();
+      let isProver = proverData !== undefined;
+      assert(
+        isProver || priorAccountUpdates !== undefined,
+        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
+      );
+      let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
+      priorAccountUpdates ??= proverData.transaction.accountUpdates;
+      priorAccountUpdates = priorAccountUpdates.filter(
+        (a) => a.id !== myAccountUpdateId
+      );
+      let priorAccountUpdatesFlat = CallForest.toFlatList(
+        priorAccountUpdates,
+        false
+      );
+      let accountUpdate = [...priorAccountUpdatesFlat]
+        .reverse()
+        .find((body_) =>
+          body_.update.verificationKey.isSome
+            .and(body_.tokenId.equals(body.tokenId))
+            .and(body_.publicKey.equals(body.publicKey))
+            .toBoolean()
+        );
+      if (accountUpdate !== undefined) {
+        return accountUpdate.body.update.verificationKey.value.hash;
+      }
+      try {
+        let account = Mina.getAccount(body.publicKey, body.tokenId);
+        return account.zkapp?.verificationKey?.hash ?? Field(0);
+      } catch {
+        return Field(0);
+      }
+    });
+    body.authorizationKind.verificationKeyHash = hash;
+  },
+  setLazyProof(
+    accountUpdate: AccountUpdate,
+    proof: Omit<LazyProof, 'kind'>,
+    priorAccountUpdates: AccountUpdate[]
+  ) {
+    this.setKind(accountUpdate, priorAccountUpdates);
+    accountUpdate.authorization = {};
+    accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
+  },
+};
 
 /**
  * this is useful to debug a very common error: when the consistency check between
