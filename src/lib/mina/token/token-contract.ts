@@ -2,9 +2,13 @@ import { Bool } from '../../core.js';
 import { UInt64, Int64 } from '../../int.js';
 import { Provable } from '../../provable.js';
 import { PublicKey } from '../../signature.js';
-import { AccountUpdate, Permissions } from '../../account_update.js';
+import {
+  AccountUpdate,
+  CallForest,
+  Permissions,
+} from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
-import { CallForest, CallForestIterator } from './call-forest.js';
+import { CallForestIterator } from './call-forest.js';
 
 export { TokenContract };
 
