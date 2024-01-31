@@ -5,7 +5,11 @@ import { PublicKey } from '../../signature.js';
 import {
   AccountUpdate,
   CallForest,
+  CallForestUnderConstruction,
+  CallTree,
+  HashedAccountUpdate,
   Permissions,
+  smartContractContext,
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { CallForestIterator } from './call-forest.js';
@@ -97,16 +101,16 @@ abstract class TokenContract extends SmartContract {
    * Approve a single account update (with arbitrarily many children).
    */
   approveAccountUpdate(accountUpdate: AccountUpdate) {
-    AccountUpdate.unlink(accountUpdate);
-    this.approveBase(CallForest.fromAccountUpdates([accountUpdate]));
+    let forest = finalizeAccountUpdates([accountUpdate]);
+    this.approveBase(forest);
   }
 
   /**
    * Approve a list of account updates (with arbitrarily many children).
    */
   approveAccountUpdates(accountUpdates: AccountUpdate[]) {
-    accountUpdates.forEach(AccountUpdate.unlink);
-    this.approveBase(CallForest.fromAccountUpdates(accountUpdates));
+    let forest = finalizeAccountUpdates(accountUpdates);
+    this.approveBase(forest);
   }
 
   // TRANSFERABLE API - simple wrapper around Approvable API
@@ -128,15 +132,36 @@ abstract class TokenContract extends SmartContract {
     }
     if (to instanceof PublicKey) {
       to = AccountUpdate.defaultAccountUpdate(to, tokenId);
-
       to.label = `${this.constructor.name}.transfer() (to)`;
     }
+
     from.balanceChange = Int64.from(amount).neg();
     to.balanceChange = Int64.from(amount);
-    AccountUpdate.unlink(from);
-    AccountUpdate.unlink(to);
 
-    let forest = CallForest.fromAccountUpdates([from, to]);
+    let forest = finalizeAccountUpdates([from, to]);
     this.approveBase(forest);
   }
+}
+
+function finalizeAccountUpdates(updates: AccountUpdate[]): CallForest {
+  let trees = updates.map(finalizeAccountUpdate);
+  return CallForest.from(trees);
+}
+
+function finalizeAccountUpdate(update: AccountUpdate): CallTree {
+  let calls: CallForest;
+
+  let insideContract = smartContractContext.get();
+  if (insideContract) {
+    let node = insideContract.selfCalls.value.find(
+      (c) => c.accountUpdate.value.id === update.id
+    );
+    if (node !== undefined) {
+      calls = CallForestUnderConstruction.finalize(node.calls);
+    }
+  }
+  calls ??= CallForest.fromAccountUpdates(update.children.accountUpdates);
+  AccountUpdate.unlink(update);
+
+  return { accountUpdate: HashedAccountUpdate.hash(update), calls };
 }

@@ -110,8 +110,6 @@ async function createZkappProof(
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
   let publicInput = accountUpdate.toPublicInput();
-  console.dir({ publicInput1: publicInput }, { depth: null });
-
   let publicInputFields = MlFieldConstArray.to(
     ZkappPublicInput.toFields(publicInput)
   );
@@ -180,7 +178,6 @@ function debugInconsistentConstraint(transaction: ZkappCommand, index: number) {
   accountUpdate = AccountUpdate.clone(accountUpdate);
 
   let publicInput = accountUpdate.toPublicInput();
-  console.dir({ publicInput2: publicInput }, { depth: null });
 
   assert(
     accountUpdate.lazyAuthorization?.kind === 'lazy-proof',

@@ -415,6 +415,14 @@ function wrapMethod(
       // nothing is asserted about them -- it's the callee's task to check their children
       accountUpdate.children.callsType = { type: 'Witness' };
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
+      CallForestUnderConstruction.push(
+        insideContract.selfCalls,
+        { useHash: false, value: accountUpdate },
+        CallForestUnderConstruction.fromAccountUpdates(
+          accountUpdate.children.accountUpdates,
+          true
+        )
+      );
 
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);
