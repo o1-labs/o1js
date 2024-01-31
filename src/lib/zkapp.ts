@@ -217,51 +217,7 @@ function wrapMethod(
             accountUpdate.body.callData = Poseidon.hash(callDataFields);
             ProofAuthorization.setKind(accountUpdate);
 
-            // connect the public input to the account update & child account updates we created
-            if (DEBUG_PUBLIC_INPUT_CHECK) {
-              Provable.asProver(() => {
-                // TODO: print a nice diff string instead of the two objects
-                // something like `expect` or `json-diff`, but web-compatible
-                function diff(prover: any, input: any) {
-                  delete prover.id;
-                  delete prover.callDepth;
-                  delete input.id;
-                  delete input.callDepth;
-                  if (JSON.stringify(prover) !== JSON.stringify(input)) {
-                    console.log(
-                      'transaction:',
-                      ZkappCommand.toPretty(transaction)
-                    );
-                    console.log('index', index);
-                    console.log('inconsistent account updates:');
-                    console.log('update created by the prover:');
-                    console.log(prover);
-                    console.log('update created in transaction block:');
-                    console.log(input);
-                  }
-                }
-                function diffRecursive(
-                  prover: AccountUpdate,
-                  input: AccountUpdate
-                ) {
-                  diff(prover.toPretty(), input.toPretty());
-                  let nChildren = input.children.accountUpdates.length;
-                  for (let i = 0; i < nChildren; i++) {
-                    let inputChild = input.children.accountUpdates[i];
-                    let child = prover.children.accountUpdates[i];
-                    if (!inputChild || !child) return;
-                    diffRecursive(child, inputChild);
-                  }
-                }
-
-                let {
-                  accountUpdate: inputUpdate,
-                  transaction,
-                  index,
-                } = zkAppProver.getData();
-                diffRecursive(accountUpdate, inputUpdate);
-              });
-            }
+            debugPublicInput(accountUpdate);
             checkPublicInput(publicInput, accountUpdate);
 
             // check the self accountUpdate right after calling the method
@@ -1619,3 +1575,54 @@ const ProofAuthorization = {
  * TODO find or write library that can print nice JS object diffs
  */
 const DEBUG_PUBLIC_INPUT_CHECK = false;
+
+function debugPublicInput(accountUpdate: AccountUpdate) {
+  if (!DEBUG_PUBLIC_INPUT_CHECK) return;
+
+  // connect the public input to the account update & child account updates we created
+  Provable.asProver(() => {
+    diffRecursive(accountUpdate, zkAppProver.getData());
+  });
+}
+
+function diffRecursive(
+  prover: AccountUpdate,
+  inputData: {
+    transaction: ZkappCommand;
+    index: number;
+    accountUpdate: AccountUpdate;
+  }
+) {
+  let { transaction, index, accountUpdate: input } = inputData;
+  diff(transaction, index, prover.toPretty(), input.toPretty());
+  let nChildren = input.children.accountUpdates.length;
+  for (let i = 0; i < nChildren; i++) {
+    let inputChild = input.children.accountUpdates[i];
+    let child = prover.children.accountUpdates[i];
+    if (!inputChild || !child) return;
+    diffRecursive(child, { transaction, index, accountUpdate: inputChild });
+  }
+}
+
+// TODO: print a nice diff string instead of the two objects
+// something like `expect` or `json-diff`, but web-compatible
+function diff(
+  transaction: ZkappCommand,
+  index: number,
+  prover: any,
+  input: any
+) {
+  delete prover.id;
+  delete prover.callDepth;
+  delete input.id;
+  delete input.callDepth;
+  if (JSON.stringify(prover) !== JSON.stringify(input)) {
+    console.log('transaction:', ZkappCommand.toPretty(transaction));
+    console.log('index', index);
+    console.log('inconsistent account updates:');
+    console.log('update created by the prover:');
+    console.log(prover);
+    console.log('update created in transaction block:');
+    console.log(input);
+  }
+}
