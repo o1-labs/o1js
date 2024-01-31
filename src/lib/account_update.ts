@@ -87,6 +87,7 @@ export {
   CallTree,
   CallForestUnderConstruction,
   hashAccountUpdate,
+  HashedAccountUpdate,
 };
 
 const ZkappStateLength = 8;
@@ -793,6 +794,15 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     makeChildAccountUpdate(this, childUpdate);
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
+
+    // TODO: this is not as general as approve suggests
+    let insideContract = smartContractContext.get();
+    if (insideContract && insideContract.selfUpdate.id === this.id) {
+      CallForestUnderConstruction.push(insideContract.selfCalls, {
+        useHash: false,
+        value: childUpdate,
+      });
+    }
   }
 
   /**
@@ -800,6 +810,15 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   adopt(childUpdate: AccountUpdate) {
     makeChildAccountUpdate(this, childUpdate);
+
+    // TODO: this is not as general as adopt suggests
+    let insideContract = smartContractContext.get();
+    if (insideContract && insideContract.selfUpdate.id === this.id) {
+      CallForestUnderConstruction.push(insideContract.selfCalls, {
+        useHash: false,
+        value: childUpdate,
+      });
+    }
   }
 
   get balance() {
@@ -1126,6 +1145,14 @@ class AccountUpdate implements Types.AccountUpdate {
    * Disattach an account update from where it's currently located in the transaction
    */
   static unlink(accountUpdate: AccountUpdate) {
+    // TODO duplicate logic
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      CallForestUnderConstruction.remove(
+        insideContract.selfCalls,
+        accountUpdate
+      );
+    }
     let siblings =
       accountUpdate.parent?.children.accountUpdates ??
       currentTransaction()?.accountUpdates;
@@ -1583,6 +1610,25 @@ const CallForestUnderConstruction = {
       return withHashes(nodes, merkleListHash).hash;
     });
     CallForestUnderConstruction.setHash(forest, hash);
+  },
+
+  fromAccountUpdates(
+    updates: AccountUpdate[],
+    useHash = false
+  ): CallForestUnderConstruction {
+    let nodes = updates.map((update) => {
+      let accountUpdate: HashOrValue<AccountUpdate> = {
+        useHash: false,
+        value: update,
+      };
+      let calls = CallForestUnderConstruction.fromAccountUpdates(
+        update.children.accountUpdates
+      );
+      return { accountUpdate, calls };
+    });
+    let forest: CallForestUnderConstruction = { useHash: false, value: nodes };
+    if (useHash) CallForestUnderConstruction.witnessHash(forest);
+    return forest;
   },
 
   push(
