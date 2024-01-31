@@ -217,17 +217,6 @@ function wrapMethod(
             accountUpdate.body.callData = Poseidon.hash(callDataFields);
             ProofAuthorization.setKind(accountUpdate);
 
-            // TODO: currently commented out, but could come back in some form when we add caller to the public input
-            // // compute `caller` field from `isDelegateCall` and a context determined by the transaction
-            // let callerContext = Provable.witness(
-            //   CallForest.callerContextType,
-            //   () => {
-            //     let { accountUpdate } = zkAppProver.getData();
-            //     return CallForest.computeCallerContext(accountUpdate);
-            //   }
-            // );
-            // CallForest.addCallers([accountUpdate], callerContext);
-
             // connect the public input to the account update & child account updates we created
             if (DEBUG_PUBLIC_INPUT_CHECK) {
               Provable.asProver(() => {
