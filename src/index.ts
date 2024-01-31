@@ -71,12 +71,10 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
+  CallForest,
 } from './lib/account_update.js';
 
-export {
-  CallForest,
-  CallForestIterator,
-} from './lib/mina/token/call-forest.js';
+export { CallForestIterator } from './lib/mina/token/call-forest.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/fetch.js';

@@ -9,7 +9,7 @@ import {
   AccountUpdate,
   ZkappPublicInput,
   TokenId,
-  CallForest,
+  CallForestHelpers,
   Authorization,
   Actions,
   Events,
@@ -196,8 +196,9 @@ function createTransaction(
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();
-              tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
-                toConstant(AccountUpdate, a)
+              tx.accountUpdates = CallForestHelpers.map(
+                tx.accountUpdates,
+                (a) => toConstant(AccountUpdate, a)
               );
             });
           });
@@ -217,7 +218,7 @@ function createTransaction(
   let accountUpdates = currentTransaction.get().accountUpdates;
   // TODO: I'll be back
   // CallForest.addCallers(accountUpdates);
-  accountUpdates = CallForest.toFlatList(accountUpdates);
+  accountUpdates = CallForestHelpers.toFlatList(accountUpdates);
 
   try {
     // check that on-chain values weren't used without setting a precondition

@@ -17,7 +17,8 @@ import {
   ZkappStateLength,
   SmartContractContext,
   LazyProof,
-  CallForest,
+  CallForestHelpers,
+  CallForestUnderConstruction,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -59,7 +60,6 @@ import {
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
-import { CallForestUnderConstruction } from './mina/token/call-forest.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
 
 // external API
@@ -1529,7 +1529,7 @@ const ProofAuthorization = {
       priorAccountUpdates = priorAccountUpdates.filter(
         (a) => a.id !== myAccountUpdateId
       );
-      let priorAccountUpdatesFlat = CallForest.toFlatList(
+      let priorAccountUpdatesFlat = CallForestHelpers.toFlatList(
         priorAccountUpdates,
         false
       );
