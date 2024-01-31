@@ -55,15 +55,13 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
 
       // get balances of X and Y token
-      // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
-      // but for that, we need the @method argument generalization
       let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
       let dexXBalance = dexXUpdate.account.balance.getAndRequireEquals();
 
       let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
       let dexYBalance = dexYUpdate.account.balance.getAndRequireEquals();
 
-      // // assert dy === [dx * y/x], or x === 0
+      // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
       let xSafe = Provable.if(isXZero, UInt64.one, dexXBalance);
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
@@ -72,7 +70,7 @@ function createDex({
       tokenX.transfer(user, dexXUpdate, dx);
       tokenY.transfer(user, dexYUpdate, dy);
 
-      // calculate liquidity token output simply as dl = dx + dx
+      // calculate liquidity token output simply as dl = dx + dy
       // => maintains ratio x/l, y/l
       let dl = dy.add(dx);
       let userUpdate = this.token.mint({ address: user, amount: dl });
