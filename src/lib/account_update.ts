@@ -1484,12 +1484,6 @@ type AccountUpdatesLayout =
   | 'NoDelegation'
   | AccountUpdatesLayout[];
 
-type WithCallers = {
-  accountUpdate: AccountUpdate;
-  caller: Field;
-  children: WithCallers[];
-};
-
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
   // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
@@ -1559,70 +1553,6 @@ const CallForest = {
     }
     return stackHash;
   },
-
-  // Mina_base.Zkapp_command.Call_forest.add_callers
-  // TODO: currently unused, but could come back when we add caller to the
-  // public input
-  addCallers(
-    updates: AccountUpdate[],
-    context: { self: Field; caller: Field } = {
-      self: TokenId.default,
-      caller: TokenId.default,
-    }
-  ): WithCallers[] {
-    let withCallers: WithCallers[] = [];
-    for (let update of updates) {
-      let { mayUseToken } = update.body;
-      let caller = Provable.if(
-        mayUseToken.parentsOwnToken,
-        context.self,
-        Provable.if(
-          mayUseToken.inheritFromParent,
-          context.caller,
-          TokenId.default
-        )
-      );
-      let self = TokenId.derive(update.body.publicKey, update.body.tokenId);
-      let childContext = { caller, self };
-      withCallers.push({
-        accountUpdate: update,
-        caller,
-        children: CallForest.addCallers(
-          update.children.accountUpdates,
-          childContext
-        ),
-      });
-    }
-    return withCallers;
-  },
-  /**
-   * Used in the prover to witness the context from which to compute its caller
-   *
-   * TODO: currently unused, but could come back when we add caller to the
-   * public input
-   */
-  computeCallerContext(update: AccountUpdate) {
-    // compute the line of ancestors
-    let current = update;
-    let ancestors = [];
-    while (true) {
-      let parent = current.parent;
-      if (parent === undefined) break;
-      ancestors.unshift(parent);
-      current = parent;
-    }
-    let context = { self: TokenId.default, caller: TokenId.default };
-    for (let update of ancestors) {
-      if (update.body.mayUseToken.parentsOwnToken.toBoolean()) {
-        context.caller = context.self;
-      } else if (!update.body.mayUseToken.inheritFromParent.toBoolean()) {
-        context.caller = TokenId.default;
-      }
-      context.self = TokenId.derive(update.body.publicKey, update.body.tokenId);
-    }
-    return context;
-  },
-  callerContextType: provablePure({ self: Field, caller: Field }),
 
   computeCallDepth(update: AccountUpdate) {
     for (let callDepth = 0; ; callDepth++) {
