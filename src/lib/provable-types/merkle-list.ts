@@ -14,6 +14,7 @@ export {
   emptyHash,
   genericHash,
   merkleListHash,
+  withHashes,
 };
 
 // common base types for both MerkleList and MerkleArray

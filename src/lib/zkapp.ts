@@ -16,6 +16,9 @@ import {
   ZkappPublicInput,
   ZkappStateLength,
   SmartContractContext,
+  LazyProof,
+  CallForestHelpers,
+  CallForestUnderConstruction,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -56,6 +59,7 @@ import {
   snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
+import { assert } from './gadgets/common.js';
 
 // external API
 export {

@@ -1,14 +1,12 @@
 import { Random, test } from '../../testing/property.js';
 import { RandomTransaction } from '../../../mina-signer/src/random-transaction.js';
-import {
-  CallForest,
-  CallForestIterator,
-  hashAccountUpdate,
-} from './call-forest.js';
+import { CallForestIterator } from './call-forest.js';
 import {
   AccountUpdate,
-  CallForest as ProvableCallForest,
+  CallForest,
+  CallForestHelpers,
   TokenId,
+  hashAccountUpdate,
 } from '../../account_update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
 import { Pickles } from '../../../snarky.js';
@@ -80,7 +78,7 @@ test(flatAccountUpdates, (flatUpdates) => {
   let updates = callForestToNestedArray(
     accountUpdatesToCallForest(flatUpdates)
   );
-  let flatUpdates2 = ProvableCallForest.toFlatList(updates, false);
+  let flatUpdates2 = CallForestHelpers.toFlatList(updates, false);
   let n = flatUpdates.length;
   for (let i = 0; i < n; i++) {
     assert.deepStrictEqual(flatUpdates2[i], flatUpdates[i]);

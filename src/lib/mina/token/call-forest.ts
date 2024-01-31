@@ -1,47 +1,11 @@
-import { prefixes } from '../../../provable/poseidon-bigint.js';
-import { AccountUpdate, TokenId } from '../../account_update.js';
+import { AccountUpdate, CallForest, TokenId } from '../../account_update.js';
 import { Field } from '../../core.js';
 import { Provable } from '../../provable.js';
 import { Struct } from '../../circuit_value.js';
 import { assert } from '../../gadgets/common.js';
-import { Poseidon, ProvableHashable } from '../../hash.js';
-import { Hashed } from '../../provable-types/packed.js';
-import {
-  MerkleArray,
-  MerkleListBase,
-  MerkleList,
-  genericHash,
-} from '../../provable-types/merkle-list.js';
+import { MerkleArray, MerkleList } from '../../provable-types/merkle-list.js';
 
-export { CallForest, CallForestArray, CallForestIterator, hashAccountUpdate };
-
-export { HashedAccountUpdate };
-
-class HashedAccountUpdate extends Hashed.create(
-  AccountUpdate,
-  hashAccountUpdate
-) {}
-
-type CallTree = {
-  accountUpdate: Hashed<AccountUpdate>;
-  calls: MerkleListBase<CallTree>;
-};
-const CallTree: ProvableHashable<CallTree> = Struct({
-  accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleListBase<CallTree>(),
-});
-
-class CallForest extends MerkleList.create(CallTree, merkleListHash) {
-  static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
-    let nodes = updates.map((update) => {
-      let accountUpdate = HashedAccountUpdate.hash(update);
-      let calls = CallForest.fromAccountUpdates(update.children.accountUpdates);
-      return { accountUpdate, calls };
-    });
-
-    return CallForest.from(nodes);
-  }
-}
+export { CallForestArray, CallForestIterator };
 
 class CallForestArray extends MerkleArray.createFromList(CallForest) {}
 
@@ -149,27 +113,4 @@ class CallForestIterator {
 
     return { accountUpdate: update, usesThisToken };
   }
-}
-
-// how to hash a forest
-
-function merkleListHash(forestHash: Field, tree: CallTree) {
-  return hashCons(forestHash, hashNode(tree));
-}
-
-function hashNode(tree: CallTree) {
-  return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
-    tree.accountUpdate.hash,
-    tree.calls.hash,
-  ]);
-}
-function hashCons(forestHash: Field, nodeHash: Field) {
-  return Poseidon.hashWithPrefix(prefixes.accountUpdateCons, [
-    nodeHash,
-    forestHash,
-  ]);
-}
-
-function hashAccountUpdate(update: AccountUpdate) {
-  return genericHash(AccountUpdate, prefixes.body, update);
 }
