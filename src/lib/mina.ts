@@ -19,8 +19,7 @@ import {
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Empty, Proof, verify } from './proof_system.js';
-import { SmartContract } from './zkapp.js';
+import { Empty, JsonProof, Proof, verify } from './proof_system.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
@@ -38,11 +37,11 @@ import {
   activeInstance,
   setActiveInstance,
   Mina,
-  FeePayerSpec,
-  DeprecatedFeePayerSpec,
-  ActionStates,
   defaultNetworkConstants,
-  NetworkConstants,
+  type FeePayerSpec,
+  type DeprecatedFeePayerSpec,
+  type ActionStates,
+  type NetworkConstants,
 } from './mina/mina-instance.js';
 
 export {
@@ -1233,15 +1232,15 @@ async function verifyAccountUpdate(
       let publicInput = accountUpdate.toPublicInput();
       let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
-      const proof = SmartContract.Proof().fromJSON({
+      let proof: JsonProof = {
         maxProofsVerified: 2,
         proof: accountUpdate.authorization.proof!,
         publicInput: publicInputFields.map((f) => f.toString()),
         publicOutput: [],
-      });
+      };
 
       let verificationKey = account.zkapp?.verificationKey?.data!;
-      isValidProof = await verify(proof.toJSON(), verificationKey);
+      isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
         throw Error(
           `Invalid proof for account update\n${JSON.stringify(update)}`
