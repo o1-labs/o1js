@@ -1547,6 +1547,18 @@ const CallTree: ProvableHashable<CallTree> = Struct({
   calls: MerkleListBase<CallTree>(),
 });
 
+/**
+ * Class which represents a forest (list of trees) of account updates,
+ * in a compressed way which allows iterating and selectively witnessing the account updates.
+ *
+ * The (recursive) type signature is:
+ * ```
+ * type AccountUpdateForest = MerkleList<{
+ *   accountUpdate: Hashed<AccountUpdate>;
+ *   calls: AccountUpdateForest;
+ * }>;
+ * ```
+ */
 class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
   static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
     let nodes = updates.map((update) => {
