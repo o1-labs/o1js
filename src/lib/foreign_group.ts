@@ -1,3 +1,4 @@
+import { Bn254 } from '../bindings/crypto/elliptic_curve.js';
 import { Snarky } from '../snarky.js';
 import { FieldBn254 } from './field_bn254.js';
 import { ForeignAffine } from './foreign-field.js';
@@ -18,18 +19,68 @@ class ForeignGroup {
         this.y = y;
     }
 
+    static #fromAffine({
+        x,
+        y,
+        infinity,
+    }: {
+        x: bigint;
+        y: bigint;
+        infinity: boolean;
+    }) {
+        let modulus = BigInt(ForeignGroup.curve[2]);
+        let ForeignGroupField = createForeignFieldBn254(modulus);
+
+        return infinity ?
+            new ForeignGroup(ForeignGroupField.from(0), ForeignGroupField.from(0)) :
+            new ForeignGroup(ForeignGroupField.from(x), ForeignGroupField.from(y));
+    }
+
+    static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
+        return this.#fromAffine(Bn254.toAffine({ x, y, z }));
+    }
+
     #toTuple(): ForeignAffine {
         return [0, this.x.value, this.y.value];
     }
 
-    add(other: ForeignGroup) {
-        let left = this.#toTuple();
-        let right = other.#toTuple();
-        let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
-        let modulus = BigInt(ForeignGroup.curve[2]);
-        let ForeignGroupField = createForeignFieldBn254(modulus);
+    #toProjective() {
+        return Bn254.fromAffine({
+            x: this.x.toBigInt(),
+            y: this.y.toBigInt(),
+            infinity: false,
+        });
+    }
 
-        return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+    #isConstant() {
+        return this.x.isConstant() && this.y.isConstant();
+    }
+
+    isZero() {
+        // only the zero element can have x = 0, there are no other (valid) group elements with x = 0
+        return this.x.equals(0);
+    }
+
+    add(other: ForeignGroup) {
+        if (this.#isConstant() && other.#isConstant()) {
+            // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
+            if (this.isZero().toBoolean()) {
+                return other;
+            } else if (other.isZero().toBoolean()) {
+                return this;
+            } else {
+                let g_proj = Bn254.add(this.#toProjective(), other.#toProjective());
+                return ForeignGroup.#fromProjective(g_proj);
+            }
+        } else {
+            let left = this.#toTuple();
+            let right = other.#toTuple();
+            let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
+            let modulus = BigInt(ForeignGroup.curve[2]);
+            let ForeignGroupField = createForeignFieldBn254(modulus);
+
+            return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+        }
     }
 
     sub(other: ForeignGroup) {

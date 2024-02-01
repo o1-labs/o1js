@@ -16,7 +16,7 @@ import type {
   ForeignFieldConst,
   ForeignAffine,
 } from './lib/foreign-field.js';
-import type { EllipticCurve } from './lib/foreign_group.ts';
+import type { EllipticCurve } from './lib/foreign_group.js';
 import { FieldBn254 } from './lib/field_bn254.ts';
 
 export { ProvablePure, Provable, ProvableBn254, Ledger, Pickles, Gate };
