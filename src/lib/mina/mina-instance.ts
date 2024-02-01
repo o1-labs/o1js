@@ -8,18 +8,27 @@ import type { Transaction, TransactionId } from '../mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from '../precondition.js';
 import type * as Fetch from '../fetch.js';
+import type { NetworkId } from '../../mina-signer/src/TSTypes.js';
 
 export {
   Mina,
   FeePayerSpec,
   DeprecatedFeePayerSpec,
   ActionStates,
+  NetworkConstants,
+  defaultNetworkConstants,
   activeInstance,
   setActiveInstance,
   ZkappStateLength,
 };
 
 const defaultAccountCreationFee = 1_000_000_000;
+const defaultNetworkConstants: NetworkConstants = {
+  genesisTimestamp: UInt64.from(0),
+  slotTime: UInt64.from(3 * 60 * 1000),
+  accountCreationFee: UInt64.from(defaultAccountCreationFee),
+};
+
 const ZkappStateLength = 8;
 
 /**
@@ -59,6 +68,15 @@ type ActionStates = {
   endActionState?: Field;
 };
 
+type NetworkConstants = {
+  genesisTimestamp: UInt64;
+  /**
+   * Duration of 1 slot in millisecondw
+   */
+  slotTime: UInt64;
+  accountCreationFee: UInt64;
+};
+
 interface Mina {
   transaction(
     sender: DeprecatedFeePayerSpec,
@@ -68,14 +86,10 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
-  getNetworkConstants(): {
-    genesisTimestamp: UInt64;
-    /**
-     * Duration of 1 slot in millisecondw
-     */
-    slotTime: UInt64;
-    accountCreationFee: UInt64;
-  };
+  getNetworkConstants(): NetworkConstants;
+  /**
+   * @deprecated use {@link getNetworkConstants}
+   */
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (
@@ -94,11 +108,12 @@ interface Mina {
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
+  getNetworkId(): NetworkId;
 }
 
 let activeInstance: Mina = {
-  accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
-  getNetworkConstants: noActiveInstance,
+  accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
+  getNetworkConstants: () => defaultNetworkConstants,
   currentSlot: noActiveInstance,
   hasAccount: noActiveInstance,
   getAccount: noActiveInstance,
@@ -109,6 +124,7 @@ let activeInstance: Mina = {
   fetchActions: noActiveInstance,
   getActions: noActiveInstance,
   proofsEnabled: true,
+  getNetworkId: () => 'testnet',
 };
 
 /**

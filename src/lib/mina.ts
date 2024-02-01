@@ -41,6 +41,8 @@ import {
   FeePayerSpec,
   DeprecatedFeePayerSpec,
   ActionStates,
+  defaultNetworkConstants,
+  NetworkConstants,
 } from './mina/mina-instance.js';
 
 export {

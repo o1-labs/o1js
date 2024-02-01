@@ -1783,7 +1783,7 @@ function addMissingSignatures(
     let signature = signFieldElement(
       fullCommitment,
       privateKey.toBigInt(),
-      Mina.getNetworkId()
+      activeInstance.getNetworkId()
     );
     return { body, authorization: Signature.toBase58(signature) };
   }
@@ -1816,7 +1816,7 @@ function addMissingSignatures(
     let signature = signFieldElement(
       transactionCommitment,
       privateKey.toBigInt(),
-      Mina.getNetworkId()
+      activeInstance.getNetworkId()
     );
     Authorization.setSignature(accountUpdate, Signature.toBase58(signature));
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
