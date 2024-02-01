@@ -59,7 +59,7 @@ import {
 import { Hashed } from './provable-types/packed.js';
 
 // external API
-export { AccountUpdate, Permissions, ZkappPublicInput, CallForest };
+export { AccountUpdate, Permissions, ZkappPublicInput, AccountUpdateForest };
 // internal API
 export {
   smartContractContext,
@@ -1547,15 +1547,15 @@ const CallTree: ProvableHashable<CallTree> = Struct({
   calls: MerkleListBase<CallTree>(),
 });
 
-class CallForest extends MerkleList.create(CallTree, merkleListHash) {
-  static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
+class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
+  static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
     let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
-      let calls = CallForest.fromAccountUpdates(update.children.accountUpdates);
+      let calls = AccountUpdateForest.fromArray(update.children.accountUpdates);
       return { accountUpdate, calls };
     });
 
-    return CallForest.from(nodes);
+    return AccountUpdateForest.from(nodes);
   }
 }
 
@@ -1655,18 +1655,18 @@ const CallForestUnderConstruction = {
     forest.value.splice(index, 1);
   },
 
-  finalize(forest: CallForestUnderConstruction): CallForest {
+  finalize(forest: CallForestUnderConstruction): AccountUpdateForest {
     if (forest.useHash) {
       let data = Unconstrained.witness(() => {
         let nodes = forest.value.map(toCallTree);
         return withHashes(nodes, merkleListHash).data;
       });
-      return new CallForest({ hash: forest.hash, data });
+      return new AccountUpdateForest({ hash: forest.hash, data });
     }
 
     // not using the hash means we calculate it in-circuit
     let nodes = forest.value.map(toCallTree);
-    return CallForest.from(nodes);
+    return AccountUpdateForest.from(nodes);
   },
 };
 

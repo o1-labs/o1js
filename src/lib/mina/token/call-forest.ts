@@ -1,16 +1,25 @@
-import { AccountUpdate, CallForest, TokenId } from '../../account_update.js';
+import {
+  AccountUpdate,
+  AccountUpdateForest,
+  TokenId,
+} from '../../account_update.js';
 import { Field } from '../../core.js';
 import { Provable } from '../../provable.js';
 import { Struct } from '../../circuit_value.js';
 import { assert } from '../../gadgets/common.js';
-import { MerkleArray, MerkleList } from '../../provable-types/merkle-list.js';
+import {
+  MerkleListIterator,
+  MerkleList,
+} from '../../provable-types/merkle-list.js';
 
-export { CallForestArray, CallForestIterator };
+export { AccountUpdateIterator, TokenAccountUpdateIterator };
 
-class CallForestArray extends MerkleArray.createFromList(CallForest) {}
+class AccountUpdateIterator extends MerkleListIterator.createFromList(
+  AccountUpdateForest
+) {}
 
 class Layer extends Struct({
-  forest: CallForestArray.provable,
+  forest: AccountUpdateIterator.provable,
   mayUseToken: AccountUpdate.MayUseToken.type,
 }) {}
 const ParentLayers = MerkleList.create<Layer>(Layer);
@@ -19,18 +28,36 @@ type MayUseToken = AccountUpdate['body']['mayUseToken'];
 const MayUseToken = AccountUpdate.MayUseToken;
 
 /**
- * Data structure to represent a forest tree of account updates that is being iterated over.
+ * Data structure to represent a forest of account updates that is being iterated over,
+ * in the context of a token manager contract.
  *
- * Important: Since this is to be used for token manager contracts to process it's entire subtree
- * of account updates, the iterator skips subtrees that don't inherit token permissions.
+ * The iteration is done in a depth-first manner.
+ *
+ * ```ts
+ * let forest: AccountUpdateForest = ...;
+ * let tokenIterator = TokenAccountUpdateIterator.create(forest, tokenId);
+ *
+ * // process the first 5 account updates in the tree
+ * for (let i = 0; i < 5; i++) {
+ *  let { accountUpdate, usesThisToken } = tokenIterator.next();
+ *  // ... do something with the account update ...
+ * }
+ * ```
+ *
+ * **Important**: Since this is specifically used by token manager contracts to process their entire subtree
+ * of account updates, the iterator skips subtrees that don't inherit token permissions and can therefore definitely not use the token.
+ *
+ * So, the assumption is that the consumer of this iterator is only interested in account updates that use the token.
+ * We still can't avoid processing some account updates that don't use the token, therefore the iterator returns a boolean
+ * `usesThisToken` alongside each account update.
  */
-class CallForestIterator {
+class TokenAccountUpdateIterator {
   currentLayer: Layer;
   unfinishedParentLayers: MerkleList<Layer>;
   selfToken: Field;
 
   constructor(
-    forest: CallForestArray,
+    forest: AccountUpdateIterator,
     mayUseToken: MayUseToken,
     selfToken: Field
   ) {
@@ -39,9 +66,9 @@ class CallForestIterator {
     this.selfToken = selfToken;
   }
 
-  static create(forest: CallForest, selfToken: Field) {
-    return new CallForestIterator(
-      CallForestArray.startIterating(forest),
+  static create(forest: AccountUpdateForest, selfToken: Field) {
+    return new TokenAccountUpdateIterator(
+      AccountUpdateIterator.startIterating(forest),
       MayUseToken.ParentsOwnToken,
       selfToken
     );
@@ -62,7 +89,7 @@ class CallForestIterator {
     // get next account update from the current forest (might be a dummy)
     // and step down into the layer of its children
     let { accountUpdate, calls } = this.currentLayer.forest.next();
-    let forest = CallForestArray.startIterating(calls);
+    let forest = AccountUpdateIterator.startIterating(calls);
     let parentForest = this.currentLayer.forest;
 
     this.unfinishedParentLayers.pushIf(parentForest.isAtEnd().not(), {

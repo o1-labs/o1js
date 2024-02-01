@@ -4,7 +4,7 @@ import { Provable } from '../../provable.js';
 import { PublicKey } from '../../signature.js';
 import {
   AccountUpdate,
-  CallForest,
+  AccountUpdateForest,
   CallForestUnderConstruction,
   CallTree,
   HashedAccountUpdate,
@@ -12,7 +12,7 @@ import {
   smartContractContext,
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
-import { CallForestIterator } from './call-forest.js';
+import { TokenAccountUpdateIterator } from './call-forest.js';
 
 export { TokenContract };
 
@@ -39,7 +39,7 @@ abstract class TokenContract extends SmartContract {
   // APPROVABLE API has to be specified by subclasses,
   // but the hard part is `forEachUpdate()`
 
-  abstract approveBase(forest: CallForest): void;
+  abstract approveBase(forest: AccountUpdateForest): void;
 
   /**
    * Iterate through the account updates in `updates` and apply `callback` to each.
@@ -47,10 +47,10 @@ abstract class TokenContract extends SmartContract {
    * This method is provable and is suitable as a base for implementing `approveUpdates()`.
    */
   forEachUpdate(
-    updates: CallForest,
+    updates: AccountUpdateForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
   ) {
-    let forest = CallForestIterator.create(updates, this.token.id);
+    let forest = TokenAccountUpdateIterator.create(updates, this.token.id);
 
     // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
@@ -84,7 +84,7 @@ abstract class TokenContract extends SmartContract {
    *
    * This is provided out of the box as it is both a good example, and probably the most common implementation, of `approveUpdates()`.
    */
-  checkZeroBalanceChange(updates: CallForest) {
+  checkZeroBalanceChange(updates: AccountUpdateForest) {
     let totalBalanceChange = Int64.zero;
 
     this.forEachUpdate(updates, (accountUpdate, usesToken) => {
@@ -143,13 +143,13 @@ abstract class TokenContract extends SmartContract {
   }
 }
 
-function finalizeAccountUpdates(updates: AccountUpdate[]): CallForest {
+function finalizeAccountUpdates(updates: AccountUpdate[]): AccountUpdateForest {
   let trees = updates.map(finalizeAccountUpdate);
-  return CallForest.from(trees);
+  return AccountUpdateForest.from(trees);
 }
 
 function finalizeAccountUpdate(update: AccountUpdate): CallTree {
-  let calls: CallForest;
+  let calls: AccountUpdateForest;
 
   let insideContract = smartContractContext.get();
   if (insideContract) {
@@ -160,7 +160,7 @@ function finalizeAccountUpdate(update: AccountUpdate): CallTree {
       calls = CallForestUnderConstruction.finalize(node.calls);
     }
   }
-  calls ??= CallForest.fromAccountUpdates(update.children.accountUpdates);
+  calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates);
   AccountUpdate.unlink(update);
 
   return { accountUpdate: HashedAccountUpdate.hash(update), calls };

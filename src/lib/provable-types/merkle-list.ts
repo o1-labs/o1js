@@ -8,8 +8,8 @@ import { Poseidon, packToFields, ProvableHashable } from '../hash.js';
 export {
   MerkleListBase,
   MerkleList,
+  MerkleListIteratorBase,
   MerkleListIterator,
-  MerkleArray,
   WithHash,
   emptyHash,
   genericHash,
@@ -17,7 +17,7 @@ export {
   withHashes,
 };
 
-// common base types for both MerkleList and MerkleArray
+// common base types for both MerkleList and MerkleListIterator
 
 const emptyHash = Field(0);
 
@@ -28,7 +28,7 @@ function WithHash<T>(type: ProvableHashable<T>): ProvableHashable<WithHash<T>> {
 }
 
 /**
- * Common base type for {@link MerkleList} and {@link MerkleArray}
+ * Common base type for {@link MerkleList} and {@link MerkleListIterator}
  */
 type MerkleListBase<T> = {
   hash: Field;
@@ -51,8 +51,9 @@ function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
  * Supported operations are {@link push()} and {@link pop()} and some variants thereof.
  *
  * **Important:** `push()` adds elements to the _start_ of the internal array and `pop()` removes them from the start.
- * This is so that the hash which represents the list is consistent with {@link MerkleArray},
- * and so a `MerkleList` can be used as input to `MerkleArray.startIterating(list)` (which will then iterate starting from the last pushed element).
+ * This is so that the hash which represents the list is consistent with {@link MerkleListIterator},
+ * and so a `MerkleList` can be used as input to `MerkleListIterator.startIterating(list)`
+ * (which will then iterate starting from the last pushed element).
  *
  * A Merkle list is generic over its element types, so before using it you must create a subclass for your element type:
  *
@@ -135,8 +136,8 @@ class MerkleList<T> implements MerkleListBase<T> {
     return new this.Constructor({ hash: this.hash, data });
   }
 
-  startIterating(): MerkleArray<T> {
-    let merkleArray = MerkleArray.createFromList<T>(this.Constructor);
+  startIterating(): MerkleListIterator<T> {
+    let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
     return merkleArray.startIterating(this);
   }
 
@@ -214,9 +215,9 @@ class MerkleList<T> implements MerkleListBase<T> {
   }
 }
 
-// merkle array
+// merkle list iterator
 
-type MerkleListIterator<T> = {
+type MerkleListIteratorBase<T> = {
   readonly hash: Field;
   readonly data: Unconstrained<WithHash<T>[]>;
 
@@ -235,14 +236,22 @@ type MerkleListIterator<T> = {
 };
 
 /**
- * MerkleArray is similar to a MerkleList, but it maintains the entire array througout a computation,
+ * MerkleListIterator is similar to a MerkleList, but it maintains the entire array througout a computation,
  * instead of mutating itself / throwing away context while stepping through it.
+ *
+ * The core method that support iteration is {@link next()}.
+ *
+ * ```ts
+ * let iterator = MerkleListIterator.startIterating(list);
+ *
+ * let firstElement = iterator.next();
+ * ```
  *
  * We maintain two commitments, both of which are equivalent to a Merkle list hash starting _from the end_ of the array:
  * - One to the entire array, to prove that we start iterating at the beginning.
  * - One to the array from the current index until the end, to efficiently step forward.
  */
-class MerkleArray<T> implements MerkleListIterator<T> {
+class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   // fixed parts
   readonly data: Unconstrained<WithHash<T>[]>;
   readonly hash: Field;
@@ -251,7 +260,7 @@ class MerkleArray<T> implements MerkleListIterator<T> {
   currentHash: Field;
   currentIndex: Unconstrained<number>;
 
-  constructor(value: MerkleListIterator<T>) {
+  constructor(value: MerkleListIteratorBase<T>) {
     Object.assign(this, value);
   }
 
@@ -307,7 +316,7 @@ class MerkleArray<T> implements MerkleListIterator<T> {
     );
   }
 
-  clone(): MerkleArray<T> {
+  clone(): MerkleListIterator<T> {
     let data = Unconstrained.witness(() => [...this.data.get()]);
     let currentIndex = Unconstrained.witness(() => this.currentIndex.get());
     return new this.Constructor({
@@ -324,13 +333,13 @@ class MerkleArray<T> implements MerkleListIterator<T> {
   static create<T>(
     type: ProvableHashable<T>,
     nextHash: (hash: Field, value: T) => Field = merkleListHash(type)
-  ): typeof MerkleArray<T> & {
-    from: (array: T[]) => MerkleArray<T>;
-    startIterating: (list: MerkleListBase<T>) => MerkleArray<T>;
-    empty: () => MerkleArray<T>;
-    provable: ProvableHashable<MerkleArray<T>>;
+  ): typeof MerkleListIterator<T> & {
+    from: (array: T[]) => MerkleListIterator<T>;
+    startIterating: (list: MerkleListBase<T>) => MerkleListIterator<T>;
+    empty: () => MerkleListIterator<T>;
+    provable: ProvableHashable<MerkleListIterator<T>>;
   } {
-    return class MerkleArray_ extends MerkleArray<T> {
+    return class MerkleArray_ extends MerkleListIterator<T> {
       static _innerProvable = type;
 
       static _provable = provableFromClass(MerkleArray_, {
@@ -338,18 +347,21 @@ class MerkleArray<T> implements MerkleListIterator<T> {
         data: Unconstrained.provable,
         currentHash: Field,
         currentIndex: Unconstrained.provable,
-      }) satisfies ProvableHashable<MerkleArray<T>> as ProvableHashable<
-        MerkleArray<T>
+      }) satisfies ProvableHashable<MerkleListIterator<T>> as ProvableHashable<
+        MerkleListIterator<T>
       >;
 
       static _nextHash = nextHash;
 
-      static from(array: T[]): MerkleArray<T> {
+      static from(array: T[]): MerkleListIterator<T> {
         let { hash, data } = withHashes(array, nextHash);
         return this.startIterating({ data: Unconstrained.from(data), hash });
       }
 
-      static startIterating({ data, hash }: MerkleListBase<T>): MerkleArray<T> {
+      static startIterating({
+        data,
+        hash,
+      }: MerkleListBase<T>): MerkleListIterator<T> {
         return new this({
           data,
           hash,
@@ -358,12 +370,15 @@ class MerkleArray<T> implements MerkleListIterator<T> {
         });
       }
 
-      static empty(): MerkleArray<T> {
+      static empty(): MerkleListIterator<T> {
         return this.from([]);
       }
 
-      static get provable(): ProvableHashable<MerkleArray<T>> {
-        assert(this._provable !== undefined, 'MerkleArray not initialized');
+      static get provable(): ProvableHashable<MerkleListIterator<T>> {
+        assert(
+          this._provable !== undefined,
+          'MerkleListIterator not initialized'
+        );
         return this._provable;
       }
     };
@@ -379,17 +394,17 @@ class MerkleArray<T> implements MerkleListIterator<T> {
   // dynamic subclassing infra
   static _nextHash: ((hash: Field, value: any) => Field) | undefined;
 
-  static _provable: ProvableHashable<MerkleArray<any>> | undefined;
+  static _provable: ProvableHashable<MerkleListIterator<any>> | undefined;
   static _innerProvable: ProvableHashable<any> | undefined;
 
   get Constructor() {
-    return this.constructor as typeof MerkleArray;
+    return this.constructor as typeof MerkleListIterator;
   }
 
   nextHash(hash: Field, value: T): Field {
     assert(
       this.Constructor._nextHash !== undefined,
-      'MerkleArray not initialized'
+      'MerkleListIterator not initialized'
     );
     return this.Constructor._nextHash(hash, value);
   }
@@ -397,7 +412,7 @@ class MerkleArray<T> implements MerkleListIterator<T> {
   get innerProvable(): ProvableHashable<T> {
     assert(
       this.Constructor._innerProvable !== undefined,
-      'MerkleArray not initialized'
+      'MerkleListIterator not initialized'
     );
     return this.Constructor._innerProvable;
   }

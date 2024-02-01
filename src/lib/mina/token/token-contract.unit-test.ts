@@ -5,7 +5,7 @@ import {
   Mina,
   Provable,
   UInt64,
-  CallForest,
+  AccountUpdateForest,
   TokenContract,
 } from '../../../index.js';
 
@@ -13,7 +13,7 @@ class ExampleTokenContract extends TokenContract {
   // APPROVABLE API
 
   @method
-  approveBase(updates: CallForest) {
+  approveBase(updates: AccountUpdateForest) {
     let totalBalanceChange = Int64.zero;
 
     this.forEachUpdate(updates, (accountUpdate, usesToken) => {

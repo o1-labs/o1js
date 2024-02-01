@@ -1,9 +1,9 @@
 import { Random, test } from '../../testing/property.js';
 import { RandomTransaction } from '../../../mina-signer/src/random-transaction.js';
-import { CallForestIterator } from './call-forest.js';
+import { TokenAccountUpdateIterator } from './call-forest.js';
 import {
   AccountUpdate,
-  CallForest,
+  AccountUpdateForest,
   CallForestHelpers,
   TokenId,
   hashAccountUpdate,
@@ -66,7 +66,7 @@ test.custom({ timeBudget: 1000 })(
       accountUpdatesToCallForest(flatUpdates)
     );
 
-    let forest = CallForest.fromAccountUpdates(updates);
+    let forest = AccountUpdateForest.fromArray(updates);
     forest.hash.assertEquals(expectedHash);
   }
 );
@@ -93,7 +93,7 @@ test.custom({ timeBudget: 1000 })(flatAccountUpdates, (flatUpdates) => {
   let updates = callForestToNestedArray(
     accountUpdatesToCallForest(flatUpdates)
   );
-  let forest = CallForest.fromAccountUpdates(updates).startIterating();
+  let forest = AccountUpdateForest.fromArray(updates).startIterating();
 
   // step through top-level by calling forest.next() repeatedly
   let n = updates.length;
@@ -119,8 +119,8 @@ test.custom({ timeBudget: 5000 })(flatAccountUpdates, (flatUpdates) => {
   let updates = callForestToNestedArray(
     accountUpdatesToCallForest(flatUpdates)
   );
-  let forest = CallForest.fromAccountUpdates(updates);
-  let forestIterator = CallForestIterator.create(forest, tokenId);
+  let forest = AccountUpdateForest.fromArray(updates);
+  let forestIterator = TokenAccountUpdateIterator.create(forest, tokenId);
 
   // step through forest iterator and compare against expected updates
   let expectedUpdates = flatUpdates;
@@ -171,8 +171,8 @@ test.custom({ timeBudget: 5000 })(
       }
     });
 
-    let forest = CallForest.fromAccountUpdates(updates);
-    let forestIterator = CallForestIterator.create(forest, tokenId);
+    let forest = AccountUpdateForest.fromArray(updates);
+    let forestIterator = TokenAccountUpdateIterator.create(forest, tokenId);
 
     // step through forest iterator and compare against expected updates
     let expectedUpdates = updates;
@@ -217,8 +217,8 @@ test.custom({ timeBudget: 5000 })(
     let updates = callForestToNestedArray(
       accountUpdatesToCallForest(flatUpdates)
     );
-    let forest = CallForest.fromAccountUpdates(updates);
-    let forestIterator = CallForestIterator.create(forest, tokenId);
+    let forest = AccountUpdateForest.fromArray(updates);
+    let forestIterator = TokenAccountUpdateIterator.create(forest, tokenId);
 
     // step through forest iterator and compare against expected updates
     let expectedUpdates = flatUpdates.filter((u) => u.body.callDepth <= 1);
