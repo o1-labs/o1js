@@ -50,10 +50,6 @@ function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
  *
  * Supported operations are {@link push()} and {@link pop()} and some variants thereof.
  *
- * **Important:** `push()` adds elements to the _start_ of the internal array and `pop()` removes them from the start.
- * This is so that the hash which represents the list is consistent with {@link MerkleListIterator},
- * and so a `MerkleList` can be used as input to `MerkleListIterator.startIterating(list)`
- * (which will then iterate starting from the last pushed element).
  *
  * A Merkle list is generic over its element types, so before using it you must create a subclass for your element type:
  *
@@ -62,8 +58,16 @@ function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
  *
  * // now use it
  * let list = MyList.empty();
+ *
  * list.push(new MyType(...));
+ *
+ * let element = list.pop();
  * ```
+ *
+ * Internal detail: `push()` adds elements to the _start_ of the internal array and `pop()` removes them from the start.
+ * This is so that the hash which represents the list is consistent with {@link MerkleListIterator},
+ * and so a `MerkleList` can be used as input to `MerkleListIterator.startIterating(list)`
+ * (which will then iterate starting from the last pushed element).
  */
 class MerkleList<T> implements MerkleListBase<T> {
   hash: Field;
@@ -78,12 +82,18 @@ class MerkleList<T> implements MerkleListBase<T> {
     return this.hash.equals(emptyHash);
   }
 
+  /**
+   * Push a new element to the list.
+   */
   push(element: T) {
     let previousHash = this.hash;
     this.hash = this.nextHash(previousHash, element);
     this.data.updateAsProver((data) => [{ previousHash, element }, ...data]);
   }
 
+  /**
+   * Push a new element to the list, if the `condition` is true.
+   */
   pushIf(condition: Bool, element: T) {
     let previousHash = this.hash;
     this.hash = Provable.if(
@@ -108,6 +118,11 @@ class MerkleList<T> implements MerkleListBase<T> {
     });
   }
 
+  /**
+   * Remove the last element from the list and return it.
+   *
+   * This proves that the list is non-empty, and fails otherwise.
+   */
   popExn(): T {
     let { previousHash, element } = this.popWitness();
 
@@ -118,6 +133,11 @@ class MerkleList<T> implements MerkleListBase<T> {
     return element;
   }
 
+  /**
+   * Remove the last element from the list and return it.
+   *
+   * If the list is empty, returns a dummy element.
+   */
   pop(): T {
     let { previousHash, element } = this.popWitness();
     let isEmpty = this.isEmpty();
@@ -129,6 +149,26 @@ class MerkleList<T> implements MerkleListBase<T> {
     this.hash = Provable.if(isEmpty, emptyHash, previousHash);
     let provable = this.innerProvable;
     return Provable.if(isEmpty, provable, provable.empty(), element);
+  }
+
+  /**
+   * Return the last element, but only remove it if `condition` is true.
+   *
+   * If the list is empty, returns a dummy element.
+   */
+  popIf(condition: Bool) {
+    let originalHash = this.hash;
+    let element = this.pop();
+
+    // if the condition is false, we restore the original state
+    this.data.updateAsProver((data) =>
+      condition.toBoolean()
+        ? data
+        : [{ previousHash: this.hash, element }, ...data]
+    );
+    this.hash = Provable.if(condition, this.hash, originalHash);
+
+    return element;
   }
 
   clone(): MerkleList<T> {
@@ -144,7 +184,7 @@ class MerkleList<T> implements MerkleListBase<T> {
   /**
    * Create a Merkle list type
    *
-   * Optionally, you can tell `create()` how to do the hash that pushed a new list element, by passing a `nextHash` function.
+   * Optionally, you can tell `create()` how to do the hash that pushes a new list element, by passing a `nextHash` function.
    *
    * @example
    * ```ts
@@ -236,10 +276,10 @@ type MerkleListIteratorBase<T> = {
 };
 
 /**
- * MerkleListIterator is similar to a MerkleList, but it maintains the entire array througout a computation,
- * instead of mutating itself / throwing away context while stepping through it.
+ * MerkleListIterator helps iterating through a Merkle list.
+ * This works similar to calling `list.pop()` repreatedly, but maintaining the entire list instead of removing elements.
  *
- * The core method that support iteration is {@link next()}.
+ * The core method that supports iteration is {@link next()}.
  *
  * ```ts
  * let iterator = MerkleListIterator.startIterating(list);
