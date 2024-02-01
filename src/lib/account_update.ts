@@ -47,7 +47,7 @@ import {
 import { Hashed } from './provable-types/packed.js';
 
 // external API
-export { AccountUpdate, Permissions, ZkappPublicInput, CallForest };
+export { AccountUpdate, Permissions, ZkappPublicInput, AccountUpdateForest };
 // internal API
 export {
   smartContractContext,
@@ -1608,15 +1608,27 @@ const CallTree: ProvableHashable<CallTree> = Struct({
   calls: MerkleListBase<CallTree>(),
 });
 
-class CallForest extends MerkleList.create(CallTree, merkleListHash) {
-  static fromAccountUpdates(updates: AccountUpdate[]): CallForest {
+/**
+ * Class which represents a forest (list of trees) of account updates,
+ * in a compressed way which allows iterating and selectively witnessing the account updates.
+ *
+ * The (recursive) type signature is:
+ * ```
+ * type AccountUpdateForest = MerkleList<{
+ *   accountUpdate: Hashed<AccountUpdate>;
+ *   calls: AccountUpdateForest;
+ * }>;
+ * ```
+ */
+class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
+  static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
     let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
-      let calls = CallForest.fromAccountUpdates(update.children.accountUpdates);
+      let calls = AccountUpdateForest.fromArray(update.children.accountUpdates);
       return { accountUpdate, calls };
     });
 
-    return CallForest.from(nodes);
+    return AccountUpdateForest.from(nodes);
   }
 }
 
