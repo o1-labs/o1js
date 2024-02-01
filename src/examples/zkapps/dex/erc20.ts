@@ -8,19 +8,24 @@ import {
   method,
   AccountUpdate,
   PublicKey,
-  SmartContract,
   UInt64,
-  Account,
-  Experimental,
   Permissions,
   Mina,
-  Int64,
-  VerificationKey,
+  TokenContract,
+  AccountUpdateForest,
 } from 'o1js';
 
 /**
- * ERC-20 token standard.
+ * ERC-20-like token standard.
  * https://ethereum.org/en/developers/docs/standards/tokens/erc-20/
+ *
+ * Differences to ERC-20:
+ * - No approvals / allowance, because zkApps don't need them and they are a security footgun.
+ * - `transferFrom()`, `transfer()` and `balanceOf()` can also take an account update as an argument.
+ *   This form might be needed for zkApp token accounts, where the account update has to come from a method
+ *   (in order to get proof authorization), and can't be created by the token contract itself.
+ * - `transferFrom()` and `transfer()` don't return a boolean, because in the zkApp protocol,
+ *   a transaction succeeds or fails in its entirety, and there is no need to handle partial failures.
  */
 type Erc20 = {
   // pure view functions which don't need @method
@@ -28,24 +33,21 @@ type Erc20 = {
   symbol?: () => CircuitString;
   decimals?: () => Field; // TODO: should be UInt8 which doesn't exist yet
   totalSupply(): UInt64;
-  balanceOf(owner: PublicKey): UInt64;
-  allowance(owner: PublicKey, spender: PublicKey): UInt64;
+  balanceOf(owner: PublicKey | AccountUpdate): UInt64;
 
   // mutations which need @method
-  transfer(to: PublicKey, value: UInt64): Bool; // emits "Transfer" event
-  transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool; // emits "Transfer" event
-  approveSpend(spender: PublicKey, value: UInt64): Bool; // emits "Approve" event
+  transfer(to: PublicKey | AccountUpdate, value: UInt64): void; // emits "Transfer" event
+  transferFrom(
+    from: PublicKey | AccountUpdate,
+    to: PublicKey | AccountUpdate,
+    value: UInt64
+  ): void; // emits "Transfer" event
 
   // events
   events: {
     Transfer: ProvablePure<{
       from: PublicKey;
       to: PublicKey;
-      value: UInt64;
-    }>;
-    Approval: ProvablePure<{
-      owner: PublicKey;
-      spender: PublicKey;
       value: UInt64;
     }>;
   };
@@ -61,18 +63,15 @@ type Erc20 = {
  * Functionality:
  * Just enough to be swapped by the DEX contract, and be secure
  */
-class TrivialCoin extends SmartContract implements Erc20 {
+class TrivialCoin extends TokenContract implements Erc20 {
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.account.tokenSymbol.set('SOM');
-    this.account.permissions.set({
-      ...Permissions.default(),
-      setPermissions: Permissions.proof(),
-    });
+    this.account.tokenSymbol.set('TRIV');
   }
+
   @method init() {
     super.init();
 
@@ -101,10 +100,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
 
   // ERC20 API
   name(): CircuitString {
-    return CircuitString.fromString('SomeCoin');
+    return CircuitString.fromString('TrivialCoin');
   }
   symbol(): CircuitString {
-    return CircuitString.fromString('SOM');
+    return CircuitString.fromString('TRIV');
   }
   decimals(): Field {
     return Field(9);
@@ -112,32 +111,12 @@ class TrivialCoin extends SmartContract implements Erc20 {
   totalSupply(): UInt64 {
     return this.SUPPLY;
   }
-  balanceOf(owner: PublicKey): UInt64 {
-    let account = Account(owner, this.token.id);
-    let balance = account.balance.get();
-    account.balance.requireEquals(balance);
-    return balance;
-  }
-  allowance(owner: PublicKey, spender: PublicKey): UInt64 {
-    // TODO: implement allowances
-    return UInt64.zero;
-  }
-
-  @method transfer(to: PublicKey, value: UInt64): Bool {
-    this.token.send({ from: this.sender, to, amount: value });
-    this.emitEvent('Transfer', { from: this.sender, to, value });
-    // we don't have to check the balance of the sender -- this is done by the zkApp protocol
-    return Bool(true);
-  }
-  @method transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool {
-    this.token.send({ from, to, amount: value });
-    this.emitEvent('Transfer', { from, to, value });
-    // we don't have to check the balance of the sender -- this is done by the zkApp protocol
-    return Bool(true);
-  }
-  @method approveSpend(spender: PublicKey, value: UInt64): Bool {
-    // TODO: implement allowances
-    return Bool(false);
+  balanceOf(owner: PublicKey | AccountUpdate): UInt64 {
+    let update =
+      owner instanceof PublicKey
+        ? AccountUpdate.create(owner, this.token.id)
+        : owner;
+    return update.account.balance.getAndRequireEquals();
   }
 
   events = {
@@ -146,58 +125,11 @@ class TrivialCoin extends SmartContract implements Erc20 {
       to: PublicKey,
       value: UInt64,
     }),
-    Approval: provablePure({
-      owner: PublicKey,
-      spender: PublicKey,
-      value: UInt64,
-    }),
   };
 
-  // additional API needed for zkApp token accounts
+  // implement Approvable API
 
-  @method transferFromZkapp(
-    from: PublicKey,
-    to: PublicKey,
-    value: UInt64,
-    approve: Experimental.Callback<any>
-  ): Bool {
-    // TODO: need to be able to witness a certain layout of account updates, in this case
-    // tokenContract --> sender --> receiver
-    let fromUpdate = this.approve(approve, AccountUpdate.Layout.NoChildren);
-
-    let negativeAmount = Int64.fromObject(fromUpdate.body.balanceChange);
-    negativeAmount.assertEquals(Int64.from(value).neg());
-    let tokenId = this.token.id;
-    fromUpdate.body.tokenId.assertEquals(tokenId);
-    fromUpdate.body.publicKey.assertEquals(from);
-
-    let toUpdate = AccountUpdate.create(to, tokenId);
-    toUpdate.balance.addInPlace(value);
-    this.emitEvent('Transfer', { from, to, value });
-    return Bool(true);
-  }
-
-  // this is a very standardized deploy method. instead, we could also take the account update from a callback
-  @method deployZkapp(
-    zkappAddress: PublicKey,
-    verificationKey: VerificationKey
-  ) {
-    let tokenId = this.token.id;
-    let zkapp = Experimental.createChildAccountUpdate(
-      this.self,
-      zkappAddress,
-      tokenId
-    );
-    zkapp.account.permissions.set(Permissions.default());
-    zkapp.account.verificationKey.set(verificationKey);
-    zkapp.requireSignature();
-  }
-
-  // for letting a zkapp do whatever it wants, as long as no tokens are transferred
-  // TODO: atm, we have to restrict the zkapp to have no children
-  //       -> need to be able to witness a general layout of account updates
-  @method approveZkapp(callback: Experimental.Callback<any>) {
-    let zkappUpdate = this.approve(callback, AccountUpdate.Layout.NoChildren);
-    Int64.fromObject(zkappUpdate.body.balanceChange).assertEquals(UInt64.zero);
+  @method approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
   }
 }

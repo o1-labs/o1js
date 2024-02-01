@@ -101,8 +101,8 @@ class Dex extends SmartContract {
     let isDyCorrect = dy.equals(dx.mul(y).div(xSafe));
     isDyCorrect.or(isXZero).assertTrue();
 
-    tokenX.transfer(user, dexX, dx);
-    tokenY.transfer(user, dexY, dy);
+    tokenX.transfer(dexX, dx);
+    tokenY.transfer(dexY, dy);
 
     // calculate liquidity token output simply as dl = dx + dx
     // => maintains ratio x/l, y/l
@@ -188,7 +188,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.token.id);
     let dy = dexY.swap(this.sender, dx, this.tokenX);
-    tokenY.transfer(dexY.self, this.sender, dy);
+    tokenY.transferFrom(dexY.self, this.sender, dy);
     return dy;
   }
 
@@ -206,7 +206,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.token.id);
     let dx = dexX.swap(this.sender, dy, this.tokenY);
-    tokenX.transfer(dexX.self, this.sender, dx);
+    tokenX.transferFrom(dexX.self, this.sender, dx);
     return dx;
   }
 
@@ -299,7 +299,7 @@ class DexTokenHolder extends SmartContract {
     let y = this.account.balance.getAndRequireEquals();
 
     // send x from user to us (i.e., to the same address as this but with the other token)
-    tokenX.transfer(user, dexX, dx);
+    tokenX.transferFrom(user, dexX, dx);
 
     // compute and send dy
     let dy = y.mul(dx).div(x.add(dx));

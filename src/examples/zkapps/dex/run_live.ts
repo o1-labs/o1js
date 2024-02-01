@@ -125,8 +125,8 @@ if (successfulTransactions <= 2) {
     // pay fees for creating 3 user accounts
     let feePayer = AccountUpdate.fundNewAccount(sender, 3);
     feePayer.send({ to: addresses.user, amount: 8e9 }); // give users MINA to pay fees
-    tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
-    tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
+    tokenX.transferFrom(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
+    tokenY.transferFrom(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();

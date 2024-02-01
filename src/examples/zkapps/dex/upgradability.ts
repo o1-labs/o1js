@@ -325,8 +325,16 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
       feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
       feePayer.send({ to: addresses.user2, amount: 20e9 });
       // transfer to fee payer so they can provide initial liquidity
-      tokenX.transfer(addresses.tokenX, feePayerAddress, UInt64.from(10_000));
-      tokenY.transfer(addresses.tokenY, feePayerAddress, UInt64.from(10_000));
+      tokenX.transferFrom(
+        addresses.tokenX,
+        feePayerAddress,
+        UInt64.from(10_000)
+      );
+      tokenY.transferFrom(
+        addresses.tokenY,
+        feePayerAddress,
+        UInt64.from(10_000)
+      );
       // mint tokens to the user (this is additional to the tokens minted at the beginning, so we can overflow the balance
       tokenX.init2();
       tokenY.init2();
