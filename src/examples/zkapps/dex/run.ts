@@ -119,16 +119,8 @@ async function main({ withVesting }: { withVesting: boolean }) {
       feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
       feePayer.send({ to: addresses.user2, amount: 20e9 });
       // transfer to fee payer so they can provide initial liquidity
-      tokenX.transferFrom(
-        addresses.tokenX,
-        feePayerAddress,
-        UInt64.from(10_000)
-      );
-      tokenY.transferFrom(
-        addresses.tokenY,
-        feePayerAddress,
-        UInt64.from(10_000)
-      );
+      tokenX.transfer(addresses.tokenX, feePayerAddress, UInt64.from(10_000));
+      tokenY.transfer(addresses.tokenY, feePayerAddress, UInt64.from(10_000));
       // mint tokens to the user (this is additional to the tokens minted at the beginning, so we can overflow the balance
       tokenX.init2();
       tokenY.init2();
@@ -278,7 +270,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('prepare supplying overflowing liquidity');
   tx = await Mina.transaction(feePayerAddress, () => {
     AccountUpdate.fundNewAccount(feePayerAddress);
-    tokenY.transferFrom(
+    tokenY.transfer(
       addresses.tokenY,
       addresses.tokenX,
       UInt64.MAXINT().sub(200_000)

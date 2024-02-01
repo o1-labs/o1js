@@ -118,7 +118,7 @@ abstract class TokenContract extends SmartContract {
   /**
    * Transfer `amount` of tokens from `from` to `to`.
    */
-  transferFrom(
+  transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
     amount: UInt64
@@ -140,13 +140,6 @@ abstract class TokenContract extends SmartContract {
 
     let forest = finalizeAccountUpdates([from, to]);
     this.approveBase(forest);
-  }
-
-  /**
-   * Transfer `amount` of tokens from this.sender to `to`
-   */
-  transfer(to: PublicKey | AccountUpdate, amount: UInt64) {
-    this.transferFrom(this.sender, to, amount);
   }
 }
 

@@ -84,8 +84,8 @@ tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 3 user accounts
   let feePayer = AccountUpdate.fundNewAccount(feePayerAddress, 3);
   feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
-  tokenX.transferFrom(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
-  tokenY.transferFrom(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
+  tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
+  tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
 });
 await tx.prove();
 await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();

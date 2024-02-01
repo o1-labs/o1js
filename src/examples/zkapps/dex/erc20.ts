@@ -21,13 +21,15 @@ import {
  *
  * Differences to ERC-20:
  * - No approvals / allowance, because zkApps don't need them and they are a security footgun.
- * - `transferFrom()`, `transfer()` and `balanceOf()` can also take an account update as an argument.
+ * - `transfer()` and `transfer()` are collapsed into a single `transfer()` method which takes
+ *    both the sender and the receiver as arguments.
+ * - `transfer()` and `balanceOf()` can also take an account update as an argument.
  *   This form might be needed for zkApp token accounts, where the account update has to come from a method
  *   (in order to get proof authorization), and can't be created by the token contract itself.
- * - `transferFrom()` and `transfer()` don't return a boolean, because in the zkApp protocol,
+ * - `transfer()` doesn't return a boolean, because in the zkApp protocol,
  *   a transaction succeeds or fails in its entirety, and there is no need to handle partial failures.
  */
-type Erc20 = {
+type Erc20Like = {
   // pure view functions which don't need @method
   name?: () => CircuitString;
   symbol?: () => CircuitString;
@@ -36,8 +38,7 @@ type Erc20 = {
   balanceOf(owner: PublicKey | AccountUpdate): UInt64;
 
   // mutations which need @method
-  transfer(to: PublicKey | AccountUpdate, value: UInt64): void; // emits "Transfer" event
-  transferFrom(
+  transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
     value: UInt64
@@ -63,7 +64,7 @@ type Erc20 = {
  * Functionality:
  * Just enough to be swapped by the DEX contract, and be secure
  */
-class TrivialCoin extends TokenContract implements Erc20 {
+class TrivialCoin extends TokenContract implements Erc20Like {
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
 

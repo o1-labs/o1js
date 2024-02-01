@@ -48,6 +48,7 @@ function createDex({
      * instead, the input X and Y amounts determine the initial ratio.
      */
     @method supplyLiquidityBase(dx: UInt64, dy: UInt64): UInt64 {
+      let user = this.sender;
       let tokenX = new TokenContract(this.tokenX);
       let tokenY = new TokenContract(this.tokenY);
 
@@ -64,13 +65,13 @@ function createDex({
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
       isDyCorrect.or(isXZero).assertTrue();
 
-      tokenX.transfer(dexXUpdate, dx);
-      tokenY.transfer(dexYUpdate, dy);
+      tokenX.transfer(user, dexXUpdate, dx);
+      tokenY.transfer(user, dexYUpdate, dy);
 
       // calculate liquidity token output simply as dl = dx + dy
       // => maintains ratio x/l, y/l
       let dl = dy.add(dx);
-      let userUpdate = this.token.mint({ address: this.sender, amount: dl });
+      let userUpdate = this.token.mint({ address: user, amount: dl });
       if (lockedLiquiditySlots !== undefined) {
         /**
          * exercise the "timing" (vesting) feature to lock the received liquidity tokens.
@@ -138,7 +139,7 @@ function createDex({
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dxdy = dexX.redeemLiquidity(this.sender, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.transferFrom(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, this.sender, dx);
       return dxdy;
     }
 
@@ -153,7 +154,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.transferFrom(dexY.self, this.sender, dy);
+      tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
     }
 
@@ -168,7 +169,7 @@ function createDex({
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dx = dexX.swap(this.sender, dy, this.tokenY);
-      tokenX.transferFrom(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, this.sender, dx);
       return dx;
     }
 
@@ -202,7 +203,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.transferFrom(dexY.self, this.sender, dy);
+      tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
     }
   }
@@ -244,7 +245,7 @@ function createDex({
       let result = dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
-      tokenY.transferFrom(dexY.self, user, dy);
+      tokenY.transfer(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
@@ -270,7 +271,7 @@ function createDex({
       let y = this.account.balance.get();
       this.account.balance.requireEquals(y);
       // send x from user to us (i.e., to the same address as this but with the other token)
-      tokenX.transferFrom(user, this.address, dx);
+      tokenX.transfer(user, this.address, dx);
       // compute and send dy
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
@@ -293,7 +294,7 @@ function createDex({
       let x = tokenX.getBalance(this.address);
       let y = this.account.balance.get();
       this.account.balance.requireEquals(y);
-      tokenX.transferFrom(user, this.address, dx);
+      tokenX.transfer(user, this.address, dx);
 
       // this formula has been changed - we just give the user an additional 15 token
       let dy = y.mul(dx).div(x.add(dx)).add(15);
