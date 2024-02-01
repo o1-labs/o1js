@@ -26,6 +26,7 @@ import {
 } from './provable-context.js';
 import { isBool } from './bool.js';
 import { FieldBn254 } from './field_bn254.js';
+import { BoolBn254 } from './bool_bn254.js';
 
 // external API
 export { Provable };
@@ -103,6 +104,7 @@ const Provable = {
    * ```
    */
   assertEqual,
+  assertEqualBn254,
   /**
    * Checks if two elements are equal.
    * @example
@@ -114,6 +116,7 @@ const Provable = {
    * ```
    */
   equal,
+  equalBn254,
   /**
    * Creates a {@link Provable} for a generic array.
    * @example
@@ -321,6 +324,13 @@ function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
     xs[i].assertEquals(ys[i]);
   }
 }
+function assertEqualBn254<T>(type: ProvableBn254<T>, x: T, y: T): void {
+  let xs = type.toFields(x);
+  let ys = type.toFields(y);
+  for (let i = 0; i < xs.length; i++) {
+    xs[i].assertEquals(ys[i]);
+  }
+}
 
 function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
 function equal<T extends ToFieldable>(x: T, y: T): Bool;
@@ -344,6 +354,11 @@ function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
+}
+function equalBn254<T>(type: ProvableBn254<T>, x: T, y: T) {
+  let xs = type.toFields(x);
+  let ys = type.toFields(y);
+  return xs.map((x, i) => x.equals(ys[i])).reduce(BoolBn254.and);
 }
 
 function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;

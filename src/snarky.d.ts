@@ -309,12 +309,44 @@ declare const Snarky: {
      */
     assertEqual(x: FieldVar, y: FieldVar): void;
     /**
+     * x*y === z without handling of constants
+     */
+    assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
+    /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
     readVar(x: FieldVar): FieldConst;
+    /**
+     *
+     */
+    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
+    /**
+     *
+     */
+    fromBits(bits: MlArray<BoolVar>): FieldVar;
+    /**
+     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
+     */
+    add(x: FieldVar, y: FieldVar): FieldVar;
+    /**
+     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
+     */
+    scale(c: FieldConst, x: FieldVar): FieldVar;
   };
 
   bool: {
+    not(x: BoolVar): BoolVar;
+
+    and(x: BoolVar, y: BoolVar): BoolVar;
+
+    or(x: BoolVar, y: BoolVar): BoolVar;
+
+    equals(x: BoolVar, y: BoolVar): BoolVar;
+
+    assertEqual(x: BoolVar, y: BoolVar): void;
+  };
+
+  boolBn254: {
     not(x: BoolVar): BoolVar;
 
     and(x: BoolVar, y: BoolVar): BoolVar;
@@ -435,6 +467,20 @@ declare const Snarky: {
   };
 
   foreignField: {
+    assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
+    sumChain(
+      xs: MlArray<ForeignFieldVar>,
+      ops: MlArray<0 | 1>,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+    mul(
+      x: ForeignFieldVar,
+      y: ForeignFieldVar,
+      p: ForeignFieldConst
+    ): ForeignFieldVar;
+  };
+
+  foreignFieldBn254: {
     assertValidElement(x: ForeignFieldVar, p: ForeignFieldConst): void;
     sumChain(
       xs: MlArray<ForeignFieldVar>,
