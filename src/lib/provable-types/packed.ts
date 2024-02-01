@@ -6,9 +6,9 @@ import {
 } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
-import { Poseidon, packToFields } from '../hash.js';
+import { Poseidon, ProvableHashable, packToFields } from '../hash.js';
 import { Provable } from '../provable.js';
-import { fields } from './fields.js';
+import { fields, modifiedField } from './fields.js';
 
 export { Packed, Hashed };
 
@@ -63,6 +63,10 @@ class Packed<T> {
         packed: fields(packedSize),
         value: Unconstrained.provable,
       }) as ProvableHashable<Packed<T>>;
+
+      static empty(): Packed<T> {
+        return Packed_.pack(type.empty());
+      }
     };
   }
 
@@ -120,8 +124,6 @@ class Packed<T> {
   }
 }
 
-type ProvableHashable<T> = Provable<T> & { toInput: (x: T) => HashInput };
-
 function countFields(input: HashInput) {
   let n = input.fields?.length ?? 0;
   let pendingBits = 0;
@@ -172,13 +174,26 @@ class Hashed<T> {
   /**
    * Create a hashed representation of `type`. You can then use `HashedType.hash(x)` to wrap a value in a `Hashed`.
    */
-  static create<T>(type: ProvableExtended<T>): typeof Hashed<T> {
+  static create<T>(
+    type: ProvableHashable<T>,
+    hash?: (t: T) => Field
+  ): typeof Hashed<T> {
+    let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
+
+    let dummyHash = _hash(type.empty());
+
     return class Hashed_ extends Hashed<T> {
       static _innerProvable = type;
       static _provable = provableFromClass(Hashed_, {
-        hash: Field,
+        hash: modifiedField({ empty: () => dummyHash }),
         value: Unconstrained.provable,
       }) as ProvableHashable<Hashed<T>>;
+
+      static _hash = _hash satisfies (t: T) => Field;
+
+      static empty(): Hashed<T> {
+        return new this(dummyHash, Unconstrained.from(type.empty()));
+      }
     };
   }
 
@@ -187,14 +202,16 @@ class Hashed<T> {
     this.value = value;
   }
 
+  static _hash(_: any): Field {
+    assert(false, 'Hashed not initialized');
+  }
+
   /**
    * Wrap a value, and represent it by its hash in provable code.
    */
-  static hash<T>(x: T): Hashed<T> {
-    let input = this.innerProvable.toInput(x);
-    let packed = packToFields(input);
-    let hash = Poseidon.hash(packed);
-    return new this(hash, Unconstrained.from(x));
+  static hash<T>(value: T): Hashed<T> {
+    let hash = this._hash(value);
+    return new this(hash, Unconstrained.from(value));
   }
 
   /**
@@ -206,9 +223,7 @@ class Hashed<T> {
     );
 
     // prove that the value hashes to the hash
-    let input = this.Constructor.innerProvable.toInput(value);
-    let packed = packToFields(input);
-    let hash = Poseidon.hash(packed);
+    let hash = this.Constructor._hash(value);
     this.hash.assertEquals(hash);
 
     return value;
@@ -220,7 +235,7 @@ class Hashed<T> {
 
   // dynamic subclassing infra
   static _provable: ProvableHashable<Hashed<any>> | undefined;
-  static _innerProvable: ProvableExtended<any> | undefined;
+  static _innerProvable: ProvableHashable<any> | undefined;
 
   get Constructor(): typeof Hashed {
     return this.constructor as typeof Hashed;
@@ -230,7 +245,7 @@ class Hashed<T> {
     assert(this._provable !== undefined, 'Hashed not initialized');
     return this._provable;
   }
-  static get innerProvable(): ProvableExtended<any> {
+  static get innerProvable(): ProvableHashable<any> {
     assert(this._innerProvable !== undefined, 'Hashed not initialized');
     return this._innerProvable;
   }
