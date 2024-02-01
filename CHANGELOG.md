@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
 - Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
+  - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
 
 ## [0.15.4](https://github.com/o1-labs/o1js/compare/be748e42e...e5d1e0f)
 
