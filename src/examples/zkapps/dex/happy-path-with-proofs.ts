@@ -43,8 +43,6 @@ let dex = new Dex(addresses.dex);
 let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
 let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
-Local.setProofsEnabled(false);
-
 tic('deploy & init token contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
   const accountFee = Mina.getNetworkConstants().accountCreationFee;
@@ -105,8 +103,6 @@ toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(0n);
-
-Local.setProofsEnabled(true);
 
 tic('redeem liquidity');
 let USER_DL = 100n;
