@@ -15,7 +15,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/08ba27329...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/be748e42e...HEAD)
+
+### Changed
+
+- Improve performance of Wasm Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+  - Speeds up local blockchain tests without proving by ~40%
+- Improve performance of Field inverse https://github.com/o1-labs/o1js/pull/1373
+  - Speeds up proving by ~2-4%
+
+### Added
+
+- Target `network ID` configuration. https://github.com/o1-labs/o1js/pull/1387
+  - Defaults to the `testnet` (as it was before).
+
+## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
+
+### Breaking changes
+
+- `Mina.accountCreationFee()` is deprecated in favor of `Mina.getNetworkConstants().accountCreationFee`. https://github.com/o1-labs/o1js/pull/1367
+  - `Mina.getNetworkConstants()` returns:
+    - [default](https://github.com/o1-labs/o1js/pull/1367/files#diff-ef2c3547d64a8eaa8253cd82b3623288f3271e14f1dc893a0a3ddc1ff4b9688fR7) network constants if used outside of the transaction scope.
+    - [actual](https://github.com/o1-labs/o1js/pull/1367/files#diff-437f2c15df7c90ad8154c5de1677ec0838d51859bcc0a0cefd8a0424b5736f31R1051) network constants if used within the transaction scope.
 
 ### Breaking changes
 

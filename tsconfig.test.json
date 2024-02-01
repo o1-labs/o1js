@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "./src/**/*.unit-test.ts",
+    "./src/lib/**/*.ts",
     "./src/snarky.js",
     "./src/bindings/js/wrapper.js"
   ],
