@@ -75,7 +75,6 @@ export {
   dummySignature,
   LazyProof,
   CallTree,
-  CallForestUnderConstruction,
   hashAccountUpdate,
 };
 
@@ -1639,97 +1638,6 @@ function hashCons(forestHash: Field, nodeHash: Field) {
     nodeHash,
     forestHash,
   ]);
-}
-
-/**
- * Structure for constructing a call forest from a circuit.
- *
- * The circuit can mutate account updates and change their array of children, so here we can't hash
- * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
- * updates that can be hashed into a final call forest at the end.
- */
-type CallForestUnderConstruction = HashOrValue<
-  {
-    accountUpdate: HashOrValue<AccountUpdate>;
-    calls: CallForestUnderConstruction;
-  }[]
->;
-
-type HashOrValue<T> =
-  | { useHash: true; hash: Field; value: T }
-  | { useHash: false; value: T };
-
-const CallForestUnderConstruction = {
-  empty(): CallForestUnderConstruction {
-    return { useHash: false, value: [] };
-  },
-
-  setHash(forest: CallForestUnderConstruction, hash: Field) {
-    Object.assign(forest, { useHash: true, hash });
-  },
-
-  witnessHash(forest: CallForestUnderConstruction) {
-    let hash = Provable.witness(Field, () => {
-      let nodes = forest.value.map(toCallTree);
-      return withHashes(nodes, merkleListHash).hash;
-    });
-    CallForestUnderConstruction.setHash(forest, hash);
-  },
-
-  push(
-    forest: CallForestUnderConstruction,
-    accountUpdate: HashOrValue<AccountUpdate>,
-    calls?: CallForestUnderConstruction
-  ) {
-    forest.value.push({
-      accountUpdate,
-      calls: calls ?? CallForestUnderConstruction.empty(),
-    });
-  },
-
-  remove(forest: CallForestUnderConstruction, accountUpdate: AccountUpdate) {
-    // find account update by .id
-    let index = forest.value.findIndex(
-      (node) => node.accountUpdate.value.id === accountUpdate.id
-    );
-
-    // nothing to do if it's not there
-    if (index === -1) return;
-
-    // remove it
-    forest.value.splice(index, 1);
-  },
-
-  finalize(forest: CallForestUnderConstruction): CallForest {
-    if (forest.useHash) {
-      let data = Unconstrained.witness(() => {
-        let nodes = forest.value.map(toCallTree);
-        return withHashes(nodes, merkleListHash).data;
-      });
-      return new CallForest({ hash: forest.hash, data });
-    }
-
-    // not using the hash means we calculate it in-circuit
-    let nodes = forest.value.map(toCallTree);
-    return CallForest.from(nodes);
-  },
-};
-
-function toCallTree(node: {
-  accountUpdate: HashOrValue<AccountUpdate>;
-  calls: CallForestUnderConstruction;
-}): CallTree {
-  let accountUpdate = node.accountUpdate.useHash
-    ? new HashedAccountUpdate(
-        node.accountUpdate.hash,
-        Unconstrained.from(node.accountUpdate.value)
-      )
-    : HashedAccountUpdate.hash(node.accountUpdate.value);
-
-  return {
-    accountUpdate,
-    calls: CallForestUnderConstruction.finalize(node.calls),
-  };
 }
 
 const CallForestHelpers = {
