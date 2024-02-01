@@ -112,8 +112,9 @@ class TokenAccountUpdateIterator {
 
     // there are three cases for how to proceed:
     // 1. if we have to process children, we step down and add the current layer to the stack of unfinished parent layers
-    // 2. we don't have to process children, but we're not finished with the current layer yet, so we stay in the current layer
-    // 3. both of the above are false, so we step up to the next unfinished parent layer
+    // 2. if we don't have to process children, but are not finished with the current layer, we stay in the current layer
+    //    (below, this is the case where the current layer is first pushed to and then popped from the stack of unfinished parent layers)
+    // 3. if both of the above are false, we step up to the next unfinished parent layer
     let currentForest = this.currentLayer.forest;
     let currentLayerFinished = currentForest.isAtEnd();
     let childLayerFinished = childForest.isAtEnd();
