@@ -86,19 +86,17 @@ class TokenAccountUpdateIterator {
    */
   next() {
     // get next account update from the current forest (might be a dummy)
-    // and step down into the layer of its children
     let { accountUpdate, calls } = this.currentLayer.forest.next();
-    let forest = AccountUpdateIterator.startIterating(calls);
-    let parentForest = this.currentLayer.forest;
+    let childForest = AccountUpdateIterator.startIterating(calls);
+    let childLayer = {
+      forest: childForest,
+      mayUseToken: MayUseToken.InheritFromParent,
+    };
 
-    this.unfinishedParentLayers.pushIf(parentForest.isAtEnd().not(), {
-      forest: parentForest,
-      mayUseToken: this.currentLayer.mayUseToken,
-    });
+    let update = accountUpdate.unhash();
+    let usesThisToken = update.tokenId.equals(this.selfToken);
 
     // check if this account update / it's children can use the token
-    let update = accountUpdate.unhash();
-
     let canAccessThisToken = Provable.equal(
       MayUseToken.type,
       update.body.mayUseToken,
@@ -108,33 +106,30 @@ class TokenAccountUpdateIterator {
       this.selfToken
     );
 
-    let usesThisToken = update.tokenId.equals(this.selfToken);
-
     // if we don't have to check the children, ignore the forest by jumping to its end
     let skipSubtree = canAccessThisToken.not().or(isSelf);
-    forest.jumpToEndIf(skipSubtree);
+    childForest.jumpToEndIf(skipSubtree);
 
-    // if we're at the end of the current layer, step up to the next unfinished parent layer
-    // invariant: the new current layer will _never_ be finished _except_ at the point where we stepped
-    // through the entire forest and there are no remaining parent layers to finish
-    let currentLayer = { forest, mayUseToken: MayUseToken.InheritFromParent };
-    let currentIsFinished = forest.isAtEnd();
+    // there are three cases for how to proceed:
+    // 1. if we have to process children, we step down and add the current layer to the stack of unfinished parent layers
+    // 2. we don't have to process children, but we're not finished with the current layer yet, so we stay in the current layer
+    // 3. both of the above are false, so we step up to the next unfinished parent layer
+    let currentForest = this.currentLayer.forest;
+    let currentLayerFinished = currentForest.isAtEnd();
+    let childLayerFinished = childForest.isAtEnd();
 
-    let parentLayers = this.unfinishedParentLayers.clone();
-    let nextParentLayer = this.unfinishedParentLayers.pop();
-    let parentLayersIfSteppingUp = this.unfinishedParentLayers;
+    this.unfinishedParentLayers.pushIf(
+      currentLayerFinished.not(),
+      this.currentLayer
+    );
+    let currentOrParentLayer =
+      this.unfinishedParentLayers.popIf(childLayerFinished);
 
     this.currentLayer = Provable.if(
-      currentIsFinished,
+      childLayerFinished,
       Layer,
-      nextParentLayer,
-      currentLayer
-    );
-    this.unfinishedParentLayers = Provable.if(
-      currentIsFinished,
-      ParentLayers.provable,
-      parentLayersIfSteppingUp,
-      parentLayers
+      currentOrParentLayer,
+      childLayer
     );
 
     return { accountUpdate: update, usesThisToken };
