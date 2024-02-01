@@ -144,7 +144,7 @@ class TokenAccountUpdateIterator {
   assertFinished(message?: string) {
     assert(
       this.currentLayer.forest.isAtEnd(),
-      message ?? 'CallForest not finished'
+      message ?? 'TokenAccountUpdateIterator not finished'
     );
   }
 }
