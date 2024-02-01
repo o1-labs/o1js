@@ -4,7 +4,6 @@ import {
   provable,
   provablePure,
   Struct,
-  Unconstrained,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
@@ -44,7 +43,6 @@ import {
   genericHash,
   MerkleList,
   MerkleListBase,
-  withHashes,
 } from './provable-types/merkle-list.js';
 import { Hashed } from './provable-types/packed.js';
 
