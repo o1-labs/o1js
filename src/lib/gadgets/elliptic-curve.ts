@@ -19,6 +19,7 @@ import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet, assertBoolean } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
+import { Packed } from '../provable-types/packed.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };
@@ -413,6 +414,14 @@ function multiScalarMul(
     sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
   );
 
+  // pack points to make array access more efficient
+  // a Point is 6 x 88-bit field elements, which are packed into 3 field elements
+  const PackedPoint = Packed.create(Point.provable);
+
+  let packedTables = tables.map((table) =>
+    table.map((point) => PackedPoint.pack(point))
+  );
+
   ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
 
@@ -426,7 +435,11 @@ function multiScalarMul(
         let sjP =
           windowSize === 1
             ? points[j]
-            : arrayGetGeneric(Point.provable, tables[j], sj);
+            : arrayGetGeneric(
+                PackedPoint.provable,
+                packedTables[j],
+                sj
+              ).unpack();
 
         // ec addition
         let added = add(sum, sjP, Curve);
