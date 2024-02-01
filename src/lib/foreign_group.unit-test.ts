@@ -1,5 +1,5 @@
 import { expect } from "expect";
-import { ForeignGroup } from "./elliptic-curve.js";
+import { ForeignGroup } from "./foreign_group.js";
 import { createForeignField } from "./foreign-field.js";
 
 class TestForeignField extends createForeignField(5n) { }
