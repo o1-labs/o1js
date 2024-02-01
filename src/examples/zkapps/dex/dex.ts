@@ -267,11 +267,11 @@ function createDex({
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances
-      let x = tokenX.getBalance(this.address);
-      let y = this.account.balance.get();
-      this.account.balance.requireEquals(y);
+      let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+      let x = dexX.account.balance.getAndRequireEquals();
+      let y = this.account.balance.getAndRequireEquals();
       // send x from user to us (i.e., to the same address as this but with the other token)
-      tokenX.transfer(user, this.address, dx);
+      tokenX.transfer(user, dexX, dx);
       // compute and send dy
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
@@ -291,10 +291,12 @@ function createDex({
     ): UInt64 {
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
-      let x = tokenX.getBalance(this.address);
+      // get balances
+      let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+      let x = dexX.account.balance.getAndRequireEquals();
       let y = this.account.balance.get();
       this.account.balance.requireEquals(y);
-      tokenX.transfer(user, this.address, dx);
+      tokenX.transfer(user, dexX, dx);
 
       // this formula has been changed - we just give the user an additional 15 token
       let dy = y.mul(dx).div(x.add(dx)).add(15);
@@ -404,15 +406,6 @@ class TokenContract extends BaseTokenContract {
   @method
   approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
-  }
-
-  @method getBalance(publicKey: PublicKey): UInt64 {
-    let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
-    let balance = accountUpdate.account.balance.get();
-    accountUpdate.account.balance.requireEquals(
-      accountUpdate.account.balance.get()
-    );
-    return balance;
   }
 }
 

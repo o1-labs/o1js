@@ -367,9 +367,6 @@ async function main({ withVesting }: { withVesting: boolean }) {
   await tx.prove();
   tx.sign([keys.user]);
 
-  console.log(tx.transaction.accountUpdates[0].toPrettyLayout());
-  console.log(tx.toPretty());
-
   await tx.send();
   [oldBalances, balances] = [balances, getTokenBalances()];
   console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);

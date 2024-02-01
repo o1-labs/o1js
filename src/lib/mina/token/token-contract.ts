@@ -22,7 +22,7 @@ const MAX_ACCOUNT_UPDATES = 20;
 
 /**
  * Base token contract which
- * - implements the `Approvable` API with some easy bit left to be defined by subclasses
+ * - implements the `Approvable` API, with the `approveBase()` method left to be defined by subclasses
  * - implements the `Transferable` API as a wrapper around the `Approvable` API
  */
 abstract class TokenContract extends SmartContract {
@@ -82,7 +82,7 @@ abstract class TokenContract extends SmartContract {
   /**
    * Use `forEachUpdate()` to prove that the total balance change of child account updates is zero.
    *
-   * This is provided out of the box as it is both a good example, and probably the most common implementation, of `approveUpdates()`.
+   * This is provided out of the box as it is both a good example, and probably the most common implementation, of `approveBase()`.
    */
   checkZeroBalanceChange(updates: AccountUpdateForest) {
     let totalBalanceChange = Int64.zero;

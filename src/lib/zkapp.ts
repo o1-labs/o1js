@@ -756,7 +756,7 @@ super.init();
    */
   init() {
     // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
-    this.account.provedState.assertEquals(Bool(false));
+    this.account.provedState.requireEquals(Bool(false));
     let accountUpdate = this.self;
     for (let i = 0; i < ZkappStateLength; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));

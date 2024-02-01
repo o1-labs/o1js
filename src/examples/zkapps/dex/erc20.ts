@@ -71,24 +71,6 @@ class TrivialCoin extends TokenContract implements Erc20Like {
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.account.tokenSymbol.set('TRIV');
-  }
-
-  @method init() {
-    super.init();
-
-    // mint the entire supply to the token account with the same address as this contract
-    let address = this.self.body.publicKey;
-    let receiver = this.token.mint({
-      address,
-      amount: this.SUPPLY,
-    });
-    // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.requireEquals(Bool(true));
-    // pay fees for opened account
-    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
-
-    // since this is the only method of this zkApp that resets the entire state, provedState: true implies
-    // that this function was run. Since it can be run only once, this implies it was run exactly once
 
     // make account non-upgradable forever
     this.account.permissions.set({
@@ -97,6 +79,23 @@ class TrivialCoin extends TokenContract implements Erc20Like {
       setPermissions: Permissions.impossible(),
       access: Permissions.proofOrSignature(),
     });
+  }
+
+  @method init() {
+    super.init();
+
+    // mint the entire supply to the token account with the same address as this contract
+    let address = this.self.body.publicKey;
+    let receiver = this.token.mint({ address, amount: this.SUPPLY });
+
+    // assert that the receiving account is new, so this can be only done once
+    receiver.account.isNew.requireEquals(Bool(true));
+
+    // pay fees for opened account
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
+
+    // since this is the only method of this zkApp that resets the entire state, provedState: true implies
+    // that this function was run. Since it can be run only once, this implies it was run exactly once
   }
 
   // ERC20 API
@@ -117,6 +116,7 @@ class TrivialCoin extends TokenContract implements Erc20Like {
       owner instanceof PublicKey
         ? AccountUpdate.create(owner, this.token.id)
         : owner;
+    this.approveAccountUpdate(update);
     return update.account.balance.getAndRequireEquals();
   }
 
