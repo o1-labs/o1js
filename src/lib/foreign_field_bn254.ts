@@ -308,7 +308,7 @@ function createForeignFieldBn254(modulus: bigint, { unsafe = false } = {}) {
      */
     equals(y: ForeignFieldBn254 | bigint | number) {
       if (this.isConstant() && isConstant(y)) {
-        return new Bool(this.toBigInt() === toFp(y));
+        return new BoolBn254(this.toBigInt() === toFp(y));
       }
       return Provable.equalBn254(ForeignFieldBn254, this, ForeignFieldBn254.from(y));
     }

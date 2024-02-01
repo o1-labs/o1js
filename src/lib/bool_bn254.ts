@@ -184,10 +184,10 @@ class BoolBn254 {
     let value: FieldConst;
     if (this.isConstant()) {
       value = this.value[1];
-    } else if (Snarky.run.inProverBlock()) {
-      value = Snarky.field.readVar(this.value);
+    } else if (Snarky.run.inProverBlockBn254()) {
+      value = Snarky.fieldBn254.readVar(this.value);
     } else {
-      throw Error(readVarMessage('toBoolean', 'b', 'Bool'));
+      throw Error(readVarMessage('toBoolean', 'b', 'BoolBn254'));
     }
     return FieldConst.equal(value, FieldConst[1]);
   }

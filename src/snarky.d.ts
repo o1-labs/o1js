@@ -203,9 +203,13 @@ declare const Snarky: {
      */
     asProverBn254(f: () => void): void;
     /**
-     * Check whether we are inside an asProver or exists block
+     * Check whether we are inside an asProver or exists block with Pasta backend
      */
     inProverBlock(): boolean;
+    /**
+     * Check whether we are inside an asProver or exists block with Bn254 backend
+     */
+    inProverBlockBn254(): boolean;
     /**
      * Runs code and checks its correctness.
      */
