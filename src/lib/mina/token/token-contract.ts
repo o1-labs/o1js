@@ -12,7 +12,7 @@ import {
   smartContractContext,
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
-import { TokenAccountUpdateIterator } from './call-forest.js';
+import { TokenAccountUpdateIterator } from './forest-iterator.js';
 
 export { TokenContract };
 

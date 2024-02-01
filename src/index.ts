@@ -77,7 +77,7 @@ export {
   AccountUpdateForest,
 } from './lib/account_update.js';
 
-export { TokenAccountUpdateIterator } from './lib/mina/token/call-forest.js';
+export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/fetch.js';

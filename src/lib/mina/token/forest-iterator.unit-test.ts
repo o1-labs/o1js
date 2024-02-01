@@ -1,6 +1,6 @@
 import { Random, test } from '../../testing/property.js';
 import { RandomTransaction } from '../../../mina-signer/src/random-transaction.js';
-import { TokenAccountUpdateIterator } from './call-forest.js';
+import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
