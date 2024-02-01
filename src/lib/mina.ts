@@ -297,13 +297,6 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   return self;
 }
 
-const defaultAccountCreationFee = 1_000_000_000;
-const defaultNetworkConstants: NetworkConstants = {
-  genesisTimestamp: UInt64.from(0),
-  slotTime: UInt64.from(3 * 60 * 1000),
-  accountCreationFee: UInt64.from(defaultAccountCreationFee),
-};
-
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
