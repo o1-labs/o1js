@@ -339,10 +339,10 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     empty: () => MerkleListIterator<T>;
     provable: ProvableHashable<MerkleListIterator<T>>;
   } {
-    return class MerkleArray_ extends MerkleListIterator<T> {
+    return class Iterator extends MerkleListIterator<T> {
       static _innerProvable = type;
 
-      static _provable = provableFromClass(MerkleArray_, {
+      static _provable = provableFromClass(Iterator, {
         hash: Field,
         data: Unconstrained.provable,
         currentHash: Field,

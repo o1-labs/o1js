@@ -1,6 +1,7 @@
 import {
   AccountUpdate,
   AccountUpdateForest,
+  AccountUpdateTree,
   TokenId,
 } from '../../account_update.js';
 import { Field } from '../../core.js';
@@ -11,11 +12,10 @@ import {
   MerkleList,
 } from '../../provable-types/merkle-list.js';
 
-export { AccountUpdateIterator, TokenAccountUpdateIterator };
+export { TokenAccountUpdateIterator };
 
-class AccountUpdateIterator extends MerkleListIterator.createFromList(
-  AccountUpdateForest
-) {}
+const AccountUpdateIterator =
+  MerkleListIterator.createFromList(AccountUpdateForest);
 
 class Layer extends Struct({
   forest: AccountUpdateIterator.provable,
@@ -56,7 +56,7 @@ class TokenAccountUpdateIterator {
   selfToken: Field;
 
   constructor(
-    forest: AccountUpdateIterator,
+    forest: MerkleListIterator<AccountUpdateTree>,
     mayUseToken: MayUseToken,
     selfToken: Field
   ) {

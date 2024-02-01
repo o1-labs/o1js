@@ -72,7 +72,7 @@ export {
   SmartContractContext,
   dummySignature,
   LazyProof,
-  CallTree,
+  AccountUpdateTree,
   hashAccountUpdate,
 };
 
@@ -1599,13 +1599,13 @@ class HashedAccountUpdate extends Hashed.create(
   hashAccountUpdate
 ) {}
 
-type CallTree = {
+type AccountUpdateTree = {
   accountUpdate: Hashed<AccountUpdate>;
-  calls: MerkleListBase<CallTree>;
+  calls: MerkleListBase<AccountUpdateTree>;
 };
-const CallTree: ProvableHashable<CallTree> = Struct({
+const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
   accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleListBase<CallTree>(),
+  calls: MerkleListBase<AccountUpdateTree>(),
 });
 
 /**
@@ -1614,13 +1614,17 @@ const CallTree: ProvableHashable<CallTree> = Struct({
  *
  * The (recursive) type signature is:
  * ```
- * type AccountUpdateForest = MerkleList<{
+ * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
+ * type AccountUpdateTree = {
  *   accountUpdate: Hashed<AccountUpdate>;
  *   calls: AccountUpdateForest;
- * }>;
+ * };
  * ```
  */
-class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
+class AccountUpdateForest extends MerkleList.create(
+  AccountUpdateTree,
+  merkleListHash
+) {
   static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
     let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
@@ -1634,10 +1638,10 @@ class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
 
 // how to hash a forest
 
-function merkleListHash(forestHash: Field, tree: CallTree) {
+function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
   return hashCons(forestHash, hashNode(tree));
 }
-function hashNode(tree: CallTree) {
+function hashNode(tree: AccountUpdateTree) {
   return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
     tree.calls.hash,
