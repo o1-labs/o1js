@@ -62,17 +62,19 @@ class ForeignGroup {
     }
 
     add(other: ForeignGroup) {
-        if (this.#isConstant() && other.#isConstant()) {
-            // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
-            if (this.isZero().toBoolean()) {
-                return other;
-            } else if (other.isZero().toBoolean()) {
-                return this;
-            } else {
-                let g_proj = Bn254.add(this.#toProjective(), other.#toProjective());
-                return ForeignGroup.#fromProjective(g_proj);
-            }
+        // Given a + b
+        if (this.isZero().toBoolean()) {
+            // If a = 0 ...
+            return other;
+        } else if (other.isZero().toBoolean()) {
+            // If b = 0 ...
+            return this;
+        } else if (this.#isConstant() && other.#isConstant()) {
+            // If a and b are constants ...
+            let g_proj = Bn254.add(this.#toProjective(), other.#toProjective());
+            return ForeignGroup.#fromProjective(g_proj);
         } else {
+            // If a or b is variable ...
             let left = this.#toTuple();
             let right = other.#toTuple();
             let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
