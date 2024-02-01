@@ -110,9 +110,6 @@ tx = await Mina.transaction(addresses.user, () => {
   dex.redeemLiquidity(UInt64.from(USER_DL));
 });
 
-console.log(tx.transaction.accountUpdates[0].toPrettyLayout());
-console.log(tx.toPretty());
-
 await tx.prove();
 await tx.sign([keys.user]).send();
 toc();
