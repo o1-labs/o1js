@@ -150,13 +150,6 @@ function createForeignField(modulus: bigint, { unsafe = false } = {}) {
     }
 
     /**
-     * Convert this field element to a bigint.
-     */
-    toBigIntBn254() {
-      return ForeignFieldVar.toBigintBn254(this.value);
-    }
-
-    /**
      * Assert that this field element lies in the range [0, p),
      * where p is the foreign field modulus.
      */

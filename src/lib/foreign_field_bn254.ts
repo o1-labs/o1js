@@ -313,13 +313,6 @@ function createForeignFieldBn254(modulus: bigint, { unsafe = false } = {}) {
       return Provable.equalBn254(ForeignFieldBn254, this, ForeignFieldBn254.from(y));
     }
 
-    equalsBn254(y: ForeignFieldBn254 | bigint | number) {
-      if (this.isConstant() && isConstant(y)) {
-        return new Bool(this.toBigInt() === toFp(y));
-      }
-      return Provable.equalBn254(ForeignFieldBn254, this, ForeignFieldBn254.from(y));
-    }
-
     // bit packing
 
     /**
