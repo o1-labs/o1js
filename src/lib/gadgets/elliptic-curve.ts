@@ -19,7 +19,7 @@ import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet, assertBoolean } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
-import { Packed } from '../provable-types/packed.js';
+import { Hashed } from '../provable-types/packed.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };
@@ -228,7 +228,7 @@ function verifyEcdsa(
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
-  } = { G: { windowSize: 4 }, P: { windowSize: 3 } }
+  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
 ) {
   // constant case
   if (
@@ -414,12 +414,12 @@ function multiScalarMul(
     sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
   );
 
-  // pack points to make array access more efficient
-  // a Point is 6 x 88-bit field elements, which are packed into 3 field elements
-  const PackedPoint = Packed.create(Point.provable);
+  // hash points to make array access more efficient
+  // a Point is 6 field elements, the hash is just 1 field element
+  const HashedPoint = Hashed.create(Point.provable);
 
-  let packedTables = tables.map((table) =>
-    table.map((point) => PackedPoint.pack(point))
+  let hashedTables = tables.map((table) =>
+    table.map((point) => HashedPoint.hash(point))
   );
 
   ia ??= initialAggregator(Curve);
@@ -436,10 +436,10 @@ function multiScalarMul(
           windowSize === 1
             ? points[j]
             : arrayGetGeneric(
-                PackedPoint.provable,
-                packedTables[j],
+                HashedPoint.provable,
+                hashedTables[j],
                 sj
-              ).unpack();
+              ).unhash();
 
         // ec addition
         let added = add(sum, sjP, Curve);

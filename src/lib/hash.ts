@@ -14,6 +14,7 @@ export { Poseidon, TokenSymbol };
 
 // internal API
 export {
+  ProvableHashable,
   HashInput,
   HashHelpers,
   emptyHashWithPrefix,
@@ -23,6 +24,9 @@ export {
   emptyReceiptChainHash,
   hashConstant,
 };
+
+type Hashable<T> = { toInput: (x: T) => HashInput; empty: () => T };
+type ProvableHashable<T> = Provable<T> & Hashable<T>;
 
 class Sponge {
   #sponge: unknown;
@@ -94,6 +98,24 @@ const Poseidon = {
     y.equals(x0).or(y.equals(x1)).assertTrue();
 
     return { x, y: { x0, x1 } };
+  },
+
+  /**
+   * Hashes a provable type efficiently.
+   *
+   * ```ts
+   * let skHash = Poseidon.hashPacked(PrivateKey, secretKey);
+   * ```
+   *
+   * Note: Instead of just doing `Poseidon.hash(value.toFields())`, this
+   * uses the `toInput()` method on the provable type to pack the input into as few
+   * field elements as possible. This saves constraints because packing has a much
+   * lower per-field element cost than hashing.
+   */
+  hashPacked<T>(type: Hashable<T>, value: T) {
+    let input = type.toInput(value);
+    let packed = packToFields(input);
+    return Poseidon.hash(packed);
   },
 
   initialState(): [Field, Field, Field] {

@@ -6,11 +6,11 @@ import {
 } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
-import { Poseidon, packToFields } from '../hash.js';
+import { Poseidon, ProvableHashable, packToFields } from '../hash.js';
 import { Provable } from '../provable.js';
-import { fields } from './fields.js';
+import { fields, modifiedField } from './fields.js';
 
-export { Packed };
+export { Packed, Hashed };
 
 /**
  * Packed<T> is a "packed" representation of any type T.
@@ -63,6 +63,10 @@ class Packed<T> {
         packed: fields(packedSize),
         value: Unconstrained.provable,
       }) as ProvableHashable<Packed<T>>;
+
+      static empty(): Packed<T> {
+        return Packed_.pack(type.empty());
+      }
     };
   }
 
@@ -120,8 +124,6 @@ class Packed<T> {
   }
 }
 
-type ProvableHashable<T> = Provable<T> & { toInput: (x: T) => HashInput };
-
 function countFields(input: HashInput) {
   let n = input.fields?.length ?? 0;
   let pendingBits = 0;
@@ -136,4 +138,115 @@ function countFields(input: HashInput) {
   if (pendingBits > 0) n++;
 
   return n;
+}
+
+/**
+ * Hashed<T> represents a type T by its hash.
+ *
+ * Since a hash is only a single field element, this can be more efficient in provable code
+ * where the number of constraints depends on the number of field elements per value.
+ *
+ * For example, `Provable.if(bool, x, y)` takes O(n) constraints, where n is the number of field
+ * elements in x and y. With Hashed, this is reduced to O(1).
+ *
+ * The downside is that you will pay the overhead of hashing your values, so it helps to experiment
+ * in which parts of your code a hashed representation is beneficial.
+ *
+ * Usage:
+ *
+ * ```ts
+ * // define a hashed type from a type
+ * let HashedType = Hashed.create(MyType);
+ *
+ * // hash a value
+ * let hashed = HashedType.hash(value);
+ *
+ * // ... operations on hashes, more efficient than on plain values ...
+ *
+ * // unhash to get the original value
+ * let value = hashed.unhash();
+ * ```
+ */
+class Hashed<T> {
+  hash: Field;
+  value: Unconstrained<T>;
+
+  /**
+   * Create a hashed representation of `type`. You can then use `HashedType.hash(x)` to wrap a value in a `Hashed`.
+   */
+  static create<T>(
+    type: ProvableHashable<T>,
+    hash?: (t: T) => Field
+  ): typeof Hashed<T> {
+    let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
+
+    let dummyHash = _hash(type.empty());
+
+    return class Hashed_ extends Hashed<T> {
+      static _innerProvable = type;
+      static _provable = provableFromClass(Hashed_, {
+        hash: modifiedField({ empty: () => dummyHash }),
+        value: Unconstrained.provable,
+      }) as ProvableHashable<Hashed<T>>;
+
+      static _hash = _hash satisfies (t: T) => Field;
+
+      static empty(): Hashed<T> {
+        return new this(dummyHash, Unconstrained.from(type.empty()));
+      }
+    };
+  }
+
+  constructor(hash: Field, value: Unconstrained<T>) {
+    this.hash = hash;
+    this.value = value;
+  }
+
+  static _hash(_: any): Field {
+    assert(false, 'Hashed not initialized');
+  }
+
+  /**
+   * Wrap a value, and represent it by its hash in provable code.
+   */
+  static hash<T>(value: T): Hashed<T> {
+    let hash = this._hash(value);
+    return new this(hash, Unconstrained.from(value));
+  }
+
+  /**
+   * Unwrap a value from its hashed variant.
+   */
+  unhash(): T {
+    let value = Provable.witness(this.Constructor.innerProvable, () =>
+      this.value.get()
+    );
+
+    // prove that the value hashes to the hash
+    let hash = this.Constructor._hash(value);
+    this.hash.assertEquals(hash);
+
+    return value;
+  }
+
+  toFields(): Field[] {
+    return [this.hash];
+  }
+
+  // dynamic subclassing infra
+  static _provable: ProvableHashable<Hashed<any>> | undefined;
+  static _innerProvable: ProvableHashable<any> | undefined;
+
+  get Constructor(): typeof Hashed {
+    return this.constructor as typeof Hashed;
+  }
+
+  static get provable(): ProvableHashable<Hashed<any>> {
+    assert(this._provable !== undefined, 'Hashed not initialized');
+    return this._provable;
+  }
+  static get innerProvable(): ProvableHashable<any> {
+    assert(this._innerProvable !== undefined, 'Hashed not initialized');
+    return this._innerProvable;
+  }
 }

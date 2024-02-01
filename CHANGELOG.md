@@ -15,11 +15,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/be748e42e...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/e5d1e0f...HEAD)
 
 ### Breaking changes
 
 - Reduce number of constraints of ECDSA verification by 5%, which breaks deployed contracts using ECDSA https://github.com/o1-labs/o1js/pull/1376
+
+### Added
+
+- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
+- Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
+  - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
+
+## [0.15.4](https://github.com/o1-labs/o1js/compare/be748e42e...e5d1e0f)
 
 ### Changed
 
@@ -33,7 +41,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Configurable `networkId` when declaring a Mina instance. https://github.com/o1-labs/o1js/pull/1387
   - Defaults to `"testnet"`, the other option is `"mainnet"`
   - The `networkId` parameter influences the algorithm used for signatures, and ensures that testnet transactions can't be replayed on mainnet
-- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
 
 ## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
 
