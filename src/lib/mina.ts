@@ -10,7 +10,7 @@ import {
   AccountUpdate,
   ZkappPublicInput,
   TokenId,
-  CallForestHelpers,
+  CallForest,
   Authorization,
   Actions,
   Events,
@@ -242,9 +242,8 @@ function createTransaction(
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();
-              tx.accountUpdates = CallForestHelpers.map(
-                tx.accountUpdates,
-                (a) => toConstant(AccountUpdate, a)
+              tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
+                toConstant(AccountUpdate, a)
               );
             });
           });
@@ -264,7 +263,7 @@ function createTransaction(
   let accountUpdates = currentTransaction.get().accountUpdates;
   // TODO: I'll be back
   // CallForest.addCallers(accountUpdates);
-  accountUpdates = CallForestHelpers.toFlatList(accountUpdates);
+  accountUpdates = CallForest.toFlatList(accountUpdates);
 
   try {
     // check that on-chain values weren't used without setting a precondition
@@ -430,8 +429,8 @@ function LocalBlockchain({
     getNetworkId: () => minaNetworkId,
     proofsEnabled,
     /**
-   * @deprecated use {@link Mina.getNetworkConstants}
-   */
+     * @deprecated use {@link Mina.getNetworkConstants}
+     */
     accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
@@ -519,7 +518,8 @@ function LocalBlockchain({
           // TODO: label updates, and try to give precise explanations about what went wrong
           let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
-            accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
+            accountCreationFee:
+              defaultNetworkConstants.accountCreationFee.toString(),
           });
         } finally {
           throw err;
@@ -765,8 +765,8 @@ function Network(
   return {
     getNetworkId: () => minaNetworkId,
     /**
-   * @deprecated use {@link Mina.getNetworkConstants}
-   */
+     * @deprecated use {@link Mina.getNetworkConstants}
+     */
     accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       if (currentTransaction()?.fetchMode === 'test') {

@@ -4,7 +4,7 @@ import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
-  CallForestHelpers,
+  CallForest,
   TokenId,
   hashAccountUpdate,
 } from '../../account_update.js';
@@ -78,7 +78,7 @@ test(flatAccountUpdates, (flatUpdates) => {
   let updates = callForestToNestedArray(
     accountUpdatesToCallForest(flatUpdates)
   );
-  let flatUpdates2 = CallForestHelpers.toFlatList(updates, false);
+  let flatUpdates2 = CallForest.toFlatList(updates, false);
   let n = flatUpdates.length;
   for (let i = 0; i < n; i++) {
     assert.deepStrictEqual(flatUpdates2[i], flatUpdates[i]);

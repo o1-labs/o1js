@@ -65,7 +65,7 @@ export {
   Actions,
   TokenId,
   Token,
-  CallForestHelpers,
+  CallForest,
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
@@ -1060,7 +1060,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (isSameAsFeePayer) nonce++;
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
-    CallForestHelpers.forEachPredecessor(
+    CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
       update as AccountUpdate,
       (otherUpdate) => {
@@ -1107,7 +1107,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   toPublicInput(): ZkappPublicInput {
     let accountUpdate = this.hash();
-    let calls = CallForestHelpers.hashChildren(this);
+    let calls = CallForest.hashChildren(this);
     return { accountUpdate, calls };
   }
 
@@ -1383,7 +1383,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (n === 0) {
       accountUpdate.children.callsType = {
         type: 'Equals',
-        value: CallForestHelpers.emptyHash(),
+        value: CallForest.emptyHash(),
       };
     }
   }
@@ -1650,7 +1650,7 @@ function hashCons(forestHash: Field, nodeHash: Field) {
   ]);
 }
 
-const CallForestHelpers = {
+const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
   // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
@@ -1667,7 +1667,7 @@ const CallForestHelpers = {
       let children = accountUpdate.children.accountUpdates;
       accountUpdates.push(
         accountUpdate,
-        ...CallForestHelpers.toFlatList(children, mutate, depth + 1)
+        ...CallForest.toFlatList(children, mutate, depth + 1)
       );
     }
     return accountUpdates;
@@ -1683,18 +1683,16 @@ const CallForestHelpers = {
   // the `calls` field of ZkappPublicInput
   hashChildren(update: AccountUpdate): Field {
     if (!Provable.inCheckedComputation()) {
-      return CallForestHelpers.hashChildrenBase(update);
+      return CallForest.hashChildrenBase(update);
     }
 
     let { callsType } = update.children;
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return Provable.witness(Field, () =>
-        CallForestHelpers.hashChildrenBase(update)
-      );
+      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
-    let calls = CallForestHelpers.hashChildrenBase(update);
+    let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals') {
       calls.assertEquals(callsType.value);
     }
@@ -1702,9 +1700,9 @@ const CallForestHelpers = {
   },
 
   hashChildrenBase({ children }: AccountUpdate) {
-    let stackHash = CallForestHelpers.emptyHash();
+    let stackHash = CallForest.emptyHash();
     for (let accountUpdate of [...children.accountUpdates].reverse()) {
-      let calls = CallForestHelpers.hashChildren(accountUpdate);
+      let calls = CallForest.hashChildren(accountUpdate);
       let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
         accountUpdate.hash(),
         calls,
@@ -1746,7 +1744,7 @@ const CallForestHelpers = {
       withCallers.push({
         accountUpdate: update,
         caller,
-        children: CallForestHelpers.addCallers(
+        children: CallForest.addCallers(
           update.children.accountUpdates,
           childContext
         ),
@@ -1794,7 +1792,7 @@ const CallForestHelpers = {
     let newUpdates: AccountUpdate[] = [];
     for (let update of updates) {
       let newUpdate = map(update);
-      newUpdate.children.accountUpdates = CallForestHelpers.map(
+      newUpdate.children.accountUpdates = CallForest.map(
         update.children.accountUpdates,
         map
       );
@@ -1806,7 +1804,7 @@ const CallForestHelpers = {
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
       callback(update);
-      CallForestHelpers.forEach(update.children.accountUpdates, callback);
+      CallForest.forEach(update.children.accountUpdates, callback);
     }
   },
 
@@ -1816,7 +1814,7 @@ const CallForestHelpers = {
     callback: (update: AccountUpdate) => void
   ) {
     let isPredecessor = true;
-    CallForestHelpers.forEach(updates, (otherUpdate) => {
+    CallForest.forEach(updates, (otherUpdate) => {
       if (otherUpdate.id === update.id) isPredecessor = false;
       if (isPredecessor) callback(otherUpdate);
     });
@@ -1943,7 +1941,7 @@ const Authorization = {
       priorAccountUpdates = priorAccountUpdates.filter(
         (a) => a.id !== myAccountUpdateId
       );
-      let priorAccountUpdatesFlat = CallForestHelpers.toFlatList(
+      let priorAccountUpdatesFlat = CallForest.toFlatList(
         priorAccountUpdates,
         false
       );
