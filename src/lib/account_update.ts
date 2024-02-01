@@ -77,14 +77,14 @@ export {
   Actions,
   TokenId,
   Token,
-  CallForestHelpers,
+  CallForest,
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
   SmartContractContext,
   dummySignature,
   LazyProof,
-  CallTree,
+  AccountUpdateTree,
   CallForestUnderConstruction,
   hashAccountUpdate,
   HashedAccountUpdate,
@@ -997,7 +997,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (isSameAsFeePayer) nonce++;
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
-    CallForestHelpers.forEachPredecessor(
+    CallForest.forEachPredecessor(
       currentTransaction.get().accountUpdates,
       update as AccountUpdate,
       (otherUpdate) => {
@@ -1044,7 +1044,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   toPublicInput(): ZkappPublicInput {
     let accountUpdate = this.hash();
-    let calls = CallForestHelpers.hashChildren(this);
+    let calls = CallForest.hashChildren(this);
     return { accountUpdate, calls };
   }
 
@@ -1328,7 +1328,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (n === 0) {
       accountUpdate.children.callsType = {
         type: 'Equals',
-        value: CallForestHelpers.emptyHash(),
+        value: CallForest.emptyHash(),
       };
     }
   }
@@ -1538,13 +1538,13 @@ class HashedAccountUpdate extends Hashed.create(
   hashAccountUpdate
 ) {}
 
-type CallTree = {
+type AccountUpdateTree = {
   accountUpdate: Hashed<AccountUpdate>;
-  calls: MerkleListBase<CallTree>;
+  calls: MerkleListBase<AccountUpdateTree>;
 };
-const CallTree: ProvableHashable<CallTree> = Struct({
+const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
   accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleListBase<CallTree>(),
+  calls: MerkleListBase<AccountUpdateTree>(),
 });
 
 /**
@@ -1553,13 +1553,17 @@ const CallTree: ProvableHashable<CallTree> = Struct({
  *
  * The (recursive) type signature is:
  * ```
- * type AccountUpdateForest = MerkleList<{
+ * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
+ * type AccountUpdateTree = {
  *   accountUpdate: Hashed<AccountUpdate>;
  *   calls: AccountUpdateForest;
- * }>;
+ * };
  * ```
  */
-class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
+class AccountUpdateForest extends MerkleList.create(
+  AccountUpdateTree,
+  merkleListHash
+) {
   static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
     let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
@@ -1573,10 +1577,10 @@ class AccountUpdateForest extends MerkleList.create(CallTree, merkleListHash) {
 
 // how to hash a forest
 
-function merkleListHash(forestHash: Field, tree: CallTree) {
+function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
   return hashCons(forestHash, hashNode(tree));
 }
-function hashNode(tree: CallTree) {
+function hashNode(tree: AccountUpdateTree) {
   return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
     tree.calls.hash,
@@ -1685,7 +1689,7 @@ const CallForestUnderConstruction = {
 function toCallTree(node: {
   accountUpdate: HashOrValue<AccountUpdate>;
   calls: CallForestUnderConstruction;
-}): CallTree {
+}): AccountUpdateTree {
   let accountUpdate = node.accountUpdate.useHash
     ? new HashedAccountUpdate(
         node.accountUpdate.hash,
@@ -1699,7 +1703,7 @@ function toCallTree(node: {
   };
 }
 
-const CallForestHelpers = {
+const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
   // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
@@ -1716,7 +1720,7 @@ const CallForestHelpers = {
       let children = accountUpdate.children.accountUpdates;
       accountUpdates.push(
         accountUpdate,
-        ...CallForestHelpers.toFlatList(children, mutate, depth + 1)
+        ...CallForest.toFlatList(children, mutate, depth + 1)
       );
     }
     return accountUpdates;
@@ -1732,21 +1736,19 @@ const CallForestHelpers = {
   // the `calls` field of ZkappPublicInput
   hashChildren(update: AccountUpdate): Field {
     if (!Provable.inCheckedComputation()) {
-      return CallForestHelpers.hashChildrenBase(update);
+      return CallForest.hashChildrenBase(update);
     }
 
     let { callsType } = update.children;
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return Provable.witness(Field, () =>
-        CallForestHelpers.hashChildrenBase(update)
-      );
+      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     if (callsType.type === 'WitnessEquals') {
       return callsType.value;
     }
-    let calls = CallForestHelpers.hashChildrenBase(update);
+    let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals') {
       calls.assertEquals(callsType.value);
     }
@@ -1754,9 +1756,9 @@ const CallForestHelpers = {
   },
 
   hashChildrenBase({ children }: AccountUpdate) {
-    let stackHash = CallForestHelpers.emptyHash();
+    let stackHash = CallForest.emptyHash();
     for (let accountUpdate of [...children.accountUpdates].reverse()) {
-      let calls = CallForestHelpers.hashChildren(accountUpdate);
+      let calls = CallForest.hashChildren(accountUpdate);
       let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
         accountUpdate.hash(),
         calls,
@@ -1782,7 +1784,7 @@ const CallForestHelpers = {
     let newUpdates: AccountUpdate[] = [];
     for (let update of updates) {
       let newUpdate = map(update);
-      newUpdate.children.accountUpdates = CallForestHelpers.map(
+      newUpdate.children.accountUpdates = CallForest.map(
         update.children.accountUpdates,
         map
       );
@@ -1794,7 +1796,7 @@ const CallForestHelpers = {
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
       callback(update);
-      CallForestHelpers.forEach(update.children.accountUpdates, callback);
+      CallForest.forEach(update.children.accountUpdates, callback);
     }
   },
 
@@ -1804,7 +1806,7 @@ const CallForestHelpers = {
     callback: (update: AccountUpdate) => void
   ) {
     let isPredecessor = true;
-    CallForestHelpers.forEach(updates, (otherUpdate) => {
+    CallForest.forEach(updates, (otherUpdate) => {
       if (otherUpdate.id === update.id) isPredecessor = false;
       if (isPredecessor) callback(otherUpdate);
     });
