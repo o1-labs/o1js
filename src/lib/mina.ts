@@ -33,6 +33,7 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
+import { NetworkId } from '../mina-signer/src/TSTypes.js';
 
 export {
   createTransaction,
@@ -51,6 +52,8 @@ export {
   getAccount,
   hasAccount,
   getBalance,
+  getNetworkId,
+  getNetworkConstants,
   getNetworkState,
   accountCreationFee,
   sendTransaction,
@@ -64,7 +67,9 @@ export {
   getProofsEnabled,
   // for internal testing only
   filterGroups,
+  type NetworkConstants,
 };
+
 interface TransactionId {
   isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
@@ -161,6 +166,15 @@ type DeprecatedFeePayerSpec =
 type ActionStates = {
   fromActionState?: Field;
   endActionState?: Field;
+};
+
+type NetworkConstants = {
+  genesisTimestamp: UInt64;
+  /**
+   * Duration of 1 slot in milliseconds
+   */
+  slotTime: UInt64;
+  accountCreationFee: UInt64;
 };
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -340,14 +354,10 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
-  getNetworkConstants(): {
-    genesisTimestamp: UInt64;
-    /**
-     * Duration of 1 slot in millisecondw
-     */
-    slotTime: UInt64;
-    accountCreationFee: UInt64;
-  };
+  getNetworkConstants(): NetworkConstants;
+  /**
+   * @deprecated use {@link getNetworkConstants}
+   */
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (
@@ -366,25 +376,30 @@ interface Mina {
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
+  getNetworkId(): NetworkId;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
+const defaultNetworkConstants: NetworkConstants = {
+  genesisTimestamp: UInt64.from(0),
+  slotTime: UInt64.from(3 * 60 * 1000),
+  accountCreationFee: UInt64.from(defaultAccountCreationFee),
+};
 
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
 function LocalBlockchain({
-  accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
   enforceTransactionLimits = true,
+  networkId = 'testnet' as NetworkId,
 } = {}) {
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
-
   const ledger = Ledger.create();
-
   let networkState = defaultNetworkState();
+  let minaNetworkId: NetworkId = networkId;
 
   function addAccount(publicKey: PublicKey, balance: string) {
     ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
@@ -411,13 +426,16 @@ function LocalBlockchain({
   > = {};
 
   return {
+    getNetworkId: () => minaNetworkId,
     proofsEnabled,
-    accountCreationFee: () => UInt64.from(accountCreationFee),
+    /**
+   * @deprecated use {@link Mina.getNetworkConstants}
+   */
+    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
+        ...defaultNetworkConstants,
         genesisTimestamp,
-        accountCreationFee: UInt64.from(accountCreationFee),
-        slotTime: UInt64.from(slotTime),
       };
     },
     currentSlot() {
@@ -482,7 +500,8 @@ function LocalBlockchain({
             account,
             update,
             commitments,
-            this.proofsEnabled
+            this.proofsEnabled,
+            this.getNetworkId()
           );
         }
       }
@@ -490,7 +509,7 @@ function LocalBlockchain({
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(zkappCommandJson),
-          String(accountCreationFee),
+          defaultNetworkConstants.accountCreationFee.toString(),
           JSON.stringify(networkState)
         );
       } catch (err: any) {
@@ -499,7 +518,7 @@ function LocalBlockchain({
           // TODO: label updates, and try to give precise explanations about what went wrong
           let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
-            accountCreationFee,
+            accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
           });
         } finally {
           throw err;
@@ -601,7 +620,7 @@ function LocalBlockchain({
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(
         json,
-        String(accountCreationFee),
+        defaultNetworkConstants.accountCreationFee.toString(),
         JSON.stringify(networkState)
       );
     },
@@ -677,58 +696,63 @@ LocalBlockchain satisfies (...args: any) => Mina;
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(endpoints: {
+function Network(options: {
+  networkId?: NetworkId;
   mina: string | string[];
   archive?: string | string[];
   lightnetAccountManager?: string;
 }): Mina;
 function Network(
-  input:
+  options:
     | {
+        networkId?: NetworkId;
         mina: string | string[];
         archive?: string | string[];
         lightnetAccountManager?: string;
       }
     | string
 ): Mina {
-  let accountCreationFee = UInt64.from(defaultAccountCreationFee);
+  let minaNetworkId: NetworkId = 'testnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
 
-  if (input && typeof input === 'string') {
-    minaGraphqlEndpoint = input;
+  if (options && typeof options === 'string') {
+    minaGraphqlEndpoint = options;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
-  } else if (input && typeof input === 'object') {
-    if (!input.mina)
+  } else if (options && typeof options === 'object') {
+    if (options.networkId) {
+      minaNetworkId = options.networkId;
+    }
+    if (!options.mina)
       throw new Error(
         "Network: malformed input. Please provide an object with 'mina' endpoint."
       );
-    if (Array.isArray(input.mina) && input.mina.length !== 0) {
-      minaGraphqlEndpoint = input.mina[0];
+    if (Array.isArray(options.mina) && options.mina.length !== 0) {
+      minaGraphqlEndpoint = options.mina[0];
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
-      Fetch.setMinaGraphqlFallbackEndpoints(input.mina.slice(1));
-    } else if (typeof input.mina === 'string') {
-      minaGraphqlEndpoint = input.mina;
+      Fetch.setMinaGraphqlFallbackEndpoints(options.mina.slice(1));
+    } else if (typeof options.mina === 'string') {
+      minaGraphqlEndpoint = options.mina;
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
     }
 
-    if (input.archive !== undefined) {
-      if (Array.isArray(input.archive) && input.archive.length !== 0) {
-        archiveEndpoint = input.archive[0];
+    if (options.archive !== undefined) {
+      if (Array.isArray(options.archive) && options.archive.length !== 0) {
+        archiveEndpoint = options.archive[0];
         Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
-        Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
-      } else if (typeof input.archive === 'string') {
-        archiveEndpoint = input.archive;
+        Fetch.setArchiveGraphqlFallbackEndpoints(options.archive.slice(1));
+      } else if (typeof options.archive === 'string') {
+        archiveEndpoint = options.archive;
         Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
       }
     }
 
     if (
-      input.lightnetAccountManager !== undefined &&
-      typeof input.lightnetAccountManager === 'string'
+      options.lightnetAccountManager !== undefined &&
+      typeof options.lightnetAccountManager === 'string'
     ) {
-      lightnetAccountManagerEndpoint = input.lightnetAccountManager;
+      lightnetAccountManagerEndpoint = options.lightnetAccountManager;
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
   } else {
@@ -737,22 +761,31 @@ function Network(
     );
   }
 
-  // copied from mina/genesis_ledgers/berkeley.json
-  // TODO fetch from graphql instead of hardcoding
-  const genesisTimestampString = '2023-02-23T20:00:01Z';
-  const genesisTimestamp = UInt64.from(
-    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
-  );
-  // TODO also fetch from graphql
-  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
-    accountCreationFee: () => accountCreationFee,
+    getNetworkId: () => minaNetworkId,
+    /**
+   * @deprecated use {@link Mina.getNetworkConstants}
+   */
+    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
-      return {
-        genesisTimestamp,
-        slotTime,
-        accountCreationFee,
-      };
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        const genesisConstants =
+          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        return genesisConstants !== undefined
+          ? genesisToNetworkConstants(genesisConstants)
+          : defaultNetworkConstants;
+      }
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        const genesisConstants =
+          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        if (genesisConstants !== undefined)
+          return genesisToNetworkConstants(genesisConstants);
+      }
+      return defaultNetworkConstants;
     },
     currentSlot() {
       throw Error(
@@ -814,7 +847,7 @@ function Network(
         if (network !== undefined) return network;
       }
       throw Error(
-        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint}`
+        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
       );
     },
     async sendTransaction(txn: Transaction) {
@@ -994,9 +1027,13 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 }
 
 let activeInstance: Mina = {
-  accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
+  getNetworkId: () => 'testnet',
+  /**
+   * @deprecated use {@link Mina.getNetworkConstants}
+   */
+  accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
   getNetworkConstants() {
-    throw new Error('must call Mina.setActiveInstance first');
+    return defaultNetworkConstants;
   },
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
@@ -1178,6 +1215,20 @@ function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
 }
 
 /**
+ * @return The current Mina network ID.
+ */
+function getNetworkId() {
+  return activeInstance.getNetworkId();
+}
+
+/**
+ * @return Data associated with the current Mina network constants.
+ */
+function getNetworkConstants() {
+  return activeInstance.getNetworkConstants();
+}
+
+/**
  * @return Data associated with the current state of the Mina network.
  */
 function getNetworkState() {
@@ -1193,6 +1244,7 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
 
 /**
  * Returns the default account creation fee.
+ * @deprecated use {@link Mina.getNetworkConstants}
  */
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
@@ -1268,7 +1320,8 @@ async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
   transactionCommitments: { commitment: bigint; fullCommitment: bigint },
-  proofsEnabled: boolean
+  proofsEnabled: boolean,
+  networkId: NetworkId
 ): Promise<void> {
   // check that that top-level updates have mayUseToken = No
   // (equivalent check exists in the Mina node)
@@ -1376,7 +1429,7 @@ async function verifyAccountUpdate(
       isValidSignature = verifyAccountUpdateSignature(
         TypesBigint.AccountUpdate.fromJSON(accountUpdateJson),
         transactionCommitments,
-        'testnet'
+        networkId
       );
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;
@@ -1591,4 +1644,16 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
     );
   }
   await waitForFunding(address);
+}
+
+function genesisToNetworkConstants(
+  genesisConstants: Fetch.GenesisConstants
+): NetworkConstants {
+  return {
+    genesisTimestamp: UInt64.from(
+      Date.parse(genesisConstants.genesisTimestamp)
+    ),
+    slotTime: UInt64.from(genesisConstants.slotDuration),
+    accountCreationFee: UInt64.from(genesisConstants.accountCreationFee),
+  };
 }
