@@ -12,12 +12,12 @@ import {
 } from '../../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
-  NetworkId,
   Signature,
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
+import { NetworkId } from './TSTypes.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };

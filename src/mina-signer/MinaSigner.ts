@@ -1,6 +1,6 @@
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import * as Json from './src/TSTypes.js';
-import type { SignedLegacy, Signed, Network } from './src/TSTypes.js';
+import type { SignedLegacy, Signed, NetworkId } from './src/TSTypes.js';
 
 import {
   isPayment,
@@ -39,9 +39,9 @@ export { Client as default };
 const defaultValidUntil = '4294967295';
 
 class Client {
-  private network: Network;
+  private network: NetworkId; // TODO: Rename to "networkId" for consistency with remaining codebase.
 
-  constructor(options: { network: Network }) {
+  constructor(options: { network: NetworkId }) {
     if (!options?.network) {
       throw Error('Invalid Specified Network');
     }
@@ -492,6 +492,15 @@ class Client {
   ): Json.Nullifier {
     let sk = PrivateKey.fromBase58(privateKeyBase58);
     return createNullifier(message, sk);
+  }
+
+  /**
+   * Returns the network ID.
+   * 
+   * @returns {NetworkId} The network ID.
+   */
+  get networkId(): NetworkId {
+    return this.network;
   }
 }
 

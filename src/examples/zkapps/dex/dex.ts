@@ -384,7 +384,7 @@ class TokenContract extends BaseTokenContract {
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 
   /**
@@ -400,7 +400,7 @@ class TokenContract extends BaseTokenContract {
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 
   @method

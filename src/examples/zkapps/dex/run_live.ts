@@ -34,7 +34,6 @@ const network = Mina.Network({
   lightnetAccountManager: 'http://localhost:8181',
 });
 Mina.setActiveInstance(network);
-let accountFee = Mina.accountCreationFee();
 
 let tx, pendingTx: Mina.TransactionId, balances, oldBalances;
 
@@ -74,6 +73,7 @@ let userSpec = { sender: addresses.user, fee: 0.1e9 };
 if (successfulTransactions <= 0) {
   tic('deploy & init token contracts');
   tx = await Mina.transaction(senderSpec, () => {
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
     // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
     let feePayerUpdate = AccountUpdate.createSigned(sender);
     feePayerUpdate.balance.subInPlace(accountFee.mul(2));
@@ -97,7 +97,9 @@ if (successfulTransactions <= 1) {
   tic('deploy dex contracts');
   tx = await Mina.transaction(senderSpec, () => {
     // pay fees for creating 3 dex accounts
-    AccountUpdate.createSigned(sender).balance.subInPlace(accountFee.mul(3));
+    AccountUpdate.createSigned(sender).balance.subInPlace(
+      Mina.getNetworkConstants().accountCreationFee.mul(3)
+    );
     dex.deploy();
     dexTokenHolderX.deploy();
     tokenX.approveAccountUpdate(dexTokenHolderX.self);

@@ -6,7 +6,7 @@ import {
 } from '../circuit_value.js';
 import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
-import { Poseidon, packToFields } from '../hash.js';
+import { Poseidon, ProvableHashable, packToFields } from '../hash.js';
 import { Provable } from '../provable.js';
 import { fields, modifiedField } from './fields.js';
 
@@ -124,11 +124,6 @@ class Packed<T> {
   }
 }
 
-type ProvableHashable<T> = Provable<T> & {
-  toInput: (x: T) => HashInput;
-  empty: () => T;
-};
-
 function countFields(input: HashInput) {
   let n = input.fields?.length ?? 0;
   let pendingBits = 0;
@@ -183,14 +178,7 @@ class Hashed<T> {
     type: ProvableHashable<T>,
     hash?: (t: T) => Field
   ): typeof Hashed<T> {
-    // default hash function
-    let _hash =
-      hash ??
-      function hash(t: T) {
-        let input = type.toInput(t);
-        let packed = packToFields(input);
-        return Poseidon.hash(packed);
-      };
+    let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
 
     let dummyHash = _hash(type.empty());
 
@@ -221,9 +209,9 @@ class Hashed<T> {
   /**
    * Wrap a value, and represent it by its hash in provable code.
    */
-  static hash<T>(x: T): Hashed<T> {
-    let hash = this._hash(x);
-    return new this(hash, Unconstrained.from(x));
+  static hash<T>(value: T): Hashed<T> {
+    let hash = this._hash(value);
+    return new this(hash, Unconstrained.from(value));
   }
 
   /**

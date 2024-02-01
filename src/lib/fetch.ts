@@ -19,6 +19,7 @@ import {
 export {
   fetchAccount,
   fetchLastBlock,
+  fetchGenesisConstants,
   checkZkappTransaction,
   parseFetchedAccount,
   markAccountToBeFetched,
@@ -31,6 +32,7 @@ export {
   getCachedAccount,
   getCachedNetwork,
   getCachedActions,
+  getCachedGenesisConstants,
   addCachedAccount,
   networkConfig,
   setGraphqlEndpoint,
@@ -44,7 +46,8 @@ export {
   removeJsonQuotes,
   fetchEvents,
   fetchActions,
-  Lightnet
+  Lightnet,
+  type GenesisConstants,
 };
 
 type NetworkConfig = {
@@ -216,6 +219,16 @@ type FetchError = {
 type ActionStatesStringified = {
   [K in keyof ActionStates]: string;
 };
+type GenesisConstants = {
+  genesisTimestamp: string;
+  coinbase: number;
+  accountCreationFee: number;
+  epochDuration: number;
+  k: number;
+  slotDuration: number;
+  slotsPerEpoch: number;
+};
+
 // Specify 5min as the default timeout
 const defaultTimeout = 5 * 60 * 1000;
 
@@ -257,6 +270,7 @@ let actionsToFetch = {} as Record<
     graphqlEndpoint: string;
   }
 >;
+let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
@@ -333,6 +347,7 @@ async function fetchMissingData(
       (async () => {
         try {
           await fetchLastBlock(graphqlEndpoint);
+          await fetchGenesisConstants(graphqlEndpoint);
           delete networksToFetch[network[0]];
         } catch {}
       })()
@@ -361,6 +376,12 @@ function getCachedActions(
 ) {
   return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.actions;
+}
+
+function getCachedGenesisConstants(
+  graphqlEndpoint = networkConfig.minaEndpoint
+): GenesisConstants {
+  return genesisConstantsCache[graphqlEndpoint];
 }
 
 /**
@@ -819,6 +840,21 @@ const getActionsQuery = (
   }
 }`;
 };
+const genesisConstantsQuery = `{
+    genesisConstants {
+      genesisTimestamp
+      coinbase
+      accountCreationFee
+    }
+    daemonStatus {
+      consensusConfiguration {
+        epochDuration
+        k
+        slotDuration
+        slotsPerEpoch
+      }
+    }
+  }`;
 
 /**
  * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
@@ -1007,6 +1043,37 @@ async function fetchActions(
   });
   addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
+}
+
+/**
+ * Fetches genesis constants.
+ */
+async function fetchGenesisConstants(
+  graphqlEndpoint = networkConfig.minaEndpoint
+): Promise<GenesisConstants> {
+  let [resp, error] = await makeGraphqlRequest(
+    genesisConstantsQuery,
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
+  );
+  if (error) throw Error(error.statusText);
+  const genesisConstants = resp?.data?.genesisConstants;
+  const consensusConfiguration =
+    resp?.data?.daemonStatus?.consensusConfiguration;
+  if (genesisConstants === undefined || consensusConfiguration === undefined) {
+    throw Error('Failed to fetch genesis constants.');
+  }
+  const data = {
+    genesisTimestamp: genesisConstants.genesisTimestamp,
+    coinbase: Number(genesisConstants.coinbase),
+    accountCreationFee: Number(genesisConstants.accountCreationFee),
+    epochDuration: Number(consensusConfiguration.epochDuration),
+    k: Number(consensusConfiguration.k),
+    slotDuration: Number(consensusConfiguration.slotDuration),
+    slotsPerEpoch: Number(consensusConfiguration.slotsPerEpoch),
+  };
+  genesisConstantsCache[graphqlEndpoint] = data;
+  return data as GenesisConstants;
 }
 
 namespace Lightnet {

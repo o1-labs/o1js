@@ -99,7 +99,7 @@ function handleResult(result: any) {
  * A list of keywords used to filter out unwanted lines from the error stack trace.
  */
 const lineRemovalKeywords = [
-  'snarky_js_node.bc.cjs',
+  'o1js_node.bc.cjs',
   '/builtin/',
   'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace (covers both class and method decorator)
 ] as const;
