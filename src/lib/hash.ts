@@ -129,10 +129,6 @@ const Poseidon = {
     return Poseidon.hash(packed);
   },
 
-  initialState(): [Field, Field, Field] {
-    return [Field(0), Field(0), Field(0)];
-  },
-
   Sponge,
 };
 
