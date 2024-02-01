@@ -2,7 +2,6 @@ import {
   ProvablePure,
   Bool,
   CircuitString,
-  provablePure,
   DeployArgs,
   Field,
   method,
@@ -13,6 +12,7 @@ import {
   Mina,
   TokenContract,
   AccountUpdateForest,
+  Struct,
 } from 'o1js';
 
 /**
@@ -121,12 +121,10 @@ class TrivialCoin extends TokenContract implements Erc20Like {
   }
 
   events = {
-    Transfer: provablePure({
-      from: PublicKey,
-      to: PublicKey,
-      value: UInt64,
-    }),
+    Transfer: Struct({ from: PublicKey, to: PublicKey, value: UInt64 }),
   };
+
+  // TODO: doesn't emit a Transfer event yet (need to make transfer() a separate method from approveBase)
 
   // implement Approvable API
 
