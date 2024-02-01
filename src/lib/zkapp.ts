@@ -17,7 +17,7 @@ import {
   ZkappStateLength,
   SmartContractContext,
   LazyProof,
-  CallForestHelpers,
+  CallForest,
   CallForestUnderConstruction,
 } from './account_update.js';
 import {
@@ -1536,7 +1536,7 @@ const ProofAuthorization = {
       priorAccountUpdates = priorAccountUpdates.filter(
         (a) => a.id !== myAccountUpdateId
       );
-      let priorAccountUpdatesFlat = CallForestHelpers.toFlatList(
+      let priorAccountUpdatesFlat = CallForest.toFlatList(
         priorAccountUpdates,
         false
       );

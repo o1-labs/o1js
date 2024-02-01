@@ -6,7 +6,7 @@ import {
   AccountUpdate,
   AccountUpdateForest,
   CallForestUnderConstruction,
-  CallTree,
+  AccountUpdateTree,
   HashedAccountUpdate,
   Permissions,
   smartContractContext,
@@ -148,7 +148,7 @@ function finalizeAccountUpdates(updates: AccountUpdate[]): AccountUpdateForest {
   return AccountUpdateForest.from(trees);
 }
 
-function finalizeAccountUpdate(update: AccountUpdate): CallTree {
+function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
   let calls: AccountUpdateForest;
 
   let insideContract = smartContractContext.get();

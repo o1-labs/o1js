@@ -17,7 +17,7 @@ import {
   method,
   state,
   TokenContract as BaseTokenContract,
-  CallForest,
+  AccountUpdateForest,
 } from 'o1js';
 
 export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
@@ -404,7 +404,7 @@ class TokenContract extends BaseTokenContract {
   }
 
   @method
-  approveBase(forest: CallForest) {
+  approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
 
