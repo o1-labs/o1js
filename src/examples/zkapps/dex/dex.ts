@@ -408,16 +408,6 @@ class TokenContract extends BaseTokenContract {
     this.checkZeroBalanceChange(forest);
   }
 
-  // this is a very standardized deploy method. instead, we could also take the account update from a callback
-  // => need callbacks for signatures
-  @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
-    let tokenId = this.token.id;
-    let zkapp = AccountUpdate.create(address, tokenId);
-    zkapp.account.permissions.set(Permissions.default());
-    zkapp.account.verificationKey.set(verificationKey);
-    zkapp.requireSignature();
-  }
-
   @method getBalance(publicKey: PublicKey): UInt64 {
     let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
     let balance = accountUpdate.account.balance.get();

@@ -255,6 +255,8 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   let tokenX = new TokenContract(addresses.tokenX);
   let tokenY = new TokenContract(addresses.tokenY);
   let dex = new Dex(addresses.dex);
+  let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
+  let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
@@ -300,8 +302,10 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     // pay fees for creating 3 dex accounts
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
-    tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-    tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+    dexTokenHolderX.deploy();
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
+    dexTokenHolderY.deploy();
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);
@@ -345,11 +349,21 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   console.log('compiling modified Dex contract...');
   await ModifiedDex.compile();
   let modifiedDex = new ModifiedDex(addresses.dex);
+  let modifiedDexTokenHolderX = new ModifiedDexTokenHolder(
+    addresses.dex,
+    tokenIds.X
+  );
+  let modifiedDexTokenHolderY = new ModifiedDexTokenHolder(
+    addresses.dex,
+    tokenIds.Y
+  );
 
   tx = await Mina.transaction(feePayerAddress, () => {
     modifiedDex.deploy();
-    tokenX.deployZkapp(addresses.dex, ModifiedDexTokenHolder._verificationKey!);
-    tokenY.deployZkapp(addresses.dex, ModifiedDexTokenHolder._verificationKey!);
+    modifiedDexTokenHolderX.deploy();
+    tokenX.approveAccountUpdate(modifiedDexTokenHolderX.self);
+    modifiedDexTokenHolderY.deploy();
+    tokenY.approveAccountUpdate(modifiedDexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);
