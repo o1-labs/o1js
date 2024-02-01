@@ -6,7 +6,7 @@ import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
-import { ForeignField, createForeignField } from './foreign-field.js';
+import { ForeignFieldBn254, createForeignFieldBn254 } from './foreign_field_bn254.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -45,16 +45,16 @@ class ForeignSponge {
   private ForeignFieldClass;
 
   constructor(modulus: bigint) {
-    this.ForeignFieldClass = createForeignField(modulus);
+    this.ForeignFieldClass = createForeignFieldBn254(modulus);
     let isChecked = Provable.inCheckedComputation();
     this.sponge = Snarky.poseidon.foreignSponge.create(isChecked);
   }
 
-  absorb(x: ForeignField) {
+  absorb(x: ForeignFieldBn254) {
     Snarky.poseidon.foreignSponge.absorb(this.sponge, x.value);
   }
 
-  squeeze(): ForeignField {
+  squeeze(): ForeignFieldBn254 {
     return new this.ForeignFieldClass(Snarky.poseidon.foreignSponge.squeeze(this.sponge));
   }
 }
