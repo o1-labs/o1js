@@ -85,7 +85,7 @@ export {
   dummySignature,
   LazyProof,
   AccountUpdateTree,
-  CallForestUnderConstruction,
+  UnfinishedForest,
   hashAccountUpdate,
   HashedAccountUpdate,
 };
@@ -96,7 +96,7 @@ type SmartContractContext = {
   this: SmartContract;
   methodCallDepth: number;
   selfUpdate: AccountUpdate;
-  selfCalls: CallForestUnderConstruction;
+  selfCalls: UnfinishedForest;
 };
 let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,
@@ -798,7 +798,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // TODO: this is not as general as approve suggests
     let insideContract = smartContractContext.get();
     if (insideContract && insideContract.selfUpdate.id === this.id) {
-      CallForestUnderConstruction.push(insideContract.selfCalls, childUpdate);
+      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
     }
   }
 
@@ -811,7 +811,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // TODO: this is not as general as adopt suggests
     let insideContract = smartContractContext.get();
     if (insideContract && insideContract.selfUpdate.id === this.id) {
-      CallForestUnderConstruction.push(insideContract.selfCalls, childUpdate);
+      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
     }
   }
 
@@ -1142,10 +1142,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // TODO duplicate logic
     let insideContract = smartContractContext.get();
     if (insideContract) {
-      CallForestUnderConstruction.remove(
-        insideContract.selfCalls,
-        accountUpdate
-      );
+      UnfinishedForest.remove(insideContract.selfCalls, accountUpdate);
     }
     let siblings =
       accountUpdate.parent?.children.accountUpdates ??
@@ -1609,79 +1606,66 @@ function hashCons(forestHash: Field, nodeHash: Field) {
 }
 
 /**
- * Structure for constructing a call forest from a circuit.
+ * Structure for constructing the forest of child account updates, from a circuit.
  *
  * The circuit can mutate account updates and change their array of children, so here we can't hash
  * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
  * updates that can be hashed into a final call forest at the end.
  */
-type CallForestUnderConstruction = HashOrValue<AccountUpdateNode[]>;
+type UnfinishedForest = HashOrValue<UnfinishedTree[]>;
 
-type AccountUpdateNode = {
+type UnfinishedTree = {
   accountUpdate: HashOrValue<AccountUpdate>;
   isDummy: Bool;
-  calls: CallForestUnderConstruction;
+  calls: UnfinishedForest;
 };
 
 type HashOrValue<T> =
   | { useHash: true; hash: Field; value: T }
   | { useHash: false; value: T };
 
-const CallForestUnderConstruction = {
-  empty(): CallForestUnderConstruction {
+const UnfinishedForest = {
+  empty(): UnfinishedForest {
     return { useHash: false, value: [] };
   },
 
-  setHash(forest: CallForestUnderConstruction, hash: Field) {
-    Object.assign(forest, { useHash: true, hash });
-  },
-
-  witnessHash(forest: CallForestUnderConstruction) {
+  witnessHash(forest: UnfinishedForest) {
     let hash = Provable.witness(Field, () => {
-      let nodes = forest.value.map(toTree);
-      return withHashes(nodes, merkleListHash).hash;
+      return UnfinishedForest.finalize(forest).hash;
     });
-    CallForestUnderConstruction.setHash(forest, hash);
+    return { useHash: true, hash, value: forest.value };
   },
 
-  fromAccountUpdates(
-    updates: AccountUpdate[],
-    useHash = false
-  ): CallForestUnderConstruction {
+  fromArray(updates: AccountUpdate[], useHash = false): UnfinishedForest {
     if (useHash) {
-      let forest = CallForestUnderConstruction.empty();
-      Provable.asProver(() => {
-        forest = CallForestUnderConstruction.fromAccountUpdates(updates);
-      });
-      CallForestUnderConstruction.witnessHash(forest);
-      return forest;
+      let forest = UnfinishedForest.empty();
+      Provable.asProver(() => (forest = UnfinishedForest.fromArray(updates)));
+      return UnfinishedForest.witnessHash(forest);
     }
 
-    let nodes = updates.map((update): AccountUpdateNode => {
+    let nodes = updates.map((update): UnfinishedTree => {
       return {
         accountUpdate: { useHash: false, value: update },
         isDummy: update.isDummy(),
-        calls: CallForestUnderConstruction.fromAccountUpdates(
-          update.children.accountUpdates
-        ),
+        calls: UnfinishedForest.fromArray(update.children.accountUpdates),
       };
     });
     return { useHash: false, value: nodes };
   },
 
   push(
-    forest: CallForestUnderConstruction,
+    forest: UnfinishedForest,
     accountUpdate: AccountUpdate,
-    calls?: CallForestUnderConstruction
+    calls?: UnfinishedForest
   ) {
     forest.value.push({
       accountUpdate: { useHash: false, value: accountUpdate },
       isDummy: accountUpdate.isDummy(),
-      calls: calls ?? CallForestUnderConstruction.empty(),
+      calls: calls ?? UnfinishedForest.empty(),
     });
   },
 
-  remove(forest: CallForestUnderConstruction, accountUpdate: AccountUpdate) {
+  remove(forest: UnfinishedForest, accountUpdate: AccountUpdate) {
     // find account update by .id
     let index = forest.value.findIndex(
       (node) => node.accountUpdate.value.id === accountUpdate.id
@@ -1694,13 +1678,10 @@ const CallForestUnderConstruction = {
     forest.value.splice(index, 1);
   },
 
-  finalize(forest: CallForestUnderConstruction): AccountUpdateForest {
+  finalize(forest: UnfinishedForest): AccountUpdateForest {
     if (forest.useHash) {
       let data = Unconstrained.witness(() =>
-        CallForestUnderConstruction.finalize({
-          ...forest,
-          useHash: false,
-        }).data.get()
+        UnfinishedForest.finalize({ ...forest, useHash: false }).data.get()
       );
       return new AccountUpdateForest({ hash: forest.hash, data });
     }
@@ -1716,9 +1697,7 @@ const CallForestUnderConstruction = {
   },
 };
 
-function toTree(
-  node: AccountUpdateNode
-): AccountUpdateTree & { isDummy: Bool } {
+function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
   let accountUpdate = node.accountUpdate.useHash
     ? new HashedAccountUpdate(
         node.accountUpdate.hash,
@@ -1726,11 +1705,8 @@ function toTree(
       )
     : HashedAccountUpdate.hash(node.accountUpdate.value);
 
-  return {
-    accountUpdate,
-    isDummy: node.isDummy,
-    calls: CallForestUnderConstruction.finalize(node.calls),
-  };
+  let calls = UnfinishedForest.finalize(node.calls);
+  return { accountUpdate, isDummy: node.isDummy, calls };
 }
 
 const CallForest = {

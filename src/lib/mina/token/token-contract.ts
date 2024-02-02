@@ -5,7 +5,7 @@ import { PublicKey } from '../../signature.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
-  CallForestUnderConstruction,
+  UnfinishedForest,
   AccountUpdateTree,
   HashedAccountUpdate,
   Permissions,
@@ -157,7 +157,7 @@ function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
       (c) => c.accountUpdate.value.id === update.id
     );
     if (node !== undefined) {
-      calls = CallForestUnderConstruction.finalize(node.calls);
+      calls = UnfinishedForest.finalize(node.calls);
     }
   }
   calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates, {

@@ -18,7 +18,7 @@ import {
   SmartContractContext,
   LazyProof,
   CallForest,
-  CallForestUnderConstruction,
+  UnfinishedForest,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -169,7 +169,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: 0,
         selfUpdate: selfAccountUpdate(this, methodName),
-        selfCalls: CallForestUnderConstruction.empty(),
+        selfCalls: UnfinishedForest.empty(),
       };
       let id = smartContractContext.enter(context);
       try {
@@ -313,7 +313,7 @@ function wrapMethod(
       this: this,
       methodCallDepth: methodCallDepth + 1,
       selfUpdate: selfAccountUpdate(this, methodName),
-      selfCalls: CallForestUnderConstruction.empty(),
+      selfCalls: UnfinishedForest.empty(),
     };
     let id = smartContractContext.enter(innerContext);
     try {
@@ -415,13 +415,10 @@ function wrapMethod(
       // nothing is asserted about them -- it's the callee's task to check their children
       accountUpdate.children.callsType = { type: 'Witness' };
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
-      CallForestUnderConstruction.push(
+      UnfinishedForest.push(
         insideContract.selfCalls,
         accountUpdate,
-        CallForestUnderConstruction.fromAccountUpdates(
-          accountUpdate.children.accountUpdates,
-          true
-        )
+        UnfinishedForest.fromArray(accountUpdate.children.accountUpdates, true)
       );
 
       // assert that we really called the right zkapp
