@@ -1621,8 +1621,8 @@ type UnfinishedTree = {
 };
 
 type HashOrValue<T> =
-  | { useHash: true; hash: Field; value: T }
-  | { useHash: false; value: T };
+  | { readonly useHash: true; hash: Field; readonly value: T }
+  | { readonly useHash: false; value: T };
 
 const UnfinishedForest = {
   empty(): UnfinishedForest {
