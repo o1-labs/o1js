@@ -4,7 +4,7 @@ import { Field } from '../../provable/field-bigint.js';
 import { Memo } from './memo.js';
 import { Signature } from './signature.js';
 
-export { publicKeyToHex, rosettaTransactionToSignedCommand };
+export { publicKeyToHex, signatureToHex, rosettaTransactionToSignedCommand };
 
 function publicKeyToHex(publicKey: PublicKey) {
   return fieldToHex(Field, publicKey.x, !!publicKey.isOdd);
@@ -18,6 +18,14 @@ function signatureFromHex(signatureHex: string): Signature {
     r: fieldFromHex(Field, fieldHex)[0],
     s: fieldFromHex(Scalar, scalarHex)[0],
   };
+}
+
+function signatureToHex(signature: Signature): string {
+  // TODO possibly check isOdd like public key to hex does?
+  let fieldHex = fieldToHex(Field, signature.r);
+  let scalarHex = fieldToHex(Field, signature.r);
+
+  return `${fieldHex}${scalarHex}`;
 }
 
 function fieldToHex<T extends Field | Scalar>(
