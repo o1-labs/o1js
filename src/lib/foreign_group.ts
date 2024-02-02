@@ -62,19 +62,31 @@ class ForeignGroup {
     }
 
     add(other: ForeignGroup) {
+        Provable.asProverBn254(() => { console.log("ADD"); })
+        let thisIsZero = false;
+        let otherIsZero = false;
+        Provable.asProverBn254(() => {
+            thisIsZero = this.isZero().toBoolean();
+            otherIsZero = other.isZero().toBoolean();
+        });
+
         // Given a + b
-        if (this.isZero().toBoolean()) {
+        if (thisIsZero) {
             // If a = 0 ...
+            Provable.asProverBn254(() => { console.log("this is zero"); })
             return other;
-        } else if (other.isZero().toBoolean()) {
+        } else if (otherIsZero) {
             // If b = 0 ...
+            Provable.asProverBn254(() => { console.log("other is zero"); })
             return this;
         } else if (this.#isConstant() && other.#isConstant()) {
             // If a and b are constants ...
+            Provable.asProverBn254(() => { console.log("both are constants"); })
             let g_proj = Bn254.add(this.#toProjective(), other.#toProjective());
             return ForeignGroup.#fromProjective(g_proj);
         } else {
             // If a or b is variable ...
+            Provable.asProverBn254(() => { console.log("one of them is variable"); })
             let left = this.#toTuple();
             let right = other.#toTuple();
             let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
@@ -94,6 +106,7 @@ class ForeignGroup {
     }
 
     scale(scalar: ForeignFieldBn254) {
+        Provable.asProverBn254(() => { console.log("SCALE"); })
         let [, ...bits] = scalar.value;
         bits.reverse();
         let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], ForeignGroup.curve);

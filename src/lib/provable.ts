@@ -358,7 +358,10 @@ function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
 function equalBn254<T>(type: ProvableBn254<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
-  return xs.map((x, i) => x.equals(ys[i])).reduce(BoolBn254.and);
+  return xs.map((x, i) => {
+    let ret = x.equals(ys[i])
+    return ret;
+  }).reduce(BoolBn254.and);
 }
 
 function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;

@@ -10,7 +10,7 @@ import { FieldBn254 } from './field_bn254.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
-import { asProver } from './provable-context.js';
+import { asProverBn254 } from './provable-context.js';
 import { BoolVar } from './bool.js';
 
 export { BoolBn254, isBool };
@@ -331,7 +331,7 @@ class BoolBn254 {
      * @param x a {@link FieldBn254}
      */
     ofField(x: FieldBn254) {
-      asProver(() => {
+      asProverBn254(() => {
         let x0 = x.toBigInt();
         if (x0 !== 0n && x0 !== 1n)
           throw Error(`BoolBn254.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);

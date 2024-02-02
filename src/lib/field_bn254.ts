@@ -4,6 +4,7 @@ import { FieldBn254 as Fp } from "../provable/field_bn254_bigint.js";
 import { FieldConst, FieldType, FieldVar, checkBitLength, readVarMessage, withMessage } from "./field.js";
 import { inCheckedComputation } from "./provable-context.js";
 import { BoolBn254 } from "./bool_bn254.js";
+import { Provable } from "./provable.js";
 
 export { FieldBn254 }
 
@@ -116,7 +117,7 @@ class FieldBn254 {
         }
         // create witnesses z = 1/x, or z=0 if x=0,
         // and b = 1 - zx
-        let [, b, z] = Snarky.exists(2, () => {
+        let [, b, z] = Snarky.existsBn254(2, () => {
             let x = this.toBigInt();
             let z = Fp.inverse(x) ?? 0n;
             let b = Fp.sub(1n, Fp.mul(z, x));
@@ -186,7 +187,7 @@ function toConstantField(
     );
 
     // if we are inside an asProver or witness block, read the variable's value and return it as constant
-    if (Snarky.run.inProverBlock()) {
+    if (Snarky.run.inProverBlockBn254()) {
         let value = Snarky.fieldBn254.readVar(x.value);
         return new FieldBn254(value) as ConstantField;
     }
