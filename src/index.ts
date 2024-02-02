@@ -69,6 +69,7 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
+  TransactionVersion,
 } from './lib/account_update.js';
 
 export type { TransactionStatus } from './lib/fetch.js';
