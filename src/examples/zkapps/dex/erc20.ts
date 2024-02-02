@@ -16,6 +16,7 @@ import {
   Mina,
   Int64,
   VerificationKey,
+  TransactionVersion,
 } from 'o1js';
 
 /**
@@ -93,7 +94,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // make account non-upgradable forever
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: {
+        auth: Permissions.impossible(),
+        txnVersion: TransactionVersion.current(),
+      },
       setPermissions: Permissions.impossible(),
       access: Permissions.proofOrSignature(),
     });
