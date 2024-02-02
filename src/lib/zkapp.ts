@@ -19,6 +19,7 @@ import {
   LazyProof,
   CallForest,
   UnfinishedForest,
+  AccountUpdateForest,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -194,11 +195,11 @@ function wrapMethod(
             let blindingValue = Provable.witness(Field, getBlindingValue);
             // it's also good if we prove that we use the same blinding value across the method
             // that's why we pass the variable (not the constant) into a new context
-            let context = memoizationContext() ?? {
+            let memoCtx = memoizationContext() ?? {
               memoized: [],
               currentIndex: 0,
             };
-            let id = memoizationContext.enter({ ...context, blindingValue });
+            let id = memoizationContext.enter({ ...memoCtx, blindingValue });
             let result: unknown;
             try {
               let clonedArgs = actualArgs.map(cloneCircuitValue);
@@ -218,7 +219,8 @@ function wrapMethod(
             ProofAuthorization.setKind(accountUpdate);
 
             debugPublicInput(accountUpdate);
-            checkPublicInput(publicInput, accountUpdate);
+            let calls = UnfinishedForest.finalize(context.selfCalls);
+            checkPublicInput(publicInput, accountUpdate, calls);
 
             // check the self accountUpdate right after calling the method
             // TODO: this needs to be done in a unified way for all account updates that are created
@@ -448,11 +450,11 @@ function wrapMethod(
 
 function checkPublicInput(
   { accountUpdate, calls }: ZkappPublicInput,
-  self: AccountUpdate
+  self: AccountUpdate,
+  selfCalls: AccountUpdateForest
 ) {
-  let otherInput = self.toPublicInput();
-  accountUpdate.assertEquals(otherInput.accountUpdate);
-  calls.assertEquals(otherInput.calls);
+  accountUpdate.assertEquals(self.hash());
+  calls.assertEquals(selfCalls.hash);
 }
 
 /**
