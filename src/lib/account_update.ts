@@ -1564,14 +1564,34 @@ class AccountUpdateForest extends MerkleList.create(
   AccountUpdateTree,
   merkleListHash
 ) {
-  static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
+  static fromArray(
+    updates: AccountUpdate[],
+    { skipDummies = false } = {}
+  ): AccountUpdateForest {
+    if (skipDummies) return AccountUpdateForest.fromArraySkipDummies(updates);
+
     let nodes = updates.map((update) => {
       let accountUpdate = HashedAccountUpdate.hash(update);
       let calls = AccountUpdateForest.fromArray(update.children.accountUpdates);
       return { accountUpdate, calls };
     });
-
     return AccountUpdateForest.from(nodes);
+  }
+
+  private static fromArraySkipDummies(
+    updates: AccountUpdate[]
+  ): AccountUpdateForest {
+    let forest = AccountUpdateForest.empty();
+
+    for (let update of [...updates].reverse()) {
+      let accountUpdate = HashedAccountUpdate.hash(update);
+      let calls = AccountUpdateForest.fromArraySkipDummies(
+        update.children.accountUpdates
+      );
+      forest.pushIf(update.isDummy().not(), { accountUpdate, calls });
+    }
+
+    return forest;
   }
 }
 
@@ -1580,6 +1600,7 @@ class AccountUpdateForest extends MerkleList.create(
 function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
   return hashCons(forestHash, hashNode(tree));
 }
+
 function hashNode(tree: AccountUpdateTree) {
   return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
@@ -2008,17 +2029,16 @@ function dummySignature() {
 
 /**
  * The public input for zkApps consists of certain hashes of the proving
- AccountUpdate (and its child accountUpdates) which is constructed during method
- execution.
-
-  For SmartContract proving, a method is run twice: First outside the proof, to
- obtain the public input, and once in the prover, which takes the public input
- as input. The current transaction is hashed again inside the prover, which
- asserts that the result equals the input public input, as part of the snark
- circuit. The block producer will also hash the transaction they receive and
- pass it as a public input to the verifier. Thus, the transaction is fully
- constrained by the proof - the proof couldn't be used to attest to a different
- transaction.
+ * account update (and its child updates) which is constructed during method execution.
+ *
+ * For SmartContract proving, a method is run twice: First outside the proof, to
+ * obtain the public input, and once in the prover, which takes the public input
+ * as input. The current transaction is hashed again inside the prover, which
+ * asserts that the result equals the input public input, as part of the snark
+ * circuit. The block producer will also hash the transaction they receive and
+ * pass it as a public input to the verifier. Thus, the transaction is fully
+ * constrained by the proof - the proof couldn't be used to attest to a different
+ * transaction.
  */
 type ZkappPublicInput = {
   accountUpdate: Field;

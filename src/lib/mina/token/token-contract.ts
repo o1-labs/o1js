@@ -160,7 +160,9 @@ function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
       calls = CallForestUnderConstruction.finalize(node.calls);
     }
   }
-  calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates);
+  calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates, {
+    skipDummies: true,
+  });
   AccountUpdate.unlink(update);
 
   return { accountUpdate: HashedAccountUpdate.hash(update), calls };
