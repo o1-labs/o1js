@@ -15,6 +15,8 @@ import {
   Struct,
 } from 'o1js';
 
+export { Erc20Like, TrivialCoin };
+
 /**
  * ERC-20-like token standard.
  * https://ethereum.org/en/developers/docs/standards/tokens/erc-20/
@@ -68,7 +70,7 @@ class TrivialCoin extends TokenContract implements Erc20Like {
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
 
-  deploy(args: DeployArgs) {
+  deploy(args?: DeployArgs) {
     super.deploy(args);
     this.account.tokenSymbol.set('TRIV');
 
@@ -124,7 +126,9 @@ class TrivialCoin extends TokenContract implements Erc20Like {
     Transfer: Struct({ from: PublicKey, to: PublicKey, value: UInt64 }),
   };
 
-  // TODO: doesn't emit a Transfer event yet (need to make transfer() a separate method from approveBase)
+  // TODO: doesn't emit a Transfer event yet
+  // need to make transfer() a separate method from approveBase, which does the same as
+  // `transfer()` on the base contract, but also emits the event
 
   // implement Approvable API
 
