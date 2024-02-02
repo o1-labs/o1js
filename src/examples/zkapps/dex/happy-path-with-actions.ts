@@ -9,7 +9,7 @@ import {
   keys,
   tokenIds,
 } from './dex-with-actions.js';
-import { TokenContract } from './dex.js';
+import { TrivialCoin as TokenContract } from './erc20.js';
 
 let proofsEnabled = true;
 tic('Happy path with actions');

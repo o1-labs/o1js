@@ -22,7 +22,8 @@ import {
   state,
 } from 'o1js';
 
-import { TokenContract, randomAccounts } from './dex.js';
+import { randomAccounts } from './dex.js';
+import { TrivialCoin as TokenContract } from './erc20.js';
 
 export { Dex, DexTokenHolder, addresses, getTokenBalances, keys, tokenIds };
 
