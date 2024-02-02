@@ -798,10 +798,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // TODO: this is not as general as approve suggests
     let insideContract = smartContractContext.get();
     if (insideContract && insideContract.selfUpdate.id === this.id) {
-      CallForestUnderConstruction.push(insideContract.selfCalls, {
-        useHash: false,
-        value: childUpdate,
-      });
+      CallForestUnderConstruction.push(insideContract.selfCalls, childUpdate);
     }
   }
 
@@ -814,10 +811,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // TODO: this is not as general as adopt suggests
     let insideContract = smartContractContext.get();
     if (insideContract && insideContract.selfUpdate.id === this.id) {
-      CallForestUnderConstruction.push(insideContract.selfCalls, {
-        useHash: false,
-        value: childUpdate,
-      });
+      CallForestUnderConstruction.push(insideContract.selfCalls, childUpdate);
     }
   }
 
@@ -1621,12 +1615,13 @@ function hashCons(forestHash: Field, nodeHash: Field) {
  * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
  * updates that can be hashed into a final call forest at the end.
  */
-type CallForestUnderConstruction = HashOrValue<
-  {
-    accountUpdate: HashOrValue<AccountUpdate>;
-    calls: CallForestUnderConstruction;
-  }[]
->;
+type CallForestUnderConstruction = HashOrValue<AccountUpdateNode[]>;
+
+type AccountUpdateNode = {
+  accountUpdate: HashOrValue<AccountUpdate>;
+  isDummy: Bool;
+  calls: CallForestUnderConstruction;
+};
 
 type HashOrValue<T> =
   | { useHash: true; hash: Field; value: T }
@@ -1643,7 +1638,7 @@ const CallForestUnderConstruction = {
 
   witnessHash(forest: CallForestUnderConstruction) {
     let hash = Provable.witness(Field, () => {
-      let nodes = forest.value.map(toCallTree);
+      let nodes = forest.value.map(toTree);
       return withHashes(nodes, merkleListHash).hash;
     });
     CallForestUnderConstruction.setHash(forest, hash);
@@ -1653,28 +1648,35 @@ const CallForestUnderConstruction = {
     updates: AccountUpdate[],
     useHash = false
   ): CallForestUnderConstruction {
-    let nodes = updates.map((update) => {
-      let accountUpdate: HashOrValue<AccountUpdate> = {
-        useHash: false,
-        value: update,
+    if (useHash) {
+      let forest = CallForestUnderConstruction.empty();
+      Provable.asProver(() => {
+        forest = CallForestUnderConstruction.fromAccountUpdates(updates);
+      });
+      CallForestUnderConstruction.witnessHash(forest);
+      return forest;
+    }
+
+    let nodes = updates.map((update): AccountUpdateNode => {
+      return {
+        accountUpdate: { useHash: false, value: update },
+        isDummy: update.isDummy(),
+        calls: CallForestUnderConstruction.fromAccountUpdates(
+          update.children.accountUpdates
+        ),
       };
-      let calls = CallForestUnderConstruction.fromAccountUpdates(
-        update.children.accountUpdates
-      );
-      return { accountUpdate, calls };
     });
-    let forest: CallForestUnderConstruction = { useHash: false, value: nodes };
-    if (useHash) CallForestUnderConstruction.witnessHash(forest);
-    return forest;
+    return { useHash: false, value: nodes };
   },
 
   push(
     forest: CallForestUnderConstruction,
-    accountUpdate: HashOrValue<AccountUpdate>,
+    accountUpdate: AccountUpdate,
     calls?: CallForestUnderConstruction
   ) {
     forest.value.push({
-      accountUpdate,
+      accountUpdate: { useHash: false, value: accountUpdate },
+      isDummy: accountUpdate.isDummy(),
       calls: calls ?? CallForestUnderConstruction.empty(),
     });
   },
@@ -1694,23 +1696,29 @@ const CallForestUnderConstruction = {
 
   finalize(forest: CallForestUnderConstruction): AccountUpdateForest {
     if (forest.useHash) {
-      let data = Unconstrained.witness(() => {
-        let nodes = forest.value.map(toCallTree);
-        return withHashes(nodes, merkleListHash).data;
-      });
+      let data = Unconstrained.witness(() =>
+        CallForestUnderConstruction.finalize({
+          ...forest,
+          useHash: false,
+        }).data.get()
+      );
       return new AccountUpdateForest({ hash: forest.hash, data });
     }
 
     // not using the hash means we calculate it in-circuit
-    let nodes = forest.value.map(toCallTree);
-    return AccountUpdateForest.from(nodes);
+    let nodes = forest.value.map(toTree);
+    let finalForest = AccountUpdateForest.empty();
+
+    for (let { isDummy, ...tree } of [...nodes].reverse()) {
+      finalForest.pushIf(isDummy.not(), tree);
+    }
+    return finalForest;
   },
 };
 
-function toCallTree(node: {
-  accountUpdate: HashOrValue<AccountUpdate>;
-  calls: CallForestUnderConstruction;
-}): AccountUpdateTree {
+function toTree(
+  node: AccountUpdateNode
+): AccountUpdateTree & { isDummy: Bool } {
   let accountUpdate = node.accountUpdate.useHash
     ? new HashedAccountUpdate(
         node.accountUpdate.hash,
@@ -1720,6 +1728,7 @@ function toCallTree(node: {
 
   return {
     accountUpdate,
+    isDummy: node.isDummy,
     calls: CallForestUnderConstruction.finalize(node.calls),
   };
 }

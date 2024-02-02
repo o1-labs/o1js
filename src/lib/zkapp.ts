@@ -417,7 +417,7 @@ function wrapMethod(
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
       CallForestUnderConstruction.push(
         insideContract.selfCalls,
-        { useHash: false, value: accountUpdate },
+        accountUpdate,
         CallForestUnderConstruction.fromAccountUpdates(
           accountUpdate.children.accountUpdates,
           true
