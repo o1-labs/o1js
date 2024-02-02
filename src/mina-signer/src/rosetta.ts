@@ -23,7 +23,7 @@ function signatureFromHex(signatureHex: string): Signature {
 function signatureToHex(signature: Signature): string {
   // TODO possibly check isOdd like public key to hex does?
   let fieldHex = fieldToHex(Field, signature.r);
-  let scalarHex = fieldToHex(Field, signature.r);
+  let scalarHex = fieldToHex(Field, signature.s);
 
   return `${fieldHex}${scalarHex}`;
 }
