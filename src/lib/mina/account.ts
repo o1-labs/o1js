@@ -86,7 +86,10 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       receive
       setDelegate
       setPermissions
-      setVerificationKey
+      setVerificationKey {
+        auth
+        txnVersion
+      }
       setZkappUri
       editActionState
       setTokenSymbol
