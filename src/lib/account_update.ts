@@ -662,6 +662,7 @@ class AccountUpdate implements Types.AccountUpdate {
       if (accountLike instanceof PublicKey) {
         accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
         makeChildAccountUpdate(thisAccountUpdate, accountLike);
+        // TODO existing API not affecting `UnfinishedForest`
       }
       if (!accountLike.label)
         accountLike.label = `${
