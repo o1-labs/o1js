@@ -4,6 +4,7 @@ import { FieldBn254 } from './field_bn254.js';
 import { ForeignAffine } from './foreign-field.js';
 import { ForeignFieldBn254, createForeignFieldBn254 } from './foreign_field_bn254.js';
 import { Provable } from './provable.js';
+import { Field as Fp } from '../provable/field-bigint.js';
 
 export { EllipticCurve, ForeignGroup }
 
@@ -17,6 +18,26 @@ class ForeignGroup {
     constructor(x: ForeignFieldBn254, y: ForeignFieldBn254) {
         this.x = x;
         this.y = y;
+
+        if (this.#isConstant()) {
+            // we also check the zero element (0, 0) here
+            if (this.x.equals(0).and(this.y.equals(0)).toBoolean()) return;
+
+            const { add, mul, square } = Fp;
+
+            let x_bigint = this.x.toBigInt();
+            let y_bigint = this.y.toBigInt();
+
+            let onCurve =
+                add(mul(x_bigint, mul(x_bigint, x_bigint)), Bn254.b) ===
+                square(y_bigint);
+
+            if (!onCurve) {
+                throw Error(
+                    `(x: ${x_bigint}, y: ${y_bigint}) is not a valid group element`
+                );
+            }
+        }
     }
 
     static #fromAffine({
