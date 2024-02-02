@@ -464,7 +464,7 @@ const Field3 = {
   },
 
   /**
-   * Provable<T> interface for `Field3 = [Field, Field, Field]`.
+   * `Provable<T>` interface for `Field3 = [Field, Field, Field]`.
    *
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
    * range checks.
