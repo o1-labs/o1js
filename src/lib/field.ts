@@ -280,7 +280,7 @@ class Field {
   }
 
   /**
-   * Add a "field-like" value to this {@link Field} element.
+   * Add a field-like value to this {@link Field} element.
    *
    * @example
    * ```ts
