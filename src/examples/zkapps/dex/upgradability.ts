@@ -185,7 +185,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   await expect(tx.sign([feePayerKey, keys.dex]).send()).rejects.toThrow(
-    /Update_not_permitted_delegate/
+    /Cannot update field 'delegate'/
   );
 
   /**
