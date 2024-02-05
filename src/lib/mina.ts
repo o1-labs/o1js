@@ -45,6 +45,7 @@ import {
   NetworkConstants,
 } from './mina/mina-instance.js';
 import { SimpleLedger } from './mina/transaction-logic/ledger.js';
+import { assert } from './gadgets/common.js';
 
 export {
   createTransaction,
@@ -426,6 +427,7 @@ function LocalBlockchain({
           }
         }
 
+        // TODO: verify account update even if the account doesn't exist yet, using a default initial account
         if (account !== undefined) {
           await verifyAccountUpdate(
             account,
@@ -434,8 +436,8 @@ function LocalBlockchain({
             this.proofsEnabled,
             this.getNetworkId()
           );
+          simpleLedger.apply(update);
         }
-        simpleLedger.apply(update);
       }
 
       try {
@@ -1253,7 +1255,11 @@ async function verifyAccountUpdate(
         publicOutput: [],
       });
 
-      let verificationKey = account.zkapp?.verificationKey?.data!;
+      let verificationKey = account.zkapp?.verificationKey?.data;
+      assert(
+        verificationKey !== undefined,
+        'Account does not have a verification key'
+      );
       isValidProof = await verify(proof.toJSON(), verificationKey);
       if (!isValidProof) {
         throw Error(
@@ -1261,7 +1267,7 @@ async function verifyAccountUpdate(
         );
       }
     } catch (error) {
-      errorTrace += '\n\n' + (error as Error).message;
+      errorTrace += '\n\n' + (error as Error).stack;
       isValidProof = false;
     }
   }
@@ -1275,7 +1281,7 @@ async function verifyAccountUpdate(
         networkId
       );
     } catch (error) {
-      errorTrace += '\n\n' + (error as Error).message;
+      errorTrace += '\n\n' + (error as Error).stack;
       isValidSignature = false;
     }
   }
@@ -1303,7 +1309,7 @@ async function verifyAccountUpdate(
     if (!verified) {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
-        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}`
+        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}\n\n`
       );
     }
   }
