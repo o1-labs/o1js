@@ -26,6 +26,34 @@ git submodule update --init --recursive
 
 For most users, building o1js is as simple as running:
 
+# o1js README-dev
+
+o1js is a TypeScript framework designed for zk-SNARKs and zkApps on the Mina blockchain.
+
+- [zkApps Overview](https://docs.minaprotocol.com/zkapps)
+- [Mina README](/src/mina/README.md)
+
+For more information on our development process and how to contribute, see [CONTRIBUTING.md](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md). This document is meant to guide you through building o1js from source and understanding the development workflow.
+
+## Prerequisites
+
+Before starting, ensure you have the following tools installed:
+
+- [Git](https://git-scm.com/)
+- [Node.js and npm](https://nodejs.org/)
+- [Dune](https://github.com/ocaml/dune) (only needed when compiling o1js from source)
+- [Cargo](https://www.rust-lang.org/learn/get-started) (only needed when compiling o1js from source)
+
+After cloning the repository, you need to fetch the submodules:
+
+```sh
+git submodule update --init --recursive
+```
+
+## Building o1js
+
+For most users, building o1js is as simple as running:
+
 ```sh
 npm install
 npm run build
@@ -155,32 +183,32 @@ Use the lightweight Mina blockchain network (Lightnet) to test on a local blockc
 
 The easiest way is to use [zkApp CLI](https://www.npmjs.com/package/zkapp-cli) sub-commands:
 
-   ```shell
-   zk lightnet start # start the local network
-   # Do your tests and other interactions with the network
-   zk lightnet logs # manage the logs of the local network
-   zk lightnet explorer # visualize the local network state
-   zk lightnet stop # stop the local network
-   ```
+```shell
+zk lightnet start # start the local network
+# Do your tests and other interactions with the network
+zk lightnet logs # manage the logs of the local network
+zk lightnet explorer # visualize the local network state
+zk lightnet stop # stop the local network
+```
 
-   Use `zk lightnet --help` for more information.
+Use `zk lightnet --help` for more information.
 
 You can also use the corresponding [Docker image](https://hub.docker.com/r/o1labs/mina-local-network) manually:
 
-   ```shell
-   docker run --rm --pull=missing -it \
-     --env NETWORK_TYPE="single-node" \
-     --env PROOF_LEVEL="none" \
-     --env LOG_LEVEL="Trace" \
-     -p 3085:3085 \
-     -p 5432:5432 \
-     -p 8080:8080 \
-     -p 8181:8181 \
-     -p 8282:8282 \
-     o1labs/mina-local-network:o1js-main-latest-lightnet
-   ```
+```shell
+docker run --rm --pull=missing -it \
+  --env NETWORK_TYPE="single-node" \
+  --env PROOF_LEVEL="none" \
+  --env LOG_LEVEL="Trace" \
+  -p 3085:3085 \
+  -p 5432:5432 \
+  -p 8080:8080 \
+  -p 8181:8181 \
+  -p 8282:8282 \
+  o1labs/mina-local-network:o1js-main-latest-lightnet
+```
 
-   See the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-network) for more information.
+See the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-network) for more information.
 
 Next up, get the Mina blockchain accounts information to be used in your zkApp.  
 After the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.  

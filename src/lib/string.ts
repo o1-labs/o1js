@@ -102,7 +102,7 @@ class CircuitString extends CircuitValue {
         .slice(0, length)
         .concat(otherChars.slice(0, n - length));
     }
-    // compute the actual result, by always picking the char which correponds to the actual length
+    // compute the actual result, by always picking the char which corresponds to the actual length
     let result: Character[] = [];
     let mask = this.lengthMask();
     for (let i = 0; i < n; i++) {

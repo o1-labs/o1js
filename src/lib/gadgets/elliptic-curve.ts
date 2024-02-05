@@ -414,8 +414,8 @@ function multiScalarMul(
     sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
   );
 
-  // pack points to make array access more efficient
-  // a Point is 6 x 88-bit field elements, which are packed into 3 field elements
+  // hash points to make array access more efficient
+  // a Point is 6 field elements, the hash is just 1 field element
   const HashedPoint = Hashed.create(Point.provable);
 
   let hashedTables = tables.map((table) =>
