@@ -11,7 +11,7 @@ import {
   SmartContract,
   UInt32,
   UInt64,
-} from 'snarkyjs';
+} from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off_chain_storage.js';

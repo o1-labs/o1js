@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 cp index.cjs dist/node/mina-signer/index.cjs

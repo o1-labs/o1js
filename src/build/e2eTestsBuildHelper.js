@@ -2,7 +2,7 @@ import replace from 'replace-in-file';
 
 const options = {
   files: './dist/web/examples/zkapps/**/*.js',
-  from: /from 'snarkyjs'/g,
+  from: /from 'o1js'/g,
   to: "from '../../../index.js'",
 };
 

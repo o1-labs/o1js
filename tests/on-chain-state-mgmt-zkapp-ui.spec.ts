@@ -1,11 +1,11 @@
 import { test } from './fixtures/on-chain-state-mgmt-zkapp.js';
 
 test.describe('On-Chain State Management zkApp UI', () => {
-  test('should load page and initialize SnarkyJS', async ({
+  test('should load page and initialize o1js', async ({
     onChainStateMgmtZkAppPage,
   }) => {
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
   });
 
   test('should fail to update account state since zkApp was not yet deployed', async ({
@@ -14,7 +14,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.updateZkAppState('3');
     await onChainStateMgmtZkAppPage.checkZkAppStateUpdateFailureByUnknownAccount();
   });
@@ -23,7 +23,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     onChainStateMgmtZkAppPage,
   }) => {
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
   });
@@ -35,7 +35,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     const newAccountState = '4';
 
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
@@ -52,7 +52,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     const newAccountState = '4';
 
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
@@ -70,7 +70,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.clearEvents();
@@ -88,7 +88,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     const nextAccountState = '16';
 
     await onChainStateMgmtZkAppPage.goto();
-    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);

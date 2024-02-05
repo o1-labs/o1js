@@ -16,7 +16,8 @@ import {
   Mina,
   Int64,
   VerificationKey,
-} from 'snarkyjs';
+  TransactionVersion,
+} from 'o1js';
 
 /**
  * ERC-20 token standard.
@@ -83,9 +84,9 @@ class TrivialCoin extends SmartContract implements Erc20 {
       amount: this.SUPPLY,
     });
     // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.assertEquals(Bool(true));
+    receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
 
     // since this is the only method of this zkApp that resets the entire state, provedState: true implies
     // that this function was run. Since it can be run only once, this implies it was run exactly once
@@ -93,7 +94,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // make account non-upgradable forever
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: {
+        auth: Permissions.impossible(),
+        txnVersion: TransactionVersion.current(),
+      },
       setPermissions: Permissions.impossible(),
       access: Permissions.proofOrSignature(),
     });
@@ -115,7 +119,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
   balanceOf(owner: PublicKey): UInt64 {
     let account = Account(owner, this.token.id);
     let balance = account.balance.get();
-    account.balance.assertEquals(balance);
+    account.balance.requireEquals(balance);
     return balance;
   }
   allowance(owner: PublicKey, spender: PublicKey): UInt64 {
@@ -193,7 +197,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     zkapp.requireSignature();
   }
 
-  // for letting a zkapp do whatever it wants, as long as no tokens are transfered
+  // for letting a zkapp do whatever it wants, as long as no tokens are transferred
   // TODO: atm, we have to restrict the zkapp to have no children
   //       -> need to be able to witness a general layout of account updates
   @method approveZkapp(callback: Experimental.Callback<any>) {

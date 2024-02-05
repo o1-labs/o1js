@@ -1,5 +1,5 @@
 /**
- * Tests that snarkyjs can be imported and used from commonJS files
+ * Tests that o1js can be imported and used from commonJS files
  */
 let {
   Field,
@@ -10,7 +10,7 @@ let {
   AccountUpdate,
   declareState,
   declareMethods,
-} = require('snarkyjs');
+} = require('o1js');
 
 class SimpleZkapp extends SmartContract {
   constructor(address) {

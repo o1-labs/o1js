@@ -1,6 +1,6 @@
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import * as Json from './src/TSTypes.js';
-import type { SignedLegacy, Signed, Network } from './src/TSTypes.js';
+import type { SignedLegacy, Signed, NetworkId } from './src/TSTypes.js';
 
 import {
   isPayment,
@@ -39,9 +39,9 @@ export { Client as default };
 const defaultValidUntil = '4294967295';
 
 class Client {
-  private network: Network;
+  private network: NetworkId; // TODO: Rename to "networkId" for consistency with remaining codebase.
 
-  constructor(options: { network: Network }) {
+  constructor(options: { network: NetworkId }) {
     if (!options?.network) {
       throw Error('Invalid Specified Network');
     }
@@ -85,9 +85,9 @@ class Client {
     ) {
       throw Error('Public key not derivable from private key');
     }
-    let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
+    let dummy = ZkappCommand.toJSON(ZkappCommand.empty());
     dummy.feePayer.body.publicKey = publicKey;
-    dummy.memo = Memo.toBase58(Memo.emptyValue());
+    dummy.memo = Memo.toBase58(Memo.empty());
     let signed = signZkappCommand(dummy, privateKey, this.network);
     let ok = verifyZkappCommandSignature(signed, publicKey, this.network);
     if (!ok) throw Error('Could not sign a transaction with private key');
@@ -108,12 +108,12 @@ class Client {
 
   /**
    * Signs an arbitrary list of field elements in a SNARK-compatible way.
-   * The resulting signature can be verified in SnarkyJS as follows:
+   * The resulting signature can be verified in o1js as follows:
    * ```ts
    * // sign field elements with mina-signer
    * let signed = client.signFields(fields, privateKey);
    *
-   * // read signature in snarkyjs and verify
+   * // read signature in o1js and verify
    * let signature = Signature.fromBase58(signed.signature);
    * let isValid: Bool = signature.verify(publicKey, fields.map(Field));
    * ```
@@ -492,6 +492,15 @@ class Client {
   ): Json.Nullifier {
     let sk = PrivateKey.fromBase58(privateKeyBase58);
     return createNullifier(message, sk);
+  }
+
+  /**
+   * Returns the network ID.
+   * 
+   * @returns {NetworkId} The network ID.
+   */
+  get networkId(): NetworkId {
+    return this.network;
   }
 }
 

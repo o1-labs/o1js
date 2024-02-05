@@ -12,12 +12,12 @@ import {
 } from '../../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
-  NetworkId,
   Signature,
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
+import { NetworkId } from './TSTypes.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -180,7 +180,7 @@ function accountUpdateFromFeePayer({
   body: { fee, nonce, publicKey, validUntil },
   authorization: signature,
 }: FeePayer): AccountUpdate {
-  let { body } = AccountUpdate.emptyValue();
+  let { body } = AccountUpdate.empty();
   body.publicKey = publicKey;
   body.balanceChange = { magnitude: fee, sgn: Sign(-1) };
   body.incrementNonce = Bool(true);

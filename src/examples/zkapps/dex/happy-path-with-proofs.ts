@@ -1,10 +1,8 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
-import { tic, toc } from '../tictoc.js';
-import { getProfiler } from '../../profiler.js';
-
-await isReady;
+import { AccountUpdate, Mina, UInt64 } from 'o1js';
+import { getProfiler } from '../../utils/profiler.js';
+import { tic, toc } from '../../utils/tic-toc.node.js';
+import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
 const TokenProfiler = getProfiler('Token with Proofs');
 TokenProfiler.start('Token with proofs test flow');
@@ -12,13 +10,11 @@ let proofsEnabled = true;
 
 tic('Happy path with proofs');
 console.log();
-
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
-let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
   Local.testAccounts;
 let tx, balances, oldBalances;
@@ -49,6 +45,7 @@ let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 tic('deploy & init token contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
+  const accountFee = Mina.getNetworkConstants().accountCreationFee;
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
   feePayerUpdate.balance.subInPlace(accountFee.mul(2));
@@ -66,7 +63,7 @@ tic('deploy dex contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 3 dex accounts
   AccountUpdate.createSigned(feePayerAddress).balance.subInPlace(
-    accountFee.mul(3)
+    Mina.getNetworkConstants().accountCreationFee.mul(3)
   );
   dex.deploy();
   dexTokenHolderX.deploy();

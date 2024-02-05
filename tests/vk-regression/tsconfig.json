@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["."],
+  "exclude": [],
+  "compilerOptions": {
+    "rootDir": "../..",
+    "baseUrl": "../..",
+    "paths": {
+      "o1js": ["."]
+    }
+  }
+}

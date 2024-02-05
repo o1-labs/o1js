@@ -1,8 +1,8 @@
 /**
  * benchmark a circuit filled with generic gates
  */
-import { Circuit, Field, Provable, circuitMain, Experimental } from 'snarkyjs';
-let { ZkProgram } = Experimental;
+import { Circuit, Field, Provable, circuitMain, ZkProgram } from 'o1js';
+import { tic, toc } from '../utils/tic-toc.js';
 
 // parameters
 let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
@@ -38,6 +38,7 @@ function simpleKimchiCircuit(nMuls: number) {
 
 function picklesCircuit(nMuls: number) {
   return ZkProgram({
+    name: 'mul-chain',
     methods: {
       run: {
         privateInputs: [],
@@ -47,20 +48,6 @@ function picklesCircuit(nMuls: number) {
       },
     },
   });
-}
-
-// timing helpers
-let timingStack: [string, number][] = [];
-let i = 0;
-function tic(label = `Run command ${i++}`) {
-  console.log(`${label}... `);
-  timingStack.push([label, Date.now()]);
-}
-function toc() {
-  let [label, start] = timingStack.pop()!;
-  let time = (Date.now() - start) / 1000;
-  console.log(`\r${label}... ${time.toFixed(3)} sec\n`);
-  return time;
 }
 
 // the script

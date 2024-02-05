@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 shopt -s globstar # to expand '**' into nested directories
 

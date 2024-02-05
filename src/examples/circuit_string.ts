@@ -5,7 +5,7 @@ import {
   method,
   Mina,
   PrivateKey,
-} from 'snarkyjs';
+} from 'o1js';
 import * as assert from 'assert/strict';
 
 // circuit which tests a couple of string features

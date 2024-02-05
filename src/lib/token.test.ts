@@ -15,7 +15,7 @@ import {
   Experimental,
   Int64,
   TokenId,
-} from 'snarkyjs';
+} from 'o1js';
 
 const tokenSymbol = 'TOKEN';
 
@@ -44,7 +44,7 @@ class TokenContract extends SmartContract {
       amount: this.SUPPLY,
     });
     receiver.account.isNew.assertEquals(Bool(true));
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
     this.totalAmountInCirculation.set(this.SUPPLY.sub(100_000_000));
     this.account.permissions.set({
       ...Permissions.default(),
@@ -172,7 +172,7 @@ async function setupLocal() {
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
     feePayerUpdate.send({
       to: tokenZkappAddress,
-      amount: Mina.accountCreationFee(),
+      amount: Mina.getNetworkConstants().accountCreationFee,
     });
     tokenZkapp.deploy();
   });
@@ -189,7 +189,7 @@ async function setupLocalProofs() {
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
     feePayerUpdate.send({
       to: tokenZkappAddress,
-      amount: Mina.accountCreationFee(),
+      amount: Mina.getNetworkConstants().accountCreationFee,
     });
     tokenZkapp.deploy();
     tokenZkapp.deployZkapp(zkAppBAddress, ZkAppB._verificationKey!);
@@ -343,7 +343,7 @@ describe('Token', () => {
       token contract can transfer tokens with a signature
       tested cases:
         - sends tokens and updates the balance of the receiver
-        - fails if no account creation fee is payed for the new token account
+        - fails if no account creation fee is paid for the new token account
         - fails if we transfer more than the balance amount
     */
     describe('Transfer', () => {

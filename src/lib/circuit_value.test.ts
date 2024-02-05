@@ -6,7 +6,7 @@ import {
   Field,
   PrivateKey,
   PublicKey,
-} from 'snarkyjs';
+} from 'o1js';
 
 describe('circuit', () => {
   it('Provable.if out of snark', () => {

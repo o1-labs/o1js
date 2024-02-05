@@ -6,7 +6,7 @@ import {
   UInt64,
   UInt32,
   Permissions,
-} from 'snarkyjs';
+} from 'o1js';
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { DummyContract } from './dummyContract.js';
 import { VotingAppParams } from './factory.js';

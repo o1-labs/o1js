@@ -7,7 +7,7 @@ import { createHashHelpers } from '../lib/hash-generic.js';
 
 export {
   Poseidon,
-  Hash,
+  HashHelpers,
   HashInput,
   prefixes,
   packToFields,
@@ -20,8 +20,8 @@ export {
 
 type HashInput = GenericHashInput<Field>;
 const HashInput = createHashInput<Field>();
-const Hash = createHashHelpers(Field, Poseidon);
-let { hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { hashWithPrefix } = HashHelpers;
 
 const HashLegacy = createHashHelpers(Field, PoseidonLegacy);
 

@@ -10,6 +10,7 @@ import {
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
+import { ProvableExtended } from '../circuit_value.js';
 
 export { FetchedAccount, Account, PartialAccount };
 export { accountQuery, parseFetchedAccount, fillPartialAccount };
@@ -85,7 +86,10 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       receive
       setDelegate
       setPermissions
-      setVerificationKey
+      setVerificationKey {
+        auth
+        txnVersion
+      }
       setZkappUri
       editActionState
       setTokenSymbol
@@ -187,19 +191,14 @@ function parseFetchedAccount({
 }
 
 function fillPartialAccount(account: PartialAccount): Account {
-  return genericLayoutFold(
+  return genericLayoutFold<ProvableExtended<any>>(
     TypeMap,
     customTypes,
     {
       map(type, value) {
         // if value exists, use it; otherwise fall back to dummy value
         if (value !== undefined) return value;
-        // fall back to dummy value
-        if (type.emptyValue) return type.emptyValue();
-        return type.fromFields(
-          Array(type.sizeInFields()).fill(Field(0)),
-          type.toAuxiliary()
-        );
+        return type.empty();
       },
       reduceArray(array) {
         return array;

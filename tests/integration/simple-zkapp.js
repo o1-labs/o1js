@@ -14,7 +14,7 @@ import {
   shutdown,
   Permissions,
   fetchAccount,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

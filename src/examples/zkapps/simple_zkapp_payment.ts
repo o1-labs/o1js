@@ -8,7 +8,7 @@ import {
   UInt64,
   shutdown,
   Permissions,
-} from 'snarkyjs';
+} from 'o1js';
 
 await isReady;
 

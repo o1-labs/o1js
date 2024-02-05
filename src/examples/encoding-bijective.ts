@@ -1,4 +1,4 @@
-import { Field, isReady, shutdown, Encoding } from 'snarkyjs';
+import { Field, isReady, shutdown, Encoding } from 'o1js';
 
 await isReady;
 let n = 1000;

@@ -14,7 +14,7 @@ import {
   Provable,
   TransactionVersion,
   UInt32,
-} from 'snarkyjs';
+} from 'o1js';
 
 class Foo extends SmartContract {
   init() {

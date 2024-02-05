@@ -11,7 +11,7 @@ import { mocks } from '../../bindings/crypto/constants.js';
 const client = new Client({ network: 'testnet' });
 let { publicKey, privateKey } = client.genKeys();
 
-let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
+let dummy = ZkappCommand.toJSON(ZkappCommand.empty());
 let dummySignature = Signature.toBase58(Signature.dummy());
 
 // we construct a transaction which needs signing of the fee payer and another account update
@@ -84,7 +84,7 @@ expect(
   client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates)
 ).toBe(0.002);
 
-// same transaction signed with snarkyjs (OCaml implementation) gives the same result
+// same transaction signed with o1js (OCaml implementation) gives the same result
 
 let transactionJson = {
   ...exampleZkappCommand,

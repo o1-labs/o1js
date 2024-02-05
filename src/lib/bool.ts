@@ -11,7 +11,7 @@ import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
 
-export { BoolVar, Bool, isBool };
+export { BoolVar, Bool };
 
 // same representation, but use a different name to communicate intent / constraints
 type BoolVar = FieldVar;
@@ -34,7 +34,7 @@ class Bool {
   value: BoolVar;
 
   constructor(x: boolean | Bool | BoolVar) {
-    if (Bool.#isBool(x)) {
+    if (x instanceof Bool) {
       this.value = x.value;
       return;
     }
@@ -75,7 +75,7 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() && toBoolean(y));
     }
-    return new Bool(Snarky.bool.and(this.value, Bool.#toVar(y)));
+    return new Bool(Snarky.bool.and(this.value, toFieldVar(y)));
   }
 
   /**
@@ -87,7 +87,7 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() || toBoolean(y));
     }
-    return new Bool(Snarky.bool.or(this.value, Bool.#toVar(y)));
+    return new Bool(Snarky.bool.or(this.value, toFieldVar(y)));
   }
 
   /**
@@ -102,7 +102,7 @@ class Bool {
         }
         return;
       }
-      Snarky.bool.assertEqual(this.value, Bool.#toVar(y));
+      Snarky.bool.assertEqual(this.value, toFieldVar(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -144,7 +144,7 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() === toBoolean(y));
     }
-    return new Bool(Snarky.bool.equals(this.value, Bool.#toVar(y)));
+    return new Bool(Snarky.bool.equals(this.value, toFieldVar(y)));
   }
 
   /**
@@ -194,14 +194,14 @@ class Bool {
   }
 
   static toField(x: Bool | boolean): Field {
-    return new Field(Bool.#toVar(x));
+    return new Field(toFieldVar(x));
   }
 
   /**
    * Boolean negation.
    */
   static not(x: Bool | boolean): Bool {
-    if (Bool.#isBool(x)) {
+    if (x instanceof Bool) {
       return x.not();
     }
     return new Bool(!x);
@@ -211,7 +211,7 @@ class Bool {
    * Boolean AND operation.
    */
   static and(x: Bool | boolean, y: Bool | boolean): Bool {
-    if (Bool.#isBool(x)) {
+    if (x instanceof Bool) {
       return x.and(y);
     }
     return new Bool(x).and(y);
@@ -221,7 +221,7 @@ class Bool {
    * Boolean OR operation.
    */
   static or(x: Bool | boolean, y: Bool | boolean): Bool {
-    if (Bool.#isBool(x)) {
+    if (x instanceof Bool) {
       return x.or(y);
     }
     return new Bool(x).or(y);
@@ -231,7 +231,7 @@ class Bool {
    * Asserts if both {@link Bool} are equal.
    */
   static assertEqual(x: Bool, y: Bool | boolean): void {
-    if (Bool.#isBool(x)) {
+    if (x instanceof Bool) {
       x.assertEquals(y);
       return;
     }
@@ -242,7 +242,7 @@ class Bool {
    * Checks two {@link Bool} for equality.
    */
   static equal(x: Bool | boolean, y: Bool | boolean): Bool {
-    if (Bool.#isBool(x)) {
+    if (x instanceof Bool) {
       return x.equals(y);
     }
     return new Bool(x).equals(y);
@@ -295,6 +295,10 @@ class Bool {
     return 1;
   }
 
+  static empty() {
+    return new Bool(false);
+  }
+
   static toInput(x: Bool): { packed: [Field, number][] } {
     return { packed: [[x.toField(), 1] as [Field, number]] };
   }
@@ -314,9 +318,7 @@ class Bool {
     return BoolBinable.readBytes(bytes, offset);
   }
 
-  static sizeInBytes() {
-    return 1;
-  }
+  static sizeInBytes = 1;
 
   static check(x: Bool): void {
     Snarky.field.assertBoolean(x.value);
@@ -340,15 +342,6 @@ class Bool {
       return new Bool(x.value);
     },
   };
-
-  static #isBool(x: boolean | Bool | BoolVar): x is Bool {
-    return x instanceof Bool;
-  }
-
-  static #toVar(x: boolean | Bool): BoolVar {
-    if (Bool.#isBool(x)) return x.value;
-    return FieldVar.constant(B(x));
-  }
 }
 
 const BoolBinable = defineBinable({
@@ -360,6 +353,8 @@ const BoolBinable = defineBinable({
   },
 });
 
+// internal helper functions
+
 function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
   if (typeof x === 'boolean') {
     return true;
@@ -368,15 +363,16 @@ function isConstant(x: boolean | Bool): x is boolean | ConstantBool {
   return x.isConstant();
 }
 
-function isBool(x: unknown) {
-  return x instanceof Bool;
-}
-
 function toBoolean(x: boolean | Bool): boolean {
   if (typeof x === 'boolean') {
     return x;
   }
   return x.toBoolean();
+}
+
+function toFieldVar(x: boolean | Bool): BoolVar {
+  if (x instanceof Bool) return x.value;
+  return FieldVar.constant(B(x));
 }
 
 // TODO: This is duplicated

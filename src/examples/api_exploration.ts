@@ -9,9 +9,9 @@ import {
   Int64,
   Provable,
   Struct,
-} from 'snarkyjs';
+} from 'o1js';
 
-/* This file demonstrates the classes and functions available in snarkyjs */
+/* This file demonstrates the classes and functions available in o1js */
 
 /* # Field */
 
@@ -86,7 +86,7 @@ const b3: Bool = b0.and(b1.not()).or(b1);
    ): T
    ```
 
-   `Provable.if(b, x, y)` evaluates to `x` if `b` is true, and evalutes to `y` if `b` is false,
+   `Provable.if(b, x, y)` evaluates to `x` if `b` is true, and evaluates to `y` if `b` is false,
    so it works like a ternary if expression `b ? x : y`.
 
    The generic type T can be instantiated to primitive types like Bool, Field, or Group, or
@@ -124,7 +124,7 @@ x.assertEquals(Int64.from(2));
 /* # Signature
  */
 
-/* The standard library of snarkyJS comes with a Signature scheme.
+/* The standard library of o1js comes with a Signature scheme.
    The message to be signed is an array of field elements, so any application level
    message data needs to be encoded as an array of field elements before being signed.
 */
@@ -149,8 +149,8 @@ console.assert(!signature.verify(pubKey, msg1).toBoolean());
 */
 
 /* You can initialize elements as literals as follows: */
-let g0 = new Group(-1, 2);
-let g1 = new Group({ x: -2, y: 2 });
+let g0 = Group.from(-1, 2);
+let g1 = new Group({ x: -1, y: 2 });
 
 /* There is also a predefined generator. */
 let g2 = Group.generator;

@@ -16,22 +16,23 @@ let signed = client.signFields(fields, privateKey);
 let ok = client.verifyFields(signed);
 expect(ok).toEqual(true);
 
-// sign with snarkyjs and check that we get the same signature
+// sign with o1js and check that we get the same signature
 let fieldsSnarky = fields.map(Field);
 let privateKeySnarky = PrivateKey.fromBase58(privateKey);
 let signatureSnarky = Signature.create(privateKeySnarky, fieldsSnarky);
 expect(signatureSnarky.toBase58()).toEqual(signed.signature);
 
-// verify out-of-snark with snarkyjs
+// verify out-of-snark with o1js
 let publicKey = privateKeySnarky.toPublicKey();
 let signature = Signature.fromBase58(signed.signature);
 Provable.assertEqual(Signature, signature, signatureSnarky);
 signature.verify(publicKey, fieldsSnarky).assertTrue();
 
-// verify in-snark with snarkyjs
+// verify in-snark with o1js
 const Message = Provable.Array(Field, fields.length);
 
 const MyProgram = ZkProgram({
+  name: 'verify-signature',
   methods: {
     verifySignature: {
       privateInputs: [Signature, Message],

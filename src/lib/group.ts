@@ -1,8 +1,8 @@
-import { Field, FieldVar, isField } from './field.js';
+import { Field, FieldVar } from './field.js';
 import { Scalar } from './scalar.js';
 import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { GroupAffine, Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 
@@ -35,10 +35,7 @@ class Group {
    * ```
    */
   static get zero() {
-    return new Group({
-      x: 0,
-      y: 0,
-    });
+    return new Group({ x: 0, y: 0 });
   }
 
   /**
@@ -51,10 +48,10 @@ class Group {
     x: FieldVar | Field | number | string | bigint;
     y: FieldVar | Field | number | string | bigint;
   }) {
-    this.x = isField(x) ? x : new Field(x);
-    this.y = isField(y) ? y : new Field(y);
+    this.x = x instanceof Field ? x : new Field(x);
+    this.y = y instanceof Field ? y : new Field(y);
 
-    if (this.#isConstant()) {
+    if (isConstant(this)) {
       // we also check the zero element (0, 0) here
       if (this.x.equals(0).and(this.y.equals(0)).toBoolean()) return;
 
@@ -75,39 +72,6 @@ class Group {
     }
   }
 
-  // helpers
-  static #fromAffine({
-    x,
-    y,
-    infinity,
-  }: {
-    x: bigint;
-    y: bigint;
-    infinity: boolean;
-  }) {
-    return infinity ? Group.zero : new Group({ x, y });
-  }
-
-  static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
-    return this.#fromAffine(Pallas.toAffine({ x, y, z }));
-  }
-
-  #toTuple(): [0, FieldVar, FieldVar] {
-    return [0, this.x.value, this.y.value];
-  }
-
-  #isConstant() {
-    return this.x.isConstant() && this.y.isConstant();
-  }
-
-  #toProjective() {
-    return Pallas.fromAffine({
-      x: this.x.toBigInt(),
-      y: this.y.toBigInt(),
-      infinity: false,
-    });
-  }
-
   /**
    * Checks if this element is the `zero` element `{x: 0, y: 0}`.
    */
@@ -125,15 +89,15 @@ class Group {
    * ```
    */
   add(g: Group) {
-    if (this.#isConstant() && g.#isConstant()) {
+    if (isConstant(this) && isConstant(g)) {
       // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
       if (this.isZero().toBoolean()) {
         return g;
       } else if (g.isZero().toBoolean()) {
         return this;
       } else {
-        let g_proj = Pallas.add(this.#toProjective(), g.#toProjective());
-        return Group.#fromProjective(g_proj);
+        let g_proj = Pallas.add(toProjective(this), toProjective(g));
+        return fromProjective(g_proj);
       }
     } else {
       const { x: x1, y: y1 } = this;
@@ -173,10 +137,10 @@ class Group {
         return s.mul(x1.sub(x3)).sub(y1);
       });
 
-      let [, x, y] = Snarky.group.ecadd(
-        Group.from(x1.seal(), y1.seal()).#toTuple(),
-        Group.from(x2.seal(), y2.seal()).#toTuple(),
-        Group.from(x3, y3).#toTuple(),
+      let [, x, y] = Snarky.gates.ecAdd(
+        toTuple(Group.from(x1.seal(), y1.seal())),
+        toTuple(Group.from(x2.seal(), y2.seal())),
+        toTuple(Group.from(x3, y3)),
         inf.toField().value,
         same_x.value,
         s.value,
@@ -187,27 +151,15 @@ class Group {
       // similarly to the constant implementation, we check if either operand is zero
       // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
       let gIsZero = g.isZero();
-      let thisIsZero = this.isZero();
-
-      let bothZero = gIsZero.and(thisIsZero);
-
-      let onlyGisZero = gIsZero.and(thisIsZero.not());
-      let onlyThisIsZero = thisIsZero.and(gIsZero.not());
-
+      let onlyThisIsZero = this.isZero().and(gIsZero.not());
       let isNegation = inf;
+      let isNormalAddition = gIsZero.or(onlyThisIsZero).or(isNegation).not();
 
-      let isNewElement = bothZero
-        .not()
-        .and(isNegation.not())
-        .and(onlyThisIsZero.not())
-        .and(onlyGisZero.not());
-
-      const zero_g = Group.zero;
-
+      // note: gIsZero and isNegation are not mutually exclusive, but if both are true, we add 1*0 + 1*0 = 0 which is correct
       return Provable.switch(
-        [bothZero, onlyGisZero, onlyThisIsZero, isNegation, isNewElement],
+        [gIsZero, onlyThisIsZero, isNegation, isNormalAddition],
         Group,
-        [zero_g, this, g, zero_g, new Group({ x, y })]
+        [this, g, Group.zero, new Group({ x, y })]
       );
     }
   }
@@ -239,13 +191,13 @@ class Group {
   scale(s: Scalar | number | bigint) {
     let scalar = Scalar.from(s);
 
-    if (this.#isConstant() && scalar.isConstant()) {
-      let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
-      return Group.#fromProjective(g_proj);
+    if (isConstant(this) && scalar.isConstant()) {
+      let g_proj = Pallas.scale(toProjective(this), scalar.toBigInt());
+      return fromProjective(g_proj);
     } else {
       let [, ...bits] = scalar.value;
       bits.reverse();
-      let [, x, y] = Snarky.group.scale(this.#toTuple(), [0, ...bits]);
+      let [, x, y] = Snarky.group.scale(toTuple(this), [0, ...bits]);
       return new Group({ x, y });
     }
   }
@@ -470,4 +422,30 @@ class Group {
       }`;
     }
   }
+}
+
+// internal helpers
+
+function isConstant(g: Group) {
+  return g.x.isConstant() && g.y.isConstant();
+}
+
+function toTuple(g: Group): [0, FieldVar, FieldVar] {
+  return [0, g.x.value, g.y.value];
+}
+
+function toProjective(g: Group) {
+  return Pallas.fromAffine({
+    x: g.x.toBigInt(),
+    y: g.y.toBigInt(),
+    infinity: false,
+  });
+}
+
+function fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
+  return fromAffine(Pallas.toAffine({ x, y, z }));
+}
+
+function fromAffine({ x, y, infinity }: GroupAffine) {
+  return infinity ? Group.zero : new Group({ x, y });
 }

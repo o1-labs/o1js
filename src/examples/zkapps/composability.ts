@@ -11,8 +11,8 @@ import {
   SmartContract,
   state,
   State,
-} from 'snarkyjs';
-import { getProfiler } from '../profiler.js';
+} from 'o1js';
+import { getProfiler } from '../utils/profiler.js';
 
 const doProofs = true;
 

@@ -1,4 +1,4 @@
-import { Field, provable, Provable } from 'snarkyjs';
+import { Field, provable, Provable } from 'o1js';
 
 // there are two ways of specifying an n*m matrix
 

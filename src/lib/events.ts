@@ -1,8 +1,8 @@
 import { prefixes } from '../bindings/crypto/constants.js';
 import { prefixToField } from '../bindings/lib/binable.js';
 import {
-  GenericField,
   GenericProvableExtended,
+  GenericSignableField,
 } from '../bindings/lib/generic.js';
 
 export { createEvents, dataAsHash };
@@ -15,7 +15,7 @@ function createEvents<Field>({
   Field,
   Poseidon,
 }: {
-  Field: GenericField<Field>;
+  Field: GenericSignableField<Field>;
   Poseidon: Poseidon<Field>;
 }) {
   type Event = Field[];
@@ -60,7 +60,7 @@ function createEvents<Field>({
   const EventsProvable = {
     ...Events,
     ...dataAsHash({
-      emptyValue: Events.empty,
+      empty: Events.empty,
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -107,7 +107,7 @@ function createEvents<Field>({
   const SequenceEventsProvable = {
     ...Actions,
     ...dataAsHash({
-      emptyValue: Actions.empty,
+      empty: Actions.empty,
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -123,18 +123,16 @@ function createEvents<Field>({
 }
 
 function dataAsHash<T, J, Field>({
-  emptyValue,
+  empty,
   toJSON,
   fromJSON,
 }: {
-  emptyValue: () => { data: T; hash: Field };
+  empty: () => { data: T; hash: Field };
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
-}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> & {
-  emptyValue(): { data: T; hash: Field };
-} {
+}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> {
   return {
-    emptyValue,
+    empty,
     sizeInFields() {
       return 1;
     },
@@ -142,7 +140,7 @@ function dataAsHash<T, J, Field>({
       return [hash];
     },
     toAuxiliary(value) {
-      return [value?.data ?? emptyValue().data];
+      return [value?.data ?? empty().data];
     },
     fromFields([hash], [data]) {
       return { data, hash };
