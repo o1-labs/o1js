@@ -13,7 +13,7 @@ import { fields, modifiedField } from './fields.js';
 export { Packed, Hashed };
 
 /**
- * Packed<T> is a "packed" representation of any type T.
+ * `Packed<T>` is a "packed" representation of any type `T`.
  *
  * "Packed" means that field elements which take up fewer than 254 bits are packed together into
  * as few field elements as possible.
@@ -141,7 +141,7 @@ function countFields(input: HashInput) {
 }
 
 /**
- * Hashed<T> represents a type T by its hash.
+ * `Hashed<T>` represents a type `T` by its hash.
  *
  * Since a hash is only a single field element, this can be more efficient in provable code
  * where the number of constraints depends on the number of field elements per value.

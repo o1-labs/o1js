@@ -46,7 +46,7 @@ let NetworkPrecondition = provableFromLayout<NetworkPrecondition, any>(
 );
 let Body = provableFromLayout<Body, any>(bodyLayout as any);
 
-// test with random account udpates
+// test with random account updates
 test(Random.json.accountUpdate, (accountUpdateJson) => {
   fixVerificationKey(accountUpdateJson);
   let accountUpdate = AccountUpdate.fromJSON(accountUpdateJson);
