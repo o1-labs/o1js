@@ -1,12 +1,12 @@
+import assert from 'node:assert';
 import {
-  Bool,
-  Int64,
   method,
   Mina,
-  Provable,
   UInt64,
+  AccountUpdate,
   AccountUpdateForest,
   TokenContract,
+  Int64,
 } from '../../../index.js';
 
 class ExampleTokenContract extends TokenContract {
@@ -14,19 +14,8 @@ class ExampleTokenContract extends TokenContract {
 
   @method
   approveBase(updates: AccountUpdateForest) {
-    let totalBalanceChange = Int64.zero;
-
-    this.forEachUpdate(updates, (accountUpdate, usesToken) => {
-      totalBalanceChange = totalBalanceChange.add(
-        Provable.if(usesToken, accountUpdate.balanceChange, Int64.zero)
-      );
-    });
-
-    // prove that the total balance change is zero
-    totalBalanceChange.assertEquals(0);
+    this.checkZeroBalanceChange(updates);
   }
-
-  // BELOW: example implementation specific to this token
 
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
@@ -36,23 +25,62 @@ class ExampleTokenContract extends TokenContract {
     super.init();
 
     // mint the entire supply to the token account with the same address as this contract
-    let receiver = this.token.mint({
-      address: this.address,
-      amount: this.SUPPLY,
-    });
-
-    // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.requireEquals(Bool(true));
+    this.token.mint({ address: this.address, amount: this.SUPPLY });
 
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 }
 
 // TESTS
 
-ExampleTokenContract.analyzeMethods({ printSummary: true });
+let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+Mina.setActiveInstance(Local);
 
-console.time('compile');
-await ExampleTokenContract.compile();
-console.timeEnd('compile');
+let { publicKey: sender, privateKey: senderKey } = Local.testAccounts[0];
+let { publicKey: tokenAddress, privateKey: tokenKey } = Local.testAccounts[1];
+let { publicKey: otherAddress } = Local.testAccounts[2];
+
+let token = new ExampleTokenContract(tokenAddress);
+let tokenId = token.token.id;
+
+// deploy token contract
+let deployTx = await Mina.transaction(sender, () => token.deploy());
+await deployTx.prove();
+await deployTx.sign([tokenKey, senderKey]).send();
+
+assert(
+  Mina.getAccount(tokenAddress).zkapp?.verificationKey !== undefined,
+  'token contract deployed'
+);
+
+// can transfer tokens between two accounts
+let transferTx = await Mina.transaction(sender, () => {
+  AccountUpdate.fundNewAccount(sender);
+  token.transfer(tokenAddress, otherAddress, UInt64.one);
+});
+await transferTx.prove();
+await transferTx.sign([tokenKey, senderKey]).send();
+
+Mina.getBalance(otherAddress, tokenId).assertEquals(UInt64.one);
+
+// fails to approve a deep account update tree with correct token permissions, but a non-zero balance sum
+let update1 = AccountUpdate.create(otherAddress);
+update1.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+
+let update2 = AccountUpdate.create(otherAddress);
+update2.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+
+let update3 = AccountUpdate.create(otherAddress, tokenId);
+update3.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+update3.balanceChange = Int64.one;
+
+update1.adopt(update2);
+update2.adopt(update3);
+
+let forest = AccountUpdateForest.fromArray([update1]);
+
+await assert.rejects(
+  () => Mina.transaction(sender, () => token.approveBase(forest)),
+  /Field\.assertEquals\(\): 1 != 0/
+);
