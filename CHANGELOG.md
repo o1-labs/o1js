@@ -17,6 +17,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
 
+### Added
+
+- `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398
+  - including `MerkleListIterator<T>` to iterate over a merkle list
+- `TokenAccountUpdateIterator`, a primitive for token contracts to iterate over all token account updates in a transaction. https://github.com/o1-labs/o1js/pull/1398
+
 ## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
 
 ### Breaking changes
@@ -27,12 +33,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398
-  - including `MerkleListIterator<T>` to iterate over a merkle list
 - Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
 - Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
   - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
-- `TokenAccountUpdateIterator`, a primitive for token contracts to iterate over all token account updates in a transaction. https://github.com/o1-labs/o1js/pull/1398
 
 ### Changed
 
