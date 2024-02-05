@@ -1,17 +1,30 @@
-import { Bn254 } from '../bindings/crypto/elliptic_curve.js';
+import { Bn254, Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Snarky } from '../snarky.js';
 import { FieldBn254 } from './field_bn254.js';
 import { ForeignAffine } from './foreign-field.js';
 import { ForeignFieldBn254, createForeignFieldBn254 } from './foreign_field_bn254.js';
 import { Provable } from './provable.js';
 import { Field as Fp } from '../provable/field-bigint.js';
+import { p } from '../bindings/crypto/finite_field.js';
 
-export { EllipticCurve, ForeignGroup }
+export { ForeignGroup, EllipticCurve }
 
 type EllipticCurve = [a: string, b: string, modulus: string, genX: string, genY: string, order: string];
-class ForeignGroup {
-    static curve: EllipticCurve
 
+const order = 28948022309329048855892746252171976963363056481941647379679742748393362948097n;
+
+function curveParams(): EllipticCurve {
+    return [
+        Pallas.a.toString(),
+        Pallas.b.toString(),
+        p.toString(),
+        Pallas.one.x.toString(),
+        Pallas.one.y.toString(),
+        order.toString()
+    ]
+}
+
+class ForeignGroup {
     x: ForeignFieldBn254
     y: ForeignFieldBn254
 
@@ -29,7 +42,7 @@ class ForeignGroup {
             let y_bigint = this.y.toBigInt();
 
             let onCurve =
-                add(mul(x_bigint, mul(x_bigint, x_bigint)), Bn254.b) ===
+                add(mul(x_bigint, mul(x_bigint, x_bigint)), Pallas.b) ===
                 square(y_bigint);
 
             if (!onCurve) {
@@ -49,8 +62,7 @@ class ForeignGroup {
         y: bigint;
         infinity: boolean;
     }) {
-        let modulus = BigInt(ForeignGroup.curve[2]);
-        let ForeignGroupField = createForeignFieldBn254(modulus);
+        let ForeignGroupField = createForeignFieldBn254(p);
 
         return infinity ?
             new ForeignGroup(ForeignGroupField.from(0), ForeignGroupField.from(0)) :
@@ -58,7 +70,7 @@ class ForeignGroup {
     }
 
     static #fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
-        return this.#fromAffine(Bn254.toAffine({ x, y, z }));
+        return this.#fromAffine(Pallas.toAffine({ x, y, z }));
     }
 
     #toTuple(): ForeignAffine {
@@ -66,7 +78,7 @@ class ForeignGroup {
     }
 
     #toProjective() {
-        return Bn254.fromAffine({
+        return Pallas.fromAffine({
             x: this.x.toBigInt(),
             y: this.y.toBigInt(),
             infinity: false,
@@ -103,16 +115,15 @@ class ForeignGroup {
         } else if (this.#isConstant() && other.#isConstant()) {
             // If a and b are constants ...
             Provable.asProverBn254(() => { console.log("both are constants"); })
-            let g_proj = Bn254.add(this.#toProjective(), other.#toProjective());
+            let g_proj = Pallas.add(this.#toProjective(), other.#toProjective());
             return ForeignGroup.#fromProjective(g_proj);
         } else {
             // If a or b is variable ...
             Provable.asProverBn254(() => { console.log("one of them is variable"); })
             let left = this.#toTuple();
             let right = other.#toTuple();
-            let [_, x, y] = Snarky.foreignGroup.add(left, right, ForeignGroup.curve);
-            let modulus = BigInt(ForeignGroup.curve[2]);
-            let ForeignGroupField = createForeignFieldBn254(modulus);
+            let [_, x, y] = Snarky.foreignGroup.add(left, right, curveParams());
+            let ForeignGroupField = createForeignFieldBn254(p);
 
             return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
         }
@@ -130,9 +141,8 @@ class ForeignGroup {
         Provable.asProverBn254(() => { console.log("SCALE"); })
         let [, ...bits] = scalar.value;
         bits.reverse();
-        let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], ForeignGroup.curve);
-        let modulus = BigInt(ForeignGroup.curve[2]);
-        let ForeignGroupField = createForeignFieldBn254(modulus);
+        let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], curveParams());
+        let ForeignGroupField = createForeignFieldBn254(p);
 
         return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
     }
@@ -170,8 +180,7 @@ class ForeignGroup {
      * Returns an array containing this {@link ForeignGroup} element as an array of {@link FieldBn254} elements.
      */
     toFields() {
-        const modulus = BigInt(ForeignGroup.curve[2]);
-        const ForeignGroupField = createForeignFieldBn254(modulus);
+        const ForeignGroupField = createForeignFieldBn254(p);
 
         const xFields = ForeignGroupField.toFields(this.x);
         const yFields = ForeignGroupField.toFields(this.y);
@@ -190,8 +199,7 @@ class ForeignGroup {
      * Assumes the following format `[...x, ...y]`
      */
     static fromFields(fields: FieldBn254[]) {
-        const modulus = BigInt(ForeignGroup.curve[2]);
-        const ForeignGroupField = createForeignFieldBn254(modulus);
+        const ForeignGroupField = createForeignFieldBn254(p);
 
         const xFields = fields.slice(0, 3);
         const yFields = fields.slice(3);
