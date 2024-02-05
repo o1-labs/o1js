@@ -38,9 +38,9 @@ class SimpleLedger {
   }
 
   apply(update: AccountUpdate): void {
-    let id = accountId(update);
+    let id = accountId(update.body);
     let account = this.accounts.get(id);
-    account ??= newAccount(update);
+    account ??= newAccount(update.body);
 
     let updated = applyAccountUpdate(account, update);
     this.accounts.set(id, updated);
