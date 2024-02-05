@@ -13,11 +13,22 @@ import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import { ProvableExtended } from '../circuit_value.js';
 
 export { FetchedAccount, Account, PartialAccount };
-export { accountQuery, parseFetchedAccount, fillPartialAccount };
+export { newAccount, accountQuery, parseFetchedAccount, fillPartialAccount };
 
 type AuthRequired = Types.Json.AuthRequired;
 type Account = Types.Account;
 const Account = Types.Account;
+
+function newAccount(accountId: {
+  publicKey: PublicKey;
+  tokenId?: Field;
+}): Account {
+  let account = Account.empty();
+  account.publicKey = accountId.publicKey;
+  account.tokenId = accountId.tokenId ?? Types.TokenId.empty();
+  account.permissions = Permissions.initial();
+  return account;
+}
 
 type PartialAccount = Omit<Partial<Account>, 'zkapp'> & {
   zkapp?: Partial<Account['zkapp']>;

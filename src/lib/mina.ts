@@ -44,6 +44,7 @@ import {
   defaultNetworkConstants,
   NetworkConstants,
 } from './mina/mina-instance.js';
+import { SimpleLedger } from './mina/transaction-logic/ledger.js';
 
 export {
   createTransaction,
@@ -396,12 +397,10 @@ function LocalBlockchain({
 
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
-      for (const update of txn.transaction.accountUpdates) {
-        let accountJson = ledger.getAccount(
-          Ml.fromPublicKey(update.body.publicKey),
-          Ml.constFromField(update.body.tokenId)
-        );
+      // create an ad-hoc ledger to record changes to accounts within the transaction
+      let simpleLedger = SimpleLedger.create();
 
+      for (const update of txn.transaction.accountUpdates) {
         let authIsProof = !!update.authorization.proof;
         let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
         // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
@@ -412,9 +411,22 @@ function LocalBlockchain({
           );
         }
 
-        if (accountJson) {
-          let account = Account.fromJSON(accountJson);
+        let account = simpleLedger.load(update.body);
 
+        // the first time we encounter an account, use it from the persistent ledger
+        if (account === undefined) {
+          let accountJson = ledger.getAccount(
+            Ml.fromPublicKey(update.body.publicKey),
+            Ml.constFromField(update.body.tokenId)
+          );
+          if (accountJson !== undefined) {
+            let storedAccount = Account.fromJSON(accountJson);
+            simpleLedger.store(storedAccount);
+            account = storedAccount;
+          }
+        }
+
+        if (account !== undefined) {
           await verifyAccountUpdate(
             account,
             update,
@@ -423,6 +435,7 @@ function LocalBlockchain({
             this.getNetworkId()
           );
         }
+        simpleLedger.apply(update);
       }
 
       try {
