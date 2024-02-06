@@ -46,7 +46,6 @@ import {
   prefixes,
   protocolVersions,
 } from '../bindings/crypto/constants.js';
-import { Context } from './global-context.js';
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
@@ -58,9 +57,9 @@ import {
   genericHash,
   MerkleList,
   MerkleListBase,
-  withHashes,
 } from './provable-types/merkle-list.js';
 import { Hashed } from './provable-types/packed.js';
+import { smartContractContext } from './mina/smart-contract-context.js';
 
 // external API
 export {
@@ -72,7 +71,6 @@ export {
 };
 // internal API
 export {
-  smartContractContext,
   SetOrKeep,
   Permission,
   Preconditions,
@@ -82,7 +80,6 @@ export {
   ZkappCommand,
   addMissingSignatures,
   addMissingProofs,
-  ZkappStateLength,
   Events,
   Actions,
   TokenId,
@@ -91,30 +88,18 @@ export {
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
-  SmartContractContext,
   dummySignature,
   LazyProof,
   AccountUpdateTree,
   UnfinishedForest,
+  UnfinishedTree,
   hashAccountUpdate,
   HashedAccountUpdate,
 };
 
-const ZkappStateLength = 8;
-
 const TransactionVersion = {
   current: () => UInt32.from(protocolVersions.txnVersion),
 };
-
-type SmartContractContext = {
-  this: SmartContract;
-  methodCallDepth: number;
-  selfUpdate: AccountUpdate;
-  selfCalls: UnfinishedForest;
-};
-let smartContractContext = Context.create<null | SmartContractContext>({
-  default: null,
-});
 
 type ZkappProverData = {
   transaction: ZkappCommand;
@@ -799,7 +784,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
       receiver.label = `${this.label ?? 'Unlabeled'}.send()`;
-      this.approve(receiver);
+      this.adopt(receiver);
     }
 
     // Sub the amount from the sender's account
@@ -814,8 +799,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this and
-   * approves it.
+   * Makes an {@link AccountUpdate} a child of this and approves it.
    */
   approve(
     childUpdate: AccountUpdate,
@@ -832,7 +816,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this.
+   * Makes an {@link AccountUpdate} a child of this.
    */
   adopt(childUpdate: AccountUpdate) {
     makeChildAccountUpdate(this, childUpdate);

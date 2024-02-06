@@ -32,6 +32,7 @@ await (await Mina.transaction(sender, () => zkapp.deploy()))
   .send();
 
 // deposit call
+
 let balanceBefore = Mina.getBalance(zkappAddress);
 
 let depositTx = await Mina.transaction(sender, () => zkapp.deposit());

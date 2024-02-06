@@ -9,13 +9,10 @@ import {
   Permissions,
   Actions,
   SetOrKeep,
-  smartContractContext,
   TokenId,
   ZkappCommand,
   zkAppProver,
   ZkappPublicInput,
-  ZkappStateLength,
-  SmartContractContext,
   LazyProof,
   CallForest,
   UnfinishedForest,
@@ -62,6 +59,8 @@ import {
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
+import { SmartContractContext } from './mina/smart-contract-context.js';
+import { ZkappStateLength } from './mina/mina-instance.js';
 
 // external API
 export {
@@ -164,15 +163,12 @@ function wrapMethod(
       }
     });
 
-    let insideContract = smartContractContext.get();
+    let insideContract = SmartContractContext.get();
     if (!insideContract) {
-      const context: SmartContractContext = {
-        this: this,
-        methodCallDepth: 0,
-        selfUpdate: selfAccountUpdate(this, methodName),
-        selfCalls: UnfinishedForest.empty(),
-      };
-      let id = smartContractContext.enter(context);
+      const { id, context } = SmartContractContext.enter(
+        this,
+        selfAccountUpdate(this, methodName)
+      );
       try {
         if (inCompile() || inProver() || inAnalyze()) {
           // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
@@ -304,20 +300,17 @@ function wrapMethod(
           return result;
         }
       } finally {
-        smartContractContext.leave(id);
+        SmartContractContext.leave(id);
       }
     }
 
     // if we're here, this method was called inside _another_ smart contract method
     let parentAccountUpdate = insideContract.this.self;
-    let methodCallDepth = insideContract.methodCallDepth;
-    let innerContext: SmartContractContext = {
-      this: this,
-      methodCallDepth: methodCallDepth + 1,
-      selfUpdate: selfAccountUpdate(this, methodName),
-      selfCalls: UnfinishedForest.empty(),
-    };
-    let id = smartContractContext.enter(innerContext);
+
+    let { id, context: innerContext } = SmartContractContext.enter(
+      this,
+      selfAccountUpdate(this, methodName)
+    );
     try {
       // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
       // so we have to explain to the user how to do that
@@ -443,7 +436,7 @@ function wrapMethod(
       accountUpdate.body.callData.assertEquals(callData);
       return result;
     } finally {
-      smartContractContext.leave(id);
+      SmartContractContext.leave(id);
     }
   };
 }
@@ -800,7 +793,7 @@ super.init();
    */
   get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
-    let inSmartContract = smartContractContext.get();
+    let inSmartContract = SmartContractContext.get();
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
@@ -1141,8 +1134,8 @@ super.init();
         throw err;
       }
       let id: number;
-      let insideSmartContract = !!smartContractContext.get();
-      if (insideSmartContract) id = smartContractContext.enter(null);
+      let insideSmartContract = !!SmartContractContext.get();
+      if (insideSmartContract) id = SmartContractContext.stepOutside();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
@@ -1169,7 +1162,7 @@ super.init();
           if (printSummary) console.log(methodIntf.methodName, summary());
         }
       } finally {
-        if (insideSmartContract) smartContractContext.leave(id!);
+        if (insideSmartContract) SmartContractContext.leave(id!);
       }
     }
     return methodMetadata;
@@ -1463,7 +1456,7 @@ type DeployArgs =
   | undefined;
 
 function Account(address: PublicKey, tokenId?: Field) {
-  if (smartContractContext.get()) {
+  if (SmartContractContext.get()) {
     return AccountUpdate.create(address, tokenId).account;
   } else {
     return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
