@@ -6,7 +6,7 @@ import type {
 } from '../account_update.js';
 import { Context } from '../global-context.js';
 
-export { smartContractContext, SmartContractContext };
+export { smartContractContext, SmartContractContext, accountUpdates };
 
 type SmartContractContext = {
   this: SmartContract;
@@ -17,3 +17,7 @@ type SmartContractContext = {
 let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,
 });
+
+function accountUpdates() {
+  return smartContractContext.get()?.selfLayout;
+}

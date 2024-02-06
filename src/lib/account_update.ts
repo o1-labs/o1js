@@ -60,6 +60,7 @@ import {
 } from './provable-types/merkle-list.js';
 import { Hashed } from './provable-types/packed.js';
 import {
+  accountUpdates,
   SmartContractContext,
   smartContractContext,
 } from './mina/smart-contract-context.js';
@@ -812,12 +813,7 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     makeChildAccountUpdate(this, childUpdate);
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
-
-    // TODO: this is not as general as approve suggests
-    let insideContract = smartContractContext.get();
-    if (insideContract && insideContract.selfUpdate.id === this.id) {
-      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
-    }
+    accountUpdates()?.pushChild(this, childUpdate);
   }
 
   /**
@@ -825,12 +821,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   adopt(childUpdate: AccountUpdate) {
     makeChildAccountUpdate(this, childUpdate);
-
-    // TODO: this is not as general as adopt suggests
-    let insideContract = smartContractContext.get();
-    if (insideContract && insideContract.selfUpdate.id === this.id) {
-      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
-    }
+    accountUpdates()?.pushChild(this, childUpdate);
   }
 
   get balance() {
@@ -1745,6 +1736,26 @@ const UnfinishedForest = {
     }
     return finalForest;
   },
+
+  print(forest: UnfinishedForest) {
+    let indent = 0;
+    let layout = '';
+
+    let toPretty = (a: UnfinishedForest) => {
+      indent += 2;
+      for (let tree of a.value) {
+        layout +=
+          ' '.repeat(indent) +
+          `( ${tree.accountUpdate.value.label || '<no label>'} )` +
+          '\n';
+        toPretty(tree.calls);
+      }
+      indent -= 2;
+    };
+
+    toPretty(forest);
+    console.log(layout);
+  },
 };
 
 function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
@@ -1761,11 +1772,16 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
 
 const SmartContractContext = {
   enter(self: SmartContract, selfUpdate: AccountUpdate) {
+    let selfCalls = UnfinishedForest.empty();
     let context: SmartContractContext = {
       this: self,
       selfUpdate,
-      selfLayout: new AccountUpdateLayout(),
-      selfCalls: { useHash: false, value: [] },
+      selfLayout: new AccountUpdateLayout({
+        accountUpdate: { useHash: false, value: selfUpdate },
+        isDummy: Bool(false),
+        calls: selfCalls,
+      }),
+      selfCalls,
     };
     let id = smartContractContext.enter(context);
     return { id, context };
@@ -1782,17 +1798,29 @@ const SmartContractContext = {
 };
 
 class AccountUpdateLayout {
-  map: Map<bigint, UnfinishedTree>;
+  map: Map<number, UnfinishedTree>;
 
-  constructor() {
+  constructor(root: UnfinishedTree) {
     this.map = new Map();
+    this.map.set(root.accountUpdate.value.id, root);
+  }
+
+  getNode(update: AccountUpdate) {
+    let node = this.map.get(update.id);
+    if (node !== undefined) return node;
+    node = {
+      accountUpdate: { useHash: false, value: update },
+      isDummy: update.isDummy(),
+      calls: UnfinishedForest.empty(),
+    };
+    this.map.set(update.id, node);
+    return node;
   }
 
   pushChild(parent: AccountUpdate, child: AccountUpdate) {
-    // let insideContract = smartContractContext.get();
-    // if (insideContract && insideContract.selfUpdate.id === this.id) {
-    //   UnfinishedForest.push(insideContract.selfCalls, childUpdate);
-    // }
+    let parentNode = this.getNode(parent);
+    let childNode = this.getNode(child);
+    parentNode.calls.value.push(childNode);
   }
 }
 
