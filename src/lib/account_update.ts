@@ -690,8 +690,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }
       if (accountLike instanceof PublicKey) {
         accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
-        makeChildAccountUpdate(thisAccountUpdate, accountLike);
-        // TODO existing API not affecting `UnfinishedForest`
+        thisAccountUpdate.adopt(accountLike);
       }
       if (!accountLike.label)
         accountLike.label = `${
@@ -1659,7 +1658,11 @@ const UnfinishedForest = {
     return { useHash: false, value: [] };
   },
 
-  witnessHash(forest: UnfinishedForest): UnfinishedForest {
+  witnessHash(forest: UnfinishedForest): {
+    readonly useHash: true;
+    hash: Field;
+    readonly value: UnfinishedTree[];
+  } {
     let hash = Provable.witness(Field, () => {
       return UnfinishedForest.finalize(forest).hash;
     });
