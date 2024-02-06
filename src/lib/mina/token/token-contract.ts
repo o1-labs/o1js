@@ -65,9 +65,11 @@ abstract class TokenContract extends SmartContract {
     );
 
     // make top-level updates our children
+    // TODO: this must not be necessary once we move everything to `selfCalls`
     Provable.asProver(() => {
       updates.data.get().forEach((update) => {
-        this.self.adopt(update.element.accountUpdate.value.get());
+        let accountUpdate = update.element.accountUpdate.value.get();
+        this.self.adopt(accountUpdate);
       });
     });
 
@@ -75,10 +77,7 @@ abstract class TokenContract extends SmartContract {
     // since we just did that in the loop above
     let insideContract = smartContractContext.get();
     if (insideContract) {
-      insideContract.selfCalls = UnfinishedForest.witnessHash(
-        insideContract.selfCalls
-      );
-      insideContract.selfCalls.hash.assertEquals(updates.hash);
+      insideContract.selfCalls = UnfinishedForest.fromForest(updates);
     }
   }
 
