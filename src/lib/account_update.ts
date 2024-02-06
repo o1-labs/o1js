@@ -59,7 +59,10 @@ import {
   MerkleListBase,
 } from './provable-types/merkle-list.js';
 import { Hashed } from './provable-types/packed.js';
-import { smartContractContext } from './mina/smart-contract-context.js';
+import {
+  SmartContractContext,
+  smartContractContext,
+} from './mina/smart-contract-context.js';
 
 // external API
 export {
@@ -91,10 +94,12 @@ export {
   dummySignature,
   LazyProof,
   AccountUpdateTree,
+  AccountUpdateLayout,
   UnfinishedForest,
   UnfinishedTree,
   hashAccountUpdate,
   HashedAccountUpdate,
+  SmartContractContext,
 };
 
 const TransactionVersion = {
@@ -1752,6 +1757,43 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
 
   let calls = UnfinishedForest.finalize(node.calls);
   return { accountUpdate, isDummy: node.isDummy, calls };
+}
+
+const SmartContractContext = {
+  enter(self: SmartContract, selfUpdate: AccountUpdate) {
+    let context: SmartContractContext = {
+      this: self,
+      selfUpdate,
+      selfLayout: new AccountUpdateLayout(),
+      selfCalls: { useHash: false, value: [] },
+    };
+    let id = smartContractContext.enter(context);
+    return { id, context };
+  },
+  leave(id: number) {
+    smartContractContext.leave(id);
+  },
+  stepOutside() {
+    return smartContractContext.enter(null);
+  },
+  get() {
+    return smartContractContext.get();
+  },
+};
+
+class AccountUpdateLayout {
+  map: Map<bigint, UnfinishedTree>;
+
+  constructor() {
+    this.map = new Map();
+  }
+
+  pushChild(parent: AccountUpdate, child: AccountUpdate) {
+    // let insideContract = smartContractContext.get();
+    // if (insideContract && insideContract.selfUpdate.id === this.id) {
+    //   UnfinishedForest.push(insideContract.selfCalls, childUpdate);
+    // }
+  }
 }
 
 const CallForest = {

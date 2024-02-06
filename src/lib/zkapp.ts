@@ -17,6 +17,7 @@ import {
   CallForest,
   UnfinishedForest,
   AccountUpdateForest,
+  SmartContractContext,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -59,7 +60,6 @@ import {
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
-import { SmartContractContext } from './mina/smart-contract-context.js';
 import { ZkappStateLength } from './mina/mina-instance.js';
 
 // external API
