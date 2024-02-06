@@ -1658,7 +1658,7 @@ const UnfinishedForest = {
     return { useHash: false, value: [] };
   },
 
-  witnessHash(forest: UnfinishedForest) {
+  witnessHash(forest: UnfinishedForest): UnfinishedForest {
     let hash = Provable.witness(Field, () => {
       return UnfinishedForest.finalize(forest).hash;
     });
