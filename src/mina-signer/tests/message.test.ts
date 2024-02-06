@@ -1,5 +1,5 @@
-import Client from '../../../dist/node/mina-signer/MinaSigner.js';
-import type { PrivateKey } from '../../../dist/node/mina-signer/src/TSTypes.js';
+import Client from '../dist/node/mina-signer/MinaSigner.js';
+import type { PrivateKey } from '../dist/node/mina-signer/src/TSTypes.js';
 
 describe('Message', () => {
   describe('Mainnet network', () => {
