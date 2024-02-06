@@ -19,8 +19,7 @@ import {
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Empty, Proof, verify } from './proof_system.js';
-import { SmartContract } from './zkapp.js';
+import { Empty, JsonProof, Proof, verify } from './proof_system.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
@@ -38,12 +37,14 @@ import {
   activeInstance,
   setActiveInstance,
   Mina,
-  FeePayerSpec,
-  DeprecatedFeePayerSpec,
-  ActionStates,
   defaultNetworkConstants,
-  NetworkConstants,
+  type FeePayerSpec,
+  type DeprecatedFeePayerSpec,
+  type ActionStates,
+  type NetworkConstants,
 } from './mina/mina-instance.js';
+import { SimpleLedger } from './mina/transaction-logic/ledger.js';
+import { assert } from './gadgets/common.js';
 
 export {
   createTransaction,
@@ -396,12 +397,10 @@ function LocalBlockchain({
 
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
-      for (const update of txn.transaction.accountUpdates) {
-        let accountJson = ledger.getAccount(
-          Ml.fromPublicKey(update.body.publicKey),
-          Ml.constFromField(update.body.tokenId)
-        );
+      // create an ad-hoc ledger to record changes to accounts within the transaction
+      let simpleLedger = SimpleLedger.create();
 
+      for (const update of txn.transaction.accountUpdates) {
         let authIsProof = !!update.authorization.proof;
         let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
         // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
@@ -412,9 +411,23 @@ function LocalBlockchain({
           );
         }
 
-        if (accountJson) {
-          let account = Account.fromJSON(accountJson);
+        let account = simpleLedger.load(update.body);
 
+        // the first time we encounter an account, use it from the persistent ledger
+        if (account === undefined) {
+          let accountJson = ledger.getAccount(
+            Ml.fromPublicKey(update.body.publicKey),
+            Ml.constFromField(update.body.tokenId)
+          );
+          if (accountJson !== undefined) {
+            let storedAccount = Account.fromJSON(accountJson);
+            simpleLedger.store(storedAccount);
+            account = storedAccount;
+          }
+        }
+
+        // TODO: verify account update even if the account doesn't exist yet, using a default initial account
+        if (account !== undefined) {
           await verifyAccountUpdate(
             account,
             update,
@@ -422,6 +435,7 @@ function LocalBlockchain({
             this.proofsEnabled,
             this.getNetworkId()
           );
+          simpleLedger.apply(update);
         }
       }
 
@@ -1193,7 +1207,7 @@ async function verifyAccountUpdate(
       case 'delegate':
         return perm.setDelegate;
       case 'verificationKey':
-        return perm.setVerificationKey;
+        return perm.setVerificationKey.auth;
       case 'permissions':
         return perm.setPermissions;
       case 'zkappUri':
@@ -1233,22 +1247,27 @@ async function verifyAccountUpdate(
       let publicInput = accountUpdate.toPublicInput();
       let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
-      const proof = SmartContract.Proof().fromJSON({
+      let proof: JsonProof = {
         maxProofsVerified: 2,
         proof: accountUpdate.authorization.proof!,
         publicInput: publicInputFields.map((f) => f.toString()),
         publicOutput: [],
-      });
+      };
 
-      let verificationKey = account.zkapp?.verificationKey?.data!;
-      isValidProof = await verify(proof.toJSON(), verificationKey);
+      let verificationKey = account.zkapp?.verificationKey?.data;
+      assert(
+        verificationKey !== undefined,
+        'Account does not have a verification key'
+      );
+
+      isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
         throw Error(
           `Invalid proof for account update\n${JSON.stringify(update)}`
         );
       }
     } catch (error) {
-      errorTrace += '\n\n' + (error as Error).message;
+      errorTrace += '\n\n' + (error as Error).stack;
       isValidProof = false;
     }
   }
@@ -1262,7 +1281,7 @@ async function verifyAccountUpdate(
         networkId
       );
     } catch (error) {
-      errorTrace += '\n\n' + (error as Error).message;
+      errorTrace += '\n\n' + (error as Error).stack;
       isValidSignature = false;
     }
   }
@@ -1290,7 +1309,7 @@ async function verifyAccountUpdate(
     if (!verified) {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
-        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}`
+        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}\n\n`
       );
     }
   }

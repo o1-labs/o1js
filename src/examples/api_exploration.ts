@@ -86,7 +86,7 @@ const b3: Bool = b0.and(b1.not()).or(b1);
    ): T
    ```
 
-   `Provable.if(b, x, y)` evaluates to `x` if `b` is true, and evalutes to `y` if `b` is false,
+   `Provable.if(b, x, y)` evaluates to `x` if `b` is true, and evaluates to `y` if `b` is false,
    so it works like a ternary if expression `b ? x : y`.
 
    The generic type T can be instantiated to primitive types like Bool, Field, or Group, or

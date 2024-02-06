@@ -74,6 +74,7 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
+  TransactionVersion,
   AccountUpdateForest,
 } from './lib/account_update.js';
 

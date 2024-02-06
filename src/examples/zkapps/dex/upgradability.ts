@@ -1,5 +1,12 @@
 import { expect } from 'expect';
-import { AccountUpdate, Mina, Permissions, PrivateKey, UInt64 } from 'o1js';
+import {
+  AccountUpdate,
+  Mina,
+  Permissions,
+  PrivateKey,
+  UInt64,
+  TransactionVersion,
+} from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
 import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
@@ -178,7 +185,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   await expect(tx.sign([feePayerKey, keys.dex]).send()).rejects.toThrow(
-    /Update_not_permitted_delegate/
+    /Cannot update field 'delegate'/
   );
 
   /**
@@ -435,7 +442,10 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: {
+        auth: Permissions.impossible(),
+        txnVersion: TransactionVersion.current(),
+      },
     });
   });
   await tx.prove();

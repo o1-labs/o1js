@@ -15,20 +15,34 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e5d1e0f...HEAD)
-
-### Breaking changes
-
-- Reduce number of constraints of ECDSA verification by 5%, which breaks deployed contracts using ECDSA https://github.com/o1-labs/o1js/pull/1376
+## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
 
 ### Added
 
 - `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398
   - including `MerkleListIterator<T>` to iterate over a merkle list
+- `TokenContract`, a new base smart contract class for token contracts https://github.com/o1-labs/o1js/pull/1384
+  - Usage example: `https://github.com/o1-labs/o1js/blob/main/src/lib/mina/token/token-contract.unit-test.ts`
+- `TokenAccountUpdateIterator`, a primitive to iterate over all token account updates in a transaction https://github.com/o1-labs/o1js/pull/1398
+  - this is used to implement `TokenContract` under the hood
+
+## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
+
+### Breaking changes
+
+- Protocol change that adds a "transaction version" to the permission to set verification keys https://github.com/MinaProtocol/mina/pull/14407
+  - See [the relevant RFC](https://github.com/MinaProtocol/mina/blob/9577ad689a8e4d4f97e1d0fc3d26e20219f4abd1/rfcs/0051-verification-key-permissions.md) for the motivation behind this change
+  - Breaks all deployed contracts, as it changes the account update layout
+
+### Added
+
 - Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
 - Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
   - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
-- `TokenAccountUpdateIterator`, a primitive for token contracts to iterate over all token account updates in a transaction. https://github.com/o1-labs/o1js/pull/1398
+
+### Changed
+
+- Reduce number of constraints of ECDSA verification by 5% https://github.com/o1-labs/o1js/pull/1376
 
 ## [0.15.4](https://github.com/o1-labs/o1js/compare/be748e42e...e5d1e0f)
 
