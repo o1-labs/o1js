@@ -37,9 +37,11 @@ class ExampleTokenContract extends TokenContract {
 let Local = Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let { publicKey: sender, privateKey: senderKey } = Local.testAccounts[0];
-let { publicKey: tokenAddress, privateKey: tokenKey } = Local.testAccounts[1];
-let { publicKey: otherAddress } = Local.testAccounts[2];
+let [
+  { publicKey: sender, privateKey: senderKey },
+  { publicKey: tokenAddress, privateKey: tokenKey },
+  { publicKey: otherAddress },
+] = Local.testAccounts;
 
 let token = new ExampleTokenContract(tokenAddress);
 let tokenId = token.token.id;
