@@ -2,9 +2,15 @@ import { Binable } from '../../bindings/lib/binable.js';
 import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
 import { Memo } from './memo.js';
-import { Signature } from './signature.js';
+import { Signature, SignatureJson } from './signature.js';
 
-export { publicKeyToHex, rosettaTransactionToSignedCommand };
+export {
+  publicKeyToHex,
+  signatureFromHex,
+  signatureToHex,
+  signatureJsonToHex,
+  rosettaTransactionToSignedCommand 
+};
 
 function publicKeyToHex(publicKey: PublicKey) {
   return fieldToHex(Field, publicKey.x, !!publicKey.isOdd);
@@ -18,6 +24,16 @@ function signatureFromHex(signatureHex: string): Signature {
     r: fieldFromHex(Field, fieldHex)[0],
     s: fieldFromHex(Scalar, scalarHex)[0],
   };
+}
+
+function signatureJsonToHex(signatureJson: SignatureJson): string {
+  return signatureToHex(Signature.fromJSON(signatureJson));
+}
+
+function signatureToHex(signature: Signature): string {
+  let rHex = fieldToHex(Field, signature.r);
+  let sHex = fieldToHex(Field, signature.s);
+  return `${rHex}${sHex}`;
 }
 
 function fieldToHex<T extends Field | Scalar>(
