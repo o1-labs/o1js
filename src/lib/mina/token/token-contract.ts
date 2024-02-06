@@ -12,7 +12,10 @@ import {
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
-import { smartContractContext } from '../smart-contract-context.js';
+import {
+  accountUpdates,
+  smartContractContext,
+} from '../smart-contract-context.js';
 
 export { TokenContract };
 
@@ -75,10 +78,7 @@ abstract class TokenContract extends SmartContract {
 
     // skip hashing our child account updates in the method wrapper
     // since we just did that in the loop above
-    let insideContract = smartContractContext.get();
-    if (insideContract) {
-      insideContract.selfCalls = UnfinishedForest.fromForest(updates);
-    }
+    accountUpdates()?.setTopLevel(updates);
   }
 
   /**

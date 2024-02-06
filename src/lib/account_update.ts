@@ -1799,13 +1799,21 @@ const SmartContractContext = {
 
 class AccountUpdateLayout {
   map: Map<number, UnfinishedTree>;
+  root: UnfinishedTree;
 
   constructor(root: UnfinishedTree) {
     this.map = new Map();
     this.map.set(root.accountUpdate.value.id, root);
+    this.root = root;
   }
 
-  getNode(update: AccountUpdate) {
+  getNode(update: AccountUpdate | UnfinishedTree): UnfinishedTree {
+    if (!(update instanceof AccountUpdate)) {
+      if (!this.map.has(update.accountUpdate.value.id)) {
+        this.map.set(update.accountUpdate.value.id, update);
+      }
+      return update;
+    }
     let node = this.map.get(update.id);
     if (node !== undefined) return node;
     node = {
@@ -1817,10 +1825,21 @@ class AccountUpdateLayout {
     return node;
   }
 
-  pushChild(parent: AccountUpdate, child: AccountUpdate) {
+  pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
     let parentNode = this.getNode(parent);
     let childNode = this.getNode(child);
     parentNode.calls.value.push(childNode);
+  }
+
+  setChildren(
+    parent: AccountUpdate | UnfinishedTree,
+    children: AccountUpdateForest
+  ) {
+    let parentNode = this.getNode(parent);
+    parentNode.calls = UnfinishedForest.fromForest(children);
+  }
+  setTopLevel(children: AccountUpdateForest) {
+    this.root.calls = UnfinishedForest.fromForest(children);
   }
 }
 
