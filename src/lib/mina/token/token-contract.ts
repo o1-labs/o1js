@@ -64,19 +64,22 @@ abstract class TokenContract extends SmartContract {
         `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
     );
 
-    // skip hashing our child account updates in the method wrapper
-    // since we just did that in the loop above
-    this.self.children.callsType = {
-      type: 'WitnessEquals',
-      value: updates.hash,
-    };
-
     // make top-level updates our children
     Provable.asProver(() => {
       updates.data.get().forEach((update) => {
         this.self.adopt(update.element.accountUpdate.value.get());
       });
     });
+
+    // skip hashing our child account updates in the method wrapper
+    // since we just did that in the loop above
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      insideContract.selfCalls = UnfinishedForest.witnessHash(
+        insideContract.selfCalls
+      );
+      insideContract.selfCalls.hash.assertEquals(updates.hash);
+    }
   }
 
   /**
