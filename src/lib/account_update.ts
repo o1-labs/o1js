@@ -1698,6 +1698,18 @@ const UnfinishedForest = {
     });
   },
 
+  pushTree(forest: UnfinishedForest, tree: AccountUpdateTree) {
+    let value = AccountUpdate.dummy();
+    Provable.asProver(() => {
+      value = tree.accountUpdate.value.get();
+    });
+    forest.value.push({
+      accountUpdate: { useHash: true, hash: tree.accountUpdate.hash, value },
+      isDummy: Bool(false),
+      calls: UnfinishedForest.fromForest(tree.calls),
+    });
+  },
+
   remove(forest: UnfinishedForest, accountUpdate: AccountUpdate) {
     // find account update by .id
     let index = forest.value.findIndex(
@@ -1709,6 +1721,22 @@ const UnfinishedForest = {
 
     // remove it
     forest.value.splice(index, 1);
+  },
+
+  fromForest(forest: MerkleListBase<AccountUpdateTree>): UnfinishedForest {
+    let value: UnfinishedTree[] = [];
+    Provable.asProver(() => {
+      value = forest.data.get().map(({ element: tree }) => ({
+        accountUpdate: {
+          useHash: true,
+          hash: tree.accountUpdate.hash,
+          value: tree.accountUpdate.value.get(),
+        },
+        isDummy: Bool(false),
+        calls: UnfinishedForest.fromForest(tree.calls),
+      }));
+    });
+    return { useHash: true, hash: forest.hash, value };
   },
 
   finalize(forest: UnfinishedForest): AccountUpdateForest {
