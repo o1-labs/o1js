@@ -141,8 +141,7 @@ npm run test
 npm run test:unit
 ```
 
-#### Running Mina-Signer Tests
-`npm run build` is not recursive, thus in order for the Mina Signer tests to run you must execute the following from the root directory:
+In order for the mina-signer tests to run you must also build from inside its subdirectory:
 
 ```sh
 cd src/mina-signer
@@ -155,7 +154,7 @@ This runs all the unit tests and provides you with a summary of the test results
 Note that you can run individual jest tests via the command:
 
 ```sh
-NODE_OPTIONS=--experimental-vm-modules npx jest <path/to/test.ts>
+./jest <path/to/test.ts>
 ```
 
 You can also run integration tests by running:
