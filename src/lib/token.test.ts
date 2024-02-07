@@ -89,7 +89,7 @@ class TokenContract extends SmartContract {
     amount: UInt64,
     senderAccountUpdate: AccountUpdate
   ) {
-    this.self.adopt(senderAccountUpdate);
+    this.approve(senderAccountUpdate);
     let negativeAmount = senderAccountUpdate.balanceChange;
     negativeAmount.assertEquals(Int64.from(amount).neg());
     let tokenId = this.token.id;

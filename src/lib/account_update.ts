@@ -664,11 +664,11 @@ class AccountUpdate implements Types.AccountUpdate {
       }
       if (accountLike instanceof AccountUpdate) {
         accountLike.tokenId.assertEquals(id);
-        thisAccountUpdate.adopt(accountLike);
+        thisAccountUpdate.approve(accountLike);
       }
       if (accountLike instanceof PublicKey) {
         accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
-        thisAccountUpdate.adopt(accountLike);
+        thisAccountUpdate.approve(accountLike);
       }
       if (!accountLike.label)
         accountLike.label = `${
@@ -777,7 +777,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
       receiver.label = `${this.label ?? 'Unlabeled'}.send()`;
-      this.adopt(receiver);
+      this.approve(receiver);
     }
 
     // Sub the amount from the sender's account
@@ -795,14 +795,6 @@ class AccountUpdate implements Types.AccountUpdate {
    * Makes an {@link AccountUpdate} a child of this and approves it.
    */
   approve(childUpdate: AccountUpdate) {
-    makeChildAccountUpdate(this, childUpdate);
-    accountUpdates()?.pushChild(this, childUpdate);
-  }
-
-  /**
-   * Makes an {@link AccountUpdate} a child of this.
-   */
-  adopt(childUpdate: AccountUpdate) {
     makeChildAccountUpdate(this, childUpdate);
     accountUpdates()?.pushChild(this, childUpdate);
   }

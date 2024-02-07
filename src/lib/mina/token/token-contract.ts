@@ -68,7 +68,7 @@ abstract class TokenContract extends SmartContract {
     Provable.asProver(() => {
       updates.data.get().forEach((update) => {
         let accountUpdate = update.element.accountUpdate.value.get();
-        this.self.adopt(accountUpdate);
+        this.approve(accountUpdate);
       });
     });
 
