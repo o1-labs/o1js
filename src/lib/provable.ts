@@ -196,6 +196,16 @@ const Provable = {
    * ```
    */
   inCheckedComputation,
+
+  /**
+   * Returns a constant version of a provable type.
+   */
+  toConstant<T>(type: Provable<T>, value: T) {
+    return type.fromFields(
+      type.toFields(value).map((x) => x.toConstant()),
+      type.toAuxiliary(value)
+    );
+  },
 };
 
 function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(

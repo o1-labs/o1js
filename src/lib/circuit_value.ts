@@ -547,6 +547,14 @@ and Provable.asProver() blocks, which execute outside the proof.
 
   /**
    * Create an `Unconstrained` with the given `value`.
+   *
+   * Note: If `T` contains provable types, `Unconstrained.from` is an anti-pattern,
+   * because it stores witnesses in a space that's intended to be used outside the proof.
+   * Something like the following should be used instead:
+   *
+   * ```ts
+   * let xWrapped = Unconstrained.witness(() => Provable.toConstant(type, x));
+   * ```
    */
   static from<T>(value: T) {
     return new Unconstrained(true, value);

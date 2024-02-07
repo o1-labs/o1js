@@ -1766,7 +1766,9 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
   let accountUpdate = node.accountUpdate.useHash
     ? new HashedAccountUpdate(
         node.accountUpdate.hash,
-        Unconstrained.from(node.accountUpdate.value)
+        Unconstrained.witness(() =>
+          Provable.toConstant(AccountUpdate, node.accountUpdate.value)
+        )
       )
     : HashedAccountUpdate.hash(node.accountUpdate.value);
 

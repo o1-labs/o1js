@@ -79,9 +79,13 @@ class Packed<T> {
    * Pack a value.
    */
   static pack<T>(x: T): Packed<T> {
-    let input = this.innerProvable.toInput(x);
+    let type = this.innerProvable;
+    let input = type.toInput(x);
     let packed = packToFields(input);
-    return new this(packed, Unconstrained.from(x));
+    let unconstrained = Unconstrained.witness(() =>
+      Provable.toConstant(type, x)
+    );
+    return new this(packed, unconstrained);
   }
 
   /**
@@ -211,7 +215,10 @@ class Hashed<T> {
    */
   static hash<T>(value: T): Hashed<T> {
     let hash = this._hash(value);
-    return new this(hash, Unconstrained.from(value));
+    let unconstrained = Unconstrained.witness(() =>
+      Provable.toConstant(this.innerProvable, value)
+    );
+    return new this(hash, unconstrained);
   }
 
   /**
