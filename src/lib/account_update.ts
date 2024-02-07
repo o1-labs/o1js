@@ -97,7 +97,6 @@ export {
   Token,
   CallForest,
   createChildAccountUpdate,
-  AccountUpdatesLayout,
   zkAppProver,
   dummySignature,
   LazyProof,
@@ -1250,45 +1249,6 @@ class AccountUpdate implements Types.AccountUpdate {
     return Provable.witness(combinedType, compute);
   }
 
-  /**
-   * Describes the children of an account update, which are laid out in a tree.
-   *
-   * The tree layout is described recursively by using a combination of `AccountUpdate.Layout.NoChildren`, `AccountUpdate.Layout.StaticChildren(...)` and `AccountUpdate.Layout.AnyChildren`.
-   * - `NoChildren` means an account update that can't have children
-   * - `AnyChildren` means an account update can have an arbitrary amount of children, which means you can't access those children in your circuit (because the circuit is static).
-   * - `StaticChildren` means the account update must have a certain static amount of children and expects as arguments a description of each of those children.
-   *   As a shortcut, you can also pass `StaticChildren` a number, which means it has that amount of children but no grandchildren.
-   *
-   * This is best understood by examples:
-   *
-   * ```ts
-   * let { NoChildren, AnyChildren, StaticChildren } = AccounUpdate.Layout;
-   *
-   * NoChildren                 // an account update with no children
-   * AnyChildren                // an account update with arbitrary children
-   * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
-   * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
-   * StaticChildren(2)          // shortcut for StaticChildren(NoChildren, NoChildren)
-   * StaticChildren(0)          // equivalent to NoChildren
-   *
-   * // an update with 2 children, of which one has arbitrary children and the other has exactly 1 descendant
-   * StaticChildren(AnyChildren, StaticChildren(1))
-   * ```
-   */
-  static Layout = {
-    StaticChildren: ((...args: any[]) => {
-      if (args.length === 1 && typeof args[0] === 'number') return args[0];
-      if (args.length === 0) return 0;
-      return args;
-    }) as {
-      (n: number): AccountUpdatesLayout;
-      (...args: AccountUpdatesLayout[]): AccountUpdatesLayout;
-    },
-    NoChildren: 0,
-    AnyChildren: 'AnyChildren' as const,
-    NoDelegation: 'NoDelegation' as const,
-  };
-
   static get MayUseToken() {
     return {
       type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
@@ -1413,12 +1373,6 @@ class AccountUpdate implements Types.AccountUpdate {
     return pretty;
   }
 }
-
-type AccountUpdatesLayout =
-  | number
-  | 'AnyChildren'
-  | 'NoDelegation'
-  | AccountUpdatesLayout[];
 
 // call forest stuff
 

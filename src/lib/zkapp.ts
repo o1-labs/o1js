@@ -2,7 +2,6 @@ import { Gate, Pickles, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,
-  AccountUpdatesLayout,
   Authorization,
   Body,
   Events,
@@ -14,7 +13,6 @@ import {
   zkAppProver,
   ZkappPublicInput,
   LazyProof,
-  CallForest,
   AccountUpdateForest,
   SmartContractContext,
   AccountUpdateLayout,
