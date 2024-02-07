@@ -49,7 +49,11 @@ import {
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
-import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
+import {
+  accountUpdatesToCallForest,
+  CallForest,
+  transactionCommitments,
+} from '../mina-signer/src/sign-zkapp-command.js';
 import { currentTransaction } from './mina/transaction-context.js';
 import { isSmartContract } from './mina/smart-contract-base.js';
 import { activeInstance } from './mina/mina-instance.js';
@@ -1560,6 +1564,23 @@ class AccountUpdateForest extends MerkleList.create(
   AccountUpdateTree,
   merkleListHash
 ) {
+  static fromFlatArray(updates: AccountUpdate[]): AccountUpdateForest {
+    let simpleForest = accountUpdatesToCallForest(updates);
+    return this.fromSimpleForest(simpleForest);
+  }
+
+  private static fromSimpleForest(
+    simpleForest: CallForest<AccountUpdate>
+  ): AccountUpdateForest {
+    let nodes = simpleForest.map((node) => {
+      let accountUpdate = HashedAccountUpdate.hash(node.accountUpdate);
+      let calls = AccountUpdateForest.fromSimpleForest(node.children);
+      return { accountUpdate, calls };
+    });
+    return AccountUpdateForest.from(nodes);
+  }
+
+  // TODO remove
   static fromArray(
     updates: AccountUpdate[],
     { skipDummies = false } = {}
