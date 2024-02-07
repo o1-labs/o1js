@@ -1797,14 +1797,13 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
 
 const SmartContractContext = {
   enter(self: SmartContract, selfUpdate: AccountUpdate) {
-    let calls = UnfinishedForest.empty();
     let context: SmartContractContext = {
       this: self,
       selfUpdate,
       selfLayout: new AccountUpdateLayout({
         accountUpdate: { useHash: false, value: selfUpdate },
         isDummy: Bool(false),
-        calls,
+        calls: UnfinishedForest.empty(),
       }),
     };
     let id = smartContractContext.enter(context);
@@ -1836,10 +1835,7 @@ class AccountUpdateLayout {
     return this.map.get(update.id);
   }
 
-  getOrCreate(
-    update: AccountUpdate | UnfinishedTree,
-    siblings?: UnfinishedForest
-  ): UnfinishedTree {
+  getOrCreate(update: AccountUpdate | UnfinishedTree): UnfinishedTree {
     if (!(update instanceof AccountUpdate)) {
       if (!this.map.has(update.accountUpdate.value.id)) {
         this.map.set(update.accountUpdate.value.id, update);
@@ -1852,7 +1848,6 @@ class AccountUpdateLayout {
       accountUpdate: { useHash: false, value: update },
       isDummy: update.isDummy(),
       calls: UnfinishedForest.empty(),
-      siblings,
     };
     this.map.set(update.id, node);
     return node;
@@ -1860,7 +1855,8 @@ class AccountUpdateLayout {
 
   pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
     let parentNode = this.getOrCreate(parent);
-    let childNode = this.getOrCreate(child, parentNode.calls);
+    let childNode = this.getOrCreate(child);
+    childNode.siblings = parentNode.calls;
     parentNode.calls.value.push(childNode);
   }
 
