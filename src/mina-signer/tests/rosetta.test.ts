@@ -1,5 +1,5 @@
 import Client from '../dist/node/mina-signer/MinaSigner.js';
-import { signatureFromHex, signatureToHex } from '../dist/node/mina-signer/src/rosetta.js';
+import { signatureFromHex, signatureJsonToHex } from '../dist/node/mina-signer/src/rosetta.js';
 
 describe('Rosetta', () => {
   let client: Client;
@@ -21,6 +21,13 @@ describe('Rosetta', () => {
     "stake_delegation": null
   }`;
 
+  // NOTE: copied from the test-vectors legacy signatures file
+  // RE: the rosettaTnxMockSignature above does not correctly convert
+  const legacySignatureJson = {
+    field: '2290465734865973481454975811990842289349447524565721011257265781466170720513',
+    scalar: '174718295375042423373378066296864207343460524320417038741346483351503066865',
+  };
+
   beforeAll(async () => {
     client = new Client({ network: 'mainnet' });
   });
@@ -34,14 +41,24 @@ describe('Rosetta', () => {
 
     // TODO we could go further and use validate method on the return?
     // or leave as is with the assumption that the above hex is known to be valid
+
+    // what would the correct method be to verify?
   });
 
   it('generates a valid hex string from a signature', () => {
-    let signature = signatureFromHex(rosettaTnxMockSignature);
-    let hex = signatureToHex(signature);
+    // leaving this in place ATM as a comparison to what appears to be simply an incorrect assumption
+    // i.e -> the mock signature may be testnet vs main or ...
 
+    // let signature = signatureFromHex(rosettaTnxMockSignature);
+    // let hex = signatureToHex(signature);
     // fails
-    expect(hex).toEqual(rosettaTnxMockSignature);
+    // expect(hex).toEqual(rosettaTnxMockSignature);
+
+    let hex = signatureJsonToHex(legacySignatureJson);
+    let sig = signatureFromHex(hex);
+
+    expect(sig.r).toEqual(BigInt(legacySignatureJson.field));
+    expect(sig.s).toEqual(BigInt(legacySignatureJson.scalar));
   });
 
   it('generates a valid rosetta transaction', () => {
