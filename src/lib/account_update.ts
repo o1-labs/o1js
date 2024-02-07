@@ -1869,6 +1869,17 @@ class AccountUpdateLayout {
     UnfinishedForest.remove(node.siblings, update);
     node.siblings = undefined;
   }
+
+  finalizeAndRemove(update: AccountUpdate) {
+    let node = this.get(update);
+    if (node === undefined) return;
+    this.disattach(update);
+    return UnfinishedForest.finalize(node.calls);
+  }
+
+  finalize() {
+    return UnfinishedForest.finalize(this.root.calls);
+  }
 }
 
 const CallForest = {

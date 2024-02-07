@@ -148,17 +148,14 @@ function finalizeAccountUpdates(updates: AccountUpdate[]): AccountUpdateForest {
 }
 
 function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
-  let calls: AccountUpdateForest;
+  let calls = accountUpdates()?.finalizeAndRemove(update);
 
-  let node = accountUpdates()?.get(update);
-  if (node !== undefined) {
-    calls = UnfinishedForest.finalize(node.calls);
-  }
+  // TODO remove once everything lives in `selfLayout`
+  AccountUpdate.unlink(update);
 
   calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates, {
     skipDummies: true,
   });
-  AccountUpdate.unlink(update);
 
   return { accountUpdate: HashedAccountUpdate.hash(update), calls };
 }
