@@ -351,7 +351,6 @@ function wrapMethod(
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-        accountUpdate.parent = parentAccountUpdate;
 
         let memoContext = {
           memoized: [],
@@ -431,11 +430,6 @@ function wrapMethod(
 
       // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
       accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-      accountUpdate.parent = parentAccountUpdate;
-      // beware: we don't include the callee's children in the caller circuit
-      // nothing is asserted about them -- it's the callee's task to check their children
-      accountUpdate.children.callsType = { type: 'Witness' };
-      parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
       insideContract.selfLayout.pushTopLevel(accountUpdate);
       insideContract.selfLayout.setChildren(accountUpdate, children);
@@ -928,22 +922,16 @@ super.init();
    *
    * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
    * tree of account updates that forms the transaction.
-   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
-   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
    *
    * @param updateOrCallback
-   * @param layout
    * @returns The account update that was approved (needed when passing in a Callback)
    */
-  approve(
-    updateOrCallback: AccountUpdate | Callback<any>,
-    layout?: AccountUpdatesLayout
-  ) {
+  approve(updateOrCallback: AccountUpdate | Callback<any>) {
     let accountUpdate =
       updateOrCallback instanceof AccountUpdate
         ? updateOrCallback
         : Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
-    this.self.approve(accountUpdate, layout);
+    this.self.approve(accountUpdate);
     return accountUpdate;
   }
 

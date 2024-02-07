@@ -72,15 +72,14 @@ update1.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
 let update2 = AccountUpdate.create(otherAddress);
 update2.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+update2.body.callDepth = 1;
 
 let update3 = AccountUpdate.create(otherAddress, tokenId);
 update3.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 update3.balanceChange = Int64.one;
+update3.body.callDepth = 2;
 
-update1.adopt(update2);
-update2.adopt(update3);
-
-let forest = AccountUpdateForest.fromArray([update1]);
+let forest = AccountUpdateForest.fromFlatArray([update1, update2, update3]);
 
 await assert.rejects(
   () => Mina.transaction(sender, () => token.approveBase(forest)),
