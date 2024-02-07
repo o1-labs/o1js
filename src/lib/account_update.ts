@@ -52,12 +52,14 @@ import { MlFieldConstArray } from './ml/fields.js';
 import {
   accountUpdatesToCallForest,
   CallForest,
+  callForestHashGeneric,
   transactionCommitments,
 } from '../mina-signer/src/sign-zkapp-command.js';
 import { currentTransaction } from './mina/transaction-context.js';
 import { isSmartContract } from './mina/smart-contract-base.js';
 import { activeInstance } from './mina/mina-instance.js';
 import {
+  emptyHash,
   genericHash,
   MerkleList,
   MerkleListBase,
@@ -1045,9 +1047,32 @@ class AccountUpdate implements Types.AccountUpdate {
     }
   }
 
-  toPublicInput(): ZkappPublicInput {
+  toPublicInput({
+    accountUpdates,
+  }: {
+    accountUpdates: AccountUpdate[];
+  }): ZkappPublicInput {
     let accountUpdate = this.hash();
-    let calls = CallForest.hashChildren(this);
+
+    // collect this update's descendants
+    let descendants: AccountUpdate[] = [];
+    let callDepth = this.body.callDepth;
+    let i = accountUpdates.findIndex((a) => a.id === this.id);
+    assert(i !== -1, 'Account update not found in transaction');
+    for (i++; i < accountUpdates.length; i++) {
+      let update = accountUpdates[i];
+      if (update.body.callDepth <= callDepth) break;
+      descendants.push(update);
+    }
+
+    // call forest hash
+    let forest = accountUpdatesToCallForest(descendants, callDepth + 1);
+    let calls = callForestHashGeneric(
+      forest,
+      (a) => a.hash(),
+      Poseidon.hashWithPrefix,
+      emptyHash
+    );
     return { accountUpdate, calls };
   }
 
@@ -2350,7 +2375,7 @@ async function createZkappProof(
   }: LazyProof,
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
-  let publicInput = accountUpdate.toPublicInput();
+  let publicInput = accountUpdate.toPublicInput(transaction);
   let publicInputFields = MlFieldConstArray.to(
     ZkappPublicInput.toFields(publicInput)
   );

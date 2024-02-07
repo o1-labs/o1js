@@ -71,9 +71,12 @@ function createAccountUpdate() {
   let otherAddress = PrivateKey.random().toPublicKey();
 
   let accountUpdate = AccountUpdate.create(address);
-  accountUpdate.approve(AccountUpdate.create(otherAddress));
+  let otherUpdate = AccountUpdate.create(otherAddress);
+  accountUpdate.approve(otherUpdate);
 
-  let publicInput = accountUpdate.toPublicInput();
+  let publicInput = accountUpdate.toPublicInput({
+    accountUpdates: [accountUpdate, otherUpdate],
+  });
 
   // create transaction JSON with the same accountUpdate structure, for ocaml version
   let tx = await Mina.transaction(() => {

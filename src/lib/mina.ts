@@ -427,9 +427,11 @@ function LocalBlockchain({
 
         // TODO: verify account update even if the account doesn't exist yet, using a default initial account
         if (account !== undefined) {
+          let publicInput = update.toPublicInput(txn.transaction);
           await verifyAccountUpdate(
             account,
             update,
+            publicInput,
             commitments,
             this.proofsEnabled,
             this.getNetworkId()
@@ -1162,6 +1164,7 @@ function defaultNetworkState(): NetworkValue {
 async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
+  publicInput: ZkappPublicInput,
   transactionCommitments: { commitment: bigint; fullCommitment: bigint },
   proofsEnabled: boolean,
   networkId: NetworkId
@@ -1243,7 +1246,6 @@ async function verifyAccountUpdate(
 
   if (accountUpdate.authorization.proof && proofsEnabled) {
     try {
-      let publicInput = accountUpdate.toPublicInput();
       let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
       let proof: JsonProof = {
