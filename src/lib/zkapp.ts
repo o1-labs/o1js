@@ -410,10 +410,15 @@ function wrapMethod(
       // nothing is asserted about them -- it's the callee's task to check their children
       accountUpdate.children.callsType = { type: 'Witness' };
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
+
+      let grandchildren = UnfinishedForest.fromArray(
+        accountUpdate.children.accountUpdates,
+        true
+      );
       UnfinishedForest.push(
         insideContract.selfCalls,
         accountUpdate,
-        UnfinishedForest.fromArray(accountUpdate.children.accountUpdates, true)
+        grandchildren
       );
 
       // assert that we really called the right zkapp

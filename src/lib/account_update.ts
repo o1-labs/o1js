@@ -1628,54 +1628,57 @@ type UnfinishedTree = {
   isDummy: Bool;
   // `children` must be readonly since it's referenced in each child's siblings
   readonly calls: UnfinishedForest;
+  siblings?: UnfinishedForest;
 };
-
-type HashOrValue<T> =
-  | { readonly useHash: true; hash: Field; readonly value: T }
-  | { readonly useHash: false; value: T };
+type UseHash<T> = { readonly useHash: true; hash: Field; readonly value: T };
+type PlainValue<T> = { readonly useHash: false; value: T };
+type HashOrValue<T> = UseHash<T> | PlainValue<T>;
 
 const UnfinishedForest = {
-  empty(): UnfinishedForest {
+  empty(): PlainValue<UnfinishedTree[]> {
     return { useHash: false, value: [] };
   },
 
-  witnessHash(forest: UnfinishedForest): {
-    readonly useHash: true;
-    hash: Field;
-    readonly value: UnfinishedTree[];
-  } {
+  setHash(forest: UnfinishedForest, hash: Field): UseHash<UnfinishedTree[]> {
+    return Object.assign(forest, { useHash: true as const, hash });
+  },
+
+  witnessHash(forest: UnfinishedForest): UseHash<UnfinishedTree[]> {
     let hash = Provable.witness(Field, () => {
       return UnfinishedForest.finalize(forest).hash;
     });
-    return { useHash: true, hash, value: forest.value };
+    return UnfinishedForest.setHash(forest, hash);
   },
 
   fromArray(updates: AccountUpdate[], useHash = false): UnfinishedForest {
     if (useHash) {
-      let forest = UnfinishedForest.empty();
+      let forest: UnfinishedForest = UnfinishedForest.empty();
       Provable.asProver(() => (forest = UnfinishedForest.fromArray(updates)));
       return UnfinishedForest.witnessHash(forest);
     }
 
-    let nodes = updates.map((update): UnfinishedTree => {
+    let forest = UnfinishedForest.empty();
+    forest.value = updates.map((update): UnfinishedTree => {
       return {
         accountUpdate: { useHash: false, value: update },
         isDummy: update.isDummy(),
         calls: UnfinishedForest.fromArray(update.children.accountUpdates),
+        siblings: forest,
       };
     });
-    return { useHash: false, value: nodes };
+    return forest;
   },
 
   push(
     forest: UnfinishedForest,
     accountUpdate: AccountUpdate,
-    calls?: UnfinishedForest
+    children?: UnfinishedForest
   ) {
     forest.value.push({
       accountUpdate: { useHash: false, value: accountUpdate },
       isDummy: accountUpdate.isDummy(),
-      calls: calls ?? UnfinishedForest.empty(),
+      calls: children ?? UnfinishedForest.empty(),
+      siblings: forest,
     });
   },
 
@@ -1688,6 +1691,7 @@ const UnfinishedForest = {
       accountUpdate: { useHash: true, hash: tree.accountUpdate.hash, value },
       isDummy: Bool(false),
       calls: UnfinishedForest.fromForest(tree.calls),
+      siblings: forest,
     });
   },
 
@@ -1705,9 +1709,9 @@ const UnfinishedForest = {
   },
 
   fromForest(forest: MerkleListBase<AccountUpdateTree>): UnfinishedForest {
-    let value: UnfinishedTree[] = [];
+    let unfinished = UnfinishedForest.empty();
     Provable.asProver(() => {
-      value = forest.data.get().map(({ element: tree }) => ({
+      unfinished.value = forest.data.get().map(({ element: tree }) => ({
         accountUpdate: {
           useHash: true,
           hash: tree.accountUpdate.hash,
@@ -1715,9 +1719,11 @@ const UnfinishedForest = {
         },
         isDummy: Bool(false),
         calls: UnfinishedForest.fromForest(tree.calls),
+        siblings: unfinished,
       }));
     });
-    return { useHash: true, hash: forest.hash, value };
+    Object.assign(unfinished, { useHash: true, hash: forest.hash });
+    return unfinished;
   },
 
   finalize(forest: UnfinishedForest): AccountUpdateForest {
@@ -1808,7 +1814,14 @@ class AccountUpdateLayout {
     this.root = root;
   }
 
-  getNode(update: AccountUpdate | UnfinishedTree): UnfinishedTree {
+  get(update: AccountUpdate) {
+    return this.map.get(update.id);
+  }
+
+  getOrCreate(
+    update: AccountUpdate | UnfinishedTree,
+    siblings?: UnfinishedForest
+  ): UnfinishedTree {
     if (!(update instanceof AccountUpdate)) {
       if (!this.map.has(update.accountUpdate.value.id)) {
         this.map.set(update.accountUpdate.value.id, update);
@@ -1821,28 +1834,41 @@ class AccountUpdateLayout {
       accountUpdate: { useHash: false, value: update },
       isDummy: update.isDummy(),
       calls: UnfinishedForest.empty(),
+      siblings,
     };
     this.map.set(update.id, node);
     return node;
   }
 
   pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
-    let parentNode = this.getNode(parent);
-    let childNode = this.getNode(child);
+    let parentNode = this.getOrCreate(parent);
+    let childNode = this.getOrCreate(child, parentNode.calls);
     parentNode.calls.value.push(childNode);
+  }
+
+  pushTopLevel(child: AccountUpdate) {
+    this.pushChild(this.root, child);
   }
 
   setChildren(
     parent: AccountUpdate | UnfinishedTree,
     children: AccountUpdateForest
   ) {
-    let parentNode = this.getNode(parent);
-    // we're not allowed to switch parentNode.calls, it must stay the same reference
+    let parentNode = this.getOrCreate(parent);
+    // we're not allowed to switch parentNode.children, it must stay the same reference
     // so we mutate it in place
     Object.assign(parentNode.calls, UnfinishedForest.fromForest(children));
   }
+
   setTopLevel(children: AccountUpdateForest) {
     this.setChildren(this.root, children);
+  }
+
+  disattach(update: AccountUpdate) {
+    let node = this.get(update);
+    if (node?.siblings === undefined) return;
+    UnfinishedForest.remove(node.siblings, update);
+    node.siblings = undefined;
   }
 }
 
