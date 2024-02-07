@@ -1003,17 +1003,14 @@ class AccountUpdate implements Types.AccountUpdate {
     if (isSameAsFeePayer) nonce++;
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
-    CallForest.forEachPredecessor(
-      currentTransaction.get().accountUpdates,
-      update as AccountUpdate,
-      (otherUpdate) => {
-        let shouldIncreaseNonce = otherUpdate.publicKey
-          .equals(publicKey)
-          .and(otherUpdate.tokenId.equals(tokenId))
-          .and(otherUpdate.body.incrementNonce);
-        if (shouldIncreaseNonce.toBoolean()) nonce++;
-      }
-    );
+    let layout = currentTransaction.get().layout;
+    layout.forEachPredecessor(update as AccountUpdate, (otherUpdate) => {
+      let shouldIncreaseNonce = otherUpdate.publicKey
+        .equals(publicKey)
+        .and(otherUpdate.tokenId.equals(tokenId))
+        .and(otherUpdate.body.incrementNonce);
+      if (shouldIncreaseNonce.toBoolean()) nonce++;
+    });
     return {
       nonce: UInt32.from(nonce),
       isSameAsFeePayer: Bool(isSameAsFeePayer),
@@ -1121,7 +1118,6 @@ class AccountUpdate implements Types.AccountUpdate {
         self.label || 'Unlabeled'
       } > AccountUpdate.create()`;
     } else {
-      currentTransaction()?.accountUpdates.push(accountUpdate);
       currentTransaction()?.layout.pushTopLevel(accountUpdate);
       accountUpdate.label = `Mina.transaction() > AccountUpdate.create()`;
     }
@@ -1142,10 +1138,6 @@ class AccountUpdate implements Types.AccountUpdate {
       insideContract.this.self.approve(accountUpdate);
     } else {
       if (!currentTransaction.has()) return;
-      let updates = currentTransaction.get().accountUpdates;
-      if (!updates.find((update) => update.id === accountUpdate.id)) {
-        updates.push(accountUpdate);
-      }
       currentTransaction.get().layout.pushTopLevel(accountUpdate);
     }
   }
@@ -1153,17 +1145,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Disattach an account update from where it's currently located in the transaction
    */
   static unlink(accountUpdate: AccountUpdate) {
-    // TODO duplicate logic
     accountUpdates()?.disattach(accountUpdate);
-    let siblings =
-      accountUpdate.parent?.children.accountUpdates ??
-      currentTransaction()?.accountUpdates;
-    if (siblings === undefined) return;
-    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
-    accountUpdate.parent === undefined;
   }
 
   /**

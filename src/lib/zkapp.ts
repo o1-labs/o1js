@@ -178,7 +178,6 @@ function wrapMethod(
           let proverData = inProver() ? zkAppProver.getData() : undefined;
           let txId = Mina.currentTransaction.enter({
             sender: proverData?.transaction.feePayer.body.publicKey,
-            accountUpdates: [],
             // TODO could pass an update with the fee payer's content here? probably not bc it's not accessed
             layout: new AccountUpdateLayout(),
             fetchMode: inProver() ? 'cached' : 'test',
@@ -244,7 +243,6 @@ function wrapMethod(
           // called smart contract at the top level, in a transaction!
           // => attach ours to the current list of account updates
           let accountUpdate = context.selfUpdate;
-          Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
 
           // first, clone to protect against the method modifying arguments!
           // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, o1js primitives

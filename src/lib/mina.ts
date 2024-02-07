@@ -182,7 +182,6 @@ function createTransaction(
 
   let transactionId = currentTransaction.enter({
     sender,
-    accountUpdates: [],
     layout: new AccountUpdateLayout(),
     fetchMode,
     isFinalRunOutsideCircuit,
@@ -205,9 +204,7 @@ function createTransaction(
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();
-              tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
-                toConstant(AccountUpdate, a)
-              );
+              tx.layout.toConstantInPlace();
             });
           });
         } else {
@@ -223,26 +220,10 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let accountUpdates = currentTransaction.get().accountUpdates;
-  // TODO: I'll be back
-  // CallForest.addCallers(accountUpdates);
-  accountUpdates = CallForest.toFlatList(accountUpdates);
 
-  let otherAccountUpdates = currentTransaction
+  let accountUpdates = currentTransaction
     .get()
     .layout.toFlatList({ mutate: true });
-
-  if (otherAccountUpdates.length !== accountUpdates.length) {
-    console.log(
-      'expected',
-      accountUpdates.map((a) => a.toPretty())
-    );
-    console.log(
-      'actual  ',
-      otherAccountUpdates.map((a) => a.toPretty())
-    );
-    throw Error('mismatch');
-  }
 
   try {
     // check that on-chain values weren't used without setting a precondition

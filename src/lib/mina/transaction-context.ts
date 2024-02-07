@@ -7,7 +7,6 @@ export { currentTransaction, CurrentTransaction, FetchMode };
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
   sender?: PublicKey;
-  accountUpdates: AccountUpdate[];
   layout: AccountUpdateLayout;
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
