@@ -243,7 +243,8 @@ function wrapMethod(
           // called smart contract at the top level, in a transaction!
           // => attach ours to the current list of account updates
           let accountUpdate = context.selfUpdate;
-          Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+          Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
+          Mina.currentTransaction.get().layout.pushTopLevel(accountUpdate);
 
           // first, clone to protect against the method modifying arguments!
           // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, o1js primitives
@@ -297,7 +298,7 @@ function wrapMethod(
                 memoized,
                 blindingValue,
               },
-              Mina.currentTransaction()!.accountUpdates
+              Mina.currentTransaction.get().layout
             );
           }
           return result;
@@ -388,7 +389,7 @@ function wrapMethod(
               memoized,
               blindingValue: constantBlindingValue,
             },
-            Mina.currentTransaction()!.accountUpdates
+            Mina.currentTransaction()?.layout ?? new AccountUpdateLayout()
           );
         }
         // extract callee's account update layout
@@ -1526,7 +1527,10 @@ const Reducer: (<
 ) as any;
 
 const ProofAuthorization = {
-  setKind({ body, id }: AccountUpdate, priorAccountUpdates?: AccountUpdate[]) {
+  setKind(
+    { body, id }: AccountUpdate,
+    priorAccountUpdates?: AccountUpdateLayout
+  ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Provable.witness(Field, () => {
@@ -1534,16 +1538,15 @@ const ProofAuthorization = {
       let isProver = proverData !== undefined;
       assert(
         isProver || priorAccountUpdates !== undefined,
-        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
+        'Called `setKind()` outside the prover without passing in `priorAccountUpdates`.'
       );
       let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
-      priorAccountUpdates ??= proverData.transaction.accountUpdates;
-      priorAccountUpdates = priorAccountUpdates.filter(
+      let priorAccountUpdatesFlat = priorAccountUpdates?.toFlatList({
+        mutate: false,
+      });
+      priorAccountUpdatesFlat ??= proverData.transaction.accountUpdates;
+      priorAccountUpdatesFlat = priorAccountUpdatesFlat.filter(
         (a) => a.id !== myAccountUpdateId
-      );
-      let priorAccountUpdatesFlat = CallForest.toFlatList(
-        priorAccountUpdates,
-        false
       );
       let accountUpdate = [...priorAccountUpdatesFlat]
         .reverse()
@@ -1568,7 +1571,7 @@ const ProofAuthorization = {
   setLazyProof(
     accountUpdate: AccountUpdate,
     proof: Omit<LazyProof, 'kind'>,
-    priorAccountUpdates: AccountUpdate[]
+    priorAccountUpdates: AccountUpdateLayout
   ) {
     this.setKind(accountUpdate, priorAccountUpdates);
     accountUpdate.authorization = {};

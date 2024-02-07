@@ -1122,7 +1122,8 @@ class AccountUpdate implements Types.AccountUpdate {
       } > AccountUpdate.create()`;
     } else {
       currentTransaction()?.accountUpdates.push(accountUpdate);
-      accountUpdate.label = `Mina.transaction > AccountUpdate.create()`;
+      currentTransaction()?.layout.pushTopLevel(accountUpdate);
+      accountUpdate.label = `Mina.transaction() > AccountUpdate.create()`;
     }
     return accountUpdate;
   }
@@ -1145,6 +1146,7 @@ class AccountUpdate implements Types.AccountUpdate {
       if (!updates.find((update) => update.id === accountUpdate.id)) {
         updates.push(accountUpdate);
       }
+      currentTransaction.get().layout.pushTopLevel(accountUpdate);
     }
   }
   /**
@@ -1779,6 +1781,39 @@ const UnfinishedForest = {
     toPretty(forest);
     console.log(layout);
   },
+
+  toFlatList(
+    forest: UnfinishedForest,
+    mutate = true,
+    depth = 0
+  ): AccountUpdate[] {
+    let flatUpdates: AccountUpdate[] = [];
+    for (let node of forest.value) {
+      if (node.isDummy.toBoolean()) continue;
+      let update = node.accountUpdate.value;
+      if (mutate) update.body.callDepth = depth;
+      let children = UnfinishedForest.toFlatList(node.calls, mutate, depth + 1);
+      flatUpdates.push(update, ...children);
+    }
+    return flatUpdates;
+  },
+
+  toConstantInPlace(forest: UnfinishedForest) {
+    for (let node of forest.value) {
+      // `as any` to override readonly - this method is explicit about its mutability
+      (node.accountUpdate as any).value = Provable.toConstant(
+        AccountUpdate,
+        node.accountUpdate.value
+      );
+      if (node.accountUpdate.useHash) {
+        node.accountUpdate.hash = node.accountUpdate.hash.toConstant();
+      }
+      UnfinishedForest.toConstantInPlace(node.calls);
+    }
+    if (forest.useHash) {
+      forest.hash = forest.hash.toConstant();
+    }
+  },
 };
 
 function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
@@ -1858,6 +1893,11 @@ class AccountUpdateLayout {
   pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
     let parentNode = this.getOrCreate(parent);
     let childNode = this.getOrCreate(child);
+    if (childNode.siblings === parentNode.calls) return;
+    assert(
+      childNode.siblings === undefined,
+      'AccountUpdateLayout.pushChild(): child already has another parent.'
+    );
     childNode.siblings = parentNode.calls;
     parentNode.calls.value.push(childNode);
   }
@@ -1902,6 +1942,25 @@ class AccountUpdateLayout {
     this.final = final;
     AccountUpdateForest.assertConstant(final);
     return final;
+  }
+
+  toFlatList({ mutate }: { mutate: boolean }) {
+    return UnfinishedForest.toFlatList(this.root.calls, mutate);
+  }
+
+  forEachPredecessor(
+    update: AccountUpdate,
+    callback: (update: AccountUpdate) => void
+  ) {
+    let updates = this.toFlatList({ mutate: false });
+    for (let otherUpdate of updates) {
+      if (otherUpdate.id === update.id) return;
+      callback(otherUpdate);
+    }
+  }
+
+  toConstantInPlace() {
+    UnfinishedForest.toConstantInPlace(this.root.calls);
   }
 }
 

@@ -208,6 +208,7 @@ function createTransaction(
               tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
                 toConstant(AccountUpdate, a)
               );
+              tx.layout.toConstantInPlace();
             });
           });
         } else {
