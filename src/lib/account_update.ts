@@ -1149,10 +1149,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static unlink(accountUpdate: AccountUpdate) {
     // TODO duplicate logic
-    let insideContract = smartContractContext.get();
-    if (insideContract) {
-      UnfinishedForest.remove(insideContract.selfCalls, accountUpdate);
-    }
+    accountUpdates()?.disattach(accountUpdate);
     let siblings =
       accountUpdate.parent?.children.accountUpdates ??
       currentTransaction()?.accountUpdates;
