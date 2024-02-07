@@ -15,7 +15,6 @@ import {
   ZkappPublicInput,
   LazyProof,
   CallForest,
-  UnfinishedForest,
   AccountUpdateForest,
   SmartContractContext,
 } from './account_update.js';
@@ -215,7 +214,7 @@ function wrapMethod(
             ProofAuthorization.setKind(accountUpdate);
 
             debugPublicInput(accountUpdate);
-            let calls = context.selfLayout.finalize();
+            let calls = context.selfLayout.finalizeChildren();
             checkPublicInput(publicInput, accountUpdate, calls);
 
             // check the self accountUpdate right after calling the method
@@ -388,12 +387,24 @@ function wrapMethod(
             Mina.currentTransaction()!.accountUpdates
           );
         }
-        return { accountUpdate, result: result ?? null };
+        // extract callee's account update layout
+        let children = innerContext.selfLayout.finalizeChildren();
+
+        return {
+          accountUpdate,
+          result: { result: result ?? null, children },
+        };
       };
 
       // we have to run the called contract inside a witness block, to not affect the caller's circuit
-      let { accountUpdate, result } = AccountUpdate.witness<any>(
-        returnType ?? provable(null),
+      let {
+        accountUpdate,
+        result: { result, children },
+      } = AccountUpdate.witness<{ result: any; children: AccountUpdateForest }>(
+        provable({
+          result: returnType ?? provable(null),
+          children: AccountUpdateForest.provable,
+        }),
         runCalledContract,
         { skipCheck: true }
       );
@@ -412,10 +423,7 @@ function wrapMethod(
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
       insideContract.selfLayout.pushTopLevel(accountUpdate);
-      insideContract.selfLayout.setChildren(
-        accountUpdate,
-        UnfinishedForest.fromArray(accountUpdate.children.accountUpdates, true)
-      );
+      insideContract.selfLayout.setChildren(accountUpdate, children);
 
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);

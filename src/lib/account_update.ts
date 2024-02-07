@@ -64,6 +64,7 @@ import {
   SmartContractContext,
   smartContractContext,
 } from './mina/smart-contract-context.js';
+import { assert } from './util/assert.js';
 
 // external API
 export {
@@ -96,8 +97,6 @@ export {
   LazyProof,
   AccountUpdateTree,
   AccountUpdateLayout,
-  UnfinishedForest,
-  UnfinishedTree,
   hashAccountUpdate,
   HashedAccountUpdate,
   SmartContractContext,
@@ -1590,6 +1589,19 @@ class AccountUpdateForest extends MerkleList.create(
 
     return forest;
   }
+
+  // TODO this comes from paranoia and might be removed later
+  static assertConstant(forest: MerkleListBase<AccountUpdateTree>) {
+    Provable.asProver(() => {
+      forest.data.get().forEach(({ element: tree }) => {
+        assert(
+          Provable.isConstant(AccountUpdate, tree.accountUpdate.value.get()),
+          'account update not constant'
+        );
+        AccountUpdateForest.assertConstant(tree.calls);
+      });
+    });
+  }
 }
 
 // how to hash a forest
@@ -1647,25 +1659,6 @@ const UnfinishedForest = {
     return UnfinishedForest.setHash(forest, hash);
   },
 
-  fromArray(updates: AccountUpdate[], useHash = false): UnfinishedForest {
-    if (useHash) {
-      let forest: UnfinishedForest = UnfinishedForest.empty();
-      Provable.asProver(() => (forest = UnfinishedForest.fromArray(updates)));
-      return UnfinishedForest.witnessHash(forest);
-    }
-
-    let forest = UnfinishedForest.empty();
-    forest.value = updates.map((update): UnfinishedTree => {
-      return {
-        accountUpdate: { useHash: false, value: update },
-        isDummy: update.isDummy(),
-        calls: UnfinishedForest.fromArray(update.children.accountUpdates),
-        siblings: forest,
-      };
-    });
-    return forest;
-  },
-
   push(
     forest: UnfinishedForest,
     accountUpdate: AccountUpdate,
@@ -1705,21 +1698,26 @@ const UnfinishedForest = {
     forest.value.splice(index, 1);
   },
 
-  fromForest(forest: MerkleListBase<AccountUpdateTree>): UnfinishedForest {
+  fromForest(
+    forest: MerkleListBase<AccountUpdateTree>,
+    recursiveCall = false
+  ): UnfinishedForest {
     let unfinished = UnfinishedForest.empty();
     Provable.asProver(() => {
       unfinished.value = forest.data.get().map(({ element: tree }) => ({
         accountUpdate: {
           useHash: true,
-          hash: tree.accountUpdate.hash,
+          hash: tree.accountUpdate.hash.toConstant(),
           value: tree.accountUpdate.value.get(),
         },
         isDummy: Bool(false),
-        calls: UnfinishedForest.fromForest(tree.calls),
+        calls: UnfinishedForest.fromForest(tree.calls, true),
         siblings: unfinished,
       }));
     });
-    Object.assign(unfinished, { useHash: true, hash: forest.hash });
+    if (!recursiveCall) {
+      Object.assign(unfinished, { useHash: true, hash: forest.hash });
+    }
     return unfinished;
   },
 
@@ -1805,6 +1803,7 @@ const SmartContractContext = {
 class AccountUpdateLayout {
   readonly map: Map<number, UnfinishedTree>;
   readonly root: UnfinishedTree;
+  final?: AccountUpdateForest;
 
   constructor(root: UnfinishedTree) {
     this.map = new Map();
@@ -1879,8 +1878,11 @@ class AccountUpdateLayout {
     return UnfinishedForest.finalize(node.calls);
   }
 
-  finalize() {
-    return UnfinishedForest.finalize(this.root.calls);
+  finalizeChildren() {
+    let final = UnfinishedForest.finalize(this.root.calls);
+    this.final = final;
+    AccountUpdateForest.assertConstant(final);
+    return final;
   }
 }
 

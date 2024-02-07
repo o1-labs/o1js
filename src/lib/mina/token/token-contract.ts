@@ -5,7 +5,6 @@ import { PublicKey } from '../../signature.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
-  UnfinishedForest,
   AccountUpdateTree,
   HashedAccountUpdate,
   Permissions,
