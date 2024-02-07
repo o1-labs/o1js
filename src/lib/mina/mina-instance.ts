@@ -4,7 +4,7 @@
 import type { Field } from '../field.js';
 import { UInt64, UInt32 } from '../int.js';
 import type { PublicKey, PrivateKey } from '../signature.js';
-import type { Transaction, TransactionId } from '../mina.js';
+import type { Transaction, PendingTransaction } from '../mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from '../precondition.js';
 import type * as Fetch from '../fetch.js';
@@ -91,7 +91,7 @@ interface Mina {
    * @deprecated use {@link getNetworkConstants}
    */
   accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): Promise<TransactionId>;
+  sendTransaction(transaction: Transaction): Promise<PendingTransaction>;
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,

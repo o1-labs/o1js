@@ -53,7 +53,7 @@ export {
   LocalBlockchain,
   currentTransaction,
   Transaction,
-  TransactionId,
+  PendingTransaction,
   activeInstance,
   setActiveInstance,
   transaction,
@@ -88,7 +88,7 @@ setActiveInstance({
   },
 });
 
-interface TransactionId {
+interface PendingTransaction {
   isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
   hash(): string | undefined;
@@ -128,7 +128,7 @@ type Transaction = {
   /**
    * Sends the {@link Transaction} to the network.
    */
-  send(): Promise<TransactionId>;
+  send(): Promise<PendingTransaction>;
 };
 
 const Transaction = {
@@ -387,7 +387,7 @@ function LocalBlockchain({
     getNetworkState() {
       return networkState;
     },
-    async sendTransaction(txn: Transaction): Promise<TransactionId> {
+    async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
       txn.sign();
 
       let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
