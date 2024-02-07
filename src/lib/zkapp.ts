@@ -411,14 +411,10 @@ function wrapMethod(
       accountUpdate.children.callsType = { type: 'Witness' };
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
-      let grandchildren = UnfinishedForest.fromArray(
-        accountUpdate.children.accountUpdates,
-        true
-      );
-      UnfinishedForest.push(
-        insideContract.selfCalls,
+      insideContract.selfLayout.pushTopLevel(accountUpdate);
+      insideContract.selfLayout.setChildren(
         accountUpdate,
-        grandchildren
+        UnfinishedForest.fromArray(accountUpdate.children.accountUpdates, true)
       );
 
       // assert that we really called the right zkapp
