@@ -1852,12 +1852,15 @@ class AccountUpdateLayout {
 
   setChildren(
     parent: AccountUpdate | UnfinishedTree,
-    children: AccountUpdateForest
+    children: AccountUpdateForest | UnfinishedForest
   ) {
     let parentNode = this.getOrCreate(parent);
     // we're not allowed to switch parentNode.children, it must stay the same reference
     // so we mutate it in place
-    Object.assign(parentNode.calls, UnfinishedForest.fromForest(children));
+    if (children instanceof AccountUpdateForest) {
+      children = UnfinishedForest.fromForest(children);
+    }
+    Object.assign(parentNode.calls, children);
   }
 
   setTopLevel(children: AccountUpdateForest) {

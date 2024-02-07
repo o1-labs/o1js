@@ -202,10 +202,10 @@ class MerkleList<T> implements MerkleListBase<T> {
     from: (array: T[]) => MerkleList<T>;
     provable: ProvableHashable<MerkleList<T>>;
   } {
-    return class MerkleList_ extends MerkleList<T> {
+    class MerkleListTBase extends MerkleList<T> {
       static _innerProvable = type;
 
-      static _provable = provableFromClass(MerkleList_, {
+      static _provable = provableFromClass(MerkleListTBase, {
         hash: Field,
         data: Unconstrained.provable,
       }) as ProvableHashable<MerkleList<T>>;
@@ -224,6 +224,12 @@ class MerkleList<T> implements MerkleListBase<T> {
       static get provable(): ProvableHashable<MerkleList<T>> {
         assert(this._provable !== undefined, 'MerkleList not initialized');
         return this._provable;
+      }
+    }
+    // override `instanceof` for subclasses
+    return class MerkleListT extends MerkleListTBase {
+      static [Symbol.hasInstance](x: any): boolean {
+        return x instanceof MerkleListTBase;
       }
     };
   }
