@@ -215,7 +215,9 @@ function wrapMethod(
             ProofAuthorization.setKind(accountUpdate);
 
             debugPublicInput(accountUpdate);
-            let calls = UnfinishedForest.finalize(context.selfCalls);
+            let calls = UnfinishedForest.finalize(
+              context.selfLayout.root.calls
+            );
             checkPublicInput(publicInput, accountUpdate, calls);
 
             // check the self accountUpdate right after calling the method

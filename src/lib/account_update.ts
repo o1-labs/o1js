@@ -1776,16 +1776,15 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
 
 const SmartContractContext = {
   enter(self: SmartContract, selfUpdate: AccountUpdate) {
-    let selfCalls = UnfinishedForest.empty();
+    let calls = UnfinishedForest.empty();
     let context: SmartContractContext = {
       this: self,
       selfUpdate,
       selfLayout: new AccountUpdateLayout({
         accountUpdate: { useHash: false, value: selfUpdate },
         isDummy: Bool(false),
-        calls: selfCalls,
+        calls,
       }),
-      selfCalls,
     };
     let id = smartContractContext.enter(context);
     return { id, context };

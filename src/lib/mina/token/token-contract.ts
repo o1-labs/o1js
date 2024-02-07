@@ -65,7 +65,7 @@ abstract class TokenContract extends SmartContract {
     );
 
     // make top-level updates our children
-    // TODO: this must not be necessary once we move everything to `selfCalls`
+    // TODO: this must not be necessary once we move everything to `selfLayout`
     Provable.asProver(() => {
       updates.data.get().forEach((update) => {
         let accountUpdate = update.element.accountUpdate.value.get();
