@@ -1805,6 +1805,7 @@ const UnfinishedForest = {
         AccountUpdate,
         node.accountUpdate.value
       );
+      node.isDummy = Provable.toConstant(Bool, node.isDummy);
       if (node.accountUpdate.useHash) {
         node.accountUpdate.hash = node.accountUpdate.hash.toConstant();
       }

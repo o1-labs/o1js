@@ -53,6 +53,7 @@ import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {
   inAnalyze,
+  inCheckedComputation,
   inCompile,
   inProver,
   snarkContext,
@@ -244,7 +245,6 @@ function wrapMethod(
           // => attach ours to the current list of account updates
           let accountUpdate = context.selfUpdate;
           Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
-          Mina.currentTransaction.get().layout.pushTopLevel(accountUpdate);
 
           // first, clone to protect against the method modifying arguments!
           // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, o1js primitives
@@ -301,6 +301,18 @@ function wrapMethod(
               Mina.currentTransaction.get().layout
             );
           }
+
+          // transfer layout from the smart contract context to the transaction
+          if (inCheckedComputation()) {
+            Provable.asProver(() => {
+              accountUpdate = Provable.toConstant(AccountUpdate, accountUpdate);
+              context.selfLayout.toConstantInPlace();
+            });
+          }
+          let txLayout = Mina.currentTransaction.get().layout;
+          txLayout.pushTopLevel(accountUpdate);
+          txLayout.setChildren(accountUpdate, context.selfLayout.root.calls);
+
           return result;
         }
       } finally {

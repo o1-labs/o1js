@@ -208,7 +208,6 @@ function createTransaction(
               tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
                 toConstant(AccountUpdate, a)
               );
-              tx.layout.toConstantInPlace();
             });
           });
         } else {
@@ -228,6 +227,22 @@ function createTransaction(
   // TODO: I'll be back
   // CallForest.addCallers(accountUpdates);
   accountUpdates = CallForest.toFlatList(accountUpdates);
+
+  let otherAccountUpdates = currentTransaction
+    .get()
+    .layout.toFlatList({ mutate: true });
+
+  if (otherAccountUpdates.length !== accountUpdates.length) {
+    console.log(
+      'expected',
+      accountUpdates.map((a) => a.toPretty())
+    );
+    console.log(
+      'actual  ',
+      otherAccountUpdates.map((a) => a.toPretty())
+    );
+    throw Error('mismatch');
+  }
 
   try {
     // check that on-chain values weren't used without setting a precondition
