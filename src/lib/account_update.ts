@@ -1626,7 +1626,8 @@ type UnfinishedForest = HashOrValue<UnfinishedTree[]>;
 type UnfinishedTree = {
   accountUpdate: HashOrValue<AccountUpdate>;
   isDummy: Bool;
-  calls: UnfinishedForest;
+  // `children` must be readonly since it's referenced in each child's siblings
+  readonly calls: UnfinishedForest;
 };
 
 type HashOrValue<T> =
@@ -1798,8 +1799,8 @@ const SmartContractContext = {
 };
 
 class AccountUpdateLayout {
-  map: Map<number, UnfinishedTree>;
-  root: UnfinishedTree;
+  readonly map: Map<number, UnfinishedTree>;
+  readonly root: UnfinishedTree;
 
   constructor(root: UnfinishedTree) {
     this.map = new Map();
@@ -1836,10 +1837,12 @@ class AccountUpdateLayout {
     children: AccountUpdateForest
   ) {
     let parentNode = this.getNode(parent);
-    parentNode.calls = UnfinishedForest.fromForest(children);
+    // we're not allowed to switch parentNode.calls, it must stay the same reference
+    // so we mutate it in place
+    Object.assign(parentNode.calls, UnfinishedForest.fromForest(children));
   }
   setTopLevel(children: AccountUpdateForest) {
-    this.root.calls = UnfinishedForest.fromForest(children);
+    this.setChildren(this.root, children);
   }
 }
 
