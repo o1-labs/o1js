@@ -17,6 +17,7 @@ import {
   CallForest,
   AccountUpdateForest,
   SmartContractContext,
+  AccountUpdateLayout,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -60,6 +61,7 @@ import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
 import { ZkappStateLength } from './mina/mina-instance.js';
+import { accountUpdates } from './mina/smart-contract-context.js';
 
 // external API
 export {
@@ -176,6 +178,8 @@ function wrapMethod(
           let txId = Mina.currentTransaction.enter({
             sender: proverData?.transaction.feePayer.body.publicKey,
             accountUpdates: [],
+            // TODO could pass an update with the fee payer's content here? probably not bc it's not accessed
+            layout: new AccountUpdateLayout(),
             fetchMode: inProver() ? 'cached' : 'test',
             isFinalRunOutsideCircuit: false,
             numberOfRuns: undefined,

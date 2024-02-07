@@ -1,6 +1,7 @@
 import type { SmartContract } from '../zkapp.js';
 import type { AccountUpdate, AccountUpdateLayout } from '../account_update.js';
 import { Context } from '../global-context.js';
+import { currentTransaction } from './transaction-context.js';
 
 export { smartContractContext, SmartContractContext, accountUpdates };
 
@@ -14,5 +15,11 @@ let smartContractContext = Context.create<null | SmartContractContext>({
 });
 
 function accountUpdates() {
-  return smartContractContext.get()?.selfLayout;
+  // in a smart contract, return the layout currently created in the contract call
+  let layout = smartContractContext.get()?.selfLayout;
+
+  // if not in a smart contract but in a transaction, return the layout of the transaction
+  layout ??= currentTransaction()?.layout;
+
+  return layout;
 }

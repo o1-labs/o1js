@@ -15,6 +15,7 @@ import {
   Actions,
   Events,
   dummySignature,
+  AccountUpdateLayout,
 } from './account_update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
@@ -182,6 +183,7 @@ function createTransaction(
   let transactionId = currentTransaction.enter({
     sender,
     accountUpdates: [],
+    layout: new AccountUpdateLayout(),
     fetchMode,
     isFinalRunOutsideCircuit,
     numberOfRuns,

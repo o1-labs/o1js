@@ -1800,11 +1800,7 @@ const SmartContractContext = {
     let context: SmartContractContext = {
       this: self,
       selfUpdate,
-      selfLayout: new AccountUpdateLayout({
-        accountUpdate: { useHash: false, value: selfUpdate },
-        isDummy: Bool(false),
-        calls: UnfinishedForest.empty(),
-      }),
+      selfLayout: new AccountUpdateLayout(selfUpdate),
     };
     let id = smartContractContext.enter(context);
     return { id, context };
@@ -1825,10 +1821,16 @@ class AccountUpdateLayout {
   readonly root: UnfinishedTree;
   final?: AccountUpdateForest;
 
-  constructor(root: UnfinishedTree) {
+  constructor(root?: AccountUpdate) {
     this.map = new Map();
-    this.map.set(root.accountUpdate.value.id, root);
-    this.root = root;
+    root ??= AccountUpdate.dummy();
+    let rootTree: UnfinishedTree = {
+      accountUpdate: { useHash: false, value: root },
+      isDummy: Bool(false),
+      calls: UnfinishedForest.empty(),
+    };
+    this.map.set(root.id, rootTree);
+    this.root = rootTree;
   }
 
   get(update: AccountUpdate) {
