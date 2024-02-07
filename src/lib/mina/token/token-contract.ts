@@ -12,10 +12,7 @@ import {
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
-import {
-  accountUpdates,
-  smartContractContext,
-} from '../smart-contract-context.js';
+import { accountUpdates } from '../smart-contract-context.js';
 
 export { TokenContract };
 
@@ -153,15 +150,11 @@ function finalizeAccountUpdates(updates: AccountUpdate[]): AccountUpdateForest {
 function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
   let calls: AccountUpdateForest;
 
-  let insideContract = smartContractContext.get();
-  if (insideContract) {
-    let node = insideContract.selfCalls.value.find(
-      (c) => c.accountUpdate.value.id === update.id
-    );
-    if (node !== undefined) {
-      calls = UnfinishedForest.finalize(node.calls);
-    }
+  let node = accountUpdates()?.get(update);
+  if (node !== undefined) {
+    calls = UnfinishedForest.finalize(node.calls);
   }
+
   calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates, {
     skipDummies: true,
   });
