@@ -676,7 +676,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }
       if (accountLike instanceof AccountUpdate) {
         accountLike.tokenId.assertEquals(id);
-        thisAccountUpdate.approve(accountLike);
+        thisAccountUpdate.adopt(accountLike);
       }
       if (accountLike instanceof PublicKey) {
         accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);

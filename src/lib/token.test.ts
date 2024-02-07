@@ -12,7 +12,6 @@ import {
   Permissions,
   VerificationKey,
   Field,
-  Experimental,
   Int64,
   TokenId,
 } from 'o1js';
@@ -84,38 +83,31 @@ class TokenContract extends SmartContract {
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }
 
-  @method approveTransferCallback(
+  @method approveTransfer(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
     amount: UInt64,
-    callback: Experimental.Callback<any>
+    senderAccountUpdate: AccountUpdate
   ) {
-    let layout = AccountUpdate.Layout.NoChildren; // Allow only 1 accountUpdate with no children
-    let senderAccountUpdate = this.approve(callback, layout);
-    let negativeAmount = Int64.fromObject(
-      senderAccountUpdate.body.balanceChange
-    );
+    this.self.adopt(senderAccountUpdate);
+    let negativeAmount = senderAccountUpdate.balanceChange;
     negativeAmount.assertEquals(Int64.from(amount).neg());
     let tokenId = this.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
-    let receiverAccountUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      receiverAddress,
-      tokenId
-    );
+    let receiverAccountUpdate = AccountUpdate.create(receiverAddress, tokenId);
     receiverAccountUpdate.balance.addInPlace(amount);
   }
 }
 
 class ZkAppB extends SmartContract {
-  @method approveZkapp(amount: UInt64) {
+  @method approveSend(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 }
 
 class ZkAppC extends SmartContract {
-  @method approveZkapp(amount: UInt64) {
+  @method approveSend(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 
@@ -535,16 +527,13 @@ describe('Token', () => {
         await tx.sign([feePayerKey, tokenZkappKey]).send();
 
         tx = await Mina.transaction(feePayer, () => {
-          let approveSendingCallback = Experimental.Callback.create(
-            zkAppB,
-            'approveZkapp',
-            [UInt64.from(10_000)]
-          );
-          tokenZkapp.approveTransferCallback(
+          zkAppB.approveSend(UInt64.from(10_000));
+
+          tokenZkapp.approveTransfer(
             zkAppBAddress,
             zkAppCAddress,
             UInt64.from(10_000),
-            approveSendingCallback
+            zkAppB.self
           );
         });
         await tx.prove();
@@ -570,16 +559,12 @@ describe('Token', () => {
 
         await expect(() =>
           Mina.transaction(feePayer, () => {
-            let approveSendingCallback = Experimental.Callback.create(
-              zkAppC,
-              'approveIncorrectLayout',
-              [UInt64.from(10_000)]
-            );
-            tokenZkapp.approveTransferCallback(
+            zkAppC.approveIncorrectLayout(UInt64.from(10_000));
+            tokenZkapp.approveTransfer(
               zkAppBAddress,
               zkAppCAddress,
               UInt64.from(10_000),
-              approveSendingCallback
+              zkAppC.self
             );
           })
         ).rejects.toThrow();
