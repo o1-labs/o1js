@@ -1146,6 +1146,14 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static unlink(accountUpdate: AccountUpdate) {
     accountUpdates()?.disattach(accountUpdate);
+
+    let siblings = accountUpdate.parent?.children.accountUpdates;
+    if (siblings === undefined) return;
+    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
+    accountUpdate.parent === undefined;
   }
 
   /**
