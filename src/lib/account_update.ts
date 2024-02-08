@@ -790,11 +790,19 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Makes an {@link AccountUpdate} a child of this and approves it.
+   * Makes another {@link AccountUpdate} a child of this one.
+   *
+   * The parent-child relationship means that the child becomes part of the "statement"
+   * of the parent, and goes into the commitment that is authorized by either a signature
+   * or a proof.
+   *
+   * For a proof in particular, child account updates are contained in the public input
+   * of the proof that authorizes the parent account update.
    */
-  approve(childUpdate: AccountUpdate) {
-    makeChildAccountUpdate(this, childUpdate);
-    accountUpdates()?.pushChild(this, childUpdate);
+  approve(child: AccountUpdate) {
+    child.body.callDepth = this.body.callDepth + 1;
+    accountUpdates()?.disattach(child);
+    accountUpdates()?.pushChild(this, child);
   }
 
   get balance() {
@@ -1776,18 +1784,16 @@ class AccountUpdateLayout {
   }
 }
 
+// TODO remove
 function createChildAccountUpdate(
   parent: AccountUpdate,
   childAddress: PublicKey,
   tokenId?: Field
 ) {
   let child = AccountUpdate.defaultAccountUpdate(childAddress, tokenId);
-  makeChildAccountUpdate(parent, child);
-  return child;
-}
-function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
   AccountUpdate.unlink(child);
+  return child;
 }
 
 // authorization
