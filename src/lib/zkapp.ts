@@ -14,7 +14,6 @@ import {
   ZkappPublicInput,
   LazyProof,
   AccountUpdateForest,
-  SmartContractContext,
   AccountUpdateLayout,
 } from './account_update.js';
 import {
@@ -61,6 +60,7 @@ import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
 import { ZkappStateLength } from './mina/mina-instance.js';
 import {
+  SmartContractContext,
   accountUpdates,
   smartContractContext,
 } from './mina/smart-contract-context.js';

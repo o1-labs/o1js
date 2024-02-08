@@ -67,7 +67,6 @@ import {
 import { Hashed } from './provable-types/packed.js';
 import {
   accountUpdates,
-  SmartContractContext,
   smartContractContext,
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
@@ -104,7 +103,6 @@ export {
   AccountUpdateLayout,
   hashAccountUpdate,
   HashedAccountUpdate,
-  SmartContractContext,
 };
 
 const TransactionVersion = {
