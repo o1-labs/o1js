@@ -152,17 +152,18 @@ type IncludedTransaction = Pick<
 };
 
 function createIncludedTransaction(
-  isIncluded: boolean,
   {
     transaction,
     toJSON,
     toPretty,
     hash,
     data,
-  }: Omit<PendingTransaction, 'wait'>
+  }: Omit<PendingTransaction, 'wait'>,
+  errors?: string[]
 ): IncludedTransaction {
   return {
-    isIncluded,
+    isIncluded: errors === undefined,
+    errors,
     transaction,
     toJSON,
     toPretty,
@@ -576,9 +577,7 @@ function LocalBlockchain({
         console.log(
           'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
         );
-        return Promise.resolve(
-          createIncludedTransaction(true, pendingTransaction)
-        );
+        return Promise.resolve(createIncludedTransaction(pendingTransaction));
       };
 
       return {
@@ -855,11 +854,7 @@ function Network(
         errors = response.errors;
       }
 
-      let isSuccess = errors === undefined;
-      let maxAttempts: number;
-      let attempts = 0;
-      let interval: number;
-
+      const isSuccess = errors === undefined;
       const pendingTransaction = {
         isSuccess,
         data: response?.data,
@@ -873,81 +868,63 @@ function Network(
         },
       };
 
+      const pollTransactionStatus = async (
+        txId: string,
+        maxAttempts: number,
+        interval: number,
+        attempts: number = 0
+      ): Promise<IncludedTransaction> => {
+        let res: Awaited<ReturnType<typeof Fetch.checkZkappTransaction>>;
+        try {
+          res = await Fetch.checkZkappTransaction(txId);
+          if (res.success) {
+            return createIncludedTransaction(pendingTransaction);
+          } else if (res.failureReason) {
+            return createIncludedTransaction(pendingTransaction, [
+              `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
+            ]);
+          }
+        } catch (error) {
+          return createIncludedTransaction(pendingTransaction, [
+            (error as Error).message,
+          ]);
+        }
+
+        if (maxAttempts && attempts >= maxAttempts) {
+          return createIncludedTransaction(pendingTransaction, [
+            `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`,
+          ]);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, interval));
+        return pollTransactionStatus(txId, maxAttempts, interval, attempts + 1);
+      };
+
       const wait = async (options?: {
         maxAttempts?: number;
         interval?: number;
-      }) => {
+      }): Promise<IncludedTransaction> => {
         if (!isSuccess) {
-          console.warn(
-            'Transaction.wait(): returning immediately because the transaction was not successful.'
+          return createIncludedTransaction(
+            pendingTransaction,
+            pendingTransaction.errors
           );
-          const includedTransaction = createIncludedTransaction(
-            false,
-            pendingTransaction
-          );
-          includedTransaction.errors = errors;
-          return includedTransaction;
         }
+
         // default is 45 attempts * 20s each = 15min
         // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
         // fetching an update every 20s is more than enough with a current block time of 3min
-        maxAttempts = options?.maxAttempts ?? 45;
-        interval = options?.interval ?? 20000;
+        const maxAttempts = options?.maxAttempts ?? 45;
+        const interval = options?.interval ?? 20000;
+        const txId = response?.data?.sendZkapp?.zkapp?.hash;
 
-        const executePoll = async (
-          resolve: (i: IncludedTransaction) => void,
-          reject: (i: IncludedTransaction) => void
-        ) => {
-          let txId = response?.data?.sendZkapp?.zkapp?.hash;
-          if (!txId) {
-            const includedTransaction = createIncludedTransaction(
-              false,
-              pendingTransaction
-            );
-            includedTransaction.errors = [
-              `Transaction failed.\nCould not find the transaction hash.`,
-            ];
-            return reject(includedTransaction);
-          }
-          let res;
-          try {
-            res = await Fetch.checkZkappTransaction(txId);
-          } catch (error) {
-            const includedTransaction = createIncludedTransaction(
-              false,
-              pendingTransaction
-            );
-            includedTransaction.errors = [(error as Error).message];
-            return reject(includedTransaction);
-          }
-          attempts++;
-          if (res.success) {
-            return resolve(createIncludedTransaction(true, pendingTransaction));
-          } else if (res.failureReason) {
-            // isSuccess = false;
-            const includedTransaction = createIncludedTransaction(
-              false,
-              pendingTransaction
-            );
-            includedTransaction.errors = [
-              `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
-            ];
-            return reject(includedTransaction);
-          } else if (maxAttempts && attempts === maxAttempts) {
-            const includedTransaction = createIncludedTransaction(
-              false,
-              pendingTransaction
-            );
-            includedTransaction.errors = [
-              `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`,
-            ];
-            return reject(includedTransaction);
-          } else {
-            setTimeout(executePoll, interval, resolve, reject);
-          }
-        };
-
-        return new Promise(executePoll);
+        if (!txId) {
+          return createIncludedTransaction(
+            pendingTransaction,
+            pendingTransaction.errors
+          );
+        }
+        return pollTransactionStatus(txId, maxAttempts, interval);
       };
 
       return {
