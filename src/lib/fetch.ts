@@ -211,7 +211,7 @@ async function fetchAccountInternal(
 }
 
 type FetchConfig = { timeout?: number };
-type FetchResponse = { data: any; errors?: any };
+type FetchResponse<TDataResponse = any> = { data: TDataResponse; errors?: any };
 type FetchError = {
   statusCode: number;
   statusText: string;
@@ -1213,7 +1213,7 @@ function removeJsonQuotes(json: string) {
 }
 
 // TODO it seems we're not actually catching most errors here
-async function makeGraphqlRequest(
+async function makeGraphqlRequest<TDataResponse = any>(
   query: string,
   graphqlEndpoint = networkConfig.minaEndpoint,
   fallbackEndpoints: string[],
@@ -1241,7 +1241,7 @@ async function makeGraphqlRequest(
         body,
         signal: controller.signal,
       });
-      return checkResponseStatus(response);
+      return checkResponseStatus<TDataResponse>(response);
     } finally {
       clearTimeouts();
     }
@@ -1284,9 +1284,11 @@ async function makeGraphqlRequest(
   ];
 }
 
-async function checkResponseStatus(
+async function checkResponseStatus<TDataResponse>(
   response: Response
-): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
+): Promise<
+  [FetchResponse<TDataResponse>, undefined] | [undefined, FetchError]
+> {
   if (response.ok) {
     let jsonResponse = await response.json();
     if (jsonResponse.errors && jsonResponse.errors.length > 0) {
@@ -1308,7 +1310,7 @@ async function checkResponseStatus(
         } as FetchError,
       ];
     }
-    return [jsonResponse as FetchResponse, undefined];
+    return [jsonResponse as FetchResponse<TDataResponse>, undefined];
   } else {
     return [
       undefined,
