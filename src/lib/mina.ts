@@ -141,6 +141,13 @@ type PendingTransaction = Pick<
   errors?: string[];
 };
 
+type IncludedTransaction = Pick<
+  PendingTransaction,
+  'transaction' | 'toJSON' | 'toPretty' | 'hash' | 'data' | 'errors'
+> & {
+  isIncluded: boolean;
+};
+
 const Transaction = {
   fromJSON(json: Types.Json.ZkappCommand): Transaction {
     let transaction = ZkappCommand.fromJSON(json);
