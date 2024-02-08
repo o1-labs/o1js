@@ -135,7 +135,10 @@ type PendingTransaction = Pick<
   'transaction' | 'toJSON' | 'toPretty'
 > & {
   isSuccess: boolean;
-  wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
+  wait(options?: {
+    maxAttempts?: number;
+    interval?: number;
+  }): Promise<IncludedTransaction>;
   hash(): string;
   data?: SendZkAppResponse;
   errors?: string[];
@@ -147,6 +150,26 @@ type IncludedTransaction = Pick<
 > & {
   isIncluded: boolean;
 };
+
+function createIncludedTransaction(
+  isIncluded: boolean,
+  {
+    transaction,
+    toJSON,
+    toPretty,
+    hash,
+    data,
+  }: Omit<PendingTransaction, 'wait'>
+): IncludedTransaction {
+  return {
+    isIncluded,
+    transaction,
+    toJSON,
+    toPretty,
+    hash,
+    data,
+  };
+}
 
 const Transaction = {
   fromJSON(json: Types.Json.ZkappCommand): Transaction {
@@ -532,25 +555,35 @@ function LocalBlockchain({
           });
         }
       });
-      return {
+
+      const pendingTransaction = {
         isSuccess: true,
         transaction: txn.transaction,
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
-        wait: async (_options?: {
-          maxAttempts?: number;
-          interval?: number;
-        }) => {
-          console.log(
-            'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
-          );
-        },
         hash: (): string => {
           const message =
             'Info: Txn Hash retrieving is not supported for LocalBlockchain.';
           console.log(message);
           return message;
         },
+      };
+
+      const wait = async (_options?: {
+        maxAttempts?: number;
+        interval?: number;
+      }) => {
+        console.log(
+          'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
+        );
+        return Promise.resolve(
+          createIncludedTransaction(true, pendingTransaction)
+        );
+      };
+
+      return {
+        ...pendingTransaction,
+        wait,
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
@@ -827,74 +860,99 @@ function Network(
       let attempts = 0;
       let interval: number;
 
-      return {
+      const pendingTransaction = {
         isSuccess,
         data: response?.data,
         errors,
         transaction: txn.transaction,
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
-        async wait(options?: { maxAttempts?: number; interval?: number }) {
-          if (!isSuccess) {
-            console.warn(
-              'Transaction.wait(): returning immediately because the transaction was not successful.'
-            );
-            return;
-          }
-          // default is 45 attempts * 20s each = 15min
-          // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
-          // fetching an update every 20s is more than enough with a current block time of 3min
-          maxAttempts = options?.maxAttempts ?? 45;
-          interval = options?.interval ?? 20000;
-
-          const executePoll = async (
-            resolve: () => void,
-            reject: (err: Error) => void | Error
-          ) => {
-            let txId = response?.data?.sendZkapp?.zkapp?.hash;
-            if (!txId) {
-              return reject(
-                new Error(
-                  `Transaction failed.\nCould not find the transaction hash.`
-                )
-              );
-            }
-            let res;
-            try {
-              res = await Fetch.checkZkappTransaction(txId);
-            } catch (error) {
-              isSuccess = false;
-              return reject(error as Error);
-            }
-            attempts++;
-            if (res.success) {
-              isSuccess = true;
-              return resolve();
-            } else if (res.failureReason) {
-              isSuccess = false;
-              return reject(
-                new Error(
-                  `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`
-                )
-              );
-            } else if (maxAttempts && attempts === maxAttempts) {
-              isSuccess = false;
-              return reject(
-                new Error(
-                  `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`
-                )
-              );
-            } else {
-              setTimeout(executePoll, interval, resolve, reject);
-            }
-          };
-
-          return new Promise(executePoll);
-        },
         hash() {
           // TODO: compute this
           return response?.data?.sendZkapp?.zkapp?.hash!;
         },
+      };
+
+      const wait = async (options?: {
+        maxAttempts?: number;
+        interval?: number;
+      }) => {
+        if (!isSuccess) {
+          console.warn(
+            'Transaction.wait(): returning immediately because the transaction was not successful.'
+          );
+          const includedTransaction = createIncludedTransaction(
+            false,
+            pendingTransaction
+          );
+          includedTransaction.errors = errors;
+          return includedTransaction;
+        }
+        // default is 45 attempts * 20s each = 15min
+        // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
+        // fetching an update every 20s is more than enough with a current block time of 3min
+        maxAttempts = options?.maxAttempts ?? 45;
+        interval = options?.interval ?? 20000;
+
+        const executePoll = async (
+          resolve: (i: IncludedTransaction) => void,
+          reject: (i: IncludedTransaction) => void
+        ) => {
+          let txId = response?.data?.sendZkapp?.zkapp?.hash;
+          if (!txId) {
+            const includedTransaction = createIncludedTransaction(
+              false,
+              pendingTransaction
+            );
+            includedTransaction.errors = [
+              `Transaction failed.\nCould not find the transaction hash.`,
+            ];
+            return reject(includedTransaction);
+          }
+          let res;
+          try {
+            res = await Fetch.checkZkappTransaction(txId);
+          } catch (error) {
+            const includedTransaction = createIncludedTransaction(
+              false,
+              pendingTransaction
+            );
+            includedTransaction.errors = [(error as Error).message];
+            return reject(includedTransaction);
+          }
+          attempts++;
+          if (res.success) {
+            return resolve(createIncludedTransaction(true, pendingTransaction));
+          } else if (res.failureReason) {
+            // isSuccess = false;
+            const includedTransaction = createIncludedTransaction(
+              false,
+              pendingTransaction
+            );
+            includedTransaction.errors = [
+              `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
+            ];
+            return reject(includedTransaction);
+          } else if (maxAttempts && attempts === maxAttempts) {
+            const includedTransaction = createIncludedTransaction(
+              false,
+              pendingTransaction
+            );
+            includedTransaction.errors = [
+              `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`,
+            ];
+            return reject(includedTransaction);
+          } else {
+            setTimeout(executePoll, interval, resolve, reject);
+          }
+        };
+
+        return new Promise(executePoll);
+      };
+
+      return {
+        ...pendingTransaction,
+        wait,
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
