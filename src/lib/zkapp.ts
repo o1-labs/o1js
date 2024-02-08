@@ -844,7 +844,7 @@ super.init();
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
-  // same as this.self, but explicitly creates a _new_ account update
+
   /**
    * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
    */

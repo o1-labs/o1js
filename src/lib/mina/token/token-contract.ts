@@ -89,16 +89,16 @@ abstract class TokenContract extends SmartContract {
   /**
    * Approve a single account update (with arbitrarily many children).
    */
-  approveAccountUpdate(accountUpdate: AccountUpdate) {
-    let forest = finalizeAccountUpdates([accountUpdate]);
+  approveAccountUpdate(accountUpdate: AccountUpdate | AccountUpdateTree) {
+    let forest = toForest([accountUpdate]);
     this.approveBase(forest);
   }
 
   /**
    * Approve a list of account updates (with arbitrarily many children).
    */
-  approveAccountUpdates(accountUpdates: AccountUpdate[]) {
-    let forest = finalizeAccountUpdates(accountUpdates);
+  approveAccountUpdates(accountUpdates: (AccountUpdate | AccountUpdateTree)[]) {
+    let forest = toForest(accountUpdates);
     this.approveBase(forest);
   }
 
@@ -127,19 +127,16 @@ abstract class TokenContract extends SmartContract {
     from.balanceChange = Int64.from(amount).neg();
     to.balanceChange = Int64.from(amount);
 
-    let forest = finalizeAccountUpdates([from, to]);
+    let forest = toForest([from, to]);
     this.approveBase(forest);
   }
 }
 
-function finalizeAccountUpdates(updates: AccountUpdate[]): AccountUpdateForest {
-  let trees = updates.map(finalizeAccountUpdate);
+function toForest(
+  updates: (AccountUpdate | AccountUpdateTree)[]
+): AccountUpdateForest {
+  let trees = updates.map((a) =>
+    a instanceof AccountUpdate ? a.extractTree() : a
+  );
   return AccountUpdateForest.from(trees);
-}
-
-function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
-  let calls = accountUpdates()?.finalizeAndRemove(update);
-  calls ??= AccountUpdateForest.empty();
-
-  return { accountUpdate: HashedAccountUpdate.hash(update), calls };
 }

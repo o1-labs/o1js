@@ -212,9 +212,15 @@ class Hashed<T> {
 
   /**
    * Wrap a value, and represent it by its hash in provable code.
+   *
+   * ```ts
+   * let hashed = HashedType.hash(value);
+   * ```
+   *
+   * Optionally, if you already have the hash, you can pass it in and avoid recomputing it.
    */
-  static hash<T>(value: T): Hashed<T> {
-    let hash = this._hash(value);
+  static hash<T>(value: T, hash?: Field): Hashed<T> {
+    hash ??= this._hash(value);
     let unconstrained = Unconstrained.witness(() =>
       Provable.toConstant(this.innerProvable, value)
     );

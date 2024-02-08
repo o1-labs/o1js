@@ -1050,6 +1050,14 @@ class AccountUpdate implements Types.AccountUpdate {
     node.children.print();
   }
 
+  extractTree(): AccountUpdateTree {
+    let layout = accountUpdates();
+    let hash = layout?.get(this)?.accountUpdate.hash;
+    let calls = layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
+    let accountUpdate = HashedAccountUpdate.hash(this, hash);
+    return { accountUpdate, calls };
+  }
+
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
     return new AccountUpdate(Body.keepAll(address, tokenId));
   }
@@ -1659,15 +1667,10 @@ class UnfinishedForest {
 }
 
 function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
-  let accountUpdate =
-    node.accountUpdate.hash !== undefined
-      ? new HashedAccountUpdate(
-          node.accountUpdate.hash,
-          Unconstrained.witness(() =>
-            Provable.toConstant(AccountUpdate, node.accountUpdate.value)
-          )
-        )
-      : HashedAccountUpdate.hash(node.accountUpdate.value);
+  let accountUpdate = HashedAccountUpdate.hash(
+    node.accountUpdate.value,
+    node.accountUpdate.hash
+  );
   let calls = node.children.finalize();
   return { accountUpdate, isDummy: node.isDummy, calls };
 }
@@ -1736,6 +1739,7 @@ class AccountUpdateLayout {
   disattach(update: AccountUpdate) {
     let node = this.get(update);
     node?.siblings?.remove(node);
+    return node;
   }
 
   finalizeAndRemove(update: AccountUpdate) {
