@@ -432,7 +432,7 @@ function accountCacheKey(
  * Fetches the last block on the Mina network.
  */
 async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
-  let [resp, error] = await makeGraphqlRequest(
+  let [resp, error] = await makeGraphqlRequest<LastBlockQueryResponse>(
     lastBlockQuery,
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints
@@ -450,6 +450,43 @@ async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
   };
   return network;
 }
+
+type EpochData = {
+  ledger: {
+    hash: string;
+    totalCurrency: string;
+  };
+  seed: string;
+  startCheckpoint: string;
+  lockCheckpoint: string;
+  epochLength: string;
+};
+
+type LastBlockQueryResponse = {
+  bestChain: {
+    protocolState: {
+      blockchainState: {
+        snarkedLedgerHash: string;
+        stagedLedgerHash: string;
+        date: string;
+        utcDate: string;
+        stagedLedgerProofEmitted: boolean;
+      };
+      previousStateHash: string;
+      consensusState: {
+        blockHeight: string;
+        slotSinceGenesis: string;
+        slot: string;
+        nextEpochData: EpochData;
+        stakingEpochData: EpochData;
+        epochCount: string;
+        minWindowDensity: string;
+        totalCurrency: string;
+        epoch: string;
+      };
+    };
+  }[];
+};
 
 const lastBlockQuery = `{
   bestChain(maxLength: 1) {
