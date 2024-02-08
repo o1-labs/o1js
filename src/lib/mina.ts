@@ -88,12 +88,6 @@ setActiveInstance({
   },
 });
 
-interface PendingTransaction {
-  isSuccess: boolean;
-  wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
-  hash(): string | undefined;
-}
-
 type Transaction = {
   /**
    * Transaction structure used to describe a state transition on the Mina blockchain.
@@ -129,6 +123,17 @@ type Transaction = {
    * Sends the {@link Transaction} to the network.
    */
   send(): Promise<PendingTransaction>;
+};
+
+type PendingTransaction = Pick<
+  Transaction,
+  'transaction' | 'toJSON' | 'toPretty'
+> & {
+  isSuccess: boolean;
+  wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
+  hash(): string;
+  data?: Fetch.SendZkAppResponse;
+  errors?: string[];
 };
 
 const Transaction = {
@@ -517,6 +522,9 @@ function LocalBlockchain({
       });
       return {
         isSuccess: true,
+        transaction: txn.transaction,
+        toJSON: txn.toJSON,
+        toPretty: txn.toPretty,
         wait: async (_options?: {
           maxAttempts?: number;
           interval?: number;
@@ -784,7 +792,7 @@ function Network(
         `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
       );
     },
-    async sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
       txn.sign();
 
       verifyTransactionLimits(txn.transaction);
@@ -811,6 +819,9 @@ function Network(
         isSuccess,
         data: response?.data,
         errors,
+        transaction: txn.transaction,
+        toJSON: txn.toJSON,
+        toPretty: txn.toPretty,
         async wait(options?: { maxAttempts?: number; interval?: number }) {
           if (!isSuccess) {
             console.warn(
@@ -829,6 +840,13 @@ function Network(
             reject: (err: Error) => void | Error
           ) => {
             let txId = response?.data?.sendZkapp?.zkapp?.hash;
+            if (!txId) {
+              return reject(
+                new Error(
+                  `Transaction failed.\nCould not find the transaction hash.`
+                )
+              );
+            }
             let res;
             try {
               res = await Fetch.checkZkappTransaction(txId);
@@ -862,7 +880,8 @@ function Network(
           return new Promise(executePoll);
         },
         hash() {
-          return response?.data?.sendZkapp?.zkapp?.hash;
+          // TODO: compute this
+          return response?.data?.sendZkapp?.zkapp?.hash!;
         },
       };
     },

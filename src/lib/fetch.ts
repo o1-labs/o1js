@@ -1,7 +1,7 @@
 import 'isomorphic-fetch';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
-import { Actions, TokenId } from './account_update.js';
+import { Actions, TokenId, ZkappCommand } from './account_update.js';
 import { PublicKey, PrivateKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../bindings/mina-transaction/types.js';
@@ -29,6 +29,7 @@ export {
   fetchTransactionStatus,
   TransactionStatus,
   EventActionFilterOptions,
+  SendZkAppResponse,
   getCachedAccount,
   getCachedNetwork,
   getCachedActions,
@@ -488,15 +489,17 @@ const lastBlockQuery = `{
   }
 }`;
 
+type FailureReasonResponse = {
+  failures: string[];
+  index: number;
+}[];
+
 type LastBlockQueryFailureCheckResponse = {
   bestChain: {
     transactions: {
       zkappCommands: {
         hash: string;
-        failureReason: {
-          failures: string[];
-          index: number;
-        }[];
+        failureReason: FailureReasonResponse;
       }[];
     };
   }[];
@@ -688,6 +691,17 @@ async function fetchTransactionStatus(
  */
 type TransactionStatus = 'INCLUDED' | 'PENDING' | 'UNKNOWN';
 
+type SendZkAppResponse = {
+  sendZkapp: {
+    zkapp: {
+      hash: string;
+      id: string;
+      zkappCommand: ZkappCommand;
+      failureReasons: FailureReasonResponse;
+    };
+  };
+};
+
 /**
  * Sends a zkApp command (transaction) to the specified GraphQL endpoint.
  */
@@ -696,7 +710,7 @@ function sendZkapp(
   graphqlEndpoint = networkConfig.minaEndpoint,
   { timeout = defaultTimeout } = {}
 ) {
-  return makeGraphqlRequest(
+  return makeGraphqlRequest<SendZkAppResponse>(
     sendZkappQuery(json),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
