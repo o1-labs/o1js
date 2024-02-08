@@ -1654,27 +1654,6 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
   return { accountUpdate, isDummy: node.isDummy, calls };
 }
 
-const SmartContractContext = {
-  enter(self: SmartContract, selfUpdate: AccountUpdate) {
-    let context: SmartContractContext = {
-      this: self,
-      selfUpdate,
-      selfLayout: new AccountUpdateLayout(selfUpdate),
-    };
-    let id = smartContractContext.enter(context);
-    return { id, context };
-  },
-  leave(id: number) {
-    smartContractContext.leave(id);
-  },
-  stepOutside() {
-    return smartContractContext.enter(null);
-  },
-  get() {
-    return smartContractContext.get();
-  },
-};
-
 class AccountUpdateLayout {
   readonly map: Map<number, UnfinishedTree>;
   readonly root: UnfinishedTree;

@@ -60,7 +60,10 @@ import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
 import { ZkappStateLength } from './mina/mina-instance.js';
-import { accountUpdates } from './mina/smart-contract-context.js';
+import {
+  accountUpdates,
+  smartContractContext,
+} from './mina/smart-contract-context.js';
 
 // external API
 export {
@@ -1456,6 +1459,27 @@ function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
 type ExecutionState = {
   transactionId: number;
   accountUpdate: AccountUpdate;
+};
+
+const SmartContractContext = {
+  enter(self: SmartContract, selfUpdate: AccountUpdate) {
+    let context: SmartContractContext = {
+      this: self,
+      selfUpdate,
+      selfLayout: new AccountUpdateLayout(selfUpdate),
+    };
+    let id = smartContractContext.enter(context);
+    return { id, context };
+  },
+  leave(id: number) {
+    smartContractContext.leave(id);
+  },
+  stepOutside() {
+    return smartContractContext.enter(null);
+  },
+  get() {
+    return smartContractContext.get();
+  },
 };
 
 type DeployArgs =
