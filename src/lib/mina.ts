@@ -45,6 +45,11 @@ import {
 } from './mina/mina-instance.js';
 import { SimpleLedger } from './mina/transaction-logic/ledger.js';
 import { assert } from './gadgets/common.js';
+import {
+  type EventActionFilterOptions,
+  type SendZkAppResponse,
+  sendZkappQuery,
+} from './mina/graphql.js';
 
 export {
   createTransaction,
@@ -132,7 +137,7 @@ type PendingTransaction = Pick<
   isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
   hash(): string;
-  data?: Fetch.SendZkAppResponse;
+  data?: SendZkAppResponse;
   errors?: string[];
 };
 
@@ -298,7 +303,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return ZkappCommand.toPretty(self.transaction);
     },
     toGraphqlQuery() {
-      return Fetch.sendZkappQuery(self.toJSON());
+      return sendZkappQuery(self.toJSON());
     },
     async send() {
       try {
@@ -902,7 +907,7 @@ function Network(
     async fetchEvents(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default,
-      filterOptions: Fetch.EventActionFilterOptions = {}
+      filterOptions: EventActionFilterOptions = {}
     ) {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
@@ -1123,7 +1128,7 @@ async function sendTransaction(txn: Transaction) {
 async function fetchEvents(
   publicKey: PublicKey,
   tokenId: Field,
-  filterOptions: Fetch.EventActionFilterOptions = {}
+  filterOptions: EventActionFilterOptions = {}
 ) {
   return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
 }

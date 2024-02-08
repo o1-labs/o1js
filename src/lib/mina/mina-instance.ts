@@ -9,6 +9,7 @@ import type { Account } from './account.js';
 import type { NetworkValue } from '../precondition.js';
 import type * as Fetch from '../fetch.js';
 import type { NetworkId } from '../../mina-signer/src/TSTypes.js';
+import { type EventActionFilterOptions } from '././../mina/graphql.js';
 
 export {
   Mina,
@@ -95,7 +96,7 @@ interface Mina {
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
-    filterOptions?: Fetch.EventActionFilterOptions
+    filterOptions?: EventActionFilterOptions
   ) => ReturnType<typeof Fetch.fetchEvents>;
   fetchActions: (
     publicKey: PublicKey,
