@@ -695,6 +695,10 @@ function parseEpochData({
   };
 }
 
+type TransactionStatusQueryResponse = {
+  transactionStatus: TransactionStatus;
+};
+
 const transactionStatusQuery = (txId: string) => `query {
   transactionStatus(zkappTransaction:"${txId}")
 }`;
@@ -706,7 +710,7 @@ async function fetchTransactionStatus(
   txId: string,
   graphqlEndpoint = networkConfig.minaEndpoint
 ): Promise<TransactionStatus> {
-  let [resp, error] = await makeGraphqlRequest(
+  let [resp, error] = await makeGraphqlRequest<TransactionStatusQueryResponse>(
     transactionStatusQuery(txId),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints
@@ -791,24 +795,27 @@ function sendZkappQuery(json: string) {
 }
 `;
 }
-type FetchedEvents = {
-  blockInfo: {
-    distanceFromMaxBlockHeight: number;
-    globalSlotSinceGenesis: number;
-    height: number;
-    stateHash: string;
-    parentHash: string;
-    chainStatus: string;
-  };
-  eventData: {
-    transactionInfo: {
-      hash: string;
-      memo: string;
-      status: string;
+type EventQueryResponse = {
+  events: {
+    blockInfo: {
+      distanceFromMaxBlockHeight: number;
+      globalSlotSinceGenesis: number;
+      height: number;
+      stateHash: string;
+      parentHash: string;
+      chainStatus: string;
     };
-    data: string[];
+    eventData: {
+      transactionInfo: {
+        hash: string;
+        memo: string;
+        status: string;
+      };
+      data: string[];
+    }[];
   }[];
 };
+
 type FetchedActions = {
   blockInfo: {
     distanceFromMaxBlockHeight: number;
@@ -933,7 +940,7 @@ async function fetchEvents(
       'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
   const { publicKey, tokenId } = accountInfo;
-  let [response, error] = await makeGraphqlRequest(
+  let [response, error] = await makeGraphqlRequest<EventQueryResponse>(
     getEventsQuery(
       publicKey,
       tokenId ?? TokenId.toBase58(TokenId.default),
@@ -943,7 +950,7 @@ async function fetchEvents(
     networkConfig.archiveFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
-  let fetchedEvents = response?.data.events as FetchedEvents[];
+  let fetchedEvents = response?.data.events;
   if (fetchedEvents === undefined) {
     throw Error(
       `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
