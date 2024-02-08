@@ -35,7 +35,7 @@ const network = Mina.Network({
 });
 Mina.setActiveInstance(network);
 
-let tx, pendingTx: Mina.TransactionId, balances, oldBalances;
+let tx, pendingTx: Mina.PendingTransaction, balances, oldBalances;
 
 // compile contracts & wait for fee payer to be funded
 const senderKey = useCustomLocalNetwork
@@ -285,7 +285,7 @@ async function ensureFundedAccount(privateKeyBase58: string) {
   return { senderKey, sender };
 }
 
-function logPendingTransaction(pendingTx: Mina.TransactionId) {
+function logPendingTransaction(pendingTx: Mina.PendingTransaction) {
   if (!pendingTx.isSuccess) throw Error('transaction failed');
   console.log(
     'tx sent: ' +
