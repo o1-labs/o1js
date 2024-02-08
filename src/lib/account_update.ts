@@ -1049,7 +1049,7 @@ class AccountUpdate implements Types.AccountUpdate {
   toPrettyLayout() {
     let node = accountUpdates()?.get(this);
     assert(node !== undefined, 'AccountUpdate not found in layout');
-    UnfinishedForest.print(node.calls);
+    node.calls.print();
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
@@ -1459,83 +1459,57 @@ function hashCons(forestHash: Field, nodeHash: Field) {
  * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
  * updates that can be hashed into a final call forest at the end.
  */
-type UnfinishedForest = HashOrValue<UnfinishedTree[]>;
+type UnfinishedForestBase = HashOrValue<UnfinishedTree[]>;
+type UnfinishedForestPlain = UnfinishedForestCommon &
+  PlainValue<UnfinishedTree[]>;
+type UnfinishedForestHashed = UnfinishedForestCommon &
+  UseHash<UnfinishedTree[]>;
 
 type UnfinishedTree = {
   accountUpdate: HashOrValue<AccountUpdate>;
   isDummy: Bool;
   // `children` must be readonly since it's referenced in each child's siblings
-  readonly calls: UnfinishedForest;
-  siblings?: UnfinishedForest;
+  readonly calls: UnfinishedForestCommon;
+  siblings?: UnfinishedForestCommon;
 };
-type UseHash<T> = { readonly useHash: true; hash: Field; readonly value: T };
-type PlainValue<T> = { readonly useHash: false; value: T };
-type HashOrValue<T> = UseHash<T> | PlainValue<T>;
+type UseHash<T> = { hash: Field; value: T };
+type PlainValue<T> = { hash?: undefined; value: T };
+type HashOrValue<T> = { hash?: Field; value: T };
 
-const UnfinishedForest = {
-  empty(): PlainValue<UnfinishedTree[]> {
-    return { useHash: false, value: [] };
-  },
+class UnfinishedForestCommon implements UnfinishedForestBase {
+  hash?: Field;
+  value: UnfinishedTree[]; // TODO: make private
 
-  setHash(forest: UnfinishedForest, hash: Field): UseHash<UnfinishedTree[]> {
-    return Object.assign(forest, { useHash: true as const, hash });
-  },
+  usesHash(): this is UnfinishedForestHashed {
+    return this.hash !== undefined;
+  }
+  mutable(): this is UnfinishedForest {
+    return this instanceof UnfinishedForest && this.hash === undefined;
+  }
 
-  witnessHash(forest: UnfinishedForest): UseHash<UnfinishedTree[]> {
-    let hash = Provable.witness(Field, () => {
-      return UnfinishedForest.finalize(forest).hash;
-    });
-    return UnfinishedForest.setHash(forest, hash);
-  },
+  constructor(value: UnfinishedTree[], hash?: Field) {
+    this.value = value;
+    this.hash = hash;
+  }
 
-  push(
-    forest: UnfinishedForest,
-    accountUpdate: AccountUpdate,
-    children?: UnfinishedForest
-  ) {
-    forest.value.push({
-      accountUpdate: { useHash: false, value: accountUpdate },
-      isDummy: accountUpdate.isDummy(),
-      calls: children ?? UnfinishedForest.empty(),
-      siblings: forest,
-    });
-  },
+  setHash(hash: Field): UnfinishedForestHashed {
+    this.hash = hash;
+    return this as any; // TODO?
+  }
 
-  pushTree(forest: UnfinishedForest, tree: AccountUpdateTree) {
-    let value = AccountUpdate.dummy();
-    Provable.asProver(() => {
-      value = tree.accountUpdate.value.get();
-    });
-    forest.value.push({
-      accountUpdate: { useHash: true, hash: tree.accountUpdate.hash, value },
-      isDummy: Bool(false),
-      calls: UnfinishedForest.fromForest(tree.calls),
-      siblings: forest,
-    });
-  },
+  witnessHash(): UnfinishedForestHashed {
+    let hash = Provable.witness(Field, () => this.finalize().hash);
+    return this.setHash(hash);
+  }
 
-  remove(forest: UnfinishedForest, accountUpdate: AccountUpdate) {
-    // find account update by .id
-    let index = forest.value.findIndex(
-      (node) => node.accountUpdate.value.id === accountUpdate.id
-    );
-
-    // nothing to do if it's not there
-    if (index === -1) return;
-
-    // remove it
-    forest.value.splice(index, 1);
-  },
-
-  fromForest(
+  static fromForest(
     forest: MerkleListBase<AccountUpdateTree>,
     recursiveCall = false
-  ): UnfinishedForest {
+  ): UnfinishedForestCommon {
     let unfinished = UnfinishedForest.empty();
     Provable.asProver(() => {
       unfinished.value = forest.data.get().map(({ element: tree }) => ({
         accountUpdate: {
-          useHash: true,
           hash: tree.accountUpdate.hash.toConstant(),
           value: tree.accountUpdate.value.get(),
         },
@@ -1545,34 +1519,34 @@ const UnfinishedForest = {
       }));
     });
     if (!recursiveCall) {
-      Object.assign(unfinished, { useHash: true, hash: forest.hash });
+      unfinished.setHash(forest.hash);
     }
     return unfinished;
-  },
+  }
 
-  finalize(forest: UnfinishedForest): AccountUpdateForest {
-    if (forest.useHash) {
+  finalize(): AccountUpdateForest {
+    if (this.usesHash()) {
       let data = Unconstrained.witness(() =>
-        UnfinishedForest.finalize({ ...forest, useHash: false }).data.get()
+        new UnfinishedForest(this.value).finalize().data.get()
       );
-      return new AccountUpdateForest({ hash: forest.hash, data });
+      return new AccountUpdateForest({ hash: this.hash, data });
     }
 
     // not using the hash means we calculate it in-circuit
-    let nodes = forest.value.map(toTree);
+    let nodes = this.value.map(toTree);
     let finalForest = AccountUpdateForest.empty();
 
     for (let { isDummy, ...tree } of [...nodes].reverse()) {
       finalForest.pushIf(isDummy.not(), tree);
     }
     return finalForest;
-  },
+  }
 
-  print(forest: UnfinishedForest) {
+  print() {
     let indent = 0;
     let layout = '';
 
-    let toPretty = (a: UnfinishedForest) => {
+    let toPretty = (a: UnfinishedForestBase) => {
       indent += 2;
       for (let tree of a.value) {
         layout +=
@@ -1584,56 +1558,99 @@ const UnfinishedForest = {
       indent -= 2;
     };
 
-    toPretty(forest);
+    toPretty(this);
     console.log(layout);
-  },
+  }
 
-  toFlatList(
-    forest: UnfinishedForest,
-    mutate = true,
-    depth = 0
-  ): AccountUpdate[] {
+  toFlatList(mutate = true, depth = 0): AccountUpdate[] {
     let flatUpdates: AccountUpdate[] = [];
-    for (let node of forest.value) {
+    for (let node of this.value) {
       if (node.isDummy.toBoolean()) continue;
       let update = node.accountUpdate.value;
       if (mutate) update.body.callDepth = depth;
-      let children = UnfinishedForest.toFlatList(node.calls, mutate, depth + 1);
+      let children = node.calls.toFlatList(mutate, depth + 1);
       flatUpdates.push(update, ...children);
     }
     return flatUpdates;
-  },
+  }
 
-  toConstantInPlace(forest: UnfinishedForest) {
-    for (let node of forest.value) {
+  toConstantInPlace() {
+    for (let node of this.value) {
       // `as any` to override readonly - this method is explicit about its mutability
       (node.accountUpdate as any).value = Provable.toConstant(
         AccountUpdate,
         node.accountUpdate.value
       );
       node.isDummy = Provable.toConstant(Bool, node.isDummy);
-      if (node.accountUpdate.useHash) {
+      if (node.accountUpdate.hash !== undefined) {
         node.accountUpdate.hash = node.accountUpdate.hash.toConstant();
       }
-      UnfinishedForest.toConstantInPlace(node.calls);
+      node.calls.toConstantInPlace();
     }
-    if (forest.useHash) {
-      forest.hash = forest.hash.toConstant();
+    if (this.usesHash()) {
+      this.hash = this.hash.toConstant();
     }
-  },
-};
+  }
+}
+
+class UnfinishedForest
+  extends UnfinishedForestCommon
+  implements UnfinishedForestPlain
+{
+  hash?: undefined;
+  value: UnfinishedTree[];
+
+  static empty() {
+    return new UnfinishedForest([]);
+  }
+
+  push(accountUpdate: AccountUpdate, children?: UnfinishedForest) {
+    this.value.push({
+      accountUpdate: { value: accountUpdate },
+      isDummy: accountUpdate.isDummy(),
+      calls: children ?? UnfinishedForest.empty(),
+      siblings: this,
+    });
+  }
+
+  pushTree(tree: AccountUpdateTree) {
+    let value = AccountUpdate.dummy();
+    Provable.asProver(() => {
+      value = tree.accountUpdate.value.get();
+    });
+    this.value.push({
+      accountUpdate: { hash: tree.accountUpdate.hash, value },
+      isDummy: Bool(false),
+      calls: UnfinishedForest.fromForest(tree.calls),
+      siblings: this,
+    });
+  }
+
+  remove(accountUpdate: AccountUpdate) {
+    // find account update by .id
+    let index = this.value.findIndex(
+      (node) => node.accountUpdate.value.id === accountUpdate.id
+    );
+
+    // nothing to do if it's not there
+    if (index === -1) return;
+
+    // remove it
+    this.value.splice(index, 1);
+  }
+}
 
 function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
-  let accountUpdate = node.accountUpdate.useHash
-    ? new HashedAccountUpdate(
-        node.accountUpdate.hash,
-        Unconstrained.witness(() =>
-          Provable.toConstant(AccountUpdate, node.accountUpdate.value)
+  let accountUpdate =
+    node.accountUpdate.hash !== undefined
+      ? new HashedAccountUpdate(
+          node.accountUpdate.hash,
+          Unconstrained.witness(() =>
+            Provable.toConstant(AccountUpdate, node.accountUpdate.value)
+          )
         )
-      )
-    : HashedAccountUpdate.hash(node.accountUpdate.value);
-
-  let calls = UnfinishedForest.finalize(node.calls);
+      : HashedAccountUpdate.hash(node.accountUpdate.value);
+  let calls = node.calls.finalize();
   return { accountUpdate, isDummy: node.isDummy, calls };
 }
 
@@ -1667,7 +1684,7 @@ class AccountUpdateLayout {
     this.map = new Map();
     root ??= AccountUpdate.dummy();
     let rootTree: UnfinishedTree = {
-      accountUpdate: { useHash: false, value: root },
+      accountUpdate: { value: root },
       isDummy: Bool(false),
       calls: UnfinishedForest.empty(),
     };
@@ -1689,7 +1706,7 @@ class AccountUpdateLayout {
     let node = this.map.get(update.id);
     if (node !== undefined) return node;
     node = {
-      accountUpdate: { useHash: false, value: update },
+      accountUpdate: { value: update },
       isDummy: update.isDummy(),
       calls: UnfinishedForest.empty(),
     };
@@ -1715,14 +1732,15 @@ class AccountUpdateLayout {
 
   setChildren(
     parent: AccountUpdate | UnfinishedTree,
-    children: AccountUpdateForest | UnfinishedForest
+    children: AccountUpdateForest | UnfinishedForestCommon
   ) {
     let parentNode = this.getOrCreate(parent);
-    // we're not allowed to switch parentNode.children, it must stay the same reference
-    // so we mutate it in place
+
     if (children instanceof AccountUpdateForest) {
       children = UnfinishedForest.fromForest(children);
     }
+    // we're not allowed to switch parentNode.children, it must stay the same reference
+    // so we mutate it in place
     Object.assign(parentNode.calls, children);
   }
 
@@ -1733,7 +1751,11 @@ class AccountUpdateLayout {
   disattach(update: AccountUpdate) {
     let node = this.get(update);
     if (node?.siblings === undefined) return;
-    UnfinishedForest.remove(node.siblings, update);
+    assert(
+      node.siblings.mutable(),
+      'Cannot disattach from an immutable layout'
+    );
+    node.siblings.remove(update);
     node.siblings = undefined;
   }
 
@@ -1741,18 +1763,18 @@ class AccountUpdateLayout {
     let node = this.get(update);
     if (node === undefined) return;
     this.disattach(update);
-    return UnfinishedForest.finalize(node.calls);
+    return node.calls.finalize();
   }
 
   finalizeChildren() {
-    let final = UnfinishedForest.finalize(this.root.calls);
+    let final = this.root.calls.finalize();
     this.final = final;
     AccountUpdateForest.assertConstant(final);
     return final;
   }
 
   toFlatList({ mutate }: { mutate: boolean }) {
-    return UnfinishedForest.toFlatList(this.root.calls, mutate);
+    return this.root.calls.toFlatList(mutate);
   }
 
   forEachPredecessor(
@@ -1767,7 +1789,7 @@ class AccountUpdateLayout {
   }
 
   toConstantInPlace() {
-    UnfinishedForest.toConstantInPlace(this.root.calls);
+    this.root.calls.toConstantInPlace();
   }
 }
 
