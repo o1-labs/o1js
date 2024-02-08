@@ -59,6 +59,7 @@ export {
   currentTransaction,
   Transaction,
   PendingTransaction,
+  IncludedTransaction,
   activeInstance,
   setActiveInstance,
   transaction,
