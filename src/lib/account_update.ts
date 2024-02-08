@@ -70,6 +70,7 @@ import {
   smartContractContext,
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
+import { RandomId } from './provable-types/auxiliary.js';
 
 // external API
 export {
@@ -1392,10 +1393,12 @@ class HashedAccountUpdate extends Hashed.create(
 ) {}
 
 type AccountUpdateTree = {
+  // id: number;
   accountUpdate: Hashed<AccountUpdate>;
   calls: MerkleListBase<AccountUpdateTree>;
 };
 const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
+  // id: RandomId,
   accountUpdate: HashedAccountUpdate.provable,
   calls: MerkleListBase<AccountUpdateTree>(),
 });
