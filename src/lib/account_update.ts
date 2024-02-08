@@ -1047,7 +1047,7 @@ class AccountUpdate implements Types.AccountUpdate {
   toPrettyLayout() {
     let node = accountUpdates()?.get(this);
     assert(node !== undefined, 'AccountUpdate not found in layout');
-    node.calls.print();
+    node.children.print();
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
@@ -1467,7 +1467,7 @@ type UnfinishedTree = {
   accountUpdate: HashOrValue<AccountUpdate>;
   isDummy: Bool;
   // `children` must be readonly since it's referenced in each child's siblings
-  readonly calls: UnfinishedForestCommon;
+  readonly children: UnfinishedForestCommon;
   siblings?: UnfinishedForestCommon;
 };
 type UseHash<T> = { hash: Field; value: T };
@@ -1512,7 +1512,7 @@ class UnfinishedForestCommon {
           value: tree.accountUpdate.value.get(),
         },
         isDummy: Bool(false),
-        calls: UnfinishedForest.fromForest(tree.calls, true),
+        children: UnfinishedForest.fromForest(tree.calls, true),
         siblings: unfinished,
       }));
     });
@@ -1551,7 +1551,7 @@ class UnfinishedForestCommon {
           ' '.repeat(indent) +
           `( ${tree.accountUpdate.value.label || '<no label>'} )` +
           '\n';
-        toPretty(tree.calls);
+        toPretty(tree.children);
       }
       indent -= 2;
     };
@@ -1566,7 +1566,7 @@ class UnfinishedForestCommon {
       if (node.isDummy.toBoolean()) continue;
       let update = node.accountUpdate.value;
       if (mutate) update.body.callDepth = depth;
-      let children = node.calls.toFlatList(mutate, depth + 1);
+      let children = node.children.toFlatList(mutate, depth + 1);
       flatUpdates.push(update, ...children);
     }
     return flatUpdates;
@@ -1583,7 +1583,7 @@ class UnfinishedForestCommon {
       if (node.accountUpdate.hash !== undefined) {
         node.accountUpdate.hash = node.accountUpdate.hash.toConstant();
       }
-      node.calls.toConstantInPlace();
+      node.children.toConstantInPlace();
     }
     if (this.usesHash()) {
       this.hash = this.hash.toConstant();
@@ -1622,7 +1622,7 @@ class UnfinishedForest extends UnfinishedForestCommon {
     this.getValue().push({
       accountUpdate: { hash: tree.accountUpdate.hash, value },
       isDummy: Bool(false),
-      calls: UnfinishedForest.fromForest(tree.calls),
+      children: UnfinishedForest.fromForest(tree.calls),
       siblings: this,
     });
   }
@@ -1651,7 +1651,7 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
           )
         )
       : HashedAccountUpdate.hash(node.accountUpdate.value);
-  let calls = node.calls.finalize();
+  let calls = node.children.finalize();
   return { accountUpdate, isDummy: node.isDummy, calls };
 }
 
@@ -1666,7 +1666,7 @@ class AccountUpdateLayout {
     let rootTree: UnfinishedTree = {
       accountUpdate: { value: root },
       isDummy: Bool(false),
-      calls: UnfinishedForest.empty(),
+      children: UnfinishedForest.empty(),
     };
     this.map.set(root.id, rootTree);
     this.root = rootTree;
@@ -1688,7 +1688,7 @@ class AccountUpdateLayout {
     node = {
       accountUpdate: { value: update },
       isDummy: update.isDummy(),
-      calls: UnfinishedForest.empty(),
+      children: UnfinishedForest.empty(),
     };
     this.map.set(update.id, node);
     return node;
@@ -1697,8 +1697,8 @@ class AccountUpdateLayout {
   pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
     let parentNode = this.getOrCreate(parent);
     let childNode = this.getOrCreate(child);
-    assert(parentNode.calls.mutable(), 'Cannot push to an immutable layout');
-    parentNode.calls.push(childNode);
+    assert(parentNode.children.mutable(), 'Cannot push to an immutable layout');
+    parentNode.children.push(childNode);
   }
 
   pushTopLevel(child: AccountUpdate) {
@@ -1716,7 +1716,7 @@ class AccountUpdateLayout {
     }
     // we're not allowed to switch parentNode.children, it must stay the same reference
     // so we mutate it in place
-    Object.assign(parentNode.calls, children);
+    Object.assign(parentNode.children, children);
   }
 
   setTopLevel(children: AccountUpdateForest) {
@@ -1738,18 +1738,18 @@ class AccountUpdateLayout {
     let node = this.get(update);
     if (node === undefined) return;
     this.disattach(update);
-    return node.calls.finalize();
+    return node.children.finalize();
   }
 
   finalizeChildren() {
-    let final = this.root.calls.finalize();
+    let final = this.root.children.finalize();
     this.final = final;
     AccountUpdateForest.assertConstant(final);
     return final;
   }
 
   toFlatList({ mutate }: { mutate: boolean }) {
-    return this.root.calls.toFlatList(mutate);
+    return this.root.children.toFlatList(mutate);
   }
 
   forEachPredecessor(
@@ -1764,7 +1764,7 @@ class AccountUpdateLayout {
   }
 
   toConstantInPlace() {
-    this.root.calls.toConstantInPlace();
+    this.root.children.toConstantInPlace();
   }
 }
 
