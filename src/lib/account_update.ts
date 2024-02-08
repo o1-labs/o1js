@@ -1405,6 +1405,20 @@ class AccountUpdateForest extends MerkleList.create(
     let simpleForest = accountUpdatesToCallForest(updates);
     return this.fromSimpleForest(simpleForest);
   }
+  static toFlatArray(
+    forest: MerkleListBase<AccountUpdateTree>,
+    mutate = true,
+    depth = 0
+  ) {
+    let flat: AccountUpdate[] = [];
+    for (let { element: tree } of forest.data.get()) {
+      let update = tree.accountUpdate.value.get();
+      if (mutate) update.body.callDepth = depth;
+      flat.push(update);
+      flat.push(...this.toFlatArray(tree.calls, mutate, depth + 1));
+    }
+    return flat;
+  }
 
   private static fromSimpleForest(
     simpleForest: CallForest<AccountUpdate>
@@ -1451,13 +1465,16 @@ function hashCons(forestHash: Field, nodeHash: Field) {
 }
 
 /**
- * Structure for constructing the forest of child account updates, from a circuit.
+ * UnfinishedForest / UnfinishedTree are structures for constructing the forest of child account updates from a circuit.
  *
  * The circuit can mutate account updates and change their array of children, so here we can't hash
  * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
  * updates that can be hashed into a final call forest at the end.
  */
-type UnfinishedForestFinal = { final: AccountUpdateForest } & UnfinishedForest;
+type UnfinishedForestFinal = {
+  final: AccountUpdateForest;
+  value?: undefined;
+} & UnfinishedForest;
 type UnfinishedForestMutable = {
   final?: undefined;
   value: UnfinishedTree[];
@@ -1474,13 +1491,13 @@ type HashOrValue<T> = { hash?: Field; value: T };
 
 class UnfinishedForest {
   final?: AccountUpdateForest;
-  readonly value: readonly Readonly<UnfinishedTree>[]; // TODO: make private
+  value?: UnfinishedTree[];
 
   isFinal(): this is UnfinishedForestFinal {
     return this.final !== undefined;
   }
   isMutable(): this is UnfinishedForestMutable {
-    return this.final === undefined;
+    return this.value !== undefined;
   }
 
   constructor(value: UnfinishedTree[], final?: AccountUpdateForest) {
@@ -1493,11 +1510,12 @@ class UnfinishedForest {
   }
 
   private setFinal(final: AccountUpdateForest): UnfinishedForestFinal {
-    return Object.assign(this, { final });
+    return Object.assign(this, { final, value: undefined });
   }
 
   finalize(): AccountUpdateForest {
     if (this.isFinal()) return this.final;
+    assert(this.isMutable(), 'final or mutable');
 
     let nodes = this.value.map(toTree);
     let finalForest = AccountUpdateForest.empty();
@@ -1543,6 +1561,7 @@ class UnfinishedForest {
   }
 
   remove(node: UnfinishedTree) {
+    assert(this.isMutable(), 'Cannot remove from an immutable forest');
     // find by .id
     let index = this.value.findIndex(
       (n) => n.accountUpdate.value.id === node.accountUpdate.value.id
@@ -1552,7 +1571,6 @@ class UnfinishedForest {
     if (index === -1) return;
 
     // remove it
-    assert(this.isMutable(), 'Cannot remove from an immutable forest');
     node.siblings = undefined;
     this.value.splice(index, 1);
   }
@@ -1564,65 +1582,55 @@ class UnfinishedForest {
         'Replacing a mutable forest that has existing children might be a mistake.'
       );
     }
-    let value: UnfinishedTree[] = [];
-    Provable.asProver(() => {
-      value = forest.data.get().map(({ element: tree }) => ({
-        accountUpdate: {
-          hash: tree.accountUpdate.hash.toConstant(),
-          value: tree.accountUpdate.value.get(),
-        },
-        isDummy: Bool(false),
-        children: UnfinishedForest.fromForest(tree.calls),
-        siblings: this,
-      }));
-    });
-    Object.assign(this, { value });
     return this.setFinal(new AccountUpdateForest(forest));
   }
 
-  static fromForest(
-    forest: MerkleListBase<AccountUpdateTree>
-  ): UnfinishedForestFinal {
+  static fromForest(forest: MerkleListBase<AccountUpdateTree>) {
     return UnfinishedForest.empty().setToForest(forest);
   }
 
-  toFlatList(mutate = true, depth = 0): AccountUpdate[] {
+  toFlatArray(mutate = true, depth = 0): AccountUpdate[] {
+    if (this.isFinal())
+      return AccountUpdateForest.toFlatArray(this.final, mutate, depth);
+    assert(this.isMutable(), 'final or mutable');
     let flatUpdates: AccountUpdate[] = [];
     for (let node of this.value) {
       if (node.isDummy.toBoolean()) continue;
       let update = node.accountUpdate.value;
       if (mutate) update.body.callDepth = depth;
-      let children = node.children.toFlatList(mutate, depth + 1);
+      let children = node.children.toFlatArray(mutate, depth + 1);
       flatUpdates.push(update, ...children);
     }
     return flatUpdates;
   }
 
   toConstantInPlace() {
+    if (this.isFinal()) {
+      this.final.hash = this.final.hash.toConstant();
+      return;
+    }
+    assert(this.isMutable(), 'final or mutable');
     for (let node of this.value) {
-      // `as any` to override readonly - this method is explicit about its mutability
       node.accountUpdate.value = Provable.toConstant(
         AccountUpdate,
         node.accountUpdate.value
       );
-      (node as any).isDummy = Provable.toConstant(Bool, node.isDummy);
+      node.isDummy = Provable.toConstant(Bool, node.isDummy);
       if (node.accountUpdate.hash !== undefined) {
         node.accountUpdate.hash = node.accountUpdate.hash.toConstant();
       }
       node.children.toConstantInPlace();
     }
-    if (this.isFinal()) {
-      this.final.hash = this.final.hash.toConstant();
-    }
   }
 
   print() {
+    assert(this.isMutable(), 'print(): unimplemented for final forests');
     let indent = 0;
     let layout = '';
 
     let toPretty = (a: UnfinishedForest) => {
       indent += 2;
-      for (let tree of a.value) {
+      for (let tree of a.value!) {
         layout +=
           ' '.repeat(indent) +
           `( ${tree.accountUpdate.value.label || '<no label>'} )` +
@@ -1732,7 +1740,7 @@ class AccountUpdateLayout {
   }
 
   toFlatList({ mutate }: { mutate: boolean }) {
-    return this.root.children.toFlatList(mutate);
+    return this.root.children.toFlatArray(mutate);
   }
 
   forEachPredecessor(

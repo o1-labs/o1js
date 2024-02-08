@@ -1634,8 +1634,8 @@ function diffRecursive(
   let { transaction, index, accountUpdate: input } = inputData;
   diff(transaction, index, prover.toPretty(), input.toPretty());
   // TODO
-  let inputChildren = accountUpdates()!.get(input)!.children.value;
-  let proverChildren = accountUpdates()!.get(prover)!.children.value;
+  let inputChildren = accountUpdates()!.get(input)!.children.value!;
+  let proverChildren = accountUpdates()!.get(prover)!.children.value!;
   let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
     let inputChild = inputChildren[i].accountUpdate.value;
