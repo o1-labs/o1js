@@ -63,15 +63,6 @@ abstract class TokenContract extends SmartContract {
         `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
     );
 
-    // make top-level updates our children
-    // TODO: this must not be necessary once we move everything to `selfLayout`
-    Provable.asProver(() => {
-      updates.data.get().forEach((update) => {
-        let accountUpdate = update.element.accountUpdate.value.get();
-        this.approve(accountUpdate);
-      });
-    });
-
     // skip hashing our child account updates in the method wrapper
     // since we just did that in the loop above
     accountUpdates()?.setTopLevel(updates);

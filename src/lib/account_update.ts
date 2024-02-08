@@ -1557,26 +1557,33 @@ class UnfinishedForest {
     this.value.splice(index, 1);
   }
 
-  static fromForest(
-    forest: MerkleListBase<AccountUpdateTree>,
-    recursiveCall = false
-  ): UnfinishedForest {
-    let unfinished = UnfinishedForest.empty();
+  setToForest(forest: MerkleListBase<AccountUpdateTree>) {
+    if (this.isMutable()) {
+      assert(
+        this.value.length === 0,
+        'Replacing a mutable forest that has existing children might be a mistake.'
+      );
+    }
+    let value: UnfinishedTree[] = [];
     Provable.asProver(() => {
-      unfinished.value = forest.data.get().map(({ element: tree }) => ({
+      value = forest.data.get().map(({ element: tree }) => ({
         accountUpdate: {
           hash: tree.accountUpdate.hash.toConstant(),
           value: tree.accountUpdate.value.get(),
         },
         isDummy: Bool(false),
-        children: UnfinishedForest.fromForest(tree.calls, true),
-        siblings: unfinished,
+        children: UnfinishedForest.fromForest(tree.calls),
+        siblings: this,
       }));
     });
-    if (!recursiveCall) {
-      unfinished.setFinal(new AccountUpdateForest(forest));
-    }
-    return unfinished;
+    Object.assign(this, { value });
+    return this.setFinal(new AccountUpdateForest(forest));
+  }
+
+  static fromForest(
+    forest: MerkleListBase<AccountUpdateTree>
+  ): UnfinishedForestFinal {
+    return UnfinishedForest.empty().setToForest(forest);
   }
 
   toFlatList(mutate = true, depth = 0): AccountUpdate[] {
@@ -1665,7 +1672,7 @@ class AccountUpdateLayout {
     return this.map.get(update.id);
   }
 
-  getOrCreate(update: AccountUpdate | UnfinishedTree): UnfinishedTree {
+  private getOrCreate(update: AccountUpdate | UnfinishedTree): UnfinishedTree {
     if (!(update instanceof AccountUpdate)) {
       if (!this.map.has(update.accountUpdate.value.id)) {
         this.map.set(update.accountUpdate.value.id, update);
@@ -1695,16 +1702,10 @@ class AccountUpdateLayout {
 
   setChildren(
     parent: AccountUpdate | UnfinishedTree,
-    children: AccountUpdateForest | UnfinishedForest
+    children: AccountUpdateForest
   ) {
     let parentNode = this.getOrCreate(parent);
-
-    if (children instanceof AccountUpdateForest) {
-      children = UnfinishedForest.fromForest(children);
-    }
-    // we're not allowed to switch parentNode.children, it must stay the same reference
-    // so we mutate it in place
-    Object.assign(parentNode.children, children);
+    parentNode.children.setToForest(children);
   }
 
   setTopLevel(children: AccountUpdateForest) {

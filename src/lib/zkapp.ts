@@ -310,7 +310,10 @@ function wrapMethod(
           }
           let txLayout = Mina.currentTransaction.get().layout;
           txLayout.pushTopLevel(accountUpdate);
-          txLayout.setChildren(accountUpdate, context.selfLayout.root.children);
+          txLayout.setChildren(
+            accountUpdate,
+            context.selfLayout.finalizeChildren()
+          );
 
           return result;
         }
@@ -1631,8 +1634,8 @@ function diffRecursive(
   let { transaction, index, accountUpdate: input } = inputData;
   diff(transaction, index, prover.toPretty(), input.toPretty());
   // TODO
-  let inputChildren = (accountUpdates()!.get(input)!.children as any).value;
-  let proverChildren = (accountUpdates()!.get(prover)!.children as any).value;
+  let inputChildren = accountUpdates()!.get(input)!.children.value;
+  let proverChildren = accountUpdates()!.get(prover)!.children.value;
   let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
     let inputChild = inputChildren[i].accountUpdate.value;
