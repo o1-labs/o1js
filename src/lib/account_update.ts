@@ -1474,11 +1474,11 @@ type UseHash<T> = { hash: Field; value: T };
 type PlainValue<T> = { hash?: undefined; value: T };
 type HashOrValue<T> = { hash?: Field; value: T };
 
-class UnfinishedForestCommon implements UnfinishedForestBase {
+class UnfinishedForestCommon {
   hash?: Field;
-  value: UnfinishedTree[]; // TODO: make private
+  private value: UnfinishedTree[]; // TODO: make private
 
-  usesHash(): this is UnfinishedForestHashed {
+  usesHash(): this is { hash: Field } & UnfinishedForestCommon {
     return this.hash !== undefined;
   }
   mutable(): this is UnfinishedForest {
@@ -1544,7 +1544,7 @@ class UnfinishedForestCommon implements UnfinishedForestBase {
     let indent = 0;
     let layout = '';
 
-    let toPretty = (a: UnfinishedForestBase) => {
+    let toPretty = (a: UnfinishedForestCommon) => {
       indent += 2;
       for (let tree of a.value) {
         layout +=
@@ -1591,24 +1591,27 @@ class UnfinishedForestCommon implements UnfinishedForestBase {
   }
 }
 
-class UnfinishedForest
-  extends UnfinishedForestCommon
-  implements UnfinishedForestPlain
-{
+class UnfinishedForest extends UnfinishedForestCommon {
   hash?: undefined;
-  value: UnfinishedTree[];
 
   static empty() {
     return new UnfinishedForest([]);
   }
 
-  push(accountUpdate: AccountUpdate, children?: UnfinishedForest) {
-    this.value.push({
-      accountUpdate: { value: accountUpdate },
-      isDummy: accountUpdate.isDummy(),
-      calls: children ?? UnfinishedForest.empty(),
-      siblings: this,
-    });
+  private getValue(): UnfinishedTree[] {
+    // don't know how to do this differently, but this perfectly protects our invariant:
+    // only mutable forests can be modified
+    return (this as any).value;
+  }
+
+  push(node: UnfinishedTree) {
+    if (node.siblings === this) return;
+    assert(
+      node.siblings === undefined,
+      'Cannot push node that already has a parent.'
+    );
+    node.siblings = this;
+    this.getValue().push(node);
   }
 
   pushTree(tree: AccountUpdateTree) {
@@ -1616,7 +1619,7 @@ class UnfinishedForest
     Provable.asProver(() => {
       value = tree.accountUpdate.value.get();
     });
-    this.value.push({
+    this.getValue().push({
       accountUpdate: { hash: tree.accountUpdate.hash, value },
       isDummy: Bool(false),
       calls: UnfinishedForest.fromForest(tree.calls),
@@ -1626,7 +1629,7 @@ class UnfinishedForest
 
   remove(accountUpdate: AccountUpdate) {
     // find account update by .id
-    let index = this.value.findIndex(
+    let index = this.getValue().findIndex(
       (node) => node.accountUpdate.value.id === accountUpdate.id
     );
 
@@ -1634,7 +1637,7 @@ class UnfinishedForest
     if (index === -1) return;
 
     // remove it
-    this.value.splice(index, 1);
+    this.getValue().splice(index, 1);
   }
 }
 
@@ -1694,13 +1697,8 @@ class AccountUpdateLayout {
   pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
     let parentNode = this.getOrCreate(parent);
     let childNode = this.getOrCreate(child);
-    if (childNode.siblings === parentNode.calls) return;
-    assert(
-      childNode.siblings === undefined,
-      'AccountUpdateLayout.pushChild(): child already has another parent.'
-    );
-    childNode.siblings = parentNode.calls;
-    parentNode.calls.value.push(childNode);
+    assert(parentNode.calls.mutable(), 'Cannot push to an immutable layout');
+    parentNode.calls.push(childNode);
   }
 
   pushTopLevel(child: AccountUpdate) {
