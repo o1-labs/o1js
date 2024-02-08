@@ -1488,8 +1488,28 @@ class UnfinishedForest {
     this.final = final;
   }
 
-  setFinal(final: AccountUpdateForest): UnfinishedForestFinal {
+  static empty(): UnfinishedForestMutable {
+    return new UnfinishedForest([]) as any;
+  }
+
+  private setFinal(final: AccountUpdateForest): UnfinishedForestFinal {
     return Object.assign(this, { final });
+  }
+
+  finalize(): AccountUpdateForest {
+    if (this.isFinal()) {
+      return this.final;
+    }
+
+    // not using the hash means we calculate it in-circuit
+    let nodes = this.value.map(toTree);
+    let finalForest = AccountUpdateForest.empty();
+
+    for (let { isDummy, ...tree } of [...nodes].reverse()) {
+      finalForest.pushIf(isDummy.not(), tree);
+    }
+    this.setFinal(finalForest);
+    return finalForest;
   }
 
   witnessHash(): UnfinishedForestFinal {
@@ -1497,6 +1517,45 @@ class UnfinishedForest {
       this.finalize()
     );
     return this.setFinal(final);
+  }
+
+  push(node: UnfinishedTree) {
+    if (node.siblings === this) return;
+    assert(
+      node.siblings === undefined,
+      'Cannot push node that already has a parent.'
+    );
+    node.siblings = this;
+    assert(this.isMutable(), 'Cannot push to an immutable forest');
+    this.value.push(node);
+  }
+
+  pushTree(tree: AccountUpdateTree) {
+    assert(this.isMutable(), 'Cannot push to an immutable forest');
+    let value = AccountUpdate.dummy();
+    Provable.asProver(() => {
+      value = tree.accountUpdate.value.get();
+    });
+    this.value.push({
+      accountUpdate: { hash: tree.accountUpdate.hash, value },
+      isDummy: Bool(false),
+      children: UnfinishedForest.fromForest(tree.calls),
+      siblings: this,
+    });
+  }
+
+  remove(accountUpdate: AccountUpdate) {
+    // find account update by .id
+    let index = this.value.findIndex(
+      (node) => node.accountUpdate.value.id === accountUpdate.id
+    );
+
+    // nothing to do if it's not there
+    if (index === -1) return;
+
+    // remove it
+    assert(this.isMutable(), 'Cannot remove from an immutable forest');
+    this.value.splice(index, 1);
   }
 
   static fromForest(
@@ -1519,42 +1578,6 @@ class UnfinishedForest {
       unfinished.setFinal(new AccountUpdateForest(forest));
     }
     return unfinished;
-  }
-
-  finalize(): AccountUpdateForest {
-    if (this.isFinal()) {
-      return this.final;
-    }
-
-    // not using the hash means we calculate it in-circuit
-    let nodes = this.value.map(toTree);
-    let finalForest = AccountUpdateForest.empty();
-
-    for (let { isDummy, ...tree } of [...nodes].reverse()) {
-      finalForest.pushIf(isDummy.not(), tree);
-    }
-    this.setFinal(finalForest);
-    return finalForest;
-  }
-
-  print() {
-    let indent = 0;
-    let layout = '';
-
-    let toPretty = (a: UnfinishedForest) => {
-      indent += 2;
-      for (let tree of a.value) {
-        layout +=
-          ' '.repeat(indent) +
-          `( ${tree.accountUpdate.value.label || '<no label>'} )` +
-          '\n';
-        toPretty(tree.children);
-      }
-      indent -= 2;
-    };
-
-    toPretty(this);
-    console.log(layout);
   }
 
   toFlatList(mutate = true, depth = 0): AccountUpdate[] {
@@ -1587,47 +1610,24 @@ class UnfinishedForest {
     }
   }
 
-  static empty(): UnfinishedForestMutable {
-    return new UnfinishedForest([]) as any;
-  }
+  print() {
+    let indent = 0;
+    let layout = '';
 
-  push(node: UnfinishedTree) {
-    if (node.siblings === this) return;
-    assert(
-      node.siblings === undefined,
-      'Cannot push node that already has a parent.'
-    );
-    node.siblings = this;
-    assert(this.isMutable(), 'Cannot push to an immutable forest');
-    this.value.push(node);
-  }
+    let toPretty = (a: UnfinishedForest) => {
+      indent += 2;
+      for (let tree of a.value) {
+        layout +=
+          ' '.repeat(indent) +
+          `( ${tree.accountUpdate.value.label || '<no label>'} )` +
+          '\n';
+        toPretty(tree.children);
+      }
+      indent -= 2;
+    };
 
-  pushTree(tree: AccountUpdateTree) {
-    let value = AccountUpdate.dummy();
-    Provable.asProver(() => {
-      value = tree.accountUpdate.value.get();
-    });
-    assert(this.isMutable(), 'Cannot push to an immutable forest');
-    this.value.push({
-      accountUpdate: { hash: tree.accountUpdate.hash, value },
-      isDummy: Bool(false),
-      children: UnfinishedForest.fromForest(tree.calls),
-      siblings: this,
-    });
-  }
-
-  remove(accountUpdate: AccountUpdate) {
-    // find account update by .id
-    let index = this.value.findIndex(
-      (node) => node.accountUpdate.value.id === accountUpdate.id
-    );
-
-    // nothing to do if it's not there
-    if (index === -1) return;
-
-    // remove it
-    assert(this.isMutable(), 'Cannot remove from an immutable forest');
-    this.value.splice(index, 1);
+    toPretty(this);
+    console.log(layout);
   }
 }
 
