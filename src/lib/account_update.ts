@@ -1465,44 +1465,56 @@ function hashCons(forestHash: Field, nodeHash: Field) {
 }
 
 /**
- * UnfinishedForest / UnfinishedTree are structures for constructing the forest of child account updates from a circuit.
+ * `UnfinishedForest` / `UnfinishedTree` are structures for constructing the forest of child account updates from a circuit.
  *
  * The circuit can mutate account updates and change their array of children, so here we can't hash
  * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
  * updates that can be hashed into a final call forest at the end.
+ *
+ * `UnfinishedForest` behaves like a tagged enum type:
+ * ```
+ * type UnfinishedForest =
+ *  | Mutable of UnfinishedTree[]
+ *  | Final of AccountUpdateForest;
+ * ```
  */
-type UnfinishedForestFinal = {
-  final: AccountUpdateForest;
-  value?: undefined;
-} & UnfinishedForest;
-type UnfinishedForestMutable = {
-  final?: undefined;
-  value: UnfinishedTree[];
-} & UnfinishedForest;
-
 type UnfinishedTree = {
-  accountUpdate: HashOrValue<AccountUpdate>;
+  // TODO it would be nice to make this closer to `Final of Hashed<AccountUpdate> | Mutable of AccountUpdate`
+  accountUpdate: { hash?: Field; value: AccountUpdate };
   isDummy: Bool;
   // `children` must be readonly since it's referenced in each child's siblings
   readonly children: UnfinishedForest;
   siblings?: UnfinishedForest;
 };
-type HashOrValue<T> = { hash?: Field; value: T };
+
+type UnfinishedForestFinal = UnfinishedForest & {
+  final: AccountUpdateForest;
+  mutable?: undefined;
+};
+
+type UnfinishedForestMutable = UnfinishedForest & {
+  final?: undefined;
+  mutable: UnfinishedTree[];
+};
 
 class UnfinishedForest {
   final?: AccountUpdateForest;
-  value?: UnfinishedTree[];
+  mutable?: UnfinishedTree[];
 
   isFinal(): this is UnfinishedForestFinal {
     return this.final !== undefined;
   }
   isMutable(): this is UnfinishedForestMutable {
-    return this.value !== undefined;
+    return this.mutable !== undefined;
   }
 
-  constructor(value: UnfinishedTree[], final?: AccountUpdateForest) {
-    this.value = value;
+  constructor(mutable?: UnfinishedTree[], final?: AccountUpdateForest) {
+    assert(
+      (final === undefined) !== (mutable === undefined),
+      'final or mutable'
+    );
     this.final = final;
+    this.mutable = mutable;
   }
 
   static empty(): UnfinishedForestMutable {
@@ -1510,14 +1522,14 @@ class UnfinishedForest {
   }
 
   private setFinal(final: AccountUpdateForest): UnfinishedForestFinal {
-    return Object.assign(this, { final, value: undefined });
+    return Object.assign(this, { final, mutable: undefined });
   }
 
   finalize(): AccountUpdateForest {
     if (this.isFinal()) return this.final;
     assert(this.isMutable(), 'final or mutable');
 
-    let nodes = this.value.map(toTree);
+    let nodes = this.mutable.map(toTree);
     let finalForest = AccountUpdateForest.empty();
 
     for (let { isDummy, ...tree } of [...nodes].reverse()) {
@@ -1542,17 +1554,17 @@ class UnfinishedForest {
     );
     node.siblings = this;
     assert(this.isMutable(), 'Cannot push to an immutable forest');
-    this.value.push(node);
+    this.mutable.push(node);
   }
 
-  // TODO this isn't quite right
+  // TODO this isn't quite right - shouldn't have to save the value in a circuit-accessible way if it's hashed
   pushTree(tree: AccountUpdateTree) {
     assert(this.isMutable(), 'Cannot push to an immutable forest');
     let value = AccountUpdate.dummy();
     Provable.asProver(() => {
       value = tree.accountUpdate.value.get();
     });
-    this.value.push({
+    this.mutable.push({
       accountUpdate: { hash: tree.accountUpdate.hash, value },
       isDummy: Bool(false),
       children: UnfinishedForest.fromForest(tree.calls),
@@ -1563,7 +1575,7 @@ class UnfinishedForest {
   remove(node: UnfinishedTree) {
     assert(this.isMutable(), 'Cannot remove from an immutable forest');
     // find by .id
-    let index = this.value.findIndex(
+    let index = this.mutable.findIndex(
       (n) => n.accountUpdate.value.id === node.accountUpdate.value.id
     );
 
@@ -1572,13 +1584,13 @@ class UnfinishedForest {
 
     // remove it
     node.siblings = undefined;
-    this.value.splice(index, 1);
+    this.mutable.splice(index, 1);
   }
 
   setToForest(forest: MerkleListBase<AccountUpdateTree>) {
     if (this.isMutable()) {
       assert(
-        this.value.length === 0,
+        this.mutable.length === 0,
         'Replacing a mutable forest that has existing children might be a mistake.'
       );
     }
@@ -1594,7 +1606,7 @@ class UnfinishedForest {
       return AccountUpdateForest.toFlatArray(this.final, mutate, depth);
     assert(this.isMutable(), 'final or mutable');
     let flatUpdates: AccountUpdate[] = [];
-    for (let node of this.value) {
+    for (let node of this.mutable) {
       if (node.isDummy.toBoolean()) continue;
       let update = node.accountUpdate.value;
       if (mutate) update.body.callDepth = depth;
@@ -1610,7 +1622,7 @@ class UnfinishedForest {
       return;
     }
     assert(this.isMutable(), 'final or mutable');
-    for (let node of this.value) {
+    for (let node of this.mutable) {
       node.accountUpdate.value = Provable.toConstant(
         AccountUpdate,
         node.accountUpdate.value
@@ -1624,13 +1636,14 @@ class UnfinishedForest {
   }
 
   print() {
-    assert(this.isMutable(), 'print(): unimplemented for final forests');
     let indent = 0;
     let layout = '';
 
     let toPretty = (a: UnfinishedForest) => {
+      if (a.isFinal()) layout += ' '.repeat(indent) + ' ( finalized forest )\n';
+      assert(a.isMutable(), 'final or mutable');
       indent += 2;
-      for (let tree of a.value!) {
+      for (let tree of a.mutable) {
         layout +=
           ' '.repeat(indent) +
           `( ${tree.accountUpdate.value.label || '<no label>'} )` +
