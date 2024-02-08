@@ -1497,11 +1497,8 @@ class UnfinishedForest {
   }
 
   finalize(): AccountUpdateForest {
-    if (this.isFinal()) {
-      return this.final;
-    }
+    if (this.isFinal()) return this.final;
 
-    // not using the hash means we calculate it in-circuit
     let nodes = this.value.map(toTree);
     let finalForest = AccountUpdateForest.empty();
 
@@ -1530,6 +1527,7 @@ class UnfinishedForest {
     this.value.push(node);
   }
 
+  // TODO this isn't quite right
   pushTree(tree: AccountUpdateTree) {
     assert(this.isMutable(), 'Cannot push to an immutable forest');
     let value = AccountUpdate.dummy();
@@ -1544,10 +1542,10 @@ class UnfinishedForest {
     });
   }
 
-  remove(accountUpdate: AccountUpdate) {
-    // find account update by .id
+  remove(node: UnfinishedTree) {
+    // find by .id
     let index = this.value.findIndex(
-      (node) => node.accountUpdate.value.id === accountUpdate.id
+      (n) => n.accountUpdate.value.id === node.accountUpdate.value.id
     );
 
     // nothing to do if it's not there
@@ -1555,6 +1553,7 @@ class UnfinishedForest {
 
     // remove it
     assert(this.isMutable(), 'Cannot remove from an immutable forest');
+    node.siblings = undefined;
     this.value.splice(index, 1);
   }
 
@@ -1714,9 +1713,7 @@ class AccountUpdateLayout {
 
   disattach(update: AccountUpdate) {
     let node = this.get(update);
-    if (node?.siblings === undefined) return;
-    node.siblings.remove(update);
-    node.siblings = undefined;
+    node?.siblings?.remove(node);
   }
 
   finalizeAndRemove(update: AccountUpdate) {
