@@ -560,13 +560,14 @@ async function fetchLatestBlockZkappStatus(
   blockLength: number,
   graphqlEndpoint = networkConfig.minaEndpoint
 ) {
-  let [resp, error] = await makeGraphqlRequest(
-    lastBlockQueryFailureCheck(blockLength),
-    graphqlEndpoint,
-    networkConfig.minaFallbackEndpoints
-  );
+  let [resp, error] =
+    await makeGraphqlRequest<LastBlockQueryFailureCheckResponse>(
+      lastBlockQueryFailureCheck(blockLength),
+      graphqlEndpoint,
+      networkConfig.minaFallbackEndpoints
+    );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
-  let bestChain = resp?.data as LastBlockQueryFailureCheckResponse;
+  let bestChain = resp?.data;
   if (bestChain === undefined) {
     throw Error(
       'Failed to fetch the latest zkApp transaction status. The response data is undefined.'
