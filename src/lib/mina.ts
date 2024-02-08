@@ -145,10 +145,7 @@ type PendingTransaction = Pick<
   errors?: string[];
 };
 
-type IncludedTransaction = Pick<
-  PendingTransaction,
-  'transaction' | 'toJSON' | 'toPretty' | 'hash' | 'data' | 'errors'
-> & {
+type IncludedTransaction = Omit<PendingTransaction, 'wait' | 'isSuccess'> & {
   isIncluded: boolean;
 };
 
