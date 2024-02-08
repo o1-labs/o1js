@@ -816,17 +816,19 @@ type EventQueryResponse = {
   }[];
 };
 
-type FetchedActions = {
-  blockInfo: {
-    distanceFromMaxBlockHeight: number;
-  };
-  actionState: {
-    actionStateOne: string;
-    actionStateTwo: string;
-  };
-  actionData: {
-    accountUpdateId: string;
-    data: string[];
+type ActionQueryResponse = {
+  actions: {
+    blockInfo: {
+      distanceFromMaxBlockHeight: number;
+    };
+    actionState: {
+      actionStateOne: string;
+      actionStateTwo: string;
+    };
+    actionData: {
+      accountUpdateId: string;
+      data: string[];
+    }[];
   }[];
 };
 
@@ -993,13 +995,13 @@ async function fetchActions(
     actionStates,
     tokenId = TokenId.toBase58(TokenId.default),
   } = accountInfo;
-  let [response, error] = await makeGraphqlRequest(
+  let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
     getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
-  let fetchedActions = response?.data.actions as FetchedActions[];
+  let fetchedActions = response?.data.actions;
   if (fetchedActions === undefined) {
     return {
       error: {
