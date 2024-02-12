@@ -40,7 +40,7 @@ Mina.setActiveInstance(Local);
 let [
   { publicKey: sender, privateKey: senderKey },
   { publicKey: tokenAddress, privateKey: tokenKey },
-  { publicKey: otherAddress },
+  { publicKey: otherAddress, privateKey: otherKey },
 ] = Local.testAccounts;
 
 let token = new ExampleTokenContract(tokenAddress);
@@ -85,3 +85,20 @@ await assert.rejects(
   () => Mina.transaction(sender, () => token.approveBase(forest)),
   /Field\.assertEquals\(\): 1 != 0/
 );
+
+// succeeds to approve deep account update tree with zero balance sum
+let update4 = AccountUpdate.createSigned(otherAddress, tokenId);
+update4.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+update4.balanceChange = Int64.minusOne;
+update4.body.callDepth = 2;
+
+forest = AccountUpdateForest.fromFlatArray([
+  update1,
+  update2,
+  update3,
+  update4,
+]);
+
+let approveTx = await Mina.transaction(sender, () => token.approveBase(forest));
+await approveTx.prove();
+await approveTx.sign([senderKey, otherKey]).send();
