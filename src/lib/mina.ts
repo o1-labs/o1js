@@ -980,11 +980,13 @@ function Network(
       }): Promise<IncludedTransaction | RejectedTransaction> => {
         const pendingTransaction = await wait(options);
         if (pendingTransaction.status === 'rejected') {
-          `Transaction failed with errors: ${JSON.stringify(
-            pendingTransaction.errors,
-            null,
-            2
-          )}`;
+          throw Error(
+            `Transaction failed with errors: ${JSON.stringify(
+              pendingTransaction.errors,
+              null,
+              2
+            )}`
+          );
         }
         return pendingTransaction;
       };
