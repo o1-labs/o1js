@@ -1559,7 +1559,7 @@ function hashCons(forestHash: Field, nodeHash: Field) {
  *
  * type UnfinishedTree = (
  *  | Mutable of AccountUpdate
- *  | Final of HashedAccountUpdate)
+ *  | Final of HashedAccountUpdate
  * ) & { children: UnfinishedForest, ... }
  * ```
  */
@@ -1616,7 +1616,7 @@ class UnfinishedForest {
     if (this.isFinal()) return this.final;
     assert(this.isMutable(), 'final or mutable');
 
-    let nodes = this.mutable.map(toTree);
+    let nodes = this.mutable.map(UnfinishedTree.finalize);
     let finalForest = AccountUpdateForest.empty();
 
     for (let { isDummy, ...tree } of [...nodes].reverse()) {
@@ -1642,17 +1642,6 @@ class UnfinishedForest {
     node.siblings = this;
     assert(this.isMutable(), 'Cannot push to an immutable forest');
     this.mutable.push(node);
-  }
-
-  pushTree(tree: AccountUpdateTree) {
-    assert(this.isMutable(), 'Cannot push to an immutable forest');
-    this.mutable.push({
-      final: tree.accountUpdate,
-      id: tree.id,
-      isDummy: Bool(false),
-      children: UnfinishedForest.fromForest(tree.children),
-      siblings: this,
-    });
   }
 
   remove(node: UnfinishedTree) {
@@ -1741,19 +1730,54 @@ class UnfinishedForest {
   }
 }
 
-function toTree(
-  node: UnfinishedTree
-): AccountUpdateTreeBase & { isDummy: Bool } {
-  let accountUpdate = node.final ?? HashedAccountUpdate.hash(node.mutable);
-  let children = node.children.finalize();
-  return { accountUpdate, id: node.id, isDummy: node.isDummy, children };
-}
+const UnfinishedTree = {
+  create(update: AccountUpdate | AccountUpdateTree): UnfinishedTree {
+    if (update instanceof AccountUpdate) {
+      return {
+        mutable: update,
+        id: update.id,
+        isDummy: update.isDummy(),
+        children: UnfinishedForest.empty(),
+      };
+    }
+    return {
+      final: update.accountUpdate,
+      id: update.id,
+      isDummy: Bool(false),
+      children: UnfinishedForest.fromForest(update.children),
+    };
+  },
 
-function isUnfinished(
-  input: AccountUpdate | AccountUpdateTree | UnfinishedTree
-): input is UnfinishedTree {
-  return 'final' in input || 'mutable' in input;
-}
+  setTo(node: UnfinishedTree, update: AccountUpdate | AccountUpdateTree) {
+    if (update instanceof AccountUpdate) {
+      if (node.final !== undefined) {
+        Object.assign(node, {
+          mutable: update,
+          final: undefined,
+          children: UnfinishedForest.empty(),
+        });
+      }
+    } else if (node.mutable !== undefined) {
+      Object.assign(node, {
+        mutable: undefined,
+        final: update.accountUpdate,
+        children: UnfinishedForest.fromForest(update.children),
+      });
+    }
+  },
+
+  finalize(node: UnfinishedTree): AccountUpdateTreeBase & { isDummy: Bool } {
+    let accountUpdate = node.final ?? HashedAccountUpdate.hash(node.mutable);
+    let children = node.children.finalize();
+    return { accountUpdate, id: node.id, isDummy: node.isDummy, children };
+  },
+
+  isUnfinished(
+    input: AccountUpdate | AccountUpdateTree | UnfinishedTree
+  ): input is UnfinishedTree {
+    return 'final' in input || 'mutable' in input;
+  },
+};
 
 class AccountUpdateLayout {
   readonly map: Map<number, UnfinishedTree>;
@@ -1780,47 +1804,21 @@ class AccountUpdateLayout {
   private getOrCreate(
     update: AccountUpdate | AccountUpdateTree | UnfinishedTree
   ): UnfinishedTree {
-    if (isUnfinished(update)) {
+    if (UnfinishedTree.isUnfinished(update)) {
       if (!this.map.has(update.id)) {
         this.map.set(update.id, update);
       }
       return update;
     }
     let node = this.map.get(update.id);
+
     if (node !== undefined) {
       // might have to change node
-      if (update instanceof AccountUpdate) {
-        if (node.final !== undefined) {
-          Object.assign(node, {
-            mutable: update,
-            final: undefined,
-            children: UnfinishedForest.empty(),
-          });
-        }
-      } else if (node.mutable !== undefined) {
-        Object.assign(node, {
-          mutable: undefined,
-          final: update.accountUpdate,
-          children: UnfinishedForest.fromForest(update.children),
-        });
-      }
+      UnfinishedTree.setTo(node, update);
       return node;
     }
-    if (update instanceof AccountUpdate) {
-      node = {
-        mutable: update,
-        id: update.id,
-        isDummy: update.isDummy(),
-        children: UnfinishedForest.empty(),
-      };
-    } else {
-      node = {
-        final: update.accountUpdate,
-        id: update.id,
-        isDummy: Bool(false),
-        children: UnfinishedForest.fromForest(update.children),
-      };
-    }
+
+    node = UnfinishedTree.create(update);
     this.map.set(update.id, node);
     return node;
   }
