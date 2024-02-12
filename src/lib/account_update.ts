@@ -982,8 +982,8 @@ class AccountUpdate implements Types.AccountUpdate {
     if (isSameAsFeePayer) nonce++;
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
-    let layout = currentTransaction.get().layout;
-    layout.forEachPredecessor(update as AccountUpdate, (otherUpdate) => {
+    let layout = currentTransaction()?.layout;
+    layout?.forEachPredecessor(update as AccountUpdate, (otherUpdate) => {
       let shouldIncreaseNonce = otherUpdate.publicKey
         .equals(publicKey)
         .and(otherUpdate.tokenId.equals(tokenId))
