@@ -3,6 +3,8 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
+  Struct,
+  Unconstrained,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
@@ -33,7 +35,12 @@ import {
   Actions,
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields } from './hash.js';
+import {
+  hashWithPrefix,
+  packToFields,
+  Poseidon,
+  ProvableHashable,
+} from './hash.js';
 import {
   mocks,
   prefixes,
@@ -47,9 +54,22 @@ import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js
 import { currentTransaction } from './mina/transaction-context.js';
 import { isSmartContract } from './mina/smart-contract-base.js';
 import { activeInstance } from './mina/mina-instance.js';
+import {
+  genericHash,
+  MerkleList,
+  MerkleListBase,
+  withHashes,
+} from './provable-types/merkle-list.js';
+import { Hashed } from './provable-types/packed.js';
 
 // external API
-export { AccountUpdate, Permissions, ZkappPublicInput, TransactionVersion };
+export {
+  AccountUpdate,
+  Permissions,
+  ZkappPublicInput,
+  TransactionVersion,
+  AccountUpdateForest,
+};
 // internal API
 export {
   smartContractContext,
@@ -74,6 +94,10 @@ export {
   SmartContractContext,
   dummySignature,
   LazyProof,
+  AccountUpdateTree,
+  UnfinishedForest,
+  hashAccountUpdate,
+  HashedAccountUpdate,
 };
 
 const ZkappStateLength = 8;
@@ -86,6 +110,7 @@ type SmartContractContext = {
   this: SmartContract;
   methodCallDepth: number;
   selfUpdate: AccountUpdate;
+  selfCalls: UnfinishedForest;
 };
 let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,
@@ -599,7 +624,8 @@ class AccountUpdate implements Types.AccountUpdate {
     callsType:
       | { type: 'None' }
       | { type: 'Witness' }
-      | { type: 'Equals'; value: Field };
+      | { type: 'Equals'; value: Field }
+      | { type: 'WitnessEquals'; value: Field };
     accountUpdates: AccountUpdate[];
   } = {
     callsType: { type: 'None' },
@@ -797,6 +823,25 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     makeChildAccountUpdate(this, childUpdate);
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
+
+    // TODO: this is not as general as approve suggests
+    let insideContract = smartContractContext.get();
+    if (insideContract && insideContract.selfUpdate.id === this.id) {
+      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
+    }
+  }
+
+  /**
+   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this.
+   */
+  adopt(childUpdate: AccountUpdate) {
+    makeChildAccountUpdate(this, childUpdate);
+
+    // TODO: this is not as general as adopt suggests
+    let insideContract = smartContractContext.get();
+    if (insideContract && insideContract.selfUpdate.id === this.id) {
+      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
+    }
   }
 
   get balance() {
@@ -812,6 +857,13 @@ class AccountUpdate implements Types.AccountUpdate {
         accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
       },
     };
+  }
+
+  get balanceChange() {
+    return Int64.fromObject(this.body.balanceChange);
+  }
+  set balanceChange(x: Int64) {
+    this.body.balanceChange = x;
   }
 
   get update(): Update {
@@ -1116,6 +1168,11 @@ class AccountUpdate implements Types.AccountUpdate {
    * Disattach an account update from where it's currently located in the transaction
    */
   static unlink(accountUpdate: AccountUpdate) {
+    // TODO duplicate logic
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      UnfinishedForest.remove(insideContract.selfCalls, accountUpdate);
+    }
     let siblings =
       accountUpdate.parent?.children.accountUpdates ??
       currentTransaction()?.accountUpdates;
@@ -1490,11 +1547,196 @@ type AccountUpdatesLayout =
   | 'NoDelegation'
   | AccountUpdatesLayout[];
 
-type WithCallers = {
-  accountUpdate: AccountUpdate;
-  caller: Field;
-  children: WithCallers[];
+// call forest stuff
+
+function hashAccountUpdate(update: AccountUpdate) {
+  return genericHash(AccountUpdate, prefixes.body, update);
+}
+
+class HashedAccountUpdate extends Hashed.create(
+  AccountUpdate,
+  hashAccountUpdate
+) {}
+
+type AccountUpdateTree = {
+  accountUpdate: Hashed<AccountUpdate>;
+  calls: MerkleListBase<AccountUpdateTree>;
 };
+const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
+  accountUpdate: HashedAccountUpdate.provable,
+  calls: MerkleListBase<AccountUpdateTree>(),
+});
+
+/**
+ * Class which represents a forest (list of trees) of account updates,
+ * in a compressed way which allows iterating and selectively witnessing the account updates.
+ *
+ * The (recursive) type signature is:
+ * ```
+ * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
+ * type AccountUpdateTree = {
+ *   accountUpdate: Hashed<AccountUpdate>;
+ *   calls: AccountUpdateForest;
+ * };
+ * ```
+ */
+class AccountUpdateForest extends MerkleList.create(
+  AccountUpdateTree,
+  merkleListHash
+) {
+  static fromArray(
+    updates: AccountUpdate[],
+    { skipDummies = false } = {}
+  ): AccountUpdateForest {
+    if (skipDummies) return AccountUpdateForest.fromArraySkipDummies(updates);
+
+    let nodes = updates.map((update) => {
+      let accountUpdate = HashedAccountUpdate.hash(update);
+      let calls = AccountUpdateForest.fromArray(update.children.accountUpdates);
+      return { accountUpdate, calls };
+    });
+    return AccountUpdateForest.from(nodes);
+  }
+
+  private static fromArraySkipDummies(
+    updates: AccountUpdate[]
+  ): AccountUpdateForest {
+    let forest = AccountUpdateForest.empty();
+
+    for (let update of [...updates].reverse()) {
+      let accountUpdate = HashedAccountUpdate.hash(update);
+      let calls = AccountUpdateForest.fromArraySkipDummies(
+        update.children.accountUpdates
+      );
+      forest.pushIf(update.isDummy().not(), { accountUpdate, calls });
+    }
+
+    return forest;
+  }
+}
+
+// how to hash a forest
+
+function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
+  return hashCons(forestHash, hashNode(tree));
+}
+
+function hashNode(tree: AccountUpdateTree) {
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
+    tree.accountUpdate.hash,
+    tree.calls.hash,
+  ]);
+}
+function hashCons(forestHash: Field, nodeHash: Field) {
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateCons, [
+    nodeHash,
+    forestHash,
+  ]);
+}
+
+/**
+ * Structure for constructing the forest of child account updates, from a circuit.
+ *
+ * The circuit can mutate account updates and change their array of children, so here we can't hash
+ * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
+ * updates that can be hashed into a final call forest at the end.
+ */
+type UnfinishedForest = HashOrValue<UnfinishedTree[]>;
+
+type UnfinishedTree = {
+  accountUpdate: HashOrValue<AccountUpdate>;
+  isDummy: Bool;
+  calls: UnfinishedForest;
+};
+
+type HashOrValue<T> =
+  | { readonly useHash: true; hash: Field; readonly value: T }
+  | { readonly useHash: false; value: T };
+
+const UnfinishedForest = {
+  empty(): UnfinishedForest {
+    return { useHash: false, value: [] };
+  },
+
+  witnessHash(forest: UnfinishedForest): UnfinishedForest {
+    let hash = Provable.witness(Field, () => {
+      return UnfinishedForest.finalize(forest).hash;
+    });
+    return { useHash: true, hash, value: forest.value };
+  },
+
+  fromArray(updates: AccountUpdate[], useHash = false): UnfinishedForest {
+    if (useHash) {
+      let forest = UnfinishedForest.empty();
+      Provable.asProver(() => (forest = UnfinishedForest.fromArray(updates)));
+      return UnfinishedForest.witnessHash(forest);
+    }
+
+    let nodes = updates.map((update): UnfinishedTree => {
+      return {
+        accountUpdate: { useHash: false, value: update },
+        isDummy: update.isDummy(),
+        calls: UnfinishedForest.fromArray(update.children.accountUpdates),
+      };
+    });
+    return { useHash: false, value: nodes };
+  },
+
+  push(
+    forest: UnfinishedForest,
+    accountUpdate: AccountUpdate,
+    calls?: UnfinishedForest
+  ) {
+    forest.value.push({
+      accountUpdate: { useHash: false, value: accountUpdate },
+      isDummy: accountUpdate.isDummy(),
+      calls: calls ?? UnfinishedForest.empty(),
+    });
+  },
+
+  remove(forest: UnfinishedForest, accountUpdate: AccountUpdate) {
+    // find account update by .id
+    let index = forest.value.findIndex(
+      (node) => node.accountUpdate.value.id === accountUpdate.id
+    );
+
+    // nothing to do if it's not there
+    if (index === -1) return;
+
+    // remove it
+    forest.value.splice(index, 1);
+  },
+
+  finalize(forest: UnfinishedForest): AccountUpdateForest {
+    if (forest.useHash) {
+      let data = Unconstrained.witness(() =>
+        UnfinishedForest.finalize({ ...forest, useHash: false }).data.get()
+      );
+      return new AccountUpdateForest({ hash: forest.hash, data });
+    }
+
+    // not using the hash means we calculate it in-circuit
+    let nodes = forest.value.map(toTree);
+    let finalForest = AccountUpdateForest.empty();
+
+    for (let { isDummy, ...tree } of [...nodes].reverse()) {
+      finalForest.pushIf(isDummy.not(), tree);
+    }
+    return finalForest;
+  },
+};
+
+function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
+  let accountUpdate = node.accountUpdate.useHash
+    ? new HashedAccountUpdate(
+        node.accountUpdate.hash,
+        Unconstrained.from(node.accountUpdate.value)
+      )
+    : HashedAccountUpdate.hash(node.accountUpdate.value);
+
+  let calls = UnfinishedForest.finalize(node.calls);
+  return { accountUpdate, isDummy: node.isDummy, calls };
+}
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
@@ -1528,14 +1770,21 @@ const CallForest = {
   // hashes a accountUpdate's children (and their children, and ...) to compute
   // the `calls` field of ZkappPublicInput
   hashChildren(update: AccountUpdate): Field {
+    if (!Provable.inCheckedComputation()) {
+      return CallForest.hashChildrenBase(update);
+    }
+
     let { callsType } = update.children;
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
       return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
+    if (callsType.type === 'WitnessEquals') {
+      return callsType.value;
+    }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals' && Provable.inCheckedComputation()) {
+    if (callsType.type === 'Equals') {
       calls.assertEquals(callsType.value);
     }
     return calls;
@@ -1558,70 +1807,6 @@ const CallForest = {
     }
     return stackHash;
   },
-
-  // Mina_base.Zkapp_command.Call_forest.add_callers
-  // TODO: currently unused, but could come back when we add caller to the
-  // public input
-  addCallers(
-    updates: AccountUpdate[],
-    context: { self: Field; caller: Field } = {
-      self: TokenId.default,
-      caller: TokenId.default,
-    }
-  ): WithCallers[] {
-    let withCallers: WithCallers[] = [];
-    for (let update of updates) {
-      let { mayUseToken } = update.body;
-      let caller = Provable.if(
-        mayUseToken.parentsOwnToken,
-        context.self,
-        Provable.if(
-          mayUseToken.inheritFromParent,
-          context.caller,
-          TokenId.default
-        )
-      );
-      let self = TokenId.derive(update.body.publicKey, update.body.tokenId);
-      let childContext = { caller, self };
-      withCallers.push({
-        accountUpdate: update,
-        caller,
-        children: CallForest.addCallers(
-          update.children.accountUpdates,
-          childContext
-        ),
-      });
-    }
-    return withCallers;
-  },
-  /**
-   * Used in the prover to witness the context from which to compute its caller
-   *
-   * TODO: currently unused, but could come back when we add caller to the
-   * public input
-   */
-  computeCallerContext(update: AccountUpdate) {
-    // compute the line of ancestors
-    let current = update;
-    let ancestors = [];
-    while (true) {
-      let parent = current.parent;
-      if (parent === undefined) break;
-      ancestors.unshift(parent);
-      current = parent;
-    }
-    let context = { self: TokenId.default, caller: TokenId.default };
-    for (let update of ancestors) {
-      if (update.body.mayUseToken.parentsOwnToken.toBoolean()) {
-        context.caller = context.self;
-      } else if (!update.body.mayUseToken.inheritFromParent.toBoolean()) {
-        context.caller = TokenId.default;
-      }
-      context.self = TokenId.derive(update.body.publicKey, update.body.tokenId);
-    }
-    return context;
-  },
-  callerContextType: provablePure({ self: Field, caller: Field }),
 
   computeCallDepth(update: AccountUpdate) {
     for (let callDepth = 0; ; callDepth++) {
@@ -1858,17 +2043,16 @@ function dummySignature() {
 
 /**
  * The public input for zkApps consists of certain hashes of the proving
- AccountUpdate (and its child accountUpdates) which is constructed during method
- execution.
-
-  For SmartContract proving, a method is run twice: First outside the proof, to
- obtain the public input, and once in the prover, which takes the public input
- as input. The current transaction is hashed again inside the prover, which
- asserts that the result equals the input public input, as part of the snark
- circuit. The block producer will also hash the transaction they receive and
- pass it as a public input to the verifier. Thus, the transaction is fully
- constrained by the proof - the proof couldn't be used to attest to a different
- transaction.
+ * account update (and its child updates) which is constructed during method execution.
+ *
+ * For SmartContract proving, a method is run twice: First outside the proof, to
+ * obtain the public input, and once in the prover, which takes the public input
+ * as input. The current transaction is hashed again inside the prover, which
+ * asserts that the result equals the input public input, as part of the snark
+ * circuit. The block producer will also hash the transaction they receive and
+ * pass it as a public input to the verifier. Thus, the transaction is fully
+ * constrained by the proof - the proof couldn't be used to attest to a different
+ * transaction.
  */
 type ZkappPublicInput = {
   accountUpdate: Field;

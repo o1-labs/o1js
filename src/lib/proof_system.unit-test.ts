@@ -124,7 +124,6 @@ expect(emptyMethodsMetadata.run).toEqual(
   expect.objectContaining({
     rows: 0,
     digest: '4f5ddea76d29cfcfd8c595f14e31f21b',
-    result: undefined,
     gates: [],
     publicInputSize: 0,
   })

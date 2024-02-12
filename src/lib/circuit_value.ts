@@ -539,6 +539,13 @@ and Provable.asProver() blocks, which execute outside the proof.
   }
 
   /**
+   * Set the unconstrained value to the same as another `Unconstrained`.
+   */
+  setTo(value: Unconstrained<T>) {
+    this.option = value.option;
+  }
+
+  /**
    * Create an `Unconstrained` with the given `value`.
    */
   static from<T>(value: T) {
@@ -553,6 +560,16 @@ and Provable.asProver() blocks, which execute outside the proof.
       Unconstrained.provable,
       () => new Unconstrained(true, compute())
     );
+  }
+
+  /**
+   * Update an `Unconstrained` by a witness computation.
+   */
+  updateAsProver(compute: (value: T) => T) {
+    return Provable.asProver(() => {
+      let value = this.get();
+      this.set(compute(value));
+    });
   }
 
   static provable: Provable<Unconstrained<any>> & {
@@ -582,14 +599,15 @@ function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
 
-  // HACK: callbacks, account updates
+  // HACK: callbacks
   if (
     obj.constructor?.name.includes('GenericArgument') ||
     obj.constructor?.name.includes('Callback')
   ) {
     return obj;
   }
-  if (obj.constructor?.name.includes('AccountUpdate')) {
+  // classes that define clone() are cloned using that method
+  if (obj.constructor !== undefined && 'clone' in obj.constructor) {
     return (obj as any).constructor.clone(obj);
   }
 

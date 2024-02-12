@@ -33,6 +33,7 @@ export {
   createFeePayer,
   accountUpdateFromFeePayer,
   isCallDepthValid,
+  CallForest,
 };
 
 function signZkappCommand(
@@ -122,16 +123,22 @@ function transactionCommitments(zkappCommand: ZkappCommand) {
   return { commitment, fullCommitment };
 }
 
-type CallTree = { accountUpdate: AccountUpdate; children: CallForest };
-type CallForest = CallTree[];
+type CallTree<AccountUpdate> = {
+  accountUpdate: AccountUpdate;
+  children: CallForest<AccountUpdate>;
+};
+type CallForest<AccountUpdate> = CallTree<AccountUpdate>[];
 
 /**
  * Turn flat list into a hierarchical structure (forest) by letting the callDepth
  * determine parent-child relationships
  */
-function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
+function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
+  updates: A[],
+  callDepth = 0
+) {
   let remainingUpdates = callDepth > 0 ? updates : [...updates];
-  let forest: CallForest = [];
+  let forest: CallForest<A> = [];
   while (remainingUpdates.length > 0) {
     let accountUpdate = remainingUpdates[0];
     if (accountUpdate.body.callDepth < callDepth) return forest;
@@ -149,7 +156,7 @@ function accountUpdateHash(update: AccountUpdate) {
   return hashWithPrefix(prefixes.body, fields);
 }
 
-function callForestHash(forest: CallForest): Field {
+function callForestHash(forest: CallForest<AccountUpdate>): Field {
   let stackHash = 0n;
   for (let callTree of [...forest].reverse()) {
     let calls = callForestHash(callTree.children);

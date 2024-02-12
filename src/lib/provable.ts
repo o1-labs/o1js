@@ -341,8 +341,6 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
         `If x, y are Structs or other custom types, you can use the following:\n` +
         `Provable.if(bool, MyType, x, y)`
     );
-  // TODO remove second condition once we have consolidated field class back into one
-  // if (type !== y.constructor) {
   if (type !== y.constructor) {
     throw Error(
       'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +

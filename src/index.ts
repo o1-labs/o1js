@@ -9,7 +9,7 @@ export {
 } from './lib/foreign-field.js';
 export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
-export { Poseidon, TokenSymbol } from './lib/hash.js';
+export { Poseidon, TokenSymbol, ProvableHashable } from './lib/hash.js';
 export { Keccak } from './lib/keccak.js';
 export { Hash } from './lib/hashes-combined.js';
 
@@ -21,7 +21,6 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
-  Unconstrained,
 } from './lib/circuit_value.js';
 export {
   CircuitValue,
@@ -31,6 +30,7 @@ export {
   provable,
   provablePure,
   Struct,
+  Unconstrained,
 } from './lib/circuit_value.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
@@ -39,6 +39,11 @@ export { Bytes } from './lib/provable-types/provable-types.js';
 export { Packed, Hashed } from './lib/provable-types/packed.js';
 export { Gadgets } from './lib/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
+
+export {
+  MerkleList,
+  MerkleListIterator,
+} from './lib/provable-types/merkle-list.js';
 
 export * as Mina from './lib/mina.js';
 export type { DeployArgs } from './lib/zkapp.js';
@@ -70,7 +75,11 @@ export {
   Permissions,
   ZkappPublicInput,
   TransactionVersion,
+  AccountUpdateForest,
 } from './lib/account_update.js';
+
+export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
+export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
