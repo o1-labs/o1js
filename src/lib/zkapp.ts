@@ -1638,8 +1638,8 @@ function diffRecursive(
   let proverChildren = accountUpdates()!.get(prover)!.children.mutable!;
   let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
-    let inputChild = inputChildren[i].accountUpdate.value;
-    let child = proverChildren[i].accountUpdate.value;
+    let inputChild = inputChildren[i].mutable;
+    let child = proverChildren[i].mutable;
     if (!inputChild || !child) return;
     diffRecursive(child, { transaction, index, accountUpdate: inputChild });
   }
