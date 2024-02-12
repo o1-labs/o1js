@@ -16,7 +16,7 @@ import {
   keys,
   tokenIds,
 } from './dex-with-actions.js';
-import { TokenContract } from './dex.js';
+import { TrivialCoin as TokenContract } from './erc20.js';
 
 const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 // setting this to a higher number allows you to skip a few transactions, to pick up after an error
