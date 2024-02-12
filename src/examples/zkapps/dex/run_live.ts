@@ -16,7 +16,7 @@ import {
   keys,
   tokenIds,
 } from './dex-with-actions.js';
-import { TokenContract } from './dex.js';
+import { TrivialCoin as TokenContract } from './erc20.js';
 
 const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 // setting this to a higher number allows you to skip a few transactions, to pick up after an error
@@ -102,9 +102,9 @@ if (successfulTransactions <= 1) {
     );
     dex.deploy();
     dexTokenHolderX.deploy();
-    tokenX.approveUpdate(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
     dexTokenHolderY.deploy();
-    tokenY.approveUpdate(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.dex]).send();
@@ -205,7 +205,7 @@ if (successfulTransactions <= 6) {
   tic('redeem liquidity, step 2a (get back token X)');
   tx = await Mina.transaction(userSpec, () => {
     dexTokenHolderX.redeemLiquidityFinalize();
-    tokenX.approveAny(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -224,7 +224,7 @@ if (successfulTransactions <= 7) {
   tic('redeem liquidity, step 2b (get back token Y)');
   tx = await Mina.transaction(userSpec, () => {
     dexTokenHolderY.redeemLiquidityFinalize();
-    tokenY.approveAny(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();

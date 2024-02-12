@@ -18,6 +18,7 @@ import {
   SmartContractContext,
   LazyProof,
   CallForest,
+  UnfinishedForest,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -168,6 +169,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: 0,
         selfUpdate: selfAccountUpdate(this, methodName),
+        selfCalls: UnfinishedForest.empty(),
       };
       let id = smartContractContext.enter(context);
       try {
@@ -215,62 +217,7 @@ function wrapMethod(
             accountUpdate.body.callData = Poseidon.hash(callDataFields);
             ProofAuthorization.setKind(accountUpdate);
 
-            // TODO: currently commented out, but could come back in some form when we add caller to the public input
-            // // compute `caller` field from `isDelegateCall` and a context determined by the transaction
-            // let callerContext = Provable.witness(
-            //   CallForest.callerContextType,
-            //   () => {
-            //     let { accountUpdate } = zkAppProver.getData();
-            //     return CallForest.computeCallerContext(accountUpdate);
-            //   }
-            // );
-            // CallForest.addCallers([accountUpdate], callerContext);
-
-            // connect the public input to the account update & child account updates we created
-            if (DEBUG_PUBLIC_INPUT_CHECK) {
-              Provable.asProver(() => {
-                // TODO: print a nice diff string instead of the two objects
-                // something like `expect` or `json-diff`, but web-compatible
-                function diff(prover: any, input: any) {
-                  delete prover.id;
-                  delete prover.callDepth;
-                  delete input.id;
-                  delete input.callDepth;
-                  if (JSON.stringify(prover) !== JSON.stringify(input)) {
-                    console.log(
-                      'transaction:',
-                      ZkappCommand.toPretty(transaction)
-                    );
-                    console.log('index', index);
-                    console.log('inconsistent account updates:');
-                    console.log('update created by the prover:');
-                    console.log(prover);
-                    console.log('update created in transaction block:');
-                    console.log(input);
-                  }
-                }
-                function diffRecursive(
-                  prover: AccountUpdate,
-                  input: AccountUpdate
-                ) {
-                  diff(prover.toPretty(), input.toPretty());
-                  let nChildren = input.children.accountUpdates.length;
-                  for (let i = 0; i < nChildren; i++) {
-                    let inputChild = input.children.accountUpdates[i];
-                    let child = prover.children.accountUpdates[i];
-                    if (!inputChild || !child) return;
-                    diffRecursive(child, inputChild);
-                  }
-                }
-
-                let {
-                  accountUpdate: inputUpdate,
-                  transaction,
-                  index,
-                } = zkAppProver.getData();
-                diffRecursive(accountUpdate, inputUpdate);
-              });
-            }
+            debugPublicInput(accountUpdate);
             checkPublicInput(publicInput, accountUpdate);
 
             // check the self accountUpdate right after calling the method
@@ -366,6 +313,7 @@ function wrapMethod(
       this: this,
       methodCallDepth: methodCallDepth + 1,
       selfUpdate: selfAccountUpdate(this, methodName),
+      selfCalls: UnfinishedForest.empty(),
     };
     let id = smartContractContext.enter(innerContext);
     try {
@@ -449,16 +397,11 @@ function wrapMethod(
       };
 
       // we have to run the called contract inside a witness block, to not affect the caller's circuit
-      // however, if this is a nested call -- the caller is already called by another contract --,
-      // then we're already in a witness block, and shouldn't open another one
-      let { accountUpdate, result } =
-        methodCallDepth === 0
-          ? AccountUpdate.witness<any>(
-              returnType ?? provable(null),
-              runCalledContract,
-              { skipCheck: true }
-            )
-          : runCalledContract();
+      let { accountUpdate, result } = AccountUpdate.witness<any>(
+        returnType ?? provable(null),
+        runCalledContract,
+        { skipCheck: true }
+      );
 
       // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
@@ -472,10 +415,20 @@ function wrapMethod(
       // nothing is asserted about them -- it's the callee's task to check their children
       accountUpdate.children.callsType = { type: 'Witness' };
       parentAccountUpdate.children.accountUpdates.push(accountUpdate);
+      UnfinishedForest.push(
+        insideContract.selfCalls,
+        accountUpdate,
+        UnfinishedForest.fromArray(accountUpdate.children.accountUpdates, true)
+      );
 
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);
       accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
+
+      // assert that the callee account update has proof authorization. everything else would have much worse security trade-offs,
+      // because a one-time change of the callee semantics by using a signature could go unnoticed even if we monitor the callee's
+      // onchain verification key
+      assert(accountUpdate.body.authorizationKind.isProved, 'callee is proved');
 
       // assert that the inputs & outputs we have match what the callee put on its callData
       let callDataFields = computeCallData(
@@ -800,7 +753,7 @@ super.init();
    */
   init() {
     // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
-    this.account.provedState.assertEquals(Bool(false));
+    this.account.provedState.requireEquals(Bool(false));
     let accountUpdate = this.self;
     for (let i = 0; i < ZkappStateLength; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
@@ -1169,7 +1122,7 @@ super.init();
    *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
-  static analyzeMethods() {
+  static analyzeMethods({ printSummary = false } = {}) {
     let ZkappClass = this as typeof SmartContract;
     let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
@@ -1191,7 +1144,7 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, result, gates } = analyzeMethod(
+          let { rows, digest, result, gates, summary } = analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             (publicInput, publicKey, tokenId, ...args) => {
@@ -1211,6 +1164,7 @@ super.init();
             hasReturn: result !== undefined,
             gates,
           };
+          if (printSummary) console.log(methodIntf.methodName, summary());
         }
       } finally {
         if (insideSmartContract) smartContractContext.leave(id!);
@@ -1625,3 +1579,54 @@ const ProofAuthorization = {
  * TODO find or write library that can print nice JS object diffs
  */
 const DEBUG_PUBLIC_INPUT_CHECK = false;
+
+function debugPublicInput(accountUpdate: AccountUpdate) {
+  if (!DEBUG_PUBLIC_INPUT_CHECK) return;
+
+  // connect the public input to the account update & child account updates we created
+  Provable.asProver(() => {
+    diffRecursive(accountUpdate, zkAppProver.getData());
+  });
+}
+
+function diffRecursive(
+  prover: AccountUpdate,
+  inputData: {
+    transaction: ZkappCommand;
+    index: number;
+    accountUpdate: AccountUpdate;
+  }
+) {
+  let { transaction, index, accountUpdate: input } = inputData;
+  diff(transaction, index, prover.toPretty(), input.toPretty());
+  let nChildren = input.children.accountUpdates.length;
+  for (let i = 0; i < nChildren; i++) {
+    let inputChild = input.children.accountUpdates[i];
+    let child = prover.children.accountUpdates[i];
+    if (!inputChild || !child) return;
+    diffRecursive(child, { transaction, index, accountUpdate: inputChild });
+  }
+}
+
+// TODO: print a nice diff string instead of the two objects
+// something like `expect` or `json-diff`, but web-compatible
+function diff(
+  transaction: ZkappCommand,
+  index: number,
+  prover: any,
+  input: any
+) {
+  delete prover.id;
+  delete prover.callDepth;
+  delete input.id;
+  delete input.callDepth;
+  if (JSON.stringify(prover) !== JSON.stringify(input)) {
+    console.log('transaction:', ZkappCommand.toPretty(transaction));
+    console.log('index', index);
+    console.log('inconsistent account updates:');
+    console.log('update created by the prover:');
+    console.log(prover);
+    console.log('update created in transaction block:');
+    console.log(input);
+  }
+}

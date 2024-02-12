@@ -7,6 +7,7 @@ import {
 import { Field } from '../../core.js';
 import { Provable } from '../../provable.js';
 import { Struct } from '../../circuit_value.js';
+import { assert } from '../../gadgets/common.js';
 import {
   MerkleListIterator,
   MerkleList,
@@ -134,5 +135,12 @@ class TokenAccountUpdateIterator {
     );
 
     return { accountUpdate: update, usesThisToken };
+  }
+
+  assertFinished(message?: string) {
+    assert(
+      this.currentLayer.forest.isAtEnd(),
+      message ?? 'TokenAccountUpdateIterator not finished'
+    );
   }
 }
