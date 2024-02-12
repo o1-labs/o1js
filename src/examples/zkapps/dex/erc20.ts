@@ -23,11 +23,11 @@ export { Erc20Like, TrivialCoin };
  * https://ethereum.org/en/developers/docs/standards/tokens/erc-20/
  *
  * Differences to ERC-20:
- * - No approvals / allowance, because zkApps don't need them and they are a security footgun.
- * - `transfer()` and `transfer()` are collapsed into a single `transfer()` method which takes
+ * - No approvals / allowance, because zkApps don't need them and they are a security liability.
+ * - `transfer()` and `transferFrom()` are collapsed into a single `transfer()` method which takes
  *    both the sender and the receiver as arguments.
  * - `transfer()` and `balanceOf()` can also take an account update as an argument.
- *   This form might be needed for zkApp token accounts, where the account update has to come from a method
+ *   This form is needed for zkApp token accounts, where the account update has to come from a method
  *   (in order to get proof authorization), and can't be created by the token contract itself.
  * - `transfer()` doesn't return a boolean, because in the zkApp protocol,
  *   a transaction succeeds or fails in its entirety, and there is no need to handle partial failures.
@@ -36,7 +36,7 @@ type Erc20Like = {
   // pure view functions which don't need @method
   name?: () => CircuitString;
   symbol?: () => CircuitString;
-  decimals?: () => Field; // TODO: should be UInt8 which doesn't exist yet
+  decimals?: () => Field;
   totalSupply(): UInt64;
   balanceOf(owner: PublicKey | AccountUpdate): UInt64;
 
