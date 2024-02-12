@@ -1,10 +1,5 @@
 import { Mina } from '../../index.js';
-import {
-  AccountUpdate,
-  AccountUpdateForest,
-  AccountUpdateTree,
-  HashedAccountUpdate,
-} from '../account_update.js';
+import { AccountUpdate, AccountUpdateTree } from '../account_update.js';
 import { UInt64 } from '../int.js';
 import { SmartContract, method } from '../zkapp.js';
 

@@ -931,7 +931,13 @@ super.init();
    * @param updateOrCallback
    * @returns The account update that was approved (needed when passing in a Callback)
    */
-  approve(updateOrCallback: AccountUpdate | AccountUpdateTree | Callback<any>) {
+  approve(
+    updateOrCallback:
+      | AccountUpdate
+      | AccountUpdateTree
+      | AccountUpdateForest
+      | Callback<any>
+  ) {
     let accountUpdate =
       updateOrCallback instanceof Callback
         ? Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate)

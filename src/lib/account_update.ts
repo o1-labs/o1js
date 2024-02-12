@@ -795,7 +795,11 @@ class AccountUpdate implements Types.AccountUpdate {
    * For a proof in particular, child account updates are contained in the public input
    * of the proof that authorizes the parent account update.
    */
-  approve(child: AccountUpdate | AccountUpdateTree) {
+  approve(child: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
+    if (child instanceof AccountUpdateForest) {
+      accountUpdates()?.setChildren(this, child);
+      return;
+    }
     if (child instanceof AccountUpdate) {
       child.body.callDepth = this.body.callDepth + 1;
     }
@@ -1485,7 +1489,8 @@ class AccountUpdateTree extends StructNoJson({
   /**
    * Create a tree of account updates which only consists of a root.
    */
-  static from(update: AccountUpdate, hash?: Field) {
+  static from(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
+    if (update instanceof AccountUpdateTree) return update;
     return new AccountUpdateTree({
       accountUpdate: HashedAccountUpdate.hash(update, hash),
       id: update.id,

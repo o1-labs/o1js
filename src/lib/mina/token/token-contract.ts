@@ -49,23 +49,23 @@ abstract class TokenContract extends SmartContract {
     updates: AccountUpdateForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
   ) {
-    let forest = TokenAccountUpdateIterator.create(updates, this.token.id);
+    let iterator = TokenAccountUpdateIterator.create(updates, this.token.id);
 
     // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
-      let { accountUpdate, usesThisToken } = forest.next();
+      let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
 
     // prove that we checked all updates
-    forest.assertFinished(
+    iterator.assertFinished(
       `Number of account updates to approve exceed ` +
         `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
     // since we just did that in the loop above
-    accountUpdates()?.setTopLevel(updates);
+    this.approve(updates);
   }
 
   /**
