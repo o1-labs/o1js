@@ -3,6 +3,7 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
+  Struct,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
@@ -33,7 +34,12 @@ import {
   Actions,
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields } from './hash.js';
+import {
+  hashWithPrefix,
+  packToFields,
+  Poseidon,
+  ProvableHashable,
+} from './hash.js';
 import {
   mocks,
   prefixes,
@@ -47,9 +53,21 @@ import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js
 import { currentTransaction } from './mina/transaction-context.js';
 import { isSmartContract } from './mina/smart-contract-base.js';
 import { activeInstance } from './mina/mina-instance.js';
+import {
+  genericHash,
+  MerkleList,
+  MerkleListBase,
+} from './provable-types/merkle-list.js';
+import { Hashed } from './provable-types/packed.js';
 
 // external API
-export { AccountUpdate, Permissions, ZkappPublicInput, TransactionVersion };
+export {
+  AccountUpdate,
+  Permissions,
+  ZkappPublicInput,
+  TransactionVersion,
+  AccountUpdateForest,
+};
 // internal API
 export {
   smartContractContext,
@@ -74,6 +92,8 @@ export {
   SmartContractContext,
   dummySignature,
   LazyProof,
+  AccountUpdateTree,
+  hashAccountUpdate,
 };
 
 const ZkappStateLength = 8;
@@ -1496,6 +1516,72 @@ type WithCallers = {
   children: WithCallers[];
 };
 
+// call forest stuff
+
+function hashAccountUpdate(update: AccountUpdate) {
+  return genericHash(AccountUpdate, prefixes.body, update);
+}
+
+class HashedAccountUpdate extends Hashed.create(
+  AccountUpdate,
+  hashAccountUpdate
+) {}
+
+type AccountUpdateTree = {
+  accountUpdate: Hashed<AccountUpdate>;
+  calls: MerkleListBase<AccountUpdateTree>;
+};
+const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
+  accountUpdate: HashedAccountUpdate.provable,
+  calls: MerkleListBase<AccountUpdateTree>(),
+});
+
+/**
+ * Class which represents a forest (list of trees) of account updates,
+ * in a compressed way which allows iterating and selectively witnessing the account updates.
+ *
+ * The (recursive) type signature is:
+ * ```
+ * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
+ * type AccountUpdateTree = {
+ *   accountUpdate: Hashed<AccountUpdate>;
+ *   calls: AccountUpdateForest;
+ * };
+ * ```
+ */
+class AccountUpdateForest extends MerkleList.create(
+  AccountUpdateTree,
+  merkleListHash
+) {
+  static fromArray(updates: AccountUpdate[]): AccountUpdateForest {
+    let nodes = updates.map((update) => {
+      let accountUpdate = HashedAccountUpdate.hash(update);
+      let calls = AccountUpdateForest.fromArray(update.children.accountUpdates);
+      return { accountUpdate, calls };
+    });
+
+    return AccountUpdateForest.from(nodes);
+  }
+}
+
+// how to hash a forest
+
+function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
+  return hashCons(forestHash, hashNode(tree));
+}
+function hashNode(tree: AccountUpdateTree) {
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
+    tree.accountUpdate.hash,
+    tree.calls.hash,
+  ]);
+}
+function hashCons(forestHash: Field, nodeHash: Field) {
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateCons, [
+    nodeHash,
+    forestHash,
+  ]);
+}
+
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
   // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
@@ -1528,6 +1614,10 @@ const CallForest = {
   // hashes a accountUpdate's children (and their children, and ...) to compute
   // the `calls` field of ZkappPublicInput
   hashChildren(update: AccountUpdate): Field {
+    if (!Provable.inCheckedComputation()) {
+      return CallForest.hashChildrenBase(update);
+    }
+
     let { callsType } = update.children;
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
@@ -1535,7 +1625,7 @@ const CallForest = {
       return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals' && Provable.inCheckedComputation()) {
+    if (callsType.type === 'Equals') {
       calls.assertEquals(callsType.value);
     }
     return calls;

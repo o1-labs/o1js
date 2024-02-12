@@ -142,4 +142,5 @@ const RandomTransaction = {
   zkappCommandAndFeePayerKey,
   zkappCommandJson,
   networkId: Random.oneOf<NetworkId[]>('testnet', 'mainnet'),
+  accountUpdateWithCallDepth: accountUpdate,
 };
