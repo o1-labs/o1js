@@ -57,7 +57,7 @@ class TokenContract extends SmartContract {
     callback: Experimental.Callback<any>
   ) {
     // TODO use token contract methods for approve
-    let senderAccountUpdate = this.approve(callback);
+    let senderAccountUpdate = this.approve(callback) as AccountUpdate;
     let amount = UInt64.from(1_000);
     let negativeAmount = Int64.fromObject(
       senderAccountUpdate.body.balanceChange
