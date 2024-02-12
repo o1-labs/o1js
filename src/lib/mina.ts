@@ -144,29 +144,54 @@ type PendingTransaction = Pick<
   wait(options?: {
     maxAttempts?: number;
     interval?: number;
-  }): Promise<IncludedTransaction>;
+  }): Promise<IncludedTransaction | RejectedTransaction>;
+  waitOrThrowIfError(options?: {
+    maxAttempts?: number;
+    interval?: number;
+  }): Promise<IncludedTransaction | RejectedTransaction>;
   hash(): string;
   data?: SendZkAppResponse;
   errors?: string[];
 };
 
-type IncludedTransaction = Omit<PendingTransaction, 'wait' | 'isSuccess'> & {
-  isIncluded: boolean;
+type IncludedTransaction = Pick<
+  PendingTransaction,
+  'transaction' | 'toJSON' | 'toPretty' | 'hash' | 'data'
+> & {
+  status: 'included';
 };
 
-function createIncludedTransaction(
+type RejectedTransaction = Pick<
+  PendingTransaction,
+  'transaction' | 'toJSON' | 'toPretty' | 'hash' | 'data'
+> & {
+  status: 'rejected';
+  errors: string[];
+};
+
+function createIncludedOrRejectedTransaction(
   {
     transaction,
+    data,
     toJSON,
     toPretty,
     hash,
-    data,
-  }: Omit<PendingTransaction, 'wait'>,
+  }: Omit<PendingTransaction, 'wait' | 'waitOrThrowIfError'>,
   errors?: string[]
-): IncludedTransaction {
+): IncludedTransaction | RejectedTransaction {
+  if (errors !== undefined) {
+    return {
+      status: 'rejected',
+      errors,
+      transaction,
+      toJSON,
+      toPretty,
+      hash,
+      data,
+    };
+  }
   return {
-    isIncluded: errors === undefined,
-    errors,
+    status: 'included',
     transaction,
     toJSON,
     toPretty,
@@ -583,12 +608,27 @@ function LocalBlockchain({
         console.log(
           'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
         );
-        return Promise.resolve(createIncludedTransaction(pendingTransaction));
+        return Promise.resolve(
+          createIncludedOrRejectedTransaction(pendingTransaction)
+        );
+      };
+
+      const waitOrThrowIfError = async (_options?: {
+        maxAttempts?: number;
+        interval?: number;
+      }) => {
+        console.log(
+          'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
+        );
+        return Promise.resolve(
+          createIncludedOrRejectedTransaction(pendingTransaction)
+        );
       };
 
       return {
         ...pendingTransaction,
         wait,
+        waitOrThrowIfError,
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
@@ -879,25 +919,25 @@ function Network(
         maxAttempts: number,
         interval: number,
         attempts: number = 0
-      ): Promise<IncludedTransaction> => {
+      ): Promise<IncludedTransaction | RejectedTransaction> => {
         let res: Awaited<ReturnType<typeof Fetch.checkZkappTransaction>>;
         try {
           res = await Fetch.checkZkappTransaction(txId);
           if (res.success) {
-            return createIncludedTransaction(pendingTransaction);
+            return createIncludedOrRejectedTransaction(pendingTransaction);
           } else if (res.failureReason) {
-            return createIncludedTransaction(pendingTransaction, [
+            return createIncludedOrRejectedTransaction(pendingTransaction, [
               `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
             ]);
           }
         } catch (error) {
-          return createIncludedTransaction(pendingTransaction, [
+          return createIncludedOrRejectedTransaction(pendingTransaction, [
             (error as Error).message,
           ]);
         }
 
         if (maxAttempts && attempts >= maxAttempts) {
-          return createIncludedTransaction(pendingTransaction, [
+          return createIncludedOrRejectedTransaction(pendingTransaction, [
             `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`,
           ]);
         }
@@ -909,9 +949,9 @@ function Network(
       const wait = async (options?: {
         maxAttempts?: number;
         interval?: number;
-      }): Promise<IncludedTransaction> => {
+      }): Promise<IncludedTransaction | RejectedTransaction> => {
         if (!isSuccess) {
-          return createIncludedTransaction(
+          return createIncludedOrRejectedTransaction(
             pendingTransaction,
             pendingTransaction.errors
           );
@@ -925,7 +965,7 @@ function Network(
         const txId = response?.data?.sendZkapp?.zkapp?.hash;
 
         if (!txId) {
-          return createIncludedTransaction(
+          return createIncludedOrRejectedTransaction(
             pendingTransaction,
             pendingTransaction.errors
           );
@@ -933,9 +973,25 @@ function Network(
         return pollTransactionStatus(txId, maxAttempts, interval);
       };
 
+      const waitOrThrowIfError = async (options?: {
+        maxAttempts?: number;
+        interval?: number;
+      }): Promise<IncludedTransaction | RejectedTransaction> => {
+        const pendingTransaction = await wait(options);
+        if (pendingTransaction.status === 'rejected') {
+          `Transaction failed with errors: ${JSON.stringify(
+            pendingTransaction.errors,
+            null,
+            2
+          )}`;
+        }
+        return pendingTransaction;
+      };
+
       return {
         ...pendingTransaction,
         wait,
+        waitOrThrowIfError,
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
@@ -1172,9 +1228,13 @@ async function sendTransaction(txn: Transaction) {
 
 async function sendOrThrowIfError(txn: Transaction) {
   const pendingTransaction = await sendTransaction(txn);
-  if (!pendingTransaction.isSuccess) {
+  if (pendingTransaction.errors) {
     throw Error(
-      `Transaction failed: ${JSON.stringify(pendingTransaction.errors)}`
+      `Transaction failed with errors: ${JSON.stringify(
+        pendingTransaction.errors,
+        null,
+        2
+      )}`
     );
   }
   return pendingTransaction;
