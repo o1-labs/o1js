@@ -141,7 +141,21 @@ npm run test
 npm run test:unit
 ```
 
+In order for the mina-signer tests to run you must also build from inside its subdirectory:
+
+```sh
+cd src/mina-signer
+npm run build
+cd ../..
+```
+
 This runs all the unit tests and provides you with a summary of the test results.
+
+Note that you can run individual jest tests via the command:
+
+```sh
+./jest <path/to/test.ts>
+```
 
 You can also run integration tests by running:
 
