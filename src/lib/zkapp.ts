@@ -15,6 +15,7 @@ import {
   LazyProof,
   AccountUpdateForest,
   AccountUpdateLayout,
+  AccountUpdateTree,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -930,11 +931,11 @@ super.init();
    * @param updateOrCallback
    * @returns The account update that was approved (needed when passing in a Callback)
    */
-  approve(updateOrCallback: AccountUpdate | Callback<any>) {
+  approve(updateOrCallback: AccountUpdate | AccountUpdateTree | Callback<any>) {
     let accountUpdate =
-      updateOrCallback instanceof AccountUpdate
-        ? updateOrCallback
-        : Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+      updateOrCallback instanceof Callback
+        ? Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate)
+        : updateOrCallback;
     this.self.approve(accountUpdate);
     return accountUpdate;
   }

@@ -1,5 +1,10 @@
 import { Mina } from '../../index.js';
-import { AccountUpdate } from '../account_update.js';
+import {
+  AccountUpdate,
+  AccountUpdateForest,
+  AccountUpdateTree,
+  HashedAccountUpdate,
+} from '../account_update.js';
 import { UInt64 } from '../int.js';
 import { SmartContract, method } from '../zkapp.js';
 
@@ -7,8 +12,29 @@ import { SmartContract, method } from '../zkapp.js';
 
 class NestedCall extends SmartContract {
   @method deposit() {
-    const payerUpdate = AccountUpdate.createSigned(this.sender);
+    let payerUpdate = AccountUpdate.createSigned(this.sender);
     payerUpdate.send({ to: this.address, amount: UInt64.one });
+  }
+
+  @method depositUsingTree() {
+    let payerUpdate = AccountUpdate.createSigned(this.sender);
+    let receiverUpdate = AccountUpdate.defaultAccountUpdate(this.address);
+    payerUpdate.send({ to: receiverUpdate, amount: UInt64.one });
+
+    // TODO make this super easy
+    let calls = AccountUpdateForest.empty();
+    let tree: AccountUpdateTree = {
+      accountUpdate: HashedAccountUpdate.hash(payerUpdate),
+      id: payerUpdate.id,
+      calls,
+    };
+    calls.push({
+      accountUpdate: HashedAccountUpdate.hash(receiverUpdate),
+      id: receiverUpdate.id,
+      calls: AccountUpdateForest.empty(),
+    });
+
+    this.approve(tree);
   }
 }
 
@@ -36,6 +62,17 @@ await (await Mina.transaction(sender, () => zkapp.deploy()))
 let balanceBefore = Mina.getBalance(zkappAddress);
 
 let depositTx = await Mina.transaction(sender, () => zkapp.deposit());
+console.log(depositTx.toPretty());
+await depositTx.prove();
+await depositTx.sign([senderKey]).send();
+
+Mina.getBalance(zkappAddress).assertEquals(balanceBefore.add(1));
+
+// deposit call using tree
+
+balanceBefore = balanceBefore.add(1);
+
+depositTx = await Mina.transaction(sender, () => zkapp.depositUsingTree());
 console.log(depositTx.toPretty());
 await depositTx.prove();
 await depositTx.sign([senderKey]).send();

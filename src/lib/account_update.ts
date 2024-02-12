@@ -800,8 +800,10 @@ class AccountUpdate implements Types.AccountUpdate {
    * For a proof in particular, child account updates are contained in the public input
    * of the proof that authorizes the parent account update.
    */
-  approve(child: AccountUpdate) {
-    child.body.callDepth = this.body.callDepth + 1;
+  approve(child: AccountUpdate | AccountUpdateTree) {
+    if (child instanceof AccountUpdate) {
+      child.body.callDepth = this.body.callDepth + 1;
+    }
     accountUpdates()?.disattach(child);
     accountUpdates()?.pushChild(this, child);
   }
@@ -1659,7 +1661,10 @@ class UnfinishedForest {
     let layout = '';
 
     let toPretty = (a: UnfinishedForest) => {
-      if (a.isFinal()) layout += ' '.repeat(indent) + ' ( finalized forest )\n';
+      if (a.isFinal()) {
+        layout += ' '.repeat(indent) + ' ( finalized forest )\n';
+        return;
+      }
       assert(a.isMutable(), 'final or mutable');
       indent += 2;
       for (let tree of a.mutable) {
@@ -1684,6 +1689,12 @@ function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
   return { accountUpdate, id: node.id, isDummy: node.isDummy, calls };
 }
 
+function isUnfinished(
+  input: AccountUpdate | AccountUpdateTree | UnfinishedTree
+): input is UnfinishedTree {
+  return 'final' in input || 'mutable' in input;
+}
+
 class AccountUpdateLayout {
   readonly map: Map<number, UnfinishedTree>;
   readonly root: UnfinishedTree;
@@ -1702,30 +1713,62 @@ class AccountUpdateLayout {
     this.root = rootTree;
   }
 
-  get(update: AccountUpdate) {
+  get(update: AccountUpdate | AccountUpdateTree) {
     return this.map.get(update.id);
   }
 
-  private getOrCreate(update: AccountUpdate | UnfinishedTree): UnfinishedTree {
-    if (!(update instanceof AccountUpdate)) {
+  private getOrCreate(
+    update: AccountUpdate | AccountUpdateTree | UnfinishedTree
+  ): UnfinishedTree {
+    if (isUnfinished(update)) {
       if (!this.map.has(update.id)) {
         this.map.set(update.id, update);
       }
       return update;
     }
     let node = this.map.get(update.id);
-    if (node !== undefined) return node;
-    node = {
-      mutable: update,
-      id: update.id,
-      isDummy: update.isDummy(),
-      children: UnfinishedForest.empty(),
-    };
+    if (node !== undefined) {
+      // might have to change node
+      if (update instanceof AccountUpdate) {
+        if (node.final !== undefined) {
+          Object.assign(node, {
+            mutable: update,
+            final: undefined,
+            children: UnfinishedForest.empty(),
+          });
+        }
+      } else if (node.mutable !== undefined) {
+        Object.assign(node, {
+          mutable: undefined,
+          final: update.accountUpdate,
+          children: UnfinishedForest.fromForest(update.calls),
+        });
+      }
+      return node;
+    }
+    if (update instanceof AccountUpdate) {
+      node = {
+        mutable: update,
+        id: update.id,
+        isDummy: update.isDummy(),
+        children: UnfinishedForest.empty(),
+      };
+    } else {
+      node = {
+        final: update.accountUpdate,
+        id: update.id,
+        isDummy: Bool(false),
+        children: UnfinishedForest.fromForest(update.calls),
+      };
+    }
     this.map.set(update.id, node);
     return node;
   }
 
-  pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate) {
+  pushChild(
+    parent: AccountUpdate | UnfinishedTree,
+    child: AccountUpdate | AccountUpdateTree
+  ) {
     let parentNode = this.getOrCreate(parent);
     let childNode = this.getOrCreate(child);
     parentNode.children.push(childNode);
@@ -1747,13 +1790,13 @@ class AccountUpdateLayout {
     this.setChildren(this.root, children);
   }
 
-  disattach(update: AccountUpdate) {
+  disattach(update: AccountUpdate | AccountUpdateTree) {
     let node = this.get(update);
     node?.siblings?.remove(node);
     return node;
   }
 
-  finalizeAndRemove(update: AccountUpdate) {
+  finalizeAndRemove(update: AccountUpdate | AccountUpdateTree) {
     let node = this.get(update);
     if (node === undefined) return;
     this.disattach(update);
