@@ -3,8 +3,7 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
-  Struct,
-  Unconstrained,
+  StructNoJson,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
@@ -35,12 +34,7 @@ import {
   Actions,
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  Poseidon,
-  ProvableHashable,
-} from './hash.js';
+import { hashWithPrefix, packToFields, Poseidon } from './hash.js';
 import {
   mocks,
   prefixes,
@@ -79,6 +73,7 @@ export {
   ZkappPublicInput,
   TransactionVersion,
   AccountUpdateForest,
+  AccountUpdateTree,
 };
 // internal API
 export {
@@ -100,7 +95,7 @@ export {
   zkAppProver,
   dummySignature,
   LazyProof,
-  AccountUpdateTree,
+  AccountUpdateTreeBase,
   AccountUpdateLayout,
   hashAccountUpdate,
   HashedAccountUpdate,
@@ -1067,7 +1062,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let id = this.id;
     let calls = layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
     let accountUpdate = HashedAccountUpdate.hash(this, hash);
-    return { accountUpdate, id, calls };
+    return new AccountUpdateTree({ accountUpdate, id, calls });
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
@@ -1395,15 +1390,17 @@ class HashedAccountUpdate extends Hashed.create(
   hashAccountUpdate
 ) {}
 
-type AccountUpdateTree = {
+type AccountUpdateTreeBase = {
   id: number;
   accountUpdate: Hashed<AccountUpdate>;
-  calls: MerkleListBase<AccountUpdateTree>;
+  calls: AccountUpdateForestBase;
 };
-const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
+type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
+
+const AccountUpdateTreeBase = StructNoJson({
   id: RandomId,
   accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleListBase<AccountUpdateTree>(),
+  calls: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
 /**
@@ -1420,7 +1417,7 @@ const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
  * ```
  */
 class AccountUpdateForest extends MerkleList.create(
-  AccountUpdateTree,
+  AccountUpdateTreeBase,
   merkleListHash
 ) {
   static fromFlatArray(updates: AccountUpdate[]): AccountUpdateForest {
@@ -1428,7 +1425,7 @@ class AccountUpdateForest extends MerkleList.create(
     return this.fromSimpleForest(simpleForest);
   }
   static toFlatArray(
-    forest: MerkleListBase<AccountUpdateTree>,
+    forest: AccountUpdateForestBase,
     mutate = true,
     depth = 0
   ) {
@@ -1454,7 +1451,7 @@ class AccountUpdateForest extends MerkleList.create(
   }
 
   // TODO this comes from paranoia and might be removed later
-  static assertConstant(forest: MerkleListBase<AccountUpdateTree>) {
+  static assertConstant(forest: AccountUpdateForestBase) {
     Provable.asProver(() => {
       forest.data.get().forEach(({ element: tree }) => {
         assert(
@@ -1467,13 +1464,68 @@ class AccountUpdateForest extends MerkleList.create(
   }
 }
 
+/**
+ * Class which represents a tree of account updates,
+ * in a compressed way which allows iterating and selectively witnessing the account updates.
+ *
+ * The (recursive) type signature is:
+ * ```
+ * type AccountUpdateTree = {
+ *   accountUpdate: Hashed<AccountUpdate>;
+ *   calls: AccountUpdateForest;
+ * };
+ * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
+ * ```
+ */
+class AccountUpdateTree extends StructNoJson({
+  id: RandomId,
+  accountUpdate: HashedAccountUpdate.provable,
+  calls: AccountUpdateForest.provable,
+}) {
+  /**
+   * Create a tree of account updates which only consists of a root.
+   */
+  static from(update: AccountUpdate, hash?: Field) {
+    return new AccountUpdateTree({
+      accountUpdate: HashedAccountUpdate.hash(update, hash),
+      id: update.id,
+      calls: AccountUpdateForest.empty(),
+    });
+  }
+
+  /**
+   * Add an {@link AccountUpdate} or {@link AccountUpdateTree} to the children of this tree's root.
+   *
+   * See {@link AccountUpdate.approve}.
+   */
+  approve(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
+    accountUpdates()?.disattach(update);
+    if (update instanceof AccountUpdate) {
+      this.calls.pushIf(
+        update.isDummy().not(),
+        AccountUpdateTree.from(update, hash)
+      );
+    } else {
+      this.calls.push(update);
+    }
+  }
+
+  // fix Struct type
+  static fromFields(fields: Field[], aux: any) {
+    return new AccountUpdateTree(super.fromFields(fields, aux));
+  }
+  static empty() {
+    return new AccountUpdateTree(super.empty());
+  }
+}
+
 // how to hash a forest
 
-function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
+function merkleListHash(forestHash: Field, tree: AccountUpdateTreeBase) {
   return hashCons(forestHash, hashNode(tree));
 }
 
-function hashNode(tree: AccountUpdateTree) {
+function hashNode(tree: AccountUpdateTreeBase) {
   return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
     tree.calls.hash,
@@ -1610,7 +1662,7 @@ class UnfinishedForest {
     this.mutable.splice(index, 1);
   }
 
-  setToForest(forest: MerkleListBase<AccountUpdateTree>) {
+  setToForest(forest: AccountUpdateForestBase) {
     if (this.isMutable()) {
       assert(
         this.mutable.length === 0,
@@ -1620,7 +1672,7 @@ class UnfinishedForest {
     return this.setFinal(new AccountUpdateForest(forest));
   }
 
-  static fromForest(forest: MerkleListBase<AccountUpdateTree>) {
+  static fromForest(forest: AccountUpdateForestBase) {
     return UnfinishedForest.empty().setToForest(forest);
   }
 
@@ -1683,7 +1735,9 @@ class UnfinishedForest {
   }
 }
 
-function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
+function toTree(
+  node: UnfinishedTree
+): AccountUpdateTreeBase & { isDummy: Bool } {
   let accountUpdate = node.final ?? HashedAccountUpdate.hash(node.mutable);
   let calls = node.children.finalize();
   return { accountUpdate, id: node.id, isDummy: node.isDummy, calls };

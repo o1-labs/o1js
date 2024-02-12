@@ -18,22 +18,11 @@ class NestedCall extends SmartContract {
 
   @method depositUsingTree() {
     let payerUpdate = AccountUpdate.createSigned(this.sender);
-    let receiverUpdate = AccountUpdate.defaultAccountUpdate(this.address);
+    let receiverUpdate = AccountUpdate.create(this.address);
     payerUpdate.send({ to: receiverUpdate, amount: UInt64.one });
 
-    // TODO make this super easy
-    let calls = AccountUpdateForest.empty();
-    let tree: AccountUpdateTree = {
-      accountUpdate: HashedAccountUpdate.hash(payerUpdate),
-      id: payerUpdate.id,
-      calls,
-    };
-    calls.push({
-      accountUpdate: HashedAccountUpdate.hash(receiverUpdate),
-      id: receiverUpdate.id,
-      calls: AccountUpdateForest.empty(),
-    });
-
+    let tree = AccountUpdateTree.from(payerUpdate);
+    tree.approve(receiverUpdate);
     this.approve(tree);
   }
 }

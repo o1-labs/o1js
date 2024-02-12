@@ -76,6 +76,7 @@ export {
   ZkappPublicInput,
   TransactionVersion,
   AccountUpdateForest,
+  AccountUpdateTree,
 } from './lib/account_update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';

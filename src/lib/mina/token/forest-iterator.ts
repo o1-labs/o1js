@@ -1,7 +1,7 @@
 import {
   AccountUpdate,
   AccountUpdateForest,
-  AccountUpdateTree,
+  AccountUpdateTreeBase,
   TokenId,
 } from '../../account_update.js';
 import { Field } from '../../core.js';
@@ -57,7 +57,7 @@ class TokenAccountUpdateIterator {
   selfToken: Field;
 
   constructor(
-    forest: MerkleListIterator<AccountUpdateTree>,
+    forest: MerkleListIterator<AccountUpdateTreeBase>,
     mayUseToken: MayUseToken,
     selfToken: Field
   ) {
