@@ -79,7 +79,7 @@ class MerkleList<T> implements MerkleListBase<T> {
   }
 
   isEmpty() {
-    return this.hash.equals(emptyHash);
+    return this.hash.equals(this.Constructor.emptyHash);
   }
 
   /**
@@ -110,7 +110,7 @@ class MerkleList<T> implements MerkleListBase<T> {
     return Provable.witness(WithHash(this.innerProvable), () => {
       let [value, ...data] = this.data.get();
       let head = value ?? {
-        previousHash: emptyHash,
+        previousHash: this.Constructor.emptyHash,
         element: this.innerProvable.empty(),
       };
       this.data.set(data);
@@ -141,6 +141,7 @@ class MerkleList<T> implements MerkleListBase<T> {
   pop(): T {
     let { previousHash, element } = this.popWitness();
     let isEmpty = this.isEmpty();
+    let emptyHash = this.Constructor.emptyHash;
 
     let currentHash = this.nextHash(previousHash, element);
     currentHash = Provable.if(isEmpty, emptyHash, currentHash);
@@ -195,7 +196,8 @@ class MerkleList<T> implements MerkleListBase<T> {
    */
   static create<T>(
     type: ProvableHashable<T>,
-    nextHash: (hash: Field, value: T) => Field = merkleListHash(type)
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(type),
+    emptyHash_ = emptyHash
   ): typeof MerkleList<T> & {
     // override static methods with strict types
     empty: () => MerkleList<T>;
@@ -211,13 +213,14 @@ class MerkleList<T> implements MerkleListBase<T> {
       }) as ProvableHashable<MerkleList<T>>;
 
       static _nextHash = nextHash;
+      static _emptyHash = emptyHash_;
 
       static empty(): MerkleList<T> {
-        return new this({ hash: emptyHash, data: Unconstrained.from([]) });
+        return new this({ hash: emptyHash_, data: Unconstrained.from([]) });
       }
 
       static from(array: T[]): MerkleList<T> {
-        let { hash, data } = withHashes(array, nextHash);
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
         return new this({ data: Unconstrained.from(data), hash });
       }
 
@@ -230,6 +233,7 @@ class MerkleList<T> implements MerkleListBase<T> {
 
   // dynamic subclassing infra
   static _nextHash: ((hash: Field, t: any) => Field) | undefined;
+  static _emptyHash: Field | undefined;
 
   static _provable: ProvableHashable<MerkleList<any>> | undefined;
   static _innerProvable: ProvableHashable<any> | undefined;
@@ -244,6 +248,11 @@ class MerkleList<T> implements MerkleListBase<T> {
       'MerkleList not initialized'
     );
     return this.Constructor._nextHash(hash, value);
+  }
+
+  static get emptyHash() {
+    assert(this._emptyHash !== undefined, 'MerkleList not initialized');
+    return this._emptyHash;
   }
 
   get innerProvable(): ProvableHashable<T> {
@@ -277,7 +286,7 @@ type MerkleListIteratorBase<T> = {
 
 /**
  * MerkleListIterator helps iterating through a Merkle list.
- * This works similar to calling `list.pop()` repreatedly, but maintaining the entire list instead of removing elements.
+ * This works similar to calling `list.pop()` repeatedly, but maintaining the entire list instead of removing elements.
  *
  * The core method that supports iteration is {@link next()}.
  *
@@ -309,13 +318,13 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   }
 
   isAtEnd() {
-    return this.currentHash.equals(emptyHash);
+    return this.currentHash.equals(this.Constructor.emptyHash);
   }
   jumpToEnd() {
     this.currentIndex.setTo(
       Unconstrained.witness(() => this.data.get().length)
     );
-    this.currentHash = emptyHash;
+    this.currentHash = this.Constructor.emptyHash;
   }
   jumpToEndIf(condition: Bool) {
     Provable.asProver(() => {
@@ -323,7 +332,11 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         this.currentIndex.set(this.data.get().length);
       }
     });
-    this.currentHash = Provable.if(condition, emptyHash, this.currentHash);
+    this.currentHash = Provable.if(
+      condition,
+      this.Constructor.emptyHash,
+      this.currentHash
+    );
   }
 
   next() {
@@ -333,12 +346,13 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       WithHash(this.innerProvable),
       () =>
         this.data.get()[this.currentIndex.get()] ?? {
-          previousHash: emptyHash,
+          previousHash: this.Constructor.emptyHash,
           element: this.innerProvable.empty(),
         }
     );
 
     let isDummy = this.isAtEnd();
+    let emptyHash = this.Constructor.emptyHash;
     let correctHash = this.nextHash(previousHash, element);
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
     this.currentHash.assertEquals(requiredHash);
@@ -372,7 +386,8 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
    */
   static create<T>(
     type: ProvableHashable<T>,
-    nextHash: (hash: Field, value: T) => Field = merkleListHash(type)
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(type),
+    emptyHash_ = emptyHash
   ): typeof MerkleListIterator<T> & {
     from: (array: T[]) => MerkleListIterator<T>;
     startIterating: (list: MerkleListBase<T>) => MerkleListIterator<T>;
@@ -392,9 +407,10 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       >;
 
       static _nextHash = nextHash;
+      static _emptyHash = emptyHash_;
 
       static from(array: T[]): MerkleListIterator<T> {
-        let { hash, data } = withHashes(array, nextHash);
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
         return this.startIterating({ data: Unconstrained.from(data), hash });
       }
 
@@ -433,6 +449,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
 
   // dynamic subclassing infra
   static _nextHash: ((hash: Field, value: any) => Field) | undefined;
+  static _emptyHash: Field | undefined;
 
   static _provable: ProvableHashable<MerkleListIterator<any>> | undefined;
   static _innerProvable: ProvableHashable<any> | undefined;
@@ -447,6 +464,11 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       'MerkleListIterator not initialized'
     );
     return this.Constructor._nextHash(hash, value);
+  }
+
+  static get emptyHash() {
+    assert(this._emptyHash !== undefined, 'MerkleList not initialized');
+    return this._emptyHash;
   }
 
   get innerProvable(): ProvableHashable<T> {
@@ -480,7 +502,8 @@ function merkleListHash<T>(provable: ProvableHashable<T>, prefix = '') {
 
 function withHashes<T>(
   data: T[],
-  nextHash: (hash: Field, value: T) => Field
+  nextHash: (hash: Field, value: T) => Field,
+  emptyHash: Field
 ): { data: WithHash<T>[]; hash: Field } {
   let n = data.length;
   let arrayWithHashes = Array<WithHash<T>>(n);
