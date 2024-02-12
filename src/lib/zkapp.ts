@@ -167,7 +167,7 @@ function wrapMethod(
       }
     });
 
-    let insideContract = SmartContractContext.get();
+    let insideContract = smartContractContext.get();
     if (!insideContract) {
       const { id, context } = SmartContractContext.enter(
         this,
@@ -319,7 +319,7 @@ function wrapMethod(
           return result;
         }
       } finally {
-        SmartContractContext.leave(id);
+        smartContractContext.leave(id);
       }
     }
 
@@ -459,7 +459,7 @@ function wrapMethod(
       accountUpdate.body.callData.assertEquals(callData);
       return result;
     } finally {
-      SmartContractContext.leave(id);
+      smartContractContext.leave(id);
     }
   };
 }
@@ -816,7 +816,7 @@ super.init();
    */
   get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
-    let inSmartContract = SmartContractContext.get();
+    let inSmartContract = smartContractContext.get();
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
@@ -1157,8 +1157,8 @@ super.init();
         throw err;
       }
       let id: number;
-      let insideSmartContract = !!SmartContractContext.get();
-      if (insideSmartContract) id = SmartContractContext.stepOutside();
+      let insideSmartContract = !!smartContractContext.get();
+      if (insideSmartContract) id = smartContractContext.enter(null);
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
@@ -1185,7 +1185,7 @@ super.init();
           if (printSummary) console.log(methodIntf.methodName, summary());
         }
       } finally {
-        if (insideSmartContract) SmartContractContext.leave(id!);
+        if (insideSmartContract) smartContractContext.leave(id!);
       }
     }
     return methodMetadata;
@@ -1481,15 +1481,6 @@ const SmartContractContext = {
     let id = smartContractContext.enter(context);
     return { id, context };
   },
-  leave(id: number) {
-    smartContractContext.leave(id);
-  },
-  stepOutside() {
-    return smartContractContext.enter(null);
-  },
-  get() {
-    return smartContractContext.get();
-  },
 };
 
 type DeployArgs =
@@ -1500,7 +1491,7 @@ type DeployArgs =
   | undefined;
 
 function Account(address: PublicKey, tokenId?: Field) {
-  if (SmartContractContext.get()) {
+  if (smartContractContext.get()) {
     return AccountUpdate.create(address, tokenId).account;
   } else {
     return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
