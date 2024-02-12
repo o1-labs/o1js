@@ -6,12 +6,10 @@ import {
   AccountUpdate,
   AccountUpdateForest,
   AccountUpdateTree,
-  HashedAccountUpdate,
   Permissions,
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
-import { accountUpdates } from '../smart-contract-context.js';
 
 export { TokenContract };
 

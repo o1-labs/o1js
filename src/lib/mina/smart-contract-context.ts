@@ -3,7 +3,7 @@ import type { AccountUpdate, AccountUpdateLayout } from '../account_update.js';
 import { Context } from '../global-context.js';
 import { currentTransaction } from './transaction-context.js';
 
-export { smartContractContext, SmartContractContext, accountUpdates };
+export { smartContractContext, SmartContractContext, accountUpdateLayout };
 
 type SmartContractContext = {
   this: SmartContract;
@@ -14,7 +14,7 @@ let smartContractContext = Context.create<null | SmartContractContext>({
   default: null,
 });
 
-function accountUpdates() {
+function accountUpdateLayout() {
   // in a smart contract, return the layout currently created in the contract call
   let layout = smartContractContext.get()?.selfLayout;
 

@@ -62,7 +62,7 @@ import { SmartContractBase } from './mina/smart-contract-base.js';
 import { ZkappStateLength } from './mina/mina-instance.js';
 import {
   SmartContractContext,
-  accountUpdates,
+  accountUpdateLayout,
   smartContractContext,
 } from './mina/smart-contract-context.js';
 
@@ -1641,8 +1641,8 @@ function diffRecursive(
   let { transaction, index, accountUpdate: input } = inputData;
   diff(transaction, index, prover.toPretty(), input.toPretty());
   // TODO
-  let inputChildren = accountUpdates()!.get(input)!.children.mutable!;
-  let proverChildren = accountUpdates()!.get(prover)!.children.mutable!;
+  let inputChildren = accountUpdateLayout()!.get(input)!.children.mutable!;
+  let proverChildren = accountUpdateLayout()!.get(prover)!.children.mutable!;
   let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
     let inputChild = inputChildren[i].mutable;

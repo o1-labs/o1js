@@ -60,7 +60,7 @@ import {
 } from './provable-types/merkle-list.js';
 import { Hashed } from './provable-types/packed.js';
 import {
-  accountUpdates,
+  accountUpdateLayout,
   smartContractContext,
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
@@ -797,14 +797,14 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   approve(child: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
     if (child instanceof AccountUpdateForest) {
-      accountUpdates()?.setChildren(this, child);
+      accountUpdateLayout()?.setChildren(this, child);
       return;
     }
     if (child instanceof AccountUpdate) {
       child.body.callDepth = this.body.callDepth + 1;
     }
-    accountUpdates()?.disattach(child);
-    accountUpdates()?.pushChild(this, child);
+    accountUpdateLayout()?.disattach(child);
+    accountUpdateLayout()?.pushChild(this, child);
   }
 
   get balance() {
@@ -1055,13 +1055,13 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   toPrettyLayout() {
-    let node = accountUpdates()?.get(this);
+    let node = accountUpdateLayout()?.get(this);
     assert(node !== undefined, 'AccountUpdate not found in layout');
     node.children.print();
   }
 
   extractTree(): AccountUpdateTree {
-    let layout = accountUpdates();
+    let layout = accountUpdateLayout();
     let hash = layout?.get(this)?.final?.hash;
     let id = this.id;
     let children =
@@ -1140,7 +1140,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Disattach an account update from where it's currently located in the transaction
    */
   static unlink(accountUpdate: AccountUpdate) {
-    accountUpdates()?.disattach(accountUpdate);
+    accountUpdateLayout()?.disattach(accountUpdate);
   }
 
   /**
@@ -1505,7 +1505,7 @@ class AccountUpdateTree extends StructNoJson({
    * See {@link AccountUpdate.approve}.
    */
   approve(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
-    accountUpdates()?.disattach(update);
+    accountUpdateLayout()?.disattach(update);
     if (update instanceof AccountUpdate) {
       this.children.pushIf(
         update.isDummy().not(),
