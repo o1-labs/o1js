@@ -129,6 +129,11 @@ type Transaction = {
    * Sends the {@link Transaction} to the network.
    */
   send(): Promise<PendingTransaction>;
+
+  /**
+   * Sends the {@link Transaction} to the network, unlike the standard send(), this function will throw an error if internal errors are detected.
+   */
+  sendOrThrowIfError(): Promise<PendingTransaction>;
 };
 
 type PendingTransaction = Pick<
@@ -340,6 +345,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       } catch (error) {
         throw prettifyStacktrace(error);
       }
+    },
+    async sendOrThrowIfError() {
+      return await sendOrThrowIfError(self);
     },
   };
   return self;
@@ -1160,6 +1168,16 @@ function accountCreationFee() {
 
 async function sendTransaction(txn: Transaction) {
   return await activeInstance.sendTransaction(txn);
+}
+
+async function sendOrThrowIfError(txn: Transaction) {
+  const pendingTransaction = await sendTransaction(txn);
+  if (!pendingTransaction.isSuccess) {
+    throw Error(
+      `Transaction failed: ${JSON.stringify(pendingTransaction.errors)}`
+    );
+  }
+  return pendingTransaction;
 }
 
 /**
