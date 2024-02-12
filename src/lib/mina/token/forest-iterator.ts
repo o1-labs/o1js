@@ -87,8 +87,8 @@ class TokenAccountUpdateIterator {
    */
   next() {
     // get next account update from the current forest (might be a dummy)
-    let { accountUpdate, calls } = this.currentLayer.forest.next();
-    let childForest = AccountUpdateIterator.startIterating(calls);
+    let { accountUpdate, children } = this.currentLayer.forest.next();
+    let childForest = AccountUpdateIterator.startIterating(children);
     let childLayer = {
       forest: childForest,
       mayUseToken: MayUseToken.InheritFromParent,

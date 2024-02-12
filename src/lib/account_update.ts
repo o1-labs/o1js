@@ -1064,9 +1064,10 @@ class AccountUpdate implements Types.AccountUpdate {
     let layout = accountUpdates();
     let hash = layout?.get(this)?.final?.hash;
     let id = this.id;
-    let calls = layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
+    let children =
+      layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
     let accountUpdate = HashedAccountUpdate.hash(this, hash);
-    return new AccountUpdateTree({ accountUpdate, id, calls });
+    return new AccountUpdateTree({ accountUpdate, id, children });
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
@@ -1397,14 +1398,14 @@ class HashedAccountUpdate extends Hashed.create(
 type AccountUpdateTreeBase = {
   id: number;
   accountUpdate: Hashed<AccountUpdate>;
-  calls: AccountUpdateForestBase;
+  children: AccountUpdateForestBase;
 };
 type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
 
 const AccountUpdateTreeBase = StructNoJson({
   id: RandomId,
   accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleListBase<AccountUpdateTreeBase>(),
+  children: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
 /**
@@ -1416,7 +1417,7 @@ const AccountUpdateTreeBase = StructNoJson({
  * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
  * type AccountUpdateTree = {
  *   accountUpdate: Hashed<AccountUpdate>;
- *   calls: AccountUpdateForest;
+ *   children: AccountUpdateForest;
  * };
  * ```
  */
@@ -1438,7 +1439,7 @@ class AccountUpdateForest extends MerkleList.create(
       let update = tree.accountUpdate.value.get();
       if (mutate) update.body.callDepth = depth;
       flat.push(update);
-      flat.push(...this.toFlatArray(tree.calls, mutate, depth + 1));
+      flat.push(...this.toFlatArray(tree.children, mutate, depth + 1));
     }
     return flat;
   }
@@ -1448,8 +1449,8 @@ class AccountUpdateForest extends MerkleList.create(
   ): AccountUpdateForest {
     let nodes = simpleForest.map((node) => {
       let accountUpdate = HashedAccountUpdate.hash(node.accountUpdate);
-      let calls = AccountUpdateForest.fromSimpleForest(node.children);
-      return { accountUpdate, calls, id: node.accountUpdate.id };
+      let children = AccountUpdateForest.fromSimpleForest(node.children);
+      return { accountUpdate, children, id: node.accountUpdate.id };
     });
     return AccountUpdateForest.from(nodes);
   }
@@ -1462,7 +1463,7 @@ class AccountUpdateForest extends MerkleList.create(
           Provable.isConstant(AccountUpdate, tree.accountUpdate.value.get()),
           'account update not constant'
         );
-        AccountUpdateForest.assertConstant(tree.calls);
+        AccountUpdateForest.assertConstant(tree.children);
       });
     });
   }
@@ -1476,7 +1477,7 @@ class AccountUpdateForest extends MerkleList.create(
  * ```
  * type AccountUpdateTree = {
  *   accountUpdate: Hashed<AccountUpdate>;
- *   calls: AccountUpdateForest;
+ *   children: AccountUpdateForest;
  * };
  * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
  * ```
@@ -1484,7 +1485,7 @@ class AccountUpdateForest extends MerkleList.create(
 class AccountUpdateTree extends StructNoJson({
   id: RandomId,
   accountUpdate: HashedAccountUpdate.provable,
-  calls: AccountUpdateForest.provable,
+  children: AccountUpdateForest.provable,
 }) {
   /**
    * Create a tree of account updates which only consists of a root.
@@ -1494,7 +1495,7 @@ class AccountUpdateTree extends StructNoJson({
     return new AccountUpdateTree({
       accountUpdate: HashedAccountUpdate.hash(update, hash),
       id: update.id,
-      calls: AccountUpdateForest.empty(),
+      children: AccountUpdateForest.empty(),
     });
   }
 
@@ -1506,12 +1507,12 @@ class AccountUpdateTree extends StructNoJson({
   approve(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
     accountUpdates()?.disattach(update);
     if (update instanceof AccountUpdate) {
-      this.calls.pushIf(
+      this.children.pushIf(
         update.isDummy().not(),
         AccountUpdateTree.from(update, hash)
       );
     } else {
-      this.calls.push(update);
+      this.children.push(update);
     }
   }
 
@@ -1533,7 +1534,7 @@ function merkleListHash(forestHash: Field, tree: AccountUpdateTreeBase) {
 function hashNode(tree: AccountUpdateTreeBase) {
   return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
-    tree.calls.hash,
+    tree.children.hash,
   ]);
 }
 function hashCons(forestHash: Field, nodeHash: Field) {
@@ -1649,7 +1650,7 @@ class UnfinishedForest {
       final: tree.accountUpdate,
       id: tree.id,
       isDummy: Bool(false),
-      children: UnfinishedForest.fromForest(tree.calls),
+      children: UnfinishedForest.fromForest(tree.children),
       siblings: this,
     });
   }
@@ -1744,8 +1745,8 @@ function toTree(
   node: UnfinishedTree
 ): AccountUpdateTreeBase & { isDummy: Bool } {
   let accountUpdate = node.final ?? HashedAccountUpdate.hash(node.mutable);
-  let calls = node.children.finalize();
-  return { accountUpdate, id: node.id, isDummy: node.isDummy, calls };
+  let children = node.children.finalize();
+  return { accountUpdate, id: node.id, isDummy: node.isDummy, children };
 }
 
 function isUnfinished(
@@ -1800,7 +1801,7 @@ class AccountUpdateLayout {
         Object.assign(node, {
           mutable: undefined,
           final: update.accountUpdate,
-          children: UnfinishedForest.fromForest(update.calls),
+          children: UnfinishedForest.fromForest(update.children),
         });
       }
       return node;
@@ -1817,7 +1818,7 @@ class AccountUpdateLayout {
         final: update.accountUpdate,
         id: update.id,
         isDummy: Bool(false),
-        children: UnfinishedForest.fromForest(update.calls),
+        children: UnfinishedForest.fromForest(update.children),
       };
     }
     this.map.set(update.id, node);
