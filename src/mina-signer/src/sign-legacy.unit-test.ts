@@ -20,7 +20,7 @@ import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
 import { Random, test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
-import { NetworkId } from './TSTypes.js';
+import { NetworkId } from './types.js';
 
 let { privateKey, publicKey } = keypair;
 let networks: NetworkId[] = ['testnet', 'mainnet'];

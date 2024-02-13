@@ -32,7 +32,7 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
-import { NetworkId } from '../mina-signer/src/TSTypes.js';
+import { NetworkId } from '../mina-signer/src/types.js';
 import { FetchMode, currentTransaction } from './mina/transaction-context.js';
 import {
   activeInstance,

@@ -43,7 +43,7 @@ import { RandomTransaction } from './random-transaction.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import { NetworkId } from './TSTypes.js';
+import { NetworkId } from './types.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {

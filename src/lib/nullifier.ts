@@ -1,4 +1,4 @@
-import type { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
+import type { Nullifier as JsonNullifier } from '../mina-signer/src/types.js';
 import { Struct } from './circuit_value.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';

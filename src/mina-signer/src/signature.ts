@@ -27,7 +27,7 @@ import {
 import { base58 } from '../../lib/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
-import { NetworkId } from './TSTypes.js';
+import { NetworkId } from './types.js';
 
 export {
   sign,

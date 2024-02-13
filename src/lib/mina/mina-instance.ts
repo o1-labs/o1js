@@ -8,7 +8,7 @@ import type { Transaction, TransactionId } from '../mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from '../precondition.js';
 import type * as Fetch from '../fetch.js';
-import type { NetworkId } from '../../mina-signer/src/TSTypes.js';
+import type { NetworkId } from '../../mina-signer/src/types.js';
 
 export {
   Mina,
