@@ -7,7 +7,7 @@ import {
   AccountUpdateForest,
   AccountUpdateTree,
   Permissions,
-} from '../../account_update.js';
+} from '../../account-update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
 

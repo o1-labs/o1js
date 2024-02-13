@@ -16,7 +16,7 @@ import {
   Events,
   dummySignature,
   AccountUpdateLayout,
-} from './account_update.js';
+} from './account-update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit-value.js';

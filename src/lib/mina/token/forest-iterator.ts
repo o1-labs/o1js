@@ -3,7 +3,7 @@ import {
   AccountUpdateForest,
   AccountUpdateTreeBase,
   TokenId,
-} from '../../account_update.js';
+} from '../../account-update.js';
 import { Field } from '../../core.js';
 import { Provable } from '../../provable.js';
 import { Struct } from '../../circuit-value.js';

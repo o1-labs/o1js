@@ -16,7 +16,7 @@ import {
   AccountUpdateForest,
   AccountUpdateLayout,
   AccountUpdateTree,
-} from './account_update.js';
+} from './account-update.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,

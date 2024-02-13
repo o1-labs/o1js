@@ -5,7 +5,7 @@ import { expect } from 'expect';
 import { method, SmartContract } from './zkapp.js';
 import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 import { State, state } from './state.js';
-import { AccountUpdate } from './account_update.js';
+import { AccountUpdate } from './account-update.js';
 import { Provable } from './provable.js';
 import { Field } from './core.js';
 

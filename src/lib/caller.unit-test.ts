@@ -1,4 +1,4 @@
-import { AccountUpdate, TokenId } from './account_update.js';
+import { AccountUpdate, TokenId } from './account-update.js';
 import * as Mina from './mina.js';
 import { expect } from 'expect';
 

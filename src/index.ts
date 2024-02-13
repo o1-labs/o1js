@@ -77,7 +77,7 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
-} from './lib/account_update.js';
+} from './lib/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';

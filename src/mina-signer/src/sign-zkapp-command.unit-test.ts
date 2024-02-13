@@ -7,7 +7,7 @@ import {
 import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/account_update.js';
+} from '../../lib/account-update.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import {
   AccountUpdate,

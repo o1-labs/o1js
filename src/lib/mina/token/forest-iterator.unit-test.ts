@@ -6,7 +6,7 @@ import {
   AccountUpdateForest,
   TokenId,
   hashAccountUpdate,
-} from '../../account_update.js';
+} from '../../account-update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
 import { Pickles } from '../../../snarky.js';
 import {
