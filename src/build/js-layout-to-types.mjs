@@ -9,7 +9,7 @@ let selfPath = fileURLToPath(import.meta.url);
 let jsonPath = path.resolve(selfPath, '../../bindings/ocaml/jsLayout.json');
 let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
 
-console.log(`jsLayoutToTypes.mjs: generating TS types from ${jsonPath}`);
+console.log(`js-layout-to-types.mjs: generating TS types from ${jsonPath}`);
 
 let builtinLeafTypes = new Set([
   'number',
