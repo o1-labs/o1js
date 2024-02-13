@@ -627,10 +627,7 @@ function cloneCircuitValue<T>(obj: T): T {
   if (typeof obj !== 'object' || obj === null) return obj;
 
   // HACK: callbacks
-  if (
-    obj.constructor?.name.includes('GenericArgument') ||
-    obj.constructor?.name.includes('Callback')
-  ) {
+  if (obj.constructor?.name.includes('GenericArgument')) {
     return obj;
   }
   // classes that define clone() are cloned using that method

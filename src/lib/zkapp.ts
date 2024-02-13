@@ -67,15 +67,7 @@ import {
 } from './mina/smart-contract-context.js';
 
 // external API
-export {
-  SmartContract,
-  method,
-  DeployArgs,
-  declareMethods,
-  Callback,
-  Account,
-  Reducer,
-};
+export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -511,57 +503,6 @@ function computeCallData(
   ];
 }
 
-class Callback<Result> extends GenericArgument {
-  instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: Provable<Result> };
-  args: any[];
-
-  result?: Result;
-  accountUpdate: AccountUpdate;
-
-  static create<T extends SmartContract, K extends keyof T>(
-    instance: T,
-    methodName: K,
-    args: T[K] extends (...args: infer A) => any ? A : never
-  ) {
-    let ZkappClass = instance.constructor as typeof SmartContract;
-    let methodIntf_ = (ZkappClass._methods ?? []).find(
-      (i) => i.methodName === methodName
-    );
-    if (methodIntf_ === undefined)
-      throw Error(
-        `Callback: could not find method ${ZkappClass.name}.${String(
-          methodName
-        )}`
-      );
-    let methodIntf = {
-      ...methodIntf_,
-      returnType: methodIntf_.returnType ?? provable(null),
-    };
-
-    // call the callback, leveraging composability (if this is inside a smart contract method)
-    // to prove to the outer circuit that we called it
-    let result = (instance[methodName] as Function)(...args);
-    let accountUpdate = instance.self;
-
-    let callback = new Callback<any>({
-      instance,
-      methodIntf,
-      args,
-      result,
-      accountUpdate,
-      isEmpty: false,
-    });
-
-    return callback;
-  }
-
-  private constructor(self: Callback<any>) {
-    super();
-    Object.assign(this, self);
-  }
-}
-
 /**
  * The main zkapp class. To write a zkapp, extend this class as such:
  *
@@ -913,37 +854,28 @@ super.init();
   }
 
   /**
-   * Approve an account update or callback. This will include the account update in the zkApp's public input,
-   * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
-   *
-   * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
-   * The extracted account update is returned.
+   * Approve an account update or tree / forest of updates. Doing this means you include the account update in the zkApp's public input,
+   * which allows you to read and use its content in a proof, make assertions about it, and modify it.
    *
    * ```ts
-   * \@method myApprovingMethod(callback: Callback) {
-   *   let approvedUpdate = this.approve(callback);
+   * `@method` myApprovingMethod(update: AccountUpdate) {
+   *   this.approve(update);
+   *
+   *   // read balance on the account (for example)
+   *   let balance = update.account.balance.getAndRequireEquals();
    * }
    * ```
    *
    * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
-   * tree of account updates that forms the transaction.
+   * tree of account updates that forms the transaction. Similarly, if you pass in an {@link AccountUpdateTree},
+   * the entire tree will become a subtree of the zkApp's account update.
    *
-   * @param updateOrCallback
-   * @returns The account update that was approved (needed when passing in a Callback)
+   * Passing in a forest is a bit different, because it means you set the entire children of the zkApp's account update
+   * at once. `approve()` will fail if the zkApp's account update already has children, to prevent you from accidentally
+   * excluding important information from the public input.
    */
-  approve(
-    updateOrCallback:
-      | AccountUpdate
-      | AccountUpdateTree
-      | AccountUpdateForest
-      | Callback<any>
-  ) {
-    let accountUpdate =
-      updateOrCallback instanceof Callback
-        ? Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate)
-        : updateOrCallback;
-    this.self.approve(accountUpdate);
-    return accountUpdate;
+  approve(update: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
+    this.self.approve(update);
   }
 
   send(args: {
