@@ -45,7 +45,7 @@ import {
   MethodInterface,
   Proof,
   sortMethodArguments,
-} from './proof_system.js';
+} from './proof-system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {

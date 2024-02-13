@@ -1,4 +1,4 @@
-import { ZkProgram } from '../proof_system.js';
+import { ZkProgram } from '../proof-system.js';
 import {
   equivalentProvable as equivalent,
   equivalentAsync,

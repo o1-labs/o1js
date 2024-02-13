@@ -1,5 +1,5 @@
 import { Field } from '../../lib/core.js';
-import { ZkProgram } from '../../lib/proof_system.js';
+import { ZkProgram } from '../../lib/proof-system.js';
 import Client from '../mina-signer.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
 import { expect } from 'expect';

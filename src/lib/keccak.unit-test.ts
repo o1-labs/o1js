@@ -1,5 +1,5 @@
 import { Keccak } from './keccak.js';
-import { ZkProgram } from './proof_system.js';
+import { ZkProgram } from './proof-system.js';
 import {
   equivalentProvable,
   equivalent,

@@ -11,7 +11,7 @@ import {
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
 import { Gadgets } from './gadgets.js';
-import { ZkProgram } from '../proof_system.js';
+import { ZkProgram } from '../proof-system.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import {

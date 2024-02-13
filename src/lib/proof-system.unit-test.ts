@@ -8,7 +8,7 @@ import {
   ZkProgram,
   picklesRuleFromFunction,
   sortMethodArguments,
-} from './proof_system.js';
+} from './proof-system.js';
 import { expect } from 'expect';
 import { Pickles, ProvablePure, Snarky } from '../snarky.js';
 import { AnyFunction } from './util/types.js';
