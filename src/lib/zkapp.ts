@@ -24,6 +24,7 @@ import {
   cloneCircuitValue,
   FlexibleProvablePure,
   InferProvable,
+  InferredProvable,
   provable,
   toConstant,
 } from './circuit_value.js';
@@ -1232,6 +1233,7 @@ type ReducerReturn<Action> = {
     options?: {
       maxTransactionsWithActions?: number;
       skipActionStatePrecondition?: boolean;
+      useRecursion?: boolean;
     }
   ): { state: State; actionState: Field };
   /**
@@ -1247,6 +1249,7 @@ type ReducerReturn<Action> = {
     options?: {
       maxTransactionsWithActions?: number;
       skipActionStatePrecondition?: boolean;
+      useRecursion?: boolean;
     }
   ): Field;
   /**
@@ -1309,6 +1312,7 @@ class ${contract.constructor.name} extends SmartContract {
       {
         maxTransactionsWithActions = 32,
         skipActionStatePrecondition = false,
+        useRecursion = false,
       } = {}
     ): { state: S; actionState: Field } {
       if (actionLists.length > maxTransactionsWithActions) {
@@ -1317,6 +1321,9 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
+
+      let contractInstance = contract.constructor as typeof SmartContract;
+
       let methodData = (
         contract.constructor as typeof SmartContract
       ).analyzeMethods();
@@ -1327,47 +1334,23 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         Provable.Array(reducer.actionType, n)
       );
+
       for (let i = 0; i < maxTransactionsWithActions; i++) {
         let actions = i < actionLists.length ? actionLists[i] : [];
-        let length = actions.length;
-        let lengths = possibleActionsPerTransaction.map((n) =>
-          Provable.witness(Bool, () => Bool(length === n))
-        );
-        // create dummy actions for the other possible action lengths,
-        // -> because this needs to be a statically-sized computation we have to operate on all of them
-        let actionss = possibleActionsPerTransaction.map((n, i) => {
-          let type = possibleActionTypes[i];
-          return Provable.witness(type, () =>
-            length === n ? actions : emptyValue(type)
-          );
-        });
-        // for each action length, compute the events hash and then pick the actual one
-        let eventsHashes = actionss.map((actions) => {
-          let events = actions.map((a) => reducer.actionType.toFields(a));
-          return Actions.hash(events);
-        });
-        let eventsHash = Provable.switch(lengths, Field, eventsHashes);
-        let newActionsHash = Actions.updateSequenceState(
+        state = applyAction(
+          actions,
+          possibleActionsPerTransaction,
+          possibleActionTypes,
+          reducer.actionType,
           actionState,
-          eventsHash
+          state,
+          stateType,
+          reduce
         );
-        let isEmpty = lengths[0];
-        // update state hash, if this is not an empty action
-        actionState = Provable.if(isEmpty, actionState, newActionsHash);
-        // also, for each action length, compute the new state and then pick the actual one
-        let newStates = actionss.map((actions) => {
-          // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-          let newState = Provable.witness(stateType, () => state);
-          Provable.assertEqual(stateType, newState, state);
-          // apply actions in reverse order since that's how they were stored at dispatch
-          [...actions].reverse().forEach((action) => {
-            newState = reduce(newState, action);
-          });
-          return newState;
-        });
-        // update state
-        state = Provable.switch(lengths, stateType, newStates);
       }
+
+      // moose
+
       if (!skipActionStatePrecondition) {
         contract.account.actionState.assertEquals(actionState);
       }
@@ -1629,4 +1612,51 @@ function diff(
     console.log('update created in transaction block:');
     console.log(input);
   }
+}
+
+function applyAction<A, S>(
+  actions: A[],
+  possibleActionsPerTransaction: number[],
+  possibleActionTypes: InferredProvable<FlexibleProvablePure<A>[]>[],
+  actionType: FlexibleProvablePure<A>,
+  actionState: Field,
+  state: S,
+  stateType: Provable<S>,
+  reduce: (state: S, action: A) => S
+): S {
+  let length = actions.length;
+  let lengths = possibleActionsPerTransaction.map((n) =>
+    Provable.witness(Bool, () => Bool(length === n))
+  );
+  // create dummy actions for the other possible action lengths,
+  // -> because this needs to be a statically-sized computation we have to operate on all of them
+  let actionss = possibleActionsPerTransaction.map((n, i) => {
+    let type = possibleActionTypes[i];
+    return Provable.witness(type, () =>
+      length === n ? actions : emptyValue(type)
+    );
+  });
+  // for each action length, compute the events hash and then pick the actual one
+  let eventsHashes = actionss.map((actions) => {
+    let events = actions.map((a) => actionType.toFields(a));
+    return Actions.hash(events);
+  });
+  let eventsHash = Provable.switch(lengths, Field, eventsHashes);
+  let newActionsHash = Actions.updateSequenceState(actionState, eventsHash);
+  let isEmpty = lengths[0];
+  // update state hash, if this is not an empty action
+  actionState = Provable.if(isEmpty, actionState, newActionsHash);
+  // also, for each action length, compute the new state and then pick the actual one
+  let newStates = actionss.map((actions) => {
+    // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
+    let newState = Provable.witness(stateType, () => state);
+    Provable.assertEqual(stateType, newState, state);
+    // apply actions in reverse order since that's how they were stored at dispatch
+    [...actions].reverse().forEach((action) => {
+      newState = reduce(newState, action);
+    });
+    return newState;
+  });
+  // update state
+  return Provable.switch(lengths, stateType, newStates);
 }
