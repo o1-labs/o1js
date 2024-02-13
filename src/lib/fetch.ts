@@ -9,8 +9,6 @@ import { ActionStates } from './mina.js';
 import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
 import {
   Account,
-  accountQuery,
-  FetchedAccount,
   fillPartialAccount,
   parseFetchedAccount,
   PartialAccount,
@@ -26,6 +24,7 @@ import {
   type ActionQueryResponse,
   type EventActionFilterOptions,
   type SendZkAppResponse,
+  type FetchedAccount,
   sendZkappQuery,
   lastBlockQuery,
   lastBlockQueryFailureCheck,
@@ -33,6 +32,7 @@ import {
   getEventsQuery,
   getActionsQuery,
   genesisConstantsQuery,
+  accountQuery,
 } from './mina/graphql.js';
 
 export {
@@ -200,16 +200,15 @@ async function fetchAccountInternal(
   config?: FetchConfig
 ) {
   const { publicKey, tokenId } = accountInfo;
-  let [response, error] = await makeGraphqlRequest(
+  let [response, error] = await makeGraphqlRequest<FetchedAccount>(
     accountQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
     config
   );
   if (error !== undefined) return { account: undefined, error };
-  let fetchedAccount = (response as FetchResponse).data
-    .account as FetchedAccount | null;
-  if (fetchedAccount === null) {
+  let fetchedAccount = response?.data;
+  if (!fetchedAccount) {
     return {
       account: undefined,
       error: {
