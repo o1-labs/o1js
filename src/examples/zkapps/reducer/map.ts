@@ -1,3 +1,23 @@
+/*
+ * This contract emulates a "mapping" data structure, which is a key-value store, similar to a dictionary or hash table or `new Map<K, V>()` in JavaScript.
+ * In this example, the keys are public keys, and the values are arbitrary field elements.
+ *
+ * This utilizes the `Reducer` as an append online list of actions, which are then looked at to find the value corresponding to a specific key.
+ *
+ *
+ * ```ts
+ * // js
+ * const map = new Map<PublicKey, Field>();
+ * map.set(key, value);
+ * map.get(key);
+ *
+ * // contract
+ * zkApp.deploy(); // ... deploy the zkapp
+ * zkApp.set(key, value); // ... set a key-value pair
+ * zkApp.get(key); // ... get a value by key
+ * ```
+ */
+
 import {
   Field,
   Struct,
@@ -13,27 +33,6 @@ import {
   Poseidon,
   Provable,
 } from 'o1js';
-
-/*
-
-This contract emulates a "mapping" data structure, which is a key-value store, similar to a dictionary or hash table or `new Map<K, V>()` in JavaScript.
-In this example, the keys are public keys, and the values are arbitrary field elements.
-
-This utilizes the `Reducer` as an append online list of actions, which are then looked at to find the value corresponding to a specific key.
-
-
-```ts 
-// js
-const map = new Map<PublicKey, Field>();
-map.set(key, value);
-map.get(key);
-
-// contract
-zkApp.deploy(); // ... deploy the zkapp
-zkApp.set(key, value); // ... set a key-value pair
-zkApp.get(key); // ... get a value by key
-```
-*/
 
 class Option extends Struct({
   isSome: Bool,

@@ -3,14 +3,11 @@ import {
   Field,
   ZkProgram,
   verify,
-  isReady,
   Proof,
   JsonProof,
   Provable,
   Empty,
 } from 'o1js';
-
-await isReady;
 
 let MyProgram = ZkProgram({
   name: 'example-with-output',
