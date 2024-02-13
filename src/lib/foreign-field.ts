@@ -3,7 +3,7 @@ import {
   Fp,
   FiniteField,
   createField,
-} from '../bindings/crypto/finite_field.js';
+} from '../bindings/crypto/finite-field.js';
 import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';

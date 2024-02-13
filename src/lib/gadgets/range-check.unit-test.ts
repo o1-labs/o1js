@@ -1,4 +1,4 @@
-import { mod } from '../../bindings/crypto/finite_field.js';
+import { mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../../lib/core.js';
 import { ZkProgram } from '../proof_system.js';
 import {

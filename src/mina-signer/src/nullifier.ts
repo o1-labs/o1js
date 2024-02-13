@@ -1,4 +1,4 @@
-import { Fq } from '../../bindings/crypto/finite_field.js';
+import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Poseidon } from '../../bindings/crypto/poseidon.js';
 import {
   Group,

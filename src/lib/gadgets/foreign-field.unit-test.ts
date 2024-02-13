@@ -1,4 +1,4 @@
-import type { FiniteField } from '../../bindings/crypto/finite_field.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 import { exampleFields } from '../../bindings/crypto/finite-field-examples.js';
 import {
   array,

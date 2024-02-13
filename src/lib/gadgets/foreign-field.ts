@@ -4,7 +4,7 @@
 import {
   inverse as modInverse,
   mod,
-} from '../../bindings/crypto/finite_field.js';
+} from '../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Bool } from '../bool.js';
 import { Unconstrained } from '../circuit_value.js';

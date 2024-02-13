@@ -1,4 +1,4 @@
-import { inverse, mod } from '../../bindings/crypto/finite_field.js';
+import { inverse, mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
