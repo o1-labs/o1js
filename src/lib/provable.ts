@@ -5,7 +5,7 @@
  */
 import { Field, Bool } from './core.js';
 import { Provable as Provable_, Snarky } from '../snarky.js';
-import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
+import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
 import { Context } from './global-context.js';
 import {
   HashInput,
@@ -196,6 +196,16 @@ const Provable = {
    * ```
    */
   inCheckedComputation,
+
+  /**
+   * Returns a constant version of a provable type.
+   */
+  toConstant<T>(type: Provable<T>, value: T) {
+    return type.fromFields(
+      type.toFields(value).map((x) => x.toConstant()),
+      type.toAuxiliary(value)
+    );
+  },
 };
 
 function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(

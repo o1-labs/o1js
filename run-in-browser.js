@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import minimist from 'minimist';
-import { build } from './src/build/buildExample.js';
+import { build } from './src/build/build-example.js';
 
 let {
   _: [filePath],

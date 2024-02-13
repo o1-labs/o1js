@@ -1,8 +1,8 @@
 import { Bool, Field } from './core.js';
-import { circuitValueEquals, cloneCircuitValue } from './circuit_value.js';
+import { circuitValueEquals, cloneCircuitValue } from './circuit-value.js';
 import { Provable } from './provable.js';
 import { activeInstance as Mina } from './mina/mina-instance.js';
-import type { AccountUpdate } from './account_update.js';
+import type { AccountUpdate } from './account-update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
 import { Layout } from '../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';

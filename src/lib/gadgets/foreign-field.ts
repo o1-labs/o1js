@@ -4,10 +4,10 @@
 import {
   inverse as modInverse,
   mod,
-} from '../../bindings/crypto/finite_field.js';
+} from '../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Bool } from '../bool.js';
-import { Unconstrained } from '../circuit_value.js';
+import { Unconstrained } from '../circuit-value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { modifiedField } from '../provable-types/fields.js';

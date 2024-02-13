@@ -226,7 +226,7 @@ See the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-netwo
 
 Next up, get the Mina blockchain accounts information to be used in your zkApp.  
 After the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.  
-See the corresponding example in [src/examples/zkapps/hello_world/run_live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello_world/run_live.ts).
+See the corresponding example in [src/examples/zkapps/hello-world/run-live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello-world/run-live.ts).
 
 ### Profiling o1js
 

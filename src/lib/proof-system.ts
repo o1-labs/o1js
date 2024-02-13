@@ -22,7 +22,7 @@ import {
   provable,
   provablePure,
   toConstant,
-} from './circuit_value.js';
+} from './circuit-value.js';
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
@@ -58,7 +58,6 @@ export {
   sortMethodArguments,
   getPreviousProofsForProver,
   MethodInterface,
-  GenericArgument,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
@@ -504,8 +503,7 @@ function sortMethodArguments(
 ): MethodInterface {
   let witnessArgs: Provable<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
-  let allArgs: { type: 'proof' | 'witness' | 'generic'; index: number }[] = [];
-  let genericArgs: Subclass<typeof GenericArgument>[] = [];
+  let allArgs: { type: 'proof' | 'witness'; index: number }[] = [];
   for (let i = 0; i < privateInputs.length; i++) {
     let privateInput = privateInputs[i];
     if (isProof(privateInput)) {
@@ -527,9 +525,6 @@ function sortMethodArguments(
     } else if (isAsFields((privateInput as any)?.provable)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push((privateInput as any).provable);
-    } else if (isGeneric(privateInput)) {
-      allArgs.push({ type: 'generic', index: genericArgs.length });
-      genericArgs.push(privateInput);
     } else {
       throw Error(
         `Argument ${
@@ -544,13 +539,7 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return {
-    methodName,
-    witnessArgs,
-    proofArgs,
-    allArgs,
-    genericArgs,
-  };
+  return { methodName, witnessArgs, proofArgs, allArgs };
 }
 
 function isAsFields(
@@ -572,22 +561,6 @@ function isProof(type: unknown): type is typeof Proof {
   );
 }
 
-class GenericArgument {
-  isEmpty: boolean;
-  constructor(isEmpty = false) {
-    this.isEmpty = isEmpty;
-  }
-}
-let emptyGeneric = () => new GenericArgument(true);
-
-function isGeneric(type: unknown): type is typeof GenericArgument {
-  // the second case covers subclasses
-  return (
-    type === GenericArgument ||
-    (typeof type === 'function' && type.prototype instanceof GenericArgument)
-  );
-}
-
 function getPreviousProofsForProver(
   methodArgs: any[],
   { allArgs }: MethodInterface
@@ -605,11 +578,10 @@ function getPreviousProofsForProver(
 type MethodInterface = {
   methodName: string;
   // TODO: unify types of arguments
-  // "circuit types" should be flexible enough to encompass proofs and callback arguments
+  // proofs should just be `Provable<T>` as well
   witnessArgs: Provable<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
-  genericArgs: Subclass<typeof GenericArgument>[];
-  allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
+  allArgs: { type: 'witness' | 'proof'; index: number }[];
   returnType?: Provable<any>;
 };
 
@@ -778,8 +750,6 @@ function picklesRuleFromFunction(
         let input = toFieldVars(type.input, publicInput);
         let output = toFieldVars(type.output, publicOutput);
         previousStatements.push(MlPair(input, output));
-      } else if (arg.type === 'generic') {
-        finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
     let result: any;
@@ -847,8 +817,6 @@ function synthesizeMethodArguments(
       let publicInput = empty(type.input);
       let publicOutput = empty(type.output);
       args.push(new Proof({ publicInput, publicOutput, proof: undefined }));
-    } else if (arg.type === 'generic') {
-      args.push(emptyGeneric());
     }
   }
   return args;
@@ -872,8 +840,6 @@ function methodArgumentsToConstant(
       constArgs.push(
         new Proof({ publicInput, publicOutput, proof: arg.proof })
       );
-    } else if (type === 'generic') {
-      constArgs.push(arg);
     }
   }
   return constArgs;
@@ -901,8 +867,6 @@ function methodArgumentTypesAndValues(
       let type = provablePure({ input: types.input, output: types.output });
       let value = { input: proof.publicInput, output: proof.publicOutput };
       typesAndValues.push({ type, value });
-    } else if (type === 'generic') {
-      typesAndValues.push({ type: Generic, value: arg });
     }
   }
   return typesAndValues;

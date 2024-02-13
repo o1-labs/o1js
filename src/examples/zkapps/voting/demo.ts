@@ -12,7 +12,7 @@ import {
 } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
-import { OffchainStorage } from './off_chain_storage.js';
+import { OffchainStorage } from './off-chain-storage.js';
 import {
   ParticipantPreconditions,
   ElectionPreconditions,

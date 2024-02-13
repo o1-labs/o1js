@@ -4,16 +4,14 @@ import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
-  CallForest,
   TokenId,
   hashAccountUpdate,
-} from '../../account_update.js';
+} from '../../account-update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
 import { Pickles } from '../../../snarky.js';
 import {
   accountUpdatesToCallForest,
   callForestHash,
-  CallForest as SimpleCallForest,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
 import assert from 'assert';
 import { Field, Bool } from '../../core.js';
@@ -60,40 +58,19 @@ test.custom({ timeBudget: 1000 })(
     let forestBigint = accountUpdatesToCallForest(flatUpdatesBigint);
     let expectedHash = callForestHash(forestBigint);
 
-    // convert to o1js-style list of nested `AccountUpdate`s
     let flatUpdates = flatUpdatesBigint.map(accountUpdateFromBigint);
-    let updates = callForestToNestedArray(
-      accountUpdatesToCallForest(flatUpdates)
-    );
-
-    let forest = AccountUpdateForest.fromArray(updates);
+    let forest = AccountUpdateForest.fromFlatArray(flatUpdates);
     forest.hash.assertEquals(expectedHash);
   }
 );
-
-// can recover flat account updates from nested updates
-// this is here to assert that we compute `updates` correctly in the other tests
-
-test(flatAccountUpdates, (flatUpdates) => {
-  let updates = callForestToNestedArray(
-    accountUpdatesToCallForest(flatUpdates)
-  );
-  let flatUpdates2 = CallForest.toFlatList(updates, false);
-  let n = flatUpdates.length;
-  for (let i = 0; i < n; i++) {
-    assert.deepStrictEqual(flatUpdates2[i], flatUpdates[i]);
-  }
-});
 
 // traverses the top level of a call forest in correct order
 // i.e., CallForestArray works
 
 test.custom({ timeBudget: 1000 })(flatAccountUpdates, (flatUpdates) => {
   // prepare call forest from flat account updates
-  let updates = callForestToNestedArray(
-    accountUpdatesToCallForest(flatUpdates)
-  );
-  let forest = AccountUpdateForest.fromArray(updates).startIterating();
+  let forest = AccountUpdateForest.fromFlatArray(flatUpdates).startIterating();
+  let updates = flatUpdates.filter((u) => u.body.callDepth === 0);
 
   // step through top-level by calling forest.next() repeatedly
   let n = updates.length;
@@ -116,10 +93,7 @@ test.custom({ timeBudget: 5000 })(flatAccountUpdates, (flatUpdates) => {
   let tokenId = TokenId.default;
 
   // prepare forest iterator from flat account updates
-  let updates = callForestToNestedArray(
-    accountUpdatesToCallForest(flatUpdates)
-  );
-  let forest = AccountUpdateForest.fromArray(updates);
+  let forest = AccountUpdateForest.fromFlatArray(flatUpdates);
   let forestIterator = TokenAccountUpdateIterator.create(forest, tokenId);
 
   // step through forest iterator and compare against expected updates
@@ -154,28 +128,26 @@ test.custom({ timeBudget: 5000 })(
     });
     let tokenId = TokenId.derive(tokenOwner);
 
-    // prepare forest iterator from flat account updates
-    let updates = callForestToNestedArray(
-      accountUpdatesToCallForest(flatUpdates)
-    );
-
     // make all top-level updates inaccessible
-    updates.forEach((u, i) => {
-      if (i % 3 === 0) {
-        u.body.mayUseToken = AccountUpdate.MayUseToken.No;
-      } else if (i % 3 === 1) {
-        u.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-      } else {
-        u.body.publicKey = tokenOwner;
-        u.body.tokenId = TokenId.default;
-      }
-    });
+    flatUpdates
+      .filter((u) => u.body.callDepth === 0)
+      .forEach((u, i) => {
+        if (i % 3 === 0) {
+          u.body.mayUseToken = AccountUpdate.MayUseToken.No;
+        } else if (i % 3 === 1) {
+          u.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+        } else {
+          u.body.publicKey = tokenOwner;
+          u.body.tokenId = TokenId.default;
+        }
+      });
 
-    let forest = AccountUpdateForest.fromArray(updates);
+    // prepare forest iterator from flat account updates
+    let forest = AccountUpdateForest.fromFlatArray(flatUpdates);
     let forestIterator = TokenAccountUpdateIterator.create(forest, tokenId);
 
     // step through forest iterator and compare against expected updates
-    let expectedUpdates = updates;
+    let expectedUpdates = flatUpdates.filter((u) => u.body.callDepth === 0);
 
     let n = flatUpdates.length;
     for (let i = 0; i < n; i++) {
@@ -214,10 +186,7 @@ test.custom({ timeBudget: 5000 })(
       });
 
     // prepare forest iterator from flat account updates
-    let updates = callForestToNestedArray(
-      accountUpdatesToCallForest(flatUpdates)
-    );
-    let forest = AccountUpdateForest.fromArray(updates);
+    let forest = AccountUpdateForest.fromFlatArray(flatUpdates);
     let forestIterator = TokenAccountUpdateIterator.create(forest, tokenId);
 
     // step through forest iterator and compare against expected updates
@@ -237,15 +206,6 @@ test.custom({ timeBudget: 5000 })(
 function accountUpdateFromBigint(a: TypesBigint.AccountUpdate): AccountUpdate {
   // bigint to json, then to provable
   return AccountUpdate.fromJSON(TypesBigint.AccountUpdate.toJSON(a));
-}
-
-function callForestToNestedArray(
-  forest: SimpleCallForest<AccountUpdate>
-): AccountUpdate[] {
-  return forest.map(({ accountUpdate, children }) => {
-    accountUpdate.children.accountUpdates = callForestToNestedArray(children);
-    return accountUpdate;
-  });
 }
 
 function assertEqual(actual: AccountUpdate, expected: AccountUpdate) {

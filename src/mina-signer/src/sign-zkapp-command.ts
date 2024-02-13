@@ -17,7 +17,7 @@ import {
   verifyFieldElement,
 } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import { NetworkId } from './TSTypes.js';
+import { NetworkId } from './types.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -28,6 +28,7 @@ export {
   verifyAccountUpdateSignature,
   accountUpdatesToCallForest,
   callForestHash,
+  callForestHashGeneric,
   accountUpdateHash,
   feePayerHash,
   createFeePayer,
@@ -156,11 +157,25 @@ function accountUpdateHash(update: AccountUpdate) {
   return hashWithPrefix(prefixes.body, fields);
 }
 
-function callForestHash(forest: CallForest<AccountUpdate>): Field {
-  let stackHash = 0n;
+function callForestHash(forest: CallForest<AccountUpdate>): bigint {
+  return callForestHashGeneric(forest, accountUpdateHash, hashWithPrefix, 0n);
+}
+
+function callForestHashGeneric<A, F>(
+  forest: CallForest<A>,
+  hash: (a: A) => F,
+  hashWithPrefix: (prefix: string, input: F[]) => F,
+  emptyHash: F
+): F {
+  let stackHash = emptyHash;
   for (let callTree of [...forest].reverse()) {
-    let calls = callForestHash(callTree.children);
-    let treeHash = accountUpdateHash(callTree.accountUpdate);
+    let calls = callForestHashGeneric(
+      callTree.children,
+      hash,
+      hashWithPrefix,
+      emptyHash
+    );
+    let treeHash = hash(callTree.accountUpdate);
     let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
       treeHash,
       calls,

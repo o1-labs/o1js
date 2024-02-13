@@ -3,9 +3,8 @@ import {
   FlexibleProvable,
   provable,
   provablePure,
-  Struct,
-  Unconstrained,
-} from './circuit_value.js';
+  StructNoJson,
+} from './circuit-value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
 import { Pickles, Test } from '../snarky.js';
@@ -28,39 +27,44 @@ import {
   ClosedInterval,
   getAccountPreconditions,
 } from './precondition.js';
-import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
+import { dummyBase64Proof, Empty, Proof, Prover } from './proof-system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
   Actions,
 } from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  Poseidon,
-  ProvableHashable,
-} from './hash.js';
+import { hashWithPrefix, packToFields, Poseidon } from './hash.js';
 import {
   mocks,
   prefixes,
   protocolVersions,
 } from '../bindings/crypto/constants.js';
-import { Context } from './global-context.js';
 import { MlArray } from './ml/base.js';
 import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
-import { transactionCommitments } from '../mina-signer/src/sign-zkapp-command.js';
+import {
+  accountUpdatesToCallForest,
+  CallForest,
+  callForestHashGeneric,
+  transactionCommitments,
+} from '../mina-signer/src/sign-zkapp-command.js';
 import { currentTransaction } from './mina/transaction-context.js';
 import { isSmartContract } from './mina/smart-contract-base.js';
 import { activeInstance } from './mina/mina-instance.js';
 import {
+  emptyHash,
   genericHash,
   MerkleList,
   MerkleListBase,
-  withHashes,
 } from './provable-types/merkle-list.js';
 import { Hashed } from './provable-types/packed.js';
+import {
+  accountUpdateLayout,
+  smartContractContext,
+} from './mina/smart-contract-context.js';
+import { assert } from './util/assert.js';
+import { RandomId } from './provable-types/auxiliary.js';
 
 // external API
 export {
@@ -69,10 +73,10 @@ export {
   ZkappPublicInput,
   TransactionVersion,
   AccountUpdateForest,
+  AccountUpdateTree,
 };
 // internal API
 export {
-  smartContractContext,
   SetOrKeep,
   Permission,
   Preconditions,
@@ -82,39 +86,23 @@ export {
   ZkappCommand,
   addMissingSignatures,
   addMissingProofs,
-  ZkappStateLength,
   Events,
   Actions,
   TokenId,
   Token,
   CallForest,
-  createChildAccountUpdate,
-  AccountUpdatesLayout,
   zkAppProver,
-  SmartContractContext,
   dummySignature,
   LazyProof,
-  AccountUpdateTree,
-  UnfinishedForest,
+  AccountUpdateTreeBase,
+  AccountUpdateLayout,
   hashAccountUpdate,
   HashedAccountUpdate,
 };
 
-const ZkappStateLength = 8;
-
 const TransactionVersion = {
   current: () => UInt32.from(protocolVersions.txnVersion),
 };
-
-type SmartContractContext = {
-  this: SmartContract;
-  methodCallDepth: number;
-  selfUpdate: AccountUpdate;
-  selfCalls: UnfinishedForest;
-};
-let smartContractContext = Context.create<null | SmartContractContext>({
-  default: null,
-});
 
 type ZkappProverData = {
   transaction: ZkappCommand;
@@ -620,18 +608,6 @@ class AccountUpdate implements Types.AccountUpdate {
   account: Account;
   network: Network;
   currentSlot: CurrentSlot;
-  children: {
-    callsType:
-      | { type: 'None' }
-      | { type: 'Witness' }
-      | { type: 'Equals'; value: Field }
-      | { type: 'WitnessEquals'; value: Field };
-    accountUpdates: AccountUpdate[];
-  } = {
-    callsType: { type: 'None' },
-    accountUpdates: [],
-  };
-  parent: AccountUpdate | undefined = undefined;
 
   private isSelf: boolean;
 
@@ -661,13 +637,8 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.isSelf
     );
     cloned.lazyAuthorization = accountUpdate.lazyAuthorization;
-    cloned.children.callsType = accountUpdate.children.callsType;
-    cloned.children.accountUpdates = accountUpdate.children.accountUpdates.map(
-      AccountUpdate.clone
-    );
     cloned.id = accountUpdate.id;
     cloned.label = accountUpdate.label;
-    cloned.parent = accountUpdate.parent;
     return cloned;
   }
 
@@ -690,7 +661,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }
       if (accountLike instanceof PublicKey) {
         accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
-        makeChildAccountUpdate(thisAccountUpdate, accountLike);
+        thisAccountUpdate.approve(accountLike);
       }
       if (!accountLike.label)
         accountLike.label = `${
@@ -814,34 +785,25 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this and
-   * approves it.
+   * Makes another {@link AccountUpdate} a child of this one.
+   *
+   * The parent-child relationship means that the child becomes part of the "statement"
+   * of the parent, and goes into the commitment that is authorized by either a signature
+   * or a proof.
+   *
+   * For a proof in particular, child account updates are contained in the public input
+   * of the proof that authorizes the parent account update.
    */
-  approve(
-    childUpdate: AccountUpdate,
-    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoChildren
-  ) {
-    makeChildAccountUpdate(this, childUpdate);
-    AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
-
-    // TODO: this is not as general as approve suggests
-    let insideContract = smartContractContext.get();
-    if (insideContract && insideContract.selfUpdate.id === this.id) {
-      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
+  approve(child: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
+    if (child instanceof AccountUpdateForest) {
+      accountUpdateLayout()?.setChildren(this, child);
+      return;
     }
-  }
-
-  /**
-   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this.
-   */
-  adopt(childUpdate: AccountUpdate) {
-    makeChildAccountUpdate(this, childUpdate);
-
-    // TODO: this is not as general as adopt suggests
-    let insideContract = smartContractContext.get();
-    if (insideContract && insideContract.selfUpdate.id === this.id) {
-      UnfinishedForest.push(insideContract.selfCalls, childUpdate);
+    if (child instanceof AccountUpdate) {
+      child.body.callDepth = this.body.callDepth + 1;
     }
+    accountUpdateLayout()?.disattach(child);
+    accountUpdateLayout()?.pushChild(this, child);
   }
 
   get balance() {
@@ -1020,17 +982,14 @@ class AccountUpdate implements Types.AccountUpdate {
     if (isSameAsFeePayer) nonce++;
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
-    CallForest.forEachPredecessor(
-      currentTransaction.get().accountUpdates,
-      update as AccountUpdate,
-      (otherUpdate) => {
-        let shouldIncreaseNonce = otherUpdate.publicKey
-          .equals(publicKey)
-          .and(otherUpdate.tokenId.equals(tokenId))
-          .and(otherUpdate.body.incrementNonce);
-        if (shouldIncreaseNonce.toBoolean()) nonce++;
-      }
-    );
+    let layout = currentTransaction()?.layout;
+    layout?.forEachPredecessor(update as AccountUpdate, (otherUpdate) => {
+      let shouldIncreaseNonce = otherUpdate.publicKey
+        .equals(publicKey)
+        .and(otherUpdate.tokenId.equals(tokenId))
+        .and(otherUpdate.body.incrementNonce);
+      if (shouldIncreaseNonce.toBoolean()) nonce++;
+    });
     return {
       nonce: UInt32.from(nonce),
       isSameAsFeePayer: Bool(isSameAsFeePayer),
@@ -1065,34 +1024,49 @@ class AccountUpdate implements Types.AccountUpdate {
     }
   }
 
-  toPublicInput(): ZkappPublicInput {
+  toPublicInput({
+    accountUpdates,
+  }: {
+    accountUpdates: AccountUpdate[];
+  }): ZkappPublicInput {
     let accountUpdate = this.hash();
-    let calls = CallForest.hashChildren(this);
+
+    // collect this update's descendants
+    let descendants: AccountUpdate[] = [];
+    let callDepth = this.body.callDepth;
+    let i = accountUpdates.findIndex((a) => a.id === this.id);
+    assert(i !== -1, 'Account update not found in transaction');
+    for (i++; i < accountUpdates.length; i++) {
+      let update = accountUpdates[i];
+      if (update.body.callDepth <= callDepth) break;
+      descendants.push(update);
+    }
+
+    // call forest hash
+    let forest = accountUpdatesToCallForest(descendants, callDepth + 1);
+    let calls = callForestHashGeneric(
+      forest,
+      (a) => a.hash(),
+      Poseidon.hashWithPrefix,
+      emptyHash
+    );
     return { accountUpdate, calls };
   }
 
   toPrettyLayout() {
-    let indent = 0;
-    let layout = '';
-    let i = 0;
+    let node = accountUpdateLayout()?.get(this);
+    assert(node !== undefined, 'AccountUpdate not found in layout');
+    node.children.print();
+  }
 
-    let print = (a: AccountUpdate) => {
-      layout +=
-        ' '.repeat(indent) +
-        `AccountUpdate(${i}, ${a.label || '<no label>'}, ${
-          a.children.callsType.type
-        })` +
-        '\n';
-      i++;
-      indent += 2;
-      for (let child of a.children.accountUpdates) {
-        print(child);
-      }
-      indent -= 2;
-    };
-
-    print(this);
-    return layout;
+  extractTree(): AccountUpdateTree {
+    let layout = accountUpdateLayout();
+    let hash = layout?.get(this)?.final?.hash;
+    let id = this.id;
+    let children =
+      layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
+    let accountUpdate = HashedAccountUpdate.hash(this, hash);
+    return new AccountUpdateTree({ accountUpdate, id, children });
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
@@ -1138,8 +1112,8 @@ class AccountUpdate implements Types.AccountUpdate {
         self.label || 'Unlabeled'
       } > AccountUpdate.create()`;
     } else {
-      currentTransaction()?.accountUpdates.push(accountUpdate);
-      accountUpdate.label = `Mina.transaction > AccountUpdate.create()`;
+      currentTransaction()?.layout.pushTopLevel(accountUpdate);
+      accountUpdate.label = `Mina.transaction() > AccountUpdate.create()`;
     }
     return accountUpdate;
   }
@@ -1158,30 +1132,14 @@ class AccountUpdate implements Types.AccountUpdate {
       insideContract.this.self.approve(accountUpdate);
     } else {
       if (!currentTransaction.has()) return;
-      let updates = currentTransaction.get().accountUpdates;
-      if (!updates.find((update) => update.id === accountUpdate.id)) {
-        updates.push(accountUpdate);
-      }
+      currentTransaction.get().layout.pushTopLevel(accountUpdate);
     }
   }
   /**
    * Disattach an account update from where it's currently located in the transaction
    */
   static unlink(accountUpdate: AccountUpdate) {
-    // TODO duplicate logic
-    let insideContract = smartContractContext.get();
-    if (insideContract) {
-      UnfinishedForest.remove(insideContract.selfCalls, accountUpdate);
-    }
-    let siblings =
-      accountUpdate.parent?.children.accountUpdates ??
-      currentTransaction()?.accountUpdates;
-    if (siblings === undefined) return;
-    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
-    accountUpdate.parent === undefined;
+    accountUpdateLayout()?.disattach(accountUpdate);
   }
 
   /**
@@ -1266,21 +1224,10 @@ class AccountUpdate implements Types.AccountUpdate {
   static toFields = Types.AccountUpdate.toFields;
   static toAuxiliary(a?: AccountUpdate) {
     let aux = Types.AccountUpdate.toAuxiliary(a);
-    let children: AccountUpdate['children'] = {
-      callsType: { type: 'None' },
-      accountUpdates: [],
-    };
     let lazyAuthorization = a && a.lazyAuthorization;
-    if (a) {
-      children.callsType = a.children.callsType;
-      children.accountUpdates = a.children.accountUpdates.map(
-        AccountUpdate.clone
-      );
-    }
-    let parent = a?.parent;
     let id = a?.id ?? Math.random();
     let label = a?.label ?? '';
-    return [{ lazyAuthorization, children, parent, id, label }, aux];
+    return [{ lazyAuthorization, id, label }, aux];
   }
   static toInput = Types.AccountUpdate.toInput;
   static empty() {
@@ -1310,111 +1257,6 @@ class AccountUpdate implements Types.AccountUpdate {
     });
     return Provable.witness(combinedType, compute);
   }
-
-  static witnessChildren(
-    accountUpdate: AccountUpdate,
-    childLayout: AccountUpdatesLayout,
-    options?: { skipCheck: boolean }
-  ) {
-    // just witness children's hash if childLayout === null
-    if (childLayout === AccountUpdate.Layout.AnyChildren) {
-      accountUpdate.children.callsType = { type: 'Witness' };
-      return;
-    }
-    if (childLayout === AccountUpdate.Layout.NoDelegation) {
-      accountUpdate.children.callsType = { type: 'Witness' };
-      accountUpdate.body.mayUseToken.parentsOwnToken.assertFalse();
-      accountUpdate.body.mayUseToken.inheritFromParent.assertFalse();
-      return;
-    }
-    accountUpdate.children.callsType = { type: 'None' };
-    let childArray: AccountUpdatesLayout[] =
-      typeof childLayout === 'number'
-        ? Array(childLayout).fill(AccountUpdate.Layout.NoChildren)
-        : childLayout;
-    let n = childArray.length;
-    for (let i = 0; i < n; i++) {
-      accountUpdate.children.accountUpdates[i] = AccountUpdate.witnessTree(
-        provable(null),
-        childArray[i],
-        () => ({
-          accountUpdate:
-            accountUpdate.children.accountUpdates[i] ?? AccountUpdate.dummy(),
-          result: null,
-        }),
-        options
-      ).accountUpdate;
-    }
-    if (n === 0) {
-      accountUpdate.children.callsType = {
-        type: 'Equals',
-        value: CallForest.emptyHash(),
-      };
-    }
-  }
-
-  /**
-   * Like AccountUpdate.witness, but lets you specify a layout for the
-   * accountUpdate's children, which also get witnessed
-   */
-  static witnessTree<T>(
-    resultType: FlexibleProvable<T>,
-    childLayout: AccountUpdatesLayout,
-    compute: () => {
-      accountUpdate: AccountUpdate;
-      result: T;
-    },
-    options?: { skipCheck: boolean }
-  ) {
-    // witness the root accountUpdate
-    let { accountUpdate, result } = AccountUpdate.witness(
-      resultType,
-      compute,
-      options
-    );
-    // witness child account updates
-    AccountUpdate.witnessChildren(accountUpdate, childLayout, options);
-    return { accountUpdate, result };
-  }
-
-  /**
-   * Describes the children of an account update, which are laid out in a tree.
-   *
-   * The tree layout is described recursively by using a combination of `AccountUpdate.Layout.NoChildren`, `AccountUpdate.Layout.StaticChildren(...)` and `AccountUpdate.Layout.AnyChildren`.
-   * - `NoChildren` means an account update that can't have children
-   * - `AnyChildren` means an account update can have an arbitrary amount of children, which means you can't access those children in your circuit (because the circuit is static).
-   * - `StaticChildren` means the account update must have a certain static amount of children and expects as arguments a description of each of those children.
-   *   As a shortcut, you can also pass `StaticChildren` a number, which means it has that amount of children but no grandchildren.
-   *
-   * This is best understood by examples:
-   *
-   * ```ts
-   * let { NoChildren, AnyChildren, StaticChildren } = AccounUpdate.Layout;
-   *
-   * NoChildren                 // an account update with no children
-   * AnyChildren                // an account update with arbitrary children
-   * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
-   * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
-   * StaticChildren(2)          // shortcut for StaticChildren(NoChildren, NoChildren)
-   * StaticChildren(0)          // equivalent to NoChildren
-   *
-   * // an update with 2 children, of which one has arbitrary children and the other has exactly 1 descendant
-   * StaticChildren(AnyChildren, StaticChildren(1))
-   * ```
-   */
-  static Layout = {
-    StaticChildren: ((...args: any[]) => {
-      if (args.length === 1 && typeof args[0] === 'number') return args[0];
-      if (args.length === 0) return 0;
-      return args;
-    }) as {
-      (n: number): AccountUpdatesLayout;
-      (...args: AccountUpdatesLayout[]): AccountUpdatesLayout;
-    },
-    NoChildren: 0,
-    AnyChildren: 'AnyChildren' as const,
-    NoDelegation: 'NoDelegation' as const,
-  };
 
   static get MayUseToken() {
     return {
@@ -1541,12 +1383,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 }
 
-type AccountUpdatesLayout =
-  | number
-  | 'AnyChildren'
-  | 'NoDelegation'
-  | AccountUpdatesLayout[];
-
 // call forest stuff
 
 function hashAccountUpdate(update: AccountUpdate) {
@@ -1558,13 +1394,17 @@ class HashedAccountUpdate extends Hashed.create(
   hashAccountUpdate
 ) {}
 
-type AccountUpdateTree = {
+type AccountUpdateTreeBase = {
+  id: number;
   accountUpdate: Hashed<AccountUpdate>;
-  calls: MerkleListBase<AccountUpdateTree>;
+  children: AccountUpdateForestBase;
 };
-const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
+type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
+
+const AccountUpdateTreeBase = StructNoJson({
+  id: RandomId,
   accountUpdate: HashedAccountUpdate.provable,
-  calls: MerkleListBase<AccountUpdateTree>(),
+  children: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
 /**
@@ -1576,55 +1416,124 @@ const AccountUpdateTree: ProvableHashable<AccountUpdateTree> = Struct({
  * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
  * type AccountUpdateTree = {
  *   accountUpdate: Hashed<AccountUpdate>;
- *   calls: AccountUpdateForest;
+ *   children: AccountUpdateForest;
  * };
  * ```
  */
 class AccountUpdateForest extends MerkleList.create(
-  AccountUpdateTree,
+  AccountUpdateTreeBase,
   merkleListHash
 ) {
-  static fromArray(
-    updates: AccountUpdate[],
-    { skipDummies = false } = {}
-  ): AccountUpdateForest {
-    if (skipDummies) return AccountUpdateForest.fromArraySkipDummies(updates);
+  static fromFlatArray(updates: AccountUpdate[]): AccountUpdateForest {
+    let simpleForest = accountUpdatesToCallForest(updates);
+    return this.fromSimpleForest(simpleForest);
+  }
+  static toFlatArray(
+    forest: AccountUpdateForestBase,
+    mutate = true,
+    depth = 0
+  ) {
+    let flat: AccountUpdate[] = [];
+    for (let { element: tree } of forest.data.get()) {
+      let update = tree.accountUpdate.value.get();
+      if (mutate) update.body.callDepth = depth;
+      flat.push(update);
+      flat.push(...this.toFlatArray(tree.children, mutate, depth + 1));
+    }
+    return flat;
+  }
 
-    let nodes = updates.map((update) => {
-      let accountUpdate = HashedAccountUpdate.hash(update);
-      let calls = AccountUpdateForest.fromArray(update.children.accountUpdates);
-      return { accountUpdate, calls };
+  private static fromSimpleForest(
+    simpleForest: CallForest<AccountUpdate>
+  ): AccountUpdateForest {
+    let nodes = simpleForest.map((node) => {
+      let accountUpdate = HashedAccountUpdate.hash(node.accountUpdate);
+      let children = AccountUpdateForest.fromSimpleForest(node.children);
+      return { accountUpdate, children, id: node.accountUpdate.id };
     });
     return AccountUpdateForest.from(nodes);
   }
 
-  private static fromArraySkipDummies(
-    updates: AccountUpdate[]
-  ): AccountUpdateForest {
-    let forest = AccountUpdateForest.empty();
+  // TODO this comes from paranoia and might be removed later
+  static assertConstant(forest: AccountUpdateForestBase) {
+    Provable.asProver(() => {
+      forest.data.get().forEach(({ element: tree }) => {
+        assert(
+          Provable.isConstant(AccountUpdate, tree.accountUpdate.value.get()),
+          'account update not constant'
+        );
+        AccountUpdateForest.assertConstant(tree.children);
+      });
+    });
+  }
+}
 
-    for (let update of [...updates].reverse()) {
-      let accountUpdate = HashedAccountUpdate.hash(update);
-      let calls = AccountUpdateForest.fromArraySkipDummies(
-        update.children.accountUpdates
+/**
+ * Class which represents a tree of account updates,
+ * in a compressed way which allows iterating and selectively witnessing the account updates.
+ *
+ * The (recursive) type signature is:
+ * ```
+ * type AccountUpdateTree = {
+ *   accountUpdate: Hashed<AccountUpdate>;
+ *   children: AccountUpdateForest;
+ * };
+ * type AccountUpdateForest = MerkleList<AccountUpdateTree>;
+ * ```
+ */
+class AccountUpdateTree extends StructNoJson({
+  id: RandomId,
+  accountUpdate: HashedAccountUpdate.provable,
+  children: AccountUpdateForest.provable,
+}) {
+  /**
+   * Create a tree of account updates which only consists of a root.
+   */
+  static from(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
+    if (update instanceof AccountUpdateTree) return update;
+    return new AccountUpdateTree({
+      accountUpdate: HashedAccountUpdate.hash(update, hash),
+      id: update.id,
+      children: AccountUpdateForest.empty(),
+    });
+  }
+
+  /**
+   * Add an {@link AccountUpdate} or {@link AccountUpdateTree} to the children of this tree's root.
+   *
+   * See {@link AccountUpdate.approve}.
+   */
+  approve(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
+    accountUpdateLayout()?.disattach(update);
+    if (update instanceof AccountUpdate) {
+      this.children.pushIf(
+        update.isDummy().not(),
+        AccountUpdateTree.from(update, hash)
       );
-      forest.pushIf(update.isDummy().not(), { accountUpdate, calls });
+    } else {
+      this.children.push(update);
     }
+  }
 
-    return forest;
+  // fix Struct type
+  static fromFields(fields: Field[], aux: any) {
+    return new AccountUpdateTree(super.fromFields(fields, aux));
+  }
+  static empty() {
+    return new AccountUpdateTree(super.empty());
   }
 }
 
 // how to hash a forest
 
-function merkleListHash(forestHash: Field, tree: AccountUpdateTree) {
+function merkleListHash(forestHash: Field, tree: AccountUpdateTreeBase) {
   return hashCons(forestHash, hashNode(tree));
 }
 
-function hashNode(tree: AccountUpdateTree) {
+function hashNode(tree: AccountUpdateTreeBase) {
   return Poseidon.hashWithPrefix(prefixes.accountUpdateNode, [
     tree.accountUpdate.hash,
-    tree.calls.hash,
+    tree.children.hash,
   ]);
 }
 function hashCons(forestHash: Field, nodeHash: Field) {
@@ -1635,240 +1544,347 @@ function hashCons(forestHash: Field, nodeHash: Field) {
 }
 
 /**
- * Structure for constructing the forest of child account updates, from a circuit.
+ * `UnfinishedForest` / `UnfinishedTree` are structures for constructing the forest of child account updates from a circuit.
  *
  * The circuit can mutate account updates and change their array of children, so here we can't hash
  * everything immediately. Instead, we maintain a structure consisting of either hashes or full account
  * updates that can be hashed into a final call forest at the end.
+ *
+ * `UnfinishedForest` and `UnfinishedTree` behave like a tagged enum type:
+ * ```
+ * type UnfinishedForest =
+ *  | Mutable of UnfinishedTree[]
+ *  | Final of AccountUpdateForest;
+ *
+ * type UnfinishedTree = (
+ *  | Mutable of AccountUpdate
+ *  | Final of HashedAccountUpdate
+ * ) & { children: UnfinishedForest, ... }
+ * ```
  */
-type UnfinishedForest = HashOrValue<UnfinishedTree[]>;
-
 type UnfinishedTree = {
-  accountUpdate: HashOrValue<AccountUpdate>;
+  id: number;
   isDummy: Bool;
-  calls: UnfinishedForest;
+  // `children` must be readonly since it's referenced in each child's siblings
+  readonly children: UnfinishedForest;
+  siblings?: UnfinishedForest;
+} & (
+  | { final: HashedAccountUpdate; mutable?: undefined }
+  | { final?: undefined; mutable: AccountUpdate }
+);
+
+type UnfinishedForestFinal = UnfinishedForest & {
+  final: AccountUpdateForest;
+  mutable?: undefined;
 };
 
-type HashOrValue<T> =
-  | { readonly useHash: true; hash: Field; readonly value: T }
-  | { readonly useHash: false; value: T };
+type UnfinishedForestMutable = UnfinishedForest & {
+  final?: undefined;
+  mutable: UnfinishedTree[];
+};
 
-const UnfinishedForest = {
-  empty(): UnfinishedForest {
-    return { useHash: false, value: [] };
-  },
+class UnfinishedForest {
+  final?: AccountUpdateForest;
+  mutable?: UnfinishedTree[];
 
-  witnessHash(forest: UnfinishedForest): UnfinishedForest {
-    let hash = Provable.witness(Field, () => {
-      return UnfinishedForest.finalize(forest).hash;
-    });
-    return { useHash: true, hash, value: forest.value };
-  },
+  isFinal(): this is UnfinishedForestFinal {
+    return this.final !== undefined;
+  }
+  isMutable(): this is UnfinishedForestMutable {
+    return this.mutable !== undefined;
+  }
 
-  fromArray(updates: AccountUpdate[], useHash = false): UnfinishedForest {
-    if (useHash) {
-      let forest = UnfinishedForest.empty();
-      Provable.asProver(() => (forest = UnfinishedForest.fromArray(updates)));
-      return UnfinishedForest.witnessHash(forest);
-    }
-
-    let nodes = updates.map((update): UnfinishedTree => {
-      return {
-        accountUpdate: { useHash: false, value: update },
-        isDummy: update.isDummy(),
-        calls: UnfinishedForest.fromArray(update.children.accountUpdates),
-      };
-    });
-    return { useHash: false, value: nodes };
-  },
-
-  push(
-    forest: UnfinishedForest,
-    accountUpdate: AccountUpdate,
-    calls?: UnfinishedForest
-  ) {
-    forest.value.push({
-      accountUpdate: { useHash: false, value: accountUpdate },
-      isDummy: accountUpdate.isDummy(),
-      calls: calls ?? UnfinishedForest.empty(),
-    });
-  },
-
-  remove(forest: UnfinishedForest, accountUpdate: AccountUpdate) {
-    // find account update by .id
-    let index = forest.value.findIndex(
-      (node) => node.accountUpdate.value.id === accountUpdate.id
+  constructor(mutable?: UnfinishedTree[], final?: AccountUpdateForest) {
+    assert(
+      (final === undefined) !== (mutable === undefined),
+      'final or mutable'
     );
+    this.final = final;
+    this.mutable = mutable;
+  }
 
-    // nothing to do if it's not there
-    if (index === -1) return;
+  static empty(): UnfinishedForestMutable {
+    return new UnfinishedForest([]) as any;
+  }
 
-    // remove it
-    forest.value.splice(index, 1);
-  },
+  private setFinal(final: AccountUpdateForest): UnfinishedForestFinal {
+    return Object.assign(this, { final, mutable: undefined });
+  }
 
-  finalize(forest: UnfinishedForest): AccountUpdateForest {
-    if (forest.useHash) {
-      let data = Unconstrained.witness(() =>
-        UnfinishedForest.finalize({ ...forest, useHash: false }).data.get()
-      );
-      return new AccountUpdateForest({ hash: forest.hash, data });
-    }
+  finalize(): AccountUpdateForest {
+    if (this.isFinal()) return this.final;
+    assert(this.isMutable(), 'final or mutable');
 
-    // not using the hash means we calculate it in-circuit
-    let nodes = forest.value.map(toTree);
+    let nodes = this.mutable.map(UnfinishedTree.finalize);
     let finalForest = AccountUpdateForest.empty();
 
     for (let { isDummy, ...tree } of [...nodes].reverse()) {
       finalForest.pushIf(isDummy.not(), tree);
     }
+    this.setFinal(finalForest);
     return finalForest;
+  }
+
+  witnessHash(): UnfinishedForestFinal {
+    let final = Provable.witness(AccountUpdateForest.provable, () =>
+      this.finalize()
+    );
+    return this.setFinal(final);
+  }
+
+  push(node: UnfinishedTree) {
+    if (node.siblings === this) return;
+    assert(
+      node.siblings === undefined,
+      'Cannot push node that already has a parent.'
+    );
+    node.siblings = this;
+    assert(this.isMutable(), 'Cannot push to an immutable forest');
+    this.mutable.push(node);
+  }
+
+  remove(node: UnfinishedTree) {
+    assert(this.isMutable(), 'Cannot remove from an immutable forest');
+    // find by .id
+    let index = this.mutable.findIndex((n) => n.id === node.id);
+
+    // nothing to do if it's not there
+    if (index === -1) return;
+
+    // remove it
+    node.siblings = undefined;
+    this.mutable.splice(index, 1);
+  }
+
+  setToForest(forest: AccountUpdateForestBase) {
+    if (this.isMutable()) {
+      assert(
+        this.mutable.length === 0,
+        'Replacing a mutable forest that has existing children might be a mistake.'
+      );
+    }
+    return this.setFinal(new AccountUpdateForest(forest));
+  }
+
+  static fromForest(forest: AccountUpdateForestBase) {
+    return UnfinishedForest.empty().setToForest(forest);
+  }
+
+  toFlatArray(mutate = true, depth = 0): AccountUpdate[] {
+    if (this.isFinal())
+      return AccountUpdateForest.toFlatArray(this.final, mutate, depth);
+    assert(this.isMutable(), 'final or mutable');
+    let flatUpdates: AccountUpdate[] = [];
+    for (let node of this.mutable) {
+      if (node.isDummy.toBoolean()) continue;
+      let update = node.mutable ?? node.final.value.get();
+      if (mutate) update.body.callDepth = depth;
+      let children = node.children.toFlatArray(mutate, depth + 1);
+      flatUpdates.push(update, ...children);
+    }
+    return flatUpdates;
+  }
+
+  toConstantInPlace() {
+    if (this.isFinal()) {
+      this.final.hash = this.final.hash.toConstant();
+      return;
+    }
+    assert(this.isMutable(), 'final or mutable');
+    for (let node of this.mutable) {
+      if (node.mutable !== undefined) {
+        node.mutable = Provable.toConstant(AccountUpdate, node.mutable);
+      } else {
+        node.final.hash = node.final.hash.toConstant();
+      }
+      node.isDummy = Provable.toConstant(Bool, node.isDummy);
+      node.children.toConstantInPlace();
+    }
+  }
+
+  print() {
+    let indent = 0;
+    let layout = '';
+
+    let toPretty = (a: UnfinishedForest) => {
+      if (a.isFinal()) {
+        layout += ' '.repeat(indent) + ' ( finalized forest )\n';
+        return;
+      }
+      assert(a.isMutable(), 'final or mutable');
+      indent += 2;
+      for (let tree of a.mutable) {
+        let label = tree.mutable?.label || '<no label>';
+        if (tree.final !== undefined) {
+          Provable.asProver(() => (label = tree.final!.value.get().label));
+        }
+        layout += ' '.repeat(indent) + `( ${label} )` + '\n';
+        toPretty(tree.children);
+      }
+      indent -= 2;
+    };
+
+    toPretty(this);
+    console.log(layout);
+  }
+}
+
+const UnfinishedTree = {
+  create(update: AccountUpdate | AccountUpdateTree): UnfinishedTree {
+    if (update instanceof AccountUpdate) {
+      return {
+        mutable: update,
+        id: update.id,
+        isDummy: update.isDummy(),
+        children: UnfinishedForest.empty(),
+      };
+    }
+    return {
+      final: update.accountUpdate,
+      id: update.id,
+      isDummy: Bool(false),
+      children: UnfinishedForest.fromForest(update.children),
+    };
+  },
+
+  setTo(node: UnfinishedTree, update: AccountUpdate | AccountUpdateTree) {
+    if (update instanceof AccountUpdate) {
+      if (node.final !== undefined) {
+        Object.assign(node, {
+          mutable: update,
+          final: undefined,
+          children: UnfinishedForest.empty(),
+        });
+      }
+    } else if (node.mutable !== undefined) {
+      Object.assign(node, {
+        mutable: undefined,
+        final: update.accountUpdate,
+        children: UnfinishedForest.fromForest(update.children),
+      });
+    }
+  },
+
+  finalize(node: UnfinishedTree): AccountUpdateTreeBase & { isDummy: Bool } {
+    let accountUpdate = node.final ?? HashedAccountUpdate.hash(node.mutable);
+    let children = node.children.finalize();
+    return { accountUpdate, id: node.id, isDummy: node.isDummy, children };
+  },
+
+  isUnfinished(
+    input: AccountUpdate | AccountUpdateTree | UnfinishedTree
+  ): input is UnfinishedTree {
+    return 'final' in input || 'mutable' in input;
   },
 };
 
-function toTree(node: UnfinishedTree): AccountUpdateTree & { isDummy: Bool } {
-  let accountUpdate = node.accountUpdate.useHash
-    ? new HashedAccountUpdate(
-        node.accountUpdate.hash,
-        Unconstrained.from(node.accountUpdate.value)
-      )
-    : HashedAccountUpdate.hash(node.accountUpdate.value);
+class AccountUpdateLayout {
+  readonly map: Map<number, UnfinishedTree>;
+  readonly root: UnfinishedTree;
+  final?: AccountUpdateForest;
 
-  let calls = UnfinishedForest.finalize(node.calls);
-  return { accountUpdate, isDummy: node.isDummy, calls };
-}
+  constructor(root?: AccountUpdate) {
+    this.map = new Map();
+    root ??= AccountUpdate.dummy();
+    let rootTree: UnfinishedTree = {
+      mutable: root,
+      id: root.id,
+      isDummy: Bool(false),
+      children: UnfinishedForest.empty(),
+    };
+    this.map.set(root.id, rootTree);
+    this.root = rootTree;
+  }
 
-const CallForest = {
-  // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
-  // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
-  // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
-  // also removes any "dummy" accountUpdates
-  toFlatList(
-    forest: AccountUpdate[],
-    mutate = true,
-    depth = 0
-  ): AccountUpdate[] {
-    let accountUpdates = [];
-    for (let accountUpdate of forest) {
-      if (accountUpdate.isDummy().toBoolean()) continue;
-      if (mutate) accountUpdate.body.callDepth = depth;
-      let children = accountUpdate.children.accountUpdates;
-      accountUpdates.push(
-        accountUpdate,
-        ...CallForest.toFlatList(children, mutate, depth + 1)
-      );
+  get(update: AccountUpdate | AccountUpdateTree) {
+    return this.map.get(update.id);
+  }
+
+  private getOrCreate(
+    update: AccountUpdate | AccountUpdateTree | UnfinishedTree
+  ): UnfinishedTree {
+    if (UnfinishedTree.isUnfinished(update)) {
+      if (!this.map.has(update.id)) {
+        this.map.set(update.id, update);
+      }
+      return update;
     }
-    return accountUpdates;
-  },
+    let node = this.map.get(update.id);
 
-  // Mina_base.Zkapp_command.Digest.Forest.empty
-  emptyHash() {
-    return Field(0);
-  },
-
-  // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes
-  // hashes a accountUpdate's children (and their children, and ...) to compute
-  // the `calls` field of ZkappPublicInput
-  hashChildren(update: AccountUpdate): Field {
-    if (!Provable.inCheckedComputation()) {
-      return CallForest.hashChildrenBase(update);
+    if (node !== undefined) {
+      // might have to change node
+      UnfinishedTree.setTo(node, update);
+      return node;
     }
 
-    let { callsType } = update.children;
-    // compute hash outside the circuit if callsType is "Witness"
-    // i.e., allowing accountUpdates with arbitrary children
-    if (callsType.type === 'Witness') {
-      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
-    }
-    if (callsType.type === 'WitnessEquals') {
-      return callsType.value;
-    }
-    let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals') {
-      calls.assertEquals(callsType.value);
-    }
-    return calls;
-  },
+    node = UnfinishedTree.create(update);
+    this.map.set(update.id, node);
+    return node;
+  }
 
-  hashChildrenBase({ children }: AccountUpdate) {
-    let stackHash = CallForest.emptyHash();
-    for (let accountUpdate of [...children.accountUpdates].reverse()) {
-      let calls = CallForest.hashChildren(accountUpdate);
-      let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
-        accountUpdate.hash(),
-        calls,
-      ]);
-      let newHash = hashWithPrefix(prefixes.accountUpdateCons, [
-        nodeHash,
-        stackHash,
-      ]);
-      // skip accountUpdate if it's a dummy
-      stackHash = Provable.if(accountUpdate.isDummy(), stackHash, newHash);
-    }
-    return stackHash;
-  },
+  pushChild(
+    parent: AccountUpdate | UnfinishedTree,
+    child: AccountUpdate | AccountUpdateTree
+  ) {
+    let parentNode = this.getOrCreate(parent);
+    let childNode = this.getOrCreate(child);
+    parentNode.children.push(childNode);
+  }
 
-  computeCallDepth(update: AccountUpdate) {
-    for (let callDepth = 0; ; callDepth++) {
-      if (update.parent === undefined) return callDepth;
-      update = update.parent;
-    }
-  },
+  pushTopLevel(child: AccountUpdate) {
+    this.pushChild(this.root, child);
+  }
 
-  map(updates: AccountUpdate[], map: (update: AccountUpdate) => AccountUpdate) {
-    let newUpdates: AccountUpdate[] = [];
-    for (let update of updates) {
-      let newUpdate = map(update);
-      newUpdate.children.accountUpdates = CallForest.map(
-        update.children.accountUpdates,
-        map
-      );
-      newUpdates.push(newUpdate);
-    }
-    return newUpdates;
-  },
+  setChildren(
+    parent: AccountUpdate | UnfinishedTree,
+    children: AccountUpdateForest
+  ) {
+    let parentNode = this.getOrCreate(parent);
+    parentNode.children.setToForest(children);
+  }
 
-  forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
-    for (let update of updates) {
-      callback(update);
-      CallForest.forEach(update.children.accountUpdates, callback);
-    }
-  },
+  setTopLevel(children: AccountUpdateForest) {
+    this.setChildren(this.root, children);
+  }
+
+  disattach(update: AccountUpdate | AccountUpdateTree) {
+    let node = this.get(update);
+    node?.siblings?.remove(node);
+    return node;
+  }
+
+  finalizeAndRemove(update: AccountUpdate | AccountUpdateTree) {
+    let node = this.get(update);
+    if (node === undefined) return;
+    this.disattach(update);
+    return node.children.finalize();
+  }
+
+  finalizeChildren() {
+    let final = this.root.children.finalize();
+    this.final = final;
+    AccountUpdateForest.assertConstant(final);
+    return final;
+  }
+
+  toFlatList({ mutate }: { mutate: boolean }) {
+    return this.root.children.toFlatArray(mutate);
+  }
 
   forEachPredecessor(
-    updates: AccountUpdate[],
     update: AccountUpdate,
     callback: (update: AccountUpdate) => void
   ) {
-    let isPredecessor = true;
-    CallForest.forEach(updates, (otherUpdate) => {
-      if (otherUpdate.id === update.id) isPredecessor = false;
-      if (isPredecessor) callback(otherUpdate);
-    });
-  },
-};
-
-function createChildAccountUpdate(
-  parent: AccountUpdate,
-  childAddress: PublicKey,
-  tokenId?: Field
-) {
-  let child = AccountUpdate.defaultAccountUpdate(childAddress, tokenId);
-  makeChildAccountUpdate(parent, child);
-  return child;
-}
-function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
-  child.body.callDepth = parent.body.callDepth + 1;
-  let wasChildAlready = parent.children.accountUpdates.find(
-    (update) => update.id === child.id
-  );
-  // add to our children if not already here
-  if (!wasChildAlready) {
-    parent.children.accountUpdates.push(child);
-    // remove the child from the top level list / its current parent
-    AccountUpdate.unlink(child);
+    let updates = this.toFlatList({ mutate: false });
+    for (let otherUpdate of updates) {
+      if (otherUpdate.id === update.id) return;
+      callback(otherUpdate);
+    }
   }
-  child.parent = parent;
+
+  toConstantInPlace() {
+    this.root.children.toConstantInPlace();
+  }
 }
 
 // authorization
@@ -2133,7 +2149,7 @@ async function createZkappProof(
   }: LazyProof,
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
-  let publicInput = accountUpdate.toPublicInput();
+  let publicInput = accountUpdate.toPublicInput(transaction);
   let publicInputFields = MlFieldConstArray.to(
     ZkappPublicInput.toFields(publicInput)
   );

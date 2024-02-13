@@ -2,10 +2,11 @@
  * A ledger of accounts - simple model of a local blockchain.
  */
 import { PublicKey } from '../../signature.js';
-import { type AccountUpdate, TokenId } from '../../account_update.js';
+import type { AccountUpdate } from '../../account-update.js';
 import { Account, newAccount } from '../account.js';
 import { Field } from '../../field.js';
 import { applyAccountUpdate } from './apply.js';
+import { Types } from '../../../bindings/mina-transaction/types.js';
 
 export { SimpleLedger };
 
@@ -20,7 +21,10 @@ class SimpleLedger {
     return new SimpleLedger();
   }
 
-  exists({ publicKey, tokenId = TokenId.default }: InputAccountId): boolean {
+  exists({
+    publicKey,
+    tokenId = Types.TokenId.empty(),
+  }: InputAccountId): boolean {
     return this.accounts.has(accountId({ publicKey, tokenId }));
   }
 
@@ -30,7 +34,7 @@ class SimpleLedger {
 
   load({
     publicKey,
-    tokenId = TokenId.default,
+    tokenId = Types.TokenId.empty(),
   }: InputAccountId): Account | undefined {
     let id = accountId({ publicKey, tokenId });
     let account = this.accounts.get(id);

@@ -15,11 +15,12 @@ import {
   Actions,
   Events,
   dummySignature,
-} from './account_update.js';
+  AccountUpdateLayout,
+} from './account-update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Empty, JsonProof, Proof, verify } from './proof_system.js';
+import { cloneCircuitValue, toConstant } from './circuit-value.js';
+import { Empty, JsonProof, Proof, verify } from './proof-system.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
@@ -31,7 +32,7 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
-import { NetworkId } from '../mina-signer/src/TSTypes.js';
+import { NetworkId } from '../mina-signer/src/types.js';
 import { FetchMode, currentTransaction } from './mina/transaction-context.js';
 import {
   activeInstance,
@@ -251,7 +252,7 @@ function createTransaction(
 
   let transactionId = currentTransaction.enter({
     sender,
-    accountUpdates: [],
+    layout: new AccountUpdateLayout(),
     fetchMode,
     isFinalRunOutsideCircuit,
     numberOfRuns,
@@ -273,9 +274,7 @@ function createTransaction(
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();
-              tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
-                toConstant(AccountUpdate, a)
-              );
+              tx.layout.toConstantInPlace();
             });
           });
         } else {
@@ -291,10 +290,10 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let accountUpdates = currentTransaction.get().accountUpdates;
-  // TODO: I'll be back
-  // CallForest.addCallers(accountUpdates);
-  accountUpdates = CallForest.toFlatList(accountUpdates);
+
+  let accountUpdates = currentTransaction
+    .get()
+    .layout.toFlatList({ mutate: true });
 
   try {
     // check that on-chain values weren't used without setting a precondition
@@ -501,9 +500,11 @@ function LocalBlockchain({
 
         // TODO: verify account update even if the account doesn't exist yet, using a default initial account
         if (account !== undefined) {
+          let publicInput = update.toPublicInput(txn.transaction);
           await verifyAccountUpdate(
             account,
             update,
+            publicInput,
             commitments,
             this.proofsEnabled,
             this.getNetworkId()
@@ -1308,6 +1309,7 @@ function defaultNetworkState(): NetworkValue {
 async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
+  publicInput: ZkappPublicInput,
   transactionCommitments: { commitment: bigint; fullCommitment: bigint },
   proofsEnabled: boolean,
   networkId: NetworkId
@@ -1389,7 +1391,6 @@ async function verifyAccountUpdate(
 
   if (accountUpdate.authorization.proof && proofsEnabled) {
     try {
-      let publicInput = accountUpdate.toPublicInput();
       let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
       let proof: JsonProof = {
