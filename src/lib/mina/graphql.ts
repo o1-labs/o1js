@@ -1,6 +1,6 @@
 import { ActionStatesStringified, removeJsonQuotes } from '../fetch.js';
 import { UInt32 } from '../int.js';
-import { ZkappCommand } from '../account_update.js';
+import { ZkappCommand } from '../account-update.js';
 
 export {
   type EpochData,
