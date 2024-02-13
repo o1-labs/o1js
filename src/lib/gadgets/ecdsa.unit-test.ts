@@ -1,4 +1,4 @@
-import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
+import { createCurveAffine } from '../../bindings/crypto/elliptic-curve.js';
 import {
   Ecdsa,
   EllipticCurve,

@@ -1,6 +1,6 @@
 import { createForeignCurve } from './foreign-curve.js';
 import { Fq } from '../bindings/crypto/finite_field.js';
-import { Vesta as V } from '../bindings/crypto/elliptic_curve.js';
+import { Vesta as V } from '../bindings/crypto/elliptic-curve.js';
 import { Provable } from './provable.js';
 import { Field } from './field.js';
 import { Crypto } from './crypto.js';

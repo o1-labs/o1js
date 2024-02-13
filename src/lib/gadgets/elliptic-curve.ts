@@ -13,7 +13,7 @@ import {
   CurveAffine,
   affineAdd,
   affineDouble,
-} from '../../bindings/crypto/elliptic_curve.js';
+} from '../../bindings/crypto/elliptic-curve.js';
 import { Bool } from '../bool.js';
 import { provable } from '../circuit_value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';

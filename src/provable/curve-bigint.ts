@@ -1,5 +1,5 @@
 import { Fq, mod } from '../bindings/crypto/finite_field.js';
-import { GroupProjective, Pallas } from '../bindings/crypto/elliptic_curve.js';
+import { GroupProjective, Pallas } from '../bindings/crypto/elliptic-curve.js';
 import { versionBytes } from '../bindings/crypto/constants.js';
 import {
   record,

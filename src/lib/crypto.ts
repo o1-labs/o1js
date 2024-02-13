@@ -2,7 +2,7 @@ import { CurveParams as CurveParams_ } from '../bindings/crypto/elliptic-curve-e
 import {
   CurveAffine,
   createCurveAffine,
-} from '../bindings/crypto/elliptic_curve.js';
+} from '../bindings/crypto/elliptic-curve.js';
 
 // crypto namespace
 const Crypto = {
