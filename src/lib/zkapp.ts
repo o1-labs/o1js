@@ -38,7 +38,6 @@ import {
   compileProgram,
   Empty,
   emptyValue,
-  GenericArgument,
   getPreviousProofsForProver,
   isAsFields,
   methodArgumentsToConstant,
