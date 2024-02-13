@@ -62,6 +62,7 @@ import {
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
+import { stat } from 'fs';
 
 // external API
 export {
@@ -1327,19 +1328,19 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       let methodData = (
         contract.constructor as typeof SmartContract
       ).analyzeMethods();
-      let possibleActionsPerTransaction = [
+      let possibleActionsPerIteration = [
         ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
       ].sort((x, y) => x - y);
 
-      let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
+      let possibleActionTypes = possibleActionsPerIteration.map((n) =>
         Provable.Array(reducer.actionType, n)
       );
 
       for (let i = 0; i < maxTransactionsWithActions; i++) {
         let actions = i < actionLists.length ? actionLists[i] : [];
-        state = applyAction(
+        let appliedTransition = applyAction(
           actions,
-          possibleActionsPerTransaction,
+          possibleActionsPerIteration,
           possibleActionTypes,
           reducer.actionType,
           actionState,
@@ -1347,12 +1348,14 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           stateType,
           reduce
         );
+        state = appliedTransition.state;
+        actionState = appliedTransition.actionState;
       }
 
       // moose
 
       if (!skipActionStatePrecondition) {
-        contract.account.actionState.assertEquals(actionState);
+        contract.account.actionState.requireEquals(actionState);
       }
       return { state, actionState };
     },
@@ -1614,23 +1617,35 @@ function diff(
   }
 }
 
+/**
+ * Processes a single actions and applies the `reduceFunction` to the state, returns the new state and the new `actionState`
+ * @param actions
+ * @param possibleActionsPerIteration
+ * @param possibleActionTypes
+ * @param actionType
+ * @param initialActionState
+ * @param initialState
+ * @param stateType
+ * @param reduceFunction
+ * @returns
+ */
 function applyAction<A, S>(
   actions: A[],
-  possibleActionsPerTransaction: number[],
+  possibleActionsPerIteration: number[],
   possibleActionTypes: InferredProvable<FlexibleProvablePure<A>[]>[],
   actionType: FlexibleProvablePure<A>,
-  actionState: Field,
-  state: S,
+  initialActionState: Field,
+  initialState: S,
   stateType: Provable<S>,
-  reduce: (state: S, action: A) => S
-): S {
+  reduceFunction: (state: S, action: A) => S
+): { state: S; actionState: Field } {
   let length = actions.length;
-  let lengths = possibleActionsPerTransaction.map((n) =>
+  let lengths = possibleActionsPerIteration.map((n) =>
     Provable.witness(Bool, () => Bool(length === n))
   );
   // create dummy actions for the other possible action lengths,
   // -> because this needs to be a statically-sized computation we have to operate on all of them
-  let actionss = possibleActionsPerTransaction.map((n, i) => {
+  let actionss = possibleActionsPerIteration.map((n, i) => {
     let type = possibleActionTypes[i];
     return Provable.witness(type, () =>
       length === n ? actions : emptyValue(type)
@@ -1642,21 +1657,27 @@ function applyAction<A, S>(
     return Actions.hash(events);
   });
   let eventsHash = Provable.switch(lengths, Field, eventsHashes);
-  let newActionsHash = Actions.updateSequenceState(actionState, eventsHash);
+  let newActionsHash = Actions.updateSequenceState(
+    initialActionState,
+    eventsHash
+  );
   let isEmpty = lengths[0];
   // update state hash, if this is not an empty action
-  actionState = Provable.if(isEmpty, actionState, newActionsHash);
+  initialActionState = Provable.if(isEmpty, initialActionState, newActionsHash);
   // also, for each action length, compute the new state and then pick the actual one
   let newStates = actionss.map((actions) => {
     // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-    let newState = Provable.witness(stateType, () => state);
-    Provable.assertEqual(stateType, newState, state);
+    let newState = Provable.witness(stateType, () => initialState);
+    Provable.assertEqual(stateType, newState, initialState);
     // apply actions in reverse order since that's how they were stored at dispatch
     [...actions].reverse().forEach((action) => {
-      newState = reduce(newState, action);
+      newState = reduceFunction(newState, action);
     });
     return newState;
   });
   // update state
-  return Provable.switch(lengths, stateType, newStates);
+  return {
+    state: Provable.switch(lengths, stateType, newStates),
+    actionState: initialActionState,
+  };
 }
