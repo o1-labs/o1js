@@ -108,7 +108,7 @@ abstract class TokenContract extends SmartContract {
   transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
-    amount: UInt64
+    amount: UInt64 | number | bigint
   ) {
     // coerce the inputs to AccountUpdate and pass to `approveUpdates()`
     let tokenId = this.token.id;
