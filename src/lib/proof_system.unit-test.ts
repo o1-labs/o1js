@@ -49,7 +49,6 @@ it('pickles rule creation', async () => {
       { type: 'proof', index: 0 },
       { type: 'witness', index: 0 },
     ],
-    genericArgs: [],
   });
 
   // store compiled tag
