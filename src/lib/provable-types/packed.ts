@@ -52,7 +52,9 @@ class Packed<T> {
   /**
    * Create a packed representation of `type`. You can then use `PackedType.pack(x)` to pack a value.
    */
-  static create<T>(type: ProvableExtended<T>): typeof Packed<T> {
+  static create<T>(type: ProvableExtended<T>): typeof Packed<T> & {
+    provable: ProvableHashable<Packed<T>>;
+  } {
     // compute size of packed representation
     let input = type.toInput(type.empty());
     let packedSize = countFields(input);
@@ -67,6 +69,11 @@ class Packed<T> {
       static empty(): Packed<T> {
         return Packed_.pack(type.empty());
       }
+
+      static get provable() {
+        assert(this._provable !== undefined, 'Packed not initialized');
+        return this._provable;
+      }
     };
   }
 
@@ -79,9 +86,13 @@ class Packed<T> {
    * Pack a value.
    */
   static pack<T>(x: T): Packed<T> {
-    let input = this.innerProvable.toInput(x);
+    let type = this.innerProvable;
+    let input = type.toInput(x);
     let packed = packToFields(input);
-    return new this(packed, Unconstrained.from(x));
+    let unconstrained = Unconstrained.witness(() =>
+      Provable.toConstant(type, x)
+    );
+    return new this(packed, unconstrained);
   }
 
   /**
@@ -114,10 +125,6 @@ class Packed<T> {
     return this.constructor as typeof Packed;
   }
 
-  static get provable(): ProvableHashable<Packed<any>> {
-    assert(this._provable !== undefined, 'Packed not initialized');
-    return this._provable;
-  }
   static get innerProvable(): ProvableExtended<any> {
     assert(this._innerProvable !== undefined, 'Packed not initialized');
     return this._innerProvable;
@@ -177,7 +184,9 @@ class Hashed<T> {
   static create<T>(
     type: ProvableHashable<T>,
     hash?: (t: T) => Field
-  ): typeof Hashed<T> {
+  ): typeof Hashed<T> & {
+    provable: ProvableHashable<Hashed<T>>;
+  } {
     let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
 
     let dummyHash = _hash(type.empty());
@@ -194,6 +203,11 @@ class Hashed<T> {
       static empty(): Hashed<T> {
         return new this(dummyHash, Unconstrained.from(type.empty()));
       }
+
+      static get provable() {
+        assert(this._provable !== undefined, 'Hashed not initialized');
+        return this._provable;
+      }
     };
   }
 
@@ -208,10 +222,19 @@ class Hashed<T> {
 
   /**
    * Wrap a value, and represent it by its hash in provable code.
+   *
+   * ```ts
+   * let hashed = HashedType.hash(value);
+   * ```
+   *
+   * Optionally, if you already have the hash, you can pass it in and avoid recomputing it.
    */
-  static hash<T>(value: T): Hashed<T> {
-    let hash = this._hash(value);
-    return new this(hash, Unconstrained.from(value));
+  static hash<T>(value: T, hash?: Field): Hashed<T> {
+    hash ??= this._hash(value);
+    let unconstrained = Unconstrained.witness(() =>
+      Provable.toConstant(this.innerProvable, value)
+    );
+    return new this(hash, unconstrained);
   }
 
   /**
@@ -241,10 +264,6 @@ class Hashed<T> {
     return this.constructor as typeof Hashed;
   }
 
-  static get provable(): ProvableHashable<Hashed<any>> {
-    assert(this._provable !== undefined, 'Hashed not initialized');
-    return this._provable;
-  }
   static get innerProvable(): ProvableHashable<any> {
     assert(this._innerProvable !== undefined, 'Hashed not initialized');
     return this._innerProvable;

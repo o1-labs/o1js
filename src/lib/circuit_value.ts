@@ -32,6 +32,7 @@ export {
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
+  Unconstrained,
 };
 
 // internal API
@@ -45,7 +46,7 @@ export {
   HashInput,
   InferJson,
   InferredProvable,
-  Unconstrained,
+  StructNoJson,
 };
 
 type ProvableExtension<T, TJson = any> = {
@@ -477,6 +478,24 @@ function Struct<
   return Struct_ as any;
 }
 
+function StructNoJson<
+  A,
+  T extends InferProvable<A> = InferProvable<A>,
+  Pure extends boolean = IsPure<A>
+>(
+  type: A
+): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
+    ? ProvablePure<T>
+    : Provable<T>) & {
+    toInput: (x: T) => {
+      fields?: Field[] | undefined;
+      packed?: [Field, number][] | undefined;
+    };
+    empty: () => T;
+  } {
+  return Struct(type) satisfies Provable<T> as any;
+}
+
 /**
  * Container which holds an unconstrained value. This can be used to pass values
  * between the out-of-circuit blocks in provable code.
@@ -547,6 +566,14 @@ and Provable.asProver() blocks, which execute outside the proof.
 
   /**
    * Create an `Unconstrained` with the given `value`.
+   *
+   * Note: If `T` contains provable types, `Unconstrained.from` is an anti-pattern,
+   * because it stores witnesses in a space that's intended to be used outside the proof.
+   * Something like the following should be used instead:
+   *
+   * ```ts
+   * let xWrapped = Unconstrained.witness(() => Provable.toConstant(type, x));
+   * ```
    */
   static from<T>(value: T) {
     return new Unconstrained(true, value);

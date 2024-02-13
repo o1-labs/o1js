@@ -14,7 +14,7 @@ on:
 
 jobs:
   main-branch:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     services:
@@ -40,7 +40,7 @@ jobs:
           mina-branch-name: o1js-main
 
   berkeley-branch:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/berkeley' || (github.event_name == 'pull_request' && github.base_ref == 'berkeley')
     services:
@@ -66,7 +66,7 @@ jobs:
           mina-branch-name: berkeley
 
   develop-branch:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
     services:

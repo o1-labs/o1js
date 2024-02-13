@@ -5,11 +5,8 @@ import { PublicKey } from '../../signature.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
-  UnfinishedForest,
   AccountUpdateTree,
-  HashedAccountUpdate,
   Permissions,
-  smartContractContext,
 } from '../../account_update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
@@ -50,33 +47,23 @@ abstract class TokenContract extends SmartContract {
     updates: AccountUpdateForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
   ) {
-    let forest = TokenAccountUpdateIterator.create(updates, this.token.id);
+    let iterator = TokenAccountUpdateIterator.create(updates, this.token.id);
 
     // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
-      let { accountUpdate, usesThisToken } = forest.next();
+      let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
 
     // prove that we checked all updates
-    forest.assertFinished(
+    iterator.assertFinished(
       `Number of account updates to approve exceed ` +
         `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
     // since we just did that in the loop above
-    this.self.children.callsType = {
-      type: 'WitnessEquals',
-      value: updates.hash,
-    };
-
-    // make top-level updates our children
-    Provable.asProver(() => {
-      updates.data.get().forEach((update) => {
-        this.self.adopt(update.element.accountUpdate.value.get());
-      });
-    });
+    this.approve(updates);
   }
 
   /**
@@ -100,16 +87,16 @@ abstract class TokenContract extends SmartContract {
   /**
    * Approve a single account update (with arbitrarily many children).
    */
-  approveAccountUpdate(accountUpdate: AccountUpdate) {
-    let forest = finalizeAccountUpdates([accountUpdate]);
+  approveAccountUpdate(accountUpdate: AccountUpdate | AccountUpdateTree) {
+    let forest = toForest([accountUpdate]);
     this.approveBase(forest);
   }
 
   /**
    * Approve a list of account updates (with arbitrarily many children).
    */
-  approveAccountUpdates(accountUpdates: AccountUpdate[]) {
-    let forest = finalizeAccountUpdates(accountUpdates);
+  approveAccountUpdates(accountUpdates: (AccountUpdate | AccountUpdateTree)[]) {
+    let forest = toForest(accountUpdates);
     this.approveBase(forest);
   }
 
@@ -138,32 +125,16 @@ abstract class TokenContract extends SmartContract {
     from.balanceChange = Int64.from(amount).neg();
     to.balanceChange = Int64.from(amount);
 
-    let forest = finalizeAccountUpdates([from, to]);
+    let forest = toForest([from, to]);
     this.approveBase(forest);
   }
 }
 
-function finalizeAccountUpdates(updates: AccountUpdate[]): AccountUpdateForest {
-  let trees = updates.map(finalizeAccountUpdate);
+function toForest(
+  updates: (AccountUpdate | AccountUpdateTree)[]
+): AccountUpdateForest {
+  let trees = updates.map((a) =>
+    a instanceof AccountUpdate ? a.extractTree() : a
+  );
   return AccountUpdateForest.from(trees);
-}
-
-function finalizeAccountUpdate(update: AccountUpdate): AccountUpdateTree {
-  let calls: AccountUpdateForest;
-
-  let insideContract = smartContractContext.get();
-  if (insideContract) {
-    let node = insideContract.selfCalls.value.find(
-      (c) => c.accountUpdate.value.id === update.id
-    );
-    if (node !== undefined) {
-      calls = UnfinishedForest.finalize(node.calls);
-    }
-  }
-  calls ??= AccountUpdateForest.fromArray(update.children.accountUpdates, {
-    skipDummies: true,
-  });
-  AccountUpdate.unlink(update);
-
-  return { accountUpdate: HashedAccountUpdate.hash(update), calls };
 }

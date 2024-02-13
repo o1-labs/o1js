@@ -17,6 +17,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
 
+### Breaking changes
+
+- Remove `AccountUpdate.children` and `AccountUpdate.parent` properties https://github.com/o1-labs/o1js/pull/1402
+  - Also removes the optional `AccountUpdatesLayout` argument to `approve()`
+  - Adds `AccountUpdateTree` and `AccountUpdateForest`, new classes that represent a layout of account updates explicitly
+  - Both of the new types are now accepted as inputs to `approve()`
+  - `accountUpdate.extractTree()` to obtain the tree associated with an account update in the current transaction context.
+
 ### Added
 
 - `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398

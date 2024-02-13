@@ -19,7 +19,7 @@ export {
   not,
   and,
   or,
-  satisfies,
+  fulfills,
   equals,
   contains,
   allConstant,
@@ -186,7 +186,7 @@ function or(...tests: ConstraintSystemTest[]): ConstraintSystemTest {
 /**
  * General test
  */
-function satisfies(
+function fulfills(
   label: string,
   run: (cs: Gate[], inputs: TypeAndValue<any>[]) => boolean
 ): ConstraintSystemTest {
@@ -276,10 +276,7 @@ function ifNotAllConstant(test: ConstraintSystemTest): ConstraintSystemTest {
 /**
  * Test whether constraint system is empty.
  */
-const isEmpty = satisfies(
-  'constraint system is empty',
-  (cs) => cs.length === 0
-);
+const isEmpty = fulfills('constraint system is empty', (cs) => cs.length === 0);
 
 /**
  * Modifies a test so that it runs on the constraint system with generic gates filtered out.

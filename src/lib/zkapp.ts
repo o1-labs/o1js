@@ -2,23 +2,20 @@ import { Gate, Pickles, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,
-  AccountUpdatesLayout,
   Authorization,
   Body,
   Events,
   Permissions,
   Actions,
   SetOrKeep,
-  smartContractContext,
   TokenId,
   ZkappCommand,
   zkAppProver,
   ZkappPublicInput,
-  ZkappStateLength,
-  SmartContractContext,
   LazyProof,
-  CallForest,
-  UnfinishedForest,
+  AccountUpdateForest,
+  AccountUpdateLayout,
+  AccountUpdateTree,
 } from './account_update.js';
 import {
   cloneCircuitValue,
@@ -54,6 +51,7 @@ import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {
   inAnalyze,
+  inCheckedComputation,
   inCompile,
   inProver,
   snarkContext,
@@ -61,6 +59,12 @@ import {
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
+import { ZkappStateLength } from './mina/mina-instance.js';
+import {
+  SmartContractContext,
+  accountUpdateLayout,
+  smartContractContext,
+} from './mina/smart-contract-context.js';
 
 // external API
 export {
@@ -165,13 +169,10 @@ function wrapMethod(
 
     let insideContract = smartContractContext.get();
     if (!insideContract) {
-      const context: SmartContractContext = {
-        this: this,
-        methodCallDepth: 0,
-        selfUpdate: selfAccountUpdate(this, methodName),
-        selfCalls: UnfinishedForest.empty(),
-      };
-      let id = smartContractContext.enter(context);
+      const { id, context } = SmartContractContext.enter(
+        this,
+        selfAccountUpdate(this, methodName)
+      );
       try {
         if (inCompile() || inProver() || inAnalyze()) {
           // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
@@ -179,7 +180,8 @@ function wrapMethod(
           let proverData = inProver() ? zkAppProver.getData() : undefined;
           let txId = Mina.currentTransaction.enter({
             sender: proverData?.transaction.feePayer.body.publicKey,
-            accountUpdates: [],
+            // TODO could pass an update with the fee payer's content here? probably not bc it's not accessed
+            layout: new AccountUpdateLayout(),
             fetchMode: inProver() ? 'cached' : 'test',
             isFinalRunOutsideCircuit: false,
             numberOfRuns: undefined,
@@ -194,11 +196,11 @@ function wrapMethod(
             let blindingValue = Provable.witness(Field, getBlindingValue);
             // it's also good if we prove that we use the same blinding value across the method
             // that's why we pass the variable (not the constant) into a new context
-            let context = memoizationContext() ?? {
+            let memoCtx = memoizationContext() ?? {
               memoized: [],
               currentIndex: 0,
             };
-            let id = memoizationContext.enter({ ...context, blindingValue });
+            let id = memoizationContext.enter({ ...memoCtx, blindingValue });
             let result: unknown;
             try {
               let clonedArgs = actualArgs.map(cloneCircuitValue);
@@ -218,7 +220,8 @@ function wrapMethod(
             ProofAuthorization.setKind(accountUpdate);
 
             debugPublicInput(accountUpdate);
-            checkPublicInput(publicInput, accountUpdate);
+            let calls = context.selfLayout.finalizeChildren();
+            checkPublicInput(publicInput, accountUpdate, calls);
 
             // check the self accountUpdate right after calling the method
             // TODO: this needs to be done in a unified way for all account updates that are created
@@ -242,7 +245,6 @@ function wrapMethod(
           // called smart contract at the top level, in a transaction!
           // => attach ours to the current list of account updates
           let accountUpdate = context.selfUpdate;
-          Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
 
           // first, clone to protect against the method modifying arguments!
           // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, o1js primitives
@@ -296,9 +298,24 @@ function wrapMethod(
                 memoized,
                 blindingValue,
               },
-              Mina.currentTransaction()!.accountUpdates
+              Mina.currentTransaction.get().layout
             );
           }
+
+          // transfer layout from the smart contract context to the transaction
+          if (inCheckedComputation()) {
+            Provable.asProver(() => {
+              accountUpdate = Provable.toConstant(AccountUpdate, accountUpdate);
+              context.selfLayout.toConstantInPlace();
+            });
+          }
+          let txLayout = Mina.currentTransaction.get().layout;
+          txLayout.pushTopLevel(accountUpdate);
+          txLayout.setChildren(
+            accountUpdate,
+            context.selfLayout.finalizeChildren()
+          );
+
           return result;
         }
       } finally {
@@ -308,14 +325,11 @@ function wrapMethod(
 
     // if we're here, this method was called inside _another_ smart contract method
     let parentAccountUpdate = insideContract.this.self;
-    let methodCallDepth = insideContract.methodCallDepth;
-    let innerContext: SmartContractContext = {
-      this: this,
-      methodCallDepth: methodCallDepth + 1,
-      selfUpdate: selfAccountUpdate(this, methodName),
-      selfCalls: UnfinishedForest.empty(),
-    };
-    let id = smartContractContext.enter(innerContext);
+
+    let { id, context: innerContext } = SmartContractContext.enter(
+      this,
+      selfAccountUpdate(this, methodName)
+    );
     try {
       // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
       // so we have to explain to the user how to do that
@@ -342,7 +356,6 @@ function wrapMethod(
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-        accountUpdate.parent = parentAccountUpdate;
 
         let memoContext = {
           memoized: [],
@@ -390,15 +403,27 @@ function wrapMethod(
               memoized,
               blindingValue: constantBlindingValue,
             },
-            Mina.currentTransaction()!.accountUpdates
+            Mina.currentTransaction()?.layout ?? new AccountUpdateLayout()
           );
         }
-        return { accountUpdate, result: result ?? null };
+        // extract callee's account update layout
+        let children = innerContext.selfLayout.finalizeChildren();
+
+        return {
+          accountUpdate,
+          result: { result: result ?? null, children },
+        };
       };
 
       // we have to run the called contract inside a witness block, to not affect the caller's circuit
-      let { accountUpdate, result } = AccountUpdate.witness<any>(
-        returnType ?? provable(null),
+      let {
+        accountUpdate,
+        result: { result, children },
+      } = AccountUpdate.witness<{ result: any; children: AccountUpdateForest }>(
+        provable({
+          result: returnType ?? provable(null),
+          children: AccountUpdateForest.provable,
+        }),
         runCalledContract,
         { skipCheck: true }
       );
@@ -410,16 +435,9 @@ function wrapMethod(
 
       // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
       accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-      accountUpdate.parent = parentAccountUpdate;
-      // beware: we don't include the callee's children in the caller circuit
-      // nothing is asserted about them -- it's the callee's task to check their children
-      accountUpdate.children.callsType = { type: 'Witness' };
-      parentAccountUpdate.children.accountUpdates.push(accountUpdate);
-      UnfinishedForest.push(
-        insideContract.selfCalls,
-        accountUpdate,
-        UnfinishedForest.fromArray(accountUpdate.children.accountUpdates, true)
-      );
+
+      insideContract.selfLayout.pushTopLevel(accountUpdate);
+      insideContract.selfLayout.setChildren(accountUpdate, children);
 
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);
@@ -448,11 +466,11 @@ function wrapMethod(
 
 function checkPublicInput(
   { accountUpdate, calls }: ZkappPublicInput,
-  self: AccountUpdate
+  self: AccountUpdate,
+  selfCalls: AccountUpdateForest
 ) {
-  let otherInput = self.toPublicInput();
-  accountUpdate.assertEquals(otherInput.accountUpdate);
-  calls.assertEquals(otherInput.calls);
+  accountUpdate.assertEquals(self.hash());
+  calls.assertEquals(selfCalls.hash);
 }
 
 /**
@@ -827,7 +845,7 @@ super.init();
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
-  // same as this.self, but explicitly creates a _new_ account update
+
   /**
    * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
    */
@@ -909,22 +927,22 @@ super.init();
    *
    * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
    * tree of account updates that forms the transaction.
-   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
-   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
    *
    * @param updateOrCallback
-   * @param layout
    * @returns The account update that was approved (needed when passing in a Callback)
    */
   approve(
-    updateOrCallback: AccountUpdate | Callback<any>,
-    layout?: AccountUpdatesLayout
+    updateOrCallback:
+      | AccountUpdate
+      | AccountUpdateTree
+      | AccountUpdateForest
+      | Callback<any>
   ) {
     let accountUpdate =
-      updateOrCallback instanceof AccountUpdate
-        ? updateOrCallback
-        : Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
-    this.self.approve(accountUpdate, layout);
+      updateOrCallback instanceof Callback
+        ? Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate)
+        : updateOrCallback;
+    this.self.approve(accountUpdate);
     return accountUpdate;
   }
 
@@ -1453,6 +1471,18 @@ type ExecutionState = {
   accountUpdate: AccountUpdate;
 };
 
+const SmartContractContext = {
+  enter(self: SmartContract, selfUpdate: AccountUpdate) {
+    let context: SmartContractContext = {
+      this: self,
+      selfUpdate,
+      selfLayout: new AccountUpdateLayout(selfUpdate),
+    };
+    let id = smartContractContext.enter(context);
+    return { id, context };
+  },
+};
+
 type DeployArgs =
   | {
       verificationKey?: { data: string; hash: string | Field };
@@ -1518,7 +1548,10 @@ const Reducer: (<
 ) as any;
 
 const ProofAuthorization = {
-  setKind({ body, id }: AccountUpdate, priorAccountUpdates?: AccountUpdate[]) {
+  setKind(
+    { body, id }: AccountUpdate,
+    priorAccountUpdates?: AccountUpdateLayout
+  ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Provable.witness(Field, () => {
@@ -1526,16 +1559,15 @@ const ProofAuthorization = {
       let isProver = proverData !== undefined;
       assert(
         isProver || priorAccountUpdates !== undefined,
-        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
+        'Called `setKind()` outside the prover without passing in `priorAccountUpdates`.'
       );
       let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
-      priorAccountUpdates ??= proverData.transaction.accountUpdates;
-      priorAccountUpdates = priorAccountUpdates.filter(
+      let priorAccountUpdatesFlat = priorAccountUpdates?.toFlatList({
+        mutate: false,
+      });
+      priorAccountUpdatesFlat ??= proverData.transaction.accountUpdates;
+      priorAccountUpdatesFlat = priorAccountUpdatesFlat.filter(
         (a) => a.id !== myAccountUpdateId
-      );
-      let priorAccountUpdatesFlat = CallForest.toFlatList(
-        priorAccountUpdates,
-        false
       );
       let accountUpdate = [...priorAccountUpdatesFlat]
         .reverse()
@@ -1560,7 +1592,7 @@ const ProofAuthorization = {
   setLazyProof(
     accountUpdate: AccountUpdate,
     proof: Omit<LazyProof, 'kind'>,
-    priorAccountUpdates: AccountUpdate[]
+    priorAccountUpdates: AccountUpdateLayout
   ) {
     this.setKind(accountUpdate, priorAccountUpdates);
     accountUpdate.authorization = {};
@@ -1599,10 +1631,13 @@ function diffRecursive(
 ) {
   let { transaction, index, accountUpdate: input } = inputData;
   diff(transaction, index, prover.toPretty(), input.toPretty());
-  let nChildren = input.children.accountUpdates.length;
+  // TODO
+  let inputChildren = accountUpdateLayout()!.get(input)!.children.mutable!;
+  let proverChildren = accountUpdateLayout()!.get(prover)!.children.mutable!;
+  let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
-    let inputChild = input.children.accountUpdates[i];
-    let child = prover.children.accountUpdates[i];
+    let inputChild = inputChildren[i].mutable;
+    let child = proverChildren[i].mutable;
     if (!inputChild || !child) return;
     diffRecursive(child, { transaction, index, accountUpdate: inputChild });
   }

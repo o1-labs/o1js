@@ -1,7 +1,7 @@
 import {
   AccountUpdate,
   AccountUpdateForest,
-  AccountUpdateTree,
+  AccountUpdateTreeBase,
   TokenId,
 } from '../../account_update.js';
 import { Field } from '../../core.js';
@@ -57,7 +57,7 @@ class TokenAccountUpdateIterator {
   selfToken: Field;
 
   constructor(
-    forest: MerkleListIterator<AccountUpdateTree>,
+    forest: MerkleListIterator<AccountUpdateTreeBase>,
     mayUseToken: MayUseToken,
     selfToken: Field
   ) {
@@ -87,8 +87,8 @@ class TokenAccountUpdateIterator {
    */
   next() {
     // get next account update from the current forest (might be a dummy)
-    let { accountUpdate, calls } = this.currentLayer.forest.next();
-    let childForest = AccountUpdateIterator.startIterating(calls);
+    let { accountUpdate, children } = this.currentLayer.forest.next();
+    let childForest = AccountUpdateIterator.startIterating(children);
     let childLayer = {
       forest: childForest,
       mayUseToken: MayUseToken.InheritFromParent,
