@@ -99,8 +99,8 @@ export {
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
-export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
-export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
+export { MerkleTree, MerkleWitness } from './lib/merkle-tree.js';
+export { MerkleMap, MerkleMapWitness } from './lib/merkle-map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 

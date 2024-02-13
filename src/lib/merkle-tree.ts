@@ -3,7 +3,6 @@
  */
 
 import { CircuitValue, arrayProp } from './circuit-value.js';
-import { Circuit } from './circuit.js';
 import { Poseidon } from './hash.js';
 import { Bool, Field } from './core.js';
 import { Provable } from './provable.js';
