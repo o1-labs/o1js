@@ -1,5 +1,5 @@
 import { Bool, Field } from './core.js';
-import { circuitValueEquals, cloneCircuitValue } from './circuit_value.js';
+import { circuitValueEquals, cloneCircuitValue } from './circuit-value.js';
 import { Provable } from './provable.js';
 import { activeInstance as Mina } from './mina/mina-instance.js';
 import type { AccountUpdate } from './account_update.js';

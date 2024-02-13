@@ -1,6 +1,6 @@
 import { provableFromClass } from '../bindings/lib/provable-snarky.js';
 import { CurveParams } from '../bindings/crypto/elliptic-curve.js';
-import { ProvablePureExtended } from './circuit_value.js';
+import { ProvablePureExtended } from './circuit-value.js';
 import {
   FlexiblePoint,
   ForeignCurve,

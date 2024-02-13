@@ -2,7 +2,7 @@
  * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in o1js.
  */
 
-import { CircuitValue, arrayProp } from './circuit_value.js';
+import { CircuitValue, arrayProp } from './circuit-value.js';
 import { Circuit } from './circuit.js';
 import { Poseidon } from './hash.js';
 import { Bool, Field } from './core.js';

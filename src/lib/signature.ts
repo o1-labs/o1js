@@ -1,5 +1,5 @@
 import { Field, Bool, Group, Scalar } from './core.js';
-import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
+import { prop, CircuitValue, AnyConstructor } from './circuit-value.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,

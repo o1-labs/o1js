@@ -1,5 +1,5 @@
 import type { Nullifier as JsonNullifier } from '../mina-signer/src/types.js';
-import { Struct } from './circuit_value.js';
+import { Struct } from './circuit-value.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
 import { MerkleMapWitness } from './merkle_map.js';

@@ -1,5 +1,5 @@
 import { ProvablePure } from '../snarky.js';
-import { FlexibleProvablePure } from './circuit_value.js';
+import { FlexibleProvablePure } from './circuit-value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';

@@ -1,5 +1,5 @@
 import { Bool } from '../bool.js';
-import { provableTuple } from '../circuit_value.js';
+import { provableTuple } from '../circuit-value.js';
 import { Field } from '../core.js';
 import { assert } from '../errors.js';
 import { Provable } from '../provable.js';

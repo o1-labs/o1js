@@ -15,7 +15,7 @@ import {
   affineDouble,
 } from '../../bindings/crypto/elliptic-curve.js';
 import { Bool } from '../bool.js';
-import { provable } from '../circuit_value.js';
+import { provable } from '../circuit-value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet, assertBoolean } from './basic.js';
 import { sliceField3 } from './bit-slices.js';

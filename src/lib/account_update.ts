@@ -4,7 +4,7 @@ import {
   provable,
   provablePure,
   StructNoJson,
-} from './circuit_value.js';
+} from './circuit-value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
 import { Pickles, Test } from '../snarky.js';

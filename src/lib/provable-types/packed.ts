@@ -3,7 +3,7 @@ import {
   HashInput,
   ProvableExtended,
   Unconstrained,
-} from '../circuit_value.js';
+} from '../circuit-value.js';
 import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
 import { Poseidon, ProvableHashable, packToFields } from '../hash.js';

@@ -1,5 +1,5 @@
 import { Field, Bool } from './core.js';
-import { AnyConstructor, CircuitValue, Struct, prop } from './circuit_value.js';
+import { AnyConstructor, CircuitValue, Struct, prop } from './circuit-value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';

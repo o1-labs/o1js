@@ -10,7 +10,7 @@ import {
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { ProvableExtended } from '../circuit_value.js';
+import { ProvableExtended } from '../circuit-value.js';
 
 export { FetchedAccount, Account, PartialAccount };
 export { newAccount, accountQuery, parseFetchedAccount, fillPartialAccount };

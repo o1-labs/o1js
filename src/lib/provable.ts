@@ -5,7 +5,7 @@
  */
 import { Field, Bool } from './core.js';
 import { Provable as Provable_, Snarky } from '../snarky.js';
-import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
+import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
 import { Context } from './global-context.js';
 import {
   HashInput,

@@ -19,7 +19,7 @@ import {
 } from './account_update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, toConstant } from './circuit_value.js';
+import { cloneCircuitValue, toConstant } from './circuit-value.js';
 import { Empty, JsonProof, Proof, verify } from './proof_system.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
