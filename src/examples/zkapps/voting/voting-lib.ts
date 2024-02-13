@@ -1,5 +1,5 @@
 import { Member, MyMerkleWitness } from './member.js';
-import { OffchainStorage } from './off_chain_storage.js';
+import { OffchainStorage } from './off-chain-storage.js';
 import { Voting_ } from './voting.js';
 import { Mina, PrivateKey } from 'o1js';
 import { Printer } from 'prettier';
