@@ -110,18 +110,12 @@ export { ZkProgram };
 export { Crypto } from './lib/crypto.js';
 
 // experimental APIs
-import { Callback } from './lib/zkapp.js';
-import { createChildAccountUpdate } from './lib/account_update.js';
 import { memoizeWitness } from './lib/provable.js';
 export { Experimental };
 
 const Experimental_ = {
-  Callback,
-  createChildAccountUpdate,
   memoizeWitness,
 };
-
-type Callback_<Result> = Callback<Result>;
 
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
@@ -132,10 +126,7 @@ namespace Experimental {
    * The old `Experimental.ZkProgram` API has been deprecated in favor of the new `ZkProgram` top-level import.
    */
   export let ZkProgram = ExperimentalZkProgram;
-  export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
   export let memoizeWitness = Experimental_.memoizeWitness;
-  export let Callback = Experimental_.Callback;
-  export type Callback<Result> = Callback_<Result>;
 }
 
 Error.stackTraceLimit = 100000;

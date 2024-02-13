@@ -91,7 +91,6 @@ export {
   TokenId,
   Token,
   CallForest,
-  createChildAccountUpdate,
   zkAppProver,
   dummySignature,
   LazyProof,
@@ -1886,18 +1885,6 @@ class AccountUpdateLayout {
   toConstantInPlace() {
     this.root.children.toConstantInPlace();
   }
-}
-
-// TODO remove
-function createChildAccountUpdate(
-  parent: AccountUpdate,
-  childAddress: PublicKey,
-  tokenId?: Field
-) {
-  let child = AccountUpdate.defaultAccountUpdate(childAddress, tokenId);
-  child.body.callDepth = parent.body.callDepth + 1;
-  AccountUpdate.unlink(child);
-  return child;
 }
 
 // authorization

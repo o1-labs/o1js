@@ -1,98 +1,51 @@
 import {
-  isReady,
   method,
   Mina,
   AccountUpdate,
   PrivateKey,
   SmartContract,
   PublicKey,
-  UInt64,
-  shutdown,
-  Int64,
-  Experimental,
-  Permissions,
-  DeployArgs,
-  VerificationKey,
   TokenId,
+  TokenContract,
+  AccountUpdateForest,
 } from 'o1js';
 
-await isReady;
-
-class TokenContract extends SmartContract {
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
-      ...Permissions.default(),
-      access: Permissions.proofOrSignature(),
-    });
-    this.balance.addInPlace(UInt64.from(initialBalance));
-  }
-
-  @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
-    let address = deployer.toPublicKey();
-    let tokenId = this.token.id;
-    let deployUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      address,
-      tokenId
-    );
-    deployUpdate.account.permissions.set(Permissions.default());
-    deployUpdate.account.verificationKey.set(verificationKey);
-    deployUpdate.sign(deployer);
+class Token extends TokenContract {
+  @method
+  approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
   }
 
   @method mint(receiverAddress: PublicKey) {
-    let amount = UInt64.from(1_000_000);
+    let amount = 1_000_000;
     this.token.mint({ address: receiverAddress, amount });
   }
 
   @method burn(receiverAddress: PublicKey) {
-    let amount = UInt64.from(1_000);
+    let amount = 1_000;
     this.token.burn({ address: receiverAddress, amount });
-  }
-
-  @method sendTokens(
-    senderAddress: PublicKey,
-    receiverAddress: PublicKey,
-    callback: Experimental.Callback<any>
-  ) {
-    // TODO use token contract methods for approve
-    let senderAccountUpdate = this.approve(callback) as AccountUpdate;
-    let amount = UInt64.from(1_000);
-    let negativeAmount = Int64.fromObject(
-      senderAccountUpdate.body.balanceChange
-    );
-    negativeAmount.assertEquals(Int64.from(amount).neg());
-    let tokenId = this.token.id;
-    senderAccountUpdate.body.tokenId.assertEquals(tokenId);
-    senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
-    let receiverAccountUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      receiverAddress,
-      tokenId
-    );
-    receiverAccountUpdate.balance.addInPlace(amount);
   }
 }
 
 class ZkAppB extends SmartContract {
   @method approveSend() {
-    let amount = UInt64.from(1_000);
-    this.balance.subInPlace(amount);
+    this.balance.subInPlace(1_000);
   }
 }
 
 class ZkAppC extends SmartContract {
   @method approveSend() {
-    let amount = UInt64.from(1_000);
-    this.balance.subInPlace(amount);
+    this.balance.subInPlace(1_000);
   }
 }
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-let feePayer = Local.testAccounts[0].privateKey;
+let [
+  { publicKey: sender, privateKey: senderKey },
+  { publicKey: tokenAccount1 },
+] = Local.testAccounts;
 let initialBalance = 10_000_000;
 
 let tokenZkAppKey = PrivateKey.random();
@@ -104,10 +57,7 @@ let zkAppCAddress = zkAppCKey.toPublicKey();
 let zkAppBKey = PrivateKey.random();
 let zkAppBAddress = zkAppBKey.toPublicKey();
 
-let tokenAccount1Key = Local.testAccounts[1].privateKey;
-let tokenAccount1 = tokenAccount1Key.toPublicKey();
-
-let tokenZkApp = new TokenContract(tokenZkAppAddress);
+let tokenZkApp = new Token(tokenZkAppAddress);
 let tokenId = tokenZkApp.token.id;
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
@@ -118,61 +68,54 @@ console.log('tokenZkAppAddress', tokenZkAppAddress.toBase58());
 console.log('zkAppB', zkAppBAddress.toBase58());
 console.log('zkAppC', zkAppCAddress.toBase58());
 console.log('receiverAddress', tokenAccount1.toBase58());
-console.log('feePayer', feePayer.toPublicKey().toBase58());
+console.log('feePayer', sender.toBase58());
 console.log('-------------------------------------------');
 
 console.log('compile (TokenContract)');
-await TokenContract.compile();
+await Token.compile();
 console.log('compile (ZkAppB)');
 await ZkAppB.compile();
 console.log('compile (ZkAppC)');
 await ZkAppC.compile();
 
 console.log('deploy tokenZkApp');
-tx = await Local.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
-  tokenZkApp.deploy({ zkappKey: tokenZkAppKey });
+tx = await Mina.transaction(sender, () => {
+  tokenZkApp.deploy();
+  AccountUpdate.fundNewAccount(sender).send({
+    to: tokenZkApp.self,
+    amount: initialBalance,
+  });
 });
-await tx.send();
+await tx.sign([senderKey, tokenZkAppKey]).send();
 
-console.log('deploy zkAppB');
-tx = await Local.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer);
-  tokenZkApp.tokenDeploy(zkAppBKey, ZkAppB._verificationKey!);
+console.log('deploy zkAppB and zkAppC');
+tx = await Mina.transaction(sender, () => {
+  AccountUpdate.fundNewAccount(sender, 2);
+  zkAppC.deploy();
+  zkAppB.deploy();
+  tokenZkApp.approveAccountUpdates([zkAppC.self, zkAppB.self]);
 });
-console.log('deploy zkAppB (proof)');
+console.log('deploy zkAppB and zkAppC (proof)');
 await tx.prove();
-await tx.send();
-
-console.log('deploy zkAppC');
-tx = await Local.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer);
-  tokenZkApp.tokenDeploy(zkAppCKey, ZkAppC._verificationKey!);
-});
-console.log('deploy zkAppC (proof)');
-await tx.prove();
-await tx.send();
+await tx.sign([senderKey, zkAppBKey, zkAppCKey]).send();
 
 console.log('mint token to zkAppB');
-tx = await Local.transaction(feePayer, () => {
+tx = await Mina.transaction(sender, () => {
   tokenZkApp.mint(zkAppBAddress);
 });
 await tx.prove();
-await tx.send();
+await tx.sign([senderKey]).send();
 
 console.log('approve send from zkAppB');
-tx = await Local.transaction(feePayer, () => {
-  let approveSendingCallback = Experimental.Callback.create(
-    zkAppB,
-    'approveSend',
-    []
-  );
-  // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, approveSendingCallback);
+tx = await Mina.transaction(sender, () => {
+  zkAppB.approveSend();
+
+  // we call the token contract with the self update
+  tokenZkApp.transfer(zkAppB.self, zkAppCAddress, 1_000);
 });
 console.log('approve send (proof)');
 await tx.prove();
-await tx.send();
+await tx.sign([senderKey]).send();
 
 console.log(
   `zkAppC's balance for tokenId: ${TokenId.toBase58(tokenId)}`,
@@ -180,24 +123,19 @@ console.log(
 );
 
 console.log('approve send from zkAppC');
-tx = await Local.transaction(feePayer, () => {
+tx = await Mina.transaction(sender, () => {
   // Pay for tokenAccount1's account creation
-  AccountUpdate.fundNewAccount(feePayer);
-  let approveSendingCallback = Experimental.Callback.create(
-    zkAppC,
-    'approveSend',
-    []
-  );
-  // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, approveSendingCallback);
+  AccountUpdate.fundNewAccount(sender);
+  zkAppC.approveSend();
+
+  // we call the token contract with the tree
+  tokenZkApp.transfer(zkAppC.self, tokenAccount1, 1_000);
 });
 console.log('approve send (proof)');
 await tx.prove();
-await tx.send();
+await tx.sign([senderKey]).send();
 
 console.log(
   `tokenAccount1's balance for tokenId: ${TokenId.toBase58(tokenId)}`,
   Mina.getBalance(tokenAccount1, tokenId).value.toBigInt()
 );
-
-shutdown();
