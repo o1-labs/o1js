@@ -1,5 +1,5 @@
 // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
-import { mod } from '../../bindings/crypto/finite_field.js';
+import { mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../provable-types/bytes.js';

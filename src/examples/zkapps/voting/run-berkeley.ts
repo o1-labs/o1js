@@ -14,12 +14,12 @@ import {
 } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
-import { OffchainStorage } from './off_chain_storage.js';
+import { OffchainStorage } from './off-chain-storage.js';
 import {
   ParticipantPreconditions,
   ElectionPreconditions,
 } from './preconditions.js';
-import { getResults, vote } from './voting_lib.js';
+import { getResults, vote } from './voting-lib.js';
 await isReady;
 
 const Berkeley = Mina.Network({

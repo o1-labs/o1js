@@ -1,4 +1,4 @@
-import type { FiniteField } from '../../bindings/crypto/finite_field.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 import { ProvableSpec, spec } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
 import { Gadgets } from './gadgets.js';

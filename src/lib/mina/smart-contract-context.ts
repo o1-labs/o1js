@@ -1,5 +1,5 @@
 import type { SmartContract } from '../zkapp.js';
-import type { AccountUpdate, AccountUpdateLayout } from '../account_update.js';
+import type { AccountUpdate, AccountUpdateLayout } from '../account-update.js';
 import { Context } from '../global-context.js';
 import { currentTransaction } from './transaction-context.js';
 

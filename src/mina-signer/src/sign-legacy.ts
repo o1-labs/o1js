@@ -10,7 +10,7 @@ import {
 } from './signature.js';
 import { Json } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../../bindings/lib/binable.js';
-import { NetworkId } from './TSTypes.js';
+import { NetworkId } from './types.js';
 
 export {
   signPayment,

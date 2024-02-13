@@ -4,7 +4,7 @@ import {
   provable,
   provablePure,
   StructNoJson,
-} from './circuit_value.js';
+} from './circuit-value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool } from './core.js';
 import { Pickles, Test } from '../snarky.js';
@@ -27,7 +27,7 @@ import {
   ClosedInterval,
   getAccountPreconditions,
 } from './precondition.js';
-import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
+import { dummyBase64Proof, Empty, Proof, Prover } from './proof-system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,

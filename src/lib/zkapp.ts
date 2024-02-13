@@ -16,14 +16,14 @@ import {
   AccountUpdateForest,
   AccountUpdateLayout,
   AccountUpdateTree,
-} from './account_update.js';
+} from './account-update.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
   InferProvable,
   provable,
   toConstant,
-} from './circuit_value.js';
+} from './circuit-value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
 import { Poseidon, hashConstant } from './hash.js';
@@ -45,7 +45,7 @@ import {
   MethodInterface,
   Proof,
   sortMethodArguments,
-} from './proof_system.js';
+} from './proof-system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {

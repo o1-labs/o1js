@@ -1,5 +1,5 @@
 import { provableFromClass } from '../../bindings/lib/provable-snarky.js';
-import type { ProvablePureExtended } from '../circuit_value.js';
+import type { ProvablePureExtended } from '../circuit-value.js';
 import { assert } from '../gadgets/common.js';
 import { chunkString } from '../util/arrays.js';
 import { Provable } from '../provable.js';

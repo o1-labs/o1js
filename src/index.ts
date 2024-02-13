@@ -21,7 +21,7 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
-} from './lib/circuit_value.js';
+} from './lib/circuit-value.js';
 export {
   CircuitValue,
   prop,
@@ -31,7 +31,7 @@ export {
   provablePure,
   Struct,
   Unconstrained,
-} from './lib/circuit_value.js';
+} from './lib/circuit-value.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';
@@ -56,7 +56,7 @@ export {
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
 
-export type { JsonProof } from './lib/proof_system.js';
+export type { JsonProof } from './lib/proof-system.js';
 export {
   Proof,
   SelfProof,
@@ -65,7 +65,7 @@ export {
   Undefined,
   Void,
   VerificationKey,
-} from './lib/proof_system.js';
+} from './lib/proof-system.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export {
@@ -77,7 +77,7 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
-} from './lib/account_update.js';
+} from './lib/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';
@@ -99,12 +99,12 @@ export {
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
-export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
-export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
+export { MerkleTree, MerkleWitness } from './lib/merkle-tree.js';
+export { MerkleMap, MerkleMapWitness } from './lib/merkle-map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 
-import { ExperimentalZkProgram, ZkProgram } from './lib/proof_system.js';
+import { ExperimentalZkProgram, ZkProgram } from './lib/proof-system.js';
 export { ZkProgram };
 
 export { Crypto } from './lib/crypto.js';

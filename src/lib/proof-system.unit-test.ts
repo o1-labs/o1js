@@ -1,5 +1,5 @@
 import { Field, Bool } from './core.js';
-import { Struct } from './circuit_value.js';
+import { Struct } from './circuit-value.js';
 import { UInt64 } from './int.js';
 import {
   CompiledTag,
@@ -8,7 +8,7 @@ import {
   ZkProgram,
   picklesRuleFromFunction,
   sortMethodArguments,
-} from './proof_system.js';
+} from './proof-system.js';
 import { expect } from 'expect';
 import { Pickles, ProvablePure, Snarky } from '../snarky.js';
 import { AnyFunction } from './util/types.js';

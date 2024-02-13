@@ -1,4 +1,4 @@
-import { ZkProgram } from '../proof_system.js';
+import { ZkProgram } from '../proof-system.js';
 import {
   equivalentProvable as equivalent,
   equivalentAsync,
@@ -7,7 +7,7 @@ import {
 } from '../testing/equivalent.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
-import { provable } from '../circuit_value.js';
+import { provable } from '../circuit-value.js';
 import { assert } from './common.js';
 
 let Arithmetic = ZkProgram({

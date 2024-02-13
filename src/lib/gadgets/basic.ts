@@ -1,7 +1,7 @@
 /**
  * Basic gadgets that only use generic gates
  */
-import { Fp } from '../../bindings/crypto/finite_field.js';
+import { Fp } from '../../bindings/crypto/finite-field.js';
 import type { Field, VarField } from '../field.js';
 import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';

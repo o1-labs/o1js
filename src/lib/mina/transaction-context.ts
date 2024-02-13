@@ -1,4 +1,4 @@
-import type { AccountUpdateLayout } from '../account_update.js';
+import type { AccountUpdateLayout } from '../account-update.js';
 import type { PublicKey } from '../signature.js';
 import { Context } from '../global-context.js';
 

@@ -1,6 +1,6 @@
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
-import * as Json from './src/TSTypes.js';
-import type { SignedLegacy, Signed, NetworkId } from './src/TSTypes.js';
+import * as Json from './src/types.js';
+import type { SignedLegacy, Signed, NetworkId } from './src/types.js';
 
 import {
   isPayment,
@@ -10,7 +10,7 @@ import {
   isSignedZkappCommand,
   isStakeDelegation,
   isZkappCommand,
-} from './src/Utils.js';
+} from './src/utils.js';
 import * as TransactionJson from '../bindings/mina-transaction/gen/transaction-json.js';
 import { ZkappCommand } from '../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
@@ -496,7 +496,7 @@ class Client {
 
   /**
    * Returns the network ID.
-   * 
+   *
    * @returns {NetworkId} The network ID.
    */
   get networkId(): NetworkId {

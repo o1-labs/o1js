@@ -1,4 +1,4 @@
-import { inverse, mod } from '../../bindings/crypto/finite_field.js';
+import { inverse, mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert, exists } from './common.js';
@@ -13,9 +13,9 @@ import {
   CurveAffine,
   affineAdd,
   affineDouble,
-} from '../../bindings/crypto/elliptic_curve.js';
+} from '../../bindings/crypto/elliptic-curve.js';
 import { Bool } from '../bool.js';
-import { provable } from '../circuit_value.js';
+import { provable } from '../circuit-value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
 import { arrayGet, assertBoolean } from './basic.js';
 import { sliceField3 } from './bit-slices.js';

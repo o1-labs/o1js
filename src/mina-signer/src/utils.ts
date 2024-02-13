@@ -7,7 +7,7 @@ import type {
   SignedAny,
   SignedLegacy,
   SignableData,
-} from './TSTypes.js';
+} from './types.js';
 
 function hasCommonProperties(data: SignableData | ZkappCommand) {
   return (

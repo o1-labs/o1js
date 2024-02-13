@@ -17,7 +17,7 @@ import {
   verifyFieldElement,
 } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import { NetworkId } from './TSTypes.js';
+import { NetworkId } from './types.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };

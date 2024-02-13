@@ -11,7 +11,7 @@ import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
-import { Undefined, ZkProgram } from '../proof_system.js';
+import { Undefined, ZkProgram } from '../proof-system.js';
 import { printGates } from '../provable-context.js';
 
 export {

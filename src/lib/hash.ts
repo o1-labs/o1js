@@ -1,4 +1,4 @@
-import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
+import { HashInput, ProvableExtended, Struct } from './circuit-value.js';
 import { Snarky } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';

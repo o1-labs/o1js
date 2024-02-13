@@ -1,6 +1,6 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { Bool, Field } from '../core.js';
-import { Permissions } from '../account_update.js';
+import { Permissions } from '../account-update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
 import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
@@ -10,7 +10,7 @@ import {
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { ProvableExtended } from '../circuit_value.js';
+import { ProvableExtended } from '../circuit-value.js';
 
 export { FetchedAccount, Account, PartialAccount };
 export { newAccount, accountQuery, parseFetchedAccount, fillPartialAccount };

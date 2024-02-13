@@ -17,7 +17,7 @@ import type {
 import { Provable } from './provable.js';
 import { assert } from './errors.js';
 import { inCheckedComputation } from './provable-context.js';
-import { Proof } from './proof_system.js';
+import { Proof } from './proof-system.js';
 
 // external API
 export {

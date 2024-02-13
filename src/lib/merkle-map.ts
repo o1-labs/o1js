@@ -1,7 +1,7 @@
-import { arrayProp, CircuitValue } from './circuit_value.js';
+import { arrayProp, CircuitValue } from './circuit-value.js';
 import { Field, Bool } from './core.js';
 import { Poseidon } from './hash.js';
-import { MerkleTree, MerkleWitness } from './merkle_tree.js';
+import { MerkleTree, MerkleWitness } from './merkle-tree.js';
 import { Provable } from './provable.js';
 
 const bits = 255;

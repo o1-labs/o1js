@@ -39,7 +39,7 @@ import { Signable } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import type { FiniteField } from '../../bindings/crypto/finite_field.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 
 export { Random, sample, withHardCoded };
 
