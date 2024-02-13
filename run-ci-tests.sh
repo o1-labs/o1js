@@ -5,8 +5,8 @@ case $TEST_TYPE in
 "Simple integration tests")
   echo "Running basic integration tests"
   ./run src/examples/zkapps/hello_world/run.ts --bundle
-  ./run src/examples/simple_zkapp.ts --bundle
-  ./run src/examples/zkapps/reducer/reducer_composite.ts --bundle
+  ./run src/examples/simple-zkapp.ts --bundle
+  ./run src/examples/zkapps/reducer/reducer-composite.ts --bundle
   ./run src/examples/zkapps/composability.ts --bundle
   ./run src/tests/fake-proof.ts
   ;;
