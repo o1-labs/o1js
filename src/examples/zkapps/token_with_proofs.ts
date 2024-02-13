@@ -5,32 +5,15 @@ import {
   PrivateKey,
   SmartContract,
   PublicKey,
-  UInt64,
-  Permissions,
-  DeployArgs,
-  VerificationKey,
   TokenId,
   TokenContract,
   AccountUpdateForest,
 } from 'o1js';
 
 class Token extends TokenContract {
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.balance.addInPlace(UInt64.from(initialBalance));
-  }
-
   @method
   approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
-  }
-
-  @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
-    let address = deployer.toPublicKey();
-    let deployUpdate = AccountUpdate.create(address, this.token.id);
-    deployUpdate.account.permissions.set(Permissions.default());
-    deployUpdate.account.verificationKey.set(verificationKey);
-    deployUpdate.sign(deployer);
   }
 
   @method mint(receiverAddress: PublicKey) {
@@ -97,28 +80,24 @@ await ZkAppC.compile();
 
 console.log('deploy tokenZkApp');
 tx = await Mina.transaction(sender, () => {
-  AccountUpdate.fundNewAccount(sender).balance.subInPlace(initialBalance);
-  tokenZkApp.deploy({ zkappKey: tokenZkAppKey });
+  tokenZkApp.deploy();
+  AccountUpdate.fundNewAccount(sender).send({
+    to: tokenZkApp.self,
+    amount: initialBalance,
+  });
 });
-await tx.sign([senderKey]).send();
+await tx.sign([senderKey, tokenZkAppKey]).send();
 
-console.log('deploy zkAppB');
+console.log('deploy zkAppB and zkAppC');
 tx = await Mina.transaction(sender, () => {
-  AccountUpdate.fundNewAccount(sender);
-  tokenZkApp.tokenDeploy(zkAppBKey, ZkAppB._verificationKey!);
+  AccountUpdate.fundNewAccount(sender, 2);
+  zkAppC.deploy();
+  zkAppB.deploy();
+  tokenZkApp.approveAccountUpdates([zkAppC.self, zkAppB.self]);
 });
-console.log('deploy zkAppB (proof)');
+console.log('deploy zkAppB and zkAppC (proof)');
 await tx.prove();
-await tx.sign([senderKey]).send();
-
-console.log('deploy zkAppC');
-tx = await Mina.transaction(sender, () => {
-  AccountUpdate.fundNewAccount(sender);
-  tokenZkApp.tokenDeploy(zkAppCKey, ZkAppC._verificationKey!);
-});
-console.log('deploy zkAppC (proof)');
-await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([senderKey, zkAppBKey, zkAppCKey]).send();
 
 console.log('mint token to zkAppB');
 tx = await Mina.transaction(sender, () => {
