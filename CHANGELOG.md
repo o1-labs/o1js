@@ -24,6 +24,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Adds `AccountUpdateTree` and `AccountUpdateForest`, new classes that represent a layout of account updates explicitly
   - Both of the new types are now accepted as inputs to `approve()`
   - `accountUpdate.extractTree()` to obtain the tree associated with an account update in the current transaction context.
+- Remove `Experimental.Callback` API https://github.com/o1-labs/o1js/pull/1430
 
 ### Added
 
