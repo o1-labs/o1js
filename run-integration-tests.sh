@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-./run src/examples/zkapps/hello_world/run.ts --bundle
+./run src/examples/zkapps/hello-world/run.ts --bundle
 ./run src/examples/zkapps/voting/run.ts --bundle
 ./run src/examples/simple-zkapp.ts --bundle
 ./run src/examples/zkapps/reducer/reducer-composite.ts --bundle

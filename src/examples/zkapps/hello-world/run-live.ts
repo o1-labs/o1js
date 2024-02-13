@@ -7,7 +7,7 @@ import {
   PrivateKey,
   fetchAccount,
 } from 'o1js';
-import { HelloWorld, adminPrivateKey } from './hello_world.js';
+import { HelloWorld, adminPrivateKey } from './hello-world.js';
 
 const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 const zkAppKey = PrivateKey.random();

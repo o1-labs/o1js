@@ -13,9 +13,9 @@ echo ""
 echo "Running integration tests against the real Mina network."
 echo ""
 
-./run src/examples/zkapps/hello_world/run_live.ts --bundle | add_prefix "HELLO_WORLD" &
+./run src/examples/zkapps/hello-world/run-live.ts --bundle | add_prefix "HELLO_WORLD" &
 HELLO_WORLD_PROC=$!
-./run src/examples/zkapps/dex/run_live.ts --bundle | add_prefix "DEX" &
+./run src/examples/zkapps/dex/run-live.ts --bundle | add_prefix "DEX" &
 DEX_PROC=$!
 ./run src/examples/fetch-live.ts --bundle | add_prefix "FETCH" &
 FETCH_PROC=$!

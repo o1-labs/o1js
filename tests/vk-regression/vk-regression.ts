@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
-import { HelloWorld } from '../../src/examples/zkapps/hello_world/hello_world.js';
+import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
 import {
   ecdsa,
