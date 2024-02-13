@@ -1,5 +1,4 @@
 import {
-  isReady,
   method,
   Mina,
   AccountUpdate,
@@ -7,21 +6,19 @@ import {
   SmartContract,
   PublicKey,
   UInt64,
-  shutdown,
   Int64,
-  Experimental,
   Permissions,
   DeployArgs,
   VerificationKey,
   TokenId,
+  AccountUpdateTree,
+  assert,
 } from 'o1js';
-
-await isReady;
 
 class TokenContract extends SmartContract {
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       access: Permissions.proofOrSignature(),
     });
@@ -30,12 +27,7 @@ class TokenContract extends SmartContract {
 
   @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
     let address = deployer.toPublicKey();
-    let tokenId = this.token.id;
-    let deployUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      address,
-      tokenId
-    );
+    let deployUpdate = AccountUpdate.create(address, this.token.id);
     deployUpdate.account.permissions.set(Permissions.default());
     deployUpdate.account.verificationKey.set(verificationKey);
     deployUpdate.sign(deployer);
@@ -54,10 +46,12 @@ class TokenContract extends SmartContract {
   @method sendTokens(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
-    callback: Experimental.Callback<any>
+    tree: AccountUpdateTree
   ) {
     // TODO use token contract methods for approve
-    let senderAccountUpdate = this.approve(callback) as AccountUpdate;
+    this.approve(tree);
+    assert(tree.children.isEmpty());
+    let senderAccountUpdate = tree.accountUpdate.unhash();
     let amount = UInt64.from(1_000);
     let negativeAmount = Int64.fromObject(
       senderAccountUpdate.body.balanceChange
@@ -66,11 +60,7 @@ class TokenContract extends SmartContract {
     let tokenId = this.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
-    let receiverAccountUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      receiverAddress,
-      tokenId
-    );
+    let receiverAccountUpdate = AccountUpdate.create(receiverAddress, tokenId);
     receiverAccountUpdate.balance.addInPlace(amount);
   }
 }
@@ -162,13 +152,11 @@ await tx.send();
 
 console.log('approve send from zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  let approveSendingCallback = Experimental.Callback.create(
-    zkAppB,
-    'approveSend',
-    []
-  );
-  // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, approveSendingCallback);
+  zkAppB.approveSend();
+  let approveSendingTree = zkAppB.self.extractTree();
+
+  // we call the token contract with the tree
+  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, approveSendingTree);
 });
 console.log('approve send (proof)');
 await tx.prove();
@@ -183,13 +171,11 @@ console.log('approve send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
   AccountUpdate.fundNewAccount(feePayer);
-  let approveSendingCallback = Experimental.Callback.create(
-    zkAppC,
-    'approveSend',
-    []
-  );
-  // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, approveSendingCallback);
+  zkAppC.approveSend();
+  let approveSendingTree = zkAppC.self.extractTree();
+
+  // we call the token contract with the tree
+  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, approveSendingTree);
 });
 console.log('approve send (proof)');
 await tx.prove();
@@ -199,5 +185,3 @@ console.log(
   `tokenAccount1's balance for tokenId: ${TokenId.toBase58(tokenId)}`,
   Mina.getBalance(tokenAccount1, tokenId).value.toBigInt()
 );
-
-shutdown();
