@@ -61,7 +61,8 @@ class NotSoSimpleZkapp extends SmartContract {
   }
 
   deposit(amount) {
-    let senderUpdate = AccountUpdate.createSigned(this.sender);
+    let sender = this.sender.getAndRequireSignature();
+    let senderUpdate = AccountUpdate.createSigned(sender);
     senderUpdate.send({ to: this, amount });
   }
 }

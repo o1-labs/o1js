@@ -22,11 +22,11 @@ class SendMINAExample extends SmartContract {
   }
 
   @method withdraw(amount: UInt64) {
-    this.send({ to: this.sender, amount });
+    this.send({ to: this.sender.getAndRequireSignature(), amount });
   }
 
   @method deposit(amount: UInt64) {
-    let senderUpdate = AccountUpdate.createSigned(this.sender);
+    let senderUpdate = AccountUpdate.createSigned(this.sender.getAndRequireSignature());
     senderUpdate.send({ to: this, amount });
   }
 }

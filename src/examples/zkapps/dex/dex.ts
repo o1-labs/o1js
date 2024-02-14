@@ -48,7 +48,7 @@ function createDex({
      * instead, the input X and Y amounts determine the initial ratio.
      */
     @method supplyLiquidityBase(dx: UInt64, dy: UInt64): UInt64 {
-      let user = this.sender;
+      let user = this.sender.getAndRequireSignature();
       let tokenX = new TokenContract(this.tokenX);
       let tokenY = new TokenContract(this.tokenY);
 
@@ -135,11 +135,12 @@ function createDex({
      */
     redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
+      let sender = this.sender.getAndRequireSignature();
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
-      let dxdy = dexX.redeemLiquidity(this.sender, dl, this.tokenY);
+      let dxdy = dexX.redeemLiquidity(sender, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.transfer(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, sender, dx);
       return dxdy;
     }
 
@@ -151,10 +152,11 @@ function createDex({
      * The transaction needs to be signed by the user's private key.
      */
     @method swapX(dx: UInt64): UInt64 {
+      let sender = this.sender.getAndRequireSignature();
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.token.id);
-      let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.transfer(dexY.self, this.sender, dy);
+      let dy = dexY.swap(sender, dx, this.tokenX);
+      tokenY.transfer(dexY.self, sender, dy);
       return dy;
     }
 
@@ -166,10 +168,11 @@ function createDex({
      * The transaction needs to be signed by the user's private key.
      */
     @method swapY(dy: UInt64): UInt64 {
+      let sender = this.sender.getAndRequireSignature();
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
-      let dx = dexX.swap(this.sender, dy, this.tokenY);
-      tokenX.transfer(dexX.self, this.sender, dx);
+      let dx = dexX.swap(sender, dy, this.tokenY);
+      tokenX.transfer(dexX.self, sender, dx);
       return dx;
     }
 
@@ -200,10 +203,11 @@ function createDex({
 
   class ModifiedDex extends Dex {
     @method swapX(dx: UInt64): UInt64 {
+      let sender = this.sender.getAndRequireSignature();
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
-      let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.transfer(dexY.self, this.sender, dy);
+      let dy = dexY.swap(sender, dx, this.tokenX);
+      tokenY.transfer(dexY.self, sender, dy);
       return dy;
     }
   }
