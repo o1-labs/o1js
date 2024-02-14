@@ -15,7 +15,7 @@ import {
 } from './mina/account.js';
 import {
   type LastBlockQueryResponse,
-  type GenesisConstants,
+  type GenesisConstantsResponse,
   type LastBlockQueryFailureCheckResponse,
   type FetchedBlock,
   type TransactionStatus,
@@ -276,6 +276,15 @@ let actionsToFetch = {} as Record<
     graphqlEndpoint: string;
   }
 >;
+type GenesisConstants = {
+  genesisTimestamp: string;
+  coinbase: number;
+  accountCreationFee: number;
+  epochDuration: number;
+  k: number;
+  slotDuration: number;
+  slotsPerEpoch: number;
+};
 let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
 function markAccountToBeFetched(
@@ -748,7 +757,7 @@ async function fetchActions(
 async function fetchGenesisConstants(
   graphqlEndpoint = networkConfig.minaEndpoint
 ): Promise<GenesisConstants> {
-  let [resp, error] = await makeGraphqlRequest(
+  let [resp, error] = await makeGraphqlRequest<GenesisConstantsResponse>(
     genesisConstantsQuery,
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints

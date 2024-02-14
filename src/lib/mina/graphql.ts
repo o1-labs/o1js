@@ -6,7 +6,7 @@ import { Types } from '../../bindings/mina-transaction/types.js';
 export {
   type EpochData,
   type LastBlockQueryResponse,
-  type GenesisConstants,
+  type GenesisConstantsResponse,
   type FailureReasonResponse,
   type LastBlockQueryFailureCheckResponse,
   type FetchedBlock,
@@ -70,16 +70,6 @@ type FetchedAccount = {
     provedState: boolean | null;
     zkappUri: string | null;
   };
-};
-
-type GenesisConstants = {
-  genesisTimestamp: string;
-  coinbase: number;
-  accountCreationFee: number;
-  epochDuration: number;
-  k: number;
-  slotDuration: number;
-  slotsPerEpoch: number;
 };
 
 type EpochData = {
@@ -173,6 +163,22 @@ type FetchedBlock = {
       minWindowDensity: string; // String(number)
       totalCurrency: string; // String(number)
       epoch: string; // String(number)
+    };
+  };
+};
+
+type GenesisConstantsResponse = {
+  genesisConstants: {
+    genesisTimestamp: string;
+    coinbase: string;
+    accountCreationFee: string;
+  };
+  daemonStatus: {
+    consensusConfiguration: {
+      epochDuration: string;
+      k: string;
+      slotDuration: string;
+      slotsPerEpoch: string;
     };
   };
 };
