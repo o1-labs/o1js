@@ -97,7 +97,11 @@ function multiply(
   for (let i = 0; i < 2 * 18 - 2; i++) {
     let res_i = res[i].add(carry);
 
-    [carry] = Provable.witnessFields(1, () => [res_i.toBigInt() >> 116n]);
+    [carry] = Provable.witnessFields(1, () => {
+      let res_in = res_i.toBigInt();
+      if (res_in > 1n << 128n) res_in -= Field.ORDER;
+      return [res_in >> 116n];
+    });
     rangeCheck128Signed(carry);
 
     // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
@@ -182,13 +186,10 @@ let rsa = ZkProgram({
   },
 });
 
-let [{ rows, gates }] = rsa.analyzeMethods();
+let { verify } = rsa.analyzeMethods();
 
-console.log(
-  'gates',
-  gates.map((g) => g.type)
-);
-console.log('rows', rows);
+console.log(verify.summary());
+console.log('rows', verify.rows);
 
 tic('compile');
 await rsa.compile();
