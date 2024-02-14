@@ -17,14 +17,16 @@ export {
   type EventActionFilterOptions,
   type SendZkAppResponse,
   type FetchedAccount,
+  type CurrentSlotResponse,
   getEventsQuery,
   getActionsQuery,
   sendZkappQuery,
   transactionStatusQuery,
-  lastBlockQuery,
   lastBlockQueryFailureCheck,
-  genesisConstantsQuery,
   accountQuery,
+  currentSlotQuery,
+  genesisConstantsQuery,
+  lastBlockQuery,
 };
 
 type AuthRequired = Types.Json.AuthRequired;
@@ -181,6 +183,16 @@ type GenesisConstantsResponse = {
       slotsPerEpoch: string;
     };
   };
+};
+
+type CurrentSlotResponse = {
+  bestChain: Array<{
+    protocolState: {
+      consensusState: {
+        slot: number;
+      };
+    };
+  }>;
 };
 
 /**
@@ -468,3 +480,13 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
   }
 }
 `;
+
+const currentSlotQuery = `{
+    bestChain(maxLength: 1) {
+      protocolState {
+        consensusState {
+          slot
+        }
+      }
+    }
+}`;

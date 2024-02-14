@@ -25,6 +25,7 @@ import {
   type EventActionFilterOptions,
   type SendZkAppResponse,
   type FetchedAccount,
+  type CurrentSlotResponse,
   sendZkappQuery,
   lastBlockQuery,
   lastBlockQueryFailureCheck,
@@ -33,12 +34,14 @@ import {
   getActionsQuery,
   genesisConstantsQuery,
   accountQuery,
+  currentSlotQuery,
 } from './mina/graphql.js';
 
 export {
   fetchAccount,
   fetchLastBlock,
   fetchGenesisConstants,
+  fetchCurrentSlot,
   checkZkappTransaction,
   parseFetchedAccount,
   markAccountToBeFetched,
@@ -463,6 +466,22 @@ async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
     timestamp: Date.now(),
   };
   return network;
+}
+
+async function fetchCurrentSlot(graphqlEndpoint = networkConfig.minaEndpoint) {
+  let [resp, error] = await makeGraphqlRequest<CurrentSlotResponse>(
+    currentSlotQuery,
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
+  );
+  if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
+  let bestChain = resp?.data?.bestChain;
+  if (!bestChain || bestChain.length === 0) {
+    throw Error(
+      'Failed to fetch the current slot. The response data is undefined.'
+    );
+  }
+  return bestChain[0].protocolState.consensusState.slot;
 }
 
 async function fetchLatestBlockZkappStatus(
