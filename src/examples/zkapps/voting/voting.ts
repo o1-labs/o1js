@@ -12,6 +12,7 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
+  TransactionVersion,
 } from 'o1js';
 
 import { Member } from './member.js';
@@ -103,7 +104,10 @@ export class Voting_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
-      setVerificationKey: Permissions.none(),
+      setVerificationKey: {
+        auth: Permissions.none(),
+        txnVersion: TransactionVersion.current(),
+      },
       setPermissions: Permissions.proofOrSignature(),
     });
     this.accumulatedVotes.set(Reducer.initialActionState);
@@ -116,7 +120,7 @@ export class Voting_ extends SmartContract {
   @method
   voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       currentSlot,
       currentSlot.add(10)
     );
@@ -133,7 +137,7 @@ export class Voting_ extends SmartContract {
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
 
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
 
@@ -165,7 +169,7 @@ export class Voting_ extends SmartContract {
   @method
   candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       currentSlot,
       currentSlot.add(10)
     );
@@ -182,7 +186,7 @@ export class Voting_ extends SmartContract {
     // this snippet pulls the account data of an address from the network
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
 
@@ -229,7 +233,7 @@ export class Voting_ extends SmartContract {
   @method
   vote(candidate: Member, voter: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       currentSlot,
       currentSlot.add(10)
     );
@@ -266,10 +270,10 @@ export class Voting_ extends SmartContract {
   @method
   countVotes() {
     let accumulatedVotes = this.accumulatedVotes.get();
-    this.accumulatedVotes.assertEquals(accumulatedVotes);
+    this.accumulatedVotes.requireEquals(accumulatedVotes);
 
     let committedVotes = this.committedVotes.get();
-    this.committedVotes.assertEquals(committedVotes);
+    this.committedVotes.requireEquals(committedVotes);
 
     let { state: newCommittedVotes, actionState: newAccumulatedVotes } =
       this.reducer.reduce(

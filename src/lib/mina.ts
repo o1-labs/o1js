@@ -15,13 +15,12 @@ import {
   Actions,
   Events,
   dummySignature,
-} from './account_update.js';
+  AccountUpdateLayout,
+} from './account-update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Empty, Proof, verify } from './proof_system.js';
-import { Context } from './global-context.js';
-import { SmartContract } from './zkapp.js';
+import { cloneCircuitValue, toConstant } from './circuit-value.js';
+import { Empty, JsonProof, Proof, verify } from './proof-system.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types, TypesBigint } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
@@ -33,6 +32,20 @@ import {
   transactionCommitments,
   verifyAccountUpdateSignature,
 } from '../mina-signer/src/sign-zkapp-command.js';
+import { NetworkId } from '../mina-signer/src/types.js';
+import { FetchMode, currentTransaction } from './mina/transaction-context.js';
+import {
+  activeInstance,
+  setActiveInstance,
+  Mina,
+  defaultNetworkConstants,
+  type FeePayerSpec,
+  type DeprecatedFeePayerSpec,
+  type ActionStates,
+  type NetworkConstants,
+} from './mina/mina-instance.js';
+import { SimpleLedger } from './mina/transaction-logic/ledger.js';
+import { assert } from './gadgets/common.js';
 
 export {
   createTransaction,
@@ -40,7 +53,6 @@ export {
   Network,
   LocalBlockchain,
   currentTransaction,
-  CurrentTransaction,
   Transaction,
   TransactionId,
   activeInstance,
@@ -51,6 +63,8 @@ export {
   getAccount,
   hasAccount,
   getBalance,
+  getNetworkId,
+  getNetworkConstants,
   getNetworkState,
   accountCreationFee,
   sendTransaction,
@@ -64,7 +78,17 @@ export {
   getProofsEnabled,
   // for internal testing only
   filterGroups,
+  type NetworkConstants,
 };
+
+// patch active instance so that we can still create basic transactions without giving Mina network details
+setActiveInstance({
+  ...activeInstance,
+  async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
+    return createTransaction(sender, f, 0);
+  },
+});
+
 interface TransactionId {
   isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
@@ -115,54 +139,6 @@ const Transaction = {
   },
 };
 
-type FetchMode = 'fetch' | 'cached' | 'test';
-type CurrentTransaction = {
-  sender?: PublicKey;
-  accountUpdates: AccountUpdate[];
-  fetchMode: FetchMode;
-  isFinalRunOutsideCircuit: boolean;
-  numberOfRuns: 0 | 1 | undefined;
-};
-
-let currentTransaction = Context.create<CurrentTransaction>();
-
-/**
- * Allows you to specify information about the fee payer account and the transaction.
- */
-type FeePayerSpec =
-  | PublicKey
-  | {
-      sender: PublicKey;
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    }
-  | undefined;
-
-type DeprecatedFeePayerSpec =
-  | PublicKey
-  | PrivateKey
-  | ((
-      | {
-          feePayerKey: PrivateKey;
-          sender?: PublicKey;
-        }
-      | {
-          feePayerKey?: PrivateKey;
-          sender: PublicKey;
-        }
-    ) & {
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    })
-  | undefined;
-
-type ActionStates = {
-  fromActionState?: Field;
-  endActionState?: Field;
-};
-
 function reportGetAccountError(publicKey: string, tokenId: string) {
   if (tokenId === TokenId.toBase58(TokenId.default)) {
     return `getAccount: Could not find account for public key ${publicKey}`;
@@ -206,7 +182,7 @@ function createTransaction(
 
   let transactionId = currentTransaction.enter({
     sender,
-    accountUpdates: [],
+    layout: new AccountUpdateLayout(),
     fetchMode,
     isFinalRunOutsideCircuit,
     numberOfRuns,
@@ -228,9 +204,7 @@ function createTransaction(
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();
-              tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
-                toConstant(AccountUpdate, a)
-              );
+              tx.layout.toConstantInPlace();
             });
           });
         } else {
@@ -246,10 +220,10 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let accountUpdates = currentTransaction.get().accountUpdates;
-  // TODO: I'll be back
-  // CallForest.addCallers(accountUpdates);
-  accountUpdates = CallForest.toFlatList(accountUpdates);
+
+  let accountUpdates = currentTransaction
+    .get()
+    .layout.toFlatList({ mutate: true });
 
   try {
     // check that on-chain values weren't used without setting a precondition
@@ -331,60 +305,20 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   return self;
 }
 
-interface Mina {
-  transaction(
-    sender: DeprecatedFeePayerSpec,
-    f: () => void
-  ): Promise<Transaction>;
-  currentSlot(): UInt32;
-  hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
-  getAccount(publicKey: PublicKey, tokenId?: Field): Account;
-  getNetworkState(): NetworkValue;
-  getNetworkConstants(): {
-    genesisTimestamp: UInt64;
-    /**
-     * Duration of 1 slot in millisecondw
-     */
-    slotTime: UInt64;
-    accountCreationFee: UInt64;
-  };
-  accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): Promise<TransactionId>;
-  fetchEvents: (
-    publicKey: PublicKey,
-    tokenId?: Field,
-    filterOptions?: Fetch.EventActionFilterOptions
-  ) => ReturnType<typeof Fetch.fetchEvents>;
-  fetchActions: (
-    publicKey: PublicKey,
-    actionStates?: ActionStates,
-    tokenId?: Field
-  ) => ReturnType<typeof Fetch.fetchActions>;
-  getActions: (
-    publicKey: PublicKey,
-    actionStates?: ActionStates,
-    tokenId?: Field
-  ) => { hash: string; actions: string[][] }[];
-  proofsEnabled: boolean;
-}
-
-const defaultAccountCreationFee = 1_000_000_000;
-
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
 function LocalBlockchain({
-  accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
   enforceTransactionLimits = true,
+  networkId = 'testnet' as NetworkId,
 } = {}) {
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
-
   const ledger = Ledger.create();
-
   let networkState = defaultNetworkState();
+  let minaNetworkId: NetworkId = networkId;
 
   function addAccount(publicKey: PublicKey, balance: string) {
     ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
@@ -411,13 +345,16 @@ function LocalBlockchain({
   > = {};
 
   return {
+    getNetworkId: () => minaNetworkId,
     proofsEnabled,
-    accountCreationFee: () => UInt64.from(accountCreationFee),
+    /**
+     * @deprecated use {@link Mina.getNetworkConstants}
+     */
+    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
+        ...defaultNetworkConstants,
         genesisTimestamp,
-        accountCreationFee: UInt64.from(accountCreationFee),
-        slotTime: UInt64.from(slotTime),
       };
     },
     currentSlot() {
@@ -459,12 +396,10 @@ function LocalBlockchain({
 
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
-      for (const update of txn.transaction.accountUpdates) {
-        let accountJson = ledger.getAccount(
-          Ml.fromPublicKey(update.body.publicKey),
-          Ml.constFromField(update.body.tokenId)
-        );
+      // create an ad-hoc ledger to record changes to accounts within the transaction
+      let simpleLedger = SimpleLedger.create();
 
+      for (const update of txn.transaction.accountUpdates) {
         let authIsProof = !!update.authorization.proof;
         let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
         // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
@@ -475,22 +410,40 @@ function LocalBlockchain({
           );
         }
 
-        if (accountJson) {
-          let account = Account.fromJSON(accountJson);
+        let account = simpleLedger.load(update.body);
 
+        // the first time we encounter an account, use it from the persistent ledger
+        if (account === undefined) {
+          let accountJson = ledger.getAccount(
+            Ml.fromPublicKey(update.body.publicKey),
+            Ml.constFromField(update.body.tokenId)
+          );
+          if (accountJson !== undefined) {
+            let storedAccount = Account.fromJSON(accountJson);
+            simpleLedger.store(storedAccount);
+            account = storedAccount;
+          }
+        }
+
+        // TODO: verify account update even if the account doesn't exist yet, using a default initial account
+        if (account !== undefined) {
+          let publicInput = update.toPublicInput(txn.transaction);
           await verifyAccountUpdate(
             account,
             update,
+            publicInput,
             commitments,
-            proofsEnabled
+            this.proofsEnabled,
+            this.getNetworkId()
           );
+          simpleLedger.apply(update);
         }
       }
 
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(zkappCommandJson),
-          String(accountCreationFee),
+          defaultNetworkConstants.accountCreationFee.toString(),
           JSON.stringify(networkState)
         );
       } catch (err: any) {
@@ -499,7 +452,8 @@ function LocalBlockchain({
           // TODO: label updates, and try to give precise explanations about what went wrong
           let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
-            accountCreationFee,
+            accountCreationFee:
+              defaultNetworkConstants.accountCreationFee.toString(),
           });
         } finally {
           throw err;
@@ -587,7 +541,7 @@ function LocalBlockchain({
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
       let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
-        proofsEnabled,
+        proofsEnabled: this.proofsEnabled,
         fetchMode: 'test',
       });
       let hasProofs = tx.transaction.accountUpdates.some(
@@ -595,13 +549,13 @@ function LocalBlockchain({
       );
       return createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
-        proofsEnabled,
+        proofsEnabled: this.proofsEnabled,
       });
     },
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(
         json,
-        String(accountCreationFee),
+        defaultNetworkConstants.accountCreationFee.toString(),
         JSON.stringify(networkState)
       );
     },
@@ -666,7 +620,7 @@ function LocalBlockchain({
       networkState.totalCurrency = currency;
     },
     setProofsEnabled(newProofsEnabled: boolean) {
-      proofsEnabled = newProofsEnabled;
+      this.proofsEnabled = newProofsEnabled;
     },
   };
 }
@@ -677,58 +631,63 @@ LocalBlockchain satisfies (...args: any) => Mina;
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(endpoints: {
+function Network(options: {
+  networkId?: NetworkId;
   mina: string | string[];
   archive?: string | string[];
   lightnetAccountManager?: string;
 }): Mina;
 function Network(
-  input:
+  options:
     | {
+        networkId?: NetworkId;
         mina: string | string[];
         archive?: string | string[];
         lightnetAccountManager?: string;
       }
     | string
 ): Mina {
-  let accountCreationFee = UInt64.from(defaultAccountCreationFee);
+  let minaNetworkId: NetworkId = 'testnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
 
-  if (input && typeof input === 'string') {
-    minaGraphqlEndpoint = input;
+  if (options && typeof options === 'string') {
+    minaGraphqlEndpoint = options;
     Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
-  } else if (input && typeof input === 'object') {
-    if (!input.mina)
+  } else if (options && typeof options === 'object') {
+    if (options.networkId) {
+      minaNetworkId = options.networkId;
+    }
+    if (!options.mina)
       throw new Error(
         "Network: malformed input. Please provide an object with 'mina' endpoint."
       );
-    if (Array.isArray(input.mina) && input.mina.length !== 0) {
-      minaGraphqlEndpoint = input.mina[0];
+    if (Array.isArray(options.mina) && options.mina.length !== 0) {
+      minaGraphqlEndpoint = options.mina[0];
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
-      Fetch.setMinaGraphqlFallbackEndpoints(input.mina.slice(1));
-    } else if (typeof input.mina === 'string') {
-      minaGraphqlEndpoint = input.mina;
+      Fetch.setMinaGraphqlFallbackEndpoints(options.mina.slice(1));
+    } else if (typeof options.mina === 'string') {
+      minaGraphqlEndpoint = options.mina;
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
     }
 
-    if (input.archive !== undefined) {
-      if (Array.isArray(input.archive) && input.archive.length !== 0) {
-        archiveEndpoint = input.archive[0];
+    if (options.archive !== undefined) {
+      if (Array.isArray(options.archive) && options.archive.length !== 0) {
+        archiveEndpoint = options.archive[0];
         Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
-        Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
-      } else if (typeof input.archive === 'string') {
-        archiveEndpoint = input.archive;
+        Fetch.setArchiveGraphqlFallbackEndpoints(options.archive.slice(1));
+      } else if (typeof options.archive === 'string') {
+        archiveEndpoint = options.archive;
         Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
       }
     }
 
     if (
-      input.lightnetAccountManager !== undefined &&
-      typeof input.lightnetAccountManager === 'string'
+      options.lightnetAccountManager !== undefined &&
+      typeof options.lightnetAccountManager === 'string'
     ) {
-      lightnetAccountManagerEndpoint = input.lightnetAccountManager;
+      lightnetAccountManagerEndpoint = options.lightnetAccountManager;
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
   } else {
@@ -737,22 +696,31 @@ function Network(
     );
   }
 
-  // copied from mina/genesis_ledgers/berkeley.json
-  // TODO fetch from graphql instead of hardcoding
-  const genesisTimestampString = '2023-02-23T20:00:01Z';
-  const genesisTimestamp = UInt64.from(
-    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
-  );
-  // TODO also fetch from graphql
-  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
-    accountCreationFee: () => accountCreationFee,
+    getNetworkId: () => minaNetworkId,
+    /**
+     * @deprecated use {@link Mina.getNetworkConstants}
+     */
+    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
-      return {
-        genesisTimestamp,
-        slotTime,
-        accountCreationFee,
-      };
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        const genesisConstants =
+          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        return genesisConstants !== undefined
+          ? genesisToNetworkConstants(genesisConstants)
+          : defaultNetworkConstants;
+      }
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        const genesisConstants =
+          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        if (genesisConstants !== undefined)
+          return genesisToNetworkConstants(genesisConstants);
+      }
+      return defaultNetworkConstants;
     },
     currentSlot() {
       throw Error(
@@ -814,7 +782,7 @@ function Network(
         if (network !== undefined) return network;
       }
       throw Error(
-        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint}`
+        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
       );
     },
     async sendTransaction(txn: Transaction) {
@@ -993,92 +961,6 @@ function BerkeleyQANet(graphqlEndpoint: string) {
   return Network(graphqlEndpoint);
 }
 
-let activeInstance: Mina = {
-  accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
-  getNetworkConstants() {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  currentSlot: () => {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-    if (
-      !currentTransaction.has() ||
-      currentTransaction.get().fetchMode === 'cached'
-    ) {
-      return !!Fetch.getCachedAccount(
-        publicKey,
-        tokenId,
-        Fetch.networkConfig.minaEndpoint
-      );
-    }
-    return false;
-  },
-  getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-    if (currentTransaction()?.fetchMode === 'test') {
-      Fetch.markAccountToBeFetched(
-        publicKey,
-        tokenId,
-        Fetch.networkConfig.minaEndpoint
-      );
-      return dummyAccount(publicKey);
-    }
-    if (
-      !currentTransaction.has() ||
-      currentTransaction.get().fetchMode === 'cached'
-    ) {
-      let account = Fetch.getCachedAccount(
-        publicKey,
-        tokenId,
-        Fetch.networkConfig.minaEndpoint
-      );
-      if (account === undefined)
-        throw Error(
-          `${reportGetAccountError(
-            publicKey.toBase58(),
-            TokenId.toBase58(tokenId)
-          )}\n\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
-        );
-      return account;
-    }
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  getNetworkState() {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  sendTransaction() {
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
-    return createTransaction(sender, f, 0);
-  },
-  fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
-    throw Error('must call Mina.setActiveInstance first');
-  },
-  fetchActions(
-    _publicKey: PublicKey,
-    _actionStates?: ActionStates,
-    _tokenId: Field = TokenId.default
-  ) {
-    throw Error('must call Mina.setActiveInstance first');
-  },
-  getActions(
-    _publicKey: PublicKey,
-    _actionStates?: ActionStates,
-    _tokenId: Field = TokenId.default
-  ) {
-    throw Error('must call Mina.setActiveInstance first');
-  },
-  proofsEnabled: true,
-};
-
-/**
- * Set the currently used Mina instance.
- */
-function setActiveInstance(m: Mina) {
-  activeInstance = m;
-}
-
 /**
  * Construct a smart contract transaction. Within the callback passed to this function,
  * you can call into the methods of smart contracts.
@@ -1178,6 +1060,20 @@ function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
 }
 
 /**
+ * @return The current Mina network ID.
+ */
+function getNetworkId() {
+  return activeInstance.getNetworkId();
+}
+
+/**
+ * @return Data associated with the current Mina network constants.
+ */
+function getNetworkConstants() {
+  return activeInstance.getNetworkConstants();
+}
+
+/**
  * @return Data associated with the current state of the Mina network.
  */
 function getNetworkState() {
@@ -1193,6 +1089,7 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
 
 /**
  * Returns the default account creation fee.
+ * @deprecated use {@link Mina.getNetworkConstants}
  */
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
@@ -1240,7 +1137,7 @@ function getProofsEnabled() {
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
-  let dummy = Types.Account.emptyValue();
+  let dummy = Types.Account.empty();
   if (pubkey) dummy.publicKey = pubkey;
   return dummy;
 }
@@ -1267,8 +1164,10 @@ function defaultNetworkState(): NetworkValue {
 async function verifyAccountUpdate(
   account: Account,
   accountUpdate: AccountUpdate,
+  publicInput: ZkappPublicInput,
   transactionCommitments: { commitment: bigint; fullCommitment: bigint },
-  proofsEnabled: boolean
+  proofsEnabled: boolean,
+  networkId: NetworkId
 ): Promise<void> {
   // check that that top-level updates have mayUseToken = No
   // (equivalent check exists in the Mina node)
@@ -1310,7 +1209,7 @@ async function verifyAccountUpdate(
       case 'delegate':
         return perm.setDelegate;
       case 'verificationKey':
-        return perm.setVerificationKey;
+        return perm.setVerificationKey.auth;
       case 'permissions':
         return perm.setPermissions;
       case 'zkappUri':
@@ -1347,25 +1246,29 @@ async function verifyAccountUpdate(
 
   if (accountUpdate.authorization.proof && proofsEnabled) {
     try {
-      let publicInput = accountUpdate.toPublicInput();
       let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
-      const proof = SmartContract.Proof().fromJSON({
+      let proof: JsonProof = {
         maxProofsVerified: 2,
         proof: accountUpdate.authorization.proof!,
         publicInput: publicInputFields.map((f) => f.toString()),
         publicOutput: [],
-      });
+      };
 
-      let verificationKey = account.zkapp?.verificationKey?.data!;
-      isValidProof = await verify(proof.toJSON(), verificationKey);
+      let verificationKey = account.zkapp?.verificationKey?.data;
+      assert(
+        verificationKey !== undefined,
+        'Account does not have a verification key'
+      );
+
+      isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
         throw Error(
           `Invalid proof for account update\n${JSON.stringify(update)}`
         );
       }
     } catch (error) {
-      errorTrace += '\n\n' + (error as Error).message;
+      errorTrace += '\n\n' + (error as Error).stack;
       isValidProof = false;
     }
   }
@@ -1376,10 +1279,10 @@ async function verifyAccountUpdate(
       isValidSignature = verifyAccountUpdateSignature(
         TypesBigint.AccountUpdate.fromJSON(accountUpdateJson),
         transactionCommitments,
-        'testnet'
+        networkId
       );
     } catch (error) {
-      errorTrace += '\n\n' + (error as Error).message;
+      errorTrace += '\n\n' + (error as Error).stack;
       isValidSignature = false;
     }
   }
@@ -1407,7 +1310,7 @@ async function verifyAccountUpdate(
     if (!verified) {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
-        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}`
+        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}\n\n`
       );
     }
   }
@@ -1591,4 +1494,16 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
     );
   }
   await waitForFunding(address);
+}
+
+function genesisToNetworkConstants(
+  genesisConstants: Fetch.GenesisConstants
+): NetworkConstants {
+  return {
+    genesisTimestamp: UInt64.from(
+      Date.parse(genesisConstants.genesisTimestamp)
+    ),
+    slotTime: UInt64.from(genesisConstants.slotDuration),
+    accountCreationFee: UInt64.from(genesisConstants.accountCreationFee),
+  };
 }

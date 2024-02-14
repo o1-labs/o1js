@@ -1,19 +1,28 @@
-import { ZkProgram } from '../proof_system.js';
+import { ZkProgram } from '../proof-system.js';
 import {
-  Spec,
-  equivalent,
+  equivalentProvable as equivalent,
   equivalentAsync,
   field,
   fieldWithRng,
 } from '../testing/equivalent.js';
-import { Fp, mod } from '../../bindings/crypto/finite_field.js';
+import { Fp, mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../core.js';
 import { Gadgets } from './gadgets.js';
 import { Random } from '../testing/property.js';
+import {
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  and,
+  withoutGenerics,
+} from '../testing/constraint-system.js';
+import { GateType } from '../../snarky.js';
 
-let maybeUint64: Spec<bigint, Field> = {
+const maybeField = {
   ...field,
-  rng: Random.map(Random.oneOf(Random.uint64, Random.uint64.invalid), (x) =>
+  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
     mod(x, Field.ORDER)
   ),
 };
@@ -27,7 +36,19 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 64);
+        return Gadgets.xor(a, b, 254);
+      },
+    },
+    notUnchecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 254, false);
+      },
+    },
+    notChecked: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.not(a, 254, true);
       },
     },
     and: {
@@ -36,27 +57,39 @@ let Bitwise = ZkProgram({
         return Gadgets.and(a, b, 64);
       },
     },
-    rot: {
+    rot32: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.rotate(a, 12, 'left');
+        return Gadgets.rotate32(a, 12, 'left');
       },
     },
-    leftShift: {
+    rot64: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.leftShift(a, 12);
+        return Gadgets.rotate64(a, 12, 'left');
       },
     },
-    rightShift: {
+    leftShift64: {
       privateInputs: [Field],
       method(a: Field) {
-        return Gadgets.rightShift(a, 12);
+        return Gadgets.leftShift64(a, 12);
+      },
+    },
+    leftShift32: {
+      privateInputs: [Field],
+      method(a: Field) {
+        Gadgets.rangeCheck32(a);
+        return Gadgets.leftShift32(a, 12);
+      },
+    },
+    rightShift64: {
+      privateInputs: [Field],
+      method(a: Field) {
+        return Gadgets.rightShift64(a, 12);
       },
     },
   },
 });
-
 await Bitwise.compile();
 
 [2, 4, 8, 16, 32, 64, 128].forEach((length) => {
@@ -68,30 +101,48 @@ await Bitwise.compile();
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
   );
+  // NOT unchecked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, false)
+  );
+  // NOT checked
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.not(x, length),
+    (x) => Gadgets.not(x, length, true)
+  );
 });
 
 [2, 4, 8, 16, 32, 64].forEach((length) => {
   equivalent({ from: [uint(length)], to: field })(
-    (x) => Fp.rot(x, 12, 'left'),
-    (x) => Gadgets.rotate(x, 12, 'left')
+    (x) => Fp.rot(x, 12n, 'left'),
+    (x) => Gadgets.rotate64(x, 12, 'left')
   );
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.leftShift(x, 12),
-    (x) => Gadgets.leftShift(x, 12)
+    (x) => Gadgets.leftShift64(x, 12)
   );
   equivalent({ from: [uint(length)], to: field })(
     (x) => Fp.rightShift(x, 12),
-    (x) => Gadgets.rightShift(x, 12)
+    (x) => Gadgets.rightShift64(x, 12)
   );
 });
 
-await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
-  { runs: 3 }
-)(
+[2, 4, 8, 16, 32].forEach((length) => {
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.rot(x, 12n, 'left', 32n),
+    (x) => Gadgets.rotate32(x, 12, 'left')
+  );
+  equivalent({ from: [uint(length)], to: field })(
+    (x) => Fp.leftShift(x, 12, 32),
+    (x) => Gadgets.leftShift32(x, 12)
+  );
+});
+
+const runs = 2;
+
+await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs })(
   (x, y) => {
-    if (x >= 2n ** 64n || y >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
     return x ^ y;
   },
   async (x, y) => {
@@ -100,10 +151,27 @@ await equivalentAsync(
   }
 );
 
-await equivalentAsync(
-  { from: [maybeUint64, maybeUint64], to: field },
-  { runs: 3 }
-)(
+await equivalentAsync({ from: [maybeField], to: field }, { runs })(
+  (x) => {
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notUnchecked(x);
+    return proof.publicOutput;
+  }
+);
+await equivalentAsync({ from: [maybeField], to: field }, { runs })(
+  (x) => {
+    if (x > 2n ** 254n) throw Error('Does not fit into 254 bit');
+    return Fp.not(x, 254);
+  },
+  async (x) => {
+    let proof = await Bitwise.notChecked(x);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
   (x, y) => {
     if (x >= 2n ** 64n || y >= 2n ** 64n)
       throw Error('Does not fit into 64 bits');
@@ -115,35 +183,95 @@ await equivalentAsync(
   }
 );
 
-await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [field], to: field }, { runs })(
   (x) => {
     if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rot(x, 12, 'left');
+    return Fp.rot(x, 12n, 'left');
   },
   async (x) => {
-    let proof = await Bitwise.rot(x);
+    let proof = await Bitwise.rot64(x);
     return proof.publicOutput;
   }
 );
 
-await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [uint(32)], to: uint(32) }, { runs })(
+  (x) => {
+    return Fp.rot(x, 12n, 'left', 32n);
+  },
+  async (x) => {
+    let proof = await Bitwise.rot32(x);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [field], to: field }, { runs })(
   (x) => {
     if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
     return Fp.leftShift(x, 12);
   },
   async (x) => {
-    let proof = await Bitwise.leftShift(x);
+    let proof = await Bitwise.leftShift64(x);
     return proof.publicOutput;
   }
 );
 
-await equivalentAsync({ from: [field], to: field }, { runs: 3 })(
+await equivalentAsync({ from: [field], to: field }, { runs })(
+  (x) => {
+    if (x >= 1n << 32n) throw Error('Does not fit into 32 bits');
+    return Fp.leftShift(x, 12, 32);
+  },
+  async (x) => {
+    let proof = await Bitwise.leftShift32(x);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [field], to: field }, { runs })(
   (x) => {
     if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
     return Fp.rightShift(x, 12);
   },
   async (x) => {
-    let proof = await Bitwise.rightShift(x);
+    let proof = await Bitwise.rightShift64(x);
     return proof.publicOutput;
   }
 );
+
+// check that gate chains stay intact
+
+function xorChain(bits: number) {
+  return repeat(Math.ceil(bits / 16), 'Xor16').concat('Zero');
+}
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'xor',
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'notChecked',
+  ifNotAllConstant(contains(xorChain(254)))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'notUnchecked',
+  ifNotAllConstant(contains('Generic'))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'and',
+  ifNotAllConstant(contains(xorChain(64)))
+);
+
+let rotChain: GateType[] = ['Rot64', 'RangeCheck0'];
+let isJustRotate = ifNotAllConstant(
+  and(contains(rotChain), withoutGenerics(equals(rotChain)))
+);
+
+constraintSystem.fromZkProgram(Bitwise, 'rot64', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'leftShift64', isJustRotate);
+constraintSystem.fromZkProgram(Bitwise, 'rightShift64', isJustRotate);

@@ -13,17 +13,185 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Removed_ for now removed features.
     _Fixed_ for any bug fixes.
     _Security_ in case of vulnerabilities.
-
-
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e8e7510e1...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
+
+### Breaking changes
+
+- Remove `AccountUpdate.children` and `AccountUpdate.parent` properties https://github.com/o1-labs/o1js/pull/1402
+  - Also removes the optional `AccountUpdatesLayout` argument to `approve()`
+  - Adds `AccountUpdateTree` and `AccountUpdateForest`, new classes that represent a layout of account updates explicitly
+  - Both of the new types are now accepted as inputs to `approve()`
+  - `accountUpdate.extractTree()` to obtain the tree associated with an account update in the current transaction context.
+- Remove `Experimental.Callback` API https://github.com/o1-labs/o1js/pull/1430
 
 ### Added
 
-- `Gadgets.leftShift() / Gadgets.rightShift()`, new provable method to support bitwise shifting for native field elements. https://github.com/o1-labs/o1js/pull/1194
-- `Gadgets.and()`, new provable method to support bitwise and for native field elements. https://github.com/o1-labs/o1js/pull/1193
+- `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398
+  - including `MerkleListIterator<T>` to iterate over a merkle list
+- `TokenContract`, a new base smart contract class for token contracts https://github.com/o1-labs/o1js/pull/1384
+  - Usage example: `https://github.com/o1-labs/o1js/blob/main/src/lib/mina/token/token-contract.unit-test.ts`
+- `TokenAccountUpdateIterator`, a primitive to iterate over all token account updates in a transaction https://github.com/o1-labs/o1js/pull/1398
+  - this is used to implement `TokenContract` under the hood
+
+## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
+
+### Breaking changes
+
+- Protocol change that adds a "transaction version" to the permission to set verification keys https://github.com/MinaProtocol/mina/pull/14407
+  - See [the relevant RFC](https://github.com/MinaProtocol/mina/blob/9577ad689a8e4d4f97e1d0fc3d26e20219f4abd1/rfcs/0051-verification-key-permissions.md) for the motivation behind this change
+  - Breaks all deployed contracts, as it changes the account update layout
+
+### Added
+
+- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
+- Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
+  - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
+
+### Changed
+
+- Reduce number of constraints of ECDSA verification by 5% https://github.com/o1-labs/o1js/pull/1376
+
+## [0.15.4](https://github.com/o1-labs/o1js/compare/be748e42e...e5d1e0f)
+
+### Changed
+
+- Improve performance of Wasm Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+  - Speeds up local blockchain tests without proving by ~40%
+- Improve performance of Field inverse https://github.com/o1-labs/o1js/pull/1373
+  - Speeds up proving by ~2-4%
+
+### Added
+
+- Configurable `networkId` when declaring a Mina instance. https://github.com/o1-labs/o1js/pull/1387
+  - Defaults to `"testnet"`, the other option is `"mainnet"`
+  - The `networkId` parameter influences the algorithm used for signatures, and ensures that testnet transactions can't be replayed on mainnet
+
+## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
+
+### Added
+
+- **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
+
+### Changed
+
+- `Mina.accountCreationFee()` is deprecated in favor of `Mina.getNetworkConstants().accountCreationFee`. https://github.com/o1-labs/o1js/pull/1367
+  - `Mina.getNetworkConstants()` returns:
+    - [default](https://github.com/o1-labs/o1js/pull/1367/files#diff-ef2c3547d64a8eaa8253cd82b3623288f3271e14f1dc893a0a3ddc1ff4b9688fR7) network constants if used outside of the transaction scope.
+    - [actual](https://github.com/o1-labs/o1js/pull/1367/files#diff-437f2c15df7c90ad8154c5de1677ec0838d51859bcc0a0cefd8a0424b5736f31R1051) network constants if used within the transaction scope.
+
+### Fixed
+
+- Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
+
+## [0.15.2](https://github.com/o1-labs/o1js/compare/1ad7333e9e...08ba27329)
+
+### Fixed
+
+- Fix bug in `Hash.hash()` which always resulted in an error https://github.com/o1-labs/o1js/pull/1346
+
+## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
+
+### Breaking changes
+
+- Rename `Gadgets.rotate()` to `Gadgets.rotate64()` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
+- Rename `Gadgets.{leftShift(), rightShift()}` to `Gadgets.{leftShift64(), rightShift64()}` to better reflect the amount of bits the gadget operates on. https://github.com/o1-labs/o1js/pull/1259
+
+### Added
+
+- Non-native elliptic curve operations exposed through `createForeignCurve()` class factory https://github.com/o1-labs/o1js/pull/1007
+- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007 https://github.com/o1-labs/o1js/pull/1307
+  - For an example, see `./src/examples/crypto/ecdsa`
+- **Keccak/SHA3 hash function** exposed on `Keccak` namespace https://github.com/o1-labs/o1js/pull/1291
+- `Hash` namespace which holds all hash functions https://github.com/o1-labs/o1js/pull/999
+  - `Bytes`, provable type to hold a byte array, which serves as input and output for Keccak variants
+  - `UInt8`, provable type to hold a single byte, which is constrained to be in the 0 to 255 range
+- `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.leftShift32()` for left shift over 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.rangeCheck32()` range check for 32 bit values https://github.com/o1-labs/o1js/pull/1259
+- `Gadgets.addMod32()` addition modulo 2^32 https://github.com/o1-labs/o1js/pull/1259
+- Expose new bitwise gadgets on `UInt32` and `UInt64` https://github.com/o1-labs/o1js/pull/1259
+  - bitwise XOR via `{UInt32, UInt64}.xor()`
+  - bitwise NOT via `{UInt32, UInt64}.not()`
+  - bitwise ROTATE via `{UInt32, UInt64}.rotate()`
+  - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift()`
+  - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift()`
+  - bitwise AND via `{UInt32, UInt64}.and()`
+- Example for using actions to store a map data structure https://github.com/o1-labs/o1js/pull/1300
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `summary()` method to return a summary of the constraints used by a method https://github.com/o1-labs/o1js/pull/1007
+- `assert()` asserts that a given statement is true https://github.com/o1-labs/o1js/pull/1285
+
+### Fixed
+
+- Fix stack overflows when calling provable methods with large inputs https://github.com/o1-labs/o1js/pull/1334
+- Fix `Local.setProofsEnabled()` which would not get picked up by `deploy()` https://github.com/o1-labs/o1js/pull/1330
+- Remove usage of private class fields in core types like `Field`, for better type compatibility between different o1js versions https://github.com/o1-labs/o1js/pull/1319
+
+## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
+
+### Breaking changes
+
+- `ZkProgram.compile()` now returns the verification key and its hash, to be consistent with `SmartContract.compile()` https://github.com/o1-labs/o1js/pull/1292 [@rpanic](https://github.com/rpanic)
+
+### Added
+
+- **Foreign field arithmetic** exposed through the `createForeignField()` class factory https://github.com/o1-labs/snarkyjs/pull/985
+- `Crypto` namespace which exposes elliptic curve and finite field arithmetic on bigints, as well as example curve parameters https://github.com/o1-labs/o1js/pull/1240
+- `Gadgets.ForeignField.assertMul()` for efficiently constraining products of sums in non-native arithmetic https://github.com/o1-labs/o1js/pull/1262
+- `Unconstrained` for safely maintaining unconstrained values in provable code https://github.com/o1-labs/o1js/pull/1262
+- `Gadgets.rangeCheck8()` to assert that a value fits in 8 bits https://github.com/o1-labs/o1js/pull/1288
+
+### Changed
+
+- Change precondition APIs to use "require" instead of "assert" as the verb, to distinguish them from provable assertions. [@LuffySama-Dev](https://github.com/LuffySama-Dev)
+  - `this.x.getAndAssertEquals()` is now `this.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1263
+  - `this.x.assertEquals(x)` is now `this.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1263
+  - `this.account.x.getAndAssertEquals(x)` is now `this.account.x.requireEquals(x)` https://github.com/o1-labs/o1js/pull/1265
+  - `this.account.x.assertBetween()` is now `this.account.x.requireBetween()` https://github.com/o1-labs/o1js/pull/1265
+  - `this.network.x.getAndAssertEquals()` is now `this.network.x.getAndRequireEquals()` https://github.com/o1-labs/o1js/pull/1265
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `print()` method for pretty-printing the constraint system https://github.com/o1-labs/o1js/pull/1240
+
+### Fixed
+
+- Fix missing recursive verification of proofs in smart contracts https://github.com/o1-labs/o1js/pull/1302
+
+## [0.14.2](https://github.com/o1-labs/o1js/compare/26363465d...1ad7333e9e)
+
+### Breaking changes
+
+- Change return signature of `ZkProgram.analyzeMethods()` to be a keyed object https://github.com/o1-labs/o1js/pull/1223
+
+### Added
+
+- Provable non-native field arithmetic:
+  - `Gadgets.ForeignField.{add, sub, sumchain}()` for addition and subtraction https://github.com/o1-labs/o1js/pull/1220
+  - `Gadgets.ForeignField.{mul, inv, div}()` for multiplication and division https://github.com/o1-labs/o1js/pull/1223
+- Comprehensive internal testing of constraint system layouts generated by new gadgets https://github.com/o1-labs/o1js/pull/1241 https://github.com/o1-labs/o1js/pull/1220
+
+### Changed
+
+- `Lightnet` namespace API updates with added `listAcquiredKeyPairs()` method https://github.com/o1-labs/o1js/pull/1256
+- Expose raw provable methods of a `ZkProgram` on `zkProgram.rawMethods` https://github.com/o1-labs/o1js/pull/1241
+- Reduce number of constraints needed by `rotate()`, `leftShift()` and, `rightShift()` gadgets https://github.com/o1-labs/o1js/pull/1201
+
+### Fixed
+
+- Add a parameter to `checkZkappTransaction` for block length to check for transaction inclusion. This fixes a case where `Transaction.wait()` only checked the latest block, which led to an error once the transaction was included in a block that was not the latest. https://github.com/o1-labs/o1js/pull/1239
+
+## [0.14.1](https://github.com/o1-labs/o1js/compare/e8e7510e1...26363465d)
+
+### Added
+
+- `Gadgets.not()`, new provable method to support bitwise not. https://github.com/o1-labs/o1js/pull/1198
+- `Gadgets.leftShift() / Gadgets.rightShift()`, new provable methods to support bitwise shifting. https://github.com/o1-labs/o1js/pull/1194
+- `Gadgets.and()`, new provable method to support bitwise and. https://github.com/o1-labs/o1js/pull/1193
 - `Gadgets.multiRangeCheck()` and `Gadgets.compactMultiRangeCheck()`, two building blocks for non-native arithmetic with bigints of size up to 264 bits. https://github.com/o1-labs/o1js/pull/1216
+
+### Fixed
+
+- Removed array reversal of fetched actions, since they are returned in the correct order. https://github.com/o1-labs/o1js/pull/1258
 
 ## [0.14.0](https://github.com/o1-labs/o1js/compare/045faa7...e8e7510e1)
 
@@ -38,7 +206,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network). https://github.com/o1-labs/o1js/pull/1167
+- `Lightnet` namespace to interact with the account manager provided by the [lightnet Mina network](https://hub.docker.com/r/o1labs/mina-local-network) https://github.com/o1-labs/o1js/pull/1167
 - Internal support for several custom gates (range check, bitwise operations, foreign field operations) and lookup tables https://github.com/o1-labs/o1js/pull/1176
 - `Gadgets.rangeCheck64()`, new provable method to do efficient 64-bit range checks using lookup tables https://github.com/o1-labs/o1js/pull/1181
 - `Gadgets.rotate()`, new provable method to support bitwise rotation for native field elements. https://github.com/o1-labs/o1js/pull/1182

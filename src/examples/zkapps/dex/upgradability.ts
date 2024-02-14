@@ -1,32 +1,25 @@
+import { expect } from 'expect';
 import {
   AccountUpdate,
   Mina,
-  isReady,
   Permissions,
   PrivateKey,
   UInt64,
+  TransactionVersion,
 } from 'o1js';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
-import { expect } from 'expect';
 import { getProfiler } from '../../utils/profiler.js';
-
-await isReady;
+import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
 let proofsEnabled = false;
-
 console.log('starting upgradeability tests');
-
 await upgradeabilityTests({
   withVesting: false,
 });
 console.log('all upgradeability tests were successful! 🎉');
-
 console.log('starting atomic actions tests');
-
 await atomicActionsTest({
   withVesting: false,
 });
-
 console.log('all atomic actions tests were successful!');
 
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
@@ -37,7 +30,6 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
-  let accountFee = Mina.accountCreationFee();
   let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
     Local.testAccounts;
   let tx, balances;
@@ -65,6 +57,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
     // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayerAddress, 2);
     feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
@@ -102,9 +95,9 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
     dexTokenHolderX.deploy();
-    tokenX.approveUpdate(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
     dexTokenHolderY.deploy();
-    tokenY.approveUpdate(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
     console.log('manipulating setDelegate field to impossible...');
     // setting the setDelegate permission field to impossible
     let dexAccount = AccountUpdate.create(addresses.dex);
@@ -192,7 +185,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   await expect(tx.sign([feePayerKey, keys.dex]).send()).rejects.toThrow(
-    /Update_not_permitted_delegate/
+    /Cannot update field 'delegate'/
   );
 
   /**
@@ -241,7 +234,6 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
-  let accountFee = Mina.accountCreationFee();
   let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
     Local.testAccounts;
   let tx, balances, oldBalances;
@@ -270,9 +262,12 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   let tokenX = new TokenContract(addresses.tokenX);
   let tokenY = new TokenContract(addresses.tokenY);
   let dex = new Dex(addresses.dex);
+  let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
+  let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
     // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
     let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
     feePayerUpdate.balance.subInPlace(accountFee.mul(2));
@@ -310,12 +305,14 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy dex contracts...');
 
-  tx = await Mina.transaction(feePayerKey, () => {
+  tx = await Mina.transaction(feePayerAddress, () => {
     // pay fees for creating 3 dex accounts
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
-    tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-    tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+    dexTokenHolderX.deploy();
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
+    dexTokenHolderY.deploy();
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);
@@ -323,10 +320,15 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('transfer tokens to user');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee.mul(1) },
+    {
+      sender: feePayerAddress,
+      fee: Mina.getNetworkConstants().accountCreationFee.mul(1),
+    },
     () => {
       let feePayer = AccountUpdate.createSigned(feePayerAddress);
-      feePayer.balance.subInPlace(Mina.accountCreationFee().mul(4));
+      feePayer.balance.subInPlace(
+        Mina.getNetworkConstants().accountCreationFee.mul(4)
+      );
       feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
       feePayer.send({ to: addresses.user2, amount: 20e9 });
       // transfer to fee payer so they can provide initial liquidity
@@ -354,11 +356,21 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   console.log('compiling modified Dex contract...');
   await ModifiedDex.compile();
   let modifiedDex = new ModifiedDex(addresses.dex);
+  let modifiedDexTokenHolderX = new ModifiedDexTokenHolder(
+    addresses.dex,
+    tokenIds.X
+  );
+  let modifiedDexTokenHolderY = new ModifiedDexTokenHolder(
+    addresses.dex,
+    tokenIds.Y
+  );
 
   tx = await Mina.transaction(feePayerAddress, () => {
     modifiedDex.deploy();
-    tokenX.deployZkapp(addresses.dex, ModifiedDexTokenHolder._verificationKey!);
-    tokenY.deployZkapp(addresses.dex, ModifiedDexTokenHolder._verificationKey!);
+    modifiedDexTokenHolderX.deploy();
+    tokenX.approveAccountUpdate(modifiedDexTokenHolderX.self);
+    modifiedDexTokenHolderY.deploy();
+    tokenY.approveAccountUpdate(modifiedDexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);
@@ -378,7 +390,10 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('supply liquidity -- base');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee.mul(1) },
+    {
+      sender: feePayerAddress,
+      fee: Mina.getNetworkConstants().accountCreationFee.mul(1),
+    },
     () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
       modifiedDex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));
@@ -427,7 +442,10 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey: Permissions.impossible(),
+      setVerificationKey: {
+        auth: Permissions.impossible(),
+        txnVersion: TransactionVersion.current(),
+      },
     });
   });
   await tx.prove();

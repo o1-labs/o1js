@@ -27,9 +27,9 @@ jobs:
           ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
       - name: Build o1js and execute tests
@@ -39,7 +39,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           npm ci
-          npm run build:node
+          npm run build
           touch profiling.md
           sh run-ci-tests.sh
           cat profiling.md >> $GITHUB_STEP_SUMMARY
@@ -49,9 +49,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
       - name: Install Node dependencies
@@ -82,16 +82,16 @@ jobs:
     needs: [Build-And-Test-Server, Build-And-Test-Web]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
       - name: Build o1js
         run: |
           git submodule update --init --recursive
           npm ci
-          npm run build:node
+          npm run build
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
         if: github.ref == 'refs/heads/main'
@@ -106,9 +106,9 @@ jobs:
     needs: [Build-And-Test-Server, Build-And-Test-Web]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
       - name: Build mina-signer

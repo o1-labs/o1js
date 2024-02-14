@@ -1,29 +1,24 @@
 import {
   Account,
-  Bool,
-  Circuit,
-  DeployArgs,
-  Field,
-  Int64,
-  isReady,
-  method,
-  Mina,
   AccountUpdate,
-  Permissions,
+  Bool,
+  Mina,
   PrivateKey,
+  Provable,
   PublicKey,
   SmartContract,
-  UInt64,
-  VerificationKey,
-  Struct,
   State,
-  state,
-  UInt32,
+  Struct,
   TokenId,
-  Provable,
+  UInt32,
+  UInt64,
+  method,
+  state,
+  TokenContract as BaseTokenContract,
+  AccountUpdateForest,
 } from 'o1js';
 
-export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
+export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
@@ -58,15 +53,13 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
 
       // get balances of X and Y token
-      // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
-      // but for that, we need the @method argument generalization
       let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
-      let dexXBalance = dexXUpdate.account.balance.getAndAssertEquals();
+      let dexXBalance = dexXUpdate.account.balance.getAndRequireEquals();
 
       let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
-      let dexYBalance = dexYUpdate.account.balance.getAndAssertEquals();
+      let dexYBalance = dexYUpdate.account.balance.getAndRequireEquals();
 
-      // // assert dy === [dx * y/x], or x === 0
+      // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
       let xSafe = Provable.if(isXZero, UInt64.one, dexXBalance);
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
@@ -75,7 +68,7 @@ function createDex({
       tokenX.transfer(user, dexXUpdate, dx);
       tokenY.transfer(user, dexYUpdate, dy);
 
-      // calculate liquidity token output simply as dl = dx + dx
+      // calculate liquidity token output simply as dl = dx + dy
       // => maintains ratio x/l, y/l
       let dl = dy.add(dx);
       let userUpdate = this.token.mint({ address: user, amount: dl });
@@ -103,7 +96,7 @@ function createDex({
 
       // update l supply
       let l = this.totalSupply.get();
-      this.totalSupply.assertEquals(l);
+      this.totalSupply.requireEquals(l);
       this.totalSupply.set(l.add(dl));
       return dl;
     }
@@ -146,7 +139,7 @@ function createDex({
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dxdy = dexX.redeemLiquidity(this.sender, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, this.sender, dx);
       return dxdy;
     }
 
@@ -161,7 +154,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
+      tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
     }
 
@@ -176,7 +169,7 @@ function createDex({
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dx = dexX.swap(this.sender, dy, this.tokenY);
-      tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
+      tokenX.transfer(dexX.self, this.sender, dx);
       return dx;
     }
 
@@ -195,7 +188,7 @@ function createDex({
       // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
       this.token.burn({ address: user, amount: dl });
       let l = this.totalSupply.get();
-      this.totalSupply.assertEquals(l);
+      this.totalSupply.requireEquals(l);
       this.totalSupply.set(l.sub(dl));
       return l;
     }
@@ -210,7 +203,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(this.sender, dx, this.tokenX);
-      tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
+      tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
     }
   }
@@ -227,7 +220,7 @@ function createDex({
 
       // in return, we give dy back
       let y = this.account.balance.get();
-      this.account.balance.assertEquals(y);
+      this.account.balance.requireEquals(y);
       // we can safely divide by l here because the Dex contract logic wouldn't allow burnLiquidity if not l>0
       let dy = y.mul(dl).div(l);
       // just subtract the balance, user gets their part one level higher
@@ -252,11 +245,11 @@ function createDex({
       let result = dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
-      tokenY.approveUpdateAndSend(dexY.self, user, dy);
+      tokenY.transfer(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
-      this.account.balance.assertEquals(x);
+      this.account.balance.requireEquals(x);
       let dx = x.mul(dl).div(l);
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
@@ -274,11 +267,11 @@ function createDex({
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances
-      let x = tokenX.getBalance(this.address);
-      let y = this.account.balance.get();
-      this.account.balance.assertEquals(y);
+      let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+      let x = dexX.account.balance.getAndRequireEquals();
+      let y = this.account.balance.getAndRequireEquals();
       // send x from user to us (i.e., to the same address as this but with the other token)
-      tokenX.transfer(user, this.address, dx);
+      tokenX.transfer(user, dexX, dx);
       // compute and send dy
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
@@ -298,10 +291,12 @@ function createDex({
     ): UInt64 {
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
-      let x = tokenX.getBalance(this.address);
+      // get balances
+      let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+      let x = dexX.account.balance.getAndRequireEquals();
       let y = this.account.balance.get();
-      this.account.balance.assertEquals(y);
-      tokenX.transfer(user, this.address, dx);
+      this.account.balance.requireEquals(y);
+      tokenX.transfer(user, dexX, dx);
 
       // this formula has been changed - we just give the user an additional 15 token
       let dy = y.mul(dx).div(x.add(dx)).add(15);
@@ -373,14 +368,7 @@ function createDex({
 /**
  * Simple token with API flexible enough to handle all our use cases
  */
-class TokenContract extends SmartContract {
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      access: Permissions.proofOrSignature(),
-    });
-  }
+class TokenContract extends BaseTokenContract {
   @method init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract
@@ -394,9 +382,9 @@ class TokenContract extends SmartContract {
       amount: UInt64.MAXINT(),
     });
     // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.assertEquals(Bool(true));
+    receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 
   /**
@@ -410,77 +398,14 @@ class TokenContract extends SmartContract {
       amount: UInt64.from(10n ** 6n),
     });
     // assert that the receiving account is new, so this can be only done once
-    receiver.account.isNew.assertEquals(Bool(true));
+    receiver.account.isNew.requireEquals(Bool(true));
     // pay fees for opened account
-    this.balance.subInPlace(Mina.accountCreationFee());
+    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 
-  // this is a very standardized deploy method. instead, we could also take the account update from a callback
-  // => need callbacks for signatures
-  @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
-    let tokenId = this.token.id;
-    let zkapp = AccountUpdate.create(address, tokenId);
-    zkapp.account.permissions.set(Permissions.default());
-    zkapp.account.verificationKey.set(verificationKey);
-    zkapp.requireSignature();
-  }
-
-  @method approveUpdate(zkappUpdate: AccountUpdate) {
-    this.approve(zkappUpdate);
-    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
-    balanceChange.assertEquals(Int64.from(0));
-  }
-
-  // FIXME: remove this
-  @method approveAny(zkappUpdate: AccountUpdate) {
-    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
-  }
-
-  // let a zkapp send tokens to someone, provided the token supply stays constant
-  @method approveUpdateAndSend(
-    zkappUpdate: AccountUpdate,
-    to: PublicKey,
-    amount: UInt64
-  ) {
-    // TODO: THIS IS INSECURE. The proper version has a prover error (compile != prove) that must be fixed
-    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
-
-    // THIS IS HOW IT SHOULD BE DONE:
-    // // approve a layout of two grandchildren, both of which can't inherit the token permission
-    // let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
-    // this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
-    // zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
-    // let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
-    // grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
-    // grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
-
-    // see if balance change cancels the amount sent
-    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
-    balanceChange.assertEquals(Int64.from(amount).neg());
-    // add same amount of tokens to the receiving address
-    this.token.mint({ address: to, amount });
-  }
-
-  transfer(from: PublicKey, to: PublicKey | AccountUpdate, amount: UInt64) {
-    if (to instanceof PublicKey)
-      return this.transferToAddress(from, to, amount);
-    if (to instanceof AccountUpdate)
-      return this.transferToUpdate(from, to, amount);
-  }
-  @method transferToAddress(from: PublicKey, to: PublicKey, value: UInt64) {
-    this.token.send({ from, to, amount: value });
-  }
-  @method transferToUpdate(from: PublicKey, to: AccountUpdate, value: UInt64) {
-    this.token.send({ from, to, amount: value });
-  }
-
-  @method getBalance(publicKey: PublicKey): UInt64 {
-    let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
-    let balance = accountUpdate.account.balance.get();
-    accountUpdate.account.balance.assertEquals(
-      accountUpdate.account.balance.get()
-    );
-    return balance;
+  @method
+  approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
   }
 }
 
@@ -493,9 +418,8 @@ const savedKeys = [
   'EKEyPVU37EGw8CdGtUYnfDcBT2Eu7B6rSdy64R68UHYbrYbVJett',
 ];
 
-await isReady;
 let { keys, addresses } = randomAccounts(
-  false,
+  process.env.USE_CUSTOM_LOCAL_NETWORK === 'true',
   'tokenX',
   'tokenY',
   'dex',
@@ -508,19 +432,6 @@ let tokenIds = {
   Y: TokenId.derive(addresses.tokenY),
   lqXY: TokenId.derive(addresses.dex),
 };
-
-/**
- * Sum of balances of the account update and all its descendants
- */
-function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
-  let myTokenId = accountUpdate.body.tokenId;
-  let myBalance = Int64.fromObject(accountUpdate.body.balanceChange);
-  let balance = Provable.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
-  for (let child of accountUpdate.children.accountUpdates) {
-    balance = balance.add(balanceSum(child, tokenId));
-  }
-  return balance;
-}
 
 /**
  * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.

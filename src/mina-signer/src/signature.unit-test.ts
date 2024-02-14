@@ -12,7 +12,7 @@ import { Field as FieldSnarky } from '../../lib/core.js';
 import { Field } from '../../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
-import { p } from '../../bindings/crypto/finite_field.js';
+import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { HashInput } from '../../bindings/lib/provable-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
@@ -122,7 +122,7 @@ for (let i = 0; i < 10; i++) {
         [0xffff_ffff_ffff_ffffn, 64],
       ],
     },
-    AccountUpdate.toInput(AccountUpdate.emptyValue()),
+    AccountUpdate.toInput(AccountUpdate.empty()),
   ];
   for (let msg of messages) {
     checkCanVerify(msg, key, publicKey);

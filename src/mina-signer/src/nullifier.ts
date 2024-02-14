@@ -1,4 +1,4 @@
-import { Fq } from '../../bindings/crypto/finite_field.js';
+import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Poseidon } from '../../bindings/crypto/poseidon.js';
 import {
   Group,
@@ -7,7 +7,7 @@ import {
   PrivateKey,
 } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
-import { Nullifier } from './TSTypes.js';
+import { Nullifier } from './types.js';
 
 export { createNullifier };
 

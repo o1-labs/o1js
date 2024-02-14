@@ -1,11 +1,16 @@
 import { Field, Bool } from './core.js';
-import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
+import { AnyConstructor, CircuitValue, Struct, prop } from './circuit-value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
+import * as RangeCheck from './gadgets/range-check.js';
+import * as Bitwise from './gadgets/bitwise.js';
+import { addMod32 } from './gadgets/arithmetic.js';
+import type { Gadgets } from './gadgets/gadgets.js';
+import { FieldVar, withMessage } from './field.js';
 
 // external API
-export { UInt32, UInt64, Int64, Sign };
+export { UInt8, UInt32, UInt64, Int64, Sign };
 
 /**
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
@@ -13,6 +18,12 @@ export { UInt32, UInt64, Int64, Sign };
 class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
+
+  constructor(x: UInt64 | UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
+    else if (!(x instanceof Field)) x = Field(x);
+    super(x);
+  }
 
   /**
    * Static method to create a {@link UInt64} with value `0`.
@@ -66,8 +77,7 @@ class UInt64 extends CircuitValue {
   }
 
   static check(x: UInt64) {
-    let actual = x.value.rangeCheckHelper(64);
-    actual.assertEquals(x.value);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, x.value);
   }
 
   static toInput(x: UInt64): HashInput {
@@ -142,11 +152,11 @@ class UInt64 extends CircuitValue {
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    q.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(q);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    r.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(r);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, r);
 
     let r_ = new UInt64(r);
     let q_ = new UInt64(q);
@@ -171,7 +181,7 @@ class UInt64 extends CircuitValue {
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisble by `y`.
+   * `x - z` is divisible by `y`.
    */
   mod(y: UInt64 | number) {
     return this.divMod(y).rest;
@@ -182,7 +192,7 @@ class UInt64 extends CircuitValue {
    */
   mul(y: UInt64 | number) {
     let z = this.value.mul(UInt64.from(y).value);
-    z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
     return new UInt64(z);
   }
 
@@ -191,7 +201,7 @@ class UInt64 extends CircuitValue {
    */
   add(y: UInt64 | number) {
     let z = this.value.add(UInt64.from(y).value);
-    z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
     return new UInt64(z);
   }
 
@@ -200,8 +210,167 @@ class UInt64 extends CircuitValue {
    */
   sub(y: UInt64 | number) {
     let z = this.value.sub(UInt64.from(y).value);
-    z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
     return new UInt64(z);
+  }
+
+  /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt64} element to XOR.
+   *
+   * @example
+   * ```ts
+   * let a = UInt64.from(0b0101);
+   * let b = UInt64.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
+  xor(x: UInt64) {
+    return new UInt64(Bitwise.xor(this.value, x.value, UInt64.NUM_BITS));
+  }
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 64 bit for UInt64 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * NOT is implemented as a subtraction of the input from the all one bitmask
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits with the unchecked version
+   * let a = UInt64.from(0b0101);
+   * let b = a.not(false);
+   *
+   * console.log(b.toBigInt().toString(2));
+   * // 1111111111111111111111111111111111111111111111111111111111111010
+   *
+   * ```
+   *
+   * @param a - The value to apply NOT to.
+   *
+   */
+  not() {
+    return new UInt64(Bitwise.not(this.value, UInt64.NUM_BITS, false));
+  }
+
+  /**
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
+   *
+   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
+   *
+   * @param bits amount of bits to rotate this {@link UInt64} element with.
+   * @param direction left or right rotation direction.
+   *
+   *
+   * @example
+   * ```ts
+   * const x = UInt64.from(0b001100);
+   * const y = x.rotate(2, 'left');
+   * const z = x.rotate(2, 'right'); // right rotation by 2 bits
+   * y.assertEquals(0b110000);
+   * z.assertEquals(0b000011);
+   * ```
+   */
+  rotate(bits: number, direction: 'left' | 'right' = 'left') {
+    return new UInt64(Bitwise.rotate64(this.value, bits, direction));
+  }
+
+  /**
+   * Performs a left shift operation on the provided {@link UInt64} element.
+   * This operation is similar to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * @param bits Amount of bits to shift the {@link UInt64} element to the left. The amount should be between 0 and 64 (or else the shift will fail).
+   *
+   * @example
+   * ```ts
+   * const x = UInt64.from(0b001100); // 12 in binary
+   * const y = x.leftShift(2); // left shift by 2 bits
+   * y.assertEquals(0b110000); // 48 in binary
+   * ```
+   */
+  leftShift(bits: number) {
+    return new UInt64(Bitwise.leftShift64(this.value, bits));
+  }
+
+  /**
+   * Performs a left right operation on the provided {@link UInt64} element.
+   * This operation is similar to the `>>` shift operation in JavaScript,
+   * where bits are shifted to the right, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * @param bits Amount of bits to shift the {@link UInt64} element to the right. The amount should be between 0 and 64 (or else the shift will fail).
+   *
+   * @example
+   * ```ts
+   * const x = UInt64.from(0b001100); // 12 in binary
+   * const y = x.rightShift(2); // left shift by 2 bits
+   * y.assertEquals(0b000011); // 48 in binary
+   * ```
+   */
+  rightShift(bits: number) {
+    return new UInt64(Bitwise.leftShift64(this.value, bits));
+  }
+
+  /**
+   * Bitwise AND gadget on {@link UInt64} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt64.from(3);    // ... 000011
+   * let b = UInt64.from(5);    // ... 000101
+   *
+   * let c = a.and(b);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(x: UInt64) {
+    return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS));
   }
 
   /**
@@ -215,12 +384,11 @@ class UInt64 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(yMinusX);
+
+      let xMinusYFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, xMinusY);
+
+      let yMinusXFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, yMinusX);
+
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -236,12 +404,11 @@ class UInt64 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(yMinusX);
+
+      let xMinusYFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, xMinusY);
+
+      let yMinusXFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, yMinusX);
+
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -271,7 +438,7 @@ class UInt64 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
+    RangeCheck.rangeCheckN(UInt64.NUM_BITS, yMinusX, message);
   }
 
   /**
@@ -379,6 +546,12 @@ class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
 
+  constructor(x: UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt32) x = x.value;
+    else if (!(x instanceof Field)) x = Field(x);
+    super(x);
+  }
+
   /**
    * Static method to create a {@link UInt32} with value `0`.
    */
@@ -413,8 +586,7 @@ class UInt32 extends CircuitValue {
   }
 
   static check(x: UInt32) {
-    let actual = x.value.rangeCheckHelper(32);
-    actual.assertEquals(x.value);
+    RangeCheck.rangeCheck32(x.value);
   }
   static toInput(x: UInt32): HashInput {
     return { packed: [[x.value, 32]] };
@@ -452,11 +624,19 @@ class UInt32 extends CircuitValue {
     if (x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
   }
+
   /**
    * Creates a {@link UInt32} with a value of 4,294,967,295.
    */
   static MAXINT() {
     return new UInt32(Field((1n << 32n) - 1n));
+  }
+
+  /**
+   * Addition modulo 2^32. Check {@link Gadgets.addMod32} for a detailed description.
+   */
+  addMod32(y: UInt32) {
+    return new UInt32(addMod32(this.value, y.value));
   }
 
   /**
@@ -486,11 +666,11 @@ class UInt32 extends CircuitValue {
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
-    q.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(q);
+    RangeCheck.rangeCheck32(q);
 
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(y_)).seal();
-    r.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(r);
+    RangeCheck.rangeCheck32(r);
 
     let r_ = new UInt32(r);
     let q_ = new UInt32(q);
@@ -513,7 +693,7 @@ class UInt32 extends CircuitValue {
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisble by `y`.
+   * `x - z` is divisible by `y`.
    */
   mod(y: UInt32 | number) {
     return this.divMod(y).rest;
@@ -523,7 +703,7 @@ class UInt32 extends CircuitValue {
    */
   mul(y: UInt32 | number) {
     let z = this.value.mul(UInt32.from(y).value);
-    z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
+    RangeCheck.rangeCheck32(z);
     return new UInt32(z);
   }
   /**
@@ -531,7 +711,7 @@ class UInt32 extends CircuitValue {
    */
   add(y: UInt32 | number) {
     let z = this.value.add(UInt32.from(y).value);
-    z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
+    RangeCheck.rangeCheck32(z);
     return new UInt32(z);
   }
   /**
@@ -539,9 +719,171 @@ class UInt32 extends CircuitValue {
    */
   sub(y: UInt32 | number) {
     let z = this.value.sub(UInt32.from(y).value);
-    z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
+    RangeCheck.rangeCheck32(z);
     return new UInt32(z);
   }
+
+  /**
+   * Bitwise XOR gadget on {@link UInt32} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt32} element to compare.
+   *
+   * @example
+   * ```ts
+   * let a = UInt32.from(0b0101);
+   * let b = UInt32.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
+  xor(x: UInt32) {
+    return new UInt32(Bitwise.xor(this.value, x.value, UInt32.NUM_BITS));
+  }
+
+  /**
+   * Bitwise NOT gate on {@link UInt32} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 32 bit for UInt32 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * NOT is implemented as a subtraction of the input from the all one bitmask.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits with the unchecked version
+   * let a = UInt32.from(0b0101);
+   * let b = a.not();
+   *
+   * console.log(b.toBigInt().toString(2));
+   * // 11111111111111111111111111111010
+   * ```
+   *
+   * @param a - The value to apply NOT to.
+   */
+  not() {
+    return new UInt32(Bitwise.not(this.value, UInt32.NUM_BITS, false));
+  }
+
+  /**
+   * A (left and right) rotation operates similarly to the shift operation (`<<` for left and `>>` for right) in JavaScript,
+   * with the distinction that the bits are circulated to the opposite end of a 64-bit representation rather than being discarded.
+   * For a left rotation, this means that bits shifted off the left end reappear at the right end.
+   * Conversely, for a right rotation, bits shifted off the right end reappear at the left end.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 64-bit representation of the number,
+   * where the most significant (64th) bit is on the left end and the least significant bit is on the right end.
+   * The `direction` parameter is a string that accepts either `'left'` or `'right'`, determining the direction of the rotation.
+   *
+   * To safely use `rotate()`, you need to make sure that the value passed in is range-checked to 64 bits;
+   * for example, using {@link Gadgets.rangeCheck64}.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#rotation)
+   *
+   * @param bits amount of bits to rotate this {@link UInt32} element with.
+   * @param direction left or right rotation direction.
+   *
+   *
+   * @example
+   * ```ts
+   * const x = UInt32.from(0b001100);
+   * const y = x.rotate(2, 'left');
+   * const z = x.rotate(2, 'right'); // right rotation by 2 bits
+   * y.assertEquals(0b110000);
+   * z.assertEquals(0b000011);
+   * ```
+   */
+  rotate(bits: number, direction: 'left' | 'right' = 'left') {
+    return new UInt32(Bitwise.rotate32(this.value, bits, direction));
+  }
+
+  /**
+   * Performs a left shift operation on the provided {@link UInt32} element.
+   * This operation is similar to the `<<` shift operation in JavaScript,
+   * where bits are shifted to the left, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * The operation expects the input to be range checked to 32 bit.
+   *
+   * @param bits Amount of bits to shift the {@link UInt32} element to the left. The amount should be between 0 and 32 (or else the shift will fail).
+   *
+   * @example
+   * ```ts
+   * const x = UInt32.from(0b001100); // 12 in binary
+   * const y = x.leftShift(2); // left shift by 2 bits
+   * y.assertEquals(0b110000); // 48 in binary
+   * ```
+   */
+  leftShift(bits: number) {
+    return new UInt32(Bitwise.leftShift32(this.value, bits));
+  }
+
+  /**
+   * Performs a left right operation on the provided {@link UInt32} element.
+   * This operation is similar to the `>>` shift operation in JavaScript,
+   * where bits are shifted to the right, and the overflowing bits are discarded.
+   *
+   * It’s important to note that these operations are performed considering the big-endian 32-bit representation of the number,
+   * where the most significant (32th) bit is on the left end and the least significant bit is on the right end.
+   *
+   * @param bits Amount of bits to shift the {@link UInt32} element to the right. The amount should be between 0 and 32 (or else the shift will fail).
+   *
+   * The operation expects the input to be range checked to 32 bit.
+   *
+   * @example
+   * ```ts
+   * const x = UInt32.from(0b001100); // 12 in binary
+   * const y = x.rightShift(2); // left shift by 2 bits
+   * y.assertEquals(0b000011); // 48 in binary
+   * ```
+   */
+  rightShift(bits: number) {
+    return new UInt32(Bitwise.rightShift64(this.value, bits));
+  }
+
+  /**
+   * Bitwise AND gadget on {@link UInt32} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt32.from(3);    // ... 000011
+   * let b = UInt32.from(5);    // ... 000101
+   *
+   * let c = a.and(b, 2);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(x: UInt32) {
+    return new UInt32(Bitwise.and(this.value, x.value, UInt32.NUM_BITS));
+  }
+
   /**
    * @deprecated Use {@link lessThanOrEqual} instead.
    *
@@ -553,12 +895,8 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(yMinusX);
+      let xMinusYFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, xMinusY);
+      let yMinusXFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -574,12 +912,8 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = xMinusY
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY);
-      let yMinusXFits = yMinusX
-        .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(yMinusX);
+      let xMinusYFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, xMinusY);
+      let yMinusXFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -609,7 +943,7 @@ class UInt32 extends CircuitValue {
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
+    RangeCheck.rangeCheckN(UInt32.NUM_BITS, yMinusX, message);
   }
 
   /**
@@ -723,8 +1057,8 @@ class Sign extends CircuitValue {
     // x^2 === 1  <=>  x === 1 or x === -1
     x.value.square().assertEquals(Field(1));
   }
-  static emptyValue(): Sign {
-    return Sign.one;
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
+    return Sign.one as any;
   }
   static toInput(x: Sign): HashInput {
     return { packed: [[x.isPositive().toField(), 1]] };
@@ -929,7 +1263,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisble by `y`.
+   * `x - z` is divisible by `y`.
    */
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
@@ -956,9 +1290,393 @@ class Int64 extends CircuitValue implements BalanceChange {
     this.toField().assertEquals(y_.toField(), message);
   }
   /**
-   * Checks if the value is postive.
+   * Checks if the value is positive.
    */
   isPositive() {
     return this.sgn.isPositive();
+  }
+}
+
+/**
+ * A 8 bit unsigned integer with values ranging from 0 to 255.
+ */
+class UInt8 extends Struct({
+  value: Field,
+}) {
+  static NUM_BITS = 8;
+
+  /**
+   * Create a {@link UInt8} from a bigint or number.
+   * The max value of a {@link UInt8} is `2^8 - 1 = 255`.
+   *
+   * **Warning**: Cannot overflow past 255, an error is thrown if the result is greater than 255.
+   */
+  constructor(x: number | bigint | FieldVar | UInt8) {
+    if (x instanceof UInt8) x = x.value.value;
+    super({ value: Field(x) });
+    UInt8.checkConstant(this.value);
+  }
+
+  static Unsafe = {
+    /**
+     * Create a {@link UInt8} from a {@link Field} without constraining its range.
+     *
+     * **Warning**: This is unsafe, because it does not prove that the input {@link Field} actually fits in 8 bits.\
+     * Only use this if you know what you are doing, otherwise use the safe {@link UInt8.from}.
+     */
+    fromField(x: Field) {
+      return new UInt8(x.value);
+    },
+  };
+
+  /**
+   * Add a {@link UInt8} to another {@link UInt8} without allowing overflow.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(3);
+   * const sum = x.add(5);
+   * sum.assertEquals(8);
+   * ```
+   *
+   * @throws if the result is greater than 255.
+   */
+  add(y: UInt8 | bigint | number) {
+    let z = this.value.add(UInt8.from(y).value);
+    RangeCheck.rangeCheck8(z);
+    return UInt8.Unsafe.fromField(z);
+  }
+
+  /**
+   * Subtract a {@link UInt8} from another {@link UInt8} without allowing underflow.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(8);
+   * const difference = x.sub(5);
+   * difference.assertEquals(3);
+   * ```
+   *
+   * @throws if the result is less than 0.
+   */
+  sub(y: UInt8 | bigint | number) {
+    let z = this.value.sub(UInt8.from(y).value);
+    RangeCheck.rangeCheck8(z);
+    return UInt8.Unsafe.fromField(z);
+  }
+
+  /**
+   * Multiply a {@link UInt8} by another {@link UInt8} without allowing overflow.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(3);
+   * const product = x.mul(5);
+   * product.assertEquals(15);
+   * ```
+   *
+   * @throws if the result is greater than 255.
+   */
+  mul(y: UInt8 | bigint | number) {
+    let z = this.value.mul(UInt8.from(y).value);
+    RangeCheck.rangeCheck8(z);
+    return UInt8.Unsafe.fromField(z);
+  }
+
+  /**
+   * Divide a {@link UInt8} by another {@link UInt8}.
+   * This is integer division that rounds down.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(7);
+   * const quotient = x.div(2);
+   * quotient.assertEquals(3);
+   * ```
+   */
+  div(y: UInt8 | bigint | number) {
+    return this.divMod(y).quotient;
+  }
+
+  /**
+   * Get the remainder a {@link UInt8} of division of another {@link UInt8}.
+   *
+   * @example
+   * ```ts
+   * const x = UInt8.from(50);
+   * const mod = x.mod(30);
+   * mod.assertEquals(20);
+   * ```
+   */
+  mod(y: UInt8 | bigint | number) {
+    return this.divMod(y).remainder;
+  }
+
+  /**
+   * Get the quotient and remainder of a {@link UInt8} divided by another {@link UInt8}:
+   *
+   * `x == y * q + r`, where `0 <= r < y`.
+   *
+   * @param y - a {@link UInt8} to get the quotient and remainder of another {@link UInt8}.
+   *
+   * @return The quotient `q` and remainder `r`.
+   */
+  divMod(y: UInt8 | bigint | number) {
+    let x = this.value;
+    let y_ = UInt8.from(y).value.seal();
+
+    if (this.value.isConstant() && y_.isConstant()) {
+      let xn = x.toBigInt();
+      let yn = y_.toBigInt();
+      let q = xn / yn;
+      let r = xn - q * yn;
+      return { quotient: UInt8.from(q), remainder: UInt8.from(r) };
+    }
+
+    // prove that x === q * y + r, where 0 <= r < y
+    let q = Provable.witness(Field, () => Field(x.toBigInt() / y_.toBigInt()));
+    let r = x.sub(q.mul(y_)).seal();
+
+    // q, r being 16 bits is enough for them to be 8 bits,
+    // thanks to the === x check and the r < y check below
+    RangeCheck.rangeCheck16(q);
+    RangeCheck.rangeCheck16(r);
+
+    let remainder = UInt8.Unsafe.fromField(r);
+    let quotient = UInt8.Unsafe.fromField(q);
+
+    remainder.assertLessThan(y);
+    return { quotient, remainder };
+  }
+
+  /**
+   * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(3).lessThanOrEqual(UInt8.from(5));
+   * ```
+   */
+  lessThanOrEqual(y: UInt8 | bigint | number): Bool {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      return Bool(this.toBigInt() <= y_.toBigInt());
+    }
+    throw Error('Not implemented');
+  }
+
+  /**
+   * Check if this {@link UInt8} is less than another {@link UInt8} value.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * UInt8.from(2).lessThan(UInt8.from(3));
+   * ```
+   */
+  lessThan(y: UInt8 | bigint | number): Bool {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      return Bool(this.toBigInt() < y_.toBigInt());
+    }
+    throw Error('Not implemented');
+  }
+
+  /**
+   * Assert that this {@link UInt8} is less than another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThan(y: UInt8 | bigint | number, message?: string) {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      let x0 = this.toBigInt();
+      let y0 = y_.toBigInt();
+      if (x0 >= y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt8.assertLessThan: expected ${x0} < ${y0}`);
+      }
+      return;
+    }
+    // x < y  <=>  x + 1 <= y
+    let xPlus1 = new UInt8(this.value.add(1).value);
+    xPlus1.assertLessThanOrEqual(y, message);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is less than or equal to another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThanOrEqual(y: UInt8 | bigint | number, message?: string) {
+    let y_ = UInt8.from(y);
+    if (this.value.isConstant() && y_.value.isConstant()) {
+      let x0 = this.toBigInt();
+      let y0 = y_.toBigInt();
+      if (x0 > y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
+      }
+      return;
+    }
+    try {
+      // x <= y  <=>  y - x >= 0  which is implied by  y - x in [0, 2^16)
+      let yMinusX = y_.value.sub(this.value).seal();
+      RangeCheck.rangeCheck16(yMinusX);
+    } catch (err) {
+      throw withMessage(err, message);
+    }
+  }
+
+  /**
+   * Check if this {@link UInt8} is greater than another {@link UInt8}.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * // 5 > 3
+   * UInt8.from(5).greaterThan(3);
+   * ```
+   */
+  greaterThan(y: UInt8 | bigint | number) {
+    return UInt8.from(y).lessThan(this);
+  }
+
+  /**
+   * Check if this {@link UInt8} is greater than or equal another {@link UInt8} value.
+   * Returns a {@link Bool}.
+   *
+   * @example
+   * ```ts
+   * // 3 >= 3
+   * UInt8.from(3).greaterThanOrEqual(3);
+   * ```
+   */
+  greaterThanOrEqual(y: UInt8 | bigint | number) {
+    return UInt8.from(y).lessThanOrEqual(this);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is greater than another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThan(y: UInt8 | bigint | number, message?: string) {
+    UInt8.from(y).assertLessThan(this, message);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is greater than or equal to another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThanOrEqual(y: UInt8, message?: string) {
+    UInt8.from(y).assertLessThanOrEqual(this, message);
+  }
+
+  /**
+   * Assert that this {@link UInt8} is equal another {@link UInt8} value.
+   *
+   * **Important**: If an assertion fails, the code throws an error.
+   *
+   * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertEquals(y: UInt8 | bigint | number, message?: string) {
+    let y_ = UInt8.from(y);
+    this.value.assertEquals(y_.value, message);
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a string, e.g. for printing.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toString() {
+    return this.value.toString();
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a number.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toNumber() {
+    return Number(this.value.toBigInt());
+  }
+
+  /**
+   * Serialize the {@link UInt8} to a bigint.
+   *
+   * **Warning**: This operation is not provable.
+   */
+  toBigInt() {
+    return this.value.toBigInt();
+  }
+
+  /**
+   * {@link Provable.check} for {@link UInt8}.
+   * Proves that the input is in the [0, 255] range.
+   */
+  static check(x: { value: Field } | Field) {
+    if (x instanceof Field) x = { value: x };
+    RangeCheck.rangeCheck8(x.value);
+  }
+
+  static toInput(x: { value: Field }): HashInput {
+    return { packed: [[x.value, 8]] };
+  }
+
+  /**
+   * Turns a {@link UInt8} into a {@link UInt32}.
+   */
+  toUInt32(): UInt32 {
+    return new UInt32(this.value);
+  }
+
+  /**
+   * Turns a {@link UInt8} into a {@link UInt64}.
+   */
+  toUInt64(): UInt64 {
+    return new UInt64(this.value);
+  }
+
+  /**
+   * Creates a {@link UInt8} with a value of 255.
+   */
+  static MAXINT() {
+    return new UInt8((1n << BigInt(UInt8.NUM_BITS)) - 1n);
+  }
+
+  /**
+   * Creates a new {@link UInt8}.
+   */
+  static from(x: UInt8 | UInt64 | UInt32 | Field | number | bigint) {
+    if (x instanceof UInt8) return x;
+    if (x instanceof UInt64 || x instanceof UInt32 || x instanceof Field) {
+      // if the input could be larger than 8 bits, we have to prove that it is not
+      let xx = x instanceof Field ? { value: x } : x;
+      UInt8.check(xx);
+      return new UInt8(xx.value.value);
+    }
+    return new UInt8(x);
+  }
+
+  private static checkConstant(x: Field) {
+    if (!x.isConstant()) return;
+    RangeCheck.rangeCheck8(x);
   }
 }

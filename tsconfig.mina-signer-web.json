@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.mina-signer.json",
-  "include": ["./src/mina-signer/MinaSigner.ts", "./src/**/*.web.ts"],
+  "include": ["./src/mina-signer/mina-signer.ts", "./src/**/*.web.ts"],
   "exclude": ["./src/examples"],
   "compilerOptions": {
     "outDir": "src/mina-signer/dist/tmp"

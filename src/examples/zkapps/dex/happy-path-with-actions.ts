@@ -1,29 +1,24 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'o1js';
+import { expect } from 'expect';
+import { AccountUpdate, Mina, UInt64 } from 'o1js';
+import { tic, toc } from '../../utils/tic-toc.node.js';
 import {
   Dex,
   DexTokenHolder,
   addresses,
+  getTokenBalances,
   keys,
   tokenIds,
-  getTokenBalances,
 } from './dex-with-actions.js';
-import { TokenContract } from './dex.js';
-import { expect } from 'expect';
-import { tic, toc } from '../../utils/tic-toc.node.js';
-
-await isReady;
+import { TrivialCoin as TokenContract } from './erc20.js';
 
 let proofsEnabled = true;
-
 tic('Happy path with actions');
 console.log();
-
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: true,
 });
 Mina.setActiveInstance(Local);
-let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
   Local.testAccounts;
 let tx, balances, oldBalances;
@@ -48,6 +43,7 @@ let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 tic('deploy & init token contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
+  const accountFee = Mina.getNetworkConstants().accountCreationFee;
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
   feePayerUpdate.balance.subInPlace(accountFee.mul(2));
@@ -65,13 +61,13 @@ tic('deploy dex contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 3 dex accounts
   AccountUpdate.createSigned(feePayerAddress).balance.subInPlace(
-    accountFee.mul(3)
+    Mina.getNetworkConstants().accountCreationFee.mul(3)
   );
   dex.deploy();
   dexTokenHolderX.deploy();
-  tokenX.approveUpdate(dexTokenHolderX.self);
+  tokenX.approveAccountUpdate(dexTokenHolderX.self);
   dexTokenHolderY.deploy();
-  tokenY.approveUpdate(dexTokenHolderY.self);
+  tokenY.approveAccountUpdate(dexTokenHolderY.self);
 });
 await tx.prove();
 await tx.sign([feePayerKey, keys.dex]).send();
@@ -133,7 +129,7 @@ console.log(getTokenBalances());
 tic('redeem liquidity, step 2a (get back token X)');
 tx = await Mina.transaction(addresses.user, () => {
   dexTokenHolderX.redeemLiquidityFinalize();
-  tokenX.approveAny(dexTokenHolderX.self);
+  tokenX.approveAccountUpdate(dexTokenHolderX.self);
 });
 await tx.prove();
 await tx.sign([keys.user]).send();
@@ -144,7 +140,7 @@ console.log(getTokenBalances());
 tic('redeem liquidity, step 2b (get back token Y)');
 tx = await Mina.transaction(addresses.user, () => {
   dexTokenHolderY.redeemLiquidityFinalize();
-  tokenY.approveAny(dexTokenHolderY.self);
+  tokenY.approveAccountUpdate(dexTokenHolderY.self);
 });
 await tx.prove();
 await tx.sign([keys.user]).send();

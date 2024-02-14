@@ -7,7 +7,7 @@ import {
 import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/account_update.js';
+} from '../../lib/account-update.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import {
   AccountUpdate,
@@ -34,7 +34,6 @@ import {
 import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
 import { Memo } from './memo.js';
 import {
-  NetworkId,
   Signature,
   signFieldElement,
   verifyFieldElement,
@@ -44,6 +43,7 @@ import { RandomTransaction } from './random-transaction.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
 import { mocks } from '../../bindings/crypto/constants.js';
+import { NetworkId } from './types.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -62,7 +62,7 @@ test(Random.json.publicKey, (publicKeyBase58) => {
 });
 
 // empty account update
-let dummy = AccountUpdate.emptyValue();
+let dummy = AccountUpdate.empty();
 let dummySnarky = AccountUpdateSnarky.dummy();
 expect(AccountUpdate.toJSON(dummy)).toEqual(
   AccountUpdateSnarky.toJSON(dummySnarky)

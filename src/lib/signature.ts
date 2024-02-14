@@ -1,5 +1,5 @@
 import { Field, Bool, Group, Scalar } from './core.js';
-import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
+import { prop, CircuitValue, AnyConstructor } from './circuit-value.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,
@@ -165,8 +165,8 @@ class PublicKey extends CircuitValue {
    * Creates an empty {@link PublicKey}.
    * @returns an empty {@link PublicKey}
    */
-  static empty() {
-    return PublicKey.from({ x: Field(0), isOdd: Bool(false) });
+  static empty<T extends AnyConstructor>(): InstanceType<T> {
+    return PublicKey.from({ x: Field(0), isOdd: Bool(false) }) as any;
   }
 
   /**

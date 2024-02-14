@@ -1,7 +1,7 @@
 import 'isomorphic-fetch';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
-import { Actions, TokenId } from './account_update.js';
+import { Actions, TokenId } from './account-update.js';
 import { PublicKey, PrivateKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../bindings/mina-transaction/types.js';
@@ -19,6 +19,7 @@ import {
 export {
   fetchAccount,
   fetchLastBlock,
+  fetchGenesisConstants,
   checkZkappTransaction,
   parseFetchedAccount,
   markAccountToBeFetched,
@@ -31,6 +32,7 @@ export {
   getCachedAccount,
   getCachedNetwork,
   getCachedActions,
+  getCachedGenesisConstants,
   addCachedAccount,
   networkConfig,
   setGraphqlEndpoint,
@@ -44,7 +46,8 @@ export {
   removeJsonQuotes,
   fetchEvents,
   fetchActions,
-  Lightnet
+  Lightnet,
+  type GenesisConstants,
 };
 
 type NetworkConfig = {
@@ -216,6 +219,16 @@ type FetchError = {
 type ActionStatesStringified = {
   [K in keyof ActionStates]: string;
 };
+type GenesisConstants = {
+  genesisTimestamp: string;
+  coinbase: number;
+  accountCreationFee: number;
+  epochDuration: number;
+  k: number;
+  slotDuration: number;
+  slotsPerEpoch: number;
+};
+
 // Specify 5min as the default timeout
 const defaultTimeout = 5 * 60 * 1000;
 
@@ -257,6 +270,7 @@ let actionsToFetch = {} as Record<
     graphqlEndpoint: string;
   }
 >;
+let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
@@ -333,6 +347,7 @@ async function fetchMissingData(
       (async () => {
         try {
           await fetchLastBlock(graphqlEndpoint);
+          await fetchGenesisConstants(graphqlEndpoint);
           delete networksToFetch[network[0]];
         } catch {}
       })()
@@ -361,6 +376,12 @@ function getCachedActions(
 ) {
   return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.actions;
+}
+
+function getCachedGenesisConstants(
+  graphqlEndpoint = networkConfig.minaEndpoint
+): GenesisConstants {
+  return genesisConstantsCache[graphqlEndpoint];
 }
 
 /**
@@ -481,8 +502,8 @@ type LastBlockQueryFailureCheckResponse = {
   }[];
 };
 
-const lastBlockQueryFailureCheck = `{
-  bestChain(maxLength: 1) {
+const lastBlockQueryFailureCheck = (length: number) => `{
+  bestChain(maxLength: ${length}) {
     transactions {
       zkappCommands {
         hash
@@ -496,10 +517,11 @@ const lastBlockQueryFailureCheck = `{
 }`;
 
 async function fetchLatestBlockZkappStatus(
+  blockLength: number,
   graphqlEndpoint = networkConfig.minaEndpoint
 ) {
   let [resp, error] = await makeGraphqlRequest(
-    lastBlockQueryFailureCheck,
+    lastBlockQueryFailureCheck(blockLength),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints
   );
@@ -513,9 +535,8 @@ async function fetchLatestBlockZkappStatus(
   return bestChain;
 }
 
-async function checkZkappTransaction(txnId: string) {
-  let bestChainBlocks = await fetchLatestBlockZkappStatus();
-
+async function checkZkappTransaction(txnId: string, blockLength = 20) {
+  let bestChainBlocks = await fetchLatestBlockZkappStatus(blockLength);
   for (let block of bestChainBlocks.bestChain) {
     for (let zkappCommand of block.transactions.zkappCommands) {
       if (zkappCommand.hash === txnId) {
@@ -819,6 +840,21 @@ const getActionsQuery = (
   }
 }`;
 };
+const genesisConstantsQuery = `{
+    genesisConstants {
+      genesisTimestamp
+      coinbase
+      accountCreationFee
+    }
+    daemonStatus {
+      consensusConfiguration {
+        epochDuration
+        k
+        slotDuration
+        slotsPerEpoch
+      }
+    }
+  }`;
 
 /**
  * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
@@ -951,10 +987,8 @@ async function fetchActions(
       break;
     }
   }
-  // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
-  fetchedActions.reverse();
-  let actionsList: { actions: string[][]; hash: string }[] = [];
 
+  let actionsList: { actions: string[][]; hash: string }[] = [];
   // correct for archive node sending one block too many
   if (
     fetchedActions.length !== 0 &&
@@ -1011,6 +1045,37 @@ async function fetchActions(
   return actionsList;
 }
 
+/**
+ * Fetches genesis constants.
+ */
+async function fetchGenesisConstants(
+  graphqlEndpoint = networkConfig.minaEndpoint
+): Promise<GenesisConstants> {
+  let [resp, error] = await makeGraphqlRequest(
+    genesisConstantsQuery,
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
+  );
+  if (error) throw Error(error.statusText);
+  const genesisConstants = resp?.data?.genesisConstants;
+  const consensusConfiguration =
+    resp?.data?.daemonStatus?.consensusConfiguration;
+  if (genesisConstants === undefined || consensusConfiguration === undefined) {
+    throw Error('Failed to fetch genesis constants.');
+  }
+  const data = {
+    genesisTimestamp: genesisConstants.genesisTimestamp,
+    coinbase: Number(genesisConstants.coinbase),
+    accountCreationFee: Number(genesisConstants.accountCreationFee),
+    epochDuration: Number(consensusConfiguration.epochDuration),
+    k: Number(consensusConfiguration.k),
+    slotDuration: Number(consensusConfiguration.slotDuration),
+    slotsPerEpoch: Number(consensusConfiguration.slotsPerEpoch),
+  };
+  genesisConstantsCache[graphqlEndpoint] = data;
+  return data as GenesisConstants;
+}
+
 namespace Lightnet {
   /**
    * Gets random key pair (public and private keys) from account manager
@@ -1019,7 +1084,7 @@ namespace Lightnet {
    * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
    * the data is returned.
    *
-   * @param options.isRegularAccount Whether to acquire regular or zkApp account (one with already configured verification key)
+   * @param options.isRegularAccount Whether to acquire key pair of regular or zkApp account (one with already configured verification key)
    * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
    * @returns Key pair
    */
@@ -1091,6 +1156,44 @@ namespace Lightnet {
       const data = await response.json();
       if (data) {
         return data.message as string;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Gets previously acquired key pairs list.
+   *
+   * @param options.lightnetAccountManagerEndpoint Account manager endpoint to fetch from
+   * @returns Key pairs list or null if the request failed
+   */
+  export async function listAcquiredKeyPairs(options: {
+    lightnetAccountManagerEndpoint?: string;
+  }): Promise<Array<{
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }> | null> {
+    const {
+      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
+    } = options;
+    const response = await fetch(
+      `${lightnetAccountManagerEndpoint}/list-acquired-accounts`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data) {
+        return data.map((account: any) => ({
+          publicKey: PublicKey.fromBase58(account.pk),
+          privateKey: PrivateKey.fromBase58(account.sk),
+        }));
       }
     }
 

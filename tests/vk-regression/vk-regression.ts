@@ -1,9 +1,14 @@
 import fs from 'fs';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
-import { HelloWorld } from '../../src/examples/zkapps/hello_world/hello_world.js';
+import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
-import { GroupCS, BitwiseCS } from './plain-constraint-system.js';
+import {
+  ecdsa,
+  keccakAndEcdsa,
+} from '../../src/examples/crypto/ecdsa/ecdsa.js';
+import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
+import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
@@ -38,6 +43,10 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   createDex().Dex,
   GroupCS,
   BitwiseCS,
+  HashCS,
+  ecdsa,
+  keccakAndEcdsa,
+  SHA256Program,
 ];
 
 let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';

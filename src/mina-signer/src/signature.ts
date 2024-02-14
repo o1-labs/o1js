@@ -26,7 +26,8 @@ import {
 } from '../../bindings/lib/binable.js';
 import { base58 } from '../../lib/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
-import { Pallas } from '../../bindings/crypto/elliptic_curve.js';
+import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
+import { NetworkId } from './types.js';
 
 export {
   sign,
@@ -35,7 +36,6 @@ export {
   verifyFieldElement,
   Signature,
   SignatureJson,
-  NetworkId,
   signLegacy,
   verifyLegacy,
   deriveNonce,
@@ -43,7 +43,7 @@ export {
 
 const networkIdMainnet = 0x01n;
 const networkIdTestnet = 0x00n;
-type NetworkId = 'mainnet' | 'testnet';
+
 type Signature = { r: Field; s: Scalar };
 type SignatureJson = { field: string; scalar: string };
 

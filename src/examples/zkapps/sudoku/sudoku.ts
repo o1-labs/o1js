@@ -8,7 +8,7 @@ import {
   isReady,
   Poseidon,
   Struct,
-  Circuit,
+  Provable,
 } from 'o1js';
 
 export { Sudoku, SudokuZkApp };
@@ -98,7 +98,7 @@ class SudokuZkApp extends SmartContract {
 
     // finally, we check that the sudoku is the one that was originally deployed
     let sudokuHash = this.sudokuHash.get(); // get the hash from the blockchain
-    this.sudokuHash.assertEquals(sudokuHash); // precondition that links this.sudokuHash.get() to the actual on-chain state
+    this.sudokuHash.requireEquals(sudokuHash); // precondition that links this.sudokuHash.get() to the actual on-chain state
     sudokuInstance
       .hash()
       .assertEquals(sudokuHash, 'sudoku matches the one committed on-chain');

@@ -6,7 +6,8 @@ import {
   ZkappCommand,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { PrivateKey } from '../../provable/curve-bigint.js';
-import { NetworkId, Signature } from './signature.js';
+import { Signature } from './signature.js';
+import { NetworkId } from './types.js';
 
 export { RandomTransaction };
 
@@ -141,4 +142,5 @@ const RandomTransaction = {
   zkappCommandAndFeePayerKey,
   zkappCommandJson,
   networkId: Random.oneOf<NetworkId[]>('testnet', 'mainnet'),
+  accountUpdateWithCallDepth: accountUpdate,
 };

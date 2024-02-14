@@ -1,6 +1,6 @@
-import { Field, Group, Gadgets, Provable, Scalar } from 'o1js';
+import { Field, Group, Gadgets, Provable, Scalar, Hash, Bytes } from 'o1js';
 
-export { GroupCS, BitwiseCS };
+export { GroupCS, BitwiseCS, HashCS };
 
 const GroupCS = constraintSystem('Group Primitive', {
   add() {
@@ -34,12 +34,20 @@ const GroupCS = constraintSystem('Group Primitive', {
 });
 
 const BitwiseCS = constraintSystem('Bitwise Primitive', {
-  rot() {
+  rot32() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.rotate(a, 2, 'left');
-    Gadgets.rotate(a, 2, 'right');
-    Gadgets.rotate(a, 4, 'left');
-    Gadgets.rotate(a, 4, 'right');
+    Gadgets.rotate32(a, 2, 'left');
+    Gadgets.rotate32(a, 2, 'right');
+    Gadgets.rotate32(a, 4, 'left');
+    Gadgets.rotate32(a, 4, 'right');
+  },
+  rot64() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rangeCheck64(a); // `rotate()` doesn't do this
+    Gadgets.rotate64(a, 2, 'left');
+    Gadgets.rotate64(a, 2, 'right');
+    Gadgets.rotate64(a, 4, 'left');
+    Gadgets.rotate64(a, 4, 'right');
   },
   xor() {
     let a = Provable.witness(Field, () => new Field(5n));
@@ -49,15 +57,29 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
     Gadgets.xor(a, b, 48);
     Gadgets.xor(a, b, 64);
   },
+  notUnchecked() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    Gadgets.not(a, 16, false);
+    Gadgets.not(a, 32, false);
+    Gadgets.not(a, 48, false);
+    Gadgets.not(a, 64, false);
+  },
+  notChecked() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    Gadgets.not(a, 16, true);
+    Gadgets.not(a, 32, true);
+    Gadgets.not(a, 48, true);
+    Gadgets.not(a, 64, true);
+  },
   leftShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.leftShift(a, 2);
-    Gadgets.leftShift(a, 4);
+    Gadgets.leftShift64(a, 2);
+    Gadgets.leftShift64(a, 4);
   },
   rightShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.rightShift(a, 2);
-    Gadgets.rightShift(a, 4);
+    Gadgets.rightShift64(a, 2);
+    Gadgets.rightShift64(a, 4);
   },
   and() {
     let a = Provable.witness(Field, () => new Field(5n));
@@ -66,6 +88,38 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
     Gadgets.and(a, b, 32);
     Gadgets.and(a, b, 48);
     Gadgets.and(a, b, 64);
+  },
+});
+
+const Bytes32 = Bytes(32);
+const bytes32 = Bytes32.from([]);
+
+const HashCS = constraintSystem('Hashes', {
+  SHA256() {
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.SHA3_256.hash(xs);
+  },
+
+  SHA384() {
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.SHA3_384.hash(xs);
+  },
+
+  SHA512() {
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.SHA3_512.hash(xs);
+  },
+
+  Keccak256() {
+    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    Hash.Keccak256.hash(xs);
+  },
+
+  Poseidon() {
+    let xs = Array.from({ length: 32 }, (_, i) => i).map((x) =>
+      Provable.witness(Field, () => Field(x))
+    );
+    Hash.Poseidon.hash(xs);
   },
 });
 

@@ -5,7 +5,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-  emptyValue,
+  empty,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   AuthRequired,
@@ -26,7 +26,7 @@ import {
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
-  GenericProvable,
+  PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
@@ -35,10 +35,11 @@ import { randomBytes } from '../../bindings/crypto/random.js';
 import { alphabet } from '../base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../bindings/lib/provable-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 
 export { Random, sample, withHardCoded };
 
@@ -65,6 +66,7 @@ function sample<T>(rng: Random<T>, size: number) {
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const bool = map(boolean, Bool);
+const uint8 = biguintWithInvalid(8);
 const uint32 = biguintWithInvalid(32);
 const uint64 = biguintWithInvalid(64);
 const byte = Random_(drawRandomByte);
@@ -80,7 +82,7 @@ const keypair = map(privateKey, (privatekey) => ({
   publicKey: PrivateKey.toPublicKey(privatekey),
 }));
 
-const tokenId = oneOf(TokenId.emptyValue(), field);
+const tokenId = oneOf(TokenId.empty(), field);
 const stateHash = field;
 const authRequired = map(
   oneOf<Json.AuthRequired[]>(
@@ -105,16 +107,16 @@ const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   Actions.fromList
 );
-const actionState = oneOf(ActionState.emptyValue(), field);
-const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
-const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
+const actionState = oneOf(ActionState.empty(), field);
+const verificationKeyHash = oneOf(VerificationKeyHash.empty(), field);
+const receiptChainHash = oneOf(ReceiptChainHash.empty(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
-const PrimitiveMap = primitiveTypeMap<bigint>();
-type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
-type Provable<T> = GenericProvable<T, bigint>;
+type Types = typeof TypeMap & typeof customTypes & PrimitiveTypeMap<bigint>;
 type Generators = {
-  [K in keyof Types]: Types[K] extends Provable<infer U> ? Random<U> : never;
+  [K in keyof Types]: Types[K] extends Signable<infer U, any>
+    ? Random<U>
+    : never;
 };
 const Generators: Generators = {
   Field: field,
@@ -136,9 +138,10 @@ const Generators: Generators = {
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
+  TransactionVersion: uint32,
 };
-let typeToBigintGenerator = new Map<Provable<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, Generators[key as keyof Generators]])
@@ -160,7 +163,8 @@ const accountUpdate = mapWithInvalid(
       a.body.authorizationKind.isProved = Bool(false);
     }
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = Field(0);
+      a.body.authorizationKind.verificationKeyHash =
+        VerificationKeyHash.empty();
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
@@ -186,17 +190,20 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint64Json = toString(
-  oneOf(uint64.invalid, nonInteger, nonNumericString)
+const invalidUint8Json = toString(
+  oneOf(uint8.invalid, nonInteger, nonNumericString)
 );
 const invalidUint32Json = toString(
   oneOf(uint32.invalid, nonInteger, nonNumericString)
 );
+const invalidUint64Json = toString(
+  oneOf(uint64.invalid, nonInteger, nonNumericString)
+);
 
 // some json versions of those types
 let json_ = {
-  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
+  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -213,7 +220,7 @@ function withInvalidRandomString<T extends string>(rng: Random<T>) {
 }
 
 type JsonGenerators = {
-  [K in keyof Types]: Types[K] extends ProvableExtended<any, infer J>
+  [K in keyof Types]: Types[K] extends Signable<any, infer J>
     ? Random<J>
     : never;
 };
@@ -239,9 +246,10 @@ const JsonGenerators: JsonGenerators = {
   null: constant(null),
   string: base58(nat(50)),
   number: nat(3),
+  TransactionVersion: json_.uint32,
 };
-let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, JsonGenerators[key as keyof JsonGenerators]])
@@ -307,7 +315,9 @@ const Random = Object.assign(Random_, {
   reject,
   dice: Object.assign(dice, { ofSize: diceOfSize() }),
   field,
+  otherField: fieldWithInvalid,
   bool,
+  uint8,
   uint32,
   uint64,
   biguint: biguintWithInvalid,
@@ -327,7 +337,13 @@ function generatorFromLayout<T>(
   { isJson }: { isJson: boolean }
 ): Random<T> {
   let typeToGenerator = isJson ? typeToJsonGenerator : typeToBigintGenerator;
-  return genericLayoutFold<undefined, Random<any>, TypeMap, Json.TypeMap>(
+  return genericLayoutFold<
+    Signable<any, any>,
+    undefined,
+    Random<any>,
+    TypeMap,
+    Json.TypeMap
+  >(
     TypeMap,
     customTypes,
     {
@@ -343,7 +359,7 @@ function generatorFromLayout<T>(
         return array(element, size);
       },
       reduceObject(keys, object) {
-        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overriden)
+        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overridden)
         if (keys.includes('verificationKeyHash')) {
           (object as any).verificationKeyHash = noInvalid(
             (object as any).verificationKeyHash
@@ -357,7 +373,7 @@ function generatorFromLayout<T>(
         } else {
           return mapWithInvalid(isSome, value, (isSome, value) => {
             let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-            if (!isSomeBoolean) return emptyValue(typeData);
+            if (!isSomeBoolean) return empty(typeData);
             return { isSome, value };
           });
         }
@@ -843,12 +859,12 @@ function bignatWithInvalid(max: bigint): RandomWithInvalid<bigint> {
   return Object.assign(valid, { invalid });
 }
 
-function fieldWithInvalid(
-  F: typeof Field | typeof Scalar
-): RandomWithInvalid<bigint> {
+function fieldWithInvalid(F: FiniteField): RandomWithInvalid<bigint> {
   let randomField = Random_(F.random);
-  let specialField = oneOf(0n, 1n, F(-1));
-  let field = oneOf<bigint[]>(randomField, randomField, uint64, specialField);
+  let specialField = oneOf(0n, 1n, F.negate(1n));
+  let roughLogSize = 1 << Math.ceil(Math.log2(F.sizeInBits) - 1);
+  let uint = biguint(roughLogSize);
+  let field = oneOf<bigint[]>(randomField, randomField, uint, specialField);
   let tooLarge = map(field, (x) => x + F.modulus);
   let negative = map(field, (x) => -x - 1n);
   let invalid = oneOf(tooLarge, negative);
