@@ -15,9 +15,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
 
-## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...)
+## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 
 ### Breaking changes
 
@@ -39,7 +39,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- Mainnet support. TBA
+- Mainnet support. https://github.com/o1-labs/o1js/pull/1437
 
 ## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
 
