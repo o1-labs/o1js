@@ -81,28 +81,32 @@ expect(stringify(dummyInput.packed)).toEqual(
   stringify(dummyInputSnarky.packed)
 );
 
-test(Random.accountUpdate, (accountUpdate) => {
-  fixVerificationKey(accountUpdate);
+test(
+  Random.accountUpdate,
+  RandomTransaction.networkId,
+  (accountUpdate, networkId) => {
+    fixVerificationKey(accountUpdate);
 
-  // example account update
-  let accountUpdateJson: Json.AccountUpdate =
-    AccountUpdate.toJSON(accountUpdate);
+    // example account update
+    let accountUpdateJson: Json.AccountUpdate =
+      AccountUpdate.toJSON(accountUpdate);
 
-  // account update hash
-  let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
-  let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
-  let input = AccountUpdate.toInput(accountUpdate);
-  expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
-  expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
+    // account update hash
+    let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
+    let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
+    let input = AccountUpdate.toInput(accountUpdate);
+    expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
+    expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
 
-  let packed = packToFields(input);
-  let packedSnarky = packToFieldsSnarky(inputSnarky);
-  expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
+    let packed = packToFields(input);
+    let packedSnarky = packToFieldsSnarky(inputSnarky);
+    expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-  let hash = accountUpdateHash(accountUpdate, 'testnet');
-  let hashSnarky = accountUpdateSnarky.hash();
-  expect(hash).toEqual(hashSnarky.toBigInt());
-});
+    let hash = accountUpdateHash(accountUpdate, networkId);
+    let hashSnarky = accountUpdateSnarky.hash();
+    expect(hash).toEqual(hashSnarky.toBigInt());
+  }
+);
 
 // private key to/from base58
 test(Random.json.privateKey, (feePayerKeyBase58) => {
@@ -208,7 +212,7 @@ test(
       stringify(feePayerInput1.packed)
     );
 
-    let feePayerDigest = feePayerHash(feePayer, 'testnet');
+    let feePayerDigest = feePayerHash(feePayer, networkId);
     expect(feePayerDigest).toEqual(
       FieldConst.toBigint(ocamlCommitments.feePayerHash)
     );
