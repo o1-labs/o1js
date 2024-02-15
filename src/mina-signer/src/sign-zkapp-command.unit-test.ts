@@ -44,6 +44,7 @@ import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId } from './types.js';
+import { setActiveInstance, Network } from '../../lib/mina.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -81,32 +82,42 @@ expect(stringify(dummyInput.packed)).toEqual(
   stringify(dummyInputSnarky.packed)
 );
 
-test(
-  Random.accountUpdate,
-  RandomTransaction.networkId,
-  (accountUpdate, networkId) => {
-    fixVerificationKey(accountUpdate);
+test(Random.accountUpdate, (accountUpdate) => {
+  const testnetMinaInstance = Network({
+    networkId: 'testnet',
+    mina: 'http://localhost:8080/graphql',
+  });
+  const mainnetMinaInstance = Network({
+    networkId: 'mainnet',
+    mina: 'http://localhost:8080/graphql',
+  });
 
-    // example account update
-    let accountUpdateJson: Json.AccountUpdate =
-      AccountUpdate.toJSON(accountUpdate);
+  fixVerificationKey(accountUpdate);
 
-    // account update hash
-    let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
-    let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
-    let input = AccountUpdate.toInput(accountUpdate);
-    expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
-    expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
+  // example account update
+  let accountUpdateJson: Json.AccountUpdate =
+    AccountUpdate.toJSON(accountUpdate);
 
-    let packed = packToFields(input);
-    let packedSnarky = packToFieldsSnarky(inputSnarky);
-    expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
+  // account update hash
+  let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
+  let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
+  let input = AccountUpdate.toInput(accountUpdate);
+  expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
+  expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
 
-    let hash = accountUpdateHash(accountUpdate, networkId);
-    let hashSnarky = accountUpdateSnarky.hash();
-    expect(hash).toEqual(hashSnarky.toBigInt());
-  }
-);
+  let packed = packToFields(input);
+  let packedSnarky = packToFieldsSnarky(inputSnarky);
+  expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
+
+  let hashTestnet = accountUpdateHash(accountUpdate, 'testnet');
+  let hashMainnet = accountUpdateHash(accountUpdate, 'mainnet');
+  setActiveInstance(testnetMinaInstance);
+  let hashSnarkyTestnet = accountUpdateSnarky.hash();
+  setActiveInstance(mainnetMinaInstance);
+  let hashSnarkyMainnet = accountUpdateSnarky.hash();
+  expect(hashTestnet).toEqual(hashSnarkyTestnet.toBigInt());
+  expect(hashMainnet).toEqual(hashSnarkyMainnet.toBigInt());
+});
 
 // private key to/from base58
 test(Random.json.privateKey, (feePayerKeyBase58) => {
