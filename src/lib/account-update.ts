@@ -1025,7 +1025,12 @@ class AccountUpdate implements Types.AccountUpdate {
       );
     } else {
       let json = Types.AccountUpdate.toJSON(this);
-      return Field(Test.hashFromJson.accountUpdate(JSON.stringify(json)));
+      return Field(
+        Test.hashFromJson.accountUpdate(
+          JSON.stringify(json),
+          activeInstance.getNetworkId()
+        )
+      );
     }
   }
 
