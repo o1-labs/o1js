@@ -391,7 +391,8 @@ function LocalBlockchain({
 
       let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       let commitments = transactionCommitments(
-        TypesBigint.ZkappCommand.fromJSON(zkappCommandJson)
+        TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
+        minaNetworkId
       );
 
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);

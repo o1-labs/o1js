@@ -99,7 +99,7 @@ test(Random.accountUpdate, (accountUpdate) => {
   let packedSnarky = packToFieldsSnarky(inputSnarky);
   expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-  let hash = accountUpdateHash(accountUpdate);
+  let hash = accountUpdateHash(accountUpdate, 'testnet');
   let hashSnarky = accountUpdateSnarky.hash();
   expect(hash).toEqual(hashSnarky.toBigInt());
 });
@@ -134,7 +134,7 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
     JSON.stringify(zkappCommandJson)
   );
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-  let commitment = callForestHash(callForest);
+  let commitment = callForestHash(callForest, 'testnet');
   expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
 });
 
@@ -176,7 +176,7 @@ test(
       JSON.stringify(zkappCommandJson)
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-    let commitment = callForestHash(callForest);
+    let commitment = callForestHash(callForest, 'testnet');
     expect(commitment).toEqual(
       FieldConst.toBigint(ocamlCommitments.commitment)
     );
@@ -200,7 +200,7 @@ test(
       stringify(feePayerInput1.packed)
     );
 
-    let feePayerDigest = feePayerHash(feePayer);
+    let feePayerDigest = feePayerHash(feePayer, 'testnet');
     expect(feePayerDigest).toEqual(
       FieldConst.toBigint(ocamlCommitments.feePayerHash)
     );

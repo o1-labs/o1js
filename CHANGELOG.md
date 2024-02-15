@@ -17,6 +17,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
 
+## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...)
+
 ### Breaking changes
 
 - Remove `AccountUpdate.children` and `AccountUpdate.parent` properties https://github.com/o1-labs/o1js/pull/1402
@@ -34,6 +36,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Usage example: `https://github.com/o1-labs/o1js/blob/main/src/lib/mina/token/token-contract.unit-test.ts`
 - `TokenAccountUpdateIterator`, a primitive to iterate over all token account updates in a transaction https://github.com/o1-labs/o1js/pull/1398
   - this is used to implement `TokenContract` under the hood
+
+### Fixed
+
+- Mainnet support. TBA
 
 ## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
 

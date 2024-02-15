@@ -1017,7 +1017,12 @@ class AccountUpdate implements Types.AccountUpdate {
     // implementations are equivalent, and catch regressions quickly
     if (Provable.inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
-      return hashWithPrefix(prefixes.body, packToFields(input));
+      return hashWithPrefix(
+        activeInstance.getNetworkId() === 'mainnet'
+          ? prefixes.zkappBodyMainnet
+          : prefixes.zkappBodyTestnet,
+        packToFields(input)
+      );
     } else {
       let json = Types.AccountUpdate.toJSON(this);
       return Field(Test.hashFromJson.accountUpdate(JSON.stringify(json)));
@@ -1048,7 +1053,8 @@ class AccountUpdate implements Types.AccountUpdate {
       forest,
       (a) => a.hash(),
       Poseidon.hashWithPrefix,
-      emptyHash
+      emptyHash,
+      activeInstance.getNetworkId()
     );
     return { accountUpdate, calls };
   }
@@ -1386,7 +1392,13 @@ class AccountUpdate implements Types.AccountUpdate {
 // call forest stuff
 
 function hashAccountUpdate(update: AccountUpdate) {
-  return genericHash(AccountUpdate, prefixes.body, update);
+  return genericHash(
+    AccountUpdate,
+    activeInstance.getNetworkId() === 'mainnet'
+      ? prefixes.zkappBodyMainnet
+      : prefixes.zkappBodyTestnet,
+    update
+  );
 }
 
 class HashedAccountUpdate extends Hashed.create(
@@ -1983,7 +1995,8 @@ function addMissingSignatures(
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = transactionCommitments(
-    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand))
+    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand)),
+    activeInstance.getNetworkId()
   );
 
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {

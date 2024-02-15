@@ -44,7 +44,10 @@ function signZkappCommand(
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
+  let { commitment, fullCommitment } = transactionCommitments(
+    zkappCommand,
+    networkId
+  );
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let publicKey = zkappCommand.feePayer.body.publicKey;
 
@@ -71,7 +74,10 @@ function verifyZkappCommandSignature(
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
+  let { commitment, fullCommitment } = transactionCommitments(
+    zkappCommand,
+    networkId
+  );
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
 
   // verify fee payer signature
@@ -108,14 +114,17 @@ function verifyAccountUpdateSignature(
   return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
 }
 
-function transactionCommitments(zkappCommand: ZkappCommand) {
+function transactionCommitments(
+  zkappCommand: ZkappCommand,
+  networkId: NetworkId
+) {
   if (!isCallDepthValid(zkappCommand)) {
     throw Error('zkapp command: invalid call depth');
   }
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-  let commitment = callForestHash(callForest);
+  let commitment = callForestHash(callForest, networkId);
   let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
-  let feePayerDigest = feePayerHash(zkappCommand.feePayer);
+  let feePayerDigest = feePayerHash(zkappCommand.feePayer, networkId);
   let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
     memoHash,
     feePayerDigest,
@@ -150,22 +159,37 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   return forest;
 }
 
-function accountUpdateHash(update: AccountUpdate) {
+function accountUpdateHash(update: AccountUpdate, networkId: NetworkId) {
   assertAuthorizationKindValid(update);
   let input = AccountUpdate.toInput(update);
   let fields = packToFields(input);
-  return hashWithPrefix(prefixes.body, fields);
+  return hashWithPrefix(
+    networkId === 'mainnet'
+      ? prefixes.zkappBodyMainnet
+      : prefixes.zkappBodyTestnet,
+    fields
+  );
 }
 
-function callForestHash(forest: CallForest<AccountUpdate>): bigint {
-  return callForestHashGeneric(forest, accountUpdateHash, hashWithPrefix, 0n);
+function callForestHash(
+  forest: CallForest<AccountUpdate>,
+  networkId: NetworkId
+): bigint {
+  return callForestHashGeneric(
+    forest,
+    accountUpdateHash,
+    hashWithPrefix,
+    0n,
+    networkId
+  );
 }
 
 function callForestHashGeneric<A, F>(
   forest: CallForest<A>,
-  hash: (a: A) => F,
+  hash: (a: A, networkId: NetworkId) => F,
   hashWithPrefix: (prefix: string, input: F[]) => F,
-  emptyHash: F
+  emptyHash: F,
+  networkId: NetworkId
 ): F {
   let stackHash = emptyHash;
   for (let callTree of [...forest].reverse()) {
@@ -173,9 +197,10 @@ function callForestHashGeneric<A, F>(
       callTree.children,
       hash,
       hashWithPrefix,
-      emptyHash
+      emptyHash,
+      networkId
     );
-    let treeHash = hash(callTree.accountUpdate);
+    let treeHash = hash(callTree.accountUpdate, networkId);
     let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
       treeHash,
       calls,
@@ -193,9 +218,9 @@ type FeePayer = ZkappCommand['feePayer'];
 function createFeePayer(feePayer: FeePayer['body']): FeePayer {
   return { authorization: '', body: feePayer };
 }
-function feePayerHash(feePayer: FeePayer) {
+function feePayerHash(feePayer: FeePayer, networkId: NetworkId) {
   let accountUpdate = accountUpdateFromFeePayer(feePayer);
-  return accountUpdateHash(accountUpdate);
+  return accountUpdateHash(accountUpdate, networkId);
 }
 
 function accountUpdateFromFeePayer({
