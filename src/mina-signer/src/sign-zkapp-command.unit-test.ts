@@ -125,18 +125,24 @@ test(memoGenerator, (memoString) => {
 });
 
 // zkapp transaction - basic properties & commitment
-test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
-  zkappCommand.accountUpdates.forEach(fixVerificationKey);
+test(
+  RandomTransaction.zkappCommand,
+  RandomTransaction.networkId,
+  (zkappCommand, networkId, assert) => {
+    zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
-  assert(isCallDepthValid(zkappCommand));
-  let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
-  let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-    JSON.stringify(zkappCommandJson)
-  );
-  let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-  let commitment = callForestHash(callForest, 'testnet');
-  expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
-});
+    assert(isCallDepthValid(zkappCommand));
+    let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
+    let ocamlCommitments = Test.hashFromJson.transactionCommitments(
+      JSON.stringify(zkappCommandJson)
+    );
+    let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
+    let commitment = callForestHash(callForest, networkId);
+    expect(commitment).toEqual(
+      FieldConst.toBigint(ocamlCommitments.commitment)
+    );
+  }
+);
 
 // invalid zkapp transactions
 test.negative(
@@ -151,7 +157,9 @@ test.negative(
 // zkapp transaction
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,
-  ({ feePayerKey, zkappCommand }) => {
+  RandomTransaction.networkId,
+  (zkappCommandAndFeePayerKey, networkId) => {
+    const { feePayerKey, zkappCommand } = zkappCommandAndFeePayerKey;
     zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
     let feePayerKeyBase58 = PrivateKey.toBase58(feePayerKey);
@@ -176,7 +184,7 @@ test(
       JSON.stringify(zkappCommandJson)
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-    let commitment = callForestHash(callForest, 'testnet');
+    let commitment = callForestHash(callForest, networkId);
     expect(commitment).toEqual(
       FieldConst.toBigint(ocamlCommitments.commitment)
     );
