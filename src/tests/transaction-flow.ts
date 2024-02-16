@@ -49,19 +49,19 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method rollupIncrements() {
-    let counter = this.counter.get();
+    const counter = this.counter.get();
     this.counter.requireEquals(counter);
-    let actionState = this.actionState.get();
+    const actionState = this.actionState.get();
     this.actionState.requireEquals(actionState);
 
     const endActionState = this.account.actionState.getAndRequireEquals();
 
-    let pendingActions = this.reducer.getActions({
+    const pendingActions = this.reducer.getActions({
       fromActionState: actionState,
       endActionState,
     });
 
-    let { state: newCounter, actionState: newActionState } =
+    const { state: newCounter, actionState: newActionState } =
       this.reducer.reduce(
         pendingActions,
         Field,
@@ -82,7 +82,7 @@ class SimpleZkapp extends SmartContract {
       value: y,
     });
     this.emitEvent('simpleEvent', y);
-    let x = this.x.getAndRequireEquals();
+    const x = this.x.getAndRequireEquals();
     this.x.set(x.add(y));
   }
 }
@@ -118,7 +118,7 @@ async function sendAndVerifyTransaction(transaction: Mina.Transaction) {
 
 const transactionFee = 100_000_000;
 
-let Local = Mina.LocalBlockchain();
+const Local = Mina.LocalBlockchain();
 const Remote = Mina.Network({
   mina: 'http://localhost:8080/graphql',
   archive: 'http://localhost:8282 ',
