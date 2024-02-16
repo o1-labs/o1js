@@ -659,11 +659,14 @@ declare const Test: {
     accountUpdate(json: string): MlArray<FieldConst>;
   };
   hashFromJson: {
-    accountUpdate(json: string): FieldConst;
+    accountUpdate(json: string, networkId: string): FieldConst;
     /**
      * Returns the commitment of a JSON transaction.
      */
-    transactionCommitments(txJson: string): {
+    transactionCommitments(
+      txJson: string,
+      networkId: string
+    ): {
       commitment: FieldConst;
       fullCommitment: FieldConst;
       feePayerHash: FieldConst;
