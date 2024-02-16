@@ -72,7 +72,7 @@ expect(() =>
       uint: [
         UInt32.zero,
         // invalid Uint32
-        new UInt32(Field(-1)),
+        new UInt32(-1),
       ],
     }));
   })
