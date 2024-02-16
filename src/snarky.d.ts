@@ -663,7 +663,10 @@ declare const Test: {
     /**
      * Returns the commitment of a JSON transaction.
      */
-    transactionCommitments(txJson: string): {
+    transactionCommitments(
+      txJson: string,
+      networkId: string
+    ): {
       commitment: FieldConst;
       fullCommitment: FieldConst;
       feePayerHash: FieldConst;
