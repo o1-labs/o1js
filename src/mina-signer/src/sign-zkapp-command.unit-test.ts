@@ -146,7 +146,8 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
   assert(isCallDepthValid(zkappCommand));
   let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
   let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-    JSON.stringify(zkappCommandJson)
+    JSON.stringify(zkappCommandJson),
+    'testnet'
   );
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest, 'testnet');
@@ -190,10 +191,11 @@ test(
 
     // tx commitment
     let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-      JSON.stringify(zkappCommandJson)
+      JSON.stringify(zkappCommandJson),
+      networkId
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-    let commitment = callForestHash(callForest, 'testnet');
+    let commitment = callForestHash(callForest, networkId);
     expect(commitment).toEqual(
       FieldConst.toBigint(ocamlCommitments.commitment)
     );
@@ -217,7 +219,7 @@ test(
       stringify(feePayerInput1.packed)
     );
 
-    let feePayerDigest = feePayerHash(feePayer, 'testnet');
+    let feePayerDigest = feePayerHash(feePayer, networkId);
     expect(feePayerDigest).toEqual(
       FieldConst.toBigint(ocamlCommitments.feePayerHash)
     );
@@ -232,55 +234,42 @@ test(
     );
 
     // signature
-    let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
-    let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
-    let sigTestnetOcaml = Test.signature.signFieldElement(
+    let sigFieldElements = signFieldElement(
+      fullCommitment,
+      feePayerKey,
+      networkId
+    );
+    let sigOCaml = Test.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
-      false
+      networkId === 'mainnet' ? true : false
     );
-    let sigMainnetOcaml = Test.signature.signFieldElement(
-      ocamlCommitments.fullCommitment,
-      Ml.fromPrivateKey(feePayerKeySnarky),
-      true
-    );
-    expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
-    expect(Signature.toBase58(sigMainnet)).toEqual(sigMainnetOcaml);
+
+    expect(Signature.toBase58(sigFieldElements)).toEqual(sigOCaml);
 
     let verify = (s: Signature, id: NetworkId) =>
       verifyFieldElement(s, fullCommitment, feePayerAddress, id);
-    expect(verify(sigTestnet, 'testnet')).toEqual(true);
-    expect(verify(sigTestnet, 'mainnet')).toEqual(false);
-    expect(verify(sigMainnet, 'testnet')).toEqual(false);
-    expect(verify(sigMainnet, 'mainnet')).toEqual(true);
+
+    expect(verify(sigFieldElements, networkId)).toEqual(true);
+    expect(
+      verify(sigFieldElements, networkId === 'mainnet' ? 'testnet' : 'mainnet')
+    ).toEqual(false);
 
     // full end-to-end test: sign a zkapp transaction
-    let sTest = signZkappCommand(
-      zkappCommandJson,
-      feePayerKeyBase58,
-      'testnet'
-    );
-    expect(sTest.feePayer.authorization).toEqual(sigTestnetOcaml);
-    let sMain = signZkappCommand(
-      zkappCommandJson,
-      feePayerKeyBase58,
-      'mainnet'
-    );
-    expect(sMain.feePayer.authorization).toEqual(sigMainnetOcaml);
+    let sig = signZkappCommand(zkappCommandJson, feePayerKeyBase58, networkId);
+    expect(sig.feePayer.authorization).toEqual(sigOCaml);
 
     let feePayerAddressBase58 = PublicKey.toBase58(feePayerAddress);
     expect(
-      verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'testnet')
+      verifyZkappCommandSignature(sig, feePayerAddressBase58, networkId)
     ).toEqual(true);
     expect(
-      verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'mainnet')
+      verifyZkappCommandSignature(
+        sig,
+        feePayerAddressBase58,
+        networkId === 'mainnet' ? 'testnet' : 'mainnet'
+      )
     ).toEqual(false);
-    expect(
-      verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'testnet')
-    ).toEqual(false);
-    expect(
-      verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'mainnet')
-    ).toEqual(true);
   }
 );
 
