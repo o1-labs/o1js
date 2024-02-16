@@ -1,4 +1,4 @@
-import { Ledger } from '../snarky.js';
+import { Ledger, Test } from '../snarky.js';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -590,16 +590,14 @@ function LocalBlockchain({
         }
       });
 
+      const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction = {
         isSuccess: true,
         transaction: txn.transaction,
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
         hash: (): string => {
-          const message =
-            'Info: Txn Hash retrieving is not supported for LocalBlockchain.';
-          console.log(message);
-          return message;
+          return hash;
         },
       };
 
@@ -903,6 +901,7 @@ function Network(
       }
 
       const isSuccess = errors === undefined;
+      const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction = {
         isSuccess,
         data: response?.data,
@@ -911,8 +910,7 @@ function Network(
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
         hash() {
-          // TODO: compute this
-          return response?.data?.sendZkapp?.zkapp?.hash!;
+          return hash;
         },
       };
 

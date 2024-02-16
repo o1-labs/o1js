@@ -693,6 +693,7 @@ declare const Test: {
     serializeCommon(common: string): { data: Uint8Array };
     hashPayment(payment: string): string;
     hashPaymentV1(payment: string): string;
+    hashZkAppCommand(command: string): string;
   };
 };
 
