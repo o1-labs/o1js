@@ -1,14 +1,5 @@
 import { expect } from 'expect';
-import { Ledger, Test, Pickles } from '../../snarky.js';
-import {
-  PrivateKey as PrivateKeySnarky,
-  PublicKey as PublicKeySnarky,
-} from '../../lib/signature.js';
-import {
-  AccountUpdate as AccountUpdateSnarky,
-  ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/account-update.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 import {
   AccountUpdate,
   Field,
@@ -16,6 +7,28 @@ import {
   ZkappCommand,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js';
+import {
+  AccountUpdate as AccountUpdateSnarky,
+  ZkappCommand as ZkappCommandSnarky,
+} from '../../lib/account-update.js';
+import { FieldConst } from '../../lib/field.js';
+import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
+import { Network, setActiveInstance } from '../../lib/mina.js';
+import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
+import {
+  PrivateKey as PrivateKeySnarky,
+  PublicKey as PublicKeySnarky,
+} from '../../lib/signature.js';
+import { Random, test, withHardCoded } from '../../lib/testing/property.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import {
+  hashWithPrefix,
+  packToFields,
+  prefixes,
+} from '../../provable/poseidon-bigint.js';
+import { Pickles, Test } from '../../snarky.js';
+import { Memo } from './memo.js';
+import { RandomTransaction } from './random-transaction.js';
 import {
   accountUpdateFromFeePayer,
   accountUpdateHash,
@@ -27,24 +40,11 @@ import {
   verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
 import {
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-} from '../../provable/poseidon-bigint.js';
-import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
-import { Memo } from './memo.js';
-import {
   Signature,
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
-import { Random, test, withHardCoded } from '../../lib/testing/property.js';
-import { RandomTransaction } from './random-transaction.js';
-import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
-import { FieldConst } from '../../lib/field.js';
-import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId } from './types.js';
-import { setActiveInstance, Network } from '../../lib/mina.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -140,24 +140,18 @@ test(memoGenerator, (memoString) => {
 });
 
 // zkapp transaction - basic properties & commitment
-test(
-  RandomTransaction.zkappCommand,
-  RandomTransaction.networkId,
-  (zkappCommand, networkId, assert) => {
-    zkappCommand.accountUpdates.forEach(fixVerificationKey);
+test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
+  zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
-    assert(isCallDepthValid(zkappCommand));
-    let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
-    let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-      JSON.stringify(zkappCommandJson)
-    );
-    let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-    let commitment = callForestHash(callForest, networkId);
-    expect(commitment).toEqual(
-      FieldConst.toBigint(ocamlCommitments.commitment)
-    );
-  }
-);
+  assert(isCallDepthValid(zkappCommand));
+  let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
+  let ocamlCommitments = Test.hashFromJson.transactionCommitments(
+    JSON.stringify(zkappCommandJson)
+  );
+  let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
+  let commitment = callForestHash(callForest, 'testnet');
+  expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
+});
 
 // invalid zkapp transactions
 test.negative(
@@ -199,7 +193,7 @@ test(
       JSON.stringify(zkappCommandJson)
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-    let commitment = callForestHash(callForest, networkId);
+    let commitment = callForestHash(callForest, 'testnet');
     expect(commitment).toEqual(
       FieldConst.toBigint(ocamlCommitments.commitment)
     );
@@ -223,7 +217,7 @@ test(
       stringify(feePayerInput1.packed)
     );
 
-    let feePayerDigest = feePayerHash(feePayer, networkId);
+    let feePayerDigest = feePayerHash(feePayer, 'testnet');
     expect(feePayerDigest).toEqual(
       FieldConst.toBigint(ocamlCommitments.feePayerHash)
     );
