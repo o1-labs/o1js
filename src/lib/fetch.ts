@@ -62,7 +62,6 @@ export {
   setArchiveGraphqlFallbackEndpoints,
   setLightnetAccountManagerEndpoint,
   sendZkapp,
-  removeJsonQuotes,
   fetchEvents,
   fetchActions,
   Lightnet,
@@ -929,12 +928,6 @@ namespace Lightnet {
 function updateActionState(actions: string[][], actionState: Field) {
   let actionHash = Actions.fromJSON(actions).hash;
   return Actions.updateSequenceState(actionState, actionHash);
-}
-
-// removes the quotes on JSON keys
-function removeJsonQuotes(json: string) {
-  let cleaned = JSON.stringify(JSON.parse(json), null, 2);
-  return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
 }
 
 // TODO it seems we're not actually catching most errors here

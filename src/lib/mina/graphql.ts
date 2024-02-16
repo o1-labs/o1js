@@ -1,6 +1,6 @@
-import { ActionStatesStringified, removeJsonQuotes } from '../fetch.js';
+import { type ActionStatesStringified, removeJsonQuotes } from '../fetch.js';
 import { UInt32 } from '../int.js';
-import { ZkappCommand } from '../account-update.js';
+import { type ZkappCommand } from '../account-update.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
 
 export {
@@ -27,7 +27,14 @@ export {
   currentSlotQuery,
   genesisConstantsQuery,
   lastBlockQuery,
+  removeJsonQuotes,
 };
+
+// removes the quotes on JSON keys
+function removeJsonQuotes(json: string) {
+  let cleaned = JSON.stringify(JSON.parse(json), null, 2);
+  return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
+}
 
 type AuthRequired = Types.Json.AuthRequired;
 // TODO auto-generate this type and the query
