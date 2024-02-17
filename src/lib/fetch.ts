@@ -503,11 +503,14 @@ async function fetchLatestBlockZkappStatus(
   return bestChain;
 }
 
-async function checkZkappTransaction(txnId: string, blockLength = 20) {
+async function checkZkappTransaction(
+  transactionHash: string,
+  blockLength = 20
+) {
   let bestChainBlocks = await fetchLatestBlockZkappStatus(blockLength);
   for (let block of bestChainBlocks.bestChain) {
     for (let zkappCommand of block.transactions.zkappCommands) {
-      if (zkappCommand.hash === txnId) {
+      if (zkappCommand.hash === transactionHash) {
         if (zkappCommand.failureReason !== null) {
           let failureReason = zkappCommand.failureReason
             .reverse()
