@@ -179,9 +179,9 @@ function createIncludedOrRejectedTransaction(
     toPretty,
     hash,
   }: Omit<PendingTransaction, 'wait' | 'waitOrThrowIfError'>,
-  errors?: string[]
+  errors: string[]
 ): IncludedTransaction | RejectedTransaction {
-  if (errors !== undefined) {
+  if (errors.length > 0) {
     return {
       status: 'rejected',
       errors,
@@ -365,14 +365,14 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return sendZkappQuery(self.toJSON());
     },
     async send() {
+      return await sendTransaction(self);
+    },
+    async sendOrThrowIfError() {
       try {
         return await sendTransaction(self);
       } catch (error) {
         throw prettifyStacktrace(error);
       }
-    },
-    async sendOrThrowIfError() {
-      return await sendOrThrowIfError(self);
     },
   };
   return self;
@@ -513,6 +513,8 @@ function LocalBlockchain({
         }
       }
 
+      let isSuccess = true;
+      const errors: string[] = [];
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(zkappCommandJson),
@@ -520,17 +522,15 @@ function LocalBlockchain({
           JSON.stringify(networkState)
         );
       } catch (err: any) {
-        try {
-          // reverse errors so they match order of account updates
-          // TODO: label updates, and try to give precise explanations about what went wrong
-          let errors = JSON.parse(err.message);
-          err.message = invalidTransactionError(txn.transaction, errors, {
+        // reverse errors so they match order of account updates
+        // TODO: label updates, and try to give precise explanations about what went wrong
+        errors.push(
+          invalidTransactionError(txn.transaction, JSON.parse(err.message), {
             accountCreationFee:
               defaultNetworkConstants.accountCreationFee.toString(),
-          });
-        } finally {
-          throw err;
-        }
+          })
+        );
+        isSuccess = false;
       }
 
       // fetches all events from the transaction and stores them
@@ -592,7 +592,8 @@ function LocalBlockchain({
 
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction = {
-        isSuccess: true,
+        isSuccess,
+        errors,
         transaction: txn.transaction,
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
@@ -605,11 +606,11 @@ function LocalBlockchain({
         maxAttempts?: number;
         interval?: number;
       }) => {
-        console.log(
-          'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
-        );
         return Promise.resolve(
-          createIncludedOrRejectedTransaction(pendingTransaction)
+          createIncludedOrRejectedTransaction(
+            pendingTransaction,
+            pendingTransaction.errors
+          )
         );
       };
 
@@ -617,11 +618,20 @@ function LocalBlockchain({
         maxAttempts?: number;
         interval?: number;
       }) => {
-        console.log(
-          'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
-        );
+        if (pendingTransaction.errors.length > 0) {
+          throw Error(
+            `Transaction failed with errors: ${JSON.stringify(
+              pendingTransaction.errors,
+              null,
+              2
+            )}`
+          );
+        }
         return Promise.resolve(
-          createIncludedOrRejectedTransaction(pendingTransaction)
+          createIncludedOrRejectedTransaction(
+            pendingTransaction,
+            pendingTransaction.errors
+          )
         );
       };
 
@@ -888,19 +898,14 @@ function Network(
       verifyTransactionLimits(txn.transaction);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
-      let errors: any[] | undefined;
+      let errors: string[] = [];
       if (response === undefined && error !== undefined) {
-        console.log('Error: Failed to send transaction', error);
-        errors = [error];
+        errors = [JSON.stringify(error)];
       } else if (response && response.errors && response.errors.length > 0) {
-        console.log(
-          'Error: Transaction returned with errors',
-          JSON.stringify(response.errors, null, 2)
-        );
-        errors = response.errors;
+        response?.errors.forEach((e: any) => errors.push(JSON.stringify(e)));
       }
 
-      const isSuccess = errors === undefined;
+      const isSuccess = errors.length === 0;
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction = {
         isSuccess,
@@ -915,19 +920,22 @@ function Network(
       };
 
       const pollTransactionStatus = async (
-        txId: string,
+        transactionHash: string,
         maxAttempts: number,
         interval: number,
         attempts: number = 0
       ): Promise<IncludedTransaction | RejectedTransaction> => {
         let res: Awaited<ReturnType<typeof Fetch.checkZkappTransaction>>;
         try {
-          res = await Fetch.checkZkappTransaction(txId);
+          res = await Fetch.checkZkappTransaction(transactionHash);
           if (res.success) {
-            return createIncludedOrRejectedTransaction(pendingTransaction);
+            return createIncludedOrRejectedTransaction(
+              pendingTransaction,
+              pendingTransaction.errors
+            );
           } else if (res.failureReason) {
             return createIncludedOrRejectedTransaction(pendingTransaction, [
-              `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
+              `Transaction failed.\nTransactionId: ${transactionHash}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
             ]);
           }
         } catch (error) {
@@ -938,12 +946,17 @@ function Network(
 
         if (maxAttempts && attempts >= maxAttempts) {
           return createIncludedOrRejectedTransaction(pendingTransaction, [
-            `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`,
+            `Exceeded max attempts.\nTransactionId: ${transactionHash}\nAttempts: ${attempts}\nLast received status: ${res}`,
           ]);
         }
 
         await new Promise((resolve) => setTimeout(resolve, interval));
-        return pollTransactionStatus(txId, maxAttempts, interval, attempts + 1);
+        return pollTransactionStatus(
+          transactionHash,
+          maxAttempts,
+          interval,
+          attempts + 1
+        );
       };
 
       const wait = async (options?: {
@@ -962,15 +975,11 @@ function Network(
         // fetching an update every 20s is more than enough with a current block time of 3min
         const maxAttempts = options?.maxAttempts ?? 45;
         const interval = options?.interval ?? 20000;
-        const txId = response?.data?.sendZkapp?.zkapp?.hash;
-
-        if (!txId) {
-          return createIncludedOrRejectedTransaction(
-            pendingTransaction,
-            pendingTransaction.errors
-          );
-        }
-        return pollTransactionStatus(txId, maxAttempts, interval);
+        return pollTransactionStatus(
+          pendingTransaction.hash(),
+          maxAttempts,
+          interval
+        );
       };
 
       const waitOrThrowIfError = async (options?: {
@@ -1226,20 +1235,6 @@ function accountCreationFee() {
 
 async function sendTransaction(txn: Transaction) {
   return await activeInstance.sendTransaction(txn);
-}
-
-async function sendOrThrowIfError(txn: Transaction) {
-  const pendingTransaction = await sendTransaction(txn);
-  if (pendingTransaction.errors) {
-    throw Error(
-      `Transaction failed with errors: ${JSON.stringify(
-        pendingTransaction.errors,
-        null,
-        2
-      )}`
-    );
-  }
-  return pendingTransaction;
 }
 
 /**
