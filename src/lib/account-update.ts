@@ -65,6 +65,7 @@ import {
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
 import { RandomId } from './provable-types/auxiliary.js';
+import { max } from 'src/bindings/crypto/bigint-helpers.js';
 
 // external API
 export {
@@ -102,6 +103,32 @@ export {
 
 const TransactionVersion = {
   current: () => UInt32.from(protocolVersions.txnVersion),
+};
+
+// TODO FIX ME PLS
+
+const createCustomBodyPrefix = (prefix: string) => {
+  const maxLength = 20;
+  const paddingChar = '*';
+  let length = prefix.length;
+
+  if (length <= maxLength) {
+    let diff = maxLength - length;
+    return prefix + paddingChar.repeat(diff);
+  } else {
+    return prefix.substring(0, maxLength);
+  }
+};
+
+const zkAppBodyPrefix = (network: string) => {
+  switch (network) {
+    case 'mainnet':
+      return prefixes.zkappBodyMainnet;
+    case 'testnet':
+      return prefixes.zkappBodyTestnet;
+    default:
+      return createCustomBodyPrefix(network + 'ZkappBody');
+  }
 };
 
 type ZkappProverData = {
@@ -1018,9 +1045,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (Provable.inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
       return hashWithPrefix(
-        activeInstance.getNetworkId() === 'mainnet'
-          ? prefixes.zkappBodyMainnet
-          : prefixes.zkappBodyTestnet,
+        zkAppBodyPrefix(activeInstance.getNetworkId()),
         packToFields(input)
       );
     } else {
@@ -1399,9 +1424,7 @@ class AccountUpdate implements Types.AccountUpdate {
 function hashAccountUpdate(update: AccountUpdate) {
   return genericHash(
     AccountUpdate,
-    activeInstance.getNetworkId() === 'mainnet'
-      ? prefixes.zkappBodyMainnet
-      : prefixes.zkappBodyTestnet,
+    zkAppBodyPrefix(activeInstance.getNetworkId()),
     update
   );
 }

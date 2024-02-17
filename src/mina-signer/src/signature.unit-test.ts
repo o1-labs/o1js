@@ -39,8 +39,8 @@ function checkConsistentSingle(
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = Test.signature.signFieldElement(msgMl, keyMl, false);
-  let actualMain = Test.signature.signFieldElement(msgMl, keyMl, true);
+  let actualTest = Test.signature.signFieldElement(msgMl, keyMl, 'testnet');
+  let actualMain = Test.signature.signFieldElement(msgMl, keyMl, 'mainnet');
   expect(Signature.toBase58(sigTest)).toEqual(actualTest);
   expect(Signature.toBase58(sigMain)).toEqual(actualMain);
 }

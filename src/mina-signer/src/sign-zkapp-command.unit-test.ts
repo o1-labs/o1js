@@ -82,42 +82,38 @@ expect(stringify(dummyInput.packed)).toEqual(
   stringify(dummyInputSnarky.packed)
 );
 
-test(Random.accountUpdate, (accountUpdate) => {
-  const testnetMinaInstance = Network({
-    networkId: 'testnet',
-    mina: 'http://localhost:8080/graphql',
-  });
-  const mainnetMinaInstance = Network({
-    networkId: 'mainnet',
-    mina: 'http://localhost:8080/graphql',
-  });
+test(
+  Random.accountUpdate,
+  RandomTransaction.networkId,
+  (accountUpdate, networkId) => {
+    const minaInstance = Network({
+      networkId,
+      mina: 'http://localhost:8080/graphql',
+    });
 
-  fixVerificationKey(accountUpdate);
+    fixVerificationKey(accountUpdate);
 
-  // example account update
-  let accountUpdateJson: Json.AccountUpdate =
-    AccountUpdate.toJSON(accountUpdate);
+    // example account update
+    let accountUpdateJson: Json.AccountUpdate =
+      AccountUpdate.toJSON(accountUpdate);
 
-  // account update hash
-  let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
-  let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
-  let input = AccountUpdate.toInput(accountUpdate);
-  expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
-  expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
+    // account update hash
+    let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
+    let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
+    let input = AccountUpdate.toInput(accountUpdate);
+    expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
+    expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
 
-  let packed = packToFields(input);
-  let packedSnarky = packToFieldsSnarky(inputSnarky);
-  expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
+    let packed = packToFields(input);
+    let packedSnarky = packToFieldsSnarky(inputSnarky);
+    expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-  let hashTestnet = accountUpdateHash(accountUpdate, 'testnet');
-  let hashMainnet = accountUpdateHash(accountUpdate, 'mainnet');
-  setActiveInstance(testnetMinaInstance);
-  let hashSnarkyTestnet = accountUpdateSnarky.hash();
-  setActiveInstance(mainnetMinaInstance);
-  let hashSnarkyMainnet = accountUpdateSnarky.hash();
-  expect(hashTestnet).toEqual(hashSnarkyTestnet.toBigInt());
-  expect(hashMainnet).toEqual(hashSnarkyMainnet.toBigInt());
-});
+    setActiveInstance(minaInstance);
+    let hashSnarky = accountUpdateSnarky.hash();
+    let hash = accountUpdateHash(accountUpdate, networkId);
+    expect(hash).toEqual(hashSnarky.toBigInt());
+  }
+);
 
 // private key to/from base58
 test(Random.json.privateKey, (feePayerKeyBase58) => {
@@ -140,19 +136,25 @@ test(memoGenerator, (memoString) => {
 });
 
 // zkapp transaction - basic properties & commitment
-test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
-  zkappCommand.accountUpdates.forEach(fixVerificationKey);
+test(
+  RandomTransaction.zkappCommand,
+  RandomTransaction.networkId,
+  (zkappCommand, networkId, assert) => {
+    zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
-  assert(isCallDepthValid(zkappCommand));
-  let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
-  let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-    JSON.stringify(zkappCommandJson),
-    'testnet'
-  );
-  let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-  let commitment = callForestHash(callForest, 'testnet');
-  expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
-});
+    assert(isCallDepthValid(zkappCommand));
+    let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
+    let ocamlCommitments = Test.hashFromJson.transactionCommitments(
+      JSON.stringify(zkappCommandJson),
+      networkId
+    );
+    let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
+    let commitment = callForestHash(callForest, networkId);
+    expect(commitment).toEqual(
+      FieldConst.toBigint(ocamlCommitments.commitment)
+    );
+  }
+);
 
 // invalid zkapp transactions
 test.negative(
@@ -242,7 +244,7 @@ test(
     let sigOCaml = Test.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
-      networkId === 'mainnet' ? true : false
+      networkId
     );
 
     expect(Signature.toBase58(sigFieldElements)).toEqual(sigOCaml);

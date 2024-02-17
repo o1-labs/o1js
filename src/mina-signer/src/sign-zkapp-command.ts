@@ -159,6 +159,19 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   return forest;
 }
 
+const createCustomBodyPrefix = (prefix: string) => {
+  const maxLength = 20;
+  const paddingChar = '*';
+  let length = prefix.length;
+
+  if (length <= maxLength) {
+    let diff = maxLength - length;
+    return prefix + paddingChar.repeat(diff);
+  } else {
+    return prefix.substring(0, maxLength);
+  }
+};
+
 const zkAppBodyPrefix = (network: string) => {
   switch (network) {
     case 'mainnet':
@@ -166,7 +179,7 @@ const zkAppBodyPrefix = (network: string) => {
     case 'testnet':
       return prefixes.zkappBodyTestnet;
     default:
-      return 'ZkappBody' + network;
+      return createCustomBodyPrefix(network + 'ZkappBody');
   }
 };
 

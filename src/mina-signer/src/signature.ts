@@ -150,10 +150,10 @@ function deriveNonce(
 ): Scalar {
   let { x, y } = publicKey;
   let d = Field(privateKey);
-  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
+  let id = getNetworkId(networkId);
   let input = HashInput.append(message, {
     fields: [x, y, d],
-    packed: [[id, 8]],
+    packed: [[id, 40]],
   });
   let packedInput = packToFields(input);
   let inputBits = packedInput.map(Field.toBits).flat();
@@ -189,11 +189,12 @@ function hashMessage(
 ): Scalar {
   let { x, y } = publicKey;
   let input = HashInput.append(message, { fields: [x, y, r] });
-  let prefix =
-    networkId === 'mainnet'
-      ? prefixes.signatureMainnet
-      : prefixes.signatureTestnet;
-  return hashWithPrefix(prefix, packToFields(input));
+
+  let chain = '';
+  if (networkId === 'mainnet') chain = prefixes.signatureMainnet;
+  else if (networkId === 'testnet') chain = prefixes.signatureTestnet;
+  else chain = 'otherSignature******';
+  return hashWithPrefix(chain, packToFields(input));
 }
 
 /**
@@ -280,7 +281,7 @@ function deriveNonceLegacy(
 ): Scalar {
   let { x, y } = publicKey;
   let scalarBits = Scalar.toBits(privateKey);
-  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
+  let id = getNetworkId(networkId);
   let idBits = bytesToBits([Number(id)]);
   let input = HashInputLegacy.append(message, {
     fields: [x, y],
@@ -316,4 +317,28 @@ function hashMessageLegacy(
       ? prefixes.signatureMainnet
       : prefixes.signatureTestnet;
   return HashLegacy.hashWithPrefix(prefix, packToFieldsLegacy(input));
+}
+
+const toBytePadded = (b: number) => ('000000000' + b.toString(2)).substr(-8);
+
+function networkIdOfString(n: string) {
+  let l = n.length;
+  let acc = '';
+  for (let i = l - 1; i >= 0; i--) {
+    let b = n.charCodeAt(i);
+    let padded = toBytePadded(b);
+    acc = acc.concat(padded);
+  }
+  return BigInt('0b' + [...acc].reverse().join(''));
+}
+
+function getNetworkId(networkId: string) {
+  switch (networkId) {
+    case 'mainnet':
+      return networkIdMainnet;
+    case 'testnet':
+      return networkIdTestnet;
+    default:
+      return networkIdOfString(networkId);
+  }
 }
