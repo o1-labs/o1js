@@ -39,16 +39,14 @@ export { Client as default };
 const defaultValidUntil = '4294967295';
 
 class Client {
-  private network: NetworkId; // TODO: Rename to "networkId" for consistency with remaining codebase.
+  private network: NetworkId;
 
   constructor(options: { network: NetworkId }) {
     if (!options?.network) {
       throw Error('Invalid Specified Network');
     }
     const specifiedNetwork = options.network.toLowerCase();
-    if (specifiedNetwork !== 'mainnet' && specifiedNetwork !== 'testnet') {
-      throw Error('Invalid Specified Network');
-    }
+
     this.network = specifiedNetwork;
   }
 
@@ -122,9 +120,13 @@ class Client {
    * @param privateKey The private key used for signing
    * @returns The signed field elements
    */
-  signFields(fields: bigint[], privateKey: Json.PrivateKey): Signed<bigint[]> {
+  signFields(
+    fields: bigint[],
+    privateKey: Json.PrivateKey,
+    network?: NetworkId
+  ): Signed<bigint[]> {
     let privateKey_ = PrivateKey.fromBase58(privateKey);
-    let signature = sign({ fields }, privateKey_, 'testnet');
+    let signature = sign({ fields }, privateKey_, network ?? 'testnet');
     return {
       signature: Signature.toBase58(signature),
       publicKey: PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_)),
@@ -139,12 +141,15 @@ class Client {
    * @returns True if the `signedFields` contains a valid signature matching
    * the fields and publicKey.
    */
-  verifyFields({ data, signature, publicKey }: Signed<bigint[]>) {
+  verifyFields(
+    { data, signature, publicKey }: Signed<bigint[]>,
+    network?: NetworkId
+  ) {
     return verify(
       Signature.fromBase58(signature),
       { fields: data },
       PublicKey.fromBase58(publicKey),
-      'testnet'
+      network ?? 'testnet'
     );
   }
 

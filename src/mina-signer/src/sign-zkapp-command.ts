@@ -165,7 +165,6 @@ const zkAppBodyPrefix = (network: string) => {
       return prefixes.zkappBodyMainnet;
     case 'testnet':
       return prefixes.zkappBodyTestnet;
-
     default:
       return 'ZkappBody' + network;
   }

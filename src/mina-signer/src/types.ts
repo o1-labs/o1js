@@ -9,7 +9,13 @@ export type Field = number | bigint | string;
 export type PublicKey = string;
 export type PrivateKey = string;
 export type Signature = SignatureJson;
-export type NetworkId = 'mainnet' | 'testnet';
+export type NetworkId = 'mainnet' | 'testnet' | string;
+
+export const NetworkID = {
+  Mainnet: 'mainnet',
+  Testnet: 'testnet',
+  Other: (other: string) => other,
+};
 
 export type Keypair = {
   readonly privateKey: PrivateKey;
