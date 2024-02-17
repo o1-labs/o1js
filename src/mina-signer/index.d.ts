@@ -3,4 +3,5 @@
 import Client from './mina-signer.ts';
 import { NetworkId } from './src/types.ts';
 
+export default Client;
 export { Client, NetworkId };
