@@ -11,12 +11,6 @@ export type PrivateKey = string;
 export type Signature = SignatureJson;
 export type NetworkId = string;
 
-export const NetworkID = {
-  Mainnet: 'mainnet',
-  Testnet: 'testnet',
-  Other: (other: string) => other,
-};
-
 export type Keypair = {
   readonly privateKey: PrivateKey;
   readonly publicKey: PublicKey;
