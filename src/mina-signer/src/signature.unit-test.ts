@@ -23,26 +23,29 @@ function checkConsistentSingle(
   msg: Field,
   key: PrivateKey,
   keySnarky: PrivateKeySnarky,
-  pk: PublicKey
+  pk: PublicKey,
+  networkId: string
 ) {
-  let sigTest = signFieldElement(msg, key, 'testnet');
-  let sigMain = signFieldElement(msg, key, 'mainnet');
+  let sig = signFieldElement(msg, key, networkId);
+
   // verify
-  let okTestnetTestnet = verifyFieldElement(sigTest, msg, pk, 'testnet');
-  let okMainnetTestnet = verifyFieldElement(sigMain, msg, pk, 'testnet');
-  let okTestnetMainnet = verifyFieldElement(sigTest, msg, pk, 'mainnet');
-  let okMainnetMainnet = verifyFieldElement(sigMain, msg, pk, 'mainnet');
-  expect(okTestnetTestnet).toEqual(true);
-  expect(okMainnetTestnet).toEqual(false);
-  expect(okTestnetMainnet).toEqual(false);
-  expect(okMainnetMainnet).toEqual(true);
+  expect(verifyFieldElement(sig, msg, pk, networkId)).toEqual(true);
+
+  // verify against different network
+  expect(
+    verifyFieldElement(
+      sig,
+      msg,
+      pk,
+      networkId === 'mainnet' ? 'testnet' : 'mainnet'
+    )
+  ).toEqual(false);
+
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = Test.signature.signFieldElement(msgMl, keyMl, 'testnet');
-  let actualMain = Test.signature.signFieldElement(msgMl, keyMl, 'mainnet');
-  expect(Signature.toBase58(sigTest)).toEqual(actualTest);
-  expect(Signature.toBase58(sigMain)).toEqual(actualMain);
+  let actualTest = Test.signature.signFieldElement(msgMl, keyMl, networkId);
+  expect(Signature.toBase58(sig)).toEqual(actualTest);
 }
 
 // check that various multi-field hash inputs can be verified
@@ -96,12 +99,16 @@ for (let i = 0; i < 10; i++) {
   // hard coded single field elements
   let hardcoded = [0n, 1n, 2n, p - 1n];
   for (let x of hardcoded) {
-    checkConsistentSingle(x, key, keySnarky, publicKey);
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'other');
   }
   // random single field elements
   for (let i = 0; i < 10; i++) {
     let x = randomFields[i];
-    checkConsistentSingle(x, key, keySnarky, publicKey);
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'other');
   }
   // hard-coded multi-element hash inputs
   let messages: HashInput[] = [

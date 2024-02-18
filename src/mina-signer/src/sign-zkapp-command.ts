@@ -35,6 +35,7 @@ export {
   accountUpdateFromFeePayer,
   isCallDepthValid,
   CallForest,
+  createCustomPrefix,
 };
 
 function signZkappCommand(
@@ -159,7 +160,7 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   return forest;
 }
 
-const createCustomBodyPrefix = (prefix: string) => {
+const createCustomPrefix = (prefix: string) => {
   const maxLength = 20;
   const paddingChar = '*';
   let length = prefix.length;
@@ -179,7 +180,7 @@ const zkAppBodyPrefix = (network: string) => {
     case 'testnet':
       return prefixes.zkappBodyTestnet;
     default:
-      return createCustomBodyPrefix(network + 'ZkappBody');
+      return createCustomPrefix(network + 'ZkappBody');
   }
 };
 

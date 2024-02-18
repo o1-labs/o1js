@@ -28,6 +28,7 @@ import { base58 } from '../../lib/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
 import { NetworkId } from './types.js';
+import { createCustomPrefix } from './sign-zkapp-command.js';
 
 export {
   sign,
@@ -189,12 +190,7 @@ function hashMessage(
 ): Scalar {
   let { x, y } = publicKey;
   let input = HashInput.append(message, { fields: [x, y, r] });
-
-  let chain = '';
-  if (networkId === 'mainnet') chain = prefixes.signatureMainnet;
-  else if (networkId === 'testnet') chain = prefixes.signatureTestnet;
-  else chain = 'otherSignature******';
-  return hashWithPrefix(chain, packToFields(input));
+  return hashWithPrefix(signaturePrefix(networkId), packToFields(input));
 }
 
 /**
@@ -312,10 +308,7 @@ function hashMessageLegacy(
 ): Scalar {
   let { x, y } = publicKey;
   let input = HashInputLegacy.append(message, { fields: [x, y, r], bits: [] });
-  let prefix =
-    networkId === 'mainnet'
-      ? prefixes.signatureMainnet
-      : prefixes.signatureTestnet;
+  let prefix = signaturePrefix(networkId);
   return HashLegacy.hashWithPrefix(prefix, packToFieldsLegacy(input));
 }
 
@@ -342,3 +335,14 @@ function getNetworkId(networkId: string): [bigint, number] {
       return networkIdOfString(networkId);
   }
 }
+
+const signaturePrefix = (network: string) => {
+  switch (network) {
+    case 'mainnet':
+      return prefixes.signatureMainnet;
+    case 'testnet':
+      return prefixes.signatureTestnet;
+    default:
+      return createCustomPrefix(network + 'Signature');
+  }
+};

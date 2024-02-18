@@ -65,7 +65,6 @@ import {
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
 import { RandomId } from './provable-types/auxiliary.js';
-import { max } from 'src/bindings/crypto/bigint-helpers.js';
 
 // external API
 export {
