@@ -313,14 +313,14 @@ function hashMessageLegacy(
   return HashLegacy.hashWithPrefix(prefix, packToFieldsLegacy(input));
 }
 
-const toBytePadded = (b: number) => ('000000000' + b.toString(2)).substr(-8);
+const numberToBytePadded = (b: number) => b.toString(2).padStart(8, '0');
 
 function networkIdOfString(n: string): [bigint, number] {
   let l = n.length;
   let acc = '';
   for (let i = l - 1; i >= 0; i--) {
     let b = n.charCodeAt(i);
-    let padded = toBytePadded(b);
+    let padded = numberToBytePadded(b);
     acc = acc.concat(padded);
   }
   return [BigInt('0b' + acc), acc.length];
