@@ -15,6 +15,7 @@ import {
   Signature,
   signFieldElement,
   verifyFieldElement,
+  zkAppBodyPrefix,
 } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId } from './types.js';
@@ -35,7 +36,6 @@ export {
   accountUpdateFromFeePayer,
   isCallDepthValid,
   CallForest,
-  createCustomPrefix,
 };
 
 function signZkappCommand(
@@ -159,30 +159,6 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   }
   return forest;
 }
-
-const createCustomPrefix = (prefix: string) => {
-  const maxLength = 20;
-  const paddingChar = '*';
-  let length = prefix.length;
-
-  if (length <= maxLength) {
-    let diff = maxLength - length;
-    return prefix + paddingChar.repeat(diff);
-  } else {
-    return prefix.substring(0, maxLength);
-  }
-};
-
-const zkAppBodyPrefix = (network: string) => {
-  switch (network) {
-    case 'mainnet':
-      return prefixes.zkappBodyMainnet;
-    case 'testnet':
-      return prefixes.zkappBodyTestnet;
-    default:
-      return createCustomPrefix(network + 'ZkappBody');
-  }
-};
 
 function accountUpdateHash(update: AccountUpdate, networkId: NetworkId) {
   assertAuthorizationKindValid(update);

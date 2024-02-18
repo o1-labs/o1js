@@ -41,7 +41,11 @@ import {
   protocolVersions,
 } from '../bindings/crypto/constants.js';
 import { MlArray } from './ml/base.js';
-import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
+import {
+  Signature,
+  signFieldElement,
+  zkAppBodyPrefix,
+} from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import {
   accountUpdatesToCallForest,
@@ -102,32 +106,6 @@ export {
 
 const TransactionVersion = {
   current: () => UInt32.from(protocolVersions.txnVersion),
-};
-
-// TODO FIX ME PLS
-
-const createCustomBodyPrefix = (prefix: string) => {
-  const maxLength = 20;
-  const paddingChar = '*';
-  let length = prefix.length;
-
-  if (length <= maxLength) {
-    let diff = maxLength - length;
-    return prefix + paddingChar.repeat(diff);
-  } else {
-    return prefix.substring(0, maxLength);
-  }
-};
-
-const zkAppBodyPrefix = (network: string) => {
-  switch (network) {
-    case 'mainnet':
-      return prefixes.zkappBodyMainnet;
-    case 'testnet':
-      return prefixes.zkappBodyTestnet;
-    default:
-      return createCustomBodyPrefix(network + 'ZkappBody');
-  }
 };
 
 type ZkappProverData = {
