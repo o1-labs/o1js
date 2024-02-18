@@ -663,7 +663,6 @@ declare const Test: {
     /**
      * Returns the commitment of a JSON transaction.
      */
-    test(networkid: string): void;
     transactionCommitments(
       txJson: string,
       networkId: string
