@@ -3,3 +3,4 @@
 const Client = require('./mina-signer.js');
 
 module.exports = Client.default;
+module.exports.Client = Client.default;

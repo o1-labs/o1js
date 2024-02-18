@@ -34,7 +34,7 @@ import {
 import { sign, Signature, verify } from './src/signature.js';
 import { createNullifier } from './src/nullifier.js';
 
-export { Client as default, type NetworkId };
+export { Client, Client as default, type NetworkId };
 
 const defaultValidUntil = '4294967295';
 
