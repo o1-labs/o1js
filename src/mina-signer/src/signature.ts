@@ -153,7 +153,7 @@ function deriveNonce(
   let id = getNetworkId(networkId);
   let input = HashInput.append(message, {
     fields: [x, y, d],
-    packed: [[id, 40]],
+    packed: [id],
   });
   let packedInput = packToFields(input);
   let inputBits = packedInput.map(Field.toBits).flat();
@@ -321,7 +321,7 @@ function hashMessageLegacy(
 
 const toBytePadded = (b: number) => ('000000000' + b.toString(2)).substr(-8);
 
-function networkIdOfString(n: string) {
+function networkIdOfString(n: string): [bigint, number] {
   let l = n.length;
   let acc = '';
   for (let i = l - 1; i >= 0; i--) {
@@ -329,15 +329,15 @@ function networkIdOfString(n: string) {
     let padded = toBytePadded(b);
     acc = acc.concat(padded);
   }
-  return BigInt('0b' + [...acc].reverse().join(''));
+  return [BigInt('0b' + acc), acc.length];
 }
 
-function getNetworkId(networkId: string) {
+function getNetworkId(networkId: string): [bigint, number] {
   switch (networkId) {
     case 'mainnet':
-      return networkIdMainnet;
+      return [networkIdMainnet, 8];
     case 'testnet':
-      return networkIdTestnet;
+      return [networkIdTestnet, 8];
     default:
       return networkIdOfString(networkId);
   }
