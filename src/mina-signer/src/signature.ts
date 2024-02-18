@@ -277,7 +277,7 @@ function deriveNonceLegacy(
 ): Scalar {
   let { x, y } = publicKey;
   let scalarBits = Scalar.toBits(privateKey);
-  let id = getNetworkId(networkId);
+  let id = getNetworkId(networkId)[0];
   let idBits = bytesToBits([Number(id)]);
   let input = HashInputLegacy.append(message, {
     fields: [x, y],
