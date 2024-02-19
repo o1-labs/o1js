@@ -36,7 +36,7 @@ abstract class TokenContract extends SmartContract {
   }
 
   /**
-   * The token ID of the token managed by this contract.
+   * Returns the `tokenId` of the token managed by this contract.
    */
   deriveTokenId() {
     return TokenId.derive(this.address, this.tokenId);
