@@ -377,7 +377,7 @@ class TokenContract extends BaseTokenContract {
      *
      * we mint the max uint64 of tokens here, so that we can overflow it in tests if we just mint a bit more
      */
-    let receiver = this.token.mint({
+    let receiver = this.internal.mint({
       address: this.address,
       amount: UInt64.MAXINT(),
     });
@@ -393,7 +393,7 @@ class TokenContract extends BaseTokenContract {
    * mint additional tokens to some user, so we can overflow token balances
    */
   @method init2() {
-    let receiver = this.token.mint({
+    let receiver = this.internal.mint({
       address: addresses.user,
       amount: UInt64.from(10n ** 6n),
     });

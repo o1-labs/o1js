@@ -18,12 +18,12 @@ class Token extends TokenContract {
 
   @method mint(receiverAddress: PublicKey) {
     let amount = 1_000_000;
-    this.token.mint({ address: receiverAddress, amount });
+    this.internal.mint({ address: receiverAddress, amount });
   }
 
   @method burn(receiverAddress: PublicKey) {
     let amount = 1_000;
-    this.token.burn({ address: receiverAddress, amount });
+    this.internal.burn({ address: receiverAddress, amount });
   }
 }
 
