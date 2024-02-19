@@ -848,8 +848,9 @@ super.init();
   }
   /**
    * @deprecated `SmartContract.token` will be removed, and token methods will only be available on `TokenContract.internal`.
+   * Instead of `SmartContract.token.id`, use `TokenContract.deriveTokenId()`.
    *
-   * For security reasons, it is recommended to use `TokenContract` as the base contract for tokens.
+   * For security reasons, it is recommended to use `TokenContract` as the base contract for all tokens.
    */
   get token() {
     return deprecatedToken(this.self);
