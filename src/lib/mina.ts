@@ -185,7 +185,6 @@ type PendingTransaction = Pick<
    * It does not guarantee inclusion in a block. A value of `true` means the transaction was accepted by the Mina daemon for processing.
    * However, the transaction may still be rejected later during the finalization process if it fails to be included in a block.
    * Use `.wait()` or `.waitOrThrowIfError()` methods to determine the final state of the transaction.
-   *
    * @example
    * ```ts
    * if (pendingTransaction.isSuccess) {
@@ -205,16 +204,14 @@ type PendingTransaction = Pick<
 
   /**
    * Waits for the transaction to be finalized and returns the result.
-   *
    * @param {Object} [options] Configuration options for polling behavior.
    * @param {number} [options.maxAttempts] The maximum number of attempts to check the transaction status.
    * @param {number} [options.interval] The interval, in milliseconds, between status checks.
    * @returns {Promise<IncludedTransaction | RejectedTransaction>} A promise that resolves to the transaction's final state.
-   *
-   * * @example
+   * @example
    * ```ts
-   * const finalState = await pendingTransaction.wait({ maxAttempts: 5, interval: 1000 });
-   * console.log(finalState.status); // 'included' or 'rejected'
+   * const transaction = await pendingTransaction.wait({ maxAttempts: 5, interval: 1000 });
+   * console.log(transaction.status); // 'included' or 'rejected'
    * ```
    */
   wait(options?: {
@@ -224,16 +221,14 @@ type PendingTransaction = Pick<
 
   /**
    * Similar to `wait`, but throws an error if the transaction is rejected or if it fails to finalize within the given attempts.
-   *
    * @param {Object} [options] Configuration options for polling behavior.
    * @param {number} [options.maxAttempts] The maximum number of polling attempts.
    * @param {number} [options.interval] The time interval, in milliseconds, between each polling attempt.
    * @returns {Promise<IncludedTransaction | RejectedTransaction>} A promise that resolves to the transaction's final state or throws an error.
-   *
-   * * @example
+   * @example
    * ```ts
    * try {
-   *   const finalState = await pendingTransaction.waitOrThrowIfError({ maxAttempts: 10, interval: 2000 });
+   *   const transaction = await pendingTransaction.waitOrThrowIfError({ maxAttempts: 10, interval: 2000 });
    *   console.log('Transaction included in a block.');
    * } catch (error) {
    *   console.error('Transaction rejected or failed to finalize:', error);
@@ -247,10 +242,8 @@ type PendingTransaction = Pick<
 
   /**
    * Generates and returns the transaction hash as a string identifier.
-   *
    * @returns {string} The hash of the transaction.
-   *
-   * * @example
+   * @example
    * ```ts
    * const txHash = pendingTransaction.hash();
    * console.log(`Transaction hash: ${txHash}`);
@@ -269,8 +262,7 @@ type PendingTransaction = Pick<
    * An array of error messages related to the transaction processing.
    *
    * @property {string[]} errors Descriptive error messages if the transaction encountered issues during processing.
-   *
-   * * @example
+   * @example
    * ```ts
    * if (!pendingTransaction.isSuccess && pendingTransaction.errors.length > 0) {
    *   console.error(`Transaction errors: ${pendingTransaction.errors.join(', ')}`);
@@ -289,7 +281,6 @@ type IncludedTransaction = Pick<
 > & {
   /**
    * @property {string} status The final status of the transaction, indicating successful inclusion in a block.
-   *
    * @example
    * ```ts
    * const includedTx: IncludedTransaction = await pendingTransaction.wait();
@@ -310,8 +301,7 @@ type RejectedTransaction = Pick<
 > & {
   /**
    * @property {string} status The final status of the transaction, specifically indicating that it has been rejected.
-   *
-   *  * @example
+   * @example
    * ```ts
    * const rejectedTx: RejectedTransaction = await pendingTransaction.wait();
    * if (rejectedTx.status === 'rejected') {
