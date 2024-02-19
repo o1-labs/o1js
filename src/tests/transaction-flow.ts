@@ -17,12 +17,6 @@ import {
 } from 'o1js';
 import assert from 'node:assert';
 
-/**
- * currentSlot:
- *  - Remote: not implemented, throws
- *  - Local: implemented
- */
-
 class Event extends Struct({ pub: PublicKey, value: Field }) {}
 
 class SimpleZkapp extends SmartContract {
