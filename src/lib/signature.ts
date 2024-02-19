@@ -4,6 +4,7 @@ import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
+  signaturePrefix,
 } from '../mina-signer/src/signature.js';
 import { Bool as BoolBigint } from '../provable/field-bigint.js';
 import {
@@ -253,7 +254,7 @@ class Signature extends CircuitValue {
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
-      prefixes.signatureTestnet,
+      signaturePrefix(networkId ?? 'testnet'),
       msg.concat([publicKey.x, publicKey.y, r])
     );
     // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
@@ -267,10 +268,10 @@ class Signature extends CircuitValue {
    * Verifies the {@link Signature} using a message and the corresponding {@link PublicKey}.
    * @returns a {@link Bool}
    */
-  verify(publicKey: PublicKey, msg: Field[]): Bool {
+  verify(publicKey: PublicKey, msg: Field[], networkId?: string): Bool {
     const point = publicKey.toGroup();
     let h = hashWithPrefix(
-      prefixes.signatureTestnet,
+      signaturePrefix(networkId ?? 'testnet'),
       msg.concat([point.x, point.y, this.r])
     );
     // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
