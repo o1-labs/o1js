@@ -17,6 +17,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
 
+### Added
+
+- Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
+  - New optional argument `networkId?: string` in `Signature.create(privKey: PrivateKey, msg: Field[], networkId?: string)` to reflect support for custom network identifiers.
+
 ## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 
 ### Breaking changes
