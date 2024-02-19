@@ -29,10 +29,17 @@ abstract class TokenContract extends SmartContract {
 
   deploy(args?: DeployArgs) {
     super.deploy(args);
+
+    // set access permission, to prevent unauthorized token operations
     this.account.permissions.set({
       ...Permissions.default(),
       access: Permissions.proofOrSignature(),
     });
+
+    // assert that this account is new, to ensure unauthorized token operations
+    // are not possible before this contract is deployed
+    // see https://github.com/o1-labs/o1js/issues/1439 for details
+    this.account.isNew.requireEquals(Bool(true));
   }
 
   /**
