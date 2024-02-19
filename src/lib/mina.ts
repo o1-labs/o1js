@@ -153,7 +153,7 @@ type PendingTransaction = Pick<
   }): Promise<IncludedTransaction | RejectedTransaction>;
   hash(): string;
   data?: SendZkAppResponse;
-  errors?: string[];
+  errors: string[];
 };
 
 type IncludedTransaction = Pick<
@@ -368,11 +368,15 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return await sendTransaction(self);
     },
     async sendOrThrowIfError() {
-      try {
-        return await sendTransaction(self);
-      } catch (error) {
-        throw prettifyStacktrace(error);
+      const pendingTransaction = await sendTransaction(self);
+      if (pendingTransaction.errors.length > 0) {
+        throw Error(
+          `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
+            '\n- '
+          )}`
+        );
       }
+      return pendingTransaction;
     },
   };
   return self;
@@ -524,12 +528,12 @@ function LocalBlockchain({
       } catch (err: any) {
         // reverse errors so they match order of account updates
         // TODO: label updates, and try to give precise explanations about what went wrong
-        errors.push(
-          invalidTransactionError(txn.transaction, JSON.parse(err.message), {
-            accountCreationFee:
-              defaultNetworkConstants.accountCreationFee.toString(),
-          })
-        );
+        const errorMessages = JSON.parse(err.message);
+        const error = invalidTransactionError(txn.transaction, errorMessages, {
+          accountCreationFee:
+            defaultNetworkConstants.accountCreationFee.toString(),
+        });
+        errors.push(error);
         isSuccess = false;
       }
 
@@ -591,7 +595,10 @@ function LocalBlockchain({
       });
 
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction = {
+      const pendingTransaction: Omit<
+        PendingTransaction,
+        'wait' | 'waitOrThrowIfError'
+      > = {
         isSuccess,
         errors,
         transaction: txn.transaction,
@@ -606,11 +613,9 @@ function LocalBlockchain({
         maxAttempts?: number;
         interval?: number;
       }) => {
-        return Promise.resolve(
-          createIncludedOrRejectedTransaction(
-            pendingTransaction,
-            pendingTransaction.errors
-          )
+        return createIncludedOrRejectedTransaction(
+          pendingTransaction,
+          pendingTransaction.errors
         );
       };
 
@@ -618,20 +623,9 @@ function LocalBlockchain({
         maxAttempts?: number;
         interval?: number;
       }) => {
-        if (pendingTransaction.errors.length > 0) {
-          throw Error(
-            `Transaction failed with errors: ${JSON.stringify(
-              pendingTransaction.errors,
-              null,
-              2
-            )}`
-          );
-        }
-        return Promise.resolve(
-          createIncludedOrRejectedTransaction(
-            pendingTransaction,
-            pendingTransaction.errors
-          )
+        return createIncludedOrRejectedTransaction(
+          pendingTransaction,
+          pendingTransaction.errors
         );
       };
 
@@ -907,7 +901,10 @@ function Network(
 
       const isSuccess = errors.length === 0;
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction = {
+      const pendingTransaction: Omit<
+        PendingTransaction,
+        'wait' | 'waitOrThrowIfError'
+      > = {
         isSuccess,
         data: response?.data,
         errors,
@@ -929,13 +926,18 @@ function Network(
         try {
           res = await Fetch.checkZkappTransaction(transactionHash);
           if (res.success) {
-            return createIncludedOrRejectedTransaction(
-              pendingTransaction,
-              pendingTransaction.errors
-            );
+            return createIncludedOrRejectedTransaction(pendingTransaction, []);
           } else if (res.failureReason) {
+            const error = invalidTransactionError(
+              txn.transaction,
+              res.failureReason,
+              {
+                accountCreationFee:
+                  defaultNetworkConstants.accountCreationFee.toString(),
+              }
+            );
             return createIncludedOrRejectedTransaction(pendingTransaction, [
-              `Transaction failed.\nTransactionId: ${transactionHash}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`,
+              error,
             ]);
           }
         } catch (error) {
@@ -989,10 +991,8 @@ function Network(
         const pendingTransaction = await wait(options);
         if (pendingTransaction.status === 'rejected') {
           throw Error(
-            `Transaction failed with errors: ${JSON.stringify(
-              pendingTransaction.errors,
-              null,
-              2
+            `Transaction failed with errors:\n${pendingTransaction.errors.join(
+              '\n'
             )}`
           );
         }
