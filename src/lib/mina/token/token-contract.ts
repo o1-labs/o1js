@@ -10,6 +10,7 @@ import {
 } from '../../account-update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
+import { tokenMethods } from './token-methods.js';
 
 export { TokenContract };
 
@@ -31,6 +32,13 @@ abstract class TokenContract extends SmartContract {
       ...Permissions.default(),
       access: Permissions.proofOrSignature(),
     });
+  }
+
+  /**
+   * Helper methods to use on a token contract.
+   */
+  get token() {
+    return tokenMethods(this.self);
   }
 
   // APPROVABLE API has to be specified by subclasses,
