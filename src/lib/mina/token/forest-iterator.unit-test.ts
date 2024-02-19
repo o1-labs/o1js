@@ -56,7 +56,7 @@ test.custom({ timeBudget: 1000 })(
   (flatUpdatesBigint) => {
     // reference: bigint callforest hash from mina-signer
     let forestBigint = accountUpdatesToCallForest(flatUpdatesBigint);
-    let expectedHash = callForestHash(forestBigint);
+    let expectedHash = callForestHash(forestBigint, 'testnet');
 
     let flatUpdates = flatUpdatesBigint.map(accountUpdateFromBigint);
     let forest = AccountUpdateForest.fromFlatArray(flatUpdates);

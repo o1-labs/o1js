@@ -1,14 +1,5 @@
 import { expect } from 'expect';
-import { Ledger, Test, Pickles } from '../../snarky.js';
-import {
-  PrivateKey as PrivateKeySnarky,
-  PublicKey as PublicKeySnarky,
-} from '../../lib/signature.js';
-import {
-  AccountUpdate as AccountUpdateSnarky,
-  ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/account-update.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 import {
   AccountUpdate,
   Field,
@@ -16,6 +7,28 @@ import {
   ZkappCommand,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js';
+import {
+  AccountUpdate as AccountUpdateSnarky,
+  ZkappCommand as ZkappCommandSnarky,
+} from '../../lib/account-update.js';
+import { FieldConst } from '../../lib/field.js';
+import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
+import { Network, setActiveInstance } from '../../lib/mina.js';
+import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
+import {
+  PrivateKey as PrivateKeySnarky,
+  PublicKey as PublicKeySnarky,
+} from '../../lib/signature.js';
+import { Random, test, withHardCoded } from '../../lib/testing/property.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import {
+  hashWithPrefix,
+  packToFields,
+  prefixes,
+} from '../../provable/poseidon-bigint.js';
+import { Pickles, Test } from '../../snarky.js';
+import { Memo } from './memo.js';
+import { RandomTransaction } from './random-transaction.js';
 import {
   accountUpdateFromFeePayer,
   accountUpdateHash,
@@ -27,22 +40,10 @@ import {
   verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
 import {
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-} from '../../provable/poseidon-bigint.js';
-import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
-import { Memo } from './memo.js';
-import {
   Signature,
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
-import { Random, test, withHardCoded } from '../../lib/testing/property.js';
-import { RandomTransaction } from './random-transaction.js';
-import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
-import { FieldConst } from '../../lib/field.js';
-import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId } from './types.js';
 
 // monkey-patch bigint to json
@@ -82,6 +83,15 @@ expect(stringify(dummyInput.packed)).toEqual(
 );
 
 test(Random.accountUpdate, (accountUpdate) => {
+  const testnetMinaInstance = Network({
+    networkId: 'testnet',
+    mina: 'http://localhost:8080/graphql',
+  });
+  const mainnetMinaInstance = Network({
+    networkId: 'mainnet',
+    mina: 'http://localhost:8080/graphql',
+  });
+
   fixVerificationKey(accountUpdate);
 
   // example account update
@@ -99,9 +109,14 @@ test(Random.accountUpdate, (accountUpdate) => {
   let packedSnarky = packToFieldsSnarky(inputSnarky);
   expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-  let hash = accountUpdateHash(accountUpdate);
-  let hashSnarky = accountUpdateSnarky.hash();
-  expect(hash).toEqual(hashSnarky.toBigInt());
+  let hashTestnet = accountUpdateHash(accountUpdate, 'testnet');
+  let hashMainnet = accountUpdateHash(accountUpdate, 'mainnet');
+  setActiveInstance(testnetMinaInstance);
+  let hashSnarkyTestnet = accountUpdateSnarky.hash();
+  setActiveInstance(mainnetMinaInstance);
+  let hashSnarkyMainnet = accountUpdateSnarky.hash();
+  expect(hashTestnet).toEqual(hashSnarkyTestnet.toBigInt());
+  expect(hashMainnet).toEqual(hashSnarkyMainnet.toBigInt());
 });
 
 // private key to/from base58
@@ -131,10 +146,11 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
   assert(isCallDepthValid(zkappCommand));
   let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
   let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-    JSON.stringify(zkappCommandJson)
+    JSON.stringify(zkappCommandJson),
+    'testnet'
   );
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-  let commitment = callForestHash(callForest);
+  let commitment = callForestHash(callForest, 'testnet');
   expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
 });
 
@@ -151,7 +167,9 @@ test.negative(
 // zkapp transaction
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,
-  ({ feePayerKey, zkappCommand }) => {
+  RandomTransaction.networkId,
+  (zkappCommandAndFeePayerKey, networkId) => {
+    const { feePayerKey, zkappCommand } = zkappCommandAndFeePayerKey;
     zkappCommand.accountUpdates.forEach(fixVerificationKey);
 
     let feePayerKeyBase58 = PrivateKey.toBase58(feePayerKey);
@@ -173,10 +191,11 @@ test(
 
     // tx commitment
     let ocamlCommitments = Test.hashFromJson.transactionCommitments(
-      JSON.stringify(zkappCommandJson)
+      JSON.stringify(zkappCommandJson),
+      networkId
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-    let commitment = callForestHash(callForest);
+    let commitment = callForestHash(callForest, networkId);
     expect(commitment).toEqual(
       FieldConst.toBigint(ocamlCommitments.commitment)
     );
@@ -200,7 +219,7 @@ test(
       stringify(feePayerInput1.packed)
     );
 
-    let feePayerDigest = feePayerHash(feePayer);
+    let feePayerDigest = feePayerHash(feePayer, networkId);
     expect(feePayerDigest).toEqual(
       FieldConst.toBigint(ocamlCommitments.feePayerHash)
     );
@@ -215,55 +234,42 @@ test(
     );
 
     // signature
-    let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
-    let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
-    let sigTestnetOcaml = Test.signature.signFieldElement(
+    let sigFieldElements = signFieldElement(
+      fullCommitment,
+      feePayerKey,
+      networkId
+    );
+    let sigOCaml = Test.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
-      false
+      networkId === 'mainnet' ? true : false
     );
-    let sigMainnetOcaml = Test.signature.signFieldElement(
-      ocamlCommitments.fullCommitment,
-      Ml.fromPrivateKey(feePayerKeySnarky),
-      true
-    );
-    expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
-    expect(Signature.toBase58(sigMainnet)).toEqual(sigMainnetOcaml);
+
+    expect(Signature.toBase58(sigFieldElements)).toEqual(sigOCaml);
 
     let verify = (s: Signature, id: NetworkId) =>
       verifyFieldElement(s, fullCommitment, feePayerAddress, id);
-    expect(verify(sigTestnet, 'testnet')).toEqual(true);
-    expect(verify(sigTestnet, 'mainnet')).toEqual(false);
-    expect(verify(sigMainnet, 'testnet')).toEqual(false);
-    expect(verify(sigMainnet, 'mainnet')).toEqual(true);
+
+    expect(verify(sigFieldElements, networkId)).toEqual(true);
+    expect(
+      verify(sigFieldElements, networkId === 'mainnet' ? 'testnet' : 'mainnet')
+    ).toEqual(false);
 
     // full end-to-end test: sign a zkapp transaction
-    let sTest = signZkappCommand(
-      zkappCommandJson,
-      feePayerKeyBase58,
-      'testnet'
-    );
-    expect(sTest.feePayer.authorization).toEqual(sigTestnetOcaml);
-    let sMain = signZkappCommand(
-      zkappCommandJson,
-      feePayerKeyBase58,
-      'mainnet'
-    );
-    expect(sMain.feePayer.authorization).toEqual(sigMainnetOcaml);
+    let sig = signZkappCommand(zkappCommandJson, feePayerKeyBase58, networkId);
+    expect(sig.feePayer.authorization).toEqual(sigOCaml);
 
     let feePayerAddressBase58 = PublicKey.toBase58(feePayerAddress);
     expect(
-      verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'testnet')
+      verifyZkappCommandSignature(sig, feePayerAddressBase58, networkId)
     ).toEqual(true);
     expect(
-      verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'mainnet')
+      verifyZkappCommandSignature(
+        sig,
+        feePayerAddressBase58,
+        networkId === 'mainnet' ? 'testnet' : 'mainnet'
+      )
     ).toEqual(false);
-    expect(
-      verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'testnet')
-    ).toEqual(false);
-    expect(
-      verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'mainnet')
-    ).toEqual(true);
   }
 );
 

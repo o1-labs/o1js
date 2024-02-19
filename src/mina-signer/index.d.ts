@@ -1,6 +1,6 @@
 // this file is a wrapper for supporting types in both commonjs and esm projects
 
-import Client from './mina-signer.ts';
-export { type NetworkId } from './src/types.ts';
+import Client, { type NetworkId } from './mina-signer.ts';
 
-export = Client;
+export default Client;
+export { Client, type NetworkId };

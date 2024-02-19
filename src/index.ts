@@ -109,6 +109,8 @@ export { ZkProgram };
 
 export { Crypto } from './lib/crypto.js';
 
+export type { NetworkId } from './mina-signer/mina-signer.js';
+
 // experimental APIs
 import { memoizeWitness } from './lib/provable.js';
 export { Experimental };
