@@ -25,7 +25,7 @@ class ExampleTokenContract extends TokenContract {
     super.init();
 
     // mint the entire supply to the token account with the same address as this contract
-    this.token.mint({ address: this.address, amount: this.SUPPLY });
+    this.internal.mint({ address: this.address, amount: this.SUPPLY });
 
     // pay fees for opened account
     this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);

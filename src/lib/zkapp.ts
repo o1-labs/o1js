@@ -64,7 +64,7 @@ import {
   accountUpdateLayout,
   smartContractContext,
 } from './mina/smart-contract-context.js';
-import { tokenMethods } from './mina/token/token-methods.js';
+import { deprecatedToken } from './mina/token/token-methods.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
@@ -847,12 +847,12 @@ super.init();
     return this.self.currentSlot;
   }
   /**
-   * @deprecated `SmartContract.token` will be removed, and token methods will only be available on `TokenContract`.
+   * @deprecated `SmartContract.token` will be removed, and token methods will only be available on `TokenContract.internal`.
    *
    * For security reasons, it is recommended to use `TokenContract` as the base contract for tokens.
    */
   get token() {
-    return tokenMethods(this.self);
+    return deprecatedToken(this.self);
   }
 
   /**

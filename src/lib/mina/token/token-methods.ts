@@ -5,18 +5,10 @@ import type { SmartContract } from '../../zkapp.js';
 import { UInt64 } from '../../int.js';
 import { Bool, Field } from '../../core.js';
 
-export { tokenMethods };
+export { tokenMethods, deprecatedToken };
 
 function tokenMethods(self: AccountUpdate) {
-  let tokenOwner = self.publicKey;
-  let parentTokenId = self.tokenId;
-  let id = TokenId.derive(tokenOwner, parentTokenId);
-
   return {
-    id,
-    parentTokenId,
-    tokenOwner,
-
     /**
      * Mints token balance to `address`. Returns the mint account update.
      */
@@ -27,6 +19,7 @@ function tokenMethods(self: AccountUpdate) {
       address: PublicKey | AccountUpdate | SmartContract;
       amount: number | bigint | UInt64;
     }) {
+      let id = TokenId.derive(self.publicKey, self.tokenId);
       let receiver = getApprovedUpdate(self, id, address, 'token.mint()');
       receiver.balance.addInPlace(amount);
       return receiver;
@@ -42,6 +35,7 @@ function tokenMethods(self: AccountUpdate) {
       address: PublicKey | AccountUpdate | SmartContract;
       amount: number | bigint | UInt64;
     }) {
+      let id = TokenId.derive(self.publicKey, self.tokenId);
       let sender = getApprovedUpdate(self, id, address, 'token.burn()');
 
       // Sub the amount to burn from the sender's account
@@ -65,6 +59,7 @@ function tokenMethods(self: AccountUpdate) {
       to: PublicKey | AccountUpdate | SmartContract;
       amount: number | bigint | UInt64;
     }) {
+      let id = TokenId.derive(self.publicKey, self.tokenId);
       let sender = getApprovedUpdate(self, id, from, 'token.send() (sender)');
       sender.balance.subInPlace(amount);
       sender.body.useFullCommitment = Bool(true);
@@ -77,6 +72,8 @@ function tokenMethods(self: AccountUpdate) {
     },
   };
 }
+
+// helper
 
 function getApprovedUpdate(
   self: AccountUpdate,
@@ -97,4 +94,19 @@ function getApprovedUpdate(
   }
   if (!child.label) child.label = `${self.label ?? 'Unlabeled'}.${label}`;
   return child;
+}
+
+// deprecated token interface for `SmartContract`
+
+function deprecatedToken(self: AccountUpdate) {
+  let tokenOwner = self.publicKey;
+  let parentTokenId = self.tokenId;
+  let id = TokenId.derive(tokenOwner, parentTokenId);
+
+  return {
+    id,
+    parentTokenId,
+    tokenOwner,
+    ...tokenMethods(self),
+  };
 }

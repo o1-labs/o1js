@@ -7,6 +7,7 @@ import {
   AccountUpdateForest,
   AccountUpdateTree,
   Permissions,
+  TokenId,
 } from '../../account-update.js';
 import { DeployArgs, SmartContract } from '../../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
@@ -35,9 +36,16 @@ abstract class TokenContract extends SmartContract {
   }
 
   /**
-   * Helper methods to use on a token contract.
+   * The token ID of the token managed by this contract.
    */
-  get token() {
+  deriveTokenId() {
+    return TokenId.derive(this.address, this.tokenId);
+  }
+
+  /**
+   * Helper methods to use from within a token contract.
+   */
+  get internal() {
     return tokenMethods(this.self);
   }
 
@@ -55,7 +63,10 @@ abstract class TokenContract extends SmartContract {
     updates: AccountUpdateForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
   ) {
-    let iterator = TokenAccountUpdateIterator.create(updates, this.token.id);
+    let iterator = TokenAccountUpdateIterator.create(
+      updates,
+      this.deriveTokenId()
+    );
 
     // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
@@ -119,7 +130,7 @@ abstract class TokenContract extends SmartContract {
     amount: UInt64 | number | bigint
   ) {
     // coerce the inputs to AccountUpdate and pass to `approveUpdates()`
-    let tokenId = this.token.id;
+    let tokenId = this.deriveTokenId();
     if (from instanceof PublicKey) {
       from = AccountUpdate.defaultAccountUpdate(from, tokenId);
       from.requireSignature();
