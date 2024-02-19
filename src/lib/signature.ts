@@ -235,7 +235,11 @@ class Signature extends CircuitValue {
    * Signs a message using a {@link PrivateKey}.
    * @returns a {@link Signature}
    */
-  static create(privKey: PrivateKey, msg: Field[]): Signature {
+  static create(
+    privKey: PrivateKey,
+    msg: Field[],
+    networkId?: string
+  ): Signature {
     const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
     const kPrime = Scalar.fromBigInt(
@@ -243,7 +247,7 @@ class Signature extends CircuitValue {
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
         BigInt(d.toJSON()),
-        'testnet'
+        networkId ?? 'testnet'
       )
     );
     let { x: r, y: ry } = Group.generator.scale(kPrime);
