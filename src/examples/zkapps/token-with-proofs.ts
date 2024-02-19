@@ -58,7 +58,7 @@ let zkAppBKey = PrivateKey.random();
 let zkAppBAddress = zkAppBKey.toPublicKey();
 
 let tokenZkApp = new Token(tokenZkAppAddress);
-let tokenId = tokenZkApp.token.id;
+let tokenId = tokenZkApp.deriveTokenId();
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
 let zkAppC = new ZkAppC(zkAppCAddress, tokenId);
