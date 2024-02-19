@@ -42,7 +42,7 @@ tx = await Mina.transaction(userAddress, () => {
   );
   // 😈😈😈 mint any number of tokens to our account 😈😈😈
   let tokenContract = new TokenContract(addresses.tokenX);
-  tokenContract.token.mint({
+  tokenContract.internal.mint({
     address: userAddress,
     amount: UInt64.from(1e18),
   });
