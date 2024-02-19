@@ -27,6 +27,6 @@ let tx = await Mina.transaction(privateKey, () => {
 });
 
 // according to this test, the child doesn't get token permissions
-await expect(tx.send()).rejects.toThrow(
+await expect(tx.sendOrThrowIfError()).rejects.toThrow(
   'can not use or pass on token permissions'
 );

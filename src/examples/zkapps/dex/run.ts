@@ -236,7 +236,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
         (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
     );
   } else {
-    await expect(tx.send()).rejects.toThrow(/Update_not_permitted_timing/);
+    await expect(tx.sendOrThrowIfError()).rejects.toThrow(
+      /Update_not_permitted_timing/
+    );
   }
 
   /**
@@ -251,14 +253,14 @@ async function main({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   tx.sign([keys.user2]);
-  await expect(tx.send()).rejects.toThrow(/Overflow/);
+  await expect(tx.sendOrThrowIfError()).rejects.toThrow(/Overflow/);
   console.log('supplying with insufficient tokens (should fail)');
   tx = await Mina.transaction(addresses.user, () => {
     dex.supplyLiquidityBase(UInt64.from(1e9), UInt64.from(1e9));
   });
   await tx.prove();
   tx.sign([keys.user]);
-  await expect(tx.send()).rejects.toThrow(/Overflow/);
+  await expect(tx.sendOrThrowIfError()).rejects.toThrow(/Overflow/);
 
   /**
    * - Resulting operation will overflow the SC’s receiving token by type or by any other applicable limits;
@@ -277,7 +279,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     );
   });
   await tx.prove();
-  await tx.sign([feePayerKey, keys.tokenY]).send();
+  await tx.sign([feePayerKey, keys.tokenY]).sendOrThrowIfError();
   console.log('supply overflowing liquidity');
   await expect(async () => {
     tx = await Mina.transaction(addresses.tokenX, () => {
@@ -288,7 +290,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     });
     await tx.prove();
     tx.sign([keys.tokenX]);
-    await tx.send();
+    await tx.sendOrThrowIfError();
   }).rejects.toThrow();
 
   /**
@@ -315,7 +317,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     dex.supplyLiquidity(UInt64.from(10));
   });
   await tx.prove();
-  await expect(tx.sign([keys.tokenX]).send()).rejects.toThrow(
+  await expect(tx.sign([keys.tokenX]).sendOrThrowIfError()).rejects.toThrow(
     /Update_not_permitted_balance/
   );
 
@@ -342,7 +344,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     });
     await tx.prove();
     tx.sign([keys.user]);
-    await expect(tx.send()).rejects.toThrow(/Source_minimum_balance_violation/);
+    await expect(tx.sendOrThrowIfError()).rejects.toThrow(
+      /Source_minimum_balance_violation/
+    );
 
     // another slot => now it should work
     Local.incrementGlobalSlot(1);
@@ -451,7 +455,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   tx.sign([keys.user, keys.user2]);
-  await expect(tx.send()).rejects.toThrow(
+  await expect(tx.sendOrThrowIfError()).rejects.toThrow(
     /Account_balance_precondition_unsatisfied/
   );
 
@@ -486,7 +490,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     dex.redeemLiquidity(UInt64.from(1n));
   });
   await tx.prove();
-  await expect(tx.sign([keys.user2]).send()).rejects.toThrow(/Overflow/);
+  await expect(tx.sign([keys.user2]).sendOrThrowIfError()).rejects.toThrow(
+    /Overflow/
+  );
   [oldBalances, balances] = [balances, getTokenBalances()];
 
   /**
