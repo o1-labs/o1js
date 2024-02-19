@@ -96,51 +96,84 @@ setActiveInstance({
   },
 });
 
+/**
+ * Defines the structure and operations associated with a transaction.
+ * This type encompasses methods for serializing the transaction, signing it, generating proofs,
+ * and submitting it to the network.
+ */
 type Transaction = {
   /**
    * Transaction structure used to describe a state transition on the Mina blockchain.
    */
   transaction: ZkappCommand;
   /**
-   * Returns a JSON representation of the {@link Transaction}.
+   * Serializes the transaction to a JSON string.
+   * @returns A string representation of the {@link Transaction}.
    */
   toJSON(): string;
   /**
-   * Returns a pretty-printed JSON representation of the {@link Transaction}.
+   * Produces a pretty-printed JSON representation of the {@link Transaction}.
+   * @returns A formatted string representing the transaction in JSON.
    */
   toPretty(): any;
   /**
-   * Returns the GraphQL query for the Mina daemon.
+   * Constructs the GraphQL query string used for submitting the transaction to a Mina daemon.
+   * @returns The GraphQL query string for the {@link Transaction}.
    */
   toGraphqlQuery(): string;
   /**
    * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
-   *
    * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
-   *
    * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
+   * @returns The {@link Transaction} instance with all required signatures applied.
+   * @example
+   * ```ts
+   * const signedTx = transaction.sign([userPrivateKey]);
+   * console.log('Transaction signed successfully.');
+   * ```
    */
   sign(additionalKeys?: PrivateKey[]): Transaction;
   /**
-   * Generates proofs for the {@link Transaction}.
-   *
+   * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
+   * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
    * This can take some time.
+   * @example
+   * ```ts
+   * await transaction.prove();
+   * ```
    */
   prove(): Promise<(Proof<ZkappPublicInput, Empty> | undefined)[]>;
   /**
-   * Sends the {@link Transaction} to the network.
+   * Submits the {@link Transaction} to the network. This method asynchronously sends the transaction
+   * for processing and returns a {@link PendingTransaction} instance, which can be used to monitor its progress.
+   * @returns A promise that resolves to a {@link PendingTransaction} instance representing the submitted transaction.
+   * @example
+   * ```ts
+   * const pendingTransaction = await transaction.send();
+   * console.log('Transaction sent successfully to the Mina daemon.');
+   * ```
    */
   send(): Promise<PendingTransaction>;
 
   /**
    * Sends the {@link Transaction} to the network, unlike the standard send(), this function will throw an error if internal errors are detected.
+   * @throws {Error} If the transaction fails to be sent to the Mina daemon or if it encounters errors during processing.
+   * @example
+   * ```ts
+   * try {
+   *  const pendingTransaction = await transaction.sendOrThrowIfError();
+   *  console.log('Transaction sent successfully to the Mina daemon.');
+   * } catch (error) {
+   *  console.error('Transaction failed with errors:', error);
+   * }
+   * ```
    */
   sendOrThrowIfError(): Promise<PendingTransaction>;
 };
 
 /**
  * Represents a transaction that has been submitted to the blockchain but has not yet reached a final state.
- * The `PendingTransaction` type extends certain functionalities from the base `Transaction` type,
+ * The {@link PendingTransaction} type extends certain functionalities from the base {@link Transaction} type,
  * adding methods to monitor the transaction's progress towards being finalized (either included in a block or rejected).
  */
 type PendingTransaction = Pick<
