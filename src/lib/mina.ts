@@ -676,15 +676,23 @@ function LocalBlockchain({
           JSON.stringify(networkState)
         );
       } catch (err: any) {
-        // reverse errors so they match order of account updates
-        // TODO: label updates, and try to give precise explanations about what went wrong
-        const errorMessages = JSON.parse(err.message);
-        const error = invalidTransactionError(txn.transaction, errorMessages, {
-          accountCreationFee:
-            defaultNetworkConstants.accountCreationFee.toString(),
-        });
-        errors.push(error);
         isSuccess = false;
+        try {
+          const errorMessages = JSON.parse(err.message);
+          const formattedError = invalidTransactionError(
+            txn.transaction,
+            errorMessages,
+            {
+              accountCreationFee:
+                defaultNetworkConstants.accountCreationFee.toString(),
+            }
+          );
+          errors.push(formattedError);
+        } catch (parseError: any) {
+          const fallbackErrorMessage =
+            err.message || parseError.message || 'Unknown error occurred';
+          errors.push(fallbackErrorMessage);
+        }
       }
 
       // fetches all events from the transaction and stores them
