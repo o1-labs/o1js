@@ -138,36 +138,162 @@ type Transaction = {
   sendOrThrowIfError(): Promise<PendingTransaction>;
 };
 
+/**
+ * Represents a transaction that has been submitted to the blockchain but has not yet reached a final state.
+ * The `PendingTransaction` type extends certain functionalities from the base `Transaction` type,
+ * adding methods to monitor the transaction's progress towards being finalized (either included in a block or rejected).
+ */
 type PendingTransaction = Pick<
   Transaction,
   'transaction' | 'toJSON' | 'toPretty'
 > & {
+  /**
+   * @property {boolean} isSuccess Indicates whether the transaction was successfully sent to the Mina daemon.
+   * It does not guarantee inclusion in a block. A value of `true` means the transaction was accepted by the Mina daemon for processing.
+   * However, the transaction may still be rejected later during the finalization process if it fails to be included in a block.
+   * Use `.wait()` or `.waitOrThrowIfError()` methods to determine the final state of the transaction.
+   *
+   * @example
+   * ```ts
+   * if (pendingTransaction.isSuccess) {
+   *   console.log('Transaction sent successfully to the Mina daemon.');
+   *   try {
+   *     await pendingTransaction.waitOrThrowIfError();
+   *     console.log('Transaction was included in a block.');
+   *   } catch (error) {
+   *     console.error('Transaction was rejected or failed to be included in a block:', error);
+   *   }
+   * } else {
+   *   console.error('Failed to send transaction to the Mina daemon.');
+   * }
+   * ```
+   */
   isSuccess: boolean;
+
+  /**
+   * Waits for the transaction to be finalized and returns the result.
+   *
+   * @param {Object} [options] Configuration options for polling behavior.
+   * @param {number} [options.maxAttempts] The maximum number of attempts to check the transaction status.
+   * @param {number} [options.interval] The interval, in milliseconds, between status checks.
+   * @returns {Promise<IncludedTransaction | RejectedTransaction>} A promise that resolves to the transaction's final state.
+   *
+   * * @example
+   * ```ts
+   * const finalState = await pendingTransaction.wait({ maxAttempts: 5, interval: 1000 });
+   * console.log(finalState.status); // 'included' or 'rejected'
+   * ```
+   */
   wait(options?: {
     maxAttempts?: number;
     interval?: number;
   }): Promise<IncludedTransaction | RejectedTransaction>;
+
+  /**
+   * Similar to `wait`, but throws an error if the transaction is rejected or if it fails to finalize within the given attempts.
+   *
+   * @param {Object} [options] Configuration options for polling behavior.
+   * @param {number} [options.maxAttempts] The maximum number of polling attempts.
+   * @param {number} [options.interval] The time interval, in milliseconds, between each polling attempt.
+   * @returns {Promise<IncludedTransaction | RejectedTransaction>} A promise that resolves to the transaction's final state or throws an error.
+   *
+   * * @example
+   * ```ts
+   * try {
+   *   const finalState = await pendingTransaction.waitOrThrowIfError({ maxAttempts: 10, interval: 2000 });
+   *   console.log('Transaction included in a block.');
+   * } catch (error) {
+   *   console.error('Transaction rejected or failed to finalize:', error);
+   * }
+   * ```
+   */
   waitOrThrowIfError(options?: {
     maxAttempts?: number;
     interval?: number;
   }): Promise<IncludedTransaction | RejectedTransaction>;
+
+  /**
+   * Generates and returns the transaction hash as a string identifier.
+   *
+   * @returns {string} The hash of the transaction.
+   *
+   * * @example
+   * ```ts
+   * const txHash = pendingTransaction.hash();
+   * console.log(`Transaction hash: ${txHash}`);
+   * ```
+   */
   hash(): string;
+
+  /**
+   * Optional. Contains response data from a ZkApp transaction submission.
+   *
+   * @property {SendZkAppResponse} [data] The response data from the transaction submission.
+   */
   data?: SendZkAppResponse;
+
+  /**
+   * An array of error messages related to the transaction processing.
+   *
+   * @property {string[]} errors Descriptive error messages if the transaction encountered issues during processing.
+   *
+   * * @example
+   * ```ts
+   * if (!pendingTransaction.isSuccess && pendingTransaction.errors.length > 0) {
+   *   console.error(`Transaction errors: ${pendingTransaction.errors.join(', ')}`);
+   * }
+   * ```
+   */
   errors: string[];
 };
 
+/**
+ * Represents a transaction that has been successfully included in a block.
+ */
 type IncludedTransaction = Pick<
   PendingTransaction,
   'transaction' | 'toJSON' | 'toPretty' | 'hash' | 'data'
 > & {
+  /**
+   * @property {string} status The final status of the transaction, indicating successful inclusion in a block.
+   *
+   * @example
+   * ```ts
+   * const includedTx: IncludedTransaction = await pendingTransaction.wait();
+   * if (includedTx.status === 'included') {
+   *   console.log(`Transaction ${includedTx.hash()} included in a block.`);
+   * }
+   * ```
+   */
   status: 'included';
 };
 
+/**
+ * Represents a transaction that has been rejected and not included in a blockchain block.
+ */
 type RejectedTransaction = Pick<
   PendingTransaction,
   'transaction' | 'toJSON' | 'toPretty' | 'hash' | 'data'
 > & {
+  /**
+   * @property {string} status The final status of the transaction, specifically indicating that it has been rejected.
+   *
+   *  * @example
+   * ```ts
+   * const rejectedTx: RejectedTransaction = await pendingTransaction.wait();
+   * if (rejectedTx.status === 'rejected') {
+   *   console.error(`Transaction ${rejectedTx.hash()} was rejected.`);
+   *   rejectedTx.errors.forEach((error, i) => {
+   *     console.error(`Error ${i + 1}: ${error}`);
+   *   });
+   * }
+   * ```
+   */
   status: 'rejected';
+
+  /**
+   * @property {string[]} errors An array of error messages detailing the reasons for the transaction's rejection.
+   */
   errors: string[];
 };
 
