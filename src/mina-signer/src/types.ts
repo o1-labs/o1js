@@ -11,6 +11,12 @@ export type PrivateKey = string;
 export type Signature = SignatureJson;
 export type NetworkId = 'mainnet' | 'testnet' | { custom: string };
 
+export const NetworkId = {
+  toString(network: NetworkId) {
+    return typeof network === 'string' ? network : network.custom;
+  },
+};
+
 export type Keypair = {
   readonly privateKey: PrivateKey;
   readonly publicKey: PublicKey;
