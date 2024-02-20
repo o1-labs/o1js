@@ -809,7 +809,7 @@ declare const Pickles: {
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => [_: 0, data: string, hash: FieldConst];
+    getVerificationKey: () => Promise<[_: 0, data: string, hash: FieldConst]>;
   };
 
   verify(
