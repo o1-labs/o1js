@@ -647,7 +647,7 @@ declare const Test: {
     signFieldElement(
       messageHash: FieldConst,
       privateKey: ScalarConst,
-      isMainnet: boolean
+      networkId: string
     ): string;
     /**
      * Returns a dummy signature.

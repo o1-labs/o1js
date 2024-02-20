@@ -15,6 +15,7 @@ import {
   Signature,
   signFieldElement,
   verifyFieldElement,
+  zkAppBodyPrefix,
 } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId } from './types.js';
@@ -158,18 +159,6 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   }
   return forest;
 }
-
-const zkAppBodyPrefix = (network: string) => {
-  switch (network) {
-    case 'mainnet':
-      return prefixes.zkappBodyMainnet;
-    case 'testnet':
-      return prefixes.zkappBodyTestnet;
-
-    default:
-      return 'ZkappBody' + network;
-  }
-};
 
 function accountUpdateHash(update: AccountUpdate, networkId: NetworkId) {
   assertAuthorizationKindValid(update);
