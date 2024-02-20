@@ -1,6 +1,6 @@
 export type { ProvablePure } from './snarky.js';
 export { Ledger } from './snarky.js';
-export type { FieldVar, FieldConst } from './lib/field.js';
+export type { FieldVar, FieldConst, FieldType } from './lib/field.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export {
   createForeignField,
