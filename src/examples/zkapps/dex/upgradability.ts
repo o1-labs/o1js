@@ -267,14 +267,14 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
-    const accountFee = Mina.getNetworkConstants().accountCreationFee;
-    // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
-    let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
-    feePayerUpdate.balance.subInPlace(accountFee.mul(2));
-    feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
-    feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
     tokenX.deploy();
     tokenY.deploy();
+
+    // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
+    let feePayerUpdate = AccountUpdate.fundNewAccount(feePayerAddress, 2);
+    feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
+    feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.tokenX, keys.tokenY]);
