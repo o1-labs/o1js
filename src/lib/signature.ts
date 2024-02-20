@@ -236,11 +236,7 @@ class Signature extends CircuitValue {
    * Signs a message using a {@link PrivateKey}.
    * @returns a {@link Signature}
    */
-  static create(
-    privKey: PrivateKey,
-    msg: Field[],
-    networkId?: string
-  ): Signature {
+  static create(privKey: PrivateKey, msg: Field[]): Signature {
     const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
     // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
@@ -271,7 +267,7 @@ class Signature extends CircuitValue {
    * Verifies the {@link Signature} using a message and the corresponding {@link PublicKey}.
    * @returns a {@link Bool}
    */
-  verify(publicKey: PublicKey, msg: Field[], networkId?: string): Bool {
+  verify(publicKey: PublicKey, msg: Field[]): Bool {
     const point = publicKey.toGroup();
     // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
     // there's no consequences in practice and the signatures can be used with any network
