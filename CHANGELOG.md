@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
 
+### Added
+
+- `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+
 ### Deprecated
 
 - `SmartContract.token` is deprecated in favor of new methods on `TokenContract` https://github.com/o1-labs/o1js/pull/1446
