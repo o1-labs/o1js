@@ -7,6 +7,7 @@ import {
   AccountUpdateForest,
   TokenContract,
   Int64,
+  PrivateKey,
 } from '../../../index.js';
 
 class ExampleTokenContract extends TokenContract {
@@ -26,9 +27,6 @@ class ExampleTokenContract extends TokenContract {
 
     // mint the entire supply to the token account with the same address as this contract
     this.internal.mint({ address: this.address, amount: this.SUPPLY });
-
-    // pay fees for opened account
-    this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
   }
 }
 
@@ -39,15 +37,19 @@ Mina.setActiveInstance(Local);
 
 let [
   { publicKey: sender, privateKey: senderKey },
-  { publicKey: tokenAddress, privateKey: tokenKey },
   { publicKey: otherAddress, privateKey: otherKey },
 ] = Local.testAccounts;
 
+let { publicKey: tokenAddress, privateKey: tokenKey } =
+  PrivateKey.randomKeypair();
 let token = new ExampleTokenContract(tokenAddress);
-let tokenId = token.token.id;
+let tokenId = token.deriveTokenId();
 
 // deploy token contract
-let deployTx = await Mina.transaction(sender, () => token.deploy());
+let deployTx = await Mina.transaction(sender, () => {
+  AccountUpdate.fundNewAccount(sender, 2);
+  token.deploy();
+});
 await deployTx.prove();
 await deployTx.sign([tokenKey, senderKey]).send();
 
