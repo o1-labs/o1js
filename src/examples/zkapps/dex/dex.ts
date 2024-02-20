@@ -208,6 +208,12 @@ function createDex({
   }
 
   class ModifiedDex extends Dex {
+    deploy() {
+      super.deploy();
+      // override the isNew requirement for re-deploying
+      this.account.isNew.requireNothing();
+    }
+
     @method swapX(dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(
