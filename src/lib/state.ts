@@ -414,7 +414,7 @@ function assertStatePrecondition(sc: SmartContract) {
       // we accessed a precondition field but not constrained it explicitly - throw an error
       let errorMessage = `You used \`this.${key}.get()\` without adding a precondition that links it to the actual on-chain state.
 Consider adding this line to your code:
-this.${key}.assertEquals(this.${key}.get());`;
+this.${key}.requireEquals(this.${key}.get());`;
       throw Error(errorMessage);
     }
   } finally {

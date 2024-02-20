@@ -572,7 +572,7 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
     let shortPath = preconditionPath.split('.').pop();
     let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
-${self}.${preconditionPath}.assertEquals(${self}.${preconditionPath}.get());${
+${self}.${preconditionPath}.requireEquals(${self}.${preconditionPath}.get());${
       hasAssertBetween
         ? `
 You can also add more flexible preconditions with \`${self}.${preconditionPath}.assertBetween(...)\`.`

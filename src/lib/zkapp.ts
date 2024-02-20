@@ -50,6 +50,7 @@ import {
   MethodInterface,
   Proof,
   sortMethodArguments,
+  ZkProgram,
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
@@ -580,7 +581,9 @@ class SmartContract extends SmartContractBase {
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
-
+  static _zkPrograms?: {
+    [name in string]: ReturnType<typeof getReducerZkProgram>;
+  };
   /**
    * Returns a Proof type that belongs to this {@link SmartContract}.
    */
@@ -625,6 +628,7 @@ class SmartContract extends SmartContractBase {
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
   } = {}) {
+    console.log('compile 1');
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (
@@ -637,8 +641,23 @@ class SmartContract extends SmartContractBase {
         (instance as any)[methodName](publicInput, ...args);
       };
     });
+    console.log('compile 2');
+
     // run methods once to get information that we need already at compile time
     let methodsMeta = this.analyzeMethods();
+
+    // compile internal zkProgram dependencies
+    if (this._zkPrograms) {
+      let keys = Object.keys(this._zkPrograms);
+      for await (const key of keys) {
+        let program = this._zkPrograms[key];
+        console.log('compiling ', key);
+        await program.compile();
+        console.log('done');
+      }
+    }
+    console.log('compile 3');
+
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
@@ -1295,6 +1314,7 @@ class ${contract.constructor.name} extends SmartContract {
   reducer = { actionType: Field };
 }`
     );
+
   return {
     dispatch(action: A) {
       let accountUpdate = contract.self;
@@ -1316,6 +1336,7 @@ class ${contract.constructor.name} extends SmartContract {
         useRecursion = false,
       } = {}
     ): { state: S; actionState: Field } {
+      console.log('useRecursioN', useRecursion);
       if (actionLists.length > maxTransactionsWithActions) {
         throw Error(
           `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxTransactionsWithActions}.
@@ -1324,6 +1345,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
 
       let contractInstance = contract.constructor as typeof SmartContract;
+
+      // set recursive program
+      if (useRecursion && inAnalyze()) {
+        let program = getReducerZkProgram();
+        if (!contractInstance._zkPrograms) contractInstance._zkPrograms = {};
+        contractInstance._zkPrograms[program.name] = program;
+      }
 
       let methodData = (
         contract.constructor as typeof SmartContract
@@ -1335,6 +1363,11 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       let possibleActionTypes = possibleActionsPerIteration.map((n) =>
         Provable.Array(reducer.actionType, n)
       );
+
+      if (useRecursion && inAnalyze()) {
+        // if executing the method, right before prove, request proof
+        console.log('REQUESTING PROOF');
+      }
 
       for (let i = 0; i < maxTransactionsWithActions; i++) {
         let actions = i < actionLists.length ? actionLists[i] : [];
@@ -1619,15 +1652,6 @@ function diff(
 
 /**
  * Processes a single actions and applies the `reduceFunction` to the state, returns the new state and the new `actionState`
- * @param actions
- * @param possibleActionsPerIteration
- * @param possibleActionTypes
- * @param actionType
- * @param initialActionState
- * @param initialState
- * @param stateType
- * @param reduceFunction
- * @returns
  */
 function applyAction<A, S>(
   actions: A[],
@@ -1680,4 +1704,21 @@ function applyAction<A, S>(
     state: Provable.switch(lengths, stateType, newStates),
     actionState: initialActionState,
   };
+}
+
+function getReducerZkProgram() {
+  let MyProgram = ZkProgram({
+    name: 'recursive-reducer-internal',
+    publicOutput: Field,
+
+    methods: {
+      baseCase: {
+        privateInputs: [],
+        method() {
+          return Field(0);
+        },
+      },
+    },
+  });
+  return MyProgram;
 }
