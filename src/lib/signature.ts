@@ -32,14 +32,29 @@ class PrivateKey extends CircuitValue {
   }
 
   /**
-   * You can use this method to generate a private key. You can then obtain
-   * the associated public key via {@link toPublicKey}. And generate signatures
-   * via {@link Signature.create}.
+   * Generate a random private key.
+   *
+   * You can obtain the associated public key via {@link toPublicKey}.
+   * And generate signatures via {@link Signature.create}.
+   *
+   * Note: This uses node or browser built-in APIs to obtain cryptographically strong randomness,
+   * and can be safely used to generate a real private key.
    *
    * @returns a new {@link PrivateKey}.
    */
   static random(): PrivateKey {
     return new PrivateKey(Scalar.random());
+  }
+
+  /**
+   * Create a random keypair `{ privateKey: PrivateKey, publicKey: PublicKey }`.
+   *
+   * Note: This uses node or browser built-in APIs to obtain cryptographically strong randomness,
+   * and can be safely used to generate a real keypair.
+   */
+  static randomKeypair() {
+    let privateKey = PrivateKey.random();
+    return { privateKey, publicKey: privateKey.toPublicKey() };
   }
 
   /**
