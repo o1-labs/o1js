@@ -326,14 +326,14 @@ function networkIdOfString(n: string): [bigint, number] {
   return [BigInt('0b' + acc), acc.length];
 }
 
-function getNetworkIdHashInput(networkId: string): [bigint, number] {
-  switch (networkId) {
+function getNetworkIdHashInput(network: NetworkId): [bigint, number] {
+  switch (typeof network === 'string' ? network : network.custom) {
     case 'mainnet':
       return [networkIdMainnet, 8];
     case 'testnet':
       return [networkIdTestnet, 8];
     default:
-      return networkIdOfString(networkId);
+      return networkIdOfString(network as string);
   }
 }
 
@@ -350,8 +350,8 @@ const createCustomPrefix = (prefix: string) => {
   }
 };
 
-const signaturePrefix = (network: string) => {
-  switch (network) {
+const signaturePrefix = (network: NetworkId) => {
+  switch (typeof network === 'string' ? network : network.custom) {
     case 'mainnet':
       return prefixes.signatureMainnet;
     case 'testnet':
@@ -361,8 +361,8 @@ const signaturePrefix = (network: string) => {
   }
 };
 
-const zkAppBodyPrefix = (network: string) => {
-  switch (network) {
+const zkAppBodyPrefix = (network: NetworkId) => {
+  switch (typeof network === 'string' ? network : network.custom) {
     case 'mainnet':
       return prefixes.zkappBodyMainnet;
     case 'testnet':

@@ -41,13 +41,8 @@ const defaultValidUntil = '4294967295';
 class Client {
   private network: NetworkId;
 
-  constructor(options: { network: NetworkId }) {
-    if (!options?.network) {
-      throw Error('Invalid Specified Network');
-    }
-    const specifiedNetwork = options.network.toLowerCase();
-
-    this.network = specifiedNetwork;
+  constructor({ network }: { network: NetworkId }) {
+    this.network = network;
   }
 
   /**
@@ -120,13 +115,9 @@ class Client {
    * @param privateKey The private key used for signing
    * @returns The signed field elements
    */
-  signFields(
-    fields: bigint[],
-    privateKey: Json.PrivateKey,
-    network?: NetworkId
-  ): Signed<bigint[]> {
+  signFields(fields: bigint[], privateKey: Json.PrivateKey): Signed<bigint[]> {
     let privateKey_ = PrivateKey.fromBase58(privateKey);
-    let signature = sign({ fields }, privateKey_, network ?? 'testnet');
+    let signature = sign({ fields }, privateKey_, 'testnet');
     return {
       signature: Signature.toBase58(signature),
       publicKey: PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_)),
@@ -141,15 +132,12 @@ class Client {
    * @returns True if the `signedFields` contains a valid signature matching
    * the fields and publicKey.
    */
-  verifyFields(
-    { data, signature, publicKey }: Signed<bigint[]>,
-    network?: NetworkId
-  ) {
+  verifyFields({ data, signature, publicKey }: Signed<bigint[]>) {
     return verify(
       Signature.fromBase58(signature),
       { fields: data },
       PublicKey.fromBase58(publicKey),
-      network ?? 'testnet'
+      'testnet'
     );
   }
 

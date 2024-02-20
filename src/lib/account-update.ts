@@ -1019,18 +1019,16 @@ class AccountUpdate implements Types.AccountUpdate {
     // consistency between JS & OCaml hashing on *every single account update
     // proof* we create. It will give us 100% confidence that the two
     // implementations are equivalent, and catch regressions quickly
+    let networkId = activeInstance.getNetworkId();
     if (Provable.inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
-      return hashWithPrefix(
-        zkAppBodyPrefix(activeInstance.getNetworkId()),
-        packToFields(input)
-      );
+      return hashWithPrefix(zkAppBodyPrefix(networkId), packToFields(input));
     } else {
       let json = Types.AccountUpdate.toJSON(this);
       return Field(
         Test.hashFromJson.accountUpdate(
           JSON.stringify(json),
-          activeInstance.getNetworkId()
+          typeof networkId === 'string' ? networkId : networkId.custom
         )
       );
     }

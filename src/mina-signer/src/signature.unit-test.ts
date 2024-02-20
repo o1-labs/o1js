@@ -17,6 +17,7 @@ import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-b
 import { HashInput } from '../../bindings/lib/provable-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/field.js';
+import { NetworkId } from './types.js';
 
 // check consistency with OCaml, where we expose the function to sign 1 field element with "testnet"
 function checkConsistentSingle(
@@ -24,7 +25,7 @@ function checkConsistentSingle(
   key: PrivateKey,
   keySnarky: PrivateKeySnarky,
   pk: PublicKey,
-  networkId: string
+  networkId: NetworkId
 ) {
   let sig = signFieldElement(msg, key, networkId);
 
@@ -44,7 +45,11 @@ function checkConsistentSingle(
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = Test.signature.signFieldElement(msgMl, keyMl, networkId);
+  let actualTest = Test.signature.signFieldElement(
+    msgMl,
+    keyMl,
+    typeof networkId === 'string' ? networkId : networkId.custom
+  );
   expect(Signature.toBase58(sig)).toEqual(actualTest);
 }
 
@@ -101,14 +106,14 @@ for (let i = 0; i < 10; i++) {
   for (let x of hardcoded) {
     checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
-    checkConsistentSingle(x, key, keySnarky, publicKey, 'other');
+    checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
   }
   // random single field elements
   for (let i = 0; i < 10; i++) {
     let x = randomFields[i];
     checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
-    checkConsistentSingle(x, key, keySnarky, publicKey, 'other');
+    checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
   }
   // hard-coded multi-element hash inputs
   let messages: HashInput[] = [

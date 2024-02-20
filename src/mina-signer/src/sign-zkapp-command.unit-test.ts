@@ -146,7 +146,7 @@ test(
     let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
     let ocamlCommitments = Test.hashFromJson.transactionCommitments(
       JSON.stringify(zkappCommandJson),
-      networkId
+      typeof networkId === 'string' ? networkId : networkId.custom
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
     let commitment = callForestHash(callForest, networkId);
@@ -194,7 +194,7 @@ test(
     // tx commitment
     let ocamlCommitments = Test.hashFromJson.transactionCommitments(
       JSON.stringify(zkappCommandJson),
-      networkId
+      typeof networkId === 'string' ? networkId : networkId.custom
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
     let commitment = callForestHash(callForest, networkId);
@@ -244,7 +244,7 @@ test(
     let sigOCaml = Test.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
-      networkId
+      typeof networkId === 'string' ? networkId : networkId.custom
     );
 
     expect(Signature.toBase58(sigFieldElements)).toEqual(sigOCaml);
