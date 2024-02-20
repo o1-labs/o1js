@@ -48,7 +48,7 @@ function checkConsistentSingle(
   let actualTest = Test.signature.signFieldElement(
     msgMl,
     keyMl,
-    typeof networkId === 'string' ? networkId : networkId.custom
+    NetworkId.toString(networkId)
   );
   expect(Signature.toBase58(sig)).toEqual(actualTest);
 }

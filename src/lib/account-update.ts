@@ -69,6 +69,7 @@ import {
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
 import { RandomId } from './provable-types/auxiliary.js';
+import { NetworkId } from '../mina-signer/src/types.js';
 
 // external API
 export {
@@ -1028,7 +1029,7 @@ class AccountUpdate implements Types.AccountUpdate {
       return Field(
         Test.hashFromJson.accountUpdate(
           JSON.stringify(json),
-          typeof networkId === 'string' ? networkId : networkId.custom
+          NetworkId.toString(networkId)
         )
       );
     }
