@@ -112,6 +112,14 @@ test(
     let hashSnarky = accountUpdateSnarky.hash();
     let hash = accountUpdateHash(accountUpdate, networkId);
     expect(hash).toEqual(hashSnarky.toBigInt());
+    /* 
+    // check against different network hash
+    expect(hash).not.toEqual(
+      accountUpdateHash(
+        accountUpdate,
+        NetworkId.toString(networkId) === 'mainnet' ? 'testnet' : 'mainnet'
+      )
+    ); */
   }
 );
 

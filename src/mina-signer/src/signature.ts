@@ -327,13 +327,14 @@ function networkIdOfString(n: string): [bigint, number] {
 }
 
 function getNetworkIdHashInput(network: NetworkId): [bigint, number] {
-  switch (NetworkId.toString(network)) {
+  let s = NetworkId.toString(network);
+  switch (s) {
     case 'mainnet':
       return [networkIdMainnet, 8];
     case 'testnet':
       return [networkIdTestnet, 8];
     default:
-      return networkIdOfString(network as string);
+      return networkIdOfString(s);
   }
 }
 
@@ -351,7 +352,8 @@ const createCustomPrefix = (prefix: string) => {
 };
 
 const signaturePrefix = (network: NetworkId) => {
-  switch (NetworkId.toString(network)) {
+  let s = NetworkId.toString(network);
+  switch (s) {
     case 'mainnet':
       return prefixes.signatureMainnet;
     case 'testnet':
@@ -362,7 +364,8 @@ const signaturePrefix = (network: NetworkId) => {
 };
 
 const zkAppBodyPrefix = (network: NetworkId) => {
-  switch (NetworkId.toString(network)) {
+  let s = NetworkId.toString(network);
+  switch (s) {
     case 'mainnet':
       return prefixes.zkappBodyMainnet;
     case 'testnet':
