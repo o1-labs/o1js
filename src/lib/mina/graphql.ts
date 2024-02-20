@@ -404,6 +404,15 @@ const lastBlockQueryFailureCheck = (length: number) => `{
         }
       }
     }
+    stateHash
+    protocolState {
+      consensusState {
+        blockHeight
+        epoch
+        slotSinceGenesis
+      }
+      previousStateHash
+    }
   }
 }`;
 
