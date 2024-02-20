@@ -359,7 +359,7 @@ const signaturePrefix = (network: NetworkId) => {
     case 'testnet':
       return prefixes.signatureTestnet;
     default:
-      return createCustomPrefix(network + 'Signature');
+      return createCustomPrefix(s + 'Signature');
   }
 };
 
@@ -371,6 +371,6 @@ const zkAppBodyPrefix = (network: NetworkId) => {
     case 'testnet':
       return prefixes.zkappBodyTestnet;
     default:
-      return createCustomPrefix(network + 'ZkappBody');
+      return createCustomPrefix(s + 'ZkappBody');
   }
 };
