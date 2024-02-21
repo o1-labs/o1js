@@ -18,7 +18,7 @@ import {
 
 let MyProgram = ZkProgram({
   name: 'example-request',
-  publicOutput: undefined,
+  publicOutput: Field,
   publicInput: undefined,
   methods: {
     baseCase: {
@@ -34,7 +34,9 @@ class RequestProof extends SmartContract {
   @method incrementCounter() {
     let p = this.requestProof(MyProgram, 'baseCase');
 
-    //p.verify();
+    p.verify();
+
+    (p.publicOutput as Field).assertEquals(0);
   }
 }
 

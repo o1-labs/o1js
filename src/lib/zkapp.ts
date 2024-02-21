@@ -602,6 +602,9 @@ class SmartContract extends SmartContractBase {
     proof?: Proof<any, any>;
     index: number;
   }[] = [];
+
+  static _dummyProof?: Proof<any, any>;
+
   /**
    * Returns a Proof type that belongs to this {@link SmartContract}.
    */
@@ -660,6 +663,7 @@ class SmartContract extends SmartContractBase {
       };
     });
     console.log('compile 2');
+    this._dummyProof = await Proof.dummy(undefined, Field(0), 0);
 
     // run methods once to get information that we need already at compile time
     let methodsMeta = this.analyzeMethods();
@@ -1051,6 +1055,9 @@ super.init();
     if (inProver()) {
       console.log('LOOKING AT PROOF!');
       console.log(zkAppClass._proofQueue);
+      return zkAppClass._proofQueue[0].proof!;
+    } else {
+      return zkAppClass._dummyProof!;
     }
   }
 
