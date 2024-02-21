@@ -7,7 +7,6 @@ import * as Fetch from './fetch.js';
 import { invalidTransactionError } from './mina/errors.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
-import { prettifyStacktrace } from './errors.js';
 import { NetworkId } from '../mina-signer/src/types.js';
 import { currentTransaction } from './mina/transaction-context.js';
 import {
@@ -28,6 +27,7 @@ import {
   type RejectedTransaction,
   createTransaction,
   newTransaction,
+  transaction,
   createIncludedOrRejectedTransaction,
 } from './mina/transaction.js';
 import {
@@ -454,57 +454,6 @@ function Network(
  */
 function BerkeleyQANet(graphqlEndpoint: string) {
   return Network(graphqlEndpoint);
-}
-
-/**
- * Construct a smart contract transaction. Within the callback passed to this function,
- * you can call into the methods of smart contracts.
- *
- * ```
- * let tx = await Mina.transaction(sender, () => {
- *   myZkapp.update();
- *   someOtherZkapp.someOtherMethod();
- * });
- * ```
- *
- * @return A transaction that can subsequently be submitted to the chain.
- */
-function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
-function transaction(f: () => void): Promise<Transaction>;
-/**
- * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
- * ```
- * // good
- * Mina.transaction(publicKey, ...);
- * Mina.transaction({ sender: publicKey }, ...);
- *
- * // deprecated
- * Mina.transaction(privateKey, ...);
- * Mina.transaction({ feePayerKey: privateKey }, ...);
- * ```
- */
-function transaction(
-  sender: DeprecatedFeePayerSpec,
-  f: () => void
-): Promise<Transaction>;
-function transaction(
-  senderOrF: DeprecatedFeePayerSpec | (() => void),
-  fOrUndefined?: () => void
-): Promise<Transaction> {
-  let sender: DeprecatedFeePayerSpec;
-  let f: () => void;
-  try {
-    if (fOrUndefined !== undefined) {
-      sender = senderOrF as DeprecatedFeePayerSpec;
-      f = fOrUndefined;
-    } else {
-      sender = undefined;
-      f = senderOrF as () => void;
-    }
-    return activeInstance.transaction(sender, f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
-  }
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   TokenId,
   addMissingProofs,
 } from '../account-update.js';
+import { prettifyStacktrace } from '../errors.js';
 import { Field } from '../core.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { UInt32, UInt64 } from '../int.js';
@@ -18,6 +19,7 @@ import { assertPreconditionInvariants } from '../precondition.js';
 import { Account } from './account.js';
 import {
   type DeprecatedFeePayerSpec,
+  type FeePayerSpec,
   activeInstance,
 } from './mina-instance.js';
 import * as Fetch from '../fetch.js';
@@ -33,6 +35,7 @@ export {
   sendTransaction,
   newTransaction,
   getAccount,
+  transaction,
   createIncludedOrRejectedTransaction,
 };
 
@@ -423,6 +426,57 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     },
   };
   return self;
+}
+
+/**
+ * Construct a smart contract transaction. Within the callback passed to this function,
+ * you can call into the methods of smart contracts.
+ *
+ * ```
+ * let tx = await Mina.transaction(sender, () => {
+ *   myZkapp.update();
+ *   someOtherZkapp.someOtherMethod();
+ * });
+ * ```
+ *
+ * @return A transaction that can subsequently be submitted to the chain.
+ */
+function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
+function transaction(f: () => void): Promise<Transaction>;
+/**
+ * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
+ * ```
+ * // good
+ * Mina.transaction(publicKey, ...);
+ * Mina.transaction({ sender: publicKey }, ...);
+ *
+ * // deprecated
+ * Mina.transaction(privateKey, ...);
+ * Mina.transaction({ feePayerKey: privateKey }, ...);
+ * ```
+ */
+function transaction(
+  sender: DeprecatedFeePayerSpec,
+  f: () => void
+): Promise<Transaction>;
+function transaction(
+  senderOrF: DeprecatedFeePayerSpec | (() => void),
+  fOrUndefined?: () => void
+): Promise<Transaction> {
+  let sender: DeprecatedFeePayerSpec;
+  let f: () => void;
+  try {
+    if (fOrUndefined !== undefined) {
+      sender = senderOrF as DeprecatedFeePayerSpec;
+      f = fOrUndefined;
+    } else {
+      sender = undefined;
+      f = senderOrF as () => void;
+    }
+    return activeInstance.transaction(sender, f);
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  }
 }
 
 async function sendTransaction(txn: Transaction) {
