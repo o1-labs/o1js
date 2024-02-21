@@ -283,10 +283,15 @@ function LocalBlockchain({
         maxAttempts?: number;
         interval?: number;
       }) => {
-        return createIncludedOrRejectedTransaction(
-          pendingTransaction,
-          pendingTransaction.errors
-        );
+        const pendingTransaction = await wait(_options);
+        if (pendingTransaction.status === 'rejected') {
+          throw Error(
+            `Transaction failed with errors:\n${pendingTransaction.errors.join(
+              '\n'
+            )}`
+          );
+        }
+        return pendingTransaction;
       };
 
       return {
