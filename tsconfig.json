@@ -1,6 +1,11 @@
 {
   "include": ["./src/**/*.ts"],
-  "exclude": ["./src/**/*.bc.js", "./src/build", "./src/examples", "./src/mina"],
+  "exclude": [
+    "./src/**/*.bc.js",
+    "./src/build",
+    "./src/examples",
+    "./src/mina"
+  ],
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "dist",
@@ -13,6 +18,8 @@
     "experimentalDecorators": true, // needed for decorators
     "emitDecoratorMetadata": true, // needed for decorators
     "useDefineForClassFields": false, // ensure correct behaviour of class fields with decorators
+
+    "noErrorTruncation": true, // makes it easier to see the entire type
 
     "strict": true, // for the full TypeScript experience
     "strictPropertyInitialization": false, // to enable generic constructors, e.g. on CircuitValue

@@ -1,4 +1,4 @@
-import { Gate, Pickles, ProvablePure } from '../snarky.js';
+import { Gate, GateType, Pickles, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,
@@ -26,6 +26,7 @@ import {
   InferProvable,
   InferredProvable,
   provable,
+  ProvablePureExtended,
   toConstant,
 } from './circuit_value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
@@ -40,16 +41,26 @@ import {
 import {
   analyzeMethod,
   compileProgram,
+  dummyProof,
   Empty,
   emptyValue,
   GenericArgument,
+  Get,
   getPreviousProofsForProver,
+  InferProvableOrUndefined,
+  InferProvableOrVoid,
   isAsFields,
+  Method,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
+  PrivateInput,
   Proof,
+  ProvableOrUndefined,
+  ProvableOrVoid,
+  Prover,
   sortMethodArguments,
+  TupleToInstances,
   ZkProgram,
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -64,6 +75,8 @@ import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
 import { SmartContractBase } from './mina/smart-contract-base.js';
 import { stat } from 'fs';
+import { Tuple } from './util/types.js';
+import { satisfies } from './testing/constraint-system.js';
 
 // external API
 export {
@@ -581,9 +594,14 @@ class SmartContract extends SmartContractBase {
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
-  static _zkPrograms?: {
-    [name in string]: ReturnType<typeof getReducerZkProgram>;
-  };
+
+  static _proofQueue: {
+    methodName: string;
+    program: any;
+    inputs: any;
+    proof?: Proof<any, any>;
+    index: number;
+  }[] = [];
   /**
    * Returns a Proof type that belongs to this {@link SmartContract}.
    */
@@ -647,12 +665,10 @@ class SmartContract extends SmartContractBase {
     let methodsMeta = this.analyzeMethods();
 
     // compile internal zkProgram dependencies
-    if (this._zkPrograms) {
-      let keys = Object.keys(this._zkPrograms);
-      for await (const key of keys) {
-        let program = this._zkPrograms[key];
-        console.log('compiling ', key);
-        await program.compile();
+    if (this._proofQueue.length > 0) {
+      for await (const p of this._proofQueue) {
+        console.log('compiling ', p.program.name);
+        await p.program.compile();
         console.log('done');
       }
     }
@@ -1010,6 +1026,34 @@ super.init();
     );
   }
 
+  requestProof(
+    program: any,
+    methodName: string,
+    ...args: any
+  ): Proof<any, any> {
+    let zkAppClass = this.constructor as typeof SmartContract;
+    console.log('requesting proof');
+    if (inAnalyze()) {
+      console.log('pushing in analyze');
+      // push new request to proof queue if not yet requested
+      zkAppClass._proofQueue.find(
+        (p) =>
+          p.methodName + p.program.name === methodName + (program?.name as any)
+      );
+      zkAppClass._proofQueue.push({
+        methodName,
+        program,
+        inputs: args,
+        index: zkAppClass._proofQueue.length,
+      });
+    }
+
+    if (inProver()) {
+      console.log('LOOKING AT PROOF!');
+      console.log(zkAppClass._proofQueue);
+    }
+  }
+
   /**
    * Asynchronously fetches events emitted by this {@link SmartContract} and returns an array of events with their corresponding types.
    * @async
@@ -1347,11 +1391,11 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       let contractInstance = contract.constructor as typeof SmartContract;
 
       // set recursive program
-      if (useRecursion && inAnalyze()) {
+      /*       if (useRecursion && inAnalyze()) {
         let program = getReducerZkProgram();
         if (!contractInstance._zkPrograms) contractInstance._zkPrograms = {};
         contractInstance._zkPrograms[program.name] = program;
-      }
+      } */
 
       let methodData = (
         contract.constructor as typeof SmartContract
@@ -1722,3 +1766,17 @@ function getReducerZkProgram() {
   });
   return MyProgram;
 }
+
+let MyProgram = ZkProgram({
+  name: 'example-request',
+  publicOutput: Field,
+  publicInput: undefined,
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      method() {
+        return Field(0);
+      },
+    },
+  },
+});

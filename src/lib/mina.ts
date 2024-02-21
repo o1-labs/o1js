@@ -279,8 +279,6 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      // TODO: prove requests proofs
-
       let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
         proofsEnabled,
       });

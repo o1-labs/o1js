@@ -54,6 +54,15 @@ export {
 
 // internal API
 export {
+  TupleToInstances,
+  dummyProof,
+  ProvableOrVoid,
+  ProvableOrUndefined,
+  Method,
+  Get,
+  InferProvableOrUndefined,
+  InferProvableOrVoid,
+  PrivateInput,
   CompiledTag,
   sortMethodArguments,
   getPreviousProofsForProver,

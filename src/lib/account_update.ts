@@ -553,6 +553,10 @@ type LazyProof = {
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
+  //requestedProofs: RequestedProof[]
+};
+type RequestedProof = {
+  inputs: any;
 };
 
 const AccountId = provable({ tokenOwner: PublicKey, parentTokenId: Field });
@@ -2110,6 +2114,14 @@ async function addProof(
   }
 
   let lazyProof: LazyProof = accountUpdate.lazyAuthorization;
+  // fufill lazy zkProgram proof requests, if any
+  for await (const request of lazyProof.ZkappClass._proofQueue) {
+    console.log('proving ', request.methodName);
+    let proof = await request.program[request.methodName](...request.inputs);
+    lazyProof.ZkappClass._proofQueue[request.index].proof = proof;
+    console.log(lazyProof.ZkappClass._proofQueue);
+  }
+
   let prover = getZkappProver(lazyProof);
   let proverData = { transaction, accountUpdate, index };
   let proof = await createZkappProof(prover, lazyProof, proverData);
