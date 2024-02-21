@@ -61,12 +61,11 @@ function invalidTransactionError(
   let errorMessages = [];
   let rawErrors = JSON.stringify(errors);
   let n = transaction.accountUpdates.length;
-  let accountUpdateErrors = errors.slice(1, n + 1);
 
   // Check if the number of errors match the number of account updates. If there are more, then the fee payer has an error.
   // We do this check because the fee payer error is not included in network transaction errors and is always present (even if empty) in the local transaction errors.
-  if (accountUpdateErrors.length === n) {
-    let errorsForFeePayer = errors[0];
+  if (errors.length > n) {
+    let errorsForFeePayer = errors.shift() ?? [];
     for (let [error] of errorsForFeePayer) {
       let message = ErrorHandlers[error as keyof typeof ErrorHandlers]?.({
         transaction,
@@ -78,8 +77,8 @@ function invalidTransactionError(
     }
   }
 
-  for (let i = 0; i < accountUpdateErrors.length; i++) {
-    let errorsForUpdate = accountUpdateErrors[i];
+  for (let i = 0; i < errors.length; i++) {
+    let errorsForUpdate = errors[i];
     for (let [error] of errorsForUpdate) {
       let message = ErrorHandlers[error as keyof typeof ErrorHandlers]?.({
         transaction,
