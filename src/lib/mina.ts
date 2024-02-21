@@ -15,10 +15,6 @@ import {
   setActiveInstance,
   Mina,
   defaultNetworkConstants,
-  reportGetAccountError,
-  verifyTransactionLimits,
-  defaultNetworkState,
-  filterGroups,
   type FeePayerSpec,
   type DeprecatedFeePayerSpec,
   type ActionStates,
@@ -34,6 +30,12 @@ import {
   newTransaction,
   createIncludedOrRejectedTransaction,
 } from './mina/transaction.js';
+import {
+  reportGetAccountError,
+  verifyTransactionLimits,
+  defaultNetworkState,
+  filterGroups,
+} from './mina/transaction-validation.js';
 import { LocalBlockchain } from './mina/local-blockchain.js';
 
 export {

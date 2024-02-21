@@ -26,11 +26,13 @@ import {
   type ActionStates,
   Mina,
   defaultNetworkConstants,
+} from './mina-instance.js';
+import {
   reportGetAccountError,
   defaultNetworkState,
   verifyTransactionLimits,
   verifyAccountUpdate,
-} from './mina-instance.js';
+} from './transaction-validation.js';
 
 export { LocalBlockchain };
 /**
