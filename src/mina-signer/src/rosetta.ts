@@ -1,16 +1,32 @@
 import { Binable } from '../../bindings/lib/binable.js';
-import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { PublicKey, PrivateKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
 import { Memo } from './memo.js';
 import { Signature, SignatureJson } from './signature.js';
+import { DelegationJson, PaymentJson, signPayment, signStakeDelegation, verifyPayment, verifyStakeDelegation } from './sign-legacy.js';
+import { NetworkId, SignedRosetta } from './TSTypes.js';
+import * as Json from './TSTypes.js';
+
 
 export {
   publicKeyToHex,
   signatureFromHex,
+  signatureJsonFromHex,
   signatureToHex,
   signatureJsonToHex,
-  rosettaTransactionToSignedCommand
+  fieldFromHex,
+  fieldToHex,
+  rosettaTransactionToSignedCommand,
+  signTransaction,
+  verifyTransaction,
+  rosettaCombineSignature,
+  rosettaCombinePayload,
+  UnsignedPayload,
+  UnsignedTransaction,
+  SignedTransaction,
 };
+
+const defaultValidUntil = '4294967295';
 
 function publicKeyToHex(publicKey: PublicKey) {
   return fieldToHex(Field, publicKey.x, !!publicKey.isOdd);
@@ -26,13 +42,17 @@ function signatureFromHex(signatureHex: string): Signature {
   };
 }
 
+function signatureJsonFromHex(signatureHex: string): SignatureJson {
+  return Signature.toJSON(signatureFromHex(signatureHex));
+}
+
 function signatureJsonToHex(signatureJson: SignatureJson): string {
   return signatureToHex(Signature.fromJSON(signatureJson));
 }
 
 function signatureToHex(signature: Signature): string {
   let rHex = fieldToHex(Field, signature.r);
-  let sHex = fieldToHex(Field, signature.s);
+  let sHex = fieldToHex(Scalar, signature.s);
   return `${rHex}${sHex}`;
 }
 
@@ -46,7 +66,7 @@ function fieldToHex<T extends Field | Scalar>(
   bytes[bytes.length - 1] |= Number(paddingBit) << 7;
   // map each byte to a 0-padded hex string of length 2
   return bytes
-    .map((byte) => byte.toString(16).padStart(2, '0').split('').reverse().join(''))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -56,7 +76,7 @@ function fieldFromHex<T extends Field | Scalar>(
 ): [T, boolean] {
   let bytes: number[] = [];
   for (let i = 0; i < hex.length; i += 2) {
-    let byte = parseInt(hex[i + 1] + hex[i], 16);
+    let byte = parseInt(hex[i] + hex[i + 1], 16);
     bytes.push(byte);
   }
   // read highest bit
@@ -65,12 +85,93 @@ function fieldFromHex<T extends Field | Scalar>(
   return [binable.fromBytes(bytes), paddingBit];
 }
 
+function signTransaction(transaction: UnsignedTransaction, privateKey: string, network: NetworkId): SignedRosetta<UnsignedTransaction> {
+  let signature: SignatureJson;
+  if (transaction.payment !== null) {
+    let payment = unsignedTransactionPaymentToPaymentJson(transaction.payment);
+    signature = signPayment(payment, privateKey, network);
+  }
+  else if (transaction.stakeDelegation !== null) {
+    let delegation = unsignedTransactionStakeDelegationToDelegationJson(transaction.stakeDelegation);
+    signature = signStakeDelegation(delegation, privateKey, network);
+  }
+  else {
+    throw Error('signTransaction: Unsupported transaction');
+  }
+  let publicKey = PublicKey.toBase58(PrivateKey.toPublicKey(PrivateKey.fromBase58(privateKey)));
+  return {
+    data: transaction,
+    signature: signatureJsonToHex(signature),
+    publicKey,
+  };
+}
+
+function unsignedTransactionPaymentToPaymentJson(payment: Payment): PaymentJson {
+  return {
+    common: {
+      fee: payment.fee,
+      feePayer: payment.from,
+      nonce: payment.nonce,
+      validUntil: payment.valid_until ?? defaultValidUntil,
+      memo: payment.memo ?? '',
+    },
+    body: {
+      receiver: payment.to,
+      amount: payment.amount,
+    }
+  }
+}
+
+function unsignedTransactionStakeDelegationToDelegationJson(delegation: StakeDelegation): DelegationJson {
+  return {
+    common: {
+      feePayer: delegation.delegator,
+      fee: delegation.fee,
+      validUntil: delegation.valid_until ?? defaultValidUntil,
+      memo: delegation.memo ?? '',
+      nonce: delegation.nonce,
+    },
+    body: {
+      newDelegate: delegation.new_delegate,
+    }
+  }
+}
+
+function verifyTransaction(signedTransaction: SignedRosetta<UnsignedTransaction>, network: NetworkId): boolean {
+  if (signedTransaction.data.payment !== null) {
+    return verifyPayment(unsignedTransactionPaymentToPaymentJson(signedTransaction.data.payment), signatureJsonFromHex(signedTransaction.signature), signedTransaction.publicKey, network);
+  } else if (signedTransaction.data.stakeDelegation !== null) {
+    return verifyStakeDelegation(unsignedTransactionStakeDelegationToDelegationJson(signedTransaction.data.stakeDelegation), signatureJsonFromHex(signedTransaction.signature), signedTransaction.publicKey, network);
+  }
+  throw Error('verifyTransaction: Unsupported transaction');
+}
+
+// create a signature for /construction/combine payload
+function rosettaCombineSignature(signature: SignedRosetta<UnsignedTransaction>, signingPayload: any): RosettaSignature {
+  let publicKey = PublicKey.fromBase58(signature.publicKey);
+  return {
+    hex_bytes: signature.signature,
+    public_key: {
+      hex_bytes: publicKeyToHex(publicKey),
+      curve_type: "pallas"
+    },
+    signature_type: "schnorr_poseidon",
+    signing_payload: signingPayload
+  }
+}
+
+// create a payload for /construction/combine
+function rosettaCombinePayload(unsignedPayload: UnsignedPayload, privateKey: Json.PrivateKey, network: NetworkId) {
+  let signature = signTransaction(unsignedPayload.unsigned_transaction, privateKey, network);
+  let signatures = [rosettaCombineSignature(signature, unsignedPayload.payloads[0])];
+  return {
+    network_identifier: { blockchain: "mina", network },
+    unsigned_transaction: unsignedPayload.unsigned_transaction, signatures
+  };
+}
+
 // TODO: clean up this logic, was copied over from OCaml code
-function rosettaTransactionToSignedCommand({
-  signature,
-  payment,
-  stake_delegation,
-}: RosettaTransactionJson) {
+function rosettaTransactionToSignedCommand({ signature, payment, stake_delegation }: SignedTransaction) {
   let signatureDecoded = signatureFromHex(signature);
   let signatureBase58 = Signature.toBase58(signatureDecoded);
   let [t, nonce] = (() => {
@@ -140,24 +241,53 @@ function rosettaTransactionToSignedCommand({
   };
 }
 
-type RosettaTransactionJson = {
+type UnsignedPayload = {
+  unsigned_transaction: UnsignedTransaction;
+  payloads: any[];
+}
+
+type UnsignedTransaction = {
+  randomOracleInput: string;
+  signerInput: {
+    prefix: string[];
+    suffix: string[];
+  };
+  payment: Payment | null;
+  stakeDelegation: StakeDelegation | null;
+}
+
+type SignedTransaction = {
   signature: string;
-  payment: {
-    to: string;
-    from: string;
-    fee: string;
-    token: string;
-    nonce: string;
-    memo: string | null;
-    amount: string;
-    valid_until: string | null;
-  } | null;
-  stake_delegation: {
-    delegator: string;
-    new_delegate: string;
-    fee: string;
-    nonce: string;
-    memo: string | null;
-    valid_until: string | null;
-  } | null;
-};
+  payment: Payment | null;
+  stake_delegation: StakeDelegation | null;
+}
+
+type RosettaSignature = {
+  hex_bytes: string;
+  public_key: {
+    hex_bytes: string;
+    curve_type: string;
+  };
+  signature_type: string;
+  signing_payload: any;
+}
+
+type Payment = {
+  to: string;
+  from: string;
+  fee: string;
+  token: string;
+  nonce: string;
+  memo: string | null;
+  amount: string;
+  valid_until: string | null;
+}
+
+type StakeDelegation = {
+  delegator: string;
+  new_delegate: string;
+  fee: string;
+  nonce: string;
+  memo: string | null;
+  valid_until: string | null;
+}
