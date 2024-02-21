@@ -264,11 +264,9 @@ function LocalBlockchain({
         isSuccess,
         errors,
         transaction: txn.transaction,
+        hash,
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
-        hash: (): string => {
-          return hash;
-        },
       };
 
       const wait = async (_options?: {

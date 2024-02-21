@@ -181,15 +181,15 @@ type PendingTransaction = Pick<
   }): Promise<IncludedTransaction | RejectedTransaction>;
 
   /**
-   * Generates and returns the transaction hash as a string identifier.
-   * @returns {string} The hash of the transaction.
+   * Returns the transaction hash as a string identifier.
+   * @property {string} The hash of the transaction.
    * @example
    * ```ts
-   * const txHash = pendingTransaction.hash();
+   * const txHash = pendingTransaction.hash;
    * console.log(`Transaction hash: ${txHash}`);
    * ```
    */
-  hash(): string;
+  hash: string;
 
   /**
    * Optional. Contains response data from a ZkApp transaction submission.

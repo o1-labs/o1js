@@ -268,11 +268,9 @@ function Network(
         data: response?.data,
         errors,
         transaction: txn.transaction,
+        hash,
         toJSON: txn.toJSON,
         toPretty: txn.toPretty,
-        hash() {
-          return hash;
-        },
       };
 
       const pollTransactionStatus = async (
@@ -337,7 +335,7 @@ function Network(
         const maxAttempts = options?.maxAttempts ?? 45;
         const interval = options?.interval ?? 20000;
         return pollTransactionStatus(
-          pendingTransaction.hash(),
+          pendingTransaction.hash,
           maxAttempts,
           interval
         );
