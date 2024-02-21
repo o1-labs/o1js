@@ -27,6 +27,27 @@ const MAX_ACCOUNT_UPDATES = 20;
 abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
 
+  /**
+   * Deploys a {@link TokenContract}.
+   *
+   * In addition to base smart contract deployment, this adds two steps:
+   * - set the `access` permission to `proofOrSignature()`, to prevent against unauthorized token operations
+   *   - not doing this would imply that anyone can bypass token contract authorization and simply mint themselves tokens
+   * - require the zkapp account to be new, using the `isNew` precondition.
+   *   this guarantees that the access permission is set from the very start of the existence of this account.
+   *   creating the zkapp account before deployment would otherwise be a security vulnerability that is too easy to introduce.
+   *
+   * Note that because of the `isNew` precondition, the zkapp account must not be created prior to calling `deploy()`.
+   *
+   * If the contract needs to be re-deployed, you can switch off this behaviour by overriding the `isNew` precondition:
+   * ```ts
+   * deploy() {
+   *   super.deploy();
+   *   // DON'T DO THIS ON THE INITIAL DEPLOYMENT!
+   *   this.account.isNew.requireNothing();
+   * }
+   * ```
+   */
   deploy(args?: DeployArgs) {
     super.deploy(args);
 
