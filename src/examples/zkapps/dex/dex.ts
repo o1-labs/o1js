@@ -25,10 +25,17 @@ class UInt64x2 extends Struct([UInt64, UInt64]) {}
 function createDex({
   lockedLiquiditySlots,
 }: { lockedLiquiditySlots?: number } = {}) {
-  class Dex extends SmartContract {
+  class Dex extends BaseTokenContract {
     // addresses of token contracts are constants
     tokenX = addresses.tokenX;
     tokenY = addresses.tokenY;
+
+    // Approvable API
+
+    @method
+    approveBase(forest: AccountUpdateForest) {
+      this.checkZeroBalanceChange(forest);
+    }
 
     /**
      * state which keeps track of total lqXY supply -- this is needed to calculate what to return when redeeming liquidity
@@ -53,10 +60,16 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
 
       // get balances of X and Y token
-      let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
+      let dexXUpdate = AccountUpdate.create(
+        this.address,
+        tokenX.deriveTokenId()
+      );
       let dexXBalance = dexXUpdate.account.balance.getAndRequireEquals();
 
-      let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
+      let dexYUpdate = AccountUpdate.create(
+        this.address,
+        tokenY.deriveTokenId()
+      );
       let dexYBalance = dexYUpdate.account.balance.getAndRequireEquals();
 
       // assert dy === [dx * y/x], or x === 0
@@ -71,7 +84,7 @@ function createDex({
       // calculate liquidity token output simply as dl = dx + dy
       // => maintains ratio x/l, y/l
       let dl = dy.add(dx);
-      let userUpdate = this.token.mint({ address: user, amount: dl });
+      let userUpdate = this.internal.mint({ address: user, amount: dl });
       if (lockedLiquiditySlots !== undefined) {
         /**
          * exercise the "timing" (vesting) feature to lock the received liquidity tokens.
@@ -114,7 +127,7 @@ function createDex({
       // calculate dy outside circuit
       let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
       let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
-      if (x.value.isConstant() && x.value.isZero().toBoolean()) {
+      if (x.value.isConstant() && x.value.equals(0).toBoolean()) {
         throw Error(
           'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
         );
@@ -136,7 +149,7 @@ function createDex({
     redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
       let tokenX = new TokenContract(this.tokenX);
-      let dexX = new DexTokenHolder(this.address, tokenX.token.id);
+      let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
       let dxdy = dexX.redeemLiquidity(this.sender, dl, this.tokenY);
       let dx = dxdy[0];
       tokenX.transfer(dexX.self, this.sender, dx);
@@ -152,7 +165,7 @@ function createDex({
      */
     @method swapX(dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
-      let dexY = new DexTokenHolder(this.address, tokenY.token.id);
+      let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
       let dy = dexY.swap(this.sender, dx, this.tokenX);
       tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
@@ -167,7 +180,7 @@ function createDex({
      */
     @method swapY(dy: UInt64): UInt64 {
       let tokenX = new TokenContract(this.tokenX);
-      let dexX = new DexTokenHolder(this.address, tokenX.token.id);
+      let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
       let dx = dexX.swap(this.sender, dy, this.tokenY);
       tokenX.transfer(dexX.self, this.sender, dx);
       return dx;
@@ -186,22 +199,27 @@ function createDex({
      */
     @method burnLiquidity(user: PublicKey, dl: UInt64): UInt64 {
       // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
-      this.token.burn({ address: user, amount: dl });
+      this.internal.burn({ address: user, amount: dl });
       let l = this.totalSupply.get();
       this.totalSupply.requireEquals(l);
       this.totalSupply.set(l.sub(dl));
       return l;
     }
-
-    @method transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-      this.token.send({ from, to, amount });
-    }
   }
 
   class ModifiedDex extends Dex {
+    deploy() {
+      super.deploy();
+      // override the isNew requirement for re-deploying
+      this.account.isNew.requireNothing();
+    }
+
     @method swapX(dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
-      let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
+      let dexY = new ModifiedDexTokenHolder(
+        this.address,
+        tokenY.deriveTokenId()
+      );
       let dy = dexY.swap(this.sender, dx, this.tokenX);
       tokenY.transfer(dexY.self, this.sender, dy);
       return dy;
@@ -241,7 +259,7 @@ function createDex({
     ): UInt64x2 {
       // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
-      let dexY = new DexTokenHolder(this.address, tokenY.token.id);
+      let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
       let result = dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
@@ -267,7 +285,7 @@ function createDex({
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances
-      let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+      let dexX = AccountUpdate.create(this.address, tokenX.deriveTokenId());
       let x = dexX.account.balance.getAndRequireEquals();
       let y = this.account.balance.getAndRequireEquals();
       // send x from user to us (i.e., to the same address as this but with the other token)
@@ -292,7 +310,7 @@ function createDex({
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances
-      let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+      let dexX = AccountUpdate.create(this.address, tokenX.deriveTokenId());
       let x = dexX.account.balance.getAndRequireEquals();
       let y = this.account.balance.get();
       this.account.balance.requireEquals(y);
@@ -377,7 +395,7 @@ class TokenContract extends BaseTokenContract {
      *
      * we mint the max uint64 of tokens here, so that we can overflow it in tests if we just mint a bit more
      */
-    let receiver = this.token.mint({
+    let receiver = this.internal.mint({
       address: this.address,
       amount: UInt64.MAXINT(),
     });
@@ -393,7 +411,7 @@ class TokenContract extends BaseTokenContract {
    * mint additional tokens to some user, so we can overflow token balances
    */
   @method init2() {
-    let receiver = this.token.mint({
+    let receiver = this.internal.mint({
       address: addresses.user,
       amount: UInt64.from(10n ** 6n),
     });
