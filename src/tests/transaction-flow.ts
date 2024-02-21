@@ -248,9 +248,8 @@ console.log('');
 console.log(
   "Test calling failing 'update' expecting 'invalid_fee_access' does throw with throwOnFail is true"
 );
-await testLocalAndRemote(async (skip: string) => {
-  let errorWasThrown = false;
-  try {
+await testLocalAndRemote(async () => {
+  await assert.rejects(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       () => {
@@ -260,10 +259,7 @@ await testLocalAndRemote(async (skip: string) => {
     );
     transaction.sign([senderKey, zkAppKey]);
     await sendAndVerifyTransaction(transaction, true);
-  } catch (error) {
-    errorWasThrown = true;
-  }
-  assert(errorWasThrown);
+  });
 });
 console.log('');
 
