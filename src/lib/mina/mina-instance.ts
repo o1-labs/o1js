@@ -21,6 +21,18 @@ export {
   activeInstance,
   setActiveInstance,
   ZkappStateLength,
+  currentSlot,
+  getAccount,
+  hasAccount,
+  getBalance,
+  getNetworkId,
+  getNetworkConstants,
+  getNetworkState,
+  accountCreationFee,
+  fetchEvents,
+  fetchActions,
+  getActions,
+  getProofsEnabled,
 };
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -137,4 +149,98 @@ function setActiveInstance(m: Mina) {
 
 function noActiveInstance(): never {
   throw Error('Must call Mina.setActiveInstance first');
+}
+
+/**
+ * @return The current slot number, according to the active Mina instance.
+ */
+function currentSlot(): UInt32 {
+  return activeInstance.currentSlot();
+}
+
+/**
+ * @return The account data associated to the given public key.
+ */
+function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
+  return activeInstance.getAccount(publicKey, tokenId);
+}
+
+/**
+ * Checks if an account exists within the ledger.
+ */
+function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
+  return activeInstance.hasAccount(publicKey, tokenId);
+}
+
+/**
+ * @return The current Mina network ID.
+ */
+function getNetworkId() {
+  return activeInstance.getNetworkId();
+}
+
+/**
+ * @return Data associated with the current Mina network constants.
+ */
+function getNetworkConstants() {
+  return activeInstance.getNetworkConstants();
+}
+
+/**
+ * @return Data associated with the current state of the Mina network.
+ */
+function getNetworkState() {
+  return activeInstance.getNetworkState();
+}
+
+/**
+ * @return The balance associated to the given public key.
+ */
+function getBalance(publicKey: PublicKey, tokenId?: Field) {
+  return activeInstance.getAccount(publicKey, tokenId).balance;
+}
+
+/**
+ * Returns the default account creation fee.
+ * @deprecated use {@link Mina.getNetworkConstants}
+ */
+function accountCreationFee() {
+  return activeInstance.accountCreationFee();
+}
+
+/**
+ * @return A list of emitted events associated to the given public key.
+ */
+async function fetchEvents(
+  publicKey: PublicKey,
+  tokenId: Field,
+  filterOptions: EventActionFilterOptions = {}
+) {
+  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+async function fetchActions(
+  publicKey: PublicKey,
+  actionStates?: ActionStates,
+  tokenId?: Field
+) {
+  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+function getActions(
+  publicKey: PublicKey,
+  actionStates?: ActionStates,
+  tokenId?: Field
+) {
+  return activeInstance.getActions(publicKey, actionStates, tokenId);
+}
+
+function getProofsEnabled() {
+  return activeInstance.proofsEnabled;
 }
