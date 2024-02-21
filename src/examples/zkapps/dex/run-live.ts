@@ -290,8 +290,10 @@ function logPendingTransaction(pendingTx: Mina.PendingTransaction) {
   console.log(
     'tx sent: ' +
       (useCustomLocalNetwork
-        ? `file://${os.homedir()}/.cache/zkapp-cli/lightnet/explorer/<version>/index.html?target=transaction&hash=${pendingTx.hash()}`
-        : `https://minascan.io/berkeley/tx/${pendingTx.hash()}?type=zk-tx`)
+        ? `file://${os.homedir()}/.cache/zkapp-cli/lightnet/explorer/<version>/index.html?target=transaction&hash=${
+            pendingTx.hash
+          }`
+        : `https://minascan.io/berkeley/tx/${pendingTx.hash}?type=zk-tx`)
   );
 }
 
