@@ -18,6 +18,8 @@ import {
 
 const tokenSymbol = 'TOKEN';
 
+// TODO: Refactor to `TokenContract`
+
 class TokenContract extends SmartContract {
   SUPPLY = UInt64.from(10n ** 18n);
   @state(UInt64) totalAmountInCirculation = State<UInt64>();

@@ -41,7 +41,11 @@ import {
   protocolVersions,
 } from '../bindings/crypto/constants.js';
 import { MlArray } from './ml/base.js';
-import { Signature, signFieldElement } from '../mina-signer/src/signature.js';
+import {
+  Signature,
+  signFieldElement,
+  zkAppBodyPrefix,
+} from '../mina-signer/src/signature.js';
 import { MlFieldConstArray } from './ml/fields.js';
 import {
   accountUpdatesToCallForest,
@@ -65,6 +69,7 @@ import {
 } from './mina/smart-contract-context.js';
 import { assert } from './util/assert.js';
 import { RandomId } from './provable-types/auxiliary.js';
+import { NetworkId } from '../mina-signer/src/types.js';
 
 // external API
 export {
@@ -642,100 +647,6 @@ class AccountUpdate implements Types.AccountUpdate {
     return cloned;
   }
 
-  token() {
-    let thisAccountUpdate = this;
-    let tokenOwner = this.publicKey;
-    let parentTokenId = this.tokenId;
-    let id = TokenId.derive(tokenOwner, parentTokenId);
-
-    function getApprovedAccountUpdate(
-      accountLike: PublicKey | AccountUpdate | SmartContract,
-      label: string
-    ) {
-      if (isSmartContract(accountLike)) {
-        accountLike = accountLike.self;
-      }
-      if (accountLike instanceof AccountUpdate) {
-        accountLike.tokenId.assertEquals(id);
-        thisAccountUpdate.approve(accountLike);
-      }
-      if (accountLike instanceof PublicKey) {
-        accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
-        thisAccountUpdate.approve(accountLike);
-      }
-      if (!accountLike.label)
-        accountLike.label = `${
-          thisAccountUpdate.label ?? 'Unlabeled'
-        }.${label}`;
-      return accountLike;
-    }
-
-    return {
-      id,
-      parentTokenId,
-      tokenOwner,
-
-      /**
-       * Mints token balance to `address`. Returns the mint account update.
-       */
-      mint({
-        address,
-        amount,
-      }: {
-        address: PublicKey | AccountUpdate | SmartContract;
-        amount: number | bigint | UInt64;
-      }) {
-        let receiver = getApprovedAccountUpdate(address, 'token.mint()');
-        receiver.balance.addInPlace(amount);
-        return receiver;
-      },
-
-      /**
-       * Burn token balance on `address`. Returns the burn account update.
-       */
-      burn({
-        address,
-        amount,
-      }: {
-        address: PublicKey | AccountUpdate | SmartContract;
-        amount: number | bigint | UInt64;
-      }) {
-        let sender = getApprovedAccountUpdate(address, 'token.burn()');
-
-        // Sub the amount to burn from the sender's account
-        sender.balance.subInPlace(amount);
-
-        // Require signature from the sender account being deducted
-        sender.body.useFullCommitment = Bool(true);
-        Authorization.setLazySignature(sender);
-        return sender;
-      },
-
-      /**
-       * Move token balance from `from` to `to`. Returns the `to` account update.
-       */
-      send({
-        from,
-        to,
-        amount,
-      }: {
-        from: PublicKey | AccountUpdate | SmartContract;
-        to: PublicKey | AccountUpdate | SmartContract;
-        amount: number | bigint | UInt64;
-      }) {
-        let sender = getApprovedAccountUpdate(from, 'token.send() (sender)');
-        sender.balance.subInPlace(amount);
-        sender.body.useFullCommitment = Bool(true);
-        Authorization.setLazySignature(sender);
-
-        let receiver = getApprovedAccountUpdate(to, 'token.send() (receiver)');
-        receiver.balance.addInPlace(amount);
-
-        return receiver;
-      },
-    };
-  }
-
   get tokenId() {
     return this.body.tokenId;
   }
@@ -1018,9 +929,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (Provable.inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
       return hashWithPrefix(
-        activeInstance.getNetworkId() === 'mainnet'
-          ? prefixes.zkappBodyMainnet
-          : prefixes.zkappBodyTestnet,
+        zkAppBodyPrefix(activeInstance.getNetworkId()),
         packToFields(input)
       );
     } else {
@@ -1028,7 +937,7 @@ class AccountUpdate implements Types.AccountUpdate {
       return Field(
         Test.hashFromJson.accountUpdate(
           JSON.stringify(json),
-          activeInstance.getNetworkId()
+          NetworkId.toString(activeInstance.getNetworkId())
         )
       );
     }
@@ -1399,9 +1308,7 @@ class AccountUpdate implements Types.AccountUpdate {
 function hashAccountUpdate(update: AccountUpdate) {
   return genericHash(
     AccountUpdate,
-    activeInstance.getNetworkId() === 'mainnet'
-      ? prefixes.zkappBodyMainnet
-      : prefixes.zkappBodyTestnet,
+    zkAppBodyPrefix(activeInstance.getNetworkId()),
     update
   );
 }

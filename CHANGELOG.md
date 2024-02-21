@@ -17,6 +17,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
 
+### Added
+
+- Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
+- `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+
+### Deprecated
+
+- `SmartContract.token` is deprecated in favor of new methods on `TokenContract` https://github.com/o1-labs/o1js/pull/1446
+  - `TokenContract.deriveTokenId()` to get the ID of the managed token
+  - `TokenContract.internal.{send, mint, burn}` to perform token operations from within the contract
+
+### Fixed
+
+- Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+
 ## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 
 ### Breaking changes

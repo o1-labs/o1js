@@ -73,14 +73,14 @@ let userSpec = { sender: addresses.user, fee: 0.1e9 };
 if (successfulTransactions <= 0) {
   tic('deploy & init token contracts');
   tx = await Mina.transaction(senderSpec, () => {
-    const accountFee = Mina.getNetworkConstants().accountCreationFee;
-    // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
-    let feePayerUpdate = AccountUpdate.createSigned(sender);
-    feePayerUpdate.balance.subInPlace(accountFee.mul(2));
-    feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
-    feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
     tokenX.deploy();
     tokenY.deploy();
+
+    // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
+    let feePayerUpdate = AccountUpdate.fundNewAccount(sender, 2);
+    feePayerUpdate.send({ to: tokenX.self, amount: accountFee });
+    feePayerUpdate.send({ to: tokenY.self, amount: accountFee });
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();
