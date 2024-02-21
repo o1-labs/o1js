@@ -215,6 +215,15 @@ declare const Snarky: {
       digest: string;
       json: JsonConstraintSystem;
     };
+
+    constraintSystemManual(): {
+      run(f: () => void): void;
+      finish(): {
+        rows: number;
+        digest: string;
+        json: JsonConstraintSystem;
+      };
+    };
   };
 
   /**

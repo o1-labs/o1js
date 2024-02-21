@@ -12,6 +12,7 @@ export {
   runAndCheck,
   runUnchecked,
   constraintSystem,
+  constraintSystemAsync,
   inProver,
   inAnalyze,
   inCheckedComputation,
@@ -100,6 +101,42 @@ function constraintSystem<T>(f: () => T) {
       rows,
       digest,
       result: result! as T,
+      gates,
+      publicInputSize,
+      print() {
+        printGates(gates);
+      },
+      summary() {
+        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+        gateTypes['Total rows'] = rows;
+        for (let gate of gates) {
+          gateTypes[gate.type] ??= 0;
+          gateTypes[gate.type]!++;
+        }
+        return gateTypes;
+      },
+    };
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  } finally {
+    snarkContext.leave(id);
+  }
+}
+
+async function constraintSystemAsync(f: () => Promise<void>) {
+  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+  let builder = Snarky.run.constraintSystemManual();
+  try {
+    let promise: Promise<void>;
+    builder.run(() => {
+      promise = f();
+    });
+    await promise!;
+    let { rows, digest, json } = builder.finish();
+    let { gates, publicInputSize } = gatesFromJson(json);
+    return {
+      rows,
+      digest,
       gates,
       publicInputSize,
       print() {
