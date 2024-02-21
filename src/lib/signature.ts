@@ -1,9 +1,10 @@
 import { Field, Bool, Group, Scalar } from './core.js';
-import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
+import { prop, CircuitValue, AnyConstructor } from './circuit-value.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
+  signaturePrefix,
 } from '../mina-signer/src/signature.js';
 import { Bool as BoolBigint } from '../provable/field-bigint.js';
 import {
@@ -32,14 +33,29 @@ class PrivateKey extends CircuitValue {
   }
 
   /**
-   * You can use this method to generate a private key. You can then obtain
-   * the associated public key via {@link toPublicKey}. And generate signatures
-   * via {@link Signature.create}.
+   * Generate a random private key.
+   *
+   * You can obtain the associated public key via {@link toPublicKey}.
+   * And generate signatures via {@link Signature.create}.
+   *
+   * Note: This uses node or browser built-in APIs to obtain cryptographically strong randomness,
+   * and can be safely used to generate a real private key.
    *
    * @returns a new {@link PrivateKey}.
    */
   static random(): PrivateKey {
     return new PrivateKey(Scalar.random());
+  }
+
+  /**
+   * Create a random keypair `{ privateKey: PrivateKey, publicKey: PublicKey }`.
+   *
+   * Note: This uses node or browser built-in APIs to obtain cryptographically strong randomness,
+   * and can be safely used to generate a real keypair.
+   */
+  static randomKeypair() {
+    let privateKey = PrivateKey.random();
+    return { privateKey, publicKey: privateKey.toPublicKey() };
   }
 
   /**
@@ -238,6 +254,9 @@ class Signature extends CircuitValue {
   static create(privKey: PrivateKey, msg: Field[]): Signature {
     const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
+    // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
+    // there's no consequences in practice and the signatures can be used with any network
+    // if there needs to be a custom nonce, include it in the message itself
     const kPrime = Scalar.fromBigInt(
       deriveNonce(
         { fields: msg.map((f) => f.toBigInt()) },
@@ -249,7 +268,7 @@ class Signature extends CircuitValue {
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
-      prefixes.signatureTestnet,
+      signaturePrefix('testnet'),
       msg.concat([publicKey.x, publicKey.y, r])
     );
     // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
@@ -265,8 +284,11 @@ class Signature extends CircuitValue {
    */
   verify(publicKey: PublicKey, msg: Field[]): Bool {
     const point = publicKey.toGroup();
+    // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
+    // there's no consequences in practice and the signatures can be used with any network
+    // if there needs to be a custom nonce, include it in the message itself
     let h = hashWithPrefix(
-      prefixes.signatureTestnet,
+      signaturePrefix('testnet'),
       msg.concat([point.x, point.y, this.r])
     );
     // TODO: Scalar.fromBits interprets the input as a "shifted scalar"

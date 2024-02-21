@@ -1,5 +1,5 @@
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
-import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
+import { createCurveAffine } from '../../bindings/crypto/elliptic-curve.js';
 import {
   array,
   equivalentProvable,

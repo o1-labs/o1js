@@ -1,6 +1,6 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { Bool, Field } from '../core.js';
-import { Permissions } from '../account_update.js';
+import { Permissions } from '../account-update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
 import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
@@ -10,14 +10,25 @@ import {
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { ProvableExtended } from '../circuit_value.js';
+import { ProvableExtended } from '../circuit-value.js';
 
 export { FetchedAccount, Account, PartialAccount };
-export { accountQuery, parseFetchedAccount, fillPartialAccount };
+export { newAccount, accountQuery, parseFetchedAccount, fillPartialAccount };
 
 type AuthRequired = Types.Json.AuthRequired;
 type Account = Types.Account;
 const Account = Types.Account;
+
+function newAccount(accountId: {
+  publicKey: PublicKey;
+  tokenId?: Field;
+}): Account {
+  let account = Account.empty();
+  account.publicKey = accountId.publicKey;
+  account.tokenId = accountId.tokenId ?? Types.TokenId.empty();
+  account.permissions = Permissions.initial();
+  return account;
+}
 
 type PartialAccount = Omit<Partial<Account>, 'zkapp'> & {
   zkapp?: Partial<Account['zkapp']>;
@@ -45,7 +56,10 @@ type FetchedAccount = {
     receive: AuthRequired;
     setDelegate: AuthRequired;
     setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
+    setVerificationKey: {
+      auth: AuthRequired;
+      txnVersion: string;
+    };
     setZkappUri: AuthRequired;
     editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
@@ -83,7 +97,10 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       receive
       setDelegate
       setPermissions
-      setVerificationKey
+      setVerificationKey {
+        auth
+        txnVersion
+      }
       setZkappUri
       editActionState
       setTokenSymbol

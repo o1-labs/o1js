@@ -9,7 +9,8 @@ import {
   Bytes,
 } from 'o1js';
 
-let initialCommitment: Field = Field(0);
+let initialCommitment = Field(0);
+class Bytes32 extends Bytes(32) {}
 
 export class HashStorage extends SmartContract {
   @state(Field) commitment = State<Field>();
@@ -23,25 +24,25 @@ export class HashStorage extends SmartContract {
     this.commitment.set(initialCommitment);
   }
 
-  @method SHA256(xs: Bytes) {
+  @method SHA256(xs: Bytes32) {
     const shaHash = Hash.SHA3_256.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);
   }
 
-  @method SHA384(xs: Bytes) {
+  @method SHA384(xs: Bytes32) {
     const shaHash = Hash.SHA3_384.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);
   }
 
-  @method SHA512(xs: Bytes) {
+  @method SHA512(xs: Bytes32) {
     const shaHash = Hash.SHA3_512.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);
   }
 
-  @method Keccak256(xs: Bytes) {
+  @method Keccak256(xs: Bytes32) {
     const shaHash = Hash.Keccak256.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);

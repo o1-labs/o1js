@@ -1,6 +1,6 @@
 import { ProvablePure } from '../snarky.js';
-import { FlexibleProvablePure } from './circuit_value.js';
-import { AccountUpdate, TokenId } from './account_update.js';
+import { FlexibleProvablePure } from './circuit-value.js';
+import { AccountUpdate, TokenId } from './account-update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
 import { fetchAccount } from './fetch.js';
@@ -409,7 +409,7 @@ const reservedPropNames = new Set(['_methods', '_']);
 function assertStatePrecondition(sc: SmartContract) {
   try {
     for (let [key, context] of getStateContexts(sc)) {
-      // check if every state that was read was also contrained
+      // check if every state that was read was also constrained
       if (!context?.wasRead || context.wasConstrained) continue;
       // we accessed a precondition field but not constrained it explicitly - throw an error
       let errorMessage = `You used \`this.${key}.get()\` without adding a precondition that links it to the actual on-chain state.

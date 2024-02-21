@@ -15,7 +15,102 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/19115a159...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
+
+### Added
+
+- Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
+- `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+
+### Deprecated
+
+- `SmartContract.token` is deprecated in favor of new methods on `TokenContract` https://github.com/o1-labs/o1js/pull/1446
+  - `TokenContract.deriveTokenId()` to get the ID of the managed token
+  - `TokenContract.internal.{send, mint, burn}` to perform token operations from within the contract
+
+### Fixed
+
+- Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+
+## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
+
+### Breaking changes
+
+- Remove `AccountUpdate.children` and `AccountUpdate.parent` properties https://github.com/o1-labs/o1js/pull/1402
+  - Also removes the optional `AccountUpdatesLayout` argument to `approve()`
+  - Adds `AccountUpdateTree` and `AccountUpdateForest`, new classes that represent a layout of account updates explicitly
+  - Both of the new types are now accepted as inputs to `approve()`
+  - `accountUpdate.extractTree()` to obtain the tree associated with an account update in the current transaction context.
+- Remove `Experimental.Callback` API https://github.com/o1-labs/o1js/pull/1430
+
+### Added
+
+- `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398
+  - including `MerkleListIterator<T>` to iterate over a merkle list
+- `TokenContract`, a new base smart contract class for token contracts https://github.com/o1-labs/o1js/pull/1384
+  - Usage example: `https://github.com/o1-labs/o1js/blob/main/src/lib/mina/token/token-contract.unit-test.ts`
+- `TokenAccountUpdateIterator`, a primitive to iterate over all token account updates in a transaction https://github.com/o1-labs/o1js/pull/1398
+  - this is used to implement `TokenContract` under the hood
+
+### Fixed
+
+- Mainnet support. https://github.com/o1-labs/o1js/pull/1437
+
+## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
+
+### Breaking changes
+
+- Protocol change that adds a "transaction version" to the permission to set verification keys https://github.com/MinaProtocol/mina/pull/14407
+  - See [the relevant RFC](https://github.com/MinaProtocol/mina/blob/9577ad689a8e4d4f97e1d0fc3d26e20219f4abd1/rfcs/0051-verification-key-permissions.md) for the motivation behind this change
+  - Breaks all deployed contracts, as it changes the account update layout
+
+### Added
+
+- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
+- Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
+  - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
+
+### Changed
+
+- Reduce number of constraints of ECDSA verification by 5% https://github.com/o1-labs/o1js/pull/1376
+
+## [0.15.4](https://github.com/o1-labs/o1js/compare/be748e42e...e5d1e0f)
+
+### Changed
+
+- Improve performance of Wasm Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+  - Speeds up local blockchain tests without proving by ~40%
+- Improve performance of Field inverse https://github.com/o1-labs/o1js/pull/1373
+  - Speeds up proving by ~2-4%
+
+### Added
+
+- Configurable `networkId` when declaring a Mina instance. https://github.com/o1-labs/o1js/pull/1387
+  - Defaults to `"testnet"`, the other option is `"mainnet"`
+  - The `networkId` parameter influences the algorithm used for signatures, and ensures that testnet transactions can't be replayed on mainnet
+
+## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
+
+### Added
+
+- **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
+
+### Changed
+
+- `Mina.accountCreationFee()` is deprecated in favor of `Mina.getNetworkConstants().accountCreationFee`. https://github.com/o1-labs/o1js/pull/1367
+  - `Mina.getNetworkConstants()` returns:
+    - [default](https://github.com/o1-labs/o1js/pull/1367/files#diff-ef2c3547d64a8eaa8253cd82b3623288f3271e14f1dc893a0a3ddc1ff4b9688fR7) network constants if used outside of the transaction scope.
+    - [actual](https://github.com/o1-labs/o1js/pull/1367/files#diff-437f2c15df7c90ad8154c5de1677ec0838d51859bcc0a0cefd8a0424b5736f31R1051) network constants if used within the transaction scope.
+
+### Fixed
+
+- Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
+
+## [0.15.2](https://github.com/o1-labs/o1js/compare/1ad7333e9e...08ba27329)
+
+### Fixed
+
+- Fix bug in `Hash.hash()` which always resulted in an error https://github.com/o1-labs/o1js/pull/1346
 
 ## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
 
@@ -47,6 +142,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - bitwise AND via `{UInt32, UInt64}.and()`
 - Example for using actions to store a map data structure https://github.com/o1-labs/o1js/pull/1300
 - `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `summary()` method to return a summary of the constraints used by a method https://github.com/o1-labs/o1js/pull/1007
+- `assert()` asserts that a given statement is true https://github.com/o1-labs/o1js/pull/1285
 
 ### Fixed
 
