@@ -19,6 +19,8 @@ HELLO_WORLD_PROC=$!
 DEX_PROC=$!
 ./run src/examples/fetch-live.ts --bundle | add_prefix "FETCH" &
 FETCH_PROC=$!
+./run src/tests/transaction-flow.ts --bundle | add_prefix "TRANSACTION_FLOW" &
+TRANSACTION_FLOW_PROC=$!
 
 # Wait for each process and capture their exit statuses
 FAILURE=0
@@ -40,6 +42,13 @@ wait $FETCH_PROC
 if [ $? -ne 0 ]; then
   echo ""
   echo "FETCH test failed."
+  echo ""
+  FAILURE=1
+fi
+wait $TRANSACTION_FLOW_PROC
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "TRANSACTION_FLOW test failed."
   echo ""
   FAILURE=1
 fi

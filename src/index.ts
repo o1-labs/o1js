@@ -46,6 +46,12 @@ export {
 } from './lib/provable-types/merkle-list.js';
 
 export * as Mina from './lib/mina.js';
+export {
+  type Transaction,
+  type PendingTransaction,
+  type IncludedTransaction,
+  type RejectedTransaction,
+} from './lib/mina/transaction.js';
 export type { DeployArgs } from './lib/zkapp.js';
 export {
   SmartContract,
@@ -82,7 +88,7 @@ export {
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';
 
-export type { TransactionStatus } from './lib/fetch.js';
+export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
   fetchAccount,
   fetchLastBlock,
