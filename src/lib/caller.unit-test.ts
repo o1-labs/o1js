@@ -1,4 +1,4 @@
-import { AccountUpdate, TokenId } from './account_update.js';
+import { AccountUpdate, TokenId } from './account-update.js';
 import * as Mina from './mina.js';
 import { expect } from 'expect';
 
@@ -17,7 +17,7 @@ let parentId = TokenId.derive(publicKey);
 let tx = await Mina.transaction(privateKey, () => {
   let parent = AccountUpdate.defaultAccountUpdate(publicKey);
   parent.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-  parent.balance.subInPlace(Mina.accountCreationFee());
+  parent.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
 
   let child = AccountUpdate.defaultAccountUpdate(publicKey, parentId);
   child.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;

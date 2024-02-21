@@ -4,13 +4,13 @@ import { HashInputLegacy } from '../../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
   SignatureJson,
-  NetworkId,
   Signature,
   signLegacy,
   verifyLegacy,
 } from './signature.js';
 import { Json } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../../bindings/lib/binable.js';
+import { NetworkId } from './types.js';
 
 export {
   signPayment,

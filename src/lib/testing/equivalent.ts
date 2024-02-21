@@ -6,7 +6,7 @@ import { Provable } from '../provable.js';
 import { deepEqual } from 'node:assert/strict';
 import { Bool, Field } from '../core.js';
 import { AnyFunction, Tuple } from '../util/types.js';
-import { provable } from '../circuit_value.js';
+import { provable } from '../circuit-value.js';
 import { assert } from '../gadgets/common.js';
 
 export {

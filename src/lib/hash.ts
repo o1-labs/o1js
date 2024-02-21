@@ -1,4 +1,4 @@
-import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
+import { HashInput, ProvableExtended, Struct } from './circuit-value.js';
 import { Snarky } from '../snarky.js';
 import { Field } from './core.js';
 import { createHashHelpers } from './hash-generic.js';
@@ -7,12 +7,14 @@ import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
 import { rangeCheckN } from './gadgets/range-check.js';
+import { TupleN } from './util/types.js';
 
 // external API
 export { Poseidon, TokenSymbol };
 
 // internal API
 export {
+  ProvableHashable,
   HashInput,
   HashHelpers,
   emptyHashWithPrefix,
@@ -22,6 +24,9 @@ export {
   emptyReceiptChainHash,
   hashConstant,
 };
+
+type Hashable<T> = { toInput: (x: T) => HashInput; empty: () => T };
+type ProvableHashable<T> = Provable<T> & Hashable<T>;
 
 class Sponge {
   #sponge: unknown;
@@ -45,13 +50,13 @@ const Poseidon = {
     if (isConstant(input)) {
       return Field(PoseidonBigint.hash(toBigints(input)));
     }
-    return Poseidon.update(this.initialState(), input)[0];
+    return Poseidon.update(Poseidon.initialState(), input)[0];
   },
 
   update(state: [Field, Field, Field], input: Field[]) {
     if (isConstant(state) && isConstant(input)) {
       let newState = PoseidonBigint.update(toBigints(state), toBigints(input));
-      return newState.map(Field);
+      return TupleN.fromArray(3, newState.map(Field));
     }
 
     let newState = Snarky.poseidon.update(
@@ -59,6 +64,17 @@ const Poseidon = {
       MlFieldArray.to(input)
     );
     return MlFieldArray.from(newState) as [Field, Field, Field];
+  },
+
+  hashWithPrefix(prefix: string, input: Field[]) {
+    let init = Poseidon.update(Poseidon.initialState(), [
+      prefixToField(prefix),
+    ]);
+    return Poseidon.update(init, input)[0];
+  },
+
+  initialState(): [Field, Field, Field] {
+    return [Field(0), Field(0), Field(0)];
   },
 
   hashToGroup(input: Field[]) {
@@ -95,8 +111,22 @@ const Poseidon = {
     return { x, y: { x0, x1 } };
   },
 
-  initialState(): [Field, Field, Field] {
-    return [Field(0), Field(0), Field(0)];
+  /**
+   * Hashes a provable type efficiently.
+   *
+   * ```ts
+   * let skHash = Poseidon.hashPacked(PrivateKey, secretKey);
+   * ```
+   *
+   * Note: Instead of just doing `Poseidon.hash(value.toFields())`, this
+   * uses the `toInput()` method on the provable type to pack the input into as few
+   * field elements as possible. This saves constraints because packing has a much
+   * lower per-field element cost than hashing.
+   */
+  hashPacked<T>(type: Hashable<T>, value: T) {
+    let input = type.toInput(value);
+    let packed = packToFields(input);
+    return Poseidon.hash(packed);
   },
 
   Sponge,

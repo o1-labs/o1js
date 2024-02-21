@@ -1,4 +1,4 @@
-import { createCurveAffine } from '../../bindings/crypto/elliptic_curve.js';
+import { createCurveAffine } from '../../bindings/crypto/elliptic-curve.js';
 import {
   Ecdsa,
   EllipticCurve,
@@ -9,7 +9,7 @@ import {
 import { Field3 } from './foreign-field.js';
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
-import { ZkProgram } from '../proof_system.js';
+import { ZkProgram } from '../proof-system.js';
 import { assert } from './common.js';
 import { foreignField, uniformForeignField } from './test-utils.js';
 import {
@@ -59,14 +59,23 @@ for (let Curve of curves) {
   let noGlv = fromRandom(Random.map(Random.fraction(), (f) => f < 0.3));
 
   // provable method we want to test
-  const verify = (s: Second<typeof signature>, noGlv: boolean) => {
+  const verify = (sig: Second<typeof signature>, noGlv: boolean) => {
     // invalid public key can lead to either a failing constraint, or verify() returning false
-    EllipticCurve.assertOnCurve(s.publicKey, Curve);
+    EllipticCurve.assertOnCurve(sig.publicKey, Curve);
+
+    // additional checks which are inconsistent between constant and variable verification
+    let { s, r } = sig.signature;
+    if (Field3.isConstant(s)) {
+      assert(Field3.toBigint(s) !== 0n, 'invalid signature (s=0)');
+    }
+    if (Field3.isConstant(r)) {
+      assert(Field3.toBigint(r) !== 0n, 'invalid signature (r=0)');
+    }
 
     let hasGlv = Curve.hasEndomorphism;
     if (noGlv) Curve.hasEndomorphism = false; // hack to force non-GLV version
     try {
-      return Ecdsa.verify(Curve, s.signature, s.msg, s.publicKey);
+      return Ecdsa.verify(Curve, sig.signature, sig.msg, sig.publicKey);
     } finally {
       Curve.hasEndomorphism = hasGlv;
     }
@@ -129,7 +138,7 @@ let msgHash =
   );
 
 const ia = initialAggregator(Secp256k1);
-const config = { G: { windowSize: 4 }, P: { windowSize: 3 }, ia };
+const config = { G: { windowSize: 4 }, P: { windowSize: 4 }, ia };
 
 let program = ZkProgram({
   name: 'ecdsa',

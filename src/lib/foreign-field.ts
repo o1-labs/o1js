@@ -3,7 +3,7 @@ import {
   Fp,
   FiniteField,
   createField,
-} from '../bindings/crypto/finite_field.js';
+} from '../bindings/crypto/finite-field.js';
 import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
@@ -13,7 +13,7 @@ import { Gadgets } from './gadgets/gadgets.js';
 import { ForeignField as FF } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
-import { ProvablePureExtended } from './circuit_value.js';
+import { ProvablePureExtended } from './circuit-value.js';
 
 // external API
 export { createForeignField };

@@ -4,17 +4,16 @@
 
 export { tic, toc };
 
-let timingStack: [string, number][] = [];
-let i = 0;
+let timingStack: [string | undefined, number][] = [];
 
-function tic(label = `Run command ${i++}`) {
-  console.log(`${label}... `);
+function tic(label?: string) {
+  if (label) console.log(`${label}... `);
   timingStack.push([label, performance.now()]);
 }
 
 function toc() {
   let [label, start] = timingStack.pop()!;
   let time = (performance.now() - start) / 1000;
-  console.log(`\r${label}... ${time.toFixed(3)} sec\n`);
+  if (label) console.log(`${label}... ${time.toFixed(3)} sec`);
   return time;
 }

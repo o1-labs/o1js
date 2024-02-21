@@ -1,5 +1,5 @@
 import { randomBytes } from '../bindings/crypto/random.js';
-import { Fp, mod } from '../bindings/crypto/finite_field.js';
+import { Fp, mod } from '../bindings/crypto/finite-field.js';
 import {
   BinableBigint,
   HashInput,

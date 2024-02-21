@@ -1,5 +1,5 @@
 import { Snarky } from '../../snarky.js';
-import { Fp } from '../../bindings/crypto/finite_field.js';
+import { Fp } from '../../bindings/crypto/finite-field.js';
 import { Field as FieldProvable } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
