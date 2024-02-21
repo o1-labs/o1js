@@ -31,6 +31,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422
+  - Changed `TransactionId` to `Transaction`. Additionally added `PendingTransaction` and `RejectedTransaction` types to better represent the state of a transaction.
+  - Changed `transaction.send()` to contain errors in the returned `Transaction` object, instead of throwing them. Added `transaction.sendOrThrowIfError` to throw the error if the transaction was not successful.
+  - Changed `transaction.wait()` to contain errors in the returned `Transaction` object, instead of throwing them. Added `transaction.waitOrThrowIfError` to throw the error if the transaction was not successful.
 
 ## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 
