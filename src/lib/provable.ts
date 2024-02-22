@@ -93,6 +93,8 @@ const Provable = {
    * ```
    */
   switch: switch_,
+  switchBn254: switchBn254_,
+
   /**
    * Asserts that two values are equal.
    * @example
@@ -288,7 +290,7 @@ function witnessBn254<T, S extends ProvableBn254<T> = ProvableBn254<T>>(
   }
 
   // rebuild the value from its fields (which are now variables)
-  let value = (type as ProvableBn254<T>).fromFields(fields);
+  let value = (type as ProvableBn254<T>).fromFields(fields, []);
 
   // add type-specific constraints
   type.check(value);
@@ -468,6 +470,46 @@ function switch_<T, A extends FlexibleProvable<T>>(
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
+
+function switchBn254_<T, A extends ProvableBn254<T>>(
+  mask: BoolBn254[],
+  type: A,
+  values: T[]
+): T {
+  // picks the value at the index where mask is true
+  let nValues = values.length;
+  if (mask.length !== nValues)
+    throw Error(
+      `Provable.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+    );
+  let checkMask = () => {
+    let nTrue = mask.filter((b) => b.toBoolean()).length;
+    if (nTrue > 1) {
+      throw Error(
+        `Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+      );
+    }
+  };
+  if (mask.every((b) => b.toField().isConstant())) checkMask();
+  else Provable.asProverBn254(checkMask);
+  let size = type.sizeInFields();
+  let fields = Array(size).fill(new FieldBn254(0));
+  for (let i = 0; i < nValues; i++) {
+    let valueFields = type.toFields(values[i]);
+    let maskField = mask[i].toField();
+    for (let j = 0; j < size; j++) {
+      let maybeField = valueFields[j].mul(maskField);
+      fields[j] = fields[j].add(maybeField);
+    }
+  }
+  let aux = auxiliaryBn254(type as ProvableBn254<T>, () => {
+    let i = mask.findIndex((b) => b.toBoolean());
+    if (i === -1) return undefined;
+    return values[i];
+  });
+  return (type as ProvableBn254<T>).fromFields(fields, aux);
+}
+
 // logging in provable code
 
 function log(...args: any) {
@@ -508,13 +550,25 @@ function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
 
 function cloneBn254<T, S extends ProvableBn254<T>>(type: S, value: T): T {
   let fields = type.toFields(value);
-  return (type as ProvableBn254<T>).fromFields(fields);
+  return (type as ProvableBn254<T>).fromFields(fields, []);
 }
 
 function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {
   let aux;
   // TODO: this accepts types without .toAuxiliary(), should be changed when all snarky types are moved to TS
   Provable.asProver(() => {
+    let value = compute();
+    if (value !== undefined) {
+      aux = type.toAuxiliary?.(value);
+    }
+  });
+  return aux ?? type.toAuxiliary?.() ?? [];
+}
+
+function auxiliaryBn254<T>(type: ProvableBn254<T>, compute: () => T | undefined) {
+  let aux;
+  // TODO: this accepts types without .toAuxiliary(), should be changed when all snarky types are moved to TS
+  Provable.asProverBn254(() => {
     let value = compute();
     if (value !== undefined) {
       aux = type.toAuxiliary?.(value);

@@ -264,7 +264,7 @@ class BoolBn254 {
   /**
    * Creates a data structure from an array of serialized {@link FieldBn254} elements.
    */
-  static fromFields(fields: Field[]): BoolBn254 {
+  static fromFields(fields: FieldBn254[]): BoolBn254 {
     if (fields.length !== 1) {
       throw Error(`BoolBn254.fromFields(): expected 1 field, got ${fields.length}`);
     }

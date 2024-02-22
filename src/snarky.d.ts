@@ -142,8 +142,9 @@ declare interface ProvablePure<T> extends Provable<T> {
 }
 
 declare interface ProvableBn254<T> {
+  toAuxiliary: (value?: T) => any[];
   toFields: (value: T) => FieldBn254[];
-  fromFields: (fields: FieldBn254[]) => T;
+  fromFields: (fields: FieldBn254[], aux: any[]) => T;
   sizeInFields(): number;
   check: (value: T) => void;
 }
@@ -189,6 +190,8 @@ declare const Snarky: {
     sizeInFields: number,
     compute: () => MlArray<FieldConst>
   ): MlArray<FieldVar>;
+
+  existsVarBn254(compute: () => FieldConst): FieldVar;
 
   /**
    * APIs that have to do with running provable code

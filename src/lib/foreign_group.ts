@@ -6,6 +6,8 @@ import { ForeignFieldBn254, createForeignFieldBn254 } from './foreign_field_bn25
 import { Provable } from './provable.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { p } from '../bindings/crypto/finite_field.js';
+import { BoolBn254 } from './bool_bn254.js';
+import { FieldConst } from './field.js';
 
 export { ForeignGroup, EllipticCurve }
 
@@ -94,38 +96,59 @@ class ForeignGroup {
         return this.x.equals(0);
     }
 
-    add(other: ForeignGroup) {
-        Provable.asProverBn254(() => { console.log("ADD"); })
-        let thisIsZero = false;
-        let otherIsZero = false;
-        Provable.asProverBn254(() => {
-            thisIsZero = this.isZero().toBoolean();
-            otherIsZero = other.isZero().toBoolean();
-        });
+    #addVarForeignGroups(other: ForeignGroup, p: bigint) {
+        let left = this.#toTuple();
+        let right = other.#toTuple();
+        let [_, x, y] = Snarky.foreignGroup.add(left, right, curveParams());
+        let ForeignGroupField = createForeignFieldBn254(p);
 
-        // Given a + b
-        if (thisIsZero) {
-            // If a = 0 ...
-            Provable.asProverBn254(() => { console.log("this is zero"); })
-            return other;
-        } else if (otherIsZero) {
-            // If b = 0 ...
-            Provable.asProverBn254(() => { console.log("other is zero"); })
-            return this;
-        } else if (this.#isConstant() && other.#isConstant()) {
-            // If a and b are constants ...
-            Provable.asProverBn254(() => { console.log("both are constants"); })
-            let g_proj = Pallas.add(this.#toProjective(), other.#toProjective());
-            return ForeignGroup.#fromProjective(g_proj);
+        return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+    }
+
+    add(other: ForeignGroup) {
+        if (this.#isConstant() && other.#isConstant()) {
+            // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
+            if (this.isZero().toBoolean()) {
+                return other;
+            } else if (other.isZero().toBoolean()) {
+                return this;
+            } else {
+                let g_proj = Pallas.add(this.#toProjective(), other.#toProjective());
+                return ForeignGroup.#fromProjective(g_proj);
+            }
         } else {
-            // If a or b is variable ...
-            Provable.asProverBn254(() => { console.log("one of them is variable"); })
-            let left = this.#toTuple();
-            let right = other.#toTuple();
-            let [_, x, y] = Snarky.foreignGroup.add(left, right, curveParams());
+            const { x: x1, y: y1 } = this;
+            const { x: x2, y: y2 } = other;
+
+            let inf = Provable.witnessBn254(BoolBn254, () =>
+                x1.equals(x2).and(y1.equals(y2).not())
+            );
+
+            let gIsZero = other.isZero();
+            let thisIsZero = this.isZero();
+
+            let bothZero = gIsZero.and(thisIsZero);
+
+            let onlyGisZero = gIsZero.and(thisIsZero.not());
+            let onlyThisIsZero = thisIsZero.and(gIsZero.not());
+
+            let isNegation = inf;
+
+            let isNewElement = bothZero
+                .not()
+                .and(isNegation.not())
+                .and(onlyThisIsZero.not())
+                .and(onlyGisZero.not());
+
             let ForeignGroupField = createForeignFieldBn254(p);
 
-            return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+            const zero = new ForeignGroup(ForeignGroupField.from(0), ForeignGroupField.from(0));
+
+            return Provable.switchBn254(
+                [bothZero, onlyGisZero, onlyThisIsZero, isNegation, isNewElement],
+                ForeignGroup,
+                [zero, this, other, zero, this.#addVarForeignGroups(other, p)]
+            );
         }
     }
 
@@ -138,7 +161,6 @@ class ForeignGroup {
     }
 
     scale(scalar: ForeignFieldBn254) {
-        Provable.asProverBn254(() => { console.log("SCALE"); })
         let [, ...bits] = scalar.value;
         bits.reverse();
         let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], curveParams());
@@ -207,5 +229,36 @@ class ForeignGroup {
         const y = ForeignGroupField.fromFields(yFields);
 
         return new ForeignGroup(x, y);
+    }
+
+    /**
+     * Part of the {@link ProvableBn254} interface.
+     *
+     * Returns an empty array.
+     */
+    static toAuxiliary(g?: ForeignGroup) {
+        return [];
+    }
+
+    /**
+     * Checks that a {@link ForeignGroup} element is constraint properly by checking that the element is on the curve.
+     */
+    static check(g: ForeignGroup) {
+        try {
+            const { x, y } = g;
+
+            let x2 = x.mul(x);
+            let x3 = x2.mul(x);
+            let ax = x.mul(Pallas.a); // this will obviously be 0, but just for the sake of correctness
+
+            // we also check the zero element (0, 0) here
+            let isZero = x.equals(0).and(y.equals(0));
+
+            isZero.or(x3.add(ax).add(Pallas.b).equals(y.mul(y))).assertTrue();
+        } catch (error) {
+            if (!(error instanceof Error)) return error;
+            throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${error.message
+            }`;
+        }
     }
 }

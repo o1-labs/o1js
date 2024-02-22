@@ -40,6 +40,11 @@ class FieldBn254 {
         return x instanceof FieldBn254;
     }
 
+    static #toConst(x: bigint | number | string | ConstantField): FieldConst {
+        if (FieldBn254.#isField(x)) return x.value[1];
+        return FieldConst.fromBigint(Fp(x));
+    }
+
     static #toVar(x: bigint | number | string | FieldBn254): FieldVar {
         if (FieldBn254.#isField(x)) return x.value;
         return FieldVar.constant(Fp(x));
@@ -157,6 +162,28 @@ class FieldBn254 {
         }
         // return new AST node Scale(-1, x)
         let z = Snarky.fieldBn254.scale(FieldConst[-1], this.value);
+        return new FieldBn254(z);
+    }
+
+    mul(y: FieldBn254 | bigint | number | string): FieldBn254 {
+        if (this.isConstant() && isConstant(y)) {
+            return new FieldBn254(Fp.mul(this.toBigInt(), toFp(y)));
+        }
+        // if one of the factors is constant, return Scale AST node
+        if (isConstant(y)) {
+            let z = Snarky.fieldBn254.scale(FieldBn254.#toConst(y), this.value);
+            return new FieldBn254(z);
+        }
+        if (this.isConstant()) {
+            let z = Snarky.fieldBn254.scale(this.value[1], y.value);
+            return new FieldBn254(z);
+        }
+        // create a new witness for z = x*y
+        let z = Snarky.existsVarBn254(() =>
+            FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
+        );
+        // add a multiplication constraint
+        Snarky.fieldBn254.assertMul(this.value, y.value, z);
         return new FieldBn254(z);
     }
 }

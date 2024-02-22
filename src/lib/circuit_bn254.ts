@@ -108,7 +108,7 @@ function mainFromCircuitData<P, W>(
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
       let publicInput = data.publicInputType.fromFields(
-        MlFieldArray.fromBn254(publicInputFields)
+        MlFieldArray.fromBn254(publicInputFields), []
       );
       let privateInput_ = Provable.witnessBn254(
         data.privateInputType,
@@ -160,6 +160,10 @@ function circuitMainBn254(
 // TODO support auxiliary data
 function provableFromTuple(typs: ProvableBn254<any>[]): ProvableBn254<any> {
   return {
+    toAuxiliary: () => {
+      return [];
+    },
+
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
     },
@@ -180,7 +184,7 @@ function provableFromTuple(typs: ProvableBn254<any>[]): ProvableBn254<any> {
       let res: Array<any> = [];
       typs.forEach((typ) => {
         const n = typ.sizeInFields();
-        res.push(typ.fromFields(xs.slice(offset, offset + n)));
+        res.push(typ.fromFields(xs.slice(offset, offset + n), []));
         offset += n;
       });
       return res;
