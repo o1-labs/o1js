@@ -23,6 +23,7 @@ export {
   packToFields,
   emptyReceiptChainHash,
   hashConstant,
+  isHashable,
 };
 
 type Hashable<T> = { toInput: (x: T) => HashInput; empty: () => T };
@@ -178,6 +179,15 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   }
   packedBits.push(currentPackedField);
   return fields.concat(packedBits);
+}
+
+function isHashable<T>(obj: any): obj is Hashable<T> {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+  const hasToInput = 'toInput' in obj && typeof obj.toInput === 'function';
+  const hasEmpty = 'empty' in obj && typeof obj.empty === 'function';
+  return hasToInput && hasEmpty;
 }
 
 const TokenSymbolPure: ProvableExtended<
