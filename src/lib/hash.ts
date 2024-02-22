@@ -182,7 +182,7 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
 }
 
 function isHashable<T>(obj: any): obj is Hashable<T> {
-  if (typeof obj !== 'object' || obj === null) {
+  if (!obj) {
     return false;
   }
   const hasToInput = 'toInput' in obj && typeof obj.toInput === 'function';
