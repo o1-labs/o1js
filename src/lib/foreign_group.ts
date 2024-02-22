@@ -161,12 +161,17 @@ class ForeignGroup {
     }
 
     scale(scalar: ForeignFieldBn254) {
-        let [, ...bits] = scalar.value;
-        bits.reverse();
-        let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], curveParams());
-        let ForeignGroupField = createForeignFieldBn254(p);
+        if (this.#isConstant() && scalar.isConstant()) {
+            let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
+            return ForeignGroup.#fromProjective(g_proj);
+        } else {
+            let [, ...bits] = scalar.value;
+            bits.reverse();
+            let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], curveParams());
+            let ForeignGroupField = createForeignFieldBn254(p);
 
-        return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+            return new ForeignGroup(new ForeignGroupField(x), new ForeignGroupField(y));
+        }
     }
 
     assertEquals(other: ForeignGroup) {
