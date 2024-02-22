@@ -19,6 +19,7 @@ import {
   InferProvable,
   ProvablePureExtended,
   Struct,
+  Unconstrained,
   provable,
   provablePure,
   toConstant,
@@ -37,6 +38,7 @@ import {
   parseHeader,
 } from './proof-system/prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
+import { provableFromClass } from '../bindings/lib/provable-snarky.js';
 
 // public API
 export {
@@ -90,7 +92,7 @@ class Proof<Input, Output> {
   };
   publicInput: Input;
   publicOutput: Output;
-  proof: Pickles.Proof;
+  proof: Unconstrained<Pickles.Proof>;
   maxProofsVerified: 0 | 1 | 2;
   shouldVerify = Bool(false);
 
@@ -146,7 +148,7 @@ class Proof<Input, Output> {
   }) {
     this.publicInput = publicInput;
     this.publicOutput = publicOutput;
-    this.proof = proof; // TODO optionally convert from string?
+    this.proof = Unconstrained.from(proof); // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
   }
 
@@ -940,6 +942,13 @@ ZkProgram.Proof = function <
     static publicInputType = program.publicInputType;
     static publicOutputType = program.publicOutputType;
     static tag = () => program;
+    static get provable() {
+      return provableFromClass(ZkProgramProof, {
+        publicInput: program.publicInputType,
+        publicOutput: program.publicOutputType,
+        proof: Unconstrained.provable,
+      });
+    }
   };
 };
 ExperimentalZkProgram.Proof = ZkProgram.Proof;
