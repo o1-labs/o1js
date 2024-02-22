@@ -318,7 +318,7 @@ class BoolBn254 {
   }
 
   static check(x: BoolBn254): void {
-    Snarky.field.assertBoolean(x.value);
+    Snarky.fieldBn254.assertBoolean(x.value);
   }
 
   static Unsafe = {

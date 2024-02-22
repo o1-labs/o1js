@@ -320,6 +320,10 @@ declare const Snarky: {
      */
     assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
     /**
+     * x*x === x without handling of constants
+     */
+    assertBoolean(x: FieldVar): void;
+    /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
     readVar(x: FieldVar): FieldConst;
