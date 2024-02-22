@@ -53,7 +53,7 @@
     "prepublish:web": "NODE_ENV=production node src/build/build-web.js",
     "prepublish:node": "node src/build/copy-artifacts.js && rimraf ./dist/node && npx tsc -p tsconfig.node.json && node src/build/copy-to-dist.js && NODE_ENV=production node src/build/build-node.js",
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
-    "dump-vks": "./run tests/vk-regression/vk-regression.ts --bundle --dump",
+    "dump-vks": "npm run build && ./run tests/vk-regression/vk-regression.ts --bundle --dump",
     "format": "prettier --write --ignore-unknown **/*",
     "clean": "rimraf ./dist && rimraf ./src/bindings/compiled/_node_bindings",
     "clean-all": "npm run clean && rimraf ./tests/report && rimraf ./tests/test-artifacts",
