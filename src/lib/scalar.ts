@@ -234,6 +234,20 @@ class Scalar {
   }
 
   /**
+   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   *
+   * This function is the implementation of `ProvableExtended.toInput()` for the {@link Field} type.
+   *
+   * @param value - The {@link Field} element to get the `input` array.
+   *
+   * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
+   *
+   */
+  static toInput(x: Scalar): { packed: [Field, number][] } {
+    return { packed: Scalar.toFields(x).map((f) => [f, 1]) };
+  }
+
+  /**
    * Part of the {@link Provable} interface.
    *
    * Serialize a {@link Scalar} into its auxiliary data, which are empty.
