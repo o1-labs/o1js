@@ -1,4 +1,6 @@
-export const workers = {
+export { workers, setNumberOfWorkers };
+
+const workers = {
   numWorkers: undefined as number | undefined,
 };
 
@@ -10,6 +12,6 @@ export const workers = {
  * setNumberOfWorkers(2); // set the number of workers to 2
  * ```
  */
-export const setNumberOfWorkers = (numWorkers: number) => {
+const setNumberOfWorkers = (numWorkers: number) => {
   workers.numWorkers = numWorkers;
 };
