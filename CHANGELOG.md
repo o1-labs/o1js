@@ -31,6 +31,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
 - `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+- `setNumberOfWorkers()` to allow developer to override the number of workers used during compilation and proof generation/verification https://github.com/o1-labs/o1js/pull/1456
+
+### Changed
+
+- Improve all-around performance by reverting the Apple silicon workaround (https://github.com/o1-labs/o1js/pull/683) as the root problem is now fixed upstream https://github.com/o1-labs/o1js/pull/1456
 
 ### Deprecated
 
