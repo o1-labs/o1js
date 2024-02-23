@@ -326,7 +326,11 @@ function LocalBlockchain({
       );
     },
     async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
+      // Return events in reverse chronological order (latest events at the beginning)
+      const reversedEvents = (
+        events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? []
+      ).reverse();
+      return reversedEvents;
     },
     async fetchActions(
       publicKey: PublicKey,
