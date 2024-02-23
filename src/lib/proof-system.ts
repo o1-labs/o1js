@@ -658,15 +658,20 @@ async function compileProgram({
             storable: picklesCache,
             overrideWrapDomain,
           });
+          let { getVerificationKey, provers, verify, tag } = result;
+          CompiledTag.store(proofSystemTag, tag);
+          let [, data, hash] = await getVerificationKey();
+          let verificationKey = { data, hash: Field(hash) };
+          return {
+            verificationKey,
+            provers: MlArray.from(provers),
+            verify,
+            tag,
+          };
         } finally {
           snarkContext.leave(id);
           unsetSrsCache();
         }
-        let { getVerificationKey, provers, verify, tag } = result;
-        CompiledTag.store(proofSystemTag, tag);
-        let [, data, hash] = await getVerificationKey();
-        let verificationKey = { data, hash: Field(hash) };
-        return { verificationKey, provers: MlArray.from(provers), verify, tag };
       })
     );
   // wrap provers
@@ -720,7 +725,13 @@ function picklesRuleFromFunction(
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
   gates: Gate[]
 ): Pickles.Rule {
-  function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
+  async function main(
+    publicInput: MlFieldArray
+  ): ReturnType<Pickles.Rule['main']> {
+    console.log(`calling rule "${methodName}", waiting 100ms`);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    console.log(`continuing rule "${methodName}"\n`);
+
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
@@ -730,9 +741,14 @@ function picklesRuleFromFunction(
       let arg = allArgs[i];
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
-        finalArgs[i] = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
-        });
+        try {
+          finalArgs[i] = Provable.witness(type, () => {
+            return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+          });
+        } catch (e: any) {
+          e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
+          throw e;
+        }
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
         let type = getStatementType(Proof);

@@ -743,11 +743,11 @@ declare namespace Pickles {
     /**
      * The main circuit functions
      */
-    main: (publicInput: MlArray<FieldVar>) => {
+    main: (publicInput: MlArray<FieldVar>) => Promise<{
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
-    };
+    }>;
     /**
      * Feature flags which enable certain custom gates
      */
