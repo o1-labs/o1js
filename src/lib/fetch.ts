@@ -689,7 +689,7 @@ async function fetchActions(
   graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
   if (!graphqlEndpoint)
-    throw new Error(
+    throw Error(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
   const {
