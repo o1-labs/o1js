@@ -8,6 +8,7 @@ import { Field as Fp } from '../provable/field-bigint.js';
 import { p } from '../bindings/crypto/finite_field.js';
 import { BoolBn254 } from './bool_bn254.js';
 import { FieldConst } from './field.js';
+import { Scalar } from './scalar.js';
 
 export { ForeignGroup, EllipticCurve }
 
@@ -120,9 +121,14 @@ class ForeignGroup {
             const { x: x1, y: y1 } = this;
             const { x: x2, y: y2 } = other;
 
-            let inf = Provable.witnessBn254(BoolBn254, () =>
-                x1.equals(x2).and(y1.equals(y2).not())
-            );
+            let inf = Provable.witnessBn254(BoolBn254, () => {
+                let x1BigInt = x1.toBigInt();
+                let x2BigInt = x2.toBigInt();
+                let y1BigInt = y1.toBigInt();
+                let y2BigInt = y2.toBigInt();
+
+                return new BoolBn254(x1BigInt === x2BigInt && y1BigInt !== y2BigInt)
+            });
 
             let gIsZero = other.isZero();
             let thisIsZero = this.isZero();
@@ -165,7 +171,11 @@ class ForeignGroup {
             let g_proj = Pallas.scale(this.#toProjective(), scalar.toBigInt());
             return ForeignGroup.#fromProjective(g_proj);
         } else {
-            let [, ...bits] = scalar.value;
+            let scalarValue = Scalar.from(0).value;
+            Provable.asProverBn254(() => {
+                scalarValue = Scalar.from(scalar.toBigInt()).value;
+            });
+            let [, ...bits] = scalarValue;
             bits.reverse();
             let [, x, y] = Snarky.foreignGroup.scale(this.#toTuple(), [0, ...bits], curveParams());
             let ForeignGroupField = createForeignFieldBn254(p);
