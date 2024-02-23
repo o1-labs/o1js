@@ -640,8 +640,8 @@ async function fetchEvents(
   filterOptions: EventActionFilterOptions = {}
 ) {
   if (!graphqlEndpoint)
-    throw new Error(
-      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+    throw Error(
+      'fetchEvents: Specified GraphQL endpoint is undefined. When using events, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest<EventQueryResponse>(
