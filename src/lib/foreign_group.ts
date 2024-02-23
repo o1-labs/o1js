@@ -150,10 +150,20 @@ class ForeignGroup {
 
             const zero = new ForeignGroup(ForeignGroupField.from(0), ForeignGroupField.from(0));
 
+            // We need to compute addition like this to avoid calling OCaml code in edge cases
+            let isNewElementAsBoolean = false;
+            let addition = zero;
+            Provable.asProverBn254(() => {
+                isNewElementAsBoolean = isNewElement.toBoolean();
+            });
+            if (isNewElementAsBoolean) {
+                addition = this.#addVarForeignGroups(other, p);
+            }
+
             return Provable.switchBn254(
                 [bothZero, onlyGisZero, onlyThisIsZero, isNegation, isNewElement],
                 ForeignGroup,
-                [zero, this, other, zero, this.#addVarForeignGroups(other, p)]
+                [zero, this, other, zero, addition]
             );
         }
     }
