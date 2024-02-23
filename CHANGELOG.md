@@ -26,6 +26,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `transaction.hash()` is no longer a function, it is now a property that returns the hash of the transaction.
 - Improved efficiency of computing `AccountUpdate.callData` by packing field elements into as few field elements as possible https://github.com/o1-labs/o1js/pull/1458
   - This leads to a large reduction in the number of constraints used when inputs to a zkApp method are many field elements (e.g. a long list of `Bool`s)
+- Return events in the `LocalBlockchain` in reverse chronological order (latest events at the beginning) to match the behavior of the `Network` https://github.com/o1-labs/o1js/pull/1460
 
 ### Added
 
