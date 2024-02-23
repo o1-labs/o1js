@@ -36,6 +36,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - Improve all-around performance by reverting the Apple silicon workaround (https://github.com/o1-labs/o1js/pull/683) as the root problem is now fixed upstream https://github.com/o1-labs/o1js/pull/1456
+- Improved error message when trying to use `fetchActions` with a missing Archive Node endpoint https://github.com/o1-labs/o1js/pull/1459
 
 ### Deprecated
 
