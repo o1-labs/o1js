@@ -61,6 +61,7 @@ it('pickles rule creation', async () => {
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
+    [],
     []
   );
 

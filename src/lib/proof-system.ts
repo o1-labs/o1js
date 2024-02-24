@@ -26,7 +26,12 @@ import {
 } from './circuit-value.js';
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
-import { snarkContext } from './provable-context.js';
+import {
+  CircuitContext,
+  circuitContext,
+  inAnalyze,
+  snarkContext,
+} from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
@@ -56,6 +61,8 @@ export {
 
 // internal API
 export {
+  isProof,
+  Subclass,
   CompiledTag,
   sortMethodArguments,
   getPreviousProofsForProver,
@@ -329,7 +336,7 @@ function ZkProgram<
     return Object.fromEntries(
       methodIntfs.map((methodEntry, i) => [
         methodEntry.methodName,
-        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]),
+        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]).cs,
       ])
     ) as any as {
       [I in keyof Types]: ReturnType<typeof analyzeMethod>;
@@ -353,7 +360,8 @@ function ZkProgram<
     let methodsMeta = methodIntfs.map((methodEntry, i) =>
       analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
     );
-    let gates = methodsMeta.map((m) => m.gates);
+    let witnessedProofs = methodsMeta.map((m) => m.proofData);
+    let gates = methodsMeta.map((m) => m.cs.gates);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
@@ -364,6 +372,7 @@ function ZkProgram<
       cache,
       forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
+      witnessedProofs,
     });
     compileOutput = { provers, verify };
     return { verificationKey };
@@ -385,8 +394,11 @@ function ZkProgram<
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
+
+      let ctx = circuitContext.get()!;
+
       let previousProofs = MlArray.to(
-        getPreviousProofsForProver(args, methodIntfs[i])
+        getPreviousProofsForProver(args, methodIntfs[i], ctx.proofs)
       );
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
@@ -440,8 +452,9 @@ function ZkProgram<
   }
 
   function digest() {
-    let methodData = methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    let methodData = methodIntfs.map(
+      (methodEntry, i) =>
+        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]).cs
     );
     let hash = hashConstant(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
@@ -565,7 +578,12 @@ function isProof(type: unknown): type is typeof Proof {
 
 function getPreviousProofsForProver(
   methodArgs: any[],
-  { allArgs }: MethodInterface
+  { allArgs }: MethodInterface,
+  witnessedProofs: {
+    proof: Subclass<typeof Proof>;
+    input: ProvablePure<unknown>;
+    output: ProvablePure<unknown>;
+  }[]
 ) {
   let previousProofs: Pickles.Proof[] = [];
   for (let i = 0; i < allArgs.length; i++) {
@@ -574,6 +592,11 @@ function getPreviousProofsForProver(
       previousProofs[arg.index] = (methodArgs[i] as Proof<any, any>).proof;
     }
   }
+
+  for (let i = 0; i < witnessedProofs.length; i++) {
+    previousProofs.push(witnessedProofs[i].proof);
+  }
+
   return previousProofs;
 }
 
@@ -599,6 +622,7 @@ async function compileProgram({
   proofSystemTag,
   cache,
   forceRecompile,
+  witnessedProofs,
   overrideWrapDomain,
 }: {
   publicInputType: ProvablePure<any>;
@@ -609,6 +633,11 @@ async function compileProgram({
   proofSystemTag: { name: string };
   cache: Cache;
   forceRecompile: boolean;
+  witnessedProofs: {
+    proof: Subclass<typeof Proof>;
+    input: ProvablePure<unknown>;
+    output: ProvablePure<unknown>;
+  }[][];
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   let rules = methodIntfs.map((methodEntry, i) =>
@@ -618,9 +647,11 @@ async function compileProgram({
       methods[i],
       proofSystemTag,
       methodEntry,
-      gates[i]
+      gates[i],
+      witnessedProofs[i]
     )
   );
+
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
@@ -705,13 +736,26 @@ function analyzeMethod<T>(
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
-  return Provable.constraintSystem(() => {
+  console.log('ANALYZING METHOD, ENTERING CONTEXT');
+  //console.log(circuitContext.get());
+  let { context } = CircuitContext.enter(methodIntf.methodName);
+  let id = circuitContext.enter(context);
+  console.log('ENTERED CONTEXT ID ', id);
+  console.log(circuitContext.get());
+  let cs = Provable.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
+
     let publicInput = emptyWitness(publicInputType);
     if (publicInputType === Undefined || publicInputType === Void)
       return method(...args);
     return method(publicInput, ...args);
   });
+  // TODO moose
+  console.log('LEAVING CONTEXT; BUT PRITING');
+  console.log(context);
+  let proofData = context.proofs;
+  circuitContext.leave(id);
+  return { cs, proofData };
 }
 
 function picklesRuleFromFunction(
@@ -720,7 +764,12 @@ function picklesRuleFromFunction(
   func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
-  gates: Gate[]
+  gates: Gate[],
+  witnessedProofs: {
+    proof: Subclass<typeof Proof>;
+    input: ProvablePure<unknown>;
+    output: ProvablePure<unknown>;
+  }[]
 ): Pickles.Rule {
   function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
@@ -731,12 +780,16 @@ function picklesRuleFromFunction(
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
+        console.log('witness', arg);
         let type = witnessArgs[arg.index];
         finalArgs[i] = Provable.witness(type, () => {
           return argsWithoutPublicInput?.[i] ?? emptyValue(type);
         });
       } else if (arg.type === 'proof') {
+        console.log('proof', arg);
+
         let Proof = proofArgs[arg.index];
+        Provable.log(Proof);
         let type = getStatementType(Proof);
         let proof_ = (argsWithoutPublicInput?.[i] as Proof<any, any>) ?? {
           proof: undefined,
@@ -746,6 +799,8 @@ function picklesRuleFromFunction(
         let { proof, publicInput, publicOutput } = proof_;
         publicInput = Provable.witness(type.input, () => publicInput);
         publicOutput = Provable.witness(type.output, () => publicOutput);
+        Provable.log(publicInput);
+        Provable.log(publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
@@ -754,6 +809,40 @@ function picklesRuleFromFunction(
         previousStatements.push(MlPair(input, output));
       }
     }
+
+    for (let i = 0; i < witnessedProofs.length; i++) {
+      console.log('WE ARE WITNESSING A PROOF');
+
+      let ProofData = witnessedProofs[i];
+      let Proof = ProofData.proof;
+      let type = getStatementType(Proof);
+      Provable.log(Proof);
+
+      let { input: input_, output: output_ } = ProofData;
+      Provable.log(input_);
+      console.log('---------');
+      let proof_ = {
+        proof: undefined,
+        publicInput: emptyValue(type.input),
+        publicOutput: emptyValue(type.output),
+      };
+      let { proof, publicInput, publicOutput } = proof_;
+      Provable.log(publicInput);
+      Provable.log(publicOutput);
+      publicInput = Provable.witness(type.input, () => publicInput);
+      publicOutput = Provable.witness(type.output, () => publicOutput);
+      let proofInstance = new Proof({
+        publicInput,
+        publicOutput,
+        proof,
+      });
+      //finalArgs[i] = proofInstance;
+      proofs.push(proofInstance);
+      let input = toFieldVars(type.input, publicInput);
+      let output = toFieldVars(type.output, publicOutput);
+      previousStatements.push(MlPair(input, output));
+    }
+
     let result: any;
     if (publicInputType === Undefined || publicInputType === Void) {
       result = func(...finalArgs);
@@ -764,6 +853,7 @@ function picklesRuleFromFunction(
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
+    console.log('------ COMPILE DONE ------');
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
@@ -942,12 +1032,31 @@ ZkProgram.Proof = function <
     static publicInputType = program.publicInputType;
     static publicOutputType = program.publicOutputType;
     static tag = () => program;
+
+    static declare(proof: Proof<PublicInput, PublicOutput>) {
+      if (inAnalyze()) {
+        let ctx = circuitContext.get()!;
+        ctx.proofs.push({
+          proof: this,
+          input: proof.publicInput,
+          output: proof.publicOutput,
+        });
+      }
+    }
+
     static get provable() {
       return provableFromClass(ZkProgramProof, {
         publicInput: program.publicInputType,
         publicOutput: program.publicOutputType,
         proof: Unconstrained.provable,
       });
+    }
+    static witness(
+      cb: () => Proof<PublicInput, PublicOutput>
+    ): Proof<PublicInput, PublicOutput> {
+      let p = Provable.witness(this.provable, cb);
+
+      return cb();
     }
   };
 };

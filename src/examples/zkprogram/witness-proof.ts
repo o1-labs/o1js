@@ -44,6 +44,7 @@ let MyProgram2 = ZkProgram({
 
           return proof;
         });
+        ProgramProof.declare(p);
         p.verify();
         // should say 0 and fail verification
         Provable.log(proof.publicOutput);
@@ -51,6 +52,7 @@ let MyProgram2 = ZkProgram({
     },
   },
 });
-
+console.log('GOING INTO SECOND ZKPROGRAM');
 await MyProgram2.compile();
+console.log('PROVING');
 await MyProgram2.baseCase();
