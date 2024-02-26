@@ -217,6 +217,7 @@ declare const Snarky: {
      * Runs code and checks its correctness.
      */
     runAndCheck(f: () => void): void;
+    runAndCheckBn254(f: () => void): void;
     /**
      * Runs code in prover mode, without checking correctness.
      */
