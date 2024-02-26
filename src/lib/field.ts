@@ -929,7 +929,7 @@ class Field {
     });
     if (bits.slice(length).some((bit) => bit.toBoolean()))
       throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-    Field.newFromBits(bits).assertEquals(this);
+    Field.fromBits(bits).assertEquals(this);
     return bits;
   }
 
@@ -944,7 +944,7 @@ class Field {
    *
    * @return A {@link Field} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bytes` array.
    */
-  static newFromBits(bits: (Bool | boolean)[]) {
+  static fromBits(bits: (Bool | boolean)[]) {
     const length = bits.length;
     checkBitLength('Field.fromBits()', length, 254);
     return bits
