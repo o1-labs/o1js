@@ -7,6 +7,7 @@ import {
   checkBitLength,
   withMessage,
 } from './field.js';
+import { FieldBn254 as FieldBigInt } from '../provable/field_bn254_bigint.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { MlArray, MlTuple } from './ml/base.js';
@@ -408,8 +409,11 @@ function createForeignFieldBn254(modulus: bigint, { unsafe = false } = {}) {
   }
 
   function toFp(x: bigint | string | number | ForeignFieldBn254) {
-    if (x instanceof ForeignFieldBn254) return x.toBigInt();
-    return mod(BigInt(x), p);
+    let type = typeof x;
+    if (type === 'bigint' || type === 'number' || type === 'string') {
+      return FieldBigInt(x as bigint | number | string);
+    }
+    return (x as ForeignFieldBn254).toBigInt();
   }
   function toVar(x: bigint | number | string | ForeignFieldBn254): ForeignFieldVar {
     if (x instanceof ForeignFieldBn254) return x.value;
