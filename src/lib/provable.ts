@@ -21,6 +21,7 @@ import {
   asProver,
   asProverBn254,
   runAndCheck,
+  runAndCheckBn254,
   runUnchecked,
   constraintSystem,
 } from './provable-context.js';
@@ -166,6 +167,7 @@ const Provable = {
    * ```
    */
   runAndCheck,
+  runAndCheckBn254,
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example

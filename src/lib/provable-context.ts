@@ -8,8 +8,9 @@ export {
   snarkContext,
   SnarkContext,
   asProver,
-  asProverBn254, 
+  asProverBn254,
   runAndCheck,
+  runAndCheckBn254,
   runUnchecked,
   constraintSystem,
   inProver,
@@ -77,6 +78,17 @@ function runAndCheck(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     Snarky.run.runAndCheck(f);
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  } finally {
+    snarkContext.leave(id);
+  }
+}
+
+function runAndCheckBn254(f: () => void) {
+  let id = snarkContext.enter({ inCheckedComputation: true });
+  try {
+    Snarky.run.runAndCheckBn254(f);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
