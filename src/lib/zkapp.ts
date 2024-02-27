@@ -1151,6 +1151,20 @@ super.init();
   }
 
   /**
+   * @deprecated use `SmartContract.analyzeMethods()` instead
+   */
+  static analyzeMethodsSync() {
+    let ZkappClass = this as typeof SmartContract;
+    let methodMetadata = (ZkappClass._methodMetadata ??= {});
+    let methodIntfs = ZkappClass._methods ?? [];
+    assert(
+      methodIntfs.every((m) => m.methodName in methodMetadata),
+      'analyzeMethodsSync: analyzeMethods() must be called first'
+    );
+    return methodMetadata;
+  }
+
+  /**
    * @deprecated use `this.account.<field>.set()`
    */
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
@@ -1296,7 +1310,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       let methodData = (
         contract.constructor as typeof SmartContract
-      ).analyzeMethods();
+      ).analyzeMethodsSync();
       let possibleActionsPerTransaction = [
         ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
       ].sort((x, y) => x - y);
