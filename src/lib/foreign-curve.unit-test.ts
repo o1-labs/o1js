@@ -32,7 +32,7 @@ main();
 console.timeEnd('running constant version');
 
 console.time('running witness generation & checks');
-Provable.runAndCheck(main);
+await Provable.runAndCheck(main);
 console.timeEnd('running witness generation & checks');
 
 console.time('creating constraint system');
