@@ -6,7 +6,6 @@ import {
   Mina,
   Int64,
   Types,
-  Provable,
 } from '../index.js';
 import { Test } from '../snarky.js';
 import { expect } from 'expect';
@@ -52,7 +51,6 @@ function createAccountUpdate() {
 {
   let accountUpdate = createAccountUpdate();
 
-  // TODO remove restriction "This function can't be run outside of a checked computation."
   let hash = accountUpdate.hash();
 
   // if we clone the accountUpdate, hash should be the same
