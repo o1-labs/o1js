@@ -3,7 +3,8 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
-import { Field, Bool } from './core.js';
+import { Bool } from './bool.js';
+import { Field } from './field.js';
 import { Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
 import { Context } from './global-context.js';
@@ -239,7 +240,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
       // }
       return [0, ...fieldConstants];
     });
-    fields = fieldVars.map(Field);
+    fields = fieldVars.map((x) => new Field(x));
   } finally {
     snarkContext.leave(id);
   }
@@ -388,7 +389,7 @@ function switch_<T, A extends FlexibleProvable<T>>(
   if (mask.every((b) => b.toField().isConstant())) checkMask();
   else Provable.asProver(checkMask);
   let size = type.sizeInFields();
-  let fields = Array(size).fill(Field(0));
+  let fields = Array(size).fill(new Field(0));
   for (let i = 0; i < nValues; i++) {
     let valueFields = type.toFields(values[i]);
     let maskField = mask[i].toField();
