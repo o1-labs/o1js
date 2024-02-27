@@ -44,7 +44,6 @@ export {
   SelfProof,
   JsonProof,
   ZkProgram,
-  ExperimentalZkProgram,
   verify,
   Empty,
   Undefined,
@@ -959,7 +958,6 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
-ExperimentalZkProgram.Proof = ZkProgram.Proof;
 
 function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   return withThreadPool(
@@ -1103,30 +1101,3 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
-
-// deprecated experimental API
-
-function ExperimentalZkProgram<
-  StatementType extends {
-    publicInput?: FlexibleProvablePure<any>;
-    publicOutput?: FlexibleProvablePure<any>;
-  },
-  Types extends {
-    [I in string]: Tuple<PrivateInput>;
-  }
->(
-  config: StatementType & {
-    name?: string;
-    methods: {
-      [I in keyof Types]: Method<
-        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-        Types[I]
-      >;
-    };
-    overrideWrapDomain?: 0 | 1 | 2;
-  }
-) {
-  let config_ = { ...config, name: config.name ?? `Program${i++}` };
-  return ZkProgram<StatementType, Types>(config_);
-}
