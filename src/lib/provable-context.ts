@@ -3,6 +3,7 @@ import { Gate, GateType, JsonGate, Snarky } from '../snarky.js';
 import { parseHexString32 } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite-field.js';
+import { MlBool } from './ml/base.js';
 
 // internal API
 export {
@@ -11,7 +12,7 @@ export {
   asProver,
   runAndCheck,
   runUnchecked,
-  runAndCheckAsync,
+  generateWitness,
   constraintSystem,
   constraintSystemSync,
   inProver,
@@ -95,15 +96,20 @@ function runUnchecked(f: () => void) {
   }
 }
 
-async function runAndCheckAsync(f: () => Promise<void>) {
+async function generateWitness(
+  f: () => Promise<void>,
+  { checkConstraints = true } = {}
+) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     let finish = Snarky.run.enterGenerateWitness();
+    if (!checkConstraints) Snarky.run.setEvalConstraints(MlBool(false));
     await f();
     return finish();
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
+    if (!checkConstraints) Snarky.run.setEvalConstraints(MlBool(true));
     snarkContext.leave(id);
   }
 }
