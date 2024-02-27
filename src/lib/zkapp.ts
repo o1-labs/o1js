@@ -616,7 +616,7 @@ class SmartContract extends SmartContractBase {
       };
     });
     // run methods once to get information that we need already at compile time
-    let methodsMeta = this.analyzeMethods();
+    let methodsMeta = await this.analyzeMethods();
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
@@ -1097,7 +1097,7 @@ super.init();
    *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
-  static analyzeMethods({ printSummary = false } = {}) {
+  static async analyzeMethods({ printSummary = false } = {}) {
     let ZkappClass = this as typeof SmartContract;
     let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
@@ -1119,7 +1119,8 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, result, gates, summary } = analyzeMethod(
+          let hasReturn = false;
+          let { rows, digest, gates, summary } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             (publicInput, publicKey, tokenId, ...args) => {
@@ -1128,6 +1129,7 @@ super.init();
                 publicInput,
                 ...args
               );
+              hasReturn = result !== undefined;
               accountUpdate = instance.#executionState!.accountUpdate;
               return result;
             }
@@ -1136,7 +1138,7 @@ super.init();
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
-            hasReturn: result !== undefined,
+            hasReturn,
             gates,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());

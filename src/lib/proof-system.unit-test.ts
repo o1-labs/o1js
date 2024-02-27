@@ -119,7 +119,7 @@ it('can compile program with large input', async () => {
 });
 
 // regression tests for some zkprograms
-const emptyMethodsMetadata = EmptyProgram.analyzeMethods();
+const emptyMethodsMetadata = await EmptyProgram.analyzeMethods();
 expect(emptyMethodsMetadata.run).toEqual(
   expect.objectContaining({
     rows: 0,
@@ -150,5 +150,6 @@ const CounterProgram = ZkProgram({
   },
 });
 
-const incrementMethodMetadata = CounterProgram.analyzeMethods().increment;
+const incrementMethodMetadata = (await CounterProgram.analyzeMethods())
+  .increment;
 expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));

@@ -12,7 +12,7 @@ export {
   runAndCheck,
   runUnchecked,
   constraintSystem,
-  constraintSystemAsync,
+  constraintSystemSync,
   inProver,
   inAnalyze,
   inCheckedComputation,
@@ -20,6 +20,7 @@ export {
   inCompileMode,
   gatesFromJson,
   printGates,
+  MlConstraintSystem,
 };
 
 // global circuit-related context
@@ -35,6 +36,10 @@ type SnarkContext = {
   inWitnessBlock?: boolean;
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
+
+class MlConstraintSystem {
+  // opaque
+}
 
 // helpers to read circuit context
 
@@ -89,7 +94,7 @@ function runUnchecked(f: () => void) {
   }
 }
 
-function constraintSystem<T>(f: () => T) {
+function _constraintSystem<T>(f: () => T) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
     let result: T;
@@ -123,37 +128,61 @@ function constraintSystem<T>(f: () => T) {
   }
 }
 
-async function constraintSystemAsync(f: () => Promise<void>) {
+async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
-  let builder = Snarky.run.constraintSystemManual();
   try {
-    builder.run(() => {});
+    let finish = Snarky.run.enterConstraintSystem();
     await f();
-    let { rows, digest, json } = builder.finish();
-    let { gates, publicInputSize } = gatesFromJson(json);
-    return {
-      rows,
-      digest,
-      gates,
-      publicInputSize,
-      print() {
-        printGates(gates);
-      },
-      summary() {
-        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
-        gateTypes['Total rows'] = rows;
-        for (let gate of gates) {
-          gateTypes[gate.type] ??= 0;
-          gateTypes[gate.type]!++;
-        }
-        return gateTypes;
-      },
-    };
+    let cs = finish();
+    return constraintSystemToJS(cs);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }
+}
+
+/**
+ * helper to bridge transition to async circuits
+ * @deprecated we must get rid of this
+ */
+function constraintSystemSync(f: () => void) {
+  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+  try {
+    let finish = Snarky.run.enterConstraintSystem();
+    f();
+    let cs = finish();
+    return constraintSystemToJS(cs);
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  } finally {
+    snarkContext.leave(id);
+  }
+}
+
+function constraintSystemToJS(cs: MlConstraintSystem) {
+  let rows = Snarky.constraintSystem.rows(cs);
+  let digest = Snarky.constraintSystem.digest(cs);
+  let json = Snarky.constraintSystem.toJson(cs);
+  let { gates, publicInputSize } = gatesFromJson(json);
+  return {
+    rows,
+    digest,
+    gates,
+    publicInputSize,
+    print() {
+      printGates(gates);
+    },
+    summary() {
+      let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+      gateTypes['Total rows'] = rows;
+      for (let gate of gates) {
+        gateTypes[gate.type] ??= 0;
+        gateTypes[gate.type]!++;
+      }
+      return gateTypes;
+    },
+  };
 }
 
 // helpers

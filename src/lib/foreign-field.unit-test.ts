@@ -164,8 +164,8 @@ Provable.runAndCheck(main0);
 Provable.runAndCheck(main1);
 
 // using foreign field arithmetic should result in much fewer constraints
-let { rows: rows0 } = Provable.constraintSystem(main0);
-let { rows: rows1 } = Provable.constraintSystem(main1);
+let { rows: rows0 } = await Provable.constraintSystem(main0);
+let { rows: rows1 } = await Provable.constraintSystem(main1);
 expect(rows0 + 100).toBeLessThan(rows1);
 
 // test with proving

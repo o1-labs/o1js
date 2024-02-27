@@ -175,7 +175,7 @@ Provable.runAndCheck(program.rawMethods.ecdsa);
 console.timeEnd('ecdsa verify (witness gen / check)');
 
 console.time('ecdsa verify (build constraint system)');
-let cs = program.analyzeMethods().ecdsa;
+let cs = (await program.analyzeMethods()).ecdsa;
 console.timeEnd('ecdsa verify (build constraint system)');
 
 console.log(cs.summary());

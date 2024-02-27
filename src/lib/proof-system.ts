@@ -273,10 +273,10 @@ function ZkProgram<
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>
     >
   ) => Promise<boolean>;
-  digest: () => string;
-  analyzeMethods: () => {
-    [I in keyof Types]: ReturnType<typeof analyzeMethod>;
-  };
+  digest: () => Promise<string>;
+  analyzeMethods: () => Promise<{
+    [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+  }>;
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
   privateInputTypes: {
@@ -323,14 +323,21 @@ function ZkProgram<
   let methodFunctions = methodKeys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
-  function analyzeMethods() {
-    return Object.fromEntries(
-      methodIntfs.map((methodEntry, i) => [
-        methodEntry.methodName,
-        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]),
-      ])
-    ) as any as {
-      [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+  async function analyzeMethods() {
+    let methodsMeta: Record<
+      string,
+      UnwrapPromise<ReturnType<typeof analyzeMethod>>
+    > = {};
+    for (let i = 0; i < methodIntfs.length; i++) {
+      let methodEntry = methodIntfs[i];
+      methodsMeta[methodEntry.methodName] = await analyzeMethod(
+        publicInputType,
+        methodEntry,
+        methodFunctions[i]
+      );
+    }
+    return methodsMeta as {
+      [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
     };
   }
 
@@ -348,10 +355,8 @@ function ZkProgram<
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
   } = {}) {
-    let methodsMeta = methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
-    );
-    let gates = methodsMeta.map((m) => m.gates);
+    let methodsMeta = await analyzeMethods();
+    let gates = methodKeys.map((k) => methodsMeta[k].gates);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
@@ -437,14 +442,12 @@ function ZkProgram<
     return compileOutput.verify(statement, proof.proof);
   }
 
-  function digest() {
-    let methodData = methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+  async function digest() {
+    let methodsMeta = await analyzeMethods();
+    let digests: Field[] = methodKeys.map((k) =>
+      Field(BigInt('0x' + methodsMeta[k].digest))
     );
-    let hash = hashConstant(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
-    );
-    return hash.toBigInt().toString(16);
+    return hashConstant(digests).toBigInt().toString(16);
   }
 
   return Object.assign(
@@ -703,14 +706,15 @@ async function compileProgram({
   };
 }
 
-function analyzeMethod<T>(
+function analyzeMethod(
   publicInputType: ProvablePure<any>,
   methodIntf: MethodInterface,
-  method: (...args: any) => T
+  method: (...args: any) => unknown
 ) {
   return Provable.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
+    // note: returning the method result here makes this handle async methods
     if (publicInputType === Undefined || publicInputType === Void)
       return method(...args);
     return method(publicInput, ...args);

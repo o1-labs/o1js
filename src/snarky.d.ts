@@ -26,6 +26,7 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
+import type { MlConstraintSystem } from './lib/provable-context.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -215,15 +216,28 @@ declare const Snarky: {
       digest: string;
       json: JsonConstraintSystem;
     };
+    /**
+     * Starts constraint system runner and returns a function to finish it.
+     */
+    enterConstraintSystem(): () => MlConstraintSystem;
+  };
 
-    constraintSystemManual(): {
-      run(f: () => void): void;
-      finish(): {
-        rows: number;
-        digest: string;
-        json: JsonConstraintSystem;
-      };
-    };
+  /**
+   * APIs to interact with a `Backend.R1CS_constraint_system.t`
+   */
+  constraintSystem: {
+    /**
+     * Returns the number of rows of the constraint system.
+     */
+    rows(system: MlConstraintSystem): number;
+    /**
+     * Returns an md5 digest of the constraint system.
+     */
+    digest(system: MlConstraintSystem): string;
+    /**
+     * Returns a JSON representation of the constraint system.
+     */
+    toJson(system: MlConstraintSystem): JsonConstraintSystem;
   };
 
   /**
