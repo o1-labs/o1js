@@ -11,6 +11,7 @@ export {
   asProver,
   runAndCheck,
   runUnchecked,
+  runAndCheckAsync,
   constraintSystem,
   constraintSystemSync,
   inProver,
@@ -87,6 +88,19 @@ function runUnchecked(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     Snarky.run.runUnchecked(f);
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  } finally {
+    snarkContext.leave(id);
+  }
+}
+
+async function runAndCheckAsync(f: () => Promise<void>) {
+  let id = snarkContext.enter({ inCheckedComputation: true });
+  try {
+    let finish = Snarky.run.enterGenerateWitness();
+    await f();
+    return finish();
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {

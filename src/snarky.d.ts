@@ -27,6 +27,7 @@ import type {
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
 import type { MlConstraintSystem } from './lib/provable-context.ts';
+import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -220,6 +221,18 @@ declare const Snarky: {
      * Starts constraint system runner and returns a function to finish it.
      */
     enterConstraintSystem(): () => MlConstraintSystem;
+    /**
+     * Starts witness generation and returns a function to finish it.
+     */
+    enterGenerateWitness(): () => [
+      _: 0,
+      public_inputs: FieldVector,
+      auxiliary_inputs: FieldVector
+    ];
+    /**
+     * Setting that controls whether snarky throws an exception on violated constraint.
+     */
+    setEvalConstraints(value: MlBool): void;
   };
 
   /**
