@@ -1,6 +1,6 @@
 import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
 
-let cs = Provable.constraintSystem(() => {
+let cs = await Provable.constraintSystem(() => {
   let f = Provable.witness(Field, () => Field(12));
 
   let res1 = Gadgets.rotate64(f, 2, 'left');

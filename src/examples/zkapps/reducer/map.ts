@@ -86,7 +86,7 @@ let k = 1 << 4;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
-let cs = StorageContract.analyzeMethods();
+let cs = await StorageContract.analyzeMethods();
 
 console.log(`method size for a "mapping" contract with ${k} entries`);
 console.log('get rows:', cs['get'].rows);

@@ -47,9 +47,9 @@ if (!useCustomLocalNetwork) {
   await ensureFundedAccount(senderKey.toBase58());
 }
 
-TokenContract.analyzeMethods();
-DexTokenHolder.analyzeMethods();
-Dex.analyzeMethods();
+await TokenContract.analyzeMethods();
+await DexTokenHolder.analyzeMethods();
+await Dex.analyzeMethods();
 
 tic('compile (token)');
 await TokenContract.compile();
