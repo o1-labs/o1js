@@ -195,7 +195,8 @@ test(Random.field, Random.field, (x0, y0, assert) => {
     Provable.asProver(() => assert(z.toBigInt() === Fp.mul(x0, y0)));
 
     // toBits / fromBits
-    let bits = Fp.toBits(x0);
+    // Fp.toBits() returns 256 bits, but our new to/from impl only accepts <=254
+    let bits = Fp.toBits(x0).slice(0, -1);
     let x1 = Provable.witness(Field, () => Field.fromBits(bits));
     let bitsVars = x1.toBits();
     Provable.asProver(() =>
