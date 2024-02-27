@@ -316,6 +316,7 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
+  // TODO remove sort()! Object.keys() has a deterministic order
   let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
