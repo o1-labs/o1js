@@ -929,7 +929,9 @@ class Field {
     });
     Field.fromBits(bits).assertEquals(
       this,
-      `Field.toBits(): ${this} does not fit in ${length} bits`
+      `Field.toBits(): ${Provable.asProver(() => {
+        this.toString();
+      })} does not fit in ${length} bits`
     );
     return bits;
   }
