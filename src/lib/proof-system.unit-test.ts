@@ -30,8 +30,7 @@ class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
 // -) sortMethodArguments
 // -) picklesRuleFromFunction
 
-// FIXME
-it.skip('pickles rule creation', async () => {
+it('pickles rule creation', async () => {
   // a rule that verifies a proof conditionally, and returns the proof's input as output
   function main(proof: EmptyProof, shouldVerify: Bool) {
     proof.verifyIf(shouldVerify);
@@ -75,7 +74,7 @@ it.skip('pickles rule creation', async () => {
       let field_: FieldConst = [0, 0n];
       let bool_: FieldConst = [0, 0n];
 
-      Provable.runAndCheck(() => {
+      await Provable.runAndCheck(async () => {
         // put witnesses in snark context
         snarkContext.get().witnesses = [dummy, bool];
 
@@ -83,7 +82,7 @@ it.skip('pickles rule creation', async () => {
         let {
           publicOutput: [, publicOutput],
           shouldVerify: [, shouldVerify],
-        } = rule.main([0]) as any; // FIXME, it's a promise
+        } = await rule.main([0]);
 
         // `publicOutput` and `shouldVerify` are as expected
         Snarky.field.assertEqual(publicOutput, dummy.publicInput.value);
