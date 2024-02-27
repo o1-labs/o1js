@@ -924,12 +924,13 @@ class Field {
       let f = this.toBigInt();
       return Array.from(
         { length },
-        (_, k) => new Bool(!!((f >> BigInt(k)) & 0xffn))
+        (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n))
       );
     });
-    if (bits.slice(length).some((bit) => bit.toBoolean()))
-      throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-    Field.fromBits(bits).assertEquals(this);
+    Field.fromBits(bits).assertEquals(
+      this,
+      `Field.toBits(): ${this} does not fit in ${length} bits`
+    );
     return bits;
   }
 
