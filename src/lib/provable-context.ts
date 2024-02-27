@@ -11,7 +11,6 @@ export {
   SnarkContext,
   asProver,
   runAndCheckSync,
-  runUncheckedSync,
   generateWitness,
   constraintSystem,
   constraintSystemSync,
@@ -73,34 +72,6 @@ function asProver(f: () => void) {
   }
 }
 
-/**
- * @deprecated use `generateWitness` instead
- */
-function runAndCheckSync(f: () => void) {
-  let id = snarkContext.enter({ inCheckedComputation: true });
-  try {
-    Snarky.run.runAndCheck(f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
-/**
- * @deprecated use `generateWitness` instead
- */
-function runUncheckedSync(f: () => void) {
-  let id = snarkContext.enter({ inCheckedComputation: true });
-  try {
-    Snarky.run.runUnchecked(f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
 async function generateWitness(
   f: (() => Promise<void>) | (() => void),
   { checkConstraints = true } = {}
@@ -119,33 +90,15 @@ async function generateWitness(
   }
 }
 
-function _constraintSystem<T>(f: () => T) {
-  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+/**
+ * @deprecated use `generateWitness` instead
+ */
+function runAndCheckSync(f: () => void) {
+  let id = snarkContext.enter({ inCheckedComputation: true });
   try {
-    let result: T;
-    let { rows, digest, json } = Snarky.run.constraintSystem(() => {
-      result = f();
-    });
-    let { gates, publicInputSize } = gatesFromJson(json);
-    return {
-      rows,
-      digest,
-      result: result! as T,
-      gates,
-      publicInputSize,
-      print() {
-        printGates(gates);
-      },
-      summary() {
-        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
-        gateTypes['Total rows'] = rows;
-        for (let gate of gates) {
-          gateTypes[gate.type] ??= 0;
-          gateTypes[gate.type]!++;
-        }
-        return gateTypes;
-      },
-    };
+    let finish = Snarky.run.enterGenerateWitness();
+    f();
+    return finish();
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {

@@ -202,21 +202,9 @@ declare const Snarky: {
      */
     inProverBlock(): boolean;
     /**
-     * Runs code and checks its correctness.
+     * Setting that controls whether snarky throws an exception on violated constraint.
      */
-    runAndCheck(f: () => void): void;
-    /**
-     * Runs code in prover mode, without checking correctness.
-     */
-    runUnchecked(f: () => void): void;
-    /**
-     * Returns information about the constraint system in the callback function.
-     */
-    constraintSystem(f: () => void): {
-      rows: number;
-      digest: string;
-      json: JsonConstraintSystem;
-    };
+    setEvalConstraints(value: MlBool): void;
     /**
      * Starts constraint system runner and returns a function to finish it.
      */
@@ -229,10 +217,6 @@ declare const Snarky: {
       public_inputs: FieldVector,
       auxiliary_inputs: FieldVector
     ];
-    /**
-     * Setting that controls whether snarky throws an exception on violated constraint.
-     */
-    setEvalConstraints(value: MlBool): void;
   };
 
   /**
