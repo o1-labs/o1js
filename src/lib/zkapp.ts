@@ -1200,6 +1200,7 @@ type ReducerReturn<Action> = {
     initial: { state: State; actionState: Field },
     options?: {
       maxTransactionsWithActions?: number;
+      maxActionsPerMethod?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): { state: State; actionState: Field };
@@ -1215,6 +1216,7 @@ type ReducerReturn<Action> = {
     fromActionState: Field,
     options?: {
       maxTransactionsWithActions?: number;
+      maxActionsPerMethod?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): Field;
@@ -1289,8 +1291,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       // TODO find out max actions per method automatically?
       let possibleActionsPerTransaction = Array.from(
-        { length: maxActionsPerMethod + 1 },
-        (_, i) => i
+        { length: maxActionsPerMethod },
+        (_, i) => i + 1
       );
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         Provable.Array(reducer.actionType, n)
