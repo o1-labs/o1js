@@ -26,7 +26,13 @@ import {
 } from './circuit-value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
-import { Poseidon, hashConstant } from './hash.js';
+import {
+  HashInput,
+  Poseidon,
+  hashConstant,
+  isHashable,
+  packToFields,
+} from './hash.js';
 import { UInt32, UInt64 } from './int.js';
 import * as Mina from './mina.js';
 import {
@@ -64,6 +70,8 @@ import {
   accountUpdateLayout,
   smartContractContext,
 } from './mina/smart-contract-context.js';
+import { deprecatedToken } from './mina/token/token-methods.js';
+import type { TokenContract } from './mina/token/token-contract.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
@@ -477,16 +485,30 @@ function computeCallData(
 ) {
   let { returnType, methodName } = methodIntf;
   let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
-  let argSizesAndFields: Field[][] = args.map(({ type, value }) => [
-    Field(type.sizeInFields()),
-    ...type.toFields(value),
-  ]);
+
+  let input: HashInput = { fields: [], packed: [] };
+  for (let { type, value } of args) {
+    if (isHashable(type)) {
+      input = HashInput.append(input, type.toInput(value));
+    } else {
+      input.fields!.push(
+        ...[Field(type.sizeInFields()), ...type.toFields(value)]
+      );
+    }
+  }
+  const totalArgFields = packToFields(input);
   let totalArgSize = Field(
     args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0)
   );
-  let totalArgFields = argSizesAndFields.flat();
+
   let returnSize = Field(returnType?.sizeInFields() ?? 0);
-  let returnFields = returnType?.toFields(returnValue) ?? [];
+  input = { fields: [], packed: [] };
+  if (isHashable(returnType)) {
+    input = HashInput.append(input, returnType.toInput(returnValue));
+  } else {
+    input.fields!.push(...(returnType?.toFields(returnValue) ?? []));
+  }
+  let returnFields = packToFields(input);
   let methodNameFields = Encoding.stringToFields(methodName);
   return [
     // we have to encode the sizes of arguments / return value, so that fields can't accidentally shift
@@ -846,10 +868,14 @@ super.init();
     return this.self.currentSlot;
   }
   /**
-   * Token of the {@link SmartContract}.
+   * @deprecated
+   * `SmartContract.token` will be removed, and token methods will only be available on `TokenContract.internal`.
+   * Instead of `SmartContract.token.id`, use `TokenContract.deriveTokenId()`.
+   *
+   * For security reasons, it is recommended to use {@link TokenContract} as the base contract for all tokens.
    */
   get token() {
-    return this.self.token();
+    return deprecatedToken(this.self);
   }
 
   /**

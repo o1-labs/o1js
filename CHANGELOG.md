@@ -15,7 +15,41 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/834a44002...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
+
+### Breaking changes
+
+- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422
+  - Changed the `TransactionId` type to `Transaction`. Additionally added `PendingTransaction` and `RejectedTransaction` types to better represent the state of a transaction.
+  - `transaction.send()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns a `PendingTransaction` object that contains the error. Use `transaction.sendOrThrowIfError` to throw the error if the transaction was not successful.
+  - `transaction.wait()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns either a `IncludedTransaction` or `RejectedTransaction`. Use `transaction.waitOrThrowIfError` to throw the error if the transaction was not successful.
+  - `transaction.hash()` is no longer a function, it is now a property that returns the hash of the transaction.
+- Improved efficiency of computing `AccountUpdate.callData` by packing field elements into as few field elements as possible https://github.com/o1-labs/o1js/pull/1458
+  - This leads to a large reduction in the number of constraints used when inputs to a zkApp method are many field elements (e.g. a long list of `Bool`s)
+- Return events in the `LocalBlockchain` in reverse chronological order (latest events at the beginning) to match the behavior of the `Network` https://github.com/o1-labs/o1js/pull/1460
+
+### Added
+
+- Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
+- `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+- `setNumberOfWorkers()` to allow developer to override the number of workers used during compilation and proof generation/verification https://github.com/o1-labs/o1js/pull/1456
+
+### Changed
+
+- Improve all-around performance by reverting the Apple silicon workaround (https://github.com/o1-labs/o1js/pull/683) as the root problem is now fixed upstream https://github.com/o1-labs/o1js/pull/1456
+- Improved error message when trying to use `fetchActions`/`fetchEvents` with a missing Archive Node endpoint https://github.com/o1-labs/o1js/pull/1459
+
+### Deprecated
+
+- `SmartContract.token` is deprecated in favor of new methods on `TokenContract` https://github.com/o1-labs/o1js/pull/1446
+  - `TokenContract.deriveTokenId()` to get the ID of the managed token
+  - `TokenContract.internal.{send, mint, burn}` to perform token operations from within the contract
+
+### Fixed
+
+- Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+
+## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 
 ### Breaking changes
 
@@ -34,6 +68,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Usage example: `https://github.com/o1-labs/o1js/blob/main/src/lib/mina/token/token-contract.unit-test.ts`
 - `TokenAccountUpdateIterator`, a primitive to iterate over all token account updates in a transaction https://github.com/o1-labs/o1js/pull/1398
   - this is used to implement `TokenContract` under the hood
+
+### Fixed
+
+- Mainnet support. https://github.com/o1-labs/o1js/pull/1437
 
 ## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
 

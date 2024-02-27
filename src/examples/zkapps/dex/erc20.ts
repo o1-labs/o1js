@@ -92,7 +92,7 @@ class TrivialCoin extends TokenContract implements Erc20Like {
 
     // mint the entire supply to the token account with the same address as this contract
     let address = this.self.body.publicKey;
-    let receiver = this.token.mint({ address, amount: this.SUPPLY });
+    let receiver = this.internal.mint({ address, amount: this.SUPPLY });
 
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
@@ -120,7 +120,7 @@ class TrivialCoin extends TokenContract implements Erc20Like {
   balanceOf(owner: PublicKey | AccountUpdate): UInt64 {
     let update =
       owner instanceof PublicKey
-        ? AccountUpdate.create(owner, this.token.id)
+        ? AccountUpdate.create(owner, this.deriveTokenId())
         : owner;
     this.approveAccountUpdate(update);
     return update.account.balance.getAndRequireEquals();

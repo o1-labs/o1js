@@ -27,7 +27,7 @@ txn = await Mina.transaction(feePayer1.publicKey, () => {
   AccountUpdate.fundNewAccount(feePayer1.publicKey);
   zkAppInstance.deploy();
 });
-await txn.sign([feePayer1.privateKey, zkAppPrivateKey]).send();
+await txn.sign([feePayer1.privateKey, zkAppPrivateKey]).sendOrThrowIfError();
 
 const initialState =
   Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
@@ -45,7 +45,7 @@ txn = await Mina.transaction(feePayer1.publicKey, () => {
   zkAppInstance.update(Field(4), adminPrivateKey);
 });
 await txn.prove();
-await txn.sign([feePayer1.privateKey]).send();
+await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 
@@ -70,7 +70,7 @@ try {
     zkAppInstance.update(Field(16), wrongAdminPrivateKey);
   });
   await txn.prove();
-  await txn.sign([feePayer1.privateKey]).send();
+  await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
 } catch (err: any) {
   handleError(err, 'Account_delegate_precondition_unsatisfied');
 }
@@ -91,7 +91,7 @@ try {
     zkAppInstance.update(Field(30), adminPrivateKey);
   });
   await txn.prove();
-  await txn.sign([feePayer1.privateKey]).send();
+  await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
 } catch (err: any) {
   handleError(err, 'assertEquals');
 }
@@ -118,7 +118,7 @@ try {
     }
   );
   await txn.prove();
-  await txn.sign([feePayer1.privateKey]).send();
+  await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
 } catch (err: any) {
   handleError(err, 'assertEquals');
 }
@@ -134,7 +134,7 @@ txn2 = await Mina.transaction({ sender: feePayer2.publicKey, fee: '2' }, () => {
   zkAppInstance.update(Field(16), adminPrivateKey);
 });
 await txn2.prove();
-await txn2.sign([feePayer2.privateKey]).send();
+await txn2.sign([feePayer2.privateKey]).sendOrThrowIfError();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 
@@ -151,7 +151,7 @@ txn3 = await Mina.transaction({ sender: feePayer3.publicKey, fee: '1' }, () => {
   zkAppInstance.update(Field(256), adminPrivateKey);
 });
 await txn3.prove();
-await txn3.sign([feePayer3.privateKey]).send();
+await txn3.sign([feePayer3.privateKey]).sendOrThrowIfError();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 
@@ -174,7 +174,7 @@ try {
     }
   );
   await txn4.prove();
-  await txn4.sign([feePayer4.privateKey]).send();
+  await txn4.sign([feePayer4.privateKey]).sendOrThrowIfError();
 } catch (err: any) {
   handleError(err, 'assertEquals');
 }
