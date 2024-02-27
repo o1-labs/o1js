@@ -1143,20 +1143,6 @@ super.init();
   }
 
   /**
-   * @deprecated use `SmartContract.analyzeMethods()` instead
-   */
-  static analyzeMethodsSync() {
-    let ZkappClass = this as typeof SmartContract;
-    let methodMetadata = (ZkappClass._methodMetadata ??= {});
-    let methodIntfs = ZkappClass._methods ?? [];
-    assert(
-      methodIntfs.every((m) => m.methodName in methodMetadata),
-      'analyzeMethodsSync: analyzeMethods() must be called first'
-    );
-    return methodMetadata;
-  }
-
-  /**
    * @deprecated use `this.account.<field>.set()`
    */
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
@@ -1291,6 +1277,7 @@ class ${contract.constructor.name} extends SmartContract {
       { state, actionState }: { state: S; actionState: Field },
       {
         maxTransactionsWithActions = 32,
+        maxActionsPerMethod = 1,
         skipActionStatePrecondition = false,
       } = {}
     ): { state: S; actionState: Field } {
@@ -1300,13 +1287,11 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
-      let methodData = (
-        contract.constructor as typeof SmartContract
-      ).analyzeMethodsSync();
-      let possibleActionsPerTransaction = [
-        ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
-      ].sort((x, y) => x - y);
-
+      // TODO find out max actions per method automatically?
+      let possibleActionsPerTransaction = Array.from(
+        { length: maxActionsPerMethod + 1 },
+        (_, i) => i
+      );
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         Provable.Array(reducer.actionType, n)
       );
