@@ -18,6 +18,8 @@ import {
 
 const tokenSymbol = 'TOKEN';
 
+// TODO: Refactor to `TokenContract`
+
 class TokenContract extends SmartContract {
   SUPPLY = UInt64.from(10n ** 18n);
   @state(UInt64) totalAmountInCirculation = State<UInt64>();
@@ -326,7 +328,7 @@ describe('Token', () => {
             tokenZkapp.requireSignature();
           })
         ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
-        await expect(tx.send()).rejects.toThrow();
+        await expect(tx.sendOrThrowIfError()).rejects.toThrow();
       });
     });
 
@@ -394,7 +396,7 @@ describe('Token', () => {
           })
         ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
 
-        await expect(tx.send()).rejects.toThrow();
+        await expect(tx.sendOrThrowIfError()).rejects.toThrow();
       });
 
       test('should error if sender sends more tokens than they have', async () => {
@@ -418,7 +420,7 @@ describe('Token', () => {
             tokenZkapp.requireSignature();
           })
         ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
-        await expect(tx.send()).rejects.toThrow();
+        await expect(tx.sendOrThrowIfError()).rejects.toThrow();
       });
     });
   });
@@ -579,9 +581,9 @@ describe('Token', () => {
           });
           AccountUpdate.attachToTransaction(tokenZkapp.self);
         });
-        await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
-          /Update_not_permitted_access/
-        );
+        await expect(
+          tx.sign([feePayerKey]).sendOrThrowIfError()
+        ).rejects.toThrow(/Update_not_permitted_access/);
       });
     });
   });

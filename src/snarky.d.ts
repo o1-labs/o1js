@@ -656,7 +656,7 @@ declare const Test: {
     signFieldElement(
       messageHash: FieldConst,
       privateKey: ScalarConst,
-      isMainnet: boolean
+      networkId: string
     ): string;
     /**
      * Returns a dummy signature.
@@ -705,6 +705,7 @@ declare const Test: {
     serializeCommon(common: string): { data: Uint8Array };
     hashPayment(payment: string): string;
     hashPaymentV1(payment: string): string;
+    hashZkAppCommand(command: string): string;
   };
 };
 
