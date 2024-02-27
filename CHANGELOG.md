@@ -24,6 +24,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `transaction.send()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns a `PendingTransaction` object that contains the error. Use `transaction.sendOrThrowIfError` to throw the error if the transaction was not successful.
   - `transaction.wait()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns either a `IncludedTransaction` or `RejectedTransaction`. Use `transaction.waitOrThrowIfError` to throw the error if the transaction was not successful.
   - `transaction.hash()` is no longer a function, it is now a property that returns the hash of the transaction.
+- Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
+  - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
+  - These changes were made to add internal support for async circuits
+  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
+- `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
+  - The default value is 1 and should work for most existing contracts
 - Improved efficiency of computing `AccountUpdate.callData` by packing field elements into as few field elements as possible https://github.com/o1-labs/o1js/pull/1458
   - This leads to a large reduction in the number of constraints used when inputs to a zkApp method are many field elements (e.g. a long list of `Bool`s)
 - Return events in the `LocalBlockchain` in reverse chronological order (latest events at the beginning) to match the behavior of the `Network` https://github.com/o1-labs/o1js/pull/1460
