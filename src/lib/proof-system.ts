@@ -602,7 +602,7 @@ async function compileProgram({
   publicInputType: ProvablePure<any>;
   publicOutputType: ProvablePure<any>;
   methodIntfs: MethodInterface[];
-  methods: ((...args: any) => void)[];
+  methods: ((...args: any) => unknown)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
   cache: Cache;
@@ -720,7 +720,7 @@ function analyzeMethod<T>(
 function picklesRuleFromFunction(
   publicInputType: ProvablePure<unknown>,
   publicOutputType: ProvablePure<unknown>,
-  func: (...args: unknown[]) => any,
+  func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
   gates: Gate[]
@@ -728,10 +728,6 @@ function picklesRuleFromFunction(
   async function main(
     publicInput: MlFieldArray
   ): ReturnType<Pickles.Rule['main']> {
-    console.log(`calling rule "${methodName}", waiting 100ms`);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    console.log(`continuing rule "${methodName}"\n`);
-
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
@@ -770,10 +766,10 @@ function picklesRuleFromFunction(
     }
     let result: any;
     if (publicInputType === Undefined || publicInputType === Void) {
-      result = func(...finalArgs);
+      result = await func(...finalArgs);
     } else {
       let input = fromFieldVars(publicInputType, publicInput);
-      result = func(input, ...finalArgs);
+      result = await func(input, ...finalArgs);
     }
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
