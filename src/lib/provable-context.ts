@@ -5,9 +5,11 @@ import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite-field.js';
 import { FlexibleProvablePure } from './circuit-value.js';
 import { Proof, Subclass } from './proof-system.js';
+import { Bool } from './bool.js';
 
 // internal API
 export {
+  ProofContext,
   circuitContext,
   CircuitContext,
   snarkContext,
@@ -27,14 +29,18 @@ export {
 
 // global circuit-related context
 
+type ProofContext = {
+  proofClass: Subclass<typeof Proof>;
+  publicInput: ProvablePure<unknown>;
+  publicOutput: ProvablePure<unknown>;
+  proof: unknown;
+  shouldVerify: Bool;
+  maxProofsVerified: number;
+};
 // context that observes and collects meta data about circuits and their methods
 type CircuitContext = {
   methodName: string;
-  proofs: {
-    proof: Subclass<typeof Proof>;
-    input: ProvablePure<unknown>;
-    output: ProvablePure<unknown>;
-  }[];
+  proofs: ProofContext[];
 };
 let circuitContext = Context.create<null | CircuitContext>({});
 
