@@ -1105,14 +1105,6 @@ super.init();
       !methodIntfs.every((m) => m.methodName in methodMetadata) &&
       !inAnalyze()
     ) {
-      if (snarkContext.get().inRunAndCheck) {
-        let err = new Error(
-          'Can not analyze methods inside Provable.runAndCheck, because this creates a circuit nested in another circuit'
-        );
-        // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () => ZkappClass.analyzeMethods();
-        throw err;
-      }
       let id: number;
       let insideSmartContract = !!smartContractContext.get();
       if (insideSmartContract) id = smartContractContext.enter(null);

@@ -34,7 +34,6 @@ type SnarkContext = {
   inCompile?: boolean;
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
-  inRunAndCheck?: boolean;
   inWitnessBlock?: boolean;
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
