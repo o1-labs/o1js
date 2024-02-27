@@ -160,8 +160,8 @@ function main1() {
 // check provable and non-provable versions are correct
 main0();
 main1();
-Provable.runAndCheck(main0);
-Provable.runAndCheck(main1);
+await Provable.runAndCheck(main0);
+await Provable.runAndCheck(main1);
 
 // using foreign field arithmetic should result in much fewer constraints
 let { rows: rows0 } = await Provable.constraintSystem(main0);

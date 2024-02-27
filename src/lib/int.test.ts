@@ -213,7 +213,7 @@ describe('int', () => {
       describe('add', () => {
         it('1+1=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.add(y).assertEquals(new UInt64(Field(2)));
@@ -223,7 +223,7 @@ describe('int', () => {
 
         it('5000+5000=10000', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(5000)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(5000)));
               x.add(y).assertEquals(new UInt64(Field(10000)));
@@ -234,7 +234,7 @@ describe('int', () => {
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const n = Field((((1n << 64n) - 2n) / 2n).toString());
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(n));
               const y = Provable.witness(UInt64, () => new UInt64(n));
               x.add(y).add(1).assertEquals(UInt64.MAXINT());
@@ -244,7 +244,7 @@ describe('int', () => {
 
         it('should throw on overflow addition', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.add(y);
@@ -256,7 +256,7 @@ describe('int', () => {
       describe('sub', () => {
         it('1-1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.sub(y).assertEquals(new UInt64(Field(0)));
@@ -266,7 +266,7 @@ describe('int', () => {
 
         it('10000-5000=5000', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt64,
                 () => new UInt64(Field(10000))
@@ -279,7 +279,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(0)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.sub(y);
@@ -291,7 +291,7 @@ describe('int', () => {
       describe('mul', () => {
         it('1x2=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(2)));
               x.mul(y).assertEquals(new UInt64(Field(2)));
@@ -301,7 +301,7 @@ describe('int', () => {
 
         it('1x0=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(0)));
               x.mul(y).assertEquals(new UInt64(Field(0)));
@@ -311,7 +311,7 @@ describe('int', () => {
 
         it('1000x1000=1000000', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               x.mul(y).assertEquals(new UInt64(Field(1000000)));
@@ -321,7 +321,7 @@ describe('int', () => {
 
         it('MAXINTx1=MAXINT', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.mul(y).assertEquals(UInt64.MAXINT());
@@ -331,7 +331,7 @@ describe('int', () => {
 
         it('should throw on overflow multiplication', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(2)));
               x.mul(y);
@@ -343,7 +343,7 @@ describe('int', () => {
       describe('div', () => {
         it('2/1=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(2)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.div(y).assertEquals(new UInt64(Field(2)));
@@ -353,7 +353,7 @@ describe('int', () => {
 
         it('0/1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(0)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.div(y).assertEquals(new UInt64(Field(0)));
@@ -363,7 +363,7 @@ describe('int', () => {
 
         it('2000/1000=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(2000)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               x.div(y).assertEquals(new UInt64(Field(2)));
@@ -373,7 +373,7 @@ describe('int', () => {
 
         it('MAXINT/1=MAXINT', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.div(y).assertEquals(UInt64.MAXINT());
@@ -383,7 +383,7 @@ describe('int', () => {
 
         it('should throw on division by zero', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(0)));
               x.div(y);
@@ -395,7 +395,7 @@ describe('int', () => {
       describe('mod', () => {
         it('1%1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.mod(y).assertEquals(new UInt64(Field(0)));
@@ -405,7 +405,7 @@ describe('int', () => {
 
         it('500%32=20', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(500)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(32)));
               x.mod(y).assertEquals(new UInt64(Field(20)));
@@ -415,7 +415,7 @@ describe('int', () => {
 
         it('MAXINT%7=1', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(7)));
               x.mod(y).assertEquals(new UInt64(Field(1)));
@@ -425,7 +425,7 @@ describe('int', () => {
 
         it('should throw on mod by zero', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => new UInt64(Field(0)));
               x.mod(y).assertEquals(new UInt64(Field(1)));
@@ -437,7 +437,7 @@ describe('int', () => {
       describe('assertLt', () => {
         it('1<2=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(2)));
               x.assertLessThan(y);
@@ -447,7 +447,7 @@ describe('int', () => {
 
         it('1<1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertLessThan(y);
@@ -457,7 +457,7 @@ describe('int', () => {
 
         it('2<1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(2)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertLessThan(y);
@@ -467,7 +467,7 @@ describe('int', () => {
 
         it('1000<100000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               const y = Provable.witness(
                 UInt64,
@@ -480,7 +480,7 @@ describe('int', () => {
 
         it('100000<1000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt64,
                 () => new UInt64(Field(100000))
@@ -493,7 +493,7 @@ describe('int', () => {
 
         it('MAXINT<MAXINT=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => UInt64.MAXINT());
               x.assertLessThan(y);
@@ -505,7 +505,7 @@ describe('int', () => {
       describe('assertLte', () => {
         it('1<=1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertLessThanOrEqual(y);
@@ -515,7 +515,7 @@ describe('int', () => {
 
         it('2<=1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(2)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertLessThanOrEqual(y);
@@ -525,7 +525,7 @@ describe('int', () => {
 
         it('1000<=100000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               const y = Provable.witness(
                 UInt64,
@@ -538,7 +538,7 @@ describe('int', () => {
 
         it('100000<=1000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt64,
                 () => new UInt64(Field(100000))
@@ -551,7 +551,7 @@ describe('int', () => {
 
         it('MAXINT<=MAXINT=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => UInt64.MAXINT());
               x.assertLessThanOrEqual(y);
@@ -563,7 +563,7 @@ describe('int', () => {
       describe('assertGreaterThan', () => {
         it('2>1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(2)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertGreaterThan(y);
@@ -573,7 +573,7 @@ describe('int', () => {
 
         it('1>1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertGreaterThan(y);
@@ -583,7 +583,7 @@ describe('int', () => {
 
         it('1>2=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(2)));
               x.assertGreaterThan(y);
@@ -593,7 +593,7 @@ describe('int', () => {
 
         it('100000>1000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt64,
                 () => new UInt64(Field(100000))
@@ -606,7 +606,7 @@ describe('int', () => {
 
         it('1000>100000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               const y = Provable.witness(
                 UInt64,
@@ -619,7 +619,7 @@ describe('int', () => {
 
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => UInt64.MAXINT());
               x.assertGreaterThan(y);
@@ -631,7 +631,7 @@ describe('int', () => {
       describe('assertGreaterThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
               x.assertGreaterThanOrEqual(y);
@@ -641,7 +641,7 @@ describe('int', () => {
 
         it('1>=2=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1)));
               const y = Provable.witness(UInt64, () => new UInt64(Field(2)));
               x.assertGreaterThanOrEqual(y);
@@ -651,7 +651,7 @@ describe('int', () => {
 
         it('100000>=1000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt64,
                 () => new UInt64(Field(100000))
@@ -664,7 +664,7 @@ describe('int', () => {
 
         it('1000>=100000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => new UInt64(Field(1000)));
               const y = Provable.witness(
                 UInt64,
@@ -677,7 +677,7 @@ describe('int', () => {
 
         it('MAXINT>=MAXINT=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt64, () => UInt64.MAXINT());
               const y = Provable.witness(UInt64, () => UInt64.MAXINT());
               x.assertGreaterThanOrEqual(y);
@@ -690,7 +690,7 @@ describe('int', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt64, () => UInt64.from(1));
                 const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
                 x.assertEquals(y);
@@ -700,7 +700,7 @@ describe('int', () => {
 
           it('should be the same as 2^53-1', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt64, () =>
                   UInt64.from(NUMBERMAX)
                 );
@@ -716,7 +716,7 @@ describe('int', () => {
         describe('fromString()', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt64, () => UInt64.from('1'));
                 const y = Provable.witness(UInt64, () => new UInt64(Field(1)));
                 x.assertEquals(y);
@@ -726,7 +726,7 @@ describe('int', () => {
 
           it('should be the same as 2^53-1', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt64, () =>
                   UInt64.from(String(NUMBERMAX))
                 );
@@ -1179,7 +1179,7 @@ describe('int', () => {
       describe('add', () => {
         it('1+1=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.add(y).assertEquals(new UInt32(Field(2)));
@@ -1189,7 +1189,7 @@ describe('int', () => {
 
         it('5000+5000=10000', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(5000)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(5000)));
               x.add(y).assertEquals(new UInt32(Field(10000)));
@@ -1200,7 +1200,7 @@ describe('int', () => {
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const n = Field((((1n << 32n) - 2n) / 2n).toString());
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(n));
               const y = Provable.witness(UInt32, () => new UInt32(n));
               x.add(y).add(1).assertEquals(UInt32.MAXINT());
@@ -1210,7 +1210,7 @@ describe('int', () => {
 
         it('should throw on overflow addition', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.add(y);
@@ -1222,7 +1222,7 @@ describe('int', () => {
       describe('sub', () => {
         it('1-1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.sub(y).assertEquals(new UInt32(Field(0)));
@@ -1232,7 +1232,7 @@ describe('int', () => {
 
         it('10000-5000=5000', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt32,
                 () => new UInt32(Field(10000))
@@ -1245,7 +1245,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(0)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.sub(y);
@@ -1257,7 +1257,7 @@ describe('int', () => {
       describe('mul', () => {
         it('1x2=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(2)));
               x.mul(y).assertEquals(new UInt32(Field(2)));
@@ -1267,7 +1267,7 @@ describe('int', () => {
 
         it('1x0=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(0)));
               x.mul(y).assertEquals(new UInt32(Field(0)));
@@ -1277,7 +1277,7 @@ describe('int', () => {
 
         it('1000x1000=1000000', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               x.mul(y).assertEquals(new UInt32(Field(1000000)));
@@ -1287,7 +1287,7 @@ describe('int', () => {
 
         it('MAXINTx1=MAXINT', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.mul(y).assertEquals(UInt32.MAXINT());
@@ -1297,7 +1297,7 @@ describe('int', () => {
 
         it('should throw on overflow multiplication', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(2)));
               x.mul(y);
@@ -1309,7 +1309,7 @@ describe('int', () => {
       describe('div', () => {
         it('2/1=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(2)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.div(y).assertEquals(new UInt32(Field(2)));
@@ -1319,7 +1319,7 @@ describe('int', () => {
 
         it('0/1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(0)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.div(y).assertEquals(new UInt32(Field(0)));
@@ -1329,7 +1329,7 @@ describe('int', () => {
 
         it('2000/1000=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(2000)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               x.div(y).assertEquals(new UInt32(Field(2)));
@@ -1339,7 +1339,7 @@ describe('int', () => {
 
         it('MAXINT/1=MAXINT', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.div(y).assertEquals(UInt32.MAXINT());
@@ -1349,7 +1349,7 @@ describe('int', () => {
 
         it('should throw on division by zero', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(0)));
               x.div(y);
@@ -1361,7 +1361,7 @@ describe('int', () => {
       describe('mod', () => {
         it('1%1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.mod(y).assertEquals(new UInt32(Field(0)));
@@ -1371,7 +1371,7 @@ describe('int', () => {
 
         it('500%32=20', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(500)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(32)));
               x.mod(y).assertEquals(new UInt32(Field(20)));
@@ -1381,7 +1381,7 @@ describe('int', () => {
 
         it('MAXINT%7=3', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(7)));
               x.mod(y).assertEquals(new UInt32(Field(3)));
@@ -1391,7 +1391,7 @@ describe('int', () => {
 
         it('should throw on mod by zero', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => new UInt32(Field(0)));
               x.mod(y).assertEquals(new UInt32(Field(1)));
@@ -1403,7 +1403,7 @@ describe('int', () => {
       describe('assertLt', () => {
         it('1<2=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(2)));
               x.assertLessThan(y);
@@ -1413,7 +1413,7 @@ describe('int', () => {
 
         it('1<1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertLessThan(y);
@@ -1423,7 +1423,7 @@ describe('int', () => {
 
         it('2<1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(2)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertLessThan(y);
@@ -1433,7 +1433,7 @@ describe('int', () => {
 
         it('1000<100000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               const y = Provable.witness(
                 UInt32,
@@ -1446,7 +1446,7 @@ describe('int', () => {
 
         it('100000<1000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt32,
                 () => new UInt32(Field(100000))
@@ -1459,7 +1459,7 @@ describe('int', () => {
 
         it('MAXINT<MAXINT=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => UInt32.MAXINT());
               x.assertLessThan(y);
@@ -1471,7 +1471,7 @@ describe('int', () => {
       describe('assertLessThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertLessThanOrEqual(y);
@@ -1481,7 +1481,7 @@ describe('int', () => {
 
         it('2<=1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(2)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertLessThanOrEqual(y);
@@ -1491,7 +1491,7 @@ describe('int', () => {
 
         it('1000<=100000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               const y = Provable.witness(
                 UInt32,
@@ -1504,7 +1504,7 @@ describe('int', () => {
 
         it('100000<=1000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt32,
                 () => new UInt32(Field(100000))
@@ -1517,7 +1517,7 @@ describe('int', () => {
 
         it('MAXINT<=MAXINT=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => UInt32.MAXINT());
               x.assertLessThanOrEqual(y);
@@ -1529,7 +1529,7 @@ describe('int', () => {
       describe('assertGreaterThan', () => {
         it('2>1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(2)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertGreaterThan(y);
@@ -1539,7 +1539,7 @@ describe('int', () => {
 
         it('1>1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertGreaterThan(y);
@@ -1549,7 +1549,7 @@ describe('int', () => {
 
         it('1>2=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(2)));
               x.assertGreaterThan(y);
@@ -1559,7 +1559,7 @@ describe('int', () => {
 
         it('100000>1000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt32,
                 () => new UInt32(Field(100000))
@@ -1572,7 +1572,7 @@ describe('int', () => {
 
         it('1000>100000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               const y = Provable.witness(
                 UInt32,
@@ -1585,7 +1585,7 @@ describe('int', () => {
 
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => UInt32.MAXINT());
               x.assertGreaterThan(y);
@@ -1597,7 +1597,7 @@ describe('int', () => {
       describe('assertGreaterThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
               x.assertGreaterThanOrEqual(y);
@@ -1607,7 +1607,7 @@ describe('int', () => {
 
         it('1>=2=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1)));
               const y = Provable.witness(UInt32, () => new UInt32(Field(2)));
               x.assertGreaterThanOrEqual(y);
@@ -1617,7 +1617,7 @@ describe('int', () => {
 
         it('100000>=1000=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(
                 UInt32,
                 () => new UInt32(Field(100000))
@@ -1630,7 +1630,7 @@ describe('int', () => {
 
         it('1000>=100000=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => new UInt32(Field(1000)));
               const y = Provable.witness(
                 UInt32,
@@ -1643,7 +1643,7 @@ describe('int', () => {
 
         it('MAXINT>=MAXINT=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt32, () => UInt32.MAXINT());
               const y = Provable.witness(UInt32, () => UInt32.MAXINT());
               x.assertGreaterThanOrEqual(y);
@@ -1656,7 +1656,7 @@ describe('int', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt32, () => UInt32.from(1));
                 const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
                 x.assertEquals(y);
@@ -1666,7 +1666,7 @@ describe('int', () => {
 
           it('should be the same as 2^53-1', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt32, () =>
                   UInt32.from(NUMBERMAX)
                 );
@@ -1682,7 +1682,7 @@ describe('int', () => {
         describe('fromString()', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt32, () => UInt32.from('1'));
                 const y = Provable.witness(UInt32, () => new UInt32(Field(1)));
                 x.assertEquals(y);
@@ -1692,7 +1692,7 @@ describe('int', () => {
 
           it('should be the same as 2^53-1', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt32, () =>
                   UInt32.from(String(NUMBERMAX))
                 );
@@ -2145,7 +2145,7 @@ describe('int', () => {
       describe('add', () => {
         it('1+1=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.add(y).assertEquals(2);
@@ -2155,7 +2155,7 @@ describe('int', () => {
 
         it('100+100=200', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(100));
               const y = Provable.witness(UInt8, () => new UInt8(100));
               x.add(y).assertEquals(new UInt8(200));
@@ -2166,7 +2166,7 @@ describe('int', () => {
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const n = ((1n << 8n) - 2n) / 2n;
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(n));
               const y = Provable.witness(UInt8, () => new UInt8(n));
               x.add(y).add(1).assertEquals(UInt8.MAXINT());
@@ -2176,7 +2176,7 @@ describe('int', () => {
 
         it('should throw on overflow addition', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.add(y);
@@ -2188,7 +2188,7 @@ describe('int', () => {
       describe('sub', () => {
         it('1-1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.sub(y).assertEquals(new UInt8(0));
@@ -2198,7 +2198,7 @@ describe('int', () => {
 
         it('100-50=50', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(100));
               const y = Provable.witness(UInt8, () => new UInt8(50));
               x.sub(y).assertEquals(new UInt8(50));
@@ -2208,7 +2208,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(0));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.sub(y);
@@ -2220,7 +2220,7 @@ describe('int', () => {
       describe('mul', () => {
         it('1x2=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(2));
               x.mul(y).assertEquals(new UInt8(2));
@@ -2230,7 +2230,7 @@ describe('int', () => {
 
         it('1x0=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(0));
               x.mul(y).assertEquals(new UInt8(0));
@@ -2240,7 +2240,7 @@ describe('int', () => {
 
         it('12x20=240', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(12));
               const y = Provable.witness(UInt8, () => new UInt8(20));
               x.mul(y).assertEquals(new UInt8(240));
@@ -2250,7 +2250,7 @@ describe('int', () => {
 
         it('MAXINTx1=MAXINT', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.mul(y).assertEquals(UInt8.MAXINT());
@@ -2260,7 +2260,7 @@ describe('int', () => {
 
         it('should throw on overflow multiplication', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(2));
               x.mul(y);
@@ -2272,7 +2272,7 @@ describe('int', () => {
       describe('div', () => {
         it('2/1=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(2));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.div(y).assertEquals(new UInt8(2));
@@ -2282,7 +2282,7 @@ describe('int', () => {
 
         it('0/1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(0));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.div(y).assertEquals(new UInt8(0));
@@ -2292,7 +2292,7 @@ describe('int', () => {
 
         it('20/10=2', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(20));
               const y = Provable.witness(UInt8, () => new UInt8(10));
               x.div(y).assertEquals(new UInt8(2));
@@ -2302,7 +2302,7 @@ describe('int', () => {
 
         it('MAXINT/1=MAXINT', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.div(y).assertEquals(UInt8.MAXINT());
@@ -2312,7 +2312,7 @@ describe('int', () => {
 
         it('should throw on division by zero', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(0));
               x.div(y);
@@ -2324,7 +2324,7 @@ describe('int', () => {
       describe('mod', () => {
         it('1%1=0', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.mod(y).assertEquals(new UInt8(0));
@@ -2334,7 +2334,7 @@ describe('int', () => {
 
         it('50%32=18', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(50));
               const y = Provable.witness(UInt8, () => new UInt8(32));
               x.mod(y).assertEquals(new UInt8(18));
@@ -2344,7 +2344,7 @@ describe('int', () => {
 
         it('MAXINT%7=3', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(7));
               x.mod(y).assertEquals(new UInt8(3));
@@ -2354,7 +2354,7 @@ describe('int', () => {
 
         it('should throw on mod by zero', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => new UInt8(0));
               x.mod(y).assertEquals(new UInt8(1));
@@ -2366,7 +2366,7 @@ describe('int', () => {
       describe('assertLt', () => {
         it('1<2=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(2));
               x.assertLessThan(y);
@@ -2376,7 +2376,7 @@ describe('int', () => {
 
         it('1<1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertLessThan(y);
@@ -2386,7 +2386,7 @@ describe('int', () => {
 
         it('2<1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(2));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertLessThan(y);
@@ -2396,7 +2396,7 @@ describe('int', () => {
 
         it('10<100=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(10));
               const y = Provable.witness(UInt8, () => new UInt8(100));
               x.assertLessThan(y);
@@ -2406,7 +2406,7 @@ describe('int', () => {
 
         it('100<10=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(100));
               const y = Provable.witness(UInt8, () => new UInt8(10));
               x.assertLessThan(y);
@@ -2416,7 +2416,7 @@ describe('int', () => {
 
         it('MAXINT<MAXINT=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => UInt8.MAXINT());
               x.assertLessThan(y);
@@ -2428,7 +2428,7 @@ describe('int', () => {
       describe('assertLessThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertLessThanOrEqual(y);
@@ -2438,7 +2438,7 @@ describe('int', () => {
 
         it('2<=1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(2));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertLessThanOrEqual(y);
@@ -2448,7 +2448,7 @@ describe('int', () => {
 
         it('10<=100=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(10));
               const y = Provable.witness(UInt8, () => new UInt8(100));
               x.assertLessThanOrEqual(y);
@@ -2458,7 +2458,7 @@ describe('int', () => {
 
         it('100<=10=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(100));
               const y = Provable.witness(UInt8, () => new UInt8(10));
               x.assertLessThanOrEqual(y);
@@ -2468,7 +2468,7 @@ describe('int', () => {
 
         it('MAXINT<=MAXINT=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => UInt8.MAXINT());
               x.assertLessThanOrEqual(y);
@@ -2480,7 +2480,7 @@ describe('int', () => {
       describe('assertGreaterThan', () => {
         it('2>1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(2));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertGreaterThan(y);
@@ -2490,7 +2490,7 @@ describe('int', () => {
 
         it('1>1=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertGreaterThan(y);
@@ -2500,7 +2500,7 @@ describe('int', () => {
 
         it('1>2=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(2));
               x.assertGreaterThan(y);
@@ -2510,7 +2510,7 @@ describe('int', () => {
 
         it('100>10=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(100));
               const y = Provable.witness(UInt8, () => new UInt8(10));
               x.assertGreaterThan(y);
@@ -2520,7 +2520,7 @@ describe('int', () => {
 
         it('10>100=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1000));
               const y = Provable.witness(UInt8, () => new UInt8(100000));
               x.assertGreaterThan(y);
@@ -2530,7 +2530,7 @@ describe('int', () => {
 
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => UInt8.MAXINT());
               x.assertGreaterThan(y);
@@ -2542,7 +2542,7 @@ describe('int', () => {
       describe('assertGreaterThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(1));
               x.assertGreaterThanOrEqual(y);
@@ -2552,7 +2552,7 @@ describe('int', () => {
 
         it('1>=2=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(1));
               const y = Provable.witness(UInt8, () => new UInt8(2));
               x.assertGreaterThanOrEqual(y);
@@ -2562,7 +2562,7 @@ describe('int', () => {
 
         it('100>=10=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(100));
               const y = Provable.witness(UInt8, () => new UInt8(10));
               x.assertGreaterThanOrEqual(y);
@@ -2572,7 +2572,7 @@ describe('int', () => {
 
         it('10>=100=false', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => new UInt8(10));
               const y = Provable.witness(UInt8, () => new UInt8(100));
               x.assertGreaterThanOrEqual(y);
@@ -2582,7 +2582,7 @@ describe('int', () => {
 
         it('MAXINT>=MAXINT=true', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(UInt8, () => UInt8.MAXINT());
               const y = Provable.witness(UInt8, () => UInt8.MAXINT());
               x.assertGreaterThanOrEqual(y);
@@ -2595,7 +2595,7 @@ describe('int', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
-              Provable.runAndCheck(() => {
+              Provable.runAndCheckSync(() => {
                 const x = Provable.witness(UInt8, () => UInt8.from(1));
                 const y = Provable.witness(UInt8, () => new UInt8(1));
                 x.assertEquals(y);

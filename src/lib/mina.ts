@@ -88,7 +88,7 @@ export {
 setActiveInstance({
   ...activeInstance,
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
-    return createTransaction(sender, f, 0);
+    return await createTransaction(sender, f, 0);
   },
 });
 
@@ -375,7 +375,8 @@ function Network(
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
-      let tx = createTransaction(sender, f, 0, {
+      // TODO we run the transcation twice to be able to fetch data in between
+      let tx = await createTransaction(sender, f, 0, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
@@ -383,7 +384,7 @@ function Network(
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, 1, {
+      return await createTransaction(sender, f, 1, {
         fetchMode: 'cached',
         isFinalRunOutsideCircuit: !hasProofs,
       });

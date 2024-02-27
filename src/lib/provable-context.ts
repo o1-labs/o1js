@@ -10,8 +10,8 @@ export {
   snarkContext,
   SnarkContext,
   asProver,
-  runAndCheck,
-  runUnchecked,
+  runAndCheckSync,
+  runUncheckedSync,
   generateWitness,
   constraintSystem,
   constraintSystemSync,
@@ -74,7 +74,10 @@ function asProver(f: () => void) {
   }
 }
 
-function runAndCheck(f: () => void) {
+/**
+ * @deprecated use `generateWitness` instead
+ */
+function runAndCheckSync(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     Snarky.run.runAndCheck(f);
@@ -85,7 +88,10 @@ function runAndCheck(f: () => void) {
   }
 }
 
-function runUnchecked(f: () => void) {
+/**
+ * @deprecated use `generateWitness` instead
+ */
+function runUncheckedSync(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     Snarky.run.runUnchecked(f);
@@ -97,7 +103,7 @@ function runUnchecked(f: () => void) {
 }
 
 async function generateWitness(
-  f: () => Promise<void>,
+  f: (() => Promise<void>) | (() => void),
   { checkConstraints = true } = {}
 ) {
   let id = snarkContext.enter({ inCheckedComputation: true });

@@ -301,11 +301,8 @@ function LocalBlockchain({
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
-      // bad hack: run transaction just to see whether it creates proofs
-      // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
-      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
-      // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
-      let tx = createTransaction(sender, f, 0, {
+      // TODO we run the transaction twice to match the behaviour of `Network.transaction`
+      let tx = await createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
         proofsEnabled: this.proofsEnabled,
         fetchMode: 'test',
@@ -313,7 +310,7 @@ function LocalBlockchain({
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, 1, {
+      return await createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
         proofsEnabled: this.proofsEnabled,
       });

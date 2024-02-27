@@ -60,12 +60,12 @@ let restored = type.fromFields(fields, aux);
 expect(JSON.stringify(restored)).toEqual(original);
 
 // check
-Provable.runAndCheck(() => {
+await Provable.runAndCheck(() => {
   type.check(value);
 });
 
 // should fail `check` if `check` of subfields doesn't pass
-expect(() =>
+await expect(() =>
   Provable.runAndCheck(() => {
     let x = Provable.witness(type, () => ({
       ...value,
@@ -76,7 +76,7 @@ expect(() =>
       ],
     }));
   })
-).toThrow(`Constraint unsatisfied`);
+).rejects.toThrow(`Constraint unsatisfied`);
 
 // class version of `provable`
 class MyStruct extends Struct({

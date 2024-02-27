@@ -263,7 +263,7 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
-function createTransaction(
+async function createTransaction(
   feePayer: DeprecatedFeePayerSpec,
   f: () => unknown,
   numberOfRuns: 0 | 1 | undefined,
@@ -272,7 +272,7 @@ function createTransaction(
     isFinalRunOutsideCircuit = true,
     proofsEnabled = true,
   } = {}
-): Transaction {
+): Promise<Transaction> {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
@@ -316,7 +316,7 @@ function createTransaction(
       if (err !== undefined) err.bootstrap();
       try {
         if (fetchMode === 'test') {
-          Provable.runUnchecked(() => {
+          await Provable.runUnchecked(() => {
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();

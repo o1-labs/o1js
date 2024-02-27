@@ -53,17 +53,15 @@ function createAccountUpdate() {
   let accountUpdate = createAccountUpdate();
 
   // TODO remove restriction "This function can't be run outside of a checked computation."
-  Provable.runAndCheck(() => {
-    let hash = accountUpdate.hash();
+  let hash = accountUpdate.hash();
 
-    // if we clone the accountUpdate, hash should be the same
-    let accountUpdate2 = AccountUpdate.clone(accountUpdate);
-    expect(accountUpdate2.hash()).toEqual(hash);
+  // if we clone the accountUpdate, hash should be the same
+  let accountUpdate2 = AccountUpdate.clone(accountUpdate);
+  expect(accountUpdate2.hash()).toEqual(hash);
 
-    // if we change something on the cloned accountUpdate, the hash should become different
-    AccountUpdate.setValue(accountUpdate2.update.appState[0], Field(1));
-    expect(accountUpdate2.hash()).not.toEqual(hash);
-  });
+  // if we change something on the cloned accountUpdate, the hash should become different
+  AccountUpdate.setValue(accountUpdate2.update.appState[0], Field(1));
+  expect(accountUpdate2.hash()).not.toEqual(hash);
 }
 
 // converts account update to a public input that's consistent with the ocaml implementation
