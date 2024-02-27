@@ -1291,8 +1291,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       // TODO find out max actions per method automatically?
       let possibleActionsPerTransaction = Array.from(
-        { length: maxActionsPerMethod },
-        (_, i) => i + 1
+        { length: maxActionsPerMethod + 1 },
+        (_, i) => i
       );
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         Provable.Array(reducer.actionType, n)
@@ -1339,7 +1339,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         state = Provable.switch(lengths, stateType, newStates);
       }
       if (!skipActionStatePrecondition) {
-        contract.account.actionState.assertEquals(actionState);
+        contract.account.actionState.requireEquals(actionState);
       }
       return { state, actionState };
     },
