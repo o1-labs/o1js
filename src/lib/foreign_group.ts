@@ -195,12 +195,12 @@ class ForeignGroup {
     }
 
     assertEquals(other: ForeignGroup) {
-        this.#assertEqualBn254(other.x);
-        this.#assertEqualBn254(other.y);
+        this.#assertEqualBn254(this.x, other.x);
+        this.#assertEqualBn254(this.y, other.y);
     }
 
-    #assertEqualBn254(otherX: ForeignFieldBn254) {
-        let thisXs = this.#foreignFieldtoFieldsBn254(this.x);
+    #assertEqualBn254(thisX: ForeignFieldBn254, otherX: ForeignFieldBn254) {
+        let thisXs = this.#foreignFieldtoFieldsBn254(thisX);
         let otherXs = this.#foreignFieldtoFieldsBn254(otherX);
         for (let i = 0; i < thisXs.length; i++) {
             thisXs[i].assertEquals(otherXs[i]);
