@@ -426,6 +426,13 @@ function preconditionSubclass<
       this.requireEquals(value);
     },
     requireNothing() {
+      let property = getPath(
+        accountUpdate.body.preconditions,
+        longKey
+      ) as AnyCondition<U>;
+      if ('isSome' in property) {
+        property.isSome = Bool(false);
+      }
       context.constrained.add(longKey);
     },
     assertNothing() {

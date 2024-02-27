@@ -6,6 +6,7 @@
 import {
   Account,
   AccountUpdate,
+  AccountUpdateForest,
   Field,
   InferProvable,
   Mina,
@@ -16,6 +17,7 @@ import {
   SmartContract,
   State,
   Struct,
+  TokenContract,
   TokenId,
   UInt64,
   method,
@@ -23,16 +25,22 @@ import {
 } from 'o1js';
 
 import { randomAccounts } from './dex.js';
-import { TrivialCoin as TokenContract } from './erc20.js';
+import { TrivialCoin } from './erc20.js';
 
 export { Dex, DexTokenHolder, addresses, getTokenBalances, keys, tokenIds };
 
 class RedeemAction extends Struct({ address: PublicKey, dl: UInt64 }) {}
 
-class Dex extends SmartContract {
+class Dex extends TokenContract {
   // addresses of token contracts are constants
   tokenX = addresses.tokenX;
   tokenY = addresses.tokenY;
+
+  // Approvable API
+
+  @method approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
+  }
 
   /**
    * state that keeps track of total lqXY supply -- this is needed to calculate what to return when redeeming liquidity
@@ -71,7 +79,7 @@ class Dex extends SmartContract {
   }
 
   @method createAccount() {
-    this.token.mint({ address: this.sender.getUnconstrained(), amount: UInt64.from(0) });
+    this.internal.mint({ address: this.sender, amount: UInt64.from(0) });
   }
 
   /**
@@ -85,15 +93,15 @@ class Dex extends SmartContract {
    * instead, the input X and Y amounts determine the initial ratio.
    */
   @method supplyLiquidityBase(dx: UInt64, dy: UInt64): UInt64 {
-    let user = this.sender.getUnconstrained();
-    let tokenX = new TokenContract(this.tokenX);
-    let tokenY = new TokenContract(this.tokenY);
+    let user = this.sender;
+    let tokenX = new TrivialCoin(this.tokenX);
+    let tokenY = new TrivialCoin(this.tokenY);
 
     // get balances of X and Y token
-    let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+    let dexX = AccountUpdate.create(this.address, tokenX.deriveTokenId());
     let x = dexX.account.balance.getAndRequireEquals();
 
-    let dexY = AccountUpdate.create(this.address, tokenY.token.id);
+    let dexY = AccountUpdate.create(this.address, tokenY.deriveTokenId());
     let y = dexY.account.balance.getAndRequireEquals();
 
     // // assert dy === [dx * y/x], or x === 0
@@ -108,7 +116,7 @@ class Dex extends SmartContract {
     // calculate liquidity token output simply as dl = dx + dx
     // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
-    this.token.mint({ address: user, amount: dl });
+    this.internal.mint({ address: user, amount: dl });
 
     // update l supply
     let l = this.totalSupply.get();
@@ -156,9 +164,8 @@ class Dex extends SmartContract {
    * contracts pay you tokens when reducing the action.
    */
   @method redeemInitialize(dl: UInt64) {
-    let sender = this.sender.getAndRequireSignature();
-    this.reducer.dispatch(new RedeemAction({ address: sender, dl }));
-    this.token.burn({ address: sender, amount: dl });
+    this.reducer.dispatch(new RedeemAction({ address: this.sender, dl }));
+    this.internal.burn({ address: this.sender, amount: dl });
     // TODO: preconditioning on the state here ruins concurrent interactions,
     // there should be another `finalize` DEX method which reduces actions & updates state
     this.totalSupply.set(this.totalSupply.getAndRequireEquals().sub(dl));
@@ -187,11 +194,10 @@ class Dex extends SmartContract {
    * the called methods which requires proof authorization.
    */
   swapX(dx: UInt64): UInt64 {
-    let sender = this.sender.getAndRequireSignature();
-    let tokenY = new TokenContract(this.tokenY);
-    let dexY = new DexTokenHolder(this.address, tokenY.token.id);
-    let dy = dexY.swap(sender, dx, this.tokenX);
-    tokenY.transfer(dexY.self, sender, dy);
+    let tokenY = new TrivialCoin(this.tokenY);
+    let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
+    let dy = dexY.swap(this.sender, dx, this.tokenX);
+    tokenY.transfer(dexY.self, this.sender, dy);
     return dy;
   }
 
@@ -206,16 +212,11 @@ class Dex extends SmartContract {
    * the called methods which requires proof authorization.
    */
   swapY(dy: UInt64): UInt64 {
-    let sender = this.sender.getAndRequireSignature();
-    let tokenX = new TokenContract(this.tokenX);
-    let dexX = new DexTokenHolder(this.address, tokenX.token.id);
-    let dx = dexX.swap(sender, dy, this.tokenY);
-    tokenX.transfer(dexX.self, sender, dx);
+    let tokenX = new TrivialCoin(this.tokenX);
+    let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
+    let dx = dexX.swap(this.sender, dy, this.tokenY);
+    tokenX.transfer(dexX.self, this.sender, dx);
     return dx;
-  }
-
-  @method transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-    this.token.send({ from, to, amount });
   }
 }
 
@@ -295,10 +296,10 @@ class DexTokenHolder extends SmartContract {
   ): UInt64 {
     // we're writing this as if our token === y and other token === x
     let dx = otherTokenAmount;
-    let tokenX = new TokenContract(otherTokenAddress);
+    let tokenX = new TrivialCoin(otherTokenAddress);
 
     // get balances of X and Y token
-    let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+    let dexX = AccountUpdate.create(this.address, tokenX.deriveTokenId());
     let x = dexX.account.balance.getAndRequireEquals();
     let y = this.account.balance.getAndRequireEquals();
 

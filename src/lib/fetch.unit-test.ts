@@ -1,5 +1,4 @@
-import { shutdown } from '../index.js';
-import * as Fetch from './fetch.js';
+import { removeJsonQuotes } from './mina/graphql.js';
 import { expect } from 'expect';
 
 console.log('testing regex helpers');
@@ -22,7 +21,7 @@ expected = `{
   ]
 }`;
 
-actual = Fetch.removeJsonQuotes(input);
+actual = removeJsonQuotes(input);
 expect(actual).toEqual(expected);
 
 input = `{
@@ -55,7 +54,7 @@ expected = `{
   ]
 }`;
 
-actual = Fetch.removeJsonQuotes(input);
+actual = removeJsonQuotes(input);
 expect(actual).toEqual(expected);
 
 input = `{ 
@@ -74,7 +73,7 @@ expected = `{
   Date: "2 May 2016 23:59:59"
 }`;
 
-actual = Fetch.removeJsonQuotes(input);
+actual = removeJsonQuotes(input);
 expect(actual).toEqual(expected);
 
 input = `{ 
@@ -93,7 +92,7 @@ expected = `{
   Phone: "1234567890",
   Date: "2 May 2016 23:59:59"
 }`;
-actual = Fetch.removeJsonQuotes(input);
+actual = removeJsonQuotes(input);
 
 expect(actual).toEqual(expected);
 
@@ -114,9 +113,8 @@ expected = `{
   Date: "2 May 2016 23:59:59"
 }`;
 
-actual = Fetch.removeJsonQuotes(input);
+actual = removeJsonQuotes(input);
 
 expect(actual).toEqual(expected);
 
 console.log('regex tests complete 🎉');
-shutdown();

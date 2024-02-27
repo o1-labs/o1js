@@ -29,7 +29,7 @@ let networks: NetworkId[] = ['testnet', 'mainnet'];
 
 for (let network of networks) {
   let i = 0;
-  let reference = signatures[network];
+  let reference = signatures[NetworkId.toString(network)];
 
   for (let payment of payments) {
     let signature = signPayment(payment, privateKey, network);

@@ -34,22 +34,15 @@ import {
 import { sign, Signature, verify } from './src/signature.js';
 import { createNullifier } from './src/nullifier.js';
 
-export { Client as default };
+export { Client, Client as default, type NetworkId };
 
 const defaultValidUntil = '4294967295';
 
 class Client {
-  private network: NetworkId; // TODO: Rename to "networkId" for consistency with remaining codebase.
+  private network: NetworkId;
 
-  constructor(options: { network: NetworkId }) {
-    if (!options?.network) {
-      throw Error('Invalid Specified Network');
-    }
-    const specifiedNetwork = options.network.toLowerCase();
-    if (specifiedNetwork !== 'mainnet' && specifiedNetwork !== 'testnet') {
-      throw Error('Invalid Specified Network');
-    }
-    this.network = specifiedNetwork;
+  constructor({ network }: { network: NetworkId }) {
+    this.network = network;
   }
 
   /**

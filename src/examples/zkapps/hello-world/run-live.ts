@@ -59,11 +59,11 @@ let transaction = await Mina.transaction(
 transaction.sign([senderKey, zkAppKey]);
 console.log('Sending the transaction.');
 let pendingTx = await transaction.send();
-if (pendingTx.hash() !== undefined) {
+if (pendingTx.hash !== undefined) {
   console.log(`Success! Deploy transaction sent.
 Your smart contract will be deployed
 as soon as the transaction is included in a block.
-Txn hash: ${pendingTx.hash()}`);
+Txn hash: ${pendingTx.hash}`);
 }
 console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
@@ -77,11 +77,11 @@ transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
 await transaction.sign([senderKey]).prove();
 console.log('Sending the transaction.');
 pendingTx = await transaction.send();
-if (pendingTx.hash() !== undefined) {
+if (pendingTx.hash !== undefined) {
   console.log(`Success! Update transaction sent.
 Your smart contract state will be updated
 as soon as the transaction is included in a block.
-Txn hash: ${pendingTx.hash()}`);
+Txn hash: ${pendingTx.hash}`);
 }
 console.log('Waiting for transaction inclusion in a block.');
 await pendingTx.wait({ maxAttempts: 90 });
