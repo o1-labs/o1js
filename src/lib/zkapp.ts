@@ -640,9 +640,9 @@ class SmartContract extends SmartContractBase {
    * a cached verification key can be used.
    * @returns the digest, as a hex string
    */
-  static digest() {
+  static async digest() {
     // TODO: this should use the method digests in a deterministic order!
-    let methodData = this.analyzeMethods();
+    let methodData = await this.analyzeMethods();
     let hash = hashConstant(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
