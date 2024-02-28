@@ -27,8 +27,9 @@ class UInt64 extends CircuitValue {
    */
   constructor(x: UInt64 | UInt32 | FieldVar | number | string | bigint) {
     if (x instanceof UInt64 || x instanceof UInt32) x = x.value.value;
-    super({ value: Field(x) });
-    UInt64.checkConstant(this.value);
+    let value = Field(x);
+    super({ value });
+    UInt64.checkConstant(value);
   }
 
   static Unsafe = {
