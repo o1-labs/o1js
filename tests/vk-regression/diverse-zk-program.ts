@@ -16,7 +16,7 @@ import {
   SelfProof,
 } from 'o1js';
 
-export { diverse };
+export { diverse, Bytes128 };
 
 class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class Secp256k1Scalar extends Secp256k1.Scalar {}
