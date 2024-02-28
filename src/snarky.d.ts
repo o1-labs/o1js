@@ -217,6 +217,21 @@ declare const Snarky: {
       public_inputs: FieldVector,
       auxiliary_inputs: FieldVector
     ];
+
+    /**
+     * Snarky's internal state
+     */
+    state: {
+      state: MlRef<SnarkyState>;
+
+      allocVar(state: SnarkyState): FieldVar;
+      storeFieldElt(state: SnarkyState, x: FieldConst): FieldVar;
+      getVariableValue(state: SnarkyState, x: FieldVar): FieldConst;
+
+      asProver(state: SnarkyState): MlBool;
+      setAsProver(state: SnarkyState, value: MlBool): void;
+      hasWitness(state: SnarkyState): MlBool;
+    };
   };
 
   /**
@@ -561,6 +576,27 @@ declare const Snarky: {
     };
   };
 };
+
+type MlRef<T> = [_: 0, contents: T];
+
+type SnarkyVector = [0, [unknown, number, FieldVector]];
+type ConstraintSystem = unknown;
+
+type SnarkyState = [
+  _: 0,
+  system: MlOption<ConstraintSystem>,
+  input: SnarkyVector,
+  aux: SnarkyVector,
+  eval_constraints: MlBool,
+  num_inputs: number,
+  next_auxiliary: MlRef<number>,
+  has_witness: MlBool,
+  stack: MlList<MlString>,
+  handler: unknown,
+  is_running: MlBool,
+  as_prover: MlRef<MlBool>,
+  log_constraint: unknown
+];
 
 type GateType =
   | 'Zero'
