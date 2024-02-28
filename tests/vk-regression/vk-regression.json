@@ -11,7 +11,7 @@
         "digest": "8c83b537e3dab168c4aa2c00b90e5f2a"
       },
       "approveRegistrations": {
-        "rows": 1147,
+        "rows": 1148,
         "digest": "08b40e8d2a9ea7369c371afd2e4e1f54"
       },
       "vote": {
@@ -36,7 +36,7 @@
         "digest": "db5487ca29e8e519022e1caa25fd4bcf"
       },
       "isMember": {
-        "rows": 432,
+        "rows": 433,
         "digest": "8ac29f5a178a401e243e206c62dfbfaf"
       },
       "publish": {
@@ -66,7 +66,7 @@
     "digest": "1680d3e1357a466f906621af00d830f99b6128c5f51cf0373202620d4f6cd00d",
     "methods": {
       "init": {
-        "rows": 654,
+        "rows": 655,
         "digest": "d535a589774b32cd36e2d6c3707afd30"
       },
       "init2": {
@@ -95,11 +95,11 @@
         "digest": "69358bfab9d197e2f3ea1d658cb7fa20"
       },
       "swapX": {
-        "rows": 1512,
+        "rows": 1513,
         "digest": "a080a34bacf8c4a843d7355f9b69304c"
       },
       "swapY": {
-        "rows": 1512,
+        "rows": 1513,
         "digest": "4100b3543afd76189c879487c4b4f4a4"
       },
       "burnLiquidity": {
@@ -116,7 +116,7 @@
     "digest": "Group Primitive",
     "methods": {
       "add": {
-        "rows": 29,
+        "rows": 30,
         "digest": "8179f9497cc9b6624912033324c27b6d"
       },
       "sub": {
@@ -132,7 +132,7 @@
         "digest": "59cd8f24e1e0f3ba721f9c5380801335"
       },
       "assertions": {
-        "rows": 18,
+        "rows": 19,
         "digest": "7d87f453433117a306b19e50a5061443"
       }
     },
@@ -149,11 +149,11 @@
         "digest": "3e39e3f7bfdef1c546700c0294407fc2"
       },
       "rot64": {
-        "rows": 9,
+        "rows": 10,
         "digest": "c38703de755b10edf77bf24269089274"
       },
       "xor": {
-        "rows": 14,
+        "rows": 15,
         "digest": "b3595a9cc9562d4f4a3a397b6de44971"
       },
       "notUnchecked": {
@@ -161,19 +161,19 @@
         "digest": "bc6dd8d1aa3f7fe3718289fe4a07f81d"
       },
       "notChecked": {
-        "rows": 16,
+        "rows": 17,
         "digest": "b12ad7e8a3fd28b765e059357dbe9e44"
       },
       "leftShift": {
-        "rows": 4,
+        "rows": 5,
         "digest": "451f550bf73fecf53c9be82367572cb8"
       },
       "rightShift": {
-        "rows": 4,
+        "rows": 5,
         "digest": "d0793d4a326d480eaa015902dc34bc39"
       },
       "and": {
-        "rows": 18,
+        "rows": 19,
         "digest": "647e6fd1852873d1c326ba1cd269cff2"
       }
     },
@@ -202,7 +202,7 @@
         "digest": "1ab08bd64002a0dd0a82f74df445de05"
       },
       "Poseidon": {
-        "rows": 207,
+        "rows": 208,
         "digest": "afa1f9920f1f657ab015c02f9b2f6c52"
       }
     },
@@ -215,7 +215,7 @@
     "digest": "2a2beadf929015559514abb88dd77694dbe62a6a5904e5a9d05ab21a3f293c0c",
     "methods": {
       "verifySignedHash": {
-        "rows": 28185,
+        "rows": 28186,
         "digest": "dd43cd30a8277b5af02fd85a4762a488"
       }
     },
@@ -228,7 +228,7 @@
     "digest": "2f78a9c0307e6f9c6872499c3ca7c412f5771a7ac7e7e88c351ed1b62d6ac408",
     "methods": {
       "verifyEcdsa": {
-        "rows": 42683,
+        "rows": 42684,
         "digest": "2bb042b0fa7bbbb32f7e77d392f43d2c"
       }
     },

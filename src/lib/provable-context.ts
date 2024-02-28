@@ -139,9 +139,11 @@ function constraintSystemSync(f: () => void) {
 }
 
 function constraintSystemToJS(cs: MlConstraintSystem) {
+  // toJson also "finalizes" the constraint system, which means
+  // locking in a potential pending single generic gate
+  let json = Snarky.constraintSystem.toJson(cs);
   let rows = Snarky.constraintSystem.rows(cs);
   let digest = Snarky.constraintSystem.digest(cs);
-  let json = Snarky.constraintSystem.toJson(cs);
   let { gates, publicInputSize } = gatesFromJson(json);
   return {
     rows,
