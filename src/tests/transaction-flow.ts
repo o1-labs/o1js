@@ -188,7 +188,7 @@ await testLocalAndRemote(async () => {
 console.log('');
 
 console.log(
-  "Test calling successful 'update' method does not throw with throwOnFail is false"
+  "Test calling successful 'update' method does not throw with throwOnFail is true"
 );
 await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
@@ -210,7 +210,7 @@ await testLocalAndRemote(async () => {
 console.log('');
 
 console.log(
-  "Test calling successful 'update' method does not throw with throwOnFail is true"
+  "Test calling successful 'update' method does not throw with throwOnFail is false"
 );
 await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
@@ -221,10 +221,7 @@ await testLocalAndRemote(async () => {
       }
     );
     transaction.sign([senderKey, zkAppKey]);
-    const includedTransaction = await sendAndVerifyTransaction(
-      transaction,
-      true
-    );
+    const includedTransaction = await sendAndVerifyTransaction(transaction);
     assert(includedTransaction.status === 'included');
     await Mina.fetchEvents(zkAppAddress, TokenId.default);
   });
