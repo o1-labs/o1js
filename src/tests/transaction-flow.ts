@@ -199,7 +199,10 @@ await testLocalAndRemote(async () => {
       }
     );
     transaction.sign([senderKey, zkAppKey]);
-    const includedTransaction = await sendAndVerifyTransaction(transaction);
+    const includedTransaction = await sendAndVerifyTransaction(
+      transaction,
+      true
+    );
     assert(includedTransaction.status === 'included');
     await Mina.fetchEvents(zkAppAddress, TokenId.default);
   });
