@@ -1164,7 +1164,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   static witness<T>(
     type: FlexibleProvable<T>,
-    compute: () => { accountUpdate: AccountUpdate; result: T },
+    compute: () => Promise<{ accountUpdate: AccountUpdate; result: T }>,
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
@@ -1175,7 +1175,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate: accountUpdateType,
       result: type as any,
     });
-    return Provable.witness(combinedType, compute);
+    return Provable.witnessAsync(combinedType, compute);
   }
 
   static get MayUseToken() {

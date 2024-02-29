@@ -59,7 +59,6 @@ import {
   inCheckedComputation,
   inCompile,
   inProver,
-  snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
@@ -72,11 +71,13 @@ import {
 } from './mina/smart-contract-context.js';
 import { deprecatedToken } from './mina/token/token-methods.js';
 import type { TokenContract } from './mina/token/token-contract.js';
+import { assertPromise } from './util/assert.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
+type AsyncFunction = (...args: any) => Promise<any>;
 
 /**
  * A decorator to use in a zkApp to mark a method as callable by anyone.
@@ -88,12 +89,14 @@ const reservedPropNames = new Set(['_methods', '_']);
  * }
  * ```
  */
-function method<T extends SmartContract>(
-  target: T & { constructor: any },
-  methodName: keyof T & string,
+function method<K extends string, T extends SmartContract>(
+  target: T & {
+    [k in K]: (...args: any) => Promise<any>;
+  },
+  methodName: K & string & keyof T,
   descriptor: PropertyDescriptor
 ) {
-  const ZkappClass = target.constructor;
+  const ZkappClass = target.constructor as typeof SmartContract;
   if (reservedPropNames.has(methodName)) {
     throw Error(`Property name ${methodName} is reserved.`);
   }
@@ -144,19 +147,22 @@ function method<T extends SmartContract>(
   ZkappClass._maxProofsVerified = Math.max(
     ZkappClass._maxProofsVerified,
     methodEntry.proofArgs.length
-  );
-  let func = descriptor.value;
+  ) as 0 | 1 | 2;
+  let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
-  method: Function,
+  method: AsyncFunction,
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
   let methodName = methodIntf.methodName;
-  return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
+  return async function wrappedMethod(
+    this: SmartContract,
+    ...actualArgs: any[]
+  ) {
     cleanStatePrecondition(this);
     // special case: any AccountUpdate that is passed as an argument to a method
     // is unlinked from its current location, to allow the method to link it to itself
@@ -203,7 +209,7 @@ function wrapMethod(
             let result: unknown;
             try {
               let clonedArgs = actualArgs.map(cloneCircuitValue);
-              result = method.apply(this, clonedArgs);
+              result = await assertPromise(method.apply(this, clonedArgs));
             } finally {
               memoizationContext.leave(id);
             }
@@ -233,7 +239,7 @@ function wrapMethod(
           }
         } else if (!Mina.currentTransaction.has()) {
           // outside a transaction, just call the method, but check precondition invariants
-          let result = method.apply(this, actualArgs);
+          let result = await assertPromise(method.apply(this, actualArgs));
           // check the self accountUpdate right after calling the method
           // TODO: this needs to be done in a unified way for all account updates that are created
           assertPreconditionInvariants(this.self);
@@ -255,16 +261,18 @@ function wrapMethod(
           let memoId = memoizationContext.enter(memoContext);
           let result: any;
           try {
-            result = method.apply(
-              this,
-              actualArgs.map((a, i) => {
-                let arg = methodIntf.allArgs[i];
-                if (arg.type === 'witness') {
-                  let type = methodIntf.witnessArgs[arg.index];
-                  return Provable.witness(type, () => a);
-                }
-                return a;
-              })
+            result = await assertPromise(
+              method.apply(
+                this,
+                actualArgs.map((a, i) => {
+                  let arg = methodIntf.allArgs[i];
+                  if (arg.type === 'witness') {
+                    let type = methodIntf.witnessArgs[arg.index];
+                    return Provable.witness(type, () => a);
+                  }
+                  return a;
+                })
+              )
             );
           } finally {
             memoizationContext.leave(memoId);
@@ -350,7 +358,7 @@ function wrapMethod(
       // we just reuse the blinding value of the caller for the callee
       let blindingValue = getBlindingValue();
 
-      let runCalledContract = () => {
+      let runCalledContract = async () => {
         let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
@@ -364,7 +372,9 @@ function wrapMethod(
         let memoId = memoizationContext.enter(memoContext);
         let result: any;
         try {
-          result = method.apply(this, constantArgs.map(cloneCircuitValue));
+          result = await assertPromise(
+            method.apply(this, constantArgs.map(cloneCircuitValue))
+          );
         } finally {
           memoizationContext.leave(memoId);
         }
@@ -418,7 +428,10 @@ function wrapMethod(
       let {
         accountUpdate,
         result: { result, children },
-      } = AccountUpdate.witness<{ result: any; children: AccountUpdateForest }>(
+      } = await AccountUpdate.witness<{
+        result: any;
+        children: AccountUpdateForest;
+      }>(
         provable({
           result: returnType ?? provable(null),
           children: AccountUpdateForest.provable,
@@ -605,14 +618,14 @@ class SmartContract extends SmartContractBase {
   } = {}) {
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
-      return (
+      return async (
         publicInput: unknown,
         publicKey: PublicKey,
         tokenId: Field,
         ...args: unknown[]
       ) => {
         let instance = new this(publicKey, tokenId);
-        (instance as any)[methodName](publicInput, ...args);
+        await (instance as any)[methodName](publicInput, ...args);
       };
     });
     // run methods once to get information that we need already at compile time
@@ -1477,7 +1490,7 @@ function declareMethods<T extends typeof SmartContract>(
     let target = SmartContract.prototype;
     Reflect.metadata('design:paramtypes', argumentTypes)(target, key);
     let descriptor = Object.getOwnPropertyDescriptor(target, key)!;
-    method(SmartContract.prototype, key as any, descriptor);
+    method(SmartContract.prototype as any, key as any, descriptor);
     Object.defineProperty(target, key, descriptor);
   }
 }
