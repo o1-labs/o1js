@@ -22,6 +22,7 @@ import {
   generateWitness,
   runAndCheckSync,
 } from './provable-context.js';
+import { existsAsync } from './provable-core/exists.js';
 
 // external API
 export { Provable };
@@ -61,6 +62,12 @@ const Provable = {
    * ```
    */
   witness,
+  /**
+   * Create a new witness from an async callback.
+   *
+   * See {@link Provable.witness} for more information.
+   */
+  witnessAsync,
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -246,6 +253,43 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
       //   );
       // }
       return [0, ...fieldConstants];
+    });
+    fields = fieldVars.map(Field);
+  } finally {
+    snarkContext.leave(id);
+  }
+
+  // rebuild the value from its fields (which are now variables) and aux data
+  let aux = type.toAuxiliary(proverValue);
+  let value = (type as Provable<T>).fromFields(fields, aux);
+
+  // add type-specific constraints
+  type.check(value);
+
+  return value;
+}
+
+async function witnessAsync<
+  T,
+  S extends FlexibleProvable<T> = FlexibleProvable<T>
+>(type: S, compute: () => Promise<T>): Promise<T> {
+  let ctx = snarkContext.get();
+
+  // outside provable code, we just call the callback and return its cloned result
+  if (!inCheckedComputation() || ctx.inWitnessBlock) {
+    let value: T = await compute();
+    return clone(type, value);
+  }
+  let proverValue: T | undefined = undefined;
+  let fields: Field[];
+
+  // call into `existsAsync` to witness the raw field elements
+  let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
+  try {
+    let fieldVars = await existsAsync(type.sizeInFields(), async () => {
+      proverValue = await compute();
+      let fields = type.toFields(proverValue);
+      return fields.map((x) => x.toBigInt());
     });
     fields = fieldVars.map(Field);
   } finally {

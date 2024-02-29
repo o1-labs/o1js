@@ -2,6 +2,8 @@ import { Snarky } from '../../snarky.js';
 import { FieldConst, FieldVar } from '../field.js';
 import { MlBool } from '../ml/base.js';
 
+export { existsAsync };
+
 const SnarkyState = Snarky.run.state;
 
 async function existsAsync(
