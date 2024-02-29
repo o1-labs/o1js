@@ -84,7 +84,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer
@@ -95,7 +95,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         let vkUpdate = AccountUpdate.createSigned(params.votingKey);
         vkUpdate.account.verificationKey.set({
           ...verificationKey,
@@ -110,7 +110,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer,
@@ -156,7 +156,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer
@@ -166,7 +166,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         let permUpdate = AccountUpdate.createSigned(params.voterKey);
 
         permUpdate.account.permissions.set({
@@ -185,7 +185,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer,
@@ -228,9 +228,12 @@ export async function testSet(
     invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
 
     try {
-      let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
-        invalidSet.voting.voterRegistration(m);
-      });
+      let tx = await Mina.transaction(
+        invalidSet.feePayer.toPublicKey(),
+        async () => {
+          invalidSet.voting.voterRegistration(m);
+        }
+      );
       await tx.prove();
       await tx.sign([invalidSet.feePayer]).send();
     } catch (err: any) {
@@ -279,7 +282,7 @@ export async function testSet(
       try {
         let tx = await Mina.transaction(
           sequenceOverflowSet.feePayer.toPublicKey(),
-          () => {
+          async () => {
             let m = Member.from(
               PrivateKey.random().toPublicKey(),
 
@@ -311,7 +314,7 @@ export async function testSet(
     try {
       let tx = await Mina.transaction(
         sequenceOverflowSet.feePayer.toPublicKey(),
-        () => {
+        async () => {
           sequenceOverflowSet.voting.approveRegistrations();
         }
       );
@@ -381,7 +384,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         voting.voterRegistration(newVoter1);
       },
       feePayer
@@ -437,7 +440,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         voting.voterRegistration(newVoterLow);
       },
       feePayer,
@@ -453,7 +456,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         voting.voterRegistration(newVoterHigh);
       },
       feePayer,
@@ -464,7 +467,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         voting.voterRegistration(newVoter1);
       },
       feePayer,
@@ -500,7 +503,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         let newCandidate = registerMember(
           0n,
           Member.from(
@@ -522,7 +525,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         let newCandidate = registerMember(
           1n,
           Member.from(
@@ -579,7 +582,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         // register new candidate
         voting.approveRegistrations();
       },
@@ -647,7 +650,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         // register late candidate
         voting.candidateRegistration(lateCandidate);
       },
@@ -667,7 +670,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         // register late voter
         voting.voterRegistration(lateVoter);
       },
@@ -725,7 +728,7 @@ export async function testSet(
     let beforeCommitted = voting.committedVotes.get();
     await assertValidTx(
       true,
-      () => {
+      async () => {
         voting.countVotes();
       },
       feePayer
@@ -761,7 +764,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         // attempting to vote for the registered candidate
         currentCandidate = candidatesStore.get(0n)!;
         currentCandidate.witness = new MyMerkleWitness(
@@ -816,7 +819,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         // attempting to vote for the registered candidate
 
         voting.vote(fakeCandidate, votersStore.get(0n)!);
@@ -835,7 +838,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         voting.vote(fakeVoter, votersStore.get(0n)!);
       },
       feePayer,
@@ -846,7 +849,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         const voter = votersStore.get(0n)!;
         voting.vote(voter, votersStore.get(0n)!);
       },
@@ -874,7 +877,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         voting.countVotes();
       },
       feePayer
@@ -927,7 +930,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         voting.voterRegistration(voter);
       },
       feePayer,
@@ -944,7 +947,7 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         voting.candidateRegistration(candidate);
       },
       feePayer,

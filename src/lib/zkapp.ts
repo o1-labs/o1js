@@ -653,7 +653,7 @@ class SmartContract extends SmartContractBase {
    * Deploys a {@link SmartContract}.
    *
    * ```ts
-   * let tx = await Mina.transaction(sender, () => {
+   * let tx = await Mina.transaction(sender, async () => {
    *   AccountUpdate.fundNewAccount(sender);
    *   zkapp.deploy();
    * });

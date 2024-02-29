@@ -72,7 +72,7 @@ console.log('compile');
 await PayoutOnlyOnce.compile();
 
 console.log('deploy');
-let tx = await Mina.transaction(sender, () => {
+let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
   zkapp.deploy({ zkappKey });
@@ -94,7 +94,7 @@ let jsonNullifier = Nullifier.createTestNullifier(
 console.log(jsonNullifier);
 
 console.log('pay out');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
   zkapp.payout(Nullifier.fromJSON(jsonNullifier));
 });
@@ -109,7 +109,7 @@ console.log(
 console.log('trying second pay out');
 
 try {
-  tx = await Mina.transaction(sender, () => {
+  tx = await Mina.transaction(sender, async () => {
     zkapp.payout(Nullifier.fromJSON(jsonNullifier));
   });
 

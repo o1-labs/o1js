@@ -96,7 +96,7 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(sender, () => {
+let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
   zkapp.deploy();
@@ -111,7 +111,7 @@ let account = Mina.getAccount(zkappAddress);
 console.log('account state is proved:', account.zkapp?.provedState.toBoolean());
 
 console.log('update');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   zkapp.update(Field(3));
 });
 await tx.prove();
@@ -119,14 +119,14 @@ await tx.sign([senderKey]).send();
 
 // pay more into the zkapp -- this doesn't need a proof
 console.log('receive');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   let payerAccountUpdate = AccountUpdate.createSigned(sender);
   payerAccountUpdate.send({ to: zkappAddress, amount: UInt64.from(8e9) });
 });
 await tx.sign([senderKey]).send();
 
 console.log('payout');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
   zkapp.payout(privilegedKey);
 });
@@ -138,7 +138,7 @@ console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('try to payout a second time..');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   zkapp.payout(privilegedKey);
 });
 try {
@@ -150,7 +150,7 @@ try {
 
 console.log('try to payout to a different account..');
 try {
-  tx = await Mina.transaction(sender, () => {
+  tx = await Mina.transaction(sender, async () => {
     zkapp.payout(Local.testAccounts[2].privateKey);
   });
   await tx.prove();
