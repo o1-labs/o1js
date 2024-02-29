@@ -300,7 +300,7 @@ function LocalBlockchain({
         waitOrThrowIfError,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
+    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transaction twice to match the behaviour of `Network.transaction`
       let tx = await createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,

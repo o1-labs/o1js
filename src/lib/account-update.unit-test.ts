@@ -75,7 +75,7 @@ function createAccountUpdate() {
   });
 
   // create transaction JSON with the same accountUpdate structure, for ocaml version
-  let tx = await Mina.transaction(() => {
+  let tx = await Mina.transaction(async () => {
     let accountUpdate = AccountUpdate.create(address);
     accountUpdate.approve(AccountUpdate.create(otherAddress));
   });
@@ -112,7 +112,7 @@ function createAccountUpdate() {
 
   const feePayer = Local.testAccounts[0].publicKey;
 
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
   });
   tx.sign();
