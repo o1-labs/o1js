@@ -112,6 +112,20 @@ class FieldBn254 {
         return new FieldBn254(x);
     }
 
+    static sizeInFields() {
+        return 1;
+    }
+
+    static fromFields([x]: FieldBn254[]) {
+        return x;
+    }
+
+    static toFields(x: FieldBn254) {
+        return [x];
+    }
+
+    static check() { }
+
     equals(y: FieldBn254 | bigint | number | string): BoolBn254 {
         return this.sub(y).isZero();
     }
