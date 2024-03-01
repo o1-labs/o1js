@@ -138,6 +138,16 @@ const Provable = {
    */
   log,
   /**
+   * Interface to log elements within a circuit using Bn254 backend.
+   * Similar to `console.log()`.
+   * @example
+   * ```ts
+   * const element = Field(42);
+   * Provable.log(element);
+   * ```
+   */
+  logBn254,
+  /**
    * Runs code as a prover using Pasta backend.
    * @example
    * ```ts
@@ -516,6 +526,23 @@ function switchBn254_<T, A extends ProvableBn254<T>>(
 
 function log(...args: any) {
   asProver(() => {
+    let prettyArgs = [];
+    for (let arg of args) {
+      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
+      else {
+        try {
+          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
+        } catch {
+          prettyArgs.push(arg);
+        }
+      }
+    }
+    console.log(...prettyArgs);
+  });
+}
+
+function logBn254(...args: any) {
+  asProverBn254(() => {
     let prettyArgs = [];
     for (let arg of args) {
       if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
