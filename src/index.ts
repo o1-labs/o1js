@@ -1,5 +1,12 @@
-export type { ProvablePure } from './snarky.js';
+export type { ProvablePure, Gate, GateType } from './snarky.js';
 export { Ledger } from './snarky.js';
+export type {
+  FieldVar,
+  FieldConst,
+  FieldType,
+  Field as InternalField,
+} from './lib/field.js';
+export type { Bool as InternalBool } from './lib/bool.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export {
   createForeignField,

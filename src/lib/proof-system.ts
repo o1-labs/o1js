@@ -373,7 +373,7 @@ function ZkProgram<
   ): [K, Prover<PublicInput, PublicOutput, Types[K]>] {
     async function prove_(
       publicInput: PublicInput,
-      ...args: TupleToInstances<Types[typeof key]>
+      ...args: TupleToInstances<Types[typeof key]> & any[]
     ): Promise<Proof<PublicInput, PublicOutput>> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
@@ -413,7 +413,7 @@ function ZkProgram<
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
-      prove = ((...args: TupleToInstances<Types[typeof key]>) =>
+      prove = ((...args: TupleToInstances<Types[typeof key]> & any[]) =>
         (prove_ as any)(undefined, ...args)) as any;
     } else {
       prove = prove_ as any;
@@ -1026,7 +1026,7 @@ type Infer<T> = T extends Subclass<typeof Proof>
 type Tuple<T> = [T, ...T[]] | [];
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
-} & any[];
+};
 
 type Subclass<Class extends new (...args: any) => any> = (new (
   ...args: any
@@ -1043,13 +1043,13 @@ type Method<
 > = PublicInput extends undefined
   ? {
       privateInputs: Args;
-      method(...args: TupleToInstances<Args>): PublicOutput;
+      method(...args: TupleToInstances<Args> & any[]): PublicOutput;
     }
   : {
       privateInputs: Args;
       method(
         publicInput: PublicInput,
-        ...args: TupleToInstances<Args>
+        ...args: TupleToInstances<Args> & any[]
       ): PublicOutput;
     };
 
@@ -1059,11 +1059,11 @@ type Prover<
   Args extends Tuple<PrivateInput>
 > = PublicInput extends undefined
   ? (
-      ...args: TupleToInstances<Args>
+      ...args: TupleToInstances<Args> & any[]
     ) => Promise<Proof<PublicInput, PublicOutput>>
   : (
       publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      ...args: TupleToInstances<Args> & any[]
     ) => Promise<Proof<PublicInput, PublicOutput>>;
 
 type ProvableOrUndefined<A> = A extends undefined ? typeof Undefined : A;
