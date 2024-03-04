@@ -25,12 +25,11 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  update(y) {
+  async update(y) {
     this.emitEvent('update', y);
     this.emitEvent('update', y);
-    this.account.balance.assertEquals(this.account.balance.get());
-    let x = this.x.get();
-    this.x.assertEquals(x);
+    this.account.balance.requireEquals(this.account.balance.get());
+    let x = this.x.getAndRequireEquals();
     this.x.set(x.add(y));
   }
 }
