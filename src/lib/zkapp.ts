@@ -45,7 +45,6 @@ import {
   Empty,
   emptyValue,
   getPreviousProofsForProver,
-  isAsFields,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
@@ -80,21 +79,30 @@ const reservedPropNames = new Set(['_methods', '_']);
 type AsyncFunction = (...args: any) => Promise<any>;
 
 /**
- * A decorator to use in a zkApp to mark a method as callable by anyone.
+ * A decorator to use in a zkApp to mark a method as provable.
  * You can use inside your zkApp class as:
  *
  * ```
- * \@method myMethod(someArg: Field) {
+ * \@method async myMethod(someArg: Field) {
+ *   // your code here
+ * }
+ * ```
+ *
+ * To return a value from the method, you have to explicitly declare the return type using the {@link method.returns} decorator:
+ * ```
+ * \@method.returns(Field)
+ * async myMethod(someArg: Field): Promise<Field> {
  *   // your code here
  * }
  * ```
  */
 function method<K extends string, T extends SmartContract>(
   target: T & {
-    [k in K]: (...args: any) => Promise<any>;
+    [k in K]: (...args: any) => Promise<void>;
   },
   methodName: K & string & keyof T,
-  descriptor: PropertyDescriptor
+  descriptor: PropertyDescriptor,
+  returnType?: Provable<any>
 ) {
   const ZkappClass = target.constructor as typeof SmartContract;
   if (reservedPropNames.has(methodName)) {
@@ -107,11 +115,6 @@ function method<K extends string, T extends SmartContract>(
   }
   let paramTypes: Provable<any>[] = Reflect.getMetadata(
     'design:paramtypes',
-    target,
-    methodName
-  );
-  let returnType: Provable<any> = Reflect.getMetadata(
-    'design:returntype',
     target,
     methodName
   );
@@ -135,7 +138,7 @@ function method<K extends string, T extends SmartContract>(
     SelfProof
   );
 
-  if (isAsFields(returnType)) {
+  if (returnType !== undefined) {
     internalMethodEntry.returnType = returnType;
     methodEntry.returnType = returnType;
   }
@@ -151,6 +154,30 @@ function method<K extends string, T extends SmartContract>(
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
+
+/**
+ * A decorator to mark a zkApp method as provable, and declare its return type.
+ *
+ * ```
+ * \@method.returns(Field)
+ * async myMethod(someArg: Field): Promise<Field> {
+ *   // your code here
+ * }
+ * ```
+ */
+method.returns = function <K extends string, T extends SmartContract, R>(
+  returnType: Provable<R>
+) {
+  return function decorateMethod(
+    target: T & {
+      [k in K]: (...args: any) => Promise<R>;
+    },
+    methodName: K & string & keyof T,
+    descriptor: PropertyDescriptor
+  ) {
+    return method(target as any, methodName, descriptor, returnType);
+  };
+};
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
