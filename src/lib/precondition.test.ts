@@ -1,6 +1,4 @@
 import {
-  shutdown,
-  isReady,
   UInt64,
   UInt32,
   SmartContract,
@@ -14,7 +12,7 @@ import {
 } from 'o1js';
 
 class MyContract extends SmartContract {
-  @method shouldMakeCompileThrow() {
+  @method async shouldMakeCompileThrow() {
     this.network.blockchainLength.get();
   }
 }
@@ -27,7 +25,6 @@ let feePayerKey: PrivateKey;
 
 beforeAll(async () => {
   // set up local blockchain, create zkapp keys, deploy the contract
-  await isReady;
   let Local = Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
   feePayerKey = Local.testAccounts[0].privateKey;
@@ -39,11 +36,10 @@ beforeAll(async () => {
 
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
-    zkapp.deploy();
+    await zkapp.deploy();
   });
   tx.sign([feePayerKey, zkappKey]).send();
 });
-afterAll(() => setTimeout(shutdown, 0));
 
 describe('preconditions', () => {
   it('get without constraint should throw', async () => {

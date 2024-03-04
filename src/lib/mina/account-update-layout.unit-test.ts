@@ -6,12 +6,12 @@ import { SmartContract, method } from '../zkapp.js';
 // smart contract which creates an account update that has a child of its own
 
 class NestedCall extends SmartContract {
-  @method deposit() {
+  @method async deposit() {
     let payerUpdate = AccountUpdate.createSigned(this.sender);
     payerUpdate.send({ to: this.address, amount: UInt64.one });
   }
 
-  @method depositUsingTree() {
+  @method async depositUsingTree() {
     let payerUpdate = AccountUpdate.createSigned(this.sender);
     let receiverUpdate = AccountUpdate.create(this.address);
     payerUpdate.send({ to: receiverUpdate, amount: UInt64.one });
@@ -37,7 +37,7 @@ let zkapp = new NestedCall(zkappAddress);
 
 // deploy zkapp
 
-await (await Mina.transaction(sender, async () => zkapp.deploy()))
+await (await Mina.transaction(sender, () => zkapp.deploy()))
   .sign([zkappKey, senderKey])
   .send();
 
@@ -45,7 +45,7 @@ await (await Mina.transaction(sender, async () => zkapp.deploy()))
 
 let balanceBefore = Mina.getBalance(zkappAddress);
 
-let depositTx = await Mina.transaction(sender, async () => zkapp.deposit());
+let depositTx = await Mina.transaction(sender, () => zkapp.deposit());
 console.log(depositTx.toPretty());
 await depositTx.prove();
 await depositTx.sign([senderKey]).send();
@@ -56,9 +56,7 @@ Mina.getBalance(zkappAddress).assertEquals(balanceBefore.add(1));
 
 balanceBefore = balanceBefore.add(1);
 
-depositTx = await Mina.transaction(sender, async () =>
-  zkapp.depositUsingTree()
-);
+depositTx = await Mina.transaction(sender, () => zkapp.depositUsingTree());
 console.log(depositTx.toPretty());
 await depositTx.prove();
 await depositTx.sign([senderKey]).send();

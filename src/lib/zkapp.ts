@@ -159,6 +159,7 @@ function wrapMethod(
   methodIntf: MethodInterface
 ) {
   let methodName = methodIntf.methodName;
+  let noPromiseError = `Expected \`${ZkappClass.name}.${methodName}()\` to return a promise.`;
   return async function wrappedMethod(
     this: SmartContract,
     ...actualArgs: any[]
@@ -209,7 +210,10 @@ function wrapMethod(
             let result: unknown;
             try {
               let clonedArgs = actualArgs.map(cloneCircuitValue);
-              result = await assertPromise(method.apply(this, clonedArgs));
+              result = await assertPromise(
+                method.apply(this, clonedArgs),
+                noPromiseError
+              );
             } finally {
               memoizationContext.leave(id);
             }
@@ -239,7 +243,10 @@ function wrapMethod(
           }
         } else if (!Mina.currentTransaction.has()) {
           // outside a transaction, just call the method, but check precondition invariants
-          let result = await assertPromise(method.apply(this, actualArgs));
+          let result = await assertPromise(
+            method.apply(this, actualArgs),
+            noPromiseError
+          );
           // check the self accountUpdate right after calling the method
           // TODO: this needs to be done in a unified way for all account updates that are created
           assertPreconditionInvariants(this.self);
@@ -272,7 +279,8 @@ function wrapMethod(
                   }
                   return a;
                 })
-              )
+              ),
+              noPromiseError
             );
           } finally {
             memoizationContext.leave(memoId);
@@ -373,7 +381,8 @@ function wrapMethod(
         let result: any;
         try {
           result = await assertPromise(
-            method.apply(this, constantArgs.map(cloneCircuitValue))
+            method.apply(this, constantArgs.map(cloneCircuitValue)),
+            noPromiseError
           );
         } finally {
           memoizationContext.leave(memoId);
@@ -668,12 +677,12 @@ class SmartContract extends SmartContractBase {
    * ```ts
    * let tx = await Mina.transaction(sender, async () => {
    *   AccountUpdate.fundNewAccount(sender);
-   *   zkapp.deploy();
+   *   await zkapp.deploy();
    * });
    * tx.sign([senderKey, zkAppKey]);
    * ```
    */
-  deploy({
+  async deploy({
     verificationKey,
     zkappKey,
   }: {
@@ -706,7 +715,7 @@ class SmartContract extends SmartContractBase {
       !Mina.hasAccount(this.address) ||
       Mina.getAccount(this.address).zkapp?.verificationKey === undefined;
     if (!shouldInit) return;
-    else this.init();
+    else await this.init();
     let initUpdate = this.self;
     // switch back to the deploy account update so the user can make modifications to it
     this.#executionState = {
@@ -1128,9 +1137,9 @@ super.init();
           let { rows, digest, gates, summary } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
-            (publicInput, publicKey, tokenId, ...args) => {
+            async (publicInput, publicKey, tokenId, ...args) => {
               let instance: SmartContract = new ZkappClass(publicKey, tokenId);
-              let result = (instance as any)[methodIntf.methodName](
+              let result = await (instance as any)[methodIntf.methodName](
                 publicInput,
                 ...args
               );
