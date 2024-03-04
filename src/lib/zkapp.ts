@@ -373,23 +373,6 @@ function wrapMethod(
       selfAccountUpdate(this, methodName)
     );
     try {
-      // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
-      // so we have to explain to the user how to do that
-      let { returnType } = methodIntf;
-      let noReturnTypeError =
-        `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
-        `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
-        `@method ${methodIntf.methodName}(): Field {\n` +
-        `  // ...\n` +
-        `}\n\n` +
-        `Note: Only types built out of \`Field\` are valid return types. This includes o1js primitive types and custom CircuitValues.`;
-      // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
-      if (
-        ZkappClass._methodMetadata?.[methodIntf.methodName]?.hasReturn &&
-        returnType === undefined
-      ) {
-        throw Error(noReturnTypeError);
-      }
       // we just reuse the blinding value of the caller for the callee
       let blindingValue = getBlindingValue();
 
@@ -418,11 +401,12 @@ function wrapMethod(
         assertStatePrecondition(this);
 
         if (result !== undefined) {
-          if (returnType === undefined) {
-            throw Error(noReturnTypeError);
-          } else {
-            result = toConstant(returnType, result);
-          }
+          let { returnType } = methodIntf;
+          assert(
+            returnType !== undefined,
+            "Bug: returnType is undefined but the method result isn't."
+          );
+          result = toConstant(returnType, result);
         }
 
         // store inputs + result in callData
@@ -469,7 +453,7 @@ function wrapMethod(
         children: AccountUpdateForest;
       }>(
         provable({
-          result: returnType ?? provable(null),
+          result: methodIntf.returnType ?? provable(null),
           children: AccountUpdateForest.provable,
         }),
         runCalledContract,
@@ -600,7 +584,6 @@ class SmartContract extends SmartContractBase {
       actions: number;
       rows: number;
       digest: string;
-      hasReturn: boolean;
       gates: Gate[];
     }
   >; // keyed by method name
@@ -1142,7 +1125,6 @@ super.init();
    * @returns an object, keyed by method name, each entry containing:
    *  - `rows` the size of the constraint system created by this method
    *  - `digest` a digest of the method circuit
-   *  - `hasReturn` a boolean indicating whether the method returns a value
    *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
@@ -1160,7 +1142,6 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let hasReturn = false;
           let { rows, digest, gates, summary } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
@@ -1170,7 +1151,6 @@ super.init();
                 publicInput,
                 ...args
               );
-              hasReturn = result !== undefined;
               accountUpdate = instance.#executionState!.accountUpdate;
               return result;
             }
@@ -1179,7 +1159,6 @@ super.init();
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
-            hasReturn,
             gates,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());
