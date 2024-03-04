@@ -25,6 +25,7 @@ import {
 import * as Fetch from '../fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
+import { assertPromise } from '../util/assert.js';
 
 export {
   type Transaction,
@@ -308,14 +309,14 @@ async function createTransaction(
   try {
     if (fetchMode === 'test') {
       await Provable.runUnchecked(async () => {
-        await f();
+        await assertPromise(f());
         Provable.asProver(() => {
           let tx = currentTransaction.get();
           tx.layout.toConstantInPlace();
         });
       });
     } else {
-      await f();
+      await assertPromise(f());
     }
   } catch (err) {
     currentTransaction.leave(transactionId);

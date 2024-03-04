@@ -67,7 +67,7 @@ let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile();
 // would also improve the return type -- `Proof` instead of `(Proof | undefined)[]`
 console.log('prove (trivial zkapp)');
 let [trivialProof] = await (
-  await Mina.transaction(feePayer, () => {
+  await Mina.transaction(feePayer, async () => {
     new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
   })
 ).prove();
@@ -84,7 +84,7 @@ let { verificationKey } = await NotSoSimpleZkapp.compile();
 let zkapp = new NotSoSimpleZkapp(zkappAddress);
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy({ zkappKey });
 });
@@ -92,7 +92,7 @@ await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('initialize');
-tx = await Mina.transaction(feePayerKey, () => {
+tx = await Mina.transaction(feePayerKey, async () => {
   zkapp.initialize(trivialProof!);
 });
 let [proof] = await tx.prove();
@@ -107,7 +107,7 @@ proof = await testJsonRoundtripAndVerify(
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
@@ -122,7 +122,7 @@ proof = await testJsonRoundtripAndVerify(
 console.log('state 2: ' + zkapp.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();

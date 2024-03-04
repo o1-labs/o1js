@@ -65,21 +65,21 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy();
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('call update');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.update(Field(1));
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('call update');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.update(Field(2));
 });
 await tx.prove();

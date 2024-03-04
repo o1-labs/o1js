@@ -146,7 +146,7 @@ console.log('');
 console.log('Testing network auxiliary functions do not throw');
 await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
-    await Mina.transaction({ sender, fee: transactionFee }, () => {
+    await Mina.transaction({ sender, fee: transactionFee }, async () => {
       Mina.getNetworkConstants();
       Mina.getNetworkState();
       Mina.getNetworkId();
@@ -177,7 +177,7 @@ await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.deploy({ verificationKey });
       }
     );
@@ -194,7 +194,7 @@ await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.update(Field(1), PrivateKey.random().toPublicKey());
       }
     );
@@ -213,7 +213,7 @@ await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.update(Field(1), PrivateKey.random().toPublicKey());
       }
     );
@@ -234,7 +234,7 @@ console.log(
 await testLocalAndRemote(async () => {
   const transaction = await Mina.transaction(
     { sender, fee: transactionFee },
-    () => {
+    async () => {
       AccountUpdate.fundNewAccount(zkAppAddress);
       zkApp.update(Field(1), PrivateKey.random().toPublicKey());
     }
@@ -252,7 +252,7 @@ await testLocalAndRemote(async () => {
   await assert.rejects(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         AccountUpdate.fundNewAccount(zkAppAddress);
         zkApp.update(Field(1), PrivateKey.random().toPublicKey());
       }
@@ -268,7 +268,7 @@ await testLocalAndRemote(async () => {
   try {
     let transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.incrementCounter();
       }
     );
@@ -277,7 +277,7 @@ await testLocalAndRemote(async () => {
 
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.rollupIncrements();
       }
     );
@@ -286,7 +286,7 @@ await testLocalAndRemote(async () => {
 
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.incrementCounter();
         zkApp.incrementCounter();
         zkApp.incrementCounter();
@@ -299,7 +299,7 @@ await testLocalAndRemote(async () => {
 
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      () => {
+      async () => {
         zkApp.rollupIncrements();
       }
     );
