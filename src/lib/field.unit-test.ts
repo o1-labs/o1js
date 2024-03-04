@@ -196,6 +196,7 @@ test(Random.field, Random.field, (x0, y0, assert) => {
 
     // toBits / fromBits
     // Fp.toBits() returns 255 bits, but our new to/from impl only accepts <=254
+    // https://github.com/o1-labs/o1js/pull/1461
     let bits = Fp.toBits(x0).slice(0, -1);
     let x1 = Provable.witness(Field, () => Field.fromBits(bits));
     let bitsVars = x1.toBits();
