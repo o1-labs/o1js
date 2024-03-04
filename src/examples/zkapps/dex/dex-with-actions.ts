@@ -38,7 +38,7 @@ class Dex extends TokenContract {
 
   // Approvable API
 
-  @method approveBase(forest: AccountUpdateForest) {
+  @method async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
 
@@ -78,7 +78,8 @@ class Dex extends TokenContract {
     });
   }
 
-  @method createAccount() {
+  // TODO this could just use `this.approveAccountUpdate()` instead of a separate @method
+  @method async createAccount() {
     this.internal.mint({ address: this.sender, amount: UInt64.from(0) });
   }
 
@@ -92,7 +93,8 @@ class Dex extends TokenContract {
    * This can also be used if the pool is empty. In that case, there is no check on X/Y;
    * instead, the input X and Y amounts determine the initial ratio.
    */
-  @method supplyLiquidityBase(dx: UInt64, dy: UInt64): UInt64 {
+  @method.returns(UInt64)
+  async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
     let user = this.sender;
     let tokenX = new TrivialCoin(this.tokenX);
     let tokenY = new TrivialCoin(this.tokenY);
@@ -110,8 +112,8 @@ class Dex extends TokenContract {
     let isDyCorrect = dy.equals(dx.mul(y).div(xSafe));
     isDyCorrect.or(isXZero).assertTrue();
 
-    tokenX.transfer(user, dexX, dx);
-    tokenY.transfer(user, dexY, dy);
+    await tokenX.transfer(user, dexX, dx);
+    await tokenY.transfer(user, dexY, dy);
 
     // calculate liquidity token output simply as dl = dx + dx
     // => maintains ratio x/l, y/l
@@ -137,7 +139,7 @@ class Dex extends TokenContract {
    * the input amount of Y tokens is calculated automatically from the X tokens.
    * Fails if the liquidity pool is empty, so can't be used for the first deposit.
    */
-  supplyLiquidity(dx: UInt64): UInt64 {
+  async supplyLiquidity(dx: UInt64) {
     // calculate dy outside circuit
     let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
     let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
@@ -147,7 +149,7 @@ class Dex extends TokenContract {
       );
     }
     let dy = dx.mul(y).div(x);
-    return this.supplyLiquidityBase(dx, dy);
+    return await this.supplyLiquidityBase(dx, dy);
   }
 
   /**
@@ -163,7 +165,7 @@ class Dex extends TokenContract {
    * @emits RedeemAction - action on the Dex account that will make the token holder
    * contracts pay you tokens when reducing the action.
    */
-  @method redeemInitialize(dl: UInt64) {
+  @method async redeemInitialize(dl: UInt64) {
     this.reducer.dispatch(new RedeemAction({ address: this.sender, dl }));
     this.internal.burn({ address: this.sender, amount: dl });
     // TODO: preconditioning on the state here ruins concurrent interactions,
@@ -178,7 +180,10 @@ class Dex extends TokenContract {
    * Helper for `DexTokenHolder.redeemFinalize()` which adds preconditions on
    * the current action state and token supply
    */
-  @method assertActionsAndSupply(actionState: Field, totalSupply: UInt64) {
+  @method async assertActionsAndSupply(
+    actionState: Field,
+    totalSupply: UInt64
+  ) {
     this.account.actionState.requireEquals(actionState);
     this.totalSupply.requireEquals(totalSupply);
   }
@@ -193,11 +198,11 @@ class Dex extends TokenContract {
    * Note: this is not a `@method`, since it doesn't do anything beyond
    * the called methods which requires proof authorization.
    */
-  swapX(dx: UInt64): UInt64 {
+  async swapX(dx: UInt64) {
     let tokenY = new TrivialCoin(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-    let dy = dexY.swap(this.sender, dx, this.tokenX);
-    tokenY.transfer(dexY.self, this.sender, dy);
+    let dy = await dexY.swap(this.sender, dx, this.tokenX);
+    await tokenY.transfer(dexY.self, this.sender, dy);
     return dy;
   }
 
@@ -211,11 +216,11 @@ class Dex extends TokenContract {
    * Note: this is not a `@method`, since it doesn't do anything beyond
    * the called methods which requires proof authorization.
    */
-  swapY(dy: UInt64): UInt64 {
+  async swapY(dy: UInt64) {
     let tokenX = new TrivialCoin(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-    let dx = dexX.swap(this.sender, dy, this.tokenY);
-    tokenX.transfer(dexX.self, this.sender, dx);
+    let dx = await dexX.swap(this.sender, dy, this.tokenY);
+    await tokenX.transfer(dexX.self, this.sender, dx);
     return dx;
   }
 }
@@ -237,7 +242,7 @@ class DexTokenHolder extends SmartContract {
     this.redeemActionState.set(Reducer.initialActionState);
   }
 
-  @method redeemLiquidityFinalize() {
+  @method async redeemLiquidityFinalize() {
     // get redeem actions
     let dex = new Dex(this.address);
     let fromActionState = this.redeemActionState.getAndRequireEquals();
@@ -285,15 +290,16 @@ class DexTokenHolder extends SmartContract {
     this.redeemActionState.set(redeemActionState);
 
     // precondition on the DEX contract, to prove we used the right actions & token supply
-    dex.assertActionsAndSupply(redeemActionState, l);
+    await dex.assertActionsAndSupply(redeemActionState, l);
   }
 
   // this works for both directions (in our case where both tokens use the same contract)
-  @method swap(
+  @method.returns(UInt64)
+  async swap(
     user: PublicKey,
     otherTokenAmount: UInt64,
     otherTokenAddress: PublicKey
-  ): UInt64 {
+  ) {
     // we're writing this as if our token === y and other token === x
     let dx = otherTokenAmount;
     let tokenX = new TrivialCoin(otherTokenAddress);
@@ -304,7 +310,7 @@ class DexTokenHolder extends SmartContract {
     let y = this.account.balance.getAndRequireEquals();
 
     // send x from user to us (i.e., to the same address as this but with the other token)
-    tokenX.transfer(user, dexX, dx);
+    await tokenX.transfer(user, dexX, dx);
 
     // compute and send dy
     let dy = y.mul(dx).div(x.add(dx));

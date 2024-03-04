@@ -6,14 +6,11 @@ import {
   VerificationKey,
   method,
   Permissions,
-  isReady,
   PrivateKey,
   Mina,
   AccountUpdate,
-  Circuit,
   Provable,
   TransactionVersion,
-  UInt32,
 } from 'o1js';
 
 class Foo extends SmartContract {
@@ -28,20 +25,18 @@ class Foo extends SmartContract {
     });
   }
 
-  @method replaceVerificationKey(verificationKey: VerificationKey) {
+  @method async replaceVerificationKey(verificationKey: VerificationKey) {
     this.account.verificationKey.set(verificationKey);
   }
 }
 
 class Bar extends SmartContract {
-  @method call() {
+  @method async call() {
     Provable.log('Bar');
   }
 }
 
 // setup
-
-await isReady;
 
 const Local = Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
@@ -59,7 +54,7 @@ await Foo.compile();
 
 const tx = await Mina.transaction(deployerAccount, async () => {
   AccountUpdate.fundNewAccount(deployerAccount);
-  zkApp.deploy();
+  await zkApp.deploy();
 });
 await tx.prove();
 await tx.sign([deployerKey, zkAppPrivateKey]).send();
@@ -72,7 +67,7 @@ Provable.log('original verification key', fooVerificationKey);
 const { verificationKey: barVerificationKey } = await Bar.compile();
 
 const tx2 = await Mina.transaction(deployerAccount, async () => {
-  zkApp.replaceVerificationKey(barVerificationKey);
+  await zkApp.replaceVerificationKey(barVerificationKey);
 });
 await tx2.prove();
 await tx2.sign([deployerKey]).send();

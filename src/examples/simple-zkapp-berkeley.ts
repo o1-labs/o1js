@@ -16,13 +16,8 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
-  shutdown,
-  DeployArgs,
   fetchAccount,
 } from 'o1js';
-
-await isReady;
 
 // a very simple SmartContract
 class SimpleZkapp extends SmartContract {
@@ -33,9 +28,8 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  @method update(y: Field) {
-    let x = this.x.get();
-    this.x.assertEquals(x);
+  @method async update(y: Field) {
+    let x = this.x.getAndRequireEquals();
     y.assertGreaterThan(0);
     this.x.set(x.add(y));
   }
@@ -85,7 +79,7 @@ if (!isDeployed) {
     { sender: feePayerAddress, fee: transactionFee },
     async () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
-      zkapp.deploy({ verificationKey });
+      await zkapp.deploy({ verificationKey });
     }
   );
   // if you want to inspect the transaction, you can print it out:
@@ -102,9 +96,7 @@ if (isDeployed) {
   console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(10)}.`);
   let transaction = await Mina.transaction(
     { sender: feePayerAddress, fee: transactionFee },
-    async () => {
-      zkapp.update(Field(10));
-    }
+    () => zkapp.update(Field(10))
   );
   // fill in the proof - this can take a while...
   console.log('Creating an execution proof...');
@@ -117,5 +109,3 @@ if (isDeployed) {
   console.log('Sending the transaction...');
   await transaction.sign([feePayerKey]).send();
 }
-
-shutdown();
