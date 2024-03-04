@@ -38,11 +38,11 @@ class SimpleZkapp extends SmartContract {
     this.actionState.set(Reducer.initialActionState);
   }
 
-  @method incrementCounter() {
+  @method async incrementCounter() {
     this.reducer.dispatch(Field(1));
   }
 
-  @method rollupIncrements() {
+  @method async rollupIncrements() {
     const counter = this.counter.get();
     this.counter.requireEquals(counter);
     const actionState = this.actionState.get();
@@ -70,7 +70,7 @@ class SimpleZkapp extends SmartContract {
     this.actionState.set(newActionState);
   }
 
-  @method update(y: Field, publicKey: PublicKey) {
+  @method async update(y: Field, publicKey: PublicKey) {
     this.emitEvent('complexEvent', {
       pub: publicKey,
       value: y,
@@ -177,9 +177,7 @@ await testLocalAndRemote(async () => {
   await assert.doesNotReject(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      async () => {
-        zkApp.deploy({ verificationKey });
-      }
+      () => zkApp.deploy({ verificationKey })
     );
     transaction.sign([senderKey, zkAppKey]);
     await sendAndVerifyTransaction(transaction);
@@ -195,7 +193,7 @@ await testLocalAndRemote(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       async () => {
-        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
+        await zkApp.update(Field(1), PrivateKey.random().toPublicKey());
       }
     );
     transaction.sign([senderKey, zkAppKey]);
@@ -214,7 +212,7 @@ await testLocalAndRemote(async () => {
     const transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       async () => {
-        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
+        await zkApp.update(Field(1), PrivateKey.random().toPublicKey());
       }
     );
     transaction.sign([senderKey, zkAppKey]);
@@ -236,7 +234,7 @@ await testLocalAndRemote(async () => {
     { sender, fee: transactionFee },
     async () => {
       AccountUpdate.fundNewAccount(zkAppAddress);
-      zkApp.update(Field(1), PrivateKey.random().toPublicKey());
+      await zkApp.update(Field(1), PrivateKey.random().toPublicKey());
     }
   );
   transaction.sign([senderKey, zkAppKey]);
@@ -254,7 +252,7 @@ await testLocalAndRemote(async () => {
       { sender, fee: transactionFee },
       async () => {
         AccountUpdate.fundNewAccount(zkAppAddress);
-        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
+        await zkApp.update(Field(1), PrivateKey.random().toPublicKey());
       }
     );
     transaction.sign([senderKey, zkAppKey]);
@@ -268,9 +266,14 @@ await testLocalAndRemote(async () => {
   try {
     let transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      async () => {
-        zkApp.incrementCounter();
-      }
+      () => zkApp.incrementCounter()
+    );
+    transaction.sign([senderKey, zkAppKey]);
+    await sendAndVerifyTransaction(transaction);
+
+    transaction = await Mina.transaction(
+      { sender, fee: transactionFee },
+      async () => zkApp.rollupIncrements()
     );
     transaction.sign([senderKey, zkAppKey]);
     await sendAndVerifyTransaction(transaction);
@@ -278,7 +281,11 @@ await testLocalAndRemote(async () => {
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       async () => {
-        zkApp.rollupIncrements();
+        await zkApp.incrementCounter();
+        await zkApp.incrementCounter();
+        await zkApp.incrementCounter();
+        await zkApp.incrementCounter();
+        await zkApp.incrementCounter();
       }
     );
     transaction.sign([senderKey, zkAppKey]);
@@ -286,22 +293,7 @@ await testLocalAndRemote(async () => {
 
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
-      async () => {
-        zkApp.incrementCounter();
-        zkApp.incrementCounter();
-        zkApp.incrementCounter();
-        zkApp.incrementCounter();
-        zkApp.incrementCounter();
-      }
-    );
-    transaction.sign([senderKey, zkAppKey]);
-    await sendAndVerifyTransaction(transaction);
-
-    transaction = await Mina.transaction(
-      { sender, fee: transactionFee },
-      async () => {
-        zkApp.rollupIncrements();
-      }
+      async () => zkApp.rollupIncrements()
     );
     transaction.sign([senderKey, zkAppKey]);
     await sendAndVerifyTransaction(transaction);

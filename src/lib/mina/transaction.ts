@@ -454,18 +454,14 @@ function transaction(
 ): Promise<Transaction> {
   let sender: DeprecatedFeePayerSpec;
   let f: () => Promise<void>;
-  try {
-    if (fOrUndefined !== undefined) {
-      sender = senderOrF as DeprecatedFeePayerSpec;
-      f = fOrUndefined;
-    } else {
-      sender = undefined;
-      f = senderOrF as () => Promise<void>;
-    }
-    return activeInstance.transaction(sender, f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
+  if (fOrUndefined !== undefined) {
+    sender = senderOrF as DeprecatedFeePayerSpec;
+    f = fOrUndefined;
+  } else {
+    sender = undefined;
+    f = senderOrF as () => Promise<void>;
   }
+  return activeInstance.transaction(sender, f);
 }
 
 async function sendTransaction(txn: Transaction) {

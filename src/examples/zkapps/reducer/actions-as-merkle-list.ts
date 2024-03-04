@@ -56,18 +56,18 @@ class ActionsContract extends SmartContract {
   reducer = Reducer({ actionType: Action });
 
   @method
-  postAddress(address: PublicKey) {
+  async postAddress(address: PublicKey) {
     this.reducer.dispatch(address);
   }
 
   // to exhibit the generality of reducer: can dispatch more than 1 action per account update
-  @method postTwoAddresses(a1: PublicKey, a2: PublicKey) {
+  @method async postTwoAddresses(a1: PublicKey, a2: PublicKey) {
     this.reducer.dispatch(a1);
     this.reducer.dispatch(a2);
   }
 
   @method
-  assertContainsAddress(address: PublicKey) {
+  async assertContainsAddress(address: PublicKey) {
     // get actions and, in a witness block, wrap them in a Merkle list of lists
 
     // note: need to reverse here because `getActions()` returns the last pushed action last,
@@ -127,11 +127,11 @@ await deployTx.sign([senderKey, zkappKey]).send();
 // push some actions
 
 let dispatchTx = await Mina.transaction(sender, async () => {
-  zkapp.postAddress(otherAddress);
-  zkapp.postAddress(zkappAddress);
-  zkapp.postTwoAddresses(anotherAddress, sender);
-  zkapp.postAddress(anotherAddress);
-  zkapp.postTwoAddresses(zkappAddress, otherAddress);
+  await zkapp.postAddress(otherAddress);
+  await zkapp.postAddress(zkappAddress);
+  await zkapp.postTwoAddresses(anotherAddress, sender);
+  await zkapp.postAddress(anotherAddress);
+  await zkapp.postTwoAddresses(zkappAddress, otherAddress);
 });
 await dispatchTx.prove();
 await dispatchTx.sign([senderKey]).send();
@@ -141,7 +141,7 @@ assert(zkapp.reducer.getActions().length === 5);
 // check if the actions contain the `sender` address
 
 Local.setProofsEnabled(true);
-let containsTx = await Mina.transaction(sender, async () =>
+let containsTx = await Mina.transaction(sender, () =>
   zkapp.assertContainsAddress(sender)
 );
 await containsTx.prove();

@@ -12,7 +12,7 @@ export class HelloWorld extends SmartContract {
     this.account.delegate.set(adminPublicKey);
   }
 
-  @method update(squared: Field, admin: PrivateKey) {
+  @method async update(squared: Field, admin: PrivateKey) {
     const x = this.x.get();
     this.x.requireNothing();
     x.square().assertEquals(squared);

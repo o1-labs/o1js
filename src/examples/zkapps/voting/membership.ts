@@ -68,8 +68,8 @@ export class Membership_ extends SmartContract {
     }),
   };
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy(args: DeployArgs) {
+    await super.deploy(args);
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -88,7 +88,8 @@ export class Membership_ extends SmartContract {
    * Dispatches a new member sequence event.
    * @param member
    */
-  @method addEntry(member: Member): Bool {
+  @method.returns(Bool)
+  async addEntry(member: Member) {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
 
@@ -147,7 +148,8 @@ export class Membership_ extends SmartContract {
    * @param accountId
    * @returns true if member exists
    */
-  @method isMember(member: Member): Bool {
+  @method.returns(Bool)
+  async isMember(member: Member) {
     // Verify membership (voter or candidate) with the accountId via merkle tree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
 
@@ -162,7 +164,7 @@ export class Membership_ extends SmartContract {
   /**
    * Method used to commit to the accumulated list of members.
    */
-  @method publish() {
+  @method async publish() {
     // Commit to the items accumulated so far. This is a periodic update
 
     let accumulatedMembers = this.accumulatedMembers.get();

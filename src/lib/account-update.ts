@@ -819,7 +819,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * then you should use the following code before sending your transaction:
    *
    * ```ts
-   * let tx = Mina.transaction(...); // create transaction as usual, using `requireSignature()` somewhere
+   * let tx = await Mina.transaction(...); // create transaction as usual, using `requireSignature()` somewhere
    * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
    * ```
    *
@@ -1070,7 +1070,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * then you should use the following code before sending your transaction:
    *
    * ```ts
-   * let tx = Mina.transaction(...); // create transaction as usual, using `createSigned()` somewhere
+   * let tx = await Mina.transaction(...); // create transaction as usual, using `createSigned()` somewhere
    * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
    * ```
    *

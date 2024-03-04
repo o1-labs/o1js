@@ -48,7 +48,7 @@ deployButton.addEventListener('click', async () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
-      zkAppInstance.deploy();
+      await zkAppInstance.deploy();
     });
 
     await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
@@ -85,7 +85,7 @@ updateButton.addEventListener('click', async (event) => {
       eventsContainer
     );
     const transaction = await Mina.transaction(feePayer, async () => {
-      zkAppInstance.update(
+      await zkAppInstance.update(
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );

@@ -2,12 +2,10 @@ import {
   AccountUpdate,
   Bool,
   fetchAccount,
-  isReady,
   Mina,
   PrivateKey,
   PublicKey,
   Reducer,
-  shutdown,
   SmartContract,
   UInt32,
   UInt64,
@@ -20,7 +18,6 @@ import {
   ElectionPreconditions,
 } from './preconditions.js';
 import { getResults, vote } from './voting-lib.js';
-await isReady;
 
 const Berkeley = Mina.Network({
   mina: 'https://proxy.berkeley.minaexplorer.com/graphql',
@@ -98,7 +95,7 @@ let tx = await Mina.transaction(
     contracts.voting.committedVotes.set(storage.votesStore.getRoot());
     contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
-    contracts.candidateContract.deploy({ zkappKey: params.candidateKey });
+    await contracts.candidateContract.deploy({ zkappKey: params.candidateKey });
     contracts.candidateContract.committedMembers.set(
       storage.candidatesStore.getRoot()
     );
@@ -106,13 +103,13 @@ let tx = await Mina.transaction(
       Reducer.initialActionState
     );
 
-    contracts.voterContract.deploy({ zkappKey: params.voterKey });
+    await contracts.voterContract.deploy({ zkappKey: params.voterKey });
     contracts.voterContract.committedMembers.set(storage.votersStore.getRoot());
     contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).wait();
+await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
 
 console.log('successfully deployed contracts');
 
@@ -131,11 +128,11 @@ tx = await Mina.transaction(
       Member.from(members[0], UInt64.from(150)),
       storage.votersStore
     );
-    contracts.voting.voterRegistration(m);
+    await contracts.voting.voterRegistration(m);
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).wait();
+await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
 console.log('voter registered');
 
 await fetchAllAccounts();
@@ -153,11 +150,11 @@ tx = await Mina.transaction(
       Member.from(members[1], UInt64.from(150)),
       storage.candidatesStore
     );
-    contracts.voting.candidateRegistration(m);
+    await contracts.voting.candidateRegistration(m);
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).wait();
+await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
 console.log('candidate registered');
 // we have to wait a few seconds before continuing, otherwise we might not get the actions from the archive, we if continue too fast
 await new Promise((resolve) => setTimeout(resolve, 20000));
@@ -172,11 +169,11 @@ tx = await Mina.transaction(
     memo: 'Approving registrations',
   },
   async () => {
-    contracts.voting.approveRegistrations();
+    await contracts.voting.approveRegistrations();
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).wait();
+await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
 console.log('registrations approved');
 
 await fetchAllAccounts();
@@ -198,11 +195,11 @@ tx = await Mina.transaction(
     v.witness = new MyMerkleWitness(storage.votersStore.getWitness(0n));
     console.log(v.witness.calculateRoot(v.getHash()).toString());
     console.log(contracts.voting.committedVotes.get().toString());
-    contracts.voting.vote(currentCandidate, v);
+    await contracts.voting.vote(currentCandidate, v);
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).wait();
+await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
 vote(0n, storage.votesStore, storage.candidatesStore);
 console.log('voted for a candidate');
 await new Promise((resolve) => setTimeout(resolve, 20000));
@@ -213,11 +210,11 @@ console.log('counting votes');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 10_000_000, memo: 'Counting votes' },
   async () => {
-    contracts.voting.countVotes();
+    await contracts.voting.countVotes();
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).wait();
+await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
 console.log('votes counted');
 await new Promise((resolve) => setTimeout(resolve, 20000));
 
@@ -272,5 +269,3 @@ function registerMember(
   m.witness = new MyMerkleWitness(store.getWitness(i));
   return m;
 }
-
-shutdown();

@@ -90,7 +90,7 @@ class AlmostSmallField extends SmallField.AlmostReduced {}
 class MyContract extends SmartContract {
   @state(AlmostSmallField.provable) x = State<AlmostSmallField>();
 
-  @method myMethod(y: AlmostSmallField) {
+  @method async myMethod(y: AlmostSmallField) {
     let x = y.mul(2);
     Provable.log(x);
     this.x.set(x.assertAlmostReduced());
