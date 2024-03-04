@@ -922,12 +922,9 @@ class Field {
     checkBitLength('Field.toBits()', length, 254);
     if (this.isConstant()) {
       let bits = Fp.toBits(this.toBigInt());
-      if (length !== undefined) {
-        if (bits.slice(length).some((bit) => bit))
-          throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-        return bits.slice(0, length).map((b) => new Bool(b));
-      }
-      return bits.map((b) => new Bool(b));
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
     }
     let bits = Provable.witness(Provable.Array(Bool, length), () => {
       let f = this.toBigInt();
@@ -965,10 +962,6 @@ class Field {
         .concat(Array(Fp.sizeInBits - length).fill(false));
       return new Field(Fp.fromBits(bits_));
     }
-    let bitsVars = bits.map((b): FieldVar => {
-      if (typeof b === 'boolean') return b ? FieldVar[1] : FieldVar[0];
-      return b.toField().value;
-    });
     return bits
       .map((b) => new Bool(b))
       .reduce((acc, bit, idx) => {
