@@ -99,7 +99,10 @@ class Scalar {
    * **Warning**: The bits are interpreted as the bits of 2s + 1 + 2^255, where s is the Scalar.
    */
   static fromBits(bits: Bool[]) {
-    return Scalar.fromFields(bits.map((b) => b.toField()));
+    return Scalar.fromFields([
+      ...bits.map((b) => b.toField()),
+      ...Array(Fq.sizeInBits - bits.length).fill(new Bool(false)),
+    ]);
   }
 
   /**
