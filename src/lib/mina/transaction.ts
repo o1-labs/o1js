@@ -90,26 +90,31 @@ type Transaction = {
   prove(): Promise<(Proof<ZkappPublicInput, Empty> | undefined)[]>;
   /**
    * Submits the {@link Transaction} to the network. This method asynchronously sends the transaction
-   * for processing and returns a {@link PendingTransaction} instance, which can be used to monitor its progress.
-   * @returns A promise that resolves to a {@link PendingTransaction} instance representing the submitted transaction.
-   * @example
-   * ```ts
-   * const pendingTransaction = await transaction.send();
-   * console.log('Transaction sent successfully to the Mina daemon.');
-   * ```
-   */
-  send(): Promise<PendingTransaction>;
-
-  /**
-   * Sends the {@link Transaction} to the network, unlike the standard send(), this function will throw an error if internal errors are detected.
-   * @throws {Error} If the transaction fails to be sent to the Mina daemon or if it encounters errors during processing.
+   * for processing. If successful, it returns a {@link PendingTransaction} instance, which can be used to monitor the transaction's progress.
+   * If the transaction submission fails, this method throws an error that should be caught and handled appropriately.
+   * @returns A promise that resolves to a {@link PendingTransaction} instance representing the submitted transaction if the submission is successful.
+   * @throws An error if the transaction cannot be sent or processed by the network, containing details about the failure.
    * @example
    * ```ts
    * try {
-   *  const pendingTransaction = await transaction.send();
-   *  console.log('Transaction sent successfully to the Mina daemon.');
+   *   const pendingTransaction = await transaction.send();
+   *   console.log('Transaction sent successfully to the Mina daemon.');
    * } catch (error) {
-   *  console.error('Transaction failed with errors:', error);
+   *   console.error('Failed to send transaction to the Mina daemon:', error);
+   * }
+   * ```
+   */
+  send(): Promise<PendingTransaction>;
+  /**
+   * Sends the {@link Transaction} to the network. Unlike the standard {@link Transaction.send}, this function does not throw an error if internal errors are detected. Instead, it returns a {@link PendingTransaction} if the transaction is successfully sent for processing or a {@link RejectedTransaction} if it encounters errors during processing or is outright rejected by the Mina daemon.
+   * @returns {Promise<PendingTransaction | RejectedTransaction>} A promise that resolves to a {@link PendingTransaction} if the transaction is accepted for processing, or a {@link RejectedTransaction} if the transaction fails or is rejected.
+   * @example
+   * ```ts
+   * const result = await transaction.safeSend();
+   * if (result.status === 'pending') {
+   *   console.log('Transaction sent successfully to the Mina daemon.');
+   * } else if (result.status === 'rejected') {
+   *   console.error('Transaction failed with errors:', result.errors);
    * }
    * ```
    */
@@ -231,9 +236,13 @@ type IncludedTransaction = Pick<
    * @property {string} status The final status of the transaction, indicating successful inclusion in a block.
    * @example
    * ```ts
-   * const includedTx: IncludedTransaction = await pendingTransaction.wait();
-   * if (includedTx.status === 'included') {
-   *   console.log(`Transaction ${includedTx.hash()} included in a block.`);
+   * try {
+   *   const includedTx: IncludedTransaction = await pendingTransaction.wait();
+   *   // If wait() resolves, it means the transaction was successfully included.
+   *   console.log(`Transaction ${includedTx.hash} included in a block.`);
+   * } catch (error) {
+   *   // If wait() throws, the transaction was not included in a block.
+   *   console.error('Transaction failed to be included in a block:', error);
    * }
    * ```
    */
@@ -251,11 +260,14 @@ type RejectedTransaction = Pick<
    * @property {string} status The final status of the transaction, specifically indicating that it has been rejected.
    * @example
    * ```ts
-   * const rejectedTx: RejectedTransaction = await pendingTransaction.wait();
-   * if (rejectedTx.status === 'rejected') {
-   *   console.error(`Transaction ${rejectedTx.hash()} was rejected.`);
-   *   rejectedTx.errors.forEach((error, i) => {
-   *     console.error(`Error ${i + 1}: ${error}`);
+   * try {
+   *   const txResult = await pendingTransaction.wait();
+   *   // This line will not execute if the transaction is rejected, as `.wait()` will throw an error instead.
+   *   console.log(`Transaction ${txResult.hash} was successfully included in a block.`);
+   * } catch (error) {
+   *   console.error(`Transaction ${error.transaction.hash} was rejected.`);
+   *   error.errors.forEach((error, i) => {
+   *    console.error(`Error ${i + 1}: ${error}`);
    *   });
    * }
    * ```
