@@ -40,7 +40,8 @@ import {
   createTransaction,
   newTransaction,
   transaction,
-  createIncludedOrRejectedTransaction,
+  createRejectedTransaction,
+  createIncludedTransaction,
 } from './mina/transaction.js';
 import {
   reportGetAccountError,
@@ -272,18 +273,16 @@ function Network(
 
       const isSuccess = errors.length === 0;
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction: Omit<
-        PendingTransaction,
-        'wait' | 'waitOrThrowIfError'
-      > = {
-        isSuccess,
-        data: response?.data,
-        errors,
-        transaction: txn.transaction,
-        hash,
-        toJSON: txn.toJSON,
-        toPretty: txn.toPretty,
-      };
+      const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
+        {
+          isSuccess,
+          data: response?.data,
+          errors,
+          transaction: txn.transaction,
+          hash,
+          toJSON: txn.toJSON,
+          toPretty: txn.toPretty,
+        };
 
       const pollTransactionStatus = async (
         transactionHash: string,
@@ -295,7 +294,7 @@ function Network(
         try {
           res = await Fetch.checkZkappTransaction(transactionHash);
           if (res.success) {
-            return createIncludedOrRejectedTransaction(pendingTransaction, []);
+            return createIncludedTransaction(pendingTransaction);
           } else if (res.failureReason) {
             const error = invalidTransactionError(
               txn.transaction,
@@ -305,18 +304,16 @@ function Network(
                   defaultNetworkConstants.accountCreationFee.toString(),
               }
             );
-            return createIncludedOrRejectedTransaction(pendingTransaction, [
-              error,
-            ]);
+            return createRejectedTransaction(pendingTransaction, [error]);
           }
         } catch (error) {
-          return createIncludedOrRejectedTransaction(pendingTransaction, [
+          return createRejectedTransaction(pendingTransaction, [
             (error as Error).message,
           ]);
         }
 
         if (maxAttempts && attempts >= maxAttempts) {
-          return createIncludedOrRejectedTransaction(pendingTransaction, [
+          return createRejectedTransaction(pendingTransaction, [
             `Exceeded max attempts.\nTransactionId: ${transactionHash}\nAttempts: ${attempts}\nLast received status: ${res}`,
           ]);
         }
@@ -330,34 +327,21 @@ function Network(
         );
       };
 
+      // default is 45 attempts * 20s each = 15min
+      // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
+      // fetching an update every 20s is more than enough with a current block time of 3min
+      const poll = async (
+        maxAttempts: number = 45,
+        interval: number = 20000
+      ): Promise<IncludedTransaction | RejectedTransaction> => {
+        return pollTransactionStatus(hash, maxAttempts, interval);
+      };
+
       const wait = async (options?: {
         maxAttempts?: number;
         interval?: number;
-      }): Promise<IncludedTransaction | RejectedTransaction> => {
-        if (!isSuccess) {
-          return createIncludedOrRejectedTransaction(
-            pendingTransaction,
-            pendingTransaction.errors
-          );
-        }
-
-        // default is 45 attempts * 20s each = 15min
-        // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
-        // fetching an update every 20s is more than enough with a current block time of 3min
-        const maxAttempts = options?.maxAttempts ?? 45;
-        const interval = options?.interval ?? 20000;
-        return pollTransactionStatus(
-          pendingTransaction.hash,
-          maxAttempts,
-          interval
-        );
-      };
-
-      const waitOrThrowIfError = async (options?: {
-        maxAttempts?: number;
-        interval?: number;
-      }): Promise<IncludedTransaction | RejectedTransaction> => {
-        const pendingTransaction = await wait(options);
+      }): Promise<IncludedTransaction> => {
+        const pendingTransaction = await safeWait(options);
         if (pendingTransaction.status === 'rejected') {
           throw Error(
             `Transaction failed with errors:\n${pendingTransaction.errors.join(
@@ -368,10 +352,23 @@ function Network(
         return pendingTransaction;
       };
 
+      const safeWait = async (options?: {
+        maxAttempts?: number;
+        interval?: number;
+      }): Promise<IncludedTransaction | RejectedTransaction> => {
+        if (!isSuccess) {
+          return createRejectedTransaction(
+            pendingTransaction,
+            pendingTransaction.errors
+          );
+        }
+        return await poll(options?.maxAttempts, options?.interval);
+      };
+
       return {
         ...pendingTransaction,
         wait,
-        waitOrThrowIfError,
+        safeWait,
       };
     },
     async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {

@@ -36,7 +36,8 @@ export {
   newTransaction,
   getAccount,
   transaction,
-  createIncludedOrRejectedTransaction,
+  createRejectedTransaction,
+  createIncludedTransaction,
 };
 
 /**
@@ -160,7 +161,7 @@ type PendingTransaction = Pick<
   wait(options?: {
     maxAttempts?: number;
     interval?: number;
-  }): Promise<IncludedTransaction | RejectedTransaction>;
+  }): Promise<IncludedTransaction>;
 
   /**
    * Similar to `wait`, but throws an error if the transaction is rejected or if it fails to finalize within the given attempts.
@@ -178,7 +179,7 @@ type PendingTransaction = Pick<
    * }
    * ```
    */
-  waitOrThrowIfError(options?: {
+  safeWait(options?: {
     maxAttempts?: number;
     interval?: number;
   }): Promise<IncludedTransaction | RejectedTransaction>;
@@ -504,7 +505,7 @@ function createRejectedTransaction(
     toJSON,
     toPretty,
     hash,
-  }: Omit<PendingTransaction, 'wait' | 'waitOrThrowIfError'>,
+  }: Omit<PendingTransaction, 'wait' | 'safeWait'>,
   errors: string[]
 ): RejectedTransaction {
   return {
@@ -524,10 +525,7 @@ function createIncludedTransaction({
   toJSON,
   toPretty,
   hash,
-}: Omit<
-  PendingTransaction,
-  'wait' | 'waitOrThrowIfError'
->): IncludedTransaction {
+}: Omit<PendingTransaction, 'wait' | 'safeWait'>): IncludedTransaction {
   return {
     status: 'included',
     transaction,
@@ -536,14 +534,4 @@ function createIncludedTransaction({
     hash,
     data,
   };
-}
-
-function createIncludedOrRejectedTransaction(
-  transaction: Omit<PendingTransaction, 'wait' | 'waitOrThrowIfError'>,
-  errors: string[]
-): IncludedTransaction | RejectedTransaction {
-  if (errors.length > 0) {
-    return createRejectedTransaction(transaction, errors);
-  }
-  return createIncludedTransaction(transaction);
 }
