@@ -19,6 +19,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
+- Improved on parity fix of `Mina.Localblockchain` and`Mina.Network` to make `.send()` and `.wait()` throw an error by default if the transaction was not successful. https://github.com/o1-labs/o1js/pull/1480
+  - Changed `Transaction.isSuccess` to `Transaction.status` to better represent the state of a transaction.
+  - `Transaction.safeSend()` and `PendingTransaction.safeWait()` are introduced to return a `IncludedTransaction` or `RejectedTransaction` object without throwing errors.
 - Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422
   - Changed the `TransactionId` type to `Transaction`. Additionally added `PendingTransaction` and `RejectedTransaction` types to better represent the state of a transaction.
   - `transaction.send()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns a `PendingTransaction` object that contains the error. Use `transaction.sendOrThrowIfError` to throw the error if the transaction was not successful.
