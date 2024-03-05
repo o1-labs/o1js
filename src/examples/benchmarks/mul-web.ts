@@ -42,7 +42,7 @@ function picklesCircuit(nMuls: number) {
     methods: {
       run: {
         privateInputs: [],
-        method() {
+        async method() {
           main(nMuls);
         },
       },
