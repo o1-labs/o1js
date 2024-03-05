@@ -108,7 +108,7 @@ async function sendAndVerifyTransaction(
 ) {
   await transaction.prove();
   if (throwOnFail) {
-    const pendingTransaction = await transaction.sendOrThrowIfError();
+    const pendingTransaction = await transaction.send();
     return await pendingTransaction.waitOrThrowIfError();
   } else {
     const pendingTransaction = await transaction.send();

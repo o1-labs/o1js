@@ -104,14 +104,14 @@ type Transaction = {
    * @example
    * ```ts
    * try {
-   *  const pendingTransaction = await transaction.sendOrThrowIfError();
+   *  const pendingTransaction = await transaction.send();
    *  console.log('Transaction sent successfully to the Mina daemon.');
    * } catch (error) {
    *  console.error('Transaction failed with errors:', error);
    * }
    * ```
    */
-  sendOrThrowIfError(): Promise<PendingTransaction>;
+  sendSafe(): Promise<PendingTransaction | RejectedTransaction>;
 };
 
 /**
@@ -411,15 +411,22 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return sendZkappQuery(self.toJSON());
     },
     async send() {
-      return await sendTransaction(self);
-    },
-    async sendOrThrowIfError() {
       const pendingTransaction = await sendTransaction(self);
       if (pendingTransaction.errors.length > 0) {
         throw Error(
           `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
             '\n- '
           )}`
+        );
+      }
+      return pendingTransaction;
+    },
+    async sendSafe() {
+      const pendingTransaction = await sendTransaction(self);
+      if (pendingTransaction.errors.length > 0) {
+        return createRejectedTransaction(
+          pendingTransaction,
+          pendingTransaction.errors
         );
       }
       return pendingTransaction;
@@ -490,7 +497,7 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
   return activeInstance.getAccount(publicKey, tokenId);
 }
 
-function createIncludedOrRejectedTransaction(
+function createRejectedTransaction(
   {
     transaction,
     data,
@@ -499,18 +506,28 @@ function createIncludedOrRejectedTransaction(
     hash,
   }: Omit<PendingTransaction, 'wait' | 'waitOrThrowIfError'>,
   errors: string[]
-): IncludedTransaction | RejectedTransaction {
-  if (errors.length > 0) {
-    return {
-      status: 'rejected',
-      errors,
-      transaction,
-      toJSON,
-      toPretty,
-      hash,
-      data,
-    };
-  }
+): RejectedTransaction {
+  return {
+    status: 'rejected',
+    errors,
+    transaction,
+    toJSON,
+    toPretty,
+    hash,
+    data,
+  };
+}
+
+function createIncludedTransaction({
+  transaction,
+  data,
+  toJSON,
+  toPretty,
+  hash,
+}: Omit<
+  PendingTransaction,
+  'wait' | 'waitOrThrowIfError'
+>): IncludedTransaction {
   return {
     status: 'included',
     transaction,
@@ -519,4 +536,14 @@ function createIncludedOrRejectedTransaction(
     hash,
     data,
   };
+}
+
+function createIncludedOrRejectedTransaction(
+  transaction: Omit<PendingTransaction, 'wait' | 'waitOrThrowIfError'>,
+  errors: string[]
+): IncludedTransaction | RejectedTransaction {
+  if (errors.length > 0) {
+    return createRejectedTransaction(transaction, errors);
+  }
+  return createIncludedTransaction(transaction);
 }

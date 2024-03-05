@@ -238,7 +238,7 @@ describe('preconditions', () => {
           precondition().assertEquals(p.add(1) as any);
           AccountUpdate.attachToTransaction(zkapp.self);
         });
-        await tx.sign([feePayerKey]).sendOrThrowIfError();
+        await tx.sign([feePayerKey]).send();
       }).rejects.toThrow(/unsatisfied/);
     }
   });
@@ -251,7 +251,7 @@ describe('preconditions', () => {
           precondition().requireEquals(p.add(1) as any);
           AccountUpdate.attachToTransaction(zkapp.self);
         });
-        await tx.sign([feePayerKey]).sendOrThrowIfError();
+        await tx.sign([feePayerKey]).send();
       }).rejects.toThrow(/unsatisfied/);
     }
   });
@@ -263,7 +263,7 @@ describe('preconditions', () => {
         precondition().assertEquals(p.not());
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
         /unsatisfied/
       );
     }
@@ -276,7 +276,7 @@ describe('preconditions', () => {
         precondition().requireEquals(p.not());
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
         /unsatisfied/
       );
     }
@@ -288,9 +288,7 @@ describe('preconditions', () => {
       zkapp.account.delegate.assertEquals(publicKey);
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
-      /unsatisfied/
-    );
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied requireEquals should be rejected (public key)', async () => {
@@ -299,9 +297,7 @@ describe('preconditions', () => {
       zkapp.account.delegate.requireEquals(publicKey);
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
-      /unsatisfied/
-    );
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied assertBetween should be rejected', async () => {
@@ -311,7 +307,7 @@ describe('preconditions', () => {
         precondition().assertBetween(p.add(20), p.add(30));
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
         /unsatisfied/
       );
     }
@@ -324,7 +320,7 @@ describe('preconditions', () => {
         precondition().requireBetween(p.add(20), p.add(30));
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
         /unsatisfied/
       );
     }
@@ -335,9 +331,7 @@ describe('preconditions', () => {
       zkapp.currentSlot.assertBetween(UInt32.from(20), UInt32.from(30));
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
-      /unsatisfied/
-    );
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied currentSlot.requireBetween should be rejected', async () => {
@@ -345,9 +339,7 @@ describe('preconditions', () => {
       zkapp.currentSlot.requireBetween(UInt32.from(20), UInt32.from(30));
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.sign([feePayerKey]).sendOrThrowIfError()).rejects.toThrow(
-      /unsatisfied/
-    );
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   // TODO: is this a gotcha that should be addressed?
@@ -359,9 +351,7 @@ describe('preconditions', () => {
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    expect(() =>
-      tx.sign([zkappKey, feePayerKey]).sendOrThrowIfError()
-    ).toThrow();
+    expect(() => tx.sign([zkappKey, feePayerKey]).send()).toThrow();
   });
 });
 
