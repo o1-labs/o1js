@@ -21,7 +21,7 @@ import { FieldConst, FieldVar } from './field.js';
 const EmptyProgram = ZkProgram({
   name: 'empty',
   publicInput: Field,
-  methods: { run: { privateInputs: [], method: (_) => {} } },
+  methods: { run: { privateInputs: [], async method(_) {} } },
 });
 
 class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
@@ -108,7 +108,7 @@ const program = ZkProgram({
   methods: {
     baseCase: {
       privateInputs: [Provable.Array(Field, N)],
-      method(_: Field[]) {},
+      async method(_: Field[]) {},
     },
   },
 });
@@ -138,10 +138,10 @@ const CounterProgram = ZkProgram({
   methods: {
     increment: {
       privateInputs: [UInt64],
-      method: (
+      async method(
         { current, updated }: CounterPublicInput,
         incrementBy: UInt64
-      ) => {
+      ) {
         const newCount = current.add(incrementBy);
         newCount.assertEquals(updated);
       },

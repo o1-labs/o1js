@@ -36,7 +36,7 @@ const MyProgram = ZkProgram({
   methods: {
     verifySignature: {
       privateInputs: [Signature, Message],
-      method(signature: Signature, message: Field[]) {
+      async method(signature: Signature, message: Field[]) {
         signature.verify(publicKey, message).assertTrue();
       },
     },
