@@ -112,7 +112,7 @@ type Transaction = {
    * }
    * ```
    */
-  sendSafe(): Promise<PendingTransaction | RejectedTransaction>;
+  safeSend(): Promise<PendingTransaction | RejectedTransaction>;
 };
 
 /**
@@ -422,7 +422,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    async sendSafe() {
+    async safeSend() {
       const pendingTransaction = await sendTransaction(self);
       if (pendingTransaction.errors.length > 0) {
         return createRejectedTransaction(
