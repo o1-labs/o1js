@@ -109,10 +109,10 @@ async function sendAndVerifyTransaction(
   await transaction.prove();
   if (throwOnFail) {
     const pendingTransaction = await transaction.send();
-    return await pendingTransaction.waitOrThrowIfError();
+    return await pendingTransaction.wait();
   } else {
     const pendingTransaction = await transaction.send();
-    return await pendingTransaction.wait();
+    return await pendingTransaction.safeWait();
   }
 }
 
