@@ -1,4 +1,13 @@
-import { Field, PrivateKey, SmartContract, State, method, state } from 'o1js';
+import {
+  Field,
+  PrivateKey,
+  Provable,
+  SmartContract,
+  State,
+  assert,
+  method,
+  state,
+} from 'o1js';
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();
@@ -13,7 +22,13 @@ export class HelloWorld extends SmartContract {
   }
 
   @method async update(squared: Field, admin: PrivateKey) {
-    const x = this.x.get();
+    // explicitly fetch state from the chain
+    const x = await Provable.witnessAsync(Field, async () => {
+      let x = await this.x.fetch();
+      assert(x !== undefined, 'x can be fetched');
+      return x;
+    });
+
     this.x.requireNothing();
     x.square().assertEquals(squared);
     this.x.set(squared);
