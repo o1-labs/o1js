@@ -188,25 +188,6 @@ await testLocalAndRemote(async () => {
 console.log('');
 
 console.log(
-  "Test calling successful 'update' method does not throw with throwOnFail is false"
-);
-await testLocalAndRemote(async () => {
-  await assert.doesNotReject(async () => {
-    const transaction = await Mina.transaction(
-      { sender, fee: transactionFee },
-      () => {
-        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
-      }
-    );
-    transaction.sign([senderKey, zkAppKey]);
-    const includedTransaction = await sendAndVerifyTransaction(transaction);
-    assert(includedTransaction.status === 'included');
-    await Mina.fetchEvents(zkAppAddress, TokenId.default);
-  });
-});
-console.log('');
-
-console.log(
   "Test calling successful 'update' method does not throw with throwOnFail is true"
 );
 await testLocalAndRemote(async () => {
@@ -222,6 +203,25 @@ await testLocalAndRemote(async () => {
       transaction,
       true
     );
+    assert(includedTransaction.status === 'included');
+    await Mina.fetchEvents(zkAppAddress, TokenId.default);
+  });
+});
+console.log('');
+
+console.log(
+  "Test calling successful 'update' method does not throw with throwOnFail is false"
+);
+await testLocalAndRemote(async () => {
+  await assert.doesNotReject(async () => {
+    const transaction = await Mina.transaction(
+      { sender, fee: transactionFee },
+      () => {
+        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
+      }
+    );
+    transaction.sign([senderKey, zkAppKey]);
+    const includedTransaction = await sendAndVerifyTransaction(transaction);
     assert(includedTransaction.status === 'included');
     await Mina.fetchEvents(zkAppAddress, TokenId.default);
   });
