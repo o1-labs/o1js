@@ -115,7 +115,7 @@ async function sendAndVerifyTransaction(
     if (pendingTransaction.status === 'pending') {
       return await pendingTransaction.safeWait();
     } else {
-      throw Error('Transaction failed');
+      return pendingTransaction;
     }
   }
 }
