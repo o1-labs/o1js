@@ -37,6 +37,7 @@ import {
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionStatus,
   createTransaction,
   newTransaction,
   transaction,
@@ -57,9 +58,10 @@ export {
   Network,
   currentTransaction,
   Transaction,
-  PendingTransaction,
-  IncludedTransaction,
-  RejectedTransaction,
+  type PendingTransaction,
+  type IncludedTransaction,
+  type RejectedTransaction,
+  type PendingTransactionStatus,
   activeInstance,
   setActiveInstance,
   transaction,
@@ -271,11 +273,12 @@ function Network(
         response?.errors.forEach((e: any) => errors.push(JSON.stringify(e)));
       }
 
-      const isSuccess = errors.length === 0;
+      const status: PendingTransactionStatus =
+        errors.length === 0 ? 'pending' : 'rejected';
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
         {
-          isSuccess,
+          status,
           data: response?.data,
           errors,
           transaction: txn.transaction,
@@ -356,7 +359,7 @@ function Network(
         maxAttempts?: number;
         interval?: number;
       }): Promise<IncludedTransaction | RejectedTransaction> => {
-        if (!isSuccess) {
+        if (status === 'rejected') {
           return createRejectedTransaction(
             pendingTransaction,
             pendingTransaction.errors

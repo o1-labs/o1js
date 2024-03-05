@@ -111,8 +111,10 @@ async function sendAndVerifyTransaction(
     const pendingTransaction = await transaction.send();
     return await pendingTransaction.wait();
   } else {
-    const pendingTransaction = await transaction.send();
-    return await pendingTransaction.safeWait();
+    const pendingTransaction = await transaction.safeSend();
+    if (pendingTransaction.status === 'pending') {
+      return await pendingTransaction.safeWait();
+    }
   }
 }
 

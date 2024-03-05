@@ -23,6 +23,7 @@ import {
   createRejectedTransaction,
   IncludedTransaction,
   RejectedTransaction,
+  PendingTransactionStatus,
 } from './transaction.js';
 import {
   type DeprecatedFeePayerSpec,
@@ -174,7 +175,7 @@ function LocalBlockchain({
         }
       }
 
-      let isSuccess = true;
+      let status: PendingTransactionStatus = 'pending';
       const errors: string[] = [];
       try {
         ledger.applyJsonTransaction(
@@ -183,7 +184,7 @@ function LocalBlockchain({
           JSON.stringify(networkState)
         );
       } catch (err: any) {
-        isSuccess = false;
+        status = 'rejected';
         try {
           const errorMessages = JSON.parse(err.message);
           const formattedError = invalidTransactionError(
@@ -262,7 +263,7 @@ function LocalBlockchain({
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
         {
-          isSuccess,
+          status,
           errors,
           transaction: txn.transaction,
           hash,
@@ -289,7 +290,7 @@ function LocalBlockchain({
         maxAttempts?: number;
         interval?: number;
       }): Promise<IncludedTransaction | RejectedTransaction> => {
-        if (!isSuccess) {
+        if (status === 'rejected') {
           return createRejectedTransaction(
             pendingTransaction,
             pendingTransaction.errors

@@ -31,6 +31,7 @@ export {
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionStatus,
   createTransaction,
   sendTransaction,
   newTransaction,
@@ -115,6 +116,7 @@ type Transaction = {
   safeSend(): Promise<PendingTransaction | RejectedTransaction>;
 };
 
+type PendingTransactionStatus = 'pending' | 'rejected';
 /**
  * Represents a transaction that has been submitted to the blockchain but has not yet reached a final state.
  * The {@link PendingTransaction} type extends certain functionalities from the base {@link Transaction} type,
@@ -144,7 +146,7 @@ type PendingTransaction = Pick<
    * }
    * ```
    */
-  isSuccess: boolean;
+  status: PendingTransactionStatus;
 
   /**
    * Waits for the transaction to be finalized and returns the result.
