@@ -2,7 +2,7 @@
  * Benchmark runner
  */
 import jStat from 'jstat';
-export { BenchmarkResult, benchmark, printResult, pValue };
+export { BenchmarkResult, Benchmark, benchmark, printResult, pValue };
 
 type BenchmarkResult = {
   label: string;
@@ -11,7 +11,9 @@ type BenchmarkResult = {
   variance: number;
 };
 
-async function benchmark(
+type Benchmark = { run: () => Promise<BenchmarkResult[]> };
+
+function benchmark(
   label: string,
   run:
     | ((
@@ -23,57 +25,61 @@ async function benchmark(
     numberOfRuns?: number;
     numberOfWarmups?: number;
   }
-): Promise<BenchmarkResult[]> {
-  const { numberOfRuns = 5, numberOfWarmups = 0 } = options ?? {};
+): Benchmark {
+  return {
+    async run() {
+      const { numberOfRuns = 5, numberOfWarmups = 0 } = options ?? {};
 
-  let lastStartKey: string;
-  let startTime: Record<string, number | undefined> = {}; // key: startTime
-  let runTimes: Record<string, number[]> = {}; // key: [(endTime - startTime)]
+      let lastStartKey: string;
+      let startTime: Record<string, number | undefined> = {}; // key: startTime
+      let runTimes: Record<string, number[]> = {}; // key: [(endTime - startTime)]
 
-  function reset() {
-    startTime = {};
-  }
+      function reset() {
+        startTime = {};
+      }
 
-  function start(key?: string) {
-    lastStartKey = key ?? '';
-    key = getKey(label, key);
-    if (startTime[key] !== undefined)
-      throw Error('running `start(label)` with an already started label');
-    startTime[key] = performance.now();
-  }
+      function start(key?: string) {
+        lastStartKey = key ?? '';
+        key = getKey(label, key);
+        if (startTime[key] !== undefined)
+          throw Error('running `start(label)` with an already started label');
+        startTime[key] = performance.now();
+      }
 
-  function stop(key?: string) {
-    let end = performance.now();
-    key ??= lastStartKey;
-    if (key === undefined) {
-      throw Error('running `stop()` with no start defined');
-    }
-    key = getKey(label, key);
-    let start_ = startTime[key];
-    startTime[key] = undefined;
-    if (start_ === undefined)
-      throw Error('running `stop()` with no start defined');
-    let times = (runTimes[key] ??= []);
-    times.push(end - start_);
-  }
+      function stop(key?: string) {
+        let end = performance.now();
+        key ??= lastStartKey;
+        if (key === undefined) {
+          throw Error('running `stop()` with no start defined');
+        }
+        key = getKey(label, key);
+        let start_ = startTime[key];
+        startTime[key] = undefined;
+        if (start_ === undefined)
+          throw Error('running `stop()` with no start defined');
+        let times = (runTimes[key] ??= []);
+        times.push(end - start_);
+      }
 
-  let noop = () => {};
-  for (let i = 0; i < numberOfWarmups; i++) {
-    reset();
-    await run(noop, noop);
-  }
-  for (let i = 0; i < numberOfRuns; i++) {
-    reset();
-    await run(start, stop);
-  }
+      let noop = () => {};
+      for (let i = 0; i < numberOfWarmups; i++) {
+        reset();
+        await run(noop, noop);
+      }
+      for (let i = 0; i < numberOfRuns; i++) {
+        reset();
+        await run(start, stop);
+      }
 
-  const results: BenchmarkResult[] = [];
+      const results: BenchmarkResult[] = [];
 
-  for (let label in runTimes) {
-    let times = runTimes[label];
-    results.push({ label, ...getStatistics(times) });
-  }
-  return results;
+      for (let label in runTimes) {
+        let times = runTimes[label];
+        results.push({ label, ...getStatistics(times) });
+      }
+      return results;
+    },
+  };
 }
 
 function getKey(label: string, key?: string) {

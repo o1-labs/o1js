@@ -20,7 +20,7 @@ let publicKey = Secp256k1.generator.scale(privateKey);
 let message = Bytes32.fromString("what's up");
 let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
-let results = await benchmark(
+const EcdsaBenchmark = benchmark(
   'ecdsa',
   async (tic, toc) => {
     tic('build constraint system');
@@ -41,6 +41,7 @@ let results = await benchmark(
 );
 
 // mock: load previous results
+
 let previousResults: BenchmarkResult[] = [
   {
     label: 'ecdsa - build constraint system',
@@ -55,6 +56,10 @@ let previousResults: BenchmarkResult[] = [
     size: 5,
   },
 ];
+
+// run benchmark
+
+let results = await EcdsaBenchmark.run();
 
 // example for how to log results
 // criterion-style comparison of result to previous one, check significant improvement
