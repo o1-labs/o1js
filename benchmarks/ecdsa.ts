@@ -6,14 +6,34 @@
  * ./run benchmarks/ecdsa.ts --bundle
  * ```
  */
-import { keccakAndEcdsa } from '../src/examples/crypto/ecdsa/ecdsa.js';
+import { Provable } from 'o1js';
+import {
+  keccakAndEcdsa,
+  Secp256k1,
+  Ecdsa,
+  Bytes32,
+} from '../src/examples/crypto/ecdsa/ecdsa.js';
 import { BenchmarkResult, benchmark, printResult } from './benchmark.js';
+
+let privateKey = Secp256k1.Scalar.random();
+let publicKey = Secp256k1.generator.scale(privateKey);
+let message = Bytes32.fromString("what's up");
+let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
 let results = await benchmark(
   'ecdsa',
   async (tic, toc) => {
     tic('build constraint system');
-    await keccakAndEcdsa.analyzeMethods();
+    keccakAndEcdsa.analyzeMethods();
+    toc();
+
+    tic('ecdsa verify (witness gen / check)');
+    Provable.runAndCheck(() => {
+      let message_ = Provable.witness(Bytes32.provable, () => message);
+      let signature_ = Provable.witness(Ecdsa.provable, () => signature);
+      let publicKey_ = Provable.witness(Secp256k1.provable, () => publicKey);
+      keccakAndEcdsa.rawMethods.verifyEcdsa(message_, signature_, publicKey_);
+    });
     toc();
   },
   // two warmups to ensure full caching
@@ -24,9 +44,15 @@ let results = await benchmark(
 let previousResults: BenchmarkResult[] = [
   {
     label: 'ecdsa - build constraint system',
-    size: 5,
     mean: 3103.639612600001,
     variance: 72678.9751211293,
+    size: 5,
+  },
+  {
+    label: 'ecdsa - ecdsa verify (witness gen / check)',
+    mean: 2062.8708897999995,
+    variance: 13973.913943626918,
+    size: 5,
   },
 ];
 

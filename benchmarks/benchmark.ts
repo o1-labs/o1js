@@ -98,7 +98,7 @@ function printResult(
   result: BenchmarkResult,
   previousResult?: BenchmarkResult
 ) {
-  console.log(result.label);
+  console.log(result.label + `\n`);
   console.log(`time: ${resultToString(result)}`);
 
   if (previousResult === undefined) return;
@@ -123,6 +123,7 @@ function printResult(
   } else {
     console.log('Change within noise threshold.');
   }
+  console.log('\n');
 }
 
 function resultToString({ mean, variance }: BenchmarkResult) {
