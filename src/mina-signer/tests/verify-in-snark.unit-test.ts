@@ -1,6 +1,6 @@
 import { Field } from '../../lib/core.js';
-import { ZkProgram } from '../../lib/proof_system.js';
-import Client from '../MinaSigner.js';
+import { ZkProgram } from '../../lib/proof-system.js';
+import Client from '../mina-signer.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
 import { expect } from 'expect';
 import { Provable } from '../../lib/provable.js';
@@ -32,6 +32,7 @@ signature.verify(publicKey, fieldsSnarky).assertTrue();
 const Message = Provable.Array(Field, fields.length);
 
 const MyProgram = ZkProgram({
+  name: 'verify-signature',
   methods: {
     verifySignature: {
       privateInputs: [Signature, Message],

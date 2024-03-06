@@ -1,16 +1,8 @@
-import {
-  SelfProof,
-  Field,
-  Experimental,
-  isReady,
-  shutdown,
-  Proof,
-} from '../index.js';
-import { tic, toc } from '../examples/zkapps/tictoc.js';
+import { SelfProof, Field, ZkProgram, Proof } from 'o1js';
+import { tic, toc } from '../examples/utils/tic-toc.node.js';
 
-await isReady;
-
-let MaxProofsVerifiedOne = Experimental.ZkProgram({
+let MaxProofsVerifiedOne = ZkProgram({
+  name: 'recursive-1',
   publicInput: Field,
 
   methods: {
@@ -45,7 +37,7 @@ async function testRecursion(
 ) {
   console.log(`testing maxProofsVerified = ${maxProofsVerified}`);
 
-  let ProofClass = Experimental.ZkProgram.Proof(Program);
+  let ProofClass = ZkProgram.Proof(Program);
 
   tic('executing base case');
   let initialProof = await Program.baseCase(Field(0));
@@ -84,5 +76,3 @@ function testJsonRoundtrip(ProofClass: any, proof: Proof<Field, void>) {
   );
   return ProofClass.fromJSON(jsonProof);
 }
-
-shutdown();

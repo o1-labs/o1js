@@ -1,8 +1,8 @@
-import { logEvents } from './e2eTestsHelpers.js';
+import { logEvents } from './e2e-tests-helpers.js';
 import {
   adminPrivateKey,
   HelloWorld,
-} from './examples/zkapps/hello_world/hello_world.js';
+} from './examples/zkapps/hello-world/hello-world.js';
 import {
   AccountUpdate,
   Field,

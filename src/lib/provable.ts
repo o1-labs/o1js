@@ -4,8 +4,8 @@
  * - the main interface for types that can be used in provable code
  */
 import { Field, Bool } from './core.js';
-import { ProvableBn254, Provable as Provable_, Snarky } from '../snarky.js';
-import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
+import { Provable as Provable_, Snarky } from '../snarky.js';
+import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
 import { Context } from './global-context.js';
 import {
   HashInput,
@@ -13,7 +13,6 @@ import {
   InferProvable,
   InferredProvable,
 } from '../bindings/lib/provable-snarky.js';
-import { isField } from './field.js';
 import {
   inCheckedComputation,
   inProver,
@@ -25,9 +24,6 @@ import {
   runUnchecked,
   constraintSystem,
 } from './provable-context.js';
-import { isBool } from './bool.js';
-import { FieldBn254 } from './field_bn254.js';
-import { BoolBn254 } from './bool_bn254.js';
 
 // external API
 export { Provable };
@@ -129,6 +125,17 @@ const Provable = {
    */
   Array: provableArray,
   /**
+   * Check whether a value is constant.
+   * See {@link FieldVar} for more information about constants and variables.
+   *
+   * @example
+   * ```ts
+   * let x = Field(42);
+   * Provable.isConstant(Field, x); // true
+   * ```
+   */
+  isConstant,
+  /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
    * ```ts
@@ -217,6 +224,16 @@ const Provable = {
    * ```
    */
   inCheckedComputation,
+
+  /**
+   * Returns a constant version of a provable type.
+   */
+  toConstant<T>(type: Provable<T>, value: T) {
+    return type.fromFields(
+      type.toFields(value).map((x) => x.toConstant()),
+      type.toAuxiliary(value)
+    );
+  },
 };
 
 function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
@@ -422,13 +439,7 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
       `If x, y are Structs or other custom types, you can use the following:\n` +
       `Provable.if(bool, MyType, x, y)`
     );
-  // TODO remove second condition once we have consolidated field class back into one
-  // if (type !== y.constructor) {
-  if (
-    type !== y.constructor &&
-    !(isField(x) && isField(y)) &&
-    !(isBool(x) && isBool(y))
-  ) {
+  if (type !== y.constructor) {
     throw Error(
       'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +
       `Provable.if(bool, MyType, x, y)`
@@ -482,44 +493,8 @@ function switch_<T, A extends FlexibleProvable<T>>(
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
-
-function switchBn254_<T, A extends ProvableBn254<T>>(
-  mask: BoolBn254[],
-  type: A,
-  values: T[]
-): T {
-  // picks the value at the index where mask is true
-  let nValues = values.length;
-  if (mask.length !== nValues)
-    throw Error(
-      `Provable.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
-    );
-  let checkMask = () => {
-    let nTrue = mask.filter((b) => b.toBoolean()).length;
-    if (nTrue > 1) {
-      throw Error(
-        `Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
-      );
-    }
-  };
-  if (mask.every((b) => b.toField().isConstant())) checkMask();
-  else Provable.asProverBn254(checkMask);
-  let size = type.sizeInFields();
-  let fields = Array(size).fill(new FieldBn254(0));
-  for (let i = 0; i < nValues; i++) {
-    let valueFields = type.toFields(values[i]);
-    let maskField = mask[i].toField();
-    for (let j = 0; j < size; j++) {
-      let maybeField = valueFields[j].mul(maskField);
-      fields[j] = fields[j].add(maybeField);
-    }
-  }
-  let aux = auxiliaryBn254(type as ProvableBn254<T>, () => {
-    let i = mask.findIndex((b) => b.toBoolean());
-    if (i === -1) return undefined;
-    return values[i];
-  });
-  return (type as ProvableBn254<T>).fromFields(fields, aux);
+function isConstant<T>(type: Provable<T>, x: T): boolean {
+  return type.toFields(x).every((x) => x.isConstant());
 }
 
 // logging in provable code
@@ -729,6 +704,13 @@ function provableArray<A extends FlexibleProvable<any>>(
         (curr, value) => HashInput.append(curr, type.toInput(value)),
         HashInput.empty
       );
+    },
+
+    empty() {
+      if (!('empty' in type)) {
+        throw Error('circuitArray.empty: element type has no empty() method');
+      }
+      return Array.from({ length }, () => type.empty());
     },
   } satisfies ProvableExtended<T[], TJson[]> as any;
 }
