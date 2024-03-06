@@ -27,7 +27,7 @@ const EcdsaBenchmark = benchmark(
     keccakAndEcdsa.analyzeMethods();
     toc();
 
-    tic('ecdsa verify (witness gen / check)');
+    tic('witness generation');
     Provable.runAndCheck(() => {
       let message_ = Provable.witness(Bytes32.provable, () => message);
       let signature_ = Provable.witness(Ecdsa.provable, () => signature);
@@ -50,7 +50,7 @@ let previousResults: BenchmarkResult[] = [
     size: 5,
   },
   {
-    label: 'ecdsa - ecdsa verify (witness gen / check)',
+    label: 'ecdsa - witness generation',
     mean: 2062.8708897999995,
     variance: 13973.913943626918,
     size: 5,
