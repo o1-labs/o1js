@@ -1,11 +1,17 @@
 import { Context } from './global-context.js';
-import { Gate, GateType, JsonGate, Snarky } from '../snarky.js';
+import { Gate, GateType, JsonGate, ProvablePure, Snarky } from '../snarky.js';
 import { parseHexString32 } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite-field.js';
+import { FlexibleProvablePure } from './circuit-value.js';
+import { Proof, Subclass } from './proof-system.js';
+import { Bool } from './bool.js';
 
 // internal API
 export {
+  ProofContext,
+  circuitContext,
+  CircuitContext,
   snarkContext,
   SnarkContext,
   asProver,
@@ -22,6 +28,29 @@ export {
 };
 
 // global circuit-related context
+
+type ProofContext = {
+  proofClass: Subclass<typeof Proof>;
+  publicInput: ProvablePure<unknown>;
+  publicOutput: ProvablePure<unknown>;
+  proof: unknown;
+  shouldVerify: Bool;
+  maxProofsVerified: number;
+};
+// context that observes and collects meta data about circuits and their methods
+type CircuitContext = {
+  methodName: string;
+  proofs: ProofContext[];
+};
+let circuitContext = Context.create<null | CircuitContext>({});
+
+const CircuitContext = {
+  enter(methodName: string) {
+    let context: CircuitContext = { methodName, proofs: [] };
+    let id = circuitContext.enter(context);
+    return { id, context };
+  },
+};
 
 type SnarkContext = {
   witnesses?: unknown[];

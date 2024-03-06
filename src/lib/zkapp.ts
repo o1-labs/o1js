@@ -291,7 +291,8 @@ function wrapMethod(
                 // proofs actually don't have to be cloned
                 previousProofs: getPreviousProofsForProver(
                   actualArgs,
-                  methodIntf
+                  methodIntf,
+                  []
                 ),
                 ZkappClass,
                 memoized,
@@ -396,7 +397,8 @@ function wrapMethod(
               args: constantArgs,
               previousProofs: getPreviousProofsForProver(
                 constantArgs,
-                methodIntf
+                methodIntf,
+                []
               ),
               ZkappClass,
               memoized,
@@ -627,6 +629,7 @@ class SmartContract extends SmartContractBase {
       proofSystemTag: this,
       cache,
       forceRecompile,
+      witnessedProofs: [],
     });
     this._provers = provers;
     this._verificationKey = verificationKey;
@@ -1131,7 +1134,7 @@ super.init();
               accountUpdate = instance.#executionState!.accountUpdate;
               return result;
             }
-          );
+          ).cs;
           methodMetadata[methodIntf.methodName] = {
             actions: accountUpdate!.body.actions.data.length,
             rows,
