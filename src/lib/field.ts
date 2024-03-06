@@ -882,12 +882,10 @@ class Field {
   }
 
   /**
-   * Assert that this {@link Field} is equal to 1 or 0 as a "field-like" value.
-   * Calling this function is equivalent to `Bool.or(Field(...).equals(1), Field(...).equals(0)).assertEquals(Bool(true))`.
+   * Prove that this {@link Field} is equal to 0 or 1.
    *
-   * **Important**: If an assertion fails, the code throws an error.
+   * If the assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
   assertBool(message?: string) {

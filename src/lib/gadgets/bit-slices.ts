@@ -123,7 +123,7 @@ function sliceField(
     let remainingChunk = Field.from(0n);
     for (let i = 0; i < size; i++) {
       let bit = bits[i];
-      Bool.check(Bool.Unsafe.ofField(bit));
+      bit.assertBool();
       remainingChunk = remainingChunk.add(bit.mul(1n << BigInt(i)));
     }
     sum = remainingChunk = remainingChunk.seal();
@@ -141,7 +141,7 @@ function sliceField(
     let size = Math.min(maxBits - i, chunkSize); // last chunk might be smaller
     for (let j = 0; j < size; j++) {
       let bit = bits[i + j];
-      Bool.check(Bool.Unsafe.ofField(bit));
+      bit.assertBool();
       chunk = chunk.add(bit.mul(1n << BigInt(j)));
     }
     chunk = chunk.seal();

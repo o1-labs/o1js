@@ -10,7 +10,6 @@ import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
-import { assertBoolean } from './gadgets/basic.js';
 
 export { BoolVar, Bool };
 
@@ -322,19 +321,19 @@ class Bool {
   static sizeInBytes = 1;
 
   static check(x: Bool): void {
-    assertBoolean(x.toField());
+    x.toField().assertBool();
   }
 
   static Unsafe = {
     /**
-     * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
+     * Converts a {@link Field} into a {@link Bool}. This is an **unsafe** operation
      * as it assumes that the field element is either 0 or 1 (which might not be true).
      *
-     * Only use this with constants or if you have already constrained the Field element to be 0 or 1.
+     * Only use this if you have already constrained the Field element to be 0 or 1.
      *
      * @param x a {@link Field}
      */
-    ofField(x: Field) {
+    fromField(x: Field) {
       asProver(() => {
         let x0 = x.toBigInt();
         if (x0 !== 0n && x0 !== 1n)

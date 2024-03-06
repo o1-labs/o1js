@@ -1,4 +1,3 @@
-import { Bool } from '../bool.js';
 import { provableTuple } from '../circuit-value.js';
 import { Field } from '../core.js';
 import { assert } from '../errors.js';
@@ -34,7 +33,7 @@ function divMod32(n: Field, quotientBits = 32) {
   );
 
   if (quotientBits === 1) {
-    Bool.check(Bool.Unsafe.ofField(quotient));
+    quotient.assertBool();
   } else {
     rangeCheckN(quotientBits, quotient);
   }
