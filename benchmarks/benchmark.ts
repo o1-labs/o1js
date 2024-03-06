@@ -1,12 +1,13 @@
 /**
  * Benchmark runner
  */
-export { BenchmarkResult, benchmark, printResults };
+import jStat from 'jstat';
+export { BenchmarkResult, benchmark, printResults, pValue };
 
 type BenchmarkResult = {
   label: string;
   mean: number;
-  stdDev: number;
+  variance: number;
   full: number[];
 };
 
@@ -88,9 +89,9 @@ function getStatistics(numbers: number[]) {
   }
   let n = numbers.length;
   let mean = sum / n;
-  let stdDev = Math.sqrt((sumSquares - sum ** 2 / n) / (n - 1)) / mean;
+  let variance = (sumSquares - sum ** 2 / n) / (n - 1);
 
-  return { mean, stdDev, full: numbers };
+  return { mean, variance, full: numbers };
 }
 
 function printResults(results: BenchmarkResult[]) {
@@ -99,6 +100,27 @@ function printResults(results: BenchmarkResult[]) {
   }
 }
 
-function resultToString({ mean, stdDev }: BenchmarkResult) {
-  return `${mean.toFixed(2)}ms ± ${(stdDev * 100).toFixed(1)}%`;
+function resultToString({ mean, variance }: BenchmarkResult) {
+  return `${mean.toFixed(3)}ms ± ${((Math.sqrt(variance) / mean) * 100).toFixed(
+    1
+  )}%`;
+}
+
+function pValue(sample1: BenchmarkResult, sample2: BenchmarkResult): number {
+  const n1 = sample1.full.length;
+  const n2 = sample2.full.length;
+  const mean1 = sample1.mean;
+  const mean2 = sample2.mean;
+  const var1 = sample1.variance / n1;
+  const var2 = sample2.variance / n2;
+
+  // calculate the t-statistic
+  const tStatistic = (mean1 - mean2) / Math.sqrt(var1 + var2);
+
+  // degrees of freedom
+  const df = (var1 + var2) ** 2 / (var1 ** 2 / (n1 - 1) + var2 ** 2 / (n2 - 1));
+
+  // calculate the (two-sided) p-value indicating a significant change
+  const pValue = 2 * (1 - jStat.studentt.cdf(Math.abs(tStatistic), df));
+  return pValue;
 }
