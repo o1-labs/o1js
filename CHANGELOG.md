@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
 
+### Added
+
+- Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
+
 ## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
 
 ### Breaking changes
