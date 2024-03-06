@@ -21,11 +21,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
-- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422
+- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422 https://github.com/o1-labs/o1js/pull/1480
   - Changed the `TransactionId` type to `Transaction`. Additionally added `PendingTransaction` and `RejectedTransaction` types to better represent the state of a transaction.
-  - `transaction.send()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns a `PendingTransaction` object that contains the error. Use `transaction.sendOrThrowIfError` to throw the error if the transaction was not successful.
-  - `transaction.wait()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns either a `IncludedTransaction` or `RejectedTransaction`. Use `transaction.waitOrThrowIfError` to throw the error if the transaction was not successful.
+  - `Transaction.safeSend()` and `PendingTransaction.safeWait()` are introduced to return a `IncludedTransaction` or `RejectedTransaction` object without throwing errors.
+  - `transaction.send()` throws an error if the transaction was not successful for both `Mina.LocalBlockchain` and `Mina.Network` and returns a `PendingTransaction` object if it was successful. Use `transaction.safeSend` to send a transaction that will not throw an error and either return a `PendingTransaction` or `RejectedTransaction`.
+  - `transaction.wait()` throws an error if the transaction was not successful for both `Mina.LocalBlockchain` and `Mina.Network` and returns a `IncludedTransaction` object if it was successful. Use `transaction.safeWait` to send a transaction that will not throw an error and either return a `IncludedTransaction` or `RejectedTransaction`.
   - `transaction.hash()` is no longer a function, it is now a property that returns the hash of the transaction.
+  - Changed `Transaction.isSuccess` to `Transaction.status` to better represent the state of a transaction.
 - Improved efficiency of computing `AccountUpdate.callData` by packing field elements into as few field elements as possible https://github.com/o1-labs/o1js/pull/1458
   - This leads to a large reduction in the number of constraints used when inputs to a zkApp method are many field elements (e.g. a long list of `Bool`s)
 - Return events in the `LocalBlockchain` in reverse chronological order (latest events at the beginning) to match the behavior of the `Network` https://github.com/o1-labs/o1js/pull/1460

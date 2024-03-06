@@ -120,7 +120,7 @@ function createAccountUpdate() {
     AccountUpdate.fundNewAccount(feePayer);
   });
   tx.sign();
-  await expect(tx.sendOrThrowIfError()).rejects.toThrow(
+  await expect(tx.send()).rejects.toThrow(
     'Check signature: Invalid signature on fee payer for key'
   );
 }
