@@ -108,11 +108,15 @@ async function sendAndVerifyTransaction(
 ) {
   await transaction.prove();
   if (throwOnFail) {
-    const pendingTransaction = await transaction.sendOrThrowIfError();
-    return await pendingTransaction.waitOrThrowIfError();
-  } else {
     const pendingTransaction = await transaction.send();
     return await pendingTransaction.wait();
+  } else {
+    const pendingTransaction = await transaction.safeSend();
+    if (pendingTransaction.status === 'pending') {
+      return await pendingTransaction.safeWait();
+    } else {
+      return pendingTransaction;
+    }
   }
 }
 
@@ -188,25 +192,6 @@ await testLocalAndRemote(async () => {
 console.log('');
 
 console.log(
-  "Test calling successful 'update' method does not throw with throwOnFail is false"
-);
-await testLocalAndRemote(async () => {
-  await assert.doesNotReject(async () => {
-    const transaction = await Mina.transaction(
-      { sender, fee: transactionFee },
-      async () => {
-        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
-      }
-    );
-    transaction.sign([senderKey, zkAppKey]);
-    const includedTransaction = await sendAndVerifyTransaction(transaction);
-    assert(includedTransaction.status === 'included');
-    await Mina.fetchEvents(zkAppAddress, TokenId.default);
-  });
-});
-console.log('');
-
-console.log(
   "Test calling successful 'update' method does not throw with throwOnFail is true"
 );
 await testLocalAndRemote(async () => {
@@ -222,6 +207,25 @@ await testLocalAndRemote(async () => {
       transaction,
       true
     );
+    assert(includedTransaction.status === 'included');
+    await Mina.fetchEvents(zkAppAddress, TokenId.default);
+  });
+});
+console.log('');
+
+console.log(
+  "Test calling successful 'update' method does not throw with throwOnFail is false"
+);
+await testLocalAndRemote(async () => {
+  await assert.doesNotReject(async () => {
+    const transaction = await Mina.transaction(
+      { sender, fee: transactionFee },
+      async () => {
+        zkApp.update(Field(1), PrivateKey.random().toPublicKey());
+      }
+    );
+    transaction.sign([senderKey, zkAppKey]);
+    const includedTransaction = await sendAndVerifyTransaction(transaction);
     assert(includedTransaction.status === 'included');
     await Mina.fetchEvents(zkAppAddress, TokenId.default);
   });

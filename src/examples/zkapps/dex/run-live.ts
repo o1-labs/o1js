@@ -286,7 +286,7 @@ async function ensureFundedAccount(privateKeyBase58: string) {
 }
 
 function logPendingTransaction(pendingTx: Mina.PendingTransaction) {
-  if (!pendingTx.isSuccess) throw Error('transaction failed');
+  if (pendingTx.status === 'rejected') throw Error('transaction failed');
   console.log(
     'tx sent: ' +
       (useCustomLocalNetwork
