@@ -5,6 +5,7 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
+import { assertBoolean } from './gadgets/basic.js';
 
 // external API
 export { Field };
@@ -898,7 +899,7 @@ class Field {
         }
         return;
       }
-      Snarky.field.assertBoolean(this.value);
+      assertBoolean(this);
     } catch (err) {
       throw withMessage(err, message);
     }

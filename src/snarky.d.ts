@@ -250,10 +250,6 @@ declare const Snarky: {
      */
     assertSquare(x: FieldVar, y: FieldVar): void;
     /**
-     * x*x === x without handling of constants
-     */
-    assertBoolean(x: FieldVar): void;
-    /**
      * check x < y and x <= y
      */
     compare(

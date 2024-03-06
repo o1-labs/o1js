@@ -10,6 +10,7 @@ import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
+import { assertBoolean } from './gadgets/basic.js';
 
 export { BoolVar, Bool };
 
@@ -321,7 +322,7 @@ class Bool {
   static sizeInBytes = 1;
 
   static check(x: Bool): void {
-    Snarky.field.assertBoolean(x.value);
+    assertBoolean(x.toField());
   }
 
   static Unsafe = {
