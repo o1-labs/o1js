@@ -123,9 +123,9 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
 
-  await expect(
-    tx.sign([feePayerKey, keys.dex]).sendOrThrowIfError()
-  ).rejects.toThrow(/Cannot update field 'delegate'/);
+  await expect(tx.sign([feePayerKey, keys.dex]).send()).rejects.toThrow(
+    /Cannot update field 'delegate'/
+  );
 
   console.log('changing delegate permission back to normal');
 
@@ -185,9 +185,9 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     fieldUpdate.requireSignature();
   });
   await tx.prove();
-  await expect(
-    tx.sign([feePayerKey, keys.dex]).sendOrThrowIfError()
-  ).rejects.toThrow(/Cannot update field 'delegate'/);
+  await expect(tx.sign([feePayerKey, keys.dex]).send()).rejects.toThrow(
+    /Cannot update field 'delegate'/
+  );
 
   /**
    * # Atomic Actions 3
@@ -464,9 +464,9 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     await modifiedDex.deploy(); // cannot deploy new VK because its forbidden
   });
   await tx.prove();
-  await expect(
-    tx.sign([feePayerKey, keys.dex]).sendOrThrowIfError()
-  ).rejects.toThrow(/Cannot update field 'verificationKey'/);
+  await expect(tx.sign([feePayerKey, keys.dex]).send()).rejects.toThrow(
+    /Cannot update field 'verificationKey'/
+  );
 
   console.log('trying to invoke modified swap method');
   // method should still be valid since the upgrade was forbidden

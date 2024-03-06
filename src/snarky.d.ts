@@ -194,6 +194,10 @@ declare const Snarky: {
    */
   run: {
     /**
+     * Checks whether Snarky runs in "prover mode", that is, with witnesses
+     */
+    inProver(): MlBool;
+    /**
      * Runs code as a prover.
      */
     asProver(f: () => void): void;
@@ -217,13 +221,17 @@ declare const Snarky: {
       public_inputs: FieldVector,
       auxiliary_inputs: FieldVector
     ];
+    /**
+     * Starts an asProver / witness block and returns a function to finish it.
+     */
+    enterAsProver(
+      size: number
+    ): (fields: MlOption<MlArray<FieldConst>>) => MlArray<VarFieldVar>;
 
     /**
      * Snarky's internal state
      */
     state: {
-      state: MlRef<SnarkyState>;
-
       allocVar(state: SnarkyState): FieldVar;
       storeFieldElt(state: SnarkyState, x: FieldConst): FieldVar;
       getVariableValue(state: SnarkyState, x: FieldVar): FieldConst;

@@ -331,7 +331,7 @@ describe('Token', () => {
             tokenZkapp.requireSignature();
           })
         ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
-        await expect(tx.sendOrThrowIfError()).rejects.toThrow();
+        await expect(tx.send()).rejects.toThrow();
       });
     });
 
@@ -399,7 +399,7 @@ describe('Token', () => {
           })
         ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
 
-        await expect(tx.sendOrThrowIfError()).rejects.toThrow();
+        await expect(tx.send()).rejects.toThrow();
       });
 
       test('should error if sender sends more tokens than they have', async () => {
@@ -423,7 +423,7 @@ describe('Token', () => {
             tokenZkapp.requireSignature();
           })
         ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
-        await expect(tx.sendOrThrowIfError()).rejects.toThrow();
+        await expect(tx.send()).rejects.toThrow();
       });
     });
   });
@@ -584,9 +584,9 @@ describe('Token', () => {
           });
           AccountUpdate.attachToTransaction(tokenZkapp.self);
         });
-        await expect(
-          tx.sign([feePayerKey]).sendOrThrowIfError()
-        ).rejects.toThrow(/Update_not_permitted_access/);
+        await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+          /Update_not_permitted_access/
+        );
       });
     });
   });
