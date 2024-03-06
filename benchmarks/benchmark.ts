@@ -2,13 +2,13 @@
  * Benchmark runner
  */
 import jStat from 'jstat';
-export { BenchmarkResult, benchmark, printResults, pValue };
+export { BenchmarkResult, benchmark, printResult, pValue };
 
 type BenchmarkResult = {
   label: string;
+  size: number;
   mean: number;
   variance: number;
-  full: number[];
 };
 
 async function benchmark(
@@ -69,9 +69,9 @@ async function benchmark(
 
   const results: BenchmarkResult[] = [];
 
-  for (let key in runTimes) {
-    let times = runTimes[key];
-    results.push({ label: key, ...getStatistics(times) });
+  for (let label in runTimes) {
+    let times = runTimes[label];
+    results.push({ label, ...getStatistics(times) });
   }
   return results;
 }
@@ -91,12 +91,37 @@ function getStatistics(numbers: number[]) {
   let mean = sum / n;
   let variance = (sumSquares - sum ** 2 / n) / (n - 1);
 
-  return { mean, variance, full: numbers };
+  return { mean, variance, size: n };
 }
 
-function printResults(results: BenchmarkResult[]) {
-  for (let result of results) {
-    console.log(`${result.label}: ${resultToString(result)}`);
+function printResult(
+  result: BenchmarkResult,
+  previousResult?: BenchmarkResult
+) {
+  console.log(result.label);
+  console.log(`time: ${resultToString(result)}`);
+
+  if (previousResult === undefined) return;
+
+  let change = (result.mean - previousResult.mean) / previousResult.mean;
+  let p = pValue(result, previousResult);
+
+  let changePositive = change > 0 ? '+' : '';
+  let pGreater = p > 0.05 ? '>' : '<';
+  console.log(
+    `change: ${changePositive}${(change * 100).toFixed(3)}% (p = ${p.toFixed(
+      2
+    )} ${pGreater} 0.05)`
+  );
+
+  if (p < 0.05) {
+    if (result.mean < previousResult.mean) {
+      console.log('Performance has improved');
+    } else {
+      console.log('Performance has regressed');
+    }
+  } else {
+    console.log('Change within noise threshold.');
   }
 }
 
@@ -107,8 +132,8 @@ function resultToString({ mean, variance }: BenchmarkResult) {
 }
 
 function pValue(sample1: BenchmarkResult, sample2: BenchmarkResult): number {
-  const n1 = sample1.full.length;
-  const n2 = sample2.full.length;
+  const n1 = sample1.size;
+  const n2 = sample2.size;
   const mean1 = sample1.mean;
   const mean2 = sample2.mean;
   const var1 = sample1.variance / n1;
