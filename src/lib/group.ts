@@ -425,7 +425,7 @@ class Group {
 
   static toInput(x: Group) {
     return {
-      fields: [[x.x], [x.y]],
+      fields: [x.x, x.y],
     };
   }
 }
