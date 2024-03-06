@@ -10,6 +10,7 @@ import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
+import { existsOne } from './gadgets/common.js';
 
 export { BoolVar, Bool };
 
@@ -63,7 +64,9 @@ class Bool {
     if (this.isConstant()) {
       return new Bool(!this.toBoolean());
     }
-    return new Bool(Snarky.bool.not(this.value));
+    // 1 - x
+    let not = new Field(1).sub(this.toField());
+    return new Bool(not.value);
   }
 
   /**
@@ -75,7 +78,8 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() && toBoolean(y));
     }
-    return new Bool(Snarky.bool.and(this.value, toFieldVar(y)));
+    // x * y
+    return new Bool(this.toField().mul(Bool.toField(y)).value);
   }
 
   /**
@@ -87,7 +91,8 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() || toBoolean(y));
     }
-    return new Bool(Snarky.bool.or(this.value, toFieldVar(y)));
+    // 1 - (1 - x)(1 - y) = x + y - xy
+    return this.not().and(new Bool(y).not()).not();
   }
 
   /**
@@ -102,7 +107,7 @@ class Bool {
         }
         return;
       }
-      Snarky.bool.assertEqual(this.value, toFieldVar(y));
+      this.toField().assertEquals(Bool.toField(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -144,7 +149,22 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() === toBoolean(y));
     }
-    return new Bool(Snarky.bool.equals(this.value, toFieldVar(y)));
+    if (isConstant(y)) {
+      if (toBoolean(y)) return this;
+      else return this.not();
+    }
+    if (this.isConstant()) {
+      return new Bool(y).equals(this);
+    }
+    // 1 - (x - y)^2 = 2xy - x - y + 1
+    // match snarky logic:
+    // 2x * y === x + y - z
+    // return 1 - z
+    let z = existsOne(() => BigInt(this.toBoolean() === toBoolean(y)));
+    let x = this.toField();
+    let y_ = Bool.toField(y);
+    Snarky.field.assertMul(x.add(x).value, y_.value, x.add(y_).sub(z).value);
+    return new Bool(z.value).not();
   }
 
   /**

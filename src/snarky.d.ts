@@ -467,18 +467,6 @@ declare const Snarky: {
     ): void;
   };
 
-  bool: {
-    not(x: BoolVar): BoolVar;
-
-    and(x: BoolVar, y: BoolVar): BoolVar;
-
-    or(x: BoolVar, y: BoolVar): BoolVar;
-
-    equals(x: BoolVar, y: BoolVar): BoolVar;
-
-    assertEqual(x: BoolVar, y: BoolVar): void;
-  };
-
   group: {
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
