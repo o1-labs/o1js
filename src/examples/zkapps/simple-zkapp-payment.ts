@@ -22,11 +22,14 @@ class SendMINAExample extends SmartContract {
   }
 
   @method withdraw(amount: UInt64) {
-    this.send({ to: this.sender.getAndRequireSignature(), amount });
+    // unconstrained because we don't care where the user wants to withdraw to
+    let to = this.sender.getUnconstrained();
+    this.send({ to, amount });
   }
 
   @method deposit(amount: UInt64) {
-    let senderUpdate = AccountUpdate.createSigned(this.sender.getAndRequireSignature());
+    let sender = this.sender.getUnconstrained(); // unconstrained because we're already requiring a signature in the next line
+    let senderUpdate = AccountUpdate.createSigned(sender);
     senderUpdate.send({ to: this, amount });
   }
 }

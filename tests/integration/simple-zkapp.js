@@ -61,7 +61,7 @@ class NotSoSimpleZkapp extends SmartContract {
   }
 
   deposit(amount) {
-    let sender = this.sender.getAndRequireSignature();
+    let sender = this.sender.getUnconstrained(); // unconstrained because we're already requiring a signature in the next line
     let senderUpdate = AccountUpdate.createSigned(sender);
     senderUpdate.send({ to: this, amount });
   }
