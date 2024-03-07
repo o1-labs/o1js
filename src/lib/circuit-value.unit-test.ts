@@ -65,15 +65,16 @@ await Provable.runAndCheck(() => {
 });
 
 // should fail `check` if `check` of subfields doesn't pass
+
+// manually construct an invalid uint32
+let noUint32 = new UInt32(1);
+noUint32.value = Field(-1);
+
 await expect(() =>
   Provable.runAndCheck(() => {
     let x = Provable.witness(type, () => ({
       ...value,
-      uint: [
-        UInt32.zero,
-        // invalid Uint32
-        new UInt32(Field(-1)),
-      ],
+      uint: [UInt32.zero, noUint32],
     }));
   })
 ).rejects.toThrow(`Constraint unsatisfied`);
