@@ -109,7 +109,7 @@ let tx = await Mina.transaction(
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
+await (await tx.sign([feePayerKey]).send()).wait();
 
 console.log('successfully deployed contracts');
 
@@ -132,7 +132,7 @@ tx = await Mina.transaction(
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
+await (await tx.sign([feePayerKey]).send()).wait();
 console.log('voter registered');
 
 await fetchAllAccounts();
@@ -154,7 +154,7 @@ tx = await Mina.transaction(
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
+await (await tx.sign([feePayerKey]).send()).wait();
 console.log('candidate registered');
 // we have to wait a few seconds before continuing, otherwise we might not get the actions from the archive, we if continue too fast
 await new Promise((resolve) => setTimeout(resolve, 20000));
@@ -173,7 +173,7 @@ tx = await Mina.transaction(
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
+await (await tx.sign([feePayerKey]).send()).wait();
 console.log('registrations approved');
 
 await fetchAllAccounts();
@@ -199,7 +199,7 @@ tx = await Mina.transaction(
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
+await (await tx.sign([feePayerKey]).send()).wait();
 vote(0n, storage.votesStore, storage.candidatesStore);
 console.log('voted for a candidate');
 await new Promise((resolve) => setTimeout(resolve, 20000));
@@ -214,7 +214,7 @@ tx = await Mina.transaction(
   }
 );
 await tx.prove();
-await (await tx.sign([feePayerKey]).send()).waitOrThrowIfError();
+await (await tx.sign([feePayerKey]).send()).wait();
 console.log('votes counted');
 await new Promise((resolve) => setTimeout(resolve, 20000));
 

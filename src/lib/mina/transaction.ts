@@ -165,7 +165,7 @@ type PendingTransaction = Pick<
    * @example
    * ```ts
    * try {
-   *   const transaction = await pendingTransaction.waitOrThrowIfError({ maxAttempts: 10, interval: 2000 });
+   *   const transaction = await pendingTransaction.wait({ maxAttempts: 10, interval: 2000 });
    *   console.log('Transaction included in a block.');
    * } catch (error) {
    *   console.error('Transaction rejected or failed to finalize:', error);
