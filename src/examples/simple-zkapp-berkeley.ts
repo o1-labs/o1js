@@ -83,7 +83,7 @@ if (!isDeployed) {
   // the `transaction()` interface is the same as when testing with a local blockchain
   let transaction = await Mina.transaction(
     { sender: feePayerAddress, fee: transactionFee },
-    () => {
+    async () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
       zkapp.deploy({ verificationKey });
     }
@@ -102,7 +102,7 @@ if (isDeployed) {
   console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(10)}.`);
   let transaction = await Mina.transaction(
     { sender: feePayerAddress, fee: transactionFee },
-    () => {
+    async () => {
       zkapp.update(Field(10));
     }
   );

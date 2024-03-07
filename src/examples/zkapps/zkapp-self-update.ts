@@ -57,7 +57,7 @@ const { privateKey: deployerKey, publicKey: deployerAccount } =
 
 await Foo.compile();
 
-const tx = await Mina.transaction(deployerAccount, () => {
+const tx = await Mina.transaction(deployerAccount, async () => {
   AccountUpdate.fundNewAccount(deployerAccount);
   zkApp.deploy();
 });
@@ -71,7 +71,7 @@ Provable.log('original verification key', fooVerificationKey);
 
 const { verificationKey: barVerificationKey } = await Bar.compile();
 
-const tx2 = await Mina.transaction(deployerAccount, () => {
+const tx2 = await Mina.transaction(deployerAccount, async () => {
   zkApp.replaceVerificationKey(barVerificationKey);
 });
 await tx2.prove();

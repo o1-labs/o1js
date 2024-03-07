@@ -54,7 +54,7 @@ function run(
 ) {
   let result_out_circuit = f(g1, g2);
 
-  Provable.runAndCheck(() => {
+  Provable.runAndCheckSync(() => {
     let result_in_circuit = f(
       Provable.witness(Group, () => g1),
       Provable.witness(Group, () => g2)

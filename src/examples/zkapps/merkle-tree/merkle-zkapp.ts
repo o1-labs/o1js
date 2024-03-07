@@ -133,7 +133,7 @@ console.log('Deploying leaderboard..');
 if (doProofs) {
   await Leaderboard.compile();
 }
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer).send({
     to: zkappAddress,
     amount: initialBalance,
@@ -155,7 +155,7 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   let w = Tree.getWitness(index);
   let witness = new MyMerkleWitness(w);
 
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     leaderboardZkApp.guessPreimage(Field(guess), account, witness);
   });
   await tx.prove();

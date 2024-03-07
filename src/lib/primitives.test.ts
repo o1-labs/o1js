@@ -18,7 +18,7 @@ describe('bool', () => {
       });
       it('should convert false to Field element 0', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
 
             xFalse.toField().assertEquals(new Field(0));
@@ -27,7 +27,7 @@ describe('bool', () => {
       });
       it('should throw when false toString is compared to Field element other than 0 ', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             xFalse.toField().assertEquals(new Field(1));
           });
@@ -36,7 +36,7 @@ describe('bool', () => {
 
       it('should convert true to Field element 1', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             xTrue.toField().assertEquals(new Field(1));
           });
@@ -45,7 +45,7 @@ describe('bool', () => {
 
       it('should throw when true toField is compared to Field element other than 1 ', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             xTrue.toField().assertEquals(new Field(0));
           });
@@ -56,7 +56,7 @@ describe('bool', () => {
     describe('toFields', () => {
       it('should return an array of Fields', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Bool, () => new Bool(false));
             const fieldArr = x.toFields();
             const isArr = Array.isArray(fieldArr);
@@ -69,7 +69,7 @@ describe('bool', () => {
     describe('and', () => {
       it('true "and" true should return true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -80,7 +80,7 @@ describe('bool', () => {
 
       it('should throw if true "and" true is compared to false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -91,7 +91,7 @@ describe('bool', () => {
 
       it('false "and" false should return false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yFalse = Provable.witness(Bool, () => new Bool(false));
 
@@ -102,7 +102,7 @@ describe('bool', () => {
 
       it('should throw if false "and" false is compared to true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yFalse = Provable.witness(Bool, () => new Bool(false));
 
@@ -113,7 +113,7 @@ describe('bool', () => {
 
       it('false "and" true should return false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -124,7 +124,7 @@ describe('bool', () => {
 
       it('should throw if false "and" true is compared to true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -137,7 +137,7 @@ describe('bool', () => {
     describe('not', () => {
       it('should return true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             xTrue.toField().assertEquals(new Field(1));
           });
@@ -145,7 +145,7 @@ describe('bool', () => {
       });
       it('should return a new bool that is the negation of the input', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             const yFalse = Provable.witness(Bool, () => new Bool(false));
             xTrue.not().assertEquals(new Bool(false));
@@ -156,7 +156,7 @@ describe('bool', () => {
 
       it('should throw if input.not() is compared to input', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             xTrue.not().assertEquals(xTrue);
           });
@@ -167,7 +167,7 @@ describe('bool', () => {
     describe('or', () => {
       it('true "or" true should return true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -178,7 +178,7 @@ describe('bool', () => {
 
       it('should throw if true "or" true is compared to false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xTrue = Provable.witness(Bool, () => new Bool(true));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -189,7 +189,7 @@ describe('bool', () => {
 
       it('false "or" false should return false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yFalse = Provable.witness(Bool, () => new Bool(false));
 
@@ -200,7 +200,7 @@ describe('bool', () => {
 
       it('should throw if false "or" false is compared to true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yFalse = Provable.witness(Bool, () => new Bool(false));
 
@@ -211,7 +211,7 @@ describe('bool', () => {
 
       it('false "or" true should return true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const xFalse = Provable.witness(Bool, () => new Bool(false));
             const yTrue = Provable.witness(Bool, () => new Bool(true));
 
@@ -224,7 +224,7 @@ describe('bool', () => {
     describe('assertEquals', () => {
       it('should not throw on true "assertEqual" true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Bool, () => new Bool(true));
 
             x.assertEquals(x);
@@ -234,7 +234,7 @@ describe('bool', () => {
 
       it('should throw on true "assertEquals" false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Bool, () => new Bool(true));
             const y = Provable.witness(Bool, () => new Bool(false));
 
@@ -246,7 +246,7 @@ describe('bool', () => {
     describe('equals', () => {
       it('should not throw on true "equals" true', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Bool, () => new Bool(true));
 
             x.equals(x).assertEquals(true);
@@ -255,7 +255,7 @@ describe('bool', () => {
       });
       it('should throw on true "equals" false', async () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Bool, () => new Bool(true));
             const y = Provable.witness(Bool, () => new Bool(false));
             x.equals(y).assertEquals(true);

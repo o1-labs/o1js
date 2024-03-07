@@ -31,7 +31,7 @@ const Sha256Program = ZkProgram({
   },
 });
 
-const RUNS = 5;
+const RUNS = 2;
 
 await Sha256Program.compile();
 
