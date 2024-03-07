@@ -27,9 +27,9 @@ function assertMul(
   // this faithfully implements snarky's `assert_r1cs`,
   // see `R1CS_constraint_system.add_constraint` -> `Snarky_backendless.Constraint.R1CS`
 
-  let xv = toScaledVar(x);
-  let yv = toScaledVar(y);
-  let zv = toScaledVar(z);
+  let xv = reduceLinearCombination(x);
+  let yv = reduceLinearCombination(y);
+  let zv = reduceLinearCombination(z);
 
   // three variables
 
@@ -212,13 +212,34 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
 // low-level helpers to create generic gates
 
 /**
+ * Compute linear function of x:
+ * `z = a*x + b`
+ */
+function linear(x: VarField | VarFieldVar, [a, b]: TupleN<bigint, 2>) {
+  let z = existsOne(() => {
+    let x0 = new Field(x).toBigInt();
+    return a * x0 + b;
+  });
+  // a*x - z + b === 0
+  Gates.generic(
+    { left: a, right: 0n, out: -1n, mul: 0n, const: b },
+    { left: x, right: emptyCell(), out: z }
+  );
+  return z;
+}
+
+/**
  * Compute bilinear function of x and y:
  * `z = a*x*y + b*x + c*y + d`
  */
-function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
+function bilinear(
+  x: VarField | VarFieldVar,
+  y: VarField | VarFieldVar,
+  [a, b, c, d]: TupleN<bigint, 4>
+) {
   let z = existsOne(() => {
-    let x0 = x.toBigInt();
-    let y0 = y.toBigInt();
+    let x0 = new Field(x).toBigInt();
+    let y0 = new Field(y).toBigInt();
     return a * x0 * y0 + b * x0 + c * y0 + d;
   });
   // b*x + c*y - z + a*x*y + d === 0
@@ -253,39 +274,45 @@ function emptyCell() {
 }
 
 /**
- * reduce a general `FieldVar` to a `Scale(c, Var) | Constant`
+ * Converts a `FieldVar` into a set of constraints, returns the remainder as a ScaledVar | Constant
  *
- * this is an optimization over `toVar(x): Var`.
- * it allows callers to handle the scaling factor separately, to avoid
- * wastefully adding constraints of the form `c * x === y` before using `c * x`.
+ * Handles duplicated variables optimally.
+ *
+ * This is better than fully reducing to a Var, because it allows callers to fold the scaling factor into the next operation,
+ * instead of wasting a constraint on `c * x === y` before using `c * x`.
  */
-function toScaledVar(x: Field | FieldVar): ScaledVar | Constant {
-  x = fieldVar(x);
+function reduceLinearCombination(x: Field | FieldVar): ScaledVar | Constant {
+  let { constant: c, terms } = toLinearCombination(fieldVar(x));
 
-  // return constants as is
-  if (FieldVar.isConstant(x)) return x;
-
-  // return vars with a scaling factor of 1
-  if (FieldVar.isVar(x)) return [FieldType.Scale, FieldConst[1], x];
-
-  // return scaled vars as is
-  if (x[0] === FieldType.Scale && x[2][0] === FieldType.Var) {
-    return x as ScaledVar;
+  if (terms.length === 0) {
+    // constant
+    return [FieldType.Constant, FieldConst.fromBigint(c)];
   }
 
-  // reduce anything else (normally, Add) to a var
-  let xVar = toVar(x);
-  return [FieldType.Scale, FieldConst[1], xVar.value];
-}
+  if (terms.length === 1) {
+    let [s, v] = terms[0];
+    if (c === 0n) {
+      // s*c
+      return [FieldType.Scale, FieldConst.fromBigint(s), v];
+    } else {
+      // res = s*x + c
+      let res = linear(v, [s, c]);
+      return [FieldType.Scale, FieldConst[1], res.value];
+    }
+  }
 
-/**
- * Converts a `FieldVar` into a set of constraints, returns the remainder as a ScaledVar | Constant
- */
-function reduceLinearCombination(x: FieldVar): {
-  constant: bigint;
-  terms: [bigint, VarFieldVar][];
-} {
-  return toLinearCombination(x);
+  // res = s0*x0 + s1*x1 + ... + sn*xn + c
+  let [[s0, x0], [s1, x1], ...rest] = terms;
+
+  for (let [si, xi] of rest) {
+    // x1 = s1*x1 + si*xi
+    x1 = bilinear(x1, xi, [0n, s1, si, 0n]).value;
+    s1 = 1n;
+  }
+
+  // res = s0*x0 + 1*x1 + c
+  let res = bilinear(x0, x1, [0n, s0, 1n, c]);
+  return [FieldType.Scale, FieldConst[1], res.value];
 }
 
 /**
@@ -305,15 +332,16 @@ function toLinearCombination(
 ): { constant: bigint; terms: [bigint, VarFieldVar][] } {
   let { constant, terms } = lincom;
   // the recursive logic here adds a new term sx*x to an existing linear combination
-  // but x might have to be expanded first to a linear combination itself
+  // but x itself is an AST
 
   switch (x[0]) {
     case FieldType.Constant: {
-      // a constant is just added to the constant term
+      // a constant is added to the constant term
       let [, [, c]] = x;
       return { constant: Fp.add(constant, Fp.mul(sx, c)), terms };
     }
     case FieldType.Var: {
+      // a variable as added to the terms or included in an existing one
       let [, i] = x;
 
       // we search for an existing term with the same var
