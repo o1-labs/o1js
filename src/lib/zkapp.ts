@@ -821,12 +821,8 @@ super.init();
 
   #_senderState: { sender: PublicKey; transactionId: number };
 
-  sender: {
-    self: SmartContract;
-    getUnconstrained(): PublicKey;
-    getAndRequireSignature(): PublicKey;
-  } = {
-    self: this,
+  sender = {
+    self: this as SmartContract,
     /**
      * The public key of the current transaction's sender account.
      *
