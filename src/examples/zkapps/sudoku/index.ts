@@ -13,7 +13,7 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 // create an instance of the smart contract
 const zkApp = new SudokuZkApp(zkAppAddress);
 
-let methods = SudokuZkApp.analyzeMethods();
+let methods = await SudokuZkApp.analyzeMethods();
 console.log(
   'first 5 gates of submitSolution method:',
   ...methods.submitSolution.gates.slice(0, 5)

@@ -24,7 +24,7 @@ console.log('TOKEN X ID\t', TokenId.toBase58(tokenIds.X));
 console.log('TOKEN Y ID\t', TokenId.toBase58(tokenIds.Y));
 console.log('-------------------------------------------------');
 
-TokenContract.analyzeMethods();
+await TokenContract.analyzeMethods();
 if (proofsEnabled) {
   console.log('compile (token)...');
   await TokenContract.compile();
@@ -57,8 +57,8 @@ async function main({ withVesting }: { withVesting: boolean }) {
   let { Dex, DexTokenHolder, getTokenBalances } = createDex(options);
 
   // analyze methods for quick error feedback
-  DexTokenHolder.analyzeMethods();
-  Dex.analyzeMethods();
+  await DexTokenHolder.analyzeMethods();
+  await Dex.analyzeMethods();
 
   if (proofsEnabled) {
     // compile & deploy all zkApps

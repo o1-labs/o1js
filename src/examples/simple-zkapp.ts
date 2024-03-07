@@ -92,7 +92,7 @@ if (doProofs) {
   await SimpleZkapp.compile();
   console.timeEnd('compile');
 } else {
-  SimpleZkapp.analyzeMethods();
+  await SimpleZkapp.analyzeMethods();
 }
 
 console.log('deploy');

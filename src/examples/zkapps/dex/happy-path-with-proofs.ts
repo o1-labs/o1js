@@ -21,9 +21,9 @@ let tx, balances, oldBalances;
 
 let { Dex, DexTokenHolder, getTokenBalances } = createDex();
 
-TokenContract.analyzeMethods();
-DexTokenHolder.analyzeMethods();
-Dex.analyzeMethods();
+await TokenContract.analyzeMethods();
+await DexTokenHolder.analyzeMethods();
+await Dex.analyzeMethods();
 
 if (proofsEnabled) {
   tic('compile (token)');

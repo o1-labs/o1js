@@ -280,7 +280,7 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
-function createTransaction(
+async function createTransaction(
   feePayer: DeprecatedFeePayerSpec,
   f: () => unknown,
   numberOfRuns: 0 | 1 | undefined,
@@ -289,7 +289,7 @@ function createTransaction(
     isFinalRunOutsideCircuit = true,
     proofsEnabled = true,
   } = {}
-): Transaction {
+): Promise<Transaction> {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
@@ -322,32 +322,18 @@ function createTransaction(
   });
 
   // run circuit
-  // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
-  // SmartContract.analyzeMethods, which would be running its methods again inside `Provable.constraintSystem`, which
-  // would throw an error when nested inside `Provable.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
-  // and retry `Provable.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
-  // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
-    let err: any;
-    while (true) {
-      if (err !== undefined) err.bootstrap();
-      try {
-        if (fetchMode === 'test') {
-          Provable.runUnchecked(() => {
-            f();
-            Provable.asProver(() => {
-              let tx = currentTransaction.get();
-              tx.layout.toConstantInPlace();
-            });
-          });
-        } else {
-          f();
-        }
-        break;
-      } catch (err_) {
-        if ((err_ as any)?.bootstrap) err = err_;
-        else throw err_;
-      }
+    if (fetchMode === 'test') {
+      await Provable.runUnchecked(() => {
+        f();
+        Provable.asProver(() => {
+          let tx = currentTransaction.get();
+          tx.layout.toConstantInPlace();
+        });
+      });
+    } else {
+      // TODO support async
+      f();
     }
   } catch (err) {
     currentTransaction.leave(transactionId);

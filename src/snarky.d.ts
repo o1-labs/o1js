@@ -26,6 +26,8 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
+import type { MlConstraintSystem } from './lib/provable-context.ts';
+import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
 
@@ -200,21 +202,39 @@ declare const Snarky: {
      */
     inProverBlock(): boolean;
     /**
-     * Runs code and checks its correctness.
+     * Setting that controls whether snarky throws an exception on violated constraint.
      */
-    runAndCheck(f: () => void): void;
+    setEvalConstraints(value: MlBool): void;
     /**
-     * Runs code in prover mode, without checking correctness.
+     * Starts constraint system runner and returns a function to finish it.
      */
-    runUnchecked(f: () => void): void;
+    enterConstraintSystem(): () => MlConstraintSystem;
     /**
-     * Returns information about the constraint system in the callback function.
+     * Starts witness generation and returns a function to finish it.
      */
-    constraintSystem(f: () => void): {
-      rows: number;
-      digest: string;
-      json: JsonConstraintSystem;
-    };
+    enterGenerateWitness(): () => [
+      _: 0,
+      public_inputs: FieldVector,
+      auxiliary_inputs: FieldVector
+    ];
+  };
+
+  /**
+   * APIs to interact with a `Backend.R1CS_constraint_system.t`
+   */
+  constraintSystem: {
+    /**
+     * Returns the number of rows of the constraint system.
+     */
+    rows(system: MlConstraintSystem): number;
+    /**
+     * Returns an md5 digest of the constraint system.
+     */
+    digest(system: MlConstraintSystem): string;
+    /**
+     * Returns a JSON representation of the constraint system.
+     */
+    toJson(system: MlConstraintSystem): JsonConstraintSystem;
   };
 
   /**
@@ -735,11 +755,11 @@ declare namespace Pickles {
     /**
      * The main circuit functions
      */
-    main: (publicInput: MlArray<FieldVar>) => {
+    main: (publicInput: MlArray<FieldVar>) => Promise<{
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
-    };
+    }>;
     /**
      * Feature flags which enable certain custom gates
      */
@@ -810,7 +830,7 @@ declare const Pickles: {
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => [_: 0, data: string, hash: FieldConst];
+    getVerificationKey: () => Promise<[_: 0, data: string, hash: FieldConst]>;
   };
 
   verify(

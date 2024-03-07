@@ -119,7 +119,7 @@ let zkapp = new ActionsContract(zkappAddress);
 await ActionsContract.compile();
 console.log(
   `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
-  ActionsContract.analyzeMethods().assertContainsAddress.rows
+  (await ActionsContract.analyzeMethods()).assertContainsAddress.rows
 );
 let deployTx = await Mina.transaction(sender, () => zkapp.deploy());
 await deployTx.sign([senderKey, zkappKey]).send();

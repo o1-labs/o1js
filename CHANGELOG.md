@@ -17,6 +17,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
 
+### Breaking changes
+
+- Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
+  - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
+  - These changes were made to add internal support for async circuits
+  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
+- `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
+  - The default value is 1 and should work for most existing contracts
+
 ### Added
 
 - Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481

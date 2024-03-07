@@ -15,7 +15,7 @@ describe('circuit', () => {
   });
 
   it('Provable.if in snark', () => {
-    Provable.runAndCheck(() => {
+    Provable.runAndCheckSync(() => {
       let x = Provable.witness(Int64, () => Int64.from(-1));
       let y = Provable.witness(Int64, () => Int64.from(-2));
       let b = Provable.witness(Bool, () => Bool(true));
@@ -81,7 +81,7 @@ describe('circuit', () => {
   it('Provable.assertEqual', () => {
     const FieldAndBool = Struct({ x: Field, b: Bool });
 
-    Provable.runAndCheck(() => {
+    Provable.runAndCheckSync(() => {
       let x = Provable.witness(Field, () => Field(1));
       let b = Provable.witness(Bool, () => Bool(true));
 
@@ -123,7 +123,7 @@ describe('circuit', () => {
       });
     }
 
-    Provable.runAndCheck(() => {
+    Provable.runAndCheckSync(() => {
       let x = Provable.witness(Field, () => Field(1));
       let b = Provable.witness(Bool, () => Bool(true));
       let pk = Provable.witness(PublicKey, () => pk1);

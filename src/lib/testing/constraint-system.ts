@@ -12,7 +12,7 @@ import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
 import { Undefined, ZkProgram } from '../proof-system.js';
-import { printGates } from '../provable-context.js';
+import { constraintSystemSync, printGates } from '../provable-context.js';
 
 export {
   constraintSystem,
@@ -62,7 +62,7 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
     let layouts = args.slice(0, -1);
 
     // compute the constraint system
-    let { gates } = Provable.constraintSystem(() => {
+    let { gates } = constraintSystemSync(() => {
       // each random input "layout" has to be instantiated into vars in this circuit
       let values = types.map((type, i) =>
         instantiate(type, layouts[i])
@@ -316,7 +316,7 @@ constraintSystem.gates = function gates<Input extends Tuple<CsVarSpec<any>>>(
   main: (...args: CsParams<Input>) => void
 ) {
   let types = inputs.from.map(provable);
-  let { gates } = Provable.constraintSystem(() => {
+  let { gates } = constraintSystemSync(() => {
     let values = types.map((type) =>
       Provable.witness(type, (): unknown => {
         throw Error('not needed');

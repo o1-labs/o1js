@@ -237,7 +237,7 @@ function equivalentProvable<
       );
 
       // inside provable code
-      Provable.runAndCheck(() => {
+      Provable.runAndCheckSync(() => {
         let inputWitnesses = inputs2.map((x, i) => {
           let provable = from[i].provable;
           return provable !== undefined

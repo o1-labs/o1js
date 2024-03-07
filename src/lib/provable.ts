@@ -18,9 +18,9 @@ import {
   inProver,
   snarkContext,
   asProver,
-  runAndCheck,
-  runUnchecked,
   constraintSystem,
+  generateWitness,
+  runAndCheckSync,
 } from './provable-context.js';
 
 // external API
@@ -151,27 +151,35 @@ const Provable = {
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
    * ```ts
-   * Provable.runAndCheck(() => {
+   * await Provable.runAndCheck(() => {
    *   // Your code to check here
    * });
    * ```
    */
-  runAndCheck,
+  async runAndCheck(f: (() => Promise<void>) | (() => void)) {
+    await generateWitness(f, { checkConstraints: true });
+  },
+  /**
+   * @deprecated use the async `Provable.runAndCheck` instead
+   */
+  runAndCheckSync: runAndCheckSync,
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example
    * ```ts
-   * Provable.runUnchecked(() => {
+   * await Provable.runUnchecked(() => {
    *   // Your code to run here
    * });
    * ```
    */
-  runUnchecked,
+  async runUnchecked(f: (() => Promise<void>) | (() => void)) {
+    await generateWitness(f, { checkConstraints: false });
+  },
   /**
    * Returns information about the constraints created by the callback function.
    * @example
    * ```ts
-   * const result = Provable.constraintSystem(circuit);
+   * const result = await Provable.constraintSystem(circuit);
    * console.log(result);
    * ```
    */

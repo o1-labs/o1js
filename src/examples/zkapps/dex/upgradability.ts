@@ -38,8 +38,8 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   let { Dex, DexTokenHolder, getTokenBalances } = createDex(options);
 
   // analyze methods for quick error feedback
-  DexTokenHolder.analyzeMethods();
-  Dex.analyzeMethods();
+  await DexTokenHolder.analyzeMethods();
+  await Dex.analyzeMethods();
 
   if (proofsEnabled) {
     // compile & deploy all zkApps
@@ -249,8 +249,8 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   } = createDex(options);
 
   // analyze methods for quick error feedback
-  DexTokenHolder.analyzeMethods();
-  Dex.analyzeMethods();
+  await DexTokenHolder.analyzeMethods();
+  await Dex.analyzeMethods();
 
   // compile & deploy all zkApps
   console.log('compile (token contract)...');
