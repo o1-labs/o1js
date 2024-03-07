@@ -7,7 +7,7 @@ import { existsOne, toVar } from './common.js';
 import { Gates } from '../gates.js';
 import { TupleN } from '../util/types.js';
 
-export { assertBoolean, arrayGet, assertOneOf };
+export { assertBoolean, assertSquare, arrayGet, assertOneOf };
 
 /**
  * Assert that x is either 0 or 1.
@@ -15,6 +15,15 @@ export { assertBoolean, arrayGet, assertOneOf };
 function assertBoolean(x_: Field) {
   let x = toVar(x_);
   assertBilinear(x, x, [1n, -1n, 0n, 0n]);
+}
+
+/**
+ * Assert square, x^2 === z
+ */
+function assertSquare(x_: Field, z_: Field) {
+  let x = toVar(x_);
+  let z = toVar(z_);
+  assertBilinear(x, x, [1n, 0n, 0n, 0n], z);
 }
 
 // TODO: create constant versions of these and expose on Gadgets

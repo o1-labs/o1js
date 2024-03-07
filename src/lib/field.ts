@@ -5,7 +5,7 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
-import { assertBoolean } from './gadgets/basic.js';
+import { assertBoolean, assertSquare } from './gadgets/basic.js';
 
 // external API
 export { Field };
@@ -547,12 +547,13 @@ class Field {
       return new Field(Fp.square(this.toBigInt()));
     }
     // create a new witness for z = x^2
-    let z = Snarky.existsVar(() =>
+    let z_ = Snarky.existsVar(() =>
       FieldConst.fromBigint(Fp.square(this.toBigInt()))
     );
+    let z = new Field(z_);
     // add a squaring constraint
-    Snarky.field.assertSquare(this.value, z);
-    return new Field(z);
+    assertSquare(this, z);
+    return z;
   }
 
   /**
@@ -582,13 +583,14 @@ class Field {
       return new Field(z);
     }
     // create a witness for sqrt(x)
-    let z = Snarky.existsVar(() => {
+    let z_ = Snarky.existsVar(() => {
       let z = Fp.sqrt(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
+    let z = new Field(z_);
     // constrain z * z === x
-    Snarky.field.assertSquare(z, this.value);
-    return new Field(z);
+    assertSquare(z, this);
+    return z;
   }
 
   /**
