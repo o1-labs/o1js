@@ -89,11 +89,12 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    return Provable.if(
+    let field = Provable.if(
       this.greaterThan(UInt64.from(max)),
-      UInt32.from(max),
-      new UInt32(this.value.value)
+      Field.from(max),
+      this.value
     );
+    return UInt32.Unsafe.fromField(field);
   }
 
   static check(x: UInt64) {
