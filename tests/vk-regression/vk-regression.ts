@@ -9,6 +9,7 @@ import {
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
+import { diverse } from './diverse-zk-program.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
@@ -18,12 +19,14 @@ let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
 type MinimumConstraintSystem = {
-  analyzeMethods(): Record<
-    string,
-    {
-      rows: number;
-      digest: string;
-    }
+  analyzeMethods(): Promise<
+    Record<
+      string,
+      {
+        rows: number;
+        digest: string;
+      }
+    >
   >;
   compile(): Promise<{
     verificationKey: {
@@ -31,7 +34,7 @@ type MinimumConstraintSystem = {
       data: string;
     };
   }>;
-  digest(): string;
+  digest(): Promise<string>;
   name: string;
 };
 
@@ -47,6 +50,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   ecdsa,
   keccakAndEcdsa,
   SHA256Program,
+  diverse,
 ];
 
 let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';
@@ -86,7 +90,7 @@ async function checkVk(contracts: typeof ConstraintSystems) {
       verificationKey: { data, hash },
     } = await c.compile();
 
-    let methodData = c.analyzeMethods();
+    let methodData = await c.analyzeMethods();
 
     for (const methodKey in methodData) {
       let actualMethod = methodData[methodKey];
@@ -143,8 +147,8 @@ but expected was
 async function dumpVk(contracts: typeof ConstraintSystems) {
   let newEntries: typeof RegressionJson = {};
   for await (const c of contracts) {
-    let data = c.analyzeMethods();
-    let digest = c.digest();
+    let data = await c.analyzeMethods();
+    let digest = await c.digest();
     let verificationKey:
       | { data: string; hash: { toString(): string } }
       | undefined;

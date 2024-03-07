@@ -67,7 +67,7 @@ let zkapp = new SendMINAExample(zkappAddress);
 let tx;
 
 console.log('deploy and fund user accounts');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
   feePayerUpdate.send({ to: account1Address, amount: 2e9 });
   feePayerUpdate.send({ to: account2Address, amount: 0 }); // just touch account #2, so it's created
@@ -77,7 +77,7 @@ await tx.sign([feePayerKey, zkappKey]).send();
 printBalances();
 
 console.log('---------- deposit MINA into zkApp (with proof) ----------');
-tx = await Mina.transaction(account1Address, () => {
+tx = await Mina.transaction(account1Address, async () => {
   zkapp.deposit(UInt64.from(1e9));
 });
 await tx.prove();
@@ -85,7 +85,7 @@ await tx.sign([account1Key]).send();
 printBalances();
 
 console.log('---------- send MINA from zkApp (with proof) ----------');
-tx = await Mina.transaction(account1Address, () => {
+tx = await Mina.transaction(account1Address, async () => {
   zkapp.withdraw(UInt64.from(1e9));
 });
 await tx.prove();
@@ -95,7 +95,7 @@ printBalances();
 console.log(
   '---------- send MINA between accounts (with signature) ----------'
 );
-tx = await Mina.transaction(account1Address, () => {
+tx = await Mina.transaction(account1Address, async () => {
   let account1Update = AccountUpdate.createSigned(account1Address);
   account1Update.send({ to: account2Address, amount: 1e9 });
 });

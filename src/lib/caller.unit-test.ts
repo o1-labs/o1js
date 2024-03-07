@@ -14,7 +14,7 @@ let parentId = TokenId.derive(publicKey);
  *
  * InheritFromParent -> ParentsOwnToken
  */
-let tx = await Mina.transaction(privateKey, () => {
+let tx = await Mina.transaction(privateKey, async () => {
   let parent = AccountUpdate.defaultAccountUpdate(publicKey);
   parent.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
   parent.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
@@ -27,6 +27,6 @@ let tx = await Mina.transaction(privateKey, () => {
 });
 
 // according to this test, the child doesn't get token permissions
-await expect(tx.sendOrThrowIfError()).rejects.toThrow(
+await expect(tx.send()).rejects.toThrow(
   'can not use or pass on token permissions'
 );

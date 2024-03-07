@@ -139,7 +139,7 @@ await NotSoSimpleZkapp.compile();
 console.log('deploying contract\n');
 let tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
-  () => {
+  async () => {
     AccountUpdate.fundNewAccount(feePayerAddress);
 
     zkapp.deploy();
@@ -160,7 +160,7 @@ expectAssertEquals(zkappAccount.balance, UInt64.from(0));
 console.log('deposit funds\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
-  () => {
+  async () => {
     zkapp.deposit(UInt64.from(initialBalance));
   }
 );
@@ -176,7 +176,7 @@ expectAssertEquals(zkappAccount.balance, UInt64.from(initialBalance));
 console.log('update 1\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
-  () => {
+  async () => {
     zkapp.update(Field(30));
   }
 );
@@ -186,7 +186,7 @@ await (await tx.sign([feePayerKey]).send()).wait(waitParams);
 console.log('update 2\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
-  () => {
+  async () => {
     zkapp.update(Field(100));
   }
 );
@@ -205,7 +205,7 @@ expectAssertEquals(zkappAccount.zkapp.appState[0], Field(131));
 console.log('payout 1\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
-  () => {
+  async () => {
     AccountUpdate.fundNewAccount(feePayerAddress);
     zkapp.payout(privilegedKey);
   }
@@ -222,7 +222,7 @@ expectAssertEquals(zkappAccount.balance, UInt64.from(initialBalance / 2));
 console.log('payout 2 (expected to fail)\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
-  () => {
+  async () => {
     zkapp.payout(privilegedKey);
   }
 );

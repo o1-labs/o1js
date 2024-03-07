@@ -46,7 +46,7 @@ let token = new ExampleTokenContract(tokenAddress);
 let tokenId = token.deriveTokenId();
 
 // deploy token contract
-let deployTx = await Mina.transaction(sender, () => {
+let deployTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender, 2);
   token.deploy();
 });
@@ -59,7 +59,7 @@ assert(
 );
 
 // can transfer tokens between two accounts
-let transferTx = await Mina.transaction(sender, () => {
+let transferTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
   token.transfer(tokenAddress, otherAddress, UInt64.one);
 });
@@ -84,7 +84,7 @@ update3.body.callDepth = 2;
 let forest = AccountUpdateForest.fromFlatArray([update1, update2, update3]);
 
 await assert.rejects(
-  () => Mina.transaction(sender, () => token.approveBase(forest)),
+  () => Mina.transaction(sender, async () => token.approveBase(forest)),
   /Field\.assertEquals\(\): 1 != 0/
 );
 
@@ -101,6 +101,8 @@ forest = AccountUpdateForest.fromFlatArray([
   update4,
 ]);
 
-let approveTx = await Mina.transaction(sender, () => token.approveBase(forest));
+let approveTx = await Mina.transaction(sender, async () =>
+  token.approveBase(forest)
+);
 await approveTx.prove();
 await approveTx.sign([senderKey, otherKey]).send();

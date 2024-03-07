@@ -51,7 +51,7 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy();
 });
@@ -60,7 +60,7 @@ await tx.sign([feePayerKey, zkappKey]).send();
 let blockHeight: UInt32 = UInt32.zero;
 
 console.log('assert block height 0');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // block height starts at 0
   zkapp.blockheightEquals(UInt32.from(blockHeight));
 });
@@ -71,7 +71,7 @@ blockHeight = UInt32.from(500);
 Local.setBlockchainLength(blockHeight);
 
 console.log('assert block height 500');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.blockheightEquals(UInt32.from(blockHeight));
 });
 await tx.prove();
@@ -81,7 +81,7 @@ blockHeight = UInt32.from(300);
 Local.setBlockchainLength(UInt32.from(5));
 console.log('invalid block height precondition');
 try {
-  tx = await Mina.transaction(feePayer, () => {
+  tx = await Mina.transaction(feePayer, async () => {
     zkapp.blockheightEquals(UInt32.from(blockHeight));
   });
   await tx.prove();

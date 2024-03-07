@@ -51,7 +51,7 @@ console.log('');
 console.log(`Deploying zkApp for public key ${zkAppAddress.toBase58()}.`);
 let transaction = await Mina.transaction(
   { sender, fee: transactionFee },
-  () => {
+  async () => {
     AccountUpdate.fundNewAccount(sender);
     zkApp.deploy({ verificationKey });
   }
@@ -59,7 +59,7 @@ let transaction = await Mina.transaction(
 transaction.sign([senderKey, zkAppKey]);
 console.log('Sending the transaction.');
 let pendingTx = await transaction.send();
-if (pendingTx.hash !== undefined) {
+if (pendingTx.status === 'pending') {
   console.log(`Success! Deploy transaction sent.
 Your smart contract will be deployed
 as soon as the transaction is included in a block.
@@ -71,13 +71,16 @@ console.log('');
 
 // zkApp state update
 console.log('Trying to update deployed zkApp state.');
-transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
-  zkApp.update(Field(4), adminPrivateKey);
-});
+transaction = await Mina.transaction(
+  { sender, fee: transactionFee },
+  async () => {
+    zkApp.update(Field(4), adminPrivateKey);
+  }
+);
 await transaction.sign([senderKey]).prove();
 console.log('Sending the transaction.');
 pendingTx = await transaction.send();
-if (pendingTx.hash !== undefined) {
+if (pendingTx.status === 'pending') {
   console.log(`Success! Update transaction sent.
 Your smart contract state will be updated
 as soon as the transaction is included in a block.

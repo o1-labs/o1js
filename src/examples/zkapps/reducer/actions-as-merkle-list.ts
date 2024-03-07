@@ -119,14 +119,14 @@ let zkapp = new ActionsContract(zkappAddress);
 await ActionsContract.compile();
 console.log(
   `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
-  ActionsContract.analyzeMethods().assertContainsAddress.rows
+  (await ActionsContract.analyzeMethods()).assertContainsAddress.rows
 );
-let deployTx = await Mina.transaction(sender, () => zkapp.deploy());
+let deployTx = await Mina.transaction(sender, async () => zkapp.deploy());
 await deployTx.sign([senderKey, zkappKey]).send();
 
 // push some actions
 
-let dispatchTx = await Mina.transaction(sender, () => {
+let dispatchTx = await Mina.transaction(sender, async () => {
   zkapp.postAddress(otherAddress);
   zkapp.postAddress(zkappAddress);
   zkapp.postTwoAddresses(anotherAddress, sender);
@@ -141,7 +141,7 @@ assert(zkapp.reducer.getActions().length === 5);
 // check if the actions contain the `sender` address
 
 Local.setProofsEnabled(true);
-let containsTx = await Mina.transaction(sender, () =>
+let containsTx = await Mina.transaction(sender, async () =>
   zkapp.assertContainsAddress(sender)
 );
 await containsTx.prove();

@@ -66,7 +66,7 @@ let { verificationKey } = await SimpleZkapp.compile();
 toc();
 
 tic('create deploy transaction (with proof)');
-let deployTx = await Mina.transaction(sender, () => {
+let deployTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
   zkapp.deploy();
 });
@@ -90,7 +90,7 @@ zkappState.assertEquals(1);
 console.log('got initial state: ' + zkappState);
 
 tic('create update transaction (no proof)');
-let tx = await Mina.transaction(sender, () => {
+let tx = await Mina.transaction(sender, async () => {
   zkapp.update(Field(2));
   zkapp.requireSignature();
 });
@@ -107,7 +107,7 @@ zkappState.assertEquals(3);
 console.log('got updated state: ' + zkappState);
 
 tic('create update transaction (with proof)');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   zkapp.update(Field(2));
 });
 [proof] = await tx.prove();

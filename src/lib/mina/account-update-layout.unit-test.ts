@@ -39,7 +39,7 @@ let zkapp = new NestedCall(zkappAddress);
 
 // deploy zkapp
 
-await (await Mina.transaction(sender, () => zkapp.deploy()))
+await (await Mina.transaction(sender, async () => zkapp.deploy()))
   .sign([zkappKey, senderKey])
   .send();
 
@@ -47,7 +47,7 @@ await (await Mina.transaction(sender, () => zkapp.deploy()))
 
 let balanceBefore = Mina.getBalance(zkappAddress);
 
-let depositTx = await Mina.transaction(sender, () => zkapp.deposit());
+let depositTx = await Mina.transaction(sender, async () => zkapp.deposit());
 console.log(depositTx.toPretty());
 await depositTx.prove();
 await depositTx.sign([senderKey]).send();
@@ -58,7 +58,9 @@ Mina.getBalance(zkappAddress).assertEquals(balanceBefore.add(1));
 
 balanceBefore = balanceBefore.add(1);
 
-depositTx = await Mina.transaction(sender, () => zkapp.depositUsingTree());
+depositTx = await Mina.transaction(sender, async () =>
+  zkapp.depositUsingTree()
+);
 console.log(depositTx.toPretty());
 await depositTx.prove();
 await depositTx.sign([senderKey]).send();

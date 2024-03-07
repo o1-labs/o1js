@@ -79,7 +79,7 @@ console.log('compile (ZkAppC)');
 await ZkAppC.compile();
 
 console.log('deploy tokenZkApp');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   tokenZkApp.deploy();
   AccountUpdate.fundNewAccount(sender).send({
     to: tokenZkApp.self,
@@ -89,7 +89,7 @@ tx = await Mina.transaction(sender, () => {
 await tx.sign([senderKey, tokenZkAppKey]).send();
 
 console.log('deploy zkAppB and zkAppC');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender, 2);
   zkAppC.deploy();
   zkAppB.deploy();
@@ -100,14 +100,14 @@ await tx.prove();
 await tx.sign([senderKey, zkAppBKey, zkAppCKey]).send();
 
 console.log('mint token to zkAppB');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   tokenZkApp.mint(zkAppBAddress);
 });
 await tx.prove();
 await tx.sign([senderKey]).send();
 
 console.log('approve send from zkAppB');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   zkAppB.approveSend();
 
   // we call the token contract with the self update
@@ -123,7 +123,7 @@ console.log(
 );
 
 console.log('approve send from zkAppC');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   // Pay for tokenAccount1's account creation
   AccountUpdate.fundNewAccount(sender);
   zkAppC.approveSend();

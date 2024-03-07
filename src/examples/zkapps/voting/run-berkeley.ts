@@ -91,7 +91,7 @@ let tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Deploying contracts',
   },
-  () => {
+  async () => {
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
 
     contracts.voting.deploy({ zkappKey: params.votingKey });
@@ -125,7 +125,7 @@ tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Registering a voter',
   },
-  () => {
+  async () => {
     let m = registerMember(
       0n,
       Member.from(members[0], UInt64.from(150)),
@@ -147,7 +147,7 @@ tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Registering a candidate',
   },
-  () => {
+  async () => {
     let m = registerMember(
       0n,
       Member.from(members[1], UInt64.from(150)),
@@ -171,7 +171,7 @@ tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Approving registrations',
   },
-  () => {
+  async () => {
     contracts.voting.approveRegistrations();
   }
 );
@@ -184,7 +184,7 @@ await fetchAllAccounts();
 console.log('voting for a candidate');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 10_000_000, memo: 'Casting vote' },
-  () => {
+  async () => {
     let currentCandidate = storage.candidatesStore.get(0n)!;
 
     currentCandidate.witness = new MyMerkleWitness(
@@ -212,7 +212,7 @@ await fetchAllAccounts();
 console.log('counting votes');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 10_000_000, memo: 'Counting votes' },
-  () => {
+  async () => {
     contracts.voting.countVotes();
   }
 );

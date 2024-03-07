@@ -70,7 +70,7 @@ for (let proof of [fakeProof, dummyProof]) {
 
   // contract rejects proof
   await assert.rejects(async () => {
-    let tx = await Mina.transaction(() => zkApp.verifyReal(proof));
+    let tx = await Mina.transaction(async () => zkApp.verifyReal(proof));
     await tx.prove();
   }, 'recursive contract rejects fake proof');
 }
@@ -86,7 +86,7 @@ assert(
 );
 
 // contract accepts proof
-let tx = await Mina.transaction(() => zkApp.verifyReal(realProof));
+let tx = await Mina.transaction(async () => zkApp.verifyReal(realProof));
 let [contractProof] = await tx.prove();
 assert(
   await verify(contractProof!, contractVk.data),

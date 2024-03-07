@@ -10,7 +10,7 @@ describe('group', () => {
     describe('group membership', () => {
       it('valid element does not throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             Provable.witness(Group, () => g);
           });
         }).not.toThrow();
@@ -18,7 +18,7 @@ describe('group', () => {
 
       it('valid element does not throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             Provable.witness(Group, () => Group.generator);
           });
         }).not.toThrow();
@@ -26,7 +26,7 @@ describe('group', () => {
 
       it('Group.zero element does not throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             Provable.witness(Group, () => Group.zero);
           });
         }).not.toThrow();
@@ -34,7 +34,7 @@ describe('group', () => {
 
       it('invalid group element throws', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             Provable.witness(Group, () => Group({ x: 2, y: 2 }));
           });
         }).toThrow();
@@ -44,7 +44,7 @@ describe('group', () => {
     describe('add', () => {
       it('g+g does not throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const y = Provable.witness(Group, () => g);
             x.add(y);
@@ -54,7 +54,7 @@ describe('group', () => {
 
       it('g+zero = g', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             x.add(zero).assertEquals(x);
@@ -64,7 +64,7 @@ describe('group', () => {
 
       it('zero+g = g', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             zero.add(x).assertEquals(x);
@@ -74,7 +74,7 @@ describe('group', () => {
 
       it('g+(-g) = zero', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             x.add(x.neg()).assertEquals(zero);
@@ -84,7 +84,7 @@ describe('group', () => {
 
       it('(-g)+g = zero', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             x.neg().add(x).assertEquals(zero);
@@ -94,7 +94,7 @@ describe('group', () => {
 
       it('zero + zero = zero', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const zero = Provable.witness(Group, () => Group.zero);
             zero.add(zero).assertEquals(zero);
           });
@@ -105,8 +105,8 @@ describe('group', () => {
     describe('sub', () => {
       it('g-g does not throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
-            Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(Group, () => g);
               const y = Provable.witness(Group, () => g);
               x.sub(y);
@@ -117,7 +117,7 @@ describe('group', () => {
 
       it('g-zero = g', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             x.sub(zero).assertEquals(x);
@@ -127,7 +127,7 @@ describe('group', () => {
 
       it('zero - g = -g', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             const zero = Provable.witness(Group, () => Group.zero);
             zero.sub(x).assertEquals(x.neg());
@@ -137,7 +137,7 @@ describe('group', () => {
 
       it('zero - zero = zero', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const zero = Provable.witness(Group, () => Group.zero);
             zero.sub(zero).assertEquals(zero);
           });
@@ -148,7 +148,7 @@ describe('group', () => {
     describe('neg', () => {
       it('neg(g) not to throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             x.neg();
           });
@@ -157,7 +157,7 @@ describe('group', () => {
 
       it('neg(zero) = zero', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const zero = Provable.witness(Group, () => Group.zero);
             zero.neg().assertEquals(zero);
           });
@@ -168,7 +168,7 @@ describe('group', () => {
     describe('scale', () => {
       it('scaling with random Scalar does not throw', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => g);
             x.scale(Scalar.random());
           });
@@ -177,7 +177,7 @@ describe('group', () => {
 
       it('x*g+y*g = (x+y)*g', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Scalar.from(2);
             const y = Scalar.from(3);
             const left = g.scale(x).add(g.scale(y));
@@ -189,7 +189,7 @@ describe('group', () => {
 
       it('x*(y*g) = (x*y)*g', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Scalar.from(2);
             const y = Scalar.from(3);
             const left = g.scale(y).scale(x);
@@ -202,7 +202,7 @@ describe('group', () => {
 
     describe('equals', () => {
       it('should equal true with same group', () => {
-        Provable.runAndCheck(() => {
+        Provable.runAndCheckSync(() => {
           const x = Provable.witness(Group, () => Group.generator);
           let isEqual = x.equals(Group.generator);
           Provable.asProver(() => {
@@ -212,7 +212,7 @@ describe('group', () => {
       });
 
       it('should equal false with different group', () => {
-        Provable.runAndCheck(() => {
+        Provable.runAndCheckSync(() => {
           const x = Provable.witness(Group, () => Group.generator);
           let isEqual = x.equals(g);
           Provable.asProver(() => {
@@ -225,7 +225,7 @@ describe('group', () => {
     describe('assertEquals', () => {
       it('should not throw with same group', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => Group.generator);
             x.assertEquals(Group.generator);
           });
@@ -234,7 +234,7 @@ describe('group', () => {
 
       it('should throw with different group', () => {
         expect(() => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Group, () => Group.generator);
             x.assertEquals(g);
           });
@@ -244,7 +244,7 @@ describe('group', () => {
 
     describe('toJSON', () => {
       it('fromJSON(g.toJSON) should be the same as g', () => {
-        Provable.runAndCheck(() => {
+        Provable.runAndCheckSync(() => {
           const x = Provable.witness(
             Group,
             () => Group.fromJSON(Group.generator.toJSON())!
@@ -389,7 +389,7 @@ describe('group', () => {
 
   describe('Variable/Constant circuit equality ', () => {
     it('add', () => {
-      Provable.runAndCheck(() => {
+      Provable.runAndCheckSync(() => {
         let y = Provable.witness(Group, () => g).add(
           Provable.witness(Group, () => Group.generator)
         );

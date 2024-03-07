@@ -101,6 +101,8 @@ function get<C>(t: Context.t<C>): C {
   return current.context;
 }
 
+// FIXME there are many common scenarios where this error occurs, which weren't expected when this was written
+// it should list them and help to resolve them
 let contextConflictMessage =
   "It seems you're running multiple provers concurrently within" +
   ' the same JavaScript thread, which, at the moment, is not supported and would lead to bugs.';

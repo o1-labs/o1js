@@ -74,7 +74,7 @@ it('pickles rule creation', async () => {
       let field_: FieldConst = [0, 0n];
       let bool_: FieldConst = [0, 0n];
 
-      Provable.runAndCheck(() => {
+      await Provable.runAndCheck(async () => {
         // put witnesses in snark context
         snarkContext.get().witnesses = [dummy, bool];
 
@@ -82,7 +82,7 @@ it('pickles rule creation', async () => {
         let {
           publicOutput: [, publicOutput],
           shouldVerify: [, shouldVerify],
-        } = rule.main([0]);
+        } = await rule.main([0]);
 
         // `publicOutput` and `shouldVerify` are as expected
         Snarky.field.assertEqual(publicOutput, dummy.publicInput.value);
@@ -118,7 +118,7 @@ it('can compile program with large input', async () => {
 });
 
 // regression tests for some zkprograms
-const emptyMethodsMetadata = EmptyProgram.analyzeMethods();
+const emptyMethodsMetadata = await EmptyProgram.analyzeMethods();
 expect(emptyMethodsMetadata.run).toEqual(
   expect.objectContaining({
     rows: 0,
@@ -149,5 +149,6 @@ const CounterProgram = ZkProgram({
   },
 });
 
-const incrementMethodMetadata = CounterProgram.analyzeMethods().increment;
+const incrementMethodMetadata = (await CounterProgram.analyzeMethods())
+  .increment;
 expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));
