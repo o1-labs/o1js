@@ -33,6 +33,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
+- Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
+- Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
 
 ## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
 
