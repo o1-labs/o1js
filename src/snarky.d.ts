@@ -561,6 +561,36 @@ declare const Snarky: {
     };
   };
 
+  /**
+   * The circuit API is a low level interface to create zero-knowledge proofs using Bn254 fields
+   */
+  circuitBn254: {
+    /**
+     * Generates a proving key and a verification key for the provable function `main`.
+     * Uses Pasta fields.
+     */
+    compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+
+    /**
+     * Proves a statement using the private input, public input and the keypair of the circuit.
+     */
+    prove(
+      main: Snarky.Main,
+      publicInputSize: number,
+      publicInput: MlArray<FieldConst>,
+      keypair: Snarky.Keypair
+    ): Snarky.Proof;
+
+    keypair: {
+      getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
+      /**
+       * Returns a low-level JSON representation of the circuit:
+       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+       */
+      getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
+    };
+  };
+
   // TODO: implement in TS
   poseidon: {
     update(
@@ -578,8 +608,8 @@ declare const Snarky: {
 
     foreignSponge: {
       create(isChecked: boolean): unknown;
-      absorb(sponge: unknown, x: ForeignFieldVar): void;
-      squeeze(sponge: unknown): ForeignFieldVar;
+      absorb(sponge: unknown, x: MlTuple<FieldVar, 3>): void;
+      squeeze(sponge: unknown): MlTuple<FieldVar, 3>;
     };
   };
 };

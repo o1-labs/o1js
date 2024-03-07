@@ -8,6 +8,7 @@ import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
 import { assert } from './errors.js';
 import { rangeCheckN } from './gadgets/range-check.js';
 import { TupleN } from './util/types.js';
+import { ForeignFieldBn254, createForeignFieldBn254 } from './foreign_field_bn254.js';
 
 // external API
 export { Poseidon, TokenSymbol };
