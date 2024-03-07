@@ -25,7 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
   - These changes were made to add internal support for async circuits
   - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
-- Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464  
+- Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
   - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
