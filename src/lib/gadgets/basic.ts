@@ -2,28 +2,138 @@
  * Basic gadgets that only use generic gates
  */
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import type { Field, VarField } from '../field.js';
-import { existsOne, toVar } from './common.js';
-import { Gates } from '../gates.js';
+import {
+  Field,
+  FieldConst,
+  FieldType,
+  FieldVar,
+  VarField,
+  VarFieldVar,
+} from '../field.js';
+import { assert, existsOne, toVar } from './common.js';
+import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../util/types.js';
 
-export { assertBoolean, assertSquare, arrayGet, assertOneOf };
+export { assertMul, assertSquare, assertBoolean, arrayGet, assertOneOf };
 
 /**
- * Assert that x is either 0 or 1.
+ * Assert multiplication constraint, `x * y === z`
  */
-function assertBoolean(x_: Field) {
-  let x = toVar(x_);
-  assertBilinear(x, x, [1n, -1n, 0n, 0n]);
+function assertMul(
+  x: Field | FieldVar,
+  y: Field | FieldVar,
+  z: Field | FieldVar
+) {
+  // this faithfully implements snarky's `assert_r1cs`,
+  // see `R1CS_constraint_system.add_constraint` -> `Snarky_backendless.Constraint.R1CS`
+
+  let xv = toScaledVar(x);
+  let yv = toScaledVar(y);
+  let zv = toScaledVar(z);
+
+  // three variables
+
+  if (isVar(xv) && isVar(yv) && isVar(zv)) {
+    let [[sx, x], [sy, y], [sz, z]] = [getVar(xv), getVar(yv), getVar(zv)];
+
+    // -sx sy * x y + sz z = 0
+    return Gates.generic(
+      { left: 0n, right: 0n, out: sz, mul: -sx * sy, const: 0n },
+      { left: x, right: y, out: z }
+    );
+  }
+
+  // two variables, one constant
+
+  if (isVar(xv) && isVar(yv) && isConst(zv)) {
+    let [[sx, x], [sy, y], sz] = [getVar(xv), getVar(yv), getConst(zv)];
+
+    // sx sy * x y - sz = 0
+    return Gates.generic(
+      { left: 0n, right: 0n, out: 0n, mul: sx * sy, const: -sz },
+      { left: x, right: y, out: emptyCell() }
+    );
+  }
+
+  if (isVar(xv) && isConst(yv) && isVar(zv)) {
+    let [[sx, x], sy, [sz, z]] = [getVar(xv), getConst(yv), getVar(zv)];
+
+    // sx sy * x - sz z = 0
+    return Gates.generic(
+      { left: sx * sy, right: 0n, out: -sz, mul: 0n, const: 0n },
+      { left: x, right: emptyCell(), out: z }
+    );
+  }
+
+  if (isConst(xv) && isVar(yv) && isVar(zv)) {
+    let [sx, [sy, y], [sz, z]] = [getConst(xv), getVar(yv), getVar(zv)];
+
+    // sx sy * y - sz z = 0
+    return Gates.generic(
+      { left: 0n, right: sx * sy, out: -sz, mul: 0n, const: 0n },
+      { left: emptyCell(), right: y, out: z }
+    );
+  }
+
+  // two constants, one variable
+
+  if (isVar(xv) && isConst(yv) && isConst(zv)) {
+    let [[sx, x], sy, sz] = [getVar(xv), getConst(yv), getConst(zv)];
+
+    // sx sy * x - sz = 0
+    return Gates.generic(
+      { left: sx * sy, right: 0n, out: 0n, mul: 0n, const: -sz },
+      { left: x, right: emptyCell(), out: emptyCell() }
+    );
+  }
+
+  if (isConst(xv) && isVar(yv) && isConst(zv)) {
+    let [sx, [sy, y], sz] = [getConst(xv), getVar(yv), getConst(zv)];
+
+    // sx sy * y - sz = 0
+    return Gates.generic(
+      { left: 0n, right: sx * sy, out: 0n, mul: 0n, const: -sz },
+      { left: emptyCell(), right: y, out: emptyCell() }
+    );
+  }
+
+  if (isConst(xv) && isConst(yv) && isVar(zv)) {
+    let [sx, sy, [sz, z]] = [getConst(xv), getConst(yv), getVar(zv)];
+
+    // sz z - sx sy = 0
+    return Gates.generic(
+      { left: 0n, right: 0n, out: sz, mul: 0n, const: -sx * sy },
+      { left: emptyCell(), right: emptyCell(), out: z }
+    );
+  }
+
+  // three constants
+
+  if (isConst(xv) && isConst(yv) && isConst(zv)) {
+    let [sx, sy, sz] = [getConst(xv), getConst(yv), getConst(zv)];
+
+    assert(sx * sy === sz, `assertMul(): ${sx} * ${sy} !== ${sz}`);
+  }
+
+  // sadly TS doesn't know that this was exhaustive
+  assert(false, `assertMul(): unreachable`);
 }
 
 /**
- * Assert square, x^2 === z
+ * Assert square, `x^2 === z`
  */
 function assertSquare(x_: Field, z_: Field) {
   let x = toVar(x_);
   let z = toVar(z_);
   assertBilinear(x, x, [1n, 0n, 0n, 0n], z);
+}
+
+/**
+ * Assert that x is either 0 or 1, `x^2 === x`
+ */
+function assertBoolean(x_: Field) {
+  let x = toVar(x_);
+  assertBilinear(x, x, [1n, -1n, 0n, 0n]);
 }
 
 // TODO: create constant versions of these and expose on Gadgets
@@ -126,10 +236,10 @@ function bilinear(x: VarField, y: VarField, [a, b, c, d]: TupleN<bigint, 4>) {
  * The default for z is 0.
  */
 function assertBilinear(
-  x: VarField,
-  y: VarField,
+  x: VarField | VarFieldVar,
+  y: VarField | VarFieldVar,
   [a, b, c, d]: TupleN<bigint, 4>,
-  z?: VarField
+  z?: VarField | VarFieldVar
 ) {
   // b*x + c*y - z? + a*x*y + d === 0
   Gates.generic(
@@ -140,4 +250,49 @@ function assertBilinear(
 
 function emptyCell() {
   return existsOne(() => 0n);
+}
+
+/**
+ * reduce a general `FieldVar` to a `Scale(c, Var) | Constant`
+ *
+ * this is an optimization over `toVar(x): Var`.
+ * it allows callers to handle the scaling factor separately, to avoid
+ * wastefully adding constraints of the form `c * x === y` before using `c * x`.
+ */
+function toScaledVar(x: Field | FieldVar): Scaled | Constant {
+  x = fieldVar(x);
+
+  // return constants as is
+  if (FieldVar.isConstant(x)) return x;
+
+  // return vars with a scaling factor of 1
+  if (FieldVar.isVar(x)) return [FieldType.Scale, FieldConst[1], x];
+
+  // return scaled vars as is
+  if (x[0] === FieldType.Scale && x[2][0] === FieldType.Var) {
+    return x as Scaled;
+  }
+
+  // reduce anything else (normally, Add) to a var
+  let xVar = toVar(x);
+  return [FieldType.Scale, FieldConst[1], xVar.value];
+}
+
+// helpers for dealing with scaled vars and constants
+
+type Scaled = [FieldType.Scale, FieldConst, VarFieldVar];
+type Constant = [FieldType.Constant, FieldConst];
+
+function isVar(x: Scaled | Constant): x is Scaled {
+  return x[0] === FieldType.Scale;
+}
+function isConst(x: Scaled | Constant): x is Constant {
+  return x[0] === FieldType.Constant;
+}
+
+function getVar(x: Scaled): [bigint, VarFieldVar] {
+  return [x[1][1], x[2]];
+}
+function getConst(x: Constant): bigint {
+  return x[1][1];
 }

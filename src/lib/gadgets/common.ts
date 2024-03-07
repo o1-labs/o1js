@@ -1,8 +1,15 @@
-import { Field, FieldConst, FieldVar, VarField } from '../field.js';
+import {
+  Field,
+  FieldConst,
+  FieldVar,
+  VarField,
+  VarFieldVar,
+} from '../field.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
 import { Bool } from '../bool.js';
+import { fieldVar } from '../gates.js';
 
 const MAX_BITS = 64 as const;
 
@@ -42,16 +49,19 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
  *
  * Same as `Field.seal()` with the difference that `seal()` leaves constants as is.
  */
-function toVar(x: Field | bigint): VarField {
+function toVar(x_: Field | FieldVar | bigint): VarField {
+  let x = new Field(x_);
   // don't change existing vars
   if (isVar(x)) return x;
-  let xVar = existsOne(() => Field.from(x).toBigInt());
+  let xVar = existsOne(() => x.toBigInt());
   xVar.assertEquals(x);
   return xVar;
 }
 
-function isVar(x: Field | bigint): x is VarField {
-  return x instanceof Field && FieldVar.isVar(x.value);
+function isVar(x: FieldVar | bigint): x is VarFieldVar;
+function isVar(x: Field | bigint): x is VarField;
+function isVar(x: Field | FieldVar | bigint) {
+  return FieldVar.isVar(fieldVar(x));
 }
 
 /**
