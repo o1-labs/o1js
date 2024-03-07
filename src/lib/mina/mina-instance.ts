@@ -97,7 +97,7 @@ type NetworkConstants = {
 interface Mina {
   transaction(
     sender: DeprecatedFeePayerSpec,
-    f: () => void
+    f: () => Promise<void>
   ): Promise<Transaction>;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;

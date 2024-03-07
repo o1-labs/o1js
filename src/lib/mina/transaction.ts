@@ -25,6 +25,7 @@ import {
 import * as Fetch from '../fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
+import { assertPromise } from '../util/assert.js';
 
 export {
   type Transaction,
@@ -282,7 +283,7 @@ type RejectedTransaction = Pick<
 
 async function createTransaction(
   feePayer: DeprecatedFeePayerSpec,
-  f: () => unknown,
+  f: () => Promise<unknown>,
   numberOfRuns: 0 | 1 | undefined,
   {
     fetchMode = 'cached' as FetchMode,
@@ -324,16 +325,15 @@ async function createTransaction(
   // run circuit
   try {
     if (fetchMode === 'test') {
-      await Provable.runUnchecked(() => {
-        f();
+      await Provable.runUnchecked(async () => {
+        await assertPromise(f());
         Provable.asProver(() => {
           let tx = currentTransaction.get();
           tx.layout.toConstantInPlace();
         });
       });
     } else {
-      // TODO support async
-      f();
+      await assertPromise(f());
     }
   } catch (err) {
     currentTransaction.leave(transactionId);
@@ -443,16 +443,19 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
  * you can call into the methods of smart contracts.
  *
  * ```
- * let tx = await Mina.transaction(sender, () => {
- *   myZkapp.update();
- *   someOtherZkapp.someOtherMethod();
+ * let tx = await Mina.transaction(sender, async () => {
+ *   await myZkapp.update();
+ *   await someOtherZkapp.someOtherMethod();
  * });
  * ```
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
-function transaction(f: () => void): Promise<Transaction>;
+function transaction(
+  sender: FeePayerSpec,
+  f: () => Promise<void>
+): Promise<Transaction>;
+function transaction(f: () => Promise<void>): Promise<Transaction>;
 /**
  * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
  * ```
@@ -467,21 +470,21 @@ function transaction(f: () => void): Promise<Transaction>;
  */
 function transaction(
   sender: DeprecatedFeePayerSpec,
-  f: () => void
+  f: () => Promise<void>
 ): Promise<Transaction>;
 function transaction(
-  senderOrF: DeprecatedFeePayerSpec | (() => void),
-  fOrUndefined?: () => void
+  senderOrF: DeprecatedFeePayerSpec | (() => Promise<void>),
+  fOrUndefined?: () => Promise<void>
 ): Promise<Transaction> {
   let sender: DeprecatedFeePayerSpec;
-  let f: () => void;
+  let f: () => Promise<void>;
   try {
     if (fOrUndefined !== undefined) {
       sender = senderOrF as DeprecatedFeePayerSpec;
       f = fOrUndefined;
     } else {
       sender = undefined;
-      f = senderOrF as () => void;
+      f = senderOrF as () => Promise<void>;
     }
     return activeInstance.transaction(sender, f);
   } catch (error) {

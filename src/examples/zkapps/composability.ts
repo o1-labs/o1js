@@ -85,7 +85,7 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   // TODO: enable funding multiple accounts properly
   AccountUpdate.fundNewAccount(feePayer, 3);
   zkapp.deploy();
@@ -95,7 +95,7 @@ let tx = await Mina.transaction(feePayer, () => {
 await tx.sign([feePayerKey, zkappKey, adderKey, incrementerKey]).send();
 
 console.log('call interaction');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // we just call one contract here, nothing special to do
   zkapp.callAddAndEmit(Field(5), Field(6));
 });

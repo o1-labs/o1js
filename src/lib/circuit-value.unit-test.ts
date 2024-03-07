@@ -145,10 +145,10 @@ let key = PrivateKey.random();
 let address = key.toPublicKey();
 let contract = new MyContract(address);
 
-let tx = await transaction(() => {
+let tx = await transaction(async () => {
   let accountUpdate = AccountUpdate.createSigned(key);
 
-  contract.myMethod(
+  await contract.myMethod(
     {
       nested: { a: 1, b: false },
       other: targetString,

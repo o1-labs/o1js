@@ -72,7 +72,7 @@ export function getResults(
  */
 export async function assertValidTx(
   expectToBeValid: boolean,
-  cb: () => void,
+  cb: () => Promise<void>,
   feePayer: PrivateKey,
   msg?: string
 ) {

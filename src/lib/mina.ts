@@ -1,6 +1,6 @@
 import { Test } from '../snarky.js';
 import { Field } from './core.js';
-import { UInt32, UInt64 } from './int.js';
+import { UInt64 } from './int.js';
 import { PublicKey } from './signature.js';
 import { ZkappCommand, TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
@@ -90,7 +90,7 @@ export {
 // patch active instance so that we can still create basic transactions without giving Mina network details
 setActiveInstance({
   ...activeInstance,
-  async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
+  async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
     return await createTransaction(sender, f, 0);
   },
 });
@@ -374,7 +374,7 @@ function Network(
         safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
+    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transcation twice to be able to fetch data in between
       let tx = await createTransaction(sender, f, 0, {
         fetchMode: 'test',

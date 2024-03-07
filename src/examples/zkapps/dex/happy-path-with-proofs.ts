@@ -44,7 +44,7 @@ let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
 let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 tic('deploy & init token contracts');
-tx = await Mina.transaction(feePayerAddress, () => {
+tx = await Mina.transaction(feePayerAddress, async () => {
   tokenX.deploy();
   tokenY.deploy();
 
@@ -60,7 +60,7 @@ toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
 
 tic('deploy dex contracts');
-tx = await Mina.transaction(feePayerAddress, () => {
+tx = await Mina.transaction(feePayerAddress, async () => {
   // pay fees for creating 3 dex accounts
   AccountUpdate.createSigned(feePayerAddress).balance.subInPlace(
     Mina.getNetworkConstants().accountCreationFee.mul(3)
@@ -78,7 +78,7 @@ console.log('account updates length', tx.transaction.accountUpdates.length);
 
 tic('transfer tokens to user');
 let USER_DX = 1_000n;
-tx = await Mina.transaction(feePayerAddress, () => {
+tx = await Mina.transaction(feePayerAddress, async () => {
   // pay fees for creating 3 user accounts
   let feePayer = AccountUpdate.fundNewAccount(feePayerAddress, 3);
   feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
@@ -93,7 +93,7 @@ console.log('account updates length', tx.transaction.accountUpdates.length);
 expect(balances.user.X).toEqual(USER_DX);
 
 tic('supply liquidity');
-tx = await Mina.transaction(addresses.user, () => {
+tx = await Mina.transaction(addresses.user, async () => {
   AccountUpdate.fundNewAccount(addresses.user);
   dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
 });
@@ -106,7 +106,7 @@ expect(balances.user.X).toEqual(0n);
 
 tic('redeem liquidity');
 let USER_DL = 100n;
-tx = await Mina.transaction(addresses.user, () => {
+tx = await Mina.transaction(addresses.user, async () => {
   dex.redeemLiquidity(UInt64.from(USER_DL));
 });
 
@@ -119,7 +119,7 @@ expect(balances.user.X).toEqual(USER_DL / 2n);
 
 tic('swap 10 X for Y');
 USER_DX = 10n;
-tx = await Mina.transaction(addresses.user, () => {
+tx = await Mina.transaction(addresses.user, async () => {
   dex.swapX(UInt64.from(USER_DX));
 });
 await tx.prove();

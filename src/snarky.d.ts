@@ -194,6 +194,10 @@ declare const Snarky: {
    */
   run: {
     /**
+     * Checks whether Snarky runs in "prover mode", that is, with witnesses
+     */
+    inProver(): MlBool;
+    /**
      * Runs code as a prover.
      */
     asProver(f: () => void): void;
@@ -217,6 +221,25 @@ declare const Snarky: {
       public_inputs: FieldVector,
       auxiliary_inputs: FieldVector
     ];
+    /**
+     * Starts an asProver / witness block and returns a function to finish it.
+     */
+    enterAsProver(
+      size: number
+    ): (fields: MlOption<MlArray<FieldConst>>) => MlArray<VarFieldVar>;
+
+    /**
+     * Snarky's internal state
+     */
+    state: {
+      allocVar(state: SnarkyState): FieldVar;
+      storeFieldElt(state: SnarkyState, x: FieldConst): FieldVar;
+      getVariableValue(state: SnarkyState, x: FieldVar): FieldConst;
+
+      asProver(state: SnarkyState): MlBool;
+      setAsProver(state: SnarkyState, value: MlBool): void;
+      hasWitness(state: SnarkyState): MlBool;
+    };
   };
 
   /**
@@ -561,6 +584,27 @@ declare const Snarky: {
     };
   };
 };
+
+type MlRef<T> = [_: 0, contents: T];
+
+type SnarkyVector = [0, [unknown, number, FieldVector]];
+type ConstraintSystem = unknown;
+
+type SnarkyState = [
+  _: 0,
+  system: MlOption<ConstraintSystem>,
+  input: SnarkyVector,
+  aux: SnarkyVector,
+  eval_constraints: MlBool,
+  num_inputs: number,
+  next_auxiliary: MlRef<number>,
+  has_witness: MlBool,
+  stack: MlList<MlString>,
+  handler: unknown,
+  is_running: MlBool,
+  as_prover: MlRef<MlBool>,
+  log_constraint: unknown
+];
 
 type GateType =
   | 'Zero'

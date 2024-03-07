@@ -6,7 +6,7 @@ function assert(stmt: boolean, message?: string): asserts stmt {
   }
 }
 
-function assertPromise<T extends Promise<any>>(value: T): T {
+function assertPromise<T>(value: Promise<T>): Promise<T> {
   assert(value instanceof Promise, 'Expected a promise');
   return value;
 }

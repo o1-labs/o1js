@@ -26,19 +26,19 @@ console.log('compile...');
 await MyContract.compile();
 // should work
 console.log('prove...');
-let tx = await Mina.transaction(() => {
+let tx = await Mina.transaction(async () => {
   new MyContract(address).checkString(CircuitString.fromString('a string'));
 });
 await tx.prove();
 console.log('test 1 - ok');
 // should work
-tx = await Mina.transaction(() => {
+tx = await Mina.transaction(async () => {
   new MyContract(address).checkString(CircuitString.fromString('some string'));
 });
 await tx.prove();
 console.log('test 2 - ok');
 // should fail
-let fails = await Mina.transaction(() => {
+let fails = await Mina.transaction(async () => {
   new MyContract(address).checkString(CircuitString.fromString('different'));
 })
   .then(() => false)
