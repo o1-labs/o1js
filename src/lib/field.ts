@@ -935,9 +935,7 @@ class Field {
     });
     Field.fromBits(bits).assertEquals(
       this,
-      `Field.toBits(): ${Provable.asProver(() => {
-        this.toString();
-      })} does not fit in ${length} bits`
+      `Field.toBits(): Input does not fit in ${length} bits`
     );
     return bits;
   }
@@ -967,7 +965,7 @@ class Field {
       .reduce((acc, bit, idx) => {
         const shift = 1n << BigInt(idx);
         return acc.add(bit.toField().mul(shift));
-      }, Field.from(0));
+      }, Field.from(0)).seal();
   }
 
   /**
