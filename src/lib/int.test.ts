@@ -1081,7 +1081,8 @@ describe('int', () => {
         });
 
         it('should throw checking over MAXINT', () => {
-          const aboveMax = new UInt64((1n << 64n).toString()); // This number is defined in UInt64.MAXINT()
+          const aboveMax = new UInt64(1);
+          aboveMax.value = Field(1n << 64n);
           expect(() => {
             UInt64.check(aboveMax);
           }).toThrow();
@@ -1990,9 +1991,10 @@ describe('int', () => {
         });
 
         it('should throw checking over MAXINT', () => {
-          const x = new UInt32((1n << 32n).toString()); // This number is defined in UInt32.MAXINT()
+          const aboveMax = new UInt32(1);
+          aboveMax.value = Field(1n << 32n);
           expect(() => {
-            UInt32.check(x);
+            UInt32.check(aboveMax);
           }).toThrow();
         });
       });
