@@ -27,7 +27,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
 - `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
   - The default value is 1 and should work for most existing contracts
-- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. As a replacement, there is `UInt64.Unsafe.fromField()`
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+   As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
 
