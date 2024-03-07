@@ -49,6 +49,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+- Make `Circuit` handle types with a `.provable` property (like those used in ECDSA) https://github.com/o1-labs/o1js/pull/1471
+  - To support offchain, non-Pickles proofs of ECDSA signatures
 
 ## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 
