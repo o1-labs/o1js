@@ -259,7 +259,7 @@ function emptyCell() {
  * it allows callers to handle the scaling factor separately, to avoid
  * wastefully adding constraints of the form `c * x === y` before using `c * x`.
  */
-function toScaledVar(x: Field | FieldVar): Scaled | Constant {
+function toScaledVar(x: Field | FieldVar): ScaledVar | Constant {
   x = fieldVar(x);
 
   // return constants as is
@@ -270,7 +270,7 @@ function toScaledVar(x: Field | FieldVar): Scaled | Constant {
 
   // return scaled vars as is
   if (x[0] === FieldType.Scale && x[2][0] === FieldType.Var) {
-    return x as Scaled;
+    return x as ScaledVar;
   }
 
   // reduce anything else (normally, Add) to a var
@@ -278,19 +278,89 @@ function toScaledVar(x: Field | FieldVar): Scaled | Constant {
   return [FieldType.Scale, FieldConst[1], xVar.value];
 }
 
+/**
+ * Converts a `FieldVar` into a set of constraints, returns the remainder as a ScaledVar | Constant
+ */
+function reduceLinearCombination(x: FieldVar): {
+  constant: bigint;
+  terms: [bigint, VarFieldVar][];
+} {
+  return toLinearCombination(x);
+}
+
+/**
+ * Flatten the AST of a `FieldVar` to a linear combination of the form
+ *
+ * `c + s1*x1 + s2*x2 + ... + sn*xn`
+ *
+ * where no vars are duplicated.
+ */
+function toLinearCombination(
+  x: FieldVar,
+  sx = 1n,
+  lincom: { constant: bigint; terms: [bigint, VarFieldVar][] } = {
+    constant: 0n,
+    terms: [],
+  }
+): { constant: bigint; terms: [bigint, VarFieldVar][] } {
+  let { constant, terms } = lincom;
+  // the recursive logic here adds a new term sx*x to an existing linear combination
+  // but x might have to be expanded first to a linear combination itself
+
+  switch (x[0]) {
+    case FieldType.Constant: {
+      // a constant is just added to the constant term
+      let [, [, c]] = x;
+      return { constant: Fp.add(constant, Fp.mul(sx, c)), terms };
+    }
+    case FieldType.Var: {
+      let [, i] = x;
+
+      // we search for an existing term with the same var
+      let y = terms.find((t) => t[1][1] === i);
+
+      // if there is none, we just add a new term
+      if (y === undefined) return { constant, terms: [[sx, x], ...terms] };
+
+      // if there is one, we add the scales
+      let [sy] = y;
+      y[0] = Fp.add(sy, sx);
+
+      if (y[0] === 0n) {
+        // if the sum is 0, we remove the term
+        terms = terms.filter((t) => t[1][1] !== i);
+      }
+
+      return { constant, terms };
+    }
+    case FieldType.Scale: {
+      // sx * (s * x) + ... = (sx * s) * x + ...
+      let [, [, s], v] = x;
+      return toLinearCombination(v, Fp.mul(sx, s), lincom);
+    }
+    case FieldType.Add: {
+      // sx * (x1 + x2) + ... = sx * x2 + (sx * x1 + ...)
+      let [, x1, x2] = x;
+      lincom = toLinearCombination(x1, sx, lincom);
+      return toLinearCombination(x2, sx, lincom);
+    }
+  }
+}
+
 // helpers for dealing with scaled vars and constants
 
-type Scaled = [FieldType.Scale, FieldConst, VarFieldVar];
+// type Scaled = [FieldType.Scale, FieldConst, FieldVar];
+type ScaledVar = [FieldType.Scale, FieldConst, VarFieldVar];
 type Constant = [FieldType.Constant, FieldConst];
 
-function isVar(x: Scaled | Constant): x is Scaled {
+function isVar(x: ScaledVar | Constant): x is ScaledVar {
   return x[0] === FieldType.Scale;
 }
-function isConst(x: Scaled | Constant): x is Constant {
+function isConst(x: ScaledVar | Constant): x is Constant {
   return x[0] === FieldType.Constant;
 }
 
-function getVar(x: Scaled): [bigint, VarFieldVar] {
+function getVar(x: ScaledVar): [bigint, VarFieldVar] {
   return [x[1][1], x[2]];
 }
 function getConst(x: Constant): bigint {
