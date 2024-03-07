@@ -11,6 +11,7 @@ import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
 import { existsOne } from './gadgets/common.js';
+import { assertMul } from './gadgets/basic.js';
 
 export { BoolVar, Bool };
 
@@ -163,7 +164,7 @@ class Bool {
     let z = existsOne(() => BigInt(this.toBoolean() === toBoolean(y)));
     let x = this.toField();
     let y_ = Bool.toField(y);
-    Snarky.field.assertMul(x.add(x).value, y_.value, x.add(y_).sub(z).value);
+    assertMul(x.add(x), y_, x.add(y_).sub(z));
     return new Bool(z.value).not();
   }
 

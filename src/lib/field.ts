@@ -5,7 +5,7 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
-import { assertBoolean, assertSquare } from './gadgets/basic.js';
+import { assertBoolean, assertMul, assertSquare } from './gadgets/basic.js';
 
 // external API
 export { Field };
@@ -452,7 +452,7 @@ class Field {
       FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
     );
     // add a multiplication constraint
-    Snarky.field.assertMul(this.value, y.value, z);
+    assertMul(this, y, z);
     return new Field(z);
   }
 
@@ -485,7 +485,7 @@ class Field {
       return FieldConst.fromBigint(z);
     });
     // constrain x * z === 1
-    Snarky.field.assertMul(this.value, z, FieldVar[1]);
+    assertMul(this, z, FieldVar[1]);
     return new Field(z);
   }
 
@@ -610,11 +610,11 @@ class Field {
     });
     // add constraints
     // b * x === 0
-    Snarky.field.assertMul(b, this.value, FieldVar[0]);
+    assertMul(b, this, FieldVar[0]);
     // z * x === 1 - b
-    Snarky.field.assertMul(
+    assertMul(
       z,
-      this.value,
+      this,
       Snarky.field.add(FieldVar[1], Snarky.field.scale(FieldConst[-1], b))
     );
     // ^^^ these prove that b = Bool(x === 0):
