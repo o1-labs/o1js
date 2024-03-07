@@ -28,7 +28,8 @@ class UInt64 extends CircuitValue {
   constructor(x: UInt64 | UInt32 | FieldVar | number | string | bigint) {
     if (x instanceof UInt64 || x instanceof UInt32) x = x.value.value;
     let value = Field(x);
-    super({ value });
+    super(value);
+    // check the range if the argument is a constant
     UInt64.checkConstant(value);
   }
 
@@ -128,13 +129,12 @@ class UInt64 extends CircuitValue {
     return x;
   }
 
-  // this checks the range if the argument is a constant
   /**
    * Creates a new {@link UInt64}.
    */
   static from(x: UInt64 | UInt32 | number | string | bigint) {
-    let _x = (x instanceof UInt64 || x instanceof UInt32) ? x.value : Field(x);
-    return new this(this.checkConstant(_x).value);
+    if (x instanceof UInt64) return x;
+    return new this(x);
   }
 
   /**
@@ -574,7 +574,8 @@ class UInt32 extends CircuitValue {
   constructor(x: UInt32 | FieldVar | number | string | bigint) {
     if (x instanceof UInt32) x = x.value.value;
     let value = Field(x);
-    super({ value });
+    super(value);
+    // check the range if the argument is a constant
     UInt32.checkConstant(value);
   }
 
@@ -659,8 +660,8 @@ class UInt32 extends CircuitValue {
    * Creates a new {@link UInt32}.
    */
   static from(x: UInt32 | number | string | bigint) {
-    let _x = x instanceof UInt32 ? x.value : Field(x);
-    return new this(this.checkConstant(_x).value);
+    if (x instanceof UInt32) return x;
+    return new this(x);
   }
 
   /**
