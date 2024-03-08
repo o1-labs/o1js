@@ -240,6 +240,18 @@ declare const Snarky: {
     /**
      * x*y === z without handling of constants
      */
+    assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
+    /**
+     * x*x === y without handling of constants
+     */
+    assertSquare(x: FieldVar, y: FieldVar): void;
+    /**
+     * x*x === x without handling of constants
+     */
+    assertBoolean(x: FieldVar): void;
+    /**
+     * check x < y and x <= y
+     */
     compare(
       bitLength: number,
       x: FieldVar,
