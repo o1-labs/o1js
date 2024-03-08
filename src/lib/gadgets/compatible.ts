@@ -138,7 +138,9 @@ function assertMulCompatible(
  */
 function reduceLinearCombination(x: Field | FieldVar): ScaledVar | Constant {
   let { constant: c, terms } = toLinearCombination(fieldVar(x));
-  terms.reverse();
+
+  // sort terms alphabetically by variable index
+  terms.sort(([, [, i]], [, [, j]]) => i - j);
 
   if (terms.length === 0) {
     // constant
