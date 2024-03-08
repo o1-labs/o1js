@@ -2,6 +2,7 @@
  * Basic gadgets that only use generic gates, and are compatible with (create the same constraints as)
  * `plonk_constraint_system.ml` / R!CS_constraint_system.
  */
+import { Fp } from '../../bindings/crypto/finite-field.js';
 import { Field, FieldVar } from '../field.js';
 import { assert } from './common.js';
 import { Gates } from '../gates.js';
@@ -10,6 +11,7 @@ import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
 export {
   assertMulCompatible as assertMul,
   assertSquareCompatible as assertSquare,
+  assertBooleanCompatible as assertBoolean,
 };
 
 let { isVar, getVar, isConst, getConst } = ScaledVar;
@@ -110,7 +112,10 @@ function assertMulCompatible(
   if (isConst(xv) && isConst(yv) && isConst(zv)) {
     let [sx, sy, sz] = [getConst(xv), getConst(yv), getConst(zv)];
 
-    assert(sx * sy === sz, `assertMul(): ${sx} * ${sy} !== ${sz}`);
+    assert(
+      Fp.equal(Fp.mul(sx, sy), sz),
+      `assertMul(): ${sx} * ${sy} !== ${sz}`
+    );
   }
 
   // sadly TS doesn't know that this was exhaustive
@@ -157,9 +162,31 @@ function assertSquareCompatible(x: Field, z: Field) {
   if (isConst(xv) && isConst(zv)) {
     let [sx, sz] = [getConst(xv), getConst(zv)];
 
-    assert(sx ** 2n === sz, `assertSquare(): ${sx}^2 !== ${sz}`);
+    assert(Fp.equal(Fp.square(sx), sz), `assertSquare(): ${sx}^2 !== ${sz}`);
   }
 
   // sadly TS doesn't know that this was exhaustive
   assert(false, `assertSquare(): unreachable`);
+}
+
+/**
+ * Assert that x is either 0 or 1, `x^2 === x`
+ */
+function assertBooleanCompatible(x: Field) {
+  let xv = reduceToScaledVar(x);
+
+  if (isVar(xv)) {
+    let [_sx, x] = getVar(xv);
+
+    // FIXME: it's wrong that the scaling factor is ignored here, means it can't be different than 1
+    // this needs to be compatible, so need to change `plonk_constraint_system.ml`
+    // x^2 - x = 0
+    return Gates.generic(
+      { left: -1n, right: 0n, out: 0n, mul: 1n, const: 0n },
+      { left: x, right: x, out: emptyCell() }
+    );
+  }
+
+  let x0 = getConst(xv);
+  assert(Fp.equal(Fp.square(x0), x0), `assertBoolean(): ${x} is not 0 or 1`);
 }

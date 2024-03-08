@@ -14,7 +14,7 @@ import { existsOne, toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../util/types.js';
 
-export { assertMul, assertBoolean, arrayGet, assertOneOf };
+export { assertMul, arrayGet, assertOneOf };
 
 // internal
 export { reduceToScaledVar, emptyCell, linear, bilinear, ScaledVar, Constant };
@@ -49,14 +49,6 @@ function assertMul(
     },
     { left: vx, right: vy, out: vz }
   );
-}
-
-/**
- * Assert that x is either 0 or 1, `x^2 === x`
- */
-function assertBoolean(x_: Field) {
-  let x = toVar(x_);
-  assertBilinear(x, x, [1n, -1n, 0n, 0n]);
 }
 
 // TODO: create constant versions of these and expose on Gadgets
