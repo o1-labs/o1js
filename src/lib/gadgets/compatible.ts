@@ -1,6 +1,6 @@
 /**
  * Basic gadgets that only use generic gates, and are compatible with (create the same constraints as)
- * `plonk_constraint_system.ml` / R!CS_constraint_system.
+ * `plonk_constraint_system.ml` / R1CS_constraint_system.
  */
 import { Fp } from '../../bindings/crypto/finite-field.js';
 import { Field, FieldVar } from '../field.js';
