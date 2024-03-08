@@ -10,21 +10,14 @@ import {
   VarField,
   VarFieldVar,
 } from '../field.js';
-import { assert, existsOne, toVar } from './common.js';
+import { existsOne, toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../util/types.js';
 
 export { assertMul, assertSquare, assertBoolean, arrayGet, assertOneOf };
 
 // internal
-export {
-  reduceLinearCombination,
-  emptyCell,
-  linear,
-  bilinear,
-  ScaledVar,
-  Constant,
-};
+export { reduceToScaledVar, emptyCell, linear, bilinear, ScaledVar, Constant };
 
 /**
  * Assert multiplication constraint, `x * y === z`
@@ -34,99 +27,27 @@ function assertMul(
   y: Field | FieldVar,
   z: Field | FieldVar
 ) {
-  // this faithfully implements snarky's `assert_r1cs`,
-  // see `R1CS_constraint_system.add_constraint` -> `Snarky_backendless.Constraint.R1CS`
+  // simpler version of assertMulCompatible that currently uses the same amount of constraints but is not compatible
 
-  let xv = reduceLinearCombination(x);
-  let yv = reduceLinearCombination(y);
-  let zv = reduceLinearCombination(z);
+  // TODO: if we replace `reduceToScaledVar()` with a function that leaves `a*x + b` unreduced, we can save constraints here
+  // for example: (x - 1)*(x - 2) === 0 would become 1 constraint instead of 3
+  let [[sx, vx], cx] = getLinear(reduceToScaledVar(x));
+  let [[sy, vy], cy] = getLinear(reduceToScaledVar(y));
+  let [[sz, vz], cz] = getLinear(reduceToScaledVar(z));
 
-  // three variables
+  // (sx * vx + cx) * (sy * vy + cy) = (sz * vz + cz)
+  // sx*cy*vx + sy*cx*vy - sz*vz + sx*sy*x*vy + (cx*cy - cz) = 0
 
-  if (isVar(xv) && isVar(yv) && isVar(zv)) {
-    let [[sx, x], [sy, y], [sz, z]] = [getVar(xv), getVar(yv), getVar(zv)];
-
-    // -sx sy * x y + sz z = 0
-    return Gates.generic(
-      { left: 0n, right: 0n, out: sz, mul: -sx * sy, const: 0n },
-      { left: x, right: y, out: z }
-    );
-  }
-
-  // two variables, one constant
-
-  if (isVar(xv) && isVar(yv) && isConst(zv)) {
-    let [[sx, x], [sy, y], sz] = [getVar(xv), getVar(yv), getConst(zv)];
-
-    // sx sy * x y - sz = 0
-    return Gates.generic(
-      { left: 0n, right: 0n, out: 0n, mul: sx * sy, const: -sz },
-      { left: x, right: y, out: emptyCell() }
-    );
-  }
-
-  if (isVar(xv) && isConst(yv) && isVar(zv)) {
-    let [[sx, x], sy, [sz, z]] = [getVar(xv), getConst(yv), getVar(zv)];
-
-    // sx sy * x - sz z = 0
-    return Gates.generic(
-      { left: sx * sy, right: 0n, out: -sz, mul: 0n, const: 0n },
-      { left: x, right: emptyCell(), out: z }
-    );
-  }
-
-  if (isConst(xv) && isVar(yv) && isVar(zv)) {
-    let [sx, [sy, y], [sz, z]] = [getConst(xv), getVar(yv), getVar(zv)];
-
-    // sx sy * y - sz z = 0
-    return Gates.generic(
-      { left: 0n, right: sx * sy, out: -sz, mul: 0n, const: 0n },
-      { left: emptyCell(), right: y, out: z }
-    );
-  }
-
-  // two constants, one variable
-
-  if (isVar(xv) && isConst(yv) && isConst(zv)) {
-    let [[sx, x], sy, sz] = [getVar(xv), getConst(yv), getConst(zv)];
-
-    // sx sy * x - sz = 0
-    return Gates.generic(
-      { left: sx * sy, right: 0n, out: 0n, mul: 0n, const: -sz },
-      { left: x, right: emptyCell(), out: emptyCell() }
-    );
-  }
-
-  if (isConst(xv) && isVar(yv) && isConst(zv)) {
-    let [sx, [sy, y], sz] = [getConst(xv), getVar(yv), getConst(zv)];
-
-    // sx sy * y - sz = 0
-    return Gates.generic(
-      { left: 0n, right: sx * sy, out: 0n, mul: 0n, const: -sz },
-      { left: emptyCell(), right: y, out: emptyCell() }
-    );
-  }
-
-  if (isConst(xv) && isConst(yv) && isVar(zv)) {
-    let [sx, sy, [sz, z]] = [getConst(xv), getConst(yv), getVar(zv)];
-
-    // sz z - sx sy = 0
-    return Gates.generic(
-      { left: 0n, right: 0n, out: sz, mul: 0n, const: -sx * sy },
-      { left: emptyCell(), right: emptyCell(), out: z }
-    );
-  }
-
-  // three constants
-
-  if (isConst(xv) && isConst(yv) && isConst(zv)) {
-    let [sx, sy, sz] = [getConst(xv), getConst(yv), getConst(zv)];
-
-    assert(sx * sy === sz, `assertMul(): ${sx} * ${sy} !== ${sz}`);
-  }
-
-  // sadly TS doesn't know that this was exhaustive
-  assert(false, `assertMul(): unreachable`);
+  Gates.generic(
+    {
+      left: sx * cy,
+      right: sy * cx,
+      out: -sz,
+      mul: sx * sy,
+      const: cx * cy - cz,
+    },
+    { left: vx, right: vy, out: vz }
+  );
 }
 
 /**
@@ -286,12 +207,12 @@ function emptyCell() {
 /**
  * Converts a `FieldVar` into a set of constraints, returns the remainder as a ScaledVar | Constant
  *
- * Handles duplicated variables optimally.
+ * Collapses duplicated variables, so e.g. x - x just becomes the 0 constant.
  *
  * This is better than fully reducing to a Var, because it allows callers to fold the scaling factor into the next operation,
  * instead of wasting a constraint on `c * x === y` before using `c * x`.
  */
-function reduceLinearCombination(x: Field | FieldVar): ScaledVar | Constant {
+function reduceToScaledVar(x: Field | FieldVar): ScaledVar | Constant {
   let { constant: c, terms } = toLinearCombination(fieldVar(x));
 
   // sort terms alphabetically by variable index
@@ -409,6 +330,11 @@ function getVar(x: ScaledVar): [bigint, VarFieldVar] {
 }
 function getConst(x: Constant): bigint {
   return x[1][1];
+}
+
+function getLinear(x: ScaledVar | Constant): [[bigint, VarFieldVar], bigint] {
+  if (isVar(x)) return [getVar(x), 0n];
+  return [[0n, emptyCell().value], getConst(x)];
 }
 
 const ScaledVar = { isVar, getVar, isConst, getConst };

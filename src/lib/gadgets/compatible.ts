@@ -5,7 +5,7 @@
 import { Field, FieldVar } from '../field.js';
 import { assert } from './common.js';
 import { Gates } from '../gates.js';
-import { ScaledVar, emptyCell, reduceLinearCombination } from './basic.js';
+import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
 
 export { assertMulCompatible as assertMul };
 
@@ -22,9 +22,9 @@ function assertMulCompatible(
   // this faithfully implements snarky's `assert_r1cs`,
   // see `R1CS_constraint_system.add_constraint` -> `Snarky_backendless.Constraint.R1CS`
 
-  let xv = reduceLinearCombination(x);
-  let yv = reduceLinearCombination(y);
-  let zv = reduceLinearCombination(z);
+  let xv = reduceToScaledVar(x);
+  let yv = reduceToScaledVar(y);
+  let zv = reduceToScaledVar(z);
 
   // three variables
 
