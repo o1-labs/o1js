@@ -7,11 +7,13 @@ import { Field, FieldVar } from '../field.js';
 import { assert } from './common.js';
 import { Gates } from '../gates.js';
 import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
+import { Snarky } from '../../snarky.js';
 
 export {
   assertMulCompatible as assertMul,
   assertSquareCompatible as assertSquare,
   assertBooleanCompatible as assertBoolean,
+  assertEqualCompatible as assertEqual,
 };
 
 let { isVar, getVar, isConst, getConst } = ScaledVar;
@@ -116,6 +118,7 @@ function assertMulCompatible(
       Fp.equal(Fp.mul(sx, sy), sz),
       `assertMul(): ${sx} * ${sy} !== ${sz}`
     );
+    return;
   }
 
   // sadly TS doesn't know that this was exhaustive
@@ -163,6 +166,7 @@ function assertSquareCompatible(x: Field, z: Field) {
     let [sx, sz] = [getConst(xv), getConst(zv)];
 
     assert(Fp.equal(Fp.square(sx), sz), `assertSquare(): ${sx}^2 !== ${sz}`);
+    return;
   }
 
   // sadly TS doesn't know that this was exhaustive
@@ -209,4 +213,58 @@ function assertBooleanFixed(x: Field) {
 
   let x0 = getConst(xv);
   assert(Fp.equal(Fp.square(x0), x0), `assertBoolean(): ${x} is not 0 or 1`);
+}
+
+/**
+ * Assert equality, `x === y`
+ */
+function assertEqualCompatible(x: Field | FieldVar, y: Field | FieldVar) {
+  // TODO this isn't compatible with snarky's `assert_equal` yet
+  let xv = reduceToScaledVar(x);
+  let yv = reduceToScaledVar(y);
+
+  if (isVar(xv) && isVar(yv)) {
+    let [[sx, x], [sy, y]] = [getVar(xv), getVar(yv)];
+
+    if (sx === sy) {
+      // x === y, so use a wire
+      return Snarky.field.assertEqual(x, y);
+    }
+
+    // sx * x - sy * y = 0
+    return Gates.generic(
+      { left: sx, right: -sy, out: 0n, mul: 0n, const: 0n },
+      { left: x, right: y, out: emptyCell() }
+    );
+  }
+
+  if (isVar(xv) && isConst(yv)) {
+    let [[sx, x], sy] = [getVar(xv), getConst(yv)];
+
+    // x === sy / sx, call into snarky to use its constants table
+    return Snarky.field.assertEqual(
+      FieldVar.scale(sx, x),
+      FieldVar.constant(sy)
+    );
+  }
+
+  if (isConst(xv) && isVar(yv)) {
+    let [sx, [sy, y]] = [getConst(xv), getVar(yv)];
+
+    // sx / sy === y, call into snarky to use its constants table
+    return Snarky.field.assertEqual(
+      FieldVar.constant(sx),
+      FieldVar.scale(sy, y)
+    );
+  }
+
+  if (isConst(xv) && isConst(yv)) {
+    let [sx, sy] = [getConst(xv), getConst(yv)];
+
+    assert(Fp.equal(sx, sy), `assertEqual(): ${sx} !== ${sy}`);
+    return;
+  }
+
+  // sadly TS doesn't know that this was exhaustive
+  assert(false, `assertEqual(): unreachable`);
 }

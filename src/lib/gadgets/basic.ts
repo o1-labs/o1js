@@ -241,7 +241,7 @@ function reduceToScaledVar(x: Field | FieldVar): ScaledVar | Constant {
  *
  * `c + s1*x1 + s2*x2 + ... + sn*xn`
  *
- * where no vars are duplicated.
+ * where none of the vars xi are duplicated.
  */
 function toLinearCombination(
   x: FieldVar,
@@ -255,6 +255,8 @@ function toLinearCombination(
   // the recursive logic here adds a new term sx*x to an existing linear combination
   // but x itself is an AST
 
+  if (sx === 0n) return lincom;
+
   switch (x[0]) {
     case FieldType.Constant: {
       // a constant is added to the constant term
@@ -262,7 +264,7 @@ function toLinearCombination(
       return { constant: Fp.add(constant, Fp.mul(sx, c)), terms };
     }
     case FieldType.Var: {
-      // a variable as added to the terms or included in an existing one
+      // a variable is added to the terms or included in an existing one
       let [, i] = x;
 
       // we search for an existing term with the same var
