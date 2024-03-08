@@ -7,7 +7,10 @@ import { assert } from './common.js';
 import { Gates } from '../gates.js';
 import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
 
-export { assertMulCompatible as assertMul };
+export {
+  assertMulCompatible as assertMul,
+  assertSquareCompatible as assertSquare,
+};
 
 let { isVar, getVar, isConst, getConst } = ScaledVar;
 
@@ -112,4 +115,51 @@ function assertMulCompatible(
 
   // sadly TS doesn't know that this was exhaustive
   assert(false, `assertMul(): unreachable`);
+}
+
+/**
+ * Assert square, `x^2 === z`
+ */
+function assertSquareCompatible(x: Field, z: Field) {
+  let xv = reduceToScaledVar(x);
+  let zv = reduceToScaledVar(z);
+
+  if (isVar(xv) && isVar(zv)) {
+    let [[sx, x], [sz, z]] = [getVar(xv), getVar(zv)];
+
+    // -sz * z + (sx)^2 * x*x = 0
+    return Gates.generic(
+      { left: 0n, right: 0n, out: -sz, mul: sx ** 2n, const: 0n },
+      { left: x, right: x, out: z }
+    );
+  }
+
+  if (isVar(xv) && isConst(zv)) {
+    let [[sx, x], sz] = [getVar(xv), getConst(zv)];
+
+    // (sx)^2 * x*x - sz = 0
+    return Gates.generic(
+      { left: 0n, right: 0n, out: 0n, mul: sx ** 2n, const: -sz },
+      { left: x, right: x, out: emptyCell() }
+    );
+  }
+
+  if (isConst(xv) && isVar(zv)) {
+    let [sx, [sz, z]] = [getConst(xv), getVar(zv)];
+
+    // sz * z - (sx)^2 = 0
+    return Gates.generic(
+      { left: 0n, right: 0n, out: sz, mul: 0n, const: -(sx ** 2n) },
+      { left: emptyCell(), right: emptyCell(), out: z }
+    );
+  }
+
+  if (isConst(xv) && isConst(zv)) {
+    let [sx, sz] = [getConst(xv), getConst(zv)];
+
+    assert(sx ** 2n === sz, `assertSquare(): ${sx}^2 !== ${sz}`);
+  }
+
+  // sadly TS doesn't know that this was exhaustive
+  assert(false, `assertSquare(): unreachable`);
 }

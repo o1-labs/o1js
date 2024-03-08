@@ -14,7 +14,7 @@ import { existsOne, toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../util/types.js';
 
-export { assertMul, assertSquare, assertBoolean, arrayGet, assertOneOf };
+export { assertMul, assertBoolean, arrayGet, assertOneOf };
 
 // internal
 export { reduceToScaledVar, emptyCell, linear, bilinear, ScaledVar, Constant };
@@ -28,6 +28,7 @@ function assertMul(
   z: Field | FieldVar
 ) {
   // simpler version of assertMulCompatible that currently uses the same amount of constraints but is not compatible
+  // also, doesn't handle all-constant case (handled by calling gadgets already)
 
   // TODO: if we replace `reduceToScaledVar()` with a function that leaves `a*x + b` unreduced, we can save constraints here
   // for example: (x - 1)*(x - 2) === 0 would become 1 constraint instead of 3
@@ -48,15 +49,6 @@ function assertMul(
     },
     { left: vx, right: vy, out: vz }
   );
-}
-
-/**
- * Assert square, `x^2 === z`
- */
-function assertSquare(x_: Field, z_: Field) {
-  let x = toVar(x_);
-  let z = toVar(z_);
-  assertBilinear(x, x, [1n, 0n, 0n, 0n], z);
 }
 
 /**
