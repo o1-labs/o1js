@@ -261,10 +261,10 @@ function circuitMain(
       return (target as any)[propertyName].apply(target, args);
     },
     publicInputType: provableFromTuple(
-      Array.from(publicIndexSet).sort().map((i) => paramTypes[i])
+      Array.from(publicIndexSet).map((i) => paramTypes[i])
     ),
     privateInputType: provableFromTuple(
-      Array.from(witnessIndexSet).sort().map((i) => paramTypes[i])
+      Array.from(witnessIndexSet).map((i) => paramTypes[i])
     ),
   };
 }
