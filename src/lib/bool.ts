@@ -11,7 +11,7 @@ import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
 import { existsOne } from './gadgets/common.js';
-import { assertMul } from './gadgets/basic.js';
+import { assertMul } from './gadgets/compatible.js';
 
 export { BoolVar, Bool };
 

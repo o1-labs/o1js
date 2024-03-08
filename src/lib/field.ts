@@ -5,7 +5,8 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
-import { assertBoolean, assertMul, assertSquare } from './gadgets/basic.js';
+import { assertBoolean, assertSquare } from './gadgets/basic.js';
+import { assertMul } from './gadgets/compatible.js';
 
 // external API
 export { Field };
