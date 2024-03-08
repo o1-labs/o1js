@@ -80,7 +80,11 @@ class Dex extends TokenContract {
 
   // TODO this could just use `this.approveAccountUpdate()` instead of a separate @method
   @method async createAccount() {
-    this.internal.mint({ address: this.sender, amount: UInt64.from(0) });
+    this.internal.mint({
+      // unconstrained because we don't care which account is created
+      address: this.sender.getUnconstrained(),
+      amount: UInt64.from(0),
+    });
   }
 
   /**
@@ -95,7 +99,8 @@ class Dex extends TokenContract {
    */
   @method.returns(UInt64)
   async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
-    let user = this.sender;
+    // unconstrained because `transfer()` requires sender signature anyway
+    let user = this.sender.getUnconstrained();
     let tokenX = new TrivialCoin(this.tokenX);
     let tokenY = new TrivialCoin(this.tokenY);
 
@@ -166,14 +171,15 @@ class Dex extends TokenContract {
    * contracts pay you tokens when reducing the action.
    */
   @method async redeemInitialize(dl: UInt64) {
-    this.reducer.dispatch(new RedeemAction({ address: this.sender, dl }));
-    this.internal.burn({ address: this.sender, amount: dl });
+    let sender = this.sender.getUnconstrained(); // unconstrained because `burn()` requires sender signature anyway
+    this.reducer.dispatch(new RedeemAction({ address: sender, dl }));
+    this.internal.burn({ address: sender, amount: dl });
     // TODO: preconditioning on the state here ruins concurrent interactions,
     // there should be another `finalize` DEX method which reduces actions & updates state
     this.totalSupply.set(this.totalSupply.getAndRequireEquals().sub(dl));
 
     // emit event
-    this.typedEvents.emit('redeem-liquidity', { address: this.sender, dl });
+    this.typedEvents.emit('redeem-liquidity', { address: sender, dl });
   }
 
   /**
@@ -199,10 +205,11 @@ class Dex extends TokenContract {
    * the called methods which requires proof authorization.
    */
   async swapX(dx: UInt64) {
+    let user = this.sender.getUnconstrained(); // unconstrained because `swap()` requires sender signature anyway
     let tokenY = new TrivialCoin(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-    let dy = await dexY.swap(this.sender, dx, this.tokenX);
-    await tokenY.transfer(dexY.self, this.sender, dy);
+    let dy = await dexY.swap(user, dx, this.tokenX);
+    await tokenY.transfer(dexY.self, user, dy);
     return dy;
   }
 
@@ -217,10 +224,11 @@ class Dex extends TokenContract {
    * the called methods which requires proof authorization.
    */
   async swapY(dy: UInt64) {
+    let user = this.sender.getUnconstrained(); // unconstrained because `swap()` requires sender signature anyway
     let tokenX = new TrivialCoin(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-    let dx = await dexX.swap(this.sender, dy, this.tokenY);
-    await tokenX.transfer(dexX.self, this.sender, dx);
+    let dx = await dexX.swap(user, dy, this.tokenY);
+    await tokenX.transfer(dexX.self, user, dx);
     return dx;
   }
 }
@@ -318,7 +326,7 @@ class DexTokenHolder extends SmartContract {
     this.balance.subInPlace(dy);
 
     // emit event
-    this.typedEvents.emit('swap', { address: this.sender, dx });
+    this.typedEvents.emit('swap', { address: user, dx });
 
     return dy;
   }

@@ -56,7 +56,7 @@ function createDex({
      */
     @method.returns(UInt64)
     async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
-      let user = this.sender;
+      let user = this.sender.getUnconstrained(); // unconstrained because transfer() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let tokenY = new TokenContract(this.tokenY);
 
@@ -149,11 +149,12 @@ function createDex({
      */
     async redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
+      let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let dxdy = await dexX.redeemLiquidity(this.sender, dl, this.tokenY);
+      let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
       let dx = dxdy[0];
-      await tokenX.transfer(dexX.self, this.sender, dx);
+      await tokenX.transfer(dexX.self, sender, dx);
       return dxdy;
     }
 
@@ -166,10 +167,11 @@ function createDex({
      */
     @method.returns(UInt64)
     async swapX(dx: UInt64) {
+      let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-      let dy = await dexY.swap(this.sender, dx, this.tokenX);
-      await tokenY.transfer(dexY.self, this.sender, dy);
+      let dy = await dexY.swap(sender, dx, this.tokenX);
+      await tokenY.transfer(dexY.self, sender, dy);
       return dy;
     }
 
@@ -182,10 +184,11 @@ function createDex({
      */
     @method.returns(UInt64)
     async swapY(dy: UInt64) {
+      let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let dx = await dexX.swap(this.sender, dy, this.tokenY);
-      await tokenX.transfer(dexX.self, this.sender, dx);
+      let dx = await dexX.swap(sender, dy, this.tokenY);
+      await tokenX.transfer(dexX.self, sender, dx);
       return dx;
     }
 
@@ -220,13 +223,14 @@ function createDex({
 
     @method.returns(UInt64)
     async swapX(dx: UInt64) {
+      let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(
         this.address,
         tokenY.deriveTokenId()
       );
-      let dy = await dexY.swap(this.sender, dx, this.tokenX);
-      await tokenY.transfer(dexY.self, this.sender, dy);
+      let dy = await dexY.swap(sender, dx, this.tokenX);
+      await tokenY.transfer(dexY.self, sender, dy);
       return dy;
     }
   }
