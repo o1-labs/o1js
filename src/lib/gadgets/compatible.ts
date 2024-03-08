@@ -176,13 +176,33 @@ function assertBooleanCompatible(x: Field) {
   let xv = reduceToScaledVar(x);
 
   if (isVar(xv)) {
-    let [_sx, x] = getVar(xv);
+    let [_s, x] = getVar(xv);
 
     // FIXME: it's wrong that the scaling factor is ignored here, means it can't be different than 1
     // this needs to be compatible, so need to change `plonk_constraint_system.ml`
-    // x^2 - x = 0
+    // -x + x^2 = 0
     return Gates.generic(
       { left: -1n, right: 0n, out: 0n, mul: 1n, const: 0n },
+      { left: x, right: x, out: emptyCell() }
+    );
+  }
+
+  let x0 = getConst(xv);
+  assert(Fp.equal(Fp.square(x0), x0), `assertBoolean(): ${x} is not 0 or 1`);
+}
+
+/**
+ * Assert that x is either 0 or 1, `x^2 === x`
+ */
+function assertBooleanFixed(x: Field) {
+  let xv = reduceToScaledVar(x);
+
+  if (isVar(xv)) {
+    let [s, x] = getVar(xv);
+
+    // -s*x + s^2 * x^2 = 0
+    return Gates.generic(
+      { left: -s, right: 0n, out: 0n, mul: s ** 2n, const: 0n },
       { left: x, right: x, out: emptyCell() }
     );
   }

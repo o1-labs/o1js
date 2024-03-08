@@ -131,6 +131,14 @@ equivalent({ from: [field], to: unit })(
   (x) => x === 0n || x === 1n || throwError('not boolean'),
   (x) => x.assertBool()
 );
+// FIXME: failing test
+// equivalent({ from: [field], to: unit })(
+//   (x) => x === 0n || x === 1n || throwError('not boolean'),
+//   (x) => {
+//     let y = Provable.witness(Field, () => x.div(2));
+//     y.mul(2).assertBool();
+//   }
+// );
 equivalent({ from: [smallField], to: bool })(
   (x) => (x & 1n) === 0n,
   (x) => x.isEven()
