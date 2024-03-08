@@ -230,10 +230,6 @@ declare const Snarky: {
      */
     scale(c: FieldConst, x: FieldVar): FieldVar;
     /**
-     * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
-     */
-    mul(x: FieldVar, y: FieldVar): FieldVar;
-    /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
     readVar(x: FieldVar): FieldConst;
@@ -243,10 +239,6 @@ declare const Snarky: {
     assertEqual(x: FieldVar, y: FieldVar): void;
     /**
      * x*y === z without handling of constants
-     */
-    assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
-    /**
-     * check x < y and x <= y
      */
     compare(
       bitLength: number,
@@ -274,18 +266,6 @@ declare const Snarky: {
      * (implemented with toConstantAndTerms)
      */
     seal(x: FieldVar): VarFieldVar;
-    /**
-     * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
-     * returns `(c, [(c0, i0), ..., (cn, in)])`;
-     * c is optional
-     */
-    toConstantAndTerms(
-      x: FieldVar
-    ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlPair<FieldConst, number>>
-    ];
   };
 
   gates: {
