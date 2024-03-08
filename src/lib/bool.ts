@@ -161,7 +161,7 @@ class Bool {
     // match snarky logic:
     // 2x * y === x + y - z
     // return 1 - z
-    let z = existsOne(() => BigInt(this.toBoolean() === toBoolean(y)));
+    let z = existsOne(() => BigInt(this.toBoolean() !== toBoolean(y)));
     let x = this.toField();
     let y_ = Bool.toField(y);
     assertMul(x.add(x), y_, x.add(y_).sub(z));
