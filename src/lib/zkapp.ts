@@ -821,31 +821,40 @@ super.init();
 
   #_senderState: { sender: PublicKey; transactionId: number };
 
-  /**
-   * The public key of the current transaction's sender account.
-   *
-   * Throws an error if not inside a transaction, or the sender wasn't passed in.
-   *
-   * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-   * A malicious prover could use any other public key without affecting the validity of the proof.
-   */
-  get sender(): PublicKey {
-    // TODO this logic now has some overlap with this.self, we should combine them somehow
-    // (but with care since the logic in this.self is a bit more complicated)
-    if (!Mina.currentTransaction.has()) {
-      throw Error(
-        `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
-      );
-    }
-    let transactionId = Mina.currentTransaction.id();
-    if (this.#_senderState?.transactionId === transactionId) {
-      return this.#_senderState.sender;
-    } else {
-      let sender = Provable.witness(PublicKey, () => Mina.sender());
-      this.#_senderState = { transactionId, sender };
+  sender = {
+    self: this as SmartContract,
+    /**
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     */
+    getUnconstrained(): PublicKey {
+      // TODO this logic now has some overlap with this.self, we should combine them somehow
+      // (but with care since the logic in this.self is a bit more complicated)
+      if (!Mina.currentTransaction.has()) {
+        throw Error(
+          `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+        );
+      }
+      let transactionId = Mina.currentTransaction.id();
+      if (this.self.#_senderState?.transactionId === transactionId) {
+        return this.self.#_senderState.sender;
+      } else {
+        let sender = Provable.witness(PublicKey, () => Mina.sender());
+        this.self.#_senderState = { transactionId, sender };
+        return sender;
+      }
+    },
+
+    getAndRequireSignature(): PublicKey {
+      let sender = this.getUnconstrained();
+      AccountUpdate.createSigned(sender);
       return sender;
-    }
-  }
+    },
+  };
 
   /**
    * Current account of the {@link SmartContract}.
