@@ -16,7 +16,15 @@ import { TupleN } from '../util/types.js';
 
 export { assertMul, assertSquare, assertBoolean, arrayGet, assertOneOf };
 
-export { emptyCell, linear, bilinear, ScaledVar, Constant };
+// internal
+export {
+  reduceLinearCombination,
+  emptyCell,
+  linear,
+  bilinear,
+  ScaledVar,
+  Constant,
+};
 
 /**
  * Assert multiplication constraint, `x * y === z`
@@ -286,34 +294,40 @@ function emptyCell() {
 function reduceLinearCombination(x: Field | FieldVar): ScaledVar | Constant {
   let { constant: c, terms } = toLinearCombination(fieldVar(x));
 
+  // sort terms alphabetically by variable index
+  // (to match snarky implementation)
+  terms.sort(([, [, i]], [, [, j]]) => i - j);
+
   if (terms.length === 0) {
     // constant
     return [FieldType.Constant, FieldConst.fromBigint(c)];
   }
 
   if (terms.length === 1) {
-    let [s, v] = terms[0];
+    let [s, x] = terms[0];
     if (c === 0n) {
-      // s*c
-      return [FieldType.Scale, FieldConst.fromBigint(s), v];
+      // s*x
+      return [FieldType.Scale, FieldConst.fromBigint(s), x];
     } else {
       // res = s*x + c
-      let res = linear(v, [s, c]);
+      let res = linear(x, [s, c]);
       return [FieldType.Scale, FieldConst[1], res.value];
     }
   }
 
   // res = s0*x0 + s1*x1 + ... + sn*xn + c
-  let [[s0, x0], [s1, x1], ...rest] = terms;
+  let [[s0, x0], ...rest] = terms;
 
-  for (let [si, xi] of rest) {
+  let [s1, x1] = rest.pop()!;
+
+  for (let [si, xi] of rest.reverse()) {
     // x1 = s1*x1 + si*xi
-    x1 = bilinear(x1, xi, [0n, s1, si, 0n]).value;
+    x1 = bilinear(xi, x1, [0n, si, s1, 0n]).value;
     s1 = 1n;
   }
 
-  // res = s0*x0 + 1*x1 + c
-  let res = bilinear(x0, x1, [0n, s0, 1n, c]);
+  // res = s0*x0 + s1*x1 + c
+  let res = bilinear(x0, x1, [0n, s0, s1, c]);
   return [FieldType.Scale, FieldConst[1], res.value];
 }
 
