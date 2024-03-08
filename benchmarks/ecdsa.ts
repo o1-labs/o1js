@@ -24,11 +24,11 @@ const EcdsaBenchmark = benchmark(
   'ecdsa',
   async (tic, toc) => {
     tic('build constraint system');
-    keccakAndEcdsa.analyzeMethods();
+    await keccakAndEcdsa.analyzeMethods();
     toc();
 
     tic('witness generation');
-    Provable.runAndCheck(() => {
+    await Provable.runAndCheck(() => {
       let message_ = Provable.witness(Bytes32.provable, () => message);
       let signature_ = Provable.witness(Ecdsa.provable, () => signature);
       let publicKey_ = Provable.witness(Secp256k1.provable, () => publicKey);

@@ -616,7 +616,7 @@ class SmartContract extends SmartContractBase {
       };
     });
     // run methods once to get information that we need already at compile time
-    let methodsMeta = this.analyzeMethods();
+    let methodsMeta = await this.analyzeMethods();
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
@@ -640,9 +640,9 @@ class SmartContract extends SmartContractBase {
    * a cached verification key can be used.
    * @returns the digest, as a hex string
    */
-  static digest() {
+  static async digest() {
     // TODO: this should use the method digests in a deterministic order!
-    let methodData = this.analyzeMethods();
+    let methodData = await this.analyzeMethods();
     let hash = hashConstant(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
@@ -653,7 +653,7 @@ class SmartContract extends SmartContractBase {
    * Deploys a {@link SmartContract}.
    *
    * ```ts
-   * let tx = await Mina.transaction(sender, () => {
+   * let tx = await Mina.transaction(sender, async () => {
    *   AccountUpdate.fundNewAccount(sender);
    *   zkapp.deploy();
    * });
@@ -1097,7 +1097,7 @@ super.init();
    *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
-  static analyzeMethods({ printSummary = false } = {}) {
+  static async analyzeMethods({ printSummary = false } = {}) {
     let ZkappClass = this as typeof SmartContract;
     let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
@@ -1105,21 +1105,14 @@ super.init();
       !methodIntfs.every((m) => m.methodName in methodMetadata) &&
       !inAnalyze()
     ) {
-      if (snarkContext.get().inRunAndCheck) {
-        let err = new Error(
-          'Can not analyze methods inside Provable.runAndCheck, because this creates a circuit nested in another circuit'
-        );
-        // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () => ZkappClass.analyzeMethods();
-        throw err;
-      }
       let id: number;
       let insideSmartContract = !!smartContractContext.get();
       if (insideSmartContract) id = smartContractContext.enter(null);
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, result, gates, summary } = analyzeMethod(
+          let hasReturn = false;
+          let { rows, digest, gates, summary } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             (publicInput, publicKey, tokenId, ...args) => {
@@ -1128,6 +1121,7 @@ super.init();
                 publicInput,
                 ...args
               );
+              hasReturn = result !== undefined;
               accountUpdate = instance.#executionState!.accountUpdate;
               return result;
             }
@@ -1136,7 +1130,7 @@ super.init();
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
-            hasReturn: result !== undefined,
+            hasReturn,
             gates,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());
@@ -1206,6 +1200,7 @@ type ReducerReturn<Action> = {
     initial: { state: State; actionState: Field },
     options?: {
       maxTransactionsWithActions?: number;
+      maxActionsPerMethod?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): { state: State; actionState: Field };
@@ -1221,6 +1216,7 @@ type ReducerReturn<Action> = {
     fromActionState: Field,
     options?: {
       maxTransactionsWithActions?: number;
+      maxActionsPerMethod?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): Field;
@@ -1283,6 +1279,7 @@ class ${contract.constructor.name} extends SmartContract {
       { state, actionState }: { state: S; actionState: Field },
       {
         maxTransactionsWithActions = 32,
+        maxActionsPerMethod = 1,
         skipActionStatePrecondition = false,
       } = {}
     ): { state: S; actionState: Field } {
@@ -1292,13 +1289,11 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
-      let methodData = (
-        contract.constructor as typeof SmartContract
-      ).analyzeMethods();
-      let possibleActionsPerTransaction = [
-        ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
-      ].sort((x, y) => x - y);
-
+      // TODO find out max actions per method automatically?
+      let possibleActionsPerTransaction = Array.from(
+        { length: maxActionsPerMethod + 1 },
+        (_, i) => i
+      );
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         Provable.Array(reducer.actionType, n)
       );
@@ -1344,7 +1339,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         state = Provable.switch(lengths, stateType, newStates);
       }
       if (!skipActionStatePrecondition) {
-        contract.account.actionState.assertEquals(actionState);
+        contract.account.actionState.requireEquals(actionState);
       }
       return { state, actionState };
     },

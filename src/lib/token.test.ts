@@ -162,7 +162,7 @@ function setupAccounts() {
 
 async function setupLocal() {
   setupAccounts();
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
     feePayerUpdate.send({
       to: tokenZkappAddress,
@@ -179,7 +179,7 @@ async function setupLocalProofs() {
   zkAppC = new ZkAppC(zkAppCAddress, tokenId);
   // don't use proofs for the setup, takes too long to do this every time
   Local.setProofsEnabled(false);
-  let tx = await Mina.transaction({ sender: feePayer }, () => {
+  let tx = await Mina.transaction({ sender: feePayer }, async () => {
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
     feePayerUpdate.send({
       to: tokenZkappAddress,
@@ -227,7 +227,7 @@ describe('Token', () => {
 
       test('setting a valid token symbol on a token contract', async () => {
         await (
-          await Mina.transaction({ sender: feePayer }, () => {
+          await Mina.transaction({ sender: feePayer }, async () => {
             let tokenZkapp = AccountUpdate.createSigned(tokenZkappAddress);
             tokenZkapp.account.tokenSymbol.set(tokenSymbol);
           })
@@ -254,7 +254,7 @@ describe('Token', () => {
 
       test('token contract can successfully mint and updates the balances in the ledger (signature)', async () => {
         await (
-          await Mina.transaction({ sender: feePayer }, () => {
+          await Mina.transaction({ sender: feePayer }, async () => {
             AccountUpdate.fundNewAccount(feePayer);
             tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
             tokenZkapp.requireSignature();
@@ -268,7 +268,7 @@ describe('Token', () => {
       });
 
       test('minting should fail if overflow occurs ', async () => {
-        await Mina.transaction(feePayer, () => {
+        await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000_000_000));
           tokenZkapp.requireSignature();
@@ -291,7 +291,7 @@ describe('Token', () => {
       });
       test('token contract can successfully burn and updates the balances in the ledger (signature)', async () => {
         await (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
             tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
             tokenZkapp.requireSignature();
@@ -300,7 +300,7 @@ describe('Token', () => {
           .sign([feePayerKey, tokenZkappKey])
           .send();
         await (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
             tokenZkapp.requireSignature();
           })
@@ -314,7 +314,7 @@ describe('Token', () => {
 
       test('throw error if token owner burns more tokens than token account has', async () => {
         await (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
             tokenZkapp.mint(zkAppBAddress, UInt64.from(1_000));
             tokenZkapp.requireSignature();
@@ -323,7 +323,7 @@ describe('Token', () => {
           .sign([feePayerKey, tokenZkappKey])
           .send();
         let tx = (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
             tokenZkapp.requireSignature();
           })
@@ -346,14 +346,14 @@ describe('Token', () => {
       });
 
       test('change the balance of a token account after sending', async () => {
-        let tx = await Mina.transaction(feePayer, () => {
+        let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
           tokenZkapp.requireSignature();
         });
         await tx.sign([feePayerKey, tokenZkappKey]).send();
 
-        tx = await Mina.transaction(feePayer, () => {
+        tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.token.send({
             from: zkAppBAddress,
@@ -376,7 +376,7 @@ describe('Token', () => {
 
       test('should error creating a token account if no account creation fee is specified', async () => {
         await (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
             tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
             tokenZkapp.requireSignature();
@@ -385,7 +385,7 @@ describe('Token', () => {
           .sign([feePayerKey, tokenZkappKey])
           .send();
         let tx = (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             tokenZkapp.token.send({
               from: zkAppBAddress,
               to: zkAppCAddress,
@@ -401,7 +401,7 @@ describe('Token', () => {
 
       test('should error if sender sends more tokens than they have', async () => {
         await (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
             tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
             tokenZkapp.requireSignature();
@@ -410,7 +410,7 @@ describe('Token', () => {
           .sign([feePayerKey, tokenZkappKey])
           .send();
         let tx = (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             tokenZkapp.token.send({
               from: zkAppBAddress,
               to: zkAppCAddress,
@@ -464,7 +464,7 @@ describe('Token', () => {
       });
 
       test('token contract can successfully mint and updates the balances in the ledger (proof)', async () => {
-        let tx = await Mina.transaction(feePayer, () => {
+        let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
         });
@@ -489,13 +489,13 @@ describe('Token', () => {
         - burns and updates the token balance of the receiver
     */
       test('token contract can successfully burn and updates the balances in the ledger (proof)', async () => {
-        let tx = await Mina.transaction(feePayer, () => {
+        let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
           tokenZkapp.requireSignature();
         });
         await tx.sign([feePayerKey, tokenZkappKey]).send();
-        tx = await Mina.transaction(feePayer, () => {
+        tx = await Mina.transaction(feePayer, async () => {
           tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
         });
         await tx.prove();
@@ -521,14 +521,14 @@ describe('Token', () => {
       });
 
       test('should approve and the balance of a token account after sending', async () => {
-        let tx = await Mina.transaction(feePayer, () => {
+        let tx = await Mina.transaction(feePayer, async () => {
           tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
           tokenZkapp.requireSignature();
         });
         await tx.prove();
         await tx.sign([feePayerKey, tokenZkappKey]).send();
 
-        tx = await Mina.transaction(feePayer, () => {
+        tx = await Mina.transaction(feePayer, async () => {
           zkAppB.approveSend(UInt64.from(10_000));
 
           tokenZkapp.approveTransfer(
@@ -551,7 +551,7 @@ describe('Token', () => {
 
       test('should fail to approve with an incorrect layout', async () => {
         await (
-          await Mina.transaction(feePayer, () => {
+          await Mina.transaction(feePayer, async () => {
             tokenZkapp.mint(zkAppCAddress, UInt64.from(100_000));
             tokenZkapp.requireSignature();
           })
@@ -560,7 +560,7 @@ describe('Token', () => {
           .send();
 
         await expect(() =>
-          Mina.transaction(feePayer, () => {
+          Mina.transaction(feePayer, async () => {
             zkAppC.approveIncorrectLayout(UInt64.from(10_000));
             tokenZkapp.approveTransfer(
               zkAppBAddress,
@@ -573,7 +573,7 @@ describe('Token', () => {
       });
 
       test('should reject tx if user bypasses the token contract by using an empty account update', async () => {
-        let tx = await Mina.transaction(feePayer, () => {
+        let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.token.mint({
             address: zkAppBAddress,

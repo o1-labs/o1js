@@ -171,11 +171,11 @@ program.rawMethods.ecdsa();
 console.timeEnd('ecdsa verify (constant)');
 
 console.time('ecdsa verify (witness gen / check)');
-Provable.runAndCheck(program.rawMethods.ecdsa);
+await Provable.runAndCheck(program.rawMethods.ecdsa);
 console.timeEnd('ecdsa verify (witness gen / check)');
 
 console.time('ecdsa verify (build constraint system)');
-let cs = program.analyzeMethods().ecdsa;
+let cs = (await program.analyzeMethods()).ecdsa;
 console.timeEnd('ecdsa verify (build constraint system)');
 
 console.log(cs.summary());

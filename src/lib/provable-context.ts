@@ -3,15 +3,17 @@ import { Gate, GateType, JsonGate, Snarky } from '../snarky.js';
 import { parseHexString32 } from '../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from './errors.js';
 import { Fp } from '../bindings/crypto/finite-field.js';
+import { MlBool } from './ml/base.js';
 
 // internal API
 export {
   snarkContext,
   SnarkContext,
   asProver,
-  runAndCheck,
-  runUnchecked,
+  runAndCheckSync,
+  generateWitness,
   constraintSystem,
+  constraintSystemSync,
   inProver,
   inAnalyze,
   inCheckedComputation,
@@ -19,6 +21,7 @@ export {
   inCompileMode,
   gatesFromJson,
   printGates,
+  MlConstraintSystem,
 };
 
 // global circuit-related context
@@ -30,10 +33,13 @@ type SnarkContext = {
   inCompile?: boolean;
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
-  inRunAndCheck?: boolean;
   inWitnessBlock?: boolean;
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
+
+class MlConstraintSystem {
+  // opaque
+}
 
 // helpers to read circuit context
 
@@ -66,10 +72,33 @@ function asProver(f: () => void) {
   }
 }
 
-function runAndCheck(f: () => void) {
+async function generateWitness(
+  f: (() => Promise<void>) | (() => void),
+  { checkConstraints = true } = {}
+) {
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
-    Snarky.run.runAndCheck(f);
+    let finish = Snarky.run.enterGenerateWitness();
+    if (!checkConstraints) Snarky.run.setEvalConstraints(MlBool(false));
+    await f();
+    return finish();
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  } finally {
+    if (!checkConstraints) Snarky.run.setEvalConstraints(MlBool(true));
+    snarkContext.leave(id);
+  }
+}
+
+/**
+ * @deprecated use `generateWitness` instead
+ */
+function runAndCheckSync(f: () => void) {
+  let id = snarkContext.enter({ inCheckedComputation: true });
+  try {
+    let finish = Snarky.run.enterGenerateWitness();
+    f();
+    return finish();
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
@@ -77,49 +106,63 @@ function runAndCheck(f: () => void) {
   }
 }
 
-function runUnchecked(f: () => void) {
-  let id = snarkContext.enter({ inCheckedComputation: true });
-  try {
-    Snarky.run.runUnchecked(f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
-function constraintSystem<T>(f: () => T) {
+async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
-    let result: T;
-    let { rows, digest, json } = Snarky.run.constraintSystem(() => {
-      result = f();
-    });
-    let { gates, publicInputSize } = gatesFromJson(json);
-    return {
-      rows,
-      digest,
-      result: result! as T,
-      gates,
-      publicInputSize,
-      print() {
-        printGates(gates);
-      },
-      summary() {
-        let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
-        gateTypes['Total rows'] = rows;
-        for (let gate of gates) {
-          gateTypes[gate.type] ??= 0;
-          gateTypes[gate.type]!++;
-        }
-        return gateTypes;
-      },
-    };
+    let finish = Snarky.run.enterConstraintSystem();
+    await f();
+    let cs = finish();
+    return constraintSystemToJS(cs);
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
     snarkContext.leave(id);
   }
+}
+
+/**
+ * helper to bridge transition to async circuits
+ * @deprecated we must get rid of this
+ */
+function constraintSystemSync(f: () => void) {
+  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+  try {
+    let finish = Snarky.run.enterConstraintSystem();
+    f();
+    let cs = finish();
+    return constraintSystemToJS(cs);
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  } finally {
+    snarkContext.leave(id);
+  }
+}
+
+function constraintSystemToJS(cs: MlConstraintSystem) {
+  // toJson also "finalizes" the constraint system, which means
+  // locking in a potential pending single generic gate
+  let json = Snarky.constraintSystem.toJson(cs);
+  let rows = Snarky.constraintSystem.rows(cs);
+  let digest = Snarky.constraintSystem.digest(cs);
+  let { gates, publicInputSize } = gatesFromJson(json);
+  return {
+    rows,
+    digest,
+    gates,
+    publicInputSize,
+    print() {
+      printGates(gates);
+    },
+    summary() {
+      let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+      gateTypes['Total rows'] = rows;
+      for (let gate of gates) {
+        gateTypes[gate.type] ??= 0;
+        gateTypes[gate.type]!++;
+      }
+      return gateTypes;
+    },
+  };
 }
 
 // helpers

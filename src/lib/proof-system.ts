@@ -44,7 +44,6 @@ export {
   SelfProof,
   JsonProof,
   ZkProgram,
-  ExperimentalZkProgram,
   verify,
   Empty,
   Undefined,
@@ -273,10 +272,10 @@ function ZkProgram<
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>
     >
   ) => Promise<boolean>;
-  digest: () => string;
-  analyzeMethods: () => {
-    [I in keyof Types]: ReturnType<typeof analyzeMethod>;
-  };
+  digest: () => Promise<string>;
+  analyzeMethods: () => Promise<{
+    [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+  }>;
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
   privateInputTypes: {
@@ -316,6 +315,7 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
+  // TODO remove sort()! Object.keys() has a deterministic order
   let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
@@ -323,14 +323,21 @@ function ZkProgram<
   let methodFunctions = methodKeys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
 
-  function analyzeMethods() {
-    return Object.fromEntries(
-      methodIntfs.map((methodEntry, i) => [
-        methodEntry.methodName,
-        analyzeMethod(publicInputType, methodEntry, methodFunctions[i]),
-      ])
-    ) as any as {
-      [I in keyof Types]: ReturnType<typeof analyzeMethod>;
+  async function analyzeMethods() {
+    let methodsMeta: Record<
+      string,
+      UnwrapPromise<ReturnType<typeof analyzeMethod>>
+    > = {};
+    for (let i = 0; i < methodIntfs.length; i++) {
+      let methodEntry = methodIntfs[i];
+      methodsMeta[methodEntry.methodName] = await analyzeMethod(
+        publicInputType,
+        methodEntry,
+        methodFunctions[i]
+      );
+    }
+    return methodsMeta as {
+      [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
     };
   }
 
@@ -348,10 +355,8 @@ function ZkProgram<
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
   } = {}) {
-    let methodsMeta = methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
-    );
-    let gates = methodsMeta.map((m) => m.gates);
+    let methodsMeta = await analyzeMethods();
+    let gates = methodKeys.map((k) => methodsMeta[k].gates);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
@@ -437,14 +442,12 @@ function ZkProgram<
     return compileOutput.verify(statement, proof.proof);
   }
 
-  function digest() {
-    let methodData = methodIntfs.map((methodEntry, i) =>
-      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+  async function digest() {
+    let methodsMeta = await analyzeMethods();
+    let digests: Field[] = methodKeys.map((k) =>
+      Field(BigInt('0x' + methodsMeta[k].digest))
     );
-    let hash = hashConstant(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
-    );
-    return hash.toBigInt().toString(16);
+    return hashConstant(digests).toBigInt().toString(16);
   }
 
   return Object.assign(
@@ -602,7 +605,7 @@ async function compileProgram({
   publicInputType: ProvablePure<any>;
   publicOutputType: ProvablePure<any>;
   methodIntfs: MethodInterface[];
-  methods: ((...args: any) => void)[];
+  methods: ((...args: any) => unknown)[];
   gates: Gate[][];
   proofSystemTag: { name: string };
   cache: Cache;
@@ -658,15 +661,20 @@ async function compileProgram({
             storable: picklesCache,
             overrideWrapDomain,
           });
+          let { getVerificationKey, provers, verify, tag } = result;
+          CompiledTag.store(proofSystemTag, tag);
+          let [, data, hash] = await getVerificationKey();
+          let verificationKey = { data, hash: Field(hash) };
+          return {
+            verificationKey,
+            provers: MlArray.from(provers),
+            verify,
+            tag,
+          };
         } finally {
           snarkContext.leave(id);
           unsetSrsCache();
         }
-        let { getVerificationKey, provers, verify, tag } = result;
-        CompiledTag.store(proofSystemTag, tag);
-        let [, data, hash] = getVerificationKey();
-        let verificationKey = { data, hash: Field(hash) };
-        return { verificationKey, provers: MlArray.from(provers), verify, tag };
       })
     );
   // wrap provers
@@ -698,14 +706,15 @@ async function compileProgram({
   };
 }
 
-function analyzeMethod<T>(
+function analyzeMethod(
   publicInputType: ProvablePure<any>,
   methodIntf: MethodInterface,
-  method: (...args: any) => T
+  method: (...args: any) => unknown
 ) {
   return Provable.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
+    // note: returning the method result here makes this handle async methods
     if (publicInputType === Undefined || publicInputType === Void)
       return method(...args);
     return method(publicInput, ...args);
@@ -715,12 +724,14 @@ function analyzeMethod<T>(
 function picklesRuleFromFunction(
   publicInputType: ProvablePure<unknown>,
   publicOutputType: ProvablePure<unknown>,
-  func: (...args: unknown[]) => any,
+  func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
   gates: Gate[]
 ): Pickles.Rule {
-  function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
+  async function main(
+    publicInput: MlFieldArray
+  ): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
@@ -730,9 +741,14 @@ function picklesRuleFromFunction(
       let arg = allArgs[i];
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
-        finalArgs[i] = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
-        });
+        try {
+          finalArgs[i] = Provable.witness(type, () => {
+            return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+          });
+        } catch (e: any) {
+          e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
+          throw e;
+        }
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
         let type = getStatementType(Proof);
@@ -754,10 +770,10 @@ function picklesRuleFromFunction(
     }
     let result: any;
     if (publicInputType === Undefined || publicInputType === Void) {
-      result = func(...finalArgs);
+      result = await func(...finalArgs);
     } else {
       let input = fromFieldVars(publicInputType, publicInput);
-      result = func(input, ...finalArgs);
+      result = await func(input, ...finalArgs);
     }
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
@@ -942,7 +958,6 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
-ExperimentalZkProgram.Proof = ZkProgram.Proof;
 
 function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   return withThreadPool(
@@ -1086,30 +1101,3 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
-
-// deprecated experimental API
-
-function ExperimentalZkProgram<
-  StatementType extends {
-    publicInput?: FlexibleProvablePure<any>;
-    publicOutput?: FlexibleProvablePure<any>;
-  },
-  Types extends {
-    [I in string]: Tuple<PrivateInput>;
-  }
->(
-  config: StatementType & {
-    name?: string;
-    methods: {
-      [I in keyof Types]: Method<
-        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-        Types[I]
-      >;
-    };
-    overrideWrapDomain?: 0 | 1 | 2;
-  }
-) {
-  let config_ = { ...config, name: config.name ?? `Program${i++}` };
-  return ZkProgram<StatementType, Types>(config_);
-}

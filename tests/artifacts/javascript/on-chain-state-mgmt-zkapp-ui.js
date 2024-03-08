@@ -44,7 +44,7 @@ deployButton.addEventListener('click', async () => {
 
   try {
     await HelloWorld.compile();
-    const deploymentTransaction = await Mina.transaction(feePayer, () => {
+    const deploymentTransaction = await Mina.transaction(feePayer, async () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
@@ -84,7 +84,7 @@ updateButton.addEventListener('click', async (event) => {
       `Updating zkApp State from ${currentState} to ${zkAppStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
     );
-    const transaction = await Mina.transaction(feePayer, () => {
+    const transaction = await Mina.transaction(feePayer, async () => {
       zkAppInstance.update(
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey

@@ -17,6 +17,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
 
+### Breaking changes
+
+- Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
+  - This change was done in support to support async contract methods
+- Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
+  - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
+  - These changes were made to add internal support for async circuits
+  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
+- `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
+  - The default value is 1 and should work for most existing contracts
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+  - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
+  - Equivalent changes were made to `UInt32`
+
 ### Added
 
 - Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
@@ -39,6 +54,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
 - Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
 - `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
 - `setNumberOfWorkers()` to allow developer to override the number of workers used during compilation and proof generation/verification https://github.com/o1-labs/o1js/pull/1456

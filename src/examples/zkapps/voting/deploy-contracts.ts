@@ -63,7 +63,7 @@ export async function deployContracts(
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
     voting.deploy({ zkappKey: params.votingKey });
@@ -127,7 +127,7 @@ export async function deployInvalidContracts(
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
     voting.deploy({ zkappKey: params.votingKey });

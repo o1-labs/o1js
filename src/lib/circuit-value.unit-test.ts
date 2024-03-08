@@ -60,23 +60,24 @@ let restored = type.fromFields(fields, aux);
 expect(JSON.stringify(restored)).toEqual(original);
 
 // check
-Provable.runAndCheck(() => {
+await Provable.runAndCheck(() => {
   type.check(value);
 });
 
 // should fail `check` if `check` of subfields doesn't pass
-expect(() =>
+
+// manually construct an invalid uint32
+let noUint32 = new UInt32(1);
+noUint32.value = Field(-1);
+
+await expect(() =>
   Provable.runAndCheck(() => {
     let x = Provable.witness(type, () => ({
       ...value,
-      uint: [
-        UInt32.zero,
-        // invalid Uint32
-        new UInt32(Field(-1)),
-      ],
+      uint: [UInt32.zero, noUint32],
     }));
   })
-).toThrow(`Constraint unsatisfied`);
+).rejects.toThrow(`Constraint unsatisfied`);
 
 // class version of `provable`
 class MyStruct extends Struct({
@@ -145,10 +146,10 @@ let key = PrivateKey.random();
 let address = key.toPublicKey();
 let contract = new MyContract(address);
 
-let tx = await transaction(() => {
+let tx = await transaction(async () => {
   let accountUpdate = AccountUpdate.createSigned(key);
 
-  contract.myMethod(
+  await contract.myMethod(
     {
       nested: { a: 1, b: false },
       other: targetString,

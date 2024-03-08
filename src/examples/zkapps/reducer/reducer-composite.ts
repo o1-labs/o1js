@@ -7,7 +7,6 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   Bool,
   Struct,
   Reducer,
@@ -15,8 +14,6 @@ import {
 } from 'o1js';
 import assert from 'node:assert/strict';
 import { getProfiler } from '../../utils/profiler.js';
-
-await isReady;
 
 class MaybeIncrement extends Struct({
   isIncrement: Bool,
@@ -95,7 +92,7 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy();
   zkapp.counter.set(initialCounter);
@@ -107,21 +104,21 @@ console.log('applying actions..');
 
 console.log('action 1');
 
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.incrementCounter();
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('action 2');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.incrementCounter();
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('action 3');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.incrementCounter();
 });
 await tx.prove();
@@ -131,7 +128,7 @@ console.log('rolling up pending actions..');
 
 console.log('state before: ' + zkapp.counter.get());
 
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.rollupIncrements();
 });
 await tx.prove();
@@ -143,14 +140,14 @@ assert.deepEqual(zkapp.counter.get().toString(), '3');
 console.log('applying more actions');
 
 console.log('action 4 (no increment)');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.dispatchData(Field.random());
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('action 5');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.incrementCounter();
 });
 await tx.prove();
@@ -160,7 +157,7 @@ console.log('rolling up pending actions..');
 
 console.log('state before: ' + zkapp.counter.get());
 
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   zkapp.rollupIncrements();
 });
 await tx.prove();

@@ -30,7 +30,7 @@ console.log(`Recovered message: "${decryptedMessage}"`);
 
 // the same but in a checked computation
 
-Provable.runAndCheck(() => {
+await Provable.runAndCheck(() => {
   // encrypt
   let cipherText = Encryption.encrypt(messageFields, publicKey);
 
@@ -76,7 +76,7 @@ console.log(`Recovered message: "${decryptedMessage}"`);
 
 // the same but in a checked computation
 
-Provable.runAndCheck(() => {
+await Provable.runAndCheck(() => {
   // encrypt
   let cipherText = Encryption.encrypt(messageFields, publicKey);
 

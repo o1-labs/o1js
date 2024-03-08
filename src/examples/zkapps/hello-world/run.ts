@@ -23,7 +23,7 @@ const zkAppInstance = new HelloWorld(zkAppAddress);
 
 console.log('Deploying Hello World ....');
 
-txn = await Mina.transaction(feePayer1.publicKey, () => {
+txn = await Mina.transaction(feePayer1.publicKey, async () => {
   AccountUpdate.fundNewAccount(feePayer1.publicKey);
   zkAppInstance.deploy();
 });
@@ -41,7 +41,7 @@ console.log(
   `Updating state from ${initialState} to 4 with Admin Private Key ...`
 );
 
-txn = await Mina.transaction(feePayer1.publicKey, () => {
+txn = await Mina.transaction(feePayer1.publicKey, async () => {
   zkAppInstance.update(Field(4), adminPrivateKey);
 });
 await txn.prove();
@@ -66,7 +66,7 @@ console.log(
 let correctlyFails = false;
 
 try {
-  txn = await Mina.transaction(feePayer1.publicKey, () => {
+  txn = await Mina.transaction(feePayer1.publicKey, async () => {
     zkAppInstance.update(Field(16), wrongAdminPrivateKey);
   });
   await txn.prove();
@@ -87,7 +87,7 @@ try {
     `Attempting to update state from ${currentState} to the value that fails precondition of 30 ...`
   );
 
-  txn = await Mina.transaction(feePayer1.publicKey, () => {
+  txn = await Mina.transaction(feePayer1.publicKey, async () => {
     zkAppInstance.update(Field(30), adminPrivateKey);
   });
   await txn.prove();
@@ -113,7 +113,7 @@ try {
   // expected to fail and current state stays at 4
   txn = await Mina.transaction(
     { sender: feePayer1.publicKey, fee: '10' },
-    () => {
+    async () => {
       zkAppInstance.update(Field(256), adminPrivateKey);
     }
   );
@@ -130,9 +130,12 @@ if (!correctlyFails) {
 }
 
 // expected to succeed and update state to 16
-txn2 = await Mina.transaction({ sender: feePayer2.publicKey, fee: '2' }, () => {
-  zkAppInstance.update(Field(16), adminPrivateKey);
-});
+txn2 = await Mina.transaction(
+  { sender: feePayer2.publicKey, fee: '2' },
+  async () => {
+    zkAppInstance.update(Field(16), adminPrivateKey);
+  }
+);
 await txn2.prove();
 await txn2.sign([feePayer2.privateKey]).send();
 
@@ -147,9 +150,12 @@ if (currentState !== '16') {
 console.log(`Update successful. Current state is ${currentState}.`);
 
 // expected to succeed and update state to 256
-txn3 = await Mina.transaction({ sender: feePayer3.publicKey, fee: '1' }, () => {
-  zkAppInstance.update(Field(256), adminPrivateKey);
-});
+txn3 = await Mina.transaction(
+  { sender: feePayer3.publicKey, fee: '1' },
+  async () => {
+    zkAppInstance.update(Field(256), adminPrivateKey);
+  }
+);
 await txn3.prove();
 await txn3.sign([feePayer3.privateKey]).send();
 
@@ -169,7 +175,7 @@ try {
   // expected to fail and current state remains 256
   txn4 = await Mina.transaction(
     { sender: feePayer4.publicKey, fee: '1' },
-    () => {
+    async () => {
       zkAppInstance.update(Field(16), adminPrivateKey);
     }
   );

@@ -29,11 +29,11 @@
     }
   },
   "Membership_": {
-    "digest": "3c6c74360f42734aa1d3f76f497ec63a0bc39528b47a00c3be887a0b6ef1f8e1",
+    "digest": "39966549192610ffae8df962a0f868c4079b75133664ffc710c03669724e0b8d",
     "methods": {
       "addEntry": {
-        "rows": 1317,
-        "digest": "86c4cb3e10764e94741e23cce1342192"
+        "rows": 5530,
+        "digest": "db5487ca29e8e519022e1caa25fd4bcf"
       },
       "isMember": {
         "rows": 433,

@@ -14,7 +14,7 @@ let parentId = TokenId.derive(publicKey);
  *
  * InheritFromParent -> ParentsOwnToken
  */
-let tx = await Mina.transaction(privateKey, () => {
+let tx = await Mina.transaction(privateKey, async () => {
   let parent = AccountUpdate.defaultAccountUpdate(publicKey);
   parent.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
   parent.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
