@@ -5,7 +5,7 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
-import { assertMul, assertSquare } from './gadgets/compatible.js';
+import { assertEqual, assertMul, assertSquare } from './gadgets/compatible.js';
 
 // external API
 export { Field };
@@ -274,7 +274,7 @@ class Field {
         }
         return;
       }
-      Snarky.field.assertEqual(this.value, toFieldVar(y));
+      assertEqual(this, toFieldVar(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -646,8 +646,9 @@ class Field {
     let xMinusY = Snarky.existsVar(() =>
       FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
     );
-    Snarky.field.assertEqual(this.sub(y).value, xMinusY);
-    return new Field(xMinusY).isZero();
+    let z = new Field(xMinusY);
+    this.sub(y).assertEquals(z);
+    return z.isZero();
   }
 
   /**
