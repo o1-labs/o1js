@@ -75,25 +75,25 @@ let RangeCheck = ZkProgram({
   methods: {
     check64: {
       privateInputs: [Field],
-      method(x) {
+      async method(x) {
         Gadgets.rangeCheck64(x);
       },
     },
     check8: {
       privateInputs: [Field],
-      method(x) {
+      async method(x) {
         Gadgets.rangeCheck8(x);
       },
     },
     checkMulti: {
       privateInputs: [Field, Field, Field],
-      method(x, y, z) {
+      async method(x, y, z) {
         Gadgets.multiRangeCheck([x, y, z]);
       },
     },
     checkCompact: {
       privateInputs: [Field, Field],
-      method(xy, z) {
+      async method(xy, z) {
         let [x, y] = Gadgets.compactMultiRangeCheck(xy, z);
         x.add(y.mul(1n << l)).assertEquals(xy);
       },

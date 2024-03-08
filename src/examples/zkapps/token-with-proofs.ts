@@ -12,29 +12,29 @@ import {
 
 class Token extends TokenContract {
   @method
-  approveBase(forest: AccountUpdateForest) {
+  async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
 
-  @method mint(receiverAddress: PublicKey) {
+  @method async mint(receiverAddress: PublicKey) {
     let amount = 1_000_000;
     this.internal.mint({ address: receiverAddress, amount });
   }
 
-  @method burn(receiverAddress: PublicKey) {
+  @method async burn(receiverAddress: PublicKey) {
     let amount = 1_000;
     this.internal.burn({ address: receiverAddress, amount });
   }
 }
 
 class ZkAppB extends SmartContract {
-  @method approveSend() {
+  @method async approveSend() {
     this.balance.subInPlace(1_000);
   }
 }
 
 class ZkAppC extends SmartContract {
-  @method approveSend() {
+  @method async approveSend() {
     this.balance.subInPlace(1_000);
   }
 }
@@ -80,7 +80,7 @@ await ZkAppC.compile();
 
 console.log('deploy tokenZkApp');
 tx = await Mina.transaction(sender, async () => {
-  tokenZkApp.deploy();
+  await tokenZkApp.deploy();
   AccountUpdate.fundNewAccount(sender).send({
     to: tokenZkApp.self,
     amount: initialBalance,
@@ -91,9 +91,9 @@ await tx.sign([senderKey, tokenZkAppKey]).send();
 console.log('deploy zkAppB and zkAppC');
 tx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender, 2);
-  zkAppC.deploy();
-  zkAppB.deploy();
-  tokenZkApp.approveAccountUpdates([zkAppC.self, zkAppB.self]);
+  await zkAppC.deploy();
+  await zkAppB.deploy();
+  await tokenZkApp.approveAccountUpdates([zkAppC.self, zkAppB.self]);
 });
 console.log('deploy zkAppB and zkAppC (proof)');
 await tx.prove();
@@ -101,17 +101,17 @@ await tx.sign([senderKey, zkAppBKey, zkAppCKey]).send();
 
 console.log('mint token to zkAppB');
 tx = await Mina.transaction(sender, async () => {
-  tokenZkApp.mint(zkAppBAddress);
+  await tokenZkApp.mint(zkAppBAddress);
 });
 await tx.prove();
 await tx.sign([senderKey]).send();
 
 console.log('approve send from zkAppB');
 tx = await Mina.transaction(sender, async () => {
-  zkAppB.approveSend();
+  await zkAppB.approveSend();
 
   // we call the token contract with the self update
-  tokenZkApp.transfer(zkAppB.self, zkAppCAddress, 1_000);
+  await tokenZkApp.transfer(zkAppB.self, zkAppCAddress, 1_000);
 });
 console.log('approve send (proof)');
 await tx.prove();
@@ -126,10 +126,10 @@ console.log('approve send from zkAppC');
 tx = await Mina.transaction(sender, async () => {
   // Pay for tokenAccount1's account creation
   AccountUpdate.fundNewAccount(sender);
-  zkAppC.approveSend();
+  await zkAppC.approveSend();
 
   // we call the token contract with the tree
-  tokenZkApp.transfer(zkAppC.self, tokenAccount1, 1_000);
+  await tokenZkApp.transfer(zkAppC.self, tokenAccount1, 1_000);
 });
 console.log('approve send (proof)');
 await tx.prove();

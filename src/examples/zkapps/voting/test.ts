@@ -85,7 +85,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        verificationKeySet.voting.voterRegistration(m);
+        await verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer
     );
@@ -111,7 +111,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        verificationKeySet.voting.voterRegistration(m);
+        await verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer,
       'Invalid proof'
@@ -157,7 +157,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        permissionedSet.voting.voterRegistration(m);
+        await permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer
     );
@@ -186,7 +186,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        permissionedSet.voting.voterRegistration(m);
+        await permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer,
       'actions'
@@ -231,7 +231,7 @@ export async function testSet(
       let tx = await Mina.transaction(
         invalidSet.feePayer.toPublicKey(),
         async () => {
-          invalidSet.voting.voterRegistration(m);
+          await invalidSet.voting.voterRegistration(m);
         }
       );
       await tx.prove();
@@ -293,7 +293,7 @@ export async function testSet(
               m.balance.toString()
             );
 
-            sequenceOverflowSet.voting.voterRegistration(m);
+            await sequenceOverflowSet.voting.voterRegistration(m);
           }
         );
         await tx.prove();
@@ -315,7 +315,7 @@ export async function testSet(
       let tx = await Mina.transaction(
         sequenceOverflowSet.feePayer.toPublicKey(),
         async () => {
-          sequenceOverflowSet.voting.approveRegistrations();
+          await sequenceOverflowSet.voting.approveRegistrations();
         }
       );
       await tx.prove();
@@ -385,7 +385,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        voting.voterRegistration(newVoter1);
+        await voting.voterRegistration(newVoter1);
       },
       feePayer
     );
@@ -441,7 +441,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        voting.voterRegistration(newVoterLow);
+        await voting.voterRegistration(newVoterLow);
       },
       feePayer,
       'Balance not high enough!'
@@ -457,7 +457,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        voting.voterRegistration(newVoterHigh);
+        await voting.voterRegistration(newVoterHigh);
       },
       feePayer,
       'Balance too high!'
@@ -468,7 +468,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        voting.voterRegistration(newVoter1);
+        await voting.voterRegistration(newVoter1);
       },
       feePayer,
       'Member already exists!'
@@ -516,7 +516,7 @@ export async function testSet(
         );
 
         // register new candidate
-        voting.candidateRegistration(newCandidate);
+        await voting.candidateRegistration(newCandidate);
       },
       feePayer
     );
@@ -538,7 +538,7 @@ export async function testSet(
         );
 
         // register new candidate
-        voting.candidateRegistration(newCandidate);
+        await voting.candidateRegistration(newCandidate);
       },
       feePayer
     );
@@ -584,7 +584,7 @@ export async function testSet(
       true,
       async () => {
         // register new candidate
-        voting.approveRegistrations();
+        await voting.approveRegistrations();
       },
       feePayer
     );
@@ -652,7 +652,7 @@ export async function testSet(
       false,
       async () => {
         // register late candidate
-        voting.candidateRegistration(lateCandidate);
+        await voting.candidateRegistration(lateCandidate);
       },
       feePayer,
       'Outside of election period!'
@@ -672,7 +672,7 @@ export async function testSet(
       false,
       async () => {
         // register late voter
-        voting.voterRegistration(lateVoter);
+        await voting.voterRegistration(lateVoter);
       },
       feePayer,
       'Outside of election period!'
@@ -729,7 +729,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        voting.countVotes();
+        await voting.countVotes();
       },
       feePayer
     );
@@ -777,7 +777,7 @@ export async function testSet(
         let v = votersStore.get(0n)!;
         v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
 
-        voting.vote(currentCandidate, v);
+        await voting.vote(currentCandidate, v);
       },
       feePayer
     );
@@ -822,7 +822,7 @@ export async function testSet(
       async () => {
         // attempting to vote for the registered candidate
 
-        voting.vote(fakeCandidate, votersStore.get(0n)!);
+        await voting.vote(fakeCandidate, votersStore.get(0n)!);
       },
       feePayer,
       'Member is not a candidate!'
@@ -839,7 +839,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        voting.vote(fakeVoter, votersStore.get(0n)!);
+        await voting.vote(fakeVoter, votersStore.get(0n)!);
       },
       feePayer,
       'Member is not a candidate!'
@@ -851,7 +851,7 @@ export async function testSet(
       false,
       async () => {
         const voter = votersStore.get(0n)!;
-        voting.vote(voter, votersStore.get(0n)!);
+        await voting.vote(voter, votersStore.get(0n)!);
       },
       feePayer,
       'Member is not a candidate!'
@@ -878,7 +878,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        voting.countVotes();
+        await voting.countVotes();
       },
       feePayer
     );
@@ -931,7 +931,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        voting.voterRegistration(voter);
+        await voting.voterRegistration(voter);
       },
       feePayer,
       'Outside of election period!'
@@ -948,7 +948,7 @@ export async function testSet(
     await assertValidTx(
       false,
       async () => {
-        voting.candidateRegistration(candidate);
+        await voting.candidateRegistration(candidate);
       },
       feePayer,
       'Outside of election period!'

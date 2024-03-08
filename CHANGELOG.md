@@ -19,11 +19,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
+- **Async circuits**. Require all smart contract and zkprogram methods to be async https://github.com/o1-labs/o1js/pull/1477
+  - This change allows you to use `await` inside your methods. Change the method signature by adding the `async` keyword.
+  - Don't forget to add `await` to all contract calls! `await MyContract.myMethod();`
+  - To declare a return value from a method, use the new `@method.returns()` decorator
 - Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
-  - This change was done in support to support async contract methods
 - Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
   - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
-  - These changes were made to add internal support for async circuits
   - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
@@ -38,6 +40,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
 - Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
 - Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
 
@@ -58,7 +61,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
 - Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
 - `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
 - `setNumberOfWorkers()` to allow developer to override the number of workers used during compilation and proof generation/verification https://github.com/o1-labs/o1js/pull/1456

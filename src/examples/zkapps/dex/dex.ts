@@ -33,7 +33,7 @@ function createDex({
     // Approvable API
 
     @method
-    approveBase(forest: AccountUpdateForest) {
+    async approveBase(forest: AccountUpdateForest) {
       this.checkZeroBalanceChange(forest);
     }
 
@@ -54,7 +54,8 @@ function createDex({
      * This can also be used if the pool is empty. In that case, there is no check on X/Y;
      * instead, the input X and Y amounts determine the initial ratio.
      */
-    @method supplyLiquidityBase(dx: UInt64, dy: UInt64): UInt64 {
+    @method.returns(UInt64)
+    async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
       let user = this.sender.getUnconstrained(); // unconstrained because transfer() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let tokenY = new TokenContract(this.tokenY);
@@ -78,8 +79,8 @@ function createDex({
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
       isDyCorrect.or(isXZero).assertTrue();
 
-      tokenX.transfer(user, dexXUpdate, dx);
-      tokenY.transfer(user, dexYUpdate, dy);
+      await tokenX.transfer(user, dexXUpdate, dx);
+      await tokenY.transfer(user, dexYUpdate, dy);
 
       // calculate liquidity token output simply as dl = dx + dy
       // => maintains ratio x/l, y/l
@@ -123,7 +124,7 @@ function createDex({
      * the input amount of Y tokens is calculated automatically from the X tokens.
      * Fails if the liquidity pool is empty, so can't be used for the first deposit.
      */
-    supplyLiquidity(dx: UInt64): UInt64 {
+    async supplyLiquidity(dx: UInt64) {
       // calculate dy outside circuit
       let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
       let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
@@ -133,7 +134,7 @@ function createDex({
         );
       }
       let dy = dx.mul(y).div(x);
-      return this.supplyLiquidityBase(dx, dy);
+      return await this.supplyLiquidityBase(dx, dy);
     }
 
     /**
@@ -146,14 +147,14 @@ function createDex({
      * Note: this is not a `@method` because there's nothing to prove which isn't already proven
      * by the called methods
      */
-    redeemLiquidity(dl: UInt64) {
+    async redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
       let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let dxdy = dexX.redeemLiquidity(sender, dl, this.tokenY);
+      let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.transfer(dexX.self, sender, dx);
+      await tokenX.transfer(dexX.self, sender, dx);
       return dxdy;
     }
 
@@ -164,12 +165,13 @@ function createDex({
      *
      * The transaction needs to be signed by the user's private key.
      */
-    @method swapX(dx: UInt64): UInt64 {
+    @method.returns(UInt64)
+    async swapX(dx: UInt64) {
       let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-      let dy = dexY.swap(sender, dx, this.tokenX);
-      tokenY.transfer(dexY.self, sender, dy);
+      let dy = await dexY.swap(sender, dx, this.tokenX);
+      await tokenY.transfer(dexY.self, sender, dy);
       return dy;
     }
 
@@ -180,12 +182,13 @@ function createDex({
      *
      * The transaction needs to be signed by the user's private key.
      */
-    @method swapY(dy: UInt64): UInt64 {
+    @method.returns(UInt64)
+    async swapY(dy: UInt64) {
       let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let dx = dexX.swap(sender, dy, this.tokenY);
-      tokenX.transfer(dexX.self, sender, dx);
+      let dx = await dexX.swap(sender, dy, this.tokenY);
+      await tokenX.transfer(dexX.self, sender, dx);
       return dx;
     }
 
@@ -200,7 +203,8 @@ function createDex({
      *
      * The transaction needs to be signed by the user's private key.
      */
-    @method burnLiquidity(user: PublicKey, dl: UInt64): UInt64 {
+    @method.returns(UInt64)
+    async burnLiquidity(user: PublicKey, dl: UInt64) {
       // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
       this.internal.burn({ address: user, amount: dl });
       let l = this.totalSupply.get();
@@ -211,21 +215,22 @@ function createDex({
   }
 
   class ModifiedDex extends Dex {
-    deploy() {
-      super.deploy();
+    async deploy() {
+      await super.deploy();
       // override the isNew requirement for re-deploying
       this.account.isNew.requireNothing();
     }
 
-    @method swapX(dx: UInt64): UInt64 {
+    @method.returns(UInt64)
+    async swapX(dx: UInt64) {
       let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(
         this.address,
         tokenY.deriveTokenId()
       );
-      let dy = dexY.swap(sender, dx, this.tokenX);
-      tokenY.transfer(dexY.self, sender, dy);
+      let dy = await dexY.swap(sender, dx, this.tokenX);
+      await tokenY.transfer(dexY.self, sender, dy);
       return dy;
     }
   }
@@ -235,10 +240,11 @@ function createDex({
     // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
     // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
     // for the other token, in a callback
-    @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64x2 {
+    @method.returns(UInt64x2)
+    async redeemLiquidityPartial(user: PublicKey, dl: UInt64) {
       // user burns dl, approved by the Dex main contract
       let dex = new Dex(addresses.dex);
-      let l = dex.burnLiquidity(user, dl);
+      let l = await dex.burnLiquidity(user, dl);
 
       // in return, we give dy back
       let y = this.account.balance.get();
@@ -256,18 +262,19 @@ function createDex({
     }
 
     // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
-    @method redeemLiquidity(
+    @method.returns(UInt64x2)
+    async redeemLiquidity(
       user: PublicKey,
       dl: UInt64,
       otherTokenAddress: PublicKey
-    ): UInt64x2 {
+    ) {
       // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
       let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-      let result = dexY.redeemLiquidityPartial(user, dl);
+      let result = await dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
-      tokenY.transfer(dexY.self, user, dy);
+      await tokenY.transfer(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
@@ -280,11 +287,12 @@ function createDex({
     }
 
     // this works for both directions (in our case where both tokens use the same contract)
-    @method swap(
+    @method.returns(UInt64)
+    async swap(
       user: PublicKey,
       otherTokenAmount: UInt64,
       otherTokenAddress: PublicKey
-    ): UInt64 {
+    ) {
       // we're writing this as if our token === y and other token === x
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
@@ -293,7 +301,7 @@ function createDex({
       let x = dexX.account.balance.getAndRequireEquals();
       let y = this.account.balance.getAndRequireEquals();
       // send x from user to us (i.e., to the same address as this but with the other token)
-      tokenX.transfer(user, dexX, dx);
+      await tokenX.transfer(user, dexX, dx);
       // compute and send dy
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
@@ -306,11 +314,12 @@ function createDex({
     /**
      * This swap method has a slightly changed formula
      */
-    @method swap(
+    @method.returns(UInt64)
+    async swap(
       user: PublicKey,
       otherTokenAmount: UInt64,
       otherTokenAddress: PublicKey
-    ): UInt64 {
+    ) {
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances
@@ -318,7 +327,7 @@ function createDex({
       let x = dexX.account.balance.getAndRequireEquals();
       let y = this.account.balance.get();
       this.account.balance.requireEquals(y);
-      tokenX.transfer(user, dexX, dx);
+      await tokenX.transfer(user, dexX, dx);
 
       // this formula has been changed - we just give the user an additional 15 token
       let dy = y.mul(dx).div(x.add(dx)).add(15);
@@ -391,7 +400,7 @@ function createDex({
  * Simple token with API flexible enough to handle all our use cases
  */
 class TokenContract extends BaseTokenContract {
-  @method init() {
+  @method async init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract
     /**
@@ -414,7 +423,7 @@ class TokenContract extends BaseTokenContract {
    *
    * mint additional tokens to some user, so we can overflow token balances
    */
-  @method init2() {
+  @method async init2() {
     let receiver = this.internal.mint({
       address: addresses.user,
       amount: UInt64.from(10n ** 6n),
@@ -426,7 +435,7 @@ class TokenContract extends BaseTokenContract {
   }
 
   @method
-  approveBase(forest: AccountUpdateForest) {
+  async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
 }

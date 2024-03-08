@@ -42,14 +42,14 @@ abstract class TokenContract extends SmartContract {
    * If the contract needs to be re-deployed, you can switch off this behaviour by overriding the `isNew` precondition:
    * ```ts
    * deploy() {
-   *   super.deploy();
+   *   await super.deploy();
    *   // DON'T DO THIS ON THE INITIAL DEPLOYMENT!
    *   this.account.isNew.requireNothing();
    * }
    * ```
    */
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
+  async deploy(args?: DeployArgs) {
+    await super.deploy(args);
 
     // set access permission, to prevent unauthorized token operations
     this.account.permissions.set({
@@ -80,7 +80,7 @@ abstract class TokenContract extends SmartContract {
   // APPROVABLE API has to be specified by subclasses,
   // but the hard part is `forEachUpdate()`
 
-  abstract approveBase(forest: AccountUpdateForest): void;
+  abstract approveBase(forest: AccountUpdateForest): Promise<void>;
 
   /**
    * Iterate through the account updates in `updates` and apply `callback` to each.
@@ -134,17 +134,19 @@ abstract class TokenContract extends SmartContract {
   /**
    * Approve a single account update (with arbitrarily many children).
    */
-  approveAccountUpdate(accountUpdate: AccountUpdate | AccountUpdateTree) {
+  async approveAccountUpdate(accountUpdate: AccountUpdate | AccountUpdateTree) {
     let forest = toForest([accountUpdate]);
-    this.approveBase(forest);
+    await this.approveBase(forest);
   }
 
   /**
    * Approve a list of account updates (with arbitrarily many children).
    */
-  approveAccountUpdates(accountUpdates: (AccountUpdate | AccountUpdateTree)[]) {
+  async approveAccountUpdates(
+    accountUpdates: (AccountUpdate | AccountUpdateTree)[]
+  ) {
     let forest = toForest(accountUpdates);
-    this.approveBase(forest);
+    await this.approveBase(forest);
   }
 
   // TRANSFERABLE API - simple wrapper around Approvable API
@@ -152,12 +154,12 @@ abstract class TokenContract extends SmartContract {
   /**
    * Transfer `amount` of tokens from `from` to `to`.
    */
-  transfer(
+  async transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
     amount: UInt64 | number | bigint
   ) {
-    // coerce the inputs to AccountUpdate and pass to `approveUpdates()`
+    // coerce the inputs to AccountUpdate and pass to `approveBase()`
     let tokenId = this.deriveTokenId();
     if (from instanceof PublicKey) {
       from = AccountUpdate.defaultAccountUpdate(from, tokenId);
@@ -173,7 +175,7 @@ abstract class TokenContract extends SmartContract {
     to.balanceChange = Int64.from(amount);
 
     let forest = toForest([from, to]);
-    this.approveBase(forest);
+    await this.approveBase(forest);
   }
 }
 

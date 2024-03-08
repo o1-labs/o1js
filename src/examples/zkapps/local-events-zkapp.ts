@@ -33,7 +33,7 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  @method update(y: Field) {
+  @method async update(y: Field) {
     this.emitEvent('complexEvent', {
       pub: PrivateKey.random().toPublicKey(),
       value: y,
@@ -67,20 +67,20 @@ if (doProofs) {
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  zkapp.deploy();
+  await zkapp.deploy();
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('call update');
 tx = await Mina.transaction(feePayer, async () => {
-  zkapp.update(Field(1));
+  await zkapp.update(Field(1));
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('call update');
 tx = await Mina.transaction(feePayer, async () => {
-  zkapp.update(Field(2));
+  await zkapp.update(Field(2));
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();

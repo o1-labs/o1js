@@ -14,7 +14,7 @@ class ExampleTokenContract extends TokenContract {
   // APPROVABLE API
 
   @method
-  approveBase(updates: AccountUpdateForest) {
+  async approveBase(updates: AccountUpdateForest) {
     this.checkZeroBalanceChange(updates);
   }
 
@@ -22,7 +22,7 @@ class ExampleTokenContract extends TokenContract {
   SUPPLY = UInt64.from(10n ** 18n);
 
   @method
-  init() {
+  async init() {
     super.init();
 
     // mint the entire supply to the token account with the same address as this contract
@@ -48,7 +48,7 @@ let tokenId = token.deriveTokenId();
 // deploy token contract
 let deployTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender, 2);
-  token.deploy();
+  await token.deploy();
 });
 await deployTx.prove();
 await deployTx.sign([tokenKey, senderKey]).send();
@@ -61,7 +61,7 @@ assert(
 // can transfer tokens between two accounts
 let transferTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
-  token.transfer(tokenAddress, otherAddress, UInt64.one);
+  await token.transfer(tokenAddress, otherAddress, UInt64.one);
 });
 await transferTx.prove();
 await transferTx.sign([tokenKey, senderKey]).send();
@@ -84,7 +84,7 @@ update3.body.callDepth = 2;
 let forest = AccountUpdateForest.fromFlatArray([update1, update2, update3]);
 
 await assert.rejects(
-  () => Mina.transaction(sender, async () => token.approveBase(forest)),
+  () => Mina.transaction(sender, () => token.approveBase(forest)),
   /Field\.assertEquals\(\): 1 != 0/
 );
 
@@ -101,8 +101,6 @@ forest = AccountUpdateForest.fromFlatArray([
   update4,
 ]);
 
-let approveTx = await Mina.transaction(sender, async () =>
-  token.approveBase(forest)
-);
+let approveTx = await Mina.transaction(sender, () => token.approveBase(forest));
 await approveTx.prove();
 await approveTx.sign([senderKey, otherKey]).send();

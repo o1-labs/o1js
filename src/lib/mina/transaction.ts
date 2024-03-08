@@ -165,7 +165,7 @@ type PendingTransaction = Pick<
    * @example
    * ```ts
    * try {
-   *   const transaction = await pendingTransaction.waitOrThrowIfError({ maxAttempts: 10, interval: 2000 });
+   *   const transaction = await pendingTransaction.wait({ maxAttempts: 10, interval: 2000 });
    *   console.log('Transaction included in a block.');
    * } catch (error) {
    *   console.error('Transaction rejected or failed to finalize:', error);
@@ -478,18 +478,14 @@ function transaction(
 ): Promise<Transaction> {
   let sender: DeprecatedFeePayerSpec;
   let f: () => Promise<void>;
-  try {
-    if (fOrUndefined !== undefined) {
-      sender = senderOrF as DeprecatedFeePayerSpec;
-      f = fOrUndefined;
-    } else {
-      sender = undefined;
-      f = senderOrF as () => Promise<void>;
-    }
-    return activeInstance.transaction(sender, f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
+  if (fOrUndefined !== undefined) {
+    sender = senderOrF as DeprecatedFeePayerSpec;
+    f = fOrUndefined;
+  } else {
+    sender = undefined;
+    f = senderOrF as () => Promise<void>;
   }
+  return activeInstance.transaction(sender, f);
 }
 
 async function sendTransaction(txn: Transaction) {

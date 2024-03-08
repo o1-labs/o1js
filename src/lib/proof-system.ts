@@ -1058,14 +1058,14 @@ type Method<
 > = PublicInput extends undefined
   ? {
       privateInputs: Args;
-      method(...args: TupleToInstances<Args>): PublicOutput;
+      method(...args: TupleToInstances<Args>): Promise<PublicOutput>;
     }
   : {
       privateInputs: Args;
       method(
         publicInput: PublicInput,
         ...args: TupleToInstances<Args>
-      ): PublicOutput;
+      ): Promise<PublicOutput>;
     };
 
 type Prover<

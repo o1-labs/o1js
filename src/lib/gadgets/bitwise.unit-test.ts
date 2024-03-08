@@ -35,56 +35,56 @@ let Bitwise = ZkProgram({
   methods: {
     xor: {
       privateInputs: [Field, Field],
-      method(a: Field, b: Field) {
+      async method(a: Field, b: Field) {
         return Gadgets.xor(a, b, 254);
       },
     },
     notUnchecked: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.not(a, 254, false);
       },
     },
     notChecked: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.not(a, 254, true);
       },
     },
     and: {
       privateInputs: [Field, Field],
-      method(a: Field, b: Field) {
+      async method(a: Field, b: Field) {
         return Gadgets.and(a, b, 64);
       },
     },
     rot32: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.rotate32(a, 12, 'left');
       },
     },
     rot64: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.rotate64(a, 12, 'left');
       },
     },
     leftShift64: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.leftShift64(a, 12);
       },
     },
     leftShift32: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         Gadgets.rangeCheck32(a);
         return Gadgets.leftShift32(a, 12);
       },
     },
     rightShift64: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.rightShift64(a, 12);
       },
     },

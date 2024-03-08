@@ -108,7 +108,7 @@ class MyContract extends SmartContract {
   // this works because MyStructPure only contains field elements
   @state(MyStructPure) x = State<MyStructPure>();
 
-  @method myMethod(
+  @method async myMethod(
     value: MyStruct,
     tuple: MyTuple,
     update: AccountUpdate,

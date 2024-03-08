@@ -25,7 +25,7 @@ console.log('Deploying Hello World ....');
 
 txn = await Mina.transaction(feePayer1.publicKey, async () => {
   AccountUpdate.fundNewAccount(feePayer1.publicKey);
-  zkAppInstance.deploy();
+  await zkAppInstance.deploy();
 });
 await txn.sign([feePayer1.privateKey, zkAppPrivateKey]).send();
 
@@ -42,7 +42,7 @@ console.log(
 );
 
 txn = await Mina.transaction(feePayer1.publicKey, async () => {
-  zkAppInstance.update(Field(4), adminPrivateKey);
+  await zkAppInstance.update(Field(4), adminPrivateKey);
 });
 await txn.prove();
 await txn.sign([feePayer1.privateKey]).send();
@@ -67,7 +67,7 @@ let correctlyFails = false;
 
 try {
   txn = await Mina.transaction(feePayer1.publicKey, async () => {
-    zkAppInstance.update(Field(16), wrongAdminPrivateKey);
+    await zkAppInstance.update(Field(16), wrongAdminPrivateKey);
   });
   await txn.prove();
   await txn.sign([feePayer1.privateKey]).send();
@@ -88,7 +88,7 @@ try {
   );
 
   txn = await Mina.transaction(feePayer1.publicKey, async () => {
-    zkAppInstance.update(Field(30), adminPrivateKey);
+    await zkAppInstance.update(Field(30), adminPrivateKey);
   });
   await txn.prove();
   await txn.sign([feePayer1.privateKey]).send();
@@ -114,7 +114,7 @@ try {
   txn = await Mina.transaction(
     { sender: feePayer1.publicKey, fee: '10' },
     async () => {
-      zkAppInstance.update(Field(256), adminPrivateKey);
+      await zkAppInstance.update(Field(256), adminPrivateKey);
     }
   );
   await txn.prove();
@@ -133,7 +133,7 @@ if (!correctlyFails) {
 txn2 = await Mina.transaction(
   { sender: feePayer2.publicKey, fee: '2' },
   async () => {
-    zkAppInstance.update(Field(16), adminPrivateKey);
+    await zkAppInstance.update(Field(16), adminPrivateKey);
   }
 );
 await txn2.prove();
@@ -153,7 +153,7 @@ console.log(`Update successful. Current state is ${currentState}.`);
 txn3 = await Mina.transaction(
   { sender: feePayer3.publicKey, fee: '1' },
   async () => {
-    zkAppInstance.update(Field(256), adminPrivateKey);
+    await zkAppInstance.update(Field(256), adminPrivateKey);
   }
 );
 await txn3.prove();
@@ -176,7 +176,7 @@ try {
   txn4 = await Mina.transaction(
     { sender: feePayer4.publicKey, fee: '1' },
     async () => {
-      zkAppInstance.update(Field(16), adminPrivateKey);
+      await zkAppInstance.update(Field(16), adminPrivateKey);
     }
   );
   await txn4.prove();

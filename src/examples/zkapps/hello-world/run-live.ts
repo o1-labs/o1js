@@ -53,7 +53,7 @@ let transaction = await Mina.transaction(
   { sender, fee: transactionFee },
   async () => {
     AccountUpdate.fundNewAccount(sender);
-    zkApp.deploy({ verificationKey });
+    await zkApp.deploy({ verificationKey });
   }
 );
 transaction.sign([senderKey, zkAppKey]);
@@ -74,7 +74,7 @@ console.log('Trying to update deployed zkApp state.');
 transaction = await Mina.transaction(
   { sender, fee: transactionFee },
   async () => {
-    zkApp.update(Field(4), adminPrivateKey);
+    await zkApp.update(Field(4), adminPrivateKey);
   }
 );
 await transaction.sign([senderKey]).prove();

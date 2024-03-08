@@ -12,8 +12,8 @@ import {
 export class DummyContract extends SmartContract {
   @state(Field) sum = State<Field>();
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy(args: DeployArgs) {
+    await super.deploy(args);
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -31,7 +31,7 @@ export class DummyContract extends SmartContract {
   /**
    * Method used to add two variables together.
    */
-  @method add(x: Field, y: Field) {
+  @method async add(x: Field, y: Field) {
     this.sum.set(x.add(y));
   }
 }
