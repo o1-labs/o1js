@@ -63,7 +63,6 @@ const Provable = {
    * ```
    */
   witness,
-  witnessBn254,
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -90,7 +89,6 @@ const Provable = {
    * ```
    */
   switch: switch_,
-  switchBn254: switchBn254_,
 
   /**
    * Asserts that two values are equal.
@@ -103,7 +101,6 @@ const Provable = {
    * ```
    */
   assertEqual,
-  assertEqualBn254,
   /**
    * Checks if two elements are equal.
    * @example
@@ -115,7 +112,6 @@ const Provable = {
    * ```
    */
   equal,
-  equalBn254,
   /**
    * Creates a {@link Provable} for a generic array.
    * @example
@@ -282,51 +278,6 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
   return value;
 }
 
-function witnessBn254<T, S extends ProvableBn254<T> = ProvableBn254<T>>(
-  type: S,
-  compute: () => T
-): T {
-  let ctx = snarkContext.get();
-
-  // outside provable code, we just call the callback and return its cloned result
-  if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return cloneBn254(type, compute());
-  }
-  let proverValue: T | undefined = undefined;
-  let fields: FieldBn254[];
-
-  let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
-  try {
-    let [, ...fieldVars] = Snarky.existsBn254(type.sizeInFields(), () => {
-      proverValue = compute();
-      let fields = type.toFields(proverValue);
-      let fieldConstants = fields.map((x) => x.toConstant().value[1]);
-
-      // TODO: enable this check
-      // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
-      // if (fields.length !== type.sizeInFields()) {
-      //   throw Error(
-      //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-      //       fields.length
-      //     }.`
-      //   );
-      // }
-      return [0, ...fieldConstants];
-    });
-    fields = fieldVars.map((fieldVar) => new FieldBn254(fieldVar));
-  } finally {
-    snarkContext.leave(id);
-  }
-
-  // rebuild the value from its fields (which are now variables)
-  let value = (type as ProvableBn254<T>).fromFields(fields, []);
-
-  // add type-specific constraints
-  type.check(value);
-
-  return value;
-}
-
 type ToFieldable = { toFields(): Field[] };
 
 // general provable methods
@@ -349,13 +300,6 @@ function assertEqualImplicit<T extends ToFieldable>(x: T, y: T) {
   }
 }
 function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
-  let xs = type.toFields(x);
-  let ys = type.toFields(y);
-  for (let i = 0; i < xs.length; i++) {
-    xs[i].assertEquals(ys[i]);
-  }
-}
-function assertEqualBn254<T>(type: ProvableBn254<T>, x: T, y: T): void {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   for (let i = 0; i < xs.length; i++) {
@@ -385,14 +329,6 @@ function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
-}
-function equalBn254<T>(type: ProvableBn254<T>, x: T, y: T) {
-  let xs = type.toFields(x);
-  let ys = type.toFields(y);
-  return xs.map((x, i) => {
-    let ret = x.equals(ys[i])
-    return ret;
-  }).reduce(BoolBn254.and);
 }
 
 function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;
@@ -552,27 +488,10 @@ function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
-function cloneBn254<T, S extends ProvableBn254<T>>(type: S, value: T): T {
-  let fields = type.toFields(value);
-  return (type as ProvableBn254<T>).fromFields(fields, []);
-}
-
 function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {
   let aux;
   // TODO: this accepts types without .toAuxiliary(), should be changed when all snarky types are moved to TS
   Provable.asProver(() => {
-    let value = compute();
-    if (value !== undefined) {
-      aux = type.toAuxiliary?.(value);
-    }
-  });
-  return aux ?? type.toAuxiliary?.() ?? [];
-}
-
-function auxiliaryBn254<T>(type: ProvableBn254<T>, compute: () => T | undefined) {
-  let aux;
-  // TODO: this accepts types without .toAuxiliary(), should be changed when all snarky types are moved to TS
-  Provable.asProverBn254(() => {
     let value = compute();
     if (value !== undefined) {
       aux = type.toAuxiliary?.(value);
