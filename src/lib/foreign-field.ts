@@ -4,7 +4,7 @@ import {
   FiniteField,
   createField,
 } from '../bindings/crypto/finite-field.js';
-import { Field, FieldVar, checkBitLength, withMessage } from './field.js';
+import { Field, FieldConst, FieldVar, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { Tuple, TupleMap, TupleN } from './util/types.js';

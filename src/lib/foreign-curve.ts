@@ -5,12 +5,13 @@ import {
 } from '../bindings/crypto/elliptic-curve.js';
 import type { Group } from './group.js';
 import { ProvablePureExtended } from './circuit-value.js';
-import { AlmostForeignField, createForeignField } from './foreign-field.js';
+import { AlmostForeignField, ForeignField, createForeignField } from './foreign-field.js';
 import { EllipticCurve, Point } from './gadgets/elliptic-curve.js';
 import { Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { Provable } from './provable.js';
 import { provableFromClass } from '../bindings/lib/provable-snarky.js';
+import { FieldConst, FieldVar } from './field.js';
 
 // external API
 export { createForeignCurve, ForeignCurve };
@@ -50,9 +51,28 @@ class ForeignCurve {
     this.y = new this.Constructor.Field(g.y);
     // don't allow constants that aren't on the curve
     if (this.isConstant()) {
-      this.assertOnCurve();
+      // Only assert if it is on curve if it is not the point at infinity
+      if (!this.isZero()) {
+        this.assertOnCurve();
+      }
       this.assertInSubgroup();
     }
+  }
+
+  isZero() {
+    return this.isLimbZero(0) && this.isLimbZero(1) && this.isLimbZero(2);
+  }
+
+  isLimbZero(i: number) {
+    return (toPoint(this).x[i].value[1] as FieldConst)[1] === 0n;
+  }
+
+  #isEqual(other: ForeignCurve) {
+    return this.#isLimbEqual(0, other) && this.#isLimbEqual(1, other) && this.#isLimbEqual(2, other);
+  }
+
+  #isLimbEqual(i: number, other: ForeignCurve) {
+    return (toPoint(this).x[i].value[1] as FieldConst)[1] === (toPoint(other).x[i].value[1] as FieldConst)[1];
   }
 
   /**
@@ -125,6 +145,26 @@ class ForeignCurve {
     return new this.Constructor(p);
   }
 
+  completeAdd(h: ForeignCurve | FlexiblePoint) {
+    let Curve = this.Constructor.Bigint;
+    let h_ = this.Constructor.from(h);
+
+    if (this.isZero()) {
+      return h_;
+    }
+
+    if (h_.isZero()) {
+      return this;
+    }
+
+    if (this.#isEqual(h_.negate())) {
+      return new this.Constructor({ x: 0, y: 0 });
+    }
+
+    let p = EllipticCurve.add(toPoint(this), toPoint(h_), Curve);
+    return new this.Constructor(p);
+  }
+
   /**
    * Safe elliptic curve addition.
    *
@@ -188,6 +228,20 @@ class ForeignCurve {
   scale(scalar: AlmostForeignField | bigint | number) {
     let Curve = this.Constructor.Bigint;
     let scalar_ = this.Constructor.Scalar.from(scalar);
+    let p = EllipticCurve.scale(scalar_.value, toPoint(this), Curve);
+    return new this.Constructor(p);
+  }
+
+  completeScale(scalar: AlmostForeignField | bigint | number) {
+    let Curve = this.Constructor.Bigint;
+    let scalar_ = this.Constructor.Scalar.from(scalar);
+
+    let isThisZero = this.isZero();
+    let isScalarZero = (scalar_.value[0].value[1] as FieldConst)[1] === 0n && (scalar_.value[1].value[1] as FieldConst)[1] === 0n && (scalar_.value[2].value[1] as FieldConst)[1] === 0n;
+    if (isThisZero || isScalarZero) {
+      return new this.Constructor({ x: 0, y: 0 });
+    }
+
     let p = EllipticCurve.scale(scalar_.value, toPoint(this), Curve);
     return new this.Constructor(p);
   }
@@ -293,8 +347,8 @@ class ForeignCurve {
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);
-  class Field extends FieldUnreduced.AlmostReduced {}
-  class Scalar extends ScalarUnreduced.AlmostReduced {}
+  class Field extends FieldUnreduced.AlmostReduced { }
+  class Scalar extends ScalarUnreduced.AlmostReduced { }
 
   const BigintCurve = createCurveAffine(params);
 
