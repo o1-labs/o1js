@@ -44,7 +44,7 @@ const RecursiveProgram = ZkProgram({
 });
 
 class RecursiveContract extends SmartContract {
-  @method verifyReal(proof: RealProof) {
+  @method async verifyReal(proof: RealProof) {
     proof.verify();
   }
 }

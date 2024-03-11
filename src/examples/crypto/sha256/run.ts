@@ -6,7 +6,7 @@ console.timeEnd('compile');
 
 let preimage = Bytes12.fromString('hello world!');
 
-console.log('sha256 rows:', SHA256Program.analyzeMethods().sha256.rows);
+console.log('sha256 rows:', (await SHA256Program.analyzeMethods()).sha256.rows);
 
 console.time('prove');
 let proof = await SHA256Program.sha256(preimage);

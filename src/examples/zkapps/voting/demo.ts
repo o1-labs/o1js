@@ -1,15 +1,7 @@
 // used to do a dry run, without tests
 // ./run ./src/examples/zkapps/voting/demo.ts
 
-import {
-  Field,
-  Mina,
-  AccountUpdate,
-  PrivateKey,
-  UInt64,
-  Reducer,
-  Bool,
-} from 'o1js';
+import { Mina, AccountUpdate, PrivateKey, UInt64, Reducer, Bool } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
@@ -66,7 +58,7 @@ let candidateStore = new OffchainStorage<Member>(3);
 let votesStore = new OffchainStorage<Member>(3);
 
 let initialRoot = voterStore.getRoot();
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer, 3);
 
   contracts.voting.deploy({ zkappKey: votingKey });
@@ -87,7 +79,7 @@ await tx.sign([feePayerKey]).send();
 
 let m: Member = Member.empty();
 // lets register three voters
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // creating and registering a new voter
   m = registerMember(
     /*
@@ -107,7 +99,7 @@ await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 // lets register three voters
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // creating and registering a new voter
   m = registerMember(
     /*
@@ -128,7 +120,7 @@ await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 // lets register three voters
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // creating and registering a new voter
   m = registerMember(
     /*
@@ -163,7 +155,7 @@ console.log(
     Lets register two candidates
 
   */
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // creating and registering 1 new candidate
   let m = registerMember(
     /*
@@ -183,7 +175,7 @@ tx = await Mina.transaction(feePayer, () => {
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   // creating and registering 1 new candidate
   let m = registerMember(
     /*
@@ -238,7 +230,7 @@ console.log(
   both the on-chain committedMembers variable and the off-chain merkle tree root need to be equal
   */
 
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.approveRegistrations();
   if (!params.doProofs) contracts.voting.sign(votingKey);
 });
@@ -270,7 +262,7 @@ console.log(
   */
 // we have to up the slot so we are within our election period
 Local.incrementGlobalSlot(5);
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   let c = candidateStore.get(0n)!;
   c.witness = new MyMerkleWitness(candidateStore.getWitness(0n));
   c.votesWitness = new MyMerkleWitness(votesStore.getWitness(0n));
@@ -294,7 +286,7 @@ console.log(
 /*
     counting the votes
   */
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.countVotes();
   if (!params.doProofs) contracts.voting.sign(votingKey);
 });

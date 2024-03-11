@@ -25,6 +25,7 @@ import {
 import * as Fetch from '../fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
+import { assertPromise } from '../util/assert.js';
 
 export {
   type Transaction,
@@ -164,7 +165,7 @@ type PendingTransaction = Pick<
    * @example
    * ```ts
    * try {
-   *   const transaction = await pendingTransaction.waitOrThrowIfError({ maxAttempts: 10, interval: 2000 });
+   *   const transaction = await pendingTransaction.wait({ maxAttempts: 10, interval: 2000 });
    *   console.log('Transaction included in a block.');
    * } catch (error) {
    *   console.error('Transaction rejected or failed to finalize:', error);
@@ -280,16 +281,16 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
-function createTransaction(
+async function createTransaction(
   feePayer: DeprecatedFeePayerSpec,
-  f: () => unknown,
+  f: () => Promise<unknown>,
   numberOfRuns: 0 | 1 | undefined,
   {
     fetchMode = 'cached' as FetchMode,
     isFinalRunOutsideCircuit = true,
     proofsEnabled = true,
   } = {}
-): Transaction {
+): Promise<Transaction> {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
@@ -322,32 +323,17 @@ function createTransaction(
   });
 
   // run circuit
-  // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
-  // SmartContract.analyzeMethods, which would be running its methods again inside `Provable.constraintSystem`, which
-  // would throw an error when nested inside `Provable.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
-  // and retry `Provable.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
-  // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
-    let err: any;
-    while (true) {
-      if (err !== undefined) err.bootstrap();
-      try {
-        if (fetchMode === 'test') {
-          Provable.runUnchecked(() => {
-            f();
-            Provable.asProver(() => {
-              let tx = currentTransaction.get();
-              tx.layout.toConstantInPlace();
-            });
-          });
-        } else {
-          f();
-        }
-        break;
-      } catch (err_) {
-        if ((err_ as any)?.bootstrap) err = err_;
-        else throw err_;
-      }
+    if (fetchMode === 'test') {
+      await Provable.runUnchecked(async () => {
+        await assertPromise(f());
+        Provable.asProver(() => {
+          let tx = currentTransaction.get();
+          tx.layout.toConstantInPlace();
+        });
+      });
+    } else {
+      await assertPromise(f());
     }
   } catch (err) {
     currentTransaction.leave(transactionId);
@@ -457,16 +443,19 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
  * you can call into the methods of smart contracts.
  *
  * ```
- * let tx = await Mina.transaction(sender, () => {
- *   myZkapp.update();
- *   someOtherZkapp.someOtherMethod();
+ * let tx = await Mina.transaction(sender, async () => {
+ *   await myZkapp.update();
+ *   await someOtherZkapp.someOtherMethod();
  * });
  * ```
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
-function transaction(f: () => void): Promise<Transaction>;
+function transaction(
+  sender: FeePayerSpec,
+  f: () => Promise<void>
+): Promise<Transaction>;
+function transaction(f: () => Promise<void>): Promise<Transaction>;
 /**
  * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
  * ```
@@ -481,26 +470,22 @@ function transaction(f: () => void): Promise<Transaction>;
  */
 function transaction(
   sender: DeprecatedFeePayerSpec,
-  f: () => void
+  f: () => Promise<void>
 ): Promise<Transaction>;
 function transaction(
-  senderOrF: DeprecatedFeePayerSpec | (() => void),
-  fOrUndefined?: () => void
+  senderOrF: DeprecatedFeePayerSpec | (() => Promise<void>),
+  fOrUndefined?: () => Promise<void>
 ): Promise<Transaction> {
   let sender: DeprecatedFeePayerSpec;
-  let f: () => void;
-  try {
-    if (fOrUndefined !== undefined) {
-      sender = senderOrF as DeprecatedFeePayerSpec;
-      f = fOrUndefined;
-    } else {
-      sender = undefined;
-      f = senderOrF as () => void;
-    }
-    return activeInstance.transaction(sender, f);
-  } catch (error) {
-    throw prettifyStacktrace(error);
+  let f: () => Promise<void>;
+  if (fOrUndefined !== undefined) {
+    sender = senderOrF as DeprecatedFeePayerSpec;
+    f = fOrUndefined;
+  } else {
+    sender = undefined;
+    f = senderOrF as () => Promise<void>;
   }
+  return activeInstance.transaction(sender, f);
 }
 
 async function sendTransaction(txn: Transaction) {

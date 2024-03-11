@@ -30,7 +30,7 @@ async function checkActualNetworkConstantsFetching() {
     '\nCase #2: check that actual network constants can be fetched within the transaction scope.'
   );
   let networkConstants: Mina.NetworkConstants | undefined;
-  await Mina.transaction({ sender, fee: transactionFee }, () => {
+  await Mina.transaction({ sender, fee: transactionFee }, async () => {
     networkConstants = Mina.getNetworkConstants();
   });
   expect(networkConstants?.slotTime).not.toBeUndefined();

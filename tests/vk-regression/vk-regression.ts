@@ -19,12 +19,14 @@ let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
 type MinimumConstraintSystem = {
-  analyzeMethods(): Record<
-    string,
-    {
-      rows: number;
-      digest: string;
-    }
+  analyzeMethods(): Promise<
+    Record<
+      string,
+      {
+        rows: number;
+        digest: string;
+      }
+    >
   >;
   compile(): Promise<{
     verificationKey: {
@@ -32,7 +34,7 @@ type MinimumConstraintSystem = {
       data: string;
     };
   }>;
-  digest(): string;
+  digest(): Promise<string>;
   name: string;
 };
 
@@ -88,7 +90,7 @@ async function checkVk(contracts: typeof ConstraintSystems) {
       verificationKey: { data, hash },
     } = await c.compile();
 
-    let methodData = c.analyzeMethods();
+    let methodData = await c.analyzeMethods();
 
     for (const methodKey in methodData) {
       let actualMethod = methodData[methodKey];
@@ -145,8 +147,8 @@ but expected was
 async function dumpVk(contracts: typeof ConstraintSystems) {
   let newEntries: typeof RegressionJson = {};
   for await (const c of contracts) {
-    let data = c.analyzeMethods();
-    let digest = c.digest();
+    let data = await c.analyzeMethods();
+    let digest = await c.digest();
     let verificationKey:
       | { data: string; hash: { toString(): string } }
       | undefined;

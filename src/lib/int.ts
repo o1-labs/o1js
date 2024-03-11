@@ -19,23 +19,43 @@ class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
 
-  constructor(x: UInt64 | UInt32 | Field | number | string | bigint) {
-    if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
-    else if (!(x instanceof Field)) x = Field(x);
-    super(x);
+  /**
+   * Create a {@link UInt64}.
+   * The max value of a {@link UInt64} is `2^64 - 1 = UInt64.MAXINT()`.
+   *
+   * **Warning**: Cannot overflow, an error is thrown if the result is greater than UInt64.MAXINT()
+   */
+  constructor(x: UInt64 | UInt32 | FieldVar | number | string | bigint) {
+    if (x instanceof UInt64 || x instanceof UInt32) x = x.value.value;
+    let value = Field(x);
+    super(value);
+    // check the range if the argument is a constant
+    UInt64.checkConstant(value);
   }
+
+  static Unsafe = {
+    /**
+     * Create a {@link UInt64} from a {@link Field} without constraining its range.
+     *
+     * **Warning**: This is unsafe, because it does not prove that the input {@link Field} actually fits in 64 bits.\
+     * Only use this if you know what you are doing, otherwise use the safe {@link UInt64.from}.
+     */
+    fromField(x: Field) {
+      return new UInt64(x.value);
+    },
+  };
 
   /**
    * Static method to create a {@link UInt64} with value `0`.
    */
   static get zero() {
-    return new UInt64(Field(0));
+    return new UInt64(0);
   }
   /**
    * Static method to create a {@link UInt64} with value `1`.
    */
   static get one() {
-    return new UInt64(Field(1));
+    return new UInt64(1);
   }
   /**
    * Turns the {@link UInt64} into a string.
@@ -56,7 +76,7 @@ class UInt64 extends CircuitValue {
    * Turns the {@link UInt64} into a {@link UInt32}, asserting that it fits in 32 bits.
    */
   toUInt32() {
-    let uint32 = new UInt32(this.value);
+    let uint32 = new UInt32(this.value.value);
     UInt32.check(uint32);
     return uint32;
   }
@@ -69,11 +89,12 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    return Provable.if(
+    let field = Provable.if(
       this.greaterThan(UInt64.from(max)),
-      UInt32.from(max),
-      new UInt32(this.value)
+      Field.from(max),
+      this.value
     );
+    return UInt32.Unsafe.fromField(field);
   }
 
   static check(x: UInt64) {
@@ -109,20 +130,19 @@ class UInt64 extends CircuitValue {
     return x;
   }
 
-  // this checks the range if the argument is a constant
   /**
    * Creates a new {@link UInt64}.
    */
-  static from(x: UInt64 | UInt32 | Field | number | string | bigint) {
-    if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
-    return new this(this.checkConstant(Field(x)));
+  static from(x: UInt64 | UInt32 | number | string | bigint) {
+    if (x instanceof UInt64) return x;
+    return new this(x);
   }
 
   /**
    * Creates a {@link UInt64} with a value of 18,446,744,073,709,551,615.
    */
   static MAXINT() {
-    return new UInt64(Field((1n << 64n) - 1n));
+    return new UInt64((1n << 64n) - 1n);
   }
 
   /**
@@ -140,8 +160,8 @@ class UInt64 extends CircuitValue {
       let q = xn / yn;
       let r = xn - q * yn;
       return {
-        quotient: new UInt64(Field(q)),
-        rest: new UInt64(Field(r)),
+        quotient: new UInt64(q),
+        rest: new UInt64(r),
       };
     }
 
@@ -158,10 +178,10 @@ class UInt64 extends CircuitValue {
     let r = x.sub(q.mul(y_)).seal();
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, r);
 
-    let r_ = new UInt64(r);
-    let q_ = new UInt64(q);
+    let r_ = new UInt64(r.value);
+    let q_ = new UInt64(q.value);
 
-    r_.assertLessThan(new UInt64(y_));
+    r_.assertLessThan(new UInt64(y_.value));
 
     return { quotient: q_, rest: r_ };
   }
@@ -193,7 +213,7 @@ class UInt64 extends CircuitValue {
   mul(y: UInt64 | number) {
     let z = this.value.mul(UInt64.from(y).value);
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
-    return new UInt64(z);
+    return new UInt64(z.value);
   }
 
   /**
@@ -202,7 +222,7 @@ class UInt64 extends CircuitValue {
   add(y: UInt64 | number) {
     let z = this.value.add(UInt64.from(y).value);
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
-    return new UInt64(z);
+    return new UInt64(z.value);
   }
 
   /**
@@ -211,7 +231,7 @@ class UInt64 extends CircuitValue {
   sub(y: UInt64 | number) {
     let z = this.value.sub(UInt64.from(y).value);
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, z);
-    return new UInt64(z);
+    return new UInt64(z.value);
   }
 
   /**
@@ -234,7 +254,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   xor(x: UInt64) {
-    return new UInt64(Bitwise.xor(this.value, x.value, UInt64.NUM_BITS));
+    return new UInt64(Bitwise.xor(this.value, x.value, UInt64.NUM_BITS).value);
   }
 
   /**
@@ -267,7 +287,7 @@ class UInt64 extends CircuitValue {
    *
    */
   not() {
-    return new UInt64(Bitwise.not(this.value, UInt64.NUM_BITS, false));
+    return new UInt64(Bitwise.not(this.value, UInt64.NUM_BITS, false).value);
   }
 
   /**
@@ -299,7 +319,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return new UInt64(Bitwise.rotate64(this.value, bits, direction));
+    return new UInt64(Bitwise.rotate64(this.value, bits, direction).value);
   }
 
   /**
@@ -320,7 +340,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return new UInt64(Bitwise.leftShift64(this.value, bits));
+    return new UInt64(Bitwise.leftShift64(this.value, bits).value);
   }
 
   /**
@@ -341,7 +361,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return new UInt64(Bitwise.leftShift64(this.value, bits));
+    return new UInt64(Bitwise.leftShift64(this.value, bits).value);
   }
 
   /**
@@ -370,7 +390,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   and(x: UInt64) {
-    return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS));
+    return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS).value);
   }
 
   /**
@@ -546,24 +566,44 @@ class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
 
-  constructor(x: UInt32 | Field | number | string | bigint) {
-    if (x instanceof UInt32) x = x.value;
-    else if (!(x instanceof Field)) x = Field(x);
-    super(x);
+  /**
+   * Create a {@link UInt32}.
+   * The max value of a {@link UInt32} is `2^32 - 1 = UInt32.MAXINT()`.
+   *
+   * **Warning**: Cannot overflow, an error is thrown if the result is greater than UInt32.MAXINT()
+   */
+  constructor(x: UInt32 | FieldVar | number | string | bigint) {
+    if (x instanceof UInt32) x = x.value.value;
+    let value = Field(x);
+    super(value);
+    // check the range if the argument is a constant
+    UInt32.checkConstant(value);
   }
+
+  static Unsafe = {
+    /**
+     * Create a {@link UInt32} from a {@link Field} without constraining its range.
+     *
+     * **Warning**: This is unsafe, because it does not prove that the input {@link Field} actually fits in 32 bits.\
+     * Only use this if you know what you are doing, otherwise use the safe {@link UInt32.from}.
+     */
+    fromField(x: Field) {
+      return new UInt32(x.value);
+    },
+  };
 
   /**
    * Static method to create a {@link UInt32} with value `0`.
    */
   static get zero(): UInt32 {
-    return new UInt32(Field(0));
+    return new UInt32(0);
   }
 
   /**
    * Static method to create a {@link UInt32} with value `0`.
    */
   static get one(): UInt32 {
-    return new UInt32(Field(1));
+    return new UInt32(1);
   }
   /**
    * Turns the {@link UInt32} into a string.
@@ -582,7 +622,7 @@ class UInt32 extends CircuitValue {
    */
   toUInt64(): UInt64 {
     // this is safe, because the UInt32 range is included in the UInt64 range
-    return new UInt64(this.value);
+    return new UInt64(this.value.value);
   }
 
   static check(x: UInt32) {
@@ -620,23 +660,23 @@ class UInt32 extends CircuitValue {
   /**
    * Creates a new {@link UInt32}.
    */
-  static from(x: UInt32 | Field | number | string | bigint) {
-    if (x instanceof UInt32) x = x.value;
-    return new this(this.checkConstant(Field(x)));
+  static from(x: UInt32 | number | string | bigint) {
+    if (x instanceof UInt32) return x;
+    return new this(x);
   }
 
   /**
    * Creates a {@link UInt32} with a value of 4,294,967,295.
    */
   static MAXINT() {
-    return new UInt32(Field((1n << 32n) - 1n));
+    return new UInt32((1n << 32n) - 1n);
   }
 
   /**
    * Addition modulo 2^32. Check {@link Gadgets.addMod32} for a detailed description.
    */
   addMod32(y: UInt32) {
-    return new UInt32(addMod32(this.value, y.value));
+    return new UInt32(addMod32(this.value, y.value).value);
   }
 
   /**
@@ -654,8 +694,8 @@ class UInt32 extends CircuitValue {
       let q = xn / yn;
       let r = xn - q * yn;
       return {
-        quotient: new UInt32(new Field(q.toString())),
-        rest: new UInt32(new Field(r.toString())),
+        quotient: new UInt32(new Field(q.toString()).value),
+        rest: new UInt32(new Field(r.toString()).value),
       };
     }
 
@@ -672,10 +712,10 @@ class UInt32 extends CircuitValue {
     let r = x.sub(q.mul(y_)).seal();
     RangeCheck.rangeCheck32(r);
 
-    let r_ = new UInt32(r);
-    let q_ = new UInt32(q);
+    let r_ = new UInt32(r.value);
+    let q_ = new UInt32(q.value);
 
-    r_.assertLessThan(new UInt32(y_));
+    r_.assertLessThan(new UInt32(y_.value));
 
     return { quotient: q_, rest: r_ };
   }
@@ -704,7 +744,7 @@ class UInt32 extends CircuitValue {
   mul(y: UInt32 | number) {
     let z = this.value.mul(UInt32.from(y).value);
     RangeCheck.rangeCheck32(z);
-    return new UInt32(z);
+    return new UInt32(z.value);
   }
   /**
    * Addition with overflow checking.
@@ -712,7 +752,7 @@ class UInt32 extends CircuitValue {
   add(y: UInt32 | number) {
     let z = this.value.add(UInt32.from(y).value);
     RangeCheck.rangeCheck32(z);
-    return new UInt32(z);
+    return new UInt32(z.value);
   }
   /**
    * Subtraction with underflow checking.
@@ -720,7 +760,7 @@ class UInt32 extends CircuitValue {
   sub(y: UInt32 | number) {
     let z = this.value.sub(UInt32.from(y).value);
     RangeCheck.rangeCheck32(z);
-    return new UInt32(z);
+    return new UInt32(z.value);
   }
 
   /**
@@ -743,7 +783,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   xor(x: UInt32) {
-    return new UInt32(Bitwise.xor(this.value, x.value, UInt32.NUM_BITS));
+    return new UInt32(Bitwise.xor(this.value, x.value, UInt32.NUM_BITS).value);
   }
 
   /**
@@ -774,7 +814,7 @@ class UInt32 extends CircuitValue {
    * @param a - The value to apply NOT to.
    */
   not() {
-    return new UInt32(Bitwise.not(this.value, UInt32.NUM_BITS, false));
+    return new UInt32(Bitwise.not(this.value, UInt32.NUM_BITS, false).value);
   }
 
   /**
@@ -806,7 +846,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rotate(bits: number, direction: 'left' | 'right' = 'left') {
-    return new UInt32(Bitwise.rotate32(this.value, bits, direction));
+    return new UInt32(Bitwise.rotate32(this.value, bits, direction).value);
   }
 
   /**
@@ -829,7 +869,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   leftShift(bits: number) {
-    return new UInt32(Bitwise.leftShift32(this.value, bits));
+    return new UInt32(Bitwise.leftShift32(this.value, bits).value);
   }
 
   /**
@@ -852,7 +892,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return new UInt32(Bitwise.rightShift64(this.value, bits));
+    return new UInt32(Bitwise.rightShift64(this.value, bits).value);
   }
 
   /**
@@ -881,7 +921,7 @@ class UInt32 extends CircuitValue {
    * ```
    */
   and(x: UInt32) {
-    return new UInt32(Bitwise.and(this.value, x.value, UInt32.NUM_BITS));
+    return new UInt32(Bitwise.and(this.value, x.value, UInt32.NUM_BITS).value);
   }
 
   /**
@@ -1137,7 +1177,7 @@ class Int64 extends CircuitValue implements BalanceChange {
       throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
     let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
     let sign = isValidPositive ? Sign.one : Sign.minusOne;
-    return new Int64(new UInt64(magnitude), sign);
+    return new Int64(new UInt64(magnitude.value), sign);
   }
 
   // this doesn't check ranges because we assume they're already checked on UInts
@@ -1269,7 +1309,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
     rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
-    return new Int64(new UInt64(rest));
+    return new Int64(new UInt64(rest.value));
   }
 
   /**
@@ -1644,14 +1684,14 @@ class UInt8 extends Struct({
    * Turns a {@link UInt8} into a {@link UInt32}.
    */
   toUInt32(): UInt32 {
-    return new UInt32(this.value);
+    return new UInt32(this.value.value);
   }
 
   /**
    * Turns a {@link UInt8} into a {@link UInt64}.
    */
   toUInt64(): UInt64 {
-    return new UInt64(this.value);
+    return new UInt64(this.value.value);
   }
 
   /**

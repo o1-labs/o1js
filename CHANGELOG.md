@@ -17,6 +17,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
 
+### Breaking changes
+
+- **Async circuits**. Require all smart contract and zkprogram methods to be async https://github.com/o1-labs/o1js/pull/1477
+  - This change allows you to use `await` inside your methods. Change the method signature by adding the `async` keyword.
+  - Don't forget to add `await` to all contract calls! `await MyContract.myMethod();`
+  - To declare a return value from a method, use the new `@method.returns()` decorator
+- Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
+- Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
+  - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
+  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
+- Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
+  Replaced by more explicit APIs:
+  - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
+  - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
+- `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
+  - The default value is 1 and should work for most existing contracts
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+  - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
+  - Equivalent changes were made to `UInt32`
+
+### Added
+
+- `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
+- Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
+- Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
+
 ## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
 
 ### Breaking changes

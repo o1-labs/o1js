@@ -51,9 +51,9 @@ console.log('');
 console.log(`Deploying zkApp for public key ${zkAppAddress.toBase58()}.`);
 let transaction = await Mina.transaction(
   { sender, fee: transactionFee },
-  () => {
+  async () => {
     AccountUpdate.fundNewAccount(sender);
-    zkApp.deploy({ verificationKey });
+    await zkApp.deploy({ verificationKey });
   }
 );
 transaction.sign([senderKey, zkAppKey]);
@@ -71,9 +71,12 @@ console.log('');
 
 // zkApp state update
 console.log('Trying to update deployed zkApp state.');
-transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
-  zkApp.update(Field(4), adminPrivateKey);
-});
+transaction = await Mina.transaction(
+  { sender, fee: transactionFee },
+  async () => {
+    await zkApp.update(Field(4), adminPrivateKey);
+  }
+);
 await transaction.sign([senderKey]).prove();
 console.log('Sending the transaction.');
 pendingTx = await transaction.send();

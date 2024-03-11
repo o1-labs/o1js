@@ -18,10 +18,11 @@ import {
   inProver,
   snarkContext,
   asProver,
-  runAndCheck,
-  runUnchecked,
   constraintSystem,
+  generateWitness,
+  runAndCheckSync,
 } from './provable-context.js';
+import { existsAsync } from './provable-core/exists.js';
 
 // external API
 export { Provable };
@@ -61,6 +62,12 @@ const Provable = {
    * ```
    */
   witness,
+  /**
+   * Create a new witness from an async callback.
+   *
+   * See {@link Provable.witness} for more information.
+   */
+  witnessAsync,
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -151,27 +158,35 @@ const Provable = {
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
    * ```ts
-   * Provable.runAndCheck(() => {
+   * await Provable.runAndCheck(() => {
    *   // Your code to check here
    * });
    * ```
    */
-  runAndCheck,
+  async runAndCheck(f: (() => Promise<void>) | (() => void)) {
+    await generateWitness(f, { checkConstraints: true });
+  },
+  /**
+   * @deprecated use the async `Provable.runAndCheck` instead
+   */
+  runAndCheckSync: runAndCheckSync,
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example
    * ```ts
-   * Provable.runUnchecked(() => {
+   * await Provable.runUnchecked(() => {
    *   // Your code to run here
    * });
    * ```
    */
-  runUnchecked,
+  async runUnchecked(f: (() => Promise<void>) | (() => void)) {
+    await generateWitness(f, { checkConstraints: false });
+  },
   /**
    * Returns information about the constraints created by the callback function.
    * @example
    * ```ts
-   * const result = Provable.constraintSystem(circuit);
+   * const result = await Provable.constraintSystem(circuit);
    * console.log(result);
    * ```
    */
@@ -238,6 +253,43 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
       //   );
       // }
       return [0, ...fieldConstants];
+    });
+    fields = fieldVars.map(Field);
+  } finally {
+    snarkContext.leave(id);
+  }
+
+  // rebuild the value from its fields (which are now variables) and aux data
+  let aux = type.toAuxiliary(proverValue);
+  let value = (type as Provable<T>).fromFields(fields, aux);
+
+  // add type-specific constraints
+  type.check(value);
+
+  return value;
+}
+
+async function witnessAsync<
+  T,
+  S extends FlexibleProvable<T> = FlexibleProvable<T>
+>(type: S, compute: () => Promise<T>): Promise<T> {
+  let ctx = snarkContext.get();
+
+  // outside provable code, we just call the callback and return its cloned result
+  if (!inCheckedComputation() || ctx.inWitnessBlock) {
+    let value: T = await compute();
+    return clone(type, value);
+  }
+  let proverValue: T | undefined = undefined;
+  let fields: Field[];
+
+  // call into `existsAsync` to witness the raw field elements
+  let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
+  try {
+    let fieldVars = await existsAsync(type.sizeInFields(), async () => {
+      proverValue = await compute();
+      let fields = type.toFields(proverValue);
+      return fields.map((x) => x.toBigInt());
     });
     fields = fieldVars.map(Field);
   } finally {

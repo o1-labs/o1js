@@ -132,7 +132,7 @@ function constraintSystem(
   let methodKeys = Object.keys(obj);
 
   return {
-    analyzeMethods() {
+    async analyzeMethods() {
       let cs: Record<
         string,
         {
@@ -141,7 +141,7 @@ function constraintSystem(
         }
       > = {};
       for (let key of methodKeys) {
-        let { rows, digest } = Provable.constraintSystem(obj[key]);
+        let { rows, digest } = await Provable.constraintSystem(obj[key]);
         cs[key] = {
           digest,
           rows,
@@ -155,6 +155,6 @@ function constraintSystem(
       };
     },
     name,
-    digest: () => name,
+    digest: async () => name,
   };
 }
