@@ -292,7 +292,7 @@ async function witnessAsync<
       let fields = type.toFields(proverValue);
       return fields.map((x) => x.toBigInt());
     });
-    fields = fieldVars.map(Field);
+    fields = fieldVars.map((x) => new Field(x));
   } finally {
     snarkContext.leave(id);
   }
