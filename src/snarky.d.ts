@@ -192,26 +192,17 @@ declare const Snarky: {
    */
   run: {
     /**
-     * Runs code as a prover with Pasta backend.
+     * Runs code as a prover.
      */
     asProver(f: () => void): void;
     /**
-     * Runs code as a prover with Bn254 backend.
-     */
-    asProverBn254(f: () => void): void;
-    /**
-     * Check whether we are inside an asProver or exists block with Pasta backend
+     * Check whether we are inside an asProver or exists block.
      */
     inProverBlock(): boolean;
-    /**
-     * Check whether we are inside an asProver or exists block with Bn254 backend
-     */
-    inProverBlockBn254(): boolean;
     /**
      * Runs code and checks its correctness.
      */
     runAndCheck(f: () => void): void;
-    runAndCheckBn254(f: () => void): void;
     /**
      * Runs code in prover mode, without checking correctness.
      */
@@ -548,12 +539,6 @@ declare const Snarky: {
       create(isChecked: boolean): unknown;
       absorb(sponge: unknown, x: FieldVar): void;
       squeeze(sponge: unknown): FieldVar;
-    };
-
-    foreignSponge: {
-      create(isChecked: boolean): unknown;
-      absorb(sponge: unknown, x: MlTuple<FieldVar, 3>): void;
-      squeeze(sponge: unknown): MlTuple<FieldVar, 3>;
     };
   };
 };
@@ -595,22 +580,13 @@ declare const SnarkyBn254: {
      */
     asProver(f: () => void): void;
     /**
-     * Runs code as a prover with Bn254 backend.
-     */
-    asProverBn254(f: () => void): void;
-    /**
      * Check whether we are inside an asProver or exists block with Pasta backend
      */
     inProverBlock(): boolean;
     /**
-     * Check whether we are inside an asProver or exists block with Bn254 backend
-     */
-    inProverBlockBn254(): boolean;
-    /**
      * Runs code and checks its correctness.
      */
     runAndCheck(f: () => void): void;
-    runAndCheckBn254(f: () => void): void;
     /**
      * Runs code in prover mode, without checking correctness.
      */
@@ -947,12 +923,6 @@ declare const SnarkyBn254: {
       create(isChecked: boolean): unknown;
       absorb(sponge: unknown, x: FieldVar): void;
       squeeze(sponge: unknown): FieldVar;
-    };
-
-    foreignSponge: {
-      create(isChecked: boolean): unknown;
-      absorb(sponge: unknown, x: MlTuple<FieldVar, 3>): void;
-      squeeze(sponge: unknown): MlTuple<FieldVar, 3>;
     };
   };
 };

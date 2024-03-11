@@ -18,9 +18,7 @@ import {
   inProver,
   snarkContext,
   asProver,
-  asProverBn254,
   runAndCheck,
-  runAndCheckBn254,
   runUnchecked,
   constraintSystem,
 } from './provable-context.js';
@@ -141,16 +139,6 @@ const Provable = {
    */
   log,
   /**
-   * Interface to log elements within a circuit using Bn254 backend.
-   * Similar to `console.log()`.
-   * @example
-   * ```ts
-   * const element = Field(42);
-   * Provable.log(element);
-   * ```
-   */
-  logBn254,
-  /**
    * Runs code as a prover using Pasta backend.
    * @example
    * ```ts
@@ -161,16 +149,6 @@ const Provable = {
    */
   asProver,
   /**
-   * Runs code as a prover using Bn254 backend.
-   * @example
-   * ```ts
-   * Provable.asProverBn254(() => {
-   *   // Your prover code here
-   * });
-   * ```
-   */
-  asProverBn254,
-  /**
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
    * ```ts
@@ -180,7 +158,6 @@ const Provable = {
    * ```
    */
   runAndCheck,
-  runAndCheckBn254,
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example
@@ -437,23 +414,6 @@ function isConstant<T>(type: Provable<T>, x: T): boolean {
 
 function log(...args: any) {
   asProver(() => {
-    let prettyArgs = [];
-    for (let arg of args) {
-      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
-      else {
-        try {
-          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
-        } catch {
-          prettyArgs.push(arg);
-        }
-      }
-    }
-    console.log(...prettyArgs);
-  });
-}
-
-function logBn254(...args: any) {
-  asProverBn254(() => {
     let prettyArgs = [];
     for (let arg of args) {
       if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
