@@ -40,6 +40,10 @@ export {
   MlFeatureFlags,
 };
 
+// Bn254
+import type { FieldBn254 } from './lib/field-bn254.js';
+export { ProvableBn254, ProvablePureBn254 };
+
 /**
  * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
  *
@@ -164,6 +168,12 @@ declare namespace Snarky {
   type Keypair = unknown;
   type VerificationKey = unknown;
   type Proof = unknown;
+  namespace Bn254 {
+    type Main = (publicInput: MlArray<FieldVar>) => void;
+    type Keypair = unknown;
+    type VerificationKey = unknown;
+    type Proof = unknown;
+  }
 }
 
 /**
@@ -541,391 +551,498 @@ declare const Snarky: {
       squeeze(sponge: unknown): FieldVar;
     };
   };
+
+  /**
+   * Internal interface to snarky-ml (Bn254)
+   *
+   * Note for devs: This module is intended to closely mirror snarky-ml's core, low-level APIs.
+   */
+  bn254: {
+    /**
+     * witness `sizeInFields` Pasta field element variables
+     *
+     * Note: this is called "exists" because in a proof, you use it like this:
+     * > "I prove that there exists x, such that (some statement)"
+     */
+    exists(
+      sizeInFields: number,
+      compute: () => MlArray<FieldConst>
+    ): MlArray<VarFieldVar>;
+    /**
+     * witness a single field element variable
+     */
+    existsVar(compute: () => FieldConst): VarFieldVar;
+
+    /**
+     * APIs that have to do with running provable code
+     */
+    run: {
+      /**
+       * Runs code as a prover with Pasta backend.
+       */
+      asProver(f: () => void): void;
+      /**
+       * Check whether we are inside an asProver or exists block with Pasta backend
+       */
+      inProverBlock(): boolean;
+      /**
+       * Runs code and checks its correctness.
+       */
+      runAndCheck(f: () => void): void;
+      /**
+       * Runs code in prover mode, without checking correctness.
+       */
+      runUnchecked(f: () => void): void;
+      /**
+       * Returns information about the constraint system in the callback function.
+       */
+      constraintSystem(f: () => void): {
+        rows: number;
+        digest: string;
+        json: JsonConstraintSystem;
+      };
+    };
+
+    /**
+     * APIs to add constraints on field variables
+     */
+    field: {
+      /**
+       * add x, y to get a new AST node Add(x, y); handles if x, y are constants
+       */
+      add(x: FieldVar, y: FieldVar): FieldVar;
+      /**
+       * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
+       */
+      scale(c: FieldConst, x: FieldVar): FieldVar;
+      /**
+       * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
+       */
+      mul(x: FieldVar, y: FieldVar): FieldVar;
+      /**
+       * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
+       */
+      readVar(x: FieldVar): FieldConst;
+      /**
+       * x === y without handling of constants
+       */
+      assertEqual(x: FieldVar, y: FieldVar): void;
+      /**
+       * x*y === z without handling of constants
+       */
+      assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
+      /**
+       * x*x === y without handling of constants
+       */
+      assertSquare(x: FieldVar, y: FieldVar): void;
+      /**
+       * x*x === x without handling of constants
+       */
+      assertBoolean(x: FieldVar): void;
+      /**
+       * check x < y and x <= y
+       */
+      compare(
+        bitLength: number,
+        x: FieldVar,
+        y: FieldVar
+      ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
+      /**
+       *
+       */
+      toBits(length: number, x: FieldVar): MlArray<BoolVar>;
+      /**
+       *
+       */
+      fromBits(bits: MlArray<BoolVar>): FieldVar;
+      /**
+       * returns x truncated to the lowest `16 * lengthDiv16` bits
+       * => can be used to assert that x fits in `16 * lengthDiv16` bits.
+       *
+       * more efficient than `toBits()` because it uses the EC_endoscalar gate;
+       * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
+       */
+      truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
+      /**
+       * returns a new witness from an AST
+       * (implemented with toConstantAndTerms)
+       */
+      seal(x: FieldVar): VarFieldVar;
+      /**
+       * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
+       * returns `(c, [(c0, i0), ..., (cn, in)])`;
+       * c is optional
+       */
+      toConstantAndTerms(
+        x: FieldVar
+      ): [
+          _: 0,
+          constant: MlOption<FieldConst>,
+          terms: MlList<MlPair<FieldConst, number>>
+        ];
+    };
+
+    gates: {
+      zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
+
+      generic(
+        sl: FieldConst,
+        l: FieldVar,
+        sr: FieldConst,
+        r: FieldVar,
+        so: FieldConst,
+        o: FieldVar,
+        sm: FieldConst,
+        sc: FieldConst
+      ): void;
+
+      poseidon(state: MlArray<MlTuple<Field, 3>>): void;
+
+      /**
+       * Low-level Elliptic Curve Addition gate.
+       */
+      ecAdd(
+        p1: MlGroup,
+        p2: MlGroup,
+        p3: MlGroup,
+        inf: FieldVar,
+        same_x: FieldVar,
+        slope: FieldVar,
+        inf_z: FieldVar,
+        x21_inv: FieldVar
+      ): MlGroup;
+
+      ecScale(
+        state: MlArray<
+          [
+            _: 0,
+            accs: MlArray<MlTuple<FieldVar, 2>>,
+            bits: MlArray<FieldVar>,
+            ss: MlArray<FieldVar>,
+            base: MlGroup,
+            nPrev: Field,
+            nNext: Field
+          ]
+        >
+      ): void;
+
+      ecEndoscale(
+        state: MlArray<
+          [
+            _: 0,
+            xt: FieldVar,
+            yt: FieldVar,
+            xp: FieldVar,
+            yp: FieldVar,
+            nAcc: FieldVar,
+            xr: FieldVar,
+            yr: FieldVar,
+            s1: FieldVar,
+            s3: FieldVar,
+            b1: FieldVar,
+            b2: FieldVar,
+            b3: FieldVar,
+            b4: FieldVar
+          ]
+        >,
+        xs: FieldVar,
+        ys: FieldVar,
+        nAcc: FieldVar
+      ): void;
+
+      ecEndoscalar(
+        state: MlArray<
+          [
+            _: 0,
+            n0: FieldVar,
+            n8: FieldVar,
+            a0: FieldVar,
+            b0: FieldVar,
+            a8: FieldVar,
+            b8: FieldVar,
+            x0: FieldVar,
+            x1: FieldVar,
+            x2: FieldVar,
+            x3: FieldVar,
+            x4: FieldVar,
+            x5: FieldVar,
+            x6: FieldVar,
+            x7: FieldVar
+          ]
+        >
+      ): void;
+
+      lookup(input: MlTuple<FieldVar, 7>): void;
+
+      /**
+       * Range check gate
+       *
+       * @param v0 field var to be range checked
+       * @param v0p bits 16 to 88 as 6 12-bit limbs
+       * @param v0c bits 0 to 16 as 8 2-bit limbs
+       * @param compact boolean field elements -- whether to use "compact mode"
+       */
+      rangeCheck0(
+        v0: FieldVar,
+        v0p: MlTuple<FieldVar, 6>,
+        v0c: MlTuple<FieldVar, 8>,
+        compact: FieldConst
+      ): void;
+
+      rangeCheck1(
+        v2: FieldVar,
+        v12: FieldVar,
+        vCurr: MlTuple<FieldVar, 13>,
+        vNext: MlTuple<FieldVar, 15>
+      ): void;
+
+      xor(
+        in1: FieldVar,
+        in2: FieldVar,
+        out: FieldVar,
+        in1_0: FieldVar,
+        in1_1: FieldVar,
+        in1_2: FieldVar,
+        in1_3: FieldVar,
+        in2_0: FieldVar,
+        in2_1: FieldVar,
+        in2_2: FieldVar,
+        in2_3: FieldVar,
+        out_0: FieldVar,
+        out_1: FieldVar,
+        out_2: FieldVar,
+        out_3: FieldVar
+      ): void;
+
+      foreignFieldAdd(
+        left: MlTuple<FieldVar, 3>,
+        right: MlTuple<FieldVar, 3>,
+        fieldOverflow: FieldVar,
+        carry: FieldVar,
+        foreignFieldModulus: MlTuple<FieldConst, 3>,
+        sign: FieldConst
+      ): void;
+
+      foreignFieldMul(
+        left: MlTuple<FieldVar, 3>,
+        right: MlTuple<FieldVar, 3>,
+        remainder: MlTuple<FieldVar, 2>,
+        quotient: MlTuple<FieldVar, 3>,
+        quotientHiBound: FieldVar,
+        product1: MlTuple<FieldVar, 3>,
+        carry0: FieldVar,
+        carry1p: MlTuple<FieldVar, 7>,
+        carry1c: MlTuple<FieldVar, 4>,
+        foreignFieldModulus2: FieldConst,
+        negForeignFieldModulus: MlTuple<FieldConst, 3>
+      ): void;
+
+      rotate(
+        field: FieldVar,
+        rotated: FieldVar,
+        excess: FieldVar,
+        limbs: MlArray<FieldVar>,
+        crumbs: MlArray<FieldVar>,
+        two_to_rot: FieldConst
+      ): void;
+
+      addFixedLookupTable(id: number, data: MlArray<MlArray<FieldConst>>): void;
+
+      addRuntimeTableConfig(id: number, firstColumn: MlArray<FieldConst>): void;
+
+      raw(
+        kind: KimchiGateType,
+        values: MlArray<FieldVar>,
+        coefficients: MlArray<FieldConst>
+      ): void;
+    };
+
+    bool: {
+      not(x: BoolVar): BoolVar;
+
+      and(x: BoolVar, y: BoolVar): BoolVar;
+
+      or(x: BoolVar, y: BoolVar): BoolVar;
+
+      equals(x: BoolVar, y: BoolVar): BoolVar;
+
+      assertEqual(x: BoolVar, y: BoolVar): void;
+    };
+
+    /**
+     * The circuit API is a low level interface to create zero-knowledge proofs using Pasta fields
+     */
+    circuit: {
+      /**
+       * Generates a proving key and a verification key for the provable function `main`.
+       * Uses Pasta fields.
+       */
+      compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+
+      /**
+       * Proves a statement using the private input, public input and the keypair of the circuit.
+       */
+      prove(
+        main: Snarky.Main,
+        publicInputSize: number,
+        publicInput: MlArray<FieldConst>,
+        keypair: Snarky.Keypair
+      ): Snarky.Proof;
+
+      /**
+       * Verifies a proof using the public input, the proof and the verification key of the circuit.
+       */
+      verify(
+        publicInput: MlArray<FieldConst>,
+        proof: Snarky.Proof,
+        verificationKey: Snarky.VerificationKey
+      ): boolean;
+
+      keypair: {
+        getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
+        /**
+         * Returns a low-level JSON representation of the circuit:
+         * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+         */
+        getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
+      };
+    };
+
+    // TODO: implement in TS
+    poseidon: {
+      update(
+        state: MlArray<FieldVar>,
+        input: MlArray<FieldVar>
+      ): [0, FieldVar, FieldVar, FieldVar];
+
+      hashToGroup(input: MlArray<FieldVar>): MlPair<FieldVar, FieldVar>;
+
+      sponge: {
+        create(isChecked: boolean): unknown;
+        absorb(sponge: unknown, x: FieldVar): void;
+        squeeze(sponge: unknown): FieldVar;
+      };
+    };
+  };
 };
 
-declare namespace SnarkyBn254 {
-  type Main = (publicInput: MlArray<FieldVar>) => void;
-  type Keypair = unknown;
-  type VerificationKey = unknown;
-  type Proof = unknown;
+/**
+ * `ProvableBn254<T>` is the general circuit type interface in o1js. `ProvableBn254<T>` interface describes how a type `T` is made up of {@link FieldBn254} elements and "auxiliary" (non-provable) data.
+ *
+ * `ProvableBn254<T>` is the required input type in a few places in o1js. One convenient way to create a `ProvableBn254<T>` is using `Struct`.
+ *
+ * The properties and methods on the provable type exist in all base o1js types as well (aka. {@link FieldBn254}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
+ */
+declare interface ProvableBn254<T> {
+  /**
+   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link FieldBn254} elements that make up the provable data of `value`.
+   *
+   * @param value - the element of type `T` to generate the {@link FieldBn254} array from.
+   *
+   * @return A {@link FieldBn254} array describing how this `T` element is made up of {@link FieldBn254} elements.
+   */
+  toFields: (value: T) => FieldBn254[];
+
+  /**
+   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxiliary" (non-provable) data of `value`.
+   *
+   * @param value - the element of type `T` to generate the auxiliary data array from, optional. If not provided, a default value for auxiliary data is returned.
+   *
+   * @return An array of any type describing how this `T` element is made up of "auxiliary" (non-provable) data.
+   */
+  toAuxiliary: (value?: T) => any[];
+
+  /**
+   * A function that returns an element of type `T` from the given provable and "auxiliary" data.
+   *
+   * **Important**: For any element of type `T`, this function is the reverse operation of calling {@link toFields} and {@link toAuxilary} methods on an element of type `T`.
+   *
+   * @param fields - an array of {@link FieldBn254} elements describing the provable data of the new `T` element.
+   * @param aux - an array of any type describing the "auxiliary" data of the new `T` element, optional.
+   *
+   * @return An element of type `T` generated from the given provable and "auxiliary" data.
+   */
+  fromFields: (fields: FieldBn254[], aux: any[]) => T;
+
+  /**
+   * Return the size of the `T` type in terms of {@link FieldBn254} type, as {@link FieldBn254} is the primitive type.
+   *
+   * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
+   *
+   * @return A `number` representing the size of the `T` type in terms of {@link FieldBn254} type.
+   */
+  sizeInFields(): number;
+
+  /**
+   * Add assertions to the proof to check if `value` is a valid member of type `T`.
+   * This function does not return anything, instead it creates any number of assertions to prove that `value` is a valid member of the type `T`.
+   *
+   * For instance, calling check function on the type {@link BoolBn254} asserts that the value of the element is either 1 or 0.
+   *
+   * @param value - the element of type `T` to put assertions on.
+   */
+  check: (value: T) => void;
 }
 
 /**
- * Internal interface to snarky-ml (Bn254)
+ * `ProvablePure<T>` is a special kind of {@link ProvableBn254} interface, where the "auxiliary" (non-provable) data is empty. This means the type consists only of field elements, in that sense it is "pure".
+ * Any element on the interface `ProvablePure<T>` is also an element of the interface `ProvableBn254<T>` where the "auxiliary" data is empty.
  *
- * Note for devs: This module is intended to closely mirror snarky-ml's core, low-level APIs.
+ * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
+ *
+ * It includes the same properties and methods as the {@link ProvableBn254} interface.
  */
-declare const SnarkyBn254: {
+declare interface ProvablePureBn254<T> extends ProvableBn254<T> {
   /**
-   * witness `sizeInFields` Pasta field element variables
+   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link FieldBn254} elements that make up the provable data of `value`.
    *
-   * Note: this is called "exists" because in a proof, you use it like this:
-   * > "I prove that there exists x, such that (some statement)"
+   * @param value - the element of type `T` to generate the {@link FieldBn254} array from.
+   *
+   * @return A {@link FieldBn254} array describing how this `T` element is made up of {@link FieldBn254} elements.
    */
-  exists(
-    sizeInFields: number,
-    compute: () => MlArray<FieldConst>
-  ): MlArray<VarFieldVar>;
-  /**
-   * witness a single field element variable
-   */
-  existsVar(compute: () => FieldConst): VarFieldVar;
+  toFields: (value: T) => FieldBn254[];
 
   /**
-   * APIs that have to do with running provable code
+   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxiliary" (non-provable) data of `value`.
+   * As any element of the interface `ProvablePure<T>` includes no "auxiliary" data by definition, this function always returns a default value.
+   *
+   * @param value - the element of type `T` to generate the auxiliary data array from, optional. If not provided, a default value for auxiliary data is returned.
+   *
+   * @return An empty array, as any element of the interface `ProvablePure<T>` includes no "auxiliary" data by definition.
    */
-  run: {
-    /**
-     * Runs code as a prover with Pasta backend.
-     */
-    asProver(f: () => void): void;
-    /**
-     * Check whether we are inside an asProver or exists block with Pasta backend
-     */
-    inProverBlock(): boolean;
-    /**
-     * Runs code and checks its correctness.
-     */
-    runAndCheck(f: () => void): void;
-    /**
-     * Runs code in prover mode, without checking correctness.
-     */
-    runUnchecked(f: () => void): void;
-    /**
-     * Returns information about the constraint system in the callback function.
-     */
-    constraintSystem(f: () => void): {
-      rows: number;
-      digest: string;
-      json: JsonConstraintSystem;
-    };
-  };
+  toAuxiliary: (value?: T) => any[];
 
   /**
-   * APIs to add constraints on field variables
+   * A function that returns an element of type `T` from the given provable data.
+   *
+   * **Important**: For any element of type `T`, this function is the reverse operation of calling {@link toFields} method on an element of type `T`.
+   *
+   * @param fields - an array of {@link FieldBn254} elements describing the provable data of the new `T` element.
+   *
+   * @return An element of type `T` generated from the given provable data.
    */
-  field: {
-    /**
-     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
-     */
-    add(x: FieldVar, y: FieldVar): FieldVar;
-    /**
-     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
-     */
-    scale(c: FieldConst, x: FieldVar): FieldVar;
-    /**
-     * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
-     */
-    mul(x: FieldVar, y: FieldVar): FieldVar;
-    /**
-     * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
-     */
-    readVar(x: FieldVar): FieldConst;
-    /**
-     * x === y without handling of constants
-     */
-    assertEqual(x: FieldVar, y: FieldVar): void;
-    /**
-     * x*y === z without handling of constants
-     */
-    assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
-    /**
-     * x*x === y without handling of constants
-     */
-    assertSquare(x: FieldVar, y: FieldVar): void;
-    /**
-     * x*x === x without handling of constants
-     */
-    assertBoolean(x: FieldVar): void;
-    /**
-     * check x < y and x <= y
-     */
-    compare(
-      bitLength: number,
-      x: FieldVar,
-      y: FieldVar
-    ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
-    /**
-     *
-     */
-    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
-    /**
-     *
-     */
-    fromBits(bits: MlArray<BoolVar>): FieldVar;
-    /**
-     * returns x truncated to the lowest `16 * lengthDiv16` bits
-     * => can be used to assert that x fits in `16 * lengthDiv16` bits.
-     *
-     * more efficient than `toBits()` because it uses the EC_endoscalar gate;
-     * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
-     */
-    truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
-    /**
-     * returns a new witness from an AST
-     * (implemented with toConstantAndTerms)
-     */
-    seal(x: FieldVar): VarFieldVar;
-    /**
-     * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
-     * returns `(c, [(c0, i0), ..., (cn, in)])`;
-     * c is optional
-     */
-    toConstantAndTerms(
-      x: FieldVar
-    ): [
-        _: 0,
-        constant: MlOption<FieldConst>,
-        terms: MlList<MlPair<FieldConst, number>>
-      ];
-  };
-
-  gates: {
-    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
-
-    generic(
-      sl: FieldConst,
-      l: FieldVar,
-      sr: FieldConst,
-      r: FieldVar,
-      so: FieldConst,
-      o: FieldVar,
-      sm: FieldConst,
-      sc: FieldConst
-    ): void;
-
-    poseidon(state: MlArray<MlTuple<Field, 3>>): void;
-
-    /**
-     * Low-level Elliptic Curve Addition gate.
-     */
-    ecAdd(
-      p1: MlGroup,
-      p2: MlGroup,
-      p3: MlGroup,
-      inf: FieldVar,
-      same_x: FieldVar,
-      slope: FieldVar,
-      inf_z: FieldVar,
-      x21_inv: FieldVar
-    ): MlGroup;
-
-    ecScale(
-      state: MlArray<
-        [
-          _: 0,
-          accs: MlArray<MlTuple<FieldVar, 2>>,
-          bits: MlArray<FieldVar>,
-          ss: MlArray<FieldVar>,
-          base: MlGroup,
-          nPrev: Field,
-          nNext: Field
-        ]
-      >
-    ): void;
-
-    ecEndoscale(
-      state: MlArray<
-        [
-          _: 0,
-          xt: FieldVar,
-          yt: FieldVar,
-          xp: FieldVar,
-          yp: FieldVar,
-          nAcc: FieldVar,
-          xr: FieldVar,
-          yr: FieldVar,
-          s1: FieldVar,
-          s3: FieldVar,
-          b1: FieldVar,
-          b2: FieldVar,
-          b3: FieldVar,
-          b4: FieldVar
-        ]
-      >,
-      xs: FieldVar,
-      ys: FieldVar,
-      nAcc: FieldVar
-    ): void;
-
-    ecEndoscalar(
-      state: MlArray<
-        [
-          _: 0,
-          n0: FieldVar,
-          n8: FieldVar,
-          a0: FieldVar,
-          b0: FieldVar,
-          a8: FieldVar,
-          b8: FieldVar,
-          x0: FieldVar,
-          x1: FieldVar,
-          x2: FieldVar,
-          x3: FieldVar,
-          x4: FieldVar,
-          x5: FieldVar,
-          x6: FieldVar,
-          x7: FieldVar
-        ]
-      >
-    ): void;
-
-    lookup(input: MlTuple<FieldVar, 7>): void;
-
-    /**
-     * Range check gate
-     *
-     * @param v0 field var to be range checked
-     * @param v0p bits 16 to 88 as 6 12-bit limbs
-     * @param v0c bits 0 to 16 as 8 2-bit limbs
-     * @param compact boolean field elements -- whether to use "compact mode"
-     */
-    rangeCheck0(
-      v0: FieldVar,
-      v0p: MlTuple<FieldVar, 6>,
-      v0c: MlTuple<FieldVar, 8>,
-      compact: FieldConst
-    ): void;
-
-    rangeCheck1(
-      v2: FieldVar,
-      v12: FieldVar,
-      vCurr: MlTuple<FieldVar, 13>,
-      vNext: MlTuple<FieldVar, 15>
-    ): void;
-
-    xor(
-      in1: FieldVar,
-      in2: FieldVar,
-      out: FieldVar,
-      in1_0: FieldVar,
-      in1_1: FieldVar,
-      in1_2: FieldVar,
-      in1_3: FieldVar,
-      in2_0: FieldVar,
-      in2_1: FieldVar,
-      in2_2: FieldVar,
-      in2_3: FieldVar,
-      out_0: FieldVar,
-      out_1: FieldVar,
-      out_2: FieldVar,
-      out_3: FieldVar
-    ): void;
-
-    foreignFieldAdd(
-      left: MlTuple<FieldVar, 3>,
-      right: MlTuple<FieldVar, 3>,
-      fieldOverflow: FieldVar,
-      carry: FieldVar,
-      foreignFieldModulus: MlTuple<FieldConst, 3>,
-      sign: FieldConst
-    ): void;
-
-    foreignFieldMul(
-      left: MlTuple<FieldVar, 3>,
-      right: MlTuple<FieldVar, 3>,
-      remainder: MlTuple<FieldVar, 2>,
-      quotient: MlTuple<FieldVar, 3>,
-      quotientHiBound: FieldVar,
-      product1: MlTuple<FieldVar, 3>,
-      carry0: FieldVar,
-      carry1p: MlTuple<FieldVar, 7>,
-      carry1c: MlTuple<FieldVar, 4>,
-      foreignFieldModulus2: FieldConst,
-      negForeignFieldModulus: MlTuple<FieldConst, 3>
-    ): void;
-
-    rotate(
-      field: FieldVar,
-      rotated: FieldVar,
-      excess: FieldVar,
-      limbs: MlArray<FieldVar>,
-      crumbs: MlArray<FieldVar>,
-      two_to_rot: FieldConst
-    ): void;
-
-    addFixedLookupTable(id: number, data: MlArray<MlArray<FieldConst>>): void;
-
-    addRuntimeTableConfig(id: number, firstColumn: MlArray<FieldConst>): void;
-
-    raw(
-      kind: KimchiGateType,
-      values: MlArray<FieldVar>,
-      coefficients: MlArray<FieldConst>
-    ): void;
-  };
-
-  bool: {
-    not(x: BoolVar): BoolVar;
-
-    and(x: BoolVar, y: BoolVar): BoolVar;
-
-    or(x: BoolVar, y: BoolVar): BoolVar;
-
-    equals(x: BoolVar, y: BoolVar): BoolVar;
-
-    assertEqual(x: BoolVar, y: BoolVar): void;
-  };
-
-  group: {
-    scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
-  };
+  fromFields: (fields: FieldBn254[]) => T;
 
   /**
-   * The circuit API is a low level interface to create zero-knowledge proofs using Pasta fields
+   * Return the size of the `T` type in terms of {@link FieldBn254} type, as {@link FieldBn254} is the primitive type.
+   *
+   * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
+   *
+   * @return A `number` representing the size of the `T` type in terms of {@link FieldBn254} type.
    */
-  circuit: {
-    /**
-     * Generates a proving key and a verification key for the provable function `main`.
-     * Uses Pasta fields.
-     */
-    compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+  sizeInFields(): number;
 
-    /**
-     * Proves a statement using the private input, public input and the keypair of the circuit.
-     */
-    prove(
-      main: Snarky.Main,
-      publicInputSize: number,
-      publicInput: MlArray<FieldConst>,
-      keypair: Snarky.Keypair
-    ): Snarky.Proof;
+  /**
+   * Add assertions to the proof to check if `value` is a valid member of type `T`.
+   * This function does not return anything, rather creates any number of assertions on the proof to prove `value` is a valid member of the type `T`.
+   *
+   * For instance, calling check function on the type {@link BoolBn254} asserts that the value of the element is either 1 or 0.
+   *
+   * @param value - the element of type `T` to put assertions on.
+   */
+  check: (value: T) => void;
+}
 
-    /**
-     * Verifies a proof using the public input, the proof and the verification key of the circuit.
-     */
-    verify(
-      publicInput: MlArray<FieldConst>,
-      proof: Snarky.Proof,
-      verificationKey: Snarky.VerificationKey
-    ): boolean;
-
-    keypair: {
-      getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
-      /**
-       * Returns a low-level JSON representation of the circuit:
-       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-       */
-      getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
-    };
-  };
-
-  // TODO: implement in TS
-  poseidon: {
-    update(
-      state: MlArray<FieldVar>,
-      input: MlArray<FieldVar>
-    ): [0, FieldVar, FieldVar, FieldVar];
-
-    hashToGroup(input: MlArray<FieldVar>): MlPair<FieldVar, FieldVar>;
-
-    sponge: {
-      create(isChecked: boolean): unknown;
-      absorb(sponge: unknown, x: FieldVar): void;
-      squeeze(sponge: unknown): FieldVar;
-    };
-  };
-};
 
 type GateType =
   | 'Zero'

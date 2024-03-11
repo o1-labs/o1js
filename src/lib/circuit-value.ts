@@ -485,8 +485,8 @@ function StructNoJson<
 >(
   type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
-    ? ProvablePure<T>
-    : Provable<T>) & {
+  ? ProvablePure<T>
+  : Provable<T>) & {
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
@@ -605,13 +605,13 @@ and Provable.asProver() blocks, which execute outside the proof.
       packed?: [Field, number][];
     };
   } = {
-    sizeInFields: () => 0,
-    toFields: () => [],
-    toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
-    fromFields: (_, [t]) => t,
-    check: () => {},
-    toInput: () => ({}),
-  };
+      sizeInFields: () => 0,
+      toFields: () => [],
+      toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
+      fromFields: (_, [t]) => t,
+      check: () => { },
+      toInput: () => ({}),
+    };
 }
 
 let primitives = new Set([Field, Bool, Scalar, Group]);

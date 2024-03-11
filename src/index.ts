@@ -119,6 +119,23 @@ export type { NetworkId } from './mina-signer/mina-signer.js';
 
 export { setNumberOfWorkers } from './lib/proof-system/workers.js';
 
+// Bn254
+export type { ProvablePureBn254 } from './snarky.js';
+export { FieldBn254, BoolBn254 } from './lib/core-bn254.js';
+export {
+  createForeignFieldBn254,
+  ForeignFieldBn254,
+  AlmostForeignFieldBn254,
+  CanonicalForeignFieldBn254,
+} from './lib/foreign-field-bn254.js';
+export { createForeignCurveBn254, ForeignCurveBn254 } from './lib/foreign-curve-bn254.js';
+
+export type { ProvableExtendedBn254 } from './lib/circuit-value-bn254.js';
+export { provable as provableBn254 } from './lib/circuit-value-bn254.js';
+export { ProvableBn254 } from './lib/provable-bn254.js';
+export { CircuitBn254, KeypairBn254, publicBn254, circuitMainBn254 } from './lib/circuit-bn254.js';
+export { GadgetsBn254 } from './lib/gadgets/gadgets-bn254.js';
+
 // experimental APIs
 import { memoizeWitness } from './lib/provable.js';
 export { Experimental };
