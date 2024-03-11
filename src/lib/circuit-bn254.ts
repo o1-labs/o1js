@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { ProvablePureBn254, Snarky } from '../snarky.js';
-import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
+import { MlFieldArray, MlFieldConstArray } from './ml/fields-bn254.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { ProvableBn254 } from './provable-bn254.js';
 import { snarkContext, gatesFromJson } from './provable-context.js';
@@ -32,7 +32,6 @@ class CircuitBn254 {
       })
     );
   }
-
 
   /**
    * Proves a statement using the private input, public input, and the {@link KeypairBn254} of the circuit.

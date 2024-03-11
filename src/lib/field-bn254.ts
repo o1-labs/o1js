@@ -2,16 +2,109 @@ import { Snarky, ProvableBn254 } from '../snarky.js';
 import { FieldBn254 as Fp } from '../provable/field-bn254-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
-import { asProver, inCheckedComputation } from './provable-context.js';
-import { Bool } from './bool.js';
+import { asProverBn254, inCheckedComputation } from './provable-context-bn254.js';
+import { BoolBn254 } from './bool-bn254.js';
 import { assert } from './errors.js';
-import { FieldConst, FieldType, FieldVar } from './field.js';
 
 // external API
 export { FieldBn254 };
 
+// internal API
+export {
+  FieldType,
+  FieldVar,
+  FieldConst,
+  ConstantField,
+  VarField,
+  VarFieldVar,
+  withMessage,
+  readVarMessage,
+  toConstantField,
+  toFp,
+  checkBitLength,
+};
+
+type FieldConst = [0, bigint];
+
+function constToBigint(x: FieldConst): Fp {
+  return x[1];
+}
+function constFromBigint(x: Fp): FieldConst {
+  return [0, Fp(x)];
+}
+
+const FieldConst = {
+  fromBigint: constFromBigint,
+  toBigint: constToBigint,
+  equal(x: FieldConst, y: FieldConst) {
+    return x[1] === y[1];
+  },
+  [0]: constFromBigint(0n),
+  [1]: constFromBigint(1n),
+  [-1]: constFromBigint(-1n),
+};
+
+enum FieldType {
+  Constant,
+  Var,
+  Add,
+  Scale,
+}
+
+/**
+ * `FieldVar` is the core data type in snarky. It is eqivalent to `Cvar.t` in OCaml.
+ * It represents a field element that is part of provable code - either a constant or a variable.
+ *
+ * **Variables** end up filling the witness columns of a constraint system.
+ * Think of a variable as a value that has to be provided by the prover, and that has to satisfy all the
+ * constraints it is involved in.
+ *
+ * **Constants** end up being hard-coded into the constraint system as gate coefficients.
+ * Think of a constant as a value that is known publicly, at compile time, and that defines the constraint system.
+ *
+ * Both constants and variables can be combined into an AST using the Add and Scale combinators.
+ */
+type FieldVar =
+  | [FieldType.Constant, FieldConst]
+  | [FieldType.Var, number]
+  | [FieldType.Add, FieldVar, FieldVar]
+  | [FieldType.Scale, FieldConst, FieldVar];
+
 type ConstantFieldVar = [FieldType.Constant, FieldConst];
 type VarFieldVar = [FieldType.Var, number];
+
+const FieldVar = {
+  constant(x: bigint | FieldConst): ConstantFieldVar {
+    let x0 = typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
+    return [FieldType.Constant, x0];
+  },
+  isConstant(x: FieldVar): x is ConstantFieldVar {
+    return x[0] === FieldType.Constant;
+  },
+  isVar(x: FieldVar): x is VarFieldVar {
+    return x[0] === FieldType.Var;
+  },
+  add(x: FieldVar, y: FieldVar): FieldVar {
+    if (FieldVar.isConstant(x) && x[1][1] === 0n) return y;
+    if (FieldVar.isConstant(y) && y[1][1] === 0n) return x;
+    if (FieldVar.isConstant(x) && FieldVar.isConstant(y)) {
+      return FieldVar.constant(Fp.add(x[1][1], y[1][1]));
+    }
+    return [FieldType.Add, x, y];
+  },
+  scale(c: bigint | FieldConst, x: FieldVar): FieldVar {
+    let c0 = typeof c === 'bigint' ? FieldConst.fromBigint(c) : c;
+    if (c0[1] === 0n) return FieldVar.constant(0n);
+    if (c0[1] === 1n) return x;
+    if (FieldVar.isConstant(x)) {
+      return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
+    }
+    return [FieldType.Scale, c0, x];
+  },
+  [0]: [FieldType.Constant, FieldConst[0]] satisfies ConstantFieldVar,
+  [1]: [FieldType.Constant, FieldConst[1]] satisfies ConstantFieldVar,
+  [-1]: [FieldType.Constant, FieldConst[-1]] satisfies ConstantFieldVar,
+};
 
 type ConstantField = FieldBn254 & { value: ConstantFieldVar };
 type VarField = FieldBn254 & { value: VarFieldVar };
@@ -19,6 +112,8 @@ type VarField = FieldBn254 & { value: VarFieldVar };
 /**
  * A {@link FieldBn254} is an element of a prime order [finite field](https://en.wikipedia.org/wiki/Finite_field).
  * Every other provable type is built using the {@link FieldBn254} type.
+ *
+ * The field is the [pasta base field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) of order 2^254 + 0x224698fc094cf91b992d30ed00000001 ({@link FieldBn254.ORDER}).
  *
  * You can create a new FieldBn254 from everything "field-like" (`bigint`, integer `number`, decimal `string`, `FieldBn254`).
  * @example
@@ -52,6 +147,7 @@ class FieldBn254 {
 
   /**
    * The order of the pasta curve that {@link FieldBn254} type build on as a `bigint`.
+   * Order of the {@link FieldBn254} is 28948022309329048855892746252171976963363056481941560715954676764349967630337.
    */
   static ORDER = Fp.modulus;
 
@@ -161,7 +257,7 @@ class FieldBn254 {
 
   /**
    * Assert that this {@link FieldBn254} is equal another "field-like" value.
-   * Calling this function is equivalent to `FieldBn254(...).equals(...).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `FieldBn254(...).equals(...).assertEquals(BoolBn254(true))`.
    * See {@link FieldBn254.equals} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
@@ -177,7 +273,7 @@ class FieldBn254 {
         }
         return;
       }
-      Snarky.bn254.field.assertEqual(this.value, toFieldVar(y));
+      Snarky.field.assertEqual(this.value, toFieldVar(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -216,7 +312,7 @@ class FieldBn254 {
       return new FieldBn254(Fp.add(this.toBigInt(), toFp(y)));
     }
     // return new AST node Add(x, y)
-    let z = Snarky.bn254.field.add(this.value, toFieldVar(y));
+    let z = Snarky.field.add(this.value, toFieldVar(y));
     return new FieldBn254(z);
   }
 
@@ -244,7 +340,7 @@ class FieldBn254 {
       return new FieldBn254(Fp.negate(this.toBigInt()));
     }
     // return new AST node Scale(-1, x)
-    let z = Snarky.bn254.field.scale(FieldConst[-1], this.value);
+    let z = Snarky.field.scale(FieldConst[-1], this.value);
     return new FieldBn254(z);
   }
 
@@ -294,9 +390,9 @@ class FieldBn254 {
    * ```
    */
   isEven() {
-    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
+    if (this.isConstant()) return new BoolBn254(this.toBigInt() % 2n === 0n);
 
-    let [, isOddVar, xDiv2Var] = Snarky.bn254.exists(2, () => {
+    let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
       let bits = Fp.toBits(this.toBigInt());
       let isOdd = bits.shift()! ? 1n : 0n;
 
@@ -319,7 +415,7 @@ class FieldBn254 {
     // check composition
     xDiv2.mul(2).add(isOdd).assertEquals(this);
 
-    return new Bool(isOddVar).not();
+    return new BoolBn254(isOddVar).not();
   }
 
   /**
@@ -343,19 +439,19 @@ class FieldBn254 {
     }
     // if one of the factors is constant, return Scale AST node
     if (isConstant(y)) {
-      let z = Snarky.bn254.field.scale(toFieldConst(y), this.value);
+      let z = Snarky.field.scale(toFieldConst(y), this.value);
       return new FieldBn254(z);
     }
     if (this.isConstant()) {
-      let z = Snarky.bn254.field.scale(this.value[1], y.value);
+      let z = Snarky.field.scale(this.value[1], y.value);
       return new FieldBn254(z);
     }
     // create a new witness for z = x*y
-    let z = Snarky.bn254.existsVar(() =>
+    let z = Snarky.existsVar(() =>
       FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
     );
     // add a multiplication constraint
-    Snarky.bn254.field.assertMul(this.value, y.value, z);
+    Snarky.field.assertMul(this.value, y.value, z);
     return new FieldBn254(z);
   }
 
@@ -383,12 +479,12 @@ class FieldBn254 {
       return new FieldBn254(z);
     }
     // create a witness for z = x^(-1)
-    let z = Snarky.bn254.existsVar(() => {
+    let z = Snarky.existsVar(() => {
       let z = Fp.inverse(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
     // constrain x * z === 1
-    Snarky.bn254.field.assertMul(this.value, z, FieldVar[1]);
+    Snarky.field.assertMul(this.value, z, FieldVar[1]);
     return new FieldBn254(z);
   }
 
@@ -450,11 +546,11 @@ class FieldBn254 {
       return new FieldBn254(Fp.square(this.toBigInt()));
     }
     // create a new witness for z = x^2
-    let z = Snarky.bn254.existsVar(() =>
+    let z = Snarky.existsVar(() =>
       FieldConst.fromBigint(Fp.square(this.toBigInt()))
     );
     // add a squaring constraint
-    Snarky.bn254.field.assertSquare(this.value, z);
+    Snarky.field.assertSquare(this.value, z);
     return new FieldBn254(z);
   }
 
@@ -485,12 +581,12 @@ class FieldBn254 {
       return new FieldBn254(z);
     }
     // create a witness for sqrt(x)
-    let z = Snarky.bn254.existsVar(() => {
+    let z = Snarky.existsVar(() => {
       let z = Fp.sqrt(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
     // constrain z * z === x
-    Snarky.bn254.field.assertSquare(z, this.value);
+    Snarky.field.assertSquare(z, this.value);
     return new FieldBn254(z);
   }
 
@@ -499,11 +595,11 @@ class FieldBn254 {
    */
   isZero() {
     if (this.isConstant()) {
-      return new Bool(this.toBigInt() === 0n);
+      return new BoolBn254(this.toBigInt() === 0n);
     }
     // create witnesses z = 1/x, or z=0 if x=0,
     // and b = 1 - zx
-    let [, b, z] = Snarky.bn254.exists(2, () => {
+    let [, b, z] = Snarky.exists(2, () => {
       let x = this.toBigInt();
       let z = Fp.inverse(x) ?? 0n;
       let b = Fp.sub(1n, Fp.mul(z, x));
@@ -511,53 +607,53 @@ class FieldBn254 {
     });
     // add constraints
     // b * x === 0
-    Snarky.bn254.field.assertMul(b, this.value, FieldVar[0]);
+    Snarky.field.assertMul(b, this.value, FieldVar[0]);
     // z * x === 1 - b
-    Snarky.bn254.field.assertMul(
+    Snarky.field.assertMul(
       z,
       this.value,
-      Snarky.bn254.field.add(FieldVar[1], Snarky.bn254.field.scale(FieldConst[-1], b))
+      Snarky.field.add(FieldVar[1], Snarky.field.scale(FieldConst[-1], b))
     );
-    // ^^^ these prove that b = Bool(x === 0):
+    // ^^^ these prove that b = BoolBn254(x === 0):
     // if x = 0, the 2nd equation implies b = 1
     // if x != 0, the 1st implies b = 0
-    return new Bool(b);
+    return new BoolBn254(b);
   }
 
   /**
    * Check if this {@link FieldBn254} is equal another "field-like" value.
-   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   * Returns a {@link BoolBn254}, which is a provable type and can be used to prove the validity of this statement.
    *
    * @example
    * ```ts
-   * FieldBn254(5).equals(5).assertEquals(Bool(true));
+   * FieldBn254(5).equals(5).assertEquals(BoolBn254(true));
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link FieldBn254}.
    *
-   * @return A {@link Bool} representing if this {@link FieldBn254} is equal another "field-like" value.
+   * @return A {@link BoolBn254} representing if this {@link FieldBn254} is equal another "field-like" value.
    */
-  equals(y: FieldBn254 | bigint | number | string): Bool {
+  equals(y: FieldBn254 | bigint | number | string): BoolBn254 {
     // x == y is equivalent to x - y == 0
     // if one of the two is constant, we just need the two constraints in `isZero`
     if (this.isConstant() || isConstant(y)) {
       return this.sub(y).isZero();
     }
     // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
-    let xMinusY = Snarky.bn254.existsVar(() =>
+    let xMinusY = Snarky.existsVar(() =>
       FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
     );
-    Snarky.bn254.field.assertEqual(this.sub(y).value, xMinusY);
+    Snarky.field.assertEqual(this.sub(y).value, xMinusY);
     return new FieldBn254(xMinusY).isZero();
   }
 
   /**
    * Check if this {@link FieldBn254} is less than another "field-like" value.
-   * Returns a {@link Bool}, which is a provable type and can be used prove to the validity of this statement.
+   * Returns a {@link BoolBn254}, which is a provable type and can be used prove to the validity of this statement.
    *
    * @example
    * ```ts
-   * FieldBn254(2).lessThan(3).assertEquals(Bool(true));
+   * FieldBn254(2).lessThan(3).assertEquals(BoolBn254(true));
    * ```
    *
    * **Warning**: Comparison methods only support FieldBn254 elements of size <= 253 bits in provable code.
@@ -567,27 +663,27 @@ class FieldBn254 {
    *
    * @example
    * ```ts
-   * FieldBn254(1).div(FieldBn254(3)).lessThan(FieldBn254(1).div(FieldBn254(2))).assertEquals(Bool(true)); // This code will throw an error
+   * FieldBn254(1).div(FieldBn254(3)).lessThan(FieldBn254(1).div(FieldBn254(2))).assertEquals(BoolBn254(true)); // This code will throw an error
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link FieldBn254}.
    *
-   * @return A {@link Bool} representing if this {@link FieldBn254} is less than another "field-like" value.
+   * @return A {@link BoolBn254} representing if this {@link FieldBn254} is less than another "field-like" value.
    */
-  lessThan(y: FieldBn254 | bigint | number | string): Bool {
+  lessThan(y: FieldBn254 | bigint | number | string): BoolBn254 {
     if (this.isConstant() && isConstant(y)) {
-      return new Bool(this.toBigInt() < toFp(y));
+      return new BoolBn254(this.toBigInt() < toFp(y));
     }
     return compare(this, toFieldVar(y)).less;
   }
 
   /**
    * Check if this {@link FieldBn254} is less than or equal to another "field-like" value.
-   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   * Returns a {@link BoolBn254}, which is a provable type and can be used to prove the validity of this statement.
    *
    * @example
    * ```ts
-   * FieldBn254(3).lessThanOrEqual(3).assertEquals(Bool(true));
+   * FieldBn254(3).lessThanOrEqual(3).assertEquals(BoolBn254(true));
    * ```
    *
    * **Warning**: Comparison methods only support FieldBn254 elements of size <= 253 bits in provable code.
@@ -597,27 +693,27 @@ class FieldBn254 {
    *
    * @example
    * ```ts
-   * FieldBn254(1).div(FieldBn254(3)).lessThanOrEqual(FieldBn254(1).div(FieldBn254(2))).assertEquals(Bool(true)); // This code will throw an error
+   * FieldBn254(1).div(FieldBn254(3)).lessThanOrEqual(FieldBn254(1).div(FieldBn254(2))).assertEquals(BoolBn254(true)); // This code will throw an error
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link FieldBn254}.
    *
-   * @return A {@link Bool} representing if this {@link FieldBn254} is less than or equal another "field-like" value.
+   * @return A {@link BoolBn254} representing if this {@link FieldBn254} is less than or equal another "field-like" value.
    */
-  lessThanOrEqual(y: FieldBn254 | bigint | number | string): Bool {
+  lessThanOrEqual(y: FieldBn254 | bigint | number | string): BoolBn254 {
     if (this.isConstant() && isConstant(y)) {
-      return new Bool(this.toBigInt() <= toFp(y));
+      return new BoolBn254(this.toBigInt() <= toFp(y));
     }
     return compare(this, toFieldVar(y)).lessOrEqual;
   }
 
   /**
    * Check if this {@link FieldBn254} is greater than another "field-like" value.
-   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   * Returns a {@link BoolBn254}, which is a provable type and can be used to prove the validity of this statement.
    *
    * @example
    * ```ts
-   * FieldBn254(5).greaterThan(3).assertEquals(Bool(true));
+   * FieldBn254(5).greaterThan(3).assertEquals(BoolBn254(true));
    * ```
    *
    * **Warning**: Comparison methods currently only support FieldBn254 elements of size <= 253 bits in provable code.
@@ -627,12 +723,12 @@ class FieldBn254 {
    *
    * @example
    * ```ts
-   * FieldBn254(1).div(FieldBn254(2)).greaterThan(FieldBn254(1).div(FieldBn254(3))).assertEquals(Bool(true)); // This code will throw an error
+   * FieldBn254(1).div(FieldBn254(2)).greaterThan(FieldBn254(1).div(FieldBn254(3))).assertEquals(BoolBn254(true)); // This code will throw an error
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link FieldBn254}.
    *
-   * @return A {@link Bool} representing if this {@link FieldBn254} is greater than another "field-like" value.
+   * @return A {@link BoolBn254} representing if this {@link FieldBn254} is greater than another "field-like" value.
    */
   greaterThan(y: FieldBn254 | bigint | number | string) {
     return FieldBn254.from(y).lessThan(this);
@@ -640,11 +736,11 @@ class FieldBn254 {
 
   /**
    * Check if this {@link FieldBn254} is greater than or equal another "field-like" value.
-   * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
+   * Returns a {@link BoolBn254}, which is a provable type and can be used to prove the validity of this statement.
    *
    * @example
    * ```ts
-   * FieldBn254(3).greaterThanOrEqual(3).assertEquals(Bool(true));
+   * FieldBn254(3).greaterThanOrEqual(3).assertEquals(BoolBn254(true));
    * ```
    *
    * **Warning**: Comparison methods only support FieldBn254 elements of size <= 253 bits in provable code.
@@ -654,12 +750,12 @@ class FieldBn254 {
    *
    * @example
    * ```ts
-   * FieldBn254(1).div(FieldBn254(2)).greaterThanOrEqual(FieldBn254(1).div(FieldBn254(3))).assertEquals(Bool(true)); // This code will throw an error
+   * FieldBn254(1).div(FieldBn254(2)).greaterThanOrEqual(FieldBn254(1).div(FieldBn254(3))).assertEquals(BoolBn254(true)); // This code will throw an error
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link FieldBn254}.
    *
-   * @return A {@link Bool} representing if this {@link FieldBn254} is greater than or equal another "field-like" value.
+   * @return A {@link BoolBn254} representing if this {@link FieldBn254} is greater than or equal another "field-like" value.
    */
   greaterThanOrEqual(y: FieldBn254 | bigint | number | string) {
     return FieldBn254.from(y).lessThanOrEqual(this);
@@ -667,7 +763,7 @@ class FieldBn254 {
 
   /**
    * Assert that this {@link FieldBn254} is less than another "field-like" value.
-   * Calling this function is equivalent to `FieldBn254(...).lessThan(...).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `FieldBn254(...).lessThan(...).assertEquals(BoolBn254(true))`.
    * See {@link FieldBn254.lessThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
@@ -695,7 +791,7 @@ class FieldBn254 {
 
   /**
    * Assert that this {@link FieldBn254} is less than or equal to another "field-like" value.
-   * Calling this function is equivalent to `FieldBn254(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `FieldBn254(...).lessThanOrEqual(...).assertEquals(BoolBn254(true))`.
    * See {@link FieldBn254.lessThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
@@ -723,7 +819,7 @@ class FieldBn254 {
 
   /**
    * Assert that this {@link FieldBn254} is greater than another "field-like" value.
-   * Calling this function is equivalent to `FieldBn254(...).greaterThan(...).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `FieldBn254(...).greaterThan(...).assertEquals(BoolBn254(true))`.
    * See {@link FieldBn254.greaterThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
@@ -740,7 +836,7 @@ class FieldBn254 {
 
   /**
    * Assert that this {@link FieldBn254} is greater than or equal to another "field-like" value.
-   * Calling this function is equivalent to `FieldBn254(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `FieldBn254(...).greaterThanOrEqual(...).assertEquals(BoolBn254(true))`.
    * See {@link FieldBn254.greaterThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
@@ -786,7 +882,7 @@ class FieldBn254 {
 
   /**
    * Assert that this {@link FieldBn254} is equal to 1 or 0 as a "field-like" value.
-   * Calling this function is equivalent to `Bool.or(FieldBn254(...).equals(1), FieldBn254(...).equals(0)).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `BoolBn254.or(FieldBn254(...).equals(1), FieldBn254(...).equals(0)).assertEquals(BoolBn254(true))`.
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
@@ -802,14 +898,14 @@ class FieldBn254 {
         }
         return;
       }
-      Snarky.bn254.field.assertBoolean(this.value);
+      Snarky.field.assertBoolean(this.value);
     } catch (err) {
       throw withMessage(err, message);
     }
   }
 
   /**
-   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link FieldBn254} element.
+   * Returns an array of {@link BoolBn254} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link FieldBn254} element.
    *
    * If you use the optional `length` argument, proves that the field element fits in `length` bits.
    * The `length` has to be between 0 and 255 and the method throws if it isn't.
@@ -819,7 +915,7 @@ class FieldBn254 {
    *
    * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
    *
-   * @return An array of {@link Bool} element representing little endian binary representation of this {@link FieldBn254}.
+   * @return An array of {@link BoolBn254} element representing little endian binary representation of this {@link FieldBn254}.
    */
   toBits(length?: number) {
     if (length !== undefined) checkBitLength('FieldBn254.toBits()', length);
@@ -828,12 +924,12 @@ class FieldBn254 {
       if (length !== undefined) {
         if (bits.slice(length).some((bit) => bit))
           throw Error(`FieldBn254.toBits(): ${this} does not fit in ${length} bits`);
-        return bits.slice(0, length).map((b) => new Bool(b));
+        return bits.slice(0, length).map((b) => new BoolBn254(b));
       }
-      return bits.map((b) => new Bool(b));
+      return bits.map((b) => new BoolBn254(b));
     }
-    let [, ...bits] = Snarky.bn254.field.toBits(length ?? Fp.sizeInBits, this.value);
-    return bits.map((b) => new Bool(b));
+    let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
+    return bits.map((b) => new BoolBn254(b));
   }
 
   /**
@@ -841,13 +937,13 @@ class FieldBn254 {
    *
    * The method throws if the given bits do not fit in a single FieldBn254 element. A FieldBn254 element can be at most 255 bits.
    *
-   * **Important**: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link FieldBn254} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link FieldBn254} will be a variable as well.
+   * **Important**: If the given `bytes` array is an array of `booleans` or {@link BoolBn254} elements that all are `constant`, the resulting {@link FieldBn254} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link BoolBn254} type, the resulting {@link FieldBn254} will be a variable as well.
    *
-   * @param bytes - An array of {@link Bool} or `boolean` type.
+   * @param bytes - An array of {@link BoolBn254} or `boolean` type.
    *
    * @return A {@link FieldBn254} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bytes` array.
    */
-  static fromBits(bits: (Bool | boolean)[]) {
+  static fromBits(bits: (BoolBn254 | boolean)[]) {
     let length = bits.length;
     checkBitLength('FieldBn254.fromBits()', length);
     if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
@@ -860,7 +956,7 @@ class FieldBn254 {
       if (typeof b === 'boolean') return b ? FieldVar[1] : FieldVar[0];
       return b.toField().value;
     });
-    let x = Snarky.bn254.field.fromBits([0, ...bitsVars]);
+    let x = Snarky.field.fromBits([0, ...bitsVars]);
     return new FieldBn254(x);
   }
 
@@ -889,7 +985,7 @@ class FieldBn254 {
         .concat(Array(Fp.sizeInBits - length).fill(false));
       return new FieldBn254(Fp.fromBits(bits));
     }
-    let x = Snarky.bn254.field.truncateToBits16(lengthDiv16, this.value);
+    let x = Snarky.field.truncateToBits16(lengthDiv16, this.value);
     return new FieldBn254(x);
   }
 
@@ -906,7 +1002,7 @@ class FieldBn254 {
    */
   seal() {
     if (this.isConstant()) return this;
-    let x = Snarky.bn254.field.seal(this.value);
+    let x = Snarky.field.seal(this.value);
     return VarField(x);
   }
 
@@ -1188,7 +1284,7 @@ function withMessage(error: unknown, message?: string) {
 function compare(x: FieldBn254, y: FieldVar) {
   // TODO: support all bit lengths
   let maxLength = Fp.sizeInBits - 2;
-  asProver(() => {
+  asProverBn254(() => {
     let actualLength = Math.max(
       x.toBigInt().toString(2).length,
       new FieldBn254(y).toBigInt().toString(2).length
@@ -1198,8 +1294,8 @@ function compare(x: FieldBn254, y: FieldVar) {
         `ProvableBn254 comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
       );
   });
-  let [, less, lessOrEqual] = Snarky.bn254.field.compare(maxLength, x.value, y);
-  return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
+  let [, less, lessOrEqual] = Snarky.field.compare(maxLength, x.value, y);
+  return { less: new BoolBn254(less), lessOrEqual: new BoolBn254(lessOrEqual) };
 }
 
 function checkBitLength(
@@ -1234,9 +1330,9 @@ function toConstantField(
     'variables only exist inside checked computations'
   );
 
-  // if we are inside an asProver or witness block, read the variable's value and return it as constant
-  if (Snarky.bn254.run.inProverBlock()) {
-    let value = Snarky.bn254.field.readVar(x.value);
+  // if we are inside an asProverBn254 or witness block, read the variable's value and return it as constant
+  if (Snarky.run.inProverBlock()) {
+    let value = Snarky.field.readVar(x.value);
     return new FieldBn254(value) as ConstantField;
   }
 
@@ -1259,8 +1355,8 @@ linked to the original variable in the proof, which makes this pattern prone to 
 You can check whether your ${varDescription} is a variable or a constant by using ${varName}.isConstant().
 
 To inspect values for debugging, use ProvableBn254.log(${varName}). For more advanced use cases,
-there is \`ProvableBn254.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
-Warning: whatever happens inside asProver() will not be part of the zk proof.
+there is \`ProvableBn254.asProverBn254(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
+Warning: whatever happens inside asProverBn254() will not be part of the zk proof.
 `;
 }
 
