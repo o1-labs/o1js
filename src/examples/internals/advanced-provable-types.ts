@@ -61,7 +61,7 @@ expect(accountUpdateRecovered.lazyAuthorization).not.toEqual(
  * -) witness() and asProver() blocks are executed
  * -) constraints are checked; failing assertions throw an error
  */
-Provable.runAndCheck(() => {
+await Provable.runAndCheck(() => {
   /**
    * Provable.witness() is used to introduce all values to the circuit which are not hard-coded constants.
    *
@@ -99,7 +99,7 @@ Provable.runAndCheck(() => {
  * -) fields don't have actual values attached to them; they're purely abstract variables
  * -) constraints are not checked
  */
-let result = Provable.constraintSystem(() => {
+let result = await Provable.constraintSystem(() => {
   /**
    * In compile mode, witness() returns
    * - abstract variables without values for fields
@@ -140,10 +140,10 @@ console.log(
  *
  * This is why we have this custom way of witnessing account updates, with the `skipCheck` option.
  */
-result = Provable.constraintSystem(() => {
-  let { accountUpdate: accountUpdateWitness } = AccountUpdate.witness(
+result = await Provable.constraintSystem(async () => {
+  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(
     Empty,
-    () => ({ accountUpdate, result: undefined }),
+    async () => ({ accountUpdate, result: undefined }),
     { skipCheck: true }
   );
   Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
@@ -156,10 +156,10 @@ console.log(
  * To relate an account update to the hash which is the public input, we need to perform the hash in-circuit.
  * This is takes several 100 constraints, and is basically the minimal size of a zkApp method.
  */
-result = Provable.constraintSystem(() => {
-  let { accountUpdate: accountUpdateWitness } = AccountUpdate.witness(
+result = await Provable.constraintSystem(async () => {
+  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(
     Empty,
-    () => ({ accountUpdate, result: undefined }),
+    async () => ({ accountUpdate, result: undefined }),
     { skipCheck: true }
   );
   accountUpdateWitness.hash();

@@ -6,7 +6,11 @@ import { UInt64, UInt32 } from '../int.js';
 import { PublicKey, PrivateKey } from '../signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
-import type { Transaction, PendingTransaction } from '../mina.js';
+import type {
+  Transaction,
+  PendingTransaction,
+  RejectedTransaction,
+} from '../mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from '../precondition.js';
 import type * as Fetch from '../fetch.js';
@@ -93,7 +97,7 @@ type NetworkConstants = {
 interface Mina {
   transaction(
     sender: DeprecatedFeePayerSpec,
-    f: () => void
+    f: () => Promise<void>
   ): Promise<Transaction>;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;

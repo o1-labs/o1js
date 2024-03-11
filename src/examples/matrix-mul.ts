@@ -55,9 +55,9 @@ function circuit(): Field[][] {
   return matrixMul(x, y);
 }
 
-let { rows } = Provable.constraintSystem(circuit);
+let { rows } = await Provable.constraintSystem(circuit);
 let result: Field[][];
-Provable.runAndCheck(() => {
+await Provable.runAndCheck(() => {
   let result_ = circuit();
   Provable.asProver(() => {
     result = result_.map((x) => x.map((y) => y.toConstant()));

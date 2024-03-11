@@ -4,11 +4,11 @@ import { exists } from './gadgets/common.js';
 import { Field } from './field.js';
 import { expect } from 'expect';
 
-it('can witness large field array', () => {
+await it('can witness large field array', async () => {
   let N = 100_000;
   let arr = Array<bigint>(N).fill(0n);
 
-  Provable.runAndCheck(() => {
+  await Provable.runAndCheck(() => {
     // with exists
     let fields = exists(N, () => arr);
 

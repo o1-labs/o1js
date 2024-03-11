@@ -23,11 +23,11 @@ const zkAppInstance = new HelloWorld(zkAppAddress);
 
 console.log('Deploying Hello World ....');
 
-txn = await Mina.transaction(feePayer1.publicKey, () => {
+txn = await Mina.transaction(feePayer1.publicKey, async () => {
   AccountUpdate.fundNewAccount(feePayer1.publicKey);
-  zkAppInstance.deploy();
+  await zkAppInstance.deploy();
 });
-await txn.sign([feePayer1.privateKey, zkAppPrivateKey]).sendOrThrowIfError();
+await txn.sign([feePayer1.privateKey, zkAppPrivateKey]).send();
 
 const initialState =
   Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
@@ -41,11 +41,11 @@ console.log(
   `Updating state from ${initialState} to 4 with Admin Private Key ...`
 );
 
-txn = await Mina.transaction(feePayer1.publicKey, () => {
-  zkAppInstance.update(Field(4), adminPrivateKey);
+txn = await Mina.transaction(feePayer1.publicKey, async () => {
+  await zkAppInstance.update(Field(4), adminPrivateKey);
 });
 await txn.prove();
-await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
+await txn.sign([feePayer1.privateKey]).send();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 
@@ -66,11 +66,11 @@ console.log(
 let correctlyFails = false;
 
 try {
-  txn = await Mina.transaction(feePayer1.publicKey, () => {
-    zkAppInstance.update(Field(16), wrongAdminPrivateKey);
+  txn = await Mina.transaction(feePayer1.publicKey, async () => {
+    await zkAppInstance.update(Field(16), wrongAdminPrivateKey);
   });
   await txn.prove();
-  await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
+  await txn.sign([feePayer1.privateKey]).send();
 } catch (err: any) {
   handleError(err, 'Account_delegate_precondition_unsatisfied');
 }
@@ -87,11 +87,11 @@ try {
     `Attempting to update state from ${currentState} to the value that fails precondition of 30 ...`
   );
 
-  txn = await Mina.transaction(feePayer1.publicKey, () => {
-    zkAppInstance.update(Field(30), adminPrivateKey);
+  txn = await Mina.transaction(feePayer1.publicKey, async () => {
+    await zkAppInstance.update(Field(30), adminPrivateKey);
   });
   await txn.prove();
-  await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
+  await txn.sign([feePayer1.privateKey]).send();
 } catch (err: any) {
   handleError(err, 'assertEquals');
 }
@@ -113,12 +113,12 @@ try {
   // expected to fail and current state stays at 4
   txn = await Mina.transaction(
     { sender: feePayer1.publicKey, fee: '10' },
-    () => {
-      zkAppInstance.update(Field(256), adminPrivateKey);
+    async () => {
+      await zkAppInstance.update(Field(256), adminPrivateKey);
     }
   );
   await txn.prove();
-  await txn.sign([feePayer1.privateKey]).sendOrThrowIfError();
+  await txn.sign([feePayer1.privateKey]).send();
 } catch (err: any) {
   handleError(err, 'assertEquals');
 }
@@ -130,11 +130,14 @@ if (!correctlyFails) {
 }
 
 // expected to succeed and update state to 16
-txn2 = await Mina.transaction({ sender: feePayer2.publicKey, fee: '2' }, () => {
-  zkAppInstance.update(Field(16), adminPrivateKey);
-});
+txn2 = await Mina.transaction(
+  { sender: feePayer2.publicKey, fee: '2' },
+  async () => {
+    await zkAppInstance.update(Field(16), adminPrivateKey);
+  }
+);
 await txn2.prove();
-await txn2.sign([feePayer2.privateKey]).sendOrThrowIfError();
+await txn2.sign([feePayer2.privateKey]).send();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 
@@ -147,11 +150,14 @@ if (currentState !== '16') {
 console.log(`Update successful. Current state is ${currentState}.`);
 
 // expected to succeed and update state to 256
-txn3 = await Mina.transaction({ sender: feePayer3.publicKey, fee: '1' }, () => {
-  zkAppInstance.update(Field(256), adminPrivateKey);
-});
+txn3 = await Mina.transaction(
+  { sender: feePayer3.publicKey, fee: '1' },
+  async () => {
+    await zkAppInstance.update(Field(256), adminPrivateKey);
+  }
+);
 await txn3.prove();
-await txn3.sign([feePayer3.privateKey]).sendOrThrowIfError();
+await txn3.sign([feePayer3.privateKey]).send();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 
@@ -169,12 +175,12 @@ try {
   // expected to fail and current state remains 256
   txn4 = await Mina.transaction(
     { sender: feePayer4.publicKey, fee: '1' },
-    () => {
-      zkAppInstance.update(Field(16), adminPrivateKey);
+    async () => {
+      await zkAppInstance.update(Field(16), adminPrivateKey);
     }
   );
   await txn4.prove();
-  await txn4.sign([feePayer4.privateKey]).sendOrThrowIfError();
+  await txn4.sign([feePayer4.privateKey]).send();
 } catch (err: any) {
   handleError(err, 'assertEquals');
 }

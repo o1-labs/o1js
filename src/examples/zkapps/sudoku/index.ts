@@ -1,6 +1,6 @@
 import { Sudoku, SudokuZkApp } from './sudoku.js';
 import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
-import { AccountUpdate, Mina, PrivateKey, shutdown } from 'o1js';
+import { AccountUpdate, Mina, PrivateKey } from 'o1js';
 
 // setup
 const Local = Mina.LocalBlockchain();
@@ -13,7 +13,7 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 // create an instance of the smart contract
 const zkApp = new SudokuZkApp(zkAppAddress);
 
-let methods = SudokuZkApp.analyzeMethods();
+let methods = await SudokuZkApp.analyzeMethods();
 console.log(
   'first 5 gates of submitSolution method:',
   ...methods.submitSolution.gates.slice(0, 5)
@@ -21,10 +21,10 @@ console.log(
 
 console.log('Deploying and initializing Sudoku...');
 await SudokuZkApp.compile();
-let tx = await Mina.transaction(account, () => {
+let tx = await Mina.transaction(account, async () => {
   AccountUpdate.fundNewAccount(account);
-  zkApp.deploy();
-  zkApp.update(Sudoku.from(sudoku));
+  await zkApp.deploy();
+  await zkApp.update(Sudoku.from(sudoku));
 });
 await tx.prove();
 /**
@@ -47,8 +47,8 @@ noSolution[0][0] = (noSolution[0][0] % 9) + 1;
 
 console.log('Submitting wrong solution...');
 try {
-  let tx = await Mina.transaction(account, () => {
-    zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(noSolution));
+  let tx = await Mina.transaction(account, async () => {
+    await zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(noSolution));
   });
   await tx.prove();
   await tx.sign([accountKey]).send();
@@ -59,12 +59,9 @@ console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
 
 // submit the actual solution
 console.log('Submitting solution...');
-tx = await Mina.transaction(account, () => {
-  zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution!));
+tx = await Mina.transaction(account, async () => {
+  await zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution!));
 });
 await tx.prove();
 await tx.sign([accountKey]).send();
 console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
-
-// cleanup
-await shutdown();

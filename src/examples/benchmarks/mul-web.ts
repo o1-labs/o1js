@@ -20,8 +20,8 @@ function main(nMuls: number) {
   }
 }
 
-function getRows(nMuls: number) {
-  let { rows } = Provable.constraintSystem(() => main(nMuls));
+async function getRows(nMuls: number) {
+  let { rows } = await Provable.constraintSystem(() => main(nMuls));
   return rows;
 }
 
@@ -42,7 +42,7 @@ function picklesCircuit(nMuls: number) {
     methods: {
       run: {
         privateInputs: [],
-        method() {
+        async method() {
           main(nMuls);
         },
       },
@@ -52,7 +52,7 @@ function picklesCircuit(nMuls: number) {
 
 // the script
 
-console.log('circuit size (without pickles overhead)', getRows(nMuls));
+console.log('circuit size (without pickles overhead)', await getRows(nMuls));
 
 if (withPickles) {
   let circuit = picklesCircuit(nMuls);

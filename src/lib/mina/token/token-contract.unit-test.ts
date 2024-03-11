@@ -14,7 +14,7 @@ class ExampleTokenContract extends TokenContract {
   // APPROVABLE API
 
   @method
-  approveBase(updates: AccountUpdateForest) {
+  async approveBase(updates: AccountUpdateForest) {
     this.checkZeroBalanceChange(updates);
   }
 
@@ -22,7 +22,7 @@ class ExampleTokenContract extends TokenContract {
   SUPPLY = UInt64.from(10n ** 18n);
 
   @method
-  init() {
+  async init() {
     super.init();
 
     // mint the entire supply to the token account with the same address as this contract
@@ -46,9 +46,9 @@ let token = new ExampleTokenContract(tokenAddress);
 let tokenId = token.deriveTokenId();
 
 // deploy token contract
-let deployTx = await Mina.transaction(sender, () => {
+let deployTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender, 2);
-  token.deploy();
+  await token.deploy();
 });
 await deployTx.prove();
 await deployTx.sign([tokenKey, senderKey]).send();
@@ -59,9 +59,9 @@ assert(
 );
 
 // can transfer tokens between two accounts
-let transferTx = await Mina.transaction(sender, () => {
+let transferTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
-  token.transfer(tokenAddress, otherAddress, UInt64.one);
+  await token.transfer(tokenAddress, otherAddress, UInt64.one);
 });
 await transferTx.prove();
 await transferTx.sign([tokenKey, senderKey]).send();

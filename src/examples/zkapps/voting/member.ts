@@ -1,5 +1,4 @@
 import {
-  Bool,
   CircuitValue,
   Field,
   prop,

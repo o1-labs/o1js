@@ -17,6 +17,7 @@ import {
   bool,
   Spec,
 } from './testing/equivalent.js';
+import { runAndCheckSync } from './provable-context.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -138,7 +139,7 @@ equivalent({ from: [smallField], to: bool })(
 
 // non-constant field vars
 test(Random.field, (x0, assert) => {
-  Provable.runAndCheck(() => {
+  runAndCheckSync(() => {
     // Var
     let x = Provable.witness(Field, () => Field(x0));
     assert(x.value[0] === FieldType.Var);
@@ -177,7 +178,7 @@ test(Random.field, (x0, assert) => {
 
 // some provable operations
 test(Random.field, Random.field, (x0, y0, assert) => {
-  Provable.runAndCheck(() => {
+  runAndCheckSync(() => {
     // equals
     let x = Provable.witness(Field, () => Field(x0));
     let y = Provable.witness(Field, () => Field(y0));

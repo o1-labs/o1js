@@ -18,8 +18,12 @@ import { invalidTransactionError } from './errors.js';
 import {
   Transaction,
   PendingTransaction,
-  createIncludedOrRejectedTransaction,
   createTransaction,
+  createIncludedTransaction,
+  createRejectedTransaction,
+  IncludedTransaction,
+  RejectedTransaction,
+  PendingTransactionStatus,
 } from './transaction.js';
 import {
   type DeprecatedFeePayerSpec,
@@ -171,7 +175,7 @@ function LocalBlockchain({
         }
       }
 
-      let isSuccess = true;
+      let status: PendingTransactionStatus = 'pending';
       const errors: string[] = [];
       try {
         ledger.applyJsonTransaction(
@@ -180,7 +184,7 @@ function LocalBlockchain({
           JSON.stringify(networkState)
         );
       } catch (err: any) {
-        isSuccess = false;
+        status = 'rejected';
         try {
           const errorMessages = JSON.parse(err.message);
           const formattedError = invalidTransactionError(
@@ -257,33 +261,21 @@ function LocalBlockchain({
       });
 
       const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction: Omit<
-        PendingTransaction,
-        'wait' | 'waitOrThrowIfError'
-      > = {
-        isSuccess,
-        errors,
-        transaction: txn.transaction,
-        hash,
-        toJSON: txn.toJSON,
-        toPretty: txn.toPretty,
-      };
+      const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
+        {
+          status,
+          errors,
+          transaction: txn.transaction,
+          hash,
+          toJSON: txn.toJSON,
+          toPretty: txn.toPretty,
+        };
 
       const wait = async (_options?: {
         maxAttempts?: number;
         interval?: number;
-      }) => {
-        return createIncludedOrRejectedTransaction(
-          pendingTransaction,
-          pendingTransaction.errors
-        );
-      };
-
-      const waitOrThrowIfError = async (_options?: {
-        maxAttempts?: number;
-        interval?: number;
-      }) => {
-        const pendingTransaction = await wait(_options);
+      }): Promise<IncludedTransaction> => {
+        const pendingTransaction = await safeWait(_options);
         if (pendingTransaction.status === 'rejected') {
           throw Error(
             `Transaction failed with errors:\n${pendingTransaction.errors.join(
@@ -294,18 +286,28 @@ function LocalBlockchain({
         return pendingTransaction;
       };
 
+      const safeWait = async (_options?: {
+        maxAttempts?: number;
+        interval?: number;
+      }): Promise<IncludedTransaction | RejectedTransaction> => {
+        if (status === 'rejected') {
+          return createRejectedTransaction(
+            pendingTransaction,
+            pendingTransaction.errors
+          );
+        }
+        return createIncludedTransaction(pendingTransaction);
+      };
+
       return {
         ...pendingTransaction,
         wait,
-        waitOrThrowIfError,
+        safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
-      // bad hack: run transaction just to see whether it creates proofs
-      // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
-      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
-      // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
-      let tx = createTransaction(sender, f, 0, {
+    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+      // TODO we run the transaction twice to match the behaviour of `Network.transaction`
+      let tx = await createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
         proofsEnabled: this.proofsEnabled,
         fetchMode: 'test',
@@ -313,7 +315,7 @@ function LocalBlockchain({
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, 1, {
+      return await createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
         proofsEnabled: this.proofsEnabled,
       });

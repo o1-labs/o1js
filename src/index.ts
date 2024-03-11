@@ -110,8 +110,7 @@ export { MerkleMap, MerkleMapWitness } from './lib/merkle-map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 
-import { ExperimentalZkProgram, ZkProgram } from './lib/proof-system.js';
-export { ZkProgram };
+export { ZkProgram } from './lib/proof-system.js';
 
 export { Crypto } from './lib/crypto.js';
 
@@ -132,10 +131,6 @@ const Experimental_ = {
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
 namespace Experimental {
-  /** @deprecated `ZkProgram` has moved out of the Experimental namespace and is now directly available as a top-level import `ZkProgram`.
-   * The old `Experimental.ZkProgram` API has been deprecated in favor of the new `ZkProgram` top-level import.
-   */
-  export let ZkProgram = ExperimentalZkProgram;
   export let memoizeWitness = Experimental_.memoizeWitness;
 }
 
