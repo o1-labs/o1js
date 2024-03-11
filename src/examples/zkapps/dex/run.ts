@@ -1,26 +1,14 @@
-import {
-  isReady,
-  Mina,
-  AccountUpdate,
-  UInt64,
-  shutdown,
-  Permissions,
-  TokenId,
-} from 'o1js';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
+import { AccountUpdate, Mina, Permissions, TokenId, UInt64 } from 'o1js';
+import { getProfiler } from '../../utils/profiler.js';
+import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
-import { getProfiler } from '../../profiler.js';
-
-await isReady;
 let proofsEnabled = false;
-
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
-let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
   Local.testAccounts;
 let tx, balances, oldBalances;
@@ -88,12 +76,14 @@ async function main({ withVesting }: { withVesting: boolean }) {
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
-    // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
-    let feePayerUpdate = AccountUpdate.fundNewAccount(feePayerAddress, 2);
-    feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
-    feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
     tokenX.deploy();
     tokenY.deploy();
+
+    // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
+    let feePayerUpdate = AccountUpdate.fundNewAccount(feePayerAddress, 2);
+    feePayerUpdate.send({ to: tokenX.self, amount: accountFee.mul(2) });
+    feePayerUpdate.send({ to: tokenY.self, amount: accountFee.mul(2) });
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.tokenX, keys.tokenY]);
@@ -111,9 +101,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
     dexTokenHolderX.deploy();
-    tokenX.approveUpdate(dexTokenHolderX.self);
+    tokenX.approveAccountUpdate(dexTokenHolderX.self);
     dexTokenHolderY.deploy();
-    tokenY.approveUpdate(dexTokenHolderY.self);
+    tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);
@@ -121,7 +111,10 @@ async function main({ withVesting }: { withVesting: boolean }) {
 
   console.log('transfer tokens to user');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee.mul(1) },
+    {
+      sender: feePayerAddress,
+      fee: Mina.getNetworkConstants().accountCreationFee.mul(1),
+    },
     () => {
       let feePayer = AccountUpdate.fundNewAccount(feePayerAddress, 4);
       feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
@@ -144,7 +137,10 @@ async function main({ withVesting }: { withVesting: boolean }) {
   // supply the initial liquidity where the token ratio can be arbitrary
   console.log('supply liquidity -- base');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee },
+    {
+      sender: feePayerAddress,
+      fee: Mina.getNetworkConstants().accountCreationFee,
+    },
     () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
       dex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));
@@ -241,7 +237,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
         (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
     );
   } else {
-    await expect(tx.send()).rejects.toThrow(/Update_not_permitted_timing/);
+    await expect(tx.sendOrThrowIfError()).rejects.toThrow(
+      /Update_not_permitted_timing/
+    );
   }
 
   /**
@@ -256,14 +254,14 @@ async function main({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   tx.sign([keys.user2]);
-  await expect(tx.send()).rejects.toThrow(/Overflow/);
+  await expect(tx.sendOrThrowIfError()).rejects.toThrow(/Overflow/);
   console.log('supplying with insufficient tokens (should fail)');
   tx = await Mina.transaction(addresses.user, () => {
     dex.supplyLiquidityBase(UInt64.from(1e9), UInt64.from(1e9));
   });
   await tx.prove();
   tx.sign([keys.user]);
-  await expect(tx.send()).rejects.toThrow(/Overflow/);
+  await expect(tx.sendOrThrowIfError()).rejects.toThrow(/Overflow/);
 
   /**
    * - Resulting operation will overflow the SC’s receiving token by type or by any other applicable limits;
@@ -282,7 +280,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     );
   });
   await tx.prove();
-  await tx.sign([feePayerKey, keys.tokenY]).send();
+  await tx.sign([feePayerKey, keys.tokenY]).sendOrThrowIfError();
   console.log('supply overflowing liquidity');
   await expect(async () => {
     tx = await Mina.transaction(addresses.tokenX, () => {
@@ -293,7 +291,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     });
     await tx.prove();
     tx.sign([keys.tokenX]);
-    await tx.send();
+    await tx.sendOrThrowIfError();
   }).rejects.toThrow();
 
   /**
@@ -320,7 +318,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     dex.supplyLiquidity(UInt64.from(10));
   });
   await tx.prove();
-  await expect(tx.sign([keys.tokenX]).send()).rejects.toThrow(
+  await expect(tx.sign([keys.tokenX]).sendOrThrowIfError()).rejects.toThrow(
     /Update_not_permitted_balance/
   );
 
@@ -347,7 +345,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     });
     await tx.prove();
     tx.sign([keys.user]);
-    await expect(tx.send()).rejects.toThrow(/Source_minimum_balance_violation/);
+    await expect(tx.sendOrThrowIfError()).rejects.toThrow(
+      /Source_minimum_balance_violation/
+    );
 
     // another slot => now it should work
     Local.incrementGlobalSlot(1);
@@ -371,6 +371,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   tx.sign([keys.user]);
+
   await tx.send();
   [oldBalances, balances] = [balances, getTokenBalances()];
   console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
@@ -448,21 +449,21 @@ async function main({ withVesting }: { withVesting: boolean }) {
   );
   tx = await Mina.transaction(addresses.user2, () => {
     AccountUpdate.createSigned(addresses.user2).balance.subInPlace(
-      accountFee.mul(2)
+      Mina.getNetworkConstants().accountCreationFee.mul(2)
     );
     dex.redeemLiquidity(UInt64.from(USER_DL));
     dex.redeemLiquidity(UInt64.from(USER_DL));
   });
   await tx.prove();
   tx.sign([keys.user, keys.user2]);
-  await expect(tx.send()).rejects.toThrow(
+  await expect(tx.sendOrThrowIfError()).rejects.toThrow(
     /Account_balance_precondition_unsatisfied/
   );
 
   console.log('user2 redeem liquidity');
   tx = await Mina.transaction(addresses.user2, () => {
     AccountUpdate.createSigned(addresses.user2).balance.subInPlace(
-      accountFee.mul(2)
+      Mina.getNetworkConstants().accountCreationFee.mul(2)
     );
     dex.redeemLiquidity(UInt64.from(USER_DL));
   });
@@ -490,7 +491,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     dex.redeemLiquidity(UInt64.from(1n));
   });
   await tx.prove();
-  await expect(tx.sign([keys.user2]).send()).rejects.toThrow(/Overflow/);
+  await expect(tx.sign([keys.user2]).sendOrThrowIfError()).rejects.toThrow(
+    /Overflow/
+  );
   [oldBalances, balances] = [balances, getTokenBalances()];
 
   /**
@@ -536,5 +539,3 @@ async function main({ withVesting }: { withVesting: boolean }) {
 
   DexProfiler.stop().store();
 }
-
-shutdown();

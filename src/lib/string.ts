@@ -1,7 +1,8 @@
 import { Bool, Field } from '../lib/core.js';
-import { arrayProp, CircuitValue, prop } from './circuit_value.js';
+import { arrayProp, CircuitValue, prop } from './circuit-value.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './hash.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 export { Character, CircuitString };
 
@@ -31,7 +32,7 @@ class Character extends CircuitValue {
   // TODO: Add support for more character sets
   // right now it's 16 bits because 8 not supported :/
   static check(c: Character) {
-    c.value.rangeCheckHelper(16).assertEquals(c.value);
+    Gadgets.rangeCheckN(16, c.value);
   }
 }
 
@@ -101,7 +102,7 @@ class CircuitString extends CircuitValue {
         .slice(0, length)
         .concat(otherChars.slice(0, n - length));
     }
-    // compute the actual result, by always picking the char which correponds to the actual length
+    // compute the actual result, by always picking the char which corresponds to the actual length
     let result: Character[] = [];
     let mask = this.lengthMask();
     for (let i = 0; i < n; i++) {

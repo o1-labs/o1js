@@ -1,4 +1,4 @@
-name: Test o1js against real network
+name: Test o1js against the real network
 on:
   push:
     branches:
@@ -14,12 +14,12 @@ on:
 
 jobs:
   main-branch:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:rampup-latest-lightnet
+        image: o1labs/mina-local-network:o1js-main-latest-lightnet
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
@@ -28,18 +28,19 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
+          - 8282:8282
         volumes:
           - /tmp:/root/logs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
-          mina-branch-name: rampup
+          mina-branch-name: o1js-main
 
   berkeley-branch:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/berkeley' || (github.event_name == 'pull_request' && github.base_ref == 'berkeley')
     services:
@@ -53,18 +54,19 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
+          - 8282:8282
         volumes:
           - /tmp:/root/logs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
           mina-branch-name: berkeley
 
   develop-branch:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
     services:
@@ -78,11 +80,12 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
+          - 8282:8282
         volumes:
           - /tmp:/root/logs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

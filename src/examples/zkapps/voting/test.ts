@@ -7,19 +7,19 @@ import {
   UInt32,
   Permissions,
 } from 'o1js';
-import { deployContracts, deployInvalidContracts } from './deployContracts.js';
-import { DummyContract } from './dummyContract.js';
+import { deployContracts, deployInvalidContracts } from './deploy-contracts.js';
+import { DummyContract } from './dummy-contract.js';
 import { VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { Membership_ } from './membership.js';
-import { OffchainStorage } from './off_chain_storage.js';
+import { OffchainStorage } from './off-chain-storage.js';
 import { Voting_ } from './voting.js';
 import {
   assertValidTx,
   getResults,
   registerMember,
   vote,
-} from './voting_lib.js';
+} from './voting-lib.js';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;

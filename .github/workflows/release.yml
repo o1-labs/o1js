@@ -1,0 +1,81 @@
+# Purpose:
+# Automatically bumps the project's patch version bi-weekly on Tuesdays.
+#
+# Details:
+# - Triggered at 00:00 UTC every Tuesday; runs on even weeks of the year.
+# - Sets up the environment by checking out the repo and setting up Node.js.
+# - Bumps patch version using `npm version patch`, then creates a new branch 'release/x.x.x'.
+# - Pushes changes and creates a PR to `main` using GitHub CLI.
+# - Can also be triggered manually via `workflow_dispatch`.
+name: Version Bump
+
+on:
+  workflow_dispatch: # Allow to manually trigger the workflow
+  schedule:
+    - cron: '0 0 * * 2' # At 00:00 UTC every Tuesday
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Since cronjob syntax doesn't support bi-weekly schedule, we need to check if it's an even week or not
+      - name: Check if it's an even week
+        run: |
+          WEEK_NUM=$(date +'%V')
+          if [ $((WEEK_NUM % 2)) -ne 0 ]; then
+            echo "Odd week number ($WEEK_NUM), terminating job."
+            exit 1
+          fi
+
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Bump patch version
+        run: |
+          git fetch --prune --unshallow --tags --force
+          NEW_VERSION=$(npm version patch)
+          echo "New version: $NEW_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Update CHANGELOG.md
+        run: |
+          npm run update-changelog
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG for new version $NEW_VERSION"
+
+      - name: Delete existing release tag
+        run: |
+          if git rev-parse $NEW_VERSION >/dev/null 2>&1; then
+            git tag -d $NEW_VERSION
+            git push origin :refs/tags/$NEW_VERSION
+          fi
+
+      - name: Delete existing release branch
+        run: |
+          if git ls-remote --heads origin release/${NEW_VERSION} | grep release/${NEW_VERSION}; then
+            git push origin --delete release/${NEW_VERSION}
+          fi
+
+      - name: Create new release branch
+        run: |
+          NEW_BRANCH="release/${NEW_VERSION}"
+          git checkout -b $NEW_BRANCH
+          git push -u origin $NEW_BRANCH
+          git push --tags
+          gh pr create --base main --head $NEW_BRANCH --title "Release $NEW_VERSION" --body "This is an automated PR to update to version $NEW_VERSION"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}

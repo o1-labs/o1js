@@ -1,5 +1,5 @@
 import { Bool, Field } from './core.js';
-import { maybeSwap, maybeSwapBad } from './merkle_tree.js';
+import { maybeSwap, maybeSwapBad } from './merkle-tree.js';
 import { Random, test } from './testing/property.js';
 import { expect } from 'expect';
 

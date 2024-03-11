@@ -2,7 +2,7 @@ import { Ledger, Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
 import { Field, Bool } from '../core.js';
 import { PrivateKey, PublicKey } from '../signature.js';
-import { TokenId, dummySignature } from '../account_update.js';
+import { TokenId, dummySignature } from '../account-update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
 import { FieldConst } from '../field.js';

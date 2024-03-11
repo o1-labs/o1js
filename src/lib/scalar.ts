@@ -88,7 +88,7 @@ class Scalar {
    * Convert this {@link Scalar} into a bigint
    */
   toBigInt() {
-    return this.#assertConstant('toBigInt');
+    return assertConstant(this, 'toBigInt');
   }
 
   // TODO: fix this API. we should represent "shifted status" internally and use
@@ -112,17 +112,13 @@ class Scalar {
 
   // operations on constant scalars
 
-  #assertConstant(name: string) {
-    return constantScalarToBigint(this, `Scalar.${name}`);
-  }
-
   /**
    * Negate a scalar field element.
    *
    * **Warning**: This method is not available for provable code.
    */
   neg() {
-    let x = this.#assertConstant('neg');
+    let x = assertConstant(this, 'neg');
     let z = Fq.negate(x);
     return Scalar.from(z);
   }
@@ -133,8 +129,8 @@ class Scalar {
    * **Warning**: This method is not available for provable code.
    */
   add(y: Scalar) {
-    let x = this.#assertConstant('add');
-    let y0 = y.#assertConstant('add');
+    let x = assertConstant(this, 'add');
+    let y0 = assertConstant(y, 'add');
     let z = Fq.add(x, y0);
     return Scalar.from(z);
   }
@@ -145,8 +141,8 @@ class Scalar {
    * **Warning**: This method is not available for provable code.
    */
   sub(y: Scalar) {
-    let x = this.#assertConstant('sub');
-    let y0 = y.#assertConstant('sub');
+    let x = assertConstant(this, 'sub');
+    let y0 = assertConstant(y, 'sub');
     let z = Fq.sub(x, y0);
     return Scalar.from(z);
   }
@@ -157,8 +153,8 @@ class Scalar {
    * **Warning**: This method is not available for provable code.
    */
   mul(y: Scalar) {
-    let x = this.#assertConstant('mul');
-    let y0 = y.#assertConstant('mul');
+    let x = assertConstant(this, 'mul');
+    let y0 = assertConstant(y, 'mul');
     let z = Fq.mul(x, y0);
     return Scalar.from(z);
   }
@@ -170,8 +166,8 @@ class Scalar {
    * **Warning**: This method is not available for provable code.
    */
   div(y: Scalar) {
-    let x = this.#assertConstant('div');
-    let y0 = y.#assertConstant('div');
+    let x = assertConstant(this, 'div');
+    let y0 = assertConstant(y, 'div');
     let z = Fq.div(x, y0);
     if (z === undefined) throw Error('Scalar.div(): Division by zero');
     return Scalar.from(z);
@@ -179,11 +175,11 @@ class Scalar {
 
   // TODO don't leak 'shifting' to the user and remove these methods
   shift() {
-    let x = this.#assertConstant('shift');
+    let x = assertConstant(this, 'shift');
     return Scalar.from(shift(x));
   }
   unshift() {
-    let x = this.#assertConstant('unshift');
+    let x = assertConstant(this, 'unshift');
     return Scalar.from(unshift(x));
   }
 
@@ -196,7 +192,7 @@ class Scalar {
    * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
    */
   toFieldsCompressed(): { field: Field; highBit: Bool } {
-    let s = this.#assertConstant('toFieldsCompressed');
+    let s = assertConstant(this, 'toFieldsCompressed');
     let lowBitSize = BigInt(Fq.sizeInBits - 1);
     let lowBitMask = (1n << lowBitSize) - 1n;
     return {
@@ -235,6 +231,20 @@ class Scalar {
    */
   toFields(): Field[] {
     return Scalar.toFields(this);
+  }
+
+  /**
+   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   *
+   * This function is the implementation of `ProvableExtended.toInput()` for the {@link Scalar} type.
+   *
+   * @param value - The {@link Scalar} element to get the `input` array.
+   *
+   * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
+   *
+   */
+  static toInput(x: Scalar): { packed: [Field, number][] } {
+    return { packed: Scalar.toFields(x).map((f) => [f, 1]) };
   }
 
   /**
@@ -292,7 +302,7 @@ class Scalar {
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static toJSON(x: Scalar) {
-    let s = x.#assertConstant('toJSON');
+    let s = assertConstant(x, 'toJSON');
     return s.toString();
   }
 
@@ -310,6 +320,12 @@ class Scalar {
   static fromJSON(x: string) {
     return Scalar.from(Fq.fromJSON(x));
   }
+}
+
+// internal helpers
+
+function assertConstant(x: Scalar, name: string) {
+  return constantScalarToBigint(x, `Scalar.${name}`);
 }
 
 function toConstantScalar([, ...bits]: MlArray<BoolVar>): Fq | undefined {

@@ -12,6 +12,7 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
+  TransactionVersion,
 } from 'o1js';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -74,7 +75,10 @@ export class Membership_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
-      setVerificationKey: Permissions.proofOrSignature(),
+      setVerificationKey: {
+        auth: Permissions.proofOrSignature(),
+        txnVersion: TransactionVersion.current(),
+      },
       incrementNonce: Permissions.proofOrSignature(),
     });
   }
@@ -94,7 +98,7 @@ export class Membership_ extends SmartContract {
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
 
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
 
@@ -110,7 +114,7 @@ export class Membership_ extends SmartContract {
     );
 
     let accumulatedMembers = this.accumulatedMembers.get();
-    this.accumulatedMembers.assertEquals(accumulatedMembers);
+    this.accumulatedMembers.requireEquals(accumulatedMembers);
 
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
@@ -148,7 +152,7 @@ export class Membership_ extends SmartContract {
     // Preconditions: Item exists in committed storage
 
     let committedMembers = this.committedMembers.get();
-    this.committedMembers.assertEquals(committedMembers);
+    this.committedMembers.requireEquals(committedMembers);
 
     return member.witness
       .calculateRootSlow(member.getHash())
@@ -162,10 +166,10 @@ export class Membership_ extends SmartContract {
     // Commit to the items accumulated so far. This is a periodic update
 
     let accumulatedMembers = this.accumulatedMembers.get();
-    this.accumulatedMembers.assertEquals(accumulatedMembers);
+    this.accumulatedMembers.requireEquals(accumulatedMembers);
 
     let committedMembers = this.committedMembers.get();
-    this.committedMembers.assertEquals(committedMembers);
+    this.committedMembers.requireEquals(committedMembers);
 
     let pendingActions = this.reducer.getActions({
       fromActionState: accumulatedMembers,
