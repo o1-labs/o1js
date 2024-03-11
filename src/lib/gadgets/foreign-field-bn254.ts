@@ -25,7 +25,7 @@ import {
 } from './range-check.js';
 
 // external API
-export { ForeignFieldBn254, Field3 };
+export { ForeignFieldBn254, Field3Bn254 };
 
 // internal API
 export { bigint3, Sign, split, combine, weakBound, Sum, assertMul };
@@ -33,22 +33,22 @@ export { bigint3, Sign, split, combine, weakBound, Sum, assertMul };
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
  */
-type Field3 = [FieldBn254, FieldBn254, FieldBn254];
+type Field3Bn254 = [FieldBn254, FieldBn254, FieldBn254];
 type bigint3 = [bigint, bigint, bigint];
 type Sign = -1n | 1n;
 
 const ForeignFieldBn254 = {
-  add(x: Field3, y: Field3, f: bigint) {
+  add(x: Field3Bn254, y: Field3Bn254, f: bigint) {
     return sum([x, y], [1n], f);
   },
-  sub(x: Field3, y: Field3, f: bigint) {
+  sub(x: Field3Bn254, y: Field3Bn254, f: bigint) {
     return sum([x, y], [-1n], f);
   },
-  negate(x: Field3, f: bigint) {
-    return sum([Field3.from(0n), x], [-1n], f);
+  negate(x: Field3Bn254, f: bigint) {
+    return sum([Field3Bn254.from(0n), x], [-1n], f);
   },
   sum,
-  Sum(x: Field3) {
+  Sum(x: Field3Bn254) {
     return new Sum(x);
   },
 
@@ -59,12 +59,12 @@ const ForeignFieldBn254 = {
 
   assertAlmostReduced,
 
-  assertLessThan(x: Field3, f: bigint) {
+  assertLessThan(x: Field3Bn254, f: bigint) {
     assert(f > 0n, 'assertLessThan: upper bound must be positive');
 
     // constant case
-    if (Field3.isConstant(x)) {
-      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
+    if (Field3Bn254.isConstant(x)) {
+      assert(Field3Bn254.toBigint(x) < f, 'assertLessThan: got x >= f');
       return;
     }
     // provable case
@@ -82,14 +82,14 @@ const ForeignFieldBn254 = {
  *
  * assumes that inputs are range checked, does range check on the result.
  */
-function sum(x: Field3[], sign: Sign[], f: bigint) {
+function sum(x: Field3Bn254[], sign: Sign[], f: bigint) {
   assert(x.length === sign.length + 1, 'inputs and operators match');
 
   // constant case
-  if (x.every(Field3.isConstant)) {
-    let xBig = x.map(Field3.toBigint);
+  if (x.every(Field3Bn254.isConstant)) {
+    let xBig = x.map(Field3Bn254.toBigint);
     let sum = sign.reduce((sum, s, i) => sum + s * xBig[i + 1], xBig[0]);
-    return Field3.from(mod(sum, f));
+    return Field3Bn254.from(mod(sum, f));
   }
   // provable case - create chain of ffadd rows
   x = x.map(toVars);
@@ -114,7 +114,7 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
  *
  * the second row could, for example, be `zero`, `foreignFieldMul`, or another `foreignFieldAdd`.
  */
-function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
+function singleAdd(x: Field3Bn254, y: Field3Bn254, sign: Sign, f: bigint) {
   let f_ = split(f);
 
   let [r0, r1, r2, overflow, carry] = exists(5, () => {
@@ -141,16 +141,16 @@ function singleAdd(x: Field3, y: Field3, sign: Sign, f: bigint) {
 
   foreignFieldAdd({ left: x, right: y, overflow, carry, modulus: f_, sign });
 
-  return { result: [r0, r1, r2] satisfies Field3, overflow };
+  return { result: [r0, r1, r2] satisfies Field3Bn254, overflow };
 }
 
-function multiply(a: Field3, b: Field3, f: bigint): Field3 {
+function multiply(a: Field3Bn254, b: Field3Bn254, f: bigint): Field3Bn254 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (Field3.isConstant(a) && Field3.isConstant(b)) {
-    let ab = Field3.toBigint(a) * Field3.toBigint(b);
-    return Field3.from(mod(ab, f));
+  if (Field3Bn254.isConstant(a) && Field3Bn254.isConstant(b)) {
+    let ab = Field3Bn254.toBigint(a) * Field3Bn254.toBigint(b);
+    return Field3Bn254.from(mod(ab, f));
   }
 
   // provable case
@@ -162,19 +162,19 @@ function multiply(a: Field3, b: Field3, f: bigint): Field3 {
   return r;
 }
 
-function inverse(x: Field3, f: bigint): Field3 {
+function inverse(x: Field3Bn254, f: bigint): Field3Bn254 {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (Field3.isConstant(x)) {
-    let xInv = modInverse(Field3.toBigint(x), f);
+  if (Field3Bn254.isConstant(x)) {
+    let xInv = modInverse(Field3Bn254.toBigint(x), f);
     assert(xInv !== undefined, 'inverse exists');
-    return Field3.from(xInv);
+    return Field3Bn254.from(xInv);
   }
 
   // provable case
   let xInv = exists(3, () => {
-    let xInv = modInverse(Field3.toBigint(x), f);
+    let xInv = modInverse(Field3Bn254.toBigint(x), f);
     return xInv === undefined ? [0n, 0n, 0n] : split(xInv);
   });
   multiRangeCheck(xInv);
@@ -192,26 +192,26 @@ function inverse(x: Field3, f: bigint): Field3 {
 }
 
 function divide(
-  x: Field3,
-  y: Field3,
+  x: Field3Bn254,
+  y: Field3Bn254,
   f: bigint,
   { allowZeroOverZero = false } = {}
 ) {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
-  if (Field3.isConstant(x) && Field3.isConstant(y)) {
-    let yInv = modInverse(Field3.toBigint(y), f);
+  if (Field3Bn254.isConstant(x) && Field3Bn254.isConstant(y)) {
+    let yInv = modInverse(Field3Bn254.toBigint(y), f);
     assert(yInv !== undefined, 'inverse exists');
-    return Field3.from(mod(Field3.toBigint(x) * yInv, f));
+    return Field3Bn254.from(mod(Field3Bn254.toBigint(x) * yInv, f));
   }
 
   // provable case
   // to show that z = x/y, we prove that z*y = x and y != 0 (the latter avoids the unconstrained 0/0 case)
   let z = exists(3, () => {
-    let yInv = modInverse(Field3.toBigint(y), f);
+    let yInv = modInverse(Field3Bn254.toBigint(y), f);
     if (yInv === undefined) return [0n, 0n, 0n];
-    return split(mod(Field3.toBigint(x) * yInv, f));
+    return split(mod(Field3Bn254.toBigint(x) * yInv, f));
   });
   multiRangeCheck(z);
   let z2Bound = weakBound(z[2], f);
@@ -230,9 +230,9 @@ function divide(
  * Common logic for gadgets that expect a certain multiplication result a priori, instead of just using the remainder.
  */
 function assertMulInternal(
-  x: Field3,
-  y: Field3,
-  xy: Field3 | Field2,
+  x: Field3Bn254,
+  y: Field3Bn254,
+  xy: Field3Bn254 | Field2,
   f: bigint,
   message?: string
 ) {
@@ -256,7 +256,7 @@ function assertMulInternal(
 /**
  * Core building block for all gadgets using foreign field multiplication.
  */
-function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
+function multiplyNoRangeCheck(a: Field3Bn254, b: Field3Bn254, f: bigint) {
   // notation follows https://github.com/o1-labs/rfcs/blob/main/0006-ffmul-revised.md
   let f_ = (1n << l3) - f;
   let [f_0, f_1, f_2] = split(f_);
@@ -330,7 +330,7 @@ function multiplyNoRangeCheck(a: Field3, b: Field3, f: bigint) {
     c1_84, c1_86, c1_88, c1_90,
   ] = witnesses;
 
-  let q: Field3 = [q0, q1, q2];
+  let q: Field3Bn254 = [q0, q1, q2];
 
   // ffmul gate. this already adds the following zero row.
   GatesBn254.foreignFieldMul({
@@ -371,7 +371,7 @@ function weakBound(x: FieldBn254, f: bigint) {
  * Apply range checks and weak bounds checks to a list of Field3s.
  * Optimal if the list length is a multiple of 3.
  */
-function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
+function assertAlmostReduced(xs: Field3Bn254[], f: bigint, skipMrc = false) {
   let bounds: FieldBn254[] = [];
 
   for (let x of xs) {
@@ -398,12 +398,12 @@ function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
  *
  * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
  */
-function equals(x: Field3, c: bigint, f: bigint) {
+function equals(x: Field3Bn254, c: bigint, f: bigint) {
   assert(c >= 0n && c < f, 'equals: c must be in [0, f)');
 
   // constant case
-  if (Field3.isConstant(x)) {
-    return new BoolBn254(mod(Field3.toBigint(x), f) === c);
+  if (Field3Bn254.isConstant(x)) {
+    return new BoolBn254(mod(Field3Bn254.toBigint(x), f) === c);
   }
 
   // provable case
@@ -434,37 +434,37 @@ const provableLimb = modifiedField({
   },
 });
 
-const Field3 = {
+const Field3Bn254 = {
   /**
    * Turn a bigint into a 3-tuple of Fields
    */
-  from(x: bigint): Field3 {
+  from(x: bigint): Field3Bn254 {
     return Tuple.map(split(x), FieldBn254.from);
   },
 
   /**
    * Turn a 3-tuple of Fields into a bigint
    */
-  toBigint(x: Field3): bigint {
+  toBigint(x: Field3Bn254): bigint {
     return combine(toBigint3(x));
   },
 
   /**
    * Turn several 3-tuples of Fields into bigints
    */
-  toBigints<T extends Tuple<Field3>>(...xs: T) {
-    return Tuple.map(xs, Field3.toBigint);
+  toBigints<T extends Tuple<Field3Bn254>>(...xs: T) {
+    return Tuple.map(xs, Field3Bn254.toBigint);
   },
 
   /**
    * Check whether a 3-tuple of Fields is constant
    */
-  isConstant(x: Field3) {
+  isConstant(x: Field3Bn254) {
     return x.every((x) => x.isConstant());
   },
 
   /**
-   * `Provable<T>` interface for `Field3 = [FieldBn254, FieldBn254, FieldBn254]`.
+   * `Provable<T>` interface for `Field3Bn254 = [FieldBn254, FieldBn254, FieldBn254]`.
    *
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
    * range checks.
@@ -479,7 +479,7 @@ const Field2 = {
   },
 };
 
-function toBigint3(x: Field3): bigint3 {
+function toBigint3(x: Field3Bn254): bigint3 {
   return Tuple.map(x, (x) => x.toBigInt());
 }
 
@@ -511,9 +511,9 @@ function split2(x: bigint): [bigint, bigint] {
  * However, all extra checks that are needed on the _sums_ are handled here.
  */
 function assertMul(
-  x: Field3 | Sum,
-  y: Field3 | Sum,
-  xy: Field3 | Sum,
+  x: Field3Bn254 | Sum,
+  y: Field3Bn254 | Sum,
+  xy: Field3Bn254 | Sum,
   f: bigint,
   message?: string
 ) {
@@ -539,13 +539,13 @@ function assertMul(
 
   // constant case
   if (
-    Field3.isConstant(x0) &&
-    Field3.isConstant(y0) &&
-    Field3.isConstant(xy0)
+    Field3Bn254.isConstant(x0) &&
+    Field3Bn254.isConstant(y0) &&
+    Field3Bn254.isConstant(xy0)
   ) {
-    let x_ = Field3.toBigint(x0);
-    let y_ = Field3.toBigint(y0);
-    let xy_ = Field3.toBigint(xy0);
+    let x_ = Field3Bn254.toBigint(x0);
+    let y_ = Field3Bn254.toBigint(y0);
+    let xy_ = Field3Bn254.toBigint(xy0);
     assert(
       mod(x_ * y_, f) === xy_,
       message ?? 'assertMul(): incorrect multiplication result'
@@ -557,11 +557,11 @@ function assertMul(
 }
 
 class Sum {
-  #result?: Field3;
-  #summands: Field3[];
+  #result?: Field3Bn254;
+  #summands: Field3Bn254[];
   #ops: Sign[] = [];
 
-  constructor(x: Field3) {
+  constructor(x: Field3Bn254) {
     this.#summands = [x];
   }
 
@@ -574,27 +574,27 @@ class Sum {
     return this.#summands.length;
   }
 
-  add(y: Field3) {
+  add(y: Field3Bn254) {
     assert(this.#result === undefined, 'sum already finished');
     this.#ops.push(1n);
     this.#summands.push(y);
     return this;
   }
 
-  sub(y: Field3) {
+  sub(y: Field3Bn254) {
     assert(this.#result === undefined, 'sum already finished');
     this.#ops.push(-1n);
     this.#summands.push(y);
     return this;
   }
 
-  #return(x: Field3) {
+  #return(x: Field3Bn254) {
     this.#result = x;
     return x;
   }
 
   isConstant() {
-    return this.#summands.every(Field3.isConstant);
+    return this.#summands.every(Field3Bn254.isConstant);
   }
 
   finish(f: bigint, isChained = false) {
@@ -646,7 +646,7 @@ class Sum {
     let x0 = xs[0][0];
     let x0s: FieldBn254[] = [];
     let overflows: FieldBn254[] = [];
-    let xRef = Unconstrained.witness(() => Field3.toBigint(xs[0]));
+    let xRef = Unconstrained.witness(() => Field3Bn254.toBigint(xs[0]));
 
     // this loop mirrors the computation that a chain of ffadd gates does,
     // but everything is done only on the lowest limb and using generic gates.
@@ -708,7 +708,7 @@ class Sum {
     if (this.#ops.length > 0) multiRangeCheck(this.#result);
   }
 
-  static fromUnfinished(x: Field3 | Sum) {
+  static fromUnfinished(x: Field3Bn254 | Sum) {
     if (x instanceof Sum) {
       assert(x.#result === undefined, 'sum already finished');
       return x;

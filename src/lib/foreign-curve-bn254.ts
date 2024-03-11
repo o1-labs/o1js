@@ -6,7 +6,7 @@ import {
 import { ProvablePureExtended } from './circuit-value.js';
 import { AlmostForeignFieldBn254, ForeignFieldBn254, createForeignFieldBn254 } from './foreign-field-bn254.js';
 import { EllipticCurveBn254, PointBn254 } from './gadgets/elliptic-curve-bn254.js';
-import { Field3 } from './gadgets/foreign-field-bn254.js';
+import { Field3Bn254 } from './gadgets/foreign-field-bn254.js';
 import { assert } from './gadgets/common-bn254.js';
 import { ProvableBn254 } from './provable-bn254.js';
 import { provableFromClass } from '../bindings/lib/provable-snarky.js';
@@ -19,8 +19,8 @@ export { createForeignCurveBn254, ForeignCurveBn254 };
 export { toPoint, FlexiblePoint };
 
 type FlexiblePoint = {
-  x: AlmostForeignFieldBn254 | Field3 | bigint | number;
-  y: AlmostForeignFieldBn254 | Field3 | bigint | number;
+  x: AlmostForeignFieldBn254 | Field3Bn254 | bigint | number;
+  y: AlmostForeignFieldBn254 | Field3Bn254 | bigint | number;
 };
 function toPoint({ x, y }: ForeignCurveBn254): PointBn254 {
   return { x: x.value, y: y.value };
@@ -43,8 +43,8 @@ class ForeignCurveBn254 {
    * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
    */
   constructor(g: {
-    x: AlmostForeignFieldBn254 | Field3 | bigint | number;
-    y: AlmostForeignFieldBn254 | Field3 | bigint | number;
+    x: AlmostForeignFieldBn254 | Field3Bn254 | bigint | number;
+    y: AlmostForeignFieldBn254 | Field3Bn254 | bigint | number;
   }) {
     this.x = new this.Constructor.Field(g.x);
     this.y = new this.Constructor.Field(g.y);

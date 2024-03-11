@@ -22,7 +22,7 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { FieldBn254 } from '../core-bn254.js';
-import { ForeignFieldBn254, Field3, Sum } from './foreign-field-bn254.js';
+import { ForeignFieldBn254, Field3Bn254, Sum } from './foreign-field-bn254.js';
 import { divMod32, addMod32 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
 
@@ -456,7 +456,7 @@ const GadgetsBn254 = {
    *
    * @throws Throws an error if one of the input values exceeds 88 bits.
    */
-  multiRangeCheck(limbs: Field3) {
+  multiRangeCheck(limbs: Field3Bn254) {
     multiRangeCheck(limbs);
   },
 
@@ -510,8 +510,8 @@ const GadgetsBn254 = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(9n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(10n));
+     * let x = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(9n));
+     * let y = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(10n));
      *
      * // range check x and y
      * GadgetsBn254.multiRangeCheck(x);
@@ -532,7 +532,7 @@ const GadgetsBn254 = {
      * @param f modulus
      * @returns x + y mod f
      */
-    add(x: Field3, y: Field3, f: bigint) {
+    add(x: Field3Bn254, y: Field3Bn254, f: bigint) {
       return ForeignFieldBn254.add(x, y, f);
     },
 
@@ -543,7 +543,7 @@ const GadgetsBn254 = {
      *
      * @throws fails if `x - y < -f`, where the result cannot be brought back to a positive number by adding `f` once.
      */
-    sub(x: Field3, y: Field3, f: bigint) {
+    sub(x: Field3Bn254, y: Field3Bn254, f: bigint) {
       return ForeignFieldBn254.sub(x, y, f);
     },
 
@@ -554,7 +554,7 @@ const GadgetsBn254 = {
      *
      * @throws fails if `x > f`, where `f - x < 0`.
      */
-    neg(x: Field3, f: bigint) {
+    neg(x: Field3Bn254, f: bigint) {
       return ForeignFieldBn254.negate(x, f);
     },
 
@@ -572,9 +572,9 @@ const GadgetsBn254 = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
-     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     * let x = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(4n));
+     * let y = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(5n));
+     * let z = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(10n));
      *
      * // range check x, y, z
      * GadgetsBn254.multiRangeCheck(x);
@@ -587,7 +587,7 @@ const GadgetsBn254 = {
      * Provable.log(sum); // ['16', '0', '0'] = limb representation of 16 = 4 + 5 - 10 mod 17
      * ```
      */
-    sum(xs: Field3[], signs: (1n | -1n)[], f: bigint) {
+    sum(xs: Field3Bn254[], signs: (1n | -1n)[], f: bigint) {
       return ForeignFieldBn254.sum(xs, signs, f);
     },
 
@@ -612,8 +612,8 @@ const GadgetsBn254 = {
      * // example modulus: secp256k1 prime
      * let f = (1n << 256n) - (1n << 32n) - 0b1111010001n;
      *
-     * let x = Provable.witness(Field3.provable, () => Field3.from(f - 1n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
+     * let x = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(f - 1n));
+     * let y = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(f - 2n));
      *
      * // range check x, y and prove additional bounds x[2] <= f[2]
      * ForeignFieldBn254.assertAlmostReduced([x, y], f);
@@ -624,7 +624,7 @@ const GadgetsBn254 = {
      * Provable.log(z); // ['2', '0', '0'] = limb representation of 2 = (-1)*(-2) mod f
      * ```
      */
-    mul(x: Field3, y: Field3, f: bigint) {
+    mul(x: Field3Bn254, y: Field3Bn254, f: bigint) {
       return ForeignFieldBn254.mul(x, y, f);
     },
 
@@ -635,7 +635,7 @@ const GadgetsBn254 = {
      *
      * This gadget adds an extra bound check on the result, so it can be used directly in another foreign field multiplication.
      */
-    inv(x: Field3, f: bigint) {
+    inv(x: Field3Bn254, f: bigint) {
       return ForeignFieldBn254.inv(x, f);
     },
 
@@ -648,7 +648,7 @@ const GadgetsBn254 = {
      *
      * @throws Different than {@link GadgetsBn254.ForeignFieldBn254.mul}, this fails on unreduced input `x`, because it checks that `x === (x/y)*y` and the right side will be reduced.
      */
-    div(x: Field3, y: Field3, f: bigint) {
+    div(x: Field3Bn254, y: Field3Bn254, f: bigint) {
       return ForeignFieldBn254.div(x, y, f);
     },
 
@@ -659,7 +659,7 @@ const GadgetsBn254 = {
      * compute the multiplication inputs and outputs, and then using {@link GadgetsBn254.ForeignFieldBn254.mul} to constrain the result.
      *
      * The sums passed into this method are "lazy sums" created with {@link GadgetsBn254.ForeignFieldBn254.Sum}.
-     * You can also pass in plain {@link Field3} elements.
+     * You can also pass in plain {@link Field3Bn254} elements.
      *
      * **Assumptions**: The assumptions on the _summands_ are analogous to the assumptions described in {@link GadgetsBn254.ForeignFieldBn254.mul}:
      * - each summand's limbs are in the range [0, 2^88)
@@ -686,19 +686,19 @@ const GadgetsBn254 = {
      * ForeignFieldBn254.assertMul(xMinusY, z, aPlusBPlusC, f);
      * ```
      */
-    assertMul(x: Field3 | Sum, y: Field3 | Sum, z: Field3 | Sum, f: bigint) {
+    assertMul(x: Field3Bn254 | Sum, y: Field3Bn254 | Sum, z: Field3Bn254 | Sum, f: bigint) {
       return ForeignFieldBn254.assertMul(x, y, z, f);
     },
 
     /**
-     * Lazy sum of {@link Field3} elements, which can be used as input to {@link GadgetsBn254.ForeignFieldBn254.assertMul}.
+     * Lazy sum of {@link Field3Bn254} elements, which can be used as input to {@link GadgetsBn254.ForeignFieldBn254.assertMul}.
      */
-    Sum(x: Field3) {
+    Sum(x: Field3Bn254) {
       return ForeignFieldBn254.Sum(x);
     },
 
     /**
-     * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
+     * Prove that each of the given {@link Field3Bn254} elements is "almost" reduced modulo f,
      * i.e., satisfies the assumptions required by {@link GadgetsBn254.ForeignFieldBn254.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)
      * - the most significant limb is less or equal than the modulus, x[2] <= f[2]
@@ -709,9 +709,9 @@ const GadgetsBn254 = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
-     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     * let x = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(4n));
+     * let y = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(5n));
+     * let z = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(10n));
      *
      * ForeignFieldBn254.assertAlmostReduced([x, y, z], f);
      *
@@ -723,7 +723,7 @@ const GadgetsBn254 = {
      * ForeignFieldBn254.assertAlmostReduced([xy], f); // TODO: would be more efficient to batch this with 2 other elements
      * ```
      */
-    assertAlmostReduced(xs: Field3[], f: bigint, { skipMrc = false } = {}) {
+    assertAlmostReduced(xs: Field3Bn254[], f: bigint, { skipMrc = false } = {}) {
       ForeignFieldBn254.assertAlmostReduced(xs, f, skipMrc);
     },
 
@@ -741,7 +741,7 @@ const GadgetsBn254 = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(0x1235n));
+     * let x = Provable.witness(Field3Bn254.provable, () => Field3Bn254.from(0x1235n));
      *
      *  // range check limbs of x
      * GadgetsBn254.multiRangeCheck(x);
@@ -750,7 +750,7 @@ const GadgetsBn254 = {
      * GadgetsBn254.ForeignFieldBn254.assertLessThan(x, f);
      * ```
      */
-    assertLessThan(x: Field3, f: bigint) {
+    assertLessThan(x: Field3Bn254, f: bigint) {
       ForeignFieldBn254.assertLessThan(x, f);
     },
   },
@@ -760,7 +760,7 @@ const GadgetsBn254 = {
    *
    * **Note:** This interface does not contain any provable methods.
    */
-  Field3,
+  Field3Bn254,
   /**
    * Division modulo 2^32. The operation decomposes a {@link FieldBn254} element in the range [0, 2^64) into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
    *
@@ -823,11 +823,11 @@ export namespace GadgetsBn254 {
   /**
    * A 3-tuple of Fields, representing a 3-limb bigint.
    */
-  export type Field3 = [FieldBn254, FieldBn254, FieldBn254];
+  export type Field3Bn254 = [FieldBn254, FieldBn254, FieldBn254];
 
   export namespace ForeignFieldBn254 {
     /**
-     * Lazy sum of {@link Field3} elements, which can be used as input to {@link GadgetsBn254.ForeignFieldBn254.assertMul}.
+     * Lazy sum of {@link Field3Bn254} elements, which can be used as input to {@link GadgetsBn254.ForeignFieldBn254.assertMul}.
      */
     export type Sum = Sum_;
   }

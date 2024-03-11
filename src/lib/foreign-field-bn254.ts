@@ -9,7 +9,7 @@ import { FieldBn254 } from './field-bn254.js';
 import { ProvableBn254 } from './provable-bn254.js';
 import { BoolBn254 } from './bool-bn254.js';
 import { Tuple, TupleMap, TupleN } from './util/types.js';
-import { Field3 } from './gadgets/foreign-field-bn254.js';
+import { Field3Bn254 } from './gadgets/foreign-field-bn254.js';
 import { GadgetsBn254 } from './gadgets/gadgets-bn254.js';
 import { ForeignFieldBn254 as FF } from './gadgets/foreign-field-bn254.js';
 import { assert } from './gadgets/common-bn254.js';
@@ -48,7 +48,7 @@ class ForeignFieldBn254 {
   /**
    * The internal representation of a foreign field element, as a tuple of 3 limbs.
    */
-  value: Field3;
+  value: Field3Bn254;
 
   get Constructor() {
     return this.constructor as typeof ForeignFieldBn254;
@@ -94,19 +94,19 @@ class ForeignFieldBn254 {
    * let x = new ForeignFieldBn254(5);
    * ```
    */
-  constructor(x: ForeignFieldBn254 | Field3 | bigint | number | string) {
+  constructor(x: ForeignFieldBn254 | Field3Bn254 | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignFieldBn254) {
       this.value = x.value;
       return;
     }
-    // Field3
+    // Field3Bn254
     if (Array.isArray(x)) {
       this.value = x;
       return;
     }
     // constant
-    this.value = Field3.from(mod(BigInt(x), p));
+    this.value = Field3Bn254.from(mod(BigInt(x), p));
   }
 
   /**
@@ -125,7 +125,7 @@ class ForeignFieldBn254 {
    * See {@link FieldVar} to understand constants vs variables.
    */
   isConstant() {
-    return Field3.isConstant(this.value);
+    return Field3Bn254.isConstant(this.value);
   }
 
   /**
@@ -145,7 +145,7 @@ class ForeignFieldBn254 {
    * Convert this field element to a bigint.
    */
   toBigInt() {
-    return Field3.toBigint(this.value);
+    return Field3Bn254.toBigint(this.value);
   }
 
   /**
@@ -470,7 +470,7 @@ class UnreducedForeignFieldBn254 extends ForeignFieldBn254 {
 class AlmostForeignFieldBn254 extends ForeignFieldBn254WithMul {
   type: 'AlmostReduced' | 'FullyReduced' = 'AlmostReduced';
 
-  constructor(x: AlmostForeignFieldBn254 | Field3 | bigint | number | string) {
+  constructor(x: AlmostForeignFieldBn254 | Field3Bn254 | bigint | number | string) {
     super(x);
   }
 
@@ -512,7 +512,7 @@ class AlmostForeignFieldBn254 extends ForeignFieldBn254WithMul {
 class CanonicalForeignFieldBn254 extends ForeignFieldBn254WithMul {
   type = 'FullyReduced' as const;
 
-  constructor(x: CanonicalForeignFieldBn254 | Field3 | bigint | number | string) {
+  constructor(x: CanonicalForeignFieldBn254 | Field3Bn254 | bigint | number | string) {
     super(x);
   }
 
@@ -561,9 +561,9 @@ class CanonicalForeignFieldBn254 extends ForeignFieldBn254WithMul {
 function toLimbs(
   x: bigint | number | string | ForeignFieldBn254,
   p: bigint
-): Field3 {
+): Field3Bn254 {
   if (x instanceof ForeignFieldBn254) return x.value;
-  return Field3.from(mod(BigInt(x), p));
+  return Field3Bn254.from(mod(BigInt(x), p));
 }
 
 function toBigInt(x: bigint | string | number | ForeignFieldBn254) {
