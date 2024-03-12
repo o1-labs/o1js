@@ -877,34 +877,34 @@ declare const Snarky: {
        * Generates a proving key and a verification key for the provable function `main`.
        * Uses Pasta fields.
        */
-      compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+      compile(main: Snarky.Bn254.Main, publicInputSize: number): Snarky.Bn254.Keypair;
 
       /**
        * Proves a statement using the private input, public input and the keypair of the circuit.
        */
       prove(
-        main: Snarky.Main,
+        main: Snarky.Bn254.Main,
         publicInputSize: number,
         publicInput: MlArray<FieldConst>,
-        keypair: Snarky.Keypair
-      ): Snarky.Proof;
+        keypair: Snarky.Bn254.Keypair
+      ): Snarky.Bn254.Proof;
 
       /**
        * Verifies a proof using the public input, the proof and the verification key of the circuit.
        */
       verify(
         publicInput: MlArray<FieldConst>,
-        proof: Snarky.Proof,
-        verificationKey: Snarky.VerificationKey
+        proof: Snarky.Bn254.Proof,
+        verificationKey: Snarky.Bn254.VerificationKey
       ): boolean;
 
       keypair: {
-        getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
+        getVerificationKey(keypair: Snarky.Bn254.Keypair): Snarky.Bn254.VerificationKey;
         /**
          * Returns a low-level JSON representation of the circuit:
          * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
          */
-        getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
+        getConstraintSystemJSON(keypair: Snarky.Bn254.Keypair): JsonConstraintSystem;
       };
     };
 

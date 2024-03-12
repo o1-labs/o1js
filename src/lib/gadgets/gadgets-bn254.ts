@@ -10,7 +10,7 @@ import {
   rangeCheckN,
   isInRangeN,
   rangeCheck8,
-} from './range-check.js';
+} from './range-check-bn254.js';
 import {
   not,
   rotate32,

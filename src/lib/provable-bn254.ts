@@ -17,11 +17,11 @@ import {
   inCheckedComputation,
   inProver,
   snarkContext,
-  asProver,
-  runAndCheck,
-  runUnchecked,
-  constraintSystem,
-} from './provable-context.js';
+  asProverBn254 as asProver,
+  runAndCheckBn254 as runAndCheck,
+  runUncheckedBn254 as runUnchecked,
+  constraintSystemBn254 as constraintSystem,
+} from './provable-context-bn254.js';
 
 // external API
 export { ProvableBn254 };
@@ -217,7 +217,8 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, compute());
+    let ret = compute();
+    return clone(type, ret);
   }
   let proverValue: T | undefined = undefined;
   let fields: FieldBn254[];

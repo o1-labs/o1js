@@ -13,7 +13,7 @@ import { GatesBn254, foreignFieldAdd } from '../gates-bn254.js';
 import { modifiedField } from '../provable-types/fields.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { assertOneOf } from './basic.js';
-import { assert, bitSlice, exists, toVar, toVars } from './common.js';
+import { assert, bitSlice, exists, toVar, toVars } from './common-bn254.js';
 import {
   l,
   lMask,
@@ -22,7 +22,7 @@ import {
   l2Mask,
   l3,
   compactMultiRangeCheck,
-} from './range-check.js';
+} from './range-check-bn254.js';
 
 // external API
 export { ForeignFieldBn254, Field3Bn254 };

@@ -217,7 +217,8 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, compute());
+    let ret = compute();
+    return clone(type, ret);
   }
   let proverValue: T | undefined = undefined;
   let fields: Field[];

@@ -10,7 +10,7 @@ import { Field3Bn254 } from './gadgets/foreign-field-bn254.js';
 import { assert } from './gadgets/common-bn254.js';
 import { ProvableBn254 } from './provable-bn254.js';
 import { provableFromClass } from '../bindings/lib/provable-snarky.js';
-import { FieldConst, FieldVar } from './field.js';
+import { FieldConst, FieldVar } from './field-bn254.js';
 
 // external API
 export { createForeignCurveBn254, ForeignCurveBn254 };
