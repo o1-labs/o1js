@@ -1,8 +1,11 @@
 /**
  * Benchmark runner
  */
+
+import { InfluxDB, Point } from '@influxdata/influxdb-client';
 import jStat from 'jstat';
-export { BenchmarkResult, Benchmark, benchmark, printResult, pValue };
+import os from 'node:os';
+export { Benchmark, BenchmarkResult, benchmark, logResult, pValue };
 
 type BenchmarkResult = {
   label: string;
@@ -12,6 +15,8 @@ type BenchmarkResult = {
 };
 
 type Benchmark = { run: () => Promise<BenchmarkResult[]> };
+
+const influxDbClient = setupInfluxDbClient();
 
 function benchmark(
   label: string,
@@ -100,14 +105,16 @@ function getStatistics(numbers: number[]) {
   return { mean, variance, size: n };
 }
 
-function printResult(
-  result: BenchmarkResult,
-  previousResult?: BenchmarkResult
-) {
+function logResult(result: BenchmarkResult, previousResult?: BenchmarkResult) {
   console.log(result.label + `\n`);
   console.log(`time: ${resultToString(result)}`);
 
-  if (previousResult === undefined) return;
+  writeResultToInfluxDb(result);
+
+  if (previousResult === undefined) {
+    console.log('\n');
+    return;
+  }
 
   let change = (result.mean - previousResult.mean) / previousResult.mean;
   let p = pValue(result, previousResult);
@@ -155,4 +162,62 @@ function pValue(sample1: BenchmarkResult, sample2: BenchmarkResult): number {
   // calculate the (two-sided) p-value indicating a significant change
   const pValue = 2 * (1 - jStat.studentt.cdf(Math.abs(tStatistic), df));
   return pValue;
+}
+
+function getInfluxDbClientOptions() {
+  return {
+    url: process.env.INFLUXDB_URL,
+    token: process.env.INFLUXDB_TOKEN,
+    org: process.env.INFLUXDB_ORG,
+    bucket: process.env.INFLUXDB_BUCKET,
+  };
+}
+
+function getInfluxDbPointTags() {
+  return {
+    sourceEnvironment: process.env.METRICS_SOURCE_ENVIRONMENT ?? 'local',
+    operatingSystem: `${os.type()} ${os.release()} ${os.arch()} `,
+    hardware: `${os.cpus()[0].model} ${os.cpus().length} cores, ${(
+      os.totalmem() /
+      1024 /
+      1024 /
+      1024
+    ).toFixed(2)}Gb of RAM`,
+    gitHash: process.env.GIT_HASH ?? 'unknown',
+    gitBranch: process.env.GIT_BRANCH ?? 'unknown',
+  };
+}
+
+function setupInfluxDbClient(): InfluxDB | undefined {
+  const { url, token } = getInfluxDbClientOptions();
+  if (url === undefined || token === undefined) {
+    return undefined;
+  }
+  return new InfluxDB({ url, token });
+}
+
+function writeResultToInfluxDb(result: BenchmarkResult) {
+  const { org, bucket } = getInfluxDbClientOptions();
+  if (influxDbClient && org && bucket) {
+    console.log('Writing result to InfluxDB');
+    const influxDbWriteClient = influxDbClient.getWriteApi(org, bucket, 'ms');
+    try {
+      const point = new Point(`${result.label} - ${result.size} samples`)
+        .tag('benchmarkName', result.label)
+        .tag('sampledTimes', result.size.toString())
+        .floatField('mean', result.mean)
+        .floatField('variance', result.variance)
+        .intField('size', result.size);
+      for (const [key, value] of Object.entries(getInfluxDbPointTags())) {
+        point.tag(key, value);
+      }
+      influxDbWriteClient.writePoint(point);
+    } catch (e) {
+      console.error('Error writing to InfluxDB: ', e);
+    } finally {
+      influxDbWriteClient.close();
+    }
+  } else {
+    console.error('Skipping writing to InfluxDB: not configured');
+  }
 }

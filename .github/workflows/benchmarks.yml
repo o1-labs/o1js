@@ -1,0 +1,42 @@
+name: Benchmark o1js
+on:
+  push:
+    branches:
+      - main
+      - berkeley
+      - develop
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  benchmarks:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        node: [18, 20]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Build o1js and execute benchmarks on ${{ matrix.os }} and Node.JS ${{ matrix.node }}
+        env:
+          GIT_HASH: ${{ github.sha }}
+          GIT_BRANCH: ${{ github.head_ref }}
+          INFLUXDB_URL: ${{ secrets.INFLUXDB_URL }}
+          INFLUXDB_ORG: ${{ secrets.INFLUXDB_ORG }}
+          INFLUXDB_BUCKET: ${{ secrets.INFLUXDB_BUCKET }}
+          INFLUXDB_TOKEN: ${{ secrets.INFLUXDB_TOKEN }}
+          METRICS_SOURCE_ENVIRONMENT: 'o1js GitHub Actions'
+        run: |
+          git submodule update --init --recursive
+          npm ci
+          npm run build
+          bash run-ci-benchmarks.sh
+          cat benchmarks.log >> $GITHUB_STEP_SUMMARY
+        shell: bash

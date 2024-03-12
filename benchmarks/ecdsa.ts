@@ -1,19 +1,20 @@
 /**
- * Benchmark runner example
+ * ECDSA benchmark
  *
  * Run with
  * ```
  * ./run benchmarks/ecdsa.ts --bundle
  * ```
  */
+
 import { Provable } from 'o1js';
 import {
-  keccakAndEcdsa,
-  Secp256k1,
-  Ecdsa,
   Bytes32,
+  Ecdsa,
+  Secp256k1,
+  keccakAndEcdsa,
 } from '../src/examples/crypto/ecdsa/ecdsa.js';
-import { BenchmarkResult, benchmark, printResult } from './benchmark.js';
+import { BenchmarkResult, benchmark, logResult } from './benchmark.js';
 
 let privateKey = Secp256k1.Scalar.random();
 let publicKey = Secp256k1.generator.scale(privateKey);
@@ -28,11 +29,15 @@ const EcdsaBenchmark = benchmark(
     toc();
 
     tic('witness generation');
-    await Provable.runAndCheck(() => {
+    await Provable.runAndCheck(async () => {
       let message_ = Provable.witness(Bytes32.provable, () => message);
       let signature_ = Provable.witness(Ecdsa.provable, () => signature);
       let publicKey_ = Provable.witness(Secp256k1.provable, () => publicKey);
-      keccakAndEcdsa.rawMethods.verifyEcdsa(message_, signature_, publicKey_);
+      await keccakAndEcdsa.rawMethods.verifyEcdsa(
+        message_,
+        signature_,
+        publicKey_
+      );
     });
     toc();
   },
@@ -40,8 +45,7 @@ const EcdsaBenchmark = benchmark(
   { numberOfWarmups: 2, numberOfRuns: 5 }
 );
 
-// mock: load previous results
-
+// TODO: load previous results from InfluxDB
 let previousResults: BenchmarkResult[] = [
   {
     label: 'ecdsa - build constraint system',
@@ -58,14 +62,12 @@ let previousResults: BenchmarkResult[] = [
 ];
 
 // run benchmark
-
 let results = await EcdsaBenchmark.run();
 
 // example for how to log results
 // criterion-style comparison of result to previous one, check significant improvement
-
 for (let i = 0; i < results.length; i++) {
   let result = results[i];
   let previous = previousResults[i];
-  printResult(result, previous);
+  logResult(result, previous);
 }
