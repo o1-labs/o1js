@@ -124,6 +124,21 @@ class Client {
   }
 
   /**
+   * Converts a private key that is out of the domain of the Pallas curve to a private key in base58 format that is in the domain by taking the modulus of the private key.
+   * This is done to keep backwards compatibility with the previous version of the [client_sdk](https://www.npmjs.com/package/@o1labs/client-sdk), which did the same thing when converting a private key to base58.
+   * @param keyBase58 - The private key that is out of the domain of the Pallas curve
+   * @returns The private key that is in the domain of the Pallas curve
+   * @remarks
+   * This function is particularly useful when migrating old keys to be used by the current [mina-signer](https://www.npmjs.com/package/mina-signer) library,
+   * which may reject keys that do not fit the domain of the Pallas curve,
+   * by performing a modulus operation on the key, it ensures that keys
+   * from the older client_sdk can be made compatible.
+   */
+  convertPrivateKeyToBase58WithMod(keyBase58: string): string {
+    return PrivateKey.convertPrivateKeyToBase58WithMod(keyBase58);
+  }
+
+  /**
    * Signs an arbitrary list of field elements in a SNARK-compatible way.
    * The resulting signature can be verified in o1js as follows:
    * ```ts
