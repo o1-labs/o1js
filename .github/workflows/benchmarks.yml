@@ -26,7 +26,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Build o1js and execute benchmarks on ${{ matrix.os }} and Node.JS ${{ matrix.node }}
         env:
-          GIT_HASH: ${{ github.sha }}
           GIT_BRANCH: ${{ github.head_ref }}
           INFLUXDB_URL: ${{ secrets.INFLUXDB_URL }}
           INFLUXDB_ORG: ${{ secrets.INFLUXDB_ORG }}

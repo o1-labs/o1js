@@ -183,7 +183,6 @@ function getInfluxDbPointTags() {
       1024 /
       1024
     ).toFixed(2)}Gb of RAM`,
-    gitHash: process.env.GIT_HASH ?? 'unknown',
     gitBranch: process.env.GIT_BRANCH ?? 'unknown',
   };
 }
