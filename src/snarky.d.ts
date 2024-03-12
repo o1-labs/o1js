@@ -20,7 +20,7 @@ import type {
   SnarkKeyHeader,
   MlWrapVerificationKey,
 } from './lib/proof-system/prover-keys.js';
-import { getWasm } from './bindings/js/wrapper.js';
+import { wasm } from './bindings/js/wrapper.js';
 import type {
   WasmFpSrs,
   WasmFqSrs,
@@ -29,7 +29,7 @@ import type { KimchiGateType } from './lib/gates.ts';
 import type { MlConstraintSystem } from './lib/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, wasm };
 
 // internal
 export {
