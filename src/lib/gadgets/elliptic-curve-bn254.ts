@@ -1,9 +1,9 @@
 import { inverse, mod } from '../../bindings/crypto/finite-field.js';
-import { Field } from '../field.js';
-import { Provable } from '../provable.js';
-import { assert, exists } from './common.js';
-import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l2, multiRangeCheck } from './range-check.js';
+import { FieldBn254 } from '../field-bn254.js';
+import { ProvableBn254 } from '../provable-bn254.js';
+import { assert, exists } from './common-bn254.js';
+import { Field3, ForeignFieldBn254, split, weakBound } from './foreign-field-bn254.js';
+import { l2, multiRangeCheck } from './range-check-bn254.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBytes,
@@ -78,21 +78,21 @@ function add(p1: PointBn254, p2: PointBn254, Curve: { modulus: bigint }) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostReduced([m, x3, y3], f);
+  ForeignFieldBn254.assertAlmostReduced([m, x3, y3], f);
 
   // (x1 - x2)*m = y1 - y2
-  let deltaX = ForeignField.Sum(x1).sub(x2);
-  let deltaY = ForeignField.Sum(y1).sub(y2);
-  ForeignField.assertMul(deltaX, m, deltaY, f);
+  let deltaX = ForeignFieldBn254.Sum(x1).sub(x2);
+  let deltaY = ForeignFieldBn254.Sum(y1).sub(y2);
+  ForeignFieldBn254.assertMul(deltaX, m, deltaY, f);
 
   // m^2 = x1 + x2 + x3
-  let xSum = ForeignField.Sum(x1).add(x2).add(x3);
-  ForeignField.assertMul(m, m, xSum, f);
+  let xSum = ForeignFieldBn254.Sum(x1).add(x2).add(x3);
+  ForeignFieldBn254.assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let deltaX1X3 = ForeignField.Sum(x1).sub(x3);
-  let ySum = ForeignField.Sum(y1).add(y3);
-  ForeignField.assertMul(deltaX1X3, m, ySum, f);
+  let deltaX1X3 = ForeignFieldBn254.Sum(x1).sub(x3);
+  let ySum = ForeignFieldBn254.Sum(y1).add(y3);
+  ForeignFieldBn254.assertMul(deltaX1X3, m, ySum, f);
 
   return { x: x3, y: y3 };
 }
@@ -123,32 +123,32 @@ function double(p1: PointBn254, Curve: { modulus: bigint; a: bigint }) {
   let m: Field3 = [m0, m1, m2];
   let x3: Field3 = [x30, x31, x32];
   let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostReduced([m, x3, y3], f);
+  ForeignFieldBn254.assertAlmostReduced([m, x3, y3], f);
 
   // x1^2 = x1x1
-  let x1x1 = ForeignField.mul(x1, x1, f);
+  let x1x1 = ForeignFieldBn254.mul(x1, x1, f);
 
   // 2*y1*m = 3*x1x1 + a
-  let y1Times2 = ForeignField.Sum(y1).add(y1);
-  let x1x1Times3PlusA = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
+  let y1Times2 = ForeignFieldBn254.Sum(y1).add(y1);
+  let x1x1Times3PlusA = ForeignFieldBn254.Sum(x1x1).add(x1x1).add(x1x1);
   if (Curve.a !== 0n)
     x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(Curve.a));
-  ForeignField.assertMul(y1Times2, m, x1x1Times3PlusA, f);
+  ForeignFieldBn254.assertMul(y1Times2, m, x1x1Times3PlusA, f);
 
   // m^2 = 2*x1 + x3
-  let xSum = ForeignField.Sum(x1).add(x1).add(x3);
-  ForeignField.assertMul(m, m, xSum, f);
+  let xSum = ForeignFieldBn254.Sum(x1).add(x1).add(x3);
+  ForeignFieldBn254.assertMul(m, m, xSum, f);
 
   // (x1 - x3)*m = y1 + y3
-  let deltaX1X3 = ForeignField.Sum(x1).sub(x3);
-  let ySum = ForeignField.Sum(y1).add(y3);
-  ForeignField.assertMul(deltaX1X3, m, ySum, f);
+  let deltaX1X3 = ForeignFieldBn254.Sum(x1).sub(x3);
+  let ySum = ForeignFieldBn254.Sum(y1).add(y3);
+  ForeignFieldBn254.assertMul(deltaX1X3, m, ySum, f);
 
   return { x: x3, y: y3 };
 }
 
 function negate({ x, y }: PointBn254, Curve: { modulus: bigint }) {
-  return { x, y: ForeignField.negate(y, Curve.modulus) };
+  return { x, y: ForeignFieldBn254.negate(y, Curve.modulus) };
 }
 
 function assertOnCurve(
@@ -156,18 +156,18 @@ function assertOnCurve(
   { modulus: f, a, b }: { modulus: bigint; b: bigint; a: bigint }
 ) {
   let { x, y } = p;
-  let x2 = ForeignField.mul(x, x, f);
-  let y2 = ForeignField.mul(y, y, f);
-  let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
+  let x2 = ForeignFieldBn254.mul(x, x, f);
+  let y2 = ForeignFieldBn254.mul(y, y, f);
+  let y2MinusB = ForeignFieldBn254.Sum(y2).sub(Field3.from(b));
 
   // (x^2 + a) * x = y^2 - b
-  let x2PlusA = ForeignField.Sum(x2);
+  let x2PlusA = ForeignFieldBn254.Sum(x2);
   if (a !== 0n) x2PlusA = x2PlusA.add(Field3.from(a));
   let message: string | undefined;
   if (PointBn254.isConstant(p)) {
     message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
   }
-  ForeignField.assertMul(x2PlusA, x, y2MinusB, f, message);
+  ForeignFieldBn254.assertMul(x2PlusA, x, y2MinusB, f, message);
 }
 
 /**
@@ -198,8 +198,8 @@ function assertInSubgroup(p: PointBn254, Curve: CurveAffine) {
 // check whether a point equals a constant point
 // TODO implement the full case of two vars
 function equals(p1: PointBn254, p2: point, Curve: { modulus: bigint }) {
-  let xEquals = ForeignField.equals(p1.x, p2.x, Curve.modulus);
-  let yEquals = ForeignField.equals(p1.y, p2.y, Curve.modulus);
+  let xEquals = ForeignFieldBn254.equals(p1.x, p2.x, Curve.modulus);
+  let yEquals = ForeignFieldBn254.equals(p1.y, p2.y, Curve.modulus);
   return xEquals.and(yEquals);
 }
 
@@ -250,10 +250,10 @@ function verifyEcdsa(
   // we make an exception for the two non-standard conditions r != 0 and s != 0,
   // which are unusual to capture in types and could be considered part of the verification algorithm
   let { r, s } = signature;
-  ForeignField.inv(r, Curve.order); // proves r != 0 (important, because r = 0 => u2 = 0 kills the private key contribution)
-  let sInv = ForeignField.inv(s, Curve.order); // proves s != 0
-  let u1 = ForeignField.mul(msgHash, sInv, Curve.order);
-  let u2 = ForeignField.mul(r, sInv, Curve.order);
+  ForeignFieldBn254.inv(r, Curve.order); // proves r != 0 (important, because r = 0 => u2 = 0 kills the private key contribution)
+  let sInv = ForeignFieldBn254.inv(s, Curve.order); // proves s != 0
+  let u1 = ForeignFieldBn254.mul(msgHash, sInv, Curve.order);
+  let u2 = ForeignFieldBn254.mul(r, sInv, Curve.order);
 
   let G = PointBn254.from(Curve.one);
   let R = multiScalarMul(
@@ -267,13 +267,13 @@ function verifyEcdsa(
   // this ^ already proves that R != 0 (part of ECDSA verification)
 
   // reduce R.x modulo the curve order
-  let Rx = ForeignField.mul(R.x, Field3.from(1n), Curve.order);
+  let Rx = ForeignFieldBn254.mul(R.x, Field3.from(1n), Curve.order);
 
   // we have to prove that Rx is canonical, because we check signature validity based on whether Rx _exactly_ equals the input r.
   // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
-  ForeignField.assertLessThan(Rx, Curve.order);
+  ForeignFieldBn254.assertLessThan(Rx, Curve.order);
 
-  return Provable.equal(Field3.provable, Rx, r);
+  return ProvableBn254.equal(Field3.provable, Rx, r);
 }
 
 /**
@@ -375,7 +375,7 @@ function multiScalarMul(
     let points2: PointBn254[] = Array(n2);
     let windowSizes2: number[] = Array(n2);
     let tables2: PointBn254[][] = Array(n2);
-    let mrcStack: Field[] = [];
+    let mrcStack: FieldBn254[] = [];
 
     for (let i = 0; i < n; i++) {
       let [s0, s1] = decomposeNoRangeCheck(Curve, scalars[i]);
@@ -445,7 +445,7 @@ function multiScalarMul(
         let added = add(sum, sjP, Curve);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), PointBn254.provable, sum, added);
+        sum = ProvableBn254.if(sj.equals(0), PointBn254.provable, sum, added);
       }
     }
 
@@ -473,11 +473,11 @@ function multiScalarMul(
   return sum;
 }
 
-function negateIf(condition: Field, P: PointBn254, f: bigint) {
-  let y = Provable.if(
+function negateIf(condition: FieldBn254, P: PointBn254, f: bigint) {
+  let y = ProvableBn254.if(
     BoolBn254.Unsafe.ofField(condition),
     Field3.provable,
-    ForeignField.negate(P.y, f),
+    ForeignFieldBn254.negate(P.y, f),
     P.y
   );
   return { x: P.x, y };
@@ -485,7 +485,7 @@ function negateIf(condition: Field, P: PointBn254, f: bigint) {
 
 function endomorphism(Curve: CurveAffine, P: PointBn254) {
   let beta = Field3.from(Curve.Endo.base);
-  let betaX = ForeignField.mul(beta, P.x, Curve.modulus);
+  let betaX = ForeignFieldBn254.mul(beta, P.x, Curve.modulus);
   return [{ x: betaX, y: P.y }, weakBound(betaX[2], Curve.modulus)] as const;
 }
 
@@ -513,25 +513,25 @@ function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
   let [s0Negative, s00, s01, s1Negative, s10, s11] = witnesses;
   // we can hard-code highest limb to zero
   // (in theory this would allow us to hard-code the high quotient limb to zero in the ffmul below, and save 2 RCs.. but not worth it)
-  let s0: Field3 = [s00, s01, Field.from(0n)];
-  let s1: Field3 = [s10, s11, Field.from(0n)];
+  let s0: Field3 = [s00, s01, FieldBn254.from(0n)];
+  let s1: Field3 = [s10, s11, FieldBn254.from(0n)];
   assertBoolean(s0Negative);
   assertBoolean(s1Negative);
 
   // prove that s1*lambda = s - s0
-  let lambda = Provable.if(
+  let lambda = ProvableBn254.if(
     BoolBn254.Unsafe.ofField(s1Negative),
     Field3.provable,
     Field3.from(Curve.Scalar.negate(Curve.Endo.scalar)),
     Field3.from(Curve.Endo.scalar)
   );
-  let rhs = Provable.if(
+  let rhs = ProvableBn254.if(
     BoolBn254.Unsafe.ofField(s0Negative),
     Field3.provable,
-    ForeignField.Sum(s).add(s0).finish(Curve.order),
-    ForeignField.Sum(s).sub(s0).finish(Curve.order)
+    ForeignFieldBn254.Sum(s).add(s0).finish(Curve.order),
+    ForeignFieldBn254.Sum(s).sub(s0).finish(Curve.order)
   );
-  ForeignField.assertMul(s1, lambda, rhs, Curve.order);
+  ForeignFieldBn254.assertMul(s1, lambda, rhs, Curve.order);
 
   return [
     { isNegative: s0Negative, abs: s0 },
@@ -643,9 +643,9 @@ function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
  *
  * Assumes that index is in [0, n), returns an unconstrained result otherwise.
  */
-function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
+function arrayGetGeneric<T>(type: ProvableBn254<T>, array: T[], index: FieldBn254) {
   // witness result
-  let a = Provable.witness(type, () => array[Number(index)]);
+  let a = ProvableBn254.witness(type, () => array[Number(index)]);
   let aFields = type.toFields(a);
 
   // constrain each field of the result
@@ -668,7 +668,7 @@ const PointBn254 = {
   toBigint({ x, y }: PointBn254) {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
-  isConstant: (P: PointBn254) => Provable.isConstant(PointBn254.provable, P),
+  isConstant: (P: PointBn254) => ProvableBn254.isConstant(PointBn254.provable, P),
 
   /**
    * Random point on the curve.
@@ -688,7 +688,7 @@ const EcdsaSignature = {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
   isConstant: (S: Ecdsa.Signature) =>
-    Provable.isConstant(EcdsaSignature.provable, S),
+    ProvableBn254.isConstant(EcdsaSignature.provable, S),
 
   /**
    * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
@@ -718,14 +718,14 @@ const Ecdsa = {
 
 // MRC stack
 
-function reduceMrcStack(xs: Field[]) {
+function reduceMrcStack(xs: FieldBn254[]) {
   let n = xs.length;
   let nRemaining = n % 3;
   let nFull = (n - nRemaining) / 3;
   for (let i = 0; i < nFull; i++) {
     multiRangeCheck([xs[3 * i], xs[3 * i + 1], xs[3 * i + 2]]);
   }
-  let remaining: Field3 = [Field.from(0n), Field.from(0n), Field.from(0n)];
+  let remaining: Field3 = [FieldBn254.from(0n), FieldBn254.from(0n), FieldBn254.from(0n)];
   for (let i = 0; i < nRemaining; i++) {
     remaining[i] = xs[3 * nFull + i];
   }

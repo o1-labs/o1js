@@ -1,5 +1,4 @@
-import { FieldConst, FieldVar, VarField } from '../field.js';
-import { FieldBn254 } from '../field-bn254.js';
+import { FieldBn254, FieldConst, FieldVar, VarField } from '../field-bn254.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';

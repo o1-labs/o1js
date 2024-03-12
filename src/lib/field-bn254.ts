@@ -273,7 +273,7 @@ class FieldBn254 {
         }
         return;
       }
-      Snarky.field.assertEqual(this.value, toFieldVar(y));
+      Snarky.bn254.field.assertEqual(this.value, toFieldVar(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -312,7 +312,7 @@ class FieldBn254 {
       return new FieldBn254(Fp.add(this.toBigInt(), toFp(y)));
     }
     // return new AST node Add(x, y)
-    let z = Snarky.field.add(this.value, toFieldVar(y));
+    let z = Snarky.bn254.field.add(this.value, toFieldVar(y));
     return new FieldBn254(z);
   }
 
@@ -340,7 +340,7 @@ class FieldBn254 {
       return new FieldBn254(Fp.negate(this.toBigInt()));
     }
     // return new AST node Scale(-1, x)
-    let z = Snarky.field.scale(FieldConst[-1], this.value);
+    let z = Snarky.bn254.field.scale(FieldConst[-1], this.value);
     return new FieldBn254(z);
   }
 
@@ -439,11 +439,11 @@ class FieldBn254 {
     }
     // if one of the factors is constant, return Scale AST node
     if (isConstant(y)) {
-      let z = Snarky.field.scale(toFieldConst(y), this.value);
+      let z = Snarky.bn254.field.scale(toFieldConst(y), this.value);
       return new FieldBn254(z);
     }
     if (this.isConstant()) {
-      let z = Snarky.field.scale(this.value[1], y.value);
+      let z = Snarky.bn254.field.scale(this.value[1], y.value);
       return new FieldBn254(z);
     }
     // create a new witness for z = x*y
@@ -451,7 +451,7 @@ class FieldBn254 {
       FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
     );
     // add a multiplication constraint
-    Snarky.field.assertMul(this.value, y.value, z);
+    Snarky.bn254.field.assertMul(this.value, y.value, z);
     return new FieldBn254(z);
   }
 
@@ -484,7 +484,7 @@ class FieldBn254 {
       return FieldConst.fromBigint(z);
     });
     // constrain x * z === 1
-    Snarky.field.assertMul(this.value, z, FieldVar[1]);
+    Snarky.bn254.field.assertMul(this.value, z, FieldVar[1]);
     return new FieldBn254(z);
   }
 
@@ -550,7 +550,7 @@ class FieldBn254 {
       FieldConst.fromBigint(Fp.square(this.toBigInt()))
     );
     // add a squaring constraint
-    Snarky.field.assertSquare(this.value, z);
+    Snarky.bn254.field.assertSquare(this.value, z);
     return new FieldBn254(z);
   }
 
@@ -586,7 +586,7 @@ class FieldBn254 {
       return FieldConst.fromBigint(z);
     });
     // constrain z * z === x
-    Snarky.field.assertSquare(z, this.value);
+    Snarky.bn254.field.assertSquare(z, this.value);
     return new FieldBn254(z);
   }
 
@@ -607,12 +607,12 @@ class FieldBn254 {
     });
     // add constraints
     // b * x === 0
-    Snarky.field.assertMul(b, this.value, FieldVar[0]);
+    Snarky.bn254.field.assertMul(b, this.value, FieldVar[0]);
     // z * x === 1 - b
-    Snarky.field.assertMul(
+    Snarky.bn254.field.assertMul(
       z,
       this.value,
-      Snarky.field.add(FieldVar[1], Snarky.field.scale(FieldConst[-1], b))
+      Snarky.bn254.field.add(FieldVar[1], Snarky.bn254.field.scale(FieldConst[-1], b))
     );
     // ^^^ these prove that b = BoolBn254(x === 0):
     // if x = 0, the 2nd equation implies b = 1
@@ -643,7 +643,7 @@ class FieldBn254 {
     let xMinusY = Snarky.existsVar(() =>
       FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
     );
-    Snarky.field.assertEqual(this.sub(y).value, xMinusY);
+    Snarky.bn254.field.assertEqual(this.sub(y).value, xMinusY);
     return new FieldBn254(xMinusY).isZero();
   }
 
@@ -898,7 +898,7 @@ class FieldBn254 {
         }
         return;
       }
-      Snarky.field.assertBoolean(this.value);
+      Snarky.bn254.field.assertBoolean(this.value);
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -928,7 +928,7 @@ class FieldBn254 {
       }
       return bits.map((b) => new BoolBn254(b));
     }
-    let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
+    let [, ...bits] = Snarky.bn254.field.toBits(length ?? Fp.sizeInBits, this.value);
     return bits.map((b) => new BoolBn254(b));
   }
 
@@ -956,7 +956,7 @@ class FieldBn254 {
       if (typeof b === 'boolean') return b ? FieldVar[1] : FieldVar[0];
       return b.toField().value;
     });
-    let x = Snarky.field.fromBits([0, ...bitsVars]);
+    let x = Snarky.bn254.field.fromBits([0, ...bitsVars]);
     return new FieldBn254(x);
   }
 
@@ -985,7 +985,7 @@ class FieldBn254 {
         .concat(Array(Fp.sizeInBits - length).fill(false));
       return new FieldBn254(Fp.fromBits(bits));
     }
-    let x = Snarky.field.truncateToBits16(lengthDiv16, this.value);
+    let x = Snarky.bn254.field.truncateToBits16(lengthDiv16, this.value);
     return new FieldBn254(x);
   }
 
@@ -1002,7 +1002,7 @@ class FieldBn254 {
    */
   seal() {
     if (this.isConstant()) return this;
-    let x = Snarky.field.seal(this.value);
+    let x = Snarky.bn254.field.seal(this.value);
     return VarField(x);
   }
 
@@ -1294,7 +1294,7 @@ function compare(x: FieldBn254, y: FieldVar) {
         `ProvableBn254 comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
       );
   });
-  let [, less, lessOrEqual] = Snarky.field.compare(maxLength, x.value, y);
+  let [, less, lessOrEqual] = Snarky.bn254.field.compare(maxLength, x.value, y);
   return { less: new BoolBn254(less), lessOrEqual: new BoolBn254(lessOrEqual) };
 }
 
@@ -1331,8 +1331,8 @@ function toConstantField(
   );
 
   // if we are inside an asProverBn254 or witness block, read the variable's value and return it as constant
-  if (Snarky.run.inProverBlock()) {
-    let value = Snarky.field.readVar(x.value);
+  if (Snarky.bn254.run.inProverBlock()) {
+    let value = Snarky.bn254.field.readVar(x.value);
     return new FieldBn254(value) as ConstantField;
   }
 
@@ -1355,8 +1355,8 @@ linked to the original variable in the proof, which makes this pattern prone to 
 You can check whether your ${varDescription} is a variable or a constant by using ${varName}.isConstant().
 
 To inspect values for debugging, use ProvableBn254.log(${varName}). For more advanced use cases,
-there is \`ProvableBn254.asProverBn254(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
-Warning: whatever happens inside asProverBn254() will not be part of the zk proof.
+there is \`ProvableBn254.asProver(() => { ... })\` which allows you to use ${varName}.${methodName}() inside the callback.
+Warning: whatever happens inside asProver() will not be part of the zk proof.
 `;
 }
 

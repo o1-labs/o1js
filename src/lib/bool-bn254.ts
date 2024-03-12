@@ -1,11 +1,11 @@
 import { Snarky } from '../snarky.js';
 import {
+  FieldBn254,
   FieldConst,
   FieldType,
   FieldVar,
   readVarMessage,
-} from './field.js';
-import { FieldBn254 } from './field-bn254.js';
+} from './field-bn254.js';
 import { BoolBn254 as B } from '../provable/field-bn254-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';

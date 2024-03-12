@@ -1,7 +1,6 @@
 import { Snarky } from '../snarky.js';
-import { FieldConst } from './field.js';
-import { type FieldBn254 } from './field-bn254.js';
-import { exists } from './gadgets/common.js';
+import { FieldConst, type FieldBn254 } from './field-bn254.js';
+import { exists } from './gadgets/common-bn254.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
 
