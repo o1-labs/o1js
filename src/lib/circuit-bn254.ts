@@ -3,7 +3,7 @@ import { ProvablePureBn254, Snarky } from '../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields-bn254.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { ProvableBn254 } from './provable-bn254.js';
-import { snarkContext, gatesFromJson } from './provable-context.js';
+import { snarkContext, gatesFromJson } from './provable-context-bn254.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from './errors.js';
 
 // external API

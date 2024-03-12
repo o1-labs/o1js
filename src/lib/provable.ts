@@ -216,15 +216,8 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
   let ctx = snarkContext.get();
 
   // outside provable code, we just call the callback and return its cloned result
-  console.log("PALLAS");
-  let notInCheckedComputation = !inCheckedComputation();
-  console.log("!inCheckedComputation():", notInCheckedComputation);
-  console.log("ctx.inWitnessBlock:", ctx.inWitnessBlock);
-  console.log("!inCheckedComputation() || ctx.inWitnessBlock:", notInCheckedComputation || ctx.inWitnessBlock);
-  if (notInCheckedComputation || ctx.inWitnessBlock) {
+  if (!inCheckedComputation() || ctx.inWitnessBlock) {
     let ret = compute();
-    console.log("compute():")
-    console.dir(ret, { depth: null });
     return clone(type, ret);
   }
   let proverValue: T | undefined = undefined;
