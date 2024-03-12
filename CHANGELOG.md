@@ -37,6 +37,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
    As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
+- Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461
 
 ### Added
 
