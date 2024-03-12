@@ -100,6 +100,30 @@ class Client {
   }
 
   /**
+   * Derives the public key corresponding to a given private key, ensuring compatibility with keys from the older [client_sdk](https://www.npmjs.com/package/@o1labs/client-sdk) libraries by converting the private key into the domain of the Pallas curve if necessary.
+   * The function first converts the input private key (in Base58 format) to a format that is compatible with the domain of the Pallas curve by applying a modulus operation. This step ensures backward compatibility with older keys that may not directly fit the Pallas curve's domain. Once the private key is in the correct domain, it is used to derive the corresponding public key.
+   * @param privateKeyBase58 - The private key (in Base58 format) used to derive the corresponding public key. The key is expected to be out of the domain of the Pallas curve and will be converted to fit within the domain as part of this process.
+   * @returns {Json.PublicKey} The derived public key in Base58 format, corresponding to the input private key, now within the domain of the Pallas curve.
+   * @remarks
+   * This function is labeled as "unsafe" due to the modulus operation applied to ensure backward compatibility, which might not adhere to strict security protocols expected in [mina-signer](https://www.npmjs.com/package/mina-signer). It is primarily intended for use cases requiring interoperability with keys generated or managed by previous versions of the [client_sdk](https://www.npmjs.com/package/@o1labs/client-sdk) or other tools that may produce keys outside the Pallas curve's domain.
+   * It is an essential tool for migrating old keys for use with the current [mina-signer](https://www.npmjs.com/package/mina-signer) library, by allowing keys that would otherwise be rejected to be used effectively.
+   *
+   * @example
+   * ```ts
+   * // Assuming `oldPrivateKeyBase58` is a private key in Base58 format from an older client SDK
+   * const publicKeyBase58 = derivePublicKeyUnsafe(oldPrivateKeyBase58);
+   * console.log(publicKeyBase58); // Logs the derived public key in Base58 format
+   * ```
+   */
+  derivePublicKeyUnsafe(privateKeyBase58: Json.PrivateKey): Json.PublicKey {
+    let privateKey = PrivateKey.fromBase58(
+      PrivateKey.convertPrivateKeyToBase58WithMod(privateKeyBase58)
+    );
+    let publicKey = PrivateKey.toPublicKey(privateKey);
+    return PublicKey.toBase58(publicKey);
+  }
+
+  /**
    * Signs an arbitrary list of field elements in a SNARK-compatible way.
    * The resulting signature can be verified in o1js as follows:
    * ```ts

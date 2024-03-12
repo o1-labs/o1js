@@ -143,4 +143,30 @@ const PrivateKey = {
   toPublicKey(key: PrivateKey) {
     return PublicKey.fromGroup(Group.scale(Group.generatorMina, key));
   },
+  convertPrivateKeyToBase58WithMod,
 };
+
+const Bigint256 = BinableBigint(256, () => {
+  // no check supplied, allows any string of 256 bits
+});
+const OutOfDomainKey = base58(
+  withVersionNumber(Bigint256, versionNumbers.scalar),
+  versionBytes.privateKey
+);
+
+/**
+ * Converts a private key that is out of the domain of the Pallas curve to a private key that is in the domain by taking the modulus of the private key.
+ * This is done to keep backwards compatibility with the previous version of the [client_sdk](https://www.npmjs.com/package/@o1labs/client-sdk), which did the same thing when converting a private key to base58.
+ * @param keyBase58 - The private key that is out of the domain of the Pallas curve
+ * @returns The private key that is in the domain of the Pallas curve
+ * @remarks
+ * This function is particularly useful when migrating old keys to be used by the current [mina-signer](https://www.npmjs.com/package/mina-signer) library,
+ * which may reject keys that do not fit the domain of the Pallas curve.
+ * By performing a modulus operation on the key, it ensures that keys
+ * from the older client_sdk can be made compatible.
+ */
+function convertPrivateKeyToBase58WithMod(keyBase58: string): string {
+  let key = OutOfDomainKey.fromBase58(keyBase58);
+  key = mod(key, Fq.modulus);
+  return PrivateKey.toBase58(key);
+}
