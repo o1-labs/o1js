@@ -15,7 +15,7 @@ jobs:
       fail-fast: true
       matrix:
         node: [18, 20]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
