@@ -349,7 +349,7 @@ class Field {
       return new Field(Fp.add(this.toBigInt(), toFp(y)));
     }
     // return new AST node Add(x, y)
-    let z = Snarky.field.add(this.value, toFieldVar(y));
+    let z = FieldVar.add(this.value, toFieldVar(y));
     return new Field(z);
   }
 
@@ -377,7 +377,7 @@ class Field {
       return new Field(Fp.negate(this.toBigInt()));
     }
     // return new AST node Scale(-1, x)
-    let z = Snarky.field.scale(FieldConst[-1], this.value);
+    let z = FieldVar.scale(FieldConst[-1], this.value);
     return new Field(z);
   }
 
@@ -476,11 +476,11 @@ class Field {
     }
     // if one of the factors is constant, return Scale AST node
     if (isConstant(y)) {
-      let z = Snarky.field.scale(toFieldConst(y), this.value);
+      let z = FieldVar.scale(toFieldConst(y), this.value);
       return new Field(z);
     }
     if (this.isConstant()) {
-      let z = Snarky.field.scale(this.value[1], y.value);
+      let z = FieldVar.scale(this.value[1], y.value);
       return new Field(z);
     }
     // create a new witness for z = x*y
@@ -651,7 +651,7 @@ class Field {
     assertMul(
       z,
       this,
-      Snarky.field.add(FieldVar[1], Snarky.field.scale(FieldConst[-1], b))
+      FieldVar.add(FieldVar[1], FieldVar.scale(FieldConst[-1], b))
     );
     // ^^^ these prove that b = Bool(x === 0):
     // if x = 0, the 2nd equation implies b = 1
