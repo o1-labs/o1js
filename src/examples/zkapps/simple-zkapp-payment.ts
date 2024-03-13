@@ -1,16 +1,12 @@
 import {
-  isReady,
   method,
   Mina,
   AccountUpdate,
   PrivateKey,
   SmartContract,
   UInt64,
-  shutdown,
   Permissions,
 } from 'o1js';
-
-await isReady;
 
 class SendMINAExample extends SmartContract {
   init() {
@@ -21,12 +17,15 @@ class SendMINAExample extends SmartContract {
     });
   }
 
-  @method withdraw(amount: UInt64) {
-    this.send({ to: this.sender, amount });
+  @method async withdraw(amount: UInt64) {
+    // unconstrained because we don't care where the user wants to withdraw to
+    let to = this.sender.getUnconstrained();
+    this.send({ to, amount });
   }
 
-  @method deposit(amount: UInt64) {
-    let senderUpdate = AccountUpdate.createSigned(this.sender);
+  @method async deposit(amount: UInt64) {
+    let sender = this.sender.getUnconstrained(); // unconstrained because we're already requiring a signature in the next line
+    let senderUpdate = AccountUpdate.createSigned(sender);
     senderUpdate.send({ to: this, amount });
   }
 }
@@ -71,14 +70,14 @@ tx = await Mina.transaction(feePayer, async () => {
   let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
   feePayerUpdate.send({ to: account1Address, amount: 2e9 });
   feePayerUpdate.send({ to: account2Address, amount: 0 }); // just touch account #2, so it's created
-  zkapp.deploy();
+  await zkapp.deploy();
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 printBalances();
 
 console.log('---------- deposit MINA into zkApp (with proof) ----------');
 tx = await Mina.transaction(account1Address, async () => {
-  zkapp.deposit(UInt64.from(1e9));
+  await zkapp.deposit(UInt64.from(1e9));
 });
 await tx.prove();
 await tx.sign([account1Key]).send();
@@ -86,7 +85,7 @@ printBalances();
 
 console.log('---------- send MINA from zkApp (with proof) ----------');
 tx = await Mina.transaction(account1Address, async () => {
-  zkapp.withdraw(UInt64.from(1e9));
+  await zkapp.withdraw(UInt64.from(1e9));
 });
 await tx.prove();
 await tx.sign([account1Key]).send();
@@ -101,5 +100,3 @@ tx = await Mina.transaction(account1Address, async () => {
 });
 await tx.sign([account1Key]).send();
 printBalances();
-
-shutdown();

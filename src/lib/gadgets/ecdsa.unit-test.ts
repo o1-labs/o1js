@@ -146,7 +146,7 @@ let program = ZkProgram({
   methods: {
     ecdsa: {
       privateInputs: [],
-      method() {
+      async method() {
         let signature_ = Provable.witness(
           Ecdsa.Signature.provable,
           () => signature

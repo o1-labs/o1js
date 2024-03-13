@@ -15,8 +15,8 @@ import { Membership_ } from './membership.js';
 import { Voting_ } from './voting.js';
 
 class InvalidContract extends SmartContract {
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy(args: DeployArgs) {
+    await super.deploy(args);
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.none(),
@@ -66,15 +66,15 @@ export async function deployContracts(
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
-    voting.deploy({ zkappKey: params.votingKey });
+    await voting.deploy({ zkappKey: params.votingKey });
     voting.committedVotes.set(votesRoot);
     voting.accumulatedVotes.set(Reducer.initialActionState);
 
-    candidateContract.deploy({ zkappKey: params.candidateKey });
+    await candidateContract.deploy({ zkappKey: params.candidateKey });
     candidateContract.committedMembers.set(candidateRoot);
     candidateContract.accumulatedMembers.set(Reducer.initialActionState);
 
-    voterContract.deploy({ zkappKey: params.voterKey });
+    await voterContract.deploy({ zkappKey: params.voterKey });
     voterContract.committedMembers.set(voterRoot);
     voterContract.accumulatedMembers.set(Reducer.initialActionState);
   });
@@ -130,7 +130,7 @@ export async function deployInvalidContracts(
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
-    voting.deploy({ zkappKey: params.votingKey });
+    await voting.deploy({ zkappKey: params.votingKey });
     voting.committedVotes.set(votesRoot);
     voting.accumulatedVotes.set(Reducer.initialActionState);
 
@@ -140,7 +140,7 @@ export async function deployInvalidContracts(
       params.candidateKey.toPublicKey()
     );
 
-    invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
+    await invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
 
     candidateContract = invalidCandidateContract as Membership_;
 
@@ -148,7 +148,7 @@ export async function deployInvalidContracts(
       params.voterKey.toPublicKey()
     );
 
-    invalidVoterContract.deploy({ zkappKey: params.voterKey });
+    await invalidVoterContract.deploy({ zkappKey: params.voterKey });
 
     voterContract = invalidVoterContract as Membership_;
   });

@@ -1,10 +1,11 @@
-import { Snarky, Provable } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
+import { Provable } from './provable.js';
 import {
   assertEqual,
   assertMul,
@@ -915,34 +916,41 @@ class Field {
    * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link Field} element.
    *
    * If you use the optional `length` argument, proves that the field element fits in `length` bits.
-   * The `length` has to be between 0 and 255 and the method throws if it isn't.
+   * The `length` has to be between 0 and 254 and the method throws if it isn't.
    *
    * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
-   * which by default is 255 bits. Prefer to pass a smaller `length` if possible.
+   * which by default is 254 bits. Prefer to pass a smaller `length` if possible.
    *
    * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
    *
    * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
-  toBits(length?: number) {
-    if (length !== undefined) checkBitLength('Field.toBits()', length);
+  toBits(length: number = 254) {
+    checkBitLength('Field.toBits()', length, 254);
     if (this.isConstant()) {
       let bits = Fp.toBits(this.toBigInt());
-      if (length !== undefined) {
-        if (bits.slice(length).some((bit) => bit))
-          throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
-        return bits.slice(0, length).map((b) => new Bool(b));
-      }
-      return bits.map((b) => new Bool(b));
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
     }
-    let [, ...bits] = Snarky.field.toBits(length ?? Fp.sizeInBits, this.value);
-    return bits.map((b) => new Bool(b));
+    let bits = Provable.witness(Provable.Array(Bool, length), () => {
+      let f = this.toBigInt();
+      return Array.from(
+        { length },
+        (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n))
+      );
+    });
+    Field.fromBits(bits).assertEquals(
+      this,
+      `Field.toBits(): Input does not fit in ${length} bits`
+    );
+    return bits;
   }
 
   /**
    * Convert a bit array into a {@link Field} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
    *
-   * The method throws if the given bits do not fit in a single Field element. A Field element can be at most 255 bits.
+   * The method throws if the given bits do not fit in a single Field element. In this case, no more than 254 bits are allowed because some 255 bit integers do not fit into a single Field element.
    *
    * **Important**: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link Field} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link Field} will be a variable as well.
    *
@@ -951,20 +959,21 @@ class Field {
    * @return A {@link Field} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bytes` array.
    */
   static fromBits(bits: (Bool | boolean)[]) {
-    let length = bits.length;
-    checkBitLength('Field.fromBits()', length);
+    const length = bits.length;
+    checkBitLength('Field.fromBits()', length, 254);
     if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
       let bits_ = bits
         .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
         .concat(Array(Fp.sizeInBits - length).fill(false));
       return new Field(Fp.fromBits(bits_));
     }
-    let bitsVars = bits.map((b): FieldVar => {
-      if (typeof b === 'boolean') return b ? FieldVar[1] : FieldVar[0];
-      return b.toField().value;
-    });
-    let x = Snarky.field.fromBits([0, ...bitsVars]);
-    return new Field(x);
+    return bits
+      .map((b) => new Bool(b))
+      .reduce((acc, bit, idx) => {
+        const shift = 1n << BigInt(idx);
+        return acc.add(bit.toField().mul(shift));
+      }, Field.from(0))
+      .seal();
   }
 
   /**

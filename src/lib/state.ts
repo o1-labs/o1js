@@ -3,7 +3,7 @@ import { FlexibleProvablePure } from './circuit-value.js';
 import { AccountUpdate, TokenId } from './account-update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
-import { fetchAccount } from './fetch.js';
+import { fetchAccount, networkConfig } from './fetch.js';
 import { SmartContract } from './zkapp.js';
 import { Account } from './mina/account.js';
 import { Provable } from './provable.js';
@@ -329,17 +329,20 @@ function createState<T>(): InternalStateType<T> {
         throw Error(
           'fetch can only be called when the State is assigned to a SmartContract @state.'
         );
-      if (Mina.currentTransaction.has())
-        throw Error(
-          'fetch is not intended to be called inside a transaction block.'
-        );
+
       let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
-      let { account } = await fetchAccount({
-        publicKey: address,
-        tokenId: TokenId.toBase58(TokenId.default),
-      });
+      let account: Account | undefined;
+      if (networkConfig.minaEndpoint === '') {
+        account = Mina.getAccount(address, TokenId.default);
+      } else {
+        ({ account } = await fetchAccount({
+          publicKey: address,
+          tokenId: TokenId.toBase58(TokenId.default),
+        }));
+      }
       if (account === undefined) return undefined;
+
       let stateAsFields: Field[];
       if (account.zkapp?.appState === undefined) {
         stateAsFields = Array(layout.length).fill(Field(0));

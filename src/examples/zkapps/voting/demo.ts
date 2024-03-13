@@ -1,15 +1,7 @@
 // used to do a dry run, without tests
 // ./run ./src/examples/zkapps/voting/demo.ts
 
-import {
-  Field,
-  Mina,
-  AccountUpdate,
-  PrivateKey,
-  UInt64,
-  Reducer,
-  Bool,
-} from 'o1js';
+import { Mina, AccountUpdate, PrivateKey, UInt64, Reducer, Bool } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';

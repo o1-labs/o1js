@@ -8,23 +8,17 @@ For example, you only want your smart contract to initiate a pay out when the `b
 
 import {
   method,
-  UInt64,
   PrivateKey,
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
-  Permissions,
-  DeployArgs,
   UInt32,
 } from 'o1js';
 
 const doProofs = false;
 
-await isReady;
-
 class SimpleZkapp extends SmartContract {
-  @method blockheightEquals(y: UInt32) {
+  @method async blockheightEquals(y: UInt32) {
     let length = this.network.blockchainLength.get();
     this.network.blockchainLength.requireEquals(length);
 
@@ -53,7 +47,7 @@ if (doProofs) {
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  zkapp.deploy();
+  await zkapp.deploy();
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 
@@ -62,7 +56,7 @@ let blockHeight: UInt32 = UInt32.zero;
 console.log('assert block height 0');
 tx = await Mina.transaction(feePayer, async () => {
   // block height starts at 0
-  zkapp.blockheightEquals(UInt32.from(blockHeight));
+  await zkapp.blockheightEquals(UInt32.from(blockHeight));
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -72,7 +66,7 @@ Local.setBlockchainLength(blockHeight);
 
 console.log('assert block height 500');
 tx = await Mina.transaction(feePayer, async () => {
-  zkapp.blockheightEquals(UInt32.from(blockHeight));
+  await zkapp.blockheightEquals(UInt32.from(blockHeight));
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -82,7 +76,7 @@ Local.setBlockchainLength(UInt32.from(5));
 console.log('invalid block height precondition');
 try {
   tx = await Mina.transaction(feePayer, async () => {
-    zkapp.blockheightEquals(UInt32.from(blockHeight));
+    await zkapp.blockheightEquals(UInt32.from(blockHeight));
   });
   await tx.prove();
   await tx.sign([feePayerKey]).send();

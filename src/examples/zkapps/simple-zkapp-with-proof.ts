@@ -7,17 +7,14 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   ZkappPublicInput,
   SelfProof,
   verify,
   Empty,
 } from 'o1js';
 
-await isReady;
-
 class TrivialZkapp extends SmartContract {
-  @method proveSomething(hasToBe1: Field) {
+  @method async proveSomething(hasToBe1: Field) {
     hasToBe1.assertEquals(1);
   }
 }
@@ -26,12 +23,12 @@ class TrivialProof extends TrivialZkapp.Proof() {}
 class NotSoSimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  @method initialize(proof: TrivialProof) {
+  @method async initialize(proof: TrivialProof) {
     proof.verify();
     this.x.set(Field(1));
   }
 
-  @method update(
+  @method async update(
     y: Field,
     oldProof: SelfProof<ZkappPublicInput, Empty>,
     trivialProof: TrivialProof
@@ -68,7 +65,7 @@ let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile();
 console.log('prove (trivial zkapp)');
 let [trivialProof] = await (
   await Mina.transaction(feePayer, async () => {
-    new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
+    await new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
   })
 ).prove();
 
@@ -86,14 +83,14 @@ let zkapp = new NotSoSimpleZkapp(zkappAddress);
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  zkapp.deploy({ zkappKey });
+  await zkapp.deploy({ zkappKey });
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('initialize');
-tx = await Mina.transaction(feePayerKey, async () => {
-  zkapp.initialize(trivialProof!);
+tx = await Mina.transaction(feePayer, async () => {
+  await zkapp.initialize(trivialProof!);
 });
 let [proof] = await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -108,7 +105,7 @@ console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayer, async () => {
-  zkapp.update(Field(3), proof!, trivialProof!);
+  await zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -123,7 +120,7 @@ console.log('state 2: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayer, async () => {
-  zkapp.update(Field(3), proof!, trivialProof!);
+  await zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
 await tx.sign([feePayerKey]).send();

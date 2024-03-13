@@ -140,10 +140,10 @@ console.log(
  *
  * This is why we have this custom way of witnessing account updates, with the `skipCheck` option.
  */
-result = await Provable.constraintSystem(() => {
-  let { accountUpdate: accountUpdateWitness } = AccountUpdate.witness(
+result = await Provable.constraintSystem(async () => {
+  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(
     Empty,
-    () => ({ accountUpdate, result: undefined }),
+    async () => ({ accountUpdate, result: undefined }),
     { skipCheck: true }
   );
   Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
@@ -156,10 +156,10 @@ console.log(
  * To relate an account update to the hash which is the public input, we need to perform the hash in-circuit.
  * This is takes several 100 constraints, and is basically the minimal size of a zkApp method.
  */
-result = await Provable.constraintSystem(() => {
-  let { accountUpdate: accountUpdateWitness } = AccountUpdate.witness(
+result = await Provable.constraintSystem(async () => {
+  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(
     Empty,
-    () => ({ accountUpdate, result: undefined }),
+    async () => ({ accountUpdate, result: undefined }),
     { skipCheck: true }
   );
   accountUpdateWitness.hash();

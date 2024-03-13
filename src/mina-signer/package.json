@@ -1,7 +1,7 @@
 {
   "name": "mina-signer",
   "description": "Node API for signing transactions on various networks for Mina Protocol",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "type": "module",
   "scripts": {
     "build": "tsc -p ../../tsconfig.mina-signer.json",

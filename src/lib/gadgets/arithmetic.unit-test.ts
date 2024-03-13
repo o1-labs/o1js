@@ -19,7 +19,7 @@ let Arithmetic = ZkProgram({
   methods: {
     divMod32: {
       privateInputs: [Field],
-      method(a: Field) {
+      async method(a: Field) {
         return Gadgets.divMod32(a);
       },
     },
