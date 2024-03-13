@@ -1,10 +1,5 @@
 /**
- * ECDSA benchmark
- *
- * Run with
- * ```
- * ./run benchmarks/ecdsa.ts --bundle
- * ```
+ * ECDSA benchmark sample
  */
 
 import { Provable } from 'o1js';
