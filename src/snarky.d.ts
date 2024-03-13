@@ -316,11 +316,6 @@ declare const Snarky: {
      * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
      */
     truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
-    /**
-     * returns a new witness from an AST
-     * (implemented with toConstantAndTerms)
-     */
-    seal(x: FieldVar): VarFieldVar;
   };
 
   gates: {

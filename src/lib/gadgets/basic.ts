@@ -17,7 +17,15 @@ import { TupleN } from '../util/types.js';
 export { assertMul, arrayGet, assertOneOf };
 
 // internal
-export { reduceToScaledVar, emptyCell, linear, bilinear, ScaledVar, Constant };
+export {
+  reduceToScaledVar,
+  toLinearCombination,
+  emptyCell,
+  linear,
+  bilinear,
+  ScaledVar,
+  Constant,
+};
 
 /**
  * Assert multiplication constraint, `x * y === z`

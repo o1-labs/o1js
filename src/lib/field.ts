@@ -12,6 +12,7 @@ import {
   assertSquare,
   assertBoolean,
 } from './gadgets/compatible.js';
+import { toLinearCombination } from './gadgets/basic.js';
 
 // external API
 export { Field };
@@ -1047,8 +1048,14 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    if (this.isConstant()) return this;
-    let x = Snarky.field.seal(this.value);
+    let { constant, terms } = toLinearCombination(this.value);
+    if (terms.length === 0) return new Field(constant);
+    if (terms.length === 1 && constant === 0n) {
+      let [c, x] = terms[0];
+      if (c === 1n) return new Field(x);
+    }
+    let x = Snarky.existsVar(() => Snarky.field.readVar(this.value));
+    this.assertEquals(new Field(x));
     return VarField(x);
   }
 
