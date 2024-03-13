@@ -32,6 +32,7 @@ jobs:
           INFLUXDB_BUCKET: ${{ secrets.INFLUXDB_BUCKET }}
           INFLUXDB_TOKEN: ${{ secrets.INFLUXDB_TOKEN }}
           METRICS_SOURCE_ENVIRONMENT: 'o1js GitHub Actions'
+          METRICS_BASE_BRANCH_FOR_COMPARISON: 'main'
         run: |
           git submodule update --init --recursive
           npm ci

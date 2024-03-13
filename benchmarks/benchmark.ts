@@ -105,13 +105,13 @@ function getStatistics(numbers: number[]) {
   return { mean, variance, size: n };
 }
 
-function logResult(result: BenchmarkResult, previousResult?: BenchmarkResult) {
+async function logResult(result: BenchmarkResult): Promise<void> {
   console.log(result.label + `\n`);
   console.log(`time: ${resultToString(result)}`);
 
-  writeResultToInfluxDb(result);
-
-  if (previousResult === undefined) {
+  const previousResult = await getPreviousResultFromInfluxDb(result);
+  if (!previousResult) {
+    writeResultToInfluxDb(result);
     console.log('\n');
     return;
   }
@@ -129,13 +129,15 @@ function logResult(result: BenchmarkResult, previousResult?: BenchmarkResult) {
 
   if (p < 0.05) {
     if (result.mean < previousResult.mean) {
-      console.log('Performance has improved');
+      console.log('Performance has improved.');
     } else {
-      console.log('Performance has regressed');
+      console.log('Performance has regressed.');
     }
   } else {
     console.log('Change within noise threshold.');
   }
+
+  writeResultToInfluxDb(result);
   console.log('\n');
 }
 
@@ -176,7 +178,7 @@ function getInfluxDbClientOptions() {
 function getInfluxDbPointTags() {
   return {
     sourceEnvironment: process.env.METRICS_SOURCE_ENVIRONMENT ?? 'local',
-    operatingSystem: `${os.type()} ${os.release()} ${os.arch()} `,
+    operatingSystem: `${os.type()} ${os.release()} ${os.arch()}`,
     hardware: `${os.cpus()[0].model} ${os.cpus().length} cores, ${(
       os.totalmem() /
       1024 /
@@ -195,20 +197,20 @@ function setupInfluxDbClient(): InfluxDB | undefined {
   return new InfluxDB({ url, token });
 }
 
-function writeResultToInfluxDb(result: BenchmarkResult) {
+function writeResultToInfluxDb(result: BenchmarkResult): void {
   const { org, bucket } = getInfluxDbClientOptions();
   if (influxDbClient && org && bucket) {
-    console.log('Writing result to InfluxDB');
+    console.log('Writing result to InfluxDB.');
     const influxDbWriteClient = influxDbClient.getWriteApi(org, bucket, 'ms');
     try {
       const point = new Point(`${result.label} - ${result.size} samples`)
-        .tag('benchmarkName', result.label)
+        .tag('benchmarkName', result.label.trim())
         .tag('sampledTimes', result.size.toString())
         .floatField('mean', result.mean)
         .floatField('variance', result.variance)
         .intField('size', result.size);
       for (const [key, value] of Object.entries(getInfluxDbPointTags())) {
-        point.tag(key, value);
+        point.tag(key, value.trim());
       }
       influxDbWriteClient.writePoint(point);
     } catch (e) {
@@ -217,6 +219,77 @@ function writeResultToInfluxDb(result: BenchmarkResult) {
       influxDbWriteClient.close();
     }
   } else {
-    console.error('Skipping writing to InfluxDB: not configured');
+    console.info('Skipping writing to InfluxDB: not configured.');
   }
+}
+
+function getPreviousResultFromInfluxDb(
+  result: BenchmarkResult
+): Promise<BenchmarkResult | undefined> {
+  return new Promise((resolve) => {
+    const { org, bucket } = getInfluxDbClientOptions();
+    if (!influxDbClient || !org || !bucket) {
+      resolve(undefined);
+      return;
+    }
+    console.log('Querying InfluxDB for previous results.');
+    const influxDbPointTags = getInfluxDbPointTags();
+    const influxDbQueryClient = influxDbClient.getQueryApi(org);
+    const baseBranchForComparison =
+      process.env.METRICS_BASE_BRANCH_FOR_COMPARISON ?? 'main';
+    const fluxQuery = `
+      from(bucket: "${bucket}")
+        |> range(start: -90d)
+        |> filter(fn: (r) => r.benchmarkName == "${result.label}")
+        |> filter(fn: (r) => r.gitBranch == "${baseBranchForComparison}")
+        |> filter(fn: (r) => r.sampledTimes == "${result.size}")
+        |> filter(fn: (r) => r.sourceEnvironment == "${influxDbPointTags.sourceEnvironment}")
+        |> filter(fn: (r) => r.operatingSystem == "${influxDbPointTags.operatingSystem}")
+        |> filter(fn: (r) => r.hardware == "${influxDbPointTags.hardware}")
+        |> toFloat()
+        |> group()
+        |> pivot(
+          rowKey:["_measurement"],
+          columnKey: ["_field"],
+          valueColumn: "_value"
+        )
+        |> sort(desc: true)
+        |> limit(n:1)
+    `;
+    try {
+      let previousResult: BenchmarkResult | undefined = undefined;
+      influxDbQueryClient.queryRows(fluxQuery, {
+        next(row, tableMeta) {
+          const tableObject = tableMeta.toObject(row);
+          if (
+            !previousResult &&
+            tableObject._measurement &&
+            tableObject.mean &&
+            tableObject.variance &&
+            tableObject.size
+          ) {
+            const measurement = tableObject._measurement;
+            previousResult = {
+              label: measurement
+                .substring(0, measurement.lastIndexOf('-'))
+                .trim(),
+              mean: parseFloat(tableObject.mean),
+              variance: parseFloat(tableObject.variance),
+              size: parseInt(tableObject.size, 10),
+            };
+          }
+        },
+        error(e) {
+          console.error('Error querying InfluxDB: ', e);
+          resolve(undefined);
+        },
+        complete() {
+          resolve(previousResult);
+        },
+      });
+    } catch (e) {
+      console.error('Error querying InfluxDB: ', e);
+      resolve(undefined);
+    }
+  });
 }
