@@ -219,9 +219,10 @@ function assertBooleanFixed(x: Field) {
  * Assert equality, `x === y`
  */
 function assertEqualCompatible(x: Field | FieldVar, y: Field | FieldVar) {
-  // TODO this isn't compatible with snarky's `assert_equal` yet
-  let xv = reduceToScaledVar(x);
+  // TODO not optimal for a case like `x + y === c*z`,
+  // where this reduces x + y and then is still not able to just use a wire
   let yv = reduceToScaledVar(y);
+  let xv = reduceToScaledVar(x);
 
   if (isVar(xv) && isVar(yv)) {
     let [[sx, x], [sy, y]] = [getVar(xv), getVar(yv)];
