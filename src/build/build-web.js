@@ -46,17 +46,15 @@ async function buildWeb({ production }) {
   await writeFile(tmpBindingsPath, bindings);
 
   // run typescript
-  let tscPromise = execPromise('npx tsc -p tsconfig.web.json');
+  await execPromise('npx tsc -p tsconfig.web.json');
 
   // copy over pure js files
-  let copyPromise = copy({
+  await copy({
     './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/bindings/js/wrapper.web.js': './dist/web/bindings/js/wrapper.js',
+    './src/snarky.web.js': './dist/web/snarky.js',
     './src/bindings/js/web/': './dist/web/bindings/js/web/',
   });
-
-  await Promise.all([tscPromise, copyPromise]);
 
   if (minify) {
     let o1jsWebPath = './dist/web/web_bindings/o1js_web.bc.js';
