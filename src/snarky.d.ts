@@ -265,14 +265,6 @@ declare const Snarky: {
    */
   field: {
     /**
-     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
-     */
-    add(x: FieldVar, y: FieldVar): FieldVar;
-    /**
-     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
-     */
-    scale(c: FieldConst, x: FieldVar): FieldVar;
-    /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
     readVar(x: FieldVar): FieldConst;
@@ -300,14 +292,6 @@ declare const Snarky: {
       x: FieldVar,
       y: FieldVar
     ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
-    /**
-     *
-     */
-    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
-    /**
-     *
-     */
-    fromBits(bits: MlArray<BoolVar>): FieldVar;
     /**
      * returns x truncated to the lowest `16 * lengthDiv16` bits
      * => can be used to assert that x fits in `16 * lengthDiv16` bits.
