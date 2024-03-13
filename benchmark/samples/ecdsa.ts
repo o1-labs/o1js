@@ -13,8 +13,8 @@ import {
   Ecdsa,
   Secp256k1,
   keccakAndEcdsa,
-} from '../src/examples/crypto/ecdsa/ecdsa.js';
-import { benchmark, logResult } from './benchmark.js';
+} from '../../src/examples/crypto/ecdsa/ecdsa.js';
+import { benchmark } from '../base-benchmark.js';
 
 let privateKey = Secp256k1.Scalar.random();
 let publicKey = Secp256k1.generator.scale(privateKey);
@@ -45,10 +45,4 @@ const EcdsaBenchmark = benchmark(
   { numberOfWarmups: 2, numberOfRuns: 5 }
 );
 
-// run benchmark
-let results = await EcdsaBenchmark.run();
-
-// criterion-style comparison of result to previous one, check significant improvement
-for (const result of results) {
-  await logResult(result);
-}
+export default EcdsaBenchmark;
