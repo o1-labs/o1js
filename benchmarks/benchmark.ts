@@ -179,7 +179,7 @@ function getInfluxDbPointTags() {
   return {
     sourceEnvironment: process.env.METRICS_SOURCE_ENVIRONMENT ?? 'local',
     operatingSystem: `${os.type()} ${os.release()} ${os.arch()}`,
-    hardware: `${os.cpus()[0].model} ${os.cpus().length} cores, ${(
+    hardware: `${os.cpus()[0].model}, ${os.cpus().length} cores, ${(
       os.totalmem() /
       1024 /
       1024 /
