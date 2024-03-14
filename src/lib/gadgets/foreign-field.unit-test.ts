@@ -10,7 +10,7 @@ import {
   unit,
 } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
-import { Gadgets } from './gadgets.js';
+import { Field3, Gadgets } from './gadgets.js';
 import { ZkProgram } from '../proof-system.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
@@ -35,7 +35,7 @@ import {
 } from './test-utils.js';
 import { l2 } from './range-check.js';
 
-const { ForeignField, Field3 } = Gadgets;
+const { ForeignField } = Gadgets;
 
 let sign = fromRandom(Random.oneOf(1n as const, -1n as const));
 
@@ -277,7 +277,7 @@ await equivalentAsync({ from: [f, f], to: f }, { runs })(
 // assert mul example
 // (x - y) * (x + y) = x^2 - y^2
 
-function assertMulExample(x: Gadgets.Field3, y: Gadgets.Field3, f: bigint) {
+function assertMulExample(x: Field3, y: Field3, f: bigint) {
   // witness x^2, y^2
   let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
   let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
@@ -289,11 +289,7 @@ function assertMulExample(x: Gadgets.Field3, y: Gadgets.Field3, f: bigint) {
   ForeignField.assertMul(xMinusY, xPlusY, x2MinusY2, f);
 }
 
-function assertMulExampleNaive(
-  x: Gadgets.Field3,
-  y: Gadgets.Field3,
-  f: bigint
-) {
+function assertMulExampleNaive(x: Field3, y: Field3, f: bigint) {
   // witness x^2, y^2
   let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
   let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));

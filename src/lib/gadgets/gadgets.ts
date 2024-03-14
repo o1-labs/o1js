@@ -22,11 +22,15 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { Field } from '../core.js';
-import { ForeignField, Field3, Sum } from './foreign-field.js';
+import {
+  ForeignField,
+  Field3,
+  Sum as ForeignFieldSum,
+} from './foreign-field.js';
 import { divMod32, addMod32 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
 
-export { Gadgets };
+export { Gadgets, Field3, ForeignFieldSum };
 
 const Gadgets = {
   /**
@@ -688,7 +692,12 @@ const Gadgets = {
      * ForeignField.assertMul(xMinusY, z, aPlusBPlusC, f);
      * ```
      */
-    assertMul(x: Field3 | Sum, y: Field3 | Sum, z: Field3 | Sum, f: bigint) {
+    assertMul(
+      x: Field3 | ForeignFieldSum,
+      y: Field3 | ForeignFieldSum,
+      z: Field3 | ForeignFieldSum,
+      f: bigint
+    ) {
       return ForeignField.assertMul(x, y, z, f);
     },
 
@@ -820,18 +829,3 @@ const Gadgets = {
    */
   SHA256: SHA256,
 };
-
-export namespace Gadgets {
-  /**
-   * A 3-tuple of Fields, representing a 3-limb bigint.
-   */
-  export type Field3 = [Field, Field, Field];
-
-  export namespace ForeignField {
-    /**
-     * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
-     */
-    export type Sum = Sum_;
-  }
-}
-type Sum_ = Sum;

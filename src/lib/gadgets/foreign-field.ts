@@ -556,6 +556,9 @@ function assertMul(
   assertMulInternal(x0, y0, xy0, f, message);
 }
 
+/**
+ * Lazy sum of {@link Field3} elements, which can be used as input to `Gadgets.ForeignField.assertMul()`.
+ */
 class Sum {
   #result?: Field3;
   #summands: Field3[];

@@ -1,7 +1,7 @@
 import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 import { ProvableSpec, spec } from '../testing/equivalent.js';
 import { Random } from '../testing/random.js';
-import { Gadgets } from './gadgets.js';
+import { Field3 } from './gadgets.js';
 import { assert } from './common.js';
 import { Bytes } from '../provable-types/provable-types.js';
 
@@ -13,11 +13,9 @@ export {
   throwError,
 };
 
-const { Field3 } = Gadgets;
-
 // test input specs
 
-function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
+function foreignField(F: FiniteField): ProvableSpec<bigint, Field3> {
   return {
     rng: Random.otherField(F),
     there: Field3.from,
@@ -30,7 +28,7 @@ function foreignField(F: FiniteField): ProvableSpec<bigint, Gadgets.Field3> {
 function unreducedForeignField(
   maxBits: number,
   F: FiniteField
-): ProvableSpec<bigint, Gadgets.Field3> {
+): ProvableSpec<bigint, Field3> {
   return {
     rng: Random.bignat(1n << BigInt(maxBits)),
     there: Field3.from,
@@ -45,9 +43,7 @@ function unreducedForeignField(
 }
 
 // for fields that must follow an unbiased distribution, like private keys
-function uniformForeignField(
-  F: FiniteField
-): ProvableSpec<bigint, Gadgets.Field3> {
+function uniformForeignField(F: FiniteField): ProvableSpec<bigint, Field3> {
   return {
     rng: Random(F.random),
     there: Field3.from,
