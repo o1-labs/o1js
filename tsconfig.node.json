@@ -3,7 +3,6 @@
   "include": [
     "./src/index.ts",
     "./src/snarky.js",
-    "./src/bindings/js/wrapper.js",
     "./src/mina-signer/src",
     "./src/mina-signer/mina-signer.ts",
     "./src/js_crypto",

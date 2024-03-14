@@ -20,27 +20,31 @@ import type {
   SnarkKeyHeader,
   MlWrapVerificationKey,
 } from './lib/proof-system/prover-keys.js';
-import { getWasm } from './bindings/js/wrapper.js';
 import type {
   WasmFpSrs,
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
+import * as wasm from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
 import type { MlConstraintSystem } from './lib/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, wasm };
 
 // internal
 export {
   Snarky,
   Test,
+  WasmModule,
+  withThreadPool,
   JsonGate,
   MlPublicKey,
   MlPublicKeyVar,
   FeatureFlags,
   MlFeatureFlags,
 };
+
+type WasmModule = typeof wasm;
 
 /**
  * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
@@ -862,3 +866,5 @@ declare const Pickles: {
     fromMlString(s: MlString): string;
   };
 };
+
+declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;
