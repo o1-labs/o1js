@@ -12,7 +12,7 @@ export {
   multiRangeCheck,
   compactMultiRangeCheck,
   rangeCheckN,
-  isInRangeN,
+  isDefinitelyInRangeN,
   rangeCheck8,
   rangeCheck16,
 };
@@ -289,9 +289,15 @@ function rangeCheckN(n: number, x: Field, message: string = '') {
 }
 
 /**
- * Checks that x is in the range [0, 2^n) and returns a Boolean indicating whether the check passed.
+ * Returns a boolean which, being true, proves that x is in the range [0, 2^n).
+ *
+ * **Beware**: The output being false does **not** prove that x is not in the range [0, 2^n).
+ * In other words, it can happen that this returns false even if x is in the range [0, 2^n).
+ *
+ * This should not be viewed as a standalone provable method but as an advanced helper function
+ * for gadgets which need a weakened form of range check.
  */
-function isInRangeN(n: number, x: Field) {
+function isDefinitelyInRangeN(n: number, x: Field) {
   assert(
     n <= Fp.sizeInBits,
     `bit length must be ${Fp.sizeInBits} or less, got ${n}`

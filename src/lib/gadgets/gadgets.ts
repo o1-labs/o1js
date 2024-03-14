@@ -8,7 +8,7 @@ import {
   rangeCheck64,
   rangeCheck32,
   rangeCheckN,
-  isInRangeN,
+  isDefinitelyInRangeN,
   rangeCheck8,
 } from './range-check.js';
 import {
@@ -109,24 +109,26 @@ const Gadgets = {
   },
 
   /**
-   * Checks whether the input value is in the range [0, 2^n). `n` must be a multiple of 16.
+   * Returns a boolean which being true proves that x is in the range [0, 2^n).
    *
-   * This function proves that the provided field element can be represented with `n` bits.
-   * If the field element exceeds `n` bits, `Bool(false)` is returned and `Bool(true)` otherwise.
+   * **Beware**: The output being false does **not** prove that x is not in the range [0, 2^n).
+   * This should not be viewed as a standalone provable method but as an advanced helper function
+   * for gadgets which need a weakened form of range check.
    *
-   * @param x - The value to be range-checked.
+   * @param x - The value to be weakly range-checked.
    * @param n - The number of bits to be considered for the range check.
    *
-   * @returns a Bool indicating whether the input value is in the range [0, 2^n).
+   * @returns a Bool that is definitely only true if the input is in the range [0, 2^n),
+   * but could also be false _even if_ the input is in the range [0, 2^n).
    *
    * @example
    * ```ts
    * const x = Provable.witness(Field, () => Field(12345678n));
-   * let inRange = Gadgets.isInRangeN(32, x); // return Bool(true)
+   * let definitelyInRange = Gadgets.isDefinitelyInRangeN(32, x); // could be true or false
    * ```
    */
-  isInRangeN(n: number, x: Field) {
-    return isInRangeN(n, x);
+  isDefinitelyInRangeN(n: number, x: Field) {
+    return isDefinitelyInRangeN(n, x);
   },
   /*
    * Asserts that the input value is in the range [0, 2^16).
