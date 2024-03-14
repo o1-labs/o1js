@@ -8,8 +8,8 @@
  * ```
  */
 
-import { logResult } from '../base-benchmark.js';
-import EcdsaBenchmark from '../samples/ecdsa.js';
+import { logResult } from '../benchmark.js';
+import EcdsaBenchmark from '../benchmarks/ecdsa.js';
 
 // Run all benchmarks
 const results = [...(await EcdsaBenchmark.run())];

@@ -1,5 +1,5 @@
 /**
- * ECDSA benchmark sample
+ * ECDSA benchmark
  */
 
 import { Provable } from 'o1js';
@@ -9,7 +9,7 @@ import {
   Secp256k1,
   keccakAndEcdsa,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
-import { benchmark } from '../base-benchmark.js';
+import { benchmark } from '../benchmark.js';
 
 let privateKey = Secp256k1.Scalar.random();
 let publicKey = Secp256k1.generator.scale(privateKey);

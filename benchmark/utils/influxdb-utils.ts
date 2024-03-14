@@ -4,7 +4,7 @@
 
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
 import os from 'node:os';
-import { BenchmarkResult, calculateBounds } from '../base-benchmark.js';
+import { BenchmarkResult, calculateBounds } from '../benchmark.js';
 
 const INFLUXDB_CLIENT_OPTIONS = {
   url: process.env.INFLUXDB_URL,

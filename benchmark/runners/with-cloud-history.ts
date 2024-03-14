@@ -7,8 +7,8 @@
  * ```
  */
 
-import { logResult } from '../base-benchmark.js';
-import EcdsaBenchmark from '../samples/ecdsa.js';
+import { logResult } from '../benchmark.js';
+import EcdsaBenchmark from '../benchmarks/ecdsa.js';
 import {
   readPreviousResultFromInfluxDb,
   writeResultToInfluxDb,

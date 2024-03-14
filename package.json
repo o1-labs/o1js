@@ -69,6 +69,7 @@
   },
   "author": "O(1) Labs",
   "devDependencies": {
+    "@influxdata/influxdb-client": "^1.33.2",
     "@noble/hashes": "^1.3.2",
     "@playwright/test": "^1.25.2",
     "@types/isomorphic-fetch": "^0.0.36",
@@ -94,7 +95,6 @@
     "typescript": "5.1"
   },
   "dependencies": {
-    "@influxdata/influxdb-client": "^1.33.2",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "isomorphic-fetch": "^3.0.0",

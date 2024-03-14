@@ -115,9 +115,7 @@ function logResult(
   console.log(result.label + `\n`);
   console.log(`time: ${resultToString(result)}`);
 
-  if (!previousResult) {
-    return;
-  }
+  if (previousResult === undefined) return;
 
   let change = (result.mean - previousResult.mean) / previousResult.mean;
   let p = pValue(result, previousResult);
@@ -167,8 +165,8 @@ function pValue(sample1: BenchmarkResult, sample2: BenchmarkResult): number {
 }
 
 function calculateBounds(result: BenchmarkResult) {
-  const percentage = (Math.sqrt(result.variance) / result.mean) * 100;
-  const upperBound = result.mean + (result.mean * percentage) / 100;
-  const lowerBound = result.mean - (result.mean * percentage) / 100;
+  const stdDev = Math.sqrt(result.variance);
+  const upperBound = result.mean + stdDev;
+  const lowerBound = result.mean - stdDev;
   return { upperBound, lowerBound };
 }
