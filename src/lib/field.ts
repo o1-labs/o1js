@@ -1008,35 +1008,6 @@ class Field {
   }
 
   /**
-   * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
-   *
-   * The `length` has to be a multiple of 16, and has to be between 0 and 255, otherwise the method throws.
-   *
-   * As {@link Field} elements are represented using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness),
-   * the resulting {@link Field} element will equal the original one if it fits in `length` bits.
-   *
-   * @param length - The number of bits to take from this {@link Field} element.
-   *
-   * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
-   */
-  rangeCheckHelper(length: number) {
-    checkBitLength('Field.rangeCheckHelper()', length);
-    if (length % 16 !== 0)
-      throw Error(
-        'Field.rangeCheckHelper(): `length` has to be a multiple of 16.'
-      );
-    let lengthDiv16 = length / 16;
-    if (this.isConstant()) {
-      let bits = Fp.toBits(this.toBigInt())
-        .slice(0, length)
-        .concat(Array(Fp.sizeInBits - length).fill(false));
-      return new Field(Fp.fromBits(bits));
-    }
-    let x = Snarky.field.truncateToBits16(lengthDiv16, this.value);
-    return new Field(x);
-  }
-
-  /**
    * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
    *
    * In o1js, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.

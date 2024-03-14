@@ -11,7 +11,6 @@ export {
   rangeCheck32,
   multiRangeCheck,
   compactMultiRangeCheck,
-  rangeCheckHelper,
   rangeCheckN,
   isInRangeN,
   rangeCheck8,
@@ -239,6 +238,12 @@ function rangeCheck1Helper(inputs: {
 
 /**
  * Helper function that creates a new {@link Field} element from the first `length` bits of this {@link Field} element.
+ *
+ * This returns the `x` truncated to `length` bits. However, it does **not** prove this truncation or any
+ * other relation of the output with `x`.
+ *
+ * This only proves that the output value is in the range [0, 2^length), and so can be combined
+ * with the initial value to prove a range check.
  */
 function rangeCheckHelper(length: number, x: Field) {
   assert(
