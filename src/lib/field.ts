@@ -430,7 +430,7 @@ class Field {
   isEven() {
     if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
 
-    let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
+    let [, isOddVar, xDiv2Var] = Snarky.run.exists(2, () => {
       let bits = Fp.toBits(this.toBigInt());
       let isOdd = bits.shift()! ? 1n : 0n;
 
@@ -485,7 +485,7 @@ class Field {
       return new Field(z);
     }
     // create a new witness for z = x*y
-    let z = Snarky.existsVar(() =>
+    let z = Snarky.run.existsOne(() =>
       FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
     );
     // add a multiplication constraint
@@ -517,7 +517,7 @@ class Field {
       return new Field(z);
     }
     // create a witness for z = x^(-1)
-    let z = Snarky.existsVar(() => {
+    let z = Snarky.run.existsOne(() => {
       let z = Fp.inverse(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
@@ -584,7 +584,7 @@ class Field {
       return new Field(Fp.square(this.toBigInt()));
     }
     // create a new witness for z = x^2
-    let z_ = Snarky.existsVar(() =>
+    let z_ = Snarky.run.existsOne(() =>
       FieldConst.fromBigint(Fp.square(this.toBigInt()))
     );
     let z = new Field(z_);
@@ -620,7 +620,7 @@ class Field {
       return new Field(z);
     }
     // create a witness for sqrt(x)
-    let z_ = Snarky.existsVar(() => {
+    let z_ = Snarky.run.existsOne(() => {
       let z = Fp.sqrt(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
@@ -639,7 +639,7 @@ class Field {
     }
     // create witnesses z = 1/x, or z=0 if x=0,
     // and b = 1 - zx
-    let [, b, z] = Snarky.exists(2, () => {
+    let [, b, z] = Snarky.run.exists(2, () => {
       let x = this.toBigInt();
       let z = Fp.inverse(x) ?? 0n;
       let b = Fp.sub(1n, Fp.mul(z, x));
@@ -680,7 +680,7 @@ class Field {
       return this.sub(y).isZero();
     }
     // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
-    let xMinusY = Snarky.existsVar(() =>
+    let xMinusY = Snarky.run.existsOne(() =>
       FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
     );
     let z = new Field(xMinusY);
@@ -1054,7 +1054,7 @@ class Field {
       let [c, x] = terms[0];
       if (c === 1n) return new Field(x);
     }
-    let x = Snarky.existsVar(() => Snarky.field.readVar(this.value));
+    let x = Snarky.run.existsOne(() => Snarky.field.readVar(this.value));
     this.assertEquals(new Field(x));
     return VarField(x);
   }

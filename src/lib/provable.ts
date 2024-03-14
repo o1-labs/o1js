@@ -239,7 +239,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    let [, ...fieldVars] = Snarky.exists(type.sizeInFields(), () => {
+    let [, ...fieldVars] = Snarky.run.exists(type.sizeInFields(), () => {
       proverValue = compute();
       let fields = type.toFields(proverValue);
       let fieldConstants = fields.map((x) => x.toConstant().value[1]);

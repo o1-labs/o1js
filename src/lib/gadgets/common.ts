@@ -26,7 +26,7 @@ export {
 };
 
 function existsOne(compute: () => bigint) {
-  let varMl = Snarky.existsVar(() => FieldConst.fromBigint(compute()));
+  let varMl = Snarky.run.existsOne(() => FieldConst.fromBigint(compute()));
   return VarField(varMl);
 }
 
@@ -34,7 +34,7 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   n: N,
   compute: C
 ) {
-  let varsMl = Snarky.exists(n, () =>
+  let varsMl = Snarky.run.exists(n, () =>
     MlArray.mapTo(compute(), FieldConst.fromBigint)
   );
   let vars = MlArray.mapFrom(varsMl, VarField);

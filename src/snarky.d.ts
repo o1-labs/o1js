@@ -175,24 +175,23 @@ declare namespace Snarky {
  */
 declare const Snarky: {
   /**
-   * witness `sizeInFields` field element variables
-   *
-   * Note: this is called "exists" because in a proof, you use it like this:
-   * > "I prove that there exists x, such that (some statement)"
-   */
-  exists(
-    sizeInFields: number,
-    compute: () => MlArray<FieldConst>
-  ): MlArray<VarFieldVar>;
-  /**
-   * witness a single field element variable
-   */
-  existsVar(compute: () => FieldConst): VarFieldVar;
-
-  /**
    * APIs that have to do with running provable code
    */
   run: {
+    /**
+     * witness `sizeInFields` field element variables
+     *
+     * Note: this is called "exists" because in a proof, you use it like this:
+     * > "I prove that there exists x, such that (some statement)"
+     */
+    exists(
+      sizeInFields: number,
+      compute: () => MlArray<FieldConst>
+    ): MlArray<VarFieldVar>;
+    /**
+     * witness a single field element variable
+     */
+    existsOne(compute: () => FieldConst): VarFieldVar;
     /**
      * Checks whether Snarky runs in "prover mode", that is, with witnesses
      */
@@ -229,7 +228,7 @@ declare const Snarky: {
     ): (fields: MlOption<MlArray<FieldConst>>) => MlArray<VarFieldVar>;
 
     /**
-     * Snarky's internal state
+     * Operations on snarky's internal state
      */
     state: {
       allocVar(state: SnarkyState): FieldVar;
