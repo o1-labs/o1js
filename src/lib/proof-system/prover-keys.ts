@@ -125,7 +125,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     default:
       value satisfies never;
-      throw Error('todo');
+      throw Error('unreachable');
   }
 }
 
@@ -165,7 +165,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
     }
     default:
       header satisfies never;
-      throw Error('todo');
+      throw Error('unreachable');
   }
 }
 
