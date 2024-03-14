@@ -1,8 +1,16 @@
 /**
- * Benchmark runner
+ * Base benchmark harness
  */
+
 import jStat from 'jstat';
-export { BenchmarkResult, Benchmark, benchmark, printResult, pValue };
+export {
+  Benchmark,
+  BenchmarkResult,
+  benchmark,
+  calculateBounds,
+  logResult,
+  pValue,
+};
 
 type BenchmarkResult = {
   label: string;
@@ -100,10 +108,10 @@ function getStatistics(numbers: number[]) {
   return { mean, variance, size: n };
 }
 
-function printResult(
+function logResult(
   result: BenchmarkResult,
   previousResult?: BenchmarkResult
-) {
+): void {
   console.log(result.label + `\n`);
   console.log(`time: ${resultToString(result)}`);
 
@@ -122,14 +130,13 @@ function printResult(
 
   if (p < 0.05) {
     if (result.mean < previousResult.mean) {
-      console.log('Performance has improved');
+      console.log('Performance has improved.');
     } else {
-      console.log('Performance has regressed');
+      console.log('Performance has regressed.');
     }
   } else {
     console.log('Change within noise threshold.');
   }
-  console.log('\n');
 }
 
 function resultToString({ mean, variance }: BenchmarkResult) {
@@ -155,4 +162,11 @@ function pValue(sample1: BenchmarkResult, sample2: BenchmarkResult): number {
   // calculate the (two-sided) p-value indicating a significant change
   const pValue = 2 * (1 - jStat.studentt.cdf(Math.abs(tStatistic), df));
   return pValue;
+}
+
+function calculateBounds(result: BenchmarkResult) {
+  const stdDev = Math.sqrt(result.variance);
+  const upperBound = result.mean + stdDev;
+  const lowerBound = result.mean - stdDev;
+  return { upperBound, lowerBound };
 }
