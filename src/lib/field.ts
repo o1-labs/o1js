@@ -339,6 +339,9 @@ class Field {
     // TODO use 88-bit RCs to make this more efficient
     xDiv2.toBits(253);
 
+    // boolean check
+    assertBoolean(isOdd);
+
     // check composition
     xDiv2.mul(2).add(isOdd).assertEquals(this);
 
