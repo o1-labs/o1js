@@ -5,6 +5,7 @@ import {
   FieldType,
   FieldVar,
   readVarMessage,
+  withMessage,
 } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
@@ -394,11 +395,4 @@ function toBoolean(x: boolean | Bool): boolean {
 function toFieldVar(x: boolean | Bool): BoolVar {
   if (x instanceof Bool) return x.value;
   return FieldVar.constant(B(x));
-}
-
-// TODO: This is duplicated
-function withMessage(error: unknown, message?: string) {
-  if (message === undefined || !(error instanceof Error)) return error;
-  error.message = `${message}\n${error.message}`;
-  return error;
 }
