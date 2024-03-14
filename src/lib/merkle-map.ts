@@ -53,7 +53,7 @@ export class MerkleMap {
   /**
    * Sets a key of the merkle map to a given value.
    * @param key The key to set in the map.
-   * @param key The value to set.
+   * @param value The value to set.
    */
   set(key: Field, value: Field) {
     const index = this._keyToIndex(key);
