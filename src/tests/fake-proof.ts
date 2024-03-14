@@ -14,7 +14,7 @@ const RealProgram = ZkProgram({
   methods: {
     make: {
       privateInputs: [UInt64],
-      method(value: UInt64) {
+      async method(value: UInt64) {
         let expected = UInt64.from(34);
         value.assertEquals(expected);
       },
@@ -25,7 +25,7 @@ const RealProgram = ZkProgram({
 const FakeProgram = ZkProgram({
   name: 'fake',
   methods: {
-    make: { privateInputs: [UInt64], method(_: UInt64) {} },
+    make: { privateInputs: [UInt64], async method(_: UInt64) {} },
   },
 });
 
@@ -36,7 +36,7 @@ const RecursiveProgram = ZkProgram({
   methods: {
     verifyReal: {
       privateInputs: [RealProof],
-      method(proof: RealProof) {
+      async method(proof: RealProof) {
         proof.verify();
       },
     },
