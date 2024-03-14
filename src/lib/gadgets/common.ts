@@ -11,10 +11,7 @@ import { MlArray } from '../ml/base.js';
 import type { Bool } from '../bool.js';
 import { fieldVar } from '../gates.js';
 
-const MAX_BITS = 64 as const;
-
 export {
-  MAX_BITS,
   exists,
   existsOne,
   toVars,
