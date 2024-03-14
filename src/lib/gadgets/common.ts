@@ -8,7 +8,7 @@ import {
 import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
-import { Bool } from '../bool.js';
+import type { Bool } from '../bool.js';
 import { fieldVar } from '../gates.js';
 
 const MAX_BITS = 64 as const;
@@ -78,10 +78,10 @@ function toVars<T extends Tuple<Field | bigint>>(
  * Can be used in provable code.
  */
 function assert(stmt: boolean | Bool, message?: string): asserts stmt {
-  if (stmt instanceof Bool) {
+  if (typeof stmt === 'boolean') {
+    if (!stmt) throw Error(message ?? 'Assertion failed');
+  } else {
     stmt.assertTrue(message ?? 'Assertion failed');
-  } else if (!stmt) {
-    throw Error(message ?? 'Assertion failed');
   }
 }
 
