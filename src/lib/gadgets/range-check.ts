@@ -316,7 +316,7 @@ function rangeCheck16(x: Field) {
     return;
   }
   // check that x fits in 16 bits
-  x.rangeCheckHelper(16).assertEquals(x);
+  rangeCheckHelper(16, x).assertEquals(x);
 }
 
 function rangeCheck8(x: Field) {
@@ -329,8 +329,8 @@ function rangeCheck8(x: Field) {
   }
 
   // check that x fits in 16 bits
-  x.rangeCheckHelper(16).assertEquals(x);
+  rangeCheckHelper(16, x).assertEquals(x);
   // check that 2^8 x fits in 16 bits
   let x256 = x.mul(1 << 8).seal();
-  x256.rangeCheckHelper(16).assertEquals(x256);
+  rangeCheckHelper(16, x256).assertEquals(x256);
 }
