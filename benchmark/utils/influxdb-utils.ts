@@ -4,7 +4,7 @@
 
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
 import os from 'node:os';
-import { BenchmarkResult } from '../base-benchmark.js';
+import { BenchmarkResult, calculateBounds } from '../base-benchmark.js';
 
 const INFLUXDB_CLIENT_OPTIONS = {
   url: process.env.INFLUXDB_URL,
@@ -36,11 +36,15 @@ export function writeResultToInfluxDb(result: BenchmarkResult): void {
     console.log('Writing result to InfluxDB.');
     const influxDbWriteClient = influxDbClient.getWriteApi(org, bucket, 'ms');
     try {
+      const sampleName = result.label.split('-')[1].trim();
+      const { upperBound, lowerBound } = calculateBounds(result);
       const point = new Point(`${result.label} - ${result.size} samples`)
         .tag('benchmarkName', result.label.trim())
         .tag('sampledTimes', result.size.toString())
         .floatField('mean', result.mean)
         .floatField('variance', result.variance)
+        .floatField(`${sampleName} - upperBound`, upperBound)
+        .floatField(`${sampleName} - lowerBound`, lowerBound)
         .intField('size', result.size);
       for (const [key, value] of Object.entries(INFLUXDB_COMMON_POINT_TAGS)) {
         point.tag(key, value.trim());

@@ -3,7 +3,14 @@
  */
 
 import jStat from 'jstat';
-export { Benchmark, BenchmarkResult, benchmark, logResult, pValue };
+export {
+  Benchmark,
+  BenchmarkResult,
+  benchmark,
+  calculateBounds,
+  logResult,
+  pValue,
+};
 
 type BenchmarkResult = {
   label: string;
@@ -157,4 +164,11 @@ function pValue(sample1: BenchmarkResult, sample2: BenchmarkResult): number {
   // calculate the (two-sided) p-value indicating a significant change
   const pValue = 2 * (1 - jStat.studentt.cdf(Math.abs(tStatistic), df));
   return pValue;
+}
+
+function calculateBounds(result: BenchmarkResult) {
+  const percentage = (Math.sqrt(result.variance) / result.mean) * 100;
+  const upperBound = result.mean + (result.mean * percentage) / 100;
+  const lowerBound = result.mean - (result.mean * percentage) / 100;
+  return { upperBound, lowerBound };
 }
