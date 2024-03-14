@@ -5,7 +5,7 @@
  */
 import { Bool } from './bool.js';
 import { Field } from './field.js';
-import { Provable as Provable_, Snarky } from '../snarky.js';
+import { Provable as Provable_ } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
 import { Context } from './global-context.js';
 import {
@@ -23,7 +23,7 @@ import {
   generateWitness,
   runAndCheckSync,
 } from './provable-context.js';
-import { existsAsync } from './provable-core/exists.js';
+import { exists, existsAsync } from './provable-core/exists.js';
 
 // external API
 export { Provable };
@@ -239,23 +239,11 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    let [, ...fieldVars] = Snarky.run.exists(type.sizeInFields(), () => {
+    fields = exists(type.sizeInFields(), () => {
       proverValue = compute();
       let fields = type.toFields(proverValue);
-      let fieldConstants = fields.map((x) => x.toConstant().value[1]);
-
-      // TODO: enable this check
-      // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
-      // if (fields.length !== type.sizeInFields()) {
-      //   throw Error(
-      //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-      //       fields.length
-      //     }.`
-      //   );
-      // }
-      return [0, ...fieldConstants];
+      return fields.map((x) => x.toBigInt());
     });
-    fields = fieldVars.map((x) => new Field(x));
   } finally {
     snarkContext.leave(id);
   }
@@ -287,12 +275,11 @@ async function witnessAsync<
   // call into `existsAsync` to witness the raw field elements
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    let fieldVars = await existsAsync(type.sizeInFields(), async () => {
+    fields = await existsAsync(type.sizeInFields(), async () => {
       proverValue = await compute();
       let fields = type.toFields(proverValue);
       return fields.map((x) => x.toBigInt());
     });
-    fields = fieldVars.map((x) => new Field(x));
   } finally {
     snarkContext.leave(id);
   }

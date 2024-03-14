@@ -1,22 +1,58 @@
 import { Snarky } from '../../snarky.js';
-import { FieldConst, type VarFieldVar } from '../field.js';
+import { FieldConst } from './fieldvar.js';
+import type { VarField, VarFieldVar } from '../field.js';
 import { MlArray, MlOption } from '../ml/base.js';
+import { createField } from './field-constructor.js';
+import { TupleN } from '../util/types.js';
 
-export { existsAsync };
+export { createVarField, exists, existsAsync, existsOne };
 
-async function existsAsync(
-  size: number,
-  compute: (() => Promise<bigint[]>) | (() => bigint[])
-): Promise<VarFieldVar[]> {
+function exists<N extends number, C extends () => TupleN<bigint, N>>(
+  size: N,
+  compute: C
+): TupleN<VarField, N> {
   // enter prover block
   let finish = Snarky.run.enterAsProver(size);
 
   if (!Snarky.run.inProver()) {
-    return MlArray.from(finish(MlOption()));
+    // step outside prover block and create vars: compile case
+    let vars = MlArray.mapFrom(finish(MlOption()), createVarField);
+    return TupleN.fromArray(size, vars);
   }
 
-  // TODO would be nice to be able to step outside the as_prover block
-  // with a try-catch if the callback throws an error
+  // run the callback to get values to witness
+  let values = compute();
+  if (values.length !== size)
+    throw Error(
+      `Expected witnessed values of length ${size}, got ${values.length}.`
+    );
+
+  // note: here, we deliberately reduce the bigint values modulo the field size
+  // this makes it easier to use normal arithmetic in low-level gadgets,
+  // i.e. you can just witness x - y and it will be a field subtraction
+  let inputValues = MlArray.mapTo(values, FieldConst.fromBigint);
+
+  // step outside prover block and create vars: prover case
+  let fieldVars = finish(MlOption(inputValues));
+  let vars = MlArray.mapFrom(fieldVars, createVarField);
+  return TupleN.fromArray(size, vars);
+}
+
+function existsOne(compute: () => bigint): VarField {
+  return exists(1, () => [compute()])[0];
+}
+
+async function existsAsync<
+  N extends number,
+  C extends () => Promise<TupleN<bigint, N>>
+>(size: N, compute: C): Promise<TupleN<VarField, N>> {
+  // enter prover block
+  let finish = Snarky.run.enterAsProver(size);
+
+  if (!Snarky.run.inProver()) {
+    let vars = MlArray.mapFrom(finish(MlOption()), createVarField);
+    return TupleN.fromArray(size, vars);
+  }
 
   // run the async callback to get values to witness
   let values = await compute();
@@ -25,7 +61,18 @@ async function existsAsync(
       `Expected witnessed values of length ${size}, got ${values.length}.`
     );
 
+  // note: here, we deliberately reduce the bigint values modulo the field size
+  // this makes it easier to use normal arithmetic in low-level gadgets,
+  // i.e. you can just witness x - y and it will be a field subtraction
   let inputValues = MlArray.mapTo(values, FieldConst.fromBigint);
-  let vars = finish(MlOption(inputValues));
-  return MlArray.from(vars);
+
+  let fieldVars = finish(MlOption(inputValues));
+  let vars = MlArray.mapFrom(fieldVars, createVarField);
+  return TupleN.fromArray(size, vars);
+}
+
+// helpers for varfields
+
+function createVarField(x: VarFieldVar): VarField {
+  return createField(x) as VarField;
 }
