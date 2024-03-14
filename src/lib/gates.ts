@@ -1,7 +1,7 @@
 import { Snarky } from '../snarky.js';
 import { FieldConst, type Field, FieldVar } from './field.js';
-import { exists } from './gadgets/common.js';
 import { MlArray, MlTuple } from './ml/base.js';
+import { exists } from './provable-core/exists.js';
 import { TupleN } from './util/types.js';
 
 export {

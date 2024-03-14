@@ -10,9 +10,10 @@ import {
   VarField,
   VarFieldVar,
 } from '../field.js';
-import { existsOne, toVar } from './common.js';
+import { toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../util/types.js';
+import { existsOne } from '../provable-core/exists.js';
 
 export { assertMul, arrayGet, assertOneOf };
 

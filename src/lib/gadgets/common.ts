@@ -1,42 +1,10 @@
-import {
-  Field,
-  FieldConst,
-  FieldVar,
-  VarField,
-  VarFieldVar,
-} from '../field.js';
-import { Tuple, TupleN } from '../util/types.js';
-import { Snarky } from '../../snarky.js';
-import { MlArray } from '../ml/base.js';
+import { Field, FieldVar, VarField, VarFieldVar } from '../field.js';
+import { Tuple } from '../util/types.js';
 import type { Bool } from '../bool.js';
 import { fieldVar } from '../gates.js';
+import { existsOne } from '../provable-core/exists.js';
 
-export {
-  exists,
-  existsOne,
-  toVars,
-  toVar,
-  isVar,
-  assert,
-  bitSlice,
-  divideWithRemainder,
-};
-
-function existsOne(compute: () => bigint) {
-  let varMl = Snarky.run.existsOne(() => FieldConst.fromBigint(compute()));
-  return VarField(varMl);
-}
-
-function exists<N extends number, C extends () => TupleN<bigint, N>>(
-  n: N,
-  compute: C
-) {
-  let varsMl = Snarky.run.exists(n, () =>
-    MlArray.mapTo(compute(), FieldConst.fromBigint)
-  );
-  let vars = MlArray.mapFrom(varsMl, VarField);
-  return TupleN.fromArray(n, vars);
-}
+export { toVars, toVar, isVar, assert, bitSlice, divideWithRemainder };
 
 /**
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.

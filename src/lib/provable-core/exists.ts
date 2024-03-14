@@ -7,6 +7,12 @@ import { TupleN } from '../util/types.js';
 
 export { createVarField, exists, existsAsync, existsOne };
 
+/**
+ * Witness `size` field element variables by passing a callback that returns `size` bigints.
+ *
+ * Note: this is called "exists" because in a proof, you use it like this:
+ * > "I prove that there exists x, such that (some statement)"
+ */
 function exists<N extends number, C extends () => TupleN<bigint, N>>(
   size: N,
   compute: C
@@ -38,10 +44,16 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   return TupleN.fromArray(size, vars);
 }
 
+/**
+ * Variant of {@link exists} that witnesses 1 field element.
+ */
 function existsOne(compute: () => bigint): VarField {
   return exists(1, () => [compute()])[0];
 }
 
+/**
+ * Async variant of {@link exists}, which allows an async callback.
+ */
 async function existsAsync<
   N extends number,
   C extends () => Promise<TupleN<bigint, N>>
