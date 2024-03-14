@@ -3,7 +3,7 @@ import {
   EmptyUndefined,
   EmptyVoid,
 } from '../bindings/lib/generic.js';
-import { withThreadPool } from '../bindings/js/wrapper.js';
+import { withThreadPool } from '../snarky.js';
 import {
   ProvablePure,
   Pickles,
