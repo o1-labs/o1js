@@ -1,13 +1,17 @@
-import { Field, FieldConst, FieldVar, VarField } from '../field.js';
+import {
+  Field,
+  FieldConst,
+  FieldVar,
+  VarField,
+  VarFieldVar,
+} from '../field.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { Snarky } from '../../snarky.js';
 import { MlArray } from '../ml/base.js';
-import { Bool } from '../bool.js';
-
-const MAX_BITS = 64 as const;
+import type { Bool } from '../bool.js';
+import { fieldVar } from '../gates.js';
 
 export {
-  MAX_BITS,
   exists,
   existsOne,
   toVars,
@@ -19,7 +23,7 @@ export {
 };
 
 function existsOne(compute: () => bigint) {
-  let varMl = Snarky.existsVar(() => FieldConst.fromBigint(compute()));
+  let varMl = Snarky.run.existsOne(() => FieldConst.fromBigint(compute()));
   return VarField(varMl);
 }
 
@@ -27,7 +31,7 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   n: N,
   compute: C
 ) {
-  let varsMl = Snarky.exists(n, () =>
+  let varsMl = Snarky.run.exists(n, () =>
     MlArray.mapTo(compute(), FieldConst.fromBigint)
   );
   let vars = MlArray.mapFrom(varsMl, VarField);
@@ -42,16 +46,19 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
  *
  * Same as `Field.seal()` with the difference that `seal()` leaves constants as is.
  */
-function toVar(x: Field | bigint): VarField {
+function toVar(x_: Field | FieldVar | bigint): VarField {
+  let x = new Field(x_);
   // don't change existing vars
   if (isVar(x)) return x;
-  let xVar = existsOne(() => Field.from(x).toBigInt());
+  let xVar = existsOne(() => x.toBigInt());
   xVar.assertEquals(x);
   return xVar;
 }
 
-function isVar(x: Field | bigint): x is VarField {
-  return x instanceof Field && FieldVar.isVar(x.value);
+function isVar(x: FieldVar | bigint): x is VarFieldVar;
+function isVar(x: Field | bigint): x is VarField;
+function isVar(x: Field | FieldVar | bigint) {
+  return FieldVar.isVar(fieldVar(x));
 }
 
 /**
@@ -68,10 +75,10 @@ function toVars<T extends Tuple<Field | bigint>>(
  * Can be used in provable code.
  */
 function assert(stmt: boolean | Bool, message?: string): asserts stmt {
-  if (stmt instanceof Bool) {
+  if (typeof stmt === 'boolean') {
+    if (!stmt) throw Error(message ?? 'Assertion failed');
+  } else {
     stmt.assertTrue(message ?? 'Assertion failed');
-  } else if (!stmt) {
-    throw Error(message ?? 'Assertion failed');
   }
 }
 

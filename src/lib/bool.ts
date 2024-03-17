@@ -5,11 +5,14 @@ import {
   FieldType,
   FieldVar,
   readVarMessage,
+  withMessage,
 } from './field.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
+import { existsOne } from './gadgets/common.js';
+import { assertMul } from './gadgets/compatible.js';
 
 export { BoolVar, Bool };
 
@@ -63,7 +66,9 @@ class Bool {
     if (this.isConstant()) {
       return new Bool(!this.toBoolean());
     }
-    return new Bool(Snarky.bool.not(this.value));
+    // 1 - x
+    let not = new Field(1).sub(this.toField());
+    return new Bool(not.value);
   }
 
   /**
@@ -75,7 +80,8 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() && toBoolean(y));
     }
-    return new Bool(Snarky.bool.and(this.value, toFieldVar(y)));
+    // x * y
+    return new Bool(this.toField().mul(Bool.toField(y)).value);
   }
 
   /**
@@ -87,7 +93,8 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() || toBoolean(y));
     }
-    return new Bool(Snarky.bool.or(this.value, toFieldVar(y)));
+    // 1 - (1 - x)(1 - y) = x + y - xy
+    return this.not().and(new Bool(y).not()).not();
   }
 
   /**
@@ -102,7 +109,7 @@ class Bool {
         }
         return;
       }
-      Snarky.bool.assertEqual(this.value, toFieldVar(y));
+      this.toField().assertEquals(Bool.toField(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -144,7 +151,22 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() === toBoolean(y));
     }
-    return new Bool(Snarky.bool.equals(this.value, toFieldVar(y)));
+    if (isConstant(y)) {
+      if (toBoolean(y)) return this;
+      else return this.not();
+    }
+    if (this.isConstant()) {
+      return new Bool(y).equals(this);
+    }
+    // 1 - (x - y)^2 = 2xy - x - y + 1
+    // match snarky logic:
+    // 2x * y === x + y - z
+    // return 1 - z
+    let z = existsOne(() => BigInt(this.toBoolean() !== toBoolean(y)));
+    let x = this.toField();
+    let y_ = Bool.toField(y);
+    assertMul(x.add(x), y_, x.add(y_).sub(z));
+    return new Bool(z.value).not();
   }
 
   /**
@@ -321,19 +343,19 @@ class Bool {
   static sizeInBytes = 1;
 
   static check(x: Bool): void {
-    Snarky.field.assertBoolean(x.value);
+    x.toField().assertBool();
   }
 
   static Unsafe = {
     /**
-     * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
+     * Converts a {@link Field} into a {@link Bool}. This is an **unsafe** operation
      * as it assumes that the field element is either 0 or 1 (which might not be true).
      *
-     * Only use this with constants or if you have already constrained the Field element to be 0 or 1.
+     * Only use this if you have already constrained the Field element to be 0 or 1.
      *
      * @param x a {@link Field}
      */
-    ofField(x: Field) {
+    fromField(x: Field) {
       asProver(() => {
         let x0 = x.toBigInt();
         if (x0 !== 0n && x0 !== 1n)
@@ -373,11 +395,4 @@ function toBoolean(x: boolean | Bool): boolean {
 function toFieldVar(x: boolean | Bool): BoolVar {
   if (x instanceof Bool) return x.value;
   return FieldVar.constant(B(x));
-}
-
-// TODO: This is duplicated
-function withMessage(error: unknown, message?: string) {
-  if (message === undefined || !(error instanceof Error)) return error;
-  error.message = `${message}\n${error.message}`;
-  return error;
 }

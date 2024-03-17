@@ -6,6 +6,13 @@ import { asProver, inCheckedComputation } from './provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from './errors.js';
 import { Provable } from './provable.js';
+import {
+  assertEqual,
+  assertMul,
+  assertSquare,
+  assertBoolean,
+} from './gadgets/compatible.js';
+import { toLinearCombination } from './gadgets/basic.js';
 
 // external API
 export { Field };
@@ -75,15 +82,23 @@ type ConstantFieldVar = [FieldType.Constant, FieldConst];
 type VarFieldVar = [FieldType.Var, number];
 
 const FieldVar = {
+  // constructors
+  Constant(x: FieldConst): ConstantFieldVar {
+    return [FieldType.Constant, x];
+  },
+  Var(x: number): VarFieldVar {
+    return [FieldType.Var, x];
+  },
+  Add(x: FieldVar, y: FieldVar): [FieldType.Add, FieldVar, FieldVar] {
+    return [FieldType.Add, x, y];
+  },
+  Scale(c: FieldConst, x: FieldVar): [FieldType.Scale, FieldConst, FieldVar] {
+    return [FieldType.Scale, c, x];
+  },
+
   constant(x: bigint | FieldConst): ConstantFieldVar {
     let x0 = typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
     return [FieldType.Constant, x0];
-  },
-  isConstant(x: FieldVar): x is ConstantFieldVar {
-    return x[0] === FieldType.Constant;
-  },
-  isVar(x: FieldVar): x is VarFieldVar {
-    return x[0] === FieldType.Var;
   },
   add(x: FieldVar, y: FieldVar): FieldVar {
     if (FieldVar.isConstant(x) && x[1][1] === 0n) return y;
@@ -100,8 +115,30 @@ const FieldVar = {
     if (FieldVar.isConstant(x)) {
       return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
     }
+    if (FieldVar.isScale(x)) {
+      return [
+        FieldType.Scale,
+        FieldConst.fromBigint(Fp.mul(c0[1], x[1][1])),
+        x[2],
+      ];
+    }
     return [FieldType.Scale, c0, x];
   },
+
+  // type guards
+  isConstant(x: FieldVar): x is ConstantFieldVar {
+    return x[0] === FieldType.Constant;
+  },
+  isVar(x: FieldVar): x is VarFieldVar {
+    return x[0] === FieldType.Var;
+  },
+  isAdd(x: FieldVar): x is [FieldType.Add, FieldVar, FieldVar] {
+    return x[0] === FieldType.Add;
+  },
+  isScale(x: FieldVar): x is [FieldType.Scale, FieldConst, FieldVar] {
+    return x[0] === FieldType.Scale;
+  },
+
   [0]: [FieldType.Constant, FieldConst[0]] satisfies ConstantFieldVar,
   [1]: [FieldType.Constant, FieldConst[1]] satisfies ConstantFieldVar,
   [-1]: [FieldType.Constant, FieldConst[-1]] satisfies ConstantFieldVar,
@@ -274,7 +311,7 @@ class Field {
         }
         return;
       }
-      Snarky.field.assertEqual(this.value, toFieldVar(y));
+      assertEqual(this, toFieldVar(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -313,7 +350,7 @@ class Field {
       return new Field(Fp.add(this.toBigInt(), toFp(y)));
     }
     // return new AST node Add(x, y)
-    let z = Snarky.field.add(this.value, toFieldVar(y));
+    let z = FieldVar.add(this.value, toFieldVar(y));
     return new Field(z);
   }
 
@@ -341,7 +378,7 @@ class Field {
       return new Field(Fp.negate(this.toBigInt()));
     }
     // return new AST node Scale(-1, x)
-    let z = Snarky.field.scale(FieldConst[-1], this.value);
+    let z = FieldVar.scale(FieldConst[-1], this.value);
     return new Field(z);
   }
 
@@ -393,7 +430,7 @@ class Field {
   isEven() {
     if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
 
-    let [, isOddVar, xDiv2Var] = Snarky.exists(2, () => {
+    let [, isOddVar, xDiv2Var] = Snarky.run.exists(2, () => {
       let bits = Fp.toBits(this.toBigInt());
       let isOdd = bits.shift()! ? 1n : 0n;
 
@@ -440,19 +477,19 @@ class Field {
     }
     // if one of the factors is constant, return Scale AST node
     if (isConstant(y)) {
-      let z = Snarky.field.scale(toFieldConst(y), this.value);
+      let z = FieldVar.scale(toFieldConst(y), this.value);
       return new Field(z);
     }
     if (this.isConstant()) {
-      let z = Snarky.field.scale(this.value[1], y.value);
+      let z = FieldVar.scale(this.value[1], y.value);
       return new Field(z);
     }
     // create a new witness for z = x*y
-    let z = Snarky.existsVar(() =>
+    let z = Snarky.run.existsOne(() =>
       FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
     );
     // add a multiplication constraint
-    Snarky.field.assertMul(this.value, y.value, z);
+    assertMul(this, y, z);
     return new Field(z);
   }
 
@@ -480,12 +517,12 @@ class Field {
       return new Field(z);
     }
     // create a witness for z = x^(-1)
-    let z = Snarky.existsVar(() => {
+    let z = Snarky.run.existsOne(() => {
       let z = Fp.inverse(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
     // constrain x * z === 1
-    Snarky.field.assertMul(this.value, z, FieldVar[1]);
+    assertMul(this, z, FieldVar[1]);
     return new Field(z);
   }
 
@@ -547,12 +584,13 @@ class Field {
       return new Field(Fp.square(this.toBigInt()));
     }
     // create a new witness for z = x^2
-    let z = Snarky.existsVar(() =>
+    let z_ = Snarky.run.existsOne(() =>
       FieldConst.fromBigint(Fp.square(this.toBigInt()))
     );
+    let z = new Field(z_);
     // add a squaring constraint
-    Snarky.field.assertSquare(this.value, z);
-    return new Field(z);
+    assertSquare(this, z);
+    return z;
   }
 
   /**
@@ -582,13 +620,14 @@ class Field {
       return new Field(z);
     }
     // create a witness for sqrt(x)
-    let z = Snarky.existsVar(() => {
+    let z_ = Snarky.run.existsOne(() => {
       let z = Fp.sqrt(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
+    let z = new Field(z_);
     // constrain z * z === x
-    Snarky.field.assertSquare(z, this.value);
-    return new Field(z);
+    assertSquare(z, this);
+    return z;
   }
 
   /**
@@ -600,7 +639,7 @@ class Field {
     }
     // create witnesses z = 1/x, or z=0 if x=0,
     // and b = 1 - zx
-    let [, b, z] = Snarky.exists(2, () => {
+    let [, b, z] = Snarky.run.exists(2, () => {
       let x = this.toBigInt();
       let z = Fp.inverse(x) ?? 0n;
       let b = Fp.sub(1n, Fp.mul(z, x));
@@ -608,12 +647,12 @@ class Field {
     });
     // add constraints
     // b * x === 0
-    Snarky.field.assertMul(b, this.value, FieldVar[0]);
+    assertMul(b, this, FieldVar[0]);
     // z * x === 1 - b
-    Snarky.field.assertMul(
+    assertMul(
       z,
-      this.value,
-      Snarky.field.add(FieldVar[1], Snarky.field.scale(FieldConst[-1], b))
+      this,
+      FieldVar.add(FieldVar[1], FieldVar.scale(FieldConst[-1], b))
     );
     // ^^^ these prove that b = Bool(x === 0):
     // if x = 0, the 2nd equation implies b = 1
@@ -641,11 +680,12 @@ class Field {
       return this.sub(y).isZero();
     }
     // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
-    let xMinusY = Snarky.existsVar(() =>
+    let xMinusY = Snarky.run.existsOne(() =>
       FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
     );
-    Snarky.field.assertEqual(this.sub(y).value, xMinusY);
-    return new Field(xMinusY).isZero();
+    let z = new Field(xMinusY);
+    this.sub(y).assertEquals(z);
+    return z.isZero();
   }
 
   /**
@@ -882,12 +922,10 @@ class Field {
   }
 
   /**
-   * Assert that this {@link Field} is equal to 1 or 0 as a "field-like" value.
-   * Calling this function is equivalent to `Bool.or(Field(...).equals(1), Field(...).equals(0)).assertEquals(Bool(true))`.
+   * Prove that this {@link Field} is equal to 0 or 1.
    *
-   * **Important**: If an assertion fails, the code throws an error.
+   * If the assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
    */
   assertBool(message?: string) {
@@ -899,7 +937,7 @@ class Field {
         }
         return;
       }
-      Snarky.field.assertBoolean(this.value);
+      assertBoolean(this);
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -965,36 +1003,8 @@ class Field {
       .reduce((acc, bit, idx) => {
         const shift = 1n << BigInt(idx);
         return acc.add(bit.toField().mul(shift));
-      }, Field.from(0)).seal();
-  }
-
-  /**
-   * Create a new {@link Field} element from the first `length` bits of this {@link Field} element.
-   *
-   * The `length` has to be a multiple of 16, and has to be between 0 and 255, otherwise the method throws.
-   *
-   * As {@link Field} elements are represented using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness),
-   * the resulting {@link Field} element will equal the original one if it fits in `length` bits.
-   *
-   * @param length - The number of bits to take from this {@link Field} element.
-   *
-   * @return A {@link Field} element that is equal to the `length` of this {@link Field} element.
-   */
-  rangeCheckHelper(length: number) {
-    checkBitLength('Field.rangeCheckHelper()', length);
-    if (length % 16 !== 0)
-      throw Error(
-        'Field.rangeCheckHelper(): `length` has to be a multiple of 16.'
-      );
-    let lengthDiv16 = length / 16;
-    if (this.isConstant()) {
-      let bits = Fp.toBits(this.toBigInt())
-        .slice(0, length)
-        .concat(Array(Fp.sizeInBits - length).fill(false));
-      return new Field(Fp.fromBits(bits));
-    }
-    let x = Snarky.field.truncateToBits16(lengthDiv16, this.value);
-    return new Field(x);
+      }, Field.from(0))
+      .seal();
   }
 
   /**
@@ -1009,8 +1019,14 @@ class Field {
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
   seal() {
-    if (this.isConstant()) return this;
-    let x = Snarky.field.seal(this.value);
+    let { constant, terms } = toLinearCombination(this.value);
+    if (terms.length === 0) return new Field(constant);
+    if (terms.length === 1 && constant === 0n) {
+      let [c, x] = terms[0];
+      if (c === 1n) return new Field(x);
+    }
+    let x = Snarky.run.existsOne(() => Snarky.field.readVar(this.value));
+    this.assertEquals(new Field(x));
     return VarField(x);
   }
 

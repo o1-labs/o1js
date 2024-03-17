@@ -179,24 +179,23 @@ declare namespace Snarky {
  */
 declare const Snarky: {
   /**
-   * witness `sizeInFields` field element variables
-   *
-   * Note: this is called "exists" because in a proof, you use it like this:
-   * > "I prove that there exists x, such that (some statement)"
-   */
-  exists(
-    sizeInFields: number,
-    compute: () => MlArray<FieldConst>
-  ): MlArray<VarFieldVar>;
-  /**
-   * witness a single field element variable
-   */
-  existsVar(compute: () => FieldConst): VarFieldVar;
-
-  /**
    * APIs that have to do with running provable code
    */
   run: {
+    /**
+     * witness `sizeInFields` field element variables
+     *
+     * Note: this is called "exists" because in a proof, you use it like this:
+     * > "I prove that there exists x, such that (some statement)"
+     */
+    exists(
+      sizeInFields: number,
+      compute: () => MlArray<FieldConst>
+    ): MlArray<VarFieldVar>;
+    /**
+     * witness a single field element variable
+     */
+    existsOne(compute: () => FieldConst): VarFieldVar;
     /**
      * Checks whether Snarky runs in "prover mode", that is, with witnesses
      */
@@ -233,7 +232,7 @@ declare const Snarky: {
     ): (fields: MlOption<MlArray<FieldConst>>) => MlArray<VarFieldVar>;
 
     /**
-     * Snarky's internal state
+     * Operations on snarky's internal state
      */
     state: {
       allocVar(state: SnarkyState): FieldVar;
@@ -269,18 +268,6 @@ declare const Snarky: {
    */
   field: {
     /**
-     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
-     */
-    add(x: FieldVar, y: FieldVar): FieldVar;
-    /**
-     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
-     */
-    scale(c: FieldConst, x: FieldVar): FieldVar;
-    /**
-     * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
-     */
-    mul(x: FieldVar, y: FieldVar): FieldVar;
-    /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
     readVar(x: FieldVar): FieldConst;
@@ -309,14 +296,6 @@ declare const Snarky: {
       y: FieldVar
     ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
     /**
-     *
-     */
-    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
-    /**
-     *
-     */
-    fromBits(bits: MlArray<BoolVar>): FieldVar;
-    /**
      * returns x truncated to the lowest `16 * lengthDiv16` bits
      * => can be used to assert that x fits in `16 * lengthDiv16` bits.
      *
@@ -324,23 +303,6 @@ declare const Snarky: {
      * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
      */
     truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
-    /**
-     * returns a new witness from an AST
-     * (implemented with toConstantAndTerms)
-     */
-    seal(x: FieldVar): VarFieldVar;
-    /**
-     * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
-     * returns `(c, [(c0, i0), ..., (cn, in)])`;
-     * c is optional
-     */
-    toConstantAndTerms(
-      x: FieldVar
-    ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlPair<FieldConst, number>>
-    ];
   };
 
   gates: {
@@ -516,18 +478,6 @@ declare const Snarky: {
       values: MlArray<FieldVar>,
       coefficients: MlArray<FieldConst>
     ): void;
-  };
-
-  bool: {
-    not(x: BoolVar): BoolVar;
-
-    and(x: BoolVar, y: BoolVar): BoolVar;
-
-    or(x: BoolVar, y: BoolVar): BoolVar;
-
-    equals(x: BoolVar, y: BoolVar): BoolVar;
-
-    assertEqual(x: BoolVar, y: BoolVar): void;
   };
 
   group: {

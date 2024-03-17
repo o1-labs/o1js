@@ -38,6 +38,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
 - Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461
+- Remove `Field.rangeCheckHelper()` which was too low-level and easy to misuse https://github.com/o1-labs/o1js/pull/1485
+  - Also, rename the misleadingly named `Gadgets.isInRangeN()` to `Gadgets.isDefinitelyInRangeN()`
+- Rename `Bool.Unsafe.ofField()` to `Bool.Unsafe.fromField()` https://github.com/o1-labs/o1js/pull/1485
+- Replace the namespaced type exports `Gadgets.Field3` and `Gadgets.ForeignField.Sum` with `Field3` and `ForeignFieldSum`
+  - Unfortunately, the namespace didn't play well with auto-imports in TypeScript
 
 ### Added
 

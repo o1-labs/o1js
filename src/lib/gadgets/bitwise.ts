@@ -3,7 +3,6 @@ import { Field as Fp } from '../../provable/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import {
-  MAX_BITS,
   assert,
   divideWithRemainder,
   toVar,
@@ -204,13 +203,13 @@ function rotate64(
 ) {
   // Check that the rotation bits are in range
   assert(
-    bits >= 0 && bits <= MAX_BITS,
+    bits >= 0 && bits <= 64,
     `rotation: expected bits to be between 0 and 64, got ${bits}`
   );
 
   if (field.isConstant()) {
     assert(
-      field.toBigInt() < 1n << BigInt(MAX_BITS),
+      field.toBigInt() < 1n << 64n,
       `rotation: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
     return new Field(Fp.rot(field.toBigInt(), BigInt(bits), direction));
@@ -250,9 +249,9 @@ function rot64(
   bits: number,
   direction: 'left' | 'right' = 'left'
 ): [Field, Field, Field] {
-  const rotationBits = direction === 'right' ? MAX_BITS - bits : bits;
-  const big2Power64 = 2n ** BigInt(MAX_BITS);
-  const big2PowerRot = 2n ** BigInt(rotationBits);
+  const rotationBits = direction === 'right' ? 64 - bits : bits;
+  const big2Power64 = 1n << 64n;
+  const big2PowerRot = 1n << BigInt(rotationBits);
 
   const [rotated, excess, shifted, bound] = Provable.witness(
     Provable.Array(Field, 4),
@@ -319,13 +318,13 @@ function rot64(
 
 function rightShift64(field: Field, bits: number) {
   assert(
-    bits >= 0 && bits <= MAX_BITS,
+    bits >= 0 && bits <= 64,
     `rightShift: expected bits to be between 0 and 64, got ${bits}`
   );
 
   if (field.isConstant()) {
     assert(
-      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      field.toBigInt() < 1n << 64n,
       `rightShift: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
     return new Field(Fp.rightShift(field.toBigInt(), bits));
@@ -336,13 +335,13 @@ function rightShift64(field: Field, bits: number) {
 
 function leftShift64(field: Field, bits: number) {
   assert(
-    bits >= 0 && bits <= MAX_BITS,
+    bits >= 0 && bits <= 64,
     `rightShift: expected bits to be between 0 and 64, got ${bits}`
   );
 
   if (field.isConstant()) {
     assert(
-      field.toBigInt() < 2n ** BigInt(MAX_BITS),
+      field.toBigInt() < 1n << 64n,
       `rightShift: expected field to be at most 64 bits, got ${field.toBigInt()}`
     );
     return new Field(Fp.leftShift(field.toBigInt(), bits));

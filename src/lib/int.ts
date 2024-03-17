@@ -405,9 +405,15 @@ class UInt64 extends CircuitValue {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
 
-      let xMinusYFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, xMinusY);
+      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
+        UInt64.NUM_BITS,
+        xMinusY
+      );
 
-      let yMinusXFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, yMinusX);
+      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
+        UInt64.NUM_BITS,
+        yMinusX
+      );
 
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
@@ -425,9 +431,15 @@ class UInt64 extends CircuitValue {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
 
-      let xMinusYFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, xMinusY);
+      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
+        UInt64.NUM_BITS,
+        xMinusY
+      );
 
-      let yMinusXFits = RangeCheck.isInRangeN(UInt64.NUM_BITS, yMinusX);
+      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
+        UInt64.NUM_BITS,
+        yMinusX
+      );
 
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
@@ -935,8 +947,14 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, xMinusY);
-      let yMinusXFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, yMinusX);
+      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
+        UInt32.NUM_BITS,
+        xMinusY
+      );
+      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
+        UInt32.NUM_BITS,
+        yMinusX
+      );
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -952,8 +970,14 @@ class UInt32 extends CircuitValue {
     } else {
       let xMinusY = this.value.sub(y.value).seal();
       let yMinusX = xMinusY.neg();
-      let xMinusYFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, xMinusY);
-      let yMinusXFits = RangeCheck.isInRangeN(UInt32.NUM_BITS, yMinusX);
+      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
+        UInt32.NUM_BITS,
+        xMinusY
+      );
+      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
+        UInt32.NUM_BITS,
+        yMinusX
+      );
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
