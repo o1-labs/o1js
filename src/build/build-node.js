@@ -46,13 +46,13 @@ async function buildNode({ production }) {
 }
 
 function makeNodeModulesExternal() {
-  let isNodeModule = /^[^./]|^\.[^./]|^\.\.[^/]/;
+  let isNodeModule = /^[^./\\]|^\.[^./\\]|^\.\.[^/\\]/;
   return {
     name: 'plugin-external',
     setup(build) {
       build.onResolve({ filter: isNodeModule }, ({ path }) => ({
         path,
-        external: true,
+        external: !path.endsWith('index.js'),
       }));
     },
   };
