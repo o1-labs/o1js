@@ -112,7 +112,7 @@ function logResult(
   result: BenchmarkResult,
   previousResult?: BenchmarkResult
 ): void {
-  console.log(result.label + `\n`);
+  console.log(result.label);
   console.log(`time: ${resultToString(result)}`);
 
   if (previousResult === undefined) return;
