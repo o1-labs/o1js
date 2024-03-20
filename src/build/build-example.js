@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import ts from 'typescript';
 import esbuild from 'esbuild';
-import os from 'node:os';
+import { platform } from 'node:process';
 
 export { buildAndImport, build, buildOne };
 
@@ -11,7 +11,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
   let importedModule;
   try {
     let absPathForImport = absPath
-    if (os.platform() === 'win32') {
+    if (platform === 'win32') {
       absPathForImport = 'file:///' + absPathForImport;
     }
     importedModule = await import(absPathForImport);

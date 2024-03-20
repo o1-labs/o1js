@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { platform } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import esbuild from 'esbuild';
 import minimist from 'minimist';
@@ -52,7 +53,7 @@ function makeNodeModulesExternal() {
     setup(build) {
       build.onResolve({ filter: isNodeModule }, ({ path }) => ({
         path,
-        external: !path.endsWith('index.js'),
+        external: !(platform === 'win32' && path.endsWith('index.js')),
       }));
     },
   };

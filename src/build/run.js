@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import os from 'node:os';
 import minimist from 'minimist';
+import { platform } from 'node:process';
 import { buildAndImport, buildOne } from './build-example.js';
 
 let {
@@ -19,7 +19,7 @@ npx snarky-run [file]`);
 if (!bundle) {
   let absPath = await buildOne(filePath);
   console.log(`running ${absPath}`);
-  if (os.platform() === 'win32') {
+  if (platform === 'win32') {
     absPath = 'file:///' + absPath;
   }
   let module = await import(absPath);
