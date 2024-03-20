@@ -10,13 +10,9 @@ async function buildAndImport(srcPath, { keepFile = false }) {
   let absPath = await build(srcPath);
   let importedModule;
   try {
-    let absPathForImport = absPath
-    if (platform === 'win32') {
-      absPathForImport = 'file:///' + absPathForImport;
-    }
-    importedModule = await import(absPathForImport);
+    importedModule = await import(absPath);
   } finally {
-    if (!keepFile) await fs.unlink(absPath);
+    if (!keepFile) await fs.unlink(absPath.replace(/^file:\/\/\/*/, ''));
   }
   return importedModule;
 }
@@ -49,6 +45,9 @@ async function build(srcPath, isWeb = false) {
   });
 
   let absPath = path.resolve('.', outfile);
+  if (platform === 'win32') {
+    absPath = 'file:///' + absPath;
+  }
   return absPath;
 }
 
@@ -75,6 +74,9 @@ async function buildOne(srcPath) {
   });
 
   let absPath = path.resolve('.', outfile);
+  if (platform === 'win32') {
+    absPath = 'file:///' + absPath;
+  }
   return absPath;
 }
 
@@ -109,13 +111,13 @@ function typescriptPlugin(tsConfig) {
 }
 
 function makeNodeModulesExternal() {
-  let isNodeModule = /^[^./]|^\.[^./]|^\.\.[^/]/;
+  let isNodeModule = /^[^./\\]|^\.[^./\\]|^\.\.[^/\\]/;
   return {
     name: 'plugin-external',
     setup(build) {
       build.onResolve({ filter: isNodeModule }, ({ path }) => ({
         path,
-        external: true,
+        external: !(platform === 'win32' && path.endsWith('index.js')),
       }));
     },
   };
