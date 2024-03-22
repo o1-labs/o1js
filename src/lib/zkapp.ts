@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Gate, Pickles } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {

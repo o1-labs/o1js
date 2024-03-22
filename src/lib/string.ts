@@ -1,8 +1,12 @@
 import { Bool, Field } from '../lib/core.js';
-import { arrayProp, CircuitValue, prop } from './provable-types/struct.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './hash.js';
 import { Gadgets } from './gadgets/gadgets.js';
+import {
+  CircuitValue,
+  arrayProp,
+  prop,
+} from './provable-types/circuit-value.js';
 
 export { Character, CircuitString };
 

@@ -1,5 +1,5 @@
 import { Field, Bool, Group, Scalar } from './core.js';
-import { prop, CircuitValue, AnyConstructor } from './provable-types/struct.js';
+import { AnyConstructor } from './provable-types/struct.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,
@@ -12,9 +12,9 @@ import {
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
 } from '../provable/curve-bigint.js';
-import { prefixes } from '../bindings/crypto/constants.js';
 import { constantScalarToBigint } from './scalar.js';
 import { toConstantField } from './field.js';
+import { CircuitValue, prop } from './provable-types/circuit-value.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
