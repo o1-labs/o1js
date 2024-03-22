@@ -5,7 +5,6 @@ import {
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../snarky.js';
 import {
-  ProvablePure,
   Pickles,
   FeatureFlags,
   MlFeatureFlags,
@@ -37,6 +36,7 @@ import {
   parseHeader,
 } from './proof-system/prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // public API
 export {

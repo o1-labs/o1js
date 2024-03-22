@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ProvablePure, Snarky } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Field, Bool, Scalar, Group } from './core.js';
 import {
   provable,
@@ -18,6 +18,7 @@ import { Provable } from './provable.js';
 import { assert } from './errors.js';
 import { inCheckedComputation } from './provable-context.js';
 import { Proof } from './proof-system.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // external API
 export {

@@ -1,4 +1,4 @@
-import { Gate, Pickles, ProvablePure } from '../snarky.js';
+import { Gate, Pickles } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,
@@ -71,6 +71,7 @@ import {
 import { deprecatedToken } from './mina/token/token-methods.js';
 import type { TokenContract } from './mina/token/token-contract.js';
 import { assertPromise } from './util/assert.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };

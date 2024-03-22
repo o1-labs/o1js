@@ -1,4 +1,3 @@
-import { ProvablePure } from '../snarky.js';
 import { Field } from './core.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { test, Random } from './testing/property.js';
@@ -18,6 +17,7 @@ import {
   Spec,
 } from './testing/equivalent.js';
 import { runAndCheckSync } from './provable-context.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // types
 Field satisfies Provable<Field>;

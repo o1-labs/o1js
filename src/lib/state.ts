@@ -1,4 +1,3 @@
-import { ProvablePure } from '../snarky.js';
 import { FlexibleProvablePure } from './circuit-value.js';
 import { AccountUpdate, TokenId } from './account-update.js';
 import { PublicKey } from './signature.js';
@@ -8,6 +7,7 @@ import { SmartContract } from './zkapp.js';
 import { Account } from './mina/account.js';
 import { Provable } from './provable.js';
 import { Field } from '../lib/core.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // external API
 export { State, state, declareState };

@@ -1,4 +1,3 @@
-import { ProvablePure } from '../snarky.js';
 import { Field, Group } from './core.js';
 import { ForeignField, createForeignField } from './foreign-field.js';
 import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
@@ -18,6 +17,7 @@ import { Circuit, circuitMain } from './circuit.js';
 import { Scalar } from './scalar.js';
 import { l } from './gadgets/range-check.js';
 import { assert } from './gadgets/common.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // toy example - F_17
 

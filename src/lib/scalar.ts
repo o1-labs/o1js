@@ -1,4 +1,4 @@
-import { Snarky, Provable } from '../snarky.js';
+import { Snarky } from '../snarky.js';
 import { Scalar as Fq } from '../provable/curve-bigint.js';
 import { Field } from './field.js';
 import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
