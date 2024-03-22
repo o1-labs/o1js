@@ -3,8 +3,7 @@
   "include": [
     "./src/**/*.unit-test.ts",
     "./src/lib/**/*.ts",
-    "./src/snarky.js",
-    "./src/bindings/js/wrapper.js"
+    "./src/snarky.js"
   ],
   "compilerOptions": {
     "outDir": "dist/node"
