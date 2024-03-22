@@ -29,24 +29,28 @@ function createField(
   value: string | number | bigint | Field | FieldVar | FieldConst
 ): Field {
   if (fieldConstructor === undefined)
-    throw Error('Bug: Cannot construct a Field before the class was defined.');
+    throw Error('Cannot construct a Field before the class was defined.');
   return new fieldConstructor(value);
 }
 
 function createBool(value: boolean | Bool | FieldVar): Bool {
   if (boolConstructor === undefined)
-    throw Error('Bug: Cannot construct a Bool before the class was defined.');
+    throw Error('Cannot construct a Bool before the class was defined.');
   return new boolConstructor(value);
 }
 
 function isField(x: unknown): x is Field {
   if (fieldConstructor === undefined)
-    throw Error('Bug: Cannot construct a Field before the class was defined.');
+    throw Error(
+      'Cannot check for instance of Field before the class was defined.'
+    );
   return x instanceof fieldConstructor;
 }
 
 function isBool(x: unknown): x is Bool {
   if (boolConstructor === undefined)
-    throw Error('Bug: Cannot construct a Bool before the class was defined.');
+    throw Error(
+      'Cannot check for instance of Bool before the class was defined.'
+    );
   return x instanceof boolConstructor;
 }
