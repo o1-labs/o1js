@@ -7,7 +7,8 @@ import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
 import { addMod32 } from './gadgets/arithmetic.js';
 import type { Gadgets } from './gadgets/gadgets.js';
-import { FieldVar, withMessage } from './field.js';
+import { withMessage } from './field.js';
+import { FieldVar } from './provable-core/fieldvar.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };

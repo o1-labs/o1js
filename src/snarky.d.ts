@@ -1,5 +1,10 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
-import type { Field, FieldConst, FieldVar, VarFieldVar } from './lib/field.js';
+import type { Field } from './lib/field.js';
+import type {
+  FieldVar,
+  FieldConst,
+  VarFieldVar,
+} from './lib/provable-core/fieldvar.ts';
 import type { BoolVar, Bool } from './lib/bool.js';
 import type { ScalarConst } from './lib/scalar.js';
 import type {

@@ -1,12 +1,6 @@
 import { Snarky } from '../snarky.js';
-import {
-  Field,
-  FieldConst,
-  FieldType,
-  FieldVar,
-  readVarMessage,
-  withMessage,
-} from './field.js';
+import { Field, readVarMessage, withMessage } from './field.js';
+import { FieldVar, FieldConst, FieldType } from './provable-core/fieldvar.js';
 import { Bool as B } from '../provable/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';

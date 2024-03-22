@@ -5,7 +5,7 @@
 import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
 import { HashInput } from '../circuit-value.js';
 import { Bool, Field } from '../core.js';
-import { FieldConst, FieldVar } from '../field.js';
+import { FieldVar, FieldConst } from '../provable-core/fieldvar.js';
 import { Scalar, ScalarConst } from '../scalar.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { MlPair, MlBool, MlArray } from './base.js';

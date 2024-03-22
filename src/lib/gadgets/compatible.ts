@@ -3,7 +3,8 @@
  * `plonk_constraint_system.ml` / R1CS_constraint_system.
  */
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import { Field, FieldVar } from '../field.js';
+import { Field } from '../field.js';
+import { FieldVar } from '../provable-core/fieldvar.js';
 import { assert } from './common.js';
 import { Gates } from '../gates.js';
 import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';

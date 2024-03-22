@@ -3,8 +3,9 @@
  * core gadgets which they depend on but which need to create Fields and Bools,
  * or check if a value is a Field or a Bool.
  */
-import type { Field, FieldVar, FieldConst } from '../field.js';
+import type { Field } from '../field.js';
 import type { Bool } from '../bool.js';
+import type { FieldVar, FieldConst } from './fieldvar.js';
 
 export {
   createField,

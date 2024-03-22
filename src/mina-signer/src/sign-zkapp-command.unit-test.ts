@@ -11,7 +11,7 @@ import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
 } from '../../lib/account-update.js';
-import { FieldConst } from '../../lib/field.js';
+import { FieldConst } from '../../lib/provable-core/fieldvar.js';
 import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
 import { Network, setActiveInstance } from '../../lib/mina.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';

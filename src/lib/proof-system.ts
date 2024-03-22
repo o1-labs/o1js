@@ -29,7 +29,7 @@ import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
-import { FieldConst, FieldVar } from './field.js';
+import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
 import { Cache, readCache, writeCache } from './proof-system/cache.js';
 import {
   decodeProverKey,

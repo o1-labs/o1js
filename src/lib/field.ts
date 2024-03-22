@@ -28,12 +28,8 @@ export { Field };
 
 // internal API
 export {
-  FieldType,
-  FieldVar,
-  FieldConst,
   ConstantField,
   VarField,
-  VarFieldVar,
   withMessage,
   readVarMessage,
   toConstantField,

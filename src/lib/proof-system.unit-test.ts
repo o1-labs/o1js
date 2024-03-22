@@ -16,7 +16,7 @@ import { snarkContext } from './provable-context.js';
 import { it } from 'node:test';
 import { Provable } from './provable.js';
 import { bool, equivalentAsync, field, record } from './testing/equivalent.js';
-import { FieldConst, FieldVar } from './field.js';
+import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
 
 const EmptyProgram = ZkProgram({
   name: 'empty',

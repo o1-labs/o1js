@@ -1,4 +1,5 @@
-import { Field, FieldVar, VarField, VarFieldVar } from '../field.js';
+import { Field, VarField } from '../field.js';
+import { FieldVar, VarFieldVar } from '../provable-core/fieldvar.js';
 import { Tuple } from '../util/types.js';
 import type { Bool } from '../bool.js';
 import { fieldVar } from '../gates.js';

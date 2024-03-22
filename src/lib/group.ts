@@ -1,4 +1,5 @@
-import { Field, FieldVar } from './field.js';
+import { Field } from './field.js';
+import { FieldVar } from './provable-core/fieldvar.js';
 import { Scalar } from './scalar.js';
 import { Snarky } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';

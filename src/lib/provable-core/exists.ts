@@ -1,6 +1,6 @@
 import { Snarky } from '../../snarky.js';
-import { FieldConst } from './fieldvar.js';
-import type { VarField, VarFieldVar } from '../field.js';
+import { FieldConst, VarFieldVar } from '../provable-core/fieldvar.js';
+import type { VarField } from '../field.js';
 import { MlArray, MlOption } from '../ml/base.js';
 import { createField } from './field-constructor.js';
 import { TupleN } from '../util/types.js';
