@@ -15,7 +15,7 @@ jobs:
       fail-fast: true
       matrix:
         node: [20]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -37,6 +37,7 @@ jobs:
           git submodule update --init --recursive
           npm ci
           npm run build
-          bash run-ci-benchmarks.sh
+          echo 'Running o1js benchmarks.'
+          node --enable-source-maps --stack-trace-limit=1000 src/build/run.js benchmark/runners/with-cloud-history.ts --bundle >>benchmarks.log 2>&1
           cat benchmarks.log >> $GITHUB_STEP_SUMMARY
         shell: bash
