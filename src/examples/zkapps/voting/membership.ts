@@ -126,7 +126,7 @@ export class Membership_ extends SmartContract {
       }),
       Bool,
       (state: Bool, action: Member) => {
-        return action.equals(member).or(state);
+        return Provable.equal(Member, action, member).or(state);
       },
       // initial state
       { state: Bool(false), actionState: accumulatedMembers }
