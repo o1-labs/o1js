@@ -23,10 +23,6 @@ export type {
   InferProvable,
 } from './lib/provable-types/circuit-value.js';
 export {
-  CircuitValue,
-  prop,
-  arrayProp,
-  matrixProp,
   provable,
   provablePure,
   Struct,
