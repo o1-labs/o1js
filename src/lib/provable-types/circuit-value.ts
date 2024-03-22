@@ -27,7 +27,6 @@ export {
   ProvablePureExtended,
   prop,
   arrayProp,
-  matrixProp,
   provable,
   provablePure,
   Struct,
@@ -284,22 +283,6 @@ function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
       target._fields = [];
     }
     target._fields.push([key, Provable.Array(elementType, length)]);
-  };
-}
-
-function matrixProp<T>(
-  elementType: FlexibleProvable<T>,
-  nRows: number,
-  nColumns: number
-) {
-  return function (target: any, key: string) {
-    if (!target.hasOwnProperty('_fields')) {
-      target._fields = [];
-    }
-    target._fields.push([
-      key,
-      Provable.Array(Provable.Array(elementType, nColumns), nRows),
-    ]);
   };
 }
 
