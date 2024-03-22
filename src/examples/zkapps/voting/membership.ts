@@ -19,11 +19,13 @@ import { ParticipantPreconditions } from './preconditions.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 
-interface MembershipParams {
+Provable;
+
+type MembershipParams = {
   participantPreconditions: ParticipantPreconditions;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.

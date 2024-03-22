@@ -94,7 +94,7 @@ type NetworkConstants = {
   accountCreationFee: UInt64;
 };
 
-interface Mina {
+type Mina = {
   transaction(
     sender: DeprecatedFeePayerSpec,
     f: () => Promise<void>
@@ -126,7 +126,7 @@ interface Mina {
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
   getNetworkId(): NetworkId;
-}
+};
 
 let activeInstance: Mina = {
   accountCreationFee: () => defaultNetworkConstants.accountCreationFee,

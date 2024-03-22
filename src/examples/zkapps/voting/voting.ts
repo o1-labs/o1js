@@ -47,7 +47,7 @@ let voterPreconditions = ParticipantPreconditions.default;
  */
 let electionPreconditions = ElectionPreconditions.default;
 
-interface VotingParams {
+type VotingParams = {
   electionPreconditions: ElectionPreconditions;
   voterPreconditions: ParticipantPreconditions;
   candidatePreconditions: ParticipantPreconditions;
@@ -55,7 +55,7 @@ interface VotingParams {
   voterAddress: PublicKey;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.

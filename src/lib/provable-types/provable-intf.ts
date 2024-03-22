@@ -14,7 +14,7 @@ export { Provable, ProvablePure };
  *
  * Note: These methods are meant to be used by the library internally and are not directly when writing provable code.
  */
-interface Provable<T> {
+type Provable<T> = {
   /**
    * A function that takes `value`, an element of type `T`, as argument and returns
    * an array of {@link Field} elements that make up the provable data of `value`.
@@ -64,7 +64,7 @@ interface Provable<T> {
    * @param value - the element of type `T` to put assertions on.
    */
   check: (value: T) => void;
-}
+};
 
 /**
  * `ProvablePure<T>` is a special kind of {@link Provable} interface, where the "auxiliary" (non-provable) data is empty.
@@ -73,7 +73,6 @@ interface Provable<T> {
  *
  * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
  */
-interface ProvablePure<T> extends Provable<T> {
-  toAuxiliary: (value?: T) => any[];
+type ProvablePure<T> = Omit<Provable<T>, 'fromFields'> & {
   fromFields: (fields: Field[]) => T;
-}
+};
