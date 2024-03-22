@@ -13,7 +13,7 @@ import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
 import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
-import { HashInput } from '../../bindings/lib/provable-bigint.js';
+import { HashInput } from './derivers-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/provable-core/fieldvar.js';
 import { NetworkId } from './types.js';

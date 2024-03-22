@@ -11,11 +11,7 @@ import {
 } from '../../bindings/lib/binable.js';
 import { base58, withBase58 } from '../../lib/base58.js';
 import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
-import {
-  BinableBigint,
-  SignableBigint,
-  signable,
-} from '../../bindings/lib/provable-bigint.js';
+import { BinableBigint, SignableBigint, signable } from './derivers-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };
