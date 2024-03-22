@@ -1,6 +1,6 @@
-import { Bool, Field } from './core.js';
+import { Bool, Field } from '../core.js';
 import { maybeSwap, maybeSwapBad } from './merkle-tree.js';
-import { Random, test } from './testing/property.js';
+import { Random, test } from '../testing/property.js';
 import { expect } from 'expect';
 
 test(Random.bool, Random.field, Random.field, (b, x, y) => {

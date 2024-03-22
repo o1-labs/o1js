@@ -2,7 +2,7 @@ import type { Nullifier as JsonNullifier } from '../mina-signer/src/types.js';
 import { Struct } from './provable-types/struct.js';
 import { Field, Group, Scalar } from './core.js';
 import { Poseidon } from './hash.js';
-import { MerkleMapWitness } from './merkle-map.js';
+import { MerkleMapWitness } from './provable-types/merkle-map.js';
 import { PrivateKey, PublicKey, scaleShifted } from './signature.js';
 import { Provable } from './provable.js';
 

@@ -100,9 +100,12 @@ export {
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
-export { Character, CircuitString } from './lib/string.js';
-export { MerkleTree, MerkleWitness } from './lib/merkle-tree.js';
-export { MerkleMap, MerkleMapWitness } from './lib/merkle-map.js';
+export { Character, CircuitString } from './lib/provable-types/string.js';
+export { MerkleTree, MerkleWitness } from './lib/provable-types/merkle-tree.js';
+export {
+  MerkleMap,
+  MerkleMapWitness,
+} from './lib/provable-types/merkle-map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 
