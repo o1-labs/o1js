@@ -4,7 +4,7 @@ import { test, Random } from './testing/property.js';
 import { deepEqual, throws } from 'node:assert/strict';
 import { Provable } from './provable.js';
 import { Binable } from '../bindings/lib/binable.js';
-import { ProvableExtended } from './provable-types/circuit-value.js';
+import { ProvableExtended } from './provable-types/struct.js';
 import { FieldType } from './provable-core/fieldvar.js';
 import {
   equivalentProvable as equivalent,

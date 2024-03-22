@@ -2,7 +2,7 @@
  * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in o1js.
  */
 
-import { CircuitValue, arrayProp } from './provable-types/circuit-value.js';
+import { CircuitValue, arrayProp } from './provable-types/struct.js';
 import { Poseidon } from './hash.js';
 import { Bool, Field } from './core.js';
 import { Provable } from './provable.js';

@@ -1,9 +1,5 @@
 import { Field, Bool, Group, Scalar } from './core.js';
-import {
-  prop,
-  CircuitValue,
-  AnyConstructor,
-} from './provable-types/circuit-value.js';
+import { prop, CircuitValue, AnyConstructor } from './provable-types/struct.js';
 import { hashWithPrefix } from './hash.js';
 import {
   deriveNonce,

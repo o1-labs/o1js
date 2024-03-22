@@ -21,13 +21,13 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
-} from './lib/provable-types/circuit-value.js';
+} from './lib/provable-types/struct.js';
 export {
   provable,
   provablePure,
   Struct,
   Unconstrained,
-} from './lib/provable-types/circuit-value.js';
+} from './lib/provable-types/struct.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';

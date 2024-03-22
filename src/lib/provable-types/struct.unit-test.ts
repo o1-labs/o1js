@@ -1,4 +1,4 @@
-import { provable, Struct, Unconstrained } from './circuit-value.js';
+import { provable, Struct, Unconstrained } from './struct.js';
 import { UInt32 } from '../int.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { expect } from 'expect';

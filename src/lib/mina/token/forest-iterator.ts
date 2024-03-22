@@ -6,7 +6,7 @@ import {
 } from '../../account-update.js';
 import { Field } from '../../core.js';
 import { Provable } from '../../provable.js';
-import { Struct } from '../../provable-types/circuit-value.js';
+import { Struct } from '../../provable-types/struct.js';
 import { assert } from '../../gadgets/common.js';
 import {
   MerkleListIterator,

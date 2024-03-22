@@ -9,7 +9,7 @@ import type { Provable as Provable_ } from './provable-types/provable-intf.js';
 import type {
   FlexibleProvable,
   ProvableExtended,
-} from './provable-types/circuit-value.js';
+} from './provable-types/struct.js';
 import { Context } from './global-context.js';
 import {
   HashInput,

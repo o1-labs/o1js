@@ -3,7 +3,7 @@
  */
 
 import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
-import { HashInput } from '../provable-types/circuit-value.js';
+import { HashInput } from '../provable-types/struct.js';
 import { Bool, Field } from '../core.js';
 import { FieldVar, FieldConst } from '../provable-core/fieldvar.js';
 import { Scalar, ScalarConst } from '../scalar.js';

@@ -2,7 +2,7 @@ import { Bool, Field } from './core.js';
 import {
   circuitValueEquals,
   cloneCircuitValue,
-} from './provable-types/circuit-value.js';
+} from './provable-types/struct.js';
 import { Provable } from './provable.js';
 import { activeInstance as Mina } from './mina/mina-instance.js';
 import type { AccountUpdate } from './account-update.js';

@@ -1,5 +1,5 @@
 import { provableFromClass } from '../../bindings/lib/provable-snarky.js';
-import { HashInput, ProvableExtended, Unconstrained } from './circuit-value.js';
+import { HashInput, ProvableExtended, Unconstrained } from './struct.js';
 import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
 import { Poseidon, ProvableHashable, packToFields } from '../hash.js';

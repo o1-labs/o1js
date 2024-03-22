@@ -4,7 +4,7 @@ import {
   CircuitValue,
   Struct,
   prop,
-} from './provable-types/circuit-value.js';
+} from './provable-types/struct.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
