@@ -1,4 +1,4 @@
-import { ProvablePureExtended } from '../circuit-value.js';
+import { ProvablePureExtended } from './circuit-value.js';
 import { Field } from '../field.js';
 
 export { modifiedField, fields };

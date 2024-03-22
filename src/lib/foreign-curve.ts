@@ -4,7 +4,7 @@ import {
   createCurveAffine,
 } from '../bindings/crypto/elliptic-curve.js';
 import type { Group } from './group.js';
-import { ProvablePureExtended } from './circuit-value.js';
+import { ProvablePureExtended } from './provable-types/circuit-value.js';
 import { AlmostForeignField, createForeignField } from './foreign-field.js';
 import { EllipticCurve, Point } from './gadgets/elliptic-curve.js';
 import { Field3 } from './gadgets/foreign-field.js';

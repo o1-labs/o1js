@@ -1,5 +1,5 @@
 import { Field, Bool } from './core.js';
-import { Struct } from './circuit-value.js';
+import { Struct } from './provable-types/circuit-value.js';
 import { UInt64 } from './int.js';
 import {
   CompiledTag,

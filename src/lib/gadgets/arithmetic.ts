@@ -1,4 +1,4 @@
-import { provableTuple } from '../circuit-value.js';
+import { provableTuple } from '../provable-types/circuit-value.js';
 import { Field } from '../core.js';
 import { assert } from '../errors.js';
 import { Provable } from '../provable.js';

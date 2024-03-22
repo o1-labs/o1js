@@ -7,7 +7,7 @@ import {
 } from '../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../../bindings/lib/provable-snarky.js';
 import { Bool } from '../bool.js';
-import { Unconstrained } from '../circuit-value.js';
+import { Unconstrained } from '../provable-types/circuit-value.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../provable-core/exists.js';

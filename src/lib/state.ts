@@ -1,4 +1,4 @@
-import { FlexibleProvablePure } from './circuit-value.js';
+import { FlexibleProvablePure } from './provable-types/circuit-value.js';
 import { AccountUpdate, TokenId } from './account-update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';

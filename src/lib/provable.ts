@@ -6,7 +6,10 @@
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import type { Provable as Provable_ } from './provable-types/provable-intf.js';
-import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
+import type {
+  FlexibleProvable,
+  ProvableExtended,
+} from './provable-types/circuit-value.js';
 import { Context } from './global-context.js';
 import {
   HashInput,

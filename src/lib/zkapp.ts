@@ -23,7 +23,7 @@ import {
   InferProvable,
   provable,
   toConstant,
-} from './circuit-value.js';
+} from './provable-types/circuit-value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
 import {

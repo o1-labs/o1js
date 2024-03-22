@@ -15,7 +15,7 @@ import { PublicKey } from '../signature.js';
 import { JsonProof, verify } from '../proof-system.js';
 import { verifyAccountUpdateSignature } from '../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';
-import { cloneCircuitValue } from '../circuit-value.js';
+import { cloneCircuitValue } from '../provable-types/circuit-value.js';
 import { assert } from '../gadgets/common.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';

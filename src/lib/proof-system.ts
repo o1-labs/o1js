@@ -21,7 +21,7 @@ import {
   provable,
   provablePure,
   toConstant,
-} from './circuit-value.js';
+} from './provable-types/circuit-value.js';
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
