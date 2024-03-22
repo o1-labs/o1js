@@ -36,11 +36,17 @@ export {
   getBlindingValue,
 };
 
-// TODO move type declaration here
 /**
- * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ * `Provable<T>` is the general interface for provable types in o1js.
  *
- * You will find this as the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
+ * `Provable<T>` describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
+ *
+ * `Provable<T>` is the required input type in several methods in o1js.
+ * One convenient way to create a `Provable<T>` is using `Struct`.
+ *
+ * All built-in provable types in o1js ({@link Field}, {@link Bool}, etc.) are instances of `Provable<T>` as well.
+ *
+ * Note: These methods are meant to be used by the library internally and are not directly when writing provable code.
  */
 type Provable<T> = Provable_<T>;
 
