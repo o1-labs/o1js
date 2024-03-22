@@ -1,4 +1,4 @@
-import { Bool, Field, UInt32, UInt64 } from '../../provable/field-bigint.js';
+import { Bool, Field, UInt32, UInt64 } from './field-bigint.js';
 import {
   Binable,
   BinableString,
@@ -21,7 +21,7 @@ import {
   delegationFromJson,
   paymentFromJson,
 } from './sign-legacy.js';
-import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { PublicKey, Scalar } from './curve-bigint.js';
 import { Signature, SignatureJson } from './signature.js';
 import { blake2b } from 'blakejs';
 import { base58, withBase58 } from '../../lib/base58.js';
@@ -82,7 +82,10 @@ function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
   let { tag: type, ...value } = body;
   switch (type) {
     case 'Payment':
-      return { common, body: { type, value: { receiver: body.receiver, amount: body.amount } } };
+      return {
+        common,
+        body: { type, value: { receiver: body.receiver, amount: body.amount } },
+      };
     case 'StakeDelegation':
       let { receiver: newDelegate } = value;
       return {
@@ -120,10 +123,9 @@ const Payment = record<Payment>(
   },
   ['receiver', 'amount']
 );
-const Delegation = record<Delegation>(
-  { newDelegate: BinablePublicKey },
-  ['newDelegate']
-);
+const Delegation = record<Delegation>({ newDelegate: BinablePublicKey }, [
+  'newDelegate',
+]);
 type DelegationEnum = { type: 'SetDelegate'; value: Delegation };
 const DelegationEnum = enumWithArgument<[DelegationEnum]>([
   { type: 'SetDelegate', value: Delegation },
@@ -254,7 +256,7 @@ const CommonV1 = with1(
     )
   )
 );
-type PaymentV1 = Payment & { source: PublicKey, tokenId: UInt64 };
+type PaymentV1 = Payment & { source: PublicKey; tokenId: UInt64 };
 const PaymentV1 = with1(
   with1(
     record<PaymentV1>(

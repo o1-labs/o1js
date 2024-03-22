@@ -1,5 +1,5 @@
 import { Provable } from '../provable.js';
-import { Field as Fp } from '../../provable/field-bigint.js';
+import { Field as Fp } from '../../mina-signer/src/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, divideWithRemainder, toVar, bitSlice } from './common.js';

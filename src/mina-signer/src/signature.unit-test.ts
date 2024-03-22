@@ -8,8 +8,8 @@ import {
   verifyFieldElement,
 } from './signature.js';
 import { Test } from '../../snarky.js';
-import { Field } from '../../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import { Field } from './field-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
 import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';

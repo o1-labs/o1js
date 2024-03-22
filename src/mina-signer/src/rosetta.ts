@@ -1,6 +1,6 @@
 import { Binable } from '../../bindings/lib/binable.js';
-import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
-import { Field } from '../../provable/field-bigint.js';
+import { PublicKey, Scalar } from './curve-bigint.js';
+import { Field } from './field-bigint.js';
 import { Memo } from './memo.js';
 import { Signature } from './signature.js';
 
@@ -30,7 +30,9 @@ function fieldToHex<T extends Field | Scalar>(
   bytes[bytes.length - 1] |= Number(paddingBit) << 7;
   // map each byte to a 0-padded hex string of length 2
   return bytes
-    .map((byte) => byte.toString(16).padStart(2, '0').split('').reverse().join(''))
+    .map((byte) =>
+      byte.toString(16).padStart(2, '0').split('').reverse().join('')
+    )
     .join('');
 }
 

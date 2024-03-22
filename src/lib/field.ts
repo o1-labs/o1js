@@ -1,5 +1,5 @@
 import { Snarky } from '../snarky.js';
-import { Field as Fp } from '../provable/field-bigint.js';
+import { Field as Fp } from '../mina-signer/src/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';

@@ -12,7 +12,7 @@ import {
   hashWithPrefix,
   packToFieldsLegacy,
   prefixes,
-} from '../../provable/poseidon-bigint.js';
+} from './poseidon-bigint.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export { Memo };

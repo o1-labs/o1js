@@ -1,6 +1,6 @@
 import { Field, Group } from './core.js';
 import { ForeignField, createForeignField } from './foreign-field.js';
-import { Scalar as Fq, Group as G } from '../provable/curve-bigint.js';
+import { Scalar as Fq, Group as G } from '../mina-signer/src/curve-bigint.js';
 import { expect } from 'expect';
 import {
   bool,

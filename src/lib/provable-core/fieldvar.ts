@@ -1,4 +1,4 @@
-import { Field as Fp } from '../../provable/field-bigint.js';
+import { Field as Fp } from '../../mina-signer/src/field-bigint.js';
 
 // internal API
 export { FieldType, FieldVar, FieldConst, ConstantFieldVar, VarFieldVar };

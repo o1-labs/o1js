@@ -20,12 +20,8 @@ import {
   PublicKey as PublicKeySnarky,
 } from '../../lib/signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-} from '../../provable/poseidon-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Pickles, Test } from '../../snarky.js';
 import { Memo } from './memo.js';
 import { RandomTransaction } from './random-transaction.js';

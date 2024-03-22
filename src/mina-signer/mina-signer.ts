@@ -1,4 +1,4 @@
-import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+import { PrivateKey, PublicKey } from './src/curve-bigint.js';
 import * as Json from './src/types.js';
 import type { SignedLegacy, Signed, NetworkId } from './src/types.js';
 

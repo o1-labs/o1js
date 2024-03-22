@@ -6,12 +6,12 @@ import {
   Signature as SignatureBigint,
   signaturePrefix,
 } from '../mina-signer/src/signature.js';
-import { Bool as BoolBigint } from '../provable/field-bigint.js';
+import { Bool as BoolBigint } from '../mina-signer/src/field-bigint.js';
 import {
   Scalar as ScalarBigint,
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
-} from '../provable/curve-bigint.js';
+} from '../mina-signer/src/curve-bigint.js';
 import { constantScalarToBigint } from './scalar.js';
 import { toConstantField } from './field.js';
 import { CircuitValue, prop } from './provable-types/circuit-value.js';

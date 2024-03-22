@@ -1,6 +1,6 @@
 import { Snarky } from '../../snarky.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import { Field as FieldProvable } from '../../provable/field-bigint.js';
+import { Field as FieldProvable } from '../../mina-signer/src/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';

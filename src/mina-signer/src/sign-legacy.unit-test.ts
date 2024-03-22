@@ -16,8 +16,8 @@ import {
 } from './sign-legacy.js';
 import { Signature, SignatureJson } from './signature.js';
 import { expect } from 'expect';
-import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
-import { Field } from '../../provable/field-bigint.js';
+import { PublicKey, Scalar } from './curve-bigint.js';
+import { Field } from './field-bigint.js';
 import { Random, test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 import { NetworkId } from './types.js';

@@ -1,5 +1,5 @@
 import { Field } from './core.js';
-import { Field as Fp } from '../provable/field-bigint.js';
+import { Field as Fp } from '../mina-signer/src/field-bigint.js';
 import { test, Random } from './testing/property.js';
 import { deepEqual, throws } from 'node:assert/strict';
 import { Provable } from './provable.js';
