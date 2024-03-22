@@ -1,6 +1,6 @@
 import { Snarky } from '../../snarky.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import { Field as FieldProvable } from '../../mina-signer/src/field-bigint.js';
+import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';
@@ -256,10 +256,10 @@ function rangeCheckHelper(length: number, x: Field) {
 
   let lengthDiv16 = length / 16;
   if (x.isConstant()) {
-    let bits = FieldProvable.toBits(x.toBigInt())
+    let bits = BinableFp.toBits(x.toBigInt())
       .slice(0, length)
       .concat(Array(Fp.sizeInBits - length).fill(false));
-    return new Field(FieldProvable.fromBits(bits));
+    return new Field(BinableFp.fromBits(bits));
   }
   let y = Snarky.field.truncateToBits16(lengthDiv16, x.value);
   return new Field(y);

@@ -1,5 +1,6 @@
 import { Field } from './core.js';
-import { Field as Fp } from '../mina-signer/src/field-bigint.js';
+import { Fp } from '../bindings/crypto/finite-field.js';
+import { BinableFp } from '../mina-signer/src/field-bigint.js';
 import { test, Random } from './testing/property.js';
 import { deepEqual, throws } from 'node:assert/strict';
 import { Provable } from './provable.js';
@@ -203,9 +204,9 @@ test(Random.field, Random.field, (x0, y0, assert) => {
     Provable.asProver(() => assert(z.toBigInt() === Fp.mul(x0, y0)));
 
     // toBits / fromBits
-    // Fp.toBits() returns 255 bits, but our new to/from impl only accepts <=254
+    // BinableFp.toBits() returns 255 bits, but our new to/from impl only accepts <=254
     // https://github.com/o1-labs/o1js/pull/1461
-    let bits = Fp.toBits(x0).slice(0, -1);
+    let bits = BinableFp.toBits(x0).slice(0, -1);
     let x1 = Provable.witness(Field, () => Field.fromBits(bits));
     let bitsVars = x1.toBits();
     Provable.asProver(() =>

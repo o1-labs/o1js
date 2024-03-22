@@ -1,7 +1,6 @@
 import { Snarky } from '../snarky.js';
 import { Field, readVarMessage, withMessage } from './field.js';
 import { FieldVar, FieldConst, FieldType } from './provable-core/fieldvar.js';
-import { Bool as B } from '../mina-signer/src/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
@@ -40,7 +39,7 @@ class Bool {
       this.value = x;
       return;
     }
-    this.value = FieldVar.constant(B(x));
+    this.value = FieldVar.constant(BigInt(x));
   }
 
   isConstant(): this is { value: ConstantBoolVar } {
@@ -195,7 +194,7 @@ class Bool {
   }
 
   /**
-   * This converts the {@link Bool} to a javascript [[boolean]].
+   * This converts the {@link Bool} to a JS `boolean`.
    * This can only be called on non-witness values.
    */
   toBoolean(): boolean {
@@ -390,5 +389,5 @@ function toBoolean(x: boolean | Bool): boolean {
 
 function toFieldVar(x: boolean | Bool): BoolVar {
   if (x instanceof Bool) return x.value;
-  return FieldVar.constant(B(x));
+  return FieldVar.constant(BigInt(x));
 }

@@ -13,7 +13,7 @@ import { base58, withBase58 } from '../../lib/base58.js';
 import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
 import {
   BinableBigint,
-  ProvableBigint,
+  SignableBigint,
   signable,
 } from '../../bindings/lib/provable-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
@@ -126,7 +126,7 @@ const Scalar = pseudoClass(
     return mod(BigInt(value), Fq.modulus);
   },
   {
-    ...ProvableBigint(checkScalar),
+    ...SignableBigint(checkScalar),
     ...BinableBigint(Fq.sizeInBits, checkScalar),
     ...Fq,
   }

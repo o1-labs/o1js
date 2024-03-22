@@ -1,15 +1,15 @@
-import { Field as Fp } from '../../mina-signer/src/field-bigint.js';
+import { Fp } from '../../bindings/crypto/finite-field.js';
 
 // internal API
 export { FieldType, FieldVar, FieldConst, ConstantFieldVar, VarFieldVar };
 
 type FieldConst = [0, bigint];
 
-function constToBigint(x: FieldConst): Fp {
+function constToBigint(x: FieldConst): bigint {
   return x[1];
 }
-function constFromBigint(x: Fp): FieldConst {
-  return [0, Fp(x)];
+function constFromBigint(x: bigint): FieldConst {
+  return [0, Fp.mod(x)];
 }
 
 const FieldConst = {

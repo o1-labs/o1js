@@ -1,6 +1,7 @@
 import { Field, Group } from './core.js';
 import { ForeignField, createForeignField } from './foreign-field.js';
-import { Scalar as Fq, Group as G } from '../mina-signer/src/curve-bigint.js';
+import { Fq } from '../bindings/crypto/finite-field.js';
+import { Pallas } from '../bindings/crypto/elliptic-curve.js';
 import { expect } from 'expect';
 import {
   bool,
@@ -112,7 +113,7 @@ equivalent({ from: [f], to: f })(
 
 // scalar shift in foreign field arithmetic vs in the exponent
 
-let scalarShift = Fq(1n + 2n ** 255n);
+let scalarShift = Fq.mod(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
 function unshift(s: ForeignField) {
@@ -125,7 +126,7 @@ function scaleShifted(point: Group, shiftedScalar: Scalar) {
 }
 
 let scalarBigint = Fq.random();
-let pointBigint = G.scale(G.generatorMina, scalarBigint);
+let pointBigint = Pallas.toAffine(Pallas.scale(Pallas.one, scalarBigint));
 
 // perform a "scalar unshift" in foreign field arithmetic,
 // then convert to scalar from bits (which shifts it back) and scale a point by the scalar

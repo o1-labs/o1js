@@ -1,5 +1,6 @@
 import { Snarky } from '../snarky.js';
-import { Field as Fp } from '../mina-signer/src/field-bigint.js';
+import { Fp } from '../bindings/crypto/finite-field.js';
+import { BinableFp, SignableFp } from '../mina-signer/src/field-bigint.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver, inCheckedComputation } from './provable-context.js';
@@ -102,7 +103,7 @@ class Field {
       }
     }
     // TODO this should handle common values efficiently by reading from a lookup table
-    this.value = FieldVar.constant(Fp(x));
+    this.value = FieldVar.constant(Fp.mod(BigInt(x)));
   }
 
   // helpers
@@ -324,9 +325,9 @@ class Field {
     if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
 
     let [isOdd, xDiv2] = exists(2, () => {
-      let bits = Fp.toBits(this.toBigInt());
+      let bits = BinableFp.toBits(this.toBigInt());
       let isOdd = bits.shift()! ? 1n : 0n;
-      return [isOdd, Fp.fromBits(bits)];
+      return [isOdd, BinableFp.fromBits(bits)];
     });
 
     // range check for 253 bits
@@ -833,7 +834,7 @@ class Field {
   toBits(length: number = 254) {
     checkBitLength('Field.toBits()', length, 254);
     if (this.isConstant()) {
-      let bits = Fp.toBits(this.toBigInt());
+      let bits = BinableFp.toBits(this.toBigInt());
       if (bits.slice(length).some((bit) => bit))
         throw Error(`Field.toBits(): ${this} does not fit in ${length} bits`);
       return bits.slice(0, length).map((b) => new Bool(b));
@@ -870,7 +871,7 @@ class Field {
       let bits_ = bits
         .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
         .concat(Array(Fp.sizeInBits - length).fill(false));
-      return new Field(Fp.fromBits(bits_));
+      return new Field(BinableFp.fromBits(bits_));
     }
     return bits
       .map((b) => new Bool(b))
@@ -1060,7 +1061,7 @@ class Field {
    * @return A {@link Field} coerced from the given JSON string.
    */
   static fromJSON(json: string) {
-    return new Field(Fp.fromJSON(json));
+    return new Field(SignableFp.fromJSON(json));
   }
 
   /**
@@ -1121,7 +1122,7 @@ class Field {
   /**
    * The size of a {@link Field} element in bytes - 32.
    */
-  static sizeInBytes = Fp.sizeInBytes;
+  static sizeInBytes = BinableFp.sizeInBytes;
 
   /**
    * The size of a {@link Field} element in bits - 255.
@@ -1133,12 +1134,12 @@ setFieldConstructor(Field);
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
     let t0 = toConstantField(t, 'toBytes').toBigInt();
-    return Fp.toBytes(t0);
+    return BinableFp.toBytes(t0);
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
-    let x = Fp.fromBytes([...uint8array]);
+    let x = BinableFp.fromBytes([...uint8array]);
     return [new Field(x), offset + 32];
   },
 });
@@ -1155,22 +1156,22 @@ function isConstant(
   return (x as Field).isConstant();
 }
 
-function toFp(x: bigint | number | string | Field): Fp {
+function toFp(x: bigint | number | string | Field): bigint {
   let type = typeof x;
   if (type === 'bigint' || type === 'number' || type === 'string') {
-    return Fp(x as bigint | number | string);
+    return Fp.mod(BigInt(x as bigint | number | string));
   }
   return (x as Field).toBigInt();
 }
 
 function toFieldConst(x: bigint | number | string | ConstantField): FieldConst {
   if (x instanceof Field) return x.value[1];
-  return FieldConst.fromBigint(Fp(x));
+  return FieldConst.fromBigint(Fp.mod(BigInt(x)));
 }
 
 function toFieldVar(x: bigint | number | string | Field): FieldVar {
   if (x instanceof Field) return x.value;
-  return FieldVar.constant(Fp(x));
+  return FieldVar.constant(Fp.mod(BigInt(x)));
 }
 
 function withMessage(error: unknown, message?: string) {
