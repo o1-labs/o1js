@@ -1,4 +1,4 @@
-import { provableFromClass } from '../../bindings/lib/provable-snarky.js';
+import { provableFromClass } from './provable-derivers.js';
 import { HashInput, ProvableExtended, Unconstrained } from './struct.js';
 import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';

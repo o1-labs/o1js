@@ -5,7 +5,7 @@ import {
   inverse as modInverse,
   mod,
 } from '../../bindings/crypto/finite-field.js';
-import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { provableTuple } from '../provable-types/provable-derivers.js';
 import { Bool } from '../bool.js';
 import { Unconstrained } from '../provable-types/struct.js';
 import { Field } from '../field.js';

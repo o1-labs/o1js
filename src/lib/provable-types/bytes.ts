@@ -1,4 +1,4 @@
-import { provableFromClass } from '../../bindings/lib/provable-snarky.js';
+import { provableFromClass } from './provable-derivers.js';
 import type { ProvablePureExtended } from './struct.js';
 import { assert } from '../gadgets/common.js';
 import { chunkString } from '../util/arrays.js';

@@ -6,13 +6,13 @@ import {
   provableTuple,
   HashInput,
   NonMethods,
-} from '../../bindings/lib/provable-snarky.js';
+} from './provable-derivers.js';
 import type {
   InferJson,
   InferProvable,
   InferredProvable,
   IsPure,
-} from '../../bindings/lib/provable-snarky.js';
+} from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { assert } from '../errors.js';
 import { inCheckedComputation } from '../provable-context.js';

@@ -16,7 +16,7 @@ import {
   InferJson,
   InferProvable,
   InferredProvable,
-} from '../bindings/lib/provable-snarky.js';
+} from './provable-types/provable-derivers.js';
 import {
   inCheckedComputation,
   inProver,

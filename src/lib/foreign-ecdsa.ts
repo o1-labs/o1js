@@ -1,4 +1,4 @@
-import { provableFromClass } from '../bindings/lib/provable-snarky.js';
+import { provableFromClass } from './provable-types/provable-derivers.js';
 import { CurveParams } from '../bindings/crypto/elliptic-curve.js';
 import { ProvablePureExtended } from './provable-types/struct.js';
 import {

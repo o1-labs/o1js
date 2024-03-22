@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Field } from '../core.js';
-import { HashInput, NonMethods } from '../../bindings/lib/provable-snarky.js';
+import { HashInput, NonMethods } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { AnyConstructor, FlexibleProvable } from './struct.js';
 
