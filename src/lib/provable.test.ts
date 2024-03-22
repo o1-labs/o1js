@@ -8,7 +8,7 @@ import {
   PublicKey,
 } from 'o1js';
 
-describe('circuit', () => {
+describe('Provable', () => {
   it('Provable.if out of snark', () => {
     let x = Provable.if(Bool(false), Int64, Int64.from(-1), Int64.from(-2));
     expect(x.toString()).toBe('-2');
