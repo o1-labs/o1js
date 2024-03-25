@@ -25,7 +25,6 @@ import {
   getNetworkId,
   getNetworkConstants,
   getNetworkState,
-  accountCreationFee,
   fetchEvents,
   fetchActions,
   getActions,
@@ -73,7 +72,6 @@ export {
   getNetworkId,
   getNetworkConstants,
   getNetworkState,
-  accountCreationFee,
   fetchEvents,
   fetchActions,
   getActions,
@@ -173,10 +171,6 @@ function Network(
 
   return {
     getNetworkId: () => minaNetworkId,
-    /**
-     * @deprecated use {@link Mina.getNetworkConstants}
-     */
-    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);

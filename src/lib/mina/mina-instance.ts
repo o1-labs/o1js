@@ -32,7 +32,6 @@ export {
   getNetworkId,
   getNetworkConstants,
   getNetworkState,
-  accountCreationFee,
   fetchEvents,
   fetchActions,
   getActions,
@@ -104,10 +103,6 @@ type Mina = {
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   getNetworkConstants(): NetworkConstants;
-  /**
-   * @deprecated use {@link getNetworkConstants}
-   */
-  accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<PendingTransaction>;
   fetchEvents: (
     publicKey: PublicKey,
@@ -129,7 +124,6 @@ type Mina = {
 };
 
 let activeInstance: Mina = {
-  accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
   getNetworkConstants: () => defaultNetworkConstants,
   currentSlot: noActiveInstance,
   hasAccount: noActiveInstance,
@@ -202,14 +196,6 @@ function getNetworkState() {
  */
 function getBalance(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getAccount(publicKey, tokenId).balance;
-}
-
-/**
- * Returns the default account creation fee.
- * @deprecated use {@link Mina.getNetworkConstants}
- */
-function accountCreationFee() {
-  return activeInstance.accountCreationFee();
 }
 
 /**

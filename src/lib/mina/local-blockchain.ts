@@ -81,10 +81,6 @@ function LocalBlockchain({
   return {
     getNetworkId: () => minaNetworkId,
     proofsEnabled,
-    /**
-     * @deprecated use {@link Mina.getNetworkConstants}
-     */
-    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
         ...defaultNetworkConstants,
