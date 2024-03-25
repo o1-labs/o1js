@@ -94,7 +94,6 @@ export {
   Events,
   Actions,
   TokenId,
-  Token,
   CallForest,
   zkAppProver,
   dummySignature,
@@ -534,10 +533,7 @@ type Control = Types.AccountUpdate['authorization'];
 type LazyNone = {
   kind: 'lazy-none';
 };
-type LazySignature = {
-  kind: 'lazy-signature';
-  privateKey?: PrivateKey;
-};
+type LazySignature = { kind: 'lazy-signature' };
 type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
@@ -561,38 +557,6 @@ const TokenId = {
     return hashWithPrefix(prefixes.deriveTokenId, packToFields(input));
   },
 };
-
-/**
- * @deprecated use `TokenId` instead of `Token.Id` and `TokenId.derive()` instead of `Token.getId()`
- */
-class Token {
-  static Id = TokenId;
-
-  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
-    return TokenId.derive(tokenOwner, parentTokenId);
-  }
-
-  readonly id: Field;
-  readonly parentTokenId: Field;
-  readonly tokenOwner: PublicKey;
-  constructor({
-    tokenOwner,
-    parentTokenId = TokenId.default,
-  }: {
-    tokenOwner: PublicKey;
-    parentTokenId?: Field;
-  }) {
-    this.parentTokenId = parentTokenId;
-    this.tokenOwner = tokenOwner;
-    try {
-      this.id = TokenId.derive(tokenOwner, parentTokenId);
-    } catch (e) {
-      throw new Error(
-        `Could not create a custom token id:\nError: ${(e as Error).message}`
-      );
-    }
-  }
-}
 
 /**
  * An {@link AccountUpdate} is a set of instructions for the Mina network.
@@ -649,19 +613,6 @@ class AccountUpdate implements Types.AccountUpdate {
 
   get tokenId() {
     return this.body.tokenId;
-  }
-
-  /**
-   * @deprecated use `this.account.tokenSymbol`
-   */
-  get tokenSymbol() {
-    let accountUpdate = this;
-
-    return {
-      set(tokenSymbol: string) {
-        accountUpdate.account.tokenSymbol.set(tokenSymbol);
-      },
-    };
   }
 
   send({
@@ -827,12 +778,6 @@ class AccountUpdate implements Types.AccountUpdate {
    * be (can be) authorized by a signature.
    */
   requireSignature() {
-    this.sign();
-  }
-  /**
-   * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
-   */
-  sign(privateKey?: PrivateKey) {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
     // if this account is the same as the fee payer, we use the "full commitment" for replay protection
     this.body.useFullCommitment = isSameAsFeePayer;
@@ -847,16 +792,13 @@ class AccountUpdate implements Types.AccountUpdate {
     this.body.preconditions.account.nonce.value.lower = lower;
     this.body.preconditions.account.nonce.value.upper = upper;
     // set lazy signature
-    Authorization.setLazySignature(this, { privateKey });
+    Authorization.setLazySignature(this);
   }
 
-  static signFeePayerInPlace(
-    feePayer: FeePayerUnsigned,
-    privateKey?: PrivateKey
-  ) {
+  static signFeePayerInPlace(feePayer: FeePayerUnsigned) {
     feePayer.body.nonce = this.getNonce(feePayer);
     feePayer.authorization = dummySignature();
-    feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
+    feePayer.lazyAuthorization = { kind: 'lazy-signature' };
   }
 
   static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
@@ -1077,24 +1019,13 @@ class AccountUpdate implements Types.AccountUpdate {
    * Note that an account's {@link Permissions} determine which updates have to
    * be (can be) authorized by a signature.
    */
-  static createSigned(signer: PublicKey, tokenId?: Field): AccountUpdate;
-  /**
-   * @deprecated in favor of calling this function with a `PublicKey` as `signer`
-   */
-  static createSigned(signer: PrivateKey, tokenId?: Field): AccountUpdate;
-  static createSigned(signer: PrivateKey | PublicKey, tokenId?: Field) {
-    let publicKey =
-      signer instanceof PrivateKey ? signer.toPublicKey() : signer;
+  static createSigned(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
     accountUpdate.label = accountUpdate.label.replace(
       '.create()',
       '.createSigned()'
     );
-    if (signer instanceof PrivateKey) {
-      accountUpdate.sign(signer);
-    } else {
-      accountUpdate.requireSignature();
-    }
+    accountUpdate.requireSignature();
     return accountUpdate;
   }
 
@@ -1109,32 +1040,11 @@ class AccountUpdate implements Types.AccountUpdate {
    * @param numberOfAccounts the number of new accounts to fund (default: 1)
    * @returns they {@link AccountUpdate} for the account which pays the fee
    */
-  static fundNewAccount(
-    feePayer: PublicKey,
-    numberOfAccounts?: number
-  ): AccountUpdate;
-  /**
-   * @deprecated Call this function with a `PublicKey` as `feePayer`, and remove the `initialBalance` option.
-   * To send an initial balance to the new account, you can use the returned account update:
-   * ```
-   * let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
-   * feePayerUpdate.send({ to: receiverAddress, amount: initialBalance });
-   * ```
-   */
-  static fundNewAccount(
-    feePayer: PrivateKey | PublicKey,
-    options?: { initialBalance: number | string | UInt64 } | number
-  ): AccountUpdate;
-  static fundNewAccount(
-    feePayer: PrivateKey | PublicKey,
-    numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
-  ) {
-    let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
+  static fundNewAccount(feePayer: PublicKey, numberOfAccounts = 1) {
+    let accountUpdate = AccountUpdate.createSigned(feePayer);
     accountUpdate.label = 'AccountUpdate.fundNewAccount()';
     let fee = activeInstance.getNetworkConstants().accountCreationFee;
-    numberOfAccounts ??= 1;
-    if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
-    else fee = fee.add(UInt64.from(numberOfAccounts.initialBalance ?? 0));
+    fee = fee.mul(numberOfAccounts);
     accountUpdate.balance.subInPlace(fee);
     return accountUpdate;
   }
@@ -1877,18 +1787,14 @@ const Authorization = {
     accountUpdate.lazyAuthorization = undefined;
     return accountUpdate as AccountUpdateProved;
   },
-  setLazySignature(
-    accountUpdate: AccountUpdate,
-    signature?: Omit<LazySignature, 'kind'>
-  ) {
-    signature ??= {};
+  setLazySignature(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(true);
     accountUpdate.body.authorizationKind.isProved = Bool(false);
     accountUpdate.body.authorizationKind.verificationKeyHash = Field(
       mocks.dummyVerificationKeyHash
     );
     accountUpdate.authorization = {};
-    accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
+    accountUpdate.lazyAuthorization = { kind: 'lazy-signature' };
   },
   setLazyNone(accountUpdate: AccountUpdate) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
@@ -1915,20 +1821,19 @@ function addMissingSignatures(
     let { body, authorization, lazyAuthorization } =
       cloneCircuitValue(accountUpdate);
     if (lazyAuthorization === undefined) return { body, authorization };
-    let { privateKey } = lazyAuthorization;
-    if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex((pk) =>
-        pk.equals(accountUpdate.body.publicKey).toBoolean()
-      );
-      if (i === -1) {
-        // private key is missing, but we are not throwing an error here
-        // there is a change signature will be added by the wallet
-        // if not, error will be thrown by verifyAccountUpdate
-        // while .send() execution
-        return { body, authorization: dummySignature() };
-      }
-      privateKey = additionalKeys[i];
+
+    let i = additionalPublicKeys.findIndex((pk) =>
+      pk.equals(accountUpdate.body.publicKey).toBoolean()
+    );
+    if (i === -1) {
+      // private key is missing, but we are not throwing an error here
+      // there is a change signature will be added by the wallet
+      // if not, error will be thrown by verifyAccountUpdate
+      // while .send() execution
+      return { body, authorization: dummySignature() };
     }
+    let privateKey = additionalKeys[i];
+
     let signature = signFieldElement(
       fullCommitment,
       privateKey.toBigInt(),
@@ -1942,23 +1847,21 @@ function addMissingSignatures(
     if (accountUpdate.lazyAuthorization?.kind !== 'lazy-signature') {
       return accountUpdate as AccountUpdate & { lazyAuthorization?: LazyProof };
     }
-    let { privateKey } = accountUpdate.lazyAuthorization;
-    if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex((pk) =>
-        pk.equals(accountUpdate.body.publicKey).toBoolean()
-      );
-      if (i === -1) {
-        // private key is missing, but we are not throwing an error here
-        // there is a change signature will be added by the wallet
-        // if not, error will be thrown by verifyAccountUpdate
-        // while .send() execution
-        Authorization.setSignature(accountUpdate, dummySignature());
-        return accountUpdate as AccountUpdate & {
-          lazyAuthorization: undefined;
-        };
-      }
-      privateKey = additionalKeys[i];
+    let i = additionalPublicKeys.findIndex((pk) =>
+      pk.equals(accountUpdate.body.publicKey).toBoolean()
+    );
+    if (i === -1) {
+      // private key is missing, but we are not throwing an error here
+      // there is a change signature will be added by the wallet
+      // if not, error will be thrown by verifyAccountUpdate
+      // while .send() execution
+      Authorization.setSignature(accountUpdate, dummySignature());
+      return accountUpdate as AccountUpdate & {
+        lazyAuthorization: undefined;
+      };
     }
+    let privateKey = additionalKeys[i];
+
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;

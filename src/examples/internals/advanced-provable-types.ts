@@ -21,10 +21,7 @@ console.log(`an account update has ${AccountUpdate.sizeInFields()} fields`);
 let address = PrivateKey.random().toPublicKey();
 let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
 accountUpdate.body.callDepth = 5;
-accountUpdate.lazyAuthorization = {
-  kind: 'lazy-signature',
-  privateKey: PrivateKey.random(),
-};
+accountUpdate.lazyAuthorization = { kind: 'lazy-signature' };
 
 /**
  * Every provable type can be disassembled into its provable/in-circuit part (fields)

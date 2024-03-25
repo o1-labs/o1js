@@ -67,7 +67,6 @@ export {
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export {
-  Token,
   TokenId,
   AccountUpdate,
   Permissions,

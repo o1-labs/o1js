@@ -96,13 +96,15 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        let vkUpdate = AccountUpdate.createSigned(params.votingKey);
+        let vkUpdate = AccountUpdate.createSigned(
+          params.votingKey.toPublicKey()
+        );
         vkUpdate.account.verificationKey.set({
           ...verificationKey,
           hash: Field(verificationKey.hash),
         });
       },
-      verificationKeySet.feePayer
+      [verificationKeySet.feePayer, params.votingKey]
     );
 
     m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
@@ -167,7 +169,9 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        let permUpdate = AccountUpdate.createSigned(params.voterKey);
+        let permUpdate = AccountUpdate.createSigned(
+          params.voterKey.toPublicKey()
+        );
 
         permUpdate.account.permissions.set({
           ...Permissions.default(),
@@ -175,7 +179,7 @@ export async function testSet(
           editActionState: Permissions.impossible(),
         });
       },
-      permissionedSet.feePayer
+      [permissionedSet.feePayer, params.voterKey]
     );
 
     console.log('trying to invoke method with invalid permissions...');

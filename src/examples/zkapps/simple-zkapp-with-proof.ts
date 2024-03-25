@@ -83,10 +83,10 @@ let zkapp = new NotSoSimpleZkapp(zkappAddress);
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  await zkapp.deploy({ zkappKey });
+  await zkapp.deploy();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('initialize');
 tx = await Mina.transaction(feePayer, async () => {

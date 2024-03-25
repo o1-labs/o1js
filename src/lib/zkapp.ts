@@ -695,10 +695,8 @@ class SmartContract extends SmartContractBase {
    */
   async deploy({
     verificationKey,
-    zkappKey,
   }: {
     verificationKey?: { data: string; hash: Field | string };
-    zkappKey?: PrivateKey;
   } = {}) {
     let accountUpdate = this.newSelf('deploy');
     verificationKey ??= (this.constructor as typeof SmartContract)
@@ -718,7 +716,7 @@ class SmartContract extends SmartContractBase {
     let hash = Field.from(hash_);
     accountUpdate.account.verificationKey.set({ hash, data });
     accountUpdate.account.permissions.set(Permissions.default());
-    accountUpdate.sign(zkappKey);
+    accountUpdate.requireSignature();
     AccountUpdate.attachToTransaction(accountUpdate);
 
     // init if this account is not yet deployed or has no verification key on it
@@ -788,12 +786,7 @@ super.init();
   requireSignature() {
     this.self.requireSignature();
   }
-  /**
-   * @deprecated `this.sign()` is deprecated in favor of `this.requireSignature()`
-   */
-  sign(zkappKey?: PrivateKey) {
-    this.self.sign(zkappKey);
-  }
+
   /**
    * Use this command if the account update created by this SmartContract should have no authorization on it,
    * instead of being authorized with a proof.
@@ -952,12 +945,6 @@ super.init();
     return this.self.send(args);
   }
 
-  /**
-   * @deprecated use `this.account.tokenSymbol`
-   */
-  get tokenSymbol() {
-    return this.self.tokenSymbol;
-  }
   /**
    * Balance of this {@link SmartContract}.
    */

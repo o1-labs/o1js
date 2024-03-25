@@ -93,7 +93,6 @@ tx = await Mina.transaction(feePayer, async () => {
   );
 
   contracts.voting.voterRegistration(m);
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -113,8 +112,6 @@ tx = await Mina.transaction(feePayer, async () => {
   );
 
   contracts.voting.voterRegistration(m);
-
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -134,8 +131,6 @@ tx = await Mina.transaction(feePayer, async () => {
   );
 
   contracts.voting.voterRegistration(m);
-
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 await tx.prove();
 await tx.sign([feePayerKey]).send();
@@ -169,7 +164,6 @@ tx = await Mina.transaction(feePayer, async () => {
   );
 
   contracts.voting.candidateRegistration(m);
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 
 await tx.prove();
@@ -189,7 +183,6 @@ tx = await Mina.transaction(feePayer, async () => {
   );
 
   contracts.voting.candidateRegistration(m);
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 
 await tx.prove();
@@ -232,7 +225,6 @@ console.log(
 
 tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.approveRegistrations();
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 
 await tx.prove();
@@ -268,7 +260,6 @@ tx = await Mina.transaction(feePayer, async () => {
   c.votesWitness = new MyMerkleWitness(votesStore.getWitness(0n));
   // we are voting for candidate c, 0n, with voter 2n
   contracts.voting.vote(c, voterStore.get(2n)!);
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 
 await tx.prove();
@@ -288,7 +279,6 @@ console.log(
   */
 tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.countVotes();
-  if (!params.doProofs) contracts.voting.sign(votingKey);
 });
 
 await tx.prove();
