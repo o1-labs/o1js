@@ -190,7 +190,7 @@ class PublicKey extends CircuitValue {
    */
   isEmpty() {
     // there are no curve points with x === 0
-    return this.x.isZero();
+    return this.x.equals(0);
   }
 
   /**
