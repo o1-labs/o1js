@@ -80,13 +80,6 @@ class Scalar {
   }
 
   /**
-   * @deprecated use {@link Scalar.from}
-   */
-  static fromBigInt(x: bigint) {
-    return Scalar.from(x);
-  }
-
-  /**
    * Convert this {@link Scalar} into a bigint
    */
   toBigInt() {

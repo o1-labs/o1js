@@ -11,7 +11,7 @@ import { Provable } from '../provable.js';
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };
 
 // internal API
-export { maybeSwap, maybeSwapBad };
+export { maybeSwap };
 
 type Witness = { isLeft: boolean; sibling: Field }[];
 
@@ -195,23 +195,6 @@ class BaseMerkleWitness extends CircuitValue {
   }
 
   /**
-   * Calculates a root depending on the leaf value.
-   * @deprecated This is a less efficient version of {@link calculateRoot} which was added for compatibility with existing deployed contracts
-   */
-  calculateRootSlow(leaf: Field): Field {
-    let hash = leaf;
-    let n = this.height();
-
-    for (let i = 1; i < n; ++i) {
-      let isLeft = this.isLeft[i - 1];
-      const [left, right] = maybeSwapBad(isLeft, hash, this.path[i - 1]);
-      hash = Poseidon.hash([left, right]);
-    }
-
-    return hash;
-  }
-
-  /**
    * Calculates the index of the leaf node that belongs to this Witness.
    * @returns Index of the leaf.
    */
@@ -243,13 +226,7 @@ function MerkleWitness(height: number): typeof BaseMerkleWitness {
   return MerkleWitness_;
 }
 
-function maybeSwapBad(b: Bool, x: Field, y: Field): [Field, Field] {
-  const x_ = Provable.if(b, x, y); // y + b*(x - y)
-  const y_ = Provable.if(b, y, x); // x + b*(y - x)
-  return [x_, y_];
-}
-
-// more efficient version of `maybeSwapBad` which reuses an intermediate variable
+// more efficient than 2x `Provable.if()` by reusing an intermediate variable
 function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   let m = b.toField().mul(x.sub(y)); // b*(x - y)
   const x_ = y.add(m); // y + b*(x - y)
