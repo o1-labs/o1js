@@ -41,7 +41,7 @@ abstract class TokenContract extends SmartContract {
    *
    * If the contract needs to be re-deployed, you can switch off this behaviour by overriding the `isNew` precondition:
    * ```ts
-   * deploy() {
+   * async deploy() {
    *   await super.deploy();
    *   // DON'T DO THIS ON THE INITIAL DEPLOYMENT!
    *   this.account.isNew.requireNothing();

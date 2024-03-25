@@ -1435,10 +1435,7 @@ const SmartContractContext = {
 };
 
 type DeployArgs =
-  | {
-      verificationKey?: { data: string; hash: string | Field };
-      zkappKey?: PrivateKey;
-    }
+  | { verificationKey?: { data: string; hash: string | Field } }
   | undefined;
 
 function Account(address: PublicKey, tokenId?: Field) {

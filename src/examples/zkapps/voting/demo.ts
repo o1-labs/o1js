@@ -61,21 +61,21 @@ let initialRoot = voterStore.getRoot();
 tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer, 3);
 
-  contracts.voting.deploy({ zkappKey: votingKey });
+  await contracts.voting.deploy();
   contracts.voting.committedVotes.set(votesStore.getRoot());
   contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
-  contracts.candidateContract.deploy({ zkappKey: candidateKey });
+  await contracts.candidateContract.deploy();
   contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
   contracts.candidateContract.accumulatedMembers.set(
     Reducer.initialActionState
   );
 
-  contracts.voterContract.deploy({ zkappKey: voterKey });
+  await contracts.voterContract.deploy();
   contracts.voterContract.committedMembers.set(voterStore.getRoot());
   contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
 });
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayerKey, votingKey, candidateKey, voterKey]).send();
 
 let m: Member = Member.empty();
 // lets register three voters

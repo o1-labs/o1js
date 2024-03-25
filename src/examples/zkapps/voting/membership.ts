@@ -4,7 +4,6 @@ import {
   state,
   State,
   method,
-  DeployArgs,
   Permissions,
   Bool,
   PublicKey,
@@ -70,8 +69,8 @@ export class Membership_ extends SmartContract {
     }),
   };
 
-  async deploy(args: DeployArgs) {
-    await super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
