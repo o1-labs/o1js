@@ -68,8 +68,6 @@ import {
   accountUpdateLayout,
   smartContractContext,
 } from './mina/smart-contract-context.js';
-import { deprecatedToken } from './mina/token/token-methods.js';
-import type { TokenContract } from './mina/token/token-contract.js';
 import { assertPromise } from './util/assert.js';
 import { ProvablePure } from './provable-types/provable-intf.js';
 
@@ -901,16 +899,6 @@ super.init();
    */
   get currentSlot() {
     return this.self.currentSlot;
-  }
-  /**
-   * @deprecated
-   * `SmartContract.token` will be removed, and token methods will only be available on `TokenContract.internal`.
-   * Instead of `SmartContract.token.id`, use `TokenContract.deriveTokenId()`.
-   *
-   * For security reasons, it is recommended to use {@link TokenContract} as the base contract for all tokens.
-   */
-  get token() {
-    return deprecatedToken(this.self);
   }
 
   /**

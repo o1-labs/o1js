@@ -5,7 +5,7 @@ import type { SmartContract } from '../../zkapp.js';
 import { UInt64 } from '../../int.js';
 import { Bool, Field } from '../../core.js';
 
-export { tokenMethods, deprecatedToken };
+export { tokenMethods };
 
 function tokenMethods(self: AccountUpdate) {
   return {
@@ -94,19 +94,4 @@ function getApprovedUpdate(
   }
   if (!child.label) child.label = `${self.label ?? 'Unlabeled'}.${label}`;
   return child;
-}
-
-// deprecated token interface for `SmartContract`
-
-function deprecatedToken(self: AccountUpdate) {
-  let tokenOwner = self.publicKey;
-  let parentTokenId = self.tokenId;
-  let id = TokenId.derive(tokenOwner, parentTokenId);
-
-  return {
-    id,
-    parentTokenId,
-    tokenOwner,
-    ...tokenMethods(self),
-  };
 }

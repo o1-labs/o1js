@@ -14,15 +14,21 @@ import {
   Field,
   Int64,
   TokenId,
+  TokenContract as TokenContractBase,
+  AccountUpdateForest,
 } from 'o1js';
 
 const tokenSymbol = 'TOKEN';
 
-// TODO: Refactor to `TokenContract`
+// TODO: Refactor to use `TokenContract.approveBase()`
 
-class TokenContract extends SmartContract {
+class TokenContract extends TokenContractBase {
   SUPPLY = UInt64.from(10n ** 18n);
   @state(UInt64) totalAmountInCirculation = State<UInt64>();
+
+  async approveBase(_: AccountUpdateForest) {
+    throw Error('Not used');
+  }
 
   /**
    * This deploy method lets a another token account deploy their zkApp and verification key as a child of this token contract.
@@ -32,7 +38,7 @@ class TokenContract extends SmartContract {
     address: PublicKey,
     verificationKey: VerificationKey
   ) {
-    let tokenId = this.token.id;
+    let tokenId = this.deriveTokenId();
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
     this.approve(zkapp);
     zkapp.account.permissions.set(Permissions.default());
@@ -43,13 +49,14 @@ class TokenContract extends SmartContract {
   init() {
     super.init();
     let address = this.address;
-    let receiver = this.token.mint({
-      address,
-      amount: this.SUPPLY,
-    });
-    receiver.account.isNew.assertEquals(Bool(true));
+    let receiver = this.internal.mint({ address, amount: this.SUPPLY });
+    receiver.account.isNew.requireEquals(Bool(true));
     this.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee);
     this.totalAmountInCirculation.set(this.SUPPLY.sub(100_000_000));
+  }
+
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -60,16 +67,13 @@ class TokenContract extends SmartContract {
 
   @method async mint(receiverAddress: PublicKey, amount: UInt64) {
     let totalAmountInCirculation = this.totalAmountInCirculation.get();
-    this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
+    this.totalAmountInCirculation.requireEquals(totalAmountInCirculation);
     let newTotalAmountInCirculation = totalAmountInCirculation.add(amount);
     newTotalAmountInCirculation.value.assertLessThanOrEqual(
       this.SUPPLY.value,
       "Can't mint more than the total supply"
     );
-    this.token.mint({
-      address: receiverAddress,
-      amount,
-    });
+    this.internal.mint({ address: receiverAddress, amount });
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }
 
@@ -81,10 +85,7 @@ class TokenContract extends SmartContract {
       UInt64.from(0).value,
       "Can't burn less than 0"
     );
-    this.token.burn({
-      address: receiverAddress,
-      amount,
-    });
+    this.internal.burn({ address: receiverAddress, amount });
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }
 
@@ -97,7 +98,7 @@ class TokenContract extends SmartContract {
     this.approve(senderAccountUpdate);
     let negativeAmount = senderAccountUpdate.balanceChange;
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    let tokenId = this.token.id;
+    let tokenId = this.deriveTokenId();
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
     let receiverAccountUpdate = AccountUpdate.create(receiverAddress, tokenId);
@@ -151,7 +152,7 @@ function setupAccounts() {
   tokenZkappAddress = tokenZkappKey.toPublicKey();
 
   tokenZkapp = new TokenContract(tokenZkappAddress);
-  tokenId = tokenZkapp.token.id;
+  tokenId = tokenZkapp.deriveTokenId();
 
   zkAppBKey = Local.testAccounts[1].privateKey;
   zkAppBAddress = zkAppBKey.toPublicKey();
@@ -166,12 +167,12 @@ function setupAccounts() {
 async function setupLocal() {
   setupAccounts();
   let tx = await Mina.transaction(feePayer, async () => {
+    await tokenZkapp.deploy();
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
     feePayerUpdate.send({
-      to: tokenZkappAddress,
+      to: tokenZkapp.self,
       amount: Mina.getNetworkConstants().accountCreationFee,
     });
-    await tokenZkapp.deploy();
   });
   tx.sign([tokenZkappKey, feePayerKey]);
   await tx.send();
@@ -183,12 +184,12 @@ async function setupLocalProofs() {
   // don't use proofs for the setup, takes too long to do this every time
   Local.setProofsEnabled(false);
   let tx = await Mina.transaction({ sender: feePayer }, async () => {
+    await tokenZkapp.deploy();
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
     feePayerUpdate.send({
-      to: tokenZkappAddress,
+      to: tokenZkapp.self,
       amount: Mina.getNetworkConstants().accountCreationFee,
     });
-    await tokenZkapp.deploy();
     await tokenZkapp.deployZkapp(zkAppBAddress, ZkAppB._verificationKey!);
     await tokenZkapp.deployZkapp(zkAppCAddress, ZkAppC._verificationKey!);
   });
@@ -358,7 +359,7 @@ describe('Token', () => {
 
         tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          tokenZkapp.token.send({
+          tokenZkapp.internal.send({
             from: zkAppBAddress,
             to: zkAppCAddress,
             amount: UInt64.from(10_000),
@@ -389,7 +390,7 @@ describe('Token', () => {
           .send();
         let tx = (
           await Mina.transaction(feePayer, async () => {
-            tokenZkapp.token.send({
+            tokenZkapp.internal.send({
               from: zkAppBAddress,
               to: zkAppCAddress,
               amount: UInt64.from(10_000),
@@ -414,7 +415,7 @@ describe('Token', () => {
           .send();
         let tx = (
           await Mina.transaction(feePayer, async () => {
-            tokenZkapp.token.send({
+            tokenZkapp.internal.send({
               from: zkAppBAddress,
               to: zkAppCAddress,
               amount: UInt64.from(100_000),
@@ -578,7 +579,7 @@ describe('Token', () => {
       test('should reject tx if user bypasses the token contract by using an empty account update', async () => {
         let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          tokenZkapp.token.mint({
+          tokenZkapp.internal.mint({
             address: zkAppBAddress,
             amount: UInt64.from(100_000),
           });
