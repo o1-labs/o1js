@@ -528,6 +528,9 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() === toFp(y));
     }
+    // TODO: this wastes a constraint on `xMinusY` if one of them is constant
+    // to fix, make assertMul() smart about constant terms and only `seal()` if the two inputs are both variables
+
     // x == y is equivalent to x - y == 0
     let xMinusY = this.sub(y).seal();
 
