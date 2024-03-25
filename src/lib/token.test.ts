@@ -78,13 +78,9 @@ class TokenContract extends TokenContractBase {
   }
 
   @method async burn(receiverAddress: PublicKey, amount: UInt64) {
-    let totalAmountInCirculation = this.totalAmountInCirculation.get();
-    this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
+    let totalAmountInCirculation =
+      this.totalAmountInCirculation.getAndRequireEquals();
     let newTotalAmountInCirculation = totalAmountInCirculation.sub(amount);
-    totalAmountInCirculation.value.assertGreaterThanOrEqual(
-      UInt64.from(0).value,
-      "Can't burn less than 0"
-    );
     this.internal.burn({ address: receiverAddress, amount });
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }

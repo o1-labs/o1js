@@ -42,10 +42,6 @@ type State<A> = {
    */
   getAndRequireEquals(): A;
   /**
-   * @deprecated use `this.state.getAndRequireEquals()` which is equivalent
-   */
-  getAndAssertEquals(): A;
-  /**
    * Set the on-chain state to a new value.
    */
   set(a: A): void;
@@ -59,17 +55,9 @@ type State<A> = {
    */
   requireEquals(a: A): void;
   /**
-   * @deprecated use `this.state.requireEquals()` which is equivalent
-   */
-  assertEquals(a: A): void;
-  /**
    * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
    */
   requireNothing(): void;
-  /**
-   * @deprecated use `this.state.requireNothing()` which is equivalent
-   */
-  assertNothing(): void;
   /**
    * Get the state from the raw list of field elements on a zkApp account, for example:
    *
@@ -232,20 +220,12 @@ function createState<T>(): InternalStateType<T> {
       this._contract.wasConstrained = true;
     },
 
-    assertEquals(state: T) {
-      this.requireEquals(state);
-    },
-
     requireNothing() {
       if (this._contract === undefined)
         throw Error(
           'requireNothing can only be called when the State is assigned to a SmartContract @state.'
         );
       this._contract.wasConstrained = true;
-    },
-
-    assertNothing() {
-      this.requireNothing();
     },
 
     get() {
@@ -318,10 +298,6 @@ function createState<T>(): InternalStateType<T> {
       let state = this.get();
       this.requireEquals(state);
       return state;
-    },
-
-    getAndAssertEquals() {
-      return this.getAndRequireEquals();
     },
 
     async fetch() {
@@ -417,7 +393,7 @@ function assertStatePrecondition(sc: SmartContract) {
       // we accessed a precondition field but not constrained it explicitly - throw an error
       let errorMessage = `You used \`this.${key}.get()\` without adding a precondition that links it to the actual on-chain state.
 Consider adding this line to your code:
-this.${key}.assertEquals(this.${key}.get());`;
+this.${key}.requireEquals(this.${key}.get());`;
       throw Error(errorMessage);
     }
   } finally {
