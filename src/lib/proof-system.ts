@@ -20,7 +20,6 @@ import {
   Struct,
   provable,
   provablePure,
-  toConstant,
 } from './provable-types/struct.js';
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
@@ -847,12 +846,12 @@ function methodArgumentsToConstant(
     let arg = args[i];
     let { type, index } = allArgs[i];
     if (type === 'witness') {
-      constArgs.push(toConstant(witnessArgs[index], arg));
+      constArgs.push(Provable.toConstant(witnessArgs[index], arg));
     } else if (type === 'proof') {
       let Proof = proofArgs[index];
       let type = getStatementType(Proof);
-      let publicInput = toConstant(type.input, arg.publicInput);
-      let publicOutput = toConstant(type.output, arg.publicOutput);
+      let publicInput = Provable.toConstant(type.input, arg.publicInput);
+      let publicOutput = Provable.toConstant(type.output, arg.publicOutput);
       constArgs.push(
         new Proof({ publicInput, publicOutput, proof: arg.proof })
       );

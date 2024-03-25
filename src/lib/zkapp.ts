@@ -23,7 +23,6 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-  toConstant,
 } from './provable-types/struct.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
@@ -408,7 +407,7 @@ function wrapMethod(
             returnType !== undefined,
             "Bug: returnType is undefined but the method result isn't."
           );
-          result = toConstant(returnType, result);
+          result = Provable.toConstant(returnType, result);
         }
 
         // store inputs + result in callData

@@ -33,7 +33,6 @@ export {
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
-  toConstant,
   InferProvable,
   HashInput,
   InferJson,
@@ -370,13 +369,5 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   if (aEntries.length !== bEntries.length) return false;
   return aEntries.every(
     ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
-  );
-}
-
-function toConstant<T>(type: FlexibleProvable<T>, value: T): T;
-function toConstant<T>(type: Provable<T>, value: T): T {
-  return type.fromFields(
-    type.toFields(value).map((x) => x.toConstant()),
-    type.toAuxiliary(value)
   );
 }
