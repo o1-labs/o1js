@@ -11,7 +11,6 @@ import { NetworkId } from '../mina-signer/src/types.js';
 import { currentTransaction } from './mina/transaction-context.js';
 import {
   type FeePayerSpec,
-  type DeprecatedFeePayerSpec,
   type ActionStates,
   type NetworkConstants,
   activeInstance,
@@ -52,7 +51,6 @@ import {
 import { LocalBlockchain } from './mina/local-blockchain.js';
 
 export {
-  BerkeleyQANet,
   LocalBlockchain,
   Network,
   currentTransaction,
@@ -88,7 +86,7 @@ export {
 // patch active instance so that we can still create basic transactions without giving Mina network details
 setActiveInstance({
   ...activeInstance,
-  async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+  async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
     return await createTransaction(sender, f, 0);
   },
 });
@@ -368,7 +366,7 @@ function Network(
         safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transcation twice to be able to fetch data in between
       let tx = await createTransaction(sender, f, 0, {
         fetchMode: 'test',
@@ -452,15 +450,6 @@ function Network(
     },
     proofsEnabled: true,
   };
-}
-
-/**
- *
- * @deprecated This is deprecated in favor of {@link Mina.Network}, which is exactly the same function.
- * The name `BerkeleyQANet` was misleading because it suggested that this is specific to a particular network.
- */
-function BerkeleyQANet(graphqlEndpoint: string) {
-  return Network(graphqlEndpoint);
 }
 
 /**

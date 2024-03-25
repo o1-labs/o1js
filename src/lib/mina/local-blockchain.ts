@@ -26,7 +26,7 @@ import {
   PendingTransactionStatus,
 } from './transaction.js';
 import {
-  type DeprecatedFeePayerSpec,
+  type FeePayerSpec,
   type ActionStates,
   Mina,
   defaultNetworkConstants,
@@ -301,7 +301,7 @@ function LocalBlockchain({
         safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transaction twice to match the behaviour of `Network.transaction`
       let tx = await createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
