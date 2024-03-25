@@ -10,13 +10,9 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   declareState,
   declareMethods,
-  shutdown,
 } from 'o1js';
-
-await isReady;
 
 class SimpleZkapp extends SmartContract {
   constructor(address) {
@@ -72,5 +68,3 @@ tx = await Mina.transaction(feePayer, () => zkapp.update(Field(3)));
 await tx.prove();
 await tx.sign([feePayerKey]).send();
 console.log('final state: ' + zkapp.x.get());
-
-shutdown();

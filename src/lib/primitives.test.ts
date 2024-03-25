@@ -1,16 +1,5 @@
-import { isReady, shutdown, Field, Bool, Provable } from 'o1js';
+import { Field, Bool, Provable } from 'o1js';
 describe('bool', () => {
-  beforeAll(async () => {
-    await isReady;
-    return;
-  });
-
-  afterAll(async () => {
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
-
   describe('inside circuit', () => {
     describe('toField', () => {
       it('should return a Field', async () => {

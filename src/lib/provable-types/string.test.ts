@@ -1,17 +1,6 @@
-import {
-  Bool,
-  Character,
-  Provable,
-  CircuitString,
-  Field,
-  shutdown,
-  isReady,
-} from 'o1js';
+import { Bool, Character, Provable, CircuitString, Field } from 'o1js';
 
 describe('Circuit String', () => {
-  beforeEach(() => isReady);
-  afterAll(() => setTimeout(shutdown, 0));
-
   describe('#equals', () => {
     test('returns true when values are equal', () => {
       const str = CircuitString.fromString(

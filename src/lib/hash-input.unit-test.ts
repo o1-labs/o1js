@@ -1,9 +1,7 @@
 import {
-  isReady,
   AccountUpdate,
   Types,
   Permissions,
-  shutdown,
   ProvableExtended,
 } from '../index.js';
 import { expect } from 'expect';
@@ -19,8 +17,6 @@ import { MlFieldConstArray } from './ml/fields.js';
 import { Test } from '../snarky.js';
 
 let { hashInputFromJson } = Test;
-
-await isReady;
 
 // types
 type Body = Types.AccountUpdate['body'];
@@ -96,7 +92,6 @@ test(Random.json.accountUpdate, (accountUpdateJson) => {
 });
 
 console.log('all hash inputs are consistent! 🎉');
-shutdown();
 
 function testInput<T, TJson>(
   Module: ProvableExtended<T, TJson>,
