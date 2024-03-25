@@ -2,6 +2,7 @@ import { Group } from './core.js';
 import { test, Random } from './testing/property.js';
 import { Provable } from './provable.js';
 import { Poseidon } from '../mina-signer/src/poseidon-bigint.js';
+import { runAndCheckSync } from './provable-context.js';
 
 console.log('group consistency tests');
 
@@ -54,7 +55,7 @@ function run(
 ) {
   let result_out_circuit = f(g1, g2);
 
-  Provable.runAndCheckSync(() => {
+  runAndCheckSync(() => {
     let result_in_circuit = f(
       Provable.witness(Group, () => g1),
       Provable.witness(Group, () => g2)

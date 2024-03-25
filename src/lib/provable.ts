@@ -24,7 +24,6 @@ import {
   asProver,
   constraintSystem,
   generateWitness,
-  runAndCheckSync,
 } from './provable-context.js';
 import { exists, existsAsync } from './provable-core/exists.js';
 
@@ -176,10 +175,6 @@ const Provable = {
   async runAndCheck(f: (() => Promise<void>) | (() => void)) {
     await generateWitness(f, { checkConstraints: true });
   },
-  /**
-   * @deprecated use the async `Provable.runAndCheck` instead
-   */
-  runAndCheckSync: runAndCheckSync,
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example

@@ -8,6 +8,7 @@ import { Bool, Field } from '../core.js';
 import { AnyFunction, Tuple } from '../util/types.js';
 import { provable } from '../provable-types/struct.js';
 import { assert } from '../gadgets/common.js';
+import { runAndCheckSync } from '../provable-context.js';
 
 export {
   equivalent,
@@ -237,7 +238,7 @@ function equivalentProvable<
       );
 
       // inside provable code
-      Provable.runAndCheckSync(() => {
+      runAndCheckSync(() => {
         let inputWitnesses = inputs2.map((x, i) => {
           let provable = from[i].provable;
           return provable !== undefined

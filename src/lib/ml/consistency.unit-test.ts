@@ -7,6 +7,7 @@ import { Ml } from './conversion.js';
 import { expect } from 'expect';
 import { FieldConst } from '../provable-core/fieldvar.js';
 import { Provable } from '../provable.js';
+import { runAndCheckSync } from '../provable-context.js';
 
 // PrivateKey.toBase58, fromBase58
 
@@ -94,7 +95,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
   });
   let parentTokenId = Field(field);
 
-  Provable.runAndCheckSync(() => {
+  runAndCheckSync(() => {
     tokenOwner = Provable.witness(PublicKey, () => tokenOwner);
     parentTokenId = Provable.witness(Field, () => parentTokenId);
 
