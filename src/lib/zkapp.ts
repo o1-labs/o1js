@@ -1154,20 +1154,6 @@ super.init();
     }
     return methodMetadata;
   }
-
-  /**
-   * @deprecated use `this.account.<field>.set()`
-   */
-  setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
-    AccountUpdate.setValue(maybeValue, value);
-  }
-
-  /**
-   * @deprecated use `this.account.permissions.set()`
-   */
-  setPermissions(permissions: Permissions) {
-    this.self.account.permissions.set(permissions);
-  }
 }
 
 type Reducer<Action> = {
