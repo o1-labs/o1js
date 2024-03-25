@@ -11,6 +11,7 @@ import {
   MerkleMapWitness,
   Mina,
   AccountUpdate,
+  Provable,
 } from 'o1js';
 
 class PayoutOnlyOnce extends SmartContract {
@@ -24,7 +25,7 @@ class PayoutOnlyOnce extends SmartContract {
     // verify the nullifier
     nullifier.verify([nullifierMessage]);
 
-    let nullifierWitness = Circuit.witness(MerkleMapWitness, () =>
+    let nullifierWitness = Provable.witness(MerkleMapWitness, () =>
       NullifierTree.getWitness(nullifier.key())
     );
 
