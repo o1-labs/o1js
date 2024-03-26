@@ -1,11 +1,4 @@
-import {
-  isReady,
-  CircuitString,
-  SmartContract,
-  method,
-  Mina,
-  PrivateKey,
-} from 'o1js';
+import { CircuitString, SmartContract, method, Mina, PrivateKey } from 'o1js';
 import * as assert from 'assert/strict';
 
 // circuit which tests a couple of string features
@@ -19,7 +12,6 @@ class MyContract extends SmartContract {
   }
 }
 
-await isReady;
 let address = PrivateKey.random().toPublicKey();
 
 console.log('compile...');

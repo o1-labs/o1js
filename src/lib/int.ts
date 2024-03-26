@@ -396,34 +396,6 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link lessThanOrEqual} instead.
-   *
-   * Checks if a {@link UInt64} is less than or equal to another one.
-   */
-  lte(y: UInt64) {
-    if (this.value.isConstant() && y.value.isConstant()) {
-      return Bool(this.value.toBigInt() <= y.value.toBigInt());
-    } else {
-      let xMinusY = this.value.sub(y.value).seal();
-      let yMinusX = xMinusY.neg();
-
-      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
-        UInt64.NUM_BITS,
-        xMinusY
-      );
-
-      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
-        UInt64.NUM_BITS,
-        yMinusX
-      );
-
-      xMinusYFits.or(yMinusXFits).assertEquals(true);
-      // x <= y if y - x fits in 64 bits
-      return yMinusXFits;
-    }
-  }
-
-  /**
    * Checks if a {@link UInt64} is less than or equal to another one.
    */
   lessThanOrEqual(y: UInt64) {
@@ -450,15 +422,6 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link assertLessThanOrEqual} instead.
-   *
-   * Asserts that a {@link UInt64} is less than or equal to another one.
-   */
-  assertLte(y: UInt64, message?: string) {
-    this.assertLessThanOrEqual(y, message);
-  }
-
-  /**
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLessThanOrEqual(y: UInt64, message?: string) {
@@ -476,30 +439,11 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link lessThan} instead.
-   *
-   * Checks if a {@link UInt64} is less than another one.
-   */
-  lt(y: UInt64) {
-    return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
-  }
-
-  /**
    *
    * Checks if a {@link UInt64} is less than another one.
    */
   lessThan(y: UInt64) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
-  }
-
-  /**
-   *
-   * @deprecated Use {@link assertLessThan} instead.
-   *
-   * Asserts that a {@link UInt64} is less than another one.
-   */
-  assertLt(y: UInt64, message?: string) {
-    this.lessThan(y).assertEquals(true, message);
   }
 
   /**
@@ -510,28 +454,10 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link greaterThan} instead.
-   *
-   * Checks if a {@link UInt64} is greater than another one.
-   */
-  gt(y: UInt64) {
-    return y.lessThan(this);
-  }
-
-  /**
    * Checks if a {@link UInt64} is greater than another one.
    */
   greaterThan(y: UInt64) {
     return y.lessThan(this);
-  }
-
-  /**
-   * @deprecated Use {@link assertGreaterThan} instead.
-   *
-   * Asserts that a {@link UInt64} is greater than another one.
-   */
-  assertGt(y: UInt64, message?: string) {
-    y.assertLessThan(this, message);
   }
 
   /**
@@ -542,28 +468,10 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link greaterThanOrEqual} instead.
-   *
-   * Checks if a {@link UInt64} is greater than or equal to another one.
-   */
-  gte(y: UInt64) {
-    return this.lessThan(y).not();
-  }
-
-  /**
    * Checks if a {@link UInt64} is greater than or equal to another one.
    */
   greaterThanOrEqual(y: UInt64) {
     return this.lessThan(y).not();
-  }
-
-  /**
-   * @deprecated Use {@link assertGreaterThanOrEqual} instead.
-   *
-   * Asserts that a {@link UInt64} is greater than or equal to another one.
-   */
-  assertGte(y: UInt64, message?: string) {
-    y.assertLessThanOrEqual(this, message);
   }
 
   /**
@@ -939,31 +847,6 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link lessThanOrEqual} instead.
-   *
-   * Checks if a {@link UInt32} is less than or equal to another one.
-   */
-  lte(y: UInt32) {
-    if (this.value.isConstant() && y.value.isConstant()) {
-      return Bool(this.value.toBigInt() <= y.value.toBigInt());
-    } else {
-      let xMinusY = this.value.sub(y.value).seal();
-      let yMinusX = xMinusY.neg();
-      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
-        UInt32.NUM_BITS,
-        xMinusY
-      );
-      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
-        UInt32.NUM_BITS,
-        yMinusX
-      );
-      xMinusYFits.or(yMinusXFits).assertEquals(true);
-      // x <= y if y - x fits in 64 bits
-      return yMinusXFits;
-    }
-  }
-
-  /**
    * Checks if a {@link UInt32} is less than or equal to another one.
    */
   lessThanOrEqual(y: UInt32) {
@@ -987,15 +870,6 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link assertLessThanOrEqual} instead.
-   *
-   * Asserts that a {@link UInt32} is less than or equal to another one.
-   */
-  assertLte(y: UInt32, message?: string) {
-    this.assertLessThanOrEqual(y, message);
-  }
-
-  /**
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLessThanOrEqual(y: UInt32, message?: string) {
@@ -1013,28 +887,10 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link lessThan} instead.
-   *
-   * Checks if a {@link UInt32} is less than another one.
-   */
-  lt(y: UInt32) {
-    return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
-  }
-
-  /**
    * Checks if a {@link UInt32} is less than another one.
    */
   lessThan(y: UInt32) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
-  }
-
-  /**
-   * @deprecated Use {@link assertLessThan} instead.
-   *
-   * Asserts that a {@link UInt32} is less than another one.
-   */
-  assertLt(y: UInt32, message?: string) {
-    this.lessThan(y).assertEquals(true, message);
   }
 
   /**
@@ -1045,28 +901,10 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link greaterThan} instead.
-   *
-   * Checks if a {@link UInt32} is greater than another one.
-   */
-  gt(y: UInt32) {
-    return y.lessThan(this);
-  }
-
-  /**
    * Checks if a {@link UInt32} is greater than another one.
    */
   greaterThan(y: UInt32) {
     return y.lessThan(this);
-  }
-
-  /**
-   * @deprecated Use {@link assertGreaterThan} instead.
-   *
-   * Asserts that a {@link UInt32} is greater than another one.
-   */
-  assertGt(y: UInt32, message?: string) {
-    y.assertLessThan(this, message);
   }
 
   /**
@@ -1077,29 +915,10 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * @deprecated Use {@link greaterThanOrEqual} instead.
-   *
-   * Checks if a {@link UInt32} is greater than or equal to another one.
-   */
-  gte(y: UInt32) {
-    return this.lessThan(y).not();
-  }
-
-  /**
    * Checks if a {@link UInt32} is greater than or equal to another one.
    */
   greaterThanOrEqual(y: UInt32) {
     return this.lessThan(y).not();
-  }
-
-  /**
-   * @deprecated Use {@link assertGreaterThanOrEqual} instead.
-
-   * 
-   * Asserts that a {@link UInt32} is greater than or equal to another one.
-   */
-  assertGte(y: UInt32, message?: string) {
-    y.assertLessThanOrEqual(this, message);
   }
 
   /**

@@ -6,11 +6,7 @@ import { UInt64, UInt32 } from '../int.js';
 import { PublicKey, PrivateKey } from '../signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
-import type {
-  Transaction,
-  PendingTransaction,
-  RejectedTransaction,
-} from '../mina.js';
+import type { Transaction, PendingTransaction } from '../mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from '../precondition.js';
 import type * as Fetch from '../fetch.js';
@@ -18,7 +14,6 @@ import type * as Fetch from '../fetch.js';
 export {
   Mina,
   FeePayerSpec,
-  DeprecatedFeePayerSpec,
   ActionStates,
   NetworkConstants,
   defaultNetworkConstants,
@@ -32,7 +27,6 @@ export {
   getNetworkId,
   getNetworkConstants,
   getNetworkState,
-  accountCreationFee,
   fetchEvents,
   fetchActions,
   getActions,
@@ -61,25 +55,6 @@ type FeePayerSpec =
     }
   | undefined;
 
-type DeprecatedFeePayerSpec =
-  | PublicKey
-  | PrivateKey
-  | ((
-      | {
-          feePayerKey: PrivateKey;
-          sender?: PublicKey;
-        }
-      | {
-          feePayerKey?: PrivateKey;
-          sender: PublicKey;
-        }
-    ) & {
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    })
-  | undefined;
-
 type ActionStates = {
   fromActionState?: Field;
   endActionState?: Field;
@@ -96,7 +71,7 @@ type NetworkConstants = {
 
 type Mina = {
   transaction(
-    sender: DeprecatedFeePayerSpec,
+    sender: FeePayerSpec,
     f: () => Promise<void>
   ): Promise<Transaction>;
   currentSlot(): UInt32;
@@ -104,10 +79,6 @@ type Mina = {
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   getNetworkConstants(): NetworkConstants;
-  /**
-   * @deprecated use {@link getNetworkConstants}
-   */
-  accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<PendingTransaction>;
   fetchEvents: (
     publicKey: PublicKey,
@@ -129,7 +100,6 @@ type Mina = {
 };
 
 let activeInstance: Mina = {
-  accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
   getNetworkConstants: () => defaultNetworkConstants,
   currentSlot: noActiveInstance,
   hasAccount: noActiveInstance,
@@ -202,14 +172,6 @@ function getNetworkState() {
  */
 function getBalance(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getAccount(publicKey, tokenId).balance;
-}
-
-/**
- * Returns the default account creation fee.
- * @deprecated use {@link Mina.getNetworkConstants}
- */
-function accountCreationFee() {
-  return activeInstance.accountCreationFee();
 }
 
 /**

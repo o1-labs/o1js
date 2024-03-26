@@ -30,9 +30,9 @@ map.set(key, value);
 map.get(key);
 
 // contract
-zkApp.deploy(); // ... deploy the zkapp
-zkApp.set(key, value); // ... set a key-value pair
-zkApp.get(key); // ... get a value by key
+await zkApp.deploy(); // ... deploy the zkapp
+await zkApp.set(key, value); // ... set a key-value pair
+await zkApp.get(key); // ... get a value by key
 ```
 */
 

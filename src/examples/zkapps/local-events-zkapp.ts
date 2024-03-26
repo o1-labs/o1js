@@ -3,20 +3,16 @@ import {
   state,
   State,
   method,
-  UInt64,
   PrivateKey,
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   UInt32,
   PublicKey,
   Struct,
 } from 'o1js';
 
 const doProofs = false;
-
-await isReady;
 
 class Event extends Struct({ pub: PublicKey, value: Field }) {}
 

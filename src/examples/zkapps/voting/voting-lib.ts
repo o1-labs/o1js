@@ -73,15 +73,17 @@ export function getResults(
 export async function assertValidTx(
   expectToBeValid: boolean,
   cb: () => Promise<void>,
-  feePayer: PrivateKey,
+  signers: PrivateKey | [PrivateKey, ...PrivateKey[]],
   msg?: string
 ) {
   let failed = false;
   let err;
+  if (!Array.isArray(signers)) signers = [signers];
+  let [feePayer] = signers;
   try {
     let tx = await Mina.transaction(feePayer.toPublicKey(), cb);
     await tx.prove();
-    await tx.sign([feePayer]).send();
+    await tx.sign(signers).send();
   } catch (e: any) {
     failed = true;
     err = e;

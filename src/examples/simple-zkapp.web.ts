@@ -92,10 +92,10 @@ console.log('deploy');
 let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
-  await zkapp.deploy({ zkappKey });
+  await zkapp.deploy();
 });
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([senderKey, zkappKey]).send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);

@@ -1,6 +1,5 @@
 import { filterGroups } from './mina.js';
 import { expect } from 'expect';
-import { shutdown } from '../index.js';
 
 let S = { isProved: false, isSigned: true };
 let N = { isProved: false, isSigned: false };
@@ -101,4 +100,3 @@ expect(filterGroups([S, S])).toEqual({
   signedPair: 1,
   signedSingle: 0,
 });
-shutdown();

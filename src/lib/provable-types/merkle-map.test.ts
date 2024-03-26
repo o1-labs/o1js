@@ -1,13 +1,6 @@
-import { isReady, shutdown, Field, MerkleMap } from 'o1js';
+import { Field, MerkleMap } from 'o1js';
 
 describe('Merkle Map', () => {
-  beforeAll(async () => {
-    await isReady;
-  });
-  afterAll(async () => {
-    setTimeout(shutdown, 0);
-  });
-
   it('set and get a value from a key', () => {
     const map = new MerkleMap();
 

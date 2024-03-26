@@ -190,7 +190,7 @@ class PublicKey extends CircuitValue {
    */
   isEmpty() {
     // there are no curve points with x === 0
-    return this.x.isZero();
+    return this.x.equals(0);
   }
 
   /**
@@ -256,7 +256,7 @@ class Signature extends CircuitValue {
     // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
-    const kPrime = Scalar.fromBigInt(
+    const kPrime = Scalar.from(
       deriveNonce(
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
@@ -320,16 +320,14 @@ class Signature extends CircuitValue {
 // performs scalar multiplication s*G assuming that instead of s, we got s' = 2s + 1 + 2^255
 // cost: 2x scale by constant, 1x scale by variable
 function scaleShifted(point: Group, shiftedScalar: Scalar) {
-  let oneHalfGroup = point.scale(Scalar.fromBigInt(oneHalf));
-  let shiftGroup = oneHalfGroup.scale(Scalar.fromBigInt(shift));
+  let oneHalfGroup = point.scale(Scalar.from(oneHalf));
+  let shiftGroup = oneHalfGroup.scale(Scalar.from(shift));
   return oneHalfGroup.scale(shiftedScalar).sub(shiftGroup);
 }
 // returns s, assuming that instead of s, we got s' = 2s + 1 + 2^255
 // (only works out of snark)
 function unshift(shiftedScalar: Scalar) {
-  return shiftedScalar
-    .sub(Scalar.fromBigInt(shift))
-    .mul(Scalar.fromBigInt(oneHalf));
+  return shiftedScalar.sub(Scalar.from(shift)).mul(Scalar.from(oneHalf));
 }
 
 let shift = Fq.mod(1n + 2n ** 255n);

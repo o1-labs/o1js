@@ -83,61 +83,6 @@ class Circuit {
       )
     );
   }
-
-  // utility namespace, moved to `Provable`
-
-  /**
-   * @deprecated use {@link Provable.witness}
-   */
-  static witness = Provable.witness;
-  /**
-   * @deprecated use {@link Provable.asProver}
-   */
-  static asProver = Provable.asProver;
-  /**
-   * @deprecated use {@link Provable.runAndCheck}
-   */
-  static runAndCheck = Provable.runAndCheck;
-  /**
-   * @deprecated use {@link Provable.runUnchecked}
-   */
-  static runUnchecked = Provable.runUnchecked;
-  /**
-   * @deprecated use {@link Provable.constraintSystem}
-   */
-  static constraintSystem = Provable.constraintSystem;
-  /**
-   * @deprecated use {@link Provable.Array}
-   */
-  static array = Provable.Array;
-  /**
-   * @deprecated use {@link Provable.assertEqual}
-   */
-  static assertEqual = Provable.assertEqual;
-  /**
-   * @deprecated use {@link Provable.equal}
-   */
-  static equal = Provable.equal;
-  /**
-   * @deprecated use {@link Provable.if}
-   */
-  static if = Provable.if;
-  /**
-   * @deprecated use {@link Provable.switch}
-   */
-  static switch = Provable.switch;
-  /**
-   * @deprecated use {@link Provable.inProver}
-   */
-  static inProver = Provable.inProver;
-  /**
-   * @deprecated use {@link Provable.inCheckedComputation}
-   */
-  static inCheckedComputation = Provable.inCheckedComputation;
-  /**
-   * @deprecated use {@link Provable.log}
-   */
-  static log = Provable.log;
 }
 
 class Keypair {

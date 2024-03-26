@@ -76,7 +76,7 @@ class Nullifier extends Struct({
     let g_r = G.scale(s).sub(pk_c);
 
     // h(m, pk)^s
-    let h_m_pk_s = Group.scale(h_m_pk, s);
+    let h_m_pk_s = h_m_pk.scale(s);
 
     // h_m_pk_r =  h(m,pk)^s / nullifier^c
     let h_m_pk_s_div_nullifier_s = h_m_pk_s.sub(

@@ -1,14 +1,11 @@
 import {
   fetchAccount,
-  isReady,
   setGraphqlEndpoints,
-  shutdown,
   fetchLastBlock,
   PublicKey,
   Types,
 } from 'o1js';
 
-await isReady;
 setGraphqlEndpoints([
   'https://proxy.berkeley.minaexplorer.com/graphql',
   'https://berkeley.minascan.io/graphql',
@@ -25,5 +22,3 @@ console.log('account', Types.Account.toJSON(account!));
 
 let block = await fetchLastBlock();
 console.log('last block', JSON.stringify(block, null, 2));
-
-await shutdown();

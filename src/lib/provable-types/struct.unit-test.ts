@@ -131,8 +131,6 @@ class MyContract extends SmartContract {
 
       // check if we can pass in account updates
       if (update.lazyAuthorization?.kind !== 'lazy-signature') throw Error(err);
-      if (update.lazyAuthorization.privateKey?.toBase58() !== key.toBase58())
-        throw Error(err);
 
       // check if we can pass in unconstrained values
       if (unconstrained.get() !== targetBigint) throw Error(err);
@@ -148,7 +146,7 @@ let address = key.toPublicKey();
 let contract = new MyContract(address);
 
 let tx = await transaction(async () => {
-  let accountUpdate = AccountUpdate.createSigned(key);
+  let accountUpdate = AccountUpdate.createSigned(address);
 
   await contract.myMethod(
     {

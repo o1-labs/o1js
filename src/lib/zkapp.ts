@@ -68,8 +68,6 @@ import {
   accountUpdateLayout,
   smartContractContext,
 } from './mina/smart-contract-context.js';
-import { deprecatedToken } from './mina/token/token-methods.js';
-import type { TokenContract } from './mina/token/token-contract.js';
 import { assertPromise } from './util/assert.js';
 import { ProvablePure } from './provable-types/provable-intf.js';
 
@@ -695,10 +693,8 @@ class SmartContract extends SmartContractBase {
    */
   async deploy({
     verificationKey,
-    zkappKey,
   }: {
     verificationKey?: { data: string; hash: Field | string };
-    zkappKey?: PrivateKey;
   } = {}) {
     let accountUpdate = this.newSelf('deploy');
     verificationKey ??= (this.constructor as typeof SmartContract)
@@ -718,7 +714,7 @@ class SmartContract extends SmartContractBase {
     let hash = Field.from(hash_);
     accountUpdate.account.verificationKey.set({ hash, data });
     accountUpdate.account.permissions.set(Permissions.default());
-    accountUpdate.sign(zkappKey);
+    accountUpdate.requireSignature();
     AccountUpdate.attachToTransaction(accountUpdate);
 
     // init if this account is not yet deployed or has no verification key on it
@@ -788,12 +784,7 @@ super.init();
   requireSignature() {
     this.self.requireSignature();
   }
-  /**
-   * @deprecated `this.sign()` is deprecated in favor of `this.requireSignature()`
-   */
-  sign(zkappKey?: PrivateKey) {
-    this.self.sign(zkappKey);
-  }
+
   /**
    * Use this command if the account update created by this SmartContract should have no authorization on it,
    * instead of being authorized with a proof.
@@ -909,16 +900,6 @@ super.init();
   get currentSlot() {
     return this.self.currentSlot;
   }
-  /**
-   * @deprecated
-   * `SmartContract.token` will be removed, and token methods will only be available on `TokenContract.internal`.
-   * Instead of `SmartContract.token.id`, use `TokenContract.deriveTokenId()`.
-   *
-   * For security reasons, it is recommended to use {@link TokenContract} as the base contract for all tokens.
-   */
-  get token() {
-    return deprecatedToken(this.self);
-  }
 
   /**
    * Approve an account update or tree / forest of updates. Doing this means you include the account update in the zkApp's public input,
@@ -952,12 +933,6 @@ super.init();
     return this.self.send(args);
   }
 
-  /**
-   * @deprecated use `this.account.tokenSymbol`
-   */
-  get tokenSymbol() {
-    return this.self.tokenSymbol;
-  }
   /**
    * Balance of this {@link SmartContract}.
    */
@@ -1178,20 +1153,6 @@ super.init();
       }
     }
     return methodMetadata;
-  }
-
-  /**
-   * @deprecated use `this.account.<field>.set()`
-   */
-  setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
-    AccountUpdate.setValue(maybeValue, value);
-  }
-
-  /**
-   * @deprecated use `this.account.permissions.set()`
-   */
-  setPermissions(permissions: Permissions) {
-    this.self.account.permissions.set(permissions);
   }
 }
 
@@ -1474,10 +1435,7 @@ const SmartContractContext = {
 };
 
 type DeployArgs =
-  | {
-      verificationKey?: { data: string; hash: string | Field };
-      zkappKey?: PrivateKey;
-    }
+  | { verificationKey?: { data: string; hash: string | Field } }
   | undefined;
 
 function Account(address: PublicKey, tokenId?: Field) {

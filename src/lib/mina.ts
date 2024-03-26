@@ -11,7 +11,6 @@ import { NetworkId } from '../mina-signer/src/types.js';
 import { currentTransaction } from './mina/transaction-context.js';
 import {
   type FeePayerSpec,
-  type DeprecatedFeePayerSpec,
   type ActionStates,
   type NetworkConstants,
   activeInstance,
@@ -25,7 +24,6 @@ import {
   getNetworkId,
   getNetworkConstants,
   getNetworkState,
-  accountCreationFee,
   fetchEvents,
   fetchActions,
   getActions,
@@ -53,7 +51,6 @@ import {
 import { LocalBlockchain } from './mina/local-blockchain.js';
 
 export {
-  BerkeleyQANet,
   LocalBlockchain,
   Network,
   currentTransaction,
@@ -73,7 +70,6 @@ export {
   getNetworkId,
   getNetworkConstants,
   getNetworkState,
-  accountCreationFee,
   fetchEvents,
   fetchActions,
   getActions,
@@ -90,7 +86,7 @@ export {
 // patch active instance so that we can still create basic transactions without giving Mina network details
 setActiveInstance({
   ...activeInstance,
-  async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+  async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
     return await createTransaction(sender, f, 0);
   },
 });
@@ -173,10 +169,6 @@ function Network(
 
   return {
     getNetworkId: () => minaNetworkId,
-    /**
-     * @deprecated use {@link Mina.getNetworkConstants}
-     */
-    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
@@ -261,8 +253,6 @@ function Network(
       );
     },
     async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      txn.sign();
-
       verifyTransactionLimits(txn.transaction);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
@@ -374,7 +364,7 @@ function Network(
         safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transcation twice to be able to fetch data in between
       let tx = await createTransaction(sender, f, 0, {
         fetchMode: 'test',
@@ -458,15 +448,6 @@ function Network(
     },
     proofsEnabled: true,
   };
-}
-
-/**
- *
- * @deprecated This is deprecated in favor of {@link Mina.Network}, which is exactly the same function.
- * The name `BerkeleyQANet` was misleading because it suggested that this is specific to a particular network.
- */
-function BerkeleyQANet(graphqlEndpoint: string) {
-  return Network(graphqlEndpoint);
 }
 
 /**

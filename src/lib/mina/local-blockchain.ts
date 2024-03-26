@@ -26,7 +26,7 @@ import {
   PendingTransactionStatus,
 } from './transaction.js';
 import {
-  type DeprecatedFeePayerSpec,
+  type FeePayerSpec,
   type ActionStates,
   Mina,
   defaultNetworkConstants,
@@ -81,10 +81,6 @@ function LocalBlockchain({
   return {
     getNetworkId: () => minaNetworkId,
     proofsEnabled,
-    /**
-     * @deprecated use {@link Mina.getNetworkConstants}
-     */
-    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
         ...defaultNetworkConstants,
@@ -121,8 +117,6 @@ function LocalBlockchain({
       return networkState;
     },
     async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      txn.sign();
-
       let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       let commitments = transactionCommitments(
         TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
@@ -305,7 +299,7 @@ function LocalBlockchain({
         safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transaction twice to match the behaviour of `Network.transaction`
       let tx = await createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,

@@ -512,32 +512,6 @@ class Field {
   }
 
   /**
-   * @deprecated use `x.equals(0)` which is equivalent
-   */
-  isZero() {
-    if (this.isConstant()) {
-      return new Bool(this.toBigInt() === 0n);
-    }
-    // create witnesses z = 1/x, or z=0 if x=0,
-    // and b = 1 - zx
-    let [b, z] = exists(2, () => {
-      let x = this.toBigInt();
-      let z = Fp.inverse(x) ?? 0n;
-      let b = Fp.sub(1n, Fp.mul(z, x));
-      return [b, z];
-    });
-    // add constraints
-    // b * x === 0
-    assertMul(b, this, FieldVar[0]);
-    // z * x === 1 - b
-    assertMul(z, this, new Field(1).sub(b));
-    // ^^^ these prove that b = Bool(x === 0):
-    // if x = 0, the 2nd equation implies b = 1
-    // if x != 0, the 1st implies b = 0
-    return Bool.Unsafe.fromField(b);
-  }
-
-  /**
    * Check if this {@link Field} is equal another "field-like" value.
    * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
    *
@@ -551,16 +525,32 @@ class Field {
    * @return A {@link Bool} representing if this {@link Field} is equal another "field-like" value.
    */
   equals(y: Field | bigint | number | string): Bool {
-    // x == y is equivalent to x - y == 0
-    // if one of the two is constant, we just need the two constraints in `isZero`
-    if (this.isConstant() || isConstant(y)) {
-      return this.sub(y).isZero();
+    if (this.isConstant() && isConstant(y)) {
+      return new Bool(this.toBigInt() === toFp(y));
     }
-    // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
-    let z = existsOne(() => Fp.sub(this.toBigInt(), toFp(y)));
-    this.sub(y).assertEquals(z);
+    // TODO: this wastes a constraint on `xMinusY` if one of them is constant
+    // to fix, make assertMul() smart about constant terms and only `seal()` if the two inputs are both variables
 
-    return z.isZero();
+    // x == y is equivalent to x - y == 0
+    let xMinusY = this.sub(y).seal();
+
+    // create witnesses z = 1/(x-y), or z=0 if x=y,
+    // and b = 1 - z(x-y)
+    let [b, z] = exists(2, () => {
+      let xmy = xMinusY.toBigInt();
+      let z = Fp.inverse(xmy) ?? 0n;
+      let b = Fp.sub(1n, Fp.mul(z, xmy));
+      return [b, z];
+    });
+    // add constraints
+    // b * (x-y) === 0
+    assertMul(b, xMinusY, FieldVar[0]);
+    // z * (x-y) === 1 - b
+    assertMul(z, xMinusY, new Field(1).sub(b));
+    // ^^^ these prove that b = Bool(x === y):
+    // if x = y, the 2nd equation implies b = 1
+    // if x != y, the 1st implies b = 0
+    return Bool.Unsafe.fromField(b);
   }
 
   /**

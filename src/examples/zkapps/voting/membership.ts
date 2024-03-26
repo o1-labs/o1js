@@ -4,7 +4,6 @@ import {
   state,
   State,
   method,
-  DeployArgs,
   Permissions,
   Bool,
   PublicKey,
@@ -70,8 +69,8 @@ export class Membership_ extends SmartContract {
     }),
   };
 
-  async deploy(args: DeployArgs) {
-    await super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -159,7 +158,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.requireEquals(committedMembers);
 
     return member.witness
-      .calculateRootSlow(member.getHash())
+      .calculateRoot(member.getHash())
       .equals(committedMembers);
   }
 
@@ -195,7 +194,7 @@ export class Membership_ extends SmartContract {
           // otherwise, we simply return the unmodified state - this is our way of branching
           return Provable.if(
             isRealMember,
-            action.witness.calculateRootSlow(action.getHash()),
+            action.witness.calculateRoot(action.getHash()),
             state
           );
         },

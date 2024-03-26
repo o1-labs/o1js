@@ -67,7 +67,6 @@ export {
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export {
-  Token,
   TokenId,
   AccountUpdate,
   Permissions,
@@ -130,16 +129,3 @@ namespace Experimental {
 }
 
 Error.stackTraceLimit = 100000;
-
-// deprecated stuff
-export { isReady, shutdown };
-
-/**
- * @deprecated `await isReady` is no longer needed. Remove it from your code.
- */
-let isReady = Promise.resolve();
-
-/**
- * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
- */
-function shutdown() {}

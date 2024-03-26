@@ -26,9 +26,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
 - Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
   - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
-  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
 - **Remove deprecated APIs**
   - Remove `CircuitValue`, `prop`, `arrayProp` and `matrixProp` https://github.com/o1-labs/o1js/pull/1507
+  - Remove `Mina.accountCreationFee()`, `Mina.BerkeleyQANet`, all APIs which accept private keys for feepayers, `Token`, `AccountUpdate.tokenSymbol`, `SmartContract.{token, setValue, setPermissions}`, "assert" methods for preconditions, `MerkleTee.calculateRootSlow()`, `Scalar.fromBigInt()`, `UInt64.lt()` and friends, deprecated static methods on `Group`, utility methods on `Circuit` like `Circuit.if()`, `Field.isZero()`, `isReady` and `shutdown()` https://github.com/o1-labs/o1js/pull/1515
+- Remove `privateKey` from the accepted arguments of `SmartContract.deploy()` https://github.com/o1-labs/o1js/pull/1515
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)

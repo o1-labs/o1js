@@ -11,6 +11,7 @@ import {
   MerkleMapWitness,
   Mina,
   AccountUpdate,
+  Provable,
 } from 'o1js';
 
 class PayoutOnlyOnce extends SmartContract {
@@ -24,7 +25,7 @@ class PayoutOnlyOnce extends SmartContract {
     // verify the nullifier
     nullifier.verify([nullifierMessage]);
 
-    let nullifierWitness = Circuit.witness(MerkleMapWitness, () =>
+    let nullifierWitness = Provable.witness(MerkleMapWitness, () =>
       NullifierTree.getWitness(nullifier.key())
     );
 
@@ -75,13 +76,13 @@ console.log('deploy');
 let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
-  await zkapp.deploy({ zkappKey });
+  await zkapp.deploy();
 
   zkapp.nullifierRoot.set(NullifierTree.getRoot());
   zkapp.nullifierMessage.set(nullifierMessage);
 });
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([senderKey, zkappKey]).send();
 
 console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 

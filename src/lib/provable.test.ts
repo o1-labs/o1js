@@ -14,8 +14,8 @@ describe('Provable', () => {
     expect(x.toString()).toBe('-2');
   });
 
-  it('Provable.if in snark', () => {
-    Provable.runAndCheckSync(() => {
+  it('Provable.if in snark', async () => {
+    await Provable.runAndCheck(() => {
       let x = Provable.witness(Int64, () => Int64.from(-1));
       let y = Provable.witness(Int64, () => Int64.from(-2));
       let b = Provable.witness(Bool, () => Bool(true));
@@ -78,10 +78,10 @@ describe('Provable', () => {
     ).toThrow(/`mask` must have 0 or 1 true element, found 2/);
   });
 
-  it('Provable.assertEqual', () => {
+  it('Provable.assertEqual', async () => {
     const FieldAndBool = Struct({ x: Field, b: Bool });
 
-    Provable.runAndCheckSync(() => {
+    await Provable.runAndCheck(() => {
       let x = Provable.witness(Field, () => Field(1));
       let b = Provable.witness(Bool, () => Bool(true));
 
@@ -108,7 +108,7 @@ describe('Provable', () => {
     });
   });
 
-  it('Provable.equal', () => {
+  it('Provable.equal', async () => {
     const FieldAndBool = Struct({ x: Field, b: Bool });
     let pk1 = PublicKey.fromBase58(
       'B62qoCHJ1dcGjKhdMTMuAytzRkLxRFUgq6YC5XSgmmxAt8r7FVi1DhT'
@@ -123,7 +123,7 @@ describe('Provable', () => {
       });
     }
 
-    Provable.runAndCheckSync(() => {
+    await Provable.runAndCheck(() => {
       let x = Provable.witness(Field, () => Field(1));
       let b = Provable.witness(Bool, () => Bool(true));
       let pk = Provable.witness(PublicKey, () => pk1);

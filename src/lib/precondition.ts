@@ -99,34 +99,6 @@ const uint32 = () => ({ lower: UInt32.from(0), upper: UInt32.MAXINT() });
  */
 const uint64 = () => ({ lower: UInt64.from(0), upper: UInt64.MAXINT() });
 
-/**
- * Fix a property to a certain value.
- *
- * @param property The property to constrain
- * @param value The value it is fixed to
- *
- * Example: To fix the account nonce of a SmartContract to 0, you can use
- *
- * ```ts
- * \@method onlyRunsWhenNonceIsZero() {
- *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
- *   // ...
- * }
- * ```
- */
-function assertEquals<T extends object>(
-  property: OrIgnore<ClosedInterval<T> | T>,
-  value: T
-) {
-  property.isSome = Bool(true);
-  if ('lower' in property.value && 'upper' in property.value) {
-    property.value.lower = value;
-    property.value.upper = value;
-  } else {
-    property.value = value;
-  }
-}
-
 type AccountPrecondition = Preconditions['account'];
 const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
@@ -144,11 +116,6 @@ const AccountPrecondition = {
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
     };
-  },
-  nonce(nonce: UInt32): AccountPrecondition {
-    let p = AccountPrecondition.ignoreAll();
-    assertEquals(p.nonce, nonce);
-    return p;
   },
 };
 
@@ -200,9 +167,6 @@ function Network(accountUpdate: AccountUpdate): Network {
       let slot = network.globalSlotSinceGenesis.getAndRequireEquals();
       return globalSlotToTimestamp(slot);
     },
-    getAndAssertEquals() {
-      return this.getAndRequireEquals();
-    },
     requireEquals(value: UInt64) {
       let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
       let slot = timestampToGlobalSlot(
@@ -212,9 +176,6 @@ function Network(accountUpdate: AccountUpdate): Network {
       );
       return network.globalSlotSinceGenesis.requireEquals(slot);
     },
-    assertEquals(value: UInt64) {
-      return this.requireEquals(value);
-    },
     requireBetween(lower: UInt64, upper: UInt64) {
       let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
       return network.globalSlotSinceGenesis.requireBetween(
@@ -222,14 +183,8 @@ function Network(accountUpdate: AccountUpdate): Network {
         slotUpper
       );
     },
-    assertBetween(lower: UInt64, upper: UInt64) {
-      return this.requireBetween(lower, upper);
-    },
     requireNothing() {
       return network.globalSlotSinceGenesis.requireNothing();
-    },
-    assertNothing() {
-      return this.requireNothing();
     },
   };
   return { ...network, timestamp };
@@ -286,9 +241,6 @@ function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
-    },
-    assertBetween(lower: UInt32, upper: UInt32) {
-      this.requireBetween(lower, upper);
     },
   };
 }
@@ -367,9 +319,6 @@ function preconditionSubClassWithRange<
       property.value.lower = lower;
       property.value.upper = upper;
     },
-    assertBetween(lower: any, upper: any) {
-      this.requireBetween(lower, upper);
-    },
   };
 }
 
@@ -404,9 +353,6 @@ function preconditionSubclass<
       obj.requireEquals(value);
       return value;
     },
-    getAndAssertEquals() {
-      return this.getAndRequireEquals();
-    },
     requireEquals(value: U) {
       context.constrained.add(longKey);
       let property = getPath(
@@ -425,9 +371,6 @@ function preconditionSubclass<
         setPath(accountUpdate.body.preconditions, longKey, value);
       }
     },
-    assertEquals(value: U) {
-      this.requireEquals(value);
-    },
     requireNothing() {
       let property = getPath(
         accountUpdate.body.preconditions,
@@ -437,9 +380,6 @@ function preconditionSubclass<
         property.isSome = Bool(false);
       }
       context.constrained.add(longKey);
-    },
-    assertNothing() {
-      this.requireNothing();
     },
   };
   return obj;
@@ -578,14 +518,14 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
     if (!circuitValueEquals(precondition, dummy)) continue;
 
     // we accessed a precondition field but not constrained it explicitly - throw an error
-    let hasAssertBetween = isRangeCondition(precondition);
+    let hasRequireBetween = isRangeCondition(precondition);
     let shortPath = preconditionPath.split('.').pop();
     let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
-${self}.${preconditionPath}.assertEquals(${self}.${preconditionPath}.get());${
-      hasAssertBetween
+${self}.${preconditionPath}.requireEquals(${self}.${preconditionPath}.get());${
+      hasRequireBetween
         ? `
-You can also add more flexible preconditions with \`${self}.${preconditionPath}.assertBetween(...)\`.`
+You can also add more flexible preconditions with \`${self}.${preconditionPath}.requireBetween(...)\`.`
         : ''
     }`;
     throw Error(errorMessage);
@@ -617,10 +557,6 @@ type Account = PreconditionClassType<AccountPreconditionNoState> & Update;
 type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {
   requireBetween(lower: UInt32, upper: UInt32): void;
-  /**
-   * @deprecated use `requireBetween(lower: UInt32, upper: UInt32)` which is equivalent
-   */
-  assertBetween(lower: UInt32, upper: UInt32): void;
 };
 
 type PreconditionBaseTypes<T> = {
@@ -636,27 +572,11 @@ type PreconditionBaseTypes<T> = {
 type PreconditionSubclassType<U> = {
   get(): U;
   getAndRequireEquals(): U;
-  /**
-   * @deprecated use `getAndRequireEquals()` which is equivalent
-   */
-  getAndAssertEquals(): U;
   requireEquals(value: U): void;
-  /**
-   * @deprecated use `requireEquals(value: U)` which is equivalent
-   */
-  assertEquals(value: U): void;
   requireNothing(): void;
-  /**
-   * @deprecated use `requireNothing()` which is equivalent
-   */
-  assertNothing(): void;
 };
 type PreconditionSubclassRangeType<U> = PreconditionSubclassType<U> & {
   requireBetween(lower: U, upper: U): void;
-  /**
-   * @deprecated use `requireBetween(lower: U, upper: U)` which is equivalent
-   */
-  assertBetween(lower: U, upper: U): void;
 };
 
 type PreconditionClassType<T> = {
