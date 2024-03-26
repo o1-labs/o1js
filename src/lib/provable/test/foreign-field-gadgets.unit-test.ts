@@ -195,6 +195,20 @@ let ffProgram = ZkProgram({
         return ForeignField.div(x, y, F.modulus);
       },
     },
+    assertLessThan: {
+      privateInputs: [Field3.provable, Field3.provable],
+      async method(x, y) {
+        ForeignField.assertLessThan(x, y);
+        return x;
+      },
+    },
+    assertLessThanOrEqual: {
+      privateInputs: [Field3.provable, Field3.provable],
+      async method(x, y) {
+        ForeignField.assertLessThanOrEqual(x, y);
+        return x;
+      },
+    },
   },
 });
 
@@ -272,6 +286,24 @@ await equivalentAsync({ from: [f, f], to: f }, { runs })(
     return proof.publicOutput;
   },
   'prove div'
+);
+
+await equivalentAsync({ from: [f, f], to: unit }, { runs })(
+  (x, y) => assert(x < y, 'not less than'),
+  async (x, y) => {
+    let proof = await ffProgram.assertLessThan(x, y);
+    assert(await ffProgram.verify(proof), 'verifies');
+  },
+  'prove less than'
+);
+
+await equivalentAsync({ from: [f, f], to: unit }, { runs })(
+  (x, y) => assert(x <= y, 'not less than or equal'),
+  async (x, y) => {
+    let proof = await ffProgram.assertLessThanOrEqual(x, y);
+    assert(await ffProgram.verify(proof), 'verifies');
+  },
+  'prove less than or equal'
 );
 
 // assert mul example
