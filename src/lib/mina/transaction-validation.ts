@@ -11,7 +11,7 @@ import {
 } from './account-update.js';
 import { Field } from '../provable/core.js';
 import { UInt64, UInt32 } from '../provable/int.js';
-import { PublicKey } from '../provable/signature.js';
+import { PublicKey } from '../provable/crypto/signature.js';
 import { JsonProof, verify } from '../proof-system/zkprogram.js';
 import { verifyAccountUpdateSignature } from '../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';

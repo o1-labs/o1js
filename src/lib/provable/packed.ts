@@ -1,10 +1,10 @@
-import { provableFromClass } from './provable-derivers.js';
-import { HashInput, ProvableExtended } from './struct.js';
-import { Unconstrained } from './unconstrained.js';
-import { Field } from '../field.js';
-import { assert } from '../gadgets/common.js';
-import { Poseidon, ProvableHashable, packToFields } from '../hash.js';
-import { Provable } from '../provable.js';
+import { provableFromClass } from './types/provable-derivers.js';
+import { HashInput, ProvableExtended } from './types/struct.js';
+import { Unconstrained } from './types/unconstrained.js';
+import { Field } from './field.js';
+import { assert } from './gadgets/common.js';
+import { Poseidon, ProvableHashable, packToFields } from './crypto/poseidon.js';
+import { Provable } from './provable.js';
 import { fields, modifiedField } from './fields.js';
 
 export { Packed, Hashed };

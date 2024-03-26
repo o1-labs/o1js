@@ -1,19 +1,19 @@
-import { Field, Bool, Group, Scalar } from './core.js';
-import { AnyConstructor } from './types/struct.js';
-import { hashWithPrefix } from './hash.js';
-import { Fq } from '../../bindings/crypto/finite-field.js';
+import { Field, Bool, Group, Scalar } from '../core.js';
+import { AnyConstructor } from '../types/struct.js';
+import { hashWithPrefix } from './poseidon.js';
+import { Fq } from '../../../bindings/crypto/finite-field.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
   signaturePrefix,
-} from '../../mina-signer/src/signature.js';
+} from '../../../mina-signer/src/signature.js';
 import {
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
-} from '../../mina-signer/src/curve-bigint.js';
-import { constantScalarToBigint } from './scalar.js';
-import { toConstantField } from './field.js';
-import { CircuitValue, prop } from './types/circuit-value.js';
+} from '../../../mina-signer/src/curve-bigint.js';
+import { constantScalarToBigint } from '../scalar.js';
+import { toConstantField } from '../field.js';
+import { CircuitValue, prop } from '../types/circuit-value.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };

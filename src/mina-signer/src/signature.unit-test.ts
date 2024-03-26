@@ -10,7 +10,7 @@ import {
 import { Test } from '../../snarky.js';
 import { Field } from './field-bigint.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
-import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/signature.js';
+import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/crypto/signature.js';
 import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { HashInput } from './derivers-bigint.js';

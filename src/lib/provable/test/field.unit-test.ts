@@ -1,12 +1,12 @@
-import { Field } from './core.js';
-import { Fp } from '../../bindings/crypto/finite-field.js';
-import { BinableFp } from '../../mina-signer/src/field-bigint.js';
-import { test, Random } from '../testing/property.js';
+import { Field } from '../core.js';
+import { Fp } from '../../../bindings/crypto/finite-field.js';
+import { BinableFp } from '../../../mina-signer/src/field-bigint.js';
+import { test, Random } from '../../testing/property.js';
 import { deepEqual, throws } from 'node:assert/strict';
-import { Provable } from './provable.js';
-import { Binable } from '../../bindings/lib/binable.js';
-import { ProvableExtended } from './types/struct.js';
-import { FieldType } from './core/fieldvar.js';
+import { Provable } from '../provable.js';
+import { Binable } from '../../../bindings/lib/binable.js';
+import { ProvableExtended } from '../types/struct.js';
+import { FieldType } from '../core/fieldvar.js';
 import {
   equivalentProvable as equivalent,
   oneOf,
@@ -16,9 +16,9 @@ import {
   unit,
   bool,
   Spec,
-} from '../testing/equivalent.js';
-import { runAndCheckSync } from './provable-context.js';
-import { ProvablePure } from './types/provable-intf.js';
+} from '../../testing/equivalent.js';
+import { runAndCheckSync } from '../core/provable-context.js';
+import { ProvablePure } from '../types/provable-intf.js';
 
 // types
 Field satisfies Provable<Field>;

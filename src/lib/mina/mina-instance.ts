@@ -3,7 +3,7 @@
  */
 import { Field } from '../provable/core.js';
 import { UInt64, UInt32 } from '../provable/int.js';
-import { PublicKey } from '../provable/signature.js';
+import { PublicKey } from '../provable/crypto/signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Transaction, PendingTransaction } from './mina.js';

@@ -8,10 +8,7 @@ import { Field } from '../../provable/core.js';
 import { Provable } from '../../provable/provable.js';
 import { Struct } from '../../provable/types/struct.js';
 import { assert } from '../../provable/gadgets/common.js';
-import {
-  MerkleListIterator,
-  MerkleList,
-} from '../../provable/types/merkle-list.js';
+import { MerkleListIterator, MerkleList } from '../../provable/merkle-list.js';
 
 export { TokenAccountUpdateIterator };
 

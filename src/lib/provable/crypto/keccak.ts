@@ -1,10 +1,10 @@
-import { Field } from './field.js';
-import { Gadgets } from './gadgets/gadgets.js';
-import { assert } from '../util/errors.js';
-import { FlexibleBytes } from './types/bytes.js';
-import { UInt8 } from './int.js';
-import { Bytes } from './types/provable-types.js';
-import { bytesToWords, wordsToBytes } from './gadgets/bit-slices.js';
+import { Field } from '../field.js';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { assert } from '../../util/errors.js';
+import { FlexibleBytes } from '../bytes.js';
+import { UInt8 } from '../int.js';
+import { Bytes } from '../provable-types.js';
+import { bytesToWords, wordsToBytes } from '../gadgets/bit-slices.js';
 
 export { Keccak };
 

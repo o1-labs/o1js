@@ -1,6 +1,6 @@
 import { FlexibleProvablePure } from '../provable/types/struct.js';
 import { AccountUpdate, TokenId } from './account-update.js';
-import { PublicKey } from '../provable/signature.js';
+import { PublicKey } from '../provable/crypto/signature.js';
 import * as Mina from './mina.js';
 import { fetchAccount, networkConfig } from './fetch.js';
 import { SmartContract } from './zkapp.js';

@@ -19,7 +19,7 @@ import { provable } from '../types/struct.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { arrayGet } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
-import { Hashed } from '../types/packed.js';
+import { Hashed } from '../packed.js';
 import { exists } from '../core/exists.js';
 
 // external API

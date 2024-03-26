@@ -1,10 +1,10 @@
-import { Keccak } from './keccak.js';
-import { ZkProgram } from '../proof-system/zkprogram.js';
+import { Keccak } from '../crypto/keccak.js';
+import { ZkProgram } from '../../proof-system/zkprogram.js';
 import {
   equivalentProvable,
   equivalent,
   equivalentAsync,
-} from '../testing/equivalent.js';
+} from '../../testing/equivalent.js';
 import {
   keccak_224,
   keccak_256,
@@ -15,10 +15,10 @@ import {
   sha3_384,
   sha3_512,
 } from '@noble/hashes/sha3';
-import { Bytes } from './types/provable-types.js';
-import { bytes } from './gadgets/test-utils.js';
-import { UInt8 } from './int.js';
-import { test, Random, sample } from '../testing/property.js';
+import { Bytes } from '../provable-types.js';
+import { bytes } from '../gadgets/test-utils.js';
+import { UInt8 } from '../int.js';
+import { test, Random, sample } from '../../testing/property.js';
 import { expect } from 'expect';
 
 const RUNS = 1;

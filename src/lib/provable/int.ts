@@ -1,7 +1,7 @@
 import { Field, Bool } from './core.js';
 import { AnyConstructor, Struct } from './types/struct.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
-import { HashInput } from './hash.js';
+import { HashInput } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';

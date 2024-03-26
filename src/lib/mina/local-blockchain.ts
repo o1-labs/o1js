@@ -4,7 +4,7 @@ import { transactionCommitments } from '../../mina-signer/src/sign-zkapp-command
 import { Ledger, Test } from '../../snarky.js';
 import { Field } from '../provable/core.js';
 import { UInt32, UInt64 } from '../provable/int.js';
-import { PrivateKey, PublicKey } from '../provable/signature.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { Account } from './account.js';
 import {
   ZkappCommand,

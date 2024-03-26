@@ -23,8 +23,8 @@ import {
 } from '../provable/types/struct.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
-import { snarkContext } from '../provable/provable-context.js';
-import { hashConstant } from '../provable/hash.js';
+import { snarkContext } from '../provable/core/provable-context.js';
+import { hashConstant } from '../provable/crypto/poseidon.js';
 import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';

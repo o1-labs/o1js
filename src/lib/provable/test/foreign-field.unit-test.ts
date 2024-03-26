@@ -1,7 +1,7 @@
-import { Field, Group } from './core.js';
-import { ForeignField, createForeignField } from './foreign-field.js';
-import { Fq } from '../../bindings/crypto/finite-field.js';
-import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
+import { Field, Group } from '../core.js';
+import { ForeignField, createForeignField } from '../foreign-field.js';
+import { Fq } from '../../../bindings/crypto/finite-field.js';
+import { Pallas } from '../../../bindings/crypto/elliptic-curve.js';
 import { expect } from 'expect';
 import {
   bool,
@@ -11,14 +11,14 @@ import {
   spec,
   throwError,
   unit,
-} from '../testing/equivalent.js';
-import { test, Random } from '../testing/property.js';
-import { Provable } from './provable.js';
-import { Circuit, circuitMain } from '../proof-system/circuit.js';
-import { Scalar } from './scalar.js';
-import { l } from './gadgets/range-check.js';
-import { assert } from './gadgets/common.js';
-import { ProvablePure } from './types/provable-intf.js';
+} from '../../testing/equivalent.js';
+import { test, Random } from '../../testing/property.js';
+import { Provable } from '../provable.js';
+import { Circuit, circuitMain } from '../../proof-system/circuit.js';
+import { Scalar } from '../scalar.js';
+import { l } from '../gadgets/range-check.js';
+import { assert } from '../gadgets/common.js';
+import { ProvablePure } from '../types/provable-intf.js';
 
 // toy example - F_17
 

@@ -18,7 +18,7 @@ import {
   TypesBigint,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
-import { PrivateKey, PublicKey } from '../provable/signature.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { UInt64, UInt32, Int64, Sign } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
 import {
@@ -43,7 +43,11 @@ import {
   Actions,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields, Poseidon } from '../provable/hash.js';
+import {
+  hashWithPrefix,
+  packToFields,
+  Poseidon,
+} from '../provable/crypto/poseidon.js';
 import {
   mocks,
   prefixes,
@@ -70,8 +74,8 @@ import {
   genericHash,
   MerkleList,
   MerkleListBase,
-} from '../provable/types/merkle-list.js';
-import { Hashed } from '../provable/types/packed.js';
+} from '../provable/merkle-list.js';
+import { Hashed } from '../provable/packed.js';
 import {
   accountUpdateLayout,
   smartContractContext,

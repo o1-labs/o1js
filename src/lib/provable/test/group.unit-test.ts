@@ -1,8 +1,8 @@
-import { Group } from './core.js';
-import { test, Random } from '../testing/property.js';
-import { Provable } from './provable.js';
-import { Poseidon } from '../../mina-signer/src/poseidon-bigint.js';
-import { runAndCheckSync } from './provable-context.js';
+import { Group } from '../core.js';
+import { test, Random } from '../../testing/property.js';
+import { Provable } from '../provable.js';
+import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
+import { runAndCheckSync } from '../core/provable-context.js';
 
 console.log('group consistency tests');
 

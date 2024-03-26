@@ -1,10 +1,10 @@
-import { provableFromClass } from './provable-derivers.js';
-import type { ProvablePureExtended } from './struct.js';
-import { assert } from '../gadgets/common.js';
-import { chunkString } from '../../util/arrays.js';
-import { Provable } from '../provable.js';
-import { UInt8 } from '../int.js';
-import { randomBytes } from '../../../bindings/crypto/random.js';
+import { provableFromClass } from './types/provable-derivers.js';
+import type { ProvablePureExtended } from './types/struct.js';
+import { assert } from './gadgets/common.js';
+import { chunkString } from '../util/arrays.js';
+import { Provable } from './provable.js';
+import { UInt8 } from './int.js';
+import { randomBytes } from '../../bindings/crypto/random.js';
 
 // external API
 export { Bytes };

@@ -10,19 +10,22 @@ export {
 export {
   createForeignCurve,
   ForeignCurve,
-} from './lib/provable/foreign-curve.js';
-export { createEcdsa, EcdsaSignature } from './lib/provable/foreign-ecdsa.js';
+} from './lib/provable/crypto/foreign-curve.js';
+export {
+  createEcdsa,
+  EcdsaSignature,
+} from './lib/provable/crypto/foreign-ecdsa.js';
 export {
   Poseidon,
   TokenSymbol,
   ProvableHashable,
-} from './lib/provable/hash.js';
-export { Keccak } from './lib/provable/keccak.js';
-export { Hash } from './lib/provable/hashes-combined.js';
+} from './lib/provable/crypto/poseidon.js';
+export { Keccak } from './lib/provable/crypto/keccak.js';
+export { Hash } from './lib/provable/crypto/hash.js';
 
 export { assert } from './lib/provable/gadgets/common.js';
 
-export * from './lib/provable/signature.js';
+export * from './lib/provable/crypto/signature.js';
 export type {
   ProvableExtended,
   FlexibleProvable,
@@ -39,15 +42,12 @@ export {
   circuitMain,
 } from './lib/proof-system/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
-export { Bytes } from './lib/provable/types/provable-types.js';
-export { Packed, Hashed } from './lib/provable/types/packed.js';
+export { Bytes } from './lib/provable/provable-types.js';
+export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
-export {
-  MerkleList,
-  MerkleListIterator,
-} from './lib/provable/types/merkle-list.js';
+export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 
 export * as Mina from './lib/mina/mina.js';
 export {
@@ -105,20 +105,17 @@ export {
   sendZkapp,
   Lightnet,
 } from './lib/mina/fetch.js';
-export * as Encryption from './lib/provable/encryption.js';
+export * as Encryption from './lib/provable/crypto/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
-export { Character, CircuitString } from './lib/provable/types/string.js';
-export { MerkleTree, MerkleWitness } from './lib/provable/types/merkle-tree.js';
-export {
-  MerkleMap,
-  MerkleMapWitness,
-} from './lib/provable/types/merkle-map.js';
+export { Character, CircuitString } from './lib/provable/string.js';
+export { MerkleTree, MerkleWitness } from './lib/provable/merkle-tree.js';
+export { MerkleMap, MerkleMapWitness } from './lib/provable/merkle-map.js';
 
-export { Nullifier } from './lib/provable/nullifier.js';
+export { Nullifier } from './lib/provable/crypto/nullifier.js';
 
 export { ZkProgram } from './lib/proof-system/zkprogram.js';
 
-export { Crypto } from './lib/provable/crypto.js';
+export { Crypto } from './lib/provable/crypto/crypto.js';
 
 export type { NetworkId } from './mina-signer/mina-signer.js';
 

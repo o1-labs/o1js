@@ -15,7 +15,7 @@ import {
 } from '../../../mina-signer/src/sign-zkapp-command.js';
 import assert from 'assert';
 import { Field, Bool } from '../../provable/core.js';
-import { PublicKey } from '../../provable/signature.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 

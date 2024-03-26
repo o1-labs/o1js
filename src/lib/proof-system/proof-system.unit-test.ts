@@ -12,7 +12,7 @@ import {
 import { expect } from 'expect';
 import { Pickles, Snarky } from '../../snarky.js';
 import { AnyFunction } from '../util/types.js';
-import { snarkContext } from '../provable/provable-context.js';
+import { snarkContext } from '../provable/core/provable-context.js';
 import { it } from 'node:test';
 import { Provable } from '../provable/provable.js';
 import { bool, equivalentAsync, field, record } from '../testing/equivalent.js';

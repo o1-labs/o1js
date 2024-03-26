@@ -1,4 +1,4 @@
-import type { ProvableHashable } from '../hash.js';
+import type { ProvableHashable } from '../crypto/poseidon.js';
 
 export { RandomId };
 

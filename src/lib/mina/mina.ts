@@ -1,7 +1,7 @@
 import { Test } from '../../snarky.js';
 import { Field } from '../provable/core.js';
 import { UInt64 } from '../provable/int.js';
-import { PublicKey } from '../provable/signature.js';
+import { PublicKey } from '../provable/crypto/signature.js';
 import { ZkappCommand, TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { invalidTransactionError } from './errors.js';

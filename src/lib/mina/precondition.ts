@@ -9,8 +9,11 @@ import type { AccountUpdate } from './account-update.js';
 import { Int64, UInt32, UInt64 } from '../provable/int.js';
 import { Layout } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { emptyReceiptChainHash, TokenSymbol } from '../provable/hash.js';
-import { PublicKey } from '../provable/signature.js';
+import {
+  emptyReceiptChainHash,
+  TokenSymbol,
+} from '../provable/crypto/poseidon.js';
+import { PublicKey } from '../provable/crypto/signature.js';
 import {
   Actions,
   ZkappUri,

@@ -1,20 +1,20 @@
-import { provableFromClass } from './types/provable-derivers.js';
-import { CurveParams } from '../../bindings/crypto/elliptic-curve.js';
-import { ProvablePureExtended } from './types/struct.js';
+import { provableFromClass } from '../types/provable-derivers.js';
+import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
+import { ProvablePureExtended } from '../types/struct.js';
 import {
   FlexiblePoint,
   ForeignCurve,
   createForeignCurve,
   toPoint,
 } from './foreign-curve.js';
-import { AlmostForeignField } from './foreign-field.js';
-import { assert } from './gadgets/common.js';
-import { Field3 } from './gadgets/foreign-field.js';
-import { Ecdsa } from './gadgets/elliptic-curve.js';
-import { l } from './gadgets/range-check.js';
+import { AlmostForeignField } from '../foreign-field.js';
+import { assert } from '../gadgets/common.js';
+import { Field3 } from '../gadgets/foreign-field.js';
+import { Ecdsa } from '../gadgets/elliptic-curve.js';
+import { l } from '../gadgets/range-check.js';
 import { Keccak } from './keccak.js';
-import { Bytes } from './types/provable-types.js';
-import { UInt8 } from './int.js';
+import { Bytes } from '../provable-types.js';
+import { UInt8 } from '../int.js';
 
 // external API
 export { createEcdsa, EcdsaSignature };

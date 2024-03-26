@@ -3,7 +3,10 @@ import { Snarky } from '../../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../snarky.js';
 import { Provable } from '../provable/provable.js';
-import { snarkContext, gatesFromJson } from '../provable/provable-context.js';
+import {
+  snarkContext,
+  gatesFromJson,
+} from '../provable/core/provable-context.js';
 import {
   prettifyStacktrace,
   prettifyStacktracePromise,

@@ -1,9 +1,9 @@
-import { createForeignCurve } from './foreign-curve.js';
-import { Fq } from '../../bindings/crypto/finite-field.js';
-import { Vesta as V } from '../../bindings/crypto/elliptic-curve.js';
-import { Provable } from './provable.js';
-import { Field } from './field.js';
-import { Crypto } from './crypto.js';
+import { createForeignCurve } from '../crypto/foreign-curve.js';
+import { Fq } from '../../../bindings/crypto/finite-field.js';
+import { Vesta as V } from '../../../bindings/crypto/elliptic-curve.js';
+import { Provable } from '../provable.js';
+import { Field } from '../field.js';
+import { Crypto } from '../crypto/crypto.js';
 
 class Vesta extends createForeignCurve(Crypto.CurveParams.Vesta) {}
 class Fp extends Vesta.Scalar {}

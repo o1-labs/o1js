@@ -3,7 +3,7 @@ import { Poseidon, PoseidonLegacy } from '../../bindings/crypto/poseidon.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { createHashInput } from '../../bindings/lib/provable-generic.js';
 import { GenericHashInput } from '../../bindings/lib/generic.js';
-import { createHashHelpers } from '../../lib/provable/hash-generic.js';
+import { createHashHelpers } from '../../lib/provable/crypto/hash-generic.js';
 
 export {
   Poseidon,

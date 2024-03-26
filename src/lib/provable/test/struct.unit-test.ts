@@ -1,7 +1,7 @@
-import { provable, Struct } from './struct.js';
-import { Unconstrained } from './unconstrained.js';
+import { provable, Struct } from '../types/struct.js';
+import { Unconstrained } from '../types/unconstrained.js';
 import { UInt32 } from '../int.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { PrivateKey, PublicKey } from '../crypto/signature.js';
 import { expect } from 'expect';
 import { method, SmartContract } from '../../mina/zkapp.js';
 import {

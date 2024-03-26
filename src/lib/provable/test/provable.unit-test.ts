@@ -1,8 +1,8 @@
 import { it } from 'node:test';
-import { Provable } from './provable.js';
-import { Field } from './field.js';
+import { Provable } from '../provable.js';
+import { Field } from '../field.js';
 import { expect } from 'expect';
-import { exists } from './core/exists.js';
+import { exists } from '../core/exists.js';
 
 await it('can witness large field array', async () => {
   let N = 100_000;

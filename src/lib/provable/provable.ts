@@ -21,7 +21,7 @@ import {
   asProver,
   constraintSystem,
   generateWitness,
-} from './provable-context.js';
+} from './core/provable-context.js';
 import { exists, existsAsync } from './core/exists.js';
 
 // external API

@@ -3,7 +3,7 @@ import { Field, readVarMessage, withMessage } from './field.js';
 import { FieldVar, FieldConst, FieldType } from './core/fieldvar.js';
 import { defineBinable } from '../../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../../bindings/crypto/non-negative.js';
-import { asProver } from './provable-context.js';
+import { asProver } from './core/provable-context.js';
 import { existsOne } from './core/exists.js';
 import { assertMul } from './gadgets/compatible.js';
 import { setBoolConstructor } from './core/field-constructor.js';

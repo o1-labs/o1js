@@ -1,10 +1,10 @@
-import { Bool, Field } from '../core.js';
-import { Provable } from '../provable.js';
-import { Struct } from './struct.js';
-import { assert } from '../gadgets/common.js';
-import { provableFromClass } from './provable-derivers.js';
-import { Poseidon, packToFields, ProvableHashable } from '../hash.js';
-import { Unconstrained } from './unconstrained.js';
+import { Bool, Field } from './core.js';
+import { Provable } from './provable.js';
+import { Struct } from './types/struct.js';
+import { assert } from './gadgets/common.js';
+import { provableFromClass } from './types/provable-derivers.js';
+import { Poseidon, packToFields, ProvableHashable } from './crypto/poseidon.js';
+import { Unconstrained } from './types/unconstrained.js';
 
 export {
   MerkleListBase,

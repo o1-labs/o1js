@@ -1,5 +1,5 @@
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Bytes } from '../types/provable-types.js';
+import { Bytes } from '../provable-types.js';
 import { Gadgets } from './gadgets.js';
 import { sha256 as nobleSha256 } from '@noble/hashes/sha256';
 import { bytes } from './test-utils.js';

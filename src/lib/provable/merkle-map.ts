@@ -1,8 +1,8 @@
-import { arrayProp, CircuitValue } from './circuit-value.js';
-import { Field, Bool } from '../core.js';
-import { Poseidon } from '../hash.js';
+import { arrayProp, CircuitValue } from './types/circuit-value.js';
+import { Field, Bool } from './core.js';
+import { Poseidon } from './crypto/poseidon.js';
 import { MerkleTree, MerkleWitness } from './merkle-tree.js';
-import { Provable } from '../provable.js';
+import { Provable } from './provable.js';
 
 const bits = 255;
 const printDebugs = false;

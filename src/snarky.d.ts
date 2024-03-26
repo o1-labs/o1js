@@ -31,7 +31,7 @@ import type {
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import * as wasm from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/provable/gates.ts';
-import type { MlConstraintSystem } from './lib/provable/provable-context.ts';
+import type { MlConstraintSystem } from './lib/provable/core/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { Ledger, Pickles, Gate, GateType, wasm };

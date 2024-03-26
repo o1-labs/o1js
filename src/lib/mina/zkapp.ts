@@ -35,7 +35,7 @@ import {
   hashConstant,
   isHashable,
   packToFields,
-} from '../provable/hash.js';
+} from '../provable/crypto/poseidon.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import * as Mina from './mina.js';
 import {
@@ -54,14 +54,14 @@ import {
   Proof,
   sortMethodArguments,
 } from '../proof-system/zkprogram.js';
-import { PublicKey } from '../provable/signature.js';
+import { PublicKey } from '../provable/crypto/signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {
   inAnalyze,
   inCheckedComputation,
   inCompile,
   inProver,
-} from '../provable/provable-context.js';
+} from '../provable/core/provable-context.js';
 import { Cache } from '../proof-system/cache.js';
 import { assert } from '../provable/gadgets/common.js';
 import { SmartContractBase } from './smart-contract-base.js';

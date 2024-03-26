@@ -8,7 +8,7 @@ import { Bool, Field } from '../provable/core.js';
 import { AnyFunction, Tuple } from '../util/types.js';
 import { provable } from '../provable/types/struct.js';
 import { assert } from '../provable/gadgets/common.js';
-import { runAndCheckSync } from '../provable/provable-context.js';
+import { runAndCheckSync } from '../provable/core/provable-context.js';
 
 export {
   equivalent,

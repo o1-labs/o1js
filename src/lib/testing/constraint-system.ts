@@ -16,7 +16,7 @@ import { Undefined, ZkProgram } from '../proof-system/zkprogram.js';
 import {
   constraintSystemSync,
   printGates,
-} from '../provable/provable-context.js';
+} from '../provable/core/provable-context.js';
 
 export {
   constraintSystem,
