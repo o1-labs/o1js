@@ -4,7 +4,7 @@ import {
   AccountUpdateTreeBase,
   TokenId,
 } from '../account-update.js';
-import { Field } from '../../provable/core.js';
+import { Field } from '../../provable/wrapped.js';
 import { Provable } from '../../provable/provable.js';
 import { Struct } from '../../provable/types/struct.js';
 import { assert } from '../../provable/gadgets/common.js';

@@ -1,7 +1,7 @@
 /**
  * This module holds the global Mina instance and its interface.
  */
-import { Field } from '../provable/core.js';
+import { Field } from '../provable/wrapped.js';
 import { UInt64, UInt32 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';

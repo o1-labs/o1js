@@ -13,7 +13,7 @@ import { Field3 } from '../gadgets/foreign-field.js';
 import { Ecdsa } from '../gadgets/elliptic-curve.js';
 import { l } from '../gadgets/range-check.js';
 import { Keccak } from './keccak.js';
-import { Bytes } from '../provable-types.js';
+import { Bytes } from '../wrapped-classes.js';
 import { UInt8 } from '../int.js';
 
 // external API

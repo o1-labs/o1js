@@ -12,7 +12,7 @@ import {
 import { State, state } from '../../mina/state.js';
 import { AccountUpdate } from '../../mina/account-update.js';
 import { Provable } from '../provable.js';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },

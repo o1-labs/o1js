@@ -1,5 +1,5 @@
 import { mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import {
   Spec,

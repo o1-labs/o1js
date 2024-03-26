@@ -1,4 +1,4 @@
-import { Field, Bool } from './core.js';
+import { Field, Bool } from './wrapped.js';
 import { AnyConstructor, Struct } from './types/struct.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { HashInput } from './crypto/poseidon.js';

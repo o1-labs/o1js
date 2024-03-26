@@ -9,7 +9,7 @@ import {
   AccountUpdate,
   dummySignature,
 } from './account-update.js';
-import { Field } from '../provable/core.js';
+import { Field } from '../provable/wrapped.js';
 import { UInt64, UInt32 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import { JsonProof, verify } from '../proof-system/zkprogram.js';

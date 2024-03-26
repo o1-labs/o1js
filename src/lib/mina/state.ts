@@ -6,7 +6,7 @@ import { fetchAccount, networkConfig } from './fetch.js';
 import { SmartContract } from './zkapp.js';
 import { Account } from './account.js';
 import { Provable } from '../provable/provable.js';
-import { Field } from '../provable/core.js';
+import { Field } from '../provable/wrapped.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
 
 // external API

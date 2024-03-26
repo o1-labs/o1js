@@ -1,6 +1,6 @@
 import type { Nullifier as JsonNullifier } from '../../../mina-signer/src/types.js';
 import { Struct } from '../types/struct.js';
-import { Field, Group, Scalar } from '../core.js';
+import { Field, Group, Scalar } from '../wrapped.js';
 import { Poseidon } from './poseidon.js';
 import { MerkleMapWitness } from '../merkle-map.js';
 import { PrivateKey, PublicKey, scaleShifted } from './signature.js';

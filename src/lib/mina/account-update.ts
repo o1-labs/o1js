@@ -10,7 +10,7 @@ import {
   memoizeWitness,
   Provable,
 } from '../provable/provable.js';
-import { Field, Bool } from '../provable/core.js';
+import { Field, Bool } from '../provable/wrapped.js';
 import { Pickles, Test } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {

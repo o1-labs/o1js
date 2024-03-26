@@ -4,7 +4,7 @@
 import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable/provable.js';
 import { deepEqual } from 'node:assert/strict';
-import { Bool, Field } from '../provable/core.js';
+import { Bool, Field } from '../provable/wrapped.js';
 import { AnyFunction, Tuple } from '../util/types.js';
 import { provable } from '../provable/types/struct.js';
 import { assert } from '../provable/gadgets/common.js';

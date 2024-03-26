@@ -1,4 +1,4 @@
-import { Bool, Field } from './core.js';
+import { Bool, Field } from './wrapped.js';
 import { Provable } from './provable.js';
 import { Struct } from './types/struct.js';
 import { assert } from './gadgets/common.js';

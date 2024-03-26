@@ -11,7 +11,7 @@ import {
   Gate,
   GateType,
 } from '../../snarky.js';
-import { Field, Bool } from '../provable/core.js';
+import { Field, Bool } from '../provable/wrapped.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,

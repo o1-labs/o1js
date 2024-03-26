@@ -1,4 +1,4 @@
-import { Bool } from '../../provable/core.js';
+import { Bool } from '../../provable/wrapped.js';
 import { UInt64, Int64 } from '../../provable/int.js';
 import { Provable } from '../../provable/provable.js';
 import { PublicKey } from '../../provable/crypto/signature.js';

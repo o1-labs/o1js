@@ -1,6 +1,6 @@
 import { HashInput, ProvableExtended, Struct } from '../types/struct.js';
 import { Snarky } from '../../../snarky.js';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from '../provable.js';
 import { MlFieldArray } from '../../ml/fields.js';

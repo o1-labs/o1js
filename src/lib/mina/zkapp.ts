@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Gate, Pickles } from '../../snarky.js';
-import { Field, Bool } from '../provable/core.js';
+import { Field, Bool } from '../provable/wrapped.js';
 import {
   AccountUpdate,
   Authorization,

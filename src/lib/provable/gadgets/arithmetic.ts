@@ -1,5 +1,5 @@
 import { provableTuple } from '../types/struct.js';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import { assert } from '../../util/errors.js';
 import { Provable } from '../provable.js';
 import { rangeCheck32, rangeCheckN } from './range-check.js';

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import { HashInput, NonMethods } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { AnyConstructor, FlexibleProvable } from './struct.js';

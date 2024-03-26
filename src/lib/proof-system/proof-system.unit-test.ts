@@ -1,4 +1,4 @@
-import { Field, Bool } from '../provable/core.js';
+import { Field, Bool } from '../provable/wrapped.js';
 import { Struct } from '../provable/types/struct.js';
 import { UInt64 } from '../provable/int.js';
 import {

@@ -1,5 +1,5 @@
 import { Test } from '../../snarky.js';
-import { Field } from '../provable/core.js';
+import { Field } from '../provable/wrapped.js';
 import { UInt64 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import { ZkappCommand, TokenId, Authorization } from './account-update.js';

@@ -1,5 +1,5 @@
 import { arrayProp, CircuitValue } from './types/circuit-value.js';
-import { Field, Bool } from './core.js';
+import { Field, Bool } from './wrapped.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { MerkleTree, MerkleWitness } from './merkle-tree.js';
 import { Provable } from './provable.js';

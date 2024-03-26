@@ -3,7 +3,7 @@ import { ProvableSpec, spec } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
 import { Field3 } from './gadgets.js';
 import { assert } from './common.js';
-import { Bytes } from '../provable-types.js';
+import { Bytes } from '../wrapped-classes.js';
 
 export {
   foreignField,

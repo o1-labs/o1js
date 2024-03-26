@@ -1,4 +1,4 @@
-import { Field, Bool, Group, Scalar } from '../core.js';
+import { Field, Bool, Group, Scalar } from '../wrapped.js';
 import { AnyConstructor } from '../types/struct.js';
 import { hashWithPrefix } from './poseidon.js';
 import { Fq } from '../../../bindings/crypto/finite-field.js';

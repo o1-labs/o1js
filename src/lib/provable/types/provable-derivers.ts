@@ -1,5 +1,5 @@
 import { Provable, ProvablePure } from './provable-intf.js';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import {
   createDerivers,
   NonMethods,

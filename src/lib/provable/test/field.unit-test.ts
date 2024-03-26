@@ -1,4 +1,4 @@
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { BinableFp } from '../../../mina-signer/src/field-bigint.js';
 import { test, Random } from '../../testing/property.js';

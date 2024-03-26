@@ -1,6 +1,6 @@
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger } from './snarky.js';
-export { Field, Bool, Group, Scalar } from './lib/provable/core.js';
+export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
   ForeignField,
@@ -42,7 +42,7 @@ export {
   circuitMain,
 } from './lib/proof-system/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
-export { Bytes } from './lib/provable/provable-types.js';
+export { Bytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';

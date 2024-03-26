@@ -15,7 +15,7 @@ import {
   sha3_384,
   sha3_512,
 } from '@noble/hashes/sha3';
-import { Bytes } from '../provable-types.js';
+import { Bytes } from '../wrapped-classes.js';
 import { bytes } from '../gadgets/test-utils.js';
 import { UInt8 } from '../int.js';
 import { test, Random, sample } from '../../testing/property.js';

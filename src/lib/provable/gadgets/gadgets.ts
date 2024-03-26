@@ -21,7 +21,7 @@ import {
   rightShift64,
   leftShift32,
 } from './bitwise.js';
-import { Field } from '../core.js';
+import { Field } from '../wrapped.js';
 import {
   ForeignField,
   Field3,

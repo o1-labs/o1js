@@ -8,7 +8,7 @@ import {
   TokenId,
   addMissingProofs,
 } from './account-update.js';
-import { Field } from '../provable/core.js';
+import { Field } from '../provable/wrapped.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import { Empty, Proof } from '../proof-system/zkprogram.js';

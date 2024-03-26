@@ -1,4 +1,4 @@
-import { Bool, Field } from '../provable/core.js';
+import { Bool, Field } from '../provable/wrapped.js';
 import {
   circuitValueEquals,
   cloneCircuitValue,

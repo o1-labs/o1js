@@ -1,4 +1,4 @@
-import { Field, Scalar, Group } from '../core.js';
+import { Field, Scalar, Group } from '../wrapped.js';
 import { Poseidon } from './poseidon.js';
 import { Provable } from '../provable.js';
 import { PrivateKey, PublicKey } from './signature.js';

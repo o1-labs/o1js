@@ -1,6 +1,6 @@
 import { Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
-import { Field, Bool } from '../provable/core.js';
+import { Field, Bool } from '../provable/wrapped.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { TokenId, dummySignature } from '../mina/account-update.js';
 import { Ml } from './conversion.js';

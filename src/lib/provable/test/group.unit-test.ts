@@ -1,4 +1,4 @@
-import { Group } from '../core.js';
+import { Group } from '../wrapped.js';
 import { test, Random } from '../../testing/property.js';
 import { Provable } from '../provable.js';
 import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';

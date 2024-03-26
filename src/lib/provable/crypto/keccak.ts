@@ -3,7 +3,7 @@ import { Gadgets } from '../gadgets/gadgets.js';
 import { assert } from '../../util/errors.js';
 import { FlexibleBytes } from '../bytes.js';
 import { UInt8 } from '../int.js';
-import { Bytes } from '../provable-types.js';
+import { Bytes } from '../wrapped-classes.js';
 import { bytesToWords, wordsToBytes } from '../gadgets/bit-slices.js';
 
 export { Keccak };

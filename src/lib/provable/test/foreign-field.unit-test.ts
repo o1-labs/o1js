@@ -1,4 +1,4 @@
-import { Field, Group } from '../core.js';
+import { Field, Group } from '../wrapped.js';
 import { ForeignField, createForeignField } from '../foreign-field.js';
 import { Fq } from '../../../bindings/crypto/finite-field.js';
 import { Pallas } from '../../../bindings/crypto/elliptic-curve.js';

@@ -1,4 +1,4 @@
-import { Field, Bool, Scalar, Group } from '../core.js';
+import { Field, Bool, Scalar, Group } from '../wrapped.js';
 import {
   provable,
   provablePure,

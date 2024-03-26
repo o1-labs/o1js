@@ -1,5 +1,5 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
-import { Bool, Field } from '../provable/core.js';
+import { Bool, Field } from '../provable/wrapped.js';
 import { Permissions } from './account-update.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';

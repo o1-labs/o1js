@@ -1,4 +1,4 @@
-import { Bool, Field } from './core.js';
+import { Bool, Field } from './wrapped.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { Gadgets } from './gadgets/gadgets.js';

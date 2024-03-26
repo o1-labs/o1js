@@ -1,4 +1,4 @@
-import { Bool, Field } from '../core.js';
+import { Bool, Field } from '../wrapped.js';
 import { maybeSwap } from '../merkle-tree.js';
 import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';

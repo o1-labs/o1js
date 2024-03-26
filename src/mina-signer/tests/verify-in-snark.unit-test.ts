@@ -1,4 +1,4 @@
-import { Field } from '../../lib/provable/core.js';
+import { Field } from '../../lib/provable/wrapped.js';
 import { ZkProgram } from '../../lib/proof-system/zkprogram.js';
 import Client from '../mina-signer.js';
 import { PrivateKey, Signature } from '../../lib/provable/crypto/signature.js';
