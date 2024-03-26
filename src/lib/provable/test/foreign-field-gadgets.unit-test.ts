@@ -10,10 +10,10 @@ import {
   unit,
 } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
-import { Field3, Gadgets } from './gadgets.js';
+import { Field3, Gadgets } from '../gadgets/gadgets.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Provable } from '../provable.js';
-import { assert } from './common.js';
+import { assert } from '../gadgets/common.js';
 import {
   allConstant,
   and,
@@ -33,7 +33,7 @@ import {
   throwError,
   unreducedForeignField,
 } from './test-utils.js';
-import { l2 } from './range-check.js';
+import { l2 } from '../gadgets/range-check.js';
 
 const { ForeignField } = Gadgets;
 

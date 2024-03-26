@@ -16,7 +16,7 @@ import {
   sha3_512,
 } from '@noble/hashes/sha3';
 import { Bytes } from '../wrapped-classes.js';
-import { bytes } from '../gadgets/test-utils.js';
+import { bytes } from './test-utils.js';
 import { UInt8 } from '../int.js';
 import { test, Random, sample } from '../../testing/property.js';
 import { expect } from 'expect';

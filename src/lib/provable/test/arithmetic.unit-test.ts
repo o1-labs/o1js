@@ -6,9 +6,9 @@ import {
   record,
 } from '../../testing/equivalent.js';
 import { Field } from '../wrapped.js';
-import { Gadgets } from './gadgets.js';
+import { Gadgets } from '../gadgets/gadgets.js';
 import { provable } from '../types/struct.js';
-import { assert } from './common.js';
+import { assert } from '../gadgets/common.js';
 
 let Arithmetic = ZkProgram({
   name: 'arithmetic',

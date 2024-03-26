@@ -1,8 +1,8 @@
 import type { FiniteField } from '../../../bindings/crypto/finite-field.js';
 import { ProvableSpec, spec } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
-import { Field3 } from './gadgets.js';
-import { assert } from './common.js';
+import { Field3 } from '../gadgets/gadgets.js';
+import { assert } from '../gadgets/common.js';
 import { Bytes } from '../wrapped-classes.js';
 
 export {

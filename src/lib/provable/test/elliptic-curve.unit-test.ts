@@ -9,8 +9,12 @@ import {
   unit,
 } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
-import { assert } from './common.js';
-import { EllipticCurve, Point, simpleMapToCurve } from './elliptic-curve.js';
+import { assert } from '../gadgets/common.js';
+import {
+  EllipticCurve,
+  Point,
+  simpleMapToCurve,
+} from '../gadgets/elliptic-curve.js';
 import { foreignField, throwError } from './test-utils.js';
 
 // provable equivalence tests

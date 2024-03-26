@@ -11,7 +11,7 @@ import { Unconstrained } from '../types/unconstrained.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
-import { modifiedField } from '../fields.js';
+import { modifiedField } from '../types/fields.js';
 import { Tuple, TupleN } from '../../util/types.js';
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';

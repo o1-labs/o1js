@@ -1,6 +1,6 @@
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Bytes } from '../wrapped-classes.js';
-import { Gadgets } from './gadgets.js';
+import { Gadgets } from '../gadgets/gadgets.js';
 import { sha256 as nobleSha256 } from '@noble/hashes/sha256';
 import { bytes } from './test-utils.js';
 import {

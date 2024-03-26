@@ -5,12 +5,12 @@ import {
   Point,
   initialAggregator,
   verifyEcdsaConstant,
-} from './elliptic-curve.js';
-import { Field3 } from './foreign-field.js';
+} from '../gadgets/elliptic-curve.js';
+import { Field3 } from '../gadgets/foreign-field.js';
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { assert } from './common.js';
+import { assert } from '../gadgets/common.js';
 import { foreignField, uniformForeignField } from './test-utils.js';
 import {
   First,
@@ -22,7 +22,7 @@ import {
   oneOf,
   record,
 } from '../../testing/equivalent.js';
-import { Bool } from '../../provable/bool.js';
+import { Bool } from '../bool.js';
 import { Random } from '../../testing/random.js';
 
 // quick tests

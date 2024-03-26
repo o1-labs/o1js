@@ -7,7 +7,7 @@ import {
 } from '../../testing/equivalent.js';
 import { Fp, mod } from '../../../bindings/crypto/finite-field.js';
 import { Field } from '../wrapped.js';
-import { Gadgets } from './gadgets.js';
+import { Gadgets } from '../gadgets/gadgets.js';
 import { Random } from '../../testing/property.js';
 import {
   constraintSystem,

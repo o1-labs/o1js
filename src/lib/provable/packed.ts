@@ -5,7 +5,7 @@ import { Field } from './field.js';
 import { assert } from './gadgets/common.js';
 import { Poseidon, ProvableHashable, packToFields } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
-import { fields, modifiedField } from './fields.js';
+import { fields, modifiedField } from './types/fields.js';
 
 export { Packed, Hashed };
 

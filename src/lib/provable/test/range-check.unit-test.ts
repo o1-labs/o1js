@@ -8,9 +8,9 @@ import {
   fieldWithRng,
 } from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
-import { assert } from './common.js';
-import { Gadgets } from './gadgets.js';
-import { l } from './range-check.js';
+import { assert } from '../gadgets/common.js';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { l } from '../gadgets/range-check.js';
 import {
   constraintSystem,
   contains,
