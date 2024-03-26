@@ -211,6 +211,43 @@
       "hash": ""
     }
   },
+  "Basic": {
+    "digest": "Basic",
+    "methods": {
+      "equals": {
+        "rows": 4,
+        "digest": "941bc7a3f1bc61dd9a031a90eda35257"
+      },
+      "if": {
+        "rows": 4,
+        "digest": "8bb444eb77c99f065f108e1dd124bdc0"
+      },
+      "toBits": {
+        "rows": 254,
+        "digest": "49e0fdd67c13bd800f641f2375301322"
+      },
+      "assertLessThan": {
+        "rows": 510,
+        "digest": "4d72e2e7b6073ac9279accec2bc3889b"
+      },
+      "lessThan": {
+        "rows": 509,
+        "digest": "163f60bf937f5a5961f08be58009d06a"
+      },
+      "assertLessThanUInt64": {
+        "rows": 27,
+        "digest": "4c2e6066727ece164bd9f1609bd564ef"
+      },
+      "lessThanUInt64": {
+        "rows": 27,
+        "digest": "6d139dfc61137449010049ee51dd1de6"
+      }
+    },
+    "verificationKey": {
+      "data": "",
+      "hash": ""
+    }
+  },
   "ecdsa-only": {
     "digest": "39205ab5c3c80677719cb409d9b798a8f07dd71fde09cef6d59719bd37ecc739",
     "methods": {

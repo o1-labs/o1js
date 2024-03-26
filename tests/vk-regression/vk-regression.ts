@@ -8,7 +8,12 @@ import {
   keccakAndEcdsa,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
-import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
+import {
+  GroupCS,
+  BitwiseCS,
+  HashCS,
+  BasicCS,
+} from './plain-constraint-system.js';
 import { diverse } from './diverse-zk-program.js';
 
 // toggle this for quick iteration when debugging vk regressions
@@ -47,6 +52,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   GroupCS,
   BitwiseCS,
   HashCS,
+  BasicCS,
   ecdsa,
   keccakAndEcdsa,
   SHA256Program,
