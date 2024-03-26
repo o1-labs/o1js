@@ -1,4 +1,5 @@
-import { Gate, Pickles, ProvablePure } from '../snarky.js';
+import 'reflect-metadata';
+import { Gate, Pickles } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   AccountUpdate,
@@ -22,8 +23,7 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-  toConstant,
-} from './circuit-value.js';
+} from './provable-types/struct.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
 import {
@@ -71,6 +71,7 @@ import {
 import { deprecatedToken } from './mina/token/token-methods.js';
 import type { TokenContract } from './mina/token/token-contract.js';
 import { assertPromise } from './util/assert.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
@@ -406,7 +407,7 @@ function wrapMethod(
             returnType !== undefined,
             "Bug: returnType is undefined but the method result isn't."
           );
-          result = toConstant(returnType, result);
+          result = Provable.toConstant(returnType, result);
         }
 
         // store inputs + result in callData

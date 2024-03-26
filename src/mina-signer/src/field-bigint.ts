@@ -1,12 +1,9 @@
-import { randomBytes } from '../bindings/crypto/random.js';
-import { Fp, mod } from '../bindings/crypto/finite-field.js';
-import {
-  BinableBigint,
-  HashInput,
-  ProvableBigint,
-} from '../bindings/lib/provable-bigint.js';
+import { randomBytes } from '../../bindings/crypto/random.js';
+import { Fp, mod } from '../../bindings/crypto/finite-field.js';
+import { BinableBigint, HashInput, SignableBigint } from './derivers-bigint.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
+export { BinableFp, SignableFp };
 export { pseudoClass, sizeInBits, checkRange, checkField };
 
 type Field = bigint;
@@ -26,6 +23,9 @@ const checkField = checkRange(0n, Fp.modulus, 'Field');
 const checkBool = checkAllowList(new Set([0n, 1n]), 'Bool');
 const checkSign = checkAllowList(new Set([1n, minusOne]), 'Sign');
 
+const BinableFp = BinableBigint(Fp.sizeInBits, checkField);
+const SignableFp = SignableBigint(checkField);
+
 /**
  * The base field of the Pallas curve
  */
@@ -33,11 +33,7 @@ const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return mod(BigInt(value), Fp.modulus);
   },
-  {
-    ...ProvableBigint(checkField),
-    ...BinableBigint(Fp.sizeInBits, checkField),
-    ...Fp,
-  }
+  { ...SignableFp, ...BinableFp, ...Fp }
 );
 
 /**
@@ -48,7 +44,7 @@ const Bool = pseudoClass(
     return BigInt(value) as Bool;
   },
   {
-    ...ProvableBigint<Bool>(checkBool),
+    ...SignableBigint<Bool>(checkBool),
     ...BinableBigint<Bool>(1, checkBool),
     toInput(x: Bool): HashInput {
       return { fields: [], packed: [[x, 1]] };
@@ -85,7 +81,7 @@ function Unsigned(bits: number) {
       return x;
     },
     {
-      ...ProvableBigint(checkUnsigned),
+      ...SignableBigint(checkUnsigned),
       ...binable,
       toInput(x: bigint): HashInput {
         return { fields: [], packed: [[x, bits]] };
@@ -107,7 +103,7 @@ const Sign = pseudoClass(
     return mod(BigInt(value), Fp.modulus) as Sign;
   },
   {
-    ...ProvableBigint<Sign, 'Positive' | 'Negative'>(checkSign),
+    ...SignableBigint<Sign, 'Positive' | 'Negative'>(checkSign),
     ...BinableBigint<Sign>(1, checkSign),
     empty() {
       return 1n;

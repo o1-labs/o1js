@@ -1,5 +1,5 @@
 import { Field, Bool } from './core.js';
-import { Struct } from './circuit-value.js';
+import { Struct } from './provable-types/struct.js';
 import { UInt64 } from './int.js';
 import {
   CompiledTag,
@@ -10,13 +10,14 @@ import {
   sortMethodArguments,
 } from './proof-system.js';
 import { expect } from 'expect';
-import { Pickles, ProvablePure, Snarky } from '../snarky.js';
+import { Pickles, Snarky } from '../snarky.js';
 import { AnyFunction } from './util/types.js';
 import { snarkContext } from './provable-context.js';
 import { it } from 'node:test';
 import { Provable } from './provable.js';
 import { bool, equivalentAsync, field, record } from './testing/equivalent.js';
-import { FieldConst, FieldVar } from './field.js';
+import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 const EmptyProgram = ZkProgram({
   name: 'empty',

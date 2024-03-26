@@ -1,4 +1,4 @@
-export type { ProvablePure } from './snarky.js';
+export type { ProvablePure } from './lib/provable-types/provable-intf.js';
 export { Ledger } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export {
@@ -21,17 +21,9 @@ export type {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
-} from './lib/circuit-value.js';
-export {
-  CircuitValue,
-  prop,
-  arrayProp,
-  matrixProp,
-  provable,
-  provablePure,
-  Struct,
-  Unconstrained,
-} from './lib/circuit-value.js';
+} from './lib/provable-types/struct.js';
+export { provable, provablePure, Struct } from './lib/provable-types/struct.js';
+export { Unconstrained } from './lib/provable-types/unconstrained.js';
 export { Provable } from './lib/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';
@@ -104,9 +96,12 @@ export {
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
-export { Character, CircuitString } from './lib/string.js';
-export { MerkleTree, MerkleWitness } from './lib/merkle-tree.js';
-export { MerkleMap, MerkleMapWitness } from './lib/merkle-map.js';
+export { Character, CircuitString } from './lib/provable-types/string.js';
+export { MerkleTree, MerkleWitness } from './lib/provable-types/merkle-tree.js';
+export {
+  MerkleMap,
+  MerkleMapWitness,
+} from './lib/provable-types/merkle-map.js';
 
 export { Nullifier } from './lib/nullifier.js';
 

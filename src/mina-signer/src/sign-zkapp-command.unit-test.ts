@@ -11,7 +11,7 @@ import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
 } from '../../lib/account-update.js';
-import { FieldConst } from '../../lib/field.js';
+import { FieldConst } from '../../lib/provable-core/fieldvar.js';
 import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
 import { Network, setActiveInstance } from '../../lib/mina.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
@@ -20,12 +20,8 @@ import {
   PublicKey as PublicKeySnarky,
 } from '../../lib/signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-} from '../../provable/poseidon-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Pickles, Test } from '../../snarky.js';
 import { Memo } from './memo.js';
 import { RandomTransaction } from './random-transaction.js';

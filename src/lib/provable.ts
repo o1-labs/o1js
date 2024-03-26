@@ -5,15 +5,18 @@
  */
 import { Bool } from './bool.js';
 import { Field } from './field.js';
-import { Provable as Provable_, Snarky } from '../snarky.js';
-import type { FlexibleProvable, ProvableExtended } from './circuit-value.js';
+import type { Provable as Provable_ } from './provable-types/provable-intf.js';
+import type {
+  FlexibleProvable,
+  ProvableExtended,
+} from './provable-types/struct.js';
 import { Context } from './global-context.js';
 import {
   HashInput,
   InferJson,
   InferProvable,
   InferredProvable,
-} from '../bindings/lib/provable-snarky.js';
+} from './provable-types/provable-derivers.js';
 import {
   inCheckedComputation,
   inProver,
@@ -23,7 +26,7 @@ import {
   generateWitness,
   runAndCheckSync,
 } from './provable-context.js';
-import { existsAsync } from './provable-core/exists.js';
+import { exists, existsAsync } from './provable-core/exists.js';
 
 // external API
 export { Provable };
@@ -36,11 +39,17 @@ export {
   getBlindingValue,
 };
 
-// TODO move type declaration here
 /**
- * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ * `Provable<T>` is the general interface for provable types in o1js.
  *
- * You will find this as the required input type in a few places in o1js. One convenient way to create a `Provable<T>` is using `Struct`.
+ * `Provable<T>` describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
+ *
+ * `Provable<T>` is the required input type in several methods in o1js.
+ * One convenient way to create a `Provable<T>` is using `Struct`.
+ *
+ * All built-in provable types in o1js ({@link Field}, {@link Bool}, etc.) are instances of `Provable<T>` as well.
+ *
+ * Note: These methods are meant to be used by the library internally and are not directly when writing provable code.
  */
 type Provable<T> = Provable_<T>;
 
@@ -239,23 +248,11 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    let [, ...fieldVars] = Snarky.run.exists(type.sizeInFields(), () => {
+    fields = exists(type.sizeInFields(), () => {
       proverValue = compute();
       let fields = type.toFields(proverValue);
-      let fieldConstants = fields.map((x) => x.toConstant().value[1]);
-
-      // TODO: enable this check
-      // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
-      // if (fields.length !== type.sizeInFields()) {
-      //   throw Error(
-      //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-      //       fields.length
-      //     }.`
-      //   );
-      // }
-      return [0, ...fieldConstants];
+      return fields.map((x) => x.toBigInt());
     });
-    fields = fieldVars.map((x) => new Field(x));
   } finally {
     snarkContext.leave(id);
   }
@@ -287,12 +284,11 @@ async function witnessAsync<
   // call into `existsAsync` to witness the raw field elements
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    let fieldVars = await existsAsync(type.sizeInFields(), async () => {
+    fields = await existsAsync(type.sizeInFields(), async () => {
       proverValue = await compute();
       let fields = type.toFields(proverValue);
       return fields.map((x) => x.toBigInt());
     });
-    fields = fieldVars.map((x) => new Field(x));
   } finally {
     snarkContext.leave(id);
   }

@@ -2,17 +2,17 @@
  * Basic gadgets that only use generic gates
  */
 import { Fp } from '../../bindings/crypto/finite-field.js';
+import { Field, VarField } from '../field.js';
 import {
-  Field,
-  FieldConst,
   FieldType,
   FieldVar,
-  VarField,
+  FieldConst,
   VarFieldVar,
-} from '../field.js';
-import { existsOne, toVar } from './common.js';
+} from '../provable-core/fieldvar.js';
+import { toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../util/types.js';
+import { existsOne } from '../provable-core/exists.js';
 
 export { assertMul, arrayGet, assertOneOf };
 

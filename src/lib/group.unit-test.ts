@@ -1,7 +1,7 @@
 import { Group } from './core.js';
 import { test, Random } from './testing/property.js';
 import { Provable } from './provable.js';
-import { Poseidon } from '../provable/poseidon-bigint.js';
+import { Poseidon } from '../mina-signer/src/poseidon-bigint.js';
 
 console.log('group consistency tests');
 

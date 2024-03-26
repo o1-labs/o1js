@@ -1,13 +1,14 @@
-import { provable, Struct, Unconstrained } from './circuit-value.js';
-import { UInt32 } from './int.js';
-import { PrivateKey, PublicKey } from './signature.js';
+import { provable, Struct } from './struct.js';
+import { Unconstrained } from './unconstrained.js';
+import { UInt32 } from '../int.js';
+import { PrivateKey, PublicKey } from '../signature.js';
 import { expect } from 'expect';
-import { method, SmartContract } from './zkapp.js';
-import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
-import { State, state } from './state.js';
-import { AccountUpdate } from './account-update.js';
-import { Provable } from './provable.js';
-import { Field } from './core.js';
+import { method, SmartContract } from '../zkapp.js';
+import { LocalBlockchain, setActiveInstance, transaction } from '../mina.js';
+import { State, state } from '../state.js';
+import { AccountUpdate } from '../account-update.js';
+import { Provable } from '../provable.js';
+import { Field } from '../core.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },

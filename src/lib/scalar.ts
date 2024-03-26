@@ -1,6 +1,8 @@
-import { Snarky, Provable } from '../snarky.js';
-import { Scalar as Fq } from '../provable/curve-bigint.js';
-import { Field, FieldConst, FieldVar } from './field.js';
+import { Snarky } from '../snarky.js';
+import { Fq } from '../bindings/crypto/finite-field.js';
+import { Scalar as SignableFq } from '../mina-signer/src/curve-bigint.js';
+import { Field } from './field.js';
+import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
 import { MlArray } from './ml/base.js';
 import { Bool } from './bool.js';
 
@@ -20,7 +22,7 @@ const ScalarConst = {
   },
 };
 
-let scalarShift = Fq(1n + 2n ** 255n);
+let scalarShift = Fq.mod(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
 type ConstantScalar = Scalar & { constantValue: ScalarConst };
@@ -34,7 +36,7 @@ class Scalar {
 
   static ORDER = Fq.modulus;
 
-  private constructor(bits: MlArray<BoolVar>, constantValue?: Fq) {
+  private constructor(bits: MlArray<BoolVar>, constantValue?: bigint) {
     this.value = bits;
     constantValue ??= toConstantScalar(bits);
     if (constantValue !== undefined) {
@@ -49,8 +51,8 @@ class Scalar {
    */
   static from(x: Scalar | ScalarConst | bigint | number | string) {
     if (x instanceof Scalar) return x;
-    if (ScalarConst.is(x)) x = constToBigint(x);
-    let scalar = Fq(x);
+    let x_ = ScalarConst.is(x) ? constToBigint(x) : x;
+    let scalar = Fq.mod(BigInt(x_));
     let bits = toBits(scalar);
     return new Scalar(bits, scalar);
   }
@@ -321,7 +323,7 @@ class Scalar {
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static fromJSON(x: string) {
-    return Scalar.from(Fq.fromJSON(x));
+    return Scalar.from(SignableFq.fromJSON(x));
   }
 }
 
@@ -331,7 +333,7 @@ function assertConstant(x: Scalar, name: string) {
   return constantScalarToBigint(x, `Scalar.${name}`);
 }
 
-function toConstantScalar([, ...bits]: MlArray<BoolVar>): Fq | undefined {
+function toConstantScalar([, ...bits]: MlArray<BoolVar>): bigint | undefined {
   if (bits.length !== Fq.sizeInBits)
     throw Error(
       `Scalar: expected bits array of length ${Fq.sizeInBits}, got ${bits.length}`
@@ -342,14 +344,14 @@ function toConstantScalar([, ...bits]: MlArray<BoolVar>): Fq | undefined {
     if (!FieldVar.isConstant(bool)) return undefined;
     constantBits[i] = FieldConst.equal(bool[1], FieldConst[1]);
   }
-  let sShifted = Fq.fromBits(constantBits);
+  let sShifted = SignableFq.fromBits(constantBits);
   return shift(sShifted);
 }
 
-function toBits(constantValue: Fq): MlArray<BoolVar> {
+function toBits(constantValue: bigint): MlArray<BoolVar> {
   return [
     0,
-    ...Fq.toBits(unshift(constantValue)).map((b) =>
+    ...SignableFq.toBits(unshift(constantValue)).map((b) =>
       FieldVar.constant(BigInt(b))
     ),
   ];
@@ -358,21 +360,21 @@ function toBits(constantValue: Fq): MlArray<BoolVar> {
 /**
  * s -> 2s + 1 + 2^255
  */
-function shift(s: Fq): Fq {
+function shift(s: bigint) {
   return Fq.add(Fq.add(s, s), scalarShift);
 }
 
 /**
  * inverse of shift, 2s + 1 + 2^255 -> s
  */
-function unshift(s: Fq): Fq {
+function unshift(s: bigint) {
   return Fq.mul(Fq.sub(s, scalarShift), oneHalf);
 }
 
-function constToBigint(x: ScalarConst): Fq {
+function constToBigint(x: ScalarConst) {
   return x[1];
 }
-function constFromBigint(x: Fq): ScalarConst {
+function constFromBigint(x: bigint): ScalarConst {
   return [0, x];
 }
 

@@ -19,11 +19,13 @@ import { ParticipantPreconditions } from './preconditions.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 
-interface MembershipParams {
+Provable;
+
+type MembershipParams = {
   participantPreconditions: ParticipantPreconditions;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.
@@ -124,7 +126,7 @@ export class Membership_ extends SmartContract {
       }),
       Bool,
       (state: Bool, action: Member) => {
-        return action.equals(member).or(state);
+        return Provable.equal(Member, action, member).or(state);
       },
       // initial state
       { state: Bool(false), actionState: accumulatedMembers }

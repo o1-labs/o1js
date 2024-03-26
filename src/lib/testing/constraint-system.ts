@@ -6,7 +6,8 @@
  */
 import { Gate, GateType } from '../../snarky.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { Field, FieldType, FieldVar } from '../field.js';
+import { Field } from '../field.js';
+import { FieldType, FieldVar } from '../provable-core/fieldvar.js';
 import { Provable } from '../provable.js';
 import { Tuple } from '../util/types.js';
 import { Random } from './random.js';

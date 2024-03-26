@@ -5,7 +5,6 @@ import {
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../snarky.js';
 import {
-  ProvablePure,
   Pickles,
   FeatureFlags,
   MlFeatureFlags,
@@ -21,15 +20,14 @@ import {
   Struct,
   provable,
   provablePure,
-  toConstant,
-} from './circuit-value.js';
+} from './provable-types/struct.js';
 import { Provable } from './provable.js';
 import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
-import { FieldConst, FieldVar } from './field.js';
+import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
 import { Cache, readCache, writeCache } from './proof-system/cache.js';
 import {
   decodeProverKey,
@@ -37,6 +35,7 @@ import {
   parseHeader,
 } from './proof-system/prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
+import { ProvablePure } from './provable-types/provable-intf.js';
 
 // public API
 export {
@@ -847,12 +846,12 @@ function methodArgumentsToConstant(
     let arg = args[i];
     let { type, index } = allArgs[i];
     if (type === 'witness') {
-      constArgs.push(toConstant(witnessArgs[index], arg));
+      constArgs.push(Provable.toConstant(witnessArgs[index], arg));
     } else if (type === 'proof') {
       let Proof = proofArgs[index];
       let type = getStatementType(Proof);
-      let publicInput = toConstant(type.input, arg.publicInput);
-      let publicOutput = toConstant(type.output, arg.publicOutput);
+      let publicInput = Provable.toConstant(type.input, arg.publicInput);
+      let publicOutput = Provable.toConstant(type.output, arg.publicOutput);
       constArgs.push(
         new Proof({ publicInput, publicOutput, proof: arg.proof })
       );

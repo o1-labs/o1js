@@ -2,13 +2,14 @@
 import { mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../core.js';
 import { UInt32, UInt8 } from '../int.js';
+import { exists } from '../provable-core/exists.js';
 import { FlexibleBytes } from '../provable-types/bytes.js';
 import { Bytes } from '../provable-types/provable-types.js';
 import { chunk } from '../util/arrays.js';
 import { TupleN } from '../util/types.js';
 import { divMod32 } from './arithmetic.js';
 import { bytesToWord, wordToBytes } from './bit-slices.js';
-import { bitSlice, exists } from './common.js';
+import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';
 
 export { SHA256 };
@@ -70,7 +71,9 @@ function padding(data: FlexibleBytes): UInt32[][] {
     // chunk 4 bytes into one UInt32, as expected by SHA256
     // bytesToWord expects little endian, so we reverse the bytes
     chunks.push(
-      UInt32.Unsafe.fromField(bytesToWord(paddedMessage.slice(i, i + 4).reverse()))
+      UInt32.Unsafe.fromField(
+        bytesToWord(paddedMessage.slice(i, i + 4).reverse())
+      )
     );
   }
 
@@ -133,11 +136,15 @@ const SHA256 = {
         h = g;
         g = f;
         f = e;
-        e = UInt32.Unsafe.fromField(divMod32(d.value.add(unreducedT1), 16).remainder); // mod 32bit the unreduced field element
+        e = UInt32.Unsafe.fromField(
+          divMod32(d.value.add(unreducedT1), 16).remainder
+        ); // mod 32bit the unreduced field element
         d = c;
         c = b;
         b = a;
-        a = UInt32.Unsafe.fromField(divMod32(unreducedT2.add(unreducedT1), 16).remainder); // mod 32bit
+        a = UInt32.Unsafe.fromField(
+          divMod32(unreducedT2.add(unreducedT1), 16).remainder
+        ); // mod 32bit
       }
 
       // new intermediate hash value
@@ -276,5 +283,7 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
 
   // since xor() is implicitly range-checking both of its inputs, this provides the missing
   // proof that xRotR0, xRotR1, xRotR2 < 2^32, which implies x0 < 2^d0, x1 < 2^d1, x2 < 2^d2
-  return UInt32.Unsafe.fromField(xRotR0).xor(UInt32.Unsafe.fromField(xRotR1)).xor(UInt32.Unsafe.fromField(xRotR2));
+  return UInt32.Unsafe.fromField(xRotR0)
+    .xor(UInt32.Unsafe.fromField(xRotR1))
+    .xor(UInt32.Unsafe.fromField(xRotR2));
 }

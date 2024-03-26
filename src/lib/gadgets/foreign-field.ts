@@ -5,15 +5,16 @@ import {
   inverse as modInverse,
   mod,
 } from '../../bindings/crypto/finite-field.js';
-import { provableTuple } from '../../bindings/lib/provable-snarky.js';
+import { provableTuple } from '../provable-types/provable-derivers.js';
 import { Bool } from '../bool.js';
-import { Unconstrained } from '../circuit-value.js';
+import { Unconstrained } from '../provable-types/unconstrained.js';
 import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
+import { exists } from '../provable-core/exists.js';
 import { modifiedField } from '../provable-types/fields.js';
 import { Tuple, TupleN } from '../util/types.js';
 import { assertOneOf } from './basic.js';
-import { assert, bitSlice, exists, toVar, toVars } from './common.js';
+import { assert, bitSlice, toVar, toVars } from './common.js';
 import {
   l,
   lMask,

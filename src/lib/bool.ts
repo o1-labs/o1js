@@ -1,18 +1,12 @@
 import { Snarky } from '../snarky.js';
-import {
-  Field,
-  FieldConst,
-  FieldType,
-  FieldVar,
-  readVarMessage,
-  withMessage,
-} from './field.js';
-import { Bool as B } from '../provable/field-bigint.js';
+import { Field, readVarMessage, withMessage } from './field.js';
+import { FieldVar, FieldConst, FieldType } from './provable-core/fieldvar.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 import { asProver } from './provable-context.js';
-import { existsOne } from './gadgets/common.js';
+import { existsOne } from './provable-core/exists.js';
 import { assertMul } from './gadgets/compatible.js';
+import { setBoolConstructor } from './provable-core/field-constructor.js';
 
 export { BoolVar, Bool };
 
@@ -45,7 +39,7 @@ class Bool {
       this.value = x;
       return;
     }
-    this.value = FieldVar.constant(B(x));
+    this.value = FieldVar.constant(BigInt(x));
   }
 
   isConstant(): this is { value: ConstantBoolVar } {
@@ -200,7 +194,7 @@ class Bool {
   }
 
   /**
-   * This converts the {@link Bool} to a javascript [[boolean]].
+   * This converts the {@link Bool} to a JS `boolean`.
    * This can only be called on non-witness values.
    */
   toBoolean(): boolean {
@@ -365,6 +359,7 @@ class Bool {
     },
   };
 }
+setBoolConstructor(Bool);
 
 const BoolBinable = defineBinable({
   toBytes(b: Bool) {
@@ -394,5 +389,5 @@ function toBoolean(x: boolean | Bool): boolean {
 
 function toFieldVar(x: boolean | Bool): BoolVar {
   if (x instanceof Bool) return x.value;
-  return FieldVar.constant(B(x));
+  return FieldVar.constant(BigInt(x));
 }

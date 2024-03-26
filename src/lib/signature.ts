@@ -1,20 +1,19 @@
 import { Field, Bool, Group, Scalar } from './core.js';
-import { prop, CircuitValue, AnyConstructor } from './circuit-value.js';
+import { AnyConstructor } from './provable-types/struct.js';
 import { hashWithPrefix } from './hash.js';
+import { Fq } from '../bindings/crypto/finite-field.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
   signaturePrefix,
 } from '../mina-signer/src/signature.js';
-import { Bool as BoolBigint } from '../provable/field-bigint.js';
 import {
-  Scalar as ScalarBigint,
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
-} from '../provable/curve-bigint.js';
-import { prefixes } from '../bindings/crypto/constants.js';
+} from '../mina-signer/src/curve-bigint.js';
 import { constantScalarToBigint } from './scalar.js';
 import { toConstantField } from './field.js';
+import { CircuitValue, prop } from './provable-types/circuit-value.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -81,7 +80,7 @@ class PrivateKey extends CircuitValue {
    * **Warning**: Private keys should be sampled from secure randomness with sufficient entropy.
    * Be careful that you don't use this method to create private keys that were sampled insecurely.
    */
-  static fromBigInt(sk: PrivateKeyBigint) {
+  static fromBigInt(sk: bigint) {
     return new PrivateKey(Scalar.from(sk));
   }
 
@@ -219,7 +218,7 @@ class PublicKey extends CircuitValue {
     x = toConstantField(x, 'toBase58', 'pk', 'public key');
     return PublicKeyBigint.toBase58({
       x: x.toBigInt(),
-      isOdd: BoolBigint(isOdd.toBoolean()),
+      isOdd: isOdd.toBoolean() ? 1n : 0n,
     });
   }
 
@@ -333,5 +332,5 @@ function unshift(shiftedScalar: Scalar) {
     .mul(Scalar.fromBigInt(oneHalf));
 }
 
-let shift = ScalarBigint(1n + 2n ** 255n);
-let oneHalf = ScalarBigint.inverse(2n)!;
+let shift = Fq.mod(1n + 2n ** 255n);
+let oneHalf = Fq.inverse(2n)!;
