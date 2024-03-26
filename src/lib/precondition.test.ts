@@ -213,7 +213,7 @@ describe('preconditions', () => {
 
   // TODO: is this a gotcha that should be addressed?
   // the test below fails, so it seems that nonce is applied successfully with a WRONG precondition..
-  // however, this is just because `zkapp.sign()` overwrites the nonce precondition with one that is satisfied
+  // however, this is just because `zkapp.requireSignature()` overwrites the nonce precondition with one that is satisfied
   it.skip('unsatisfied nonce precondition should be rejected', async () => {
     let tx = await Mina.transaction(feePayer, async () => {
       zkapp.account.nonce.requireEquals(UInt32.from(1e8));

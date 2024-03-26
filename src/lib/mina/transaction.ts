@@ -65,7 +65,7 @@ type Transaction = {
   /**
    * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
    * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
-   * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
+   * @param privateKeys The list of keys that should be used to sign the {@link Transaction}
    * @returns The {@link Transaction} instance with all required signatures applied.
    * @example
    * ```ts
@@ -73,7 +73,7 @@ type Transaction = {
    * console.log('Transaction signed successfully.');
    * ```
    */
-  sign(additionalKeys?: PrivateKey[]): Transaction;
+  sign(privateKeys: PrivateKey[]): Transaction;
   /**
    * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
    * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
@@ -380,8 +380,8 @@ async function createTransaction(
 function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   let self: Transaction = {
     transaction,
-    sign(additionalKeys?: PrivateKey[]) {
-      self.transaction = addMissingSignatures(self.transaction, additionalKeys);
+    sign(privateKeys: PrivateKey[]) {
+      self.transaction = addMissingSignatures(self.transaction, privateKeys);
       return self;
     },
     async prove() {

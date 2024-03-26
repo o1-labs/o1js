@@ -1809,9 +1809,9 @@ const Authorization = {
 
 function addMissingSignatures(
   zkappCommand: ZkappCommand,
-  additionalKeys = [] as PrivateKey[]
+  privateKeys: PrivateKey[]
 ): ZkappCommandSigned {
-  let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
+  let additionalPublicKeys = privateKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = transactionCommitments(
     TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand)),
     activeInstance.getNetworkId()
@@ -1832,7 +1832,7 @@ function addMissingSignatures(
       // while .send() execution
       return { body, authorization: dummySignature() };
     }
-    let privateKey = additionalKeys[i];
+    let privateKey = privateKeys[i];
 
     let signature = signFieldElement(
       fullCommitment,
@@ -1860,7 +1860,7 @@ function addMissingSignatures(
         lazyAuthorization: undefined;
       };
     }
-    let privateKey = additionalKeys[i];
+    let privateKey = privateKeys[i];
 
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment

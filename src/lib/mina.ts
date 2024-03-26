@@ -253,8 +253,6 @@ function Network(
       );
     },
     async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      txn.sign();
-
       verifyTransactionLimits(txn.transaction);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());

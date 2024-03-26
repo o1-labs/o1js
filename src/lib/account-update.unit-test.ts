@@ -115,7 +115,7 @@ function createAccountUpdate() {
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
   });
-  tx.sign();
+  tx.sign([]);
   await expect(tx.send()).rejects.toThrow(
     'Check signature: Invalid signature on fee payer for key'
   );

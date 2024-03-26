@@ -117,8 +117,6 @@ function LocalBlockchain({
       return networkState;
     },
     async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      txn.sign();
-
       let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       let commitments = transactionCommitments(
         TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
