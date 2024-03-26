@@ -3,11 +3,11 @@
  */
 
 import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
-import { HashInput } from '../provable-types/struct.js';
-import { Bool, Field } from '../core.js';
-import { FieldVar, FieldConst } from '../provable-core/fieldvar.js';
-import { Scalar, ScalarConst } from '../scalar.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { HashInput } from '../provable/types/struct.js';
+import { Bool, Field } from '../provable/core.js';
+import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
+import { Scalar, ScalarConst } from '../provable/scalar.js';
+import { PrivateKey, PublicKey } from '../provable/signature.js';
 import { MlPair, MlBool, MlArray } from './base.js';
 import { MlFieldConstArray } from './fields.js';
 

@@ -14,8 +14,8 @@ import {
   callForestHash,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
 import assert from 'assert';
-import { Field, Bool } from '../../core.js';
-import { PublicKey } from '../../signature.js';
+import { Field, Bool } from '../../provable/core.js';
+import { PublicKey } from '../../provable/signature.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 

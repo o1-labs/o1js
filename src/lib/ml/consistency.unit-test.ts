@@ -1,13 +1,13 @@
 import { Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
-import { Field, Bool } from '../core.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { Field, Bool } from '../provable/core.js';
+import { PrivateKey, PublicKey } from '../provable/signature.js';
 import { TokenId, dummySignature } from '../mina/account-update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
-import { FieldConst } from '../provable-core/fieldvar.js';
-import { Provable } from '../provable.js';
-import { runAndCheckSync } from '../provable-context.js';
+import { FieldConst } from '../provable/core/fieldvar.js';
+import { Provable } from '../provable/provable.js';
+import { runAndCheckSync } from '../provable/provable-context.js';
 
 // PrivateKey.toBase58, fromBase58
 

@@ -1,8 +1,8 @@
 import 'isomorphic-fetch';
-import { Field } from '../core.js';
-import { UInt32, UInt64 } from '../int.js';
+import { Field } from '../provable/core.js';
+import { UInt32, UInt64 } from '../provable/int.js';
 import { Actions, TokenId } from './account-update.js';
-import { PublicKey, PrivateKey } from '../signature.js';
+import { PublicKey, PrivateKey } from '../provable/signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { ActionStates } from './mina.js';

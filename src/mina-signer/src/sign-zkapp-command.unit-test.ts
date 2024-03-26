@@ -11,14 +11,14 @@ import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
 } from '../../lib/mina/account-update.js';
-import { FieldConst } from '../../lib/provable-core/fieldvar.js';
-import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
+import { FieldConst } from '../../lib/provable/core/fieldvar.js';
+import { packToFields as packToFieldsSnarky } from '../../lib/provable/hash.js';
 import { Network, setActiveInstance } from '../../lib/mina/mina.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
-} from '../../lib/signature.js';
+} from '../../lib/provable/signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';

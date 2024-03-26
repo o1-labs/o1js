@@ -1,16 +1,16 @@
-import { Bool, Field } from '../core.js';
+import { Bool, Field } from '../provable/core.js';
 import {
   circuitValueEquals,
   cloneCircuitValue,
-} from '../provable-types/struct.js';
-import { Provable } from '../provable.js';
+} from '../provable/types/struct.js';
+import { Provable } from '../provable/provable.js';
 import { activeInstance as Mina } from './mina-instance.js';
 import type { AccountUpdate } from './account-update.js';
-import { Int64, UInt32, UInt64 } from '../int.js';
+import { Int64, UInt32, UInt64 } from '../provable/int.js';
 import { Layout } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { emptyReceiptChainHash, TokenSymbol } from '../hash.js';
-import { PublicKey } from '../signature.js';
+import { emptyReceiptChainHash, TokenSymbol } from '../provable/hash.js';
+import { PublicKey } from '../provable/signature.js';
 import {
   Actions,
   ZkappUri,

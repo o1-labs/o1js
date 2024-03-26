@@ -1,4 +1,4 @@
-import { UInt32 } from '../int.js';
+import { UInt32 } from '../provable/int.js';
 import type { ZkappCommand } from './account-update.js';
 import type { ActionStatesStringified } from './fetch.js';
 import { Types } from '../../bindings/mina-transaction/types.js';

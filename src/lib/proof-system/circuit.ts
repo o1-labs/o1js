@@ -2,13 +2,13 @@ import 'reflect-metadata';
 import { Snarky } from '../../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../snarky.js';
-import { Provable } from '../provable.js';
-import { snarkContext, gatesFromJson } from '../provable-context.js';
+import { Provable } from '../provable/provable.js';
+import { snarkContext, gatesFromJson } from '../provable/provable-context.js';
 import {
   prettifyStacktrace,
   prettifyStacktracePromise,
 } from '../util/errors.js';
-import { ProvablePure } from '../provable-types/provable-intf.js';
+import { ProvablePure } from '../provable/types/provable-intf.js';
 
 // external API
 export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };

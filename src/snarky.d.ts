@@ -1,12 +1,12 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
-import type { Field } from './lib/field.js';
+import type { Field } from './lib/provable/field.js';
 import type {
   FieldVar,
   FieldConst,
   VarFieldVar,
-} from './lib/provable-core/fieldvar.ts';
-import type { BoolVar, Bool } from './lib/bool.js';
-import type { ScalarConst } from './lib/scalar.js';
+} from './lib/provable/core/fieldvar.ts';
+import type { BoolVar } from './lib/provable/bool.ts';
+import type { ScalarConst } from './lib/provable/scalar.js';
 import type {
   MlArray,
   MlPair,
@@ -30,8 +30,8 @@ import type {
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import * as wasm from './bindings/compiled/node_bindings/plonk_wasm.cjs';
-import type { KimchiGateType } from './lib/gates.ts';
-import type { MlConstraintSystem } from './lib/provable-context.ts';
+import type { KimchiGateType } from './lib/provable/gates.ts';
+import type { MlConstraintSystem } from './lib/provable/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
 export { Ledger, Pickles, Gate, GateType, wasm };

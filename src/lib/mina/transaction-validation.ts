@@ -9,14 +9,14 @@ import {
   AccountUpdate,
   dummySignature,
 } from './account-update.js';
-import { Field } from '../core.js';
-import { UInt64, UInt32 } from '../int.js';
-import { PublicKey } from '../signature.js';
+import { Field } from '../provable/core.js';
+import { UInt64, UInt32 } from '../provable/int.js';
+import { PublicKey } from '../provable/signature.js';
 import { JsonProof, verify } from '../proof-system/zkprogram.js';
 import { verifyAccountUpdateSignature } from '../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';
-import { cloneCircuitValue } from '../provable-types/struct.js';
-import { assert } from '../gadgets/common.js';
+import { cloneCircuitValue } from '../provable/types/struct.js';
+import { assert } from '../provable/gadgets/common.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Account } from './account.js';

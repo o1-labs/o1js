@@ -11,7 +11,7 @@ import {
   Gate,
   GateType,
 } from '../../snarky.js';
-import { Field, Bool } from '../core.js';
+import { Field, Bool } from '../provable/core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
@@ -20,14 +20,14 @@ import {
   Struct,
   provable,
   provablePure,
-} from '../provable-types/struct.js';
-import { Provable } from '../provable.js';
+} from '../provable/types/struct.js';
+import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
-import { snarkContext } from '../provable-context.js';
-import { hashConstant } from '../hash.js';
+import { snarkContext } from '../provable/provable-context.js';
+import { hashConstant } from '../provable/hash.js';
 import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { FieldVar, FieldConst } from '../provable-core/fieldvar.js';
+import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
 import { Cache, readCache, writeCache } from './cache.js';
 import {
   decodeProverKey,
@@ -38,7 +38,7 @@ import {
   setSrsCache,
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
-import { ProvablePure } from '../provable-types/provable-intf.js';
+import { ProvablePure } from '../provable/types/provable-intf.js';
 
 // public API
 export {

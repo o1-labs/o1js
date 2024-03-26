@@ -8,12 +8,12 @@ import {
   TokenId,
   addMissingProofs,
 } from './account-update.js';
-import { Field } from '../core.js';
-import { PrivateKey, PublicKey } from '../signature.js';
-import { UInt32, UInt64 } from '../int.js';
+import { Field } from '../provable/core.js';
+import { PrivateKey, PublicKey } from '../provable/signature.js';
+import { UInt32, UInt64 } from '../provable/int.js';
 import { Empty, Proof } from '../proof-system/zkprogram.js';
 import { currentTransaction } from './transaction-context.js';
-import { Provable } from '../provable.js';
+import { Provable } from '../provable/provable.js';
 import { assertPreconditionInvariants } from './precondition.js';
 import { Account } from './account.js';
 import { type FeePayerSpec, activeInstance } from './mina-instance.js';

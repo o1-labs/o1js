@@ -1,7 +1,7 @@
-import { Bool } from '../../core.js';
-import { UInt64, Int64 } from '../../int.js';
-import { Provable } from '../../provable.js';
-import { PublicKey } from '../../signature.js';
+import { Bool } from '../../provable/core.js';
+import { UInt64, Int64 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
+import { PublicKey } from '../../provable/signature.js';
 import {
   AccountUpdate,
   AccountUpdateForest,

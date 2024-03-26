@@ -10,7 +10,7 @@ import {
   Json,
   provableFromLayout,
 } from '../../bindings/mina-transaction/gen/transaction.js';
-import { packToFields } from '../hash.js';
+import { packToFields } from '../provable/hash.js';
 import { Random, test } from '../testing/property.js';
 import { MlHashInput } from '../ml/conversion.js';
 import { MlFieldConstArray } from '../ml/fields.js';

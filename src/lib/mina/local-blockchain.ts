@@ -2,9 +2,9 @@ import { SimpleLedger } from './transaction-logic/ledger.js';
 import { Ml } from '../ml/conversion.js';
 import { transactionCommitments } from '../../mina-signer/src/sign-zkapp-command.js';
 import { Ledger, Test } from '../../snarky.js';
-import { Field } from '../core.js';
-import { UInt32, UInt64 } from '../int.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { Field } from '../provable/core.js';
+import { UInt32, UInt64 } from '../provable/int.js';
+import { PrivateKey, PublicKey } from '../provable/signature.js';
 import { Account } from './account.js';
 import {
   ZkappCommand,

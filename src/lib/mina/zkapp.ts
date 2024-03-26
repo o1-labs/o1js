@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Gate, Pickles } from '../../snarky.js';
-import { Field, Bool } from '../core.js';
+import { Field, Bool } from '../provable/core.js';
 import {
   AccountUpdate,
   Authorization,
@@ -8,7 +8,6 @@ import {
   Events,
   Permissions,
   Actions,
-  SetOrKeep,
   TokenId,
   ZkappCommand,
   zkAppProver,
@@ -23,8 +22,12 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-} from '../provable-types/struct.js';
-import { Provable, getBlindingValue, memoizationContext } from '../provable.js';
+} from '../provable/types/struct.js';
+import {
+  Provable,
+  getBlindingValue,
+  memoizationContext,
+} from '../provable/provable.js';
 import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
@@ -32,8 +35,8 @@ import {
   hashConstant,
   isHashable,
   packToFields,
-} from '../hash.js';
-import { UInt32, UInt64 } from '../int.js';
+} from '../provable/hash.js';
+import { UInt32, UInt64 } from '../provable/int.js';
 import * as Mina from './mina.js';
 import {
   assertPreconditionInvariants,
@@ -51,16 +54,16 @@ import {
   Proof,
   sortMethodArguments,
 } from '../proof-system/zkprogram.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { PublicKey } from '../provable/signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {
   inAnalyze,
   inCheckedComputation,
   inCompile,
   inProver,
-} from '../provable-context.js';
+} from '../provable/provable-context.js';
 import { Cache } from '../proof-system/cache.js';
-import { assert } from '../gadgets/common.js';
+import { assert } from '../provable/gadgets/common.js';
 import { SmartContractBase } from './smart-contract-base.js';
 import { ZkappStateLength } from './mina-instance.js';
 import {
@@ -69,7 +72,7 @@ import {
   smartContractContext,
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
-import { ProvablePure } from '../provable-types/provable-intf.js';
+import { ProvablePure } from '../provable/types/provable-intf.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };

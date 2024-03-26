@@ -1,9 +1,9 @@
-import { Field } from '../../lib/core.js';
+import { Field } from '../../lib/provable/core.js';
 import { ZkProgram } from '../../lib/proof-system/zkprogram.js';
 import Client from '../mina-signer.js';
-import { PrivateKey, Signature } from '../../lib/signature.js';
+import { PrivateKey, Signature } from '../../lib/provable/signature.js';
 import { expect } from 'expect';
-import { Provable } from '../../lib/provable.js';
+import { Provable } from '../../lib/provable/provable.js';
 
 let fields = [10n, 20n, 30n, 340817401n, 2091283n, 1n, 0n];
 let privateKey = 'EKENaWFuAiqktsnWmxq8zaoR8bSgVdscsghJE5tV6hPoNm8qBKWM';

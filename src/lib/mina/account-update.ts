@@ -4,9 +4,13 @@ import {
   provable,
   provablePure,
   StructNoJson,
-} from '../provable-types/struct.js';
-import { memoizationContext, memoizeWitness, Provable } from '../provable.js';
-import { Field, Bool } from '../core.js';
+} from '../provable/types/struct.js';
+import {
+  memoizationContext,
+  memoizeWitness,
+  Provable,
+} from '../provable/provable.js';
+import { Field, Bool } from '../provable/core.js';
 import { Pickles, Test } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
@@ -14,8 +18,8 @@ import {
   TypesBigint,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
-import { PrivateKey, PublicKey } from '../signature.js';
-import { UInt64, UInt32, Int64, Sign } from '../int.js';
+import { PrivateKey, PublicKey } from '../provable/signature.js';
+import { UInt64, UInt32, Int64, Sign } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
 import {
   Preconditions,
@@ -39,7 +43,7 @@ import {
   Actions,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields, Poseidon } from '../hash.js';
+import { hashWithPrefix, packToFields, Poseidon } from '../provable/hash.js';
 import {
   mocks,
   prefixes,
@@ -66,14 +70,14 @@ import {
   genericHash,
   MerkleList,
   MerkleListBase,
-} from '../provable-types/merkle-list.js';
-import { Hashed } from '../provable-types/packed.js';
+} from '../provable/types/merkle-list.js';
+import { Hashed } from '../provable/types/packed.js';
 import {
   accountUpdateLayout,
   smartContractContext,
 } from './smart-contract-context.js';
 import { assert } from '../util/assert.js';
-import { RandomId } from '../provable-types/auxiliary.js';
+import { RandomId } from '../provable/types/auxiliary.js';
 import { NetworkId } from '../../mina-signer/src/types.js';
 
 // external API

@@ -1,9 +1,9 @@
 /**
  * This module holds the global Mina instance and its interface.
  */
-import { Field } from '../core.js';
-import { UInt64, UInt32 } from '../int.js';
-import { PublicKey, PrivateKey } from '../signature.js';
+import { Field } from '../provable/core.js';
+import { UInt64, UInt32 } from '../provable/int.js';
+import { PublicKey } from '../provable/signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Transaction, PendingTransaction } from './mina.js';
