@@ -764,6 +764,15 @@ const Gadgets = {
     assertLessThan(x: Field3, f: bigint | Field3) {
       ForeignField.assertLessThan(x, f);
     },
+
+    /**
+     * Prove that x <= f for any constant f < 2^264, or for another `Field3` f.
+     *
+     * See {@link ForeignField.assertLessThan} for details and usage examples.
+     */
+    assertLessThanOrEqual(x: Field3, f: bigint | Field3) {
+      ForeignField.assertLessThanOrEqual(x, f);
+    },
   },
 
   /**

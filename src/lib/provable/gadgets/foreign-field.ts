@@ -61,6 +61,7 @@ const ForeignField = {
   assertAlmostReduced,
 
   assertLessThan,
+  assertLessThanOrEqual,
 
   equals,
 };
@@ -712,8 +713,10 @@ class Sum {
 // Field3 comparison
 
 function assertLessThan(x: Field3, y: bigint | Field3) {
-  if (typeof y === 'bigint')
-    assert(y > 0n, 'assertLessThan: upper bound must be positive');
+  assert(
+    typeof y !== 'bigint' || y > 0n,
+    'assertLessThan: upper bound must be positive'
+  );
   let y_ = Field3.from(y);
 
   // constant case
@@ -746,4 +749,25 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
   // we use modulo 0 here, which means we're proving:
   // z = y - x - 1 - 0*(o1 + o2) for some overflows o1, o2
   sum([y_, x, Field3.from(1n)], [-1n, -1n], 0n);
+}
+
+function assertLessThanOrEqual(x: Field3, y: bigint | Field3) {
+  assert(
+    typeof y !== 'bigint' || y >= 0n,
+    'assertLessThanOrEqual: upper bound must be positive'
+  );
+  let y_ = Field3.from(y);
+
+  // constant case
+  if (Field3.isConstant(x) && Field3.isConstant(y_)) {
+    assert(
+      Field3.toBigint(x) <= Field3.toBigint(y_),
+      'assertLessThan: got x > y'
+    );
+    return;
+  }
+
+  // provable case
+  // we compute z = y - x and check that z \in [0, 2^3l), which implies x <= y
+  sum([y_, x], [-1n], 0n);
 }
