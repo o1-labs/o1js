@@ -37,22 +37,22 @@ export {
   MerkleListIterator,
 } from './lib/provable-types/merkle-list.js';
 
-export * as Mina from './lib/mina.js';
+export * as Mina from './lib/mina/mina.js';
 export {
   type Transaction,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
 } from './lib/mina/transaction.js';
-export type { DeployArgs } from './lib/zkapp.js';
+export type { DeployArgs } from './lib/mina/zkapp.js';
 export {
   SmartContract,
   method,
   declareMethods,
   Account,
   Reducer,
-} from './lib/zkapp.js';
-export { state, State, declareState } from './lib/state.js';
+} from './lib/mina/zkapp.js';
+export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system.js';
 export {
@@ -74,7 +74,7 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
-} from './lib/account-update.js';
+} from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';
@@ -92,7 +92,7 @@ export {
   setArchiveGraphqlEndpoint,
   sendZkapp,
   Lightnet,
-} from './lib/fetch.js';
+} from './lib/mina/fetch.js';
 export * as Encryption from './lib/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
 export { Character, CircuitString } from './lib/provable-types/string.js';

@@ -1,4 +1,4 @@
-import { mocks } from '../bindings/crypto/constants.js';
+import { mocks } from '../../bindings/crypto/constants.js';
 import {
   AccountUpdate,
   PrivateKey,
@@ -6,8 +6,8 @@ import {
   Mina,
   Int64,
   Types,
-} from '../index.js';
-import { Test } from '../snarky.js';
+} from '../../index.js';
+import { Test } from '../../snarky.js';
 import { expect } from 'expect';
 
 let address = PrivateKey.random().toPublicKey();

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
-import { Gate, Pickles } from '../snarky.js';
-import { Field, Bool } from './core.js';
+import { Gate, Pickles } from '../../snarky.js';
+import { Field, Bool } from '../core.js';
 import {
   AccountUpdate,
   Authorization,
@@ -23,17 +23,17 @@ import {
   FlexibleProvablePure,
   InferProvable,
   provable,
-} from './provable-types/struct.js';
-import { Provable, getBlindingValue, memoizationContext } from './provable.js';
-import * as Encoding from '../bindings/lib/encoding.js';
+} from '../provable-types/struct.js';
+import { Provable, getBlindingValue, memoizationContext } from '../provable.js';
+import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
   Poseidon,
   hashConstant,
   isHashable,
   packToFields,
-} from './hash.js';
-import { UInt32, UInt64 } from './int.js';
+} from '../hash.js';
+import { UInt32, UInt64 } from '../int.js';
 import * as Mina from './mina.js';
 import {
   assertPreconditionInvariants,
@@ -50,26 +50,26 @@ import {
   MethodInterface,
   Proof,
   sortMethodArguments,
-} from './proof-system.js';
-import { PrivateKey, PublicKey } from './signature.js';
+} from '../proof-system.js';
+import { PrivateKey, PublicKey } from '../signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {
   inAnalyze,
   inCheckedComputation,
   inCompile,
   inProver,
-} from './provable-context.js';
-import { Cache } from './proof-system/cache.js';
-import { assert } from './gadgets/common.js';
-import { SmartContractBase } from './mina/smart-contract-base.js';
-import { ZkappStateLength } from './mina/mina-instance.js';
+} from '../provable-context.js';
+import { Cache } from '../proof-system/cache.js';
+import { assert } from '../gadgets/common.js';
+import { SmartContractBase } from './smart-contract-base.js';
+import { ZkappStateLength } from './mina-instance.js';
 import {
   SmartContractContext,
   accountUpdateLayout,
   smartContractContext,
-} from './mina/smart-contract-context.js';
-import { assertPromise } from './util/assert.js';
-import { ProvablePure } from './provable-types/provable-intf.js';
+} from './smart-contract-context.js';
+import { assertPromise } from '../util/assert.js';
+import { ProvablePure } from '../provable-types/provable-intf.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };

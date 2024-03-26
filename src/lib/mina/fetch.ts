@@ -1,10 +1,10 @@
 import 'isomorphic-fetch';
-import { Field } from './core.js';
-import { UInt32, UInt64 } from './int.js';
+import { Field } from '../core.js';
+import { UInt32, UInt64 } from '../int.js';
 import { Actions, TokenId } from './account-update.js';
-import { PublicKey, PrivateKey } from './signature.js';
+import { PublicKey, PrivateKey } from '../signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../bindings/mina-transaction/types.js';
+import { Types } from '../../bindings/mina-transaction/types.js';
 import { ActionStates } from './mina.js';
 import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
 import {
@@ -12,7 +12,7 @@ import {
   fillPartialAccount,
   parseFetchedAccount,
   PartialAccount,
-} from './mina/account.js';
+} from './account.js';
 import {
   type LastBlockQueryResponse,
   type GenesisConstantsResponse,
@@ -35,7 +35,7 @@ import {
   genesisConstantsQuery,
   accountQuery,
   currentSlotQuery,
-} from './mina/graphql.js';
+} from './graphql.js';
 
 export {
   fetchAccount,

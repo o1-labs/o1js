@@ -2,7 +2,7 @@
  * A ledger of accounts - simple model of a local blockchain.
  */
 import { PublicKey } from '../../signature.js';
-import type { AccountUpdate } from '../../account-update.js';
+import type { AccountUpdate } from '../account-update.js';
 import { Account, newAccount } from '../account.js';
 import { Field } from '../../field.js';
 import { applyAccountUpdate } from './apply.js';

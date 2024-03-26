@@ -9,7 +9,7 @@ import { createHashHelpers } from './hash-generic.js';
 import { Provable } from './provable.js';
 import { MlFieldArray } from './ml/fields.js';
 import { Poseidon as PoseidonBigint } from '../bindings/crypto/poseidon.js';
-import { assert } from './errors.js';
+import { assert } from './util/errors.js';
 import { rangeCheckN } from './gadgets/range-check.js';
 import { TupleN } from './util/types.js';
 

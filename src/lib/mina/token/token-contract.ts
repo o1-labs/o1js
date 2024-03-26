@@ -8,8 +8,8 @@ import {
   AccountUpdateTree,
   Permissions,
   TokenId,
-} from '../../account-update.js';
-import { DeployArgs, SmartContract } from '../../zkapp.js';
+} from '../account-update.js';
+import { DeployArgs, SmartContract } from '../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import { tokenMethods } from './token-methods.js';
 

@@ -6,7 +6,7 @@ import {
   stringToBytes,
   withBits,
 } from '../../bindings/lib/binable.js';
-import { base58 } from '../../lib/base58.js';
+import { base58 } from '../../lib/util/base58.js';
 import {
   HashInputLegacy,
   hashWithPrefix,

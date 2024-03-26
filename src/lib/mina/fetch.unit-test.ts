@@ -1,4 +1,4 @@
-import { removeJsonQuotes } from './mina/graphql.js';
+import { removeJsonQuotes } from './graphql.js';
 import { expect } from 'expect';
 
 console.log('testing regex helpers');

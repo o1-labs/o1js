@@ -1,22 +1,22 @@
-import { Bool, Field } from './core.js';
+import { Bool, Field } from '../core.js';
 import {
   circuitValueEquals,
   cloneCircuitValue,
-} from './provable-types/struct.js';
-import { Provable } from './provable.js';
-import { activeInstance as Mina } from './mina/mina-instance.js';
+} from '../provable-types/struct.js';
+import { Provable } from '../provable.js';
+import { activeInstance as Mina } from './mina-instance.js';
 import type { AccountUpdate } from './account-update.js';
-import { Int64, UInt32, UInt64 } from './int.js';
-import { Layout } from '../bindings/mina-transaction/gen/transaction.js';
-import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
-import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
-import { PublicKey } from './signature.js';
+import { Int64, UInt32, UInt64 } from '../int.js';
+import { Layout } from '../../bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
+import { emptyReceiptChainHash, TokenSymbol } from '../hash.js';
+import { PublicKey } from '../signature.js';
 import {
   Actions,
   ZkappUri,
-} from '../bindings/mina-transaction/transaction-leaves.js';
-import type { Types } from '../bindings/mina-transaction/types.js';
-import { ZkappStateLength } from './mina/mina-instance.js';
+} from '../../bindings/mina-transaction/transaction-leaves.js';
+import type { Types } from '../../bindings/mina-transaction/types.js';
+import { ZkappStateLength } from './mina-instance.js';
 
 export {
   preconditions,

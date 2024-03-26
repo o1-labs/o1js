@@ -11,7 +11,7 @@ import {
   TokenId,
   Authorization,
   Actions,
-} from '../account-update.js';
+} from './account-update.js';
 import { NetworkId } from '../../mina-signer/src/types.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import { invalidTransactionError } from './errors.js';

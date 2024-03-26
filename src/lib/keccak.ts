@@ -1,6 +1,6 @@
 import { Field } from './field.js';
 import { Gadgets } from './gadgets/gadgets.js';
-import { assert } from './errors.js';
+import { assert } from './util/errors.js';
 import { FlexibleBytes } from './provable-types/bytes.js';
 import { UInt8 } from './int.js';
 import { Bytes } from './provable-types/provable-types.js';

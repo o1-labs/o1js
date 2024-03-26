@@ -8,7 +8,7 @@ import {
   ZkappPublicInput,
   AccountUpdate,
   dummySignature,
-} from '../account-update.js';
+} from './account-update.js';
 import { Field } from '../core.js';
 import { UInt64, UInt32 } from '../int.js';
 import { PublicKey } from '../signature.js';
@@ -20,7 +20,7 @@ import { assert } from '../gadgets/common.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Account } from './account.js';
-import type { NetworkValue } from '../precondition.js';
+import type { NetworkValue } from './precondition.js';
 
 export {
   reportGetAccountError,

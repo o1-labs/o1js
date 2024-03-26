@@ -3,10 +3,14 @@ import { Unconstrained } from './unconstrained.js';
 import { UInt32 } from '../int.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { expect } from 'expect';
-import { method, SmartContract } from '../zkapp.js';
-import { LocalBlockchain, setActiveInstance, transaction } from '../mina.js';
-import { State, state } from '../state.js';
-import { AccountUpdate } from '../account-update.js';
+import { method, SmartContract } from '../mina/zkapp.js';
+import {
+  LocalBlockchain,
+  setActiveInstance,
+  transaction,
+} from '../mina/mina.js';
+import { State, state } from '../mina/state.js';
+import { AccountUpdate } from '../mina/account-update.js';
 import { Provable } from '../provable.js';
 import { Field } from '../core.js';
 

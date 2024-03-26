@@ -9,7 +9,7 @@ import {
   withCheck,
   withVersionNumber,
 } from '../../bindings/lib/binable.js';
-import { base58, withBase58 } from '../../lib/base58.js';
+import { base58, withBase58 } from '../../lib/util/base58.js';
 import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
 import { BinableBigint, SignableBigint, signable } from './derivers-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';

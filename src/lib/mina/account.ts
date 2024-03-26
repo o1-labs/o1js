@@ -1,9 +1,9 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { Bool, Field } from '../core.js';
-import { Permissions } from '../account-update.js';
+import { Permissions } from './account-update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
-import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
+import { TokenId, ReceiptChainHash } from './base58-encodings.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import {
   customTypes,

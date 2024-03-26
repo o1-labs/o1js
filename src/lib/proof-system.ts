@@ -22,7 +22,7 @@ import {
   provablePure,
 } from './provable-types/struct.js';
 import { Provable } from './provable.js';
-import { assert, prettifyStacktracePromise } from './errors.js';
+import { assert, prettifyStacktracePromise } from './util/errors.js';
 import { snarkContext } from './provable-context.js';
 import { hashConstant } from './hash.js';
 import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';

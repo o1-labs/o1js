@@ -10,7 +10,7 @@ import type {
   FlexibleProvable,
   ProvableExtended,
 } from './provable-types/struct.js';
-import { Context } from './global-context.js';
+import { Context } from './util/global-context.js';
 import {
   HashInput,
   InferJson,

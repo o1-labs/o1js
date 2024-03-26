@@ -1,7 +1,7 @@
 import { Snarky } from '../../snarky.js';
 import { Field } from '../field.js';
 import { Provable } from '../provable.js';
-import { assert } from '../errors.js';
+import { assert } from '../util/errors.js';
 import { inCheckedComputation } from '../provable-context.js';
 
 export { Unconstrained };

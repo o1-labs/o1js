@@ -24,7 +24,7 @@ import {
 import { PublicKey, Scalar } from './curve-bigint.js';
 import { Signature, SignatureJson } from './signature.js';
 import { blake2b } from 'blakejs';
-import { base58, withBase58 } from '../../lib/base58.js';
+import { base58, withBase58 } from '../../lib/util/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export {

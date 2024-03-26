@@ -4,18 +4,18 @@ import {
   provable,
   provablePure,
   StructNoJson,
-} from './provable-types/struct.js';
-import { memoizationContext, memoizeWitness, Provable } from './provable.js';
-import { Field, Bool } from './core.js';
-import { Pickles, Test } from '../snarky.js';
-import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
+} from '../provable-types/struct.js';
+import { memoizationContext, memoizeWitness, Provable } from '../provable.js';
+import { Field, Bool } from '../core.js';
+import { Pickles, Test } from '../../snarky.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
   TypesBigint,
   toJSONEssential,
-} from '../bindings/mina-transaction/types.js';
-import { PrivateKey, PublicKey } from './signature.js';
-import { UInt64, UInt32, Int64, Sign } from './int.js';
+} from '../../bindings/mina-transaction/types.js';
+import { PrivateKey, PublicKey } from '../signature.js';
+import { UInt64, UInt32, Int64, Sign } from '../int.js';
 import type { SmartContract } from './zkapp.js';
 import {
   Preconditions,
@@ -27,49 +27,49 @@ import {
   ClosedInterval,
   getAccountPreconditions,
 } from './precondition.js';
-import { dummyBase64Proof, Empty, Proof, Prover } from './proof-system.js';
-import { Memo } from '../mina-signer/src/memo.js';
+import { dummyBase64Proof, Empty, Proof, Prover } from '../proof-system.js';
+import { Memo } from '../../mina-signer/src/memo.js';
 import {
   Events,
   Actions,
-} from '../bindings/mina-transaction/transaction-leaves.js';
+} from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields, Poseidon } from './hash.js';
+import { hashWithPrefix, packToFields, Poseidon } from '../hash.js';
 import {
   mocks,
   prefixes,
   protocolVersions,
-} from '../bindings/crypto/constants.js';
-import { MlArray } from './ml/base.js';
+} from '../../bindings/crypto/constants.js';
+import { MlArray } from '../ml/base.js';
 import {
   Signature,
   signFieldElement,
   zkAppBodyPrefix,
-} from '../mina-signer/src/signature.js';
-import { MlFieldConstArray } from './ml/fields.js';
+} from '../../mina-signer/src/signature.js';
+import { MlFieldConstArray } from '../ml/fields.js';
 import {
   accountUpdatesToCallForest,
   CallForest,
   callForestHashGeneric,
   transactionCommitments,
-} from '../mina-signer/src/sign-zkapp-command.js';
-import { currentTransaction } from './mina/transaction-context.js';
-import { isSmartContract } from './mina/smart-contract-base.js';
-import { activeInstance } from './mina/mina-instance.js';
+} from '../../mina-signer/src/sign-zkapp-command.js';
+import { currentTransaction } from './transaction-context.js';
+import { isSmartContract } from './smart-contract-base.js';
+import { activeInstance } from './mina-instance.js';
 import {
   emptyHash,
   genericHash,
   MerkleList,
   MerkleListBase,
-} from './provable-types/merkle-list.js';
-import { Hashed } from './provable-types/packed.js';
+} from '../provable-types/merkle-list.js';
+import { Hashed } from '../provable-types/packed.js';
 import {
   accountUpdateLayout,
   smartContractContext,
-} from './mina/smart-contract-context.js';
-import { assert } from './util/assert.js';
-import { RandomId } from './provable-types/auxiliary.js';
-import { NetworkId } from '../mina-signer/src/types.js';
+} from './smart-contract-context.js';
+import { assert } from '../util/assert.js';
+import { RandomId } from '../provable-types/auxiliary.js';
+import { NetworkId } from '../../mina-signer/src/types.js';
 
 // external API
 export {

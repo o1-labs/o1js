@@ -1,14 +1,14 @@
-import { Test } from '../snarky.js';
-import { Field } from './core.js';
-import { UInt64 } from './int.js';
-import { PublicKey } from './signature.js';
+import { Test } from '../../snarky.js';
+import { Field } from '../core.js';
+import { UInt64 } from '../int.js';
+import { PublicKey } from '../signature.js';
 import { ZkappCommand, TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
-import { invalidTransactionError } from './mina/errors.js';
-import { Types } from '../bindings/mina-transaction/types.js';
-import { Account } from './mina/account.js';
-import { NetworkId } from '../mina-signer/src/types.js';
-import { currentTransaction } from './mina/transaction-context.js';
+import { invalidTransactionError } from './errors.js';
+import { Types } from '../../bindings/mina-transaction/types.js';
+import { Account } from './account.js';
+import { NetworkId } from '../../mina-signer/src/types.js';
+import { currentTransaction } from './transaction-context.js';
 import {
   type FeePayerSpec,
   type ActionStates,
@@ -28,8 +28,8 @@ import {
   fetchActions,
   getActions,
   getProofsEnabled,
-} from './mina/mina-instance.js';
-import { type EventActionFilterOptions } from './mina/graphql.js';
+} from './mina-instance.js';
+import { type EventActionFilterOptions } from './graphql.js';
 import {
   type Transaction,
   type PendingTransaction,
@@ -41,14 +41,14 @@ import {
   transaction,
   createRejectedTransaction,
   createIncludedTransaction,
-} from './mina/transaction.js';
+} from './transaction.js';
 import {
   reportGetAccountError,
   verifyTransactionLimits,
   defaultNetworkState,
   filterGroups,
-} from './mina/transaction-validation.js';
-import { LocalBlockchain } from './mina/local-blockchain.js';
+} from './transaction-validation.js';
+import { LocalBlockchain } from './local-blockchain.js';
 
 export {
   LocalBlockchain,
