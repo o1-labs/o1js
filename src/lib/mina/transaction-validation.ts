@@ -12,7 +12,7 @@ import {
 import { Field } from '../core.js';
 import { UInt64, UInt32 } from '../int.js';
 import { PublicKey } from '../signature.js';
-import { JsonProof, verify } from '../proof-system.js';
+import { JsonProof, verify } from '../proof-system/zkprogram.js';
 import { verifyAccountUpdateSignature } from '../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';
 import { cloneCircuitValue } from '../provable-types/struct.js';

@@ -27,7 +27,12 @@ import {
   ClosedInterval,
   getAccountPreconditions,
 } from './precondition.js';
-import { dummyBase64Proof, Empty, Proof, Prover } from '../proof-system.js';
+import {
+  dummyBase64Proof,
+  Empty,
+  Proof,
+  Prover,
+} from '../proof-system/zkprogram.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import {
   Events,

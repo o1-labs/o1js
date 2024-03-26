@@ -1,6 +1,6 @@
 import { mod } from '../../bindings/crypto/finite-field.js';
 import { Field } from '../../lib/core.js';
-import { ZkProgram } from '../proof-system.js';
+import { ZkProgram } from '../proof-system/zkprogram.js';
 import {
   Spec,
   boolean,

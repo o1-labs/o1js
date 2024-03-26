@@ -9,7 +9,7 @@ import {
 import { Field3 } from './foreign-field.js';
 import { CurveParams } from '../../bindings/crypto/elliptic-curve-examples.js';
 import { Provable } from '../provable.js';
-import { ZkProgram } from '../proof-system.js';
+import { ZkProgram } from '../proof-system/zkprogram.js';
 import { assert } from './common.js';
 import { foreignField, uniformForeignField } from './test-utils.js';
 import {

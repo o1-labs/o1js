@@ -11,7 +11,7 @@ import {
 import { Field } from '../core.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { UInt32, UInt64 } from '../int.js';
-import { Empty, Proof } from '../proof-system.js';
+import { Empty, Proof } from '../proof-system/zkprogram.js';
 import { currentTransaction } from './transaction-context.js';
 import { Provable } from '../provable.js';
 import { assertPreconditionInvariants } from './precondition.js';

@@ -25,7 +25,12 @@ export type {
 export { provable, provablePure, Struct } from './lib/provable-types/struct.js';
 export { Unconstrained } from './lib/provable-types/unconstrained.js';
 export { Provable } from './lib/provable.js';
-export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
+export {
+  Circuit,
+  Keypair,
+  public_,
+  circuitMain,
+} from './lib/proof-system/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';
 export { Bytes } from './lib/provable-types/provable-types.js';
 export { Packed, Hashed } from './lib/provable-types/packed.js';
@@ -54,7 +59,7 @@ export {
 } from './lib/mina/zkapp.js';
 export { state, State, declareState } from './lib/mina/state.js';
 
-export type { JsonProof } from './lib/proof-system.js';
+export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
   Proof,
   SelfProof,
@@ -63,7 +68,7 @@ export {
   Undefined,
   Void,
   VerificationKey,
-} from './lib/proof-system.js';
+} from './lib/proof-system/zkprogram.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export {
@@ -104,7 +109,7 @@ export {
 
 export { Nullifier } from './lib/nullifier.js';
 
-export { ZkProgram } from './lib/proof-system.js';
+export { ZkProgram } from './lib/proof-system/zkprogram.js';
 
 export { Crypto } from './lib/crypto.js';
 

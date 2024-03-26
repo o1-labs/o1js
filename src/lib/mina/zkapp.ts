@@ -50,7 +50,7 @@ import {
   MethodInterface,
   Proof,
   sortMethodArguments,
-} from '../proof-system.js';
+} from '../proof-system/zkprogram.js';
 import { PrivateKey, PublicKey } from '../signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import {

@@ -13,7 +13,7 @@ import type {
   IsPure,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
-import { Proof } from '../proof-system.js';
+import { Proof } from '../proof-system/zkprogram.js';
 import { ProvablePure } from './provable-intf.js';
 
 // external API

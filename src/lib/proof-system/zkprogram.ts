@@ -2,16 +2,16 @@ import {
   EmptyNull,
   EmptyUndefined,
   EmptyVoid,
-} from '../bindings/lib/generic.js';
-import { withThreadPool } from '../snarky.js';
+} from '../../bindings/lib/generic.js';
+import { withThreadPool } from '../../snarky.js';
 import {
   Pickles,
   FeatureFlags,
   MlFeatureFlags,
   Gate,
   GateType,
-} from '../snarky.js';
-import { Field, Bool } from './core.js';
+} from '../../snarky.js';
+import { Field, Bool } from '../core.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
@@ -20,22 +20,25 @@ import {
   Struct,
   provable,
   provablePure,
-} from './provable-types/struct.js';
-import { Provable } from './provable.js';
-import { assert, prettifyStacktracePromise } from './util/errors.js';
-import { snarkContext } from './provable-context.js';
-import { hashConstant } from './hash.js';
-import { MlArray, MlBool, MlResult, MlPair } from './ml/base.js';
-import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
-import { FieldVar, FieldConst } from './provable-core/fieldvar.js';
-import { Cache, readCache, writeCache } from './proof-system/cache.js';
+} from '../provable-types/struct.js';
+import { Provable } from '../provable.js';
+import { assert, prettifyStacktracePromise } from '../util/errors.js';
+import { snarkContext } from '../provable-context.js';
+import { hashConstant } from '../hash.js';
+import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
+import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
+import { FieldVar, FieldConst } from '../provable-core/fieldvar.js';
+import { Cache, readCache, writeCache } from './cache.js';
 import {
   decodeProverKey,
   encodeProverKey,
   parseHeader,
-} from './proof-system/prover-keys.js';
-import { setSrsCache, unsetSrsCache } from '../bindings/crypto/bindings/srs.js';
-import { ProvablePure } from './provable-types/provable-intf.js';
+} from './prover-keys.js';
+import {
+  setSrsCache,
+  unsetSrsCache,
+} from '../../bindings/crypto/bindings/srs.js';
+import { ProvablePure } from '../provable-types/provable-intf.js';
 
 // public API
 export {

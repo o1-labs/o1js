@@ -14,7 +14,7 @@ import {
 } from './testing/equivalent.js';
 import { test, Random } from './testing/property.js';
 import { Provable } from './provable.js';
-import { Circuit, circuitMain } from './circuit.js';
+import { Circuit, circuitMain } from './proof-system/circuit.js';
 import { Scalar } from './scalar.js';
 import { l } from './gadgets/range-check.js';
 import { assert } from './gadgets/common.js';

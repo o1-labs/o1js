@@ -1,4 +1,4 @@
-import { Circuit, circuitMain } from './circuit.js';
+import { Circuit, circuitMain } from './proof-system/circuit.js';
 import { UInt64, UInt32 } from './int.js';
 import { expect } from 'expect';
 import { Provable } from './provable.js';
