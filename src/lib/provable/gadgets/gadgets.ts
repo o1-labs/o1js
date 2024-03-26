@@ -739,7 +739,7 @@ const Gadgets = {
     },
 
     /**
-     * Prove that x < f for any constant f < 2^264.
+     * Prove that x < f for any constant f < 2^264, or for another `Field3` f.
      *
      * If f is a finite field modulus, this means that the given field element is fully reduced modulo f.
      * This is a stronger statement than {@link ForeignField.assertAlmostReduced}
@@ -761,7 +761,7 @@ const Gadgets = {
      * Gadgets.ForeignField.assertLessThan(x, f);
      * ```
      */
-    assertLessThan(x: Field3, f: bigint) {
+    assertLessThan(x: Field3, f: bigint | Field3) {
       ForeignField.assertLessThan(x, f);
     },
   },

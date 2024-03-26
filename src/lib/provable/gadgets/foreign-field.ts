@@ -60,20 +60,7 @@ const ForeignField = {
 
   assertAlmostReduced,
 
-  assertLessThan(x: Field3, f: bigint) {
-    assert(f > 0n, 'assertLessThan: upper bound must be positive');
-
-    // constant case
-    if (Field3.isConstant(x)) {
-      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
-      return;
-    }
-    // provable case
-    // we can just use negation `(f - 1) - x`. because the result is range-checked, it proves that x < f:
-    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
-    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
-    ForeignField.negate(x, f - 1n);
-  },
+  assertLessThan,
 
   equals,
 };
@@ -439,7 +426,8 @@ const Field3 = {
   /**
    * Turn a bigint into a 3-tuple of Fields
    */
-  from(x: bigint): Field3 {
+  from(x: bigint | Field3): Field3 {
+    if (Array.isArray(x)) return x;
     return Tuple.map(split(x), Field.from);
   },
 
@@ -719,4 +707,43 @@ class Sum {
     }
     return new Sum(x);
   }
+}
+
+// Field3 comparison
+
+function assertLessThan(x: Field3, y: bigint | Field3) {
+  if (typeof y === 'bigint')
+    assert(y > 0n, 'assertLessThan: upper bound must be positive');
+  let y_ = Field3.from(y);
+
+  // constant case
+
+  if (Field3.isConstant(x) && Field3.isConstant(y_)) {
+    assert(
+      Field3.toBigint(x) < Field3.toBigint(y_),
+      'assertLessThan: got x >= y'
+    );
+    return;
+  }
+
+  // case of one variable, one constant
+
+  if (Field3.isConstant(x)) return assertLessThan(y_, x);
+  if (Field3.isConstant(y_)) {
+    y = typeof y === 'bigint' ? y : Field3.toBigint(y);
+
+    // we can just use negation `(y - 1) - x`. because the result is range-checked, it proves that x < y:
+    // `y - 1 - x \in [0, 2^3l) => x <= x + (y - 1 - x) = y - 1 < y`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
+
+    ForeignField.negate(x, y - 1n);
+    return;
+  }
+
+  // case of two variables
+  // we compute z = y - x - 1 and check that z \in [0, 2^3l), which implies x < y as above
+
+  // we use modulo 0 here, which means we're proving:
+  // z = y - x - 1 - 0*(o1 + o2) for some overflows o1, o2
+  sum([y_, x, Field3.from(1n)], [-1n, -1n], 0n);
 }
