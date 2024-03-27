@@ -6,8 +6,68 @@ import { assert } from '../../../lib/util/assert.js';
 import { exists } from '../core/exists.js';
 import { assertMul } from './compatible.js';
 import { asProver } from '../core/provable-context.js';
+import { log2 } from '../../../bindings/crypto/bigint-helpers.js';
 
-export { compareCompatible };
+export {
+  compareCompatible,
+  checkRangesAsProver,
+  assertLessThanGeneric,
+  assertLessThanOrEqualGeneric,
+};
+
+/**
+ * Prove x <= y assuming 0 <= x, y < c.
+ * The constant c must satisfy 2c <= p, where p is the field order.
+ *
+ * Expects a function `rangeCheck(v: Field)` which proves that v is in [0, c).
+ * The efficiency of the gadget largely depends on the efficiency of `rangeCheck()`.
+ *
+ * **Warning:** The gadget does not prove x <= y if either 2c > p or x or y are not in [0, c).
+ * Neither of these conditions are enforced by the gadget.
+ */
+function assertLessThanOrEqualGeneric(
+  x: Field,
+  y: Field,
+  rangeCheck: (v: Field) => void
+) {
+  // since 0 <= x, y < c, we have y - x in [0, c) u (p-c, p)
+  // because of c <= p-c, the two ranges are disjoint. therefore,
+  // y - x in [0, c) is equivalent to x <= y
+  rangeCheck(y.sub(x).seal());
+}
+
+/**
+ * Prove x < y assuming 0 <= x, y < c.
+ *
+ * See {@link assertLessThanOrEqualGeneric} for details and assumptions.
+ */
+function assertLessThanGeneric(
+  x: Field,
+  y: Field,
+  rangeCheck: (v: Field) => void
+) {
+  // since 0 <= x, y < c, we have y - 1 - x in [0, c) u [p-c, p)
+  // because of c <= p-c, the two ranges are disjoint. therefore,
+  // y - 1 - x in [0, c) is equivalent to x <= y - 1 which is equivalent to x < y
+  rangeCheck(y.sub(1).sub(x).seal());
+}
+
+/**
+ * Check ranges in a prover block, to help users avoid the pitfall of using comparison gadgets
+ * without range-checking the inputs.
+ */
+function checkRangesAsProver(x: Field, y: Field, c: bigint) {
+  asProver(() => {
+    let x0 = x.toBigInt();
+    let y0 = y.toBigInt();
+    if (x0 >= c || y0 >= c)
+      throw Error(
+        `Provable comparison can only be used on Fields <= ${log2(
+          c
+        )} bits, got ${Math.max(log2(x0), log2(y0))} bits.`
+      );
+  });
+}
 
 /**
  * Compare x and y assuming both have at most `n` bits.
@@ -23,21 +83,11 @@ function compareCompatible(x: Field, y: Field, n = Fp.sizeInBits - 2) {
   assert(n <= maxLength, `bitLength must be at most ${maxLength}`);
 
   // as prover check
-  asProver(() => {
-    let actualLength = Math.max(
-      x.toBigInt().toString(2).length,
-      y.toBigInt().toString(2).length
-    );
-    if (actualLength > maxLength)
-      throw Error(
-        `Provable comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
-      );
-  });
+  const c = 1n << BigInt(n);
+  checkRangesAsProver(x, y, c);
 
   // z = 2^n + y - x
-  let z = createField(1n << BigInt(n))
-    .add(y)
-    .sub(x);
+  let z = createField(c).add(y).sub(x);
 
   let zBits = unpack(z, n + 1);
 

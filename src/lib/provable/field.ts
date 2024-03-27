@@ -23,7 +23,12 @@ import {
 } from './core/fieldvar.js';
 import { exists, existsOne } from './core/exists.js';
 import { setFieldConstructor } from './core/field-constructor.js';
-import { compareCompatible } from './gadgets/comparison.js';
+import {
+  assertLessThanGeneric,
+  assertLessThanOrEqualGeneric,
+  checkRangesAsProver,
+  compareCompatible,
+} from './gadgets/comparison.js';
 
 // external API
 export { Field };
@@ -689,8 +694,10 @@ class Field {
         }
         return;
       }
-      let { less } = compareCompatible(this, Field.from(y));
-      less.assertTrue();
+      y = Field.from(y);
+      let maxBits = Fp.sizeInBits - 2;
+      checkRangesAsProver(this, y, 1n << BigInt(maxBits));
+      assertLessThanGeneric(this, y, (v) => v.toBits(maxBits));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -717,8 +724,10 @@ class Field {
         }
         return;
       }
-      let { lessOrEqual } = compareCompatible(this, Field.from(y));
-      lessOrEqual.assertTrue();
+      y = Field.from(y);
+      let maxBits = Fp.sizeInBits - 2;
+      checkRangesAsProver(this, y, 1n << BigInt(maxBits));
+      assertLessThanOrEqualGeneric(this, y, (v) => v.toBits(maxBits));
     } catch (err) {
       throw withMessage(err, message);
     }

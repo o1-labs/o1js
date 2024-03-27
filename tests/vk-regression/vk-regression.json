@@ -227,8 +227,8 @@
         "digest": "49e0fdd67c13bd800f641f2375301322"
       },
       "assertLessThan": {
-        "rows": 510,
-        "digest": "4d72e2e7b6073ac9279accec2bc3889b"
+        "rows": 253,
+        "digest": "82f8aceac7a1c72663eceb48834e4fcd"
       },
       "lessThan": {
         "rows": 509,
