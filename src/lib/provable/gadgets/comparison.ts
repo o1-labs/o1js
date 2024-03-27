@@ -7,6 +7,9 @@ import { exists, existsOne } from '../core/exists.js';
 import { assertMul } from './compatible.js';
 import { asProver } from '../core/provable-context.js';
 import { log2 } from '../../../bindings/crypto/bigint-helpers.js';
+import { Provable } from '../provable.js';
+import { Field3, ForeignField } from './foreign-field.js';
+import { l, l2, multiRangeCheck } from './range-check.js';
 
 export {
   compareCompatible,
@@ -15,6 +18,7 @@ export {
   assertLessThanOrEqualGeneric,
   lessThanGeneric,
   lessThanOrEqualGeneric,
+  assertLessThanFull,
 };
 
 /**
@@ -103,6 +107,40 @@ function lessThanOrEqualGeneric(
   rangeCheck(b.mul(c).add(x).sub(y).sub(1).seal());
 
   return createBool(b.value);
+}
+
+/**
+ * Assert that x < y.
+ *
+ * There are no assumptions on the range of x and y, they can occupy the full range [0, p).
+ */
+function assertLessThanFull(x: Field, y: Field) {
+  let xBig = fieldToField3(x);
+  let yBig = fieldToField3(y);
+
+  // x < y as bigints
+  ForeignField.assertLessThan(xBig, yBig);
+
+  // y < p, so y is canonical. implies x < p as well.
+  // (if we didn't do this check, we would prove nothing.
+  // e.g. yBig could be the bigint representation of y + p, and only _therefore_ larger than xBig)
+  ForeignField.assertLessThan(yBig, Fp.modulus);
+}
+
+/**
+ * internal helper, split Field into a 3-limb bigint
+ *
+ * **Warning:** the output is underconstrained up to a multiple of the modulus that could be added to the bigint.
+ */
+function fieldToField3(x: Field) {
+  let xBig = Provable.witness(Field3.provable, () => Field3.from(x.toBigInt()));
+  multiRangeCheck(xBig);
+  let [x0, x1, x2] = xBig;
+
+  // prove that x == x0 + x1*2^l + x2*2^2l
+  let x_ = x0.add(x1.mul(1n << l)).add(x2.mul(1n << l2));
+  x_.assertEquals(x);
+  return xBig;
 }
 
 /**
