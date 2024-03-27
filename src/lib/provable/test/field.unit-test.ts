@@ -76,8 +76,6 @@ let SmallField = Random.reject(
   (x) => x.toString(2).length > Fp.sizeInBits - 2
 );
 let smallField: Spec<bigint, Field> = { ...field, rng: SmallField };
-let smallBigint: Spec<bigint, bigint> = { ...bigintField, rng: SmallField };
-let smallFieldOrBigint = oneOf(smallField, smallBigint);
 
 // arithmetic, both in- and outside provable code
 let equivalent1 = equivalent({ from: [field], to: field });
@@ -105,11 +103,11 @@ equivalent({ from: [field, fieldOrBigint], to: bool })(
   (x, y) => x.equals(y)
 );
 
-equivalent({ from: [smallField, smallFieldOrBigint], to: bool })(
+equivalent({ from: [field, fieldOrBigint], to: bool })(
   (x, y) => x < y,
   (x, y) => x.lessThan(y)
 );
-equivalent({ from: [smallField, smallFieldOrBigint], to: bool })(
+equivalent({ from: [field, fieldOrBigint], to: bool })(
   (x, y) => x <= y,
   (x, y) => x.lessThanOrEqual(y)
 );
@@ -121,11 +119,11 @@ equivalent({ from: [field, fieldOrBigint], to: unit })(
   (x, y) => x !== y || throwError('equal'),
   (x, y) => x.assertNotEquals(y)
 );
-equivalent({ from: [smallField, smallFieldOrBigint], to: unit })(
+equivalent({ from: [field, fieldOrBigint], to: unit })(
   (x, y) => x < y || throwError('not less than'),
   (x, y) => x.assertLessThan(y)
 );
-equivalent({ from: [smallField, smallFieldOrBigint], to: unit })(
+equivalent({ from: [field, fieldOrBigint], to: unit })(
   (x, y) => x <= y || throwError('not less than or equal'),
   (x, y) => x.assertLessThanOrEqual(y)
 );

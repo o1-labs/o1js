@@ -565,17 +565,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(2).lessThan(3).assertEquals(Bool(true));
+   * let isTrue = Field(2).lessThan(3);
    * ```
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behavior when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(3)).lessThan(Field(1).div(Field(2))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(3).lessThan(Field(1).div(2)); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -595,17 +592,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(3).lessThanOrEqual(3).assertEquals(Bool(true));
+   * let isTrue = Field(3).lessThanOrEqual(3);
    * ```
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(3)).lessThanOrEqual(Field(1).div(Field(2))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(3).lessThanOrEqual(Field(1).div(2)); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -625,17 +619,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(5).greaterThan(3).assertEquals(Bool(true));
+   * let isTrue = Field(5).greaterThan(3);
    * ```
-   *
-   * **Warning**: Comparison methods currently only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(2)).greaterThan(Field(1).div(Field(3))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(2).greaterThan(Field(1).div(3); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -652,17 +643,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(3).greaterThanOrEqual(3).assertEquals(Bool(true));
+   * let isTrue = Field(3).greaterThanOrEqual(3);
    * ```
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(2)).greaterThanOrEqual(Field(1).div(Field(3))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(2).greaterThanOrEqual(Field(1).div(3); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -675,13 +663,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is less than another "field-like" value.
-   * Calling this function is equivalent to `Field(...).lessThan(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.lessThan(y).assertTrue()`.
    * See {@link Field.lessThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -702,13 +688,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is less than or equal to another "field-like" value.
-   * Calling this function is equivalent to `Field(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.lessThanOrEqual(y).assertTrue()`.
    * See {@link Field.lessThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -729,13 +713,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is greater than another "field-like" value.
-   * Calling this function is equivalent to `Field(...).greaterThan(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.greaterThan(y).assertTrue()`.
    * See {@link Field.greaterThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -746,13 +728,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is greater than or equal to another "field-like" value.
-   * Calling this function is equivalent to `Field(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.greaterThanOrEqual(y).assertTrue()`.
    * See {@link Field.greaterThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
