@@ -6,7 +6,7 @@ import {
   AccountUpdateForest,
   TokenId,
   hashAccountUpdate,
-} from '../../account-update.js';
+} from '../account-update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
 import { Pickles } from '../../../snarky.js';
 import {
@@ -14,8 +14,8 @@ import {
   callForestHash,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
 import assert from 'assert';
-import { Field, Bool } from '../../core.js';
-import { PublicKey } from '../../signature.js';
+import { Field, Bool } from '../../provable/wrapped.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 

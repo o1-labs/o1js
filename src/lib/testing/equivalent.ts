@@ -2,13 +2,13 @@
  * helpers for testing equivalence of two implementations, one of them on bigints
  */
 import { test, Random } from '../testing/property.js';
-import { Provable } from '../provable.js';
+import { Provable } from '../provable/provable.js';
 import { deepEqual } from 'node:assert/strict';
-import { Bool, Field } from '../core.js';
+import { Bool, Field } from '../provable/wrapped.js';
 import { AnyFunction, Tuple } from '../util/types.js';
-import { provable } from '../provable-types/struct.js';
-import { assert } from '../gadgets/common.js';
-import { runAndCheckSync } from '../provable-context.js';
+import { provable } from '../provable/types/struct.js';
+import { assert } from '../provable/gadgets/common.js';
+import { runAndCheckSync } from '../provable/core/provable-context.js';
 
 export {
   equivalent,

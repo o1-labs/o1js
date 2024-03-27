@@ -36,7 +36,7 @@ import {
 } from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { alphabet } from '../base58.js';
+import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import { Signable } from '../../mina-signer/src/derivers-bigint.js';

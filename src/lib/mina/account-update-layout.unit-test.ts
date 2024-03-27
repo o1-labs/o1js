@@ -1,7 +1,7 @@
 import { Mina } from '../../index.js';
-import { AccountUpdate, AccountUpdateTree } from '../account-update.js';
-import { UInt64 } from '../int.js';
-import { SmartContract, method } from '../zkapp.js';
+import { AccountUpdate, AccountUpdateTree } from './account-update.js';
+import { UInt64 } from '../provable/int.js';
+import { SmartContract, method } from './zkapp.js';
 
 // smart contract which creates an account update that has a child of its own
 

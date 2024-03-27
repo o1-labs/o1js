@@ -3,8 +3,8 @@ import * as TransactionJson from '../../bindings/mina-transaction/gen/transactio
 import Client from '../mina-signer.js';
 import { accountUpdateExample } from '../src/test-vectors/accountUpdate.js';
 import { expect } from 'expect';
-import { Transaction } from '../../lib/mina.js';
-import { PrivateKey } from '../../lib/signature.js';
+import { Transaction } from '../../lib/mina/mina.js';
+import { PrivateKey } from '../../lib/provable/crypto/signature.js';
 import { Signature } from '../src/signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 

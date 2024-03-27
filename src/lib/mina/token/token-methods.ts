@@ -1,9 +1,9 @@
-import { AccountUpdate, Authorization, TokenId } from '../../account-update.js';
+import { AccountUpdate, Authorization, TokenId } from '../account-update.js';
 import { isSmartContract } from '../smart-contract-base.js';
-import { PublicKey } from '../../signature.js';
-import type { SmartContract } from '../../zkapp.js';
-import { UInt64 } from '../../int.js';
-import { Bool, Field } from '../../core.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import type { SmartContract } from '../zkapp.js';
+import { UInt64 } from '../../provable/int.js';
+import { Bool, Field } from '../../provable/wrapped.js';
 
 export { tokenMethods };
 

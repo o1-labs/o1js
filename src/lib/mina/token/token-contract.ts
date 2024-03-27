@@ -1,15 +1,15 @@
-import { Bool } from '../../core.js';
-import { UInt64, Int64 } from '../../int.js';
-import { Provable } from '../../provable.js';
-import { PublicKey } from '../../signature.js';
+import { Bool } from '../../provable/wrapped.js';
+import { UInt64, Int64 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
   AccountUpdateTree,
   Permissions,
   TokenId,
-} from '../../account-update.js';
-import { DeployArgs, SmartContract } from '../../zkapp.js';
+} from '../account-update.js';
+import { DeployArgs, SmartContract } from '../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import { tokenMethods } from './token-methods.js';
 
