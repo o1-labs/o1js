@@ -16,6 +16,7 @@ import {
   lessThanGeneric,
   lessThanOrEqualGeneric,
 } from './gadgets/comparison.js';
+import { assert } from '../util/assert.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -418,13 +419,11 @@ class UInt64 extends CircuitValue {
    */
   assertLessThanOrEqual(y: UInt64, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
-      let x0 = this.value.toBigInt();
-      let y0 = y.value.toBigInt();
-      if (x0 > y0) {
-        if (message !== undefined) throw Error(message);
-        throw Error(`UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
-      }
-      return;
+      let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
+      return assert(
+        x0 <= y0,
+        message ?? `UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`
+      );
     }
     assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
@@ -436,6 +435,9 @@ class UInt64 extends CircuitValue {
    * Checks if a {@link UInt64} is less than another one.
    */
   lessThan(y: UInt64) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() < y.value.toBigInt());
+    }
     return lessThanGeneric(this.value, y.value, 1n << 64n, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
     );
@@ -445,6 +447,13 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than another one.
    */
   assertLessThan(y: UInt64, message?: string) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
+      return assert(
+        x0 < y0,
+        message ?? `UInt64.assertLessThan: expected ${x0} < ${y0}`
+      );
+    }
     assertLessThanGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
     );
@@ -860,13 +869,11 @@ class UInt32 extends CircuitValue {
    */
   assertLessThanOrEqual(y: UInt32, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
-      let x0 = this.value.toBigInt();
-      let y0 = y.value.toBigInt();
-      if (x0 > y0) {
-        if (message !== undefined) throw Error(message);
-        throw Error(`UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
-      }
-      return;
+      let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
+      return assert(
+        x0 <= y0,
+        message ?? `UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`
+      );
     }
     assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
@@ -877,6 +884,9 @@ class UInt32 extends CircuitValue {
    * Checks if a {@link UInt32} is less than another one.
    */
   lessThan(y: UInt32) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() < y.value.toBigInt());
+    }
     return lessThanGeneric(this.value, y.value, 1n << 64n, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
     );
@@ -886,6 +896,13 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than another one.
    */
   assertLessThan(y: UInt32, message?: string) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
+      return assert(
+        x0 < y0,
+        message ?? `UInt32.assertLessThan: expected ${x0} < ${y0}`
+      );
+    }
     assertLessThanGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
     );
@@ -1380,13 +1397,11 @@ class UInt8 extends Struct({
   assertLessThan(y: UInt8 | bigint | number, message?: string) {
     let y_ = UInt8.from(y);
     if (this.value.isConstant() && y_.value.isConstant()) {
-      let x0 = this.toBigInt();
-      let y0 = y_.toBigInt();
-      if (x0 >= y0) {
-        if (message !== undefined) throw Error(message);
-        throw Error(`UInt8.assertLessThan: expected ${x0} < ${y0}`);
-      }
-      return;
+      let [x0, y0] = [this.value.toBigInt(), y_.value.toBigInt()];
+      return assert(
+        x0 < y0,
+        message ?? `UInt8.assertLessThan: expected ${x0} < ${y0}`
+      );
     }
     try {
       // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanGeneric`
@@ -1407,13 +1422,11 @@ class UInt8 extends Struct({
   assertLessThanOrEqual(y: UInt8 | bigint | number, message?: string) {
     let y_ = UInt8.from(y);
     if (this.value.isConstant() && y_.value.isConstant()) {
-      let x0 = this.toBigInt();
-      let y0 = y_.toBigInt();
-      if (x0 > y0) {
-        if (message !== undefined) throw Error(message);
-        throw Error(`UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
-      }
-      return;
+      let [x0, y0] = [this.value.toBigInt(), y_.value.toBigInt()];
+      return assert(
+        x0 <= y0,
+        message ?? `UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`
+      );
     }
     try {
       // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanOrEqualGeneric`
