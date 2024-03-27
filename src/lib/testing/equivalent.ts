@@ -35,6 +35,7 @@ export {
   fromRandom,
   first,
   second,
+  constant,
 };
 export {
   Spec,
@@ -403,6 +404,10 @@ function second<T, S>(spec: Spec<T, S>): Spec<S, S> {
     back: id,
     provable: spec.provable,
   };
+}
+
+function constant<T, S>(spec: Spec<T, S>, value: T): Spec<T, S> {
+  return { ...spec, rng: Random.constant(value) };
 }
 
 // helper to ensure two functions throw equivalent errors
