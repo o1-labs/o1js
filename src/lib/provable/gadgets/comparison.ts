@@ -58,7 +58,9 @@ function assertLessThanGeneric(
 /**
  * Return a Bool b that is true if and only if x < y.
  *
- * Assumptions are the same as in {@link assertLessThanOrEqualGeneric}, but c is a required input.
+ * Assumptions are similar as in {@link assertLessThanOrEqualGeneric}, with some important differences:
+ * - c is a required input
+ * - the `rangeCheck` function must fully prove that its input is in [0, c)
  */
 function lessThanGeneric(
   x: Field,
@@ -81,7 +83,9 @@ function lessThanGeneric(
 /**
  * Return a Bool b that is true if and only if x <= y.
  *
- * Assumptions are the same as in {@link assertLessThanOrEqualGeneric}, but c is a required input.
+ * Assumptions are similar as in {@link assertLessThanOrEqualGeneric}, with some important differences:
+ * - c is a required input
+ * - the `rangeCheck` function must fully prove that its input is in [0, c)
  */
 function lessThanOrEqualGeneric(
   x: Field,

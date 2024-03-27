@@ -13,6 +13,8 @@ import { CircuitValue, prop } from './types/circuit-value.js';
 import {
   assertLessThanGeneric,
   assertLessThanOrEqualGeneric,
+  lessThanGeneric,
+  lessThanOrEqualGeneric,
 } from './gadgets/comparison.js';
 
 // external API
@@ -405,24 +407,10 @@ class UInt64 extends CircuitValue {
   lessThanOrEqual(y: UInt64) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
-    } else {
-      let xMinusY = this.value.sub(y.value).seal();
-      let yMinusX = xMinusY.neg();
-
-      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
-        UInt64.NUM_BITS,
-        xMinusY
-      );
-
-      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
-        UInt64.NUM_BITS,
-        yMinusX
-      );
-
-      xMinusYFits.or(yMinusXFits).assertEquals(true);
-      // x <= y if y - x fits in 64 bits
-      return yMinusXFits;
     }
+    return lessThanOrEqualGeneric(this.value, y.value, 1n << 64n, (v) =>
+      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
+    );
   }
 
   /**
@@ -448,7 +436,9 @@ class UInt64 extends CircuitValue {
    * Checks if a {@link UInt64} is less than another one.
    */
   lessThan(y: UInt64) {
-    return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
+    return lessThanGeneric(this.value, y.value, 1n << 64n, (v) =>
+      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
+    );
   }
 
   /**
@@ -478,7 +468,7 @@ class UInt64 extends CircuitValue {
    * Checks if a {@link UInt64} is greater than or equal to another one.
    */
   greaterThanOrEqual(y: UInt64) {
-    return this.lessThan(y).not();
+    return y.lessThanOrEqual(this);
   }
 
   /**
@@ -859,21 +849,10 @@ class UInt32 extends CircuitValue {
   lessThanOrEqual(y: UInt32) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
-    } else {
-      let xMinusY = this.value.sub(y.value).seal();
-      let yMinusX = xMinusY.neg();
-      let xMinusYFits = RangeCheck.isDefinitelyInRangeN(
-        UInt32.NUM_BITS,
-        xMinusY
-      );
-      let yMinusXFits = RangeCheck.isDefinitelyInRangeN(
-        UInt32.NUM_BITS,
-        yMinusX
-      );
-      xMinusYFits.or(yMinusXFits).assertEquals(true);
-      // x <= y if y - x fits in 64 bits
-      return yMinusXFits;
     }
+    return lessThanOrEqualGeneric(this.value, y.value, 1n << 32n, (v) =>
+      RangeCheck.rangeCheckN(UInt32.NUM_BITS, v)
+    );
   }
 
   /**
@@ -898,7 +877,9 @@ class UInt32 extends CircuitValue {
    * Checks if a {@link UInt32} is less than another one.
    */
   lessThan(y: UInt32) {
-    return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
+    return lessThanGeneric(this.value, y.value, 1n << 64n, (v) =>
+      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
+    );
   }
 
   /**
@@ -928,7 +909,7 @@ class UInt32 extends CircuitValue {
    * Checks if a {@link UInt32} is greater than or equal to another one.
    */
   greaterThanOrEqual(y: UInt32) {
-    return this.lessThan(y).not();
+    return y.lessThanOrEqual(this);
   }
 
   /**
@@ -1358,7 +1339,12 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y_.value.isConstant()) {
       return Bool(this.toBigInt() <= y_.toBigInt());
     }
-    throw Error('Not implemented');
+    return lessThanOrEqualGeneric(
+      this.value,
+      y_.value,
+      1n << 8n,
+      RangeCheck.rangeCheck8
+    );
   }
 
   /**
@@ -1375,7 +1361,12 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y_.value.isConstant()) {
       return Bool(this.toBigInt() < y_.toBigInt());
     }
-    throw Error('Not implemented');
+    return lessThanGeneric(
+      this.value,
+      y_.value,
+      1n << 8n,
+      RangeCheck.rangeCheck8
+    );
   }
 
   /**
