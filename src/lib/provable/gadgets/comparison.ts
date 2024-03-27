@@ -13,6 +13,8 @@ export {
   checkRangesAsProver,
   assertLessThanGeneric,
   assertLessThanOrEqualGeneric,
+  lessThanGeneric,
+  lessThanOrEqualGeneric,
 };
 
 /**

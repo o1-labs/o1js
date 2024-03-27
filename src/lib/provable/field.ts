@@ -27,7 +27,8 @@ import {
   assertLessThanGeneric,
   assertLessThanOrEqualGeneric,
   checkRangesAsProver,
-  compareCompatible,
+  lessThanGeneric,
+  lessThanOrEqualGeneric,
 } from './gadgets/comparison.js';
 
 // external API
@@ -586,7 +587,11 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() < toFp(y));
     }
-    return compareCompatible(this, Field.from(y)).less;
+    y = Field.from(y);
+    let maxBits = Fp.sizeInBits - 2;
+    let upperBound = 1n << BigInt(maxBits);
+    checkRangesAsProver(this, y, upperBound);
+    return lessThanGeneric(this, y, upperBound, (v) => v.toBits(maxBits));
   }
 
   /**
@@ -616,7 +621,13 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() <= toFp(y));
     }
-    return compareCompatible(this, Field.from(y)).lessOrEqual;
+    y = Field.from(y);
+    let maxBits = Fp.sizeInBits - 2;
+    let upperBound = 1n << BigInt(maxBits);
+    checkRangesAsProver(this, y, upperBound);
+    return lessThanOrEqualGeneric(this, y, upperBound, (v) =>
+      v.toBits(maxBits)
+    );
   }
 
   /**
