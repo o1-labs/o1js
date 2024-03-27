@@ -3,7 +3,7 @@ import type { Bool } from '../bool.js';
 import { createBool, createField } from '../core/field-constructor.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { assert } from '../../../lib/util/assert.js';
-import { exists } from '../core/exists.js';
+import { exists, existsOne } from '../core/exists.js';
 import { assertMul } from './compatible.js';
 import { asProver } from '../core/provable-context.js';
 import { log2 } from '../../../bindings/crypto/bigint-helpers.js';
@@ -40,7 +40,7 @@ function assertLessThanOrEqualGeneric(
 /**
  * Prove x < y assuming 0 <= x, y < c.
  *
- * See {@link assertLessThanOrEqualGeneric} for details and assumptions.
+ * Assumptions are the same as in {@link assertLessThanOrEqualGeneric}.
  */
 function assertLessThanGeneric(
   x: Field,
@@ -49,8 +49,54 @@ function assertLessThanGeneric(
 ) {
   // since 0 <= x, y < c, we have y - 1 - x in [0, c) u [p-c, p)
   // because of c <= p-c, the two ranges are disjoint. therefore,
-  // y - 1 - x in [0, c) is equivalent to x <= y - 1 which is equivalent to x < y
+  // y - 1 - x in [0, p-c) is equivalent to x <= y - 1 which is equivalent to x < y
   rangeCheck(y.sub(1).sub(x).seal());
+}
+
+/**
+ * Return a Bool b that is true if and only if x < y.
+ *
+ * Assumptions are the same as in {@link assertLessThanOrEqualGeneric}, but c is a required input.
+ */
+function lessThanGeneric(
+  x: Field,
+  y: Field,
+  c: bigint,
+  rangeCheck: (v: Field) => void
+) {
+  // we prove that there exists b such that b*c + x - y is in [0, c)
+  // if b = 0, this implies x - y is in [0, c), and so x >= y
+  // if b = 1, this implies x - y is in [p-c, p), and so x < y because p-c >= c
+  let b = existsOne(() => BigInt(x.toBigInt() < y.toBigInt()));
+  b.assertBool();
+
+  // b*c + x - y in [0, c)
+  rangeCheck(b.mul(c).add(x).sub(y).seal());
+
+  return createBool(b.value);
+}
+
+/**
+ * Return a Bool b that is true if and only if x <= y.
+ *
+ * Assumptions are the same as in {@link assertLessThanOrEqualGeneric}, but c is a required input.
+ */
+function lessThanOrEqualGeneric(
+  x: Field,
+  y: Field,
+  c: bigint,
+  rangeCheck: (v: Field) => void
+) {
+  // we prove that there exists b such that b*c + x - y - 1 is in [0, c)
+  // if b = 0, this implies x - y - 1 is in [0, c), and so x > y
+  // if b = 1, this implies x - y - 1 is in [p-c, p), and so x <= y because p-c >= c
+  let b = existsOne(() => BigInt(x.toBigInt() <= y.toBigInt()));
+  b.assertBool();
+
+  // b*c + x - y - 1 in [0, c)
+  rangeCheck(b.mul(c).add(x).sub(y).sub(1).seal());
+
+  return createBool(b.value);
 }
 
 /**
