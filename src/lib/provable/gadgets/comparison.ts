@@ -19,6 +19,7 @@ export {
   lessThanGeneric,
   lessThanOrEqualGeneric,
   assertLessThanFull,
+  assertLessThanOrEqualFull,
 };
 
 /**
@@ -124,6 +125,18 @@ function assertLessThanFull(x: Field, y: Field) {
   // y < p, so y is canonical. implies x < p as well.
   // (if we didn't do this check, we would prove nothing.
   // e.g. yBig could be the bigint representation of y + p, and only _therefore_ larger than xBig)
+  ForeignField.assertLessThan(yBig, Fp.modulus);
+}
+
+/**
+ * Assert that x <= y.
+ *
+ * There are no assumptions on the range of x and y, they can occupy the full range [0, p).
+ */
+function assertLessThanOrEqualFull(x: Field, y: Field) {
+  let xBig = fieldToField3(x);
+  let yBig = fieldToField3(y);
+  ForeignField.assertLessThanOrEqual(xBig, yBig);
   ForeignField.assertLessThan(yBig, Fp.modulus);
 }
 
