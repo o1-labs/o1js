@@ -26,9 +26,8 @@ import { setFieldConstructor } from './core/field-constructor.js';
 import {
   assertLessThanFull,
   assertLessThanOrEqualFull,
-  checkRangesAsProver,
-  lessThanGeneric,
-  lessThanOrEqualGeneric,
+  lessThanFull,
+  lessThanOrEqualFull,
 } from './gadgets/comparison.js';
 
 // external API
@@ -587,11 +586,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() < toFp(y));
     }
-    y = Field.from(y);
-    let maxBits = Fp.sizeInBits - 2;
-    let upperBound = 1n << BigInt(maxBits);
-    checkRangesAsProver(this, y, upperBound);
-    return lessThanGeneric(this, y, upperBound, (v) => v.toBits(maxBits));
+    return lessThanFull(this, Field.from(y));
   }
 
   /**
@@ -621,13 +616,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() <= toFp(y));
     }
-    y = Field.from(y);
-    let maxBits = Fp.sizeInBits - 2;
-    let upperBound = 1n << BigInt(maxBits);
-    checkRangesAsProver(this, y, upperBound);
-    return lessThanOrEqualGeneric(this, y, upperBound, (v) =>
-      v.toBits(maxBits)
-    );
+    return lessThanOrEqualFull(this, Field.from(y));
   }
 
   /**
