@@ -6,9 +6,8 @@ import {
   mod,
 } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
-import { Bool } from '../bool.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import { Field } from '../field.js';
+import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -24,6 +23,7 @@ import {
   l3,
   compactMultiRangeCheck,
 } from './range-check.js';
+import { createBool, createField } from '../core/field-constructor.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -170,12 +170,12 @@ function inverse(x: Field3, f: bigint): Field3 {
   // we need to bound xInv because it's a multiplication input
   let xInv2Bound = weakBound(xInv[2], f);
 
-  let one: Field2 = [Field.from(1n), Field.from(0n)];
+  let one: Field2 = [createField(1n), createField(0n)];
   assertMulInternal(x, xInv, one, f);
 
   // range check on result bound
   // TODO: this uses two RCs too many.. need global RC stack
-  multiRangeCheck([xInv2Bound, Field.from(0n), Field.from(0n)]);
+  multiRangeCheck([xInv2Bound, createField(0n), createField(0n)]);
 
   return xInv;
 }
@@ -207,7 +207,7 @@ function divide(
   assertMulInternal(z, y, x, f);
 
   // range check on result bound
-  multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
+  multiRangeCheck([z2Bound, createField(0n), createField(0n)]);
 
   if (!allowZeroOverZero) {
     ForeignField.equals(y, 0n, f).assertFalse();
@@ -373,10 +373,10 @@ function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
     }
   }
   if (TupleN.hasLength(1, bounds)) {
-    multiRangeCheck([...bounds, Field.from(0n), Field.from(0n)]);
+    multiRangeCheck([...bounds, createField(0n), createField(0n)]);
   }
   if (TupleN.hasLength(2, bounds)) {
-    multiRangeCheck([...bounds, Field.from(0n)]);
+    multiRangeCheck([...bounds, createField(0n)]);
   }
 }
 
@@ -392,7 +392,7 @@ function equals(x: Field3, c: bigint, f: bigint) {
 
   // constant case
   if (Field3.isConstant(x)) {
-    return new Bool(mod(Field3.toBigint(x), f) === c);
+    return createBool(mod(Field3.toBigint(x), f) === c);
   }
 
   // provable case
@@ -429,7 +429,7 @@ const Field3 = {
    */
   from(x: bigint | Field3): Field3 {
     if (Array.isArray(x)) return x;
-    return Tuple.map(split(x), Field.from);
+    return Tuple.map(split(x), createField);
   },
 
   /**

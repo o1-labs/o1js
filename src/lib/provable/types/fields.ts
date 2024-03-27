@@ -1,9 +1,8 @@
 import { ProvablePureExtended } from './struct.js';
-import { Field } from '../field.js';
+import type { Field } from '../field.js';
+import { createField, getField } from '../core/field-constructor.js';
 
 export { modifiedField, fields };
-
-const zero = new Field(0);
 
 // provable for a single field element
 
@@ -14,9 +13,9 @@ const ProvableField: ProvablePureExtended<Field, string> = {
   fromFields: ([x]) => x,
   check: () => {},
   toInput: (x) => ({ fields: [x] }),
-  toJSON: Field.toJSON,
-  fromJSON: Field.fromJSON,
-  empty: () => zero,
+  toJSON: (x) => getField().toJSON(x),
+  fromJSON: (x) => getField().fromJSON(x),
+  empty: () => createField(0),
 };
 
 function modifiedField(
@@ -37,8 +36,11 @@ function fields(length: number): ProvablePureExtended<Field[], string[]> {
     fromFields: id,
     check: () => {},
     toInput: (x) => ({ fields: x }),
-    toJSON: (x) => x.map(Field.toJSON),
-    fromJSON: (x) => x.map(Field.fromJSON),
-    empty: () => new Array(length).fill(zero),
+    toJSON: (x) => x.map(getField().toJSON),
+    fromJSON: (x) => x.map(getField().fromJSON),
+    empty: () => {
+      let zero = createField(0);
+      return new Array(length).fill(zero);
+    },
   };
 }

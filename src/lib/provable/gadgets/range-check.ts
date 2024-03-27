@@ -1,11 +1,11 @@
 import { Snarky } from '../../../snarky.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { BinableFp } from '../../../mina-signer/src/field-bigint.js';
-import { Field } from '../field.js';
+import type { Field } from '../field.js';
 import { Gates } from '../gates.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';
-import { Bool } from '../bool.js';
 import { exists } from '../core/exists.js';
+import { createBool, createField } from '../core/field-constructor.js';
 
 export {
   rangeCheck64,
@@ -73,7 +73,7 @@ function rangeCheck64(x: Field) {
 
   Gates.rangeCheck0(
     x,
-    [new Field(0), new Field(0), x52, x40, x28, x16],
+    [createField(0), createField(0), x52, x40, x28, x16],
     [x14, x12, x10, x8, x6, x4, x2, x0],
     false // not using compact mode
   );
@@ -121,7 +121,7 @@ function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
       );
     }
     let [x, y] = splitCompactLimb(xy.toBigInt());
-    return [new Field(x), new Field(y), z];
+    return [createField(x), createField(y), z];
   }
   // ensure we are using pure variables
   [xy, z] = toVars([xy, z]);
@@ -259,10 +259,10 @@ function rangeCheckHelper(length: number, x: Field) {
     let bits = BinableFp.toBits(x.toBigInt())
       .slice(0, length)
       .concat(Array(Fp.sizeInBits - length).fill(false));
-    return new Field(BinableFp.fromBits(bits));
+    return createField(BinableFp.fromBits(bits));
   }
   let y = Snarky.field.truncateToBits16(lengthDiv16, x.value);
-  return new Field(y);
+  return createField(y);
 }
 
 /**
@@ -307,7 +307,7 @@ function isDefinitelyInRangeN(n: number, x: Field) {
   assert(n % 16 === 0, '`length` has to be a multiple of 16.');
 
   if (x.isConstant()) {
-    return new Bool(x.toBigInt() < 1n << BigInt(n));
+    return createBool(x.toBigInt() < 1n << BigInt(n));
   }
 
   let actual = rangeCheckHelper(n, x);

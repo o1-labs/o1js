@@ -1,8 +1,9 @@
 import { Snarky } from '../../../snarky.js';
-import { Field } from '../field.js';
-import { Provable } from '../provable.js';
+import type { Field } from '../field.js';
+import type { Provable } from '../provable.js';
 import { assert } from '../../util/errors.js';
-import { inCheckedComputation } from '../core/provable-context.js';
+import { asProver, inCheckedComputation } from '../core/provable-context.js';
+import { witness } from './witness.js';
 
 export { Unconstrained };
 
@@ -93,7 +94,7 @@ and Provable.asProver() blocks, which execute outside the proof.
    * Create an `Unconstrained` from a witness computation.
    */
   static witness<T>(compute: () => T) {
-    return Provable.witness(
+    return witness(
       Unconstrained.provable,
       () => new Unconstrained(true, compute())
     );
@@ -103,7 +104,7 @@ and Provable.asProver() blocks, which execute outside the proof.
    * Update an `Unconstrained` by a witness computation.
    */
   updateAsProver(compute: (value: T) => T) {
-    return Provable.asProver(() => {
+    return asProver(() => {
       let value = this.get();
       this.set(compute(value));
     });

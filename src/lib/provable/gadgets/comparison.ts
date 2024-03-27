@@ -7,9 +7,9 @@ import { exists, existsOne } from '../core/exists.js';
 import { assertMul } from './compatible.js';
 import { asProver } from '../core/provable-context.js';
 import { log2 } from '../../../bindings/crypto/bigint-helpers.js';
-import { Provable } from '../provable.js';
 import { Field3, ForeignField } from './foreign-field.js';
 import { l, l2, multiRangeCheck } from './range-check.js';
+import { witness } from '../types/witness.js';
 
 export {
   compareCompatible,
@@ -133,7 +133,7 @@ function assertLessThanFull(x: Field, y: Field) {
  * **Warning:** the output is underconstrained up to a multiple of the modulus that could be added to the bigint.
  */
 function fieldToField3(x: Field) {
-  let xBig = Provable.witness(Field3.provable, () => Field3.from(x.toBigInt()));
+  let xBig = witness(Field3.provable, () => Field3.from(x.toBigInt()));
   multiRangeCheck(xBig);
   let [x0, x1, x2] = xBig;
 
