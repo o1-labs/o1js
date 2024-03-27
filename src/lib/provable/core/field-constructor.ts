@@ -12,6 +12,8 @@ export {
   createBool,
   isField,
   isBool,
+  getField,
+  getBool,
   setFieldConstructor,
   setBoolConstructor,
 };
@@ -54,4 +56,15 @@ function isBool(x: unknown): x is Bool {
       'Cannot check for instance of Bool before the class was defined.'
     );
   return x instanceof boolConstructor;
+}
+
+function getField(): typeof Field {
+  if (fieldConstructor === undefined)
+    throw Error('Field class not defined yet.');
+  return fieldConstructor;
+}
+
+function getBool(): typeof Bool {
+  if (boolConstructor === undefined) throw Error('Bool class not defined yet.');
+  return boolConstructor;
 }
