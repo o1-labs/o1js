@@ -10,6 +10,10 @@ import type { Gadgets } from './gadgets/gadgets.js';
 import { withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { CircuitValue, prop } from './types/circuit-value.js';
+import {
+  assertLessThanGeneric,
+  assertLessThanOrEqualGeneric,
+} from './gadgets/comparison.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -434,8 +438,9 @@ class UInt64 extends CircuitValue {
       }
       return;
     }
-    let yMinusX = y.value.sub(this.value).seal();
-    RangeCheck.rangeCheckN(UInt64.NUM_BITS, yMinusX, message);
+    assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
+      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
+    );
   }
 
   /**
@@ -450,7 +455,9 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than another one.
    */
   assertLessThan(y: UInt64, message?: string) {
-    this.lessThan(y).assertEquals(true, message);
+    assertLessThanGeneric(this.value, y.value, (v) =>
+      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
+    );
   }
 
   /**
@@ -882,8 +889,9 @@ class UInt32 extends CircuitValue {
       }
       return;
     }
-    let yMinusX = y.value.sub(this.value).seal();
-    RangeCheck.rangeCheckN(UInt32.NUM_BITS, yMinusX, message);
+    assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
+      RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
+    );
   }
 
   /**
@@ -897,7 +905,9 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than another one.
    */
   assertLessThan(y: UInt32, message?: string) {
-    this.lessThan(y).assertEquals(true, message);
+    assertLessThanGeneric(this.value, y.value, (v) =>
+      RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
+    );
   }
 
   /**
@@ -1387,9 +1397,12 @@ class UInt8 extends Struct({
       }
       return;
     }
-    // x < y  <=>  x + 1 <= y
-    let xPlus1 = new UInt8(this.value.add(1).value);
-    xPlus1.assertLessThanOrEqual(y, message);
+    try {
+      // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanGeneric`
+      assertLessThanGeneric(this.value, y_.value, RangeCheck.rangeCheck16);
+    } catch (err) {
+      throw withMessage(err, message);
+    }
   }
 
   /**
@@ -1412,9 +1425,12 @@ class UInt8 extends Struct({
       return;
     }
     try {
-      // x <= y  <=>  y - x >= 0  which is implied by  y - x in [0, 2^16)
-      let yMinusX = y_.value.sub(this.value).seal();
-      RangeCheck.rangeCheck16(yMinusX);
+      // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanOrEqualGeneric`
+      assertLessThanOrEqualGeneric(
+        this.value,
+        y_.value,
+        RangeCheck.rangeCheck16
+      );
     } catch (err) {
       throw withMessage(err, message);
     }
