@@ -20,6 +20,8 @@ export {
   lessThanOrEqualGeneric,
   assertLessThanFull,
   assertLessThanOrEqualFull,
+  lessThanFull,
+  lessThanOrEqualFull,
 };
 
 /**
@@ -138,6 +140,45 @@ function assertLessThanOrEqualFull(x: Field, y: Field) {
   let yBig = fieldToField3(y);
   ForeignField.assertLessThanOrEqual(xBig, yBig);
   ForeignField.assertLessThan(yBig, Fp.modulus);
+}
+
+/**
+ * Return a Bool b that is true if and only if x < y.
+ *
+ * There are no assumptions on the range of x and y, they can occupy the full range [0, p).
+ */
+function lessThanFull(x: Field, y: Field) {
+  // same logic as in lessThanGeneric:
+  // we witness b such that b*p + x - y is in [0, p), where the sum is done in bigint arithmetic
+  // if b = 0, x - y is in [0, p), and so x >= y
+  // if b = 1, x - y is in [-p, 0), and so x < y
+  // we must also check that both x and y are canonical, or else the connection between the bigint and the Field is lost
+  let b = existsOne(() => BigInt(x.toBigInt() < y.toBigInt()));
+  b.assertBool();
+
+  let xBig = fieldToField3(x);
+  let yBig = fieldToField3(y);
+  ForeignField.assertLessThan(xBig, Fp.modulus);
+  ForeignField.assertLessThan(yBig, Fp.modulus);
+
+  let [p0, p1, p2] = Field3.from(Fp.modulus);
+  let bTimesP: Field3 = [p0.mul(b), p1.mul(b), p2.mul(b)];
+
+  // b*p + x - y in [0, p)
+  let z = ForeignField.sum([bTimesP, xBig, yBig], [1n, -1n], 0n);
+  ForeignField.assertLessThan(z, Fp.modulus);
+
+  return createBool(b.value);
+}
+
+/**
+ * Return a Bool b that is true if and only if x <= y.
+ *
+ * There are no assumptions on the range of x and y, they can occupy the full range [0, p).
+ */
+function lessThanOrEqualFull(x: Field, y: Field) {
+  // keep it simple and just use x <= y <=> !(y < x)
+  return lessThanFull(y, x).not();
 }
 
 /**
