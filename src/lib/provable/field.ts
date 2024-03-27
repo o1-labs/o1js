@@ -3,7 +3,7 @@ import { Fp } from '../../bindings/crypto/finite-field.js';
 import { BinableFp, SignableFp } from '../../mina-signer/src/field-bigint.js';
 import { defineBinable } from '../../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../../bindings/crypto/non-negative.js';
-import { asProver, inCheckedComputation } from './core/provable-context.js';
+import { inCheckedComputation } from './core/provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/errors.js';
 import { Provable } from './provable.js';
@@ -24,8 +24,8 @@ import {
 import { exists, existsOne } from './core/exists.js';
 import { setFieldConstructor } from './core/field-constructor.js';
 import {
-  assertLessThanGeneric,
-  assertLessThanOrEqualGeneric,
+  assertLessThanFull,
+  assertLessThanOrEqualFull,
   checkRangesAsProver,
   lessThanGeneric,
   lessThanOrEqualGeneric,
@@ -705,10 +705,7 @@ class Field {
         }
         return;
       }
-      y = Field.from(y);
-      let maxBits = Fp.sizeInBits - 2;
-      checkRangesAsProver(this, y, 1n << BigInt(maxBits));
-      assertLessThanGeneric(this, y, (v) => v.toBits(maxBits));
+      assertLessThanFull(this, Field.from(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -735,10 +732,7 @@ class Field {
         }
         return;
       }
-      y = Field.from(y);
-      let maxBits = Fp.sizeInBits - 2;
-      checkRangesAsProver(this, y, 1n << BigInt(maxBits));
-      assertLessThanOrEqualGeneric(this, y, (v) => v.toBits(maxBits));
+      assertLessThanOrEqualFull(this, Field.from(y));
     } catch (err) {
       throw withMessage(err, message);
     }
