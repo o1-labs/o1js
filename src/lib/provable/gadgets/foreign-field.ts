@@ -90,7 +90,7 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
   Gates.zero(...result);
 
   // range check result
-  multiRangeCheck(result);
+  indirectMultiRangeChange(result);
 
   return result;
 }
@@ -770,4 +770,27 @@ function assertLessThanOrEqual(x: Field3, y: bigint | Field3) {
   // provable case
   // we compute z = y - x and check that z \in [0, 2^3l), which implies x <= y
   sum([y_, x], [-1n], 0n);
+}
+
+// helpers
+
+/**
+ * Version of `multiRangeCheck` which does the check on a truncated version of the input,
+ * so that it always succeeds, and then checks equality of the truncated and full input.
+ *
+ * This is a hack to get an error when the constraint fails, around the fact that multiRangeCheck
+ * is not checked by snarky.
+ */
+function indirectMultiRangeChange(
+  x: Field3,
+  message = 'multi-range check failed'
+) {
+  let xTrunc = exists(3, () => {
+    let [x0, x1, x2] = toBigint3(x);
+    return [x0 & lMask, x1 & lMask, x2 & lMask];
+  });
+  multiRangeCheck(xTrunc);
+  x[0].assertEquals(xTrunc[0], message);
+  x[1].assertEquals(xTrunc[1], message);
+  x[2].assertEquals(xTrunc[2], message);
 }

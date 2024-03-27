@@ -94,9 +94,7 @@ equivalent({ from: [f, f], to: unit })(
   (x, y) => x === y || throwError('not equal'),
   (x, y) => x.assertEquals(y)
 );
-// doesn't fail in provable mode just because the range check is not checked by runAndCheck
-// TODO check all gates
-equivalentNonProvable({ from: [f, first(u264)], to: unit })(
+equivalent({ from: [f, first(u264)], to: unit })(
   (x, y) => x < y || throwError('not less than'),
   (x, y) => x.assertLessThan(y)
 );
