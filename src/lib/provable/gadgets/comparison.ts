@@ -19,7 +19,8 @@ export {
  * Prove x <= y assuming 0 <= x, y < c.
  * The constant c must satisfy 2c <= p, where p is the field order.
  *
- * Expects a function `rangeCheck(v: Field)` which proves that v is in [0, c).
+ * Expects a function `rangeCheck(v: Field)` which proves that v is in [0, p-c).
+ * (Note: the range check on v can be looser than the assumption on x and y, but it doesn't have to be)
  * The efficiency of the gadget largely depends on the efficiency of `rangeCheck()`.
  *
  * **Warning:** The gadget does not prove x <= y if either 2c > p or x or y are not in [0, c).
@@ -32,7 +33,7 @@ function assertLessThanOrEqualGeneric(
 ) {
   // since 0 <= x, y < c, we have y - x in [0, c) u (p-c, p)
   // because of c <= p-c, the two ranges are disjoint. therefore,
-  // y - x in [0, c) is equivalent to x <= y
+  // y - x in [0, p-c) is equivalent to x <= y
   rangeCheck(y.sub(x).seal());
 }
 
