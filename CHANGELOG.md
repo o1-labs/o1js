@@ -32,9 +32,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Remove `privateKey` from the accepted arguments of `SmartContract.deploy()` https://github.com/o1-labs/o1js/pull/1515
 - **Efficient comparisons**. Support arbitrary bit lengths for `Field` comparisons and massively reduce their constraints https://github.com/o1-labs/o1js/pull/1523
   - `Field.assertLessThan()` goes from 510 to 24 constraints, `Field.lessThan()` from 509 to 38
-  - Moderately improved other comparisons: `UInt64.assertLessThan()` from 27 to 14,, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
-  - Massively improved `Field.isEven()` and new `Field.isOdd()`
-  - `PrivateKey.toPublicKey()` from TODO to 119 constraints thanks to `isOdd()`
+  - Moderately improve other comparisons: `UInt64.assertLessThan()` from 27 to 14,, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
+  - Massively improve `Field.isEven()`, add `Field.isOdd()`
+  - `PrivateKey.toPublicKey()` from 358 to 119 constraints thanks to `isOdd()`
+  - Add `Gadgets.ForeignField.assertLessThanOrEqual()` and support two variables as input to `ForeignField.assertLessThan()`
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
@@ -57,6 +58,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
 - Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
 - Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
+
+### Changed
+
+- `field.assertBool()` now also returns the `Field` as a `Bool` for ergonomics https://github.com/o1-labs/o1js/pull/1523
 
 ## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
 
