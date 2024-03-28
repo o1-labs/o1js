@@ -139,15 +139,14 @@ class PublicKey extends CircuitValue {
    */
   toGroup(): Group {
     // compute y from elliptic curve equation y^2 = x^3 + 5
-    // TODO: we have to improve constraint efficiency by using range checks
     let { x, isOdd } = this;
-    let ySquared = x.mul(x).mul(x).add(5);
-    let someY = ySquared.sqrt();
-    let isTheRightY = isOdd.equals(someY.toBits()[0]);
-    let y = isTheRightY
-      .toField()
-      .mul(someY)
-      .add(isTheRightY.not().toField().mul(someY.neg()));
+    let y = x.square().mul(x).add(5).sqrt();
+
+    // negate y if its parity is different from the public key's
+    let sameParity = y.isOdd().equals(isOdd).toField();
+    let sign = sameParity.mul(2).sub(1); // (2*sameParity - 1) == 1 if same parity, -1 if different parity
+    y = y.mul(sign);
+
     return new Group({ x, y });
   }
 
@@ -156,8 +155,7 @@ class PublicKey extends CircuitValue {
    * @returns a {@link PublicKey}.
    */
   static fromGroup({ x, y }: Group): PublicKey {
-    let isOdd = y.toBits()[0];
-    return PublicKey.fromObject({ x, isOdd });
+    return PublicKey.fromObject({ x, isOdd: y.isOdd() });
   }
 
   /**
@@ -260,12 +258,12 @@ class Signature extends CircuitValue {
       deriveNonce(
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
-        BigInt(d.toJSON()),
+        d.toBigInt(),
         'testnet'
       )
     );
     let { x: r, y: ry } = Group.generator.scale(kPrime);
-    const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
+    const k = ry.isOdd().toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
       signaturePrefix('testnet'),
       msg.concat([publicKey.x, publicKey.y, r])
@@ -294,7 +292,7 @@ class Signature extends CircuitValue {
     // therefore we have to use scaleShifted which is very inefficient
     let e = Scalar.fromBits(h.toBits());
     let r = scaleShifted(point, e).neg().add(Group.generator.scale(this.s));
-    return Bool.and(r.x.equals(this.r), r.y.toBits()[0].equals(false));
+    return r.x.equals(this.r).and(r.y.isEven());
   }
 
   /**
@@ -302,17 +300,14 @@ class Signature extends CircuitValue {
    */
   static fromBase58(signatureBase58: string) {
     let { r, s } = SignatureBigint.fromBase58(signatureBase58);
-    return Signature.fromObject({
-      r: Field(r),
-      s: Scalar.fromJSON(s.toString()),
-    });
+    return Signature.fromObject({ r: Field(r), s: Scalar.from(s) });
   }
   /**
    * Encodes a {@link Signature} in base58 format.
    */
   toBase58() {
     let r = this.r.toBigInt();
-    let s = BigInt(this.s.toJSON());
+    let s = this.s.toBigInt();
     return SignatureBigint.toBase58({ r, s });
   }
 }
