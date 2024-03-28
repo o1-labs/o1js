@@ -713,10 +713,6 @@ class Sum {
 // Field3 comparison
 
 function assertLessThan(x: Field3, y: bigint | Field3) {
-  assert(
-    typeof y !== 'bigint' || y > 0n,
-    'assertLessThan: upper bound must be positive'
-  );
   let y_ = Field3.from(y);
 
   // constant case
@@ -734,6 +730,8 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
   if (Field3.isConstant(x)) return assertLessThan(y_, x);
   if (Field3.isConstant(y_)) {
     y = typeof y === 'bigint' ? y : Field3.toBigint(y);
+    // this case is not included below, because ffadd doesn't support negative moduli
+    assert(y > 0n, 'assertLessThan: y <= 0, so x < y is impossible');
 
     // we can just use negation `(y - 1) - x`. because the result is range-checked, it proves that x < y:
     // `y - 1 - x \in [0, 2^3l) => x <= x + (y - 1 - x) = y - 1 < y`
