@@ -23,6 +23,7 @@ import {
 } from './core/fieldvar.js';
 import { exists, existsOne } from './core/exists.js';
 import { setFieldConstructor } from './core/field-constructor.js';
+import { compareCompatible } from './gadgets/comparison.js';
 
 // external API
 export { Field };
@@ -580,7 +581,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() < toFp(y));
     }
-    return compare(this, toFieldVar(y)).less;
+    return compareCompatible(this, Field.from(y)).less;
   }
 
   /**
@@ -610,7 +611,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() <= toFp(y));
     }
-    return compare(this, toFieldVar(y)).lessOrEqual;
+    return compareCompatible(this, Field.from(y)).lessOrEqual;
   }
 
   /**
@@ -688,7 +689,7 @@ class Field {
         }
         return;
       }
-      let { less } = compare(this, toFieldVar(y));
+      let { less } = compareCompatible(this, Field.from(y));
       less.assertTrue();
     } catch (err) {
       throw withMessage(err, message);
@@ -716,7 +717,7 @@ class Field {
         }
         return;
       }
-      let { lessOrEqual } = compare(this, toFieldVar(y));
+      let { lessOrEqual } = compareCompatible(this, Field.from(y));
       lessOrEqual.assertTrue();
     } catch (err) {
       throw withMessage(err, message);
@@ -1168,24 +1169,6 @@ function withMessage(error: unknown, message?: string) {
   if (message === undefined || !(error instanceof Error)) return error;
   error.message = `${message}\n${error.message}`;
   return error;
-}
-
-// internal base method for all comparisons
-function compare(x: Field, y: FieldVar) {
-  // TODO: support all bit lengths
-  let maxLength = Fp.sizeInBits - 2;
-  asProver(() => {
-    let actualLength = Math.max(
-      x.toBigInt().toString(2).length,
-      new Field(y).toBigInt().toString(2).length
-    );
-    if (actualLength > maxLength)
-      throw Error(
-        `Provable comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
-      );
-  });
-  let [, less, lessOrEqual] = Snarky.field.compare(maxLength, x.value, y);
-  return { less: new Bool(less), lessOrEqual: new Bool(lessOrEqual) };
 }
 
 function checkBitLength(

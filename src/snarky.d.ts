@@ -162,14 +162,6 @@ declare const Snarky: {
      */
     assertBoolean(x: FieldVar): void;
     /**
-     * check x < y and x <= y
-     */
-    compare(
-      bitLength: number,
-      x: FieldVar,
-      y: FieldVar
-    ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
-    /**
      * returns x truncated to the lowest `16 * lengthDiv16` bits
      * => can be used to assert that x fits in `16 * lengthDiv16` bits.
      *
