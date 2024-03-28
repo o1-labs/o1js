@@ -206,7 +206,7 @@ function fieldToField3(x: Field) {
  * It is up to the caller to prove that `x` and `y` have at most `n` bits.
  *
  * **Warning:** This was created for 1:1 compatibility with snarky's `compare` gadget.
- * It was designed for R1CS and is extremeley inefficient when used with plonkish arithmetization.
+ * It was designed for R1CS and is extremely inefficient when used with plonkish arithmetization.
  */
 function compareCompatible(x: Field, y: Field, n = Fp.sizeInBits - 2) {
   let maxLength = Fp.sizeInBits - 2;

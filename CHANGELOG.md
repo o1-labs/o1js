@@ -32,7 +32,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Remove `privateKey` from the accepted arguments of `SmartContract.deploy()` https://github.com/o1-labs/o1js/pull/1515
 - **Efficient comparisons**. Support arbitrary bit lengths for `Field` comparisons and massively reduce their constraints https://github.com/o1-labs/o1js/pull/1523
   - `Field.assertLessThan()` goes from 510 to 24 constraints, `Field.lessThan()` from 509 to 38
-  - Moderately improve other comparisons: `UInt64.assertLessThan()` from 27 to 14,, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
+  - Moderately improve other comparisons: `UInt64.assertLessThan()` from 27 to 14, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
   - Massively improve `Field.isEven()`, add `Field.isOdd()`
   - `PrivateKey.toPublicKey()` from 358 to 119 constraints thanks to `isOdd()`
   - Add `Gadgets.ForeignField.assertLessThanOrEqual()` and support two variables as input to `ForeignField.assertLessThan()`
