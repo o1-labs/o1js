@@ -1,6 +1,16 @@
-import { Field, Group, Gadgets, Provable, Scalar, Hash, Bytes } from 'o1js';
+import {
+  Field,
+  Group,
+  Gadgets,
+  Provable,
+  Scalar,
+  Hash,
+  Bytes,
+  Bool,
+  UInt64,
+} from 'o1js';
 
-export { GroupCS, BitwiseCS, HashCS };
+export { GroupCS, BitwiseCS, HashCS, BasicCS };
 
 const GroupCS = constraintSystem('Group Primitive', {
   add() {
@@ -120,6 +130,46 @@ const HashCS = constraintSystem('Hashes', {
       Provable.witness(Field, () => Field(x))
     );
     Hash.Poseidon.hash(xs);
+  },
+});
+
+const witness = () => Provable.witness(Field, () => Field(0));
+
+const BasicCS = constraintSystem('Basic', {
+  equals() {
+    let [x, y, z] = [witness(), witness(), witness()];
+    x.equals(y);
+    z.equals(1);
+  },
+  if() {
+    let b = Provable.witness(Bool, () => Bool(false));
+    let [x, y, z] = [witness(), witness(), witness()];
+    Provable.if(b, x, y);
+    Provable.if(b, z, Field(1));
+  },
+  toBits() {
+    let x = witness();
+    x.toBits();
+  },
+
+  // comparisons
+  assertLessThan() {
+    let [x, y] = [witness(), witness()];
+    x.assertLessThan(y);
+  },
+  lessThan() {
+    let [x, y] = [witness(), witness()];
+    x.lessThan(y);
+  },
+  assertLessThanUInt64() {
+    let x = Provable.witness(UInt64, () => new UInt64(0));
+    let y = Provable.witness(UInt64, () => new UInt64(0));
+    x.assertLessThan(y);
+  },
+  lessThanUInt64() {
+    let x = Provable.witness(UInt64, () => new UInt64(0));
+    let y = Provable.witness(UInt64, () => new UInt64(0));
+    x.lessThan(y);
   },
 });
 
