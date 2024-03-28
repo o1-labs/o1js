@@ -314,6 +314,32 @@ class Field {
   }
 
   /**
+   * Checks if this {@link Field} is odd. Returns `true` for odd elements and `false` for even elements.
+   *
+   * See {@link Field.isEven} for examples.
+   */
+  isOdd() {
+    if (this.isConstant()) return new Bool((this.toBigInt() & 1n) === 1n);
+
+    // witness a bit b such that x = b + 2z for some z <= (p-1)/2
+    // this is always possible, and unique _except_ in the edge case where x = 0 = 0 + 2*0 = 1 + 2*(p-1)/2
+    // so we can compute isOdd = b AND (x != 0)
+    let [b, z] = exists(2, () => {
+      let x = this.toBigInt();
+      return [x & 1n, x >> 1n];
+    });
+    let isOdd = b.assertBool();
+    z.assertLessThan((Field.ORDER + 1n) / 2n);
+
+    // x == b + 2z
+    b.add(z.mul(2)).assertEquals(this);
+
+    // avoid overflow case when x = 0
+    let isNonZero = this.equals(0).not();
+    return isOdd.and(isNonZero);
+  }
+
+  /**
    * Checks if this {@link Field} is even. Returns `true` for even elements and `false` for odd elements.
    *
    * @example
@@ -326,9 +352,7 @@ class Field {
    * ```
    */
   isEven() {
-    // x -> 2x is a bijection between the lower half 0,1,...,(p-1)/2 and the even elements 0,2,...,p-1
-    // so, x is even iff x/2 is in the lower half
-    return this.div(2).lessThan((Field.ORDER + 1n) / 2n);
+    return this.isOdd().not();
   }
 
   /**
