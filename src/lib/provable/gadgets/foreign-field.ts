@@ -6,9 +6,8 @@ import {
   mod,
 } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
-import { Bool } from '../bool.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import { Field } from '../field.js';
+import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -24,6 +23,7 @@ import {
   l3,
   compactMultiRangeCheck,
 } from './range-check.js';
+import { createBool, createField } from '../core/field-constructor.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -60,20 +60,8 @@ const ForeignField = {
 
   assertAlmostReduced,
 
-  assertLessThan(x: Field3, f: bigint) {
-    assert(f > 0n, 'assertLessThan: upper bound must be positive');
-
-    // constant case
-    if (Field3.isConstant(x)) {
-      assert(Field3.toBigint(x) < f, 'assertLessThan: got x >= f');
-      return;
-    }
-    // provable case
-    // we can just use negation `(f - 1) - x`. because the result is range-checked, it proves that x < f:
-    // `f - 1 - x \in [0, 2^3l) => x <= x + (f - 1 - x) = f - 1 < f`
-    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
-    ForeignField.negate(x, f - 1n);
-  },
+  assertLessThan,
+  assertLessThanOrEqual,
 
   equals,
 };
@@ -102,7 +90,7 @@ function sum(x: Field3[], sign: Sign[], f: bigint) {
   Gates.zero(...result);
 
   // range check result
-  multiRangeCheck(result);
+  indirectMultiRangeChange(result);
 
   return result;
 }
@@ -182,12 +170,12 @@ function inverse(x: Field3, f: bigint): Field3 {
   // we need to bound xInv because it's a multiplication input
   let xInv2Bound = weakBound(xInv[2], f);
 
-  let one: Field2 = [Field.from(1n), Field.from(0n)];
+  let one: Field2 = [createField(1n), createField(0n)];
   assertMulInternal(x, xInv, one, f);
 
   // range check on result bound
   // TODO: this uses two RCs too many.. need global RC stack
-  multiRangeCheck([xInv2Bound, Field.from(0n), Field.from(0n)]);
+  multiRangeCheck([xInv2Bound, createField(0n), createField(0n)]);
 
   return xInv;
 }
@@ -219,7 +207,7 @@ function divide(
   assertMulInternal(z, y, x, f);
 
   // range check on result bound
-  multiRangeCheck([z2Bound, Field.from(0n), Field.from(0n)]);
+  multiRangeCheck([z2Bound, createField(0n), createField(0n)]);
 
   if (!allowZeroOverZero) {
     ForeignField.equals(y, 0n, f).assertFalse();
@@ -385,10 +373,10 @@ function assertAlmostReduced(xs: Field3[], f: bigint, skipMrc = false) {
     }
   }
   if (TupleN.hasLength(1, bounds)) {
-    multiRangeCheck([...bounds, Field.from(0n), Field.from(0n)]);
+    multiRangeCheck([...bounds, createField(0n), createField(0n)]);
   }
   if (TupleN.hasLength(2, bounds)) {
-    multiRangeCheck([...bounds, Field.from(0n)]);
+    multiRangeCheck([...bounds, createField(0n)]);
   }
 }
 
@@ -404,7 +392,7 @@ function equals(x: Field3, c: bigint, f: bigint) {
 
   // constant case
   if (Field3.isConstant(x)) {
-    return new Bool(mod(Field3.toBigint(x), f) === c);
+    return createBool(mod(Field3.toBigint(x), f) === c);
   }
 
   // provable case
@@ -439,8 +427,9 @@ const Field3 = {
   /**
    * Turn a bigint into a 3-tuple of Fields
    */
-  from(x: bigint): Field3 {
-    return Tuple.map(split(x), Field.from);
+  from(x: bigint | Field3): Field3 {
+    if (Array.isArray(x)) return x;
+    return Tuple.map(split(x), createField);
   },
 
   /**
@@ -719,4 +708,87 @@ class Sum {
     }
     return new Sum(x);
   }
+}
+
+// Field3 comparison
+
+function assertLessThan(x: Field3, y: bigint | Field3) {
+  let y_ = Field3.from(y);
+
+  // constant case
+
+  if (Field3.isConstant(x) && Field3.isConstant(y_)) {
+    assert(
+      Field3.toBigint(x) < Field3.toBigint(y_),
+      'assertLessThan: got x >= y'
+    );
+    return;
+  }
+
+  // case of one variable, one constant
+
+  if (Field3.isConstant(x)) return assertLessThan(y_, x);
+  if (Field3.isConstant(y_)) {
+    y = typeof y === 'bigint' ? y : Field3.toBigint(y);
+    // this case is not included below, because ffadd doesn't support negative moduli
+    assert(y > 0n, 'assertLessThan: y <= 0, so x < y is impossible');
+
+    // we can just use negation `(y - 1) - x`. because the result is range-checked, it proves that x < y:
+    // `y - 1 - x \in [0, 2^3l) => x <= x + (y - 1 - x) = y - 1 < y`
+    // (note: ffadd can't add higher multiples of (f - 1). it must always use an overflow of -1, except for x = 0)
+
+    ForeignField.negate(x, y - 1n);
+    return;
+  }
+
+  // case of two variables
+  // we compute z = y - x - 1 and check that z \in [0, 2^3l), which implies x < y as above
+
+  // we use modulo 0 here, which means we're proving:
+  // z = y - x - 1 - 0*(o1 + o2) for some overflows o1, o2
+  sum([y_, x, Field3.from(1n)], [-1n, -1n], 0n);
+}
+
+function assertLessThanOrEqual(x: Field3, y: bigint | Field3) {
+  assert(
+    typeof y !== 'bigint' || y >= 0n,
+    'assertLessThanOrEqual: upper bound must be positive'
+  );
+  let y_ = Field3.from(y);
+
+  // constant case
+  if (Field3.isConstant(x) && Field3.isConstant(y_)) {
+    assert(
+      Field3.toBigint(x) <= Field3.toBigint(y_),
+      'assertLessThan: got x > y'
+    );
+    return;
+  }
+
+  // provable case
+  // we compute z = y - x and check that z \in [0, 2^3l), which implies x <= y
+  sum([y_, x], [-1n], 0n);
+}
+
+// helpers
+
+/**
+ * Version of `multiRangeCheck` which does the check on a truncated version of the input,
+ * so that it always succeeds, and then checks equality of the truncated and full input.
+ *
+ * This is a hack to get an error when the constraint fails, around the fact that multiRangeCheck
+ * is not checked by snarky.
+ */
+function indirectMultiRangeChange(
+  x: Field3,
+  message = 'multi-range check failed'
+) {
+  let xTrunc = exists(3, () => {
+    let [x0, x1, x2] = toBigint3(x);
+    return [x0 & lMask, x1 & lMask, x2 & lMask];
+  });
+  multiRangeCheck(xTrunc);
+  x[0].assertEquals(xTrunc[0], message);
+  x[1].assertEquals(xTrunc[1], message);
+  x[2].assertEquals(xTrunc[2], message);
 }

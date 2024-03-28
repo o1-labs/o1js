@@ -3,7 +3,7 @@ import { Fp } from '../../bindings/crypto/finite-field.js';
 import { BinableFp, SignableFp } from '../../mina-signer/src/field-bigint.js';
 import { defineBinable } from '../../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../../bindings/crypto/non-negative.js';
-import { asProver, inCheckedComputation } from './core/provable-context.js';
+import { inCheckedComputation } from './core/provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/errors.js';
 import { Provable } from './provable.js';
@@ -23,7 +23,12 @@ import {
 } from './core/fieldvar.js';
 import { exists, existsOne } from './core/exists.js';
 import { setFieldConstructor } from './core/field-constructor.js';
-import { compareCompatible } from './gadgets/comparison.js';
+import {
+  assertLessThanFull,
+  assertLessThanOrEqualFull,
+  lessThanFull,
+  lessThanOrEqualFull,
+} from './gadgets/comparison.js';
 
 // external API
 export { Field };
@@ -309,41 +314,45 @@ class Field {
   }
 
   /**
+   * Checks if this {@link Field} is odd. Returns `true` for odd elements and `false` for even elements.
+   *
+   * See {@link Field.isEven} for examples.
+   */
+  isOdd() {
+    if (this.isConstant()) return new Bool((this.toBigInt() & 1n) === 1n);
+
+    // witness a bit b such that x = b + 2z for some z <= (p-1)/2
+    // this is always possible, and unique _except_ in the edge case where x = 0 = 0 + 2*0 = 1 + 2*(p-1)/2
+    // so we can compute isOdd = b AND (x != 0)
+    let [b, z] = exists(2, () => {
+      let x = this.toBigInt();
+      return [x & 1n, x >> 1n];
+    });
+    let isOdd = b.assertBool();
+    z.assertLessThan((Field.ORDER + 1n) / 2n);
+
+    // x == b + 2z
+    b.add(z.mul(2)).assertEquals(this);
+
+    // avoid overflow case when x = 0
+    let isNonZero = this.equals(0).not();
+    return isOdd.and(isNonZero);
+  }
+
+  /**
    * Checks if this {@link Field} is even. Returns `true` for even elements and `false` for odd elements.
    *
    * @example
    * ```ts
    * let a = Field(5);
    * a.isEven(); // false
-   * a.isEven().assertTrue(); // throws, as expected!
    *
    * let b = Field(4);
    * b.isEven(); // true
-   * b.isEven().assertTrue(); // does not throw, as expected!
    * ```
    */
   isEven() {
-    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
-
-    let [isOdd, xDiv2] = exists(2, () => {
-      let bits = BinableFp.toBits(this.toBigInt());
-      let isOdd = bits.shift()! ? 1n : 0n;
-      return [isOdd, BinableFp.fromBits(bits)];
-    });
-
-    // range check for 253 bits
-    // WARNING: this makes use of a special property of the Pasta curves,
-    // namely that a random field element is < 2^254 with overwhelming probability
-    // TODO use 88-bit RCs to make this more efficient
-    xDiv2.toBits(253);
-
-    // boolean check
-    assertBoolean(isOdd);
-
-    // check composition
-    xDiv2.mul(2).add(isOdd).assertEquals(this);
-
-    return Bool.Unsafe.fromField(isOdd).not();
+    return this.isOdd().not();
   }
 
   /**
@@ -560,17 +569,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(2).lessThan(3).assertEquals(Bool(true));
+   * let isTrue = Field(2).lessThan(3);
    * ```
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behavior when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(3)).lessThan(Field(1).div(Field(2))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(3).lessThan(Field(1).div(2)); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -581,7 +587,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() < toFp(y));
     }
-    return compareCompatible(this, Field.from(y)).less;
+    return lessThanFull(this, Field.from(y));
   }
 
   /**
@@ -590,17 +596,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(3).lessThanOrEqual(3).assertEquals(Bool(true));
+   * let isTrue = Field(3).lessThanOrEqual(3);
    * ```
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(3)).lessThanOrEqual(Field(1).div(Field(2))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(3).lessThanOrEqual(Field(1).div(2)); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -611,7 +614,7 @@ class Field {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBigInt() <= toFp(y));
     }
-    return compareCompatible(this, Field.from(y)).lessOrEqual;
+    return lessThanOrEqualFull(this, Field.from(y));
   }
 
   /**
@@ -620,17 +623,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(5).greaterThan(3).assertEquals(Bool(true));
+   * let isTrue = Field(5).greaterThan(3);
    * ```
-   *
-   * **Warning**: Comparison methods currently only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(2)).greaterThan(Field(1).div(Field(3))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(2).greaterThan(Field(1).div(3); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -647,17 +647,14 @@ class Field {
    *
    * @example
    * ```ts
-   * Field(3).greaterThanOrEqual(3).assertEquals(Bool(true));
+   * let isTrue = Field(3).greaterThanOrEqual(3);
    * ```
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
    *
    * @example
    * ```ts
-   * Field(1).div(Field(2)).greaterThanOrEqual(Field(1).div(Field(3))).assertEquals(Bool(true)); // This code will throw an error
+   * let isFalse = Field(1).div(2).greaterThanOrEqual(Field(1).div(3); // in fact, 1/3 > 1/2
    * ```
    *
    * @param value - the "field-like" value to compare with this {@link Field}.
@@ -670,13 +667,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is less than another "field-like" value.
-   * Calling this function is equivalent to `Field(...).lessThan(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.lessThan(y).assertTrue()`.
    * See {@link Field.lessThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -689,8 +684,7 @@ class Field {
         }
         return;
       }
-      let { less } = compareCompatible(this, Field.from(y));
-      less.assertTrue();
+      assertLessThanFull(this, Field.from(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -698,13 +692,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is less than or equal to another "field-like" value.
-   * Calling this function is equivalent to `Field(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.lessThanOrEqual(y).assertTrue()`.
    * See {@link Field.lessThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -717,8 +709,7 @@ class Field {
         }
         return;
       }
-      let { lessOrEqual } = compareCompatible(this, Field.from(y));
-      lessOrEqual.assertTrue();
+      assertLessThanOrEqualFull(this, Field.from(y));
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -726,13 +717,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is greater than another "field-like" value.
-   * Calling this function is equivalent to `Field(...).greaterThan(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.greaterThan(y).assertTrue()`.
    * See {@link Field.greaterThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -743,13 +732,11 @@ class Field {
 
   /**
    * Assert that this {@link Field} is greater than or equal to another "field-like" value.
-   * Calling this function is equivalent to `Field(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
+   *
+   * Note: This uses fewer constraints than `x.greaterThanOrEqual(y).assertTrue()`.
    * See {@link Field.greaterThanOrEqual} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
-   *
-   * **Warning**: Comparison methods only support Field elements of size <= 253 bits in provable code.
-   * The method will throw if one of the inputs exceeds 253 bits.
    *
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -789,6 +776,7 @@ class Field {
 
   /**
    * Prove that this {@link Field} is equal to 0 or 1.
+   * Returns the Field wrapped in a {@link Bool}.
    *
    * If the assertion fails, the code throws an error.
    *
@@ -798,12 +786,14 @@ class Field {
     try {
       if (this.isConstant()) {
         let x = this.toBigInt();
-        if (x !== 0n && x !== 1n) {
-          throw Error(`Field.assertBool(): expected ${x} to be 0 or 1`);
-        }
-        return;
+        assert(
+          x === 0n || x === 1n,
+          `Field.assertBool(): expected ${x} to be 0 or 1`
+        );
+        return new Bool(x === 1n);
       }
       assertBoolean(this);
+      return Bool.Unsafe.fromField(this);
     } catch (err) {
       throw withMessage(err, message);
     }

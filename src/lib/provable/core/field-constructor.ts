@@ -10,8 +10,11 @@ import type { FieldVar, FieldConst } from './fieldvar.js';
 export {
   createField,
   createBool,
+  createBoolUnsafe,
   isField,
   isBool,
+  getField,
+  getBool,
   setFieldConstructor,
   setBoolConstructor,
 };
@@ -34,10 +37,14 @@ function createField(
   return new fieldConstructor(value);
 }
 
-function createBool(value: boolean | Bool | FieldVar): Bool {
+function createBool(value: boolean | Bool): Bool {
   if (boolConstructor === undefined)
     throw Error('Cannot construct a Bool before the class was defined.');
   return new boolConstructor(value);
+}
+
+function createBoolUnsafe(value: Field): Bool {
+  return getBool().Unsafe.fromField(value);
 }
 
 function isField(x: unknown): x is Field {
@@ -54,4 +61,15 @@ function isBool(x: unknown): x is Bool {
       'Cannot check for instance of Bool before the class was defined.'
     );
   return x instanceof boolConstructor;
+}
+
+function getField(): typeof Field {
+  if (fieldConstructor === undefined)
+    throw Error('Field class not defined yet.');
+  return fieldConstructor;
+}
+
+function getBool(): typeof Bool {
+  if (boolConstructor === undefined) throw Error('Bool class not defined yet.');
+  return boolConstructor;
 }

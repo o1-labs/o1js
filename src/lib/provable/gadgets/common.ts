@@ -1,9 +1,10 @@
-import { Field, VarField } from '../field.js';
+import type { Field, VarField } from '../field.js';
 import { FieldVar, VarFieldVar } from '../core/fieldvar.js';
 import { Tuple } from '../../util/types.js';
 import type { Bool } from '../bool.js';
 import { fieldVar } from '../gates.js';
 import { existsOne } from '../core/exists.js';
+import { createField } from '../core/field-constructor.js';
 
 export { toVars, toVar, isVar, assert, bitSlice, divideWithRemainder };
 
@@ -16,7 +17,7 @@ export { toVars, toVar, isVar, assert, bitSlice, divideWithRemainder };
  * Same as `Field.seal()` with the difference that `seal()` leaves constants as is.
  */
 function toVar(x_: Field | FieldVar | bigint): VarField {
-  let x = new Field(x_);
+  let x = createField(x_);
   // don't change existing vars
   if (isVar(x)) return x;
   let xVar = existsOne(() => x.toBigInt());

@@ -92,7 +92,8 @@ for (let F of fields) {
   let big264 = unreducedForeignField(264, F); // this is the max size supported by our range checks / ffadd
   let big258 = unreducedForeignField(258, F); // rough max size supported by ffmul
 
-  equivalentProvable({ from: [big264, big264], to: big264 })(
+  // addition can fail on two unreduced inputs because we can get x + y - f > 2^264
+  equivalentProvable({ from: [big264, f], to: big264 })(
     F.add,
     (x, y) => ForeignField.add(x, y, F.modulus),
     'add unreduced'
@@ -125,6 +126,16 @@ for (let F of fields) {
   equivalent({ from: [big264], to: unit })(
     (x) => assertWeakBound(x, F.modulus),
     (x) => ForeignField.assertAlmostReduced([x], F.modulus)
+  );
+
+  equivalentProvable({ from: [big264, big264], to: unit })(
+    (x, y) => assert(x < y, 'not less than'),
+    (x, y) => ForeignField.assertLessThan(x, y)
+  );
+
+  equivalentProvable({ from: [big264, big264], to: unit })(
+    (x, y) => assert(x <= y, 'not less than or equal'),
+    (x, y) => ForeignField.assertLessThanOrEqual(x, y)
   );
 
   // sumchain of 5
@@ -193,6 +204,13 @@ let ffProgram = ZkProgram({
       privateInputs: [Field3.provable, Field3.provable],
       async method(x, y) {
         return ForeignField.div(x, y, F.modulus);
+      },
+    },
+    assertLessThan: {
+      privateInputs: [Field3.provable, Field3.provable],
+      async method(x, y) {
+        ForeignField.assertLessThan(x, y);
+        return x;
       },
     },
   },
@@ -272,6 +290,15 @@ await equivalentAsync({ from: [f, f], to: f }, { runs })(
     return proof.publicOutput;
   },
   'prove div'
+);
+
+await equivalentAsync({ from: [f, f], to: unit }, { runs })(
+  (x, y) => assert(x < y, 'not less than'),
+  async (x, y) => {
+    let proof = await ffProgram.assertLessThan(x, y);
+    assert(await ffProgram.verify(proof), 'verifies');
+  },
+  'prove less than'
 );
 
 // assert mul example

@@ -15,10 +15,10 @@ import {
   throwError,
   unit,
   bool,
-  Spec,
 } from '../../testing/equivalent.js';
 import { runAndCheckSync } from '../core/provable-context.js';
 import { ProvablePure } from '../types/provable-intf.js';
+import { assert } from '../../util/assert.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -70,15 +70,6 @@ test(Random.field, Random.int(-5, 5), (x, k) => {
 // Field | bigint parameter
 let fieldOrBigint = oneOf(field, bigintField);
 
-// special generator
-let SmallField = Random.reject(
-  Random.field,
-  (x) => x.toString(2).length > Fp.sizeInBits - 2
-);
-let smallField: Spec<bigint, Field> = { ...field, rng: SmallField };
-let smallBigint: Spec<bigint, bigint> = { ...bigintField, rng: SmallField };
-let smallFieldOrBigint = oneOf(smallField, smallBigint);
-
 // arithmetic, both in- and outside provable code
 let equivalent1 = equivalent({ from: [field], to: field });
 let equivalent2 = equivalent({ from: [field, fieldOrBigint], to: field });
@@ -105,11 +96,11 @@ equivalent({ from: [field, fieldOrBigint], to: bool })(
   (x, y) => x.equals(y)
 );
 
-equivalent({ from: [smallField, smallFieldOrBigint], to: bool })(
+equivalent({ from: [field, fieldOrBigint], to: bool })(
   (x, y) => x < y,
   (x, y) => x.lessThan(y)
 );
-equivalent({ from: [smallField, smallFieldOrBigint], to: bool })(
+equivalent({ from: [field, fieldOrBigint], to: bool })(
   (x, y) => x <= y,
   (x, y) => x.lessThanOrEqual(y)
 );
@@ -121,16 +112,19 @@ equivalent({ from: [field, fieldOrBigint], to: unit })(
   (x, y) => x !== y || throwError('equal'),
   (x, y) => x.assertNotEquals(y)
 );
-equivalent({ from: [smallField, smallFieldOrBigint], to: unit })(
+equivalent({ from: [field, fieldOrBigint], to: unit })(
   (x, y) => x < y || throwError('not less than'),
   (x, y) => x.assertLessThan(y)
 );
-equivalent({ from: [smallField, smallFieldOrBigint], to: unit })(
+equivalent({ from: [field, fieldOrBigint], to: unit })(
   (x, y) => x <= y || throwError('not less than or equal'),
   (x, y) => x.assertLessThanOrEqual(y)
 );
-equivalent({ from: [field], to: unit })(
-  (x) => x === 0n || x === 1n || throwError('not boolean'),
+equivalent({ from: [field], to: bool })(
+  (x) => {
+    assert(x === 0n || x === 1n, 'not boolean');
+    return x === 1n;
+  },
   (x) => x.assertBool()
 );
 equivalent({ from: [field], to: unit })(
@@ -140,7 +134,7 @@ equivalent({ from: [field], to: unit })(
     y.mul(2).assertBool();
   }
 );
-equivalent({ from: [smallField], to: bool })(
+equivalent({ from: [field], to: bool })(
   (x) => (x & 1n) === 0n,
   (x) => x.isEven()
 );

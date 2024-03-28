@@ -2,7 +2,7 @@
  * Basic gadgets that only use generic gates
  */
 import { Fp } from '../../../bindings/crypto/finite-field.js';
-import { Field, VarField } from '../field.js';
+import type { Field, VarField } from '../field.js';
 import {
   FieldType,
   FieldVar,
@@ -13,6 +13,7 @@ import { toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../../util/types.js';
 import { existsOne } from '../core/exists.js';
+import { createField } from '../core/field-constructor.js';
 
 export { assertMul, arrayGet, assertOneOf };
 
@@ -140,7 +141,7 @@ function assertOneOf(x: Field, allowed: [bigint, bigint, ...bigint[]]) {
  */
 function linear(x: VarField | VarFieldVar, [a, b]: TupleN<bigint, 2>) {
   let z = existsOne(() => {
-    let x0 = new Field(x).toBigInt();
+    let x0 = createField(x).toBigInt();
     return a * x0 + b;
   });
   // a*x - z + b === 0
@@ -161,8 +162,8 @@ function bilinear(
   [a, b, c, d]: TupleN<bigint, 4>
 ) {
   let z = existsOne(() => {
-    let x0 = new Field(x).toBigInt();
-    let y0 = new Field(y).toBigInt();
+    let x0 = createField(x).toBigInt();
+    let y0 = createField(y).toBigInt();
     return a * x0 * y0 + b * x0 + c * y0 + d;
   });
   // b*x + c*y - z + a*x*y + d === 0
