@@ -10,6 +10,7 @@ import type { FieldVar, FieldConst } from './fieldvar.js';
 export {
   createField,
   createBool,
+  createBoolUnsafe,
   isField,
   isBool,
   getField,
@@ -36,10 +37,14 @@ function createField(
   return new fieldConstructor(value);
 }
 
-function createBool(value: boolean | Bool | FieldVar): Bool {
+function createBool(value: boolean | Bool): Bool {
   if (boolConstructor === undefined)
     throw Error('Cannot construct a Bool before the class was defined.');
   return new boolConstructor(value);
+}
+
+function createBoolUnsafe(value: Field): Bool {
+  return getBool().Unsafe.fromField(value);
 }
 
 function isField(x: unknown): x is Field {

@@ -1,6 +1,6 @@
 import type { Field } from '../field.js';
 import type { Bool } from '../bool.js';
-import { createBool, createField } from '../core/field-constructor.js';
+import { createBoolUnsafe, createField } from '../core/field-constructor.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { assert } from '../../../lib/util/assert.js';
 import { exists, existsOne } from '../core/exists.js';
@@ -84,7 +84,7 @@ function lessThanGeneric(
   // b*c + x - y in [0, c)
   rangeCheck(b.mul(c).add(x).sub(y).seal());
 
-  return createBool(b.value);
+  return createBoolUnsafe(b);
 }
 
 /**
@@ -109,7 +109,7 @@ function lessThanOrEqualGeneric(
   // b*c + x - y - 1 in [0, c)
   rangeCheck(b.mul(c).add(x).sub(y).sub(1).seal());
 
-  return createBool(b.value);
+  return createBoolUnsafe(b);
 }
 
 /**
@@ -168,7 +168,7 @@ function lessThanFull(x: Field, y: Field) {
   let z = ForeignField.sum([bTimesP, xBig, yBig], [1n, -1n], 0n);
   ForeignField.assertLessThan(z, Fp.modulus);
 
-  return createBool(b.value);
+  return createBoolUnsafe(b);
 }
 
 /**
@@ -187,6 +187,8 @@ function lessThanOrEqualFull(x: Field, y: Field) {
  * **Warning:** the output is underconstrained up to a multiple of the modulus that could be added to the bigint.
  */
 function fieldToField3(x: Field) {
+  if (x.isConstant()) return Field3.from(x.toBigInt());
+
   let xBig = witness(Field3.provable, () => Field3.from(x.toBigInt()));
   multiRangeCheck(xBig);
   let [x0, x1, x2] = xBig;
@@ -262,7 +264,7 @@ function unpack(x: Field, length: number) {
     createField(0)
   );
   assertMul(lc, createField(1), x);
-  return bits.map((b) => createBool(b.value));
+  return bits.map((b) => createBoolUnsafe(b));
 }
 
 function any(xs: Bool[]) {
@@ -284,5 +286,5 @@ function isZero(x: Field): Bool {
   assertMul(b, x, createField(0));
   // z * x === 1 - b
   assertMul(z, x, createField(1).sub(b));
-  return createBool(b.value);
+  return createBoolUnsafe(b);
 }
