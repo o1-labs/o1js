@@ -35,7 +35,7 @@ async function build(srcPath, isWeb = false) {
     resolveExtensions: ['.node.js', '.ts', '.js'],
     logLevel: 'error',
     plugins: isWeb
-      ? [typescriptPlugin(tsConfig)]
+      ? [typescriptPlugin(tsConfig), makeO1jsExternal()]
       : [
           typescriptPlugin(tsConfig),
           makeNodeModulesExternal(),
@@ -118,6 +118,18 @@ function makeNodeModulesExternal() {
       build.onResolve({ filter: isNodeModule }, ({ path }) => ({
         path,
         external: !(platform === 'win32' && path.endsWith('index.js')),
+      }));
+    },
+  };
+}
+
+function makeO1jsExternal() {
+  return {
+    name: 'plugin-external',
+    setup(build) {
+      build.onResolve({ filter: /^o1js$/ }, () => ({
+        path: './index.js',
+        external: true,
       }));
     },
   };
