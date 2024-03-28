@@ -320,35 +320,15 @@ class Field {
    * ```ts
    * let a = Field(5);
    * a.isEven(); // false
-   * a.isEven().assertTrue(); // throws, as expected!
    *
    * let b = Field(4);
    * b.isEven(); // true
-   * b.isEven().assertTrue(); // does not throw, as expected!
    * ```
    */
   isEven() {
-    if (this.isConstant()) return new Bool(this.toBigInt() % 2n === 0n);
-
-    let [isOdd, xDiv2] = exists(2, () => {
-      let bits = BinableFp.toBits(this.toBigInt());
-      let isOdd = bits.shift()! ? 1n : 0n;
-      return [isOdd, BinableFp.fromBits(bits)];
-    });
-
-    // range check for 253 bits
-    // WARNING: this makes use of a special property of the Pasta curves,
-    // namely that a random field element is < 2^254 with overwhelming probability
-    // TODO use 88-bit RCs to make this more efficient
-    xDiv2.toBits(253);
-
-    // boolean check
-    assertBoolean(isOdd);
-
-    // check composition
-    xDiv2.mul(2).add(isOdd).assertEquals(this);
-
-    return Bool.Unsafe.fromField(isOdd).not();
+    // x -> 2x is a bijection between the lower half 0,1,...,(p-1)/2 and the even elements 0,2,...,p-1
+    // so, x is even iff x/2 is in the lower half
+    return this.div(2).lessThan((Field.ORDER + 1n) / 2n);
   }
 
   /**
@@ -772,6 +752,7 @@ class Field {
 
   /**
    * Prove that this {@link Field} is equal to 0 or 1.
+   * Returns the Field wrapped in a {@link Bool}.
    *
    * If the assertion fails, the code throws an error.
    *
@@ -781,12 +762,14 @@ class Field {
     try {
       if (this.isConstant()) {
         let x = this.toBigInt();
-        if (x !== 0n && x !== 1n) {
-          throw Error(`Field.assertBool(): expected ${x} to be 0 or 1`);
-        }
-        return;
+        assert(
+          x === 0n || x === 1n,
+          `Field.assertBool(): expected ${x} to be 0 or 1`
+        );
+        return new Bool(x === 1n);
       }
       assertBoolean(this);
+      return Bool.Unsafe.fromField(this);
     } catch (err) {
       throw withMessage(err, message);
     }
