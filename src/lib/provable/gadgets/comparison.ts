@@ -5,28 +5,28 @@ import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { assert } from '../../../lib/util/assert.js';
 import { exists, existsOne } from '../core/exists.js';
 import { assertMul } from './compatible.js';
-import { asProver } from '../core/provable-context.js';
-import { log2 } from '../../../bindings/crypto/bigint-helpers.js';
 import { Field3, ForeignField } from './foreign-field.js';
 import { l, l2, multiRangeCheck } from './range-check.js';
 import { witness } from '../types/witness.js';
 
 export {
-  compareCompatible,
-  checkRangesAsProver,
+  // generic comparison gadgets for inputs in a narrower range < p/2
   assertLessThanGeneric,
   assertLessThanOrEqualGeneric,
   lessThanGeneric,
   lessThanOrEqualGeneric,
+  // comparison gadgets for full range inputs
   assertLessThanFull,
   assertLessThanOrEqualFull,
   lessThanFull,
   lessThanOrEqualFull,
+  // legacy, unused
+  compareCompatible,
 };
 
 /**
  * Prove x <= y assuming 0 <= x, y < c.
- * The constant c must satisfy 2c <= p, where p is the field order.
+ * The upper bound c must satisfy 2c <= p, where p is the field order.
  *
  * Expects a function `rangeCheck(v: Field)` which proves that v is in [0, p-c).
  * (Note: the range check on v can be looser than the assumption on x and y, but it doesn't have to be)
@@ -79,12 +79,12 @@ function lessThanGeneric(
   // if b = 0, this implies x - y is in [0, c), and so x >= y
   // if b = 1, this implies x - y is in [p-c, p), and so x < y because p-c >= c
   let b = existsOne(() => BigInt(x.toBigInt() < y.toBigInt()));
-  b.assertBool();
+  let isLessThan = b.assertBool();
 
   // b*c + x - y in [0, c)
   rangeCheck(b.mul(c).add(x).sub(y).seal());
 
-  return createBoolUnsafe(b);
+  return isLessThan;
 }
 
 /**
@@ -104,12 +104,12 @@ function lessThanOrEqualGeneric(
   // if b = 0, this implies x - y - 1 is in [0, c), and so x > y
   // if b = 1, this implies x - y - 1 is in [p-c, p), and so x <= y because p-c >= c
   let b = existsOne(() => BigInt(x.toBigInt() <= y.toBigInt()));
-  b.assertBool();
+  let isLessThanOrEqual = b.assertBool();
 
   // b*c + x - y - 1 in [0, c)
   rangeCheck(b.mul(c).add(x).sub(y).sub(1).seal());
 
-  return createBoolUnsafe(b);
+  return isLessThanOrEqual;
 }
 
 /**
@@ -154,7 +154,7 @@ function lessThanFull(x: Field, y: Field) {
   // if b = 1, x - y is in [-p, 0), and so x < y
   // we must also check that both x and y are canonical, or else the connection between the bigint and the Field is lost
   let b = existsOne(() => BigInt(x.toBigInt() < y.toBigInt()));
-  b.assertBool();
+  let isLessThan = b.assertBool();
 
   let xBig = fieldToField3(x);
   let yBig = fieldToField3(y);
@@ -168,7 +168,7 @@ function lessThanFull(x: Field, y: Field) {
   let z = ForeignField.sum([bTimesP, xBig, yBig], [1n, -1n], 0n);
   ForeignField.assertLessThan(z, Fp.modulus);
 
-  return createBoolUnsafe(b);
+  return isLessThan;
 }
 
 /**
@@ -200,23 +200,6 @@ function fieldToField3(x: Field) {
 }
 
 /**
- * Check ranges in a prover block, to help users avoid the pitfall of using comparison gadgets
- * without range-checking the inputs.
- */
-function checkRangesAsProver(x: Field, y: Field, c: bigint) {
-  asProver(() => {
-    let x0 = x.toBigInt();
-    let y0 = y.toBigInt();
-    if (x0 >= c || y0 >= c)
-      throw Error(
-        `Provable comparison can only be used on Fields <= ${log2(
-          c
-        )} bits, got ${Math.max(log2(x0), log2(y0))} bits.`
-      );
-  });
-}
-
-/**
  * Compare x and y assuming both have at most `n` bits.
  *
  * **Important:** If `x` and `y` have more than `n` bits, this doesn't prove the comparison correctly.
@@ -229,12 +212,10 @@ function compareCompatible(x: Field, y: Field, n = Fp.sizeInBits - 2) {
   let maxLength = Fp.sizeInBits - 2;
   assert(n <= maxLength, `bitLength must be at most ${maxLength}`);
 
-  // as prover check
-  const c = 1n << BigInt(n);
-  checkRangesAsProver(x, y, c);
-
   // z = 2^n + y - x
-  let z = createField(c).add(y).sub(x);
+  let z = createField(1n << BigInt(n))
+    .add(y)
+    .sub(x);
 
   let zBits = unpack(z, n + 1);
 

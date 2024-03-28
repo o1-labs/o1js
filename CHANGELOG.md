@@ -30,6 +30,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Remove `CircuitValue`, `prop`, `arrayProp` and `matrixProp` https://github.com/o1-labs/o1js/pull/1507
   - Remove `Mina.accountCreationFee()`, `Mina.BerkeleyQANet`, all APIs which accept private keys for feepayers, `Token`, `AccountUpdate.tokenSymbol`, `SmartContract.{token, setValue, setPermissions}`, "assert" methods for preconditions, `MerkleTee.calculateRootSlow()`, `Scalar.fromBigInt()`, `UInt64.lt()` and friends, deprecated static methods on `Group`, utility methods on `Circuit` like `Circuit.if()`, `Field.isZero()`, `isReady` and `shutdown()` https://github.com/o1-labs/o1js/pull/1515
 - Remove `privateKey` from the accepted arguments of `SmartContract.deploy()` https://github.com/o1-labs/o1js/pull/1515
+- **Efficient comparisons**. Support arbitrary bit lengths for `Field` comparisons and massively reduce their constraints https://github.com/o1-labs/o1js/pull/1523
+  - `Field.assertLessThan()` goes from 510 to 24 constraints, `Field.lessThan()` from 509 to 38
+  - Moderately improved other comparisons: `UInt64.assertLessThan()` from 27 to 14,, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
+  - Massively improved `Field.isEven()` and new `Field.isOdd()`
+  - `PrivateKey.toPublicKey()` from TODO to 119 constraints thanks to `isOdd()`
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
