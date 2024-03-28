@@ -19,7 +19,10 @@ import { diverse } from './diverse-zk-program.js';
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
 
-// usage ./run ./tests/regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
+// toggle to override caches
+const forceRecompile = false;
+
+// usage ./run ./tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
@@ -33,7 +36,7 @@ type MinimumConstraintSystem = {
       }
     >
   >;
-  compile(): Promise<{
+  compile(options?: { forceRecompile?: boolean }): Promise<{
     verificationKey: {
       hash: { toString(): string };
       data: string;
@@ -94,7 +97,7 @@ async function checkVk(contracts: typeof ConstraintSystems) {
 
     let {
       verificationKey: { data, hash },
-    } = await c.compile();
+    } = await c.compile({ forceRecompile });
 
     let methodData = await c.analyzeMethods();
 
@@ -106,20 +109,14 @@ async function checkVk(contracts: typeof ConstraintSystems) {
         errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
   Actual
     ${JSON.stringify(
-      {
-        digest: actualMethod.digest,
-        rows: actualMethod.rows,
-      },
+      { digest: actualMethod.digest, rows: actualMethod.rows },
       undefined,
       2
     )}
   \n
   Expected
     ${JSON.stringify(
-      {
-        digest: expectedMethod.digest,
-        rows: expectedMethod.rows,
-      },
+      { digest: expectedMethod.digest, rows: expectedMethod.rows },
       undefined,
       2
     )}`;
@@ -131,14 +128,7 @@ async function checkVk(contracts: typeof ConstraintSystems) {
         c.name
       } failed, because of a verification key mismatch.
 Contract has
-  ${JSON.stringify(
-    {
-      data,
-      hash,
-    },
-    undefined,
-    2
-  )}
+  ${JSON.stringify({ data, hash }, undefined, 2)}
 \n
 but expected was
   ${JSON.stringify(ref.verificationKey, undefined, 2)}`;
@@ -158,7 +148,8 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
     let verificationKey:
       | { data: string; hash: { toString(): string } }
       | undefined;
-    if (!skipVerificationKeys) ({ verificationKey } = await c.compile());
+    if (!skipVerificationKeys)
+      ({ verificationKey } = await c.compile({ forceRecompile }));
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
