@@ -9,20 +9,26 @@ import { Field3, ForeignField } from './foreign-field.js';
 import { l, l2, multiRangeCheck } from './range-check.js';
 import { witness } from '../types/witness.js';
 
+// external API
 export {
   // generic comparison gadgets for inputs in a narrower range < p/2
   assertLessThanGeneric,
   assertLessThanOrEqualGeneric,
   lessThanGeneric,
   lessThanOrEqualGeneric,
+
   // comparison gadgets for full range inputs
   assertLessThanFull,
   assertLessThanOrEqualFull,
   lessThanFull,
   lessThanOrEqualFull,
+
   // legacy, unused
   compareCompatible,
 };
+
+// internal API
+export { fieldToField3 };
 
 /**
  * Prove x <= y assuming 0 <= x, y < c.
