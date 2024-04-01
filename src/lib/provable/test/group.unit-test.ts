@@ -3,8 +3,21 @@ import { test, Random } from '../../testing/property.js';
 import { Provable } from '../provable.js';
 import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
 import { runAndCheckSync } from '../core/provable-context.js';
+import { scale } from '../gadgets/scalar.js';
+import { Field } from '../field.js';
 
 console.log('group consistency tests');
+
+test(Random.field, Random.field, (a, s0, assert) => {
+  const {
+    x: x1,
+    y: { x0: y1 },
+  } = Poseidon.hashToGroup([a])!;
+  const g = Group.from(x1, y1);
+  const s = Field.from(s0);
+
+  runScale(g, Field.from(1n), (g, s) => scale(g, s), assert);
+});
 
 // tests consistency between in- and out-circuit implementations
 test(Random.field, Random.field, (a, b, assert) => {
@@ -67,6 +80,34 @@ function run(
         `Result for x does not match. g1: ${JSON.stringify(
           g1
         )}, g2: ${JSON.stringify(g2)}`
+      );
+    });
+  });
+}
+
+function runScale(
+  g: Group,
+  s: Field,
+  f: (g1: Group, s: Field) => Group,
+  assert: (b: boolean, message?: string | undefined) => void
+) {
+  let result_out_circuit = f(g, s);
+
+  runAndCheckSync(() => {
+    let result_in_circuit = f(
+      Provable.witness(Group, () => g),
+      Provable.witness(Field, () => s)
+    );
+
+    Provable.asProver(() => {
+      assert(
+        result_out_circuit.equals(result_in_circuit).toBoolean(),
+        `Result for x does not match. g: ${JSON.stringify(
+          g
+        )}, s: ${JSON.stringify(s)}
+        
+        out_circuit: ${JSON.stringify(result_out_circuit)}
+        in_circuit: ${JSON.stringify(result_in_circuit)}`
       );
     });
   });
