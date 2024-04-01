@@ -3,7 +3,6 @@ import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
 import { Field } from './field.js';
 import { FieldVar, FieldConst } from './core/fieldvar.js';
-import { MlArray } from '../ml/base.js';
 import { Bool } from './bool.js';
 
 export { Scalar, ScalarConst, unshift, shift };
@@ -11,36 +10,27 @@ export { Scalar, ScalarConst, unshift, shift };
 // internal API
 export { constantScalarToBigint };
 
-type BoolVar = FieldVar;
 type ScalarConst = [0, bigint];
-
-const ScalarConst = {
-  fromBigint: constFromBigint,
-  toBigint: constToBigint,
-  is(x: any): x is ScalarConst {
-    return Array.isArray(x) && x[0] === 0 && typeof x[1] === 'bigint';
-  },
-};
 
 let scalarShift = Fq.mod(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
-type ConstantScalar = Scalar & { constantValue: ScalarConst };
+type ConstantScalar = Scalar & { constantValue: bigint };
 
 /**
  * Represents a {@link Scalar}.
  */
 class Scalar {
-  value: MlArray<BoolVar>;
-  constantValue?: ScalarConst;
+  shiftedBits: FieldVar[];
+  constantValue?: bigint;
 
   static ORDER = Fq.modulus;
 
-  private constructor(bits: MlArray<BoolVar>, constantValue?: bigint) {
-    this.value = bits;
+  private constructor(bits: FieldVar[], constantValue?: bigint) {
+    this.shiftedBits = bits;
     constantValue ??= toConstantScalar(bits);
     if (constantValue !== undefined) {
-      this.constantValue = ScalarConst.fromBigint(constantValue);
+      this.constantValue = constantValue;
     }
   }
 
@@ -49,10 +39,9 @@ class Scalar {
    *
    * If the input is too large, it is reduced modulo the scalar field size.
    */
-  static from(x: Scalar | ScalarConst | bigint | number | string) {
+  static from(x: Scalar | bigint | number | string) {
     if (x instanceof Scalar) return x;
-    let x_ = ScalarConst.is(x) ? constToBigint(x) : x;
-    let scalar = Fq.mod(BigInt(x_));
+    let scalar = Fq.mod(BigInt(x));
     let bits = toBits(scalar);
     return new Scalar(bits, scalar);
   }
@@ -61,7 +50,7 @@ class Scalar {
    * Check whether this {@link Scalar} is a hard-coded constant in the constraint system.
    * If a {@link Scalar} is constructed outside provable code, it is a constant.
    */
-  isConstant(): this is Scalar & { constantValue: ScalarConst } {
+  isConstant(): this is Scalar & { constantValue: bigint } {
     return this.constantValue !== undefined;
   }
 
@@ -74,9 +63,10 @@ class Scalar {
    */
   toConstant(): ConstantScalar {
     if (this.constantValue !== undefined) return this as ConstantScalar;
-    let [, ...bits] = this.value;
-    let constBits = bits.map((b) => FieldVar.constant(Snarky.field.readVar(b)));
-    return new Scalar([0, ...constBits]) as ConstantScalar;
+    let constBits = this.shiftedBits.map((b) =>
+      FieldVar.constant(Snarky.field.readVar(b))
+    );
+    return new Scalar(constBits) as ConstantScalar;
   }
 
   /**
@@ -213,8 +203,7 @@ class Scalar {
    * The fields are not constrained to be boolean.
    */
   static toFields(x: Scalar) {
-    let [, ...bits] = x.value;
-    return bits.map((b) => new Field(b));
+    return x.shiftedBits.map((b) => new Field(b));
   }
 
   /**
@@ -260,7 +249,7 @@ class Scalar {
    * Creates a data structure from an array of serialized {@link Field} elements.
    */
   static fromFields(fields: Field[]): Scalar {
-    return new Scalar([0, ...fields.map((x) => x.value)]);
+    return new Scalar(fields.map((x) => x.value));
   }
 
   /**
@@ -326,7 +315,7 @@ function assertConstant(x: Scalar, name: string) {
   return constantScalarToBigint(x, `Scalar.${name}`);
 }
 
-function toConstantScalar([, ...bits]: MlArray<BoolVar>): bigint | undefined {
+function toConstantScalar(bits: FieldVar[]): bigint | undefined {
   if (bits.length !== Fq.sizeInBits)
     throw Error(
       `Scalar: expected bits array of length ${Fq.sizeInBits}, got ${bits.length}`
@@ -341,13 +330,10 @@ function toConstantScalar([, ...bits]: MlArray<BoolVar>): bigint | undefined {
   return shift(sShifted);
 }
 
-function toBits(constantValue: bigint): MlArray<BoolVar> {
-  return [
-    0,
-    ...SignableFq.toBits(unshift(constantValue)).map((b) =>
-      FieldVar.constant(BigInt(b))
-    ),
-  ];
+function toBits(constantValue: bigint): FieldVar[] {
+  return SignableFq.toBits(unshift(constantValue)).map((b) =>
+    FieldVar.constant(BigInt(b))
+  );
 }
 
 /**
@@ -377,5 +363,5 @@ function constantScalarToBigint(s: Scalar, name: string) {
       `${name}() is not available in provable code.
 That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
     );
-  return ScalarConst.toBigint(s.constantValue);
+  return s.constantValue;
 }

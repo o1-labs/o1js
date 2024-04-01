@@ -196,7 +196,7 @@ class Group {
       let g_proj = Pallas.scale(toProjective(this), scalar.toBigInt());
       return fromProjective(g_proj);
     } else {
-      let [, ...bits] = scalar.value;
+      let [...bits] = scalar.shiftedBits;
       bits.reverse();
       let [, x, y] = Snarky.group.scale(toTuple(this), [0, ...bits]);
       return new Group({ x, y });
