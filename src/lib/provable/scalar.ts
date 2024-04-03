@@ -1,21 +1,22 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
-import { Field } from './field.js';
+import { Field, checkBitLength } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { Bool } from './bool.js';
 import { TupleN } from '../util/types.js';
-import { fieldToShiftedSplit5 } from './gadgets/native-curve.js';
+import {
+  field3ToShiftedScalar,
+  fieldToShiftedScalar,
+} from './gadgets/native-curve.js';
 import { isConstant, packBits } from './gadgets/common.js';
 import { Provable } from './provable.js';
 import { assert } from '../util/assert.js';
 import type { HashInput } from './types/provable-derivers.js';
+import { field3FromBits } from './gadgets/foreign-field.js';
 
 export { Scalar, ScalarConst };
 
 type ScalarConst = [0, bigint];
-
-let scalarShift = Fq.mod(1n + 2n ** 255n);
-let oneHalf = Fq.inverse(2n)!;
 
 /**
  * Represents a {@link Scalar}.
@@ -55,7 +56,7 @@ class Scalar {
    * This is always possible and unambiguous, since the scalar field is larger than the base field.
    */
   static fromNativeField(s: Field): Scalar {
-    let { low5, high250 } = fieldToShiftedSplit5(s);
+    let { low5, high250 } = fieldToShiftedScalar(s);
     return new Scalar(low5, high250);
   }
 
@@ -91,9 +92,20 @@ class Scalar {
     );
   }
 
+  /**
+   * Creates a Scalar from an array of {@link Bool}.
+   * This method is provable.
+   */
   static fromBits(bits: Bool[]): Scalar {
-    // TODO
-    throw Error('Not implemented');
+    let length = bits.length;
+    checkBitLength('Scalar.fromBits()', length, 255);
+
+    // convert bits to a 3-limb bigint
+    let sBig = field3FromBits(bits);
+
+    // convert to shifted representation
+    let { low5, high250 } = field3ToShiftedScalar(sBig);
+    return new Scalar(low5, high250);
   }
 
   /**
@@ -310,18 +322,4 @@ function assertConstant(x: Scalar, name: string): bigint {
 That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
   );
   return x.toBigInt();
-}
-
-/**
- * s -> 2s + 1 + 2^255
- */
-function shift(s: bigint) {
-  return Fq.add(Fq.add(s, s), scalarShift);
-}
-
-/**
- * inverse of shift, 2s + 1 + 2^255 -> s
- */
-function unshift(s: bigint) {
-  return Fq.mul(Fq.sub(s, scalarShift), oneHalf);
 }

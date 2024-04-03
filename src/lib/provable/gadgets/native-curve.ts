@@ -14,7 +14,13 @@ import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
 import { provable } from '../types/provable-derivers.js';
 
-export { scale, fieldToShiftedSplit5, scaleShiftedSplit5, add };
+export {
+  scale,
+  fieldToShiftedScalar,
+  field3ToShiftedScalar,
+  scaleShiftedSplit5,
+  add,
+};
 
 type Point = { x: Field; y: Field };
 type ShiftedScalar = { low5: TupleN<Bool, 5>; high250: Field };
@@ -33,7 +39,7 @@ function scale(P: Point, s: Field): Point {
     return { x: createField(sP.x), y: createField(sP.y) };
   }
   // compute t = s - 2^254 mod q using foreign field subtraction, and split into 5 low bits and 250 high bits
-  let t = fieldToShiftedSplit5(s);
+  let t = fieldToShiftedScalar(s);
 
   // return (t + 2^254)*P = (s - 2^254 + 2^254)*P = s*P
   return scaleShiftedSplit5(P, t);
@@ -45,19 +51,26 @@ function scale(P: Point, s: Field): Point {
  *
  * This is the representation we use for scalars, since it can be used as input to `scaleShiftedSplit5()`.
  */
-function fieldToShiftedSplit5(s: Field): ShiftedScalar {
+function fieldToShiftedScalar(s: Field): ShiftedScalar {
+  return field3ToShiftedScalar(fieldToField3(s));
+}
+
+/**
+ * Converts a 3-limb bigint to a shifted representation t = s = 2^254 mod q,
+ * where t is represented as a 5-bit low part and a 250-bit high part.
+ */
+function field3ToShiftedScalar(s: Field3): ShiftedScalar {
   // constant case
-  if (s.isConstant()) {
-    let t = Fq.mod(s.toBigInt() - (1n << 254n));
+  if (Field3.isConstant(s)) {
+    let t = Fq.mod(Field3.toBigint(s) - (1n << 254n));
     let low5 = createField(t & 0x1fn).toBits(5);
     let high250 = createField(t >> 5n);
     return { low5: TupleN.fromArray(5, low5), high250 };
   }
 
   // compute t = s - 2^254 mod q using foreign field subtraction
-  let sBig = fieldToField3(s);
   let twoTo254 = Field3.from(1n << 254n);
-  let [t0, t1, t2] = ForeignField.sub(sBig, twoTo254, Fq.modulus);
+  let [t0, t1, t2] = ForeignField.sub(s, twoTo254, Fq.modulus);
 
   // split t into 250 high bits and 5 low bits
   // => split t0 into [5, 83]
