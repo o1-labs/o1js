@@ -93,20 +93,16 @@ function scaleShiftedSplit5(
   R = Provable.if(t4, R, R.addNonZero(P.neg()));
 
   // R = ((t >> 3) + 2^251)P
-  R = R.addNonZero(R);
-  R = Provable.if(t3, R.addNonZero(P), R);
-
   // R = ((t >> 2) + 2^252)P
-  R = R.addNonZero(R);
-  R = Provable.if(t2, R.addNonZero(P), R);
-
   // R = ((t >> 1) + 2^253)P
-  R = R.addNonZero(R);
-  R = Provable.if(t1, R.addNonZero(P), R);
+  for (let t of [t3, t2, t1]) {
+    R = R.addNonZero(R);
+    R = Provable.if(t, R.addNonZero(P), R);
+  }
 
   // R = (t + 2^254)P
-  R = R.addNonZero(R);
   // in the final step, we allow a zero output to make it work for the 0 scalar
+  R = R.addNonZero(R);
   R = Provable.if(t0, R.addNonZero(P, true), R);
 
   return R;
