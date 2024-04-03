@@ -11,8 +11,8 @@ import { l } from './range-check.js';
 import { createField, getBool, getField } from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
-import { Group } from '../group.js';
 import { MlPair } from '../../ml/base.js';
+import { provable } from '../types/provable-derivers.js';
 
 export { scale, scaleShiftedSplit5, add };
 
@@ -21,7 +21,7 @@ type Point = { x: Field; y: Field };
 /**
  * Gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
  */
-function scale(P: Point, s: Field): Group {
+function scale(P: Point, s: Field): Point {
   // constant case
   let { x, y } = P;
   if (x.isConstant() && y.isConstant() && s.isConstant()) {
@@ -29,9 +29,8 @@ function scale(P: Point, s: Field): Group {
       PallasAffine.fromNonzero({ x: x.toBigInt(), y: y.toBigInt() }),
       s.toBigInt()
     );
-    return new Group({ x: createField(sP.x), y: createField(sP.y) });
+    return { x: createField(sP.x), y: createField(sP.y) };
   }
-
   // compute t = s - 2^254 mod q using foreign field subtraction
   let sBig = fieldToField3(s);
   let twoTo254 = Field3.from(1n << 254n);
@@ -69,18 +68,21 @@ function scale(P: Point, s: Field): Group {
  * The gadget proves that `tHi` is in [0, 2^250) but assumes that `tLo` consists of bits.
  */
 function scaleShiftedSplit5(
-  { x, y }: { x: Field; y: Field },
+  { x, y }: Point,
   tHi: Field,
   tLo: TupleN<Bool, 5>
-): Group {
+): Point {
   // constant case
   if (isConstant(x, y, tHi, ...tLo)) {
     let sP = PallasAffine.scale(
       PallasAffine.fromNonzero({ x: x.toBigInt(), y: y.toBigInt() }),
       Fq.add(packBits(tLo).toBigInt() + (tHi.toBigInt() << 5n), 1n << 254n)
     );
-    return new Group({ x: createField(sP.x), y: createField(sP.y) });
+    return { x: createField(sP.x), y: createField(sP.y) };
   }
+  const Field = getField();
+  const Point = provable({ x: Field, y: Field });
+  const zero = createField(0n);
 
   // R = (2*(t >> 5) + 1 + 2^250)P
   let [, RMl] = Snarky.group.scaleFastUnpack(
@@ -88,25 +90,27 @@ function scaleShiftedSplit5(
     [0, tHi.value],
     250
   );
-  let P = new Group({ x, y });
-  let R = new Group({ x: RMl[1], y: RMl[2] });
+  let P = { x, y };
+  let R = { x: createField(RMl[1]), y: createField(RMl[2]) };
   let [t0, t1, t2, t3, t4] = tLo;
 
   // R = t4 ? R : R - P = ((t >> 4) + 2^250)P
-  R = Provable.if(t4, R, R.addNonZero(P.neg()));
+  R = Provable.if(t4, Point, R, addNonZero(R, negate(P)));
 
   // R = ((t >> 3) + 2^251)P
   // R = ((t >> 2) + 2^252)P
   // R = ((t >> 1) + 2^253)P
   for (let t of [t3, t2, t1]) {
-    R = R.addNonZero(R);
-    R = Provable.if(t, R.addNonZero(P), R);
+    R = addNonZero(R, R);
+    R = Provable.if(t, Point, addNonZero(R, P), R);
   }
 
   // R = (t + 2^254)P
   // in the final step, we allow a zero output to make it work for the 0 scalar
-  R = R.addNonZero(R);
-  R = Provable.if(t0, R.addNonZero(P, true), R);
+  R = addNonZero(R, R);
+  let { result, isInfinity } = add(R, P);
+  result = Provable.if(isInfinity, Point, { x: zero, y: zero }, result);
+  R = Provable.if(t0, Point, result, R);
 
   return R;
 }
@@ -166,4 +170,20 @@ function add(g: Point, h: Point) {
   );
 
   return { result: { x: x3, y: y3 }, isInfinity: inf };
+}
+
+/**
+ * Addition that asserts the result is non-zero.
+ */
+function addNonZero(g: Point, h: Point) {
+  let { result, isInfinity } = add(g, h);
+  isInfinity.assertFalse();
+  return result;
+}
+
+/**
+ * Negates a point.
+ */
+function negate(g: Point): Point {
+  return { x: g.x, y: g.y.neg() };
 }
