@@ -61,7 +61,7 @@ function scale(P: { x: Field; y: Field }, s: Field): Group {
 
 /**
  * Internal helper to compute `(t + 2^254)*P`.
- * `t` is expected to be split into 250 high bits (t >> 5) and 5 low bits (t & 0xf1).
+ * `t` is expected to be split into 250 high bits (t >> 5) and 5 low bits (t & 0x1f).
  *
  * The gadget proves that `tHi` is in [0, 2^250) but assumes that `tLo` consists of bits.
  */
@@ -89,26 +89,25 @@ function scaleShiftedSplit5(
   let R = new Group({ x: RMl[1], y: RMl[2] });
   let [t0, t1, t2, t3, t4] = tLo;
 
-  // TODO: use faster group ops which don't allow zero inputs
-
   // R = t4 ? R : R - P = ((t >> 4) + 2^250)P
-  R = Provable.if(t4, R, R.sub(P));
+  R = Provable.if(t4, R, R.addNonZero(P.neg()));
 
   // R = ((t >> 3) + 2^251)P
-  R = R.add(R);
-  R = Provable.if(t3, R.add(P), R);
+  R = R.addNonZero(R);
+  R = Provable.if(t3, R.addNonZero(P), R);
 
   // R = ((t >> 2) + 2^252)P
-  R = R.add(R);
-  R = Provable.if(t2, R.add(P), R);
+  R = R.addNonZero(R);
+  R = Provable.if(t2, R.addNonZero(P), R);
 
   // R = ((t >> 1) + 2^253)P
-  R = R.add(R);
-  R = Provable.if(t1, R.add(P), R);
+  R = R.addNonZero(R);
+  R = Provable.if(t1, R.addNonZero(P), R);
 
   // R = (t + 2^254)P
-  R = R.add(R);
-  R = Provable.if(t0, R.add(P), R);
+  R = R.addNonZero(R);
+  // in the final step, we allow a zero output to make it work for the 0 scalar
+  R = Provable.if(t0, R.addNonZero(P, true), R);
 
   return R;
 }

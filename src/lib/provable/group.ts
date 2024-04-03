@@ -3,9 +3,14 @@ import { FieldVar } from './core/fieldvar.js';
 import { Scalar } from './scalar.js';
 import { Snarky } from '../../snarky.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import { GroupAffine, Pallas } from '../../bindings/crypto/elliptic-curve.js';
+import {
+  GroupAffine,
+  Pallas,
+  PallasAffine,
+} from '../../bindings/crypto/elliptic-curve.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
+import { assert } from '../util/assert.js';
 
 export { Group };
 
@@ -101,67 +106,46 @@ class Group {
         return fromProjective(g_proj);
       }
     } else {
-      const { x: x1, y: y1 } = this;
-      const { x: x2, y: y2 } = g;
-
-      let zero = new Field(0);
-
-      let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
-
-      let inf = Provable.witness(Bool, () =>
-        x1.equals(x2).and(y1.equals(y2).not())
-      );
-
-      let inf_z = Provable.witness(Field, () => {
-        if (y1.equals(y2).toBoolean()) return zero;
-        else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
-        else return zero;
-      });
-
-      let x21_inv = Provable.witness(Field, () => {
-        if (x1.equals(x2).toBoolean()) return zero;
-        else return x2.sub(x1).inv();
-      });
-
-      let s = Provable.witness(Field, () => {
-        if (x1.equals(x2).toBoolean()) {
-          let x1_squared = x1.square();
-          return x1_squared.add(x1_squared).add(x1_squared).div(y1.add(y1));
-        } else return y2.sub(y1).div(x2.sub(x1));
-      });
-
-      let x3 = Provable.witness(Field, () => {
-        return s.square().sub(x1.add(x2));
-      });
-
-      let y3 = Provable.witness(Field, () => {
-        return s.mul(x1.sub(x3)).sub(y1);
-      });
-
-      let [, x, y] = Snarky.gates.ecAdd(
-        toTuple(Group.from(x1.seal(), y1.seal())),
-        toTuple(Group.from(x2.seal(), y2.seal())),
-        toTuple(Group.from(x3, y3)),
-        inf.toField().value,
-        same_x.value,
-        s.value,
-        inf_z.value,
-        x21_inv.value
-      );
-
+      let { result, isInfinity } = addBase(this, g);
       // similarly to the constant implementation, we check if either operand is zero
       // and the implementation above (original OCaml implementation) returns something wild -> g + 0 != g where it should be g + 0 = g
       let gIsZero = g.isZero();
       let onlyThisIsZero = this.isZero().and(gIsZero.not());
-      let isNegation = inf;
+      let isNegation = isInfinity;
       let isNormalAddition = gIsZero.or(onlyThisIsZero).or(isNegation).not();
 
       // note: gIsZero and isNegation are not mutually exclusive, but if both are true, we add 1*0 + 1*0 = 0 which is correct
       return Provable.switch(
         [gIsZero, onlyThisIsZero, isNegation, isNormalAddition],
         Group,
-        [this, g, Group.zero, new Group({ x, y })]
+        [this, g, Group.zero, new Group(result)],
+        { allowNonExclusive: true }
       );
+    }
+  }
+
+  /**
+   * Lower-level variant of {@link add} which doesn't handle the case where one of the operands is zero, and
+   * asserts that the output is non-zero.
+   *
+   * Optionally, zero outputs can be allowed by setting `allowZeroOutput` to `true`.
+   *
+   * **Warning**: If one of the inputs is zero, the result will be garbage and the proof useless.
+   * This case has to be prevented or handled separately by the caller of this method.
+   */
+  addNonZero(g2: Group, allowZeroOutput = false): Group {
+    if (isConstant(this) && isConstant(g2)) {
+      let { x, y, infinity } = PallasAffine.add(toAffine(this), toAffine(g2));
+      assert(infinity === false, 'Group.addNonzero(): Result is zero');
+      return fromAffine({ x, y, infinity });
+    }
+    let { result, isInfinity } = addBase(this, g2);
+
+    if (allowZeroOutput) {
+      return Provable.if(isInfinity, Group.zero, new Group(result));
+    } else {
+      isInfinity.assertFalse('Group.addNonzero(): Result is zero');
+      return new Group(result);
     }
   }
 
@@ -358,6 +342,63 @@ class Group {
   }
 }
 
+type GroupBase = { x: Field; y: Field };
+
+/**
+ * Wraps the `EC_add` gate to perform complete addition of two non-zero curve points.
+ */
+function addBase(g: GroupBase, h: GroupBase) {
+  const { x: x1, y: y1 } = g;
+  const { x: x2, y: y2 } = h;
+
+  let zero = new Field(0);
+
+  let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
+
+  let inf = Provable.witness(Bool, () =>
+    x1.equals(x2).and(y1.equals(y2).not())
+  );
+
+  let inf_z = Provable.witness(Field, () => {
+    if (y1.equals(y2).toBoolean()) return zero;
+    else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
+    else return zero;
+  });
+
+  let x21_inv = Provable.witness(Field, () => {
+    if (x1.equals(x2).toBoolean()) return zero;
+    else return x2.sub(x1).inv();
+  });
+
+  let s = Provable.witness(Field, () => {
+    if (x1.equals(x2).toBoolean()) {
+      let x1_squared = x1.square();
+      return x1_squared.add(x1_squared).add(x1_squared).div(y1.add(y1));
+    } else return y2.sub(y1).div(x2.sub(x1));
+  });
+
+  let x3 = Provable.witness(Field, () => {
+    return s.square().sub(x1.add(x2));
+  });
+
+  let y3 = Provable.witness(Field, () => {
+    return s.mul(x1.sub(x3)).sub(y1);
+  });
+
+  Snarky.gates.ecAdd(
+    toTuple(Group.from(x1.seal(), y1.seal())),
+    toTuple(Group.from(x2.seal(), y2.seal())),
+    toTuple(Group.from(x3, y3)),
+    inf.toField().value,
+    same_x.value,
+    s.value,
+    inf_z.value,
+    x21_inv.value
+  );
+
+  return { result: { x: x3, y: y3 }, isInfinity: inf };
+}
+
 // internal helpers
 
 function isConstant(g: Group) {
@@ -382,4 +423,8 @@ function fromProjective({ x, y, z }: { x: bigint; y: bigint; z: bigint }) {
 
 function fromAffine({ x, y, infinity }: GroupAffine) {
   return infinity ? Group.zero : new Group({ x, y });
+}
+
+function toAffine(g: Group): GroupAffine {
+  return PallasAffine.from({ x: g.x.toBigInt(), y: g.y.toBigInt() });
 }

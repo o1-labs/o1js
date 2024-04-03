@@ -339,7 +339,8 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
 function switch_<T, A extends FlexibleProvable<T>>(
   mask: Bool[],
   type: A,
-  values: T[]
+  values: T[],
+  { allowNonExclusive = false } = {}
 ): T {
   // picks the value at the index where mask is true
   let nValues = values.length;
@@ -348,6 +349,7 @@ function switch_<T, A extends FlexibleProvable<T>>(
       `Provable.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
     );
   let checkMask = () => {
+    if (allowNonExclusive) return;
     let nTrue = mask.filter((b) => b.toBoolean()).length;
     if (nTrue > 1) {
       throw Error(
