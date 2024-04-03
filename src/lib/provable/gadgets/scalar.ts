@@ -86,7 +86,7 @@ function scaleShiftedSplit5(
     250
   );
   let P = new Group({ x, y });
-  let R = new Group({ x: RMl[0], y: RMl[1] });
+  let R = new Group({ x: RMl[1], y: RMl[2] });
   let [t0, t1, t2, t3, t4] = tLo;
 
   // TODO: use faster group ops which don't allow zero inputs

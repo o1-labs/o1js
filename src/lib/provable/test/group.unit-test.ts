@@ -16,7 +16,7 @@ test(Random.field, Random.field, (a, s0, assert) => {
   const g = Group.from(x1, y1);
   const s = Field.from(s0);
 
-  runScale(g, Field.from(1n), (g, s) => scale(g, s), assert);
+  runScale(g, s, (g, s) => scale(g, s), assert);
 });
 
 // tests consistency between in- and out-circuit implementations
