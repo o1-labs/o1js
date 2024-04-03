@@ -3,7 +3,7 @@ import { Struct } from '../types/struct.js';
 import { Field, Group, Scalar } from '../wrapped.js';
 import { Poseidon } from './poseidon.js';
 import { MerkleMapWitness } from '../merkle-map.js';
-import { PrivateKey, PublicKey, scaleShifted } from './signature.js';
+import { PrivateKey, PublicKey } from './signature.js';
 import { Provable } from '../provable.js';
 
 export { Nullifier };
@@ -50,6 +50,7 @@ class Nullifier extends Struct({
       public: { nullifier, s },
       private: { c },
     } = this;
+    let cScalar = Scalar.fromNativeField(c);
 
     // generator
     let G = Group.generator;
@@ -70,7 +71,7 @@ class Nullifier extends Struct({
 
     // shifted scalar see https://github.com/o1-labs/o1js/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
     // pk^c
-    let pk_c = scaleShifted(this.publicKey, Scalar.fromBits(c.toBits()));
+    let pk_c = this.publicKey.scale(cScalar);
 
     // g^r = g^s / pk^c
     let g_r = G.scale(s).sub(pk_c);
@@ -79,9 +80,7 @@ class Nullifier extends Struct({
     let h_m_pk_s = h_m_pk.scale(s);
 
     // h_m_pk_r =  h(m,pk)^s / nullifier^c
-    let h_m_pk_s_div_nullifier_s = h_m_pk_s.sub(
-      scaleShifted(nullifier, Scalar.fromBits(c.toBits()))
-    );
+    let h_m_pk_s_div_nullifier_s = h_m_pk_s.sub(nullifier.scale(cScalar));
 
     // this is supposed to match the entries generated on "the other side" of the nullifier (mina-signer, in an wallet enclave)
     Poseidon.hash([

@@ -53,10 +53,10 @@ describe('scalar', () => {
       });
 
       describe('fromBits', () => {
-        it('should return a shifted scalar', () => {
+        it('should return a scalar with the same bigint value', () => {
           let x = Field.random();
           let bits_ = x.toBits();
-          let s = Scalar.fromBits(bits_).unshift();
+          let s = Scalar.fromBits(bits_);
           expect(x.toBigInt()).toEqual(s.toBigInt());
         });
       });

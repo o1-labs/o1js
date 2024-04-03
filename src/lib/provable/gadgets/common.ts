@@ -79,7 +79,7 @@ function divideWithRemainder(numerator: bigint, denominator: bigint) {
 // pack bools into a single field element
 
 /**
- * Helper function to pack bits into a single field element.
+ * Helper function to provably pack bits into a single field element.
  * Just returns the sum without any boolean checks.
  */
 function packBits(bits: (Field | Bool)[]): Field {

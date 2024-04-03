@@ -14,9 +14,10 @@ import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
 import { provable } from '../types/provable-derivers.js';
 
-export { scale, scaleShiftedSplit5, add };
+export { scale, fieldToShiftedSplit5, scaleShiftedSplit5, add };
 
 type Point = { x: Field; y: Field };
+type ShiftedScalar = { low5: TupleN<Bool, 5>; high250: Field };
 
 /**
  * Gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
@@ -31,6 +32,28 @@ function scale(P: Point, s: Field): Point {
     );
     return { x: createField(sP.x), y: createField(sP.y) };
   }
+  // compute t = s - 2^254 mod q using foreign field subtraction, and split into 5 low bits and 250 high bits
+  let t = fieldToShiftedSplit5(s);
+
+  // return (t + 2^254)*P = (s - 2^254 + 2^254)*P = s*P
+  return scaleShiftedSplit5(P, t);
+}
+
+/**
+ * Converts a field element s to a shifted representation t = s = 2^254 mod q,
+ * where t is represented as a 5-bit low part and a 250-bit high part.
+ *
+ * This is the representation we use for scalars, since it can be used as input to `scaleShiftedSplit5()`.
+ */
+function fieldToShiftedSplit5(s: Field): ShiftedScalar {
+  // constant case
+  if (s.isConstant()) {
+    let t = Fq.mod(s.toBigInt() - (1n << 254n));
+    let low5 = createField(t & 0x1fn).toBits(5);
+    let high250 = createField(t >> 5n);
+    return { low5: TupleN.fromArray(5, low5), high250 };
+  }
+
   // compute t = s - 2^254 mod q using foreign field subtraction
   let sBig = fieldToField3(s);
   let twoTo254 = Field3.from(1n << 254n);
@@ -52,13 +75,13 @@ function scale(P: Point, s: Field): Point {
     .assertEquals(t0);
 
   // pack tHi
+  // proves that tHi is in [0, 2^250)
   let tHi = tHi0
     .add(t1.mul(1n << (l - 5n)))
     .add(t2.mul(1n << (2n * l - 5n)))
     .seal();
 
-  // return (t + 2^254)*P = (s - 2^254 + 2^254)*P = s*P
-  return scaleShiftedSplit5(P, tHi, tLoBools);
+  return { low5: tLoBools, high250: tHi };
 }
 
 /**
@@ -69,8 +92,7 @@ function scale(P: Point, s: Field): Point {
  */
 function scaleShiftedSplit5(
   { x, y }: Point,
-  tHi: Field,
-  tLo: TupleN<Bool, 5>
+  { low5: tLo, high250: tHi }: ShiftedScalar
 ): Point {
   // constant case
   if (isConstant(x, y, tHi, ...tLo)) {

@@ -1,7 +1,6 @@
 import { Field } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { Scalar } from './scalar.js';
-import { Snarky } from '../../snarky.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
 import {
   GroupAffine,
@@ -11,7 +10,7 @@ import {
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/assert.js';
-import { add } from './gadgets/native-curve.js';
+import { add, scaleShiftedSplit5 } from './gadgets/native-curve.js';
 
 export { Group };
 
@@ -181,10 +180,8 @@ class Group {
       let g_proj = Pallas.scale(toProjective(this), scalar.toBigInt());
       return fromProjective(g_proj);
     } else {
-      let [...bits] = scalar.shiftedBits;
-      bits.reverse();
-      let [, x, y] = Snarky.group.scale(toTuple(this), [0, ...bits]);
-      return new Group({ x, y });
+      let result = scaleShiftedSplit5(this, scalar);
+      return new Group(result);
     }
   }
 

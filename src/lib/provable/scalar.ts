@@ -1,37 +1,39 @@
-import { Snarky } from '../../snarky.js';
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
 import { Field } from './field.js';
-import { FieldVar, FieldConst } from './core/fieldvar.js';
+import { FieldVar } from './core/fieldvar.js';
 import { Bool } from './bool.js';
+import { TupleN } from '../util/types.js';
+import { fieldToShiftedSplit5 } from './gadgets/native-curve.js';
+import { isConstant, packBits } from './gadgets/common.js';
+import { Provable } from './provable.js';
+import { assert } from '../util/assert.js';
+import type { HashInput } from './types/provable-derivers.js';
 
-export { Scalar, ScalarConst, unshift, shift };
-
-// internal API
-export { constantScalarToBigint };
+export { Scalar, ScalarConst };
 
 type ScalarConst = [0, bigint];
 
 let scalarShift = Fq.mod(1n + 2n ** 255n);
 let oneHalf = Fq.inverse(2n)!;
 
-type ConstantScalar = Scalar & { constantValue: bigint };
-
 /**
  * Represents a {@link Scalar}.
  */
 class Scalar {
-  shiftedBits: FieldVar[];
-  constantValue?: bigint;
+  /**
+   * We represent a scalar s in shifted form `t = s - 2^254 mod q,
+   * split into its low 5 bits (t & 0x1f) and high 250 bits (t >> 5).
+   * The reason is that we can efficiently compute the scalar multiplication `(t + 2^254) * P = s * P`.
+   */
+  low5: TupleN<Bool, 5>;
+  high250: Field;
 
   static ORDER = Fq.modulus;
 
-  private constructor(bits: FieldVar[], constantValue?: bigint) {
-    this.shiftedBits = bits;
-    constantValue ??= toConstantScalar(bits);
-    if (constantValue !== undefined) {
-      this.constantValue = constantValue;
-    }
+  private constructor(low5: TupleN<Bool, 5>, high250: Field) {
+    this.low5 = low5;
+    this.high250 = high250;
   }
 
   /**
@@ -39,19 +41,31 @@ class Scalar {
    *
    * If the input is too large, it is reduced modulo the scalar field size.
    */
-  static from(x: Scalar | bigint | number | string) {
-    if (x instanceof Scalar) return x;
-    let scalar = Fq.mod(BigInt(x));
-    let bits = toBits(scalar);
-    return new Scalar(bits, scalar);
+  static from(s: Scalar | bigint | number | string): Scalar {
+    if (s instanceof Scalar) return s;
+    let t = Fq.mod(BigInt(s) - (1n << 254n));
+    let low5 = new Field(t & 0x1fn).toBits(5);
+    let high250 = new Field(t >> 5n);
+    return new Scalar(TupleN.fromArray(5, low5), high250);
+  }
+
+  /**
+   * Provable method to convert a {@link Field} into a {@link Scalar}.
+   *
+   * This is always possible and unambiguous, since the scalar field is larger than the base field.
+   */
+  static fromNativeField(s: Field): Scalar {
+    let { low5, high250 } = fieldToShiftedSplit5(s);
+    return new Scalar(low5, high250);
   }
 
   /**
    * Check whether this {@link Scalar} is a hard-coded constant in the constraint system.
    * If a {@link Scalar} is constructed outside provable code, it is a constant.
    */
-  isConstant(): this is Scalar & { constantValue: bigint } {
-    return this.constantValue !== undefined;
+  isConstant() {
+    let { low5, high250 } = this;
+    return isConstant(high250, ...low5);
   }
 
   /**
@@ -61,33 +75,25 @@ class Scalar {
    *
    * See {@link FieldVar} for an explanation of constants vs. variables.
    */
-  toConstant(): ConstantScalar {
-    if (this.constantValue !== undefined) return this as ConstantScalar;
-    let constBits = this.shiftedBits.map((b) =>
-      FieldVar.constant(Snarky.field.readVar(b))
-    );
-    return new Scalar(constBits) as ConstantScalar;
+  toConstant() {
+    if (this.isConstant()) return this;
+    return Provable.toConstant(Scalar, this);
   }
 
   /**
    * Convert this {@link Scalar} into a bigint
    */
   toBigInt() {
-    return assertConstant(this, 'toBigInt');
+    let { low5, high250 } = this.toConstant();
+    return Fq.add(
+      packBits(low5).toBigInt() + (high250.toBigInt() << 5n),
+      1n << 254n
+    );
   }
 
-  // TODO: fix this API. we should represent "shifted status" internally and use
-  // and use shifted Group.scale only if the scalar bits representation is shifted
-  /**
-   * Creates a data structure from an array of serialized {@link Bool}.
-   *
-   * **Warning**: The bits are interpreted as the bits of 2s + 1 + 2^255, where s is the Scalar.
-   */
-  static fromBits(bits: Bool[]) {
-    return Scalar.fromFields([
-      ...bits.map((b) => b.toField()),
-      ...Array(Fq.sizeInBits - bits.length).fill(new Bool(false)),
-    ]);
+  static fromBits(bits: Bool[]): Scalar {
+    // TODO
+    throw Error('Not implemented');
   }
 
   /**
@@ -161,16 +167,6 @@ class Scalar {
     return Scalar.from(z);
   }
 
-  // TODO don't leak 'shifting' to the user and remove these methods
-  shift() {
-    let x = assertConstant(this, 'shift');
-    return Scalar.from(shift(x));
-  }
-  unshift() {
-    let x = assertConstant(this, 'unshift');
-    return Scalar.from(unshift(x));
-  }
-
   /**
    * Serialize a Scalar into a Field element plus one bit, where the bit is represented as a Bool.
    *
@@ -203,7 +199,7 @@ class Scalar {
    * The fields are not constrained to be boolean.
    */
   static toFields(x: Scalar) {
-    return x.shiftedBits.map((b) => new Field(b));
+    return [...x.low5.map((b) => b.toField()), x.high250];
   }
 
   /**
@@ -230,8 +226,8 @@ class Scalar {
    * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
    *
    */
-  static toInput(x: Scalar): { packed: [Field, number][] } {
-    return { packed: Scalar.toFields(x).map((f) => [f, 1]) };
+  static toInput(x: Scalar): HashInput {
+    return { fields: [x.high250], packed: x.low5.map((f) => [f.toField(), 1]) };
   }
 
   /**
@@ -249,7 +245,13 @@ class Scalar {
    * Creates a data structure from an array of serialized {@link Field} elements.
    */
   static fromFields(fields: Field[]): Scalar {
-    return new Scalar(fields.map((x) => x.value));
+    assert(
+      fields.length === 6,
+      `Scalar.fromFields(): expected 6 fields, got ${fields.length}`
+    );
+    let low5 = fields.slice(0, 5).map(Bool.Unsafe.fromField);
+    let high250 = fields[5];
+    return new Scalar(TupleN.fromArray(5, low5), high250);
   }
 
   /**
@@ -258,28 +260,18 @@ class Scalar {
    * Returns the size of this type in {@link Field} elements.
    */
   static sizeInFields(): number {
-    return Fq.sizeInBits;
+    return 6;
   }
 
   /**
    * Part of the {@link Provable} interface.
-   *
-   * Does nothing.
    */
-  static check() {
-    /* It is not necessary to boolean constrain the bits of a scalar for the following
-     reasons:
-
-     The only provable methods which can be called with a scalar value are
-
-     - if
-     - assertEqual
-     - equal
-     - Group.scale
-
-     The only one of these whose behavior depends on the bit values of the input scalars
-     is Group.scale, and that function boolean constrains the scalar input itself.
+  static check(s: Scalar) {
+    /**
+     * It is not necessary to constrain the range of high250, because the only provable operation on Scalar
+     * which relies on that range is scalar multiplication -- which constrains the range itself.
      */
+    return s.low5.forEach(Bool.check);
   }
 
   // ProvableExtended<Scalar>
@@ -311,29 +303,13 @@ class Scalar {
 
 // internal helpers
 
-function assertConstant(x: Scalar, name: string) {
-  return constantScalarToBigint(x, `Scalar.${name}`);
-}
-
-function toConstantScalar(bits: FieldVar[]): bigint | undefined {
-  if (bits.length !== Fq.sizeInBits)
-    throw Error(
-      `Scalar: expected bits array of length ${Fq.sizeInBits}, got ${bits.length}`
-    );
-  let constantBits = Array<boolean>(bits.length);
-  for (let i = 0; i < bits.length; i++) {
-    let bool = bits[i];
-    if (!FieldVar.isConstant(bool)) return undefined;
-    constantBits[i] = FieldConst.equal(bool[1], FieldConst[1]);
-  }
-  let sShifted = SignableFq.fromBits(constantBits);
-  return shift(sShifted);
-}
-
-function toBits(constantValue: bigint): FieldVar[] {
-  return SignableFq.toBits(unshift(constantValue)).map((b) =>
-    FieldVar.constant(BigInt(b))
+function assertConstant(x: Scalar, name: string): bigint {
+  assert(
+    x.isConstant(),
+    `${name}() is not available in provable code.
+That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
   );
+  return x.toBigInt();
 }
 
 /**
@@ -348,20 +324,4 @@ function shift(s: bigint) {
  */
 function unshift(s: bigint) {
   return Fq.mul(Fq.sub(s, scalarShift), oneHalf);
-}
-
-function constToBigint(x: ScalarConst) {
-  return x[1];
-}
-function constFromBigint(x: bigint): ScalarConst {
-  return [0, x];
-}
-
-function constantScalarToBigint(s: Scalar, name: string) {
-  if (s.constantValue === undefined)
-    throw Error(
-      `${name}() is not available in provable code.
-That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
-    );
-  return s.constantValue;
 }

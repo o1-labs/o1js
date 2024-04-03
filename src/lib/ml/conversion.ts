@@ -72,7 +72,7 @@ function varToField(x: FieldVar): Field {
 }
 
 function fromScalar(s: Scalar): ScalarConst {
-  return [0, s.toConstant().constantValue];
+  return [0, s.toBigInt()];
 }
 function toScalar(s: ScalarConst) {
   return Scalar.from(s[1]);
