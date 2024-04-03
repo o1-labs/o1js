@@ -347,8 +347,6 @@ declare const Snarky: {
   };
 
   group: {
-    scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
-
     /**
      * Computes `(2*s + 1 + 2^numBits) * P` and also returns the bits of s (which are proven correct).
      *
