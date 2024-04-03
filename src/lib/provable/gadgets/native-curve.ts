@@ -120,6 +120,7 @@ function scaleShiftedSplit5(
   const zero = createField(0n);
 
   // R = (2*(t >> 5) + 1 + 2^250)P
+  // also proves that tHi is in [0, 2^250)
   let [, RMl] = Snarky.group.scaleFastUnpack(
     [0, x.value, y.value],
     [0, tHi.value],
