@@ -4,6 +4,7 @@ import { Provable } from '../provable.js';
 import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
 import { runAndCheckSync } from '../core/provable-context.js';
 import { Scalar } from '../scalar.js';
+import { Field } from '../field.js';
 
 console.log('group consistency tests');
 
@@ -15,6 +16,9 @@ test(Random.field, Random.field, (a, s0, assert) => {
   const g = Group.from(x1, y1);
   const s = Scalar.from(s0);
   runScale(g, s, (g, s) => g.scale(s), assert);
+
+  const sField = Field.from(s0);
+  runScale(g, sField, (g, s) => g.scale(Scalar.fromNativeField(s)), assert);
 });
 
 // tests consistency between in- and out-circuit implementations
@@ -83,10 +87,10 @@ function run(
   });
 }
 
-function runScale(
+function runScale<T extends Scalar | Field>(
   g: Group,
-  s: Scalar,
-  f: (g1: Group, s: Scalar) => Group,
+  s: T,
+  f: (g1: Group, s: T) => Group,
   assert: (b: boolean, message?: string | undefined) => void
 ) {
   let result_out_circuit = f(g, s);
@@ -94,7 +98,7 @@ function runScale(
   runAndCheckSync(() => {
     let result_in_circuit = f(
       Provable.witness(Group, () => g),
-      Provable.witness(Scalar, () => s)
+      Provable.witness(s.constructor as any, (): T => s)
     );
 
     Provable.asProver(() => {
