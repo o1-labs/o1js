@@ -8,17 +8,20 @@ import { exists, existsOne } from '../core/exists.js';
 import { bit, isConstant, packBits } from './common.js';
 import { TupleN } from '../../util/types.js';
 import { l } from './range-check.js';
-import { createField } from '../core/field-constructor.js';
+import { createField, getBool, getField } from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
 import { Group } from '../group.js';
+import { MlPair } from '../../ml/base.js';
 
-export { scale, scaleShiftedSplit5 };
+export { scale, scaleShiftedSplit5, add };
+
+type Point = { x: Field; y: Field };
 
 /**
  * Gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
  */
-function scale(P: { x: Field; y: Field }, s: Field): Group {
+function scale(P: Point, s: Field): Group {
   // constant case
   let { x, y } = P;
   if (x.isConstant() && y.isConstant() && s.isConstant()) {
@@ -106,4 +109,61 @@ function scaleShiftedSplit5(
   R = Provable.if(t0, R.addNonZero(P, true), R);
 
   return R;
+}
+
+/**
+ * Wraps the `EC_add` gate to perform complete addition of two non-zero curve points.
+ */
+function add(g: Point, h: Point) {
+  const { x: x1, y: y1 } = g;
+  const { x: x2, y: y2 } = h;
+
+  let zero = createField(0);
+  const Field = getField();
+  const Bool = getBool();
+
+  let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
+
+  let inf = Provable.witness(Bool, () =>
+    x1.equals(x2).and(y1.equals(y2).not())
+  );
+
+  let inf_z = Provable.witness(Field, () => {
+    if (y1.equals(y2).toBoolean()) return zero;
+    else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
+    else return zero;
+  });
+
+  let x21_inv = Provable.witness(Field, () => {
+    if (x1.equals(x2).toBoolean()) return zero;
+    else return x2.sub(x1).inv();
+  });
+
+  let s = Provable.witness(Field, () => {
+    if (x1.equals(x2).toBoolean()) {
+      let x1_squared = x1.square();
+      return x1_squared.add(x1_squared).add(x1_squared).div(y1.add(y1));
+    } else return y2.sub(y1).div(x2.sub(x1));
+  });
+
+  let x3 = Provable.witness(Field, () => {
+    return s.square().sub(x1.add(x2));
+  });
+
+  let y3 = Provable.witness(Field, () => {
+    return s.mul(x1.sub(x3)).sub(y1);
+  });
+
+  Snarky.gates.ecAdd(
+    MlPair(x1.seal().value, y1.seal().value),
+    MlPair(x2.seal().value, y2.seal().value),
+    MlPair(x3.value, y3.value),
+    inf.toField().value,
+    same_x.value,
+    s.value,
+    inf_z.value,
+    x21_inv.value
+  );
+
+  return { result: { x: x3, y: y3 }, isInfinity: inf };
 }
