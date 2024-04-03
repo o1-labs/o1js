@@ -3,7 +3,7 @@ import { test, Random } from '../../testing/property.js';
 import { Provable } from '../provable.js';
 import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
 import { runAndCheckSync } from '../core/provable-context.js';
-import { scale } from '../gadgets/scalar.js';
+import { scale } from '../gadgets/native-curve.js';
 import { Field } from '../field.js';
 
 console.log('group consistency tests');
