@@ -1,6 +1,6 @@
 import type { Field } from '../field.js';
 import type { Bool } from '../bool.js';
-import { Fq } from '../../../bindings/crypto/finite-field.js';
+import { Fp, Fq } from '../../../bindings/crypto/finite-field.js';
 import { PallasAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { fieldToField3 } from './comparison.js';
 import { Field3, ForeignField } from './foreign-field.js';
@@ -8,7 +8,7 @@ import { exists, existsOne } from '../core/exists.js';
 import { bit, isConstant, packBits } from './common.js';
 import { TupleN } from '../../util/types.js';
 import { l } from './range-check.js';
-import { createField, getBool, getField } from '../core/field-constructor.js';
+import { createField, getField } from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
@@ -118,58 +118,44 @@ function scaleShiftedSplit5(
 /**
  * Wraps the `EC_add` gate to perform complete addition of two non-zero curve points.
  */
-function add(g: Point, h: Point) {
-  const { x: x1, y: y1 } = g;
-  const { x: x2, y: y2 } = h;
+function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
+  // compute witnesses
+  let witnesses = exists(7, () => {
+    let x1 = g.x.toBigInt();
+    let y1 = g.y.toBigInt();
+    let x2 = h.x.toBigInt();
+    let y2 = h.y.toBigInt();
 
-  let zero = createField(0);
-  const Field = getField();
-  const Bool = getBool();
+    let sameX = BigInt(x1 === x2);
+    let inf = BigInt(sameX && y1 !== y2);
+    let infZ = sameX ? Fp.inverse(y2 - y1) ?? 0n : 0n;
+    let x21Inv = Fp.inverse(x2 - x1) ?? 0n;
 
-  let same_x = Provable.witness(Field, () => x1.equals(x2).toField());
+    let slopeDouble = Fp.div(3n * x1 ** 2n, 2n * y1) ?? 0n;
+    let slopeAdd = Fp.mul(y2 - y1, x21Inv);
+    let s = sameX ? slopeDouble : slopeAdd;
 
-  let inf = Provable.witness(Bool, () =>
-    x1.equals(x2).and(y1.equals(y2).not())
-  );
+    let x3 = Fp.mod(s ** 2n - x1 - x2);
+    let y3 = Fp.mod(s * (x1 - x3) - y1);
 
-  let inf_z = Provable.witness(Field, () => {
-    if (y1.equals(y2).toBoolean()) return zero;
-    else if (x1.equals(x2).toBoolean()) return y2.sub(y1).inv();
-    else return zero;
+    return [sameX, inf, infZ, x21Inv, s, x3, y3];
   });
 
-  let x21_inv = Provable.witness(Field, () => {
-    if (x1.equals(x2).toBoolean()) return zero;
-    else return x2.sub(x1).inv();
-  });
-
-  let s = Provable.witness(Field, () => {
-    if (x1.equals(x2).toBoolean()) {
-      let x1_squared = x1.square();
-      return x1_squared.add(x1_squared).add(x1_squared).div(y1.add(y1));
-    } else return y2.sub(y1).div(x2.sub(x1));
-  });
-
-  let x3 = Provable.witness(Field, () => {
-    return s.square().sub(x1.add(x2));
-  });
-
-  let y3 = Provable.witness(Field, () => {
-    return s.mul(x1.sub(x3)).sub(y1);
-  });
+  let [same_x, inf, inf_z, x21_inv, s, x3, y3] = witnesses;
+  let isInfinity = inf.assertBool();
 
   Snarky.gates.ecAdd(
-    MlPair(x1.seal().value, y1.seal().value),
-    MlPair(x2.seal().value, y2.seal().value),
+    MlPair(g.x.seal().value, g.y.seal().value),
+    MlPair(h.x.seal().value, h.y.seal().value),
     MlPair(x3.value, y3.value),
-    inf.toField().value,
+    inf.value,
     same_x.value,
     s.value,
     inf_z.value,
     x21_inv.value
   );
 
-  return { result: { x: x3, y: y3 }, isInfinity: inf };
+  return { result: { x: x3, y: y3 }, isInfinity };
 }
 
 /**
