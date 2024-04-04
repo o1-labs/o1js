@@ -45,17 +45,13 @@ let Lookup = ZkProgram({
 
 // constraint system sanity check
 
-constraintSystem.fromZkProgram(
-  Lookup,
-  'three12Bit',
-  and(print, contains(['Lookup']))
-);
+constraintSystem.fromZkProgram(Lookup, 'three12Bit', contains(['Lookup']));
 
 await Lookup.compile();
 
 await equivalentAsync(
-  { from: [uint(12), uint(12), uint(12)], to: boolean },
-  { runs: 5 }
+  { from: [uint(12), uint(12), maybeUint(12)], to: boolean },
+  { runs: 3 }
 )(
   (x, y, z) => {
     assert(x < 1n << 12n);
