@@ -2,16 +2,16 @@ import { SimpleLedger } from './transaction-logic/ledger.js';
 import { Ml } from '../ml/conversion.js';
 import { transactionCommitments } from '../../mina-signer/src/sign-zkapp-command.js';
 import { Ledger, Test } from '../../snarky.js';
-import { Field } from '../core.js';
-import { UInt32, UInt64 } from '../int.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { Field } from '../provable/wrapped.js';
+import { UInt32, UInt64 } from '../provable/int.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { Account } from './account.js';
 import {
   ZkappCommand,
   TokenId,
   Authorization,
   Actions,
-} from '../account-update.js';
+} from './account-update.js';
 import { NetworkId } from '../../mina-signer/src/types.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import { invalidTransactionError } from './errors.js';
@@ -26,7 +26,7 @@ import {
   PendingTransactionStatus,
 } from './transaction.js';
 import {
-  type DeprecatedFeePayerSpec,
+  type FeePayerSpec,
   type ActionStates,
   Mina,
   defaultNetworkConstants,
@@ -81,10 +81,6 @@ function LocalBlockchain({
   return {
     getNetworkId: () => minaNetworkId,
     proofsEnabled,
-    /**
-     * @deprecated use {@link Mina.getNetworkConstants}
-     */
-    accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
     getNetworkConstants() {
       return {
         ...defaultNetworkConstants,
@@ -121,8 +117,6 @@ function LocalBlockchain({
       return networkState;
     },
     async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      txn.sign();
-
       let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       let commitments = transactionCommitments(
         TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
@@ -305,7 +299,7 @@ function LocalBlockchain({
         safeWait,
       };
     },
-    async transaction(sender: DeprecatedFeePayerSpec, f: () => Promise<void>) {
+    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       // TODO we run the transaction twice to match the behaviour of `Network.transaction`
       let tx = await createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,

@@ -2,12 +2,13 @@
  * helpers for testing equivalence of two implementations, one of them on bigints
  */
 import { test, Random } from '../testing/property.js';
-import { Provable } from '../provable.js';
+import { Provable } from '../provable/provable.js';
 import { deepEqual } from 'node:assert/strict';
-import { Bool, Field } from '../core.js';
+import { Bool, Field } from '../provable/wrapped.js';
 import { AnyFunction, Tuple } from '../util/types.js';
-import { provable } from '../circuit-value.js';
-import { assert } from '../gadgets/common.js';
+import { provable } from '../provable/types/struct.js';
+import { assert } from '../provable/gadgets/common.js';
+import { runAndCheckSync } from '../provable/core/provable-context.js';
 
 export {
   equivalent,
@@ -34,6 +35,7 @@ export {
   fromRandom,
   first,
   second,
+  constant,
 };
 export {
   Spec,
@@ -237,7 +239,7 @@ function equivalentProvable<
       );
 
       // inside provable code
-      Provable.runAndCheckSync(() => {
+      runAndCheckSync(() => {
         let inputWitnesses = inputs2.map((x, i) => {
           let provable = from[i].provable;
           return provable !== undefined
@@ -402,6 +404,10 @@ function second<T, S>(spec: Spec<T, S>): Spec<S, S> {
     back: id,
     provable: spec.provable,
   };
+}
+
+function constant<T, S>(spec: Spec<T, S>, value: T): Spec<T, S> {
+  return { ...spec, rng: Random.constant(value) };
 }
 
 // helper to ensure two functions throw equivalent errors

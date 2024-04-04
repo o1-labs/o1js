@@ -1,13 +1,4 @@
-import {
-  Encryption,
-  Encoding,
-  PrivateKey,
-  isReady,
-  Circuit,
-  Provable,
-} from 'o1js';
-
-await isReady;
+import { Encryption, Encoding, PrivateKey, Provable } from 'o1js';
 
 // generate keys
 let privateKey = PrivateKey.random();

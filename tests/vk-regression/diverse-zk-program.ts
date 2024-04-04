@@ -37,7 +37,7 @@ const diverse = ZkProgram({
         Secp256k1Signature.provable,
         Secp256k1.provable,
       ],
-      method(
+      async method(
         message: Secp256k1Scalar,
         signature: Secp256k1Signature,
         publicKey: Secp256k1
@@ -49,7 +49,7 @@ const diverse = ZkProgram({
     // bitwise gadgets
     sha3: {
       privateInputs: [Bytes128.provable],
-      method(xs: Bytes128) {
+      async method(xs: Bytes128) {
         Hash.SHA3_256.hash(xs);
       },
     },
@@ -57,7 +57,7 @@ const diverse = ZkProgram({
     // poseidon
     poseidon: {
       privateInputs: [AccountUpdate, MerkleWitness30],
-      method(accountUpdate: AccountUpdate, witness: MerkleWitness30) {
+      async method(accountUpdate: AccountUpdate, witness: MerkleWitness30) {
         let leaf = accountUpdate.hash();
         let root = witness.calculateRoot(leaf);
         let index = witness.calculateIndex();
@@ -68,7 +68,7 @@ const diverse = ZkProgram({
     // native EC ops
     pallas: {
       privateInputs: [PublicKey, PrivateKey, Signature],
-      method(pk: PublicKey, sk: PrivateKey, sig: Signature) {
+      async method(pk: PublicKey, sk: PrivateKey, sig: Signature) {
         let pk2 = sk.toPublicKey();
         pk.assertEquals(pk2);
 
@@ -79,7 +79,7 @@ const diverse = ZkProgram({
     // only generic gates
     generic: {
       privateInputs: [Field, Field],
-      method(x: Field, y: Field) {
+      async method(x: Field, y: Field) {
         x.square().equals(5).assertFalse();
         let z = Provable.if(y.equals(0), x, y);
         z.assertEquals(x);
@@ -89,7 +89,7 @@ const diverse = ZkProgram({
     // recursive proof
     recursive: {
       privateInputs: [SelfProof],
-      method(proof: SelfProof<undefined, void>) {
+      async method(proof: SelfProof<undefined, void>) {
         proof.verify();
       },
     },

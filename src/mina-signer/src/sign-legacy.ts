@@ -1,6 +1,6 @@
-import { UInt32, UInt64 } from '../../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import { HashInputLegacy } from '../../provable/poseidon-bigint.js';
+import { UInt32, UInt64 } from './field-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { HashInputLegacy } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
   SignatureJson,

@@ -5,7 +5,7 @@ import {
   PublicKey,
   ZkappCommand,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
-import { PrivateKey } from '../../provable/curve-bigint.js';
+import { PrivateKey } from './curve-bigint.js';
 import { Signature } from './signature.js';
 import { NetworkId } from './types.js';
 

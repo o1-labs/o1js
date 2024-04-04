@@ -6,7 +6,7 @@ import {
   AccountUpdateForest,
   TokenId,
   hashAccountUpdate,
-} from '../../account-update.js';
+} from '../account-update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
 import { Pickles } from '../../../snarky.js';
 import {
@@ -14,9 +14,8 @@ import {
   callForestHash,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
 import assert from 'assert';
-import { Field, Bool } from '../../core.js';
-import { Bool as BoolB } from '../../../provable/field-bigint.js';
-import { PublicKey } from '../../signature.js';
+import { Field, Bool } from '../../provable/wrapped.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 
@@ -33,8 +32,8 @@ const accountUpdateBigint = Random.map(
     // ensure that, by default, all account updates are token-accessible
     a.body.mayUseToken =
       a.body.callDepth === 0
-        ? { parentsOwnToken: BoolB(true), inheritFromParent: BoolB(false) }
-        : { parentsOwnToken: BoolB(false), inheritFromParent: BoolB(true) };
+        ? { parentsOwnToken: 1n, inheritFromParent: 0n }
+        : { parentsOwnToken: 0n, inheritFromParent: 1n };
     return a;
   }
 );

@@ -4,7 +4,6 @@ import {
   state,
   State,
   method,
-  DeployArgs,
   Permissions,
   PublicKey,
   Bool,
@@ -47,7 +46,7 @@ let voterPreconditions = ParticipantPreconditions.default;
  */
 let electionPreconditions = ElectionPreconditions.default;
 
-interface VotingParams {
+type VotingParams = {
   electionPreconditions: ElectionPreconditions;
   voterPreconditions: ParticipantPreconditions;
   candidatePreconditions: ParticipantPreconditions;
@@ -55,7 +54,7 @@ interface VotingParams {
   voterAddress: PublicKey;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.
@@ -97,8 +96,8 @@ export class Voting_ extends SmartContract {
     }),
   };
 
-  async deploy(args: DeployArgs) {
-    await super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -283,7 +282,7 @@ export class Voting_ extends SmartContract {
           // apply one vote
           action = action.addVote();
           // this is the new root after we added one vote
-          return action.votesWitness.calculateRootSlow(action.getHash());
+          return action.votesWitness.calculateRoot(action.getHash());
         },
         // initial state
         { state: committedVotes, actionState: accumulatedVotes }

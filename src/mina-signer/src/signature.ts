@@ -1,12 +1,12 @@
 import { blake2b } from 'blakejs';
-import { Field } from '../../provable/field-bigint.js';
+import { Field } from './field-bigint.js';
 import {
   Group,
   Scalar,
   PrivateKey,
   versionNumbers,
   PublicKey,
-} from '../../provable/curve-bigint.js';
+} from './curve-bigint.js';
 import {
   HashInput,
   hashWithPrefix,
@@ -17,14 +17,14 @@ import {
   packToFieldsLegacy,
   inputToBitsLegacy,
   HashLegacy,
-} from '../../provable/poseidon-bigint.js';
+} from './poseidon-bigint.js';
 import {
   bitsToBytes,
   bytesToBits,
   record,
   withVersionNumber,
 } from '../../bindings/lib/binable.js';
-import { base58 } from '../../lib/base58.js';
+import { base58 } from '../../lib/util/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
 import { NetworkId } from './types.js';

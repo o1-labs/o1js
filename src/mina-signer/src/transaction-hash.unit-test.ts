@@ -20,7 +20,7 @@ import {
   delegationFromJson,
 } from './sign-legacy.js';
 import { Signature, SignatureJson } from './signature.js';
-import { PublicKey } from '../../provable/curve-bigint.js';
+import { PublicKey } from './curve-bigint.js';
 import { Memo } from './memo.js';
 import { expect } from 'expect';
 import { versionBytes } from '../../bindings/crypto/constants.js';
@@ -180,7 +180,12 @@ function paymentToOcamlV1({
       common: commonToOcamlV1(common),
       body: [
         'Payment',
-        { source_pk: common.feePayer, receiver_pk: receiver, amount, token_id: '1' },
+        {
+          source_pk: common.feePayer,
+          receiver_pk: receiver,
+          amount,
+          token_id: '1',
+        },
       ],
     },
     signer: common.feePayer,
@@ -220,7 +225,10 @@ function delegationToOcamlV1({
       common: commonToOcamlV1(common),
       body: [
         'Stake_delegation',
-        ['Set_delegate', { delegator: common.feePayer, new_delegate: newDelegate }],
+        [
+          'Set_delegate',
+          { delegator: common.feePayer, new_delegate: newDelegate },
+        ],
       ],
     },
     signer: common.feePayer,

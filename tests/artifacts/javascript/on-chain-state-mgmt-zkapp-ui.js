@@ -3,16 +3,7 @@ import {
   adminPrivateKey,
   HelloWorld,
 } from './examples/zkapps/hello-world/hello-world.js';
-import {
-  AccountUpdate,
-  Field,
-  isReady,
-  Mina,
-  PrivateKey,
-  verify,
-} from './index.js';
-
-await isReady;
+import { AccountUpdate, Field, Mina, PrivateKey, verify } from './index.js';
 
 const deployButton = document.querySelector('#deployButton');
 const updateButton = document.querySelector('#updateButton');

@@ -1,4 +1,4 @@
-import { assert } from '../errors.js';
+import { assert } from './errors.js';
 
 export { AnyFunction, Tuple, TupleN, AnyTuple, TupleMap };
 

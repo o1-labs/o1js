@@ -15,8 +15,8 @@ import { Membership_ } from './membership.js';
 import { Voting_ } from './voting.js';
 
 class InvalidContract extends SmartContract {
-  async deploy(args: DeployArgs) {
-    await super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.none(),
@@ -66,19 +66,21 @@ export async function deployContracts(
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
-    await voting.deploy({ zkappKey: params.votingKey });
+    await voting.deploy();
     voting.committedVotes.set(votesRoot);
     voting.accumulatedVotes.set(Reducer.initialActionState);
 
-    await candidateContract.deploy({ zkappKey: params.candidateKey });
+    await candidateContract.deploy();
     candidateContract.committedMembers.set(candidateRoot);
     candidateContract.accumulatedMembers.set(Reducer.initialActionState);
 
-    await voterContract.deploy({ zkappKey: params.voterKey });
+    await voterContract.deploy();
     voterContract.committedMembers.set(voterRoot);
     voterContract.accumulatedMembers.set(Reducer.initialActionState);
   });
-  await tx.sign([feePayerKey]).send();
+  await tx
+    .sign([feePayerKey, params.votingKey, params.candidateKey, params.voterKey])
+    .send();
 
   console.log('successfully deployed contracts');
   return {
@@ -130,7 +132,7 @@ export async function deployInvalidContracts(
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
-    await voting.deploy({ zkappKey: params.votingKey });
+    await voting.deploy();
     voting.committedVotes.set(votesRoot);
     voting.accumulatedVotes.set(Reducer.initialActionState);
 
@@ -140,7 +142,7 @@ export async function deployInvalidContracts(
       params.candidateKey.toPublicKey()
     );
 
-    await invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
+    await invalidCandidateContract.deploy();
 
     candidateContract = invalidCandidateContract as Membership_;
 
@@ -148,11 +150,13 @@ export async function deployInvalidContracts(
       params.voterKey.toPublicKey()
     );
 
-    await invalidVoterContract.deploy({ zkappKey: params.voterKey });
+    await invalidVoterContract.deploy();
 
     voterContract = invalidVoterContract as Membership_;
   });
-  await tx.sign([feePayerKey]).send();
+  await tx
+    .sign([feePayerKey, params.votingKey, params.candidateKey, params.voterKey])
+    .send();
 
   console.log('successfully deployed contracts');
   return {

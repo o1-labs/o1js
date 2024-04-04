@@ -7,22 +7,17 @@ import {
   addMissingSignatures,
   TokenId,
   addMissingProofs,
-} from '../account-update.js';
-import { prettifyStacktrace } from '../errors.js';
-import { Field } from '../core.js';
-import { PrivateKey, PublicKey } from '../signature.js';
-import { UInt32, UInt64 } from '../int.js';
-import { Empty, Proof } from '../proof-system.js';
+} from './account-update.js';
+import { Field } from '../provable/wrapped.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
+import { UInt32, UInt64 } from '../provable/int.js';
+import { Empty, Proof } from '../proof-system/zkprogram.js';
 import { currentTransaction } from './transaction-context.js';
-import { Provable } from '../provable.js';
-import { assertPreconditionInvariants } from '../precondition.js';
+import { Provable } from '../provable/provable.js';
+import { assertPreconditionInvariants } from './precondition.js';
 import { Account } from './account.js';
-import {
-  type DeprecatedFeePayerSpec,
-  type FeePayerSpec,
-  activeInstance,
-} from './mina-instance.js';
-import * as Fetch from '../fetch.js';
+import { type FeePayerSpec, activeInstance } from './mina-instance.js';
+import * as Fetch from './fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../util/assert.js';
@@ -70,7 +65,7 @@ type Transaction = {
   /**
    * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
    * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
-   * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
+   * @param privateKeys The list of keys that should be used to sign the {@link Transaction}
    * @returns The {@link Transaction} instance with all required signatures applied.
    * @example
    * ```ts
@@ -78,7 +73,7 @@ type Transaction = {
    * console.log('Transaction signed successfully.');
    * ```
    */
-  sign(additionalKeys?: PrivateKey[]): Transaction;
+  sign(privateKeys: PrivateKey[]): Transaction;
   /**
    * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
    * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
@@ -282,7 +277,7 @@ type RejectedTransaction = Pick<
 };
 
 async function createTransaction(
-  feePayer: DeprecatedFeePayerSpec,
+  feePayer: FeePayerSpec,
   f: () => Promise<unknown>,
   numberOfRuns: 0 | 1 | undefined,
   {
@@ -296,23 +291,18 @@ async function createTransaction(
   }
   let feePayerSpec: {
     sender?: PublicKey;
-    feePayerKey?: PrivateKey;
     fee?: number | string | UInt64;
     memo?: string;
     nonce?: number;
   };
   if (feePayer === undefined) {
     feePayerSpec = {};
-  } else if (feePayer instanceof PrivateKey) {
-    feePayerSpec = { feePayerKey: feePayer, sender: feePayer.toPublicKey() };
   } else if (feePayer instanceof PublicKey) {
     feePayerSpec = { sender: feePayer };
   } else {
     feePayerSpec = feePayer;
-    if (feePayerSpec.sender === undefined)
-      feePayerSpec.sender = feePayerSpec.feePayerKey?.toPublicKey();
   }
-  let { feePayerKey, sender, fee, memo = '', nonce } = feePayerSpec;
+  let { sender, fee, memo = '', nonce } = feePayerSpec;
 
   let transactionId = currentTransaction.enter({
     sender,
@@ -368,8 +358,6 @@ async function createTransaction(
       Fetch.addCachedAccount(senderAccount);
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
-    if (feePayerKey !== undefined)
-      feePayerAccountUpdate.lazyAuthorization!.privateKey = feePayerKey;
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
         fee instanceof UInt64 ? fee : UInt64.from(String(fee));
@@ -392,8 +380,8 @@ async function createTransaction(
 function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   let self: Transaction = {
     transaction,
-    sign(additionalKeys?: PrivateKey[]) {
-      self.transaction = addMissingSignatures(self.transaction, additionalKeys);
+    sign(privateKeys: PrivateKey[]) {
+      self.transaction = addMissingSignatures(self.transaction, privateKeys);
       return self;
     },
     async prove() {
@@ -456,30 +444,14 @@ function transaction(
   f: () => Promise<void>
 ): Promise<Transaction>;
 function transaction(f: () => Promise<void>): Promise<Transaction>;
-/**
- * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
- * ```
- * // good
- * Mina.transaction(publicKey, ...);
- * Mina.transaction({ sender: publicKey }, ...);
- *
- * // deprecated
- * Mina.transaction(privateKey, ...);
- * Mina.transaction({ feePayerKey: privateKey }, ...);
- * ```
- */
 function transaction(
-  sender: DeprecatedFeePayerSpec,
-  f: () => Promise<void>
-): Promise<Transaction>;
-function transaction(
-  senderOrF: DeprecatedFeePayerSpec | (() => Promise<void>),
+  senderOrF: FeePayerSpec | (() => Promise<void>),
   fOrUndefined?: () => Promise<void>
 ): Promise<Transaction> {
-  let sender: DeprecatedFeePayerSpec;
+  let sender: FeePayerSpec;
   let f: () => Promise<void>;
   if (fOrUndefined !== undefined) {
-    sender = senderOrF as DeprecatedFeePayerSpec;
+    sender = senderOrF as FeePayerSpec;
     f = fOrUndefined;
   } else {
     sender = undefined;

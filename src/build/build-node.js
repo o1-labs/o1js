@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { platform } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import esbuild from 'esbuild';
 import minimist from 'minimist';
@@ -46,13 +47,13 @@ async function buildNode({ production }) {
 }
 
 function makeNodeModulesExternal() {
-  let isNodeModule = /^[^./]|^\.[^./]|^\.\.[^/]/;
+  let isNodeModule = /^[^./\\]|^\.[^./\\]|^\.\.[^/\\]/;
   return {
     name: 'plugin-external',
     setup(build) {
       build.onResolve({ filter: isNodeModule }, ({ path }) => ({
         path,
-        external: true,
+        external: !(platform === 'win32' && path.endsWith('index.js')),
       }));
     },
   };

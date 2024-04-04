@@ -10,22 +10,18 @@ import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js
 import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/account-update.js';
-import { FieldConst } from '../../lib/field.js';
-import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
-import { Network, setActiveInstance } from '../../lib/mina.js';
+} from '../../lib/mina/account-update.js';
+import { FieldConst } from '../../lib/provable/core/fieldvar.js';
+import { packToFields as packToFieldsSnarky } from '../../lib/provable/crypto/poseidon.js';
+import { Network, setActiveInstance } from '../../lib/mina/mina.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
-} from '../../lib/signature.js';
+} from '../../lib/provable/crypto/signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-} from '../../provable/poseidon-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Pickles, Test } from '../../snarky.js';
 import { Memo } from './memo.js';
 import { RandomTransaction } from './random-transaction.js';
