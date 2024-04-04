@@ -10,7 +10,7 @@ import {
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/assert.js';
-import { add, scaleShiftedSplit5 } from './gadgets/native-curve.js';
+import { add, scaleShifted } from './gadgets/native-curve.js';
 
 export { Group };
 
@@ -180,7 +180,7 @@ class Group {
       let g_proj = Pallas.scale(toProjective(this), scalar.toBigInt());
       return fromProjective(g_proj);
     } else {
-      let result = scaleShiftedSplit5(this, scalar);
+      let result = scaleShifted(this, scalar);
       return new Group(result);
     }
   }
