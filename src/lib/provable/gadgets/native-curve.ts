@@ -148,10 +148,9 @@ function scaleShifted(
   }
 
   // R = tLo ? R : R - P = (t + 2^255)P
-  // we also handle a zero R-P result to make scaling work for the 0 scalar
   let { result, isInfinity } = add(R, negate(P));
-  let RmP = Provable.if(isInfinity, Point, { x: zero, y: zero }, result);
-  R = Provable.if(tLo, Point, R, RmP);
+  isInfinity.assertFalse();
+  R = Provable.if(tLo, Point, R, result);
 
   return R;
 }
