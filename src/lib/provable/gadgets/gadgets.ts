@@ -29,7 +29,7 @@ import {
 } from './foreign-field.js';
 import { divMod32, addMod32 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
-import { three12Bit } from './lookup.js';
+import { rangeCheck3x12 } from './lookup.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
@@ -514,14 +514,14 @@ const Gadgets = {
    * @example
    * ```typescript
    * let a = Field(4000);
-   * three12Bit(a, Field(0), Field(0)); // works, since `a` is less than 12 bits
+   * rangeCheck3x12(a, Field(0), Field(0)); // works, since `a` is less than 12 bits
    *
    * let aScaled = a.mul(1 << 4); // scale `a`, to assert that it's less than 8 bits
-   * three12Bit(a, aScaled, Field(0)); // throws an error, since  `a` is greater than 8 bits (and so `aScaled` is greater than 12 bits)
+   * rangeCheck3x12(a, aScaled, Field(0)); // throws an error, since  `a` is greater than 8 bits (and so `aScaled` is greater than 12 bits)
    * ```
    */
-  three12Bit(v0: Field, v1: Field, v2: Field) {
-    return three12Bit(v0, v1, v2);
+  rangeCheck3x12(v0: Field, v1: Field, v2: Field) {
+    return rangeCheck3x12(v0, v1, v2);
   },
 
   /**

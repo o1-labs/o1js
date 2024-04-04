@@ -10,12 +10,7 @@ import {
 import { Random } from '../../testing/property.js';
 import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
-import {
-  and,
-  constraintSystem,
-  contains,
-  print,
-} from '../../testing/constraint-system.js';
+import { constraintSystem, contains } from '../../testing/constraint-system.js';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
@@ -37,7 +32,7 @@ let Lookup = ZkProgram({
         // Dummy range check to make sure the lookup table is initialized
         // It should never fail because 64 > 12
         Gadgets.rangeCheck64(v0);
-        Gadgets.three12Bit(v0, v1, v2);
+        Gadgets.rangeCheck3x12(v0, v1, v2);
       },
     },
   },
