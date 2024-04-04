@@ -136,7 +136,10 @@ class Group {
   addNonZero(g2: Group, allowZeroOutput = false): Group {
     if (isConstant(this) && isConstant(g2)) {
       let { x, y, infinity } = PallasAffine.add(toAffine(this), toAffine(g2));
-      assert(infinity === false, 'Group.addNonzero(): Result is zero');
+      assert(
+        !infinity || allowZeroOutput,
+        'Group.addNonzero(): Result is zero'
+      );
       return fromAffine({ x, y, infinity });
     }
     let { result, isInfinity } = add(this, g2);
