@@ -29,6 +29,7 @@ import {
 } from './foreign-field.js';
 import { divMod32, addMod32 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
+import { three12Bit } from './lookup.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
@@ -488,6 +489,31 @@ const Gadgets = {
    */
   compactMultiRangeCheck(xy: Field, z: Field) {
     return compactMultiRangeCheck(xy, z);
+  },
+
+  /**
+   * Checks that three {@link Field} elements are less than 2^12 (using only one row) by verifying that they exist in the [RANGE_CHECK_TABLE](https://github.com/o1-labs/proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs).
+   *
+   * It's possible to use this to check that a value is less than x bits by scaling the value by 2^(12 - x) before passing it in (with x < 12).
+   *
+   * You can find more details about lookups in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=lookup%20gate#lookup)
+   *
+   * @param v0 - The first {@link Field} element to be checked.
+   * @param v1 - The second {@link Field} element to be checked.
+   * @param v2 - The third {@link Field} element to be checked.
+   *
+   * @throws Throws an error if one of the input values exceeds 2^12.
+   *
+   * @example
+   * ```typescript
+   * let a = Field(4000);
+   * let b = a.mul(2 ** 4); // scale `a` so we can check if it's less than 8 bits
+   * three12Bit(a, a, a); // works
+   * three12Bit(a, a, b); // throws an error since b is greater than 12 bits (and `a` is greater than 8 bits)
+   * ```
+   */
+  three12Bit(v0: Field, v1: Field, v2: Field) {
+    return three12Bit(v0, v1, v2);
   },
 
   /**
