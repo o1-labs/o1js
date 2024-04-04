@@ -492,9 +492,16 @@ const Gadgets = {
   },
 
   /**
-   * Checks that three {@link Field} elements are less than 2^12 (using only one row) by verifying that they exist in the [RANGE_CHECK_TABLE](https://github.com/o1-labs/proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs).
+   * Checks that three {@link Field} elements are in the range [0, 2^12) (using only one row).
    *
-   * It's possible to use this to check that a value is less than x bits by scaling the value by 2^(12 - x) before passing it in (with x < 12).
+   * Internally, this gadget relies on the 12-bit [range check table](https://github.com/o1-labs/proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs).
+   * All three inputs are checked to be included in that table.
+   *
+   * It's possible to use this as a range check for bit lengths n < 12, by passing in _two values_.
+   * - the value to be checked, `x`, to prove that x in [0, 2^12)
+   * - x scaled by 2^(12 - n), to prove that either x in [0, 2^n) or `x * 2^(12 - n)` overflows the field size (which is excluded by the first check)
+   *
+   * Note that both of these checks are necessary to prove x in [0, 2^n).
    *
    * You can find more details about lookups in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=lookup%20gate#lookup)
    *
@@ -507,9 +514,10 @@ const Gadgets = {
    * @example
    * ```typescript
    * let a = Field(4000);
-   * let b = a.mul(2 ** 4); // scale `a` so we can check if it's less than 8 bits
-   * three12Bit(a, a, a); // works
-   * three12Bit(a, a, b); // throws an error since b is greater than 12 bits (and `a` is greater than 8 bits)
+   * three12Bit(a, Field(0), Field(0)); // works, since `a` is less than 12 bits
+   *
+   * let aScaled = a.mul(1 << 4); // scale `a`, to assert that it's less than 8 bits
+   * three12Bit(a, aScaled, Field(0)); // throws an error, since  `a` is greater than 8 bits (and so `aScaled` is greater than 12 bits)
    * ```
    */
   three12Bit(v0: Field, v1: Field, v2: Field) {
