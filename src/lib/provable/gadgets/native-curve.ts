@@ -4,14 +4,11 @@ import { Fp, Fq } from '../../../bindings/crypto/finite-field.js';
 import { PallasAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { fieldToField3 } from './comparison.js';
 import { Field3, ForeignField } from './foreign-field.js';
-import { exists } from '../core/exists.js';
-import { bit, isConstant } from './common.js';
+import { exists, existsOne } from '../core/exists.js';
+import { bit, isConstant, packBits } from './common.js';
+import { TupleN } from '../../util/types.js';
 import { l } from './range-check.js';
-import {
-  createBool,
-  createField,
-  getField,
-} from '../core/field-constructor.js';
+import { createField, getField } from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
@@ -21,13 +18,12 @@ export {
   scale,
   fieldToShiftedScalar,
   field3ToShiftedScalar,
-  scaleShifted,
+  scaleShiftedSplit5,
   add,
-  ShiftedScalar,
 };
 
 type Point = { x: Field; y: Field };
-type ShiftedScalar = { lowBit: Bool; high254: Field };
+type ShiftedScalar = { low5: TupleN<Bool, 5>; high250: Field };
 
 /**
  * Gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
@@ -46,7 +42,7 @@ function scale(P: Point, s: Field): Point {
   let t = fieldToShiftedScalar(s);
 
   // return (t + 2^254)*P = (s - 2^254 + 2^254)*P = s*P
-  return scaleShifted(P, t);
+  return scaleShiftedSplit5(P, t);
 }
 
 /**
@@ -56,75 +52,66 @@ function scale(P: Point, s: Field): Point {
  * This is the representation we use for scalars, since it can be used as input to `scaleShiftedSplit5()`.
  */
 function fieldToShiftedScalar(s: Field): ShiftedScalar {
-  let sBig = fieldToField3(s);
-
-  // assert that sBig is canonical mod p, so that we can't add (kp mod q) factors by doing things modulo q
-  ForeignField.assertLessThan(sBig, Fp.modulus);
-
-  return field3ToShiftedScalar(sBig);
+  return field3ToShiftedScalar(fieldToField3(s));
 }
 
 /**
- * Converts a 3-limb bigint to a shifted representation t = s - 2^255 mod q,
- * where t is represented as a low bit and a 254-bit high part.
+ * Converts a 3-limb bigint to a shifted representation t = s = 2^254 mod q,
+ * where t is represented as a 5-bit low part and a 250-bit high part.
  */
 function field3ToShiftedScalar(s: Field3): ShiftedScalar {
   // constant case
   if (Field3.isConstant(s)) {
-    let t = Fq.mod(Field3.toBigint(s) - (1n << 255n));
-    let lowBit = createBool((t & 1n) === 1n);
-    let high254 = createField(t >> 1n);
-    return { lowBit, high254 };
+    let t = Fq.mod(Field3.toBigint(s) - (1n << 254n));
+    let low5 = createField(t & 0x1fn).toBits(5);
+    let high250 = createField(t >> 5n);
+    return { low5: TupleN.fromArray(5, low5), high250 };
   }
 
-  // compute t = s - 2^255 mod q using foreign field subtraction
-  let twoTo255 = Field3.from(Fq.mod(1n << 255n));
-  let t = ForeignField.sub(s, twoTo255, Fq.modulus);
+  // compute t = s - 2^254 mod q using foreign field subtraction
+  let twoTo254 = Field3.from(1n << 254n);
+  let [t0, t1, t2] = ForeignField.sub(s, twoTo254, Fq.modulus);
 
-  // it's necessary to prove that t is canonical -- otherwise its bit representation is ambiguous
-  ForeignField.assertLessThan(t, Fq.modulus);
-
-  let [t0, t1, t2] = t;
-
-  // split t into 254 high bits and a low bit
-  // => split t0 into [1, 87]
-  let [tLo, tHi0] = exists(2, () => {
-    let t0_ = t0.toBigInt();
-    return [bit(t0_, 0), t0_ >> 1n];
+  // split t into 250 high bits and 5 low bits
+  // => split t0 into [5, 83]
+  let tLo = exists(5, () => {
+    let t = t0.toBigInt();
+    return [bit(t, 0), bit(t, 1), bit(t, 2), bit(t, 3), bit(t, 4)];
   });
-  let tLoBool = tLo.assertBool();
+  let tLoBools = TupleN.map(tLo, (x) => x.assertBool());
+  let tHi0 = existsOne(() => t0.toBigInt() >> 5n);
 
   // prove split
-  // since we know that t0 < 2^88, this proves that t0High < 2^87
-  tLo.add(tHi0.mul(2n)).assertEquals(t0);
+  // since we know that t0 < 2^88, this proves that t0High < 2^83
+  packBits(tLo)
+    .add(tHi0.mul(1n << 5n))
+    .assertEquals(t0);
 
   // pack tHi
+  // proves that tHi is in [0, 2^250)
   let tHi = tHi0
-    .add(t1.mul(1n << (l - 1n)))
-    .add(t2.mul(1n << (2n * l - 1n)))
+    .add(t1.mul(1n << (l - 5n)))
+    .add(t2.mul(1n << (2n * l - 5n)))
     .seal();
 
-  return { lowBit: tLoBool, high254: tHi };
+  return { low5: tLoBools, high250: tHi };
 }
 
 /**
- * Internal helper to compute `(t + 2^255)*P`.
- * `t` is expected to be split into 254 high bits (t >> 1) and a low bit (t & 1).
+ * Internal helper to compute `(t + 2^254)*P`.
+ * `t` is expected to be split into 250 high bits (t >> 5) and 5 low bits (t & 0x1f).
  *
- * The gadget proves that `tHi` is in [0, 2^254) but assumes that `tLo` consists of bits.
- *
- * Optionally, you can specify a different number of high bits by passing in `numHighBits`.
+ * The gadget proves that `tHi` is in [0, 2^250) but assumes that `tLo` consists of bits.
  */
-function scaleShifted(
+function scaleShiftedSplit5(
   { x, y }: Point,
-  { lowBit: tLo, high254: tHi }: ShiftedScalar,
-  numHighBits = 254
+  { low5: tLo, high250: tHi }: ShiftedScalar
 ): Point {
   // constant case
-  if (isConstant(x, y, tHi, tLo)) {
+  if (isConstant(x, y, tHi, ...tLo)) {
     let sP = PallasAffine.scale(
       PallasAffine.fromNonzero({ x: x.toBigInt(), y: y.toBigInt() }),
-      Fq.mod(tLo.toField().toBigInt() + 2n * tHi.toBigInt() + (1n << 255n))
+      Fq.add(packBits(tLo).toBigInt() + (tHi.toBigInt() << 5n), 1n << 254n)
     );
     return { x: createField(sP.x), y: createField(sP.y) };
   }
@@ -132,25 +119,34 @@ function scaleShifted(
   const Point = provable({ x: Field, y: Field });
   const zero = createField(0n);
 
-  // R = (2*(t >> 1) + 1 + 2^255)P
-  // also returns a 255-bit representation of tHi
-  let [, RMl, [, ...tHiBitsMl]] = Snarky.group.scaleFastUnpack(
+  // R = (2*(t >> 5) + 1 + 2^250)P
+  // also proves that tHi is in [0, 2^250)
+  let [, RMl] = Snarky.group.scaleFastUnpack(
     [0, x.value, y.value],
     [0, tHi.value],
-    255
+    250
   );
   let P = { x, y };
   let R = { x: createField(RMl[1]), y: createField(RMl[2]) };
+  let [t0, t1, t2, t3, t4] = tLo;
 
-  // prove that tHi has only `numHighBits` bits set
-  for (let i = numHighBits; i < 255; i++) {
-    createField(tHiBitsMl[i]).assertEquals(zero);
+  // R = t4 ? R : R - P = ((t >> 4) + 2^250)P
+  R = Provable.if(t4, Point, R, addNonZero(R, negate(P)));
+
+  // R = ((t >> 3) + 2^251)P
+  // R = ((t >> 2) + 2^252)P
+  // R = ((t >> 1) + 2^253)P
+  for (let t of [t3, t2, t1]) {
+    R = addNonZero(R, R);
+    R = Provable.if(t, Point, addNonZero(R, P), R);
   }
 
-  // R = tLo ? R : R - P = (t + 2^255)P
-  let { result, isInfinity } = add(R, negate(P));
-  isInfinity.assertFalse();
-  R = Provable.if(tLo, Point, R, result);
+  // R = (t + 2^254)P
+  // in the final step, we allow a zero output to make it work for the 0 scalar
+  R = addNonZero(R, R);
+  let { result, isInfinity } = add(R, P);
+  result = Provable.if(isInfinity, Point, { x: zero, y: zero }, result);
+  R = Provable.if(t0, Point, result, R);
 
   return R;
 }
@@ -196,6 +192,15 @@ function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
   );
 
   return { result: { x: x3, y: y3 }, isInfinity };
+}
+
+/**
+ * Addition that asserts the result is non-zero.
+ */
+function addNonZero(g: Point, h: Point) {
+  let { result, isInfinity } = add(g, h);
+  isInfinity.assertFalse();
+  return result;
 }
 
 /**

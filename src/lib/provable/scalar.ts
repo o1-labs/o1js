@@ -3,12 +3,12 @@ import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
 import { Field, checkBitLength } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { Bool } from './bool.js';
+import { TupleN } from '../util/types.js';
 import {
-  ShiftedScalar,
   field3ToShiftedScalar,
   fieldToShiftedScalar,
 } from './gadgets/native-curve.js';
-import { isConstant } from './gadgets/common.js';
+import { isConstant, packBits } from './gadgets/common.js';
 import { Provable } from './provable.js';
 import { assert } from '../util/assert.js';
 import type { HashInput } from './types/provable-derivers.js';
@@ -21,20 +21,20 @@ type ScalarConst = [0, bigint];
 /**
  * Represents a {@link Scalar}.
  */
-class Scalar implements ShiftedScalar {
+class Scalar {
   /**
-   * We represent a scalar s in shifted form `t = s - 2^255 mod q,
-   * split into its low bit (t & 1) and high 254 bits (t >> 1).
-   * The reason is that we can efficiently compute the scalar multiplication `(t + 2^255) * P = s * P`.
+   * We represent a scalar s in shifted form `t = s - 2^254 mod q,
+   * split into its low 5 bits (t & 0x1f) and high 250 bits (t >> 5).
+   * The reason is that we can efficiently compute the scalar multiplication `(t + 2^254) * P = s * P`.
    */
-  lowBit: Bool;
-  high254: Field;
+  low5: TupleN<Bool, 5>;
+  high250: Field;
 
   static ORDER = Fq.modulus;
 
-  private constructor(lowBit: Bool, high254: Field) {
-    this.lowBit = lowBit;
-    this.high254 = high254;
+  private constructor(low5: TupleN<Bool, 5>, high250: Field) {
+    this.low5 = low5;
+    this.high250 = high250;
   }
 
   /**
@@ -44,10 +44,10 @@ class Scalar implements ShiftedScalar {
    */
   static from(s: Scalar | bigint | number | string): Scalar {
     if (s instanceof Scalar) return s;
-    let t = Fq.mod(BigInt(s) - (1n << 255n));
-    let lowBit = new Bool((t & 1n) === 1n);
-    let high254 = new Field(t >> 1n);
-    return new Scalar(lowBit, high254);
+    let t = Fq.mod(BigInt(s) - (1n << 254n));
+    let low5 = new Field(t & 0x1fn).toBits(5);
+    let high250 = new Field(t >> 5n);
+    return new Scalar(TupleN.fromArray(5, low5), high250);
   }
 
   /**
@@ -56,8 +56,8 @@ class Scalar implements ShiftedScalar {
    * This is always possible and unambiguous, since the scalar field is larger than the base field.
    */
   static fromNativeField(s: Field): Scalar {
-    let { lowBit, high254 } = fieldToShiftedScalar(s);
-    return new Scalar(lowBit, high254);
+    let { low5, high250 } = fieldToShiftedScalar(s);
+    return new Scalar(low5, high250);
   }
 
   /**
@@ -65,8 +65,8 @@ class Scalar implements ShiftedScalar {
    * If a {@link Scalar} is constructed outside provable code, it is a constant.
    */
   isConstant() {
-    let { lowBit, high254 } = this;
-    return isConstant(lowBit, high254);
+    let { low5, high250 } = this;
+    return isConstant(high250, ...low5);
   }
 
   /**
@@ -85,9 +85,11 @@ class Scalar implements ShiftedScalar {
    * Convert this {@link Scalar} into a bigint
    */
   toBigInt() {
-    let { lowBit, high254 } = this.toConstant();
-    let t = lowBit.toField().toBigInt() + 2n * high254.toBigInt();
-    return Fq.mod(t + (1n << 255n));
+    let { low5, high250 } = this.toConstant();
+    return Fq.add(
+      packBits(low5).toBigInt() + (high250.toBigInt() << 5n),
+      1n << 254n
+    );
   }
 
   /**
@@ -102,8 +104,8 @@ class Scalar implements ShiftedScalar {
     let sBig = field3FromBits(bits);
 
     // convert to shifted representation
-    let { lowBit, high254 } = field3ToShiftedScalar(sBig);
-    return new Scalar(lowBit, high254);
+    let { low5, high250 } = field3ToShiftedScalar(sBig);
+    return new Scalar(low5, high250);
   }
 
   /**
@@ -209,7 +211,7 @@ class Scalar implements ShiftedScalar {
    * The fields are not constrained to be boolean.
    */
   static toFields(x: Scalar) {
-    return [x.lowBit.toField(), x.high254];
+    return [...x.low5.map((b) => b.toField()), x.high250];
   }
 
   /**
@@ -237,7 +239,7 @@ class Scalar implements ShiftedScalar {
    *
    */
   static toInput(x: Scalar): HashInput {
-    return { fields: [x.high254], packed: [[x.lowBit.toField(), 1]] };
+    return { fields: [x.high250], packed: x.low5.map((f) => [f.toField(), 1]) };
   }
 
   /**
@@ -256,12 +258,12 @@ class Scalar implements ShiftedScalar {
    */
   static fromFields(fields: Field[]): Scalar {
     assert(
-      fields.length === 2,
-      `Scalar.fromFields(): expected 2 fields, got ${fields.length}`
+      fields.length === 6,
+      `Scalar.fromFields(): expected 6 fields, got ${fields.length}`
     );
-    let lowBit = Bool.Unsafe.fromField(fields[0]);
-    let high254 = fields[1];
-    return new Scalar(lowBit, high254);
+    let low5 = fields.slice(0, 5).map(Bool.Unsafe.fromField);
+    let high250 = fields[5];
+    return new Scalar(TupleN.fromArray(5, low5), high250);
   }
 
   /**
@@ -270,7 +272,7 @@ class Scalar implements ShiftedScalar {
    * Returns the size of this type in {@link Field} elements.
    */
   static sizeInFields(): number {
-    return 2;
+    return 6;
   }
 
   /**
@@ -278,10 +280,10 @@ class Scalar implements ShiftedScalar {
    */
   static check(s: Scalar) {
     /**
-     * It is not necessary to constrain the range of high254, because the only provable operation on Scalar
+     * It is not necessary to constrain the range of high250, because the only provable operation on Scalar
      * which relies on that range is scalar multiplication -- which constrains the range itself.
      */
-    return Bool.check(s.lowBit);
+    return s.low5.forEach(Bool.check);
   }
 
   // ProvableExtended<Scalar>
