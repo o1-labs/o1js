@@ -10,7 +10,11 @@ import {
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/assert.js';
-import { add, scaleShiftedSplit5 } from './gadgets/native-curve.js';
+import {
+  add,
+  scaleFieldDirect,
+  scaleShiftedSplit5,
+} from './gadgets/native-curve.js';
 
 export { Group };
 
@@ -176,7 +180,8 @@ class Group {
    * let 5g = g.scale(s);
    * ```
    */
-  scale(s: Scalar | number | bigint) {
+  scale(s: Scalar | Field | number | bigint) {
+    if (s instanceof Field) return new Group(scaleFieldDirect(this, s));
     let scalar = Scalar.from(s);
 
     if (isConstant(this) && scalar.isConstant()) {

@@ -2,10 +2,10 @@ import type { Field } from '../field.js';
 import type { Bool } from '../bool.js';
 import { Fp, Fq } from '../../../bindings/crypto/finite-field.js';
 import { PallasAffine } from '../../../bindings/crypto/elliptic-curve.js';
-import { fieldToField3 } from './comparison.js';
+import { fieldToField3, isOddAndHigh } from './comparison.js';
 import { Field3, ForeignField } from './foreign-field.js';
 import { exists } from '../core/exists.js';
-import { bit, bitSlice, isConstant, packBits } from './common.js';
+import { assert, bit, bitSlice, isConstant, packBits } from './common.js';
 import { TupleN } from '../../util/types.js';
 import { l, rangeCheck64 } from './range-check.js';
 import { createField, getField } from '../core/field-constructor.js';
@@ -15,7 +15,8 @@ import { MlPair } from '../../ml/base.js';
 import { provable } from '../types/provable-derivers.js';
 
 export {
-  scale,
+  scaleFieldDirect,
+  scaleField,
   fieldToShiftedScalar,
   field3ToShiftedScalar,
   scaleShiftedSplit5,
@@ -26,9 +27,80 @@ type Point = { x: Field; y: Field };
 type ShiftedScalar = { low5: TupleN<Bool, 5>; high250: Field };
 
 /**
+ * Dedicated gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
+ */
+function scaleFieldDirect(P: Point, s: Field): Point {
+  // constant case
+  let { x, y } = P;
+  if (x.isConstant() && y.isConstant() && s.isConstant()) {
+    let sP = PallasAffine.scale(
+      PallasAffine.fromNonzero({ x: x.toBigInt(), y: y.toBigInt() }),
+      s.toBigInt()
+    );
+    return { x: createField(sP.x), y: createField(sP.y) };
+  }
+  const Field = getField();
+  const Point = provable({ x: Field, y: Field });
+
+  /**
+   * Strategy:
+   * - use a (1, 254) split and compute s - 2^255 with manual add-and-carry
+   * - use all 255 rounds of `scaleFastUnpack` for the high part
+   * - pass in s or a dummy replacement if s = 0, 1 (which are the disallowed values)
+   * - return sP or 0P = 0 or 1P = P
+   */
+
+  // compute t = s + (-2^255 mod q) in (1, 254) arithmetic
+  let { isOdd: sLoBool, high: sHi } = isOddAndHigh(s);
+  let sLo = sLoBool.toField();
+
+  let shift = Fq.mod(-(1n << 255n));
+  let shiftLo = shift & 1n;
+  let shiftHi = shift >> 1n;
+
+  let carry = sLo.mul(shiftLo).seal(); // = either 0 or lowBit
+  let tLo = sLo.add(shiftLo).sub(carry).assertBool();
+  let tHi = sHi.add(shiftHi).add(carry).seal();
+
+  // tHi does not overflow:
+  // tHi = sHi + shiftHi + carry < p/2 + (p/2 - 1) + 1 = p
+  // sHi < p/2 is guaranteed by isOddAndHigh
+  assert(shiftHi < Fp.modulus / 2n - 1n);
+
+  // the 4 values for s not supported by `scaleFastUnpack` are q-2, q-1, 0, 1
+  // since s came from a `Field`, we can exclude q-2, q-1
+  // s = 0 or 1 iff sHi = 0
+  let isEdgeCase = sHi.equals(0n);
+  let tHiSafe = Provable.if(isEdgeCase, createField(0n), tHi);
+
+  // R = (2*(t >> 1) + 1 + 2^255)P
+  // also returns a 255-bit representation of tHi
+  let [, RMl, [, ...tHiBitsMl]] = Snarky.group.scaleFastUnpack(
+    [0, x.value, y.value],
+    [0, tHiSafe.value],
+    255
+  );
+  let R = { x: createField(RMl[1]), y: createField(RMl[2]) };
+
+  // prove that tHi has only 254 bits set
+  createField(tHiBitsMl[254]).assertEquals(0n);
+
+  // R = tLo ? R : R - P = (t + 2^255)P = sP
+  let { result: RminusP, isInfinity } = add(R, negate(P));
+  isInfinity.assertFalse(); // can only be zero if s = 0, which we handle later
+  R = Provable.if(tLo, Point, R, RminusP);
+
+  // now handle the two edge cases s=0 and s=1
+  let zero = createField(0n);
+  let zeroPoint = { x: zero, y: zero };
+  let edgeCaseResult = Provable.if(sLoBool, Point, P, zeroPoint);
+  return Provable.if(isEdgeCase, Point, edgeCaseResult, R);
+}
+
+/**
  * Gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
  */
-function scale(P: Point, s: Field): Point {
+function scaleField(P: Point, s: Field): Point {
   // constant case
   let { x, y } = P;
   if (x.isConstant() && y.isConstant() && s.isConstant()) {

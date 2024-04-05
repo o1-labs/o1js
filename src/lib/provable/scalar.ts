@@ -55,7 +55,7 @@ class Scalar {
    *
    * This is always possible and unambiguous, since the scalar field is larger than the base field.
    */
-  static fromNativeField(s: Field): Scalar {
+  static fromField(s: Field): Scalar {
     let { low5, high250 } = fieldToShiftedScalar(s);
     return new Scalar(low5, high250);
   }

@@ -8,17 +8,20 @@ import { Field } from '../field.js';
 
 console.log('group consistency tests');
 
-test(Random.field, Random.scalar, (a, s0, assert) => {
+test(Random.field, Random.scalar, Random.field, (a, s0, x0, assert) => {
   const {
     x: x1,
     y: { x0: y1 },
   } = Poseidon.hashToGroup([a])!;
   const g = Group.from(x1, y1);
+
+  // scale by a scalar
   const s = Scalar.from(s0);
   runScale(g, s, (g, s) => g.scale(s), assert);
 
-  const sField = Field.from(s0);
-  runScale(g, sField, (g, s) => g.scale(Scalar.fromNativeField(s)), assert);
+  // scale by a field
+  const x = Field.from(x0);
+  runScale(g, x, (g, x) => g.scale(x), assert);
 });
 
 // tests consistency between in- and out-circuit implementations

@@ -263,7 +263,7 @@ class Signature extends CircuitValue {
       signaturePrefix('testnet'),
       msg.concat([publicKey.x, publicKey.y, r])
     );
-    let e = Scalar.fromNativeField(h);
+    let e = Scalar.fromField(h);
     let s = e.mul(d).add(k);
     return new Signature(r, s);
   }
@@ -283,8 +283,7 @@ class Signature extends CircuitValue {
       msg.concat([point.x, point.y, this.r])
     );
 
-    let e = Scalar.fromNativeField(h);
-    let r = point.scale(e).neg().add(Group.generator.scale(this.s));
+    let r = point.scale(h).neg().add(Group.generator.scale(this.s));
     return r.x.equals(this.r).and(r.y.isEven());
   }
 
