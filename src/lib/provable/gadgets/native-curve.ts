@@ -4,10 +4,10 @@ import { Fp, Fq } from '../../../bindings/crypto/finite-field.js';
 import { PallasAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { fieldToField3 } from './comparison.js';
 import { Field3, ForeignField } from './foreign-field.js';
-import { exists, existsOne } from '../core/exists.js';
-import { bit, isConstant, packBits } from './common.js';
+import { exists } from '../core/exists.js';
+import { bit, bitSlice, isConstant, packBits } from './common.js';
 import { TupleN } from '../../util/types.js';
-import { l } from './range-check.js';
+import { l, rangeCheck64 } from './range-check.js';
 import { createField, getField } from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
@@ -46,20 +46,31 @@ function scale(P: Point, s: Field): Point {
 }
 
 /**
- * Converts a field element s to a shifted representation t = s = 2^254 mod q,
+ * Converts a field element s to a shifted representation t = s - 2^254 mod q,
  * where t is represented as a 5-bit low part and a 250-bit high part.
  *
  * This is the representation we use for scalars, since it can be used as input to `scaleShiftedSplit5()`.
  */
 function fieldToShiftedScalar(s: Field): ShiftedScalar {
-  return field3ToShiftedScalar(fieldToField3(s));
+  let sBig = fieldToField3(s);
+
+  // assert that sBig is canonical mod p, so that we can't add (kp mod q) factors by doing things modulo q
+  ForeignField.assertLessThan(sBig, Fp.modulus);
+
+  return field3ToShiftedScalar(sBig);
 }
 
 /**
- * Converts a 3-limb bigint to a shifted representation t = s = 2^254 mod q,
+ * Converts a 3-limb bigint to a shifted representation t = s - 2^254 mod q,
  * where t is represented as a 5-bit low part and a 250-bit high part.
+ *
+ * This assumes that `s` is range-checked to some extent, for example a safe bound is s < 2^258 or anything less.
+ * If s is > 2^259, the high part computation can overflow the base field and the result is incorrect.
  */
-function field3ToShiftedScalar(s: Field3): ShiftedScalar {
+function field3ToShiftedScalar(
+  s: Field3,
+  { proveUnique = false } = {}
+): ShiftedScalar {
   // constant case
   if (Field3.isConstant(s)) {
     let t = Fq.mod(Field3.toBigint(s) - (1n << 254n));
@@ -70,25 +81,46 @@ function field3ToShiftedScalar(s: Field3): ShiftedScalar {
 
   // compute t = s - 2^254 mod q using foreign field subtraction
   let twoTo254 = Field3.from(1n << 254n);
-  let [t0, t1, t2] = ForeignField.sub(s, twoTo254, Fq.modulus);
+  let t = ForeignField.sub(s, twoTo254, Fq.modulus);
+  let [t0, t1, t2] = t;
+
+  if (proveUnique) {
+    // to fully constrain the output scalar, we need to prove that t is canonical
+    // otherwise, the subtraction above can add +q to the result, which yields an alternative bit representation
+    // if the scalar is just used for scaling points, this isn't necessary, because (s + kq)P = sP
+    ForeignField.assertLessThan(t, Fq.modulus);
+  }
 
   // split t into 250 high bits and 5 low bits
-  // => split t0 into [5, 83]
-  let tLo = exists(5, () => {
+  // => split t0 into [5, 83] => split t0 into [5, 64, 19] so we can efficiently range-check
+  let [tHi00, tHi01, ...tLo] = exists(7, () => {
     let t = t0.toBigInt();
-    return [bit(t, 0), bit(t, 1), bit(t, 2), bit(t, 3), bit(t, 4)];
+    return [
+      bitSlice(t, 5, 64),
+      bitSlice(t, 69, 19),
+      bit(t, 0),
+      bit(t, 1),
+      bit(t, 2),
+      bit(t, 3),
+      bit(t, 4),
+    ];
   });
   let tLoBools = TupleN.map(tLo, (x) => x.assertBool());
-  let tHi0 = existsOne(() => t0.toBigInt() >> 5n);
+  rangeCheck64(tHi00);
+  rangeCheck64(tHi01);
 
-  // prove split
-  // since we know that t0 < 2^88, this proves that t0High < 2^83
+  // prove (tLo, tHi0) split
+  // since we know that t0 < 2^88 and tHi0 < 2^128, this even proves that t0Hi < 2^83
+  // (the bound on tHi0 is necessary so that 32*tHi0 can't overflow)
+  let tHi0 = tHi00.add(tHi01.mul(1n << 64n));
   packBits(tLo)
     .add(tHi0.mul(1n << 5n))
     .assertEquals(t0);
 
   // pack tHi
-  // proves that tHi is in [0, 2^250)
+  // this can't overflow the native field if e.g. s < 2^258:
+  // -) t <= s - 2^254 + q < 2^259
+  // -) we proved tHi = (t >> 5) < 2^254, and all the parts are precisely range-checked
   let tHi = tHi0
     .add(t1.mul(1n << (l - 5n)))
     .add(t2.mul(1n << (2n * l - 5n)))
@@ -136,6 +168,7 @@ function scaleShiftedSplit5(
   // R = ((t >> 3) + 2^251)P
   // R = ((t >> 2) + 2^252)P
   // R = ((t >> 1) + 2^253)P
+  // note: t is in [0, q) so none of these can overflow and create a completeness issue: q/2 + 2^253 < q
   for (let t of [t3, t2, t1]) {
     R = addNonZero(R, R);
     R = Provable.if(t, Point, addNonZero(R, P), R);
