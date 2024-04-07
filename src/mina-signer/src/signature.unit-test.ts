@@ -7,42 +7,49 @@ import {
   verify,
   verifyFieldElement,
 } from './signature.js';
-import { Ledger, Test } from '../../snarky.js';
-import { Field as FieldSnarky } from '../../lib/core.js';
-import { Field } from '../../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
-import { p } from '../../bindings/crypto/finite_field.js';
+import { Test } from '../../snarky.js';
+import { Field } from './field-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/crypto/signature.js';
+import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
-import { HashInput } from '../../bindings/lib/provable-bigint.js';
+import { HashInput } from './derivers-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
-import { FieldConst } from '../../lib/field.js';
+import { FieldConst } from '../../lib/provable/core/fieldvar.js';
+import { NetworkId } from './types.js';
 
 // check consistency with OCaml, where we expose the function to sign 1 field element with "testnet"
 function checkConsistentSingle(
   msg: Field,
   key: PrivateKey,
   keySnarky: PrivateKeySnarky,
-  pk: PublicKey
+  pk: PublicKey,
+  networkId: NetworkId
 ) {
-  let sigTest = signFieldElement(msg, key, 'testnet');
-  let sigMain = signFieldElement(msg, key, 'mainnet');
+  let sig = signFieldElement(msg, key, networkId);
+
   // verify
-  let okTestnetTestnet = verifyFieldElement(sigTest, msg, pk, 'testnet');
-  let okMainnetTestnet = verifyFieldElement(sigMain, msg, pk, 'testnet');
-  let okTestnetMainnet = verifyFieldElement(sigTest, msg, pk, 'mainnet');
-  let okMainnetMainnet = verifyFieldElement(sigMain, msg, pk, 'mainnet');
-  expect(okTestnetTestnet).toEqual(true);
-  expect(okMainnetTestnet).toEqual(false);
-  expect(okTestnetMainnet).toEqual(false);
-  expect(okMainnetMainnet).toEqual(true);
+  expect(verifyFieldElement(sig, msg, pk, networkId)).toEqual(true);
+
+  // verify against different network
+  expect(
+    verifyFieldElement(
+      sig,
+      msg,
+      pk,
+      networkId === 'mainnet' ? 'testnet' : 'mainnet'
+    )
+  ).toEqual(false);
+
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = Test.signature.signFieldElement(msgMl, keyMl, false);
-  let actualMain = Test.signature.signFieldElement(msgMl, keyMl, true);
-  expect(Signature.toBase58(sigTest)).toEqual(actualTest);
-  expect(Signature.toBase58(sigMain)).toEqual(actualMain);
+  let actualTest = Test.signature.signFieldElement(
+    msgMl,
+    keyMl,
+    NetworkId.toString(networkId)
+  );
+  expect(Signature.toBase58(sig)).toEqual(actualTest);
 }
 
 // check that various multi-field hash inputs can be verified
@@ -96,12 +103,16 @@ for (let i = 0; i < 10; i++) {
   // hard coded single field elements
   let hardcoded = [0n, 1n, 2n, p - 1n];
   for (let x of hardcoded) {
-    checkConsistentSingle(x, key, keySnarky, publicKey);
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
   }
   // random single field elements
   for (let i = 0; i < 10; i++) {
     let x = randomFields[i];
-    checkConsistentSingle(x, key, keySnarky, publicKey);
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
+    checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
   }
   // hard-coded multi-element hash inputs
   let messages: HashInput[] = [
@@ -122,7 +133,7 @@ for (let i = 0; i < 10; i++) {
         [0xffff_ffff_ffff_ffffn, 64],
       ],
     },
-    AccountUpdate.toInput(AccountUpdate.emptyValue()),
+    AccountUpdate.toInput(AccountUpdate.empty()),
   ];
   for (let msg of messages) {
     checkCanVerify(msg, key, publicKey);

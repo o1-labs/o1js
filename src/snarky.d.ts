@@ -1,140 +1,57 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
-import type { Field, FieldConst, FieldVar } from './lib/field.js';
-import type { BoolVar, Bool } from './lib/bool.js';
-import type { ScalarConst } from './lib/scalar.js';
+import type { Field } from './lib/provable/field.js';
+import type {
+  FieldVar,
+  FieldConst,
+  VarFieldVar,
+} from './lib/provable/core/fieldvar.ts';
+import type { BoolVar } from './lib/provable/bool.ts';
+import type { ScalarConst } from './lib/provable/scalar.js';
 import type {
   MlArray,
-  MlTuple,
+  MlPair,
   MlList,
   MlOption,
   MlBool,
   MlBytes,
+  MlResult,
+  MlUnit,
+  MlString,
+  MlTuple,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
+import type {
+  SnarkKey,
+  SnarkKeyHeader,
+  MlWrapVerificationKey,
+} from './lib/proof-system/prover-keys.js';
+import type {
+  WasmFpSrs,
+  WasmFqSrs,
+} from './bindings/compiled/node_bindings/plonk_wasm.cjs';
+import * as wasm from './bindings/compiled/node_bindings/plonk_wasm.cjs';
+import type { KimchiGateType } from './lib/provable/gates.ts';
+import type { MlConstraintSystem } from './lib/provable/core/provable-context.ts';
+import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate };
+export { Ledger, Pickles, Gate, GateType, wasm };
 
 // internal
-export { Snarky, Test, JsonGate, MlPublicKey, MlPublicKeyVar };
+export {
+  Snarky,
+  Test,
+  WasmModule,
+  withThreadPool,
+  JsonGate,
+  MlPublicKey,
+  MlPublicKeyVar,
+  FeatureFlags,
+  MlFeatureFlags,
+};
 
-/**
- * `Provable<T>` is the general circuit type interface in SnarkyJS. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
- *
- * `Provable<T>` is the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
- *
- * The properties and methods on the provable type exist in all base SnarkyJS types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create zkApps.
- */
-declare interface Provable<T> {
-  /**
-   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
-   *
-   * @param value - the element of type `T` to generate the {@link Field} array from.
-   *
-   * @return A {@link Field} array describing how this `T` element is made up of {@link Field} elements.
-   */
-  toFields: (value: T) => Field[];
+type WasmModule = typeof wasm;
 
-  /**
-   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxiliary" (non-provable) data of `value`.
-   *
-   * @param value - the element of type `T` to generate the auxiliary data array from, optional. If not provided, a default value for auxiliary data is returned.
-   *
-   * @return An array of any type describing how this `T` element is made up of "auxiliary" (non-provable) data.
-   */
-  toAuxiliary: (value?: T) => any[];
-
-  /**
-   * A function that returns an element of type `T` from the given provable and "auxiliary" data.
-   *
-   * **Important**: For any element of type `T`, this function is the reverse operation of calling {@link toFields} and {@link toAuxilary} methods on an element of type `T`.
-   *
-   * @param fields - an array of {@link Field} elements describing the provable data of the new `T` element.
-   * @param aux - an array of any type describing the "auxiliary" data of the new `T` element, optional.
-   *
-   * @return An element of type `T` generated from the given provable and "auxiliary" data.
-   */
-  fromFields: (fields: Field[], aux: any[]) => T;
-
-  /**
-   * Return the size of the `T` type in terms of {@link Field} type, as {@link Field} is the primitive type.
-   *
-   * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
-   *
-   * @return A `number` representing the size of the `T` type in terms of {@link Field} type.
-   */
-  sizeInFields(): number;
-
-  /**
-   * Add assertions to the proof to check if `value` is a valid member of type `T`.
-   * This function does not return anything, instead it creates any number of assertions to prove that `value` is a valid member of the type `T`.
-   *
-   * For instance, calling check function on the type {@link Bool} asserts that the value of the element is either 1 or 0.
-   *
-   * @param value - the element of type `T` to put assertions on.
-   */
-  check: (value: T) => void;
-}
-
-/**
- * `ProvablePure<T>` is a special kind of {@link Provable} interface, where the "auxiliary" (non-provable) data is empty. This means the type consists only of field elements, in that sense it is "pure".
- * Any element on the interface `ProvablePure<T>` is also an element of the interface `Provable<T>` where the "auxiliary" data is empty.
- *
- * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
- *
- * It includes the same properties and methods as the {@link Provable} interface.
- */
-declare interface ProvablePure<T> extends Provable<T> {
-  /**
-   * A function that takes `value`, an element of type `T`, as argument and returns an array of {@link Field} elements that make up the provable data of `value`.
-   *
-   * @param value - the element of type `T` to generate the {@link Field} array from.
-   *
-   * @return A {@link Field} array describing how this `T` element is made up of {@link Field} elements.
-   */
-  toFields: (value: T) => Field[];
-
-  /**
-   * A function that takes `value` (optional), an element of type `T`, as argument and returns an array of any type that make up the "auxiliary" (non-provable) data of `value`.
-   * As any element of the interface `ProvablePure<T>` includes no "auxiliary" data by definition, this function always returns a default value.
-   *
-   * @param value - the element of type `T` to generate the auxiliary data array from, optional. If not provided, a default value for auxiliary data is returned.
-   *
-   * @return An empty array, as any element of the interface `ProvablePure<T>` includes no "auxiliary" data by definition.
-   */
-  toAuxiliary: (value?: T) => any[];
-
-  /**
-   * A function that returns an element of type `T` from the given provable data.
-   *
-   * **Important**: For any element of type `T`, this function is the reverse operation of calling {@link toFields} method on an element of type `T`.
-   *
-   * @param fields - an array of {@link Field} elements describing the provable data of the new `T` element.
-   *
-   * @return An element of type `T` generated from the given provable data.
-   */
-  fromFields: (fields: Field[]) => T;
-
-  /**
-   * Return the size of the `T` type in terms of {@link Field} type, as {@link Field} is the primitive type.
-   *
-   * **Warning**: This function returns a `number`, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
-   *
-   * @return A `number` representing the size of the `T` type in terms of {@link Field} type.
-   */
-  sizeInFields(): number;
-
-  /**
-   * Add assertions to the proof to check if `value` is a valid member of type `T`.
-   * This function does not return anything, rather creates any number of assertions on the proof to prove `value` is a valid member of the type `T`.
-   *
-   * For instance, calling check function on the type {@link Bool} asserts that the value of the element is either 1 or 0.
-   *
-   * @param value - the element of type `T` to put assertions on.
-   */
-  check: (value: T) => void;
-}
-
-type MlGroup = MlTuple<FieldVar, FieldVar>;
+type MlGroup = MlPair<FieldVar, FieldVar>;
 
 declare namespace Snarky {
   type Main = (publicInput: MlArray<FieldVar>) => void;
@@ -150,24 +67,13 @@ declare namespace Snarky {
  */
 declare const Snarky: {
   /**
-   * witness `sizeInFields` field element variables
-   *
-   * Note: this is called "exists" because in a proof, you use it like this:
-   * > "I prove that there exists x, such that (some statement)"
-   */
-  exists(
-    sizeInFields: number,
-    compute: () => MlArray<FieldConst>
-  ): MlArray<FieldVar>;
-  /**
-   * witness a single field element variable
-   */
-  existsVar(compute: () => FieldConst): FieldVar;
-
-  /**
    * APIs that have to do with running provable code
    */
   run: {
+    /**
+     * Checks whether Snarky runs in "prover mode", that is, with witnesses
+     */
+    inProver(): MlBool;
     /**
      * Runs code as a prover.
      */
@@ -177,39 +83,64 @@ declare const Snarky: {
      */
     inProverBlock(): boolean;
     /**
-     * Runs code and checks its correctness.
+     * Setting that controls whether snarky throws an exception on violated constraint.
      */
-    runAndCheck(f: () => void): void;
+    setEvalConstraints(value: MlBool): void;
     /**
-     * Runs code in prover mode, without checking correctness.
+     * Starts constraint system runner and returns a function to finish it.
      */
-    runUnchecked(f: () => void): void;
+    enterConstraintSystem(): () => MlConstraintSystem;
     /**
-     * Returns information about the constraint system in the callback function.
+     * Starts witness generation and returns a function to finish it.
      */
-    constraintSystem(f: () => void): {
-      rows: number;
-      digest: string;
-      json: JsonConstraintSystem;
+    enterGenerateWitness(): () => [
+      _: 0,
+      public_inputs: FieldVector,
+      auxiliary_inputs: FieldVector
+    ];
+    /**
+     * Starts an asProver / witness block and returns a function to finish it.
+     */
+    enterAsProver(
+      size: number
+    ): (fields: MlOption<MlArray<FieldConst>>) => MlArray<VarFieldVar>;
+
+    /**
+     * Operations on snarky's internal state
+     */
+    state: {
+      allocVar(state: SnarkyState): FieldVar;
+      storeFieldElt(state: SnarkyState, x: FieldConst): FieldVar;
+      getVariableValue(state: SnarkyState, x: FieldVar): FieldConst;
+
+      asProver(state: SnarkyState): MlBool;
+      setAsProver(state: SnarkyState, value: MlBool): void;
+      hasWitness(state: SnarkyState): MlBool;
     };
+  };
+
+  /**
+   * APIs to interact with a `Backend.R1CS_constraint_system.t`
+   */
+  constraintSystem: {
+    /**
+     * Returns the number of rows of the constraint system.
+     */
+    rows(system: MlConstraintSystem): number;
+    /**
+     * Returns an md5 digest of the constraint system.
+     */
+    digest(system: MlConstraintSystem): string;
+    /**
+     * Returns a JSON representation of the constraint system.
+     */
+    toJson(system: MlConstraintSystem): JsonConstraintSystem;
   };
 
   /**
    * APIs to add constraints on field variables
    */
   field: {
-    /**
-     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
-     */
-    add(x: FieldVar, y: FieldVar): FieldVar;
-    /**
-     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
-     */
-    scale(c: FieldConst, x: FieldVar): FieldVar;
-    /**
-     * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
-     */
-    mul(x: FieldVar, y: FieldVar): FieldVar;
     /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
@@ -231,22 +162,6 @@ declare const Snarky: {
      */
     assertBoolean(x: FieldVar): void;
     /**
-     * check x < y and x <= y
-     */
-    compare(
-      bitLength: number,
-      x: FieldVar,
-      y: FieldVar
-    ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
-    /**
-     *
-     */
-    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
-    /**
-     *
-     */
-    fromBits(bits: MlArray<BoolVar>): FieldVar;
-    /**
      * returns x truncated to the lowest `16 * lengthDiv16` bits
      * => can be used to assert that x fits in `16 * lengthDiv16` bits.
      *
@@ -254,42 +169,28 @@ declare const Snarky: {
      * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
      */
     truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
-    /**
-     * returns a new witness from an AST
-     * (implemented with toConstantAndTerms)
-     */
-    seal(x: FieldVar): FieldVar;
-    /**
-     * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
-     * returns `(c, [(c0, i0), ..., (cn, in)])`;
-     * c is optional
-     */
-    toConstantAndTerms(
-      x: FieldVar
-    ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlTuple<FieldConst, number>>
-    ];
   };
 
-  bool: {
-    not(x: BoolVar): BoolVar;
+  gates: {
+    zero(in1: FieldVar, in2: FieldVar, out: FieldVar): void;
 
-    and(x: BoolVar, y: BoolVar): BoolVar;
+    generic(
+      sl: FieldConst,
+      l: FieldVar,
+      sr: FieldConst,
+      r: FieldVar,
+      so: FieldConst,
+      o: FieldVar,
+      sm: FieldConst,
+      sc: FieldConst
+    ): void;
 
-    or(x: BoolVar, y: BoolVar): BoolVar;
+    poseidon(state: MlArray<MlTuple<Field, 3>>): void;
 
-    equals(x: BoolVar, y: BoolVar): BoolVar;
-
-    assertEqual(x: BoolVar, y: BoolVar): void;
-  };
-
-  group: {
     /**
      * Low-level Elliptic Curve Addition gate.
      */
-    ecadd(
+    ecAdd(
       p1: MlGroup,
       p2: MlGroup,
       p3: MlGroup,
@@ -300,6 +201,152 @@ declare const Snarky: {
       x21_inv: FieldVar
     ): MlGroup;
 
+    ecScale(
+      state: MlArray<
+        [
+          _: 0,
+          accs: MlArray<MlTuple<FieldVar, 2>>,
+          bits: MlArray<FieldVar>,
+          ss: MlArray<FieldVar>,
+          base: MlGroup,
+          nPrev: Field,
+          nNext: Field
+        ]
+      >
+    ): void;
+
+    ecEndoscale(
+      state: MlArray<
+        [
+          _: 0,
+          xt: FieldVar,
+          yt: FieldVar,
+          xp: FieldVar,
+          yp: FieldVar,
+          nAcc: FieldVar,
+          xr: FieldVar,
+          yr: FieldVar,
+          s1: FieldVar,
+          s3: FieldVar,
+          b1: FieldVar,
+          b2: FieldVar,
+          b3: FieldVar,
+          b4: FieldVar
+        ]
+      >,
+      xs: FieldVar,
+      ys: FieldVar,
+      nAcc: FieldVar
+    ): void;
+
+    ecEndoscalar(
+      state: MlArray<
+        [
+          _: 0,
+          n0: FieldVar,
+          n8: FieldVar,
+          a0: FieldVar,
+          b0: FieldVar,
+          a8: FieldVar,
+          b8: FieldVar,
+          x0: FieldVar,
+          x1: FieldVar,
+          x2: FieldVar,
+          x3: FieldVar,
+          x4: FieldVar,
+          x5: FieldVar,
+          x6: FieldVar,
+          x7: FieldVar
+        ]
+      >
+    ): void;
+
+    lookup(input: MlTuple<FieldVar, 7>): void;
+
+    /**
+     * Range check gate
+     *
+     * @param v0 field var to be range checked
+     * @param v0p bits 16 to 88 as 6 12-bit limbs
+     * @param v0c bits 0 to 16 as 8 2-bit limbs
+     * @param compact boolean field elements -- whether to use "compact mode"
+     */
+    rangeCheck0(
+      v0: FieldVar,
+      v0p: MlTuple<FieldVar, 6>,
+      v0c: MlTuple<FieldVar, 8>,
+      compact: FieldConst
+    ): void;
+
+    rangeCheck1(
+      v2: FieldVar,
+      v12: FieldVar,
+      vCurr: MlTuple<FieldVar, 13>,
+      vNext: MlTuple<FieldVar, 15>
+    ): void;
+
+    xor(
+      in1: FieldVar,
+      in2: FieldVar,
+      out: FieldVar,
+      in1_0: FieldVar,
+      in1_1: FieldVar,
+      in1_2: FieldVar,
+      in1_3: FieldVar,
+      in2_0: FieldVar,
+      in2_1: FieldVar,
+      in2_2: FieldVar,
+      in2_3: FieldVar,
+      out_0: FieldVar,
+      out_1: FieldVar,
+      out_2: FieldVar,
+      out_3: FieldVar
+    ): void;
+
+    foreignFieldAdd(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      fieldOverflow: FieldVar,
+      carry: FieldVar,
+      foreignFieldModulus: MlTuple<FieldConst, 3>,
+      sign: FieldConst
+    ): void;
+
+    foreignFieldMul(
+      left: MlTuple<FieldVar, 3>,
+      right: MlTuple<FieldVar, 3>,
+      remainder: MlTuple<FieldVar, 2>,
+      quotient: MlTuple<FieldVar, 3>,
+      quotientHiBound: FieldVar,
+      product1: MlTuple<FieldVar, 3>,
+      carry0: FieldVar,
+      carry1p: MlTuple<FieldVar, 7>,
+      carry1c: MlTuple<FieldVar, 4>,
+      foreignFieldModulus2: FieldConst,
+      negForeignFieldModulus: MlTuple<FieldConst, 3>
+    ): void;
+
+    rotate(
+      field: FieldVar,
+      rotated: FieldVar,
+      excess: FieldVar,
+      limbs: MlArray<FieldVar>,
+      crumbs: MlArray<FieldVar>,
+      two_to_rot: FieldConst
+    ): void;
+
+    addFixedLookupTable(id: number, data: MlArray<MlArray<FieldConst>>): void;
+
+    addRuntimeTableConfig(id: number, firstColumn: MlArray<FieldConst>): void;
+
+    raw(
+      kind: KimchiGateType,
+      values: MlArray<FieldVar>,
+      coefficients: MlArray<FieldConst>
+    ): void;
+  };
+
+  group: {
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
 
@@ -341,13 +388,14 @@ declare const Snarky: {
     };
   };
 
+  // TODO: implement in TS
   poseidon: {
     update(
       state: MlArray<FieldVar>,
       input: MlArray<FieldVar>
     ): [0, FieldVar, FieldVar, FieldVar];
 
-    hashToGroup(input: MlArray<FieldVar>): MlTuple<FieldVar, FieldVar>;
+    hashToGroup(input: MlArray<FieldVar>): MlPair<FieldVar, FieldVar>;
 
     sponge: {
       create(isChecked: boolean): unknown;
@@ -357,15 +405,52 @@ declare const Snarky: {
   };
 };
 
+type MlRef<T> = [_: 0, contents: T];
+
+type SnarkyVector = [0, [unknown, number, FieldVector]];
+type ConstraintSystem = unknown;
+
+type SnarkyState = [
+  _: 0,
+  system: MlOption<ConstraintSystem>,
+  input: SnarkyVector,
+  aux: SnarkyVector,
+  eval_constraints: MlBool,
+  num_inputs: number,
+  next_auxiliary: MlRef<number>,
+  has_witness: MlBool,
+  stack: MlList<MlString>,
+  handler: unknown,
+  is_running: MlBool,
+  as_prover: MlRef<MlBool>,
+  log_constraint: unknown
+];
+
+type GateType =
+  | 'Zero'
+  | 'Generic'
+  | 'Poseidon'
+  | 'CompleteAdd'
+  | 'VarbaseMul'
+  | 'EndoMul'
+  | 'EndoMulScalar'
+  | 'Lookup'
+  | 'RangeCheck0'
+  | 'RangeCheck1'
+  | 'ForeignFieldAdd'
+  | 'ForeignFieldMul'
+  | 'Xor16'
+  | 'Rot64';
+
 type JsonGate = {
-  typ: string;
+  typ: GateType;
   wires: { row: number; col: number }[];
-  coeffs: number[][];
+  coeffs: string[];
 };
 type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
 type Gate = {
-  type: string;
+  type: GateType;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
@@ -436,7 +521,7 @@ declare const Test: {
   };
 
   poseidon: {
-    hashToGroup(input: MlArray<FieldConst>): MlTuple<FieldConst, FieldConst>;
+    hashToGroup(input: MlArray<FieldConst>): MlPair<FieldConst, FieldConst>;
   };
 
   signature: {
@@ -446,7 +531,7 @@ declare const Test: {
     signFieldElement(
       messageHash: FieldConst,
       privateKey: ScalarConst,
-      isMainnet: boolean
+      networkId: string
     ): string;
     /**
      * Returns a dummy signature.
@@ -458,11 +543,14 @@ declare const Test: {
     accountUpdate(json: string): MlArray<FieldConst>;
   };
   hashFromJson: {
-    accountUpdate(json: string): FieldConst;
+    accountUpdate(json: string, networkId: string): FieldConst;
     /**
      * Returns the commitment of a JSON transaction.
      */
-    transactionCommitments(txJson: string): {
+    transactionCommitments(
+      txJson: string,
+      networkId: string
+    ): {
       commitment: FieldConst;
       fullCommitment: FieldConst;
       feePayerHash: FieldConst;
@@ -492,21 +580,74 @@ declare const Test: {
     serializeCommon(common: string): { data: Uint8Array };
     hashPayment(payment: string): string;
     hashPaymentV1(payment: string): string;
+    hashZkAppCommand(command: string): string;
   };
 };
+
+type FeatureFlags = {
+  rangeCheck0: boolean;
+  rangeCheck1: boolean;
+  foreignFieldAdd: boolean;
+  foreignFieldMul: boolean;
+  xor: boolean;
+  rot: boolean;
+  lookup: boolean;
+  runtimeTables: boolean;
+};
+
+type MlFeatureFlags = [
+  _: 0,
+  rangeCheck0: MlBool,
+  rangeCheck1: MlBool,
+  foreignFieldAdd: MlBool,
+  foreignFieldMul: MlBool,
+  xor: MlBool,
+  rot: MlBool,
+  lookup: MlBool,
+  runtimeTables: MlBool
+];
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
   type Statement<F> = [_: 0, publicInput: MlArray<F>, publicOutput: MlArray<F>];
+
+  /**
+   * A "rule" is a circuit plus some metadata for `Pickles.compile`
+   */
   type Rule = {
     identifier: string;
-    main: (publicInput: MlArray<FieldVar>) => {
+    /**
+     * The main circuit functions
+     */
+    main: (publicInput: MlArray<FieldVar>) => Promise<{
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
-    };
+    }>;
+    /**
+     * Feature flags which enable certain custom gates
+     */
+    featureFlags: MlFeatureFlags;
+    /**
+     * Description of previous proofs to verify in this rule
+     */
     proofsToVerify: MlArray<{ isSelf: true } | { isSelf: false; tag: unknown }>;
   };
+
+  /**
+   * Type to configure how Pickles should cache prover keys
+   */
+  type Cache = [
+    _: 0,
+    read: (header: SnarkKeyHeader, path: string) => MlResult<SnarkKey, MlUnit>,
+    write: (
+      header: SnarkKeyHeader,
+      value: SnarkKey,
+      path: string
+    ) => MlResult<undefined, MlUnit>,
+    canWrite: MlBool
+  ];
+
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
@@ -537,9 +678,10 @@ declare const Pickles: {
    */
   compile: (
     rules: MlArray<Pickles.Rule>,
-    signature: {
+    config: {
       publicInputSize: number;
       publicOutputSize: number;
+      storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
     }
   ) => {
@@ -552,7 +694,7 @@ declare const Pickles: {
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => [_: 0, data: string, hash: FieldConst];
+    getVerificationKey: () => Promise<[_: 0, data: string, hash: FieldConst]>;
   };
 
   verify(
@@ -561,17 +703,34 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
-  dummyBase64Proof: () => string;
+  loadSrsFp(): WasmFpSrs;
+  loadSrsFq(): WasmFqSrs;
+
+  dummyProof: <N extends 0 | 1 | 2>(
+    maxProofsVerified: N,
+    domainLog2: number
+  ) => [N, Pickles.Proof];
+
   /**
    * @returns (base64 vk, hash)
    */
   dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
 
+  encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
+  decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
+
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
-  proofOfBase64: (
+  proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
-    maxProofsVerified: 0 | 1 | 2
-  ) => [0 | 1 | 2, Pickles.Proof];
+    maxProofsVerified: N
+  ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
+
+  util: {
+    toMlString(s: string): MlString;
+    fromMlString(s: MlString): string;
+  };
 };
+
+declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;

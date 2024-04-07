@@ -5,7 +5,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-  emptyValue,
+  empty,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   AuthRequired,
@@ -26,19 +26,24 @@ import {
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
-  GenericProvable,
+  PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
-import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
+import {
+  Scalar,
+  PrivateKey,
+  Group,
+} from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { alphabet } from '../base58.js';
+import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../mina-signer/src/derivers-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 
 export { Random, sample, withHardCoded };
 
@@ -65,8 +70,10 @@ function sample<T>(rng: Random<T>, size: number) {
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const bool = map(boolean, Bool);
+const uint8 = biguintWithInvalid(8);
 const uint32 = biguintWithInvalid(32);
 const uint64 = biguintWithInvalid(64);
+const byte = Random_(drawRandomByte);
 
 const field = fieldWithInvalid(Field);
 const scalar = fieldWithInvalid(Scalar);
@@ -79,7 +86,7 @@ const keypair = map(privateKey, (privatekey) => ({
   publicKey: PrivateKey.toPublicKey(privatekey),
 }));
 
-const tokenId = oneOf(TokenId.emptyValue(), field);
+const tokenId = oneOf(TokenId.empty(), field);
 const stateHash = field;
 const authRequired = map(
   oneOf<Json.AuthRequired[]>(
@@ -104,16 +111,16 @@ const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   Actions.fromList
 );
-const actionState = oneOf(ActionState.emptyValue(), field);
-const verificationKeyHash = oneOf(VerificationKeyHash.emptyValue(), field);
-const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
+const actionState = oneOf(ActionState.empty(), field);
+const verificationKeyHash = oneOf(VerificationKeyHash.empty(), field);
+const receiptChainHash = oneOf(ReceiptChainHash.empty(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
-const PrimitiveMap = primitiveTypeMap<bigint>();
-type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
-type Provable<T> = GenericProvable<T, bigint>;
+type Types = typeof TypeMap & typeof customTypes & PrimitiveTypeMap<bigint>;
 type Generators = {
-  [K in keyof Types]: Types[K] extends Provable<infer U> ? Random<U> : never;
+  [K in keyof Types]: Types[K] extends Signable<infer U, any>
+    ? Random<U>
+    : never;
 };
 const Generators: Generators = {
   Field: field,
@@ -137,8 +144,8 @@ const Generators: Generators = {
   number: nat(3),
   TransactionVersion: uint32,
 };
-let typeToBigintGenerator = new Map<Provable<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, Generators[key as keyof Generators]])
@@ -160,7 +167,8 @@ const accountUpdate = mapWithInvalid(
       a.body.authorizationKind.isProved = Bool(false);
     }
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = Field(0);
+      a.body.authorizationKind.verificationKeyHash =
+        VerificationKeyHash.empty();
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
@@ -186,17 +194,20 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint64Json = toString(
-  oneOf(uint64.invalid, nonInteger, nonNumericString)
+const invalidUint8Json = toString(
+  oneOf(uint8.invalid, nonInteger, nonNumericString)
 );
 const invalidUint32Json = toString(
   oneOf(uint32.invalid, nonInteger, nonNumericString)
 );
+const invalidUint64Json = toString(
+  oneOf(uint64.invalid, nonInteger, nonNumericString)
+);
 
 // some json versions of those types
 let json_ = {
-  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
+  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -213,7 +224,7 @@ function withInvalidRandomString<T extends string>(rng: Random<T>) {
 }
 
 type JsonGenerators = {
-  [K in keyof Types]: Types[K] extends ProvableExtended<any, infer J>
+  [K in keyof Types]: Types[K] extends Signable<any, infer J>
     ? Random<J>
     : never;
 };
@@ -241,8 +252,8 @@ const JsonGenerators: JsonGenerators = {
   number: nat(3),
   TransactionVersion: json_.uint32,
 };
-let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
-  [TypeMap, PrimitiveMap, customTypes]
+let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
+  [TypeMap, primitiveTypeMap, customTypes]
     .map(Object.entries)
     .flat()
     .map(([key, value]) => [value, JsonGenerators[key as keyof JsonGenerators]])
@@ -293,6 +304,7 @@ const Random = Object.assign(Random_, {
   nat,
   fraction,
   boolean,
+  byte,
   bytes,
   string,
   base58,
@@ -307,9 +319,13 @@ const Random = Object.assign(Random_, {
   reject,
   dice: Object.assign(dice, { ofSize: diceOfSize() }),
   field,
+  otherField: fieldWithInvalid,
   bool,
+  uint8,
   uint32,
   uint64,
+  biguint: biguintWithInvalid,
+  bignat: bignatWithInvalid,
   privateKey,
   publicKey,
   scalar,
@@ -325,7 +341,13 @@ function generatorFromLayout<T>(
   { isJson }: { isJson: boolean }
 ): Random<T> {
   let typeToGenerator = isJson ? typeToJsonGenerator : typeToBigintGenerator;
-  return genericLayoutFold<undefined, Random<any>, TypeMap, Json.TypeMap>(
+  return genericLayoutFold<
+    Signable<any, any>,
+    undefined,
+    Random<any>,
+    TypeMap,
+    Json.TypeMap
+  >(
     TypeMap,
     customTypes,
     {
@@ -341,7 +363,7 @@ function generatorFromLayout<T>(
         return array(element, size);
       },
       reduceObject(keys, object) {
-        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overriden)
+        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overridden)
         if (keys.includes('verificationKeyHash')) {
           (object as any).verificationKeyHash = noInvalid(
             (object as any).verificationKeyHash
@@ -355,7 +377,7 @@ function generatorFromLayout<T>(
         } else {
           return mapWithInvalid(isSome, value, (isSome, value) => {
             let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-            if (!isSomeBoolean) return emptyValue(typeData);
+            if (!isSomeBoolean) return empty(typeData);
             return { isSome, value };
           });
         }
@@ -657,14 +679,14 @@ function int(min: number, max: number): Random<number> {
  * log-uniform distribution over range [0, max]
  * with bias towards 0, 1, 2
  */
-function nat(max: number): Random<number> {
-  if (max < 0) throw Error('max < 0');
-  if (max === 0) return constant(0);
+function bignat(max: bigint): Random<bigint> {
+  if (max < 0n) throw Error('max < 0');
+  if (max === 0n) return constant(0n);
   let bits = max.toString(2).length;
   let bitBits = bits.toString(2).length;
   // set of special numbers that will appear more often in tests
-  let special = [0, 0, 1];
-  if (max > 1) special.push(2);
+  let special = [0n, 0n, 1n];
+  if (max > 1n) special.push(2n);
   let nSpecial = special.length;
   return {
     create: () => () => {
@@ -680,11 +702,19 @@ function nat(max: number): Random<number> {
         let bitLength = 1 + drawUniformUintBits(bitBits);
         if (bitLength > bits) continue;
         // draw number from [0, 2**bitLength); reject if > max
-        let n = drawUniformUintBits(bitLength);
+        let n = drawUniformBigUintBits(bitLength);
         if (n <= max) return n;
       }
     },
   };
+}
+
+/**
+ * log-uniform distribution over range [0, max]
+ * with bias towards 0, 1, 2
+ */
+function nat(max: number): Random<number> {
+  return map(bignat(BigInt(max)), (n) => Number(n));
 }
 
 function fraction(fixedPrecision = 3) {
@@ -717,16 +747,15 @@ let specialBytes = [0, 0, 0, 1, 1, 2, 255, 255];
  * log-uniform distribution over range [0, 255]
  * with bias towards 0, 1, 2, 255
  */
-const byte: Random<number> = {
-  create: () => () => {
-    // 25% of test cases are special numbers
-    if (drawOneOf8() < 2) return specialBytes[drawOneOf8()];
-    // the remaining follow log-uniform / cut off exponential distribution:
-    // we sample a bit length from [1, 8] and then a number with that length
-    let bitLength = 1 + drawOneOf8();
-    return drawUniformUintBits(bitLength);
-  },
-};
+function drawRandomByte() {
+  // 25% of test cases are special numbers
+  if (drawOneOf8() < 2) return specialBytes[drawOneOf8()];
+  // the remaining follow log-uniform / cut off exponential distribution:
+  // we sample a bit length from [1, 8] and then a number with that length
+  let bitLength = 1 + drawOneOf8();
+  return drawUniformUintBits(bitLength);
+}
+
 /**
  * log-uniform distribution over 2^n-bit range
  * with bias towards 0, 1, 2, max
@@ -825,12 +854,21 @@ function biguintWithInvalid(bits: number): RandomWithInvalid<bigint> {
   return Object.assign(valid, { invalid });
 }
 
-function fieldWithInvalid(
-  F: typeof Field | typeof Scalar
-): RandomWithInvalid<bigint> {
+function bignatWithInvalid(max: bigint): RandomWithInvalid<bigint> {
+  let valid = bignat(max);
+  let double = bignat(2n * max);
+  let negative = map(double, (uint) => -uint - 1n);
+  let tooLarge = map(valid, (uint) => uint + max);
+  let invalid = oneOf(negative, tooLarge);
+  return Object.assign(valid, { invalid });
+}
+
+function fieldWithInvalid(F: FiniteField): RandomWithInvalid<bigint> {
   let randomField = Random_(F.random);
-  let specialField = oneOf(0n, 1n, F(-1));
-  let field = oneOf<bigint[]>(randomField, randomField, uint64, specialField);
+  let specialField = oneOf(0n, 1n, F.negate(1n));
+  let roughLogSize = 1 << Math.ceil(Math.log2(F.sizeInBits) - 1);
+  let uint = biguint(roughLogSize);
+  let field = oneOf<bigint[]>(randomField, randomField, uint, specialField);
   let tooLarge = map(field, (x) => x + F.modulus);
   let negative = map(field, (x) => -x - 1n);
   let invalid = oneOf(tooLarge, negative);

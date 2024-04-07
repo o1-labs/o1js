@@ -1,12 +1,13 @@
-import { Ledger, Test } from '../../snarky.js';
+import { Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
-import { Field, Bool } from '../core.js';
-import { PrivateKey, PublicKey } from '../signature.js';
-import { TokenId, dummySignature } from '../account_update.js';
+import { Field, Bool } from '../provable/wrapped.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
+import { TokenId, dummySignature } from '../mina/account-update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
-import { FieldConst } from '../field.js';
-import { Provable } from '../provable.js';
+import { FieldConst } from '../provable/core/fieldvar.js';
+import { Provable } from '../provable/provable.js';
+import { runAndCheckSync } from '../provable/core/provable-context.js';
 
 // PrivateKey.toBase58, fromBase58
 
@@ -94,7 +95,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
   });
   let parentTokenId = Field(field);
 
-  Provable.runAndCheck(() => {
+  runAndCheckSync(() => {
     tokenOwner = Provable.witness(PublicKey, () => tokenOwner);
     parentTokenId = Provable.witness(Field, () => parentTokenId);
 

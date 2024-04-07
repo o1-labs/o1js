@@ -6,13 +6,13 @@ import {
   stringToBytes,
   withBits,
 } from '../../bindings/lib/binable.js';
-import { base58 } from '../../lib/base58.js';
+import { base58 } from '../../lib/util/base58.js';
 import {
   HashInputLegacy,
   hashWithPrefix,
   packToFieldsLegacy,
   prefixes,
-} from '../../provable/poseidon-bigint.js';
+} from './poseidon-bigint.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export { Memo };
@@ -62,10 +62,8 @@ const Memo = {
   hash,
   ...withBits(Binable, SIZE * 8),
   ...base58(Binable, versionBytes.userCommandMemo),
-  sizeInBytes() {
-    return SIZE;
-  },
-  emptyValue() {
+  sizeInBytes: SIZE,
+  empty() {
     return Memo.fromString('');
   },
   toValidString(memo = '') {

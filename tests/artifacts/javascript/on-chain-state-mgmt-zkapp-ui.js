@@ -1,18 +1,9 @@
-import { logEvents } from './e2eTestsHelpers.js';
+import { logEvents } from './e2e-tests-helpers.js';
 import {
   adminPrivateKey,
   HelloWorld,
-} from './examples/zkapps/hello_world/hello_world.js';
-import {
-  AccountUpdate,
-  Field,
-  isReady,
-  Mina,
-  PrivateKey,
-  verify,
-} from './index.js';
-
-await isReady;
+} from './examples/zkapps/hello-world/hello-world.js';
+import { AccountUpdate, Field, Mina, PrivateKey, verify } from './index.js';
 
 const deployButton = document.querySelector('#deployButton');
 const updateButton = document.querySelector('#updateButton');
@@ -21,7 +12,7 @@ const eventsContainer = document.querySelector('#eventsContainer');
 const zkAppStateContainer = document.querySelector('#zkAppStateContainer');
 
 logEvents(
-  `SnarkyJS initialized after ${performance.now().toFixed(2)}ms`,
+  `o1js initialized after ${performance.now().toFixed(2)}ms`,
   eventsContainer
 );
 
@@ -44,11 +35,11 @@ deployButton.addEventListener('click', async () => {
 
   try {
     await HelloWorld.compile();
-    const deploymentTransaction = await Mina.transaction(feePayer, () => {
+    const deploymentTransaction = await Mina.transaction(feePayer, async () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
-      zkAppInstance.deploy();
+      await zkAppInstance.deploy();
     });
 
     await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
@@ -84,8 +75,8 @@ updateButton.addEventListener('click', async (event) => {
       `Updating zkApp State from ${currentState} to ${zkAppStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
     );
-    const transaction = await Mina.transaction(feePayer, () => {
-      zkAppInstance.update(
+    const transaction = await Mina.transaction(feePayer, async () => {
+      await zkAppInstance.update(
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );

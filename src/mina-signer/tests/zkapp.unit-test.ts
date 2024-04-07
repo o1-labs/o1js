@@ -1,17 +1,17 @@
 import { ZkappCommand } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import * as TransactionJson from '../../bindings/mina-transaction/gen/transaction-json.js';
-import Client from '../MinaSigner.js';
+import Client from '../mina-signer.js';
 import { accountUpdateExample } from '../src/test-vectors/accountUpdate.js';
 import { expect } from 'expect';
-import { Transaction } from '../../lib/mina.js';
-import { PrivateKey } from '../../lib/signature.js';
+import { Transaction } from '../../lib/mina/mina.js';
+import { PrivateKey } from '../../lib/provable/crypto/signature.js';
 import { Signature } from '../src/signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 
 const client = new Client({ network: 'testnet' });
 let { publicKey, privateKey } = client.genKeys();
 
-let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
+let dummy = ZkappCommand.toJSON(ZkappCommand.empty());
 let dummySignature = Signature.toBase58(Signature.dummy());
 
 // we construct a transaction which needs signing of the fee payer and another account update
@@ -84,7 +84,7 @@ expect(
   client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates)
 ).toBe(0.002);
 
-// same transaction signed with snarkyjs (OCaml implementation) gives the same result
+// same transaction signed with o1js (OCaml implementation) gives the same result
 
 let transactionJson = {
   ...exampleZkappCommand,

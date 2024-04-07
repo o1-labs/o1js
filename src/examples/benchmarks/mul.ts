@@ -1,9 +1,8 @@
 /**
  * benchmark a circuit filled with generic gates
  */
-import { Circuit, Field, Provable, circuitMain, Experimental } from 'snarkyjs';
-import { tic, toc } from '../zkapps/tictoc.js';
-let { ZkProgram } = Experimental;
+import { Circuit, Field, Provable, circuitMain, ZkProgram } from 'o1js';
+import { tic, toc } from '../utils/tic-toc.node.js';
 
 // parameters
 let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
@@ -20,8 +19,8 @@ function main(nMuls: number) {
   }
 }
 
-function getRows(nMuls: number) {
-  let { rows } = Provable.constraintSystem(() => main(nMuls));
+async function getRows(nMuls: number) {
+  let { rows } = await Provable.constraintSystem(() => main(nMuls));
   return rows;
 }
 
@@ -37,10 +36,11 @@ function simpleKimchiCircuit(nMuls: number) {
 
 function picklesCircuit(nMuls: number) {
   return ZkProgram({
+    name: 'mul-chain',
     methods: {
       run: {
         privateInputs: [],
-        method() {
+        async method() {
           main(nMuls);
         },
       },
@@ -48,7 +48,7 @@ function picklesCircuit(nMuls: number) {
   });
 }
 
-console.log('circuit size (without pickles overhead)', getRows(nMuls));
+console.log('circuit size (without pickles overhead)', await getRows(nMuls));
 
 if (withPickles) {
   let circuit = picklesCircuit(nMuls);

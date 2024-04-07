@@ -1,13 +1,11 @@
 import {
-  Bool,
-  CircuitValue,
   Field,
-  prop,
   PublicKey,
   UInt64,
   Poseidon,
   MerkleWitness,
-} from 'snarkyjs';
+  Struct,
+} from 'o1js';
 
 export class MyMerkleWitness extends MerkleWitness(3) {}
 let w = {
@@ -18,24 +16,24 @@ let dummyWitness = Array.from(Array(MyMerkleWitness.height - 1).keys()).map(
   () => w
 );
 
-export class Member extends CircuitValue {
-  @prop publicKey: PublicKey;
-  @prop balance: UInt64;
+export class Member extends Struct({
+  publicKey: PublicKey,
+  balance: UInt64,
 
-  // will need this to keep track of votes for candidates
-  @prop votes: Field;
+  // need this to keep track of votes for candidates
+  votes: Field,
 
-  @prop witness: MyMerkleWitness;
-  @prop votesWitness: MyMerkleWitness;
-
+  witness: MyMerkleWitness,
+  votesWitness: MyMerkleWitness,
+}) {
   constructor(publicKey: PublicKey, balance: UInt64) {
-    super();
-    this.publicKey = publicKey;
-    this.balance = balance;
-    this.votes = Field(0);
-
-    this.witness = new MyMerkleWitness(dummyWitness);
-    this.votesWitness = new MyMerkleWitness(dummyWitness);
+    super({
+      publicKey,
+      balance,
+      votes: Field(0),
+      witness: new MyMerkleWitness(dummyWitness),
+      votesWitness: new MyMerkleWitness(dummyWitness),
+    });
   }
 
   getHash(): Field {
@@ -52,8 +50,8 @@ export class Member extends CircuitValue {
     return this;
   }
 
-  static empty() {
-    return new Member(PublicKey.empty(), UInt64.zero);
+  static empty<T extends new (...args: any) => any>(): InstanceType<T> {
+    return new Member(PublicKey.empty(), UInt64.zero) as any;
   }
 
   static from(publicKey: PublicKey, balance: UInt64) {

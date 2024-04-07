@@ -4,7 +4,6 @@ import {
   state,
   State,
   method,
-  DeployArgs,
   Permissions,
   Bool,
   PublicKey,
@@ -13,17 +12,19 @@ import {
   AccountUpdate,
   Provable,
   TransactionVersion,
-} from 'snarkyjs';
+} from 'o1js';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 
-interface MembershipParams {
+Provable;
+
+type MembershipParams = {
   participantPreconditions: ParticipantPreconditions;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.
@@ -63,13 +64,13 @@ export class Membership_ extends SmartContract {
 
   events = {
     newMemberState: provablePure({
-      committedMembersRoot: Field,
       accumulatedMembersRoot: Field,
+      committedMembersRoot: Field,
     }),
   };
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -88,7 +89,8 @@ export class Membership_ extends SmartContract {
    * Dispatches a new member sequence event.
    * @param member
    */
-  @method addEntry(member: Member): Bool {
+  @method.returns(Bool)
+  async addEntry(member: Member) {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
 
@@ -98,7 +100,7 @@ export class Membership_ extends SmartContract {
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
 
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
 
@@ -114,7 +116,7 @@ export class Membership_ extends SmartContract {
     );
 
     let accumulatedMembers = this.accumulatedMembers.get();
-    this.accumulatedMembers.assertEquals(accumulatedMembers);
+    this.accumulatedMembers.requireEquals(accumulatedMembers);
 
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
@@ -123,7 +125,7 @@ export class Membership_ extends SmartContract {
       }),
       Bool,
       (state: Bool, action: Member) => {
-        return action.equals(member).or(state);
+        return Provable.equal(Member, action, member).or(state);
       },
       // initial state
       { state: Bool(false), actionState: accumulatedMembers }
@@ -147,29 +149,30 @@ export class Membership_ extends SmartContract {
    * @param accountId
    * @returns true if member exists
    */
-  @method isMember(member: Member): Bool {
+  @method.returns(Bool)
+  async isMember(member: Member) {
     // Verify membership (voter or candidate) with the accountId via merkle tree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
 
     let committedMembers = this.committedMembers.get();
-    this.committedMembers.assertEquals(committedMembers);
+    this.committedMembers.requireEquals(committedMembers);
 
     return member.witness
-      .calculateRootSlow(member.getHash())
+      .calculateRoot(member.getHash())
       .equals(committedMembers);
   }
 
   /**
    * Method used to commit to the accumulated list of members.
    */
-  @method publish() {
+  @method async publish() {
     // Commit to the items accumulated so far. This is a periodic update
 
     let accumulatedMembers = this.accumulatedMembers.get();
-    this.accumulatedMembers.assertEquals(accumulatedMembers);
+    this.accumulatedMembers.requireEquals(accumulatedMembers);
 
     let committedMembers = this.committedMembers.get();
-    this.committedMembers.assertEquals(committedMembers);
+    this.committedMembers.requireEquals(committedMembers);
 
     let pendingActions = this.reducer.getActions({
       fromActionState: accumulatedMembers,
@@ -191,7 +194,7 @@ export class Membership_ extends SmartContract {
           // otherwise, we simply return the unmodified state - this is our way of branching
           return Provable.if(
             isRealMember,
-            action.witness.calculateRootSlow(action.getHash()),
+            action.witness.calculateRoot(action.getHash()),
             state
           );
         },

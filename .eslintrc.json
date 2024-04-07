@@ -12,6 +12,7 @@
   "rules": {
     "no-unused-vars": "warn",
     "no-constant-condition": "off",
-    "no-empty": "off"
+    "no-empty": "off",
+    "no-unused-labels": "off"
   }
 }

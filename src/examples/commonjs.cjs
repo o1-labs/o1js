@@ -1,5 +1,5 @@
 /**
- * Tests that snarkyjs can be imported and used from commonJS files
+ * Tests that o1js can be imported and used from commonJS files
  */
 let {
   Field,
@@ -10,7 +10,7 @@ let {
   AccountUpdate,
   declareState,
   declareMethods,
-} = require('snarkyjs');
+} = require('o1js');
 
 class SimpleZkapp extends SmartContract {
   constructor(address) {
@@ -25,12 +25,11 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  update(y) {
+  async update(y) {
     this.emitEvent('update', y);
     this.emitEvent('update', y);
-    this.account.balance.assertEquals(this.account.balance.get());
-    let x = this.x.get();
-    this.x.assertEquals(x);
+    this.account.balance.requireEquals(this.account.balance.get());
+    let x = this.x.getAndRequireEquals();
     this.x.set(x.add(y));
   }
 }
@@ -56,9 +55,9 @@ async function main() {
   await SimpleZkapp.compile();
 
   console.log('deploy');
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
-    zkapp.deploy();
+    await zkapp.deploy();
   });
   await tx.sign([feePayerKey, zkappKey]).send();
 

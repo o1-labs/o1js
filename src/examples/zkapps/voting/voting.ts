@@ -4,7 +4,6 @@ import {
   state,
   State,
   method,
-  DeployArgs,
   Permissions,
   PublicKey,
   Bool,
@@ -13,7 +12,7 @@ import {
   AccountUpdate,
   Provable,
   TransactionVersion,
-} from 'snarkyjs';
+} from 'o1js';
 
 import { Member } from './member.js';
 import {
@@ -47,7 +46,7 @@ let voterPreconditions = ParticipantPreconditions.default;
  */
 let electionPreconditions = ElectionPreconditions.default;
 
-interface VotingParams {
+type VotingParams = {
   electionPreconditions: ElectionPreconditions;
   voterPreconditions: ParticipantPreconditions;
   candidatePreconditions: ParticipantPreconditions;
@@ -55,7 +54,7 @@ interface VotingParams {
   voterAddress: PublicKey;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.
@@ -92,13 +91,13 @@ export class Voting_ extends SmartContract {
   events = {
     newVoteFor: PublicKey,
     newVoteState: provablePure({
-      committedVotesRoot: Field,
       accumulatedVotesRoot: Field,
+      committedVotesRoot: Field,
     }),
   };
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
@@ -118,9 +117,9 @@ export class Voting_ extends SmartContract {
    * @param member
    */
   @method
-  voterRegistration(member: Member) {
+  async voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       currentSlot,
       currentSlot.add(10)
     );
@@ -137,7 +136,7 @@ export class Voting_ extends SmartContract {
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
 
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
 
@@ -153,7 +152,7 @@ export class Voting_ extends SmartContract {
     );
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
-    let exists = VoterContract.addEntry(member);
+    let exists = await VoterContract.addEntry(member);
 
     // the check happens here because we want to see if the other contract returns a value
     // if exists is true, that means the member already exists within the accumulated state
@@ -167,9 +166,9 @@ export class Voting_ extends SmartContract {
    * @param member
    */
   @method
-  candidateRegistration(member: Member) {
+  async candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       currentSlot,
       currentSlot.add(10)
     );
@@ -186,7 +185,7 @@ export class Voting_ extends SmartContract {
     // this snippet pulls the account data of an address from the network
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
-    accountUpdate.account.balance.assertEquals(
+    accountUpdate.account.balance.requireEquals(
       accountUpdate.account.balance.get()
     );
 
@@ -202,7 +201,7 @@ export class Voting_ extends SmartContract {
     );
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    let exists = CandidateContract.addEntry(member);
+    let exists = await CandidateContract.addEntry(member);
 
     // the check happens here because we want to see if the other contract returns a value
     // if exists is true, that means the member already exists within the accumulated state
@@ -215,13 +214,13 @@ export class Voting_ extends SmartContract {
    * Calls the `publish()` method of the Candidate-Membership and Voter-Membership contract.
    */
   @method
-  approveRegistrations() {
+  async approveRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
     let VoterContract: Membership_ = new Membership_(voterAddress);
-    VoterContract.publish();
+    await VoterContract.publish();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.publish();
+    await CandidateContract.publish();
   }
 
   /**
@@ -231,9 +230,9 @@ export class Voting_ extends SmartContract {
    * @param voter
    */
   @method
-  vote(candidate: Member, voter: Member) {
+  async vote(candidate: Member, voter: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       currentSlot,
       currentSlot.add(10)
     );
@@ -250,10 +249,10 @@ export class Voting_ extends SmartContract {
     // verifying that both the voter and the candidate are actually part of our member set
     // ideally we would also verify a signature here, but ignoring that for now
     let VoterContract: Membership_ = new Membership_(voterAddress);
-    VoterContract.isMember(voter).assertTrue('Member is not a voter!');
+    (await VoterContract.isMember(voter)).assertTrue('Member is not a voter!');
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.isMember(candidate).assertTrue(
+    (await CandidateContract.isMember(candidate)).assertTrue(
       'Member is not a candidate!'
     );
 
@@ -268,12 +267,12 @@ export class Voting_ extends SmartContract {
    * and applies state changes to the votes merkle tree.
    */
   @method
-  countVotes() {
+  async countVotes() {
     let accumulatedVotes = this.accumulatedVotes.get();
-    this.accumulatedVotes.assertEquals(accumulatedVotes);
+    this.accumulatedVotes.requireEquals(accumulatedVotes);
 
     let committedVotes = this.committedVotes.get();
-    this.committedVotes.assertEquals(committedVotes);
+    this.committedVotes.requireEquals(committedVotes);
 
     let { state: newCommittedVotes, actionState: newAccumulatedVotes } =
       this.reducer.reduce(
@@ -283,7 +282,7 @@ export class Voting_ extends SmartContract {
           // apply one vote
           action = action.addVote();
           // this is the new root after we added one vote
-          return action.votesWitness.calculateRootSlow(action.getHash());
+          return action.votesWitness.calculateRoot(action.getHash());
         },
         // initial state
         { state: committedVotes, actionState: accumulatedVotes }

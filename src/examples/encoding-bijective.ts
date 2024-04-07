@@ -1,6 +1,5 @@
-import { Field, isReady, shutdown, Encoding } from 'snarkyjs';
+import { Field, Encoding } from 'o1js';
 
-await isReady;
 let n = 1000;
 
 let { toBytes, fromBytes } = Encoding.Bijective.Fp;
@@ -20,8 +19,6 @@ let newBytes = toBytes(fromBytes(bytes));
 let bytesEqual = arrayEqual([...bytes], [...newBytes]);
 if (!bytesEqual) throw Error('roundtrip bytes -> fields -> bytes failed');
 else console.log('bytes -> fields -> bytes: ok');
-
-shutdown();
 
 function arrayEqual<T>(a: T[], b: T[], isEqual?: (a: T, b: T) => boolean) {
   if (isEqual === undefined) isEqual = (a, b) => a === b;

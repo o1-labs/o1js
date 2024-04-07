@@ -1,4 +1,4 @@
-import { Bool, UInt32, UInt64 } from 'snarkyjs';
+import { Bool, UInt32, UInt64 } from 'o1js';
 
 export class ElectionPreconditions {
   startElection: UInt32;
@@ -17,7 +17,7 @@ export class ElectionPreconditions {
 
 export class ParticipantPreconditions {
   minMina: UInt64;
-  maxMina: UInt64; // have to make this "generic" so it applys for both candidate and voter instances
+  maxMina: UInt64; // have to make this "generic" so it applies for both candidate and voter instances
 
   static get default(): ParticipantPreconditions {
     return new ParticipantPreconditions(UInt64.zero, UInt64.MAXINT());

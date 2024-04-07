@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import minimist from 'minimist';
-import { build } from './src/build/buildExample.js';
+import { build } from './src/build/build-example.js';
 
 let {
   _: [filePath],
@@ -32,7 +32,7 @@ const indexHtml = `
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="data:," />
-    <title>snarkyjs</title>
+    <title>o1js</title>
     <script type="module" src="./${fileName}">
     </script>
   </head>
