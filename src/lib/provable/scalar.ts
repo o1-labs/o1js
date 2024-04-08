@@ -23,7 +23,7 @@ type ScalarConst = [0, bigint];
  */
 class Scalar implements ShiftedScalar {
   /**
-   * We represent a scalar s in shifted form `t = s - 2^255 mod q,
+   * We represent a scalar s in shifted form t = s - 2^255 mod q,
    * split into its low bit (t & 1) and high 254 bits (t >> 1).
    * The reason is that we can efficiently compute the scalar multiplication `(t + 2^255) * P = s * P`.
    */
