@@ -36,6 +36,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Massively improve `Field.isEven()`, add `Field.isOdd()`
   - `PrivateKey.toPublicKey()` from 358 to 119 constraints thanks to `isOdd()`
   - Add `Gadgets.ForeignField.assertLessThanOrEqual()` and support two variables as input to `ForeignField.assertLessThan()`
+- Native curve improvements https://github.com/o1-labs/o1js/pull/1530
+  - Change the internal representation of `Scalar` from 255 Bools to 1 Bool and 1 Field (low bit and high 254 bits)
+  - Make `Group.scale()` support all scalars (previously did not support 0, 1 and -1)
+  - Make `Group.scale()` directly accept `Field` elements, and much more efficient than previous methods of scaling by Fields
+    - As a result, `Signature.verify()` and `Nullifier.verify()` use much fewer constraints
+  - Fix `Scalar.fromBits()` to not produce a shifted scalar; shifting is no longer exposed to users of `Scalar`.
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
