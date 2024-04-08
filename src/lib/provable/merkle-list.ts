@@ -374,7 +374,8 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
 
     let isDummy = this.isAtEnd();
-    let emptyHash = this.Constructor.emptyHash;
+    const emptyHash = Field(2);
+    Provable.log('empty hash', emptyHash);
     let correctHash = this.nextHash(previousHash, element);
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
     this.currentHash.assertEquals(requiredHash);
