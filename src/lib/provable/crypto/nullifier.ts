@@ -67,7 +67,6 @@ class Nullifier extends Struct({
 
     let h_m_pk = Group.fromFields([x, x0]);
 
-    // shifted scalar see https://github.com/o1-labs/o1js/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
     // pk^c
     let pk_c = this.publicKey.scale(c);
 
