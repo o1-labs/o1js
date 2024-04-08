@@ -10,7 +10,7 @@ import {
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/assert.js';
-import { add, scaleFieldDirect, scaleShifted } from './gadgets/native-curve.js';
+import { add, scaleField, scaleShifted } from './gadgets/native-curve.js';
 
 export { Group };
 
@@ -177,7 +177,7 @@ class Group {
    * ```
    */
   scale(s: Scalar | Field | number | bigint) {
-    if (s instanceof Field) return new Group(scaleFieldDirect(this, s));
+    if (s instanceof Field) return new Group(scaleField(this, s));
     let scalar = Scalar.from(s);
 
     if (isConstant(this) && scalar.isConstant()) {
