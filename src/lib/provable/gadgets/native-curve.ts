@@ -94,8 +94,7 @@ function scaleFieldDirect(P: Point, s: Field): Point {
   createField(tHiBitsMl[254]).assertEquals(0n);
 
   // R = tLo ? R : R - P = (t + 2^255)P = sP
-  let { result: RminusP, isInfinity } = add(R, negate(P));
-  isInfinity.assertFalse(); // can only be zero if s = 0, which we handle later
+  let RminusP = addNonZero(R, negate(P)); // can only be zero if s = 0, which we handle later
   R = Provable.if(tLo, Point, R, RminusP);
 
   // now handle the two edge cases s=0 and s=1
@@ -338,26 +337,19 @@ function scaleShifted(
     createField(tHiBitsMl[i]).assertEquals(zero);
   }
 
-  // R = tLo ? R : R - P = (t + 2^255)P
-  // we also handle a zero R-P result to make scaling work for the 0 scalar
-  let minusP = negate(P);
-  let RminusP = addNonZero(R, minusP);
-  R = Provable.if(tLo, Point, R, RminusP);
-
-  // handle the edge cases
+  // handle edge cases
   // 2*(-2^254) + 1 + 2^255 = 1
   // 2*(-2^254 - 1) + 1 + 2^255 = -1
-  let minus2P = addNonZero(minusP, minusP);
-  let zeroPoint = { x: zero, y: zero };
-  let minusShiftResult = Provable.if(tLo, Point, P, zeroPoint);
-  let minusShiftMinus1Result = Provable.if(tLo, Point, minusP, minus2P);
-  let edgeCaseResult = Provable.if(
-    equalsMinusShift,
-    Point,
-    minusShiftResult,
-    minusShiftMinus1Result
-  );
+  // so the result is (x,+-y)
+  let edgeCaseY = y.mul(equalsMinusShift.toField().mul(2n).sub(1n)); // y*(2b - 1) = y or -y
+  let edgeCaseResult = { x, y: edgeCaseY };
   R = Provable.if(isEdgeCase, Point, edgeCaseResult, R);
+
+  // R = tLo ? R : R - P = (t + 2^255)P
+  // we also handle a zero R-P result to make the 0 scalar work
+  let { result: RminusP, isInfinity } = add(R, negate(P));
+  RminusP = Provable.if(isInfinity, Point, { x: zero, y: zero }, RminusP);
+  R = Provable.if(tLo, Point, R, RminusP);
 
   return R;
 }
