@@ -187,28 +187,36 @@ function field3ToShiftedScalar(s: Field3): ShiftedScalar {
     return { lowBit, high254 };
   }
 
-  // compute t = s - 2^255 mod q using foreign field subtraction
+  // compute t = s - (2^255 mod q) using foreign field subtraction
   let twoTo255 = Field3.from(Fq.mod(1n << 255n));
   let t = ForeignField.sub(s, twoTo255, Fq.modulus);
-
-  // it's necessary to prove that t is canonical -- otherwise its bit representation is ambiguous
-  ForeignField.assertLessThan(t, Fq.modulus);
-
   let [t0, t1, t2] = t;
 
+  // to fully constrain the output scalar, we need to prove that t is canonical
+  // otherwise, the subtraction above can add +q to the result, which yields an alternative bit representation
+  // this also provides a bound on the high part, to that the computation of tHi can't overflow
+  ForeignField.assertLessThan(t, Fq.modulus);
+
   // split t into 254 high bits and a low bit
-  // => split t0 into [1, 87]
-  let [tLo, tHi0] = exists(2, () => {
-    let t0_ = t0.toBigInt();
-    return [bit(t0_, 0), t0_ >> 1n];
+  // => split t0 into [1, 87] => split t0 into [1, 64, 23] so we can efficiently range-check
+  let [tLo, tHi00, tHi01] = exists(3, () => {
+    let t = t0.toBigInt();
+    return [bit(t, 0), bitSlice(t, 1, 64), bitSlice(t, 65, 23)];
   });
   let tLoBool = tLo.assertBool();
+  rangeCheck64(tHi00);
+  rangeCheck64(tHi01);
 
-  // prove split
-  // since we know that t0 < 2^88, this proves that t0High < 2^87
+  // prove (tLo, tHi0) split
+  // since we know that t0 < 2^88 and tHi0 < 2^128, this even proves that t0Hi < 2^87
+  // (the bound on tHi0 is necessary so that 2*tHi0 can't overflow)
+  let tHi0 = tHi00.add(tHi01.mul(1n << 64n));
   tLo.add(tHi0.mul(2n)).assertEquals(t0);
 
   // pack tHi
+  // this can't overflow the native field because:
+  // -) we showed t < q
+  // -) the three combined limbs here represent the bigint tHi = (t >> 1) < q/2 < p
   let tHi = tHi0
     .add(t1.mul(1n << (l - 1n)))
     .add(t2.mul(1n << (2n * l - 1n)))
