@@ -248,6 +248,19 @@
       "hash": ""
     }
   },
+  "Crypto": {
+    "digest": "Crypto",
+    "methods": {
+      "nullifier": {
+        "rows": 740,
+        "digest": "46c4ab1e0dcc243284c1dffa8285a64b"
+      }
+    },
+    "verificationKey": {
+      "data": "",
+      "hash": ""
+    }
+  },
   "ecdsa-only": {
     "digest": "39205ab5c3c80677719cb409d9b798a8f07dd71fde09cef6d59719bd37ecc739",
     "methods": {
