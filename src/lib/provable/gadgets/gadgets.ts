@@ -29,6 +29,7 @@ import {
 } from './foreign-field.js';
 import { divMod32, addMod32 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
+import { rangeCheck3x12 } from './lookup.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
@@ -488,6 +489,39 @@ const Gadgets = {
    */
   compactMultiRangeCheck(xy: Field, z: Field) {
     return compactMultiRangeCheck(xy, z);
+  },
+
+  /**
+   * Checks that three {@link Field} elements are in the range [0, 2^12) (using only one row).
+   *
+   * Internally, this gadget relies on the 12-bit [range check table](https://github.com/o1-labs/proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs).
+   * All three inputs are checked to be included in that table.
+   *
+   * It's possible to use this as a range check for bit lengths n < 12, by passing in _two values_.
+   * - the value to be checked, `x`, to prove that x in [0, 2^12)
+   * - x scaled by 2^(12 - n), to prove that either x in [0, 2^n) or `x * 2^(12 - n)` overflows the field size (which is excluded by the first check)
+   *
+   * Note that both of these checks are necessary to prove x in [0, 2^n).
+   *
+   * You can find more details about lookups in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=lookup%20gate#lookup)
+   *
+   * @param v0 - The first {@link Field} element to be checked.
+   * @param v1 - The second {@link Field} element to be checked.
+   * @param v2 - The third {@link Field} element to be checked.
+   *
+   * @throws Throws an error if one of the input values exceeds 2^12.
+   *
+   * @example
+   * ```typescript
+   * let a = Field(4000);
+   * rangeCheck3x12(a, Field(0), Field(0)); // works, since `a` is less than 12 bits
+   *
+   * let aScaled = a.mul(1 << 4); // scale `a`, to assert that it's less than 8 bits
+   * rangeCheck3x12(a, aScaled, Field(0)); // throws an error, since  `a` is greater than 8 bits (and so `aScaled` is greater than 12 bits)
+   * ```
+   */
+  rangeCheck3x12(v0: Field, v1: Field, v2: Field) {
+    return rangeCheck3x12(v0, v1, v2);
   },
 
   /**
