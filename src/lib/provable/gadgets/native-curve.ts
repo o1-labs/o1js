@@ -8,7 +8,11 @@ import { exists } from '../core/exists.js';
 import { assert, bit, bitSlice, isConstant, packBits } from './common.js';
 import { TupleN } from '../../util/types.js';
 import { l, rangeCheck64 } from './range-check.js';
-import { createField, getField } from '../core/field-constructor.js';
+import {
+  createBool,
+  createField,
+  getField,
+} from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
@@ -18,13 +22,17 @@ export {
   scaleFieldDirect,
   scaleField,
   fieldToShiftedScalar,
+  fieldToShiftedScalarSplit5,
   field3ToShiftedScalar,
+  scaleShifted,
   scaleShiftedSplit5,
   add,
+  ShiftedScalar,
 };
 
 type Point = { x: Field; y: Field };
-type ShiftedScalar = { low5: TupleN<Bool, 5>; high250: Field };
+type ShiftedScalar = { lowBit: Bool; high254: Field };
+type ShiftedScalarSplit5 = { low5: TupleN<Bool, 5>; high250: Field };
 
 /**
  * Dedicated gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
@@ -111,10 +119,45 @@ function scaleField(P: Point, s: Field): Point {
     return { x: createField(sP.x), y: createField(sP.y) };
   }
   // compute t = s - 2^254 mod q using foreign field subtraction, and split into 5 low bits and 250 high bits
-  let t = fieldToShiftedScalar(s);
+  let t = fieldToShiftedScalarSplit5(s);
 
   // return (t + 2^254)*P = (s - 2^254 + 2^254)*P = s*P
   return scaleShiftedSplit5(P, t);
+}
+
+/**
+ * Converts a field element s to a shifted representation t = s - 2^254 mod q,
+ * where t is represented as a low bit and a 254-bit high part.
+ *
+ * This is the representation we use for scalars, since it can be used as input to `scaleShifted()`.
+ */
+function fieldToShiftedScalar(s: Field): ShiftedScalar {
+  // constant case
+  if (s.isConstant()) {
+    let t = Fq.mod(s.toBigInt() - (1n << 255n));
+    let lowBit = createBool((t & 1n) === 1n);
+    let high254 = createField(t >> 1n);
+    return { lowBit, high254 };
+  }
+
+  // compute t = s + (-2^255 mod q) in (1, 254) arithmetic
+  let { isOdd: sLoBool, high: sHi } = isOddAndHigh(s);
+  let sLo = sLoBool.toField();
+
+  let shift = Fq.mod(-(1n << 255n));
+  let shiftLo = shift & 1n;
+  let shiftHi = shift >> 1n;
+
+  let carry = sLo.mul(shiftLo).seal(); // = either 0 or lowBit
+  let tLo = sLo.add(shiftLo).sub(carry).assertBool();
+  let tHi = sHi.add(shiftHi).add(carry).seal();
+
+  // tHi does not overflow:
+  // tHi = sHi + shiftHi + carry < p/2 + (p/2 - 1) + 1 = p
+  // sHi < p/2 is guaranteed by isOddAndHigh
+  assert(shiftHi < Fp.modulus / 2n - 1n);
+
+  return { lowBit: tLo, high254: tHi };
 }
 
 /**
@@ -123,13 +166,56 @@ function scaleField(P: Point, s: Field): Point {
  *
  * This is the representation we use for scalars, since it can be used as input to `scaleShiftedSplit5()`.
  */
-function fieldToShiftedScalar(s: Field): ShiftedScalar {
+function fieldToShiftedScalarSplit5(s: Field): ShiftedScalarSplit5 {
   let sBig = fieldToField3(s);
 
   // assert that sBig is canonical mod p, so that we can't add (kp mod q) factors by doing things modulo q
   ForeignField.assertLessThan(sBig, Fp.modulus);
 
-  return field3ToShiftedScalar(sBig);
+  return field3ToShiftedScalarSplit5(sBig);
+}
+
+/**
+ * Converts a 3-limb bigint to a shifted representation t = s - 2^255 mod q,
+ * where t is represented as a low bit and a 254-bit high part.
+ */
+function field3ToShiftedScalar(s: Field3): ShiftedScalar {
+  // constant case
+  if (Field3.isConstant(s)) {
+    let t = Fq.mod(Field3.toBigint(s) - (1n << 255n));
+    let lowBit = createBool((t & 1n) === 1n);
+    let high254 = createField(t >> 1n);
+    return { lowBit, high254 };
+  }
+
+  // compute t = s - 2^255 mod q using foreign field subtraction
+  let twoTo255 = Field3.from(Fq.mod(1n << 255n));
+  let t = ForeignField.sub(s, twoTo255, Fq.modulus);
+
+  // it's necessary to prove that t is canonical -- otherwise its bit representation is ambiguous
+  ForeignField.assertLessThan(t, Fq.modulus);
+
+  let [t0, t1, t2] = t;
+
+  // split t into 254 high bits and a low bit
+  // => split t0 into [1, 87]
+  let [tLo, tHi0] = exists(2, () => {
+    let t0_ = t0.toBigInt();
+    return [bit(t0_, 0), t0_ >> 1n];
+  });
+  let tLoBool = tLo.assertBool();
+
+  // prove split
+  // since we know that t0 < 2^88, this proves that t0High < 2^87
+  tLo.add(tHi0.mul(2n)).assertEquals(t0);
+
+  // pack tHi
+  let tHi = tHi0
+    .add(t1.mul(1n << (l - 1n)))
+    .add(t2.mul(1n << (2n * l - 1n)))
+    .seal();
+
+  return { lowBit: tLoBool, high254: tHi };
 }
 
 /**
@@ -139,10 +225,10 @@ function fieldToShiftedScalar(s: Field): ShiftedScalar {
  * This assumes that `s` is range-checked to some extent, for example a safe bound is s < 2^258 or anything less.
  * If s is > 2^259, the high part computation can overflow the base field and the result is incorrect.
  */
-function field3ToShiftedScalar(
+function field3ToShiftedScalarSplit5(
   s: Field3,
   { proveUnique = false } = {}
-): ShiftedScalar {
+): ShiftedScalarSplit5 {
   // constant case
   if (Field3.isConstant(s)) {
     let t = Fq.mod(Field3.toBigint(s) - (1n << 254n));
@@ -202,6 +288,81 @@ function field3ToShiftedScalar(
 }
 
 /**
+ * Internal helper to compute `(t + 2^255)*P`.
+ * `t` is expected to be split into 254 high bits (t >> 1) and a low bit (t & 1).
+ *
+ * The gadget proves that `tHi` is in [0, 2^254) but assumes that `tLo` consists of bits.
+ *
+ * Optionally, you can specify a different number of high bits by passing in `numHighBits`.
+ */
+function scaleShifted(
+  { x, y }: Point,
+  { lowBit: tLo, high254: tHi }: ShiftedScalar,
+  numHighBits = 254
+): Point {
+  // constant case
+  if (isConstant(x, y, tHi, tLo)) {
+    let sP = PallasAffine.scale(
+      PallasAffine.fromNonzero({ x: x.toBigInt(), y: y.toBigInt() }),
+      Fq.mod(tLo.toField().toBigInt() + 2n * tHi.toBigInt() + (1n << 255n))
+    );
+    return { x: createField(sP.x), y: createField(sP.y) };
+  }
+  const Field = getField();
+  const Point = provable({ x: Field, y: Field });
+  let zero = createField(0n);
+
+  /**
+   * Strategy:
+   * - use all 255 rounds of `scaleFastUnpack` for the high part
+   * - handle two disallowed tHi values separately: -2^254, -2^254 - 1
+   * - don't handle disallowed tHi = -2^254 - 1/2 because it wouldn't normally be used, as it's > q/2
+   */
+  let equalsMinusShift = tHi.equals(Fq.modulus - (1n << 254n));
+  let equalsMinusShiftMinus1 = tHi.equals(Fq.modulus - (1n << 254n) - 1n);
+  let isEdgeCase = equalsMinusShift.or(equalsMinusShiftMinus1);
+  let tHiSafe = Provable.if(isEdgeCase, zero, tHi);
+
+  // R = (2*(t >> 1) + 1 + 2^255)P
+  // also returns a 255-bit representation of tHi
+  let [, RMl, [, ...tHiBitsMl]] = Snarky.group.scaleFastUnpack(
+    [0, x.value, y.value],
+    [0, tHiSafe.value],
+    255
+  );
+  let P = { x, y };
+  let R = { x: createField(RMl[1]), y: createField(RMl[2]) };
+
+  // prove that tHi has only `numHighBits` bits set
+  for (let i = numHighBits; i < 255; i++) {
+    createField(tHiBitsMl[i]).assertEquals(zero);
+  }
+
+  // R = tLo ? R : R - P = (t + 2^255)P
+  // we also handle a zero R-P result to make scaling work for the 0 scalar
+  let minusP = negate(P);
+  let RminusP = addNonZero(R, minusP);
+  R = Provable.if(tLo, Point, R, RminusP);
+
+  // handle the edge cases
+  // 2*(-2^254) + 1 + 2^255 = 1
+  // 2*(-2^254 - 1) + 1 + 2^255 = -1
+  let minus2P = addNonZero(minusP, minusP);
+  let zeroPoint = { x: zero, y: zero };
+  let minusShiftResult = Provable.if(tLo, Point, P, zeroPoint);
+  let minusShiftMinus1Result = Provable.if(tLo, Point, minusP, minus2P);
+  let edgeCaseResult = Provable.if(
+    equalsMinusShift,
+    Point,
+    minusShiftResult,
+    minusShiftMinus1Result
+  );
+  R = Provable.if(isEdgeCase, Point, edgeCaseResult, R);
+
+  return R;
+}
+
+/**
  * Internal helper to compute `(t + 2^254)*P`.
  * `t` is expected to be split into 250 high bits (t >> 5) and 5 low bits (t & 0x1f).
  *
@@ -209,7 +370,7 @@ function field3ToShiftedScalar(
  */
 function scaleShiftedSplit5(
   { x, y }: Point,
-  { low5: tLo, high250: tHi }: ShiftedScalar
+  { low5: tLo, high250: tHi }: ShiftedScalarSplit5
 ): Point {
   // constant case
   if (isConstant(x, y, tHi, ...tLo)) {
