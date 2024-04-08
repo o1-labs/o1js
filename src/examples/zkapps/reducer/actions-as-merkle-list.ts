@@ -85,11 +85,13 @@ class ActionsContract extends SmartContract {
     // (note: if we're past the actual sizes, `.pop()` returns a dummy Action -- in this case, the "empty" public key which is not equal to any real address)
     let hasAddress = Bool(false);
 
-    for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
-      let merkleActions = merkleActionss.pop();
+    let iter = merkleActionss.startIterating();
 
+    for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
+      let merkleActions = iter.next();
+      let innerIter = merkleActions.startIterating();
       for (let j = 0; j < MAX_ACTIONS_PER_UPDATE; j++) {
-        let action = merkleActions.pop();
+        let action = innerIter.next();
         hasAddress = hasAddress.or(action.equals(address));
       }
     }
