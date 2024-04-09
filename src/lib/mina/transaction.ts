@@ -276,13 +276,7 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
-export interface CreateTransactionSettings {
-  fetchMode?: FetchMode;
-  isFinalRunOutsideCircuit?: boolean;
-  proofsEnabled?: boolean;
-}
-
-const defaultSettings = {
+let defaultSettings = {
   fetchMode: 'cached' as FetchMode,
   isFinalRunOutsideCircuit: true,
   proofsEnabled: true,
@@ -294,11 +288,15 @@ class CreateTransactionPromise extends Promise<Transaction> {
       feePayer: FeePayerSpec;
       f: () => Promise<unknown>;
       numberOfRuns: 0 | 1 | undefined;
-      settings?: CreateTransactionSettings;
+      settings?: {
+        fetchMode?: FetchMode;
+        isFinalRunOutsideCircuit?: boolean;
+        proofsEnabled?: boolean;
+      };
     }>
   ) {
     super(async (resolve, reject) => {
-      const {
+      let {
         feePayer,
         settings: {
           fetchMode = defaultSettings.fetchMode,
@@ -409,11 +407,11 @@ class CreateTransactionPromise extends Promise<Transaction> {
 
 class SignedTransactionPromise extends Promise<Transaction> {
   constructor(
-    createTransactionPending: CreateTransactionPromise,
+    createTransactionPromise: CreateTransactionPromise,
     privateKeys: PrivateKey[]
   ) {
     super(async (resolve) => {
-      const transaction = await createTransactionPending;
+      let transaction = await createTransactionPromise;
       transaction.sign(privateKeys);
       resolve(transaction);
     });
