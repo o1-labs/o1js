@@ -57,15 +57,7 @@ class Nullifier extends Struct({
     let pk_fields = Group.toFields(publicKey);
 
     // x and y of hash(msg, pk), it doesn't return a Group because y is split into x0 and x1, both two roots of a field element
-    let {
-      x,
-      y: { x0 },
-    } = Poseidon.hashToGroup([...message, ...pk_fields]);
-
-    // check to prevent the prover from using the second square root and forging a non-unique nullifier
-    x0.isEven().assertTrue();
-
-    let h_m_pk = Group.fromFields([x, x0]);
+    let h_m_pk = Poseidon.hashToGroup([...message, ...pk_fields]);
 
     // pk^c
     let pk_c = this.publicKey.scale(c);
@@ -83,8 +75,7 @@ class Nullifier extends Struct({
     Poseidon.hash([
       ...Group.toFields(G),
       ...pk_fields,
-      x,
-      x0,
+      ...Group.toFields(h_m_pk),
       ...Group.toFields(nullifier),
       ...Group.toFields(g_r),
       ...Group.toFields(h_m_pk_s_div_nullifier_s),
@@ -191,9 +182,7 @@ class Nullifier extends Struct({
 
     const r = Scalar.random();
 
-    const gm = Hash([...message, ...Group.toFields(pk)]);
-
-    const h_m_pk = Group({ x: gm.x, y: gm.y.x0 });
+    const h_m_pk = Hash([...message, ...Group.toFields(pk)]);
 
     const nullifier = h_m_pk.scale(sk.toBigInt());
     const h_m_pk_r = h_m_pk.scale(r.toBigInt());
