@@ -28,7 +28,7 @@ export {
   type IncludedTransaction,
   type RejectedTransaction,
   type PendingTransactionStatus,
-  createTransaction,
+  CreateTransactionPromise,
   sendTransaction,
   newTransaction,
   getAccount,
@@ -276,105 +276,152 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
-async function createTransaction(
-  feePayer: FeePayerSpec,
-  f: () => Promise<unknown>,
-  numberOfRuns: 0 | 1 | undefined,
-  {
-    fetchMode = 'cached' as FetchMode,
-    isFinalRunOutsideCircuit = true,
-    proofsEnabled = true,
-  } = {}
-): Promise<Transaction> {
-  if (currentTransaction.has()) {
-    throw new Error('Cannot start new transaction within another transaction');
-  }
-  let feePayerSpec: {
-    sender?: PublicKey;
-    fee?: number | string | UInt64;
-    memo?: string;
-    nonce?: number;
-  };
-  if (feePayer === undefined) {
-    feePayerSpec = {};
-  } else if (feePayer instanceof PublicKey) {
-    feePayerSpec = { sender: feePayer };
-  } else {
-    feePayerSpec = feePayer;
-  }
-  let { sender, fee, memo = '', nonce } = feePayerSpec;
+export interface CreateTransactionSettings {
+  fetchMode?: FetchMode;
+  isFinalRunOutsideCircuit?: boolean;
+  proofsEnabled?: boolean;
+}
 
-  let transactionId = currentTransaction.enter({
-    sender,
-    layout: new AccountUpdateLayout(),
-    fetchMode,
-    isFinalRunOutsideCircuit,
-    numberOfRuns,
-  });
+const defaultSettings = {
+  fetchMode: 'cached' as FetchMode,
+  isFinalRunOutsideCircuit: true,
+  proofsEnabled: true,
+};
 
-  // run circuit
-  try {
-    if (fetchMode === 'test') {
-      await Provable.runUnchecked(async () => {
-        await assertPromise(f());
-        Provable.asProver(() => {
-          let tx = currentTransaction.get();
-          tx.layout.toConstantInPlace();
-        });
+class CreateTransactionPromise extends Promise<Transaction> {
+  constructor(
+    getProps: () => Promise<{
+      feePayer: FeePayerSpec;
+      f: () => Promise<unknown>;
+      numberOfRuns: 0 | 1 | undefined;
+      settings?: CreateTransactionSettings;
+    }>
+  ) {
+    super(async (resolve, reject) => {
+      const {
+        feePayer,
+        settings: {
+          fetchMode = defaultSettings.fetchMode,
+          isFinalRunOutsideCircuit = defaultSettings.isFinalRunOutsideCircuit,
+          proofsEnabled = defaultSettings.proofsEnabled,
+        } = defaultSettings,
+        numberOfRuns,
+        f,
+      } = await getProps();
+      if (currentTransaction.has()) {
+        reject(
+          new Error('Cannot start new transaction within another transaction')
+        );
+      }
+      let feePayerSpec: {
+        sender?: PublicKey;
+        fee?: number | string | UInt64;
+        memo?: string;
+        nonce?: number;
+      };
+      if (feePayer === undefined) {
+        feePayerSpec = {};
+      } else if (feePayer instanceof PublicKey) {
+        feePayerSpec = { sender: feePayer };
+      } else {
+        feePayerSpec = feePayer;
+      }
+      let { sender, fee, memo = '', nonce } = feePayerSpec;
+
+      let transactionId = currentTransaction.enter({
+        sender,
+        layout: new AccountUpdateLayout(),
+        fetchMode,
+        isFinalRunOutsideCircuit,
+        numberOfRuns,
       });
-    } else {
-      await assertPromise(f());
-    }
-  } catch (err) {
-    currentTransaction.leave(transactionId);
-    throw err;
+
+      // run circuit
+      try {
+        if (fetchMode === 'test') {
+          await Provable.runUnchecked(async () => {
+            await assertPromise(f());
+            Provable.asProver(() => {
+              let tx = currentTransaction.get();
+              tx.layout.toConstantInPlace();
+            });
+          });
+        } else {
+          await assertPromise(f());
+        }
+      } catch (err) {
+        currentTransaction.leave(transactionId);
+        throw err;
+      }
+
+      let accountUpdates = currentTransaction
+        .get()
+        .layout.toFlatList({ mutate: true });
+
+      try {
+        // check that on-chain values weren't used without setting a precondition
+        for (let accountUpdate of accountUpdates) {
+          assertPreconditionInvariants(accountUpdate);
+        }
+      } catch (err) {
+        currentTransaction.leave(transactionId);
+        throw err;
+      }
+
+      let feePayerAccountUpdate: FeePayerUnsigned;
+      if (sender !== undefined) {
+        // if senderKey is provided, fetch account to get nonce and mark to be signed
+        let nonce_;
+        let senderAccount = getAccount(sender, TokenId.default);
+
+        if (nonce === undefined) {
+          nonce_ = senderAccount.nonce;
+        } else {
+          nonce_ = UInt32.from(nonce);
+          senderAccount.nonce = nonce_;
+          Fetch.addCachedAccount(senderAccount);
+        }
+        feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
+        if (fee !== undefined) {
+          feePayerAccountUpdate.body.fee =
+            fee instanceof UInt64 ? fee : UInt64.from(String(fee));
+        }
+      } else {
+        // otherwise use a dummy fee payer that has to be filled in later
+        feePayerAccountUpdate = AccountUpdate.dummyFeePayer();
+      }
+
+      let transaction: ZkappCommand = {
+        accountUpdates,
+        feePayer: feePayerAccountUpdate,
+        memo,
+      };
+
+      currentTransaction.leave(transactionId);
+      resolve(newTransaction(transaction, proofsEnabled));
+    });
   }
 
-  let accountUpdates = currentTransaction
-    .get()
-    .layout.toFlatList({ mutate: true });
+  sign(privateKeys: PrivateKey[]): SignedTransactionPromise {
+    return new SignedTransactionPromise(this, privateKeys);
+  }
+}
 
-  try {
-    // check that on-chain values weren't used without setting a precondition
-    for (let accountUpdate of accountUpdates) {
-      assertPreconditionInvariants(accountUpdate);
-    }
-  } catch (err) {
-    currentTransaction.leave(transactionId);
-    throw err;
+class SignedTransactionPromise extends Promise<Transaction> {
+  constructor(
+    createTransactionPending: CreateTransactionPromise,
+    privateKeys: PrivateKey[]
+  ) {
+    super(async (resolve) => {
+      const transaction = await createTransactionPending;
+      transaction.sign(privateKeys);
+      resolve(transaction);
+    });
   }
 
-  let feePayerAccountUpdate: FeePayerUnsigned;
-  if (sender !== undefined) {
-    // if senderKey is provided, fetch account to get nonce and mark to be signed
-    let nonce_;
-    let senderAccount = getAccount(sender, TokenId.default);
-
-    if (nonce === undefined) {
-      nonce_ = senderAccount.nonce;
-    } else {
-      nonce_ = UInt32.from(nonce);
-      senderAccount.nonce = nonce_;
-      Fetch.addCachedAccount(senderAccount);
-    }
-    feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
-    if (fee !== undefined) {
-      feePayerAccountUpdate.body.fee =
-        fee instanceof UInt64 ? fee : UInt64.from(String(fee));
-    }
-  } else {
-    // otherwise use a dummy fee payer that has to be filled in later
-    feePayerAccountUpdate = AccountUpdate.dummyFeePayer();
+  send() {
+    return this.then((v) => v.send());
   }
-
-  let transaction: ZkappCommand = {
-    accountUpdates,
-    feePayer: feePayerAccountUpdate,
-    memo,
-  };
-
-  currentTransaction.leave(transactionId);
-  return newTransaction(transaction, proofsEnabled);
 }
 
 function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
@@ -442,12 +489,12 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
 function transaction(
   sender: FeePayerSpec,
   f: () => Promise<void>
-): Promise<Transaction>;
-function transaction(f: () => Promise<void>): Promise<Transaction>;
+): CreateTransactionPromise;
+function transaction(f: () => Promise<void>): CreateTransactionPromise;
 function transaction(
   senderOrF: FeePayerSpec | (() => Promise<void>),
   fOrUndefined?: () => Promise<void>
-): Promise<Transaction> {
+): CreateTransactionPromise {
   let sender: FeePayerSpec;
   let f: () => Promise<void>;
   if (fOrUndefined !== undefined) {

@@ -18,7 +18,7 @@ import { invalidTransactionError } from './errors.js';
 import {
   Transaction,
   PendingTransaction,
-  createTransaction,
+  CreateTransactionPromise,
   createIncludedTransaction,
   createRejectedTransaction,
   IncludedTransaction,
@@ -299,19 +299,31 @@ function LocalBlockchain({
         safeWait,
       };
     },
-    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
-      // TODO we run the transaction twice to match the behaviour of `Network.transaction`
-      let tx = await createTransaction(sender, f, 0, {
-        isFinalRunOutsideCircuit: false,
-        proofsEnabled: this.proofsEnabled,
-        fetchMode: 'test',
-      });
-      let hasProofs = tx.transaction.accountUpdates.some(
-        Authorization.hasLazyProof
-      );
-      return await createTransaction(sender, f, 1, {
-        isFinalRunOutsideCircuit: !hasProofs,
-        proofsEnabled: this.proofsEnabled,
+    transaction(sender: FeePayerSpec, f: () => Promise<void>) {
+      return new CreateTransactionPromise(async () => {
+        // TODO we run the transaction twice to match the behaviour of `Network.transaction`
+        let tx = await new CreateTransactionPromise(async () => ({
+          feePayer: sender,
+          f,
+          numberOfRuns: 0,
+          settings: {
+            isFinalRunOutsideCircuit: false,
+            proofsEnabled: this.proofsEnabled,
+            fetchMode: 'test',
+          },
+        }));
+        let hasProofs = tx.transaction.accountUpdates.some(
+          Authorization.hasLazyProof
+        );
+        return {
+          feePayer: sender,
+          f,
+          numberOfRuns: 1,
+          settings: {
+            isFinalRunOutsideCircuit: !hasProofs,
+            proofsEnabled: this.proofsEnabled,
+          },
+        };
       });
     },
     applyJsonTransaction(json: string) {
