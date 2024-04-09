@@ -16,7 +16,13 @@ import { exists, existsOne } from '../core/exists.js';
 import { createField } from '../core/field-constructor.js';
 import { assert } from '../../util/assert.js';
 
-export { assertMul, arrayGet, assertOneOf, assertNotVectorEquals };
+export {
+  assertMul,
+  assertBilinear,
+  arrayGet,
+  assertOneOf,
+  assertNotVectorEquals,
+};
 
 // internal
 export {
