@@ -5,7 +5,9 @@ import { MerkleTree, MerkleWitness } from './merkle-tree.js';
 import { Provable } from './provable.js';
 import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 
-export class MerkleMap {
+export { MerkleMap, MerkleMapWitness };
+
+class MerkleMap {
   tree: MerkleTree;
 
   /**
@@ -69,7 +71,7 @@ export class MerkleMap {
   }
 }
 
-export class MerkleMapWitness extends CircuitValue {
+class MerkleMapWitness extends CircuitValue {
   @arrayProp(Bool, 255) isLefts: Bool[];
   @arrayProp(Field, 255) siblings: Field[];
 
