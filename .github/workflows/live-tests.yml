@@ -16,7 +16,6 @@ jobs:
   berkeley:
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request')
     services:
       mina-local-network:
         image: o1labs/mina-local-network:berkeley-latest-lightnet
