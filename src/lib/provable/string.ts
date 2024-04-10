@@ -36,6 +36,7 @@ class Character extends CircuitValue {
   }
 }
 
+// TODO support other maxLengths
 class CircuitString extends CircuitValue {
   static maxLength = DEFAULT_STRING_LENGTH;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
@@ -51,12 +52,12 @@ class CircuitString extends CircuitValue {
     return new CircuitString(fillWithNull(chars, this.maxLength));
   }
 
-  private maxLength() {
+  maxLength() {
     return (this.constructor as typeof CircuitString).maxLength;
   }
 
   // some O(n) computation that should be only done once in the circuit
-  private computeLengthAndMask() {
+  computeLengthAndMask() {
     let n = this.values.length;
     // length is the actual, dynamic length
     let length = Field(0);
@@ -75,10 +76,10 @@ class CircuitString extends CircuitValue {
     (this as any)._mask = mask;
     return { mask, length };
   }
-  private lengthMask(): Bool[] {
+  lengthMask(): Bool[] {
     return (this as any)._mask ?? this.computeLengthAndMask().mask;
   }
-  private length(): Field {
+  length(): Field {
     return (this as any)._length ?? this.computeLengthAndMask().length;
   }
 
@@ -112,16 +113,6 @@ class CircuitString extends CircuitValue {
     return CircuitString.fromCharacters(result);
   }
 
-  // TODO
-  /**
-   * returns true if `str` is found in this `CircuitString`
-   */
-  // contains(str: CircuitString): Bool {
-  //   // only succeed if the dynamic length is smaller
-  //   let otherLength = str.length();
-  //   otherLength.assertLessThan(this.length());
-  // }
-
   hash(): Field {
     return Poseidon.hash(this.values.map((x) => x.value));
   }
@@ -145,12 +136,6 @@ class CircuitString extends CircuitValue {
     return CircuitString.fromCharacters(characters);
   }
 }
-
-// TODO
-// class CircuitString8 extends CircuitString {
-//   static maxLength = 8;
-//   @arrayProp(Character, 8) values: Character[] = [];
-// }
 
 // note: this used to be a custom class, which doesn't work
 // NullCharacter must use the same circuits as normal Characters
