@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 ./run src/examples/zkapps/hello-world/run.ts --bundle

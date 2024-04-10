@@ -9,7 +9,9 @@ import {
   state,
 } from 'o1js';
 
-export const adminPrivateKey = PrivateKey.random();
+export const adminPrivateKey = PrivateKey.fromBase58(
+  'EKFcef5HKXAn7V2rQntLiXtJr15dkxrsrQ1G4pnYemhMEAWYbkZW'
+);
 export const adminPublicKey = adminPrivateKey.toPublicKey();
 
 export class HelloWorld extends SmartContract {
