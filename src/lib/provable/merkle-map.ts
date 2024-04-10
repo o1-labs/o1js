@@ -3,52 +3,30 @@ import { Field, Bool } from './wrapped.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { MerkleTree, MerkleWitness } from './merkle-tree.js';
 import { Provable } from './provable.js';
-
-const bits = 255;
-const printDebugs = false;
+import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 
 export class MerkleMap {
-  tree: InstanceType<typeof MerkleTree>;
-
-  // ------------------------------------------------
+  tree: MerkleTree;
 
   /**
    * Creates a new, empty Merkle Map.
    * @returns A new MerkleMap
    */
   constructor() {
-    if (bits > 255) {
-      throw Error('bits must be <= 255');
-    }
-    if (bits !== 255) {
-      console.warn(
-        'bits set to',
-        bits + '. Should be set to 255 in production to avoid collisions'
-      );
-    }
-    this.tree = new MerkleTree(bits + 1);
+    this.tree = new MerkleTree(256);
   }
-
-  // ------------------------------------------------
 
   _keyToIndex(key: Field) {
     // the bit map is reversed to make reconstructing the key during proving more convenient
-    let keyBits = key
-      .toBits()
-      .slice(0, bits)
-      .reverse()
-      .map((b) => b.toBoolean());
+    let bits = BinableFp.toBits(key.toBigInt()).reverse();
 
     let n = 0n;
-    for (let i = 0; i < keyBits.length; i++) {
-      const b = keyBits[i] ? 1 : 0;
-      n += 2n ** BigInt(i) * BigInt(b);
+    for (let i = bits.length - 1; i >= 0; i--) {
+      n = (n << 1n) | BigInt(bits[i]);
     }
 
     return n;
   }
-
-  // ------------------------------------------------
 
   /**
    * Sets a key of the merkle map to a given value.
@@ -60,8 +38,6 @@ export class MerkleMap {
     this.tree.setLeaf(index, value);
   }
 
-  // ------------------------------------------------
-
   /**
    * Returns a value given a key. Values are by default Field(0).
    * @param key The key to get the value from.
@@ -71,8 +47,6 @@ export class MerkleMap {
     const index = this._keyToIndex(key);
     return this.tree.getNode(0, index);
   }
-
-  // ------------------------------------------------
 
   /**
    * Returns the root of the Merkle Map.
@@ -89,34 +63,15 @@ export class MerkleMap {
    */
   getWitness(key: Field) {
     const index = this._keyToIndex(key);
-    class MyMerkleWitness extends MerkleWitness(bits + 1) {}
+    class MyMerkleWitness extends MerkleWitness(256) {}
     const witness = new MyMerkleWitness(this.tree.getWitness(index));
-
-    if (printDebugs) {
-      // witness bits and key bits should be the reverse of each other, so
-      // we can calculate the key during recursively traversing the path
-      console.log(
-        'witness bits',
-        witness.isLeft.map((l) => (l.toBoolean() ? '0' : '1')).join(', ')
-      );
-      console.log(
-        'key bits',
-        key
-          .toBits()
-          .slice(0, bits)
-          .map((l) => (l.toBoolean() ? '1' : '0'))
-          .join(', ')
-      );
-    }
     return new MerkleMapWitness(witness.isLeft, witness.path);
   }
 }
 
-// =======================================================
-
 export class MerkleMapWitness extends CircuitValue {
-  @arrayProp(Bool, bits) isLefts: Bool[];
-  @arrayProp(Field, bits) siblings: Field[];
+  @arrayProp(Bool, 255) isLefts: Bool[];
+  @arrayProp(Field, 255) siblings: Field[];
 
   constructor(isLefts: Bool[], siblings: Field[]) {
     super();
@@ -137,7 +92,7 @@ export class MerkleMapWitness extends CircuitValue {
 
     let key = Field(0);
 
-    for (let i = 0; i < bits; i++) {
+    for (let i = 0; i < 255; i++) {
       const left = Provable.if(isLeft[i], hash, siblings[i]);
       const right = Provable.if(isLeft[i], siblings[i], hash);
       hash = Poseidon.hash([left, right]);
