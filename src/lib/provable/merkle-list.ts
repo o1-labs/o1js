@@ -326,7 +326,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   // fixed parts
   readonly data: Unconstrained<WithHash<T>[]>;
   readonly hash: Field;
-  readonly emptyHash: Field;
 
   // mutable parts
   currentHash: Field;
