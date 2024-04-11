@@ -18,7 +18,8 @@ import { invalidTransactionError } from './errors.js';
 import {
   Transaction,
   PendingTransaction,
-  CreateTransactionPromise,
+  createTransaction,
+  toTransactionPromise,
   createIncludedTransaction,
   createRejectedTransaction,
   IncludedTransaction,
@@ -300,30 +301,20 @@ function LocalBlockchain({
       };
     },
     transaction(sender: FeePayerSpec, f: () => Promise<void>) {
-      return new CreateTransactionPromise(async () => {
+      return toTransactionPromise(async () => {
         // TODO we run the transaction twice to match the behaviour of `Network.transaction`
-        let tx = await new CreateTransactionPromise(async () => ({
-          feePayer: sender,
-          f,
-          numberOfRuns: 0,
-          settings: {
-            isFinalRunOutsideCircuit: false,
-            proofsEnabled: this.proofsEnabled,
-            fetchMode: 'test',
-          },
-        }));
+        let tx = await createTransaction(sender, f, 0, {
+          isFinalRunOutsideCircuit: false,
+          proofsEnabled: this.proofsEnabled,
+          fetchMode: 'test',
+        });
         let hasProofs = tx.transaction.accountUpdates.some(
           Authorization.hasLazyProof
         );
-        return {
-          feePayer: sender,
-          f,
-          numberOfRuns: 1,
-          settings: {
-            isFinalRunOutsideCircuit: !hasProofs,
-            proofsEnabled: this.proofsEnabled,
-          },
-        };
+        return await createTransaction(sender, f, 1, {
+          isFinalRunOutsideCircuit: !hasProofs,
+          proofsEnabled: this.proofsEnabled,
+        });
       });
     },
     applyJsonTransaction(json: string) {
