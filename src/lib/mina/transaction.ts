@@ -288,7 +288,7 @@ type TransactionPromise = Promise<Transaction> & {
 function toTransactionPromise(
   getPromise: () => Promise<Transaction>
 ): TransactionPromise {
-  const pending = getPromise();
+  const pending = getPromise().then();
   return Object.assign(pending, {
     sign(...args: Parameters<Transaction['sign']>) {
       return toTransactionPromise(() => pending.then((v) => v.sign(...args)));
