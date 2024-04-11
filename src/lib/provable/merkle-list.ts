@@ -340,9 +340,11 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   currentHash: Field;
   currentIndex: Unconstrained<number>;
 
-  emptyHash: Field;
-
-  constructor(value: MerkleListIteratorBase<T>) {
+  constructor(
+    value: MerkleListIteratorBase<T> & {
+      emptyHash: Field;
+    }
+  ) {
     Object.assign(this, value);
   }
 
@@ -386,8 +388,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         }
     );
 
-    Provable.log('IN NEXT', this.emptyHash);
-    Provable.log('IN NEXT', this.Constructor._emptyHash);
     let isDummy = this.isAtEnd();
     let emptyHash = this.Constructor.emptyHash;
     let correctHash = this.nextHash(previousHash, element);
@@ -416,6 +416,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       hash: this.hash,
       currentHash: this.currentHash,
       currentIndex,
+      emptyHash,
     });
   }
 
@@ -464,6 +465,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
           hash,
           currentHash: hash,
           currentIndex: Unconstrained.from(0),
+          emptyHash: emptyHash_,
         });
       }
 
@@ -484,7 +486,8 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   static createFromList<T>(merkleList: typeof MerkleList<T>) {
     return this.create<T>(
       merkleList.prototype.innerProvable,
-      merkleList._nextHash
+      merkleList._nextHash,
+      merkleList.emptyHash
     );
   }
 

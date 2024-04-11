@@ -15,7 +15,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...HEAD)
+
+### Breaking changes
+
+- Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
+  - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
+  - Breaks circuits that used EC addition, like ECDSA
+
+### Fixed
+
+- Fix error when computing Merkle map witnesses, introduced in the last version due to the `toBits()` change https://github.com/o1-labs/o1js/pull/1559
+
+## [0.18.0](https://github.com/o1-labs/o1js/compare/74948acac...1b6fd8b8e) - 2024-04-09
 
 ### Breaking changes
 
@@ -53,6 +65,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Replace the namespaced type exports `Gadgets.Field3` and `Gadgets.ForeignField.Sum` with `Field3` and `ForeignFieldSum`
   - Unfortunately, the namespace didn't play well with auto-imports in TypeScript
 - Add `Gadgets.rangeCheck3x12()` and fix proof system bug that prevented it from working https://github.com/o1-labs/o1js/pull/1534
+- Update transaction version and other bindings changes to ensure berkeley compatibility https://github.com/o1-labs/o1js/pull/1542
 
 ### Added
 
