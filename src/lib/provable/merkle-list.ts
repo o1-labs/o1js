@@ -107,6 +107,7 @@ class MerkleList<T> implements MerkleListBase<T> {
    */
   pushIf(condition: Bool, element: T) {
     let previousHash = this.hash;
+
     this.hash = Provable.if(
       condition,
       this.nextHash(previousHash, element),
@@ -565,12 +566,24 @@ class MerkleListIteratorFromEnd<T> implements MerkleListIteratorBase<T> {
       }
     );
 
+    let currentHash = this.nextHash(previousHash, element);
     let isDummy = this.isAtStart();
-
-    previousHash.assertEquals(this.currentHash);
-    let currentHash = this.nextHash(this.currentHash, element);
-
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
+
+    let { previousHash: previousHash_ } = Provable.witness(
+      WithHash(this.innerProvable),
+      () => {
+        return (
+          this.data.get()[this.currentIndex.get() - 1] ?? {
+            previousHash: this.Constructor._emptyHash,
+            element: this.innerProvable.empty(),
+          }
+        );
+      }
+    );
+
+    let targetHash = Provable.if(this.isAtStart(), this.hash, previousHash_);
+    targetHash.assertEquals(this.currentHash);
 
     this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
 
@@ -646,7 +659,7 @@ class MerkleListIteratorFromEnd<T> implements MerkleListIteratorBase<T> {
           data,
           hash,
           currentHash: emptyHash_,
-          currentIndex: Unconstrained.from(data.get().length - 1),
+          currentIndex: Unconstrained.witness(() => data.get().length - 1),
         });
       }
 
