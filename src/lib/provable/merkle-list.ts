@@ -241,7 +241,6 @@ class MerkleList<T> implements MerkleListBase<T> {
       }
 
       static from(array: T[]): MerkleList<T> {
-        Provable.log('FROM EMPTY', emptyHash_);
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
           data.map((x) => toConstant(type, x))
@@ -392,8 +391,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     let emptyHash = this.Constructor.emptyHash;
     let correctHash = this.nextHash(previousHash, element);
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
-    Provable.log('empty hash', emptyHash);
-    Provable.log('currentHash hash', this.currentHash);
+
     this.currentHash.assertEquals(requiredHash);
 
     this.currentIndex.updateAsProver((i) =>
