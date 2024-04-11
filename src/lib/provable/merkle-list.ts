@@ -339,11 +339,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   currentHash: Field;
   currentIndex: Unconstrained<number>;
 
-  constructor(
-    value: MerkleListIteratorBase<T> & {
-      emptyHash: Field;
-    }
-  ) {
+  constructor(value: MerkleListIteratorBase<T>) {
     Object.assign(this, value);
   }
 
@@ -414,7 +410,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       hash: this.hash,
       currentHash: this.currentHash,
       currentIndex,
-      emptyHash,
     });
   }
 
@@ -463,7 +458,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
           hash,
           currentHash: hash,
           currentIndex: Unconstrained.from(0),
-          emptyHash: emptyHash_,
         });
       }
 
