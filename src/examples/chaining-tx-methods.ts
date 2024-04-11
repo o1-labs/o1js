@@ -47,7 +47,7 @@ const deployTx = Mina.transaction(sender, async () => {
   await zkapp.deploy();
 }).sign([senderKey, zkappKey]);
 await deployTx.then((v) => v.prove());
-await deployTx.send();
+await deployTx.send().wait();
 
 console.log('initial state: ' + zkapp.x.get());
 
@@ -56,6 +56,6 @@ const incrementTx = Mina.transaction(sender, async () => {
   await zkapp.increment();
 }).sign([senderKey]);
 await incrementTx.then((v) => v.prove());
-await incrementTx.send();
+await incrementTx.send().wait();
 
 console.log('final state: ' + zkapp.x.get());

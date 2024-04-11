@@ -28,9 +28,11 @@ export {
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionPromise,
   type PendingTransactionStatus,
   createTransaction,
   toTransactionPromise,
+  toPendingTransactionPromise,
   sendTransaction,
   newTransaction,
   getAccount,
@@ -279,10 +281,8 @@ type RejectedTransaction = Pick<
 };
 
 interface TransactionPromise extends Promise<Transaction> {
-  resolve(value: Transaction | PromiseLike<Transaction>): void;
-  reject(readon?: any): void;
   sign(privateKeys: PrivateKey[]): TransactionPromise;
-  send(): Promise<PendingTransaction>;
+  send(): PendingTransactionPromise;
 }
 
 function toTransactionPromise(
@@ -296,9 +296,24 @@ function toTransactionPromise(
       );
     },
     send() {
-      return pending.then((v) => v.send());
+      return toPendingTransactionPromise(() => pending.then((v) => v.send()));
     },
   }) as TransactionPromise;
+}
+
+interface PendingTransactionPromise extends Promise<PendingTransaction> {
+  wait: PendingTransaction['wait'];
+}
+
+function toPendingTransactionPromise(
+  getPromise: () => Promise<PendingTransaction>
+): PendingTransactionPromise {
+  const pending = getPromise().then();
+  return Object.assign(pending, {
+    wait(...args: Parameters<PendingTransaction['wait']>) {
+      return pending.then((v) => v.wait(...args));
+    },
+  }) as PendingTransactionPromise;
 }
 
 async function createTransaction(
