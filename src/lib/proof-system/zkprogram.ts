@@ -616,8 +616,8 @@ async function compileProgram({
 }) {
   if (methodIntfs.length === 0)
     throw Error(`The Program you are trying to compile has no methods. 
-  Try adding a method to your ZkProgram or SmartContract.
-  If you are using a SmartContract, make sure you are using the @method decorator.`);
+Try adding a method to your ZkProgram or SmartContract.
+If you are using a SmartContract, make sure you are using the @method decorator.`);
 
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
