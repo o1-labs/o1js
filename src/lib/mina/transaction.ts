@@ -280,15 +280,15 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
-interface TransactionPromise extends Promise<Transaction> {
+type TransactionPromise = Promise<Transaction> & {
   sign(...args: Parameters<Transaction['sign']>): TransactionPromise;
   send(): PendingTransactionPromise;
-}
+};
 
 function toTransactionPromise(
   getPromise: () => Promise<Transaction>
 ): TransactionPromise {
-  const pending = getPromise().then();
+  const pending = getPromise();
   return Object.assign(pending, {
     sign(...args: Parameters<Transaction['sign']>) {
       return toTransactionPromise(() => pending.then((v) => v.sign(...args)));
@@ -299,9 +299,9 @@ function toTransactionPromise(
   }) as TransactionPromise;
 }
 
-interface PendingTransactionPromise extends Promise<PendingTransaction> {
+type PendingTransactionPromise = Promise<PendingTransaction> & {
   wait: PendingTransaction['wait'];
-}
+};
 
 function toPendingTransactionPromise(
   getPromise: () => Promise<PendingTransaction>
