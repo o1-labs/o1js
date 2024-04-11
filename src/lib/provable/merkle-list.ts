@@ -468,7 +468,8 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   static createFromList<T>(merkleList: typeof MerkleList<T>) {
     return this.create<T>(
       merkleList.prototype.innerProvable,
-      merkleList._nextHash
+      merkleList._nextHash,
+      merkleList.emptyHash
     );
   }
 
