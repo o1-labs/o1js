@@ -12,8 +12,7 @@ import {
 class SimpleZkapp extends SmartContract {
   @state(UInt64) x = State<UInt64>();
 
-  @method
-  async init() {
+  init() {
     super.init();
     this.x.set(new UInt64(0));
   }
@@ -41,13 +40,14 @@ let initialBalance = 10_000_000_000;
 let zkapp = new SimpleZkapp(zkappAddress);
 await SimpleZkapp.analyzeMethods();
 
-const deployTx = Mina.transaction(sender, async () => {
+await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
   await zkapp.deploy();
-}).sign([senderKey, zkappKey]);
-await deployTx.then((v) => v.prove());
-await deployTx.send().wait();
+})
+  .sign([senderKey, zkappKey])
+  .send()
+  .wait();
 
 console.log('initial state: ' + zkapp.x.get());
 
