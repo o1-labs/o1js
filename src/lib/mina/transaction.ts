@@ -281,7 +281,7 @@ type RejectedTransaction = Pick<
 };
 
 interface TransactionPromise extends Promise<Transaction> {
-  sign(privateKeys: PrivateKey[]): TransactionPromise;
+  sign(...args: Parameters<Transaction['sign']>): TransactionPromise;
   send(): PendingTransactionPromise;
 }
 
@@ -290,10 +290,8 @@ function toTransactionPromise(
 ): TransactionPromise {
   const pending = getPromise().then();
   return Object.assign(pending, {
-    sign(privateKeys: PrivateKey[]) {
-      return toTransactionPromise(() =>
-        pending.then((v) => v.sign(privateKeys))
-      );
+    sign(...args: Parameters<Transaction['sign']>) {
+      return toTransactionPromise(() => pending.then((v) => v.sign(...args)));
     },
     send() {
       return toPendingTransactionPromise(() => pending.then((v) => v.send()));
