@@ -284,24 +284,31 @@ type RejectedTransaction = Pick<
  * A `Promise<Transaction>` with some additional methods for making chained method calls
  * into the pending value upon its resolution.
  */
-type TransactionPromise = Promise<Transaction> & {
-  /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
-  sign(...args: Parameters<Transaction['sign']>): TransactionPromise;
-  /** Equivalent to calling the resolved `Transaction`'s `send` method. */
-  send(): PendingTransactionPromise;
-  /**
-   * Calls `prove` upon resolution of the `Transaction`. Returns a
-   * new `TransactionPromise` with the field `proofPromise` containing
-   * a promise which resolves to the proof array.
-   */
-  prove(): TransactionPromise;
-  /**
-   * If the chain of method calls that produced the current `TransactionPromise`
-   * contains a `prove` call, then this field contains a promise resolving to the
-   * proof array which was output from the underlying `prove` call.
-   */
-  proofPromise?: Promise<(Proof<ZkappPublicInput, undefined> | undefined)[]>;
-};
+type TransactionPromise<Proven extends boolean = false> =
+  Promise<Transaction> & {
+    /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
+    sign(...args: Parameters<Transaction['sign']>): TransactionPromise<Proven>;
+    /** Equivalent to calling the resolved `Transaction`'s `send` method. */
+    send(): PendingTransactionPromise;
+  } & (Proven extends false
+      ? {
+          /**
+           * Calls `prove` upon resolution of the `Transaction`. Returns a
+           * new `TransactionPromise` with the field `proofPromise` containing
+           * a promise which resolves to the proof array.
+           */
+          prove(): TransactionPromise<true>;
+        }
+      : {
+          /**
+           * If the chain of method calls that produced the current `TransactionPromise`
+           * contains a `prove` call, then this field contains a promise resolving to the
+           * proof array which was output from the underlying `prove` call.
+           */
+          proofPromise: Promise<
+            (Proof<ZkappPublicInput, undefined> | undefined)[]
+          >;
+        });
 
 function toTransactionPromise(
   getPromise: () => Promise<Transaction>,
@@ -323,7 +330,7 @@ function toTransactionPromise(
       }, proofPromise_);
     },
     proofPromise,
-  });
+  }) as never as TransactionPromise;
 }
 
 /**
