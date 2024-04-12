@@ -40,8 +40,6 @@ let initialBalance = 10_000_000_000;
 let zkapp = new SimpleZkapp(zkappAddress);
 await SimpleZkapp.analyzeMethods();
 
-console.log('deploy');
-
 await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
