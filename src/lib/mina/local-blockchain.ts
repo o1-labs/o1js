@@ -19,6 +19,7 @@ import {
   Transaction,
   PendingTransaction,
   createTransaction,
+  toTransactionPromise,
   createIncludedTransaction,
   createRejectedTransaction,
   IncludedTransaction,
@@ -299,19 +300,21 @@ function LocalBlockchain({
         safeWait,
       };
     },
-    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
-      // TODO we run the transaction twice to match the behaviour of `Network.transaction`
-      let tx = await createTransaction(sender, f, 0, {
-        isFinalRunOutsideCircuit: false,
-        proofsEnabled: this.proofsEnabled,
-        fetchMode: 'test',
-      });
-      let hasProofs = tx.transaction.accountUpdates.some(
-        Authorization.hasLazyProof
-      );
-      return await createTransaction(sender, f, 1, {
-        isFinalRunOutsideCircuit: !hasProofs,
-        proofsEnabled: this.proofsEnabled,
+    transaction(sender: FeePayerSpec, f: () => Promise<void>) {
+      return toTransactionPromise(async () => {
+        // TODO we run the transaction twice to match the behaviour of `Network.transaction`
+        let tx = await createTransaction(sender, f, 0, {
+          isFinalRunOutsideCircuit: false,
+          proofsEnabled: this.proofsEnabled,
+          fetchMode: 'test',
+        });
+        let hasProofs = tx.transaction.accountUpdates.some(
+          Authorization.hasLazyProof
+        );
+        return await createTransaction(sender, f, 1, {
+          isFinalRunOutsideCircuit: !hasProofs,
+          proofsEnabled: this.proofsEnabled,
+        });
       });
     },
     applyJsonTransaction(json: string) {

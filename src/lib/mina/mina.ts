@@ -36,7 +36,9 @@ import {
   type IncludedTransaction,
   type RejectedTransaction,
   type PendingTransactionStatus,
+  type PendingTransactionPromise,
   createTransaction,
+  toTransactionPromise,
   newTransaction,
   transaction,
   createRejectedTransaction,
@@ -59,6 +61,7 @@ export {
   type IncludedTransaction,
   type RejectedTransaction,
   type PendingTransactionStatus,
+  type PendingTransactionPromise,
   activeInstance,
   setActiveInstance,
   transaction,
@@ -86,8 +89,8 @@ export {
 // patch active instance so that we can still create basic transactions without giving Mina network details
 setActiveInstance({
   ...activeInstance,
-  async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
-    return await createTransaction(sender, f, 0);
+  transaction(sender: FeePayerSpec, f: () => Promise<void>) {
+    return toTransactionPromise(() => createTransaction(sender, f, 0));
   },
 });
 
@@ -364,19 +367,21 @@ function Network(
         safeWait,
       };
     },
-    async transaction(sender: FeePayerSpec, f: () => Promise<void>) {
-      // TODO we run the transcation twice to be able to fetch data in between
-      let tx = await createTransaction(sender, f, 0, {
-        fetchMode: 'test',
-        isFinalRunOutsideCircuit: false,
-      });
-      await Fetch.fetchMissingData(minaGraphqlEndpoint, archiveEndpoint);
-      let hasProofs = tx.transaction.accountUpdates.some(
-        Authorization.hasLazyProof
-      );
-      return await createTransaction(sender, f, 1, {
-        fetchMode: 'cached',
-        isFinalRunOutsideCircuit: !hasProofs,
+    transaction(sender: FeePayerSpec, f: () => Promise<void>) {
+      return toTransactionPromise(async () => {
+        // TODO we run the transcation twice to be able to fetch data in between
+        let tx = await createTransaction(sender, f, 0, {
+          fetchMode: 'test',
+          isFinalRunOutsideCircuit: false,
+        });
+        await Fetch.fetchMissingData(minaGraphqlEndpoint, archiveEndpoint);
+        let hasProofs = tx.transaction.accountUpdates.some(
+          Authorization.hasLazyProof
+        );
+        return await createTransaction(sender, f, 1, {
+          fetchMode: 'cached',
+          isFinalRunOutsideCircuit: !hasProofs,
+        });
       });
     },
     async fetchEvents(

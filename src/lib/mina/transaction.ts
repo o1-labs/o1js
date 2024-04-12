@@ -24,11 +24,15 @@ import { assertPromise } from '../util/assert.js';
 
 export {
   type Transaction,
+  type TransactionPromise,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionPromise,
   type PendingTransactionStatus,
   createTransaction,
+  toTransactionPromise,
+  toPendingTransactionPromise,
   sendTransaction,
   newTransaction,
   getAccount,
@@ -276,6 +280,40 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
+type TransactionPromise = Promise<Transaction> & {
+  sign(...args: Parameters<Transaction['sign']>): TransactionPromise;
+  send(): PendingTransactionPromise;
+};
+
+function toTransactionPromise(
+  getPromise: () => Promise<Transaction>
+): TransactionPromise {
+  const pending = getPromise().then();
+  return Object.assign(pending, {
+    sign(...args: Parameters<Transaction['sign']>) {
+      return toTransactionPromise(() => pending.then((v) => v.sign(...args)));
+    },
+    send() {
+      return toPendingTransactionPromise(() => pending.then((v) => v.send()));
+    },
+  }) as TransactionPromise;
+}
+
+type PendingTransactionPromise = Promise<PendingTransaction> & {
+  wait: PendingTransaction['wait'];
+};
+
+function toPendingTransactionPromise(
+  getPromise: () => Promise<PendingTransaction>
+): PendingTransactionPromise {
+  const pending = getPromise().then();
+  return Object.assign(pending, {
+    wait(...args: Parameters<PendingTransaction['wait']>) {
+      return pending.then((v) => v.wait(...args));
+    },
+  }) as PendingTransactionPromise;
+}
+
 async function createTransaction(
   feePayer: FeePayerSpec,
   f: () => Promise<unknown>,
@@ -442,12 +480,12 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
 function transaction(
   sender: FeePayerSpec,
   f: () => Promise<void>
-): Promise<Transaction>;
-function transaction(f: () => Promise<void>): Promise<Transaction>;
+): TransactionPromise;
+function transaction(f: () => Promise<void>): TransactionPromise;
 function transaction(
   senderOrF: FeePayerSpec | (() => Promise<void>),
   fOrUndefined?: () => Promise<void>
-): Promise<Transaction> {
+): TransactionPromise {
   let sender: FeePayerSpec;
   let f: () => Promise<void>;
   if (fOrUndefined !== undefined) {
