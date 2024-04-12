@@ -6,11 +6,14 @@ import { UInt64, UInt32 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
-import type { Transaction, PendingTransaction } from './mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
 import type * as Fetch from './fetch.js';
-import type { TransactionPromise } from './transaction.js';
+import type {
+  TransactionPromise,
+  PendingTransactionPromise,
+  Transaction,
+} from './transaction.js';
 
 export {
   Mina,
@@ -82,7 +85,7 @@ type Mina = {
   getNetworkConstants(): NetworkConstants;
   sendTransaction(
     transaction: Transaction<boolean, boolean>
-  ): Promise<PendingTransaction>;
+  ): PendingTransactionPromise;
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
