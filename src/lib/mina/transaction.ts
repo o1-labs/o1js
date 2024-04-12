@@ -569,6 +569,7 @@ function transaction(
   return activeInstance.transaction(sender, f);
 }
 
+// TODO: should we instead constrain to `Transaction<true, true>`?
 async function sendTransaction(txn: Transaction<boolean, boolean>) {
   return await activeInstance.sendTransaction(txn);
 }
