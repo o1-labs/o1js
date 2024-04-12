@@ -24,7 +24,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- The API of `Mina.transaction` has been reworked such that one can call methods directly on the returned promise. Method-chaining such as the following is now supported. https://github.com/o1-labs/o1js/pull/1567
+- The API of `Mina.transaction` has been reworked such that one can call methods directly on the returned promise. This enables a fluent / method-chaining API. https://github.com/o1-labs/o1js/pull/1567
 
 ## [0.18.0](https://github.com/o1-labs/o1js/compare/74948acac...1b6fd8b8e) - 2024-04-09
 
