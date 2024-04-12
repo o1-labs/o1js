@@ -7,6 +7,7 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
+  TransactionPromise,
 } from 'o1js';
 
 class SimpleZkapp extends SmartContract {
@@ -62,3 +63,11 @@ await Mina.transaction(sender, async () => {
   .wait();
 
 console.log('final state: ' + zkapp.x.get());
+
+const a = Mina.transaction(sender, async () => {
+  await zkapp.increment();
+});
+a satisfies TransactionPromise<false, false>;
+const b = a.prove() satisfies TransactionPromise<true, false>;
+const c = b.sign([senderKey]) satisfies TransactionPromise<true, true>;
+await c.send().wait();

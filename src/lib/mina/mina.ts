@@ -97,7 +97,7 @@ setActiveInstance({
 });
 
 const TransactionUtil = {
-  fromJSON(json: Types.Json.ZkappCommand): Transaction<false> {
+  fromJSON(json: Types.Json.ZkappCommand): Transaction<false, false> {
     let transaction = ZkappCommand.fromJSON(json);
     return newTransaction(transaction, activeInstance.proofsEnabled);
   },

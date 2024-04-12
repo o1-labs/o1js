@@ -119,7 +119,9 @@ function LocalBlockchain({
     getNetworkState() {
       return networkState;
     },
-    sendTransaction(txn: Transaction<true>): PendingTransactionPromise {
+    sendTransaction(
+      txn: Transaction<boolean, boolean>
+    ): PendingTransactionPromise {
       return toPendingTransactionPromise(async () => {
         let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
         let commitments = transactionCommitments(

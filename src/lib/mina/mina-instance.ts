@@ -74,13 +74,15 @@ type Mina = {
   transaction(
     sender: FeePayerSpec,
     f: () => Promise<void>
-  ): TransactionPromise<false>;
+  ): TransactionPromise<false, false>;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   getNetworkConstants(): NetworkConstants;
-  sendTransaction(transaction: Transaction<true>): Promise<PendingTransaction>;
+  sendTransaction(
+    transaction: Transaction<boolean, boolean>
+  ): Promise<PendingTransaction>;
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
