@@ -65,7 +65,7 @@ let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile();
 console.log('prove (trivial zkapp)');
 let [trivialProof] = await Mina.transaction(feePayer, async () => {
   await new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
-}).prove().proof;
+}).prove().proofs;
 
 trivialProof = await testJsonRoundtripAndVerify(
   TrivialProof,
@@ -93,7 +93,7 @@ let tx = Mina.transaction(feePayer, async () => {
 })
   .prove()
   .sign([feePayerKey]);
-let [proof] = await tx.proof;
+let [proof] = await tx.proofs;
 await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
@@ -110,7 +110,7 @@ tx = Mina.transaction(feePayer, async () => {
 })
   .prove()
   .sign([feePayerKey]);
-[proof] = await tx.proof;
+[proof] = await tx.proofs;
 await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
@@ -127,7 +127,7 @@ tx = Mina.transaction(feePayer, async () => {
 })
   .prove()
   .sign([feePayerKey]);
-[proof] = await tx.proof;
+[proof] = await tx.proofs;
 await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
