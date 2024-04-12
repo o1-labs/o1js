@@ -88,13 +88,13 @@ await Mina.transaction(feePayer, async () => {
   .send();
 
 console.log('initialize');
-let txA = Mina.transaction(feePayer, async () => {
+let tx = Mina.transaction(feePayer, async () => {
   await zkapp.initialize(trivialProof!);
 })
   .prove()
   .sign([feePayerKey]);
-let [proof] = await txA.proof;
-await txA.send();
+let [proof] = await tx.proof;
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -105,13 +105,13 @@ proof = await testJsonRoundtripAndVerify(
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
-let txB = Mina.transaction(feePayer, async () => {
+tx = Mina.transaction(feePayer, async () => {
   await zkapp.update(Field(3), proof!, trivialProof!);
 })
   .prove()
   .sign([feePayerKey]);
-[proof] = await txB.proof;
-await txB.send();
+[proof] = await tx.proof;
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -122,13 +122,13 @@ proof = await testJsonRoundtripAndVerify(
 console.log('state 2: ' + zkapp.x.get());
 
 console.log('update');
-let txC = Mina.transaction(feePayer, async () => {
+tx = Mina.transaction(feePayer, async () => {
   await zkapp.update(Field(3), proof!, trivialProof!);
 })
   .prove()
   .sign([feePayerKey]);
-[proof] = await txC.proof;
-await txC.send();
+[proof] = await tx.proof;
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),

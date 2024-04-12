@@ -46,7 +46,7 @@ export {
  * This type encompasses methods for serializing the transaction, signing it, generating proofs,
  * and submitting it to the network.
  */
-type Transaction<Proven extends boolean = boolean> = {
+type Transaction<Proven extends boolean> = {
   /**
    * Transaction structure used to describe a state transition on the Mina blockchain.
    */
