@@ -40,6 +40,8 @@ let initialBalance = 10_000_000_000;
 let zkapp = new SimpleZkapp(zkappAddress);
 await SimpleZkapp.analyzeMethods();
 
+console.log('deploy');
+
 await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
@@ -52,10 +54,13 @@ await Mina.transaction(sender, async () => {
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('increment');
-const incrementTx = Mina.transaction(sender, async () => {
+
+await Mina.transaction(sender, async () => {
   await zkapp.increment();
-}).sign([senderKey]);
-await incrementTx.then((v) => v.prove());
-await incrementTx.send().wait();
+})
+  .sign([senderKey])
+  .prove()
+  .send()
+  .wait();
 
 console.log('final state: ' + zkapp.x.get());

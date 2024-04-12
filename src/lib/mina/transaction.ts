@@ -92,7 +92,7 @@ type Transaction = {
    * Submits the {@link Transaction} to the network. This method asynchronously sends the transaction
    * for processing. If successful, it returns a {@link PendingTransaction} instance, which can be used to monitor the transaction's progress.
    * If the transaction submission fails, this method throws an error that should be caught and handled appropriately.
-   * @returns A promise that resolves to a {@link PendingTransaction} instance representing the submitted transaction if the submission is successful.
+   * @returns A {@link PendingTransactionPromise}, which resolves to a {@link PendingTransaction} instance representing the submitted transaction if the submission is successful.
    * @throws An error if the transaction cannot be sent or processed by the network, containing details about the failure.
    * @example
    * ```ts
@@ -104,7 +104,7 @@ type Transaction = {
    * }
    * ```
    */
-  send(): Promise<PendingTransaction>;
+  send(): PendingTransactionPromise;
   /**
    * Sends the {@link Transaction} to the network. Unlike the standard {@link Transaction.send}, this function does not throw an error if internal errors are detected. Instead, it returns a {@link PendingTransaction} if the transaction is successfully sent for processing or a {@link RejectedTransaction} if it encounters errors during processing or is outright rejected by the Mina daemon.
    * @returns {Promise<PendingTransaction | RejectedTransaction>} A promise that resolves to a {@link PendingTransaction} if the transaction is accepted for processing, or a {@link RejectedTransaction} if the transaction fails or is rejected.
@@ -280,13 +280,32 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
+/**
+ * A `Promise<Transaction>` with some additional methods for making chained method calls
+ * into the pending value upon its resolution.
+ */
 type TransactionPromise = Promise<Transaction> & {
+  /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
   sign(...args: Parameters<Transaction['sign']>): TransactionPromise;
+  /** Equivalent to calling the resolved `Transaction`'s `send` method. */
   send(): PendingTransactionPromise;
+  /**
+   * Calls `prove` upon resolution of the `Transaction`. Returns a
+   * new `TransactionPromise` with the field `proofPromise` containing
+   * a promise which resolves to the proof array.
+   */
+  prove(): TransactionPromise;
+  /**
+   * If the chain of method calls that produced the current `TransactionPromise`
+   * contains a `prove` call, then this field contains a promise resolving to the
+   * proof array which was output from the underlying `prove` call.
+   */
+  proofPromise?: Promise<(Proof<ZkappPublicInput, undefined> | undefined)[]>;
 };
 
 function toTransactionPromise(
-  getPromise: () => Promise<Transaction>
+  getPromise: () => Promise<Transaction>,
+  proofPromise?: Promise<(Proof<ZkappPublicInput, undefined> | undefined)[]>
 ): TransactionPromise {
   const pending = getPromise().then();
   return Object.assign(pending, {
@@ -296,10 +315,23 @@ function toTransactionPromise(
     send() {
       return toPendingTransactionPromise(() => pending.then((v) => v.send()));
     },
-  }) as TransactionPromise;
+    prove() {
+      const proofPromise_ = proofPromise ?? pending.then((v) => v.prove());
+      return toTransactionPromise(async () => {
+        await proofPromise_;
+        return await pending;
+      }, proofPromise_);
+    },
+    proofPromise,
+  });
 }
 
+/**
+ * A `Promise<PendingTransaction>` with an additional `wait` method, which calls
+ * into the inner `TransactionStatus`'s `wait` method upon its resolution.
+ */
 type PendingTransactionPromise = Promise<PendingTransaction> & {
+  /** Equivalent to calling the resolved `PendingTransaction`'s `wait` method. */
   wait: PendingTransaction['wait'];
 };
 
@@ -311,7 +343,7 @@ function toPendingTransactionPromise(
     wait(...args: Parameters<PendingTransaction['wait']>) {
       return pending.then((v) => v.wait(...args));
     },
-  }) as PendingTransactionPromise;
+  });
 }
 
 async function createTransaction(
@@ -439,16 +471,18 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     toGraphqlQuery() {
       return sendZkappQuery(self.toJSON());
     },
-    async send() {
-      const pendingTransaction = await sendTransaction(self);
-      if (pendingTransaction.errors.length > 0) {
-        throw Error(
-          `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
-            '\n- '
-          )}`
-        );
-      }
-      return pendingTransaction;
+    send() {
+      return toPendingTransactionPromise(async () => {
+        const pendingTransaction = await sendTransaction(self);
+        if (pendingTransaction.errors.length > 0) {
+          throw Error(
+            `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
+              '\n- '
+            )}`
+          );
+        }
+        return pendingTransaction;
+      });
     },
     async safeSend() {
       const pendingTransaction = await sendTransaction(self);
