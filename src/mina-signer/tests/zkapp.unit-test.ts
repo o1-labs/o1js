@@ -3,7 +3,7 @@ import * as TransactionJson from '../../bindings/mina-transaction/gen/transactio
 import Client from '../mina-signer.js';
 import { accountUpdateExample } from '../src/test-vectors/accountUpdate.js';
 import { expect } from 'expect';
-import { Transaction } from '../../lib/mina/mina.js';
+import { TransactionUtil } from '../../lib/mina/mina.js';
 import { PrivateKey } from '../../lib/provable/crypto/signature.js';
 import { Signature } from '../src/signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
@@ -100,7 +100,7 @@ let transactionJson = {
   memo: zkappCommand.data.zkappCommand.memo,
 };
 
-let tx = Transaction.fromJSON(transactionJson);
+let tx = TransactionUtil.fromJSON(transactionJson);
 tx.transaction.feePayer.lazyAuthorization = { kind: 'lazy-signature' };
 tx.transaction.accountUpdates[1].lazyAuthorization = { kind: 'lazy-signature' };
 tx.sign([PrivateKey.fromBase58(privateKey)]);

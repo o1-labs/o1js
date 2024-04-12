@@ -46,7 +46,7 @@ export {
  * This type encompasses methods for serializing the transaction, signing it, generating proofs,
  * and submitting it to the network.
  */
-type Transaction = {
+type Transaction<Proven extends boolean = boolean> = {
   /**
    * Transaction structure used to describe a state transition on the Mina blockchain.
    */
@@ -77,17 +77,7 @@ type Transaction = {
    * console.log('Transaction signed successfully.');
    * ```
    */
-  sign(privateKeys: PrivateKey[]): Transaction;
-  /**
-   * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
-   * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
-   * This can take some time.
-   * @example
-   * ```ts
-   * await transaction.prove();
-   * ```
-   */
-  prove(): Promise<(Proof<ZkappPublicInput, Empty> | undefined)[]>;
+  sign(privateKeys: PrivateKey[]): Transaction<Proven>;
   /**
    * Submits the {@link Transaction} to the network. This method asynchronously sends the transaction
    * for processing. If successful, it returns a {@link PendingTransaction} instance, which can be used to monitor the transaction's progress.
@@ -119,7 +109,23 @@ type Transaction = {
    * ```
    */
   safeSend(): Promise<PendingTransaction | RejectedTransaction>;
-};
+} & (Proven extends false
+  ? {
+      /**
+       * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
+       * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
+       * This can take some time.
+       * @example
+       * ```ts
+       * await transaction.prove();
+       * ```
+       */
+      prove(): Promise<Transaction<true>>;
+    }
+  : {
+      /** The proofs generated as the result of calling `prove`. */
+      proof: (Proof<ZkappPublicInput, Empty> | undefined)[];
+    });
 
 type PendingTransactionStatus = 'pending' | 'rejected';
 /**
@@ -128,7 +134,7 @@ type PendingTransactionStatus = 'pending' | 'rejected';
  * adding methods to monitor the transaction's progress towards being finalized (either included in a block or rejected).
  */
 type PendingTransaction = Pick<
-  Transaction,
+  Transaction<boolean>,
   'transaction' | 'toJSON' | 'toPretty'
 > & {
   /**
@@ -284,53 +290,51 @@ type RejectedTransaction = Pick<
  * A `Promise<Transaction>` with some additional methods for making chained method calls
  * into the pending value upon its resolution.
  */
-type TransactionPromise<Proven extends boolean = false> =
-  Promise<Transaction> & {
-    /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
-    sign(...args: Parameters<Transaction['sign']>): TransactionPromise<Proven>;
-    /** Equivalent to calling the resolved `Transaction`'s `send` method. */
-    send(): PendingTransactionPromise;
-  } & (Proven extends false
-      ? {
-          /**
-           * Calls `prove` upon resolution of the `Transaction`. Returns a
-           * new `TransactionPromise` with the field `proofPromise` containing
-           * a promise which resolves to the proof array.
-           */
-          prove(): TransactionPromise<true>;
-        }
-      : {
-          /**
-           * If the chain of method calls that produced the current `TransactionPromise`
-           * contains a `prove` call, then this field contains a promise resolving to the
-           * proof array which was output from the underlying `prove` call.
-           */
-          proofPromise: Promise<
-            (Proof<ZkappPublicInput, undefined> | undefined)[]
-          >;
-        });
+type TransactionPromise<Proven extends boolean> = Promise<
+  Transaction<Proven>
+> & {
+  /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
+  sign(
+    ...args: Parameters<Transaction<Proven>['sign']>
+  ): TransactionPromise<Proven>;
+  /** Equivalent to calling the resolved `Transaction`'s `send` method. */
+  send(): PendingTransactionPromise;
+} & (Proven extends false
+    ? {
+        /**
+         * Calls `prove` upon resolution of the `Transaction`. Returns a
+         * new `TransactionPromise` with the field `proofPromise` containing
+         * a promise which resolves to the proof array.
+         */
+        prove(): TransactionPromise<true>;
+      }
+    : {
+        /**
+         * If the chain of method calls that produced the current `TransactionPromise`
+         * contains a `prove` call, then this field contains a promise resolving to the
+         * proof array which was output from the underlying `prove` call.
+         */
+        proof: Promise<Transaction<true>['proof']>;
+      });
 
-function toTransactionPromise(
-  getPromise: () => Promise<Transaction>,
-  proofPromise?: Promise<(Proof<ZkappPublicInput, undefined> | undefined)[]>
-): TransactionPromise {
+function toTransactionPromise<Proven extends boolean>(
+  getPromise: () => Promise<Transaction<Proven>>
+): TransactionPromise<Proven> {
   const pending = getPromise().then();
   return Object.assign(pending, {
-    sign(...args: Parameters<Transaction['sign']>) {
+    sign(...args: Parameters<Transaction<boolean>['sign']>) {
       return toTransactionPromise(() => pending.then((v) => v.sign(...args)));
     },
     send() {
       return toPendingTransactionPromise(() => pending.then((v) => v.send()));
     },
     prove() {
-      const proofPromise_ = proofPromise ?? pending.then((v) => v.prove());
-      return toTransactionPromise(async () => {
-        await proofPromise_;
-        return await pending;
-      }, proofPromise_);
+      return toTransactionPromise(() =>
+        pending.then((v) => (v as never as Transaction<false>).prove())
+      );
     },
-    proofPromise,
-  }) as never as TransactionPromise;
+    proofs: pending.then((v) => (v as never as Transaction<true>).proof),
+  }) as never as TransactionPromise<Proven>;
 }
 
 /**
@@ -362,7 +366,7 @@ async function createTransaction(
     isFinalRunOutsideCircuit = true,
     proofsEnabled = true,
   } = {}
-): Promise<Transaction> {
+): Promise<Transaction<false>> {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
@@ -455,18 +459,23 @@ async function createTransaction(
 }
 
 function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
-  let self: Transaction = {
+  let self: Transaction<false> = {
     transaction,
     sign(privateKeys: PrivateKey[]) {
       self.transaction = addMissingSignatures(self.transaction, privateKeys);
       return self;
     },
-    async prove() {
-      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
-        proofsEnabled,
+    prove() {
+      return toTransactionPromise<true>(async () => {
+        let { zkappCommand, proofs } = await addMissingProofs(
+          self.transaction,
+          {
+            proofsEnabled,
+          }
+        );
+        self.transaction = zkappCommand;
+        return Object.assign(self as never as Transaction<true>, { proofs });
       });
-      self.transaction = zkappCommand;
-      return proofs;
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -480,7 +489,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     },
     send() {
       return toPendingTransactionPromise(async () => {
-        const pendingTransaction = await sendTransaction(self);
+        const pendingTransaction = await sendTransaction(
+          self as never as Transaction<true>
+        );
         if (pendingTransaction.errors.length > 0) {
           throw Error(
             `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
@@ -492,7 +503,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       });
     },
     async safeSend() {
-      const pendingTransaction = await sendTransaction(self);
+      const pendingTransaction = await sendTransaction(
+        self as never as Transaction<true>
+      );
       if (pendingTransaction.errors.length > 0) {
         return createRejectedTransaction(
           pendingTransaction,
@@ -521,12 +534,12 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
 function transaction(
   sender: FeePayerSpec,
   f: () => Promise<void>
-): TransactionPromise;
-function transaction(f: () => Promise<void>): TransactionPromise;
+): TransactionPromise<false>;
+function transaction(f: () => Promise<void>): TransactionPromise<false>;
 function transaction(
   senderOrF: FeePayerSpec | (() => Promise<void>),
   fOrUndefined?: () => Promise<void>
-): TransactionPromise {
+): TransactionPromise<false> {
   let sender: FeePayerSpec;
   let f: () => Promise<void>;
   if (fOrUndefined !== undefined) {
@@ -539,7 +552,7 @@ function transaction(
   return activeInstance.transaction(sender, f);
 }
 
-async function sendTransaction(txn: Transaction) {
+async function sendTransaction(txn: Transaction<true>) {
   return await activeInstance.sendTransaction(txn);
 }
 
