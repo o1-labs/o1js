@@ -53,7 +53,7 @@ console.log('initial state: ' + zkapp.x.get());
 
 console.log('increment');
 
-const x = Mina.transaction(sender, async () => {
+await Mina.transaction(sender, async () => {
   await zkapp.increment();
 })
   .sign([senderKey])
