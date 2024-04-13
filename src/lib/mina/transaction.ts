@@ -21,9 +21,10 @@ import * as Fetch from './fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../util/assert.js';
+import { Types } from 'src/bindings/mina-transaction/types.js';
 
 export {
-  type Transaction,
+  Transaction,
   type TransactionPromise,
   type PendingTransaction,
   type IncludedTransaction,
@@ -78,6 +79,15 @@ type TransactionCommon = {
    * ```
    */
 };
+
+namespace Transaction {
+  export function fromJSON(
+    json: Types.Json.ZkappCommand
+  ): Transaction<false, false> {
+    let transaction = ZkappCommand.fromJSON(json);
+    return newTransaction(transaction, activeInstance.proofsEnabled);
+  }
+}
 
 /**
  * Defines the structure and operations associated with a transaction.

@@ -2,7 +2,7 @@ import { Test } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import { UInt64 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
-import { ZkappCommand, TokenId, Authorization } from './account-update.js';
+import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
@@ -31,7 +31,7 @@ import {
 } from './mina-instance.js';
 import { type EventActionFilterOptions } from './graphql.js';
 import {
-  type Transaction,
+  Transaction,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
@@ -39,7 +39,6 @@ import {
   type PendingTransactionPromise,
   createTransaction,
   toTransactionPromise,
-  newTransaction,
   transaction,
   createRejectedTransaction,
   createIncludedTransaction,
@@ -57,7 +56,7 @@ export {
   LocalBlockchain,
   Network,
   currentTransaction,
-  type Transaction,
+  Transaction,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
@@ -85,7 +84,6 @@ export {
   // for internal testing only
   filterGroups,
   type NetworkConstants,
-  TransactionUtil,
 };
 
 // patch active instance so that we can still create basic transactions without giving Mina network details
@@ -95,13 +93,6 @@ setActiveInstance({
     return toTransactionPromise(() => createTransaction(sender, f, 0));
   },
 });
-
-const TransactionUtil = {
-  fromJSON(json: Types.Json.ZkappCommand): Transaction<false, false> {
-    let transaction = ZkappCommand.fromJSON(json);
-    return newTransaction(transaction, activeInstance.proofsEnabled);
-  },
-};
 
 /**
  * Represents the Mina blockchain running on a real network

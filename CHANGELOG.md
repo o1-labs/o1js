@@ -25,7 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - `Mina.transaction` has been reworked such that one can call methods directly on the returned promise (now a `TransactionPromise`). This enables a fluent / method-chaining API. https://github.com/o1-labs/o1js/pull/1567
-- `TransactionPendingPromise` enables calling `wait` directly on the promise returned by calling `send` on a `Transaction`.
+- `TransactionPendingPromise` enables calling `wait` directly on the promise returned by calling `send` on a `Transaction`. https://github.com/o1-labs/o1js/pull/1567
 
 ## [0.18.0](https://github.com/o1-labs/o1js/compare/74948acac...1b6fd8b8e) - 2024-04-09
 
