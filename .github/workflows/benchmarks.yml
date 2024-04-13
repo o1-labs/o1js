@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Build o1js and execute benchmarks on ${{ matrix.os }} and Node.JS ${{ matrix.node }}
+      - name: Build o1js and execute benchmarks on ${{ matrix.runners }} and Node.JS ${{ matrix.node }}
         env:
           GIT_BRANCH: ${{ github.head_ref || github.ref_name }}
           INFLUXDB_URL: ${{ secrets.INFLUXDB_URL }}
