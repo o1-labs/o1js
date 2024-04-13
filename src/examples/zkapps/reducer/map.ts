@@ -94,14 +94,11 @@ console.log(`method size for a "mapping" contract with ${k} entries`);
 console.log('get rows:', cs['get'].rows);
 console.log('set rows:', cs['set'].rows);
 
-// a test account that pays all the fees
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
+let [feePayer] = Local.testAccounts;
 
 // the zkapp account
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
-let zkapp = new StorageContract(zkappAddress);
+let zkappAccount = Mina.TestAccount.random();
+let zkapp = new StorageContract(zkappAccount);
 
 await StorageContract.compile();
 
@@ -109,7 +106,7 @@ let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   await zkapp.deploy();
 });
-await tx.sign([feePayerKey, zkappKey]).send();
+await tx.sign([feePayer.key, zkappAccount.key]).send();
 
 console.log('deployed');
 
@@ -136,7 +133,7 @@ tx = await Mina.transaction(feePayer, async () => {
   await zkapp.set(key, value);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 key = map[1].key;
 value = map[1].value;
@@ -146,7 +143,7 @@ tx = await Mina.transaction(feePayer, async () => {
   await zkapp.set(key, value);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 key = map[2].key;
 value = map[2].value;
@@ -156,7 +153,7 @@ tx = await Mina.transaction(feePayer, async () => {
   await zkapp.set(key, value);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 key = map[0].key;
 value = map[0].value;
@@ -167,7 +164,7 @@ tx = await Mina.transaction(feePayer, async () => {
   result = await zkapp.get(key);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 assert(result !== undefined);
 console.log('found correct match?', result.isSome.toBoolean());
@@ -181,7 +178,7 @@ tx = await Mina.transaction(feePayer, async () => {
   result = await zkapp.get(key);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('found correct match?', result.isSome.toBoolean());
 console.log('matches expected value?', result.value.equals(value).toBoolean());
@@ -191,6 +188,6 @@ tx = await Mina.transaction(feePayer, async () => {
   result = await zkapp.get(PrivateKey.random().toPublicKey());
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('should be isSome(false)', result.isSome.toBoolean());

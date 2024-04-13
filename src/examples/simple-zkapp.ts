@@ -50,7 +50,7 @@ class SimpleZkapp extends SmartContract {
 
     // check that caller is the privileged account
     let callerAddress = caller.toPublicKey();
-    callerAddress.assertEquals(privilegedAddress);
+    callerAddress.assertEquals(privileged);
 
     // assert that the caller account is new - this way, payout can only happen once
     let callerAccountUpdate = AccountUpdate.create(callerAddress);
@@ -73,21 +73,19 @@ let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
-let { privateKey: senderKey, publicKey: sender } = Local.testAccounts[0];
+let [sender, payout] = Local.testAccounts;
 
 // the zkapp account
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
+let zkappAccount = Mina.TestAccount.random();
 
 // a special account that is allowed to pull out half of the zkapp balance, once
-let privilegedKey = PrivateKey.fromBase58(
-  'EKEeoESE2A41YQnSht9f7mjiKpJSeZ4jnfHXYatYi8xJdYSxWBep'
+let privileged = new Mina.TestAccount(
+  PrivateKey.fromBase58('EKEeoESE2A41YQnSht9f7mjiKpJSeZ4jnfHXYatYi8xJdYSxWBep')
 );
-let privilegedAddress = privilegedKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
 let initialState = Field(1);
-let zkapp = new SimpleZkapp(zkappAddress);
+let zkapp = new SimpleZkapp(zkappAccount);
 
 if (doProofs) {
   console.log('compile');
@@ -101,16 +99,16 @@ if (doProofs) {
 console.log('deploy');
 let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
-  senderUpdate.send({ to: zkappAddress, amount: initialBalance });
+  senderUpdate.send({ to: zkappAccount, amount: initialBalance });
   zkapp.deploy();
 });
 await tx.prove();
-await tx.sign([senderKey, zkappKey]).send();
+await tx.sign([sender.key, zkappAccount.key]).send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
-let account = Mina.getAccount(zkappAddress);
+let account = Mina.getAccount(zkappAccount);
 console.log('account state is proved:', account.zkapp?.provedState.toBoolean());
 
 console.log('update');
@@ -118,23 +116,23 @@ tx = await Mina.transaction(sender, async () => {
   await zkapp.update(Field(3));
 });
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 
 // pay more into the zkapp -- this doesn't need a proof
 console.log('receive');
 tx = await Mina.transaction(sender, async () => {
   let payerAccountUpdate = AccountUpdate.createSigned(sender);
-  payerAccountUpdate.send({ to: zkappAddress, amount: UInt64.from(8e9) });
+  payerAccountUpdate.send({ to: zkappAccount, amount: UInt64.from(8e9) });
 });
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 
 console.log('payout');
 tx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
-  await zkapp.payout(privilegedKey);
+  await zkapp.payout(privileged.key);
 });
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 sender;
 
 console.log('final state: ' + zkapp.x.get());
@@ -142,11 +140,11 @@ console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('try to payout a second time..');
 tx = await Mina.transaction(sender, async () => {
-  await zkapp.payout(privilegedKey);
+  await zkapp.payout(privileged.key);
 });
 try {
   await tx.prove();
-  await tx.sign([senderKey]).send();
+  await tx.sign([sender.key]).send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }
@@ -154,10 +152,10 @@ try {
 console.log('try to payout to a different account..');
 try {
   tx = await Mina.transaction(sender, async () => {
-    await zkapp.payout(Local.testAccounts[2].privateKey);
+    await zkapp.payout(payout.key);
   });
   await tx.prove();
-  await tx.sign([senderKey]).send();
+  await tx.sign([sender.key]).send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }

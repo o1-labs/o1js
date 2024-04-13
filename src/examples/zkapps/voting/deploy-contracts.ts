@@ -58,8 +58,7 @@ export async function deployContracts(
   });
   Mina.setActiveInstance(Local);
 
-  let feePayerKey = Local.testAccounts[0].privateKey;
-  let feePayer = Local.testAccounts[0].publicKey;
+  let [feePayer] = Local.testAccounts;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
@@ -79,7 +78,12 @@ export async function deployContracts(
     voterContract.accumulatedMembers.set(Reducer.initialActionState);
   });
   await tx
-    .sign([feePayerKey, params.votingKey, params.candidateKey, params.voterKey])
+    .sign([
+      feePayer.key,
+      params.votingKey,
+      params.candidateKey,
+      params.voterKey,
+    ])
     .send();
 
   console.log('successfully deployed contracts');
@@ -87,7 +91,7 @@ export async function deployContracts(
     voterContract,
     candidateContract,
     voting,
-    feePayer: feePayerKey,
+    feePayer: feePayer.key,
     Local,
   };
 }
@@ -124,8 +128,7 @@ export async function deployInvalidContracts(
   });
   Mina.setActiveInstance(Local);
 
-  let feePayerKey = Local.testAccounts[0].privateKey;
-  let feePayer = Local.testAccounts[0].publicKey;
+  let [feePayer] = Local.testAccounts;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
@@ -155,7 +158,12 @@ export async function deployInvalidContracts(
     voterContract = invalidVoterContract as Membership_;
   });
   await tx
-    .sign([feePayerKey, params.votingKey, params.candidateKey, params.voterKey])
+    .sign([
+      feePayer.key,
+      params.votingKey,
+      params.candidateKey,
+      params.voterKey,
+    ])
     .send();
 
   console.log('successfully deployed contracts');
@@ -163,7 +171,7 @@ export async function deployInvalidContracts(
     voterContract,
     candidateContract,
     voting,
-    feePayer: feePayerKey,
+    feePayer: feePayer.key,
     Local,
   };
 }

@@ -13,6 +13,7 @@ import {
   Actions,
 } from './account-update.js';
 import { NetworkId } from '../../mina-signer/src/types.js';
+import { TupleN } from '../util/types.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import { invalidTransactionError } from './errors.js';
 import {
@@ -39,7 +40,23 @@ import {
   verifyAccountUpdate,
 } from './transaction-validation.js';
 
-export { LocalBlockchain };
+export { LocalBlockchain, TestAccount };
+
+class TestAccount extends PublicKey {
+  static random<N extends number = 1>(
+    count: N = 1 as never
+  ): N extends 1 ? TestAccount : TupleN<TestAccount, N> {
+    if (count === 1) return new this(PrivateKey.random()) as never;
+    return Array.from(
+      { length: count as number },
+      () => new this(PrivateKey.random())
+    ) as never;
+  }
+
+  constructor(readonly key: PrivateKey) {
+    super(key.toPublicKey());
+  }
+}
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
@@ -59,18 +76,14 @@ function LocalBlockchain({
     ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
   }
 
-  let testAccounts: {
-    publicKey: PublicKey;
-    privateKey: PrivateKey;
-  }[] = [];
+  let testAccounts = [] as never as TupleN<TestAccount, 100>;
 
-  for (let i = 0; i < 10; ++i) {
+  for (let i = 0; i < 100; ++i) {
     let MINA = 10n ** 9n;
     const largeValue = 1000n * MINA;
-    const k = PrivateKey.random();
-    const pk = k.toPublicKey();
-    addAccount(pk, largeValue.toString());
-    testAccounts.push({ privateKey: k, publicKey: pk });
+    const testAccount = new TestAccount(PrivateKey.random());
+    addAccount(testAccount, largeValue.toString());
+    testAccounts.push(testAccount);
   }
 
   const events: Record<string, any> = {};

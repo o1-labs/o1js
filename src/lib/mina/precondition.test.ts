@@ -18,27 +18,24 @@ class MyContract extends SmartContract {
 }
 
 let zkappKey: PrivateKey;
-let zkappAddress: PublicKey;
+let zkappAddress: Mina.TestAccount;
 let zkapp: MyContract;
-let feePayer: PublicKey;
-let feePayerKey: PrivateKey;
+let feePayer: Mina.TestAccount;
 
 beforeAll(async () => {
   // set up local blockchain, create zkapp keys, deploy the contract
   let Local = Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
-  feePayerKey = Local.testAccounts[0].privateKey;
-  feePayer = Local.testAccounts[0].publicKey;
+  [feePayer] = Local.testAccounts;
 
-  zkappKey = PrivateKey.random();
-  zkappAddress = zkappKey.toPublicKey();
+  zkappAddress = Mina.TestAccount.random();
   zkapp = new MyContract(zkappAddress);
 
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
     await zkapp.deploy();
   });
-  tx.sign([feePayerKey, zkappKey]).send();
+  tx.sign([feePayer.key, zkappKey]).send();
 });
 
 describe('preconditions', () => {
@@ -67,7 +64,7 @@ describe('preconditions', () => {
       }
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.sign([feePayerKey, zkappKey]).send();
+    await tx.sign([feePayer.key, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -94,7 +91,7 @@ describe('preconditions', () => {
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.sign([feePayerKey, zkappKey]).send();
+    await tx.sign([feePayer.key, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -109,7 +106,7 @@ describe('preconditions', () => {
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.sign([feePayerKey, zkappKey]).send();
+    await tx.sign([feePayer.key, zkappKey]).send();
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
@@ -123,7 +120,7 @@ describe('preconditions', () => {
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.sign([feePayerKey, zkappKey]).send();
+    await tx.sign([feePayer.key, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -150,7 +147,7 @@ describe('preconditions', () => {
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.sign([feePayerKey, zkappKey]).send();
+    await tx.sign([feePayer.key, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -163,7 +160,7 @@ describe('preconditions', () => {
           precondition().requireEquals(p.add(1) as any);
           AccountUpdate.attachToTransaction(zkapp.self);
         });
-        await tx.sign([feePayerKey]).send();
+        await tx.sign([feePayer.key]).send();
       }).rejects.toThrow(/unsatisfied/);
     }
   });
@@ -175,7 +172,7 @@ describe('preconditions', () => {
         precondition().requireEquals(p.not());
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+      await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
         /unsatisfied/
       );
     }
@@ -187,7 +184,7 @@ describe('preconditions', () => {
       zkapp.account.delegate.requireEquals(publicKey);
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
+    await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied requireBetween should be rejected', async () => {
@@ -197,7 +194,7 @@ describe('preconditions', () => {
         precondition().requireBetween(p.add(20), p.add(30));
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+      await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
         /unsatisfied/
       );
     }
@@ -208,7 +205,7 @@ describe('preconditions', () => {
       zkapp.currentSlot.requireBetween(UInt32.from(20), UInt32.from(30));
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
+    await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   // TODO: is this a gotcha that should be addressed?
@@ -220,7 +217,7 @@ describe('preconditions', () => {
       zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    expect(() => tx.sign([zkappKey, feePayerKey]).send()).toThrow();
+    expect(() => tx.sign([zkappKey, feePayer.key]).send()).toThrow();
   });
 });
 

@@ -20,7 +20,6 @@ import {
   Mina,
   method,
   UInt32,
-  PrivateKey,
   AccountUpdate,
   MerkleTree,
   MerkleWitness,
@@ -96,12 +95,9 @@ let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 let initialBalance = 10_000_000_000;
 
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
+let [feePayer] = Local.testAccounts;
 
-// the zkapp account
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
+let zkappAccount = Mina.TestAccount.random();
 
 // this map serves as our off-chain in-memory storage
 let Accounts: Map<string, Account> = new Map<Names, Account>(
@@ -109,7 +105,7 @@ let Accounts: Map<string, Account> = new Map<Names, Account>(
     return [
       name as Names,
       new Account({
-        publicKey: Local.testAccounts[index].publicKey,
+        publicKey: Local.testAccounts[index + 1], // `+ 1` is to avoid reusing the account aliased as `feePayer`
         points: UInt32.from(0),
       }),
     ];
@@ -128,20 +124,20 @@ Tree.setLeaf(3n, Accounts.get('Olivia')!.hash());
 // now that we got our accounts set up, we need the commitment to deploy our contract!
 initialCommitment = Tree.getRoot();
 
-let leaderboardZkApp = new Leaderboard(zkappAddress);
+let leaderboardZkApp = new Leaderboard(zkappAccount);
 console.log('Deploying leaderboard..');
 if (doProofs) {
   await Leaderboard.compile();
 }
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer).send({
-    to: zkappAddress,
+    to: zkappAccount,
     amount: initialBalance,
   });
   await leaderboardZkApp.deploy();
 });
 await tx.prove();
-await tx.sign([feePayerKey, zkappKey]).send();
+await tx.sign([feePayer.key, zkappAccount.key]).send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
 
@@ -159,7 +155,7 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
     await leaderboardZkApp.guessPreimage(Field(guess), account, witness);
   });
   await tx.prove();
-  await tx.sign([feePayerKey, zkappKey]).send();
+  await tx.sign([feePayer.key, zkappAccount.key]).send();
 
   // if the transaction was successful, we can update our off-chain storage as well
   account.points = account.points.add(1);

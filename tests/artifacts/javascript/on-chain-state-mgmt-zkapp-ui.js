@@ -20,12 +20,10 @@ logEvents(
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
-const feePayerKey = Local.testAccounts[0].privateKey;
-const feePayer = Local.testAccounts[0].publicKey;
+const [feePayer] = Local.testAccounts
 // zkApp account
-const zkAppPrivateKey = PrivateKey.random();
-const zkAppAddress = zkAppPrivateKey.toPublicKey();
-const zkAppInstance = new HelloWorld(zkAppAddress);
+const zkAppAccount = Mina.TestAccount.random()
+const zkApp = new HelloWorld(zkAppAccount);
 let verificationKey = null;
 
 deployButton.addEventListener('click', async () => {
@@ -39,12 +37,12 @@ deployButton.addEventListener('click', async () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
-      await zkAppInstance.deploy();
+      await zkApp.deploy();
     });
 
-    await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
+    await deploymentTransaction.sign([feePayer.key, zkAppAccount.key]).send();
     const initialState =
-      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
+      Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
     zkAppStateContainer.innerHTML = initialState;
     logEvents(`Initial zkApp State: ${initialState}`, eventsContainer);
     logEvents('zkApp Deployed successfully!', eventsContainer);
@@ -70,13 +68,13 @@ updateButton.addEventListener('click', async (event) => {
 
   try {
     const currentState =
-      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
+      Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
     logEvents(
       `Updating zkApp State from ${currentState} to ${zkAppStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
     );
     const transaction = await Mina.transaction(feePayer, async () => {
-      await zkAppInstance.update(
+      await zkApp.update(
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );
@@ -89,10 +87,10 @@ updateButton.addEventListener('click', async (event) => {
       if (!isVerified) throw Error('Proof verification failed');
     }
 
-    await transaction.sign([feePayerKey]).send();
+    await transaction.sign([feePayer.key]).send();
 
     const newState =
-      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
+      Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
     zkAppStateContainer.innerHTML = newState;
     logEvents(
       `zkApp State successfully updated to: ${newState}!`,

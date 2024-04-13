@@ -2,7 +2,6 @@ import {
   method,
   Mina,
   AccountUpdate,
-  PrivateKey,
   SmartContract,
   PublicKey,
   TokenId,
@@ -42,20 +41,11 @@ class ZkAppC extends SmartContract {
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-let [
-  { publicKey: sender, privateKey: senderKey },
-  { publicKey: tokenAccount1 },
-] = Local.testAccounts;
+let [sender, tokenAccount1] = Local.testAccounts;
 let initialBalance = 10_000_000;
 
-let tokenZkAppKey = PrivateKey.random();
-let tokenZkAppAddress = tokenZkAppKey.toPublicKey();
-
-let zkAppCKey = PrivateKey.random();
-let zkAppCAddress = zkAppCKey.toPublicKey();
-
-let zkAppBKey = PrivateKey.random();
-let zkAppBAddress = zkAppBKey.toPublicKey();
+const [tokenZkAppAddress, zkAppCAddress, zkAppBAddress] =
+  Mina.TestAccount.random(3);
 
 let tokenZkApp = new Token(tokenZkAppAddress);
 let tokenId = tokenZkApp.deriveTokenId();
@@ -86,7 +76,7 @@ tx = await Mina.transaction(sender, async () => {
     amount: initialBalance,
   });
 });
-await tx.sign([senderKey, tokenZkAppKey]).send();
+await tx.sign([sender.key, tokenZkAppAddress.key]).send();
 
 console.log('deploy zkAppB and zkAppC');
 tx = await Mina.transaction(sender, async () => {
@@ -97,14 +87,14 @@ tx = await Mina.transaction(sender, async () => {
 });
 console.log('deploy zkAppB and zkAppC (proof)');
 await tx.prove();
-await tx.sign([senderKey, zkAppBKey, zkAppCKey]).send();
+await tx.sign([sender.key, zkAppBAddress.key, zkAppCAddress.key]).send();
 
 console.log('mint token to zkAppB');
 tx = await Mina.transaction(sender, async () => {
   await tokenZkApp.mint(zkAppBAddress);
 });
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 
 console.log('approve send from zkAppB');
 tx = await Mina.transaction(sender, async () => {
@@ -115,7 +105,7 @@ tx = await Mina.transaction(sender, async () => {
 });
 console.log('approve send (proof)');
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 
 console.log(
   `zkAppC's balance for tokenId: ${TokenId.toBase58(tokenId)}`,
@@ -133,7 +123,7 @@ tx = await Mina.transaction(sender, async () => {
 });
 console.log('approve send (proof)');
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 
 console.log(
   `tokenAccount1's balance for tokenId: ${TokenId.toBase58(tokenId)}`,

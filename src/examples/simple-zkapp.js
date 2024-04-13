@@ -42,14 +42,12 @@ declareMethods(SimpleZkapp, { update: [Field] });
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
+const [feePayer] = Local.testAccounts
 
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
+let zkappAccount = Mina.TestAccount.random()
 
 let initialState = Field(1);
-let zkapp = new SimpleZkapp(zkappAddress);
+let zkapp = new SimpleZkapp(zkappAccount);
 
 console.log('compile');
 await SimpleZkapp.compile();
@@ -59,12 +57,12 @@ let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   await zkapp.deploy();
 });
-await tx.sign([feePayerKey, zkappKey]).send();
+await tx.sign([feePayer.key, zkappAccount.key]).send();
 
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayer, () => zkapp.update(Field(3)));
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 console.log('final state: ' + zkapp.x.get());

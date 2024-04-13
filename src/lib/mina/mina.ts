@@ -50,7 +50,7 @@ import {
   defaultNetworkState,
   filterGroups,
 } from './transaction-validation.js';
-import { LocalBlockchain } from './local-blockchain.js';
+import { LocalBlockchain, TestAccount } from './local-blockchain.js';
 
 export {
   LocalBlockchain,
@@ -62,6 +62,7 @@ export {
   type RejectedTransaction,
   type PendingTransactionStatus,
   type PendingTransactionPromise,
+  TestAccount,
   activeInstance,
   setActiveInstance,
   transaction,

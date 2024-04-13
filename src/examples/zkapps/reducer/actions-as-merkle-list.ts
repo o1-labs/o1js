@@ -105,14 +105,9 @@ class ActionsContract extends SmartContract {
 let Local = Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let [
-  { publicKey: sender, privateKey: senderKey },
-  { publicKey: zkappAddress, privateKey: zkappKey },
-  { publicKey: otherAddress },
-  { publicKey: anotherAddress },
-] = Local.testAccounts;
+let [sender, zkappAccount, otherAddress, anotherAddress] = Local.testAccounts;
 
-let zkapp = new ActionsContract(zkappAddress);
+let zkapp = new ActionsContract(zkappAccount);
 
 // deploy the contract
 
@@ -122,19 +117,19 @@ console.log(
   (await ActionsContract.analyzeMethods()).assertContainsAddress.rows
 );
 let deployTx = await Mina.transaction(sender, async () => zkapp.deploy());
-await deployTx.sign([senderKey, zkappKey]).send();
+await deployTx.sign([sender.key, zkappAccount.key]).send();
 
 // push some actions
 
 let dispatchTx = await Mina.transaction(sender, async () => {
   await zkapp.postAddress(otherAddress);
-  await zkapp.postAddress(zkappAddress);
+  await zkapp.postAddress(zkappAccount);
   await zkapp.postTwoAddresses(anotherAddress, sender);
   await zkapp.postAddress(anotherAddress);
-  await zkapp.postTwoAddresses(zkappAddress, otherAddress);
+  await zkapp.postTwoAddresses(zkappAccount, otherAddress);
 });
 await dispatchTx.prove();
-await dispatchTx.sign([senderKey]).send();
+await dispatchTx.sign([sender.key]).send();
 
 assert(zkapp.reducer.getActions().length === 5);
 
@@ -145,4 +140,4 @@ let containsTx = await Mina.transaction(sender, () =>
   zkapp.assertContainsAddress(sender)
 );
 await containsTx.prove();
-await containsTx.sign([senderKey]).send();
+await containsTx.sign([sender.key]).send();

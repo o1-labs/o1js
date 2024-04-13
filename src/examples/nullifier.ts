@@ -1,5 +1,4 @@
 import {
-  PrivateKey,
   Nullifier,
   Field,
   SmartContract,
@@ -7,7 +6,6 @@ import {
   State,
   method,
   MerkleMap,
-  Circuit,
   MerkleMapWitness,
   Mina,
   AccountUpdate,
@@ -53,18 +51,16 @@ let Local = Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
-let { privateKey: senderKey, publicKey: sender } = Local.testAccounts[0];
+let [sender] = Local.testAccounts;
 
 // the zkapp account
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
+let zkappAccount = Mina.TestAccount.random();
 
 // a special account that is allowed to pull out half of the zkapp balance, once
-let privilegedKey = PrivateKey.random();
-let privilegedAddress = privilegedKey.toPublicKey();
+let privileged = Mina.TestAccount.random();
 
 let initialBalance = 10_000_000_000;
-let zkapp = new PayoutOnlyOnce(zkappAddress);
+let zkapp = new PayoutOnlyOnce(zkappAccount);
 
 // a unique message
 let nullifierMessage = Field(5);
@@ -75,14 +71,14 @@ await PayoutOnlyOnce.compile();
 console.log('deploy');
 let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
-  senderUpdate.send({ to: zkappAddress, amount: initialBalance });
+  senderUpdate.send({ to: zkappAccount, amount: initialBalance });
   await zkapp.deploy();
 
   zkapp.nullifierRoot.set(NullifierTree.getRoot());
   zkapp.nullifierMessage.set(nullifierMessage);
 });
 await tx.prove();
-await tx.sign([senderKey, zkappKey]).send();
+await tx.sign([sender.key, zkappAccount.key]).send();
 
 console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
@@ -90,7 +86,7 @@ console.log('generating nullifier');
 
 let jsonNullifier = Nullifier.createTestNullifier(
   [nullifierMessage],
-  privilegedKey
+  privileged.key
 );
 console.log(jsonNullifier);
 
@@ -100,11 +96,11 @@ tx = await Mina.transaction(sender, async () => {
   await zkapp.payout(Nullifier.fromJSON(jsonNullifier));
 });
 await tx.prove();
-await tx.sign([senderKey]).send();
+await tx.sign([sender.key]).send();
 
 console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 console.log(
-  `user balance: ${Mina.getAccount(privilegedAddress).balance.div(1e9)} MINA`
+  `user balance: ${Mina.getAccount(privileged).balance.div(1e9)} MINA`
 );
 
 console.log('trying second pay out');
@@ -115,7 +111,7 @@ try {
   });
 
   await tx.prove();
-  await tx.sign([senderKey]).send();
+  await tx.sign([sender.key]).send();
 } catch (error: any) {
   console.log(
     'transaction failed, as expected! received the following error message:'

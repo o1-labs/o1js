@@ -16,8 +16,7 @@ let Local = Mina.LocalBlockchain({
 });
 Mina.setActiveInstance(Local);
 
-let feePayer = Local.testAccounts[0].publicKey;
-let feePayerKey = Local.testAccounts[0].privateKey;
+let [feePayer] = Local.testAccounts;
 
 let tx;
 
@@ -75,7 +74,7 @@ tx = await Mina.transaction(feePayer, async () => {
   contracts.voterContract.committedMembers.set(voterStore.getRoot());
   contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
 });
-await tx.sign([feePayerKey, votingKey, candidateKey, voterKey]).send();
+await tx.sign([feePayer.key, votingKey, candidateKey, voterKey]).send();
 
 let m: Member = Member.empty();
 // lets register three voters
@@ -95,7 +94,7 @@ tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.voterRegistration(m);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 // lets register three voters
 tx = await Mina.transaction(feePayer, async () => {
@@ -114,7 +113,7 @@ tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.voterRegistration(m);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 // lets register three voters
 tx = await Mina.transaction(feePayer, async () => {
@@ -133,7 +132,7 @@ tx = await Mina.transaction(feePayer, async () => {
   contracts.voting.voterRegistration(m);
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 /*
   since the voting contract calls the voter membership contract via invoking voterRegister,
@@ -167,7 +166,7 @@ tx = await Mina.transaction(feePayer, async () => {
 });
 
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 tx = await Mina.transaction(feePayer, async () => {
   // creating and registering 1 new candidate
@@ -186,7 +185,7 @@ tx = await Mina.transaction(feePayer, async () => {
 });
 
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
@@ -228,7 +227,7 @@ tx = await Mina.transaction(feePayer, async () => {
 });
 
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 for (let a of candidateStore.values()) {
   console.log(a.publicKey.toBase58());
@@ -263,7 +262,7 @@ tx = await Mina.transaction(feePayer, async () => {
 });
 
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 // after the transaction went through, we have to update our off chain store as well
 vote(0n);
 
@@ -282,7 +281,7 @@ tx = await Mina.transaction(feePayer, async () => {
 });
 
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 // vote dispatches a new sequence events, so we should have one
 
