@@ -16,7 +16,7 @@ const doProofs = true;
 
 const beforeGenesis = UInt64.from(Date.now());
 
-class Contract extends SmartContract {
+class Simple extends SmartContract {
   @state(Field) x = State<Field>();
 
   events = { update: Field, payout: UInt64, payoutReceiver: PublicKey };
@@ -78,11 +78,11 @@ let privileged = new Mina.TestAccount(
 
 let initialBalance = 10_000_000_000;
 let initialState = Field(1);
-let contract = new Contract(contractAccount);
+let contract = new Simple(contractAccount);
 
 if (doProofs) {
   console.log('compile');
-  await Contract.compile();
+  await Simple.compile();
 }
 
 console.log('deploy');

@@ -16,7 +16,7 @@ const doProofs = false;
 
 class Event extends Struct({ pub: PublicKey, value: Field }) {}
 
-class Contract extends SmartContract {
+class LocalEvents extends SmartContract {
   @state(Field) x = State<Field>();
 
   events = {
@@ -48,13 +48,13 @@ Mina.setActiveInstance(Local);
 const [feePayer] = Local.testAccounts;
 
 let contractAccount = Mina.TestAccount.random();
-let contract = new Contract(contractAccount);
+let contract = new LocalEvents(contractAccount);
 
 let initialState = Field(1);
 
 if (doProofs) {
   console.log('compile');
-  await Contract.compile();
+  await LocalEvents.compile();
 }
 
 console.log('deploy');

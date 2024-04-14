@@ -12,7 +12,7 @@ import {
   TransactionVersion,
 } from 'o1js';
 
-class Contract extends SmartContract {
+class SelfUpdater extends SmartContract {
   init() {
     super.init();
     this.account.permissions.set({
@@ -41,13 +41,13 @@ const Local = Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
 const contractAccount = Mina.TestAccount.random();
-const contract = new Contract(contractAccount);
+const contract = new SelfUpdater(contractAccount);
 
 const [deployer] = Local.testAccounts;
 
 // deploy first verification key
 
-await Contract.compile();
+await SelfUpdater.compile();
 
 const tx = await Mina.transaction(deployer, async () => {
   AccountUpdate.fundNewAccount(deployer);

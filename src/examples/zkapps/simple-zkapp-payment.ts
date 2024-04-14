@@ -7,7 +7,7 @@ import {
   Permissions,
 } from 'o1js';
 
-class Contract extends SmartContract {
+class PaymentContainer extends SmartContract {
   init() {
     super.init();
     this.account.permissions.set({
@@ -30,7 +30,7 @@ class Contract extends SmartContract {
 }
 
 let proofsEnabled = false;
-if (proofsEnabled) await Contract.compile();
+if (proofsEnabled) await PaymentContainer.compile();
 
 let Local = Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
@@ -47,7 +47,7 @@ function printBalances() {
   console.log(`account2 balance: ${Mina.getBalance(account2).div(1e9)} MINA\n`);
 }
 
-let zkapp = new Contract(contractAccount);
+let zkapp = new PaymentContainer(contractAccount);
 let tx;
 
 console.log('deploy and fund user accounts');

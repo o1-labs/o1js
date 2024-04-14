@@ -52,7 +52,7 @@ const MAX_ACTIONS_PER_UPDATE = 2;
  * This contract allows you to push either 1 or 2 public keys as actions,
  * and has a reducer-like method which checks whether a given public key is contained in those actions.
  */
-class Contract extends SmartContract {
+class MerkleListReducing extends SmartContract {
   reducer = Reducer({ actionType: Action });
 
   @method
@@ -108,14 +108,14 @@ Mina.setActiveInstance(Local);
 let [sender, contractAccount, otherAddress, anotherAddress] =
   Local.testAccounts;
 
-let contract = new Contract(contractAccount);
+let contract = new MerkleListReducing(contractAccount);
 
 // deploy the contract
 
-await Contract.compile();
+await MerkleListReducing.compile();
 console.log(
   `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
-  (await Contract.analyzeMethods()).assertContainsAddress.rows
+  (await MerkleListReducing.analyzeMethods()).assertContainsAddress.rows
 );
 let deployTx = await Mina.transaction(sender, async () => contract.deploy());
 await deployTx.sign([sender.key, contractAccount.key]).send();

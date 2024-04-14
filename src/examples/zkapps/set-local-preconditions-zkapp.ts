@@ -10,8 +10,8 @@ import { method, SmartContract, Mina, AccountUpdate, UInt32 } from 'o1js';
 
 const doProofs = false;
 
-class Contract extends SmartContract {
-  @method async blockheightEquals(y: UInt32) {
+class BlockHeightReference extends SmartContract {
+  @method async blockHeightEquals(y: UInt32) {
     let length = this.network.blockchainLength.get();
     this.network.blockchainLength.requireEquals(length);
 
@@ -26,11 +26,11 @@ const [feePayer] = Local.testAccounts;
 
 let contractAccount = Mina.TestAccount.random();
 
-let contract = new Contract(contractAccount);
+let contract = new BlockHeightReference(contractAccount);
 
 if (doProofs) {
   console.log('compile');
-  await Contract.compile();
+  await BlockHeightReference.compile();
 }
 
 console.log('deploy');
@@ -45,7 +45,7 @@ let blockHeight: UInt32 = UInt32.zero;
 console.log('assert block height 0');
 tx = await Mina.transaction(feePayer, async () => {
   // block height starts at 0
-  await contract.blockheightEquals(UInt32.from(blockHeight));
+  await contract.blockHeightEquals(UInt32.from(blockHeight));
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -55,7 +55,7 @@ Local.setBlockchainLength(blockHeight);
 
 console.log('assert block height 500');
 tx = await Mina.transaction(feePayer, async () => {
-  await contract.blockheightEquals(UInt32.from(blockHeight));
+  await contract.blockHeightEquals(UInt32.from(blockHeight));
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -65,7 +65,7 @@ Local.setBlockchainLength(UInt32.from(5));
 console.log('invalid block height precondition');
 try {
   tx = await Mina.transaction(feePayer, async () => {
-    await contract.blockheightEquals(UInt32.from(blockHeight));
+    await contract.blockHeightEquals(UInt32.from(blockHeight));
   });
   await tx.prove();
   await tx.sign([feePayer.key]).send();

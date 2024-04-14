@@ -4,7 +4,6 @@
 let {
   Field,
   State,
-  PrivateKey,
   SmartContract,
   Mina,
   AccountUpdate,
@@ -12,7 +11,7 @@ let {
   declareMethods,
 } = require('o1js');
 
-class Contract extends SmartContract {
+class Updater extends SmartContract {
   constructor(address) {
     super(address);
     this.x = State();
@@ -33,8 +32,8 @@ class Contract extends SmartContract {
     this.x.set(x.add(y));
   }
 }
-declareState(Contract, { x: Field });
-declareMethods(Contract, { update: [Field] });
+declareState(Updater, { x: Field });
+declareMethods(Updater, { update: [Field] });
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -42,7 +41,7 @@ Mina.setActiveInstance(Local);
 const [feePayer] = Local.testAccounts
 
 let contractAccount = new Mina.random();
-let contract = new Contract(contractAccount);
+let contract = new Updater(contractAccount);
 
 let initialState = Field(1);
 
@@ -50,7 +49,7 @@ main();
 
 async function main() {
   console.log('compile');
-  await Contract.compile();
+  await Updater.compile();
 
   console.log('deploy');
   let tx = await Mina.transaction(feePayer, async () => {
