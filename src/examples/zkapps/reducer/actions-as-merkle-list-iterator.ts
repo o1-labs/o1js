@@ -76,7 +76,7 @@ class ActionsContract extends SmartContract {
 
     let counter = Field(0);
 
-    let iter = merkleActionss.startIteratingFromOldest();
+    let iter = merkleActionss.startIteratingReverse();
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
       let merkleActions = iter.next();
