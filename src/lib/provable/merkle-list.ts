@@ -251,7 +251,7 @@ class MerkleList<T> implements MerkleListBase<T> {
        * Creates a `MerkleList` from an array but reverses it.
        */
       static fromReverse(array: T[]): MerkleList<T> {
-        array = array.reverse();
+        array = [...array].reverse();
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
           data.map((x) => toConstant(type, x))
@@ -552,6 +552,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
             element
           );
         };
+
         return iter;
       }
 
