@@ -6,12 +6,9 @@
  * a blueprint for processing actions in a custom and more explicit way.
  */
 import {
-  AccountUpdate,
   Bool,
   Field,
-  MerkleList,
   Mina,
-  Provable,
   State,
   state,
   Reducer,
@@ -19,28 +16,6 @@ import {
   method,
   assert,
 } from 'o1js';
-
-const { Actions } = AccountUpdate;
-
-// in this example, an action is just a increment of type Field
-// the actions within one account update are a Merkle list with a custom hash
-const emptyHash = Actions.empty().hash;
-const nextHash = (hash: Field, action: Field) =>
-  Actions.pushEvent({ hash, data: [] }, action.toFields()).hash;
-
-class MerkleActions extends MerkleList.create(Field, nextHash, emptyHash) {}
-
-// the "action state" / actions from many account updates is a Merkle list
-// of the above Merkle list, with another custom hash
-let emptyActionsHash = Actions.emptyActionState();
-const nextActionsHash = (hash: Field, actions: MerkleActions) =>
-  Actions.updateSequenceState(hash, actions.hash);
-
-class MerkleActionss extends MerkleList.create(
-  MerkleActions.provable,
-  nextActionsHash,
-  emptyActionsHash
-) {}
 
 // constants for our static-sized provable code
 const MAX_UPDATES_WITH_ACTIONS = 100;
@@ -65,18 +40,14 @@ class ActionsContract extends SmartContract {
     // get actions and, in a witness block, wrap them in a Merkle list of lists
 
     // get all actions
-    let actionss = this.reducer.getActions();
-
-    let merkleActionss = Provable.witness(MerkleActionss.provable, () =>
-      MerkleActionss.fromReverse(actionss.map((as) => MerkleActions.from(as)))
-    );
+    let actions = this.reducer.getActions();
 
     // prove that we know the correct action state
-    this.account.actionState.requireEquals(merkleActionss.hash);
+    this.account.actionState.requireEquals(actions.hash);
 
     let counter = Field(0);
 
-    let iter = merkleActionss.startIteratingReverse();
+    let iter = actions.startIteratingReverse();
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
       let merkleActions = iter.next();
@@ -127,7 +98,7 @@ let dispatchTx = await Mina.transaction(sender, async () => {
 await dispatchTx.prove();
 await dispatchTx.sign([senderKey]).send();
 
-assert(zkapp.reducer.getActions().length === 5);
+assert(zkapp.reducer.getActions().data.get().length === 5);
 
 // accumulate actions
 

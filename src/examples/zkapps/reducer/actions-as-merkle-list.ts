@@ -6,12 +6,8 @@
  * a blueprint for processing actions in a custom and more explicit way.
  */
 import {
-  AccountUpdate,
   Bool,
-  Field,
-  MerkleList,
   Mina,
-  Provable,
   PublicKey,
   Reducer,
   SmartContract,
@@ -19,30 +15,9 @@ import {
   assert,
 } from 'o1js';
 
-const { Actions } = AccountUpdate;
-
 // in this example, an action is just a public key
 type Action = PublicKey;
 const Action = PublicKey;
-
-// the actions within one account update are a Merkle list with a custom hash
-const emptyHash = Actions.empty().hash;
-const nextHash = (hash: Field, action: Action) =>
-  Actions.pushEvent({ hash, data: [] }, action.toFields()).hash;
-
-class MerkleActions extends MerkleList.create(Action, nextHash, emptyHash) {}
-
-// the "action state" / actions from many account updates is a Merkle list
-// of the above Merkle list, with another custom hash
-let emptyActionsHash = Actions.emptyActionState();
-const nextActionsHash = (hash: Field, actions: MerkleActions) =>
-  Actions.updateSequenceState(hash, actions.hash);
-
-class MerkleActionss extends MerkleList.create(
-  MerkleActions.provable,
-  nextActionsHash,
-  emptyActionsHash
-) {}
 
 // constants for our static-sized provable code
 const MAX_UPDATES_WITH_ACTIONS = 100;
@@ -72,21 +47,17 @@ class ActionsContract extends SmartContract {
 
     // note: need to reverse here because `getActions()` returns the last pushed action last,
     // but MerkleList.from() wants it to be first to match the natural iteration order
-    let actionss = this.reducer.getActions().reverse();
-
-    let merkleActionss = Provable.witness(MerkleActionss.provable, () =>
-      MerkleActionss.from(actionss.map((as) => MerkleActions.from(as)))
-    );
+    let actions = this.reducer.getActions();
 
     // prove that we know the correct action state
-    this.account.actionState.requireEquals(merkleActionss.hash);
+    this.account.actionState.requireEquals(actions.hash);
 
     // now our provable code to process the actions is very straight-forward
     // (note: if we're past the actual sizes, `.pop()` returns a dummy Action -- in this case, the "empty" public key which is not equal to any real address)
     let hasAddress = Bool(false);
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
-      let merkleActions = merkleActionss.pop();
+      let merkleActions = actions.pop();
 
       for (let j = 0; j < MAX_ACTIONS_PER_UPDATE; j++) {
         let action = merkleActions.pop();
@@ -136,7 +107,7 @@ let dispatchTx = await Mina.transaction(sender, async () => {
 await dispatchTx.prove();
 await dispatchTx.sign([senderKey]).send();
 
-assert(zkapp.reducer.getActions().length === 5);
+assert(zkapp.reducer.getActions().data.get().length === 5);
 
 // check if the actions contain the `sender` address
 

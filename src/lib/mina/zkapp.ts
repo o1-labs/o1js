@@ -1406,7 +1406,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           )
         );
       });
-      console.log(actionsForAccount);
+
       return Provable.witness(MerkleActions.provable, () =>
         MerkleActions.fromReverse(
           actionsForAccount.map((a) => ActionList.from(a))
