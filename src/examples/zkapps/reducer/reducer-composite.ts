@@ -91,6 +91,11 @@ if (doProofs) {
   await CounterZkapp.compile();
 }
 
+console.log(
+  'rows: ',
+  (await CounterZkapp.analyzeMethods())['rollupIncrements'].rows
+);
+
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
