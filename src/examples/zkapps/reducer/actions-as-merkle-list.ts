@@ -52,7 +52,7 @@ const MAX_ACTIONS_PER_UPDATE = 2;
  * This contract allows you to push either 1 or 2 public keys as actions,
  * and has a reducer-like method which checks whether a given public key is contained in those actions.
  */
-class ActionsContract extends SmartContract {
+class Contract extends SmartContract {
   reducer = Reducer({ actionType: Action });
 
   @method
@@ -105,39 +105,40 @@ class ActionsContract extends SmartContract {
 let Local = Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let [sender, zkappAccount, otherAddress, anotherAddress] = Local.testAccounts;
+let [sender, contractAccount, otherAddress, anotherAddress] =
+  Local.testAccounts;
 
-let zkapp = new ActionsContract(zkappAccount);
+let contract = new Contract(contractAccount);
 
 // deploy the contract
 
-await ActionsContract.compile();
+await Contract.compile();
 console.log(
   `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
-  (await ActionsContract.analyzeMethods()).assertContainsAddress.rows
+  (await Contract.analyzeMethods()).assertContainsAddress.rows
 );
-let deployTx = await Mina.transaction(sender, async () => zkapp.deploy());
-await deployTx.sign([sender.key, zkappAccount.key]).send();
+let deployTx = await Mina.transaction(sender, async () => contract.deploy());
+await deployTx.sign([sender.key, contractAccount.key]).send();
 
 // push some actions
 
 let dispatchTx = await Mina.transaction(sender, async () => {
-  await zkapp.postAddress(otherAddress);
-  await zkapp.postAddress(zkappAccount);
-  await zkapp.postTwoAddresses(anotherAddress, sender);
-  await zkapp.postAddress(anotherAddress);
-  await zkapp.postTwoAddresses(zkappAccount, otherAddress);
+  await contract.postAddress(otherAddress);
+  await contract.postAddress(contractAccount);
+  await contract.postTwoAddresses(anotherAddress, sender);
+  await contract.postAddress(anotherAddress);
+  await contract.postTwoAddresses(contractAccount, otherAddress);
 });
 await dispatchTx.prove();
 await dispatchTx.sign([sender.key]).send();
 
-assert(zkapp.reducer.getActions().length === 5);
+assert(contract.reducer.getActions().length === 5);
 
 // check if the actions contain the `sender` address
 
 Local.setProofsEnabled(true);
 let containsTx = await Mina.transaction(sender, () =>
-  zkapp.assertContainsAddress(sender)
+  contract.assertContainsAddress(sender)
 );
 await containsTx.prove();
 await containsTx.sign([sender.key]).send();

@@ -41,7 +41,7 @@ Mina.setActiveInstance(Local);
 
 const [feePayer] = Local.testAccounts
 
-let contractAccount = new Mina.TestAccount(PrivateKey.random());
+let contractAccount = new Mina.random();
 let contract = new Contract(contractAccount);
 
 let initialState = Field(1);

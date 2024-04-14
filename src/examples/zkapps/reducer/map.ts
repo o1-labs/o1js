@@ -30,9 +30,9 @@ map.set(key, value);
 map.get(key);
 
 // contract
-await zkApp.deploy(); // ... deploy the zkapp
-await zkApp.set(key, value); // ... set a key-value pair
-await zkApp.get(key); // ... get a value by key
+await contract.deploy(); // ... deploy the contract
+await contract.set(key, value); // ... set a key-value pair
+await contract.get(key); // ... get a value by key
 ```
 */
 
@@ -96,17 +96,17 @@ console.log('set rows:', cs['set'].rows);
 
 let [feePayer] = Local.testAccounts;
 
-// the zkapp account
-let zkappAccount = Mina.TestAccount.random();
-let zkapp = new StorageContract(zkappAccount);
+// the contract account
+let contractAccount = Mina.TestAccount.random();
+let contract = new StorageContract(contractAccount);
 
 await StorageContract.compile();
 
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  await zkapp.deploy();
+  await contract.deploy();
 });
-await tx.sign([feePayer.key, zkappAccount.key]).send();
+await tx.sign([feePayer.key, contractAccount.key]).send();
 
 console.log('deployed');
 
@@ -130,7 +130,7 @@ let value = map[0].value;
 console.log(`setting key ${key.toBase58()} with value ${value}`);
 
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.set(key, value);
+  await contract.set(key, value);
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -140,7 +140,7 @@ value = map[1].value;
 console.log(`setting key ${key.toBase58()} with value ${value}`);
 
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.set(key, value);
+  await contract.set(key, value);
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -150,7 +150,7 @@ value = map[2].value;
 console.log(`setting key ${key.toBase58()} with value ${value}`);
 
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.set(key, value);
+  await contract.set(key, value);
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -161,7 +161,7 @@ console.log(`getting key ${key.toBase58()} with value ${value}`);
 
 let result: Option | undefined;
 tx = await Mina.transaction(feePayer, async () => {
-  result = await zkapp.get(key);
+  result = await contract.get(key);
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -175,7 +175,7 @@ value = map[1].value;
 console.log(`getting key ${key.toBase58()} with value ${value}`);
 
 tx = await Mina.transaction(feePayer, async () => {
-  result = await zkapp.get(key);
+  result = await contract.get(key);
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();
@@ -185,7 +185,7 @@ console.log('matches expected value?', result.value.equals(value).toBoolean());
 
 console.log(`getting key invalid key`);
 tx = await Mina.transaction(feePayer, async () => {
-  result = await zkapp.get(PrivateKey.random().toPublicKey());
+  result = await contract.get(PrivateKey.random().toPublicKey());
 });
 await tx.prove();
 await tx.sign([feePayer.key]).send();

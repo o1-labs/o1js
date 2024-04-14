@@ -81,7 +81,7 @@ function LocalBlockchain({
   for (let i = 0; i < 100; ++i) {
     let MINA = 10n ** 9n;
     const largeValue = 1000n * MINA;
-    const testAccount = new TestAccount(PrivateKey.random());
+    const testAccount = TestAccount.random();
     addAccount(testAccount, largeValue.toString());
     testAccounts.push(testAccount);
   }

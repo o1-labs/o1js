@@ -97,7 +97,7 @@ let initialBalance = 10_000_000_000;
 
 let [feePayer] = Local.testAccounts;
 
-let zkappAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestAccount.random();
 
 // this map serves as our off-chain in-memory storage
 let Accounts: Map<string, Account> = new Map<Names, Account>(
@@ -124,20 +124,20 @@ Tree.setLeaf(3n, Accounts.get('Olivia')!.hash());
 // now that we got our accounts set up, we need the commitment to deploy our contract!
 initialCommitment = Tree.getRoot();
 
-let leaderboardZkApp = new Leaderboard(zkappAccount);
+let contract = new Leaderboard(contractAccount);
 console.log('Deploying leaderboard..');
 if (doProofs) {
   await Leaderboard.compile();
 }
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer).send({
-    to: zkappAccount,
+    to: contractAccount,
     amount: initialBalance,
   });
-  await leaderboardZkApp.deploy();
+  await contract.deploy();
 });
 await tx.prove();
-await tx.sign([feePayer.key, zkappAccount.key]).send();
+await tx.sign([feePayer.key, contractAccount.key]).send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
 
@@ -152,13 +152,13 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   let witness = new MyMerkleWitness(w);
 
   let tx = await Mina.transaction(feePayer, async () => {
-    await leaderboardZkApp.guessPreimage(Field(guess), account, witness);
+    await contract.guessPreimage(Field(guess), account, witness);
   });
   await tx.prove();
-  await tx.sign([feePayer.key, zkappAccount.key]).send();
+  await tx.sign([feePayer.key, contractAccount.key]).send();
 
   // if the transaction was successful, we can update our off-chain storage as well
   account.points = account.points.add(1);
   Tree.setLeaf(index, account.hash());
-  leaderboardZkApp.commitment.get().assertEquals(Tree.getRoot());
+  contract.commitment.get().assertEquals(Tree.getRoot());
 }

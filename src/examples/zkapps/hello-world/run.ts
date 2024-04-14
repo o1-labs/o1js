@@ -14,19 +14,19 @@ Mina.setActiveInstance(Local);
 const [feePayer1, feePayer2, feePayer3, feePayer4] = Local.testAccounts;
 
 // zkapp account
-const zkAppAccount = Mina.TestAccount.random();
-const zkApp = new HelloWorld(zkAppAccount);
+const contractAccount = Mina.TestAccount.random();
+const contract = new HelloWorld(contractAccount);
 
 console.log('Deploying Hello World ....');
 
 txn = await Mina.transaction(feePayer1, async () => {
   AccountUpdate.fundNewAccount(feePayer1);
-  await zkApp.deploy();
+  await contract.deploy();
 });
-await txn.sign([feePayer1.key, zkAppAccount.key]).send();
+await txn.sign([feePayer1.key, contractAccount.key]).send();
 
 const initialState =
-  Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
+  Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 let currentState;
 
@@ -38,12 +38,12 @@ console.log(
 );
 
 txn = await Mina.transaction(feePayer1, async () => {
-  await zkApp.update(Field(4), adminPrivateKey);
+  await contract.update(Field(4), adminPrivateKey);
 });
 await txn.prove();
 await txn.sign([feePayer1.key]).send();
 
-currentState = Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
+currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 if (currentState !== '4') {
   throw Error(
@@ -63,7 +63,7 @@ let correctlyFails = false;
 
 try {
   txn = await Mina.transaction(feePayer1, async () => {
-    await zkApp.update(Field(16), wrongAdminPrivateKey);
+    await contract.update(Field(16), wrongAdminPrivateKey);
   });
   await txn.prove();
   await txn.sign([feePayer1.key]).send();
@@ -84,7 +84,7 @@ try {
   );
 
   txn = await Mina.transaction(feePayer1, async () => {
-    await zkApp.update(Field(30), adminPrivateKey);
+    await contract.update(Field(30), adminPrivateKey);
   });
   await txn.prove();
   await txn.sign([feePayer1.key]).send();
@@ -108,7 +108,7 @@ try {
 
   // expected to fail and current state stays at 4
   txn = await Mina.transaction({ sender: feePayer1, fee: '10' }, async () => {
-    await zkApp.update(Field(256), adminPrivateKey);
+    await contract.update(Field(256), adminPrivateKey);
   });
   await txn.prove();
   await txn.sign([feePayer1.key]).send();
@@ -124,12 +124,12 @@ if (!correctlyFails) {
 
 // expected to succeed and update state to 16
 txn2 = await Mina.transaction({ sender: feePayer2, fee: '2' }, async () => {
-  await zkApp.update(Field(16), adminPrivateKey);
+  await contract.update(Field(16), adminPrivateKey);
 });
 await txn2.prove();
 await txn2.sign([feePayer2.key]).send();
 
-currentState = Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
+currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 if (currentState !== '16') {
   throw Error(
@@ -141,12 +141,12 @@ console.log(`Update successful. Current state is ${currentState}.`);
 
 // expected to succeed and update state to 256
 txn3 = await Mina.transaction({ sender: feePayer3, fee: '1' }, async () => {
-  await zkApp.update(Field(256), adminPrivateKey);
+  await contract.update(Field(256), adminPrivateKey);
 });
 await txn3.prove();
 await txn3.sign([feePayer3.key]).send();
 
-currentState = Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
+currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 if (currentState !== '256') {
   throw Error(
@@ -161,7 +161,7 @@ correctlyFails = false;
 try {
   // expected to fail and current state remains 256
   txn4 = await Mina.transaction({ sender: feePayer4, fee: '1' }, async () => {
-    await zkApp.update(Field(16), adminPrivateKey);
+    await contract.update(Field(16), adminPrivateKey);
   });
   await txn4.prove();
   await txn4.sign([feePayer4.key]).send();
@@ -182,7 +182,8 @@ if (!correctlyFails) {
  */
 
 function handleError(error: any, errorMessage: string) {
-  currentState = Mina.getAccount(zkAppAccount).zkapp?.appState?.[0].toString();
+  currentState =
+    Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
   if (error.message.includes(errorMessage)) {
     correctlyFails = true;

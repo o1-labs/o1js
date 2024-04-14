@@ -6,7 +6,6 @@
 import {
   Field,
   State,
-  PrivateKey,
   SmartContract,
   Mina,
   AccountUpdate,
@@ -14,7 +13,7 @@ import {
   declareMethods,
 } from 'o1js';
 
-class SimpleZkapp extends SmartContract {
+class Contract extends SmartContract {
   constructor(address) {
     super(address);
     this.x = State();
@@ -36,33 +35,33 @@ class SimpleZkapp extends SmartContract {
     this.x.set(x.add(y));
   }
 }
-declareState(SimpleZkapp, { x: Field });
-declareMethods(SimpleZkapp, { update: [Field] });
+declareState(Contract, { x: Field });
+declareMethods(Contract, { update: [Field] });
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 const [feePayer] = Local.testAccounts
 
-let zkappAccount = Mina.TestAccount.random()
+let contractAccount = Mina.TestAccount.random()
 
 let initialState = Field(1);
-let zkapp = new SimpleZkapp(zkappAccount);
+let contract = new Contract(contractAccount);
 
 console.log('compile');
-await SimpleZkapp.compile();
+await Contract.compile();
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  await zkapp.deploy();
+  await contract.deploy();
 });
-await tx.sign([feePayer.key, zkappAccount.key]).send();
+await tx.sign([feePayer.key, contractAccount.key]).send();
 
-console.log('initial state: ' + zkapp.x.get());
+console.log('initial state: ' + contract.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayer, () => zkapp.update(Field(3)));
+tx = await Mina.transaction(feePayer, () => contract.update(Field(3)));
 await tx.prove();
 await tx.sign([feePayer.key]).send();
-console.log('final state: ' + zkapp.x.get());
+console.log('final state: ' + contract.x.get());
