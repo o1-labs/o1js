@@ -32,6 +32,7 @@ import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
   Poseidon,
+  ProvableHashable,
   hashConstant,
   isHashable,
   packToFields,
@@ -73,6 +74,7 @@ import {
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
+import { MerkleList } from '../provable/merkle-list.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
@@ -1236,7 +1238,7 @@ type ReducerReturn<Action> = {
   }?: {
     fromActionState?: Field;
     endActionState?: Field;
-  }): Action[][];
+  }): MerkleList<MerkleList<Action>>;
   /**
    * Fetches the list of previously emitted {@link Action}s by zkapp {@link SmartContract}.
    * ```ts
@@ -1369,7 +1371,25 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     getActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
-    }): A[][] {
+    }): MerkleList<MerkleList<A>> {
+      const Action = reducer.actionType;
+      const emptyHash = Actions.empty().hash;
+      const nextHash = (hash: Field, action: A) =>
+        Actions.pushEvent({ hash, data: [] }, Action.toFields(action)).hash;
+
+      class ActionList extends MerkleList.create(
+        Action as unknown as ProvableHashable<A>,
+        nextHash,
+        emptyHash
+      ) {}
+
+      class MerkleActions extends MerkleList.create(
+        ActionList.provable,
+        (hash: Field, actions: ActionList) =>
+          Actions.updateSequenceState(hash, actions.hash),
+        Actions.emptyActionState()
+      ) {}
+
       let actionsForAccount: A[][] = [];
       Provable.asProver(() => {
         let actions = Mina.getActions(
@@ -1386,7 +1406,12 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           )
         );
       });
-      return actionsForAccount;
+      console.log(actionsForAccount);
+      return Provable.witness(MerkleActions.provable, () =>
+        MerkleActions.fromReverse(
+          actionsForAccount.map((a) => ActionList.from(a))
+        )
+      );
     },
     async fetchActions(config?: {
       fromActionState?: Field;
