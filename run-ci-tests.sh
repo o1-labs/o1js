@@ -12,6 +12,12 @@ case $TEST_TYPE in
   ./run tests/vk-regression/diverse-zk-program-run.ts --bundle
   ;;
 
+"Reducer integration tests")
+  echo "Running reducer integration tests"
+  ./run src/examples/zkapps/reducer/actions-as-merkle-list.ts --bundle
+    ./run src/examples/zkapps/reducer/actions-as-merkle-list-iterator.ts --bundle
+  ;;
+
 "Voting integration tests")
   echo "Running voting integration tests"
   ./run src/examples/zkapps/voting/run.ts --bundle
