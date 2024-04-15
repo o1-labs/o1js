@@ -594,6 +594,7 @@ class AccountUpdate implements Types.AccountUpdate {
   private isSelf: boolean;
 
   static Actions = Actions;
+  static Events = Events;
 
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization: Control = {}, isSelf = false) {

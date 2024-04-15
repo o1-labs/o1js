@@ -39,7 +39,7 @@
     "snarky-run": "src/build/run.js"
   },
   "engines": {
-    "node": ">=16.4.0"
+    "node": ">=18.14.0"
   },
   "scripts": {
     "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",

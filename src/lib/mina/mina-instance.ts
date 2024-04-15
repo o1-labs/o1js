@@ -10,6 +10,7 @@ import type { Transaction, PendingTransaction } from './mina.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
 import type * as Fetch from './fetch.js';
+import type { TransactionPromise } from './transaction.js';
 
 export {
   Mina,
@@ -70,10 +71,7 @@ type NetworkConstants = {
 };
 
 type Mina = {
-  transaction(
-    sender: FeePayerSpec,
-    f: () => Promise<void>
-  ): Promise<Transaction>;
+  transaction(sender: FeePayerSpec, f: () => Promise<void>): TransactionPromise;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;

@@ -52,9 +52,11 @@ export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 export * as Mina from './lib/mina/mina.js';
 export {
   type Transaction,
+  type TransactionPromise,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionPromise,
 } from './lib/mina/transaction.js';
 export type { DeployArgs } from './lib/mina/zkapp.js';
 export {
