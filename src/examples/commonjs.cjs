@@ -38,9 +38,9 @@ declareMethods(Updater, { update: [Field] });
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-const [feePayer] = Local.testAccounts
+const [feePayer] = Local.testAccounts;
 
-let contractAccount = new Mina.random();
+let contractAccount = Mina.TestPublicKey.random();
 let contract = new Updater(contractAccount);
 
 let initialState = Field(1);
