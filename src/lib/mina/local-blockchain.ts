@@ -54,7 +54,7 @@ class TestAccount extends PublicKey {
   }
 
   constructor(readonly key: PrivateKey) {
-    super(key.toPublicKey());
+    super.from(key.toPublicKey());
   }
 }
 /**
