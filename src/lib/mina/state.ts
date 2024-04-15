@@ -196,10 +196,13 @@ function createState<T>(): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        AccountUpdate.setValue(
-          accountUpdate.body.update.appState[layout.offset + i],
-          x
-        );
+        let appStateSlot =
+          accountUpdate.body.update.appState[layout.offset + i];
+        if (!appStateSlot)
+          throw Error(
+            `Attempted to set on-chain state variable \`${this._contract?.key}\`. Currently, only a total of 8 fields elements of on-chain state are supported.`
+          );
+        AccountUpdate.setValue(appStateSlot, x);
       });
     },
 
