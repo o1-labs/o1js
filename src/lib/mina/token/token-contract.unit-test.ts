@@ -32,7 +32,7 @@ class ExampleTokenContract extends TokenContract {
 
 // TESTS
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
 let [

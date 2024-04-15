@@ -92,7 +92,7 @@ class Leaderboard extends SmartContract {
 
 type Names = 'Bob' | 'Alice' | 'Charlie' | 'Olivia';
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 let initialBalance = 10_000_000_000;
 

@@ -63,7 +63,7 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp

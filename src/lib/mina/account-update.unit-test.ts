@@ -107,7 +107,7 @@ function createAccountUpdate() {
 
 // does not throw an error if private key is missing unless if .send is executed
 {
-  let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+  let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
 
   const feePayer = Local.testAccounts[0].publicKey;

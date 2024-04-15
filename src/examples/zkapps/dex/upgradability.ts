@@ -25,7 +25,7 @@ console.log('all atomic actions tests were successful!');
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   const DexProfiler = getProfiler('DEX profiler atomic actions');
   DexProfiler.start('DEX test flow');
-  let Local = Mina.LocalBlockchain({
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled,
     enforceTransactionLimits: false,
   });
@@ -230,7 +230,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
 async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   const DexProfiler = getProfiler('DEX profiler upgradeability tests');
   DexProfiler.start('DEX test flow');
-  let Local = Mina.LocalBlockchain({
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled: proofsEnabled,
     enforceTransactionLimits: false,
   });

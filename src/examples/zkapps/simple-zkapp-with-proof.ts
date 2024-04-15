@@ -41,7 +41,7 @@ class NotSoSimpleZkapp extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp

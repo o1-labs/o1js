@@ -25,7 +25,7 @@ let feePayerKey: PrivateKey;
 
 beforeAll(async () => {
   // set up local blockchain, create zkapp keys, deploy the contract
-  let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+  let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
   feePayerKey = Local.testAccounts[0].privateKey;
   feePayer = Local.testAccounts[0].publicKey;

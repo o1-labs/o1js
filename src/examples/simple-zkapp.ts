@@ -69,7 +69,7 @@ class SimpleZkapp extends SmartContract {
 
 const SimpleProfiler = getProfiler('Simple zkApp');
 SimpleProfiler.start('Simple zkApp test flow');
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp

@@ -36,7 +36,7 @@ class SimpleZkapp extends SmartContract {
 declareState(SimpleZkapp, { x: Field });
 declareMethods(SimpleZkapp, { update: [Field] });
 
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 let feePayerKey = Local.testAccounts[0].privateKey;

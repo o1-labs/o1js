@@ -26,7 +26,7 @@ class NestedCall extends SmartContract {
 
 // setup
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: true });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
 let [

@@ -17,7 +17,7 @@ logEvents(
 );
 
 // Setup local ledger
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
 const feePayerKey = Local.testAccounts[0].privateKey;

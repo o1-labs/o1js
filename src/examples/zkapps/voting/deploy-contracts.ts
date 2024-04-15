@@ -52,7 +52,7 @@ export async function deployContracts(
   Local: any;
   feePayer: PrivateKey;
 }> {
-  let Local = Mina.LocalBlockchain({
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled,
     enforceTransactionLimits: true,
   });
@@ -118,7 +118,7 @@ export async function deployInvalidContracts(
   Local: any;
   feePayer: PrivateKey;
 }> {
-  let Local = Mina.LocalBlockchain({
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled: false,
     enforceTransactionLimits: false,
   });

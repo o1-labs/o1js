@@ -3,7 +3,7 @@ import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
 import { AccountUpdate, Mina, PrivateKey } from 'o1js';
 
 // setup
-const Local = Mina.LocalBlockchain();
+const Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 const { publicKey: account, privateKey: accountKey } = Local.testAccounts[0];

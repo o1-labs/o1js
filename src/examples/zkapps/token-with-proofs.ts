@@ -39,7 +39,7 @@ class ZkAppC extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 let [

@@ -135,8 +135,8 @@ let zkAppCKey: PrivateKey;
 let zkAppCAddress: PublicKey;
 let zkAppC: ZkAppC;
 
-function setupAccounts() {
-  let Local = Mina.LocalBlockchain({
+async function setupAccounts() {
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled: true,
     enforceTransactionLimits: false,
   });
@@ -175,7 +175,7 @@ async function setupLocal() {
 }
 
 async function setupLocalProofs() {
-  let Local = setupAccounts();
+  let Local = await setupAccounts();
   zkAppC = new ZkAppC(zkAppCAddress, tokenId);
   // don't use proofs for the setup, takes too long to do this every time
   Local.setProofsEnabled(false);

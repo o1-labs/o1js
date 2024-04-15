@@ -33,7 +33,7 @@ class SendMINAExample extends SmartContract {
 let proofsEnabled = false;
 if (proofsEnabled) await SendMINAExample.compile();
 
-let Local = Mina.LocalBlockchain({ proofsEnabled });
+let Local = await Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp

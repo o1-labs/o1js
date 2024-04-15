@@ -102,7 +102,7 @@ class ActionsContract extends SmartContract {
 
 // set up a local blockchain
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
 let [
