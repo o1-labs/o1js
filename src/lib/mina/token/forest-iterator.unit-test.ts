@@ -8,7 +8,7 @@ import {
   hashAccountUpdate,
 } from '../account-update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
-import { Pickles } from '../../../snarky.js';
+import { Pickles, initializeBindings } from '../../../snarky.js';
 import {
   accountUpdatesToCallForest,
   callForestHash,
@@ -19,6 +19,7 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 
+await initializeBindings();
 let [, data, hashMl] = Pickles.dummyVerificationKey();
 let dummyVerificationKey = { data, hash: hashMl[1] };
 

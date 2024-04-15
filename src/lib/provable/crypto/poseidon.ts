@@ -32,6 +32,7 @@ type ProvableHashable<T> = Provable<T> & Hashable<T>;
 class Sponge {
   #sponge: unknown;
 
+  // TODO: implement constant version in TS. currently, you need to call `initializeBindings()` before successfully calling this
   constructor() {
     let isChecked = Provable.inCheckedComputation();
     this.#sponge = Snarky.poseidon.sponge.create(isChecked);

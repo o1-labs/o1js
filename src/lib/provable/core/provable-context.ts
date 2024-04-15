@@ -1,5 +1,11 @@
 import { Context } from '../../util/global-context.js';
-import { Gate, GateType, JsonGate, Snarky } from '../../../snarky.js';
+import {
+  Gate,
+  GateType,
+  JsonGate,
+  Snarky,
+  initializeBindings,
+} from '../../../snarky.js';
 import { parseHexString32 } from '../../../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from '../../util/errors.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
@@ -76,6 +82,7 @@ async function generateWitness(
   f: (() => Promise<void>) | (() => void),
   { checkConstraints = true } = {}
 ) {
+  await initializeBindings();
   let id = snarkContext.enter({ inCheckedComputation: true });
   try {
     let finish = Snarky.run.enterGenerateWitness();
@@ -92,6 +99,8 @@ async function generateWitness(
 
 /**
  * @deprecated use `generateWitness` instead
+ *
+ * You need to call `initializeBindings()` before calling this function
  */
 function runAndCheckSync(f: () => void) {
   let id = snarkContext.enter({ inCheckedComputation: true });
@@ -107,6 +116,7 @@ function runAndCheckSync(f: () => void) {
 }
 
 async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
+  await initializeBindings();
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
   try {
     let finish = Snarky.run.enterConstraintSystem();
@@ -123,6 +133,8 @@ async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
 /**
  * helper to bridge transition to async circuits
  * @deprecated we must get rid of this
+ *
+ * You need to call `initializeBindings()` before calling this function
  */
 function constraintSystemSync(f: () => void) {
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });

@@ -22,7 +22,7 @@ import {
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
-import { Pickles, Test } from '../../snarky.js';
+import { Pickles, Test, initializeBindings } from '../../snarky.js';
 import { Memo } from './memo.js';
 import { RandomTransaction } from './random-transaction.js';
 import {
@@ -41,6 +41,8 @@ import {
   verifyFieldElement,
 } from './signature.js';
 import { NetworkId } from './types.js';
+
+await initializeBindings();
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
