@@ -21,8 +21,8 @@ let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
 const [feePayer] = Local.testAccounts;
-const contractAccount = Mina.TestPublicKey.random();
-const contract = new HelloWorld(contractAccount);
+const contractAddress = Mina.TestPublicKey.random();
+const contract = new HelloWorld(contractAddress);
 let verificationKey = null;
 
 deployButton.addEventListener('click', async () => {
@@ -40,10 +40,10 @@ deployButton.addEventListener('click', async () => {
     });
 
     await deploymentTransaction
-      .sign([feePayer.key, contractAccount.key])
+      .sign([feePayer.key, contractAddress.key])
       .send();
     const initialState =
-      Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+      Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
     stateContainer.innerHTML = initialState;
     logEvents(`Initial zkApp State: ${initialState}`, eventsContainer);
     logEvents('Deployed successfully!', eventsContainer);
@@ -66,7 +66,7 @@ updateButton.addEventListener('click', async (event) => {
 
   try {
     const currentState =
-      Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+      Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
     logEvents(
       `Updating zkApp State from ${currentState} to ${appStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
@@ -88,7 +88,7 @@ updateButton.addEventListener('click', async (event) => {
     await transaction.sign([feePayer.key]).send();
 
     const newState =
-      Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+      Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
     stateContainer.innerHTML = newState;
     logEvents(`State successfully updated to: ${newState}!`, eventsContainer);
   } catch (exception) {
