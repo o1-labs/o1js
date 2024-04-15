@@ -1,7 +1,7 @@
 import { SimpleLedger } from './transaction-logic/ledger.js';
 import { Ml } from '../ml/conversion.js';
 import { transactionCommitments } from '../../mina-signer/src/sign-zkapp-command.js';
-import { Ledger, Test } from '../../snarky.js';
+import { Ledger, Test, initializeBindings } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
@@ -43,11 +43,12 @@ export { LocalBlockchain };
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-function LocalBlockchain({
+async function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
   networkId = 'testnet' as NetworkId,
 } = {}) {
+  await initializeBindings();
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
@@ -394,4 +395,4 @@ function LocalBlockchain({
   };
 }
 // assert type compatibility without preventing LocalBlockchain to return additional properties / methods
-LocalBlockchain satisfies (...args: any) => Mina;
+LocalBlockchain satisfies (...args: any) => Promise<Mina>;

@@ -34,7 +34,7 @@ import type { KimchiGateType } from './lib/provable/gates.ts';
 import type { MlConstraintSystem } from './lib/provable/core/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { Ledger, Pickles, Gate, GateType, wasm };
+export { Ledger, Pickles, Gate, GateType, wasm, initializeBindings };
 
 // internal
 export {
@@ -732,5 +732,10 @@ declare const Pickles: {
     fromMlString(s: MlString): string;
   };
 };
+
+/**
+ * A function that has to finish before any bindings exports can be used.
+ */
+declare function initializeBindings(): Promise<void>;
 
 declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;
