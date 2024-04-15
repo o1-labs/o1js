@@ -97,7 +97,7 @@ let initialBalance = 10_000_000_000;
 
 let [feePayer] = Local.testAccounts;
 
-let contractAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestPublicKey.random();
 
 // this map serves as our off-chain in-memory storage
 let Accounts: Map<string, Account> = new Map<Names, Account>(

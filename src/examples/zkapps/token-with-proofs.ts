@@ -44,7 +44,7 @@ Mina.setActiveInstance(Local);
 let [sender, tokenAccount1] = Local.testAccounts;
 let initialBalance = 10_000_000;
 
-const [tokenAccount, cAccount, bAccount] = Mina.TestAccount.random(3);
+const [tokenAccount, cAccount, bAccount] = Mina.TestPublicKey.random(3);
 
 let token = new Token(tokenAccount);
 let tokenId = token.deriveTokenId();

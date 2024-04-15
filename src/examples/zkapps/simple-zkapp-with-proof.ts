@@ -46,7 +46,7 @@ Mina.setActiveInstance(Local);
 let [feePayer] = Local.testAccounts;
 
 const [trivialContractAccount, notSoSimpleContractAccount] =
-  Mina.TestAccount.random(2);
+  Mina.TestPublicKey.random(2);
 
 // compile and prove trivial zkapp
 console.log('compile (trivial zkapp)');

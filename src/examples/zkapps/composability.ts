@@ -58,11 +58,11 @@ Mina.setActiveInstance(Local);
 
 const [feePayer] = Local.testAccounts;
 
-let incrementerAccount = Mina.TestAccount.random();
+let incrementerAccount = Mina.TestPublicKey.random();
 let incrementer = new Incrementer(incrementerAccount);
-let adderAccount = Mina.TestAccount.random();
+let adderAccount = Mina.TestPublicKey.random();
 let adder = new Adder(adderAccount);
-let callerAccount = Mina.TestAccount.random();
+let callerAccount = Mina.TestPublicKey.random();
 let caller = new Caller(callerAccount);
 
 if (doProofs) {

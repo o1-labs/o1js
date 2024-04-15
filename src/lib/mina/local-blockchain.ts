@@ -40,21 +40,22 @@ import {
   verifyAccountUpdate,
 } from './transaction-validation.js';
 
-export { LocalBlockchain, TestAccount };
+export { LocalBlockchain, TestPublicKey };
 
-class TestAccount extends PublicKey {
-  static random<N extends number = 1>(
+type TestPublicKey = PublicKey & {
+  key: PrivateKey;
+};
+function TestPublicKey(key: PrivateKey): TestPublicKey {
+  return Object.assign(PublicKey.fromPrivateKey(key), { key });
+}
+namespace TestPublicKey {
+  export function random<N extends number = 1>(
     count: N = 1 as never
-  ): N extends 1 ? TestAccount : TupleN<TestAccount, N> {
-    if (count === 1) return new this(PrivateKey.random()) as never;
-    return Array.from(
-      { length: count as number },
-      () => new this(PrivateKey.random())
+  ): N extends 1 ? TestPublicKey : TupleN<TestPublicKey, N> {
+    if (count === 1) return TestPublicKey(PrivateKey.random()) as never;
+    return Array.from({ length: count as number }, () =>
+      TestPublicKey(PrivateKey.random())
     ) as never;
-  }
-
-  constructor(readonly key: PrivateKey) {
-    super.from(key.toPublicKey());
   }
 }
 /**
@@ -76,12 +77,12 @@ function LocalBlockchain({
     ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
   }
 
-  let testAccounts = [] as never as TupleN<TestAccount, 100>;
+  let testAccounts = [] as never as TupleN<TestPublicKey, 100>;
 
   for (let i = 0; i < 100; ++i) {
     let MINA = 10n ** 9n;
     const largeValue = 1000n * MINA;
-    const testAccount = TestAccount.random();
+    const testAccount = TestPublicKey.random();
     addAccount(testAccount, largeValue.toString());
     testAccounts.push(testAccount);
   }

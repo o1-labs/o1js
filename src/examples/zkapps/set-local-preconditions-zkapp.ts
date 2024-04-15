@@ -24,7 +24,7 @@ Mina.setActiveInstance(Local);
 
 const [feePayer] = Local.testAccounts;
 
-let contractAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestPublicKey.random();
 
 let contract = new BlockHeightReference(contractAccount);
 

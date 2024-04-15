@@ -116,16 +116,16 @@ class C extends SmartContract {
   }
 }
 
-let feePayer: Mina.TestAccount;
+let feePayer: Mina.TestPublicKey;
 
-let tokenAccount: Mina.TestAccount;
+let tokenAccount: Mina.TestPublicKey;
 let token: TokenContract;
 let tokenId: Field;
 
-let bAccount: Mina.TestAccount;
+let bAccount: Mina.TestPublicKey;
 let b: B;
 
-let cAccount: Mina.TestAccount;
+let cAccount: Mina.TestPublicKey;
 let c: C;
 
 function setupAccounts() {
@@ -135,7 +135,7 @@ function setupAccounts() {
   });
   Mina.setActiveInstance(Local);
   [feePayer, bAccount, cAccount] = Local.testAccounts;
-  tokenAccount = Mina.TestAccount.random();
+  tokenAccount = Mina.TestPublicKey.random();
   token = new TokenContract(tokenAccount);
   tokenId = token.deriveTokenId();
   b = new B(bAccount, tokenId);

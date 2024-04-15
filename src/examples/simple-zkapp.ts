@@ -76,10 +76,10 @@ Mina.setActiveInstance(Local);
 let [sender, payout] = Local.testAccounts;
 
 // the zkapp account
-let zkappAccount = Mina.TestAccount.random();
+let zkappAccount = Mina.TestPublicKey.random();
 
 // a special account that is allowed to pull out half of the zkapp balance, once
-let privileged = new Mina.TestAccount(
+let privileged = Mina.TestPublicKey(
   PrivateKey.fromBase58('EKEeoESE2A41YQnSht9f7mjiKpJSeZ4jnfHXYatYi8xJdYSxWBep')
 );
 

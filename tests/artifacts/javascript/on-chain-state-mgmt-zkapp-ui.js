@@ -21,7 +21,7 @@ let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
 const [feePayer] = Local.testAccounts;
-const contractAccount = Mina.TestAccount.random();
+const contractAccount = Mina.TestPublicKey.random();
 const contract = new HelloWorld(contractAccount);
 let verificationKey = null;
 

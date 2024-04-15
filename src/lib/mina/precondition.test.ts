@@ -17,9 +17,9 @@ class MyContract extends SmartContract {
   }
 }
 
-let contractAccount: Mina.TestAccount;
+let contractAccount: Mina.TestPublicKey;
 let contract: MyContract;
-let feePayer: Mina.TestAccount;
+let feePayer: Mina.TestPublicKey;
 
 beforeAll(async () => {
   // set up local blockchain, create contract account keys, deploy the contract
@@ -27,7 +27,7 @@ beforeAll(async () => {
   Mina.setActiveInstance(Local);
   [feePayer] = Local.testAccounts;
 
-  contractAccount = Mina.TestAccount.random();
+  contractAccount = Mina.TestPublicKey.random();
   contract = new MyContract(contractAccount);
 
   let tx = await Mina.transaction(feePayer, async () => {

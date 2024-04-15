@@ -47,7 +47,7 @@ Mina.setActiveInstance(Local);
 // a test account that pays all the fees, and puts additional funds into the zkapp
 const [feePayer] = Local.testAccounts;
 
-let contractAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestPublicKey.random();
 let contract = new LocalEvents(contractAccount);
 
 let initialState = Field(1);

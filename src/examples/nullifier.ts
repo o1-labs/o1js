@@ -54,10 +54,10 @@ Mina.setActiveInstance(Local);
 let [sender] = Local.testAccounts;
 
 // the contract account
-let contractAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestPublicKey.random();
 
 // a special account that is allowed to pull out half of the contract balance, once
-let privileged = Mina.TestAccount.random();
+let privileged = Mina.TestPublicKey.random();
 
 let initialBalance = 10_000_000_000;
 let contract = new PayoutOnlyOnce(contractAccount);

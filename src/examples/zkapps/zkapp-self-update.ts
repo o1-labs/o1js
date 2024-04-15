@@ -40,7 +40,7 @@ class Bar extends SmartContract {
 const Local = Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
-const contractAccount = Mina.TestAccount.random();
+const contractAccount = Mina.TestPublicKey.random();
 const contract = new SelfUpdater(contractAccount);
 
 const [deployer] = Local.testAccounts;

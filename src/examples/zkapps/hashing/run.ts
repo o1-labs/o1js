@@ -16,7 +16,7 @@ if (proofsEnabled) {
 const [feePayer] = Local.testAccounts;
 
 // zkapp account
-const contractAccount = Mina.TestAccount.random();
+const contractAccount = Mina.TestPublicKey.random();
 const contract = new HashStorage(contractAccount);
 
 // 0, 1, 2, 3, ..., 31

@@ -79,7 +79,7 @@ Mina.setActiveInstance(Local);
 let [feePayer] = Local.testAccounts;
 
 // the contract account
-let contractAccount = new Mina.TestAccount(
+let contractAccount = Mina.TestPublicKey(
   PrivateKey.fromBase58('EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD')
 );
 let contract = new Counter(contractAccount);

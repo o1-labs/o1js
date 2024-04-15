@@ -69,10 +69,10 @@ Mina.setActiveInstance(Local);
 // a test account that pays all the fees, and puts additional funds into the contract
 let [sender] = Local.testAccounts;
 
-let contractAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestPublicKey.random();
 
 // a special account that is allowed to pull out half of the contract balance, once
-let privileged = new Mina.TestAccount(
+let privileged = Mina.TestPublicKey(
   PrivateKey.fromBase58('EKEeoESE2A41YQnSht9f7mjiKpJSeZ4jnfHXYatYi8xJdYSxWBep')
 );
 

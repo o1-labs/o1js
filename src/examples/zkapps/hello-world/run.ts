@@ -14,7 +14,7 @@ Mina.setActiveInstance(Local);
 const [feePayer1, feePayer2, feePayer3, feePayer4] = Local.testAccounts;
 
 // zkapp account
-const contractAccount = Mina.TestAccount.random();
+const contractAccount = Mina.TestPublicKey.random();
 const contract = new HelloWorld(contractAccount);
 
 console.log('Deploying Hello World ....');

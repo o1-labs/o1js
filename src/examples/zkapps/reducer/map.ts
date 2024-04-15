@@ -97,7 +97,7 @@ console.log('set rows:', cs['set'].rows);
 let [feePayer] = Local.testAccounts;
 
 // the contract account
-let contractAccount = Mina.TestAccount.random();
+let contractAccount = Mina.TestPublicKey.random();
 let contract = new StorageContract(contractAccount);
 
 await StorageContract.compile();
