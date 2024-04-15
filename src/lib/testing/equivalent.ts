@@ -371,6 +371,14 @@ function record<Specs extends { [k in string]: Spec<any, any> }>(
 }
 
 function map<T1, T2, S1, S2>(
+  { from, to }: { from: ProvableSpec<T1, T2>; to: ProvableSpec<S1, S2> },
+  there: (t: T1) => S1
+): ProvableSpec<S1, S2>;
+function map<T1, T2, S1, S2>(
+  { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
+  there: (t: T1) => S1
+): Spec<S1, S2>;
+function map<T1, T2, S1, S2>(
   { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
   there: (t: T1) => S1
 ): Spec<S1, S2> {

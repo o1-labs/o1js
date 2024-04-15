@@ -39,6 +39,7 @@ import {
   verifyTransactionLimits,
   verifyAccountUpdate,
 } from './transaction-validation.js';
+import { prettifyStacktrace } from '../util/errors.js';
 
 export { LocalBlockchain, TestPublicKey };
 
@@ -58,23 +59,26 @@ namespace TestPublicKey {
     ) as never;
   }
 }
+
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
 function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
-  networkId = 'testnet' as NetworkId,
 } = {}) {
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
   const ledger = Ledger.create();
   let networkState = defaultNetworkState();
-  let minaNetworkId: NetworkId = networkId;
 
   function addAccount(publicKey: PublicKey, balance: string) {
-    ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
+    try {
+      ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    }
   }
 
   let testAccounts = [] as never as TupleN<TestPublicKey, 100>;
@@ -94,7 +98,7 @@ function LocalBlockchain({
   > = {};
 
   return {
-    getNetworkId: () => minaNetworkId,
+    getNetworkId: () => 'testnet' as NetworkId,
     proofsEnabled,
     getNetworkConstants() {
       return {
@@ -135,7 +139,7 @@ function LocalBlockchain({
       let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       let commitments = transactionCommitments(
         TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
-        minaNetworkId
+        this.getNetworkId()
       );
 
       if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
@@ -316,7 +320,7 @@ function LocalBlockchain({
     },
     transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       return toTransactionPromise(async () => {
-        // TODO we run the transaction twice to match the behaviour of `Network.transaction`
+        // TODO we run the transaction twice to match the behavior of `Network.transaction`
         let tx = await createTransaction(sender, f, 0, {
           isFinalRunOutsideCircuit: false,
           proofsEnabled: this.proofsEnabled,
