@@ -3,7 +3,7 @@ import {
   adminPrivateKey,
   HelloWorld,
 } from './examples/zkapps/hello-world/hello-world.js';
-import { AccountUpdate, Field, Mina, PrivateKey, verify } from './index.js';
+import { AccountUpdate, Field, Mina, verify } from './index.js';
 
 const deployButton = document.querySelector('#deployButton');
 const updateButton = document.querySelector('#updateButton');
@@ -45,7 +45,7 @@ deployButton.addEventListener('click', async () => {
     const initialState =
       Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
     stateContainer.innerHTML = initialState;
-    logEvents(`Initial zkApp State: ${initialState}`, eventsContainer);
+    logEvents(`Initial state: ${initialState}`, eventsContainer);
     logEvents('Deployed successfully!', eventsContainer);
   } catch (exception) {
     logEvents(`Deployment failure: ${exception.message}`, eventsContainer);
@@ -68,7 +68,7 @@ updateButton.addEventListener('click', async (event) => {
     const currentState =
       Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
     logEvents(
-      `Updating zkApp State from ${currentState} to ${appStateValue.value} with Admin Private Key and using form data: ${formData}...`,
+      `Updating state from ${currentState} to ${appStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
     );
     const transaction = await Mina.transaction(feePayer, async () => {
