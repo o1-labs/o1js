@@ -17,25 +17,24 @@ class MyContract extends SmartContract {
   }
 }
 
-let zkappKey: PrivateKey;
-let zkappAddress: Mina.TestAccount;
-let zkapp: MyContract;
+let contractAccount: Mina.TestAccount;
+let contract: MyContract;
 let feePayer: Mina.TestAccount;
 
 beforeAll(async () => {
-  // set up local blockchain, create zkapp keys, deploy the contract
+  // set up local blockchain, create contract account keys, deploy the contract
   let Local = Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
   [feePayer] = Local.testAccounts;
 
-  zkappAddress = Mina.TestAccount.random();
-  zkapp = new MyContract(zkappAddress);
+  contractAccount = Mina.TestAccount.random();
+  contract = new MyContract(contractAccount);
 
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
-    await zkapp.deploy();
+    await contract.deploy();
   });
-  tx.sign([feePayer.key, zkappKey]).send();
+  tx.sign([feePayer.key, contractAccount.key]).send();
 });
 
 describe('preconditions', () => {
@@ -44,7 +43,7 @@ describe('preconditions', () => {
       await expect(
         Mina.transaction(feePayer, async () => {
           precondition().get();
-          AccountUpdate.attachToTransaction(zkapp.self);
+          AccountUpdate.attachToTransaction(contract.self);
         })
       ).rejects.toThrow(/precondition/);
     }
@@ -55,18 +54,18 @@ describe('preconditions', () => {
   });
 
   it('get + requireEquals should not throw', async () => {
-    let nonce = zkapp.account.nonce.get();
+    let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
-      zkapp.requireSignature();
+      contract.requireSignature();
       for (let precondition of implemented) {
         let p = precondition().get();
         precondition().requireEquals(p as any);
       }
-      AccountUpdate.attachToTransaction(zkapp.self);
+      AccountUpdate.attachToTransaction(contract.self);
     });
-    await tx.sign([feePayer.key, zkappKey]).send();
+    await tx.sign([feePayer.key, contractAccount.key]).send();
     // check that tx was applied, by checking nonce was incremented
-    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
   it('get + requireEquals should throw for unimplemented fields', async () => {
@@ -75,81 +74,82 @@ describe('preconditions', () => {
         Mina.transaction(feePayer, async () => {
           let p = precondition();
           p.requireEquals(p.get() as any);
-          AccountUpdate.attachToTransaction(zkapp.self);
+          AccountUpdate.attachToTransaction(contract.self);
         })
       ).rejects.toThrow(/not implemented/);
     }
   });
 
   it('get + requireBetween should not throw', async () => {
-    let nonce = zkapp.account.nonce.get();
+    let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
       for (let precondition of implementedWithRange) {
         let p: any = precondition().get();
         precondition().requireBetween(p.constructor.zero, p);
       }
-      zkapp.requireSignature();
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
     });
-    await tx.sign([feePayer.key, zkappKey]).send();
+    await tx.sign([feePayer.key, contractAccount.key]).send();
     // check that tx was applied, by checking nonce was incremented
-    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
   it('satisfied currentSlot.requireBetween should not throw', async () => {
-    let nonce = zkapp.account.nonce.get();
+    let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
-      zkapp.currentSlot.requireBetween(
+      contract.currentSlot.requireBetween(
         UInt32.from(0),
         UInt32.from(UInt32.MAXINT())
       );
-      zkapp.requireSignature();
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
     });
-    await tx.sign([feePayer.key, zkappKey]).send();
-    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+    await tx.sign([feePayer.key, contractAccount.key]).send();
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
   it('get + requireNothing should not throw', async () => {
-    let nonce = zkapp.account.nonce.get();
+    let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
       for (let precondition of implemented) {
         precondition().get();
         precondition().requireNothing();
       }
-      zkapp.requireSignature();
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
     });
-    await tx.sign([feePayer.key, zkappKey]).send();
+    await tx.sign([feePayer.key, contractAccount.key]).send();
     // check that tx was applied, by checking nonce was incremented
-    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
   it('get + manual precondition should not throw', async () => {
     // we only test this for a couple of preconditions
-    let nonce = zkapp.account.nonce.get();
+    let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
-      zkapp.account.balance.get();
-      zkapp.self.body.preconditions.account.balance.isSome = Bool(true);
-      zkapp.self.body.preconditions.account.balance.value.upper =
+      contract.account.balance.get();
+      contract.self.body.preconditions.account.balance.isSome = Bool(true);
+      contract.self.body.preconditions.account.balance.value.upper =
         UInt64.from(10e9);
 
-      zkapp.network.blockchainLength.get();
-      zkapp.self.body.preconditions.network.blockchainLength.isSome =
+      contract.network.blockchainLength.get();
+      contract.self.body.preconditions.network.blockchainLength.isSome =
         Bool(true);
-      zkapp.self.body.preconditions.network.blockchainLength.value.upper =
+      contract.self.body.preconditions.network.blockchainLength.value.upper =
         UInt32.from(1000);
 
-      zkapp.network.totalCurrency.get();
-      zkapp.self.body.preconditions.network.totalCurrency.isSome = Bool(true);
-      zkapp.self.body.preconditions.network.totalCurrency.value.upper =
+      contract.network.totalCurrency.get();
+      contract.self.body.preconditions.network.totalCurrency.isSome =
+        Bool(true);
+      contract.self.body.preconditions.network.totalCurrency.value.upper =
         UInt64.from(1e9 * 1e9);
-      zkapp.requireSignature();
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
     });
-    await tx.sign([feePayer.key, zkappKey]).send();
+    await tx.sign([feePayer.key, contractAccount.key]).send();
     // check that tx was applied, by checking nonce was incremented
-    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
   it('unsatisfied requireEquals should be rejected (numbers)', async () => {
@@ -158,7 +158,7 @@ describe('preconditions', () => {
         let tx = await Mina.transaction(feePayer, async () => {
           let p = precondition().get();
           precondition().requireEquals(p.add(1) as any);
-          AccountUpdate.attachToTransaction(zkapp.self);
+          AccountUpdate.attachToTransaction(contract.self);
         });
         await tx.sign([feePayer.key]).send();
       }).rejects.toThrow(/unsatisfied/);
@@ -170,7 +170,7 @@ describe('preconditions', () => {
       let tx = await Mina.transaction(feePayer, async () => {
         let p = precondition().get();
         precondition().requireEquals(p.not());
-        AccountUpdate.attachToTransaction(zkapp.self);
+        AccountUpdate.attachToTransaction(contract.self);
       });
       await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
         /unsatisfied/
@@ -181,8 +181,8 @@ describe('preconditions', () => {
   it('unsatisfied requireEquals should be rejected (public key)', async () => {
     let publicKey = PublicKey.from({ x: Field(-1), isOdd: Bool(false) });
     let tx = await Mina.transaction(feePayer, async () => {
-      zkapp.account.delegate.requireEquals(publicKey);
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.account.delegate.requireEquals(publicKey);
+      AccountUpdate.attachToTransaction(contract.self);
     });
     await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
   });
@@ -192,7 +192,7 @@ describe('preconditions', () => {
       let tx = await Mina.transaction(feePayer, async () => {
         let p: any = precondition().get();
         precondition().requireBetween(p.add(20), p.add(30));
-        AccountUpdate.attachToTransaction(zkapp.self);
+        AccountUpdate.attachToTransaction(contract.self);
       });
       await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
         /unsatisfied/
@@ -202,8 +202,8 @@ describe('preconditions', () => {
 
   it('unsatisfied currentSlot.requireBetween should be rejected', async () => {
     let tx = await Mina.transaction(feePayer, async () => {
-      zkapp.currentSlot.requireBetween(UInt32.from(20), UInt32.from(30));
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.currentSlot.requireBetween(UInt32.from(20), UInt32.from(30));
+      AccountUpdate.attachToTransaction(contract.self);
     });
     await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
   });
@@ -213,61 +213,61 @@ describe('preconditions', () => {
   // however, this is just because `zkapp.requireSignature()` overwrites the nonce precondition with one that is satisfied
   it.skip('unsatisfied nonce precondition should be rejected', async () => {
     let tx = await Mina.transaction(feePayer, async () => {
-      zkapp.account.nonce.requireEquals(UInt32.from(1e8));
-      zkapp.requireSignature();
-      AccountUpdate.attachToTransaction(zkapp.self);
+      contract.account.nonce.requireEquals(UInt32.from(1e8));
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
     });
-    expect(() => tx.sign([zkappKey, feePayer.key]).send()).toThrow();
+    expect(() => tx.sign([contractAccount.key, feePayer.key]).send()).toThrow();
   });
 });
 
 let implementedNumber = [
-  () => zkapp.account.balance,
-  () => zkapp.account.nonce,
-  () => zkapp.account.receiptChainHash,
-  () => zkapp.network.blockchainLength,
-  () => zkapp.network.globalSlotSinceGenesis,
-  () => zkapp.network.timestamp,
-  () => zkapp.network.minWindowDensity,
-  () => zkapp.network.totalCurrency,
-  () => zkapp.network.stakingEpochData.epochLength,
-  () => zkapp.network.stakingEpochData.ledger.totalCurrency,
-  () => zkapp.network.nextEpochData.epochLength,
-  () => zkapp.network.nextEpochData.ledger.totalCurrency,
-  () => zkapp.network.snarkedLedgerHash,
-  () => zkapp.network.stakingEpochData.lockCheckpoint,
-  () => zkapp.network.stakingEpochData.startCheckpoint,
+  () => contract.account.balance,
+  () => contract.account.nonce,
+  () => contract.account.receiptChainHash,
+  () => contract.network.blockchainLength,
+  () => contract.network.globalSlotSinceGenesis,
+  () => contract.network.timestamp,
+  () => contract.network.minWindowDensity,
+  () => contract.network.totalCurrency,
+  () => contract.network.stakingEpochData.epochLength,
+  () => contract.network.stakingEpochData.ledger.totalCurrency,
+  () => contract.network.nextEpochData.epochLength,
+  () => contract.network.nextEpochData.ledger.totalCurrency,
+  () => contract.network.snarkedLedgerHash,
+  () => contract.network.stakingEpochData.lockCheckpoint,
+  () => contract.network.stakingEpochData.startCheckpoint,
   // () => zkapp.network.stakingEpochData.seed,
-  () => zkapp.network.stakingEpochData.ledger.hash,
-  () => zkapp.network.nextEpochData.lockCheckpoint,
-  () => zkapp.network.nextEpochData.startCheckpoint,
+  () => contract.network.stakingEpochData.ledger.hash,
+  () => contract.network.nextEpochData.lockCheckpoint,
+  () => contract.network.nextEpochData.startCheckpoint,
   // () => zkapp.network.nextEpochData.seed,
-  () => zkapp.network.nextEpochData.ledger.hash,
+  () => contract.network.nextEpochData.ledger.hash,
 ];
 let implementedBool = [
-  () => zkapp.account.isNew,
-  () => zkapp.account.provedState,
+  () => contract.account.isNew,
+  () => contract.account.provedState,
 ];
 let implemented = [
   ...implementedNumber,
   ...implementedBool,
-  () => zkapp.account.delegate,
+  () => contract.account.delegate,
 ];
 let implementedWithRange = [
-  () => zkapp.account.balance,
-  () => zkapp.account.nonce,
-  () => zkapp.network.blockchainLength,
-  () => zkapp.network.globalSlotSinceGenesis,
-  () => zkapp.network.timestamp,
-  () => zkapp.network.minWindowDensity,
-  () => zkapp.network.totalCurrency,
-  () => zkapp.network.stakingEpochData.epochLength,
-  () => zkapp.network.stakingEpochData.ledger.totalCurrency,
-  () => zkapp.network.nextEpochData.epochLength,
-  () => zkapp.network.nextEpochData.ledger.totalCurrency,
+  () => contract.account.balance,
+  () => contract.account.nonce,
+  () => contract.network.blockchainLength,
+  () => contract.network.globalSlotSinceGenesis,
+  () => contract.network.timestamp,
+  () => contract.network.minWindowDensity,
+  () => contract.network.totalCurrency,
+  () => contract.network.stakingEpochData.epochLength,
+  () => contract.network.stakingEpochData.ledger.totalCurrency,
+  () => contract.network.nextEpochData.epochLength,
+  () => contract.network.nextEpochData.ledger.totalCurrency,
 ];
-let implementedWithRangeOnly = [() => zkapp.currentSlot];
+let implementedWithRangeOnly = [() => contract.currentSlot];
 let unimplemented = [
-  () => zkapp.network.stakingEpochData.seed,
-  () => zkapp.network.nextEpochData.seed,
+  () => contract.network.stakingEpochData.seed,
+  () => contract.network.nextEpochData.seed,
 ];
