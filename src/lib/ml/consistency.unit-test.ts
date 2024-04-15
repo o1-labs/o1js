@@ -9,6 +9,8 @@ import { FieldConst } from '../provable/core/fieldvar.js';
 import { Provable } from '../provable/provable.js';
 import { runAndCheckSync } from '../provable/core/provable-context.js';
 
+let mlTest = await Test();
+
 // PrivateKey.toBase58, fromBase58
 
 test(Random.privateKey, (s) => {
@@ -19,13 +21,13 @@ test(Random.privateKey, (s) => {
   let skMl = Ml.fromPrivateKey(sk);
 
   // toBase58 - check consistency with ml
-  let ml = Test.encoding.privateKeyToBase58(skMl);
+  let ml = mlTest.encoding.privateKeyToBase58(skMl);
   let js = sk.toBase58();
   expect(js).toEqual(ml);
 
   // fromBase58 - check consistency with where we started
   expect(PrivateKey.fromBase58(js)).toEqual(sk);
-  expect(Test.encoding.privateKeyOfBase58(ml)).toEqual(skMl);
+  expect(mlTest.encoding.privateKeyOfBase58(ml)).toEqual(skMl);
 });
 
 // PublicKey.toBase58, fromBase58
@@ -36,25 +38,25 @@ test(Random.publicKey, (pk0) => {
   let pkMl = Ml.fromPublicKey(pk);
 
   // toBase58 - check consistency with ml
-  let ml = Test.encoding.publicKeyToBase58(pkMl);
+  let ml = mlTest.encoding.publicKeyToBase58(pkMl);
   let js = pk.toBase58();
   expect(js).toEqual(ml);
 
   // fromBase58 - check consistency with where we started
   expect(PublicKey.fromBase58(js)).toEqual(pk);
-  expect(Test.encoding.publicKeyOfBase58(ml)).toEqual(pkMl);
+  expect(mlTest.encoding.publicKeyOfBase58(ml)).toEqual(pkMl);
 });
 
 // dummy signature
 let js = dummySignature();
-let ml = Test.signature.dummySignature();
+let ml = mlTest.signature.dummySignature();
 expect(js).toEqual(ml);
 
 // token id to/from base58
 
 test(Random.field, (x) => {
   let js = TokenId.toBase58(Field(x));
-  let ml = Test.encoding.tokenIdToBase58(FieldConst.fromBigint(x));
+  let ml = mlTest.encoding.tokenIdToBase58(FieldConst.fromBigint(x));
   expect(js).toEqual(ml);
 
   expect(TokenId.fromBase58(js).toBigInt()).toEqual(x);
@@ -78,7 +80,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
 
   let js = TokenId.derive(tokenOwner, parentTokenId);
   let ml = Field(
-    Test.tokenId.derive(
+    mlTest.tokenId.derive(
       Ml.fromPublicKey(tokenOwner),
       Ml.constFromField(parentTokenId)
     )
@@ -101,7 +103,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
 
     let js = TokenId.derive(tokenOwner, parentTokenId);
     let ml = Field(
-      Test.tokenId.deriveChecked(
+      mlTest.tokenId.deriveChecked(
         Ml.fromPublicKeyVar(tokenOwner),
         Ml.varFromField(parentTokenId)
       )

@@ -10,6 +10,8 @@ import {
 import { Test } from '../../snarky.js';
 import { expect } from 'expect';
 
+let mlTest = await Test();
+
 let address = PrivateKey.random().toPublicKey();
 
 function createAccountUpdate() {
@@ -24,7 +26,7 @@ function createAccountUpdate() {
 
   // convert accountUpdate to fields in OCaml, going via AccountUpdate.of_json
   let json = JSON.stringify(accountUpdate.toJSON().body);
-  let [, ...fields1_] = Test.fieldsFromJson.accountUpdate(json);
+  let [, ...fields1_] = mlTest.fieldsFromJson.accountUpdate(json);
   let fields1 = fields1_.map(Field);
   // convert accountUpdate to fields in pure JS, leveraging generated code
   let fields2 = Types.AccountUpdate.toFields(accountUpdate);
@@ -79,7 +81,7 @@ function createAccountUpdate() {
     let accountUpdate = AccountUpdate.create(address);
     accountUpdate.approve(AccountUpdate.create(otherAddress));
   });
-  let publicInputOcaml = Test.hashFromJson.zkappPublicInput(tx.toJSON(), 0);
+  let publicInputOcaml = mlTest.hashFromJson.zkappPublicInput(tx.toJSON(), 0);
 
   expect(publicInput).toEqual({
     accountUpdate: Field(publicInputOcaml.accountUpdate),

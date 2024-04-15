@@ -497,7 +497,9 @@ declare class Ledger {
   ): JsonAccount | undefined;
 }
 
-declare const Test: {
+declare function Test(): Promise<Test>;
+
+type Test = {
   encoding: {
     // arbitrary base58Check encoding
     toBase58(s: MlBytes, versionByte: number): string;

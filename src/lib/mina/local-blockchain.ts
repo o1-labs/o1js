@@ -256,7 +256,8 @@ async function LocalBlockchain({
         }
       });
 
-      const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
+      let test = await Test();
+      const hash = test.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
         {
           status,

@@ -268,7 +268,8 @@ function Network(
 
       const status: PendingTransactionStatus =
         errors.length === 0 ? 'pending' : 'rejected';
-      const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
+      let mlTest = await Test();
+      const hash = mlTest.transactionHash.hashZkAppCommand(txn.toJSON());
       const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
         {
           status,

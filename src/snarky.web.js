@@ -4,7 +4,7 @@ import {
   withThreadPool,
 } from './bindings/js/web/web-backend.js';
 
-let Snarky, Ledger, Pickles, Test;
+let Snarky, Ledger, Pickles, Test_;
 let isInitialized = false;
 
 async function initializeBindings() {
@@ -12,7 +12,12 @@ async function initializeBindings() {
   isInitialized = true;
 
   await init();
-  ({ Snarky, Ledger, Pickles, Test } = globalThis.__snarky);
+  ({ Snarky, Ledger, Pickles, Test: Test_ } = globalThis.__snarky);
+}
+
+async function Test() {
+  await initializeBindings();
+  return Test_;
 }
 
 let wasm = globalThis.plonk_wasm;

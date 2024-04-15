@@ -16,7 +16,7 @@ import { MlHashInput } from '../ml/conversion.js';
 import { MlFieldConstArray } from '../ml/fields.js';
 import { Test } from '../../snarky.js';
 
-let { hashInputFromJson } = Test;
+let { hashInputFromJson } = await Test();
 
 // types
 type Body = Types.AccountUpdate['body'];
