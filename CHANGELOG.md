@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
   - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
   - Breaks circuits that used EC addition, like ECDSA
+- `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
 
 ### Changes
 
