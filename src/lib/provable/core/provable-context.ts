@@ -16,10 +16,9 @@ export {
   snarkContext,
   SnarkContext,
   asProver,
-  runAndCheckSync,
+  synchronousRunners,
   generateWitness,
   constraintSystem,
-  constraintSystemSync,
   inProver,
   inAnalyze,
   inCheckedComputation,
@@ -97,24 +96,6 @@ async function generateWitness(
   }
 }
 
-/**
- * @deprecated use `generateWitness` instead
- *
- * You need to call `initializeBindings()` before calling this function
- */
-function runAndCheckSync(f: () => void) {
-  let id = snarkContext.enter({ inCheckedComputation: true });
-  try {
-    let finish = Snarky.run.enterGenerateWitness();
-    f();
-    return finish();
-  } catch (error) {
-    throw prettifyStacktrace(error);
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
 async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
   await initializeBindings();
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
@@ -131,23 +112,42 @@ async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
 }
 
 /**
- * helper to bridge transition to async circuits
- * @deprecated we must get rid of this
- *
- * You need to call `initializeBindings()` before calling this function
+ * helpers to run circuits in synchronous tests
  */
-function constraintSystemSync(f: () => void) {
-  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
-  try {
-    let finish = Snarky.run.enterConstraintSystem();
-    f();
-    let cs = finish();
-    return constraintSystemToJS(cs);
-  } catch (error) {
-    throw prettifyStacktrace(error);
-  } finally {
-    snarkContext.leave(id);
+async function synchronousRunners() {
+  await initializeBindings();
+
+  function runAndCheckSync(f: () => void) {
+    let id = snarkContext.enter({ inCheckedComputation: true });
+    try {
+      let finish = Snarky.run.enterGenerateWitness();
+      f();
+      finish();
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    } finally {
+      snarkContext.leave(id);
+    }
   }
+
+  function constraintSystemSync(f: () => void) {
+    let id = snarkContext.enter({
+      inAnalyze: true,
+      inCheckedComputation: true,
+    });
+    try {
+      let finish = Snarky.run.enterConstraintSystem();
+      f();
+      let cs = finish();
+      return constraintSystemToJS(cs);
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    } finally {
+      snarkContext.leave(id);
+    }
+  }
+
+  return { runAndCheckSync, constraintSystemSync };
 }
 
 function constraintSystemToJS(cs: MlConstraintSystem) {

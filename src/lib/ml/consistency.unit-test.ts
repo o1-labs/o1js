@@ -7,9 +7,10 @@ import { Ml } from './conversion.js';
 import { expect } from 'expect';
 import { FieldConst } from '../provable/core/fieldvar.js';
 import { Provable } from '../provable/provable.js';
-import { runAndCheckSync } from '../provable/core/provable-context.js';
+import { synchronousRunners } from '../provable/core/provable-context.js';
 
 let mlTest = await Test();
+let { runAndCheckSync } = await synchronousRunners();
 
 // PrivateKey.toBase58, fromBase58
 
