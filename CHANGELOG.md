@@ -28,11 +28,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
   - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
   - Breaks circuits that used EC addition, like ECDSA
-- `Mina.LocalBlockchain()` was made async https://github.com/o1-labs/o1js/pull/1583
+- `Mina.LocalBlockchain()` is made async https://github.com/o1-labs/o1js/pull/1583
   - This was the last remaining sync API that depended on an async setup task; making it async enables removing top-level await
 - `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
 - `Poseidon.hashToGroup()` now returns a `Group` directly, and constrains it to be deterministic https://github.com/o1-labs/o1js/pull/1546
   - Added `Poseidon.Unsafe.hashToGroup()` as a more efficient, non-deterministic version for advanced use cases
+
+### Added
+
+- Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
+- `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
+  - calling this function is optional
 
 ### Changes
 
@@ -40,10 +46,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - To simplify integration with bundlers like webpack
 - Make `MerkleTree.{nodes,zeroes}` public properties https://github.com/o1-labs/o1js/pull/1555
   - This makes it possible to clone merkle trees, which is often needed
-
-### Added
-
-- Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
 
 ### Fixed
 
