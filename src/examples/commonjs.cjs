@@ -36,21 +36,22 @@ class SimpleZkapp extends SmartContract {
 declareState(SimpleZkapp, { x: Field });
 declareMethods(SimpleZkapp, { update: [Field] });
 
-let Local = await Mina.LocalBlockchain();
-Mina.setActiveInstance(Local);
-
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
-
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
-
 let initialState = Field(1);
-let zkapp = new SimpleZkapp(zkappAddress);
 
 main();
 
 async function main() {
+  let Local = await Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+
+  let feePayerKey = Local.testAccounts[0].privateKey;
+  let feePayer = Local.testAccounts[0].publicKey;
+
+  let zkappKey = PrivateKey.random();
+  let zkappAddress = zkappKey.toPublicKey();
+
+  let zkapp = new SimpleZkapp(zkappAddress);
+
   console.log('compile');
   await SimpleZkapp.compile();
 
