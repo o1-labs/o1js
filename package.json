@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "keywords": [
