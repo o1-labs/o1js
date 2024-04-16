@@ -112,7 +112,7 @@ function createAccountUpdate() {
   let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
 
-  const feePayer = Local.testAccounts[0].publicKey;
+  const [feePayer] = Local.testAccounts;
 
   let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);

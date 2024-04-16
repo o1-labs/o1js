@@ -6,7 +6,7 @@ import { AccountUpdate, Mina, PrivateKey } from 'o1js';
 const Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-const { publicKey: account, privateKey: accountKey } = Local.testAccounts[0];
+const [account] = Local.testAccounts;
 const sudoku = generateSudoku(0.5);
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
@@ -34,7 +34,7 @@ await tx.prove();
  * (but `deploy()` changes some of those permissions to "proof" and adds the verification key that enables proofs.
  * that's why we don't need `tx.sign()` for the later transactions.)
  */
-await tx.sign([zkAppPrivateKey, accountKey]).send();
+await tx.sign([zkAppPrivateKey, account.key]).send();
 
 console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
 
@@ -51,7 +51,7 @@ try {
     await zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(noSolution));
   });
   await tx.prove();
-  await tx.sign([accountKey]).send();
+  await tx.sign([account.key]).send();
 } catch {
   console.log('There was an error submitting the solution, as expected');
 }
@@ -63,5 +63,5 @@ tx = await Mina.transaction(account, async () => {
   await zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution!));
 });
 await tx.prove();
-await tx.sign([accountKey]).send();
+await tx.sign([account.key]).send();
 console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());

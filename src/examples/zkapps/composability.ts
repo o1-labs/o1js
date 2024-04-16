@@ -6,7 +6,6 @@ import {
   method,
   Mina,
   AccountUpdate,
-  PrivateKey,
   SmartContract,
   state,
   State,
@@ -31,7 +30,7 @@ class Adder extends SmartContract {
     // compute result
     let sum = x.add(y);
     // call the other contract to increment
-    let incrementer = new Incrementer(incrementerAddress);
+    let incrementer = new Incrementer(incrementerAccount);
     return await incrementer.increment(sum);
   }
 }
@@ -43,7 +42,7 @@ class Caller extends SmartContract {
 
   @method
   async callAddAndEmit(x: Field, y: Field) {
-    let adder = new Adder(adderAddress);
+    let adder = new Adder(adderAccount);
     let sum = await adder.addPlus1(x, y);
     this.emitEvent('sum', sum);
     this.sum.set(sum);
@@ -57,23 +56,14 @@ ComposabilityProfiler.start('Composability test flow');
 let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
-// a test account that pays all the fees, and puts additional funds into the zkapp
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
+const [feePayer] = Local.testAccounts;
 
-// the first contract's address
-let incrementerKey = PrivateKey.random();
-let incrementerAddress = incrementerKey.toPublicKey();
-// the second contract's address
-let adderKey = PrivateKey.random();
-let adderAddress = adderKey.toPublicKey();
-// the third contract's address
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
-
-let zkapp = new Caller(zkappAddress);
-let adderZkapp = new Adder(adderAddress);
-let incrementerZkapp = new Incrementer(incrementerAddress);
+let incrementerAccount = Mina.TestPublicKey.random();
+let incrementer = new Incrementer(incrementerAccount);
+let adderAccount = Mina.TestPublicKey.random();
+let adder = new Adder(adderAccount);
+let callerAccount = Mina.TestPublicKey.random();
+let caller = new Caller(callerAccount);
 
 if (doProofs) {
   console.log('compile (incrementer)');
@@ -87,22 +77,29 @@ if (doProofs) {
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer, 3);
-  await zkapp.deploy();
-  await adderZkapp.deploy();
-  await incrementerZkapp.deploy();
+  await caller.deploy();
+  await adder.deploy();
+  await incrementer.deploy();
 });
-await tx.sign([feePayerKey, zkappKey, adderKey, incrementerKey]).send();
+await tx
+  .sign([
+    feePayer.key,
+    callerAccount.key,
+    adderAccount.key,
+    incrementerAccount.key,
+  ])
+  .send();
 
 console.log('call interaction');
 tx = await Mina.transaction(feePayer, async () => {
   // we just call one contract here, nothing special to do
-  await zkapp.callAddAndEmit(Field(5), Field(6));
+  await caller.callAddAndEmit(Field(5), Field(6));
 });
 console.log('proving (3 proofs.. can take a bit!)');
 await tx.prove();
 console.log(tx.toPretty());
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 // should hopefully be 12 since we added 5 + 6 + 1
-console.log('state: ' + zkapp.sum.get());
+console.log('state: ' + caller.sum.get());
 ComposabilityProfiler.stop().store();

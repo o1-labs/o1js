@@ -9,12 +9,11 @@ let Local = await Mina.LocalBlockchain({
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
-let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
-  Local.testAccounts;
+let [feePayer] = Local.testAccounts;
 let tx, balances, oldBalances;
 
 console.log('-------------------------------------------------');
-console.log('FEE PAYER\t', feePayerAddress.toBase58());
+console.log('FEE PAYER\t', feePayer.toBase58());
 console.log('TOKEN X ADDRESS\t', addresses.tokenX.toBase58());
 console.log('TOKEN Y ADDRESS\t', addresses.tokenY.toBase58());
 console.log('DEX ADDRESS\t', addresses.dex.toBase58());
@@ -38,8 +37,7 @@ Local = await Mina.LocalBlockchain({
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
-[{ privateKey: feePayerKey }] = Local.testAccounts;
-feePayerAddress = feePayerKey.toPublicKey();
+feePayer = Local.testAccounts[0];
 
 await main({ withVesting: true });
 
@@ -75,18 +73,18 @@ async function main({ withVesting }: { withVesting: boolean }) {
   let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
   console.log('deploy & init token contracts...');
-  tx = await Mina.transaction(feePayerAddress, async () => {
+  tx = await Mina.transaction(feePayer, async () => {
     await tokenX.deploy();
     await tokenY.deploy();
 
     // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
     const accountFee = Mina.getNetworkConstants().accountCreationFee;
-    let feePayerUpdate = AccountUpdate.fundNewAccount(feePayerAddress, 2);
+    let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 2);
     feePayerUpdate.send({ to: tokenX.self, amount: accountFee.mul(2) });
     feePayerUpdate.send({ to: tokenY.self, amount: accountFee.mul(2) });
   });
   await tx.prove();
-  tx.sign([feePayerKey, keys.tokenX, keys.tokenY]);
+  tx.sign([feePayer.key, keys.tokenX, keys.tokenY]);
   await tx.send();
   balances = getTokenBalances();
   console.log(
@@ -96,9 +94,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
   );
 
   console.log('deploy dex contracts...');
-  tx = await Mina.transaction(feePayerAddress, async () => {
+  tx = await Mina.transaction(feePayer, async () => {
     // pay fees for creating 3 dex accounts
-    AccountUpdate.fundNewAccount(feePayerAddress, 3);
+    AccountUpdate.fundNewAccount(feePayer, 3);
     await dex.deploy();
     await dexTokenHolderX.deploy();
     await tokenX.approveAccountUpdate(dexTokenHolderX.self);
@@ -106,29 +104,29 @@ async function main({ withVesting }: { withVesting: boolean }) {
     await tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
-  tx.sign([feePayerKey, keys.dex]);
+  tx.sign([feePayer.key, keys.dex]);
   await tx.send();
 
   console.log('transfer tokens to user');
   tx = await Mina.transaction(
     {
-      sender: feePayerAddress,
+      sender: feePayer,
       fee: Mina.getNetworkConstants().accountCreationFee.mul(1),
     },
     async () => {
-      let feePayer = AccountUpdate.fundNewAccount(feePayerAddress, 4);
-      feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
-      feePayer.send({ to: addresses.user2, amount: 20e9 });
+      let au = AccountUpdate.fundNewAccount(feePayer, 4);
+      au.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
+      au.send({ to: addresses.user2, amount: 20e9 });
       // transfer to fee payer so they can provide initial liquidity
-      await tokenX.transfer(addresses.tokenX, feePayerAddress, 10_000);
-      await tokenY.transfer(addresses.tokenY, feePayerAddress, 10_000);
+      await tokenX.transfer(addresses.tokenX, feePayer, 10_000);
+      await tokenY.transfer(addresses.tokenY, feePayer, 10_000);
       // mint tokens to the user (this is additional to the tokens minted at the beginning, so we can overflow the balance
       await tokenX.init2();
       await tokenY.init2();
     }
   );
   await tx.prove();
-  tx.sign([feePayerKey, keys.tokenX, keys.tokenY]);
+  tx.sign([feePayer.key, keys.tokenX, keys.tokenY]);
   await tx.send();
   [oldBalances, balances] = [balances, getTokenBalances()];
   console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
@@ -138,16 +136,16 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('supply liquidity -- base');
   tx = await Mina.transaction(
     {
-      sender: feePayerAddress,
+      sender: feePayer,
       fee: Mina.getNetworkConstants().accountCreationFee,
     },
     async () => {
-      AccountUpdate.fundNewAccount(feePayerAddress);
+      AccountUpdate.fundNewAccount(feePayer);
       await dex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));
     }
   );
   await tx.prove();
-  tx.sign([feePayerKey]);
+  tx.sign([feePayer.key]);
   await tx.send();
   [oldBalances, balances] = [balances, getTokenBalances()];
   console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
@@ -269,8 +267,8 @@ async function main({ withVesting }: { withVesting: boolean }) {
    * => a targeted test with explicitly constructed account updates might be the better strategy to test overflow
    */
   console.log('prepare supplying overflowing liquidity');
-  tx = await Mina.transaction(feePayerAddress, async () => {
-    AccountUpdate.fundNewAccount(feePayerAddress);
+  tx = await Mina.transaction(feePayer, async () => {
+    AccountUpdate.fundNewAccount(feePayer);
     await tokenY.transfer(
       addresses.tokenY,
       addresses.tokenX,
@@ -278,7 +276,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     );
   });
   await tx.prove();
-  await tx.sign([feePayerKey, keys.tokenY]).send();
+  await tx.sign([feePayer.key, keys.tokenY]).send();
   console.log('supply overflowing liquidity');
   await expect(async () => {
     tx = await Mina.transaction(addresses.tokenX, async () => {
