@@ -1,6 +1,10 @@
 import type { Field } from '../field.js';
 import type { Bool } from '../bool.js';
-import { createBoolUnsafe, createField } from '../core/field-constructor.js';
+import {
+  createBool,
+  createBoolUnsafe,
+  createField,
+} from '../core/field-constructor.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { assert } from '../../../lib/util/assert.js';
 import { exists, existsOne } from '../core/exists.js';
@@ -15,13 +19,21 @@ export {
   assertLessThanOrEqualGeneric,
   lessThanGeneric,
   lessThanOrEqualGeneric,
+
   // comparison gadgets for full range inputs
   assertLessThanFull,
   assertLessThanOrEqualFull,
   lessThanFull,
   lessThanOrEqualFull,
+
+  // gadgets that are based on full comparisons
+  isOddAndHigh,
+
   // legacy, unused
   compareCompatible,
+
+  // internal helper
+  fieldToField3,
 };
 
 /**
@@ -179,6 +191,40 @@ function lessThanFull(x: Field, y: Field) {
 function lessThanOrEqualFull(x: Field, y: Field) {
   // keep it simple and just use x <= y <=> !(y < x)
   return lessThanFull(y, x).not();
+}
+
+/**
+ * Splits a field element into a low bit `isOdd` and a 254-bit `high` part.
+ *
+ * There are no assumptions on the range of x and y, they can occupy the full range [0, p).
+ */
+function isOddAndHigh(x: Field) {
+  if (x.isConstant()) {
+    let x0 = x.toBigInt();
+    return { isOdd: createBool((x0 & 1n) === 1n), high: createField(x0 >> 1n) };
+  }
+
+  // witness a bit b such that x = b + 2z for some z <= (p-1)/2
+  // this is always possible, and unique _except_ in the edge case where x = 0 = 0 + 2*0 = 1 + 2*(p-1)/2
+  // so we must assert that x = 0 implies b = 0
+  let [b, z] = exists(2, () => {
+    let x0 = x.toBigInt();
+    return [x0 & 1n, x0 >> 1n];
+  });
+  let isOdd = b.assertBool();
+  z.assertLessThan((Fp.modulus + 1n) / 2n);
+
+  // x == b + 2z
+  b.add(z.mul(2n)).assertEquals(x);
+
+  // prevent overflow case when x = 0
+  // we witness x' such that b == x * x', which makes it impossible to have x = 0 and b = 1
+  let x_ = existsOne(() =>
+    b.toBigInt() === 0n ? 0n : Fp.inverse(x.toBigInt()) ?? 0n
+  );
+  x.mul(x_).assertEquals(b);
+
+  return { isOdd, high: z };
 }
 
 /**

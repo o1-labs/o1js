@@ -26,6 +26,7 @@ import { setFieldConstructor } from './core/field-constructor.js';
 import {
   assertLessThanFull,
   assertLessThanOrEqualFull,
+  isOddAndHigh,
   lessThanFull,
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
@@ -320,24 +321,7 @@ class Field {
    * See {@link Field.isEven} for examples.
    */
   isOdd() {
-    if (this.isConstant()) return new Bool((this.toBigInt() & 1n) === 1n);
-
-    // witness a bit b such that x = b + 2z for some z <= (p-1)/2
-    // this is always possible, and unique _except_ in the edge case where x = 0 = 0 + 2*0 = 1 + 2*(p-1)/2
-    // so we can compute isOdd = b AND (x != 0)
-    let [b, z] = exists(2, () => {
-      let x = this.toBigInt();
-      return [x & 1n, x >> 1n];
-    });
-    let isOdd = b.assertBool();
-    z.assertLessThan((Field.ORDER + 1n) / 2n);
-
-    // x == b + 2z
-    b.add(z.mul(2)).assertEquals(this);
-
-    // avoid overflow case when x = 0
-    let isNonZero = this.equals(0).not();
-    return isOdd.and(isNonZero);
+    return isOddAndHigh(this).isOdd;
   }
 
   /**

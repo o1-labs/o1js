@@ -7,7 +7,6 @@ import {
   State,
   method,
   MerkleMap,
-  Circuit,
   MerkleMapWitness,
   Mina,
   AccountUpdate,

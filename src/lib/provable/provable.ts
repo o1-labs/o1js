@@ -288,6 +288,9 @@ function if_(condition: Bool, typeOrX: any, xOrY: any, yOrUndefined?: any) {
 }
 
 function ifField(b: Field, x: Field, y: Field) {
+  // TODO: this is suboptimal if one of x, y is constant
+  // it uses 2-3 generic gates in that case, where 1 would be enough
+
   // b*(x - y) + y
   // NOTE: the R1CS constraint used by Field.if_ in snarky-ml
   // leads to a different but equivalent layout (same # constraints)
@@ -339,7 +342,8 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
 function switch_<T, A extends FlexibleProvable<T>>(
   mask: Bool[],
   type: A,
-  values: T[]
+  values: T[],
+  { allowNonExclusive = false } = {}
 ): T {
   // picks the value at the index where mask is true
   let nValues = values.length;
@@ -348,6 +352,7 @@ function switch_<T, A extends FlexibleProvable<T>>(
       `Provable.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
     );
   let checkMask = () => {
+    if (allowNonExclusive) return;
     let nTrue = mask.filter((b) => b.toBoolean()).length;
     if (nTrue > 1) {
       throw Error(

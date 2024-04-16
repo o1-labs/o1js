@@ -19,6 +19,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
+- Native curve improvements https://github.com/o1-labs/o1js/pull/1530
+  - Change the internal representation of `Scalar` from 255 Bools to 1 Bool and 1 Field (low bit and high 254 bits)
+  - Make `Group.scale()` support all scalars (previously did not support 0, 1 and -1)
+  - Make `Group.scale()` directly accept `Field` elements, and much more efficient than previous methods of scaling by Fields
+    - As a result, `Signature.verify()` and `Nullifier.verify()` use much fewer constraints
+  - Fix `Scalar.fromBits()` to not produce a shifted scalar; shifting is no longer exposed to users of `Scalar`.
 - Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
   - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
   - Breaks circuits that used EC addition, like ECDSA
