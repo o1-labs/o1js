@@ -1,5 +1,5 @@
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger } from './snarky.js';
+export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
