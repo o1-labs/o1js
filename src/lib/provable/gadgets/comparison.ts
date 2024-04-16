@@ -206,7 +206,7 @@ function isOddAndHigh(x: Field) {
 
   // witness a bit b such that x = b + 2z for some z <= (p-1)/2
   // this is always possible, and unique _except_ in the edge case where x = 0 = 0 + 2*0 = 1 + 2*(p-1)/2
-  // so we can compute isOdd = b AND (x != 0)
+  // so we must assert that x = 0 implies b = 0
   let [b, z] = exists(2, () => {
     let x0 = x.toBigInt();
     return [x0 & 1n, x0 >> 1n];
@@ -215,11 +215,16 @@ function isOddAndHigh(x: Field) {
   z.assertLessThan((Fp.modulus + 1n) / 2n);
 
   // x == b + 2z
-  b.add(z.mul(2)).assertEquals(x);
+  b.add(z.mul(2n)).assertEquals(x);
 
-  // avoid overflow case when x = 0
-  let isNonZero = x.equals(0).not();
-  return { isOdd: isOdd.and(isNonZero), high: z };
+  // prevent overflow case when x = 0
+  // we witness x' such that b == x * x', which makes it impossible to have x = 0 and b = 1
+  let x_ = existsOne(() =>
+    b.toBigInt() === 0n ? 0n : Fp.inverse(x.toBigInt()) ?? 0n
+  );
+  x.mul(x_).assertEquals(b);
+
+  return { isOdd, high: z };
 }
 
 /**

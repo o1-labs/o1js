@@ -288,6 +288,9 @@ function if_(condition: Bool, typeOrX: any, xOrY: any, yOrUndefined?: any) {
 }
 
 function ifField(b: Field, x: Field, y: Field) {
+  // TODO: this is suboptimal if one of x, y is constant
+  // it uses 2-3 generic gates in that case, where 1 would be enough
+
   // b*(x - y) + y
   // NOTE: the R1CS constraint used by Field.if_ in snarky-ml
   // leads to a different but equivalent layout (same # constraints)
