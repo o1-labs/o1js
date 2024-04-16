@@ -8,9 +8,10 @@ import {
   Bytes,
   Bool,
   UInt64,
+  Nullifier,
 } from 'o1js';
 
-export { GroupCS, BitwiseCS, HashCS, BasicCS };
+export { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS };
 
 const GroupCS = constraintSystem('Group Primitive', {
   add() {
@@ -170,6 +171,16 @@ const BasicCS = constraintSystem('Basic', {
     let x = Provable.witness(UInt64, () => new UInt64(0));
     let y = Provable.witness(UInt64, () => new UInt64(0));
     x.lessThan(y);
+  },
+});
+
+const CryptoCS = constraintSystem('Crypto', {
+  nullifier() {
+    let nullifier = Provable.witness(Nullifier, (): Nullifier => {
+      throw Error('not implemented');
+    });
+    let x = Provable.witness(Field, () => Field(0));
+    nullifier.verify([x, x, x]);
   },
 });
 

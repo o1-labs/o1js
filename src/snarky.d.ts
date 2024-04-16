@@ -347,7 +347,19 @@ declare const Snarky: {
   };
 
   group: {
-    scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
+    /**
+     * Computes `(2*s + 1 + 2^numBits) * P` and also returns the bits of s (which are proven correct).
+     *
+     * `numBits` must be a multiple of 5, and s must be in the range [0, 2^numBits).
+     * The [soundness proof](https://github.com/zcash/zcash/issues/3924) assumes
+     * `numBits <= n - 2` where `n` is the bit length of the scalar field.
+     * In our case, n=255 so numBits <= 253.
+     */
+    scaleFastUnpack(
+      P: MlGroup,
+      shiftedValue: [_: 0, s: FieldVar],
+      numBits: number
+    ): MlPair<MlGroup, MlArray<BoolVar>>;
   };
 
   /**
