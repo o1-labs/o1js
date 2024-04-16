@@ -2,6 +2,7 @@ import './bindings/crypto/bindings.js';
 import {
   initializeBindings as init,
   withThreadPool,
+  wasm,
 } from './bindings/js/web/web-backend.js';
 
 let Snarky, Ledger, Pickles, Test_;
@@ -19,8 +20,6 @@ async function Test() {
   await initializeBindings();
   return Test_;
 }
-
-let wasm = globalThis.plonk_wasm;
 
 export {
   Snarky,
