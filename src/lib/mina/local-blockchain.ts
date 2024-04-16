@@ -81,7 +81,7 @@ function LocalBlockchain({
     }
   }
 
-  let testAccounts = [] as never as TupleN<TestPublicKey, 100>;
+  let testAccounts = [] as never as TupleN<TestPublicKey, 10>;
 
   for (let i = 0; i < 10; ++i) {
     let MINA = 10n ** 9n;
