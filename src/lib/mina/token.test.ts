@@ -161,7 +161,7 @@ async function setupAccounts() {
 }
 
 async function setupLocal() {
-  setupAccounts();
+  await setupAccounts();
   let tx = await Mina.transaction(feePayer, async () => {
     await tokenZkapp.deploy();
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
