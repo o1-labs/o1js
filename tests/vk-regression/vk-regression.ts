@@ -13,6 +13,7 @@ import {
   BitwiseCS,
   HashCS,
   BasicCS,
+  CryptoCS,
 } from './plain-constraint-system.js';
 import { diverse } from './diverse-zk-program.js';
 
@@ -56,6 +57,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   BitwiseCS,
   HashCS,
   BasicCS,
+  CryptoCS,
   ecdsa,
   keccakAndEcdsa,
   SHA256Program,

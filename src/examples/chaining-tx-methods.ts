@@ -31,7 +31,7 @@ let Local = Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
-let { privateKey: senderKey, publicKey: sender } = Local.testAccounts[0];
+let [sender] = Local.testAccounts;
 
 // the zkapp account
 let zkappKey = PrivateKey.random();
@@ -46,7 +46,7 @@ await Mina.transaction(sender, async () => {
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
   await zkapp.deploy();
 })
-  .sign([senderKey, zkappKey])
+  .sign([sender.key, zkappKey])
   .send()
   .wait();
 
@@ -57,8 +57,8 @@ console.log('increment');
 await Mina.transaction(sender, async () => {
   await zkapp.increment();
 })
-  .sign([senderKey])
   .prove()
+  .sign([sender.key])
   .send()
   .wait();
 
@@ -69,5 +69,5 @@ const a = Mina.transaction(sender, async () => {
 });
 a satisfies TransactionPromise<false, false>;
 const b = a.prove() satisfies TransactionPromise<true, false>;
-const c = b.sign([senderKey]) satisfies TransactionPromise<true, true>;
+const c = b.sign([sender.key]) satisfies TransactionPromise<true, true>;
 await c.send().wait();

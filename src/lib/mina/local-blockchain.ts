@@ -13,6 +13,7 @@ import {
   Actions,
 } from './account-update.js';
 import { NetworkId } from '../../mina-signer/src/types.js';
+import { TupleN } from '../util/types.js';
 import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
 import { invalidTransactionError } from './errors.js';
 import {
@@ -40,39 +41,56 @@ import {
   verifyTransactionLimits,
   verifyAccountUpdate,
 } from './transaction-validation.js';
+import { prettifyStacktrace } from '../util/errors.js';
 
-export { LocalBlockchain };
+export { LocalBlockchain, TestPublicKey };
+
+type TestPublicKey = PublicKey & {
+  key: PrivateKey;
+};
+function TestPublicKey(key: PrivateKey): TestPublicKey {
+  return Object.assign(PublicKey.fromPrivateKey(key), { key });
+}
+namespace TestPublicKey {
+  export function random<N extends number = 1>(
+    count: N = 1 as never
+  ): N extends 1 ? TestPublicKey : TupleN<TestPublicKey, N> {
+    if (count === 1) return TestPublicKey(PrivateKey.random()) as never;
+    return Array.from({ length: count as number }, () =>
+      TestPublicKey(PrivateKey.random())
+    ) as never;
+  }
+}
+
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
 function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
-  networkId = 'testnet' as NetworkId,
 } = {}) {
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
   const ledger = Ledger.create();
   let networkState = defaultNetworkState();
-  let minaNetworkId: NetworkId = networkId;
 
   function addAccount(publicKey: PublicKey, balance: string) {
-    ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
+    try {
+      ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
+    } catch (error) {
+      throw prettifyStacktrace(error);
+    }
   }
 
-  let testAccounts: {
-    publicKey: PublicKey;
-    privateKey: PrivateKey;
-  }[] = [];
+  let testAccounts = [] as never as TupleN<TestPublicKey, 10>;
 
   for (let i = 0; i < 10; ++i) {
     let MINA = 10n ** 9n;
     const largeValue = 1000n * MINA;
-    const k = PrivateKey.random();
-    const pk = k.toPublicKey();
-    addAccount(pk, largeValue.toString());
-    testAccounts.push({ privateKey: k, publicKey: pk });
+    const testAccount = TestPublicKey.random();
+    addAccount(testAccount, largeValue.toString());
+    testAccounts.push(testAccount);
   }
 
   const events: Record<string, any> = {};
@@ -82,7 +100,7 @@ function LocalBlockchain({
   > = {};
 
   return {
-    getNetworkId: () => minaNetworkId,
+    getNetworkId: () => 'testnet' as NetworkId,
     proofsEnabled,
     getNetworkConstants() {
       return {
@@ -126,7 +144,7 @@ function LocalBlockchain({
         let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
         let commitments = transactionCommitments(
           TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
-          minaNetworkId
+          this.getNetworkId()
         );
 
         if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
@@ -310,7 +328,7 @@ function LocalBlockchain({
     },
     transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       return toTransactionPromise(async () => {
-        // TODO we run the transaction twice to match the behaviour of `Network.transaction`
+        // TODO we run the transaction twice to match the behavior of `Network.transaction`
         let tx = await createTransaction(sender, f, 0, {
           isFinalRunOutsideCircuit: false,
           proofsEnabled: this.proofsEnabled,

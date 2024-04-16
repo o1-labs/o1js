@@ -1,7 +1,6 @@
 import { Field, Bool, Group, Scalar } from '../wrapped.js';
 import { AnyConstructor } from '../types/struct.js';
 import { hashWithPrefix } from './poseidon.js';
-import { Fq } from '../../../bindings/crypto/finite-field.js';
 import {
   deriveNonce,
   Signature as SignatureBigint,
@@ -11,15 +10,11 @@ import {
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
 } from '../../../mina-signer/src/curve-bigint.js';
-import { constantScalarToBigint } from '../scalar.js';
 import { toConstantField } from '../field.js';
 import { CircuitValue, prop } from '../types/circuit-value.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
-
-// internal API
-export { scaleShifted };
 
 /**
  * A signing key. You can generate one via {@link PrivateKey.random}.
@@ -71,7 +66,7 @@ class PrivateKey extends CircuitValue {
    * Convert this {@link PrivateKey} to a bigint
    */
   toBigInt() {
-    return constantScalarToBigint(this.s, 'PrivateKey.toBigInt');
+    return this.s.toBigInt();
   }
 
   /**
@@ -117,9 +112,7 @@ class PrivateKey extends CircuitValue {
    * @returns a base58 encoded string
    */
   static toBase58(privateKey: { s: Scalar }) {
-    return PrivateKeyBigint.toBase58(
-      constantScalarToBigint(privateKey.s, 'PrivateKey.toBase58')
-    );
+    return PrivateKeyBigint.toBase58(privateKey.s.toBigInt());
   }
 }
 
@@ -249,12 +242,13 @@ class Signature extends CircuitValue {
    * @returns a {@link Signature}
    */
   static create(privKey: PrivateKey, msg: Field[]): Signature {
-    const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
-    const d = privKey.s;
+    let publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
+    let d = privKey.s;
+
     // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
-    const kPrime = Scalar.from(
+    let kPrime = Scalar.from(
       deriveNonce(
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
@@ -262,16 +256,15 @@ class Signature extends CircuitValue {
         'testnet'
       )
     );
+
     let { x: r, y: ry } = Group.generator.scale(kPrime);
-    const k = ry.isOdd().toBoolean() ? kPrime.neg() : kPrime;
+    let k = ry.isOdd().toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
       signaturePrefix('testnet'),
       msg.concat([publicKey.x, publicKey.y, r])
     );
-    // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
-    // therefore we have to unshift e before using it
-    let e = unshift(Scalar.fromBits(h.toBits()));
-    const s = e.mul(d).add(k);
+    let e = Scalar.fromField(h);
+    let s = e.mul(d).add(k);
     return new Signature(r, s);
   }
 
@@ -280,7 +273,8 @@ class Signature extends CircuitValue {
    * @returns a {@link Bool}
    */
   verify(publicKey: PublicKey, msg: Field[]): Bool {
-    const point = publicKey.toGroup();
+    let point = publicKey.toGroup();
+
     // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
@@ -288,10 +282,8 @@ class Signature extends CircuitValue {
       signaturePrefix('testnet'),
       msg.concat([point.x, point.y, this.r])
     );
-    // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
-    // therefore we have to use scaleShifted which is very inefficient
-    let e = Scalar.fromBits(h.toBits());
-    let r = scaleShifted(point, e).neg().add(Group.generator.scale(this.s));
+
+    let r = point.scale(h).neg().add(Group.generator.scale(this.s));
     return r.x.equals(this.r).and(r.y.isEven());
   }
 
@@ -311,19 +303,3 @@ class Signature extends CircuitValue {
     return SignatureBigint.toBase58({ r, s });
   }
 }
-
-// performs scalar multiplication s*G assuming that instead of s, we got s' = 2s + 1 + 2^255
-// cost: 2x scale by constant, 1x scale by variable
-function scaleShifted(point: Group, shiftedScalar: Scalar) {
-  let oneHalfGroup = point.scale(Scalar.from(oneHalf));
-  let shiftGroup = oneHalfGroup.scale(Scalar.from(shift));
-  return oneHalfGroup.scale(shiftedScalar).sub(shiftGroup);
-}
-// returns s, assuming that instead of s, we got s' = 2s + 1 + 2^255
-// (only works out of snark)
-function unshift(shiftedScalar: Scalar) {
-  return shiftedScalar.sub(Scalar.from(shift)).mul(Scalar.from(oneHalf));
-}
-
-let shift = Fq.mod(1n + 2n ** 255n);
-let oneHalf = Fq.inverse(2n)!;

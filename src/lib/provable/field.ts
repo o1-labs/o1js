@@ -13,7 +13,7 @@ import {
   assertSquare,
   assertBoolean,
 } from './gadgets/compatible.js';
-import { toLinearCombination } from './gadgets/basic.js';
+import { assertBilinear, toLinearCombination } from './gadgets/basic.js';
 import {
   FieldType,
   FieldVar,
@@ -26,9 +26,11 @@ import { setFieldConstructor } from './core/field-constructor.js';
 import {
   assertLessThanFull,
   assertLessThanOrEqualFull,
+  isOddAndHigh,
   lessThanFull,
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
+import { toVar } from './gadgets/common.js';
 
 // external API
 export { Field };
@@ -218,7 +220,7 @@ class Field {
   }
 
   /**
-   * Add a "field-like" value to this {@link Field} element.
+   * Add a field-like value to this {@link Field} element.
    *
    * @example
    * ```ts
@@ -319,24 +321,7 @@ class Field {
    * See {@link Field.isEven} for examples.
    */
   isOdd() {
-    if (this.isConstant()) return new Bool((this.toBigInt() & 1n) === 1n);
-
-    // witness a bit b such that x = b + 2z for some z <= (p-1)/2
-    // this is always possible, and unique _except_ in the edge case where x = 0 = 0 + 2*0 = 1 + 2*(p-1)/2
-    // so we can compute isOdd = b AND (x != 0)
-    let [b, z] = exists(2, () => {
-      let x = this.toBigInt();
-      return [x & 1n, x >> 1n];
-    });
-    let isOdd = b.assertBool();
-    z.assertLessThan((Field.ORDER + 1n) / 2n);
-
-    // x == b + 2z
-    b.add(z.mul(2)).assertEquals(this);
-
-    // avoid overflow case when x = 0
-    let isNonZero = this.equals(0).not();
-    return isOdd.and(isNonZero);
+    return isOddAndHigh(this).isOdd;
   }
 
   /**
@@ -768,6 +753,16 @@ class Field {
       }
       // inv() proves that a field element is non-zero, using 1 constraint.
       // so this takes 1-2 generic gates, while x.equals(y).assertTrue() takes 3-5
+      if (isConstant(y)) {
+        // custom single generic gate for (x - y) * z = 1
+        // TODO remove once assertMul() handles these cases
+        let x = toVar(this);
+        let y0 = toFp(y);
+        let z = existsOne(() => Fp.inverse(this.toBigInt() - y0) ?? 0n);
+        // 1*x*z + 0*x + (-y)*z + (-1) = 0
+        assertBilinear(x, z, [1n, 0n, -y0, -1n]);
+        return;
+      }
       this.sub(y).inv();
     } catch (err) {
       throw withMessage(err, message);
@@ -874,12 +869,12 @@ class Field {
    *
    * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
    */
-  seal() {
+  seal(): VarField | ConstantField {
     let { constant, terms } = toLinearCombination(this.value);
-    if (terms.length === 0) return new Field(constant);
+    if (terms.length === 0) return ConstantField(constant);
     if (terms.length === 1 && constant === 0n) {
       let [c, x] = terms[0];
-      if (c === 1n) return new Field(x);
+      if (c === 1n) return VarField(x);
     }
     let x = existsOne(() => this.toBigInt());
     this.assertEquals(x);
@@ -1225,4 +1220,8 @@ Warning: whatever happens inside asProver() will not be part of the zk proof.
 
 function VarField(x: VarFieldVar): VarField {
   return new Field(x) as VarField;
+}
+
+function ConstantField(x: ConstantFieldVar | bigint): ConstantField {
+  return new Field(x) as ConstantField;
 }

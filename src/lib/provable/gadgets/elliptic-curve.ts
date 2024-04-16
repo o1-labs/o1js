@@ -3,7 +3,7 @@ import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l2, multiRangeCheck } from './range-check.js';
+import { l, l2, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBytes,
@@ -17,7 +17,7 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../types/struct.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
-import { arrayGet } from './basic.js';
+import { arrayGet, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { Hashed } from '../packed.js';
 import { exists } from '../core/exists.js';
@@ -56,6 +56,8 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
   let { x: x1, y: y1 } = p1;
   let { x: x2, y: y2 } = p2;
   let f = Curve.modulus;
+  let [f0, f1, f2] = split(f);
+  let [, , fx22] = split(f * 2n);
 
   // constant case
   if (Point.isConstant(p1) && Point.isConstant(p2)) {
@@ -66,11 +68,10 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
     let [x1_, x2_, y1_, y2_] = Field3.toBigints(x1, x2, y1, y2);
-    let denom = inverse(mod(x1_ - x2_, f), f);
+    let denom = inverse(mod(x1_ - x2_, f), f) ?? 0n;
 
-    let m = denom !== undefined ? mod((y1_ - y2_) * denom, f) : 0n;
-    let m2 = mod(m * m, f);
-    let x3 = mod(m2 - x1_ - x2_, f);
+    let m = mod((y1_ - y2_) * denom, f);
+    let x3 = mod(m * m - x1_ - x2_, f);
     let y3 = mod(m * (x1_ - x3) - y1_, f);
 
     return [...split(m), ...split(x3), ...split(y3)];
@@ -81,8 +82,16 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
   let y3: Field3 = [y30, y31, y32];
   ForeignField.assertAlmostReduced([m, x3, y3], f);
 
+  // check that x1 != x2
+  // we assume x1, x2 are almost reduced, so deltaX <= x1 - x2 + f < 3f
+  // which means we need to check that deltaX != 0, f, 2f
+  let deltaX = ForeignField.sub(x1, x2, f);
+  let deltaX01 = deltaX[0].add(deltaX[1].mul(1n << l)).seal();
+  assertNotVectorEquals([deltaX01, deltaX[2]], [0n, 0n]); // != 0
+  assertNotVectorEquals([deltaX01, deltaX[2]], [f0 + (f1 << l), f2]); // != f
+  deltaX[2].assertNotEquals(fx22); // != 2f (stronger check bc assuming deltaX < f doesn't harm completeness)
+
   // (x1 - x2)*m = y1 - y2
-  let deltaX = ForeignField.Sum(x1).sub(x2);
   let deltaY = ForeignField.Sum(y1).sub(y2);
   ForeignField.assertMul(deltaX, m, deltaY, f);
 
@@ -111,11 +120,10 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
     let [x1_, y1_] = Field3.toBigints(x1, y1);
-    let denom = inverse(mod(2n * y1_, f), f);
+    let denom = inverse(mod(2n * y1_, f), f) ?? 0n;
 
-    let m = denom !== undefined ? mod(3n * mod(x1_ ** 2n, f) * denom, f) : 0n;
-    let m2 = mod(m * m, f);
-    let x3 = mod(m2 - 2n * x1_, f);
+    let m = mod(3n * mod(x1_ ** 2n, f) * denom, f);
+    let x3 = mod(m * m - 2n * x1_, f);
     let y3 = mod(m * (x1_ - x3) - y1_, f);
 
     return [...split(m), ...split(x3), ...split(y3)];
@@ -423,6 +431,9 @@ function multiScalarMul(
     table.map((point) => HashedPoint.hash(point))
   );
 
+  // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
+  // note: this is a trick to ensure _completeness_ of the gadget
+  // soundness follows because add() and double() are sound, on all inputs that are valid non-zero curve points
   ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
 
