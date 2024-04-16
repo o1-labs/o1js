@@ -435,6 +435,49 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
+  previous() {
+    // instead of starting from index `0`, we start at index `length - 1` and go in reverse
+    let { previousHash, element } = Provable.witness(
+      WithHash(this.innerProvable),
+      () => {
+        return (
+          this.data.get()[this.currentIndex.get()] ?? {
+            previousHash: this.Constructor.emptyHash,
+            element: this.innerProvable.empty(),
+          }
+        );
+      }
+    );
+
+    let currentHash = this.nextHash(previousHash, element);
+    let isDummy = this.isAtStart();
+    this.currentHash = Provable.if(isDummy, this.hash, currentHash);
+
+    let { previousHash: previousHash_ } = Provable.witness(
+      WithHash(this.innerProvable),
+      () => {
+        return (
+          this.data.get()[this.currentIndex.get() - 1] ?? {
+            previousHash: this.Constructor._emptyHash,
+            element: this.innerProvable.empty(),
+          }
+        );
+      }
+    );
+
+    let targetHash = Provable.if(this.isAtStart(), this.hash, previousHash_);
+    targetHash.assertEquals(this.currentHash);
+
+    this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+
+    return Provable.if(
+      isDummy,
+      this.innerProvable,
+      this.innerProvable.empty(),
+      element
+    );
+  }
+
   clone(): MerkleListIterator<T> {
     let data = Unconstrained.witness(() => [...this.data.get()]);
     let currentIndex = Unconstrained.witness(() => this.currentIndex.get());
@@ -499,61 +542,12 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         data,
         hash,
       }: MerkleListBase<T>): MerkleListIterator<T> {
-        let iter = new this({
+        return new this({
           data,
           hash,
           currentHash: emptyHash_,
           currentIndex: Unconstrained.witness(() => data.get().length - 1),
         });
-
-        iter.next = () => {
-          // instead of starting from index `0`, we start at index `length - 1` and go in reverse
-          let { previousHash, element } = Provable.witness(
-            WithHash(iter.innerProvable),
-            () => {
-              return (
-                iter.data.get()[iter.currentIndex.get()] ?? {
-                  previousHash: iter.Constructor.emptyHash,
-                  element: iter.innerProvable.empty(),
-                }
-              );
-            }
-          );
-
-          let currentHash = iter.nextHash(previousHash, element);
-          let isDummy = iter.isAtStart();
-          iter.currentHash = Provable.if(isDummy, iter.hash, currentHash);
-
-          let { previousHash: previousHash_ } = Provable.witness(
-            WithHash(iter.innerProvable),
-            () => {
-              return (
-                iter.data.get()[iter.currentIndex.get() - 1] ?? {
-                  previousHash: iter.Constructor._emptyHash,
-                  element: iter.innerProvable.empty(),
-                }
-              );
-            }
-          );
-
-          let targetHash = Provable.if(
-            iter.isAtStart(),
-            iter.hash,
-            previousHash_
-          );
-          targetHash.assertEquals(iter.currentHash);
-
-          iter.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
-
-          return Provable.if(
-            isDummy,
-            iter.innerProvable,
-            iter.innerProvable.empty(),
-            element
-          );
-        };
-
-        return iter;
       }
 
       static empty(): MerkleListIterator<T> {
