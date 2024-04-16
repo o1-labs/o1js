@@ -5,7 +5,6 @@ import {
   Bool,
   SmartContract,
   Mina,
-  PrivateKey,
   AccountUpdate,
   method,
   PublicKey,
@@ -31,19 +30,16 @@ class TokenContract extends TokenContractBase {
   }
 
   /**
-   * This deploy method lets a another token account deploy their zkApp and verification key as a child of this token contract.
-   * This is important since we want the native token id of the deployed zkApp to be the token id of the token contract.
+   * This deploy method lets a another token account deploy their contract and verification key as a child of this token contract.
+   * This is important since we want the native token id of the deployed contract to be the token id of the token contract.
    */
-  @method async deployZkapp(
-    address: PublicKey,
-    verificationKey: VerificationKey
-  ) {
+  @method async deploy_(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.deriveTokenId();
-    let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.approve(zkapp);
-    zkapp.account.permissions.set(Permissions.default());
-    zkapp.account.verificationKey.set(verificationKey);
-    zkapp.requireSignature();
+    let au = AccountUpdate.defaultAccountUpdate(address, tokenId);
+    this.approve(au);
+    au.account.permissions.set(Permissions.default());
+    au.account.verificationKey.set(verificationKey);
+    au.requireSignature();
   }
 
   init() {
@@ -102,13 +98,13 @@ class TokenContract extends TokenContractBase {
   }
 }
 
-class ZkAppB extends SmartContract {
+class B extends SmartContract {
   @method async approveSend(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 }
 
-class ZkAppC extends SmartContract {
+class C extends SmartContract {
   @method async approveSend(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
@@ -120,20 +116,17 @@ class ZkAppC extends SmartContract {
   }
 }
 
-let feePayerKey: PrivateKey;
-let feePayer: PublicKey;
-let tokenZkappKey: PrivateKey;
-let tokenZkappAddress: PublicKey;
-let tokenZkapp: TokenContract;
+let feePayer: Mina.TestPublicKey;
+
+let tokenAccount: Mina.TestPublicKey;
+let token: TokenContract;
 let tokenId: Field;
 
-let zkAppBKey: PrivateKey;
-let zkAppBAddress: PublicKey;
-let zkAppB: ZkAppB;
+let bAccount: Mina.TestPublicKey;
+let b: B;
 
-let zkAppCKey: PrivateKey;
-let zkAppCAddress: PublicKey;
-let zkAppC: ZkAppC;
+let cAccount: Mina.TestPublicKey;
+let c: C;
 
 function setupAccounts() {
   let Local = Mina.LocalBlockchain({
@@ -141,56 +134,46 @@ function setupAccounts() {
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
-  feePayerKey = Local.testAccounts[0].privateKey;
-  feePayer = Local.testAccounts[0].publicKey;
-
-  tokenZkappKey = PrivateKey.random();
-  tokenZkappAddress = tokenZkappKey.toPublicKey();
-
-  tokenZkapp = new TokenContract(tokenZkappAddress);
-  tokenId = tokenZkapp.deriveTokenId();
-
-  zkAppBKey = Local.testAccounts[1].privateKey;
-  zkAppBAddress = zkAppBKey.toPublicKey();
-  zkAppB = new ZkAppB(zkAppBAddress, tokenId);
-
-  zkAppCKey = Local.testAccounts[2].privateKey;
-  zkAppCAddress = zkAppCKey.toPublicKey();
-  zkAppC = new ZkAppC(zkAppCAddress, tokenId);
+  [feePayer, bAccount, cAccount] = Local.testAccounts;
+  tokenAccount = Mina.TestPublicKey.random();
+  token = new TokenContract(tokenAccount);
+  tokenId = token.deriveTokenId();
+  b = new B(bAccount, tokenId);
+  c = new C(cAccount, tokenId);
   return Local;
 }
 
 async function setupLocal() {
   setupAccounts();
   let tx = await Mina.transaction(feePayer, async () => {
-    await tokenZkapp.deploy();
+    await token.deploy();
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
     feePayerUpdate.send({
-      to: tokenZkapp.self,
+      to: token.self,
       amount: Mina.getNetworkConstants().accountCreationFee,
     });
   });
-  tx.sign([tokenZkappKey, feePayerKey]);
+  tx.sign([tokenAccount.key, feePayer.key]);
   await tx.send();
 }
 
 async function setupLocalProofs() {
   let Local = setupAccounts();
-  zkAppC = new ZkAppC(zkAppCAddress, tokenId);
+  c = new C(cAccount, tokenId);
   // don't use proofs for the setup, takes too long to do this every time
   Local.setProofsEnabled(false);
   let tx = await Mina.transaction({ sender: feePayer }, async () => {
-    await tokenZkapp.deploy();
+    await token.deploy();
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
     feePayerUpdate.send({
-      to: tokenZkapp.self,
+      to: token.self,
       amount: Mina.getNetworkConstants().accountCreationFee,
     });
-    await tokenZkapp.deployZkapp(zkAppBAddress, ZkAppB._verificationKey!);
-    await tokenZkapp.deployZkapp(zkAppCAddress, ZkAppC._verificationKey!);
+    await token.deploy_(bAccount, B._verificationKey!);
+    await token.deploy_(cAccount, C._verificationKey!);
   });
   await tx.prove();
-  tx.sign([tokenZkappKey, zkAppBKey, zkAppCKey, feePayerKey]);
+  tx.sign([tokenAccount.key, bAccount.key, cAccount.key, feePayer.key]);
   await tx.send();
   Local.setProofsEnabled(true);
 }
@@ -198,8 +181,8 @@ async function setupLocalProofs() {
 describe('Token', () => {
   beforeAll(async () => {
     await TokenContract.compile();
-    await ZkAppB.compile();
-    await ZkAppC.compile();
+    await B.compile();
+    await C.compile();
   });
 
   describe('Signature Authorization', () => {
@@ -208,7 +191,7 @@ describe('Token', () => {
       Check token contract can be deployed and initialized
       tested cases:
         - create a new token
-        - deploy a zkApp under a custom token
+        - deploy a contract under a custom token
         - create a new valid token with a different parentTokenId
         - set the token symbol after deployment
     */
@@ -218,23 +201,23 @@ describe('Token', () => {
       });
 
       test('correct token id can be derived with an existing token owner', () => {
-        expect(tokenId).toEqual(TokenId.derive(tokenZkappAddress));
+        expect(tokenId).toEqual(TokenId.derive(tokenAccount));
       });
 
       test('deployed token contract exists in the ledger', () => {
-        expect(Mina.getAccount(tokenZkappAddress, tokenId)).toBeDefined();
+        expect(Mina.getAccount(tokenAccount, tokenId)).toBeDefined();
       });
 
       test('setting a valid token symbol on a token contract', async () => {
         await (
           await Mina.transaction({ sender: feePayer }, async () => {
-            let tokenZkapp = AccountUpdate.createSigned(tokenZkappAddress);
-            tokenZkapp.account.tokenSymbol.set(tokenSymbol);
+            let au = AccountUpdate.createSigned(tokenAccount);
+            au.account.tokenSymbol.set(tokenSymbol);
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
-        const symbol = Mina.getAccount(tokenZkappAddress).tokenSymbol;
+        const symbol = Mina.getAccount(tokenAccount).tokenSymbol;
         expect(tokenSymbol).toBeDefined();
         expect(symbol).toEqual(tokenSymbol);
       });
@@ -256,22 +239,22 @@ describe('Token', () => {
         await (
           await Mina.transaction({ sender: feePayer }, async () => {
             AccountUpdate.fundNewAccount(feePayer);
-            await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-            tokenZkapp.requireSignature();
+            await token.mint(bAccount, UInt64.from(100_000));
+            token.requireSignature();
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(100_000n);
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
+          100_000n
+        );
       });
 
       test('minting should fail if overflow occurs ', async () => {
         await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000_000_000));
-          tokenZkapp.requireSignature();
+          await token.mint(bAccount, UInt64.from(100_000_000_000));
+          token.requireSignature();
         }).catch((e) => {
           expect(e).toBeDefined();
         });
@@ -293,41 +276,41 @@ describe('Token', () => {
         await (
           await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
-            await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-            tokenZkapp.requireSignature();
+            await token.mint(bAccount, UInt64.from(100_000));
+            token.requireSignature();
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
         await (
           await Mina.transaction(feePayer, async () => {
-            await tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
-            tokenZkapp.requireSignature();
+            await token.burn(bAccount, UInt64.from(10_000));
+            token.requireSignature();
           })
         )
-          .sign([zkAppBKey, feePayerKey, tokenZkappKey])
+          .sign([bAccount.key, feePayer.key, tokenAccount.key])
           .send();
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(90_000n);
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
+          90_000n
+        );
       });
 
       test('throw error if token owner burns more tokens than token account has', async () => {
         await (
           await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
-            await tokenZkapp.mint(zkAppBAddress, UInt64.from(1_000));
-            tokenZkapp.requireSignature();
+            await token.mint(bAccount, UInt64.from(1_000));
+            token.requireSignature();
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
         let tx = (
           await Mina.transaction(feePayer, async () => {
-            await tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
-            tokenZkapp.requireSignature();
+            await token.burn(bAccount, UInt64.from(10_000));
+            token.requireSignature();
           })
-        ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
+        ).sign([bAccount.key, feePayer.key, tokenAccount.key]);
         await expect(tx.send()).rejects.toThrow();
       });
     });
@@ -348,53 +331,53 @@ describe('Token', () => {
       test('change the balance of a token account after sending', async () => {
         let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-          tokenZkapp.requireSignature();
+          await token.mint(bAccount, UInt64.from(100_000));
+          token.requireSignature();
         });
-        await tx.sign([feePayerKey, tokenZkappKey]).send();
+        await tx.sign([feePayer.key, tokenAccount.key]).send();
 
         tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          tokenZkapp.internal.send({
-            from: zkAppBAddress,
-            to: zkAppCAddress,
+          token.internal.send({
+            from: bAccount,
+            to: cAccount,
             amount: UInt64.from(10_000),
           });
-          AccountUpdate.attachToTransaction(tokenZkapp.self);
-          tokenZkapp.requireSignature();
+          AccountUpdate.attachToTransaction(token.self);
+          token.requireSignature();
         });
-        tx.sign([zkAppBKey, zkAppCKey, feePayerKey, tokenZkappKey]);
+        tx.sign([bAccount.key, cAccount.key, feePayer.key, tokenAccount.key]);
         await tx.send();
 
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(90_000n);
-        expect(
-          Mina.getBalance(zkAppCAddress, tokenId).value.toBigInt()
-        ).toEqual(10_000n);
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
+          90_000n
+        );
+        expect(Mina.getBalance(cAccount, tokenId).value.toBigInt()).toEqual(
+          10_000n
+        );
       });
 
       test('should error creating a token account if no account creation fee is specified', async () => {
         await (
           await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
-            await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-            tokenZkapp.requireSignature();
+            await token.mint(bAccount, UInt64.from(100_000));
+            token.requireSignature();
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
         let tx = (
           await Mina.transaction(feePayer, async () => {
-            tokenZkapp.internal.send({
-              from: zkAppBAddress,
-              to: zkAppCAddress,
+            token.internal.send({
+              from: bAccount,
+              to: cAccount,
               amount: UInt64.from(10_000),
             });
-            AccountUpdate.attachToTransaction(tokenZkapp.self);
-            tokenZkapp.requireSignature();
+            AccountUpdate.attachToTransaction(token.self);
+            token.requireSignature();
           })
-        ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
+        ).sign([bAccount.key, feePayer.key, tokenAccount.key]);
 
         await expect(tx.send()).rejects.toThrow();
       });
@@ -403,23 +386,23 @@ describe('Token', () => {
         await (
           await Mina.transaction(feePayer, async () => {
             AccountUpdate.fundNewAccount(feePayer);
-            await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-            tokenZkapp.requireSignature();
+            await token.mint(bAccount, UInt64.from(100_000));
+            token.requireSignature();
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
         let tx = (
           await Mina.transaction(feePayer, async () => {
-            tokenZkapp.internal.send({
-              from: zkAppBAddress,
-              to: zkAppCAddress,
+            token.internal.send({
+              from: bAccount,
+              to: cAccount,
               amount: UInt64.from(100_000),
             });
-            AccountUpdate.attachToTransaction(tokenZkapp.self);
-            tokenZkapp.requireSignature();
+            AccountUpdate.attachToTransaction(token.self);
+            token.requireSignature();
           })
-        ).sign([zkAppBKey, feePayerKey, tokenZkappKey]);
+        ).sign([bAccount.key, feePayer.key, tokenAccount.key]);
         await expect(tx.send()).rejects.toThrow();
       });
     });
@@ -440,15 +423,11 @@ describe('Token', () => {
         });
       });
 
-      test('should successfully deploy a token account under a zkApp', async () => {
-        expect(Mina.getAccount(zkAppBAddress, tokenId)).toBeDefined();
-        expect(Mina.getAccount(zkAppBAddress, tokenId).tokenId).toEqual(
-          tokenId
-        );
-        expect(Mina.getAccount(zkAppCAddress, tokenId)).toBeDefined();
-        expect(Mina.getAccount(zkAppCAddress, tokenId).tokenId).toEqual(
-          tokenId
-        );
+      test('should successfully deploy a token account under a contract', async () => {
+        expect(Mina.getAccount(bAccount, tokenId)).toBeDefined();
+        expect(Mina.getAccount(bAccount, tokenId).tokenId).toEqual(tokenId);
+        expect(Mina.getAccount(cAccount, tokenId)).toBeDefined();
+        expect(Mina.getAccount(cAccount, tokenId).tokenId).toEqual(tokenId);
       });
     });
 
@@ -466,14 +445,14 @@ describe('Token', () => {
       test('token contract can successfully mint and updates the balances in the ledger (proof)', async () => {
         let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
+          await token.mint(bAccount, UInt64.from(100_000));
         });
         await tx.prove();
-        tx.sign([tokenZkappKey, feePayerKey]);
+        tx.sign([tokenAccount.key, feePayer.key]);
         await tx.send();
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(100_000n);
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
+          100_000n
+        );
       });
     });
 
@@ -491,19 +470,19 @@ describe('Token', () => {
       test('token contract can successfully burn and updates the balances in the ledger (proof)', async () => {
         let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-          tokenZkapp.requireSignature();
+          await token.mint(bAccount, UInt64.from(100_000));
+          token.requireSignature();
         });
-        await tx.sign([feePayerKey, tokenZkappKey]).send();
+        await tx.sign([feePayer.key, tokenAccount.key]).send();
         tx = await Mina.transaction(feePayer, async () => {
-          await tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
+          await token.burn(bAccount, UInt64.from(10_000));
         });
         await tx.prove();
-        tx.sign([zkAppBKey, feePayerKey]);
+        tx.sign([bAccount.key, feePayer.key]);
         await tx.send();
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(90_000n);
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
+          90_000n
+        );
       });
     });
 
@@ -522,51 +501,51 @@ describe('Token', () => {
 
       test('should approve and the balance of a token account after sending', async () => {
         let tx = await Mina.transaction(feePayer, async () => {
-          await tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-          tokenZkapp.requireSignature();
+          await token.mint(bAccount, UInt64.from(100_000));
+          token.requireSignature();
         });
         await tx.prove();
-        await tx.sign([feePayerKey, tokenZkappKey]).send();
+        await tx.sign([feePayer.key, tokenAccount.key]).send();
 
         tx = await Mina.transaction(feePayer, async () => {
-          await zkAppB.approveSend(UInt64.from(10_000));
+          await b.approveSend(UInt64.from(10_000));
 
-          await tokenZkapp.approveTransfer(
-            zkAppBAddress,
-            zkAppCAddress,
+          await token.approveTransfer(
+            bAccount,
+            cAccount,
             UInt64.from(10_000),
-            zkAppB.self
+            b.self
           );
         });
         await tx.prove();
-        await tx.sign([feePayerKey]).send();
+        await tx.sign([feePayer.key]).send();
 
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(90_000n);
-        expect(
-          Mina.getBalance(zkAppCAddress, tokenId).value.toBigInt()
-        ).toEqual(10_000n);
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
+          90_000n
+        );
+        expect(Mina.getBalance(cAccount, tokenId).value.toBigInt()).toEqual(
+          10_000n
+        );
       });
 
       test('should fail to approve with an incorrect layout', async () => {
         await (
           await Mina.transaction(feePayer, async () => {
-            await tokenZkapp.mint(zkAppCAddress, UInt64.from(100_000));
-            tokenZkapp.requireSignature();
+            await token.mint(cAccount, UInt64.from(100_000));
+            token.requireSignature();
           })
         )
-          .sign([feePayerKey, tokenZkappKey])
+          .sign([feePayer.key, tokenAccount.key])
           .send();
 
         await expect(() =>
           Mina.transaction(feePayer, async () => {
-            await zkAppC.approveIncorrectLayout(UInt64.from(10_000));
-            await tokenZkapp.approveTransfer(
-              zkAppBAddress,
-              zkAppCAddress,
+            await c.approveIncorrectLayout(UInt64.from(10_000));
+            await token.approveTransfer(
+              bAccount,
+              cAccount,
               UInt64.from(10_000),
-              zkAppC.self
+              c.self
             );
           })
         ).rejects.toThrow();
@@ -575,13 +554,13 @@ describe('Token', () => {
       test('should reject tx if user bypasses the token contract by using an empty account update', async () => {
         let tx = await Mina.transaction(feePayer, async () => {
           AccountUpdate.fundNewAccount(feePayer);
-          tokenZkapp.internal.mint({
-            address: zkAppBAddress,
+          token.internal.mint({
+            address: bAccount,
             amount: UInt64.from(100_000),
           });
-          AccountUpdate.attachToTransaction(tokenZkapp.self);
+          AccountUpdate.attachToTransaction(token.self);
         });
-        await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+        await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
           /Update_not_permitted_access/
         );
       });

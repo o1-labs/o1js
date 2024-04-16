@@ -35,10 +35,7 @@ class ExampleTokenContract extends TokenContract {
 let Local = Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let [
-  { publicKey: sender, privateKey: senderKey },
-  { publicKey: otherAddress, privateKey: otherKey },
-] = Local.testAccounts;
+let [sender, other] = Local.testAccounts;
 
 let { publicKey: tokenAddress, privateKey: tokenKey } =
   PrivateKey.randomKeypair();
@@ -51,7 +48,7 @@ let deployTx = await Mina.transaction(sender, async () => {
   await token.deploy();
 });
 await deployTx.prove();
-await deployTx.sign([tokenKey, senderKey]).send();
+await deployTx.sign([tokenKey, sender.key]).send();
 
 assert(
   Mina.getAccount(tokenAddress).zkapp?.verificationKey !== undefined,
@@ -61,22 +58,22 @@ assert(
 // can transfer tokens between two accounts
 let transferTx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
-  await token.transfer(tokenAddress, otherAddress, UInt64.one);
+  await token.transfer(tokenAddress, other, UInt64.one);
 });
 await transferTx.prove();
-await transferTx.sign([tokenKey, senderKey]).send();
+await transferTx.sign([tokenKey, sender.key]).send();
 
-Mina.getBalance(otherAddress, tokenId).assertEquals(UInt64.one);
+Mina.getBalance(other, tokenId).assertEquals(UInt64.one);
 
 // fails to approve a deep account update tree with correct token permissions, but a non-zero balance sum
-let update1 = AccountUpdate.create(otherAddress);
+let update1 = AccountUpdate.create(other);
 update1.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
-let update2 = AccountUpdate.create(otherAddress);
+let update2 = AccountUpdate.create(other);
 update2.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 update2.body.callDepth = 1;
 
-let update3 = AccountUpdate.create(otherAddress, tokenId);
+let update3 = AccountUpdate.create(other, tokenId);
 update3.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 update3.balanceChange = Int64.one;
 update3.body.callDepth = 2;
@@ -89,7 +86,7 @@ await assert.rejects(
 );
 
 // succeeds to approve deep account update tree with zero balance sum
-let update4 = AccountUpdate.createSigned(otherAddress, tokenId);
+let update4 = AccountUpdate.createSigned(other, tokenId);
 update4.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 update4.balanceChange = Int64.minusOne;
 update4.body.callDepth = 2;
@@ -103,4 +100,4 @@ forest = AccountUpdateForest.fromFlatArray([
 
 let approveTx = await Mina.transaction(sender, () => token.approveBase(forest));
 await approveTx.prove();
-await approveTx.sign([senderKey, otherKey]).send();
+await approveTx.sign([sender.key, other.key]).send();
