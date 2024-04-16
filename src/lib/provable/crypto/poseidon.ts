@@ -80,12 +80,19 @@ const Poseidon = {
   },
 
   Unsafe: {
+    /**
+     * Low-level version of `Poseidon.hashToGroup()`.
+     *
+     * **Warning**: This function is marked unsafe because its output is not deterministic.
+     * It returns the square root of a value without constraining which of the two possible
+     * square roots is chosen. This allows the prover to choose between two different hashes,
+     * which can be a vulnerability if consuming code treats the output as unique.
+     */
     hashToGroup(input: Field[]) {
       if (isConstant(input)) {
         let result = PoseidonBigint.hashToGroup(toBigints(input));
         assert(result !== undefined, 'hashToGroup works on all inputs');
-        let { x, y } = result;
-        return new Group({ x, y });
+        return new Group(result);
       }
 
       // y = sqrt(y^2)
@@ -94,6 +101,11 @@ const Poseidon = {
     },
   },
 
+  /**
+   * Hashes a list of field elements to a point on the Pallas curve.
+   *
+   * The output point is deterministic and its discrete log is not efficiently computable.
+   */
   hashToGroup(input: Field[]): Group {
     if (isConstant(input)) return Poseidon.Unsafe.hashToGroup(input);
 
