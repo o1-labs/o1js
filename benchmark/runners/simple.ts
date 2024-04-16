@@ -7,9 +7,11 @@
  * ./run benchmark/runners/simple.ts --bundle
  * ```
  */
-
+import { initializeBindings } from 'o1js';
 import { logResult } from '../benchmark.js';
-import EcdsaBenchmark from '../benchmarks/ecdsa.js';
+import { EcdsaBenchmark } from '../benchmarks/ecdsa.js';
+
+await initializeBindings();
 
 // Run all benchmarks
 const results = [...(await EcdsaBenchmark.run())];
