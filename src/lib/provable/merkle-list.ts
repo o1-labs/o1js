@@ -196,9 +196,9 @@ class MerkleList<T> implements MerkleListBase<T> {
     return merkleArray.startIterating(this);
   }
 
-  startIteratingReverse(): MerkleListIterator<T> {
+  startIteratingFromLast(): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
-    return merkleArray.startIteratingReverse(this);
+    return merkleArray.startIteratingFromLast(this);
   }
 
   /**
@@ -221,7 +221,6 @@ class MerkleList<T> implements MerkleListBase<T> {
     // override static methods with strict types
     empty: () => MerkleList<T>;
     from: (array: T[]) => MerkleList<T>;
-    fromReverse: (array: T[]) => MerkleList<T>;
     provable: ProvableHashable<MerkleList<T>>;
   } {
     class MerkleListTBase extends MerkleList<T> {
@@ -240,17 +239,6 @@ class MerkleList<T> implements MerkleListBase<T> {
       }
 
       static from(array: T[]): MerkleList<T> {
-        let { hash, data } = withHashes(array, nextHash, emptyHash_);
-        let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
-        );
-        return new this({ data: unconstrained, hash });
-      }
-
-      /**
-       * Creates a `MerkleList` from an array but reverses it.
-       */
-      static fromReverse(array: T[]): MerkleList<T> {
         array = [...array].reverse();
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
@@ -404,7 +392,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  next() {
+  previous() {
     // next corresponds to `pop()` in MerkleList
     // it returns a dummy element if we're at the end of the array
     let { previousHash, element } = Provable.witness(
@@ -435,7 +423,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  previous() {
+  next() {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     let { previousHash, element } = Provable.witness(
       WithHash(this.innerProvable),
@@ -448,6 +436,9 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         );
       }
     );
+
+    Provable.log('next element', element);
+    Provable.log('index', this.currentIndex.get());
 
     let currentHash = this.nextHash(previousHash, element);
     let isDummy = this.isAtStart();
@@ -499,7 +490,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   ): typeof MerkleListIterator<T> & {
     from: (array: T[]) => MerkleListIterator<T>;
     startIterating: (list: MerkleListBase<T>) => MerkleListIterator<T>;
-    startIteratingReverse: (list: MerkleListBase<T>) => MerkleListIterator<T>;
+    startIteratingFromLast: (list: MerkleListBase<T>) => MerkleListIterator<T>;
     empty: () => MerkleListIterator<T>;
     provable: ProvableHashable<MerkleListIterator<T>>;
   } {
@@ -533,20 +524,20 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         return new this({
           data,
           hash,
-          currentHash: hash,
-          currentIndex: Unconstrained.from(0),
+          currentHash: emptyHash_,
+          currentIndex: Unconstrained.witness(() => data.get().length - 1),
         });
       }
 
-      static startIteratingReverse({
+      static startIteratingFromLast({
         data,
         hash,
       }: MerkleListBase<T>): MerkleListIterator<T> {
         return new this({
           data,
           hash,
-          currentHash: emptyHash_,
-          currentIndex: Unconstrained.witness(() => data.get().length - 1),
+          currentHash: hash,
+          currentIndex: Unconstrained.from(0),
         });
       }
 
