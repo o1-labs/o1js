@@ -4,7 +4,7 @@
  * - the main interface for types that can be used in provable code
  */
 import { Bool } from './bool.js';
-import { Field } from './field.js';
+import { Field, VarField } from './field.js';
 import type { Provable as Provable_ } from './types/provable-intf.js';
 import type { FlexibleProvable, ProvableExtended } from './types/struct.js';
 import { Context } from '../util/global-context.js';
@@ -22,6 +22,8 @@ import {
   generateWitness,
 } from './core/provable-context.js';
 import { witness, witnessAsync } from './types/witness.js';
+import { bilinear, getLinear, reduceToScaledVar } from './gadgets/basic.js';
+import { toVar } from './gadgets/common.js';
 
 // external API
 export { Provable };
@@ -287,15 +289,27 @@ function if_(condition: Bool, typeOrX: any, xOrY: any, yOrUndefined?: any) {
   }
 }
 
-function ifField(b: Field, x: Field, y: Field) {
-  // TODO: this is suboptimal if one of x, y is constant
-  // it uses 2-3 generic gates in that case, where 1 would be enough
-
+function ifField(b: VarField, x: Field, y: Field) {
   // b*(x - y) + y
-  // NOTE: the R1CS constraint used by Field.if_ in snarky-ml
-  // leads to a different but equivalent layout (same # constraints)
-  // https://github.com/o1-labs/snarky/blob/14f8e2ff981a9c9ea48c94b2cc1d8c161301537b/src/base/utils.ml#L171
-  // in the case x, y are constant, the layout is the same
+
+  // case that one input is constant
+  if (x.isConstant()) {
+    let [[sy, vy], cy] = getLinear(reduceToScaledVar(y));
+    let cx = x.toBigInt();
+
+    // (-1)*y*b + 1*y + cx*b =
+    // -sy*vy*b + sy*vy + (cx-cy)*b + cy =
+    return bilinear(vy, b, [-sy, sy, cx - cy, cy]);
+  }
+  if (y.isConstant()) {
+    let [[sx, vx], cx] = getLinear(reduceToScaledVar(x));
+    let cy = y.toBigInt();
+
+    // x*b + (-cy)*b + cy =
+    // sx*vx*b + (cx-cy)*b + cy =
+    return bilinear(vx, b, [sx, 0n, cx - cy, cy]);
+  }
+
   return b.mul(x.sub(y)).add(y).seal();
 }
 
@@ -311,7 +325,8 @@ function ifExplicit<T>(condition: Bool, type: Provable<T>, x: T, y: T): T {
 
   // if b is variable, we compute if as follows:
   // if(b, x, y)[i] = b*(x[i] - y[i]) + y[i]
-  let fields = xs.map((xi, i) => ifField(b, xi, ys[i]));
+  let vb = toVar(b);
+  let fields = xs.map((xi, i) => ifField(vb, xi, ys[i]));
   let aux = auxiliary(type, () => (condition.toBoolean() ? x : y));
   return type.fromFields(fields, aux);
 }
