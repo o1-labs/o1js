@@ -360,9 +360,11 @@ function toTransactionPromise<Proven extends boolean, Signed extends boolean>(
         pending.then((v) => (v as never as Transaction<false, Signed>).prove())
       );
     },
-    proofs: pending.then(
-      (v) => (v as never as Transaction<true, Proven>).proofs
-    ),
+    proofs: pending
+      .then((v) => (v as never as Transaction<true, Proven>).proofs)
+      .catch(
+        () => [] as never as (Proof<ZkappPublicInput, undefined> | undefined)[]
+      ),
   }) as never as TransactionPromise<Proven, Signed>;
 }
 
