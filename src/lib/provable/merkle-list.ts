@@ -412,8 +412,9 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash.assertEquals(requiredHash);
 
     this.currentIndex.updateAsProver((i) =>
-      Math.min(i + 1, this.data.get().length)
+      Math.min(i + 1, this.data.get().length - 1)
     );
+
     this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
     return Provable.if(
       isDummy,
@@ -436,9 +437,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         );
       }
     );
-
-    Provable.log('next element', element);
-    Provable.log('index', this.currentIndex.get());
 
     let currentHash = this.nextHash(previousHash, element);
     let isDummy = this.isAtStart();
