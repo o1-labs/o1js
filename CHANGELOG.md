@@ -29,6 +29,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
   - Breaks circuits that used EC addition, like ECDSA
 - `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
+- `Poseidon.hashToGroup()` now returns a `Group` directly, and constrains it to be deterministic https://github.com/o1-labs/o1js/pull/1546
+  - Added `Poseidon.Unsafe.hashToGroup()` as a more efficient, non-deterministic version for advanced use cases
 
 ### Changes
 

@@ -252,8 +252,8 @@
     "digest": "Crypto",
     "methods": {
       "nullifier": {
-        "rows": 730,
-        "digest": "aa8ec2538a8d3133af3f2dd7eb682738"
+        "rows": 726,
+        "digest": "64ba0a06a559a3f5a5e68a88c8ec550a"
       }
     },
     "verificationKey": {
