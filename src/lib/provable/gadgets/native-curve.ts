@@ -9,6 +9,7 @@ import { assert, bit, bitSlice, isConstant } from './common.js';
 import { l, rangeCheck64 } from './range-check.js';
 import {
   createBool,
+  createBoolUnsafe,
   createField,
   getField,
 } from '../core/field-constructor.js';
@@ -54,21 +55,19 @@ function scaleField(P: Point, s: Field): Point {
    */
 
   // compute t = s + (-2^255 mod q) in (1, 254) arithmetic
-  let { isOdd: sLoBool, high: sHi } = isOddAndHigh(s);
-  let sLo = sLoBool.toField();
+  let { isOdd: sLo, high: sHi } = isOddAndHigh(s);
 
   let shift = Fq.mod(-(1n << 255n));
-  let shiftLo = shift & 1n;
+  assert((shift & 1n) === 0n); // shift happens to be even, so we don't need to worry about a carry
   let shiftHi = shift >> 1n;
 
-  let carry = sLo.mul(shiftLo).seal(); // = either 0 or lowBit
-  let tLo = sLo.add(shiftLo).sub(carry).assertBool();
-  let tHi = sHi.add(shiftHi).add(carry).seal();
+  let tLo = sLo;
+  let tHi = sHi.add(shiftHi).seal();
 
   // tHi does not overflow:
-  // tHi = sHi + shiftHi + carry < p/2 + (p/2 - 1) + 1 = p
+  // tHi = sHi + shiftHi < p/2 + p/2 = p
   // sHi < p/2 is guaranteed by isOddAndHigh
-  assert(shiftHi < Fp.modulus / 2n - 1n);
+  assert(shiftHi < Fp.modulus / 2n);
 
   // the 4 values for s not supported by `scaleFastUnpack` are q-2, q-1, 0, 1
   // since s came from a `Field`, we can exclude q-2, q-1
@@ -95,7 +94,7 @@ function scaleField(P: Point, s: Field): Point {
   // now handle the two edge cases s=0 and s=1
   let zero = createField(0n);
   let zeroPoint = { x: zero, y: zero };
-  let edgeCaseResult = Provable.if(sLoBool, Point, P, zeroPoint);
+  let edgeCaseResult = Provable.if(sLo, Point, P, zeroPoint);
   return Provable.if(isEdgeCase, Point, edgeCaseResult, R);
 }
 
@@ -103,7 +102,7 @@ function scaleField(P: Point, s: Field): Point {
  * Internal helper to compute `(t + 2^255)*P`.
  * `t` is expected to be split into 254 high bits (t >> 1) and a low bit (t & 1).
  *
- * The gadget proves that `tHi` is in [0, 2^254) but assumes that `tLo` consists of bits.
+ * The gadget proves that `tHi` is in [0, 2^254) but assumes that `tLo` is a single bit.
  *
  * Optionally, you can specify a different number of high bits by passing in `numHighBits`.
  */
@@ -183,21 +182,19 @@ function fieldToShiftedScalar(s: Field): ShiftedScalar {
   }
 
   // compute t = s + (-2^255 mod q) in (1, 254) arithmetic
-  let { isOdd: sLoBool, high: sHi } = isOddAndHigh(s);
-  let sLo = sLoBool.toField();
+  let { isOdd: sLo, high: sHi } = isOddAndHigh(s);
 
   let shift = Fq.mod(-(1n << 255n));
-  let shiftLo = shift & 1n;
+  assert((shift & 1n) === 0n); // shift happens to be even, so we don't need to worry about a carry
   let shiftHi = shift >> 1n;
 
-  let carry = sLo.mul(shiftLo).seal(); // = either 0 or lowBit
-  let tLo = sLo.add(shiftLo).sub(carry).assertBool();
-  let tHi = sHi.add(shiftHi).add(carry).seal();
+  let tLo = sLo;
+  let tHi = sHi.add(shiftHi).seal();
 
   // tHi does not overflow:
-  // tHi = sHi + shiftHi + carry < p/2 + (p/2 - 1) + 1 = p
+  // tHi = sHi + shiftHi < p/2 + p/2 = p
   // sHi < p/2 is guaranteed by isOddAndHigh
-  assert(shiftHi < Fp.modulus / 2n - 1n);
+  assert(shiftHi < Fp.modulus / 2n);
 
   return { lowBit: tLo, high254: tHi };
 }
@@ -236,7 +233,7 @@ function field3ToShiftedScalar(s: Field3): ShiftedScalar {
   rangeCheck64(tHi01);
 
   // prove (tLo, tHi0) split
-  // since we know that t0 < 2^88 and tHi0 < 2^128, this even proves that t0Hi < 2^87
+  // since we know that t0 < 2^88 and tHi0 < 2^128, this even proves that tHi0 < 2^87
   // (the bound on tHi0 is necessary so that 2*tHi0 can't overflow)
   let tHi0 = tHi00.add(tHi01.mul(1n << 64n));
   tLo.add(tHi0.mul(2n)).assertEquals(t0);
@@ -244,7 +241,7 @@ function field3ToShiftedScalar(s: Field3): ShiftedScalar {
   // pack tHi
   // this can't overflow the native field because:
   // -) we showed t < q
-  // -) the three combined limbs here represent the bigint tHi = (t >> 1) < q/2 < p
+  // -) the three combined limbs here represent the bigint (t >> 1) < q/2 < p
   let tHi = tHi0
     .add(t1.mul(1n << (l - 1n)))
     .add(t2.mul(1n << (2n * l - 1n)))
@@ -280,7 +277,6 @@ function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
   });
 
   let [same_x, inf, inf_z, x21_inv, s, x3, y3] = witnesses;
-  let isInfinity = inf.assertBool();
 
   Snarky.gates.ecAdd(
     MlPair(g.x.seal().value, g.y.seal().value),
@@ -292,6 +288,9 @@ function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
     inf_z.value,
     x21_inv.value
   );
+
+  // the ecAdd gate constrains `inf` to be boolean
+  let isInfinity = createBoolUnsafe(inf);
 
   return { result: { x: x3, y: y3 }, isInfinity };
 }

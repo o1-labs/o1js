@@ -15,7 +15,36 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...HEAD)
+
+### Breaking changes
+
+- Native curve improvements https://github.com/o1-labs/o1js/pull/1530
+  - Change the internal representation of `Scalar` from 255 Bools to 1 Bool and 1 Field (low bit and high 254 bits)
+  - Make `Group.scale()` support all scalars (previously did not support 0, 1 and -1)
+  - Make `Group.scale()` directly accept `Field` elements, and much more efficient than previous methods of scaling by Fields
+    - As a result, `Signature.verify()` and `Nullifier.verify()` use much fewer constraints
+  - Fix `Scalar.fromBits()` to not produce a shifted scalar; shifting is no longer exposed to users of `Scalar`.
+- Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
+  - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
+  - Breaks circuits that used EC addition, like ECDSA
+- `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
+
+### Changes
+
+- Make `MerkleTree.{nodes,zeroes}` public properties https://github.com/o1-labs/o1js/pull/1555
+  - This makes it possible to clone merkle trees, which is often needed
+
+### Added
+
+- Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
+
+### Fixed
+
+- Fix error when computing Merkle map witnesses, introduced in the last version due to the `toBits()` change https://github.com/o1-labs/o1js/pull/1559
+- Improved error message when compiling a program that has no methods. https://github.com/o1-labs/o1js/pull/1563
+
+## [0.18.0](https://github.com/o1-labs/o1js/compare/74948acac...1b6fd8b8e) - 2024-04-09
 
 ### Breaking changes
 
@@ -36,12 +65,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Massively improve `Field.isEven()`, add `Field.isOdd()`
   - `PrivateKey.toPublicKey()` from 358 to 119 constraints thanks to `isOdd()`
   - Add `Gadgets.ForeignField.assertLessThanOrEqual()` and support two variables as input to `ForeignField.assertLessThan()`
-- Native curve improvements https://github.com/o1-labs/o1js/pull/1530
-  - Change the internal representation of `Scalar` from 255 Bools to 1 Bool and 1 Field (low bit and high 254 bits)
-  - Make `Group.scale()` support all scalars (previously did not support 0, 1 and -1)
-  - Make `Group.scale()` directly accept `Field` elements, and much more efficient than previous methods of scaling by Fields
-    - As a result, `Signature.verify()` and `Nullifier.verify()` use much fewer constraints
-  - Fix `Scalar.fromBits()` to not produce a shifted scalar; shifting is no longer exposed to users of `Scalar`.
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
@@ -59,6 +82,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Replace the namespaced type exports `Gadgets.Field3` and `Gadgets.ForeignField.Sum` with `Field3` and `ForeignFieldSum`
   - Unfortunately, the namespace didn't play well with auto-imports in TypeScript
 - Add `Gadgets.rangeCheck3x12()` and fix proof system bug that prevented it from working https://github.com/o1-labs/o1js/pull/1534
+- Update transaction version and other bindings changes to ensure berkeley compatibility https://github.com/o1-labs/o1js/pull/1542
 
 ### Added
 

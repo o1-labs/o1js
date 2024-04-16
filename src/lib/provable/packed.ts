@@ -186,19 +186,18 @@ class Hashed<T> {
   } {
     let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
 
-    let dummyHash = _hash(type.empty());
-
     return class Hashed_ extends Hashed<T> {
       static _innerProvable = type;
       static _provable = provableFromClass(Hashed_, {
-        hash: modifiedField({ empty: () => dummyHash }),
+        hash: modifiedField({ empty: () => _hash(type.empty()) }),
         value: Unconstrained.provable,
       }) as ProvableHashable<Hashed<T>>;
 
       static _hash = _hash satisfies (t: T) => Field;
 
       static empty(): Hashed<T> {
-        return new this(dummyHash, Unconstrained.from(type.empty()));
+        let empty = type.empty();
+        return new this(_hash(empty), Unconstrained.from(empty));
       }
 
       static get provable() {
