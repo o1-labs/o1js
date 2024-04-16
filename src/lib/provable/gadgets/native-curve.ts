@@ -9,6 +9,7 @@ import { assert, bit, bitSlice, isConstant } from './common.js';
 import { l, rangeCheck64 } from './range-check.js';
 import {
   createBool,
+  createBoolUnsafe,
   createField,
   getField,
 } from '../core/field-constructor.js';
@@ -276,7 +277,6 @@ function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
   });
 
   let [same_x, inf, inf_z, x21_inv, s, x3, y3] = witnesses;
-  let isInfinity = inf.assertBool();
 
   Snarky.gates.ecAdd(
     MlPair(g.x.seal().value, g.y.seal().value),
@@ -288,6 +288,9 @@ function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
     inf_z.value,
     x21_inv.value
   );
+
+  // the ecAdd gate constrains `inf` to be boolean
+  let isInfinity = createBoolUnsafe(inf);
 
   return { result: { x: x3, y: y3 }, isInfinity };
 }
