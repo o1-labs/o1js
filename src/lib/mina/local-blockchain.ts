@@ -83,7 +83,7 @@ function LocalBlockchain({
 
   let testAccounts = [] as never as TupleN<TestPublicKey, 100>;
 
-  for (let i = 0; i < 100; ++i) {
+  for (let i = 0; i < 10; ++i) {
     let MINA = 10n ** 9n;
     const largeValue = 1000n * MINA;
     const testAccount = TestPublicKey.random();
