@@ -1319,9 +1319,19 @@ class ${contract.constructor.name} extends SmartContract {
         let newState = state;
 
         if (maxActionsPerMethod === 1) {
-          // this is a special case with less work because if the only action is a dummy, it implies the actionIter is empty,
-          // so we have merkleActions = dummy, which is handled below
-          let { element: action } = actionIter.nextUnsafe();
+          // special case with less work, because the only action is a dummy iff merkleActions is a dummy
+          let action = Provable.witness(
+            reducer.actionType,
+            () =>
+              actionIter.data.get()[0]?.element ??
+              actionIter.innerProvable.empty()
+          );
+
+          let emptyHash = actionIter.Constructor.emptyHash;
+          let finalHash = actionIter.nextHash(emptyHash, action);
+          finalHash = Provable.if(isDummy, emptyHash, finalHash);
+          actionIter.hash.assertEquals(finalHash);
+
           newState = reduce(newState, action);
         } else {
           for (let j = 0; j < maxActionsPerMethod; j++) {
@@ -1333,6 +1343,8 @@ class ${contract.constructor.name} extends SmartContract {
               reduce(newState, action)
             );
           }
+          // note: this asserts nothing about the iterated actions if `MerkleActions` is a dummy
+          // which doesn't matter because we're also skipping all state and action state updates in that case
           actionIter.assertAtEnd();
         }
 
