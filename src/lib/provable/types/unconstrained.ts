@@ -121,8 +121,8 @@ and Provable.asProver() blocks, which execute outside the proof.
     toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
     fromFields: (_, [t]) => t,
     check: () => {},
-    toValue: (t) => t.get(),
-    fromValue: (t) => Unconstrained.from(t),
+    toValue: (t) => t,
+    fromValue: (t) => t,
     toInput: () => ({}),
   };
 }
