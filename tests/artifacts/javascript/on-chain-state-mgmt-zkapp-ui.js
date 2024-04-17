@@ -78,7 +78,7 @@ updateButton.addEventListener('click', async (event) => {
       );
     });
 
-    const [proof] = await transaction.prove();
+    const [proof] = (await transaction.prove()).proofs;
 
     if (verificationKey) {
       let isVerified = await verify(proof, verificationKey.data);
