@@ -10,10 +10,10 @@ let txn, txn2, txn3, txn4;
 let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-// test accounts that pays all the fees, and puts additional funds into the zkapp
+// test accounts that pays all the fees, and puts additional funds into the contract
 const [feePayer1, feePayer2, feePayer3, feePayer4] = Local.testAccounts;
 
-// zkapp account
+// contract account
 const contractAccount = Mina.TestPublicKey.random();
 const contract = new HelloWorld(contractAccount);
 

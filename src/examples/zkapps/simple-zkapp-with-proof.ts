@@ -57,7 +57,9 @@ let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile();
 console.log('prove (trivial zkapp)');
 let [trivialProof] = await Mina.transaction(feePayer, async () => {
   await new TrivialZkapp(notSoSimpleContractAccount).proveSomething(Field(1));
-}).prove().proofs;
+})
+  .prove()
+  .proofs();
 
 trivialProof = await testJsonRoundtripAndVerify(
   TrivialProof,

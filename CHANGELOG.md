@@ -39,6 +39,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
+- `Mina.transaction` has been reworked such that one can call methods directly on the returned promise (now a `TransactionPromise`). This enables a fluent / method-chaining API. https://github.com/o1-labs/o1js/pull/1567
+- `TransactionPendingPromise` enables calling `wait` directly on the promise returned by calling `send` on a `Transaction`. https://github.com/o1-labs/o1js/pull/1567
 - `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
   - calling this function is optional
 

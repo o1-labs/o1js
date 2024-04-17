@@ -264,19 +264,6 @@ async function LocalBlockchain({
             latestActionState_ !== undefined
               ? Field(latestActionState_)
               : Actions.emptyActionState();
-
-          actions[addr] ??= {};
-          if (p.body.actions.data.length > 0) {
-            let newActionState = Actions.updateSequenceState(
-              latestActionState,
-              p.body.actions.hash
-            );
-            actions[addr][tokenId] ??= [];
-            actions[addr][tokenId].push({
-              actions: pJson.body.actions,
-              hash: newActionState.toString(),
-            });
-          }
         });
 
         let test = await Test();

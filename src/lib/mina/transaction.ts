@@ -331,7 +331,7 @@ type TransactionPromise<
          * contains a `prove` call, then this field contains a promise resolving to the
          * proof array which was output from the underlying `prove` call.
          */
-        proofs: Promise<Transaction<true, Signed>['proofs']>;
+        proofs(): Promise<Transaction<true, Signed>['proofs']>;
       }) &
   (Signed extends false
     ? {
@@ -360,9 +360,11 @@ function toTransactionPromise<Proven extends boolean, Signed extends boolean>(
         pending.then((v) => (v as never as Transaction<false, Signed>).prove())
       );
     },
-    proofs: pending.then(
-      (v) => (v as never as Transaction<true, Proven>).proofs
-    ),
+    proofs() {
+      return pending.then(
+        (v) => (v as never as Transaction<true, Proven>).proofs
+      );
+    },
   }) as never as TransactionPromise<Proven, Signed>;
 }
 
