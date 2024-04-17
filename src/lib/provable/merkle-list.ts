@@ -406,7 +406,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
 
   // TODO!!! currently everything is in the wrong order:
   // next() should be called previous(), isAtEnd() should be isAtStart(),
-  // startIterating should start at the end, etc.
+  // startIteratingReverse() should be called startIterating() etc
 
   next() {
     // next corresponds to `pop()` in MerkleList
