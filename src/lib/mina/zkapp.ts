@@ -1322,7 +1322,7 @@ class ${contract.constructor.name} extends SmartContract {
         }
       }
 
-      listIter.assertAtEnd();
+      listIter.assertAtStart();
 
       return { state, actionState: actionStateAfterReduce };
     },
