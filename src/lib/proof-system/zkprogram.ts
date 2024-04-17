@@ -3,7 +3,7 @@ import {
   EmptyUndefined,
   EmptyVoid,
 } from '../../bindings/lib/generic.js';
-import { withThreadPool } from '../../snarky.js';
+import { initializeBindings, withThreadPool } from '../../snarky.js';
 import {
   Pickles,
   FeatureFlags,
@@ -110,7 +110,7 @@ class Proof<Input, Output> {
       proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof]),
     };
   }
-  static fromJSON<S extends Subclass<typeof Proof>>(
+  static async fromJSON<S extends Subclass<typeof Proof>>(
     this: S,
     {
       maxProofsVerified,
@@ -118,10 +118,13 @@ class Proof<Input, Output> {
       publicInput: publicInputJson,
       publicOutput: publicOutputJson,
     }: JsonProof
-  ): Proof<
-    InferProvable<S['publicInputType']>,
-    InferProvable<S['publicOutputType']>
+  ): Promise<
+    Proof<
+      InferProvable<S['publicInputType']>,
+      InferProvable<S['publicOutputType']>
+    >
   > {
+    await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let type = getStatementType(this);
     let publicInput = type.input.fromFields(publicInputJson.map(Field));
@@ -192,6 +195,7 @@ async function verify(
   proof: Proof<any, any> | JsonProof,
   verificationKey: string | VerificationKey
 ) {
+  await initializeBindings();
   let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement<FieldConst>;
   if (typeof proof.proof === 'string') {
@@ -614,6 +618,7 @@ async function compileProgram({
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
+  await initializeBindings();
   if (methodIntfs.length === 0)
     throw Error(`The Program you are trying to compile has no methods. 
 Try adding a method to your ZkProgram or SmartContract.
@@ -868,8 +873,6 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic = EmptyNull<Field>();
-
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 
 function methodArgumentTypesAndValues(
@@ -966,7 +969,8 @@ ZkProgram.Proof = function <
   };
 };
 
-function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
+async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
+  await initializeBindings();
   return withThreadPool(
     async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
   );

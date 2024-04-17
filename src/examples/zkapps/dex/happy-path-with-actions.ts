@@ -14,7 +14,7 @@ import { TrivialCoin as TokenContract } from './erc20.js';
 let proofsEnabled = true;
 tic('Happy path with actions');
 console.log();
-let Local = Mina.LocalBlockchain({
+let Local = await Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: true,
 });

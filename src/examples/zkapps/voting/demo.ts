@@ -10,7 +10,7 @@ import {
   ElectionPreconditions,
 } from './preconditions.js';
 
-let Local = Mina.LocalBlockchain({
+let Local = await Mina.LocalBlockchain({
   proofsEnabled: false,
   enforceTransactionLimits: false,
 });

@@ -1,4 +1,4 @@
-import { Ledger, Test } from '../../snarky.js';
+import { Test } from '../../snarky.js';
 import {
   Common,
   hashPayment,
@@ -11,12 +11,10 @@ import {
 } from './transaction-hash.js';
 import {
   PaymentJson,
-  PaymentJsonV1,
   commonFromJson,
   paymentFromJson,
   CommonJson,
   DelegationJson,
-  DelegationJsonV1,
   delegationFromJson,
 } from './sign-legacy.js';
 import { Signature, SignatureJson } from './signature.js';
@@ -27,12 +25,14 @@ import { versionBytes } from '../../bindings/crypto/constants.js';
 import { test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 
+let mlTest = await Test();
+
 test(
   RandomTransaction.signedPayment,
   RandomTransaction.signedDelegation,
   (payment, delegation) => {
     // common serialization
-    let result = Test.transactionHash.serializeCommon(
+    let result = mlTest.transactionHash.serializeCommon(
       JSON.stringify(commonToOcaml(payment.data.common))
     );
     let bytes0 = [...result.data];
@@ -42,7 +42,7 @@ test(
 
     // payment serialization
     let ocamlPayment = JSON.stringify(paymentToOcaml(payment));
-    result = Test.transactionHash.serializePayment(ocamlPayment);
+    result = mlTest.transactionHash.serializePayment(ocamlPayment);
     let paymentBytes0 = [...result.data];
     let payload = userCommandToEnum(paymentFromJson(payment.data));
     let command = {
@@ -60,13 +60,13 @@ test(
     expect(commandRecovered).toEqual(command);
 
     // payment hash
-    let digest0 = Test.transactionHash.hashPayment(ocamlPayment);
+    let digest0 = mlTest.transactionHash.hashPayment(ocamlPayment);
     let digest1 = hashPayment(payment, { berkeley: true });
     expect(digest1).toEqual(digest0);
 
     // delegation serialization
     let ocamlDelegation = JSON.stringify(delegationToOcaml(delegation));
-    result = Test.transactionHash.serializePayment(ocamlDelegation);
+    result = mlTest.transactionHash.serializePayment(ocamlDelegation);
     let delegationBytes0 = [...result.data];
     payload = userCommandToEnum(delegationFromJson(delegation.data));
     command = {
@@ -84,15 +84,16 @@ test(
     expect(commandRecovered).toEqual(command);
 
     // delegation hash
-    digest0 = Test.transactionHash.hashPayment(ocamlDelegation);
+    digest0 = mlTest.transactionHash.hashPayment(ocamlDelegation);
     digest1 = hashStakeDelegation(delegation, { berkeley: true });
     expect(digest1).toEqual(digest0);
 
     // payment v1 serialization
     let ocamlPaymentV1 = JSON.stringify(paymentToOcamlV1(payment));
-    let ocamlBase58V1 = Test.transactionHash.serializePaymentV1(ocamlPaymentV1);
+    let ocamlBase58V1 =
+      mlTest.transactionHash.serializePaymentV1(ocamlPaymentV1);
     let v1Bytes0 = stringToBytesOcaml(
-      Test.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
+      mlTest.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
     );
     let paymentV1Body = userCommandToV1(paymentFromJson(payment.data));
     let paymentV1 = {
@@ -104,15 +105,16 @@ test(
     expect(JSON.stringify(v1Bytes1)).toEqual(JSON.stringify(v1Bytes0));
 
     // payment v1 hash
-    digest0 = Test.transactionHash.hashPaymentV1(ocamlPaymentV1);
+    digest0 = mlTest.transactionHash.hashPaymentV1(ocamlPaymentV1);
     digest1 = hashPayment(payment);
     expect(digest1).toEqual(digest0);
 
     // delegation v1 serialization
     let ocamlDelegationV1 = JSON.stringify(delegationToOcamlV1(delegation));
-    ocamlBase58V1 = Test.transactionHash.serializePaymentV1(ocamlDelegationV1);
+    ocamlBase58V1 =
+      mlTest.transactionHash.serializePaymentV1(ocamlDelegationV1);
     v1Bytes0 = stringToBytesOcaml(
-      Test.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
+      mlTest.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
     );
     let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
     let delegationV1 = {
@@ -124,7 +126,7 @@ test(
     expect(JSON.stringify(v1Bytes1)).toEqual(JSON.stringify(v1Bytes0));
 
     // delegation v1 hash
-    digest0 = Test.transactionHash.hashPaymentV1(ocamlDelegationV1);
+    digest0 = mlTest.transactionHash.hashPaymentV1(ocamlDelegationV1);
     digest1 = hashStakeDelegation(delegation);
     expect(digest1).toEqual(digest0);
   }
