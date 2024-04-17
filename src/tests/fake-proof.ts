@@ -87,7 +87,7 @@ assert(
 
 // contract accepts proof
 let tx = await Mina.transaction(() => zkApp.verifyReal(realProof));
-let [contractProof] = await tx.prove();
+let [contractProof] = (await tx.prove()).proofs;
 assert(
   await verify(contractProof!, contractVk.data),
   'recursive contract accepts real proof'
