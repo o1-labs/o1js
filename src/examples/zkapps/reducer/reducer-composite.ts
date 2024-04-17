@@ -15,63 +15,85 @@ import {
 import assert from 'node:assert/strict';
 import { getProfiler } from '../../utils/profiler.js';
 
-class MaybeIncrement extends Struct({
+class Action extends Struct({
   isIncrement: Bool,
-  otherData: Field,
-}) {}
-const INCREMENT = { isIncrement: Bool(true), otherData: Field(0) };
+  data: Field,
+}) {
+  static increment(count: number) {
+    return new this({
+      isIncrement: Bool(true),
+      data: Field(count),
+    });
+  }
+
+  static other(data: Field) {
+    return new this({
+      isIncrement: Bool(false),
+      data,
+    });
+  }
+}
+
+class CounterState extends Struct({
+  count: Field,
+  rollup: Field, // helper field to store the point in the action history that our on-chain state is at
+}) {
+  static initial = new this({
+    count: Field(0),
+    rollup: Reducer.initialActionState,
+  });
+}
 
 class Counter extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
-  reducer = Reducer({ actionType: MaybeIncrement });
+  reducer = Reducer({ actionType: Action });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
-  @state(Field) counter = State<Field>();
-  // helper field to store the point in the action history that our on-chain state is at
-  @state(Field) actionState = State<Field>();
+  @state(CounterState) state = State<CounterState>();
 
-  @method async incrementCounter() {
-    this.reducer.dispatch(INCREMENT);
-  }
-  @method async dispatchData(data: Field) {
-    this.reducer.dispatch({ isIncrement: Bool(false), otherData: data });
+  @method async increment() {
+    this.reducer.dispatch(Action.increment(1));
   }
 
-  @method async rollupIncrements() {
+  @method async other(data: Field) {
+    this.reducer.dispatch(Action.other(data));
+  }
+
+  @method async rollup() {
     // get previous counter & actions hash, assert that they're the same as on-chain values
-    let counter = this.counter.get();
-    this.counter.requireEquals(counter);
-    let actionState = this.actionState.get();
-    this.actionState.requireEquals(actionState);
+    const state = this.state.getAndRequireEquals();
 
     // compute the new counter and hash from pending actions
-    let pendingActions = this.reducer.getActions({
-      fromActionState: actionState,
+    const pending = this.reducer.getActions({
+      fromActionState: state.rollup,
     });
 
-    let { state: newCounter, actionState: newActionState } =
-      this.reducer.reduce(
-        pendingActions,
-        // state type
-        Field,
-        // function that says how to apply an action
-        (state: Field, action: MaybeIncrement) => {
-          return Provable.if(action.isIncrement, state.add(1), state);
-        },
-        { state: counter, actionState }
-      );
+    const reduced = this.reducer.reduce(
+      // state type
+      pending,
+      // the accumulator type
+      CounterState,
+      // function that says how to apply an action
+      (state, action) => {
+        const count = Provable.if(
+          action.isIncrement,
+          state.count.add(1),
+          state.count
+        );
+        return new CounterState({ ...state, count });
+      },
+      { state, actionState: state.rollup }
+    );
 
     // update on-chain state
-    this.counter.set(newCounter);
-    this.actionState.set(newActionState);
+    this.state.set(reduced.state);
   }
 }
 
 const ReducerProfiler = getProfiler('Reducer zkApp');
 ReducerProfiler.start('Reducer zkApp test flow');
 const doProofs = true;
-const initialCounter = Field(0);
 
 let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
@@ -89,77 +111,73 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, async () => {
+await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
   await contract.deploy();
-  contract.counter.set(initialCounter);
-  contract.actionState.set(Reducer.initialActionState);
-});
-await tx.sign([feePayer.key, contractAccount.key]).send();
+  contract.state.set(CounterState.initial);
+})
+  .sign([feePayer.key, contractAccount.key])
+  .prove()
+  .send();
 
 console.log('applying actions..');
 
 console.log('action 1');
-
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.incrementCounter();
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
+await increment();
 
 console.log('action 2');
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.incrementCounter();
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
+await increment();
 
 console.log('action 3');
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.incrementCounter();
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
+await increment();
+
+console.log('count before: ' + contract.state.get().count);
 
 console.log('rolling up pending actions..');
+await rollup();
 
-console.log('state before: ' + contract.counter.get());
-
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.rollupIncrements();
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
-
-console.log('state after rollup: ' + contract.counter.get());
-assert.deepEqual(contract.counter.get().toString(), '3');
+console.log('state after rollup:', contract.state.get().count);
+assert.deepEqual(contract.state.get().count.toString(), '3');
 
 console.log('applying more actions');
 
 console.log('action 4 (no increment)');
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.dispatchData(Field.random());
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
+await Mina.transaction(feePayer, async () => {
+  await contract.other(Field.random());
+})
+  .prove()
+  .sign([feePayer.key])
+  .send();
 
 console.log('action 5');
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.incrementCounter();
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
+await increment();
 
 console.log('rolling up pending actions..');
 
-console.log('state before: ' + contract.counter.get());
+console.log('state before: ' + contract.state.get().count);
 
-tx = await Mina.transaction(feePayer, async () => {
-  await contract.rollupIncrements();
-});
-await tx.prove();
-await tx.sign([feePayer.key]).send();
+await rollup();
 
-console.log('state after rollup: ' + contract.counter.get());
-assert.equal(contract.counter.get().toString(), '4');
+console.log('state after rollup: ' + contract.state.get().count);
+assert.equal(contract.state.get().count.toString(), '4');
 ReducerProfiler.stop().store();
+
+//
+
+function increment() {
+  return Mina.transaction(feePayer, async () => {
+    await contract.increment();
+  })
+    .prove()
+    .sign([feePayer.key])
+    .send();
+}
+
+function rollup() {
+  return Mina.transaction(feePayer, async () => {
+    await contract.rollup();
+  })
+    .prove()
+    .sign([feePayer.key])
+    .send();
+}
