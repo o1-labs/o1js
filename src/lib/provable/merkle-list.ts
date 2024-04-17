@@ -408,7 +408,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   // next() should be called previous(), isAtEnd() should be isAtStart(),
   // startIterating should start at the end, etc.
 
-  next({ unsafe = false } = {}) {
+  next() {
     // next corresponds to `pop()` in MerkleList
     // it returns a dummy element if we're at the end of the array
     let { previousHash, element } = Provable.witness(
@@ -432,8 +432,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
     this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
 
-    if (unsafe) return element;
-
     return Provable.if(
       isDummy,
       this.innerProvable,
@@ -442,7 +440,32 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  previous({ unsafe = false } = {}) {
+  nextUnsafe() {
+    let { previousHash, element } = Provable.witness(
+      WithHash(this.innerProvable),
+      () =>
+        this.data.get()[this.currentIndex.get()] ?? {
+          previousHash: this.Constructor.emptyHash,
+          element: this.innerProvable.empty(),
+        }
+    );
+
+    let isDummy = Provable.witness(Bool, () => this.isAtEnd());
+    let emptyHash = this.Constructor.emptyHash;
+    let correctHash = this.nextHash(previousHash, element);
+    let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
+
+    this.currentHash.assertEquals(requiredHash);
+
+    this.currentIndex.updateAsProver((i) =>
+      Math.min(i + 1, this.data.get().length)
+    );
+    this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
+
+    return { element, isDummy };
+  }
+
+  previous() {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     // this is like MerkleList.push() but we witness the next element instead of taking it as input,
     // and we return a dummy element if we're at the start of the array
@@ -460,14 +483,30 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
     this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
 
-    if (unsafe) return element;
-
     return Provable.if(
       isDummy,
       this.innerProvable,
       this.innerProvable.empty(),
       element
     );
+  }
+
+  previousUnsafe() {
+    let element = Provable.witness(this.innerProvable, () => {
+      return (
+        this.data.get()[this.currentIndex.get()] ?? {
+          previousHash: this.Constructor.emptyHash,
+          element: this.innerProvable.empty(),
+        }
+      ).element;
+    });
+
+    let isDummy = Provable.witness(Bool, () => this.isAtStart());
+    let currentHash = this.nextHash(this.currentHash, element);
+    this.currentHash = Provable.if(isDummy, this.hash, currentHash);
+    this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+
+    return { element, isDummy };
   }
 
   clone(): MerkleListIterator<T> {
