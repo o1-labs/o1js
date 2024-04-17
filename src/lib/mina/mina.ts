@@ -2,7 +2,7 @@ import { Test } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import { UInt64 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
-import { ZkappCommand, TokenId, Authorization } from './account-update.js';
+import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
@@ -31,7 +31,7 @@ import {
 } from './mina-instance.js';
 import { type EventActionFilterOptions } from './graphql.js';
 import {
-  type Transaction,
+  Transaction,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
@@ -39,10 +39,10 @@ import {
   type PendingTransactionPromise,
   createTransaction,
   toTransactionPromise,
-  newTransaction,
   transaction,
   createRejectedTransaction,
   createIncludedTransaction,
+  toPendingTransactionPromise,
 } from './transaction.js';
 import {
   reportGetAccountError,
@@ -94,13 +94,6 @@ setActiveInstance({
     return toTransactionPromise(() => createTransaction(sender, f, 0));
   },
 });
-
-const Transaction = {
-  fromJSON(json: Types.Json.ZkappCommand): Transaction {
-    let transaction = ZkappCommand.fromJSON(json);
-    return newTransaction(transaction, activeInstance.proofsEnabled);
-  },
-};
 
 /**
  * Represents the Mina blockchain running on a real network
@@ -256,23 +249,26 @@ function Network(
         `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.`
       );
     },
-    async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      verifyTransactionLimits(txn.transaction);
+    sendTransaction(txn) {
+      return toPendingTransactionPromise(async () => {
+        verifyTransactionLimits(txn.transaction);
 
-      let [response, error] = await Fetch.sendZkapp(txn.toJSON());
-      let errors: string[] = [];
-      if (response === undefined && error !== undefined) {
-        errors = [JSON.stringify(error)];
-      } else if (response && response.errors && response.errors.length > 0) {
-        response?.errors.forEach((e: any) => errors.push(JSON.stringify(e)));
-      }
+        let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+        let errors: string[] = [];
+        if (response === undefined && error !== undefined) {
+          errors = [JSON.stringify(error)];
+        } else if (response && response.errors && response.errors.length > 0) {
+          response?.errors.forEach((e: any) => errors.push(JSON.stringify(e)));
+        }
 
-      const status: PendingTransactionStatus =
-        errors.length === 0 ? 'pending' : 'rejected';
-      let mlTest = await Test();
-      const hash = mlTest.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
-        {
+        const status: PendingTransactionStatus =
+          errors.length === 0 ? 'pending' : 'rejected';
+        let mlTest = await Test();
+        const hash = mlTest.transactionHash.hashZkAppCommand(txn.toJSON());
+        const pendingTransaction: Omit<
+          PendingTransaction,
+          'wait' | 'safeWait'
+        > = {
           status,
           data: response?.data,
           errors,
@@ -282,92 +278,93 @@ function Network(
           toPretty: txn.toPretty,
         };
 
-      const pollTransactionStatus = async (
-        transactionHash: string,
-        maxAttempts: number,
-        interval: number,
-        attempts: number = 0
-      ): Promise<IncludedTransaction | RejectedTransaction> => {
-        let res: Awaited<ReturnType<typeof Fetch.checkZkappTransaction>>;
-        try {
-          res = await Fetch.checkZkappTransaction(transactionHash);
-          if (res.success) {
-            return createIncludedTransaction(pendingTransaction);
-          } else if (res.failureReason) {
-            const error = invalidTransactionError(
-              txn.transaction,
-              res.failureReason,
-              {
-                accountCreationFee:
-                  defaultNetworkConstants.accountCreationFee.toString(),
-              }
-            );
-            return createRejectedTransaction(pendingTransaction, [error]);
+        const pollTransactionStatus = async (
+          transactionHash: string,
+          maxAttempts: number,
+          interval: number,
+          attempts: number = 0
+        ): Promise<IncludedTransaction | RejectedTransaction> => {
+          let res: Awaited<ReturnType<typeof Fetch.checkZkappTransaction>>;
+          try {
+            res = await Fetch.checkZkappTransaction(transactionHash);
+            if (res.success) {
+              return createIncludedTransaction(pendingTransaction);
+            } else if (res.failureReason) {
+              const error = invalidTransactionError(
+                txn.transaction,
+                res.failureReason,
+                {
+                  accountCreationFee:
+                    defaultNetworkConstants.accountCreationFee.toString(),
+                }
+              );
+              return createRejectedTransaction(pendingTransaction, [error]);
+            }
+          } catch (error) {
+            return createRejectedTransaction(pendingTransaction, [
+              (error as Error).message,
+            ]);
           }
-        } catch (error) {
-          return createRejectedTransaction(pendingTransaction, [
-            (error as Error).message,
-          ]);
-        }
 
-        if (maxAttempts && attempts >= maxAttempts) {
-          return createRejectedTransaction(pendingTransaction, [
-            `Exceeded max attempts.\nTransactionId: ${transactionHash}\nAttempts: ${attempts}\nLast received status: ${res}`,
-          ]);
-        }
+          if (maxAttempts && attempts >= maxAttempts) {
+            return createRejectedTransaction(pendingTransaction, [
+              `Exceeded max attempts.\nTransactionId: ${transactionHash}\nAttempts: ${attempts}\nLast received status: ${res}`,
+            ]);
+          }
 
-        await new Promise((resolve) => setTimeout(resolve, interval));
-        return pollTransactionStatus(
-          transactionHash,
-          maxAttempts,
-          interval,
-          attempts + 1
-        );
-      };
-
-      // default is 45 attempts * 20s each = 15min
-      // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
-      // fetching an update every 20s is more than enough with a current block time of 3min
-      const poll = async (
-        maxAttempts: number = 45,
-        interval: number = 20000
-      ): Promise<IncludedTransaction | RejectedTransaction> => {
-        return pollTransactionStatus(hash, maxAttempts, interval);
-      };
-
-      const wait = async (options?: {
-        maxAttempts?: number;
-        interval?: number;
-      }): Promise<IncludedTransaction> => {
-        const pendingTransaction = await safeWait(options);
-        if (pendingTransaction.status === 'rejected') {
-          throw Error(
-            `Transaction failed with errors:\n${pendingTransaction.errors.join(
-              '\n'
-            )}`
+          await new Promise((resolve) => setTimeout(resolve, interval));
+          return pollTransactionStatus(
+            transactionHash,
+            maxAttempts,
+            interval,
+            attempts + 1
           );
-        }
-        return pendingTransaction;
-      };
+        };
 
-      const safeWait = async (options?: {
-        maxAttempts?: number;
-        interval?: number;
-      }): Promise<IncludedTransaction | RejectedTransaction> => {
-        if (status === 'rejected') {
-          return createRejectedTransaction(
-            pendingTransaction,
-            pendingTransaction.errors
-          );
-        }
-        return await poll(options?.maxAttempts, options?.interval);
-      };
+        // default is 45 attempts * 20s each = 15min
+        // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
+        // fetching an update every 20s is more than enough with a current block time of 3min
+        const poll = async (
+          maxAttempts: number = 45,
+          interval: number = 20000
+        ): Promise<IncludedTransaction | RejectedTransaction> => {
+          return pollTransactionStatus(hash, maxAttempts, interval);
+        };
 
-      return {
-        ...pendingTransaction,
-        wait,
-        safeWait,
-      };
+        const wait = async (options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }): Promise<IncludedTransaction> => {
+          const pendingTransaction = await safeWait(options);
+          if (pendingTransaction.status === 'rejected') {
+            throw Error(
+              `Transaction failed with errors:\n${pendingTransaction.errors.join(
+                '\n'
+              )}`
+            );
+          }
+          return pendingTransaction;
+        };
+
+        const safeWait = async (options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }): Promise<IncludedTransaction | RejectedTransaction> => {
+          if (status === 'rejected') {
+            return createRejectedTransaction(
+              pendingTransaction,
+              pendingTransaction.errors
+            );
+          }
+          return await poll(options?.maxAttempts, options?.interval);
+        };
+
+        return {
+          ...pendingTransaction,
+          wait,
+          safeWait,
+        };
+      });
     },
     transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       return toTransactionPromise(async () => {
