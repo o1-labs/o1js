@@ -494,11 +494,9 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   previousUnsafe() {
     let element = Provable.witness(this.innerProvable, () => {
       return (
-        this.data.get()[this.currentIndex.get()] ?? {
-          previousHash: this.Constructor.emptyHash,
-          element: this.innerProvable.empty(),
-        }
-      ).element;
+        this.data.get()[this.currentIndex.get()]?.element ??
+        this.innerProvable.empty()
+      );
     });
 
     let isDummy = this.isAtStart();
