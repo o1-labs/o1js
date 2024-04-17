@@ -220,7 +220,7 @@ class PublicKey extends CircuitValue {
     x = toConstantField(x, 'toBase58', 'pk', 'public key');
     return PublicKeyBigint.toBase58({
       x: x.toBigInt(),
-      isOdd: isOdd.toBoolean() ? 1n : 0n,
+      isOdd: isOdd.toBoolean(),
     });
   }
 

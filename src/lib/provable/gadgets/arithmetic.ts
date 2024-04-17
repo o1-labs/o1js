@@ -28,7 +28,8 @@ function divMod32(n: Field, quotientBits = 32) {
       let nBigInt = n.toBigInt();
       let q = nBigInt >> 32n;
       let r = nBigInt - (q << 32n);
-      return [new Field(q), new Field(r)];
+      // why do we have to do this?
+      return [q, r] satisfies [bigint, bigint];
     }
   );
 

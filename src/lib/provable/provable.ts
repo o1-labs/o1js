@@ -22,7 +22,7 @@ import {
   generateWitness,
 } from './core/provable-context.js';
 import { witness, witnessAsync } from './types/witness.js';
-import { From, InferValue } from '../../bindings/lib/provable-generic.js';
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 
 // external API
 export { Provable };
@@ -447,7 +447,7 @@ let memoizationContext = Context.create<MemoizationContext>();
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return Provable.witness<T>(type as Provable<T>, () => {
+  return Provable.witness(type as Provable<T>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;

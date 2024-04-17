@@ -76,7 +76,7 @@ class Scalar implements ShiftedScalar {
    *
    * See {@link FieldVar} for an explanation of constants vs. variables.
    */
-  toConstant() {
+  toConstant(): Scalar {
     if (this.isConstant()) return this;
     return Provable.toConstant(Scalar, this);
   }

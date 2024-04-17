@@ -270,11 +270,11 @@ function provableFromTuple(
     },
 
     toValue(x) {
-      return typs.map((typ, i) => typ.toValue(x[i]));
+      return types.map((typ, i) => typ.toValue(x[i]));
     },
 
     fromValue(x) {
-      return typs.map((typ, i) => typ.fromValue(x[i]));
+      return types.map((typ, i) => typ.fromValue(x[i]));
     },
   };
 }
