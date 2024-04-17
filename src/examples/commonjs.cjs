@@ -35,19 +35,19 @@ class Updater extends SmartContract {
 declareState(Updater, { x: Field });
 declareMethods(Updater, { update: [Field] });
 
-let Local = Mina.LocalBlockchain();
-Mina.setActiveInstance(Local);
-
-const [feePayer] = Local.testAccounts;
-
-let contractAccount = Mina.TestPublicKey.random();
-let contract = new Updater(contractAccount);
-
 let initialState = Field(1);
 
 main();
 
 async function main() {
+  let Local = await Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+
+  const [feePayer] = Local.testAccounts;
+
+  let contractAccount = Mina.TestPublicKey.random();
+  let contract = new Updater(contractAccount);
+
   console.log('compile');
   await Updater.compile();
 

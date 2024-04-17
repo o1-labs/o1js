@@ -7,7 +7,7 @@ HelloWorldProfier.start('Hello World test flow');
 
 let txn, txn2, txn3, txn4;
 // setup local ledger
-let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
 // test accounts that pays all the fees, and puts additional funds into the contract

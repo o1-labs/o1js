@@ -33,6 +33,7 @@ const indexHtml = `
     <meta charset="utf-8" />
     <link rel="icon" href="data:," />
     <title>o1js</title>
+    <link rel="modulepreload" href="./index.js">
     <script type="module" src="./${fileName}">
     </script>
   </head>

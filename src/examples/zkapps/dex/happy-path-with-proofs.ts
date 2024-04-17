@@ -10,7 +10,7 @@ let proofsEnabled = true;
 
 tic('Happy path with proofs');
 console.log();
-let Local = Mina.LocalBlockchain({
+let Local = await Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
 });

@@ -8,7 +8,7 @@ import { Bool, Field } from '../provable/wrapped.js';
 import { AnyFunction, Tuple } from '../util/types.js';
 import { provable } from '../provable/types/struct.js';
 import { assert } from '../provable/gadgets/common.js';
-import { runAndCheckSync } from '../provable/core/provable-context.js';
+import { synchronousRunners } from '../provable/core/provable-context.js';
 
 export {
   equivalent,
@@ -46,6 +46,9 @@ export {
   First,
   Second,
 };
+
+// TODO get rid of this top-level await by making `test` support async functions
+let { runAndCheckSync } = await synchronousRunners();
 
 // a `Spec` tells us how to compare two functions
 

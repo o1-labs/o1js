@@ -1,11 +1,32 @@
 import './bindings/crypto/bindings.js';
-import { initO1, withThreadPool } from './bindings/js/web/web-backend.js';
+import {
+  initializeBindings as init,
+  withThreadPool,
+  wasm,
+} from './bindings/js/web/web-backend.js';
 
-await initO1();
+let Snarky, Ledger, Pickles, Test_;
+let isInitialized = false;
 
-let snarky = globalThis.__snarky;
-let wasm = globalThis.plonk_wasm;
+async function initializeBindings() {
+  if (isInitialized) return;
+  isInitialized = true;
 
-let { Snarky, Ledger, Pickles, Test } = snarky;
+  await init();
+  ({ Snarky, Ledger, Pickles, Test: Test_ } = globalThis.__snarky);
+}
 
-export { Snarky, Ledger, Pickles, Test, withThreadPool, wasm };
+async function Test() {
+  await initializeBindings();
+  return Test_;
+}
+
+export {
+  Snarky,
+  Ledger,
+  Pickles,
+  Test,
+  withThreadPool,
+  wasm,
+  initializeBindings,
+};

@@ -198,14 +198,13 @@ class Bool {
    * This can only be called on non-witness values.
    */
   toBoolean(): boolean {
-    let value: FieldConst;
     if (this.isConstant()) {
-      value = this.value[1];
-    } else if (Snarky.run.inProverBlock()) {
-      value = Snarky.field.readVar(this.value);
-    } else {
+      return FieldConst.equal(this.value[1], FieldConst[1]);
+    }
+    if (!Snarky.run.inProverBlock()) {
       throw Error(readVarMessage('toBoolean', 'b', 'Bool'));
     }
+    let value = Snarky.field.readVar(this.value);
     return FieldConst.equal(value, FieldConst[1]);
   }
 

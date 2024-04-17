@@ -53,7 +53,7 @@ const ComposabilityProfiler = getProfiler('Composability zkApp');
 ComposabilityProfiler.start('Composability test flow');
 // script to deploy zkapps and do interactions
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 const [feePayer] = Local.testAccounts;

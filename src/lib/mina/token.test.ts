@@ -128,8 +128,8 @@ let b: B;
 let cAccount: Mina.TestPublicKey;
 let c: C;
 
-function setupAccounts() {
-  let Local = Mina.LocalBlockchain({
+async function setupAccounts() {
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled: true,
     enforceTransactionLimits: false,
   });
@@ -144,7 +144,7 @@ function setupAccounts() {
 }
 
 async function setupLocal() {
-  setupAccounts();
+  await setupAccounts();
   let tx = await Mina.transaction(feePayer, async () => {
     await token.deploy();
     let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
@@ -158,7 +158,7 @@ async function setupLocal() {
 }
 
 async function setupLocalProofs() {
-  let Local = setupAccounts();
+  let Local = await setupAccounts();
   c = new C(cAccount, tokenId);
   // don't use proofs for the setup, takes too long to do this every time
   Local.setProofsEnabled(false);
