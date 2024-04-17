@@ -1311,30 +1311,18 @@ class ${contract.constructor.name} extends SmartContract {
         contract.account.actionState.requireEquals(actionStateAfterReduce);
       }
 
-      // TODO find out max actions per method automatically?
-      let possibleActionsPerTransaction = Array.from(
-        { length: maxActionsPerMethod + 1 },
-        (_, i) => i
-      );
-
       const listIter = actionLists.startIteratingReverse();
-
-      let isDummy = Bool(false);
 
       for (let i = 0; i < maxTransactionsWithActions; i++) {
         let merkleActions = listIter.next();
         let actionIter = merkleActions.startIterating();
-        for (let j = 0; j < possibleActionsPerTransaction.length; j++) {
+        for (let j = 0; j < maxActionsPerMethod; j++) {
           let action = actionIter.next();
-          isDummy = Provable.if(
-            actionIter.currentHash.equals(actionIter.hash),
-            Bool(true),
-            Bool(false)
-          );
-          let newState = reduce(state, action);
-          state = Provable.if(isDummy, stateType, state, newState);
+          state = reduce(state, action);
         }
       }
+
+      listIter.assertAtEnd();
 
       return { state, actionState: actionStateAfterReduce };
     },
