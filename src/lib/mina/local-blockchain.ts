@@ -264,11 +264,14 @@ async function LocalBlockchain({
             latestActionState_ !== undefined
               ? Field(latestActionState_)
               : Actions.emptyActionState();
+        });
 
-      let test = await Test();
-      const hash = test.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
-        {
+        let test = await Test();
+        const hash = test.transactionHash.hashZkAppCommand(txn.toJSON());
+        const pendingTransaction: Omit<
+          PendingTransaction,
+          'wait' | 'safeWait'
+        > = {
           status,
           errors,
           transaction: txn.transaction,
