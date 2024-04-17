@@ -1,16 +1,37 @@
 {
   "name": "o1js",
-  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-merge-modules"],
+  "plugin": ["typedoc-plugin-markdown"],
   "out": "o1js-reference",
   "cleanOutputDir": true,
   "githubPages": false,
-  "exclude": ["dist/**/*", "src/mina-signer/**/*", "src/examples/**/*"],
+  "exclude": ["dist/**/*", "src/mina-signer/**/*", "src/bindings/**/*", "src/examples/**/*", "src/lib/provable/+(core|test)/**/*", "src/**/*(test|unit-test).ts"],
   "entryPoints": [
     "src/index.ts",
-    "src/snarky.d.ts",
-    "src/lib/field.ts",
-    "src/lib/group.ts",
-    "src/lib/bool.ts"
   ],
-  "entryPointStrategy": "resolve"
+  "entryPointStrategy": "resolve",
+  "tsconfig": "tsconfig.web.json",
+
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeReferences": true,
+
+
+  "fileExtension": ".mdx",
+  "hidePageHeader": true,
+  "hidePageTitle": true,
+  "hideBreadcrumbs": true,
+  "excludeGroups": true,
+  "useCodeBlocks": true,
+  "parametersFormat": "list",
+  "propertiesFormat": "list",
+  "typeDeclarationFormat": "list",
+  "indexFormat": "table",
+  "entryFileName": "Overview.mdx",
+
+  "textContentMappings": {
+    "breadcrumbs.home": "API",
+    "kind.typeAlias.singular": "Type",
+    "kind.typeAlias.plural": "Types",
+  }
 }
