@@ -1,133 +1,64 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
-import { Bool, Field } from '../core.js';
-import { Permissions } from '../account_update.js';
-import { UInt32, UInt64 } from '../int.js';
-import { PublicKey } from '../signature.js';
-import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
+import { Bool, Field } from '../provable/wrapped.js';
+import { Permissions } from './account-update.js';
+import { UInt32, UInt64 } from '../provable/int.js';
+import { PublicKey } from '../provable/crypto/signature.js';
+import { TokenId, ReceiptChainHash } from './base58-encodings.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import {
   customTypes,
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { ProvableExtended } from '../circuit_value.js';
+import { ProvableExtended } from '../provable/types/struct.js';
+import { FetchedAccount } from './graphql.js';
 
-export { FetchedAccount, Account, PartialAccount };
-export { accountQuery, parseFetchedAccount, fillPartialAccount };
+export { Account, PartialAccount };
+export { newAccount, parseFetchedAccount, fillPartialAccount };
 
-type AuthRequired = Types.Json.AuthRequired;
 type Account = Types.Account;
 const Account = Types.Account;
+
+function newAccount(accountId: {
+  publicKey: PublicKey;
+  tokenId?: Field;
+}): Account {
+  let account = Account.empty();
+  account.publicKey = accountId.publicKey;
+  account.tokenId = accountId.tokenId ?? Types.TokenId.empty();
+  account.permissions = Permissions.initial();
+  return account;
+}
 
 type PartialAccount = Omit<Partial<Account>, 'zkapp'> & {
   zkapp?: Partial<Account['zkapp']>;
 };
 
-// TODO auto-generate this type and the query
-type FetchedAccount = {
-  publicKey: string;
-  token: string;
-  nonce: string;
-  balance: { total: string };
-  tokenSymbol: string | null;
-  receiptChainHash: string | null;
-  timing: {
-    initialMinimumBalance: string | null;
-    cliffTime: string | null;
-    cliffAmount: string | null;
-    vestingPeriod: string | null;
-    vestingIncrement: string | null;
-  };
-  permissions: {
-    editState: AuthRequired;
-    access: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editActionState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-    setTiming: AuthRequired;
-  } | null;
-  delegateAccount: { publicKey: string } | null;
-  votingFor: string | null;
-  zkappState: string[] | null;
-  verificationKey: { verificationKey: string; hash: string } | null;
-  actionState: string[] | null;
-  provedState: boolean | null;
-  zkappUri: string | null;
-};
-const accountQuery = (publicKey: string, tokenId: string) => `{
-  account(publicKey: "${publicKey}", token: "${tokenId}") {
-    publicKey
-    token
-    nonce
-    balance { total }
-    tokenSymbol
-    receiptChainHash
-    timing {
-      initialMinimumBalance
-      cliffTime
-      cliffAmount
-      vestingPeriod
-      vestingIncrement
-    }
-    permissions {
-      editState
-      access
-      send
-      receive
-      setDelegate
-      setPermissions
-      setVerificationKey
-      setZkappUri
-      editActionState
-      setTokenSymbol
-      incrementNonce
-      setVotingFor
-      setTiming
-    }
-    delegateAccount { publicKey }
-    votingFor
-    zkappState
-    verificationKey {
-      verificationKey
-      hash
-    }
-    actionState
-    provedState
-    zkappUri
-  }
-}
-`;
-
 // convert FetchedAccount (from graphql) to Account (internal representation both here and in Mina)
-function parseFetchedAccount({
-  publicKey,
-  nonce,
-  zkappState,
-  balance,
-  permissions,
-  timing: {
-    cliffAmount,
-    cliffTime,
-    initialMinimumBalance,
-    vestingIncrement,
-    vestingPeriod,
-  },
-  delegateAccount,
-  receiptChainHash,
-  actionState,
-  token,
-  tokenSymbol,
-  verificationKey,
-  provedState,
-  zkappUri,
-}: FetchedAccount): Account {
+function parseFetchedAccount({ account }: FetchedAccount): Account {
+  const {
+    publicKey,
+    nonce,
+    zkappState,
+    balance,
+    permissions,
+    timing: {
+      cliffAmount,
+      cliffTime,
+      initialMinimumBalance,
+      vestingIncrement,
+      vestingPeriod,
+    },
+    delegateAccount,
+    receiptChainHash,
+    actionState,
+    token,
+    tokenSymbol,
+    verificationKey,
+    provedState,
+    zkappUri,
+  } = account;
+
   let hasZkapp =
     zkappState !== null ||
     verificationKey !== null ||

@@ -5,15 +5,12 @@ import {
   Bool,
   state,
   State,
-  isReady,
   Poseidon,
   Struct,
-  Circuit,
+  Provable,
 } from 'o1js';
 
 export { Sudoku, SudokuZkApp };
-
-await isReady;
 
 class Sudoku extends Struct({
   value: Provable.Array(Provable.Array(Field, 9), 9),
@@ -23,7 +20,7 @@ class Sudoku extends Struct({
   }
 
   hash() {
-    return Poseidon.hash(this.value.flat());
+    return Poseidon.hash(Sudoku.toFields(this));
   }
 }
 
@@ -37,16 +34,19 @@ class SudokuZkApp extends SmartContract {
    * to ensure the entire state is overwritten.
    * however, it's good to have an example which tests the CLI's ability to handle init() decorated with `@method`.
    */
-  @method init() {
+  @method async init() {
     super.init();
   }
 
-  @method update(sudokuInstance: Sudoku) {
+  @method async update(sudokuInstance: Sudoku) {
     this.sudokuHash.set(sudokuInstance.hash());
     this.isSolved.set(Bool(false));
   }
 
-  @method submitSolution(sudokuInstance: Sudoku, solutionInstance: Sudoku) {
+  @method async submitSolution(
+    sudokuInstance: Sudoku,
+    solutionInstance: Sudoku
+  ) {
     let sudoku = sudokuInstance.value;
     let solution = solutionInstance.value;
 

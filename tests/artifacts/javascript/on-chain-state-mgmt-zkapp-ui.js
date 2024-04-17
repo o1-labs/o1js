@@ -1,24 +1,15 @@
-import { logEvents } from './e2eTestsHelpers.js';
+import { logEvents } from './e2e-tests-helpers.js';
 import {
   adminPrivateKey,
   HelloWorld,
-} from './examples/zkapps/hello_world/hello_world.js';
-import {
-  AccountUpdate,
-  Field,
-  isReady,
-  Mina,
-  PrivateKey,
-  verify,
-} from './index.js';
-
-await isReady;
+} from './examples/zkapps/hello-world/hello-world.js';
+import { AccountUpdate, Field, Mina, verify } from './index.js';
 
 const deployButton = document.querySelector('#deployButton');
 const updateButton = document.querySelector('#updateButton');
 const clearEventsButton = document.querySelector('#clearEventsButton');
 const eventsContainer = document.querySelector('#eventsContainer');
-const zkAppStateContainer = document.querySelector('#zkAppStateContainer');
+const stateContainer = document.querySelector('#zkAppStateContainer');
 
 logEvents(
   `o1js initialized after ${performance.now().toFixed(2)}ms`,
@@ -26,42 +17,38 @@ logEvents(
 );
 
 // Setup local ledger
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
-const feePayerKey = Local.testAccounts[0].privateKey;
-const feePayer = Local.testAccounts[0].publicKey;
-// zkApp account
-const zkAppPrivateKey = PrivateKey.random();
-const zkAppAddress = zkAppPrivateKey.toPublicKey();
-const zkAppInstance = new HelloWorld(zkAppAddress);
+const [feePayer] = Local.testAccounts;
+const contractAddress = Mina.TestPublicKey.random();
+const contract = new HelloWorld(contractAddress);
 let verificationKey = null;
 
 deployButton.addEventListener('click', async () => {
   deployButton.disabled = true;
 
-  logEvents('Deploying zkApp...', eventsContainer);
+  logEvents('Deploying...', eventsContainer);
 
   try {
     await HelloWorld.compile();
-    const deploymentTransaction = await Mina.transaction(feePayer, () => {
-      if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
+    const deploymentTransaction = await Mina.transaction(feePayer, async () => {
+      if (!eventsContainer.innerHTML.includes('Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
-      zkAppInstance.deploy();
+      await contract.deploy();
     });
 
-    await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
+    await deploymentTransaction
+      .sign([feePayer.key, contractAddress.key])
+      .send();
     const initialState =
-      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
-    zkAppStateContainer.innerHTML = initialState;
-    logEvents(`Initial zkApp State: ${initialState}`, eventsContainer);
-    logEvents('zkApp Deployed successfully!', eventsContainer);
+      Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
+    stateContainer.innerHTML = initialState;
+    logEvents(`Initial state: ${initialState}`, eventsContainer);
+    logEvents('Deployed successfully!', eventsContainer);
   } catch (exception) {
-    logEvents(
-      `zkApp Deployment failure: ${exception.message}`,
-      eventsContainer
-    );
+    logEvents(`Deployment failure: ${exception.message}`, eventsContainer);
     console.log(exception);
   }
 
@@ -75,18 +62,18 @@ updateButton.addEventListener('click', async (event) => {
   const formData = JSON.stringify(
     Object.fromEntries(new FormData(document.querySelector('#zkAppUpdateForm')))
   );
-  const zkAppStateValue = document.querySelector('#zkAppStateValue');
+  const appStateValue = document.querySelector('#zkAppStateValue');
 
   try {
     const currentState =
-      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
+      Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
     logEvents(
-      `Updating zkApp State from ${currentState} to ${zkAppStateValue.value} with Admin Private Key and using form data: ${formData}...`,
+      `Updating state from ${currentState} to ${appStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
     );
-    const transaction = await Mina.transaction(feePayer, () => {
-      zkAppInstance.update(
-        Field(parseInt(zkAppStateValue.value)),
+    const transaction = await Mina.transaction(feePayer, async () => {
+      await contract.update(
+        Field(parseInt(appStateValue.value)),
         adminPrivateKey
       );
     });
@@ -98,20 +85,14 @@ updateButton.addEventListener('click', async (event) => {
       if (!isVerified) throw Error('Proof verification failed');
     }
 
-    await transaction.sign([feePayerKey]).send();
+    await transaction.sign([feePayer.key]).send();
 
     const newState =
-      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
-    zkAppStateContainer.innerHTML = newState;
-    logEvents(
-      `zkApp State successfully updated to: ${newState}!`,
-      eventsContainer
-    );
+      Mina.getAccount(contractAddress).zkapp?.appState?.[0].toString();
+    stateContainer.innerHTML = newState;
+    logEvents(`State successfully updated to: ${newState}!`, eventsContainer);
   } catch (exception) {
-    logEvents(
-      `zkApp State Update failure: ${exception.message}`,
-      eventsContainer
-    );
+    logEvents(`State Update failure: ${exception.message}`, eventsContainer);
     console.log(exception);
   }
 

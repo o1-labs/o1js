@@ -6,18 +6,24 @@
  */
 import { Gate, GateType } from '../../snarky.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { Field, FieldType, FieldVar } from '../field.js';
-import { Provable } from '../provable.js';
+import { Field } from '../provable/field.js';
+import { FieldType, FieldVar } from '../provable/core/fieldvar.js';
+import { Provable } from '../provable/provable.js';
 import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
-import { Undefined, ZkProgram } from '../proof_system.js';
+import { Undefined, ZkProgram } from '../proof-system/zkprogram.js';
+import {
+  printGates,
+  synchronousRunners,
+} from '../provable/core/provable-context.js';
 
 export {
   constraintSystem,
   not,
   and,
   or,
+  fulfills,
   equals,
   contains,
   allConstant,
@@ -28,6 +34,9 @@ export {
   repeat,
   ConstraintSystemTest,
 };
+
+// TODO get rid of this top-level await by making `test` support async functions
+let { constraintSystemSync } = await synchronousRunners();
 
 /**
  * `constraintSystem()` is a test runner to check properties of constraint systems.
@@ -60,7 +69,7 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
     let layouts = args.slice(0, -1);
 
     // compute the constraint system
-    let { gates } = Provable.constraintSystem(() => {
+    let { gates } = constraintSystemSync(() => {
       // each random input "layout" has to be instantiated into vars in this circuit
       let values = types.map((type, i) =>
         instantiate(type, layouts[i])
@@ -182,6 +191,16 @@ function or(...tests: ConstraintSystemTest[]): ConstraintSystemTest {
 }
 
 /**
+ * General test
+ */
+function fulfills(
+  label: string,
+  run: (cs: Gate[], inputs: TypeAndValue<any>[]) => boolean
+): ConstraintSystemTest {
+  return { run, label };
+}
+
+/**
  * Test for precise equality of the constraint system with a given list of gates.
  */
 function equals(gates: readonly GateType[]): ConstraintSystemTest {
@@ -262,14 +281,9 @@ function ifNotAllConstant(test: ConstraintSystemTest): ConstraintSystemTest {
 }
 
 /**
- * Test whether all inputs are constant.
+ * Test whether constraint system is empty.
  */
-const isEmpty: ConstraintSystemTest = {
-  run(cs) {
-    return cs.length === 0;
-  },
-  label: 'cs is empty',
-};
+const isEmpty = fulfills('constraint system is empty', (cs) => cs.length === 0);
 
 /**
  * Modifies a test so that it runs on the constraint system with generic gates filtered out.
@@ -299,9 +313,50 @@ const print: ConstraintSystemTest = {
   label: '',
 };
 
-function repeat(n: number, gates: GateType | GateType[]): readonly GateType[] {
+// Do other useful things with constraint systems
+
+/**
+ * Get constraint system as a list of gates.
+ */
+constraintSystem.gates = function gates<Input extends Tuple<CsVarSpec<any>>>(
+  inputs: { from: Input },
+  main: (...args: CsParams<Input>) => void
+) {
+  let types = inputs.from.map(provable);
+  let { gates } = constraintSystemSync(() => {
+    let values = types.map((type) =>
+      Provable.witness(type, (): unknown => {
+        throw Error('not needed');
+      })
+    ) as CsParams<Input>;
+    main(...values);
+  });
+  return gates;
+};
+
+function map<T>(transform: (gates: Gate[]) => T) {
+  return <Input extends Tuple<CsVarSpec<any>>>(
+    inputs: { from: Input },
+    main: (...args: CsParams<Input>) => void
+  ) => transform(constraintSystem.gates(inputs, main));
+}
+
+/**
+ * Get size of constraint system.
+ */
+constraintSystem.size = map((gates) => gates.length);
+
+/**
+ * Print constraint system.
+ */
+constraintSystem.print = map(printGates);
+
+function repeat(
+  n: number,
+  gates: GateType | readonly GateType[]
+): readonly GateType[] {
   gates = Array.isArray(gates) ? gates : [gates];
-  return Array<GateType[]>(n).fill(gates).flat();
+  return Array<readonly GateType[]>(n).fill(gates).flat();
 }
 
 function toGatess(
@@ -338,7 +393,7 @@ function drawFieldVar(): FieldVar {
   let fieldType = drawFieldType();
   switch (fieldType) {
     case FieldType.Constant: {
-      return FieldVar.constant(17n);
+      return FieldVar.constant(1n);
     }
     case FieldType.Var: {
       return [FieldType.Var, 0];
@@ -346,10 +401,14 @@ function drawFieldVar(): FieldVar {
     case FieldType.Add: {
       let x = drawFieldVar();
       let y = drawFieldVar();
+      // prevent blow-up of constant size
+      if (x[0] === FieldType.Constant && y[0] === FieldType.Constant) return x;
       return FieldVar.add(x, y);
     }
     case FieldType.Scale: {
       let x = drawFieldVar();
+      // prevent blow-up of constant size
+      if (x[0] === FieldType.Constant) return x;
       return FieldVar.scale(3n, x);
     }
   }
@@ -395,59 +454,3 @@ type CsParams<In extends Tuple<CsVarSpec<any>>> = {
   [k in keyof In]: InferCsVar<In[k]>;
 };
 type TypeAndValue<T> = { type: Provable<T, any>; value: T };
-
-// print a constraint system
-
-function printGates(gates: Gate[]) {
-  for (let i = 0, n = gates.length; i < n; i++) {
-    let { type, wires, coeffs } = gates[i];
-    console.log(
-      i.toString().padEnd(4, ' '),
-      type.padEnd(15, ' '),
-      coeffsToPretty(type, coeffs).padEnd(30, ' '),
-      wiresToPretty(wires, i)
-    );
-  }
-  console.log();
-}
-
-let minusRange = Field.ORDER - (1n << 64n);
-
-function coeffsToPretty(type: Gate['type'], coeffs: Gate['coeffs']): string {
-  if (coeffs.length === 0) return '';
-  if (type === 'Generic' && coeffs.length > 5) {
-    let first = coeffsToPretty(type, coeffs.slice(0, 5));
-    let second = coeffsToPretty(type, coeffs.slice(5));
-    return `${first} ${second}`;
-  }
-  if (type === 'Poseidon' && coeffs.length > 3) {
-    return `${coeffsToPretty(type, coeffs.slice(0, 3)).slice(0, -1)} ...]`;
-  }
-  let str = coeffs
-    .map((c) => {
-      let c0 = BigInt(c);
-      if (c0 > minusRange) c0 -= Field.ORDER;
-      let cStr = c0.toString();
-      if (cStr.length > 4) return `${cStr.slice(0, 4)}..`;
-      return cStr;
-    })
-    .join(' ');
-  return `[${str}]`;
-}
-
-function wiresToPretty(wires: Gate['wires'], row: number) {
-  let strWires: string[] = [];
-  let n = wires.length;
-  for (let col = 0; col < n; col++) {
-    let wire = wires[col];
-    if (wire.row === row && wire.col === col) continue;
-    if (wire.row === row) {
-      strWires.push(`${col}->${wire.col}`);
-    } else {
-      let rowDelta = wire.row - row;
-      let rowStr = rowDelta > 0 ? `+${rowDelta}` : `${rowDelta}`;
-      strWires.push(`${col}->(${rowStr},${wire.col})`);
-    }
-  }
-  return strWires.join(', ');
-}

@@ -90,7 +90,7 @@ let strings = [
  * - the 3 stake delegations,
  * - the 3 strings.
  */
-let signatures = {
+let signatures: { [k: string]: { field: string; scalar: string }[] } = {
   testnet: [
     {
       field:

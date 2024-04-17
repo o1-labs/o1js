@@ -1,22 +1,26 @@
 # o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
-ℹ️ **o1js** is an evolution of [SnarkyJS](https://www.npmjs.com/package/snarkyjs) which saw:
-49 updated versions over 2 years of development with 43,141 downloads
+ℹ️ **o1js** is an evolution of [SnarkyJS](https://www.npmjs.com/package/snarkyjs) which saw
+49 updated versions over two years of development with 43,141 downloads.
 
-This name change reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
+This name change to o1js reflects the evolution of our vision for the premiere toolkit used by developers to build zero knowledge-enabled applications, while paying homage to our technology's recursive proof generation capabilities.
 
 Your favorite functionality stays the same and transitioning to o1js is a quick and easy process:
 
 - To update zkApp-cli, run the following command:
+
   `npm i -g zkapp-cli@latest`
-- To remove the now-deprecated SnarkyJs package and install o1js, run the following command:
+
+- To remove the now-deprecated SnarkyJS package and install o1js, run the following command:
+
   `npm remove snarkyjs && npm install o1js`
+
 - For existing zkApps, make sure to update your imports from `snarkyjs` to `o1js`
 - No need to redeploy, you are good to go!
 
 ## o1js
 
-o1js helps developers build apps powered by zero-knowledge (zk) cryptography.
+o1js helps developers build apps powered by zero knowledge (zk) cryptography.
 
 The easiest way to write zk programs is using o1js.
 
@@ -41,6 +45,10 @@ o1js is automatically included when you create a project using the [Mina zkApp C
 o1js is an open source project. We appreciate all community contributions to o1js!
 
 See the [Contributing guidelines](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md) for ways you can contribute.
+
+## Development Workflow
+
+For guidance on building o1js from source and understanding the development workflow, see [o1js README-dev](https://github.com/o1-labs/o1js/blob/main/README-dev.md).
 
 ## Community Packages
 

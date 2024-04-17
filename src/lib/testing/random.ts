@@ -29,17 +29,21 @@ import {
   PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
-import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
+import {
+  Scalar,
+  PrivateKey,
+  Group,
+} from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { alphabet } from '../base58.js';
+import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { Signable } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../mina-signer/src/derivers-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import type { FiniteField } from '../../bindings/crypto/finite_field.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 
 export { Random, sample, withHardCoded };
 
@@ -66,6 +70,7 @@ function sample<T>(rng: Random<T>, size: number) {
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const bool = map(boolean, Bool);
+const uint8 = biguintWithInvalid(8);
 const uint32 = biguintWithInvalid(32);
 const uint64 = biguintWithInvalid(64);
 const byte = Random_(drawRandomByte);
@@ -137,6 +142,7 @@ const Generators: Generators = {
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
+  TransactionVersion: uint32,
 };
 let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -161,7 +167,8 @@ const accountUpdate = mapWithInvalid(
       a.body.authorizationKind.isProved = Bool(false);
     }
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = Field(0);
+      a.body.authorizationKind.verificationKeyHash =
+        VerificationKeyHash.empty();
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
@@ -187,17 +194,20 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint64Json = toString(
-  oneOf(uint64.invalid, nonInteger, nonNumericString)
+const invalidUint8Json = toString(
+  oneOf(uint8.invalid, nonInteger, nonNumericString)
 );
 const invalidUint32Json = toString(
   oneOf(uint32.invalid, nonInteger, nonNumericString)
 );
+const invalidUint64Json = toString(
+  oneOf(uint64.invalid, nonInteger, nonNumericString)
+);
 
 // some json versions of those types
 let json_ = {
-  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
+  uint64: { ...toString(uint64), invalid: invalidUint64Json },
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -240,6 +250,7 @@ const JsonGenerators: JsonGenerators = {
   null: constant(null),
   string: base58(nat(50)),
   number: nat(3),
+  TransactionVersion: json_.uint32,
 };
 let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -310,6 +321,7 @@ const Random = Object.assign(Random_, {
   field,
   otherField: fieldWithInvalid,
   bool,
+  uint8,
   uint32,
   uint64,
   biguint: biguintWithInvalid,
@@ -351,7 +363,7 @@ function generatorFromLayout<T>(
         return array(element, size);
       },
       reduceObject(keys, object) {
-        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overriden)
+        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overridden)
         if (keys.includes('verificationKeyHash')) {
           (object as any).verificationKeyHash = noInvalid(
             (object as any).verificationKeyHash

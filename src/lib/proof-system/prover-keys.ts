@@ -9,12 +9,12 @@ import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
-import { Pickles, getWasm } from '../../snarky.js';
+import { Pickles, wasm } from '../../snarky.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
-import type { MethodInterface } from '../proof_system.js';
+import type { MethodInterface } from './zkprogram.js';
 
 export {
   parseHeader,
@@ -99,7 +99,6 @@ function parseHeader(
  * Encode a snark key to bytes
  */
 function encodeProverKey(value: SnarkKey): Uint8Array {
-  let wasm = getWasm();
   switch (value[0]) {
     case KeyType.StepProvingKey: {
       let index = value[1][1];
@@ -108,7 +107,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     case KeyType.StepVerificationKey: {
       let vkMl = value[1];
-      const rustConversion = getRustConversion(getWasm());
+      const rustConversion = getRustConversion(wasm);
       let vkWasm = rustConversion.fp.verifierIndexToRust(vkMl);
       let string = wasm.caml_pasta_fp_plonk_verifier_index_serialize(vkWasm);
       return new TextEncoder().encode(string);
@@ -125,7 +124,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     default:
       value satisfies never;
-      throw Error('todo');
+      throw Error('unreachable');
   }
 }
 
@@ -133,7 +132,6 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
  * Decode bytes to a snark key with the help of its header
  */
 function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
-  let wasm = getWasm();
   switch (header[0]) {
     case KeyType.StepProvingKey: {
       let srs = Pickles.loadSrsFp();
@@ -148,7 +146,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
         srs,
         string
       );
-      const rustConversion = getRustConversion(getWasm());
+      const rustConversion = getRustConversion(wasm);
       let vkMl = rustConversion.fp.verifierIndexFromRust(vkWasm);
       return [KeyType.StepVerificationKey, vkMl];
     }
@@ -165,7 +163,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
     }
     default:
       header satisfies never;
-      throw Error('todo');
+      throw Error('unreachable');
   }
 }
 

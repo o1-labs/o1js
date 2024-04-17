@@ -19,5 +19,5 @@ function main(nMuls: number) {
 }
 
 tic('run and check');
-Provable.runAndCheck(() => main(nMuls));
+await Provable.runAndCheck(() => main(nMuls));
 toc();

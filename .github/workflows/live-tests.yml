@@ -1,4 +1,4 @@
-name: Test o1js against the real network
+name: Test o1js against lightnet
 on:
   push:
     branches:
@@ -13,35 +13,9 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  main-branch:
-    timeout-minutes: 25
+  berkeley:
+    timeout-minutes: 45
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
-    services:
-      mina-local-network:
-        image: o1labs/mina-local-network:o1js-main-latest-lightnet
-        env:
-          NETWORK_TYPE: 'single-node'
-          PROOF_LEVEL: 'none'
-        ports:
-          - 3085:3085
-          - 5432:5432
-          - 8080:8080
-          - 8181:8181
-        volumes:
-          - /tmp:/root/logs
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Use shared steps for live testing jobs
-        uses: ./.github/actions/live-tests-shared
-        with:
-          mina-branch-name: o1js-main
-
-  berkeley-branch:
-    timeout-minutes: 25
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/berkeley' || (github.event_name == 'pull_request' && github.base_ref == 'berkeley')
     services:
       mina-local-network:
         image: o1labs/mina-local-network:berkeley-latest-lightnet
@@ -53,6 +27,7 @@ jobs:
           - 5432:5432
           - 8080:8080
           - 8181:8181
+          - 8282:8282
         volumes:
           - /tmp:/root/logs
     steps:
@@ -62,28 +37,3 @@ jobs:
         uses: ./.github/actions/live-tests-shared
         with:
           mina-branch-name: berkeley
-
-  develop-branch:
-    timeout-minutes: 25
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
-    services:
-      mina-local-network:
-        image: o1labs/mina-local-network:develop-latest-lightnet
-        env:
-          NETWORK_TYPE: 'single-node'
-          PROOF_LEVEL: 'none'
-        ports:
-          - 3085:3085
-          - 5432:5432
-          - 8080:8080
-          - 8181:8181
-        volumes:
-          - /tmp:/root/logs
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Use shared steps for live testing jobs
-        uses: ./.github/actions/live-tests-shared
-        with:
-          mina-branch-name: develop
