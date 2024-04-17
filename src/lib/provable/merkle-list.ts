@@ -440,31 +440,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  nextUnsafe() {
-    let { previousHash, element } = Provable.witness(
-      WithHash(this.innerProvable),
-      () =>
-        this.data.get()[this.currentIndex.get()] ?? {
-          previousHash: this.Constructor.emptyHash,
-          element: this.innerProvable.empty(),
-        }
-    );
-
-    let isDummy = this.isAtEnd();
-    let emptyHash = this.Constructor.emptyHash;
-    let correctHash = this.nextHash(previousHash, element);
-    let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
-
-    this.currentHash.assertEquals(requiredHash);
-
-    this.currentIndex.updateAsProver((i) =>
-      Math.min(i + 1, this.data.get().length)
-    );
-    this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
-
-    return { element, isDummy };
-  }
-
   previous() {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     // this is like MerkleList.push() but we witness the next element instead of taking it as input,
@@ -491,20 +466,66 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  previousUnsafe() {
-    let element = Provable.witness(this.innerProvable, () => {
-      return (
-        this.data.get()[this.currentIndex.get()]?.element ??
-        this.innerProvable.empty()
-      );
-    });
+  /**
+   * Low-level APIs for advanced uses
+   */
+  get Unsafe() {
+    let self = this;
+    return {
+      /**
+       * Version of {@link next} which doesn't guarantee anything about
+       * the returned element in case the iterator is at the end.
+       *
+       * Instead, the `isDummy` flag is also returned so that this case can
+       * be handled in a custom way.
+       */
+      next() {
+        let { previousHash, element } = Provable.witness(
+          WithHash(self.innerProvable),
+          () =>
+            self.data.get()[self.currentIndex.get()] ?? {
+              previousHash: self.Constructor.emptyHash,
+              element: self.innerProvable.empty(),
+            }
+        );
 
-    let isDummy = this.isAtStart();
-    let currentHash = this.nextHash(this.currentHash, element);
-    this.currentHash = Provable.if(isDummy, this.hash, currentHash);
-    this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+        let isDummy = self.isAtEnd();
+        let emptyHash = self.Constructor.emptyHash;
+        let correctHash = self.nextHash(previousHash, element);
+        let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
 
-    return { element, isDummy };
+        self.currentHash.assertEquals(requiredHash);
+
+        self.currentIndex.updateAsProver((i) =>
+          Math.min(i + 1, self.data.get().length)
+        );
+        self.currentHash = Provable.if(isDummy, emptyHash, previousHash);
+        return { element, isDummy };
+      },
+
+      /**
+       * Version of {@link previous} which doesn't guarantee anything about
+       * the returned element in case the iterator is at the start.
+       *
+       * Instead, the `isDummy` flag is also returned so that this case can
+       * be handled in a custom way.
+       */
+      previous() {
+        let element = Provable.witness(self.innerProvable, () => {
+          return (
+            self.data.get()[self.currentIndex.get()]?.element ??
+            self.innerProvable.empty()
+          );
+        });
+
+        let isDummy = self.isAtStart();
+        let currentHash = self.nextHash(self.currentHash, element);
+        self.currentHash = Provable.if(isDummy, self.hash, currentHash);
+        self.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+
+        return { element, isDummy };
+      },
+    };
   }
 
   clone(): MerkleListIterator<T> {

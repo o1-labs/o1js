@@ -1314,7 +1314,7 @@ class ${contract.constructor.name} extends SmartContract {
       const listIter = actionLists.startIteratingReverse();
 
       for (let i = 0; i < maxTransactionsWithActions; i++) {
-        let { element: merkleActions, isDummy } = listIter.previousUnsafe();
+        let { element: merkleActions, isDummy } = listIter.Unsafe.previous();
         let actionIter = merkleActions.startIterating();
         let newState = state;
 
@@ -1335,7 +1335,7 @@ class ${contract.constructor.name} extends SmartContract {
           newState = reduce(newState, action);
         } else {
           for (let j = 0; j < maxActionsPerMethod; j++) {
-            let { element: action, isDummy } = actionIter.nextUnsafe();
+            let { element: action, isDummy } = actionIter.Unsafe.next();
             newState = Provable.if(
               isDummy,
               stateType,
@@ -1351,6 +1351,7 @@ class ${contract.constructor.name} extends SmartContract {
         state = Provable.if(isDummy, stateType, state, newState);
       }
 
+      // important: we check that by iterating, we actually reached the claimed final action state
       listIter.assertAtStart();
 
       return { state, actionState: actionStateAfterReduce };
