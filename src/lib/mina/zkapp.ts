@@ -1333,9 +1333,9 @@ class ${contract.constructor.name} extends SmartContract {
               reduce(newState, action)
             );
           }
+          actionIter.assertAtEnd();
         }
 
-        actionIter.assertAtEnd();
         state = Provable.if(isDummy, stateType, state, newState);
       }
 

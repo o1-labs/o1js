@@ -450,7 +450,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         }
     );
 
-    let isDummy = Provable.witness(Bool, () => this.isAtEnd());
+    let isDummy = this.isAtEnd();
     let emptyHash = this.Constructor.emptyHash;
     let correctHash = this.nextHash(previousHash, element);
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
@@ -501,7 +501,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       ).element;
     });
 
-    let isDummy = Provable.witness(Bool, () => this.isAtStart());
+    let isDummy = this.isAtStart();
     let currentHash = this.nextHash(this.currentHash, element);
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
     this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
