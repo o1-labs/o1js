@@ -16,9 +16,11 @@ import {
   unit,
   bool,
 } from '../../testing/equivalent.js';
-import { runAndCheckSync } from '../core/provable-context.js';
+import { synchronousRunners } from '../core/provable-context.js';
 import { ProvablePure } from '../types/provable-intf.js';
 import { assert } from '../../util/assert.js';
+
+let { runAndCheckSync } = await synchronousRunners();
 
 // types
 Field satisfies Provable<Field>;

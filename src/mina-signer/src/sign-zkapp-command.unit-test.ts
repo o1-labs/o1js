@@ -42,6 +42,8 @@ import {
 } from './signature.js';
 import { NetworkId } from './types.js';
 
+let mlTest = await Test();
+
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
@@ -67,7 +69,7 @@ expect(AccountUpdate.toJSON(dummy)).toEqual(
 
 let dummyInput = AccountUpdate.toInput(dummy);
 let dummyInputSnarky = MlHashInput.from(
-  Test.hashInputFromJson.body(
+  mlTest.hashInputFromJson.body(
     JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
   )
 );
@@ -133,7 +135,7 @@ let memoGenerator = withHardCoded(Random.json.memoString, 'hello world');
 test(memoGenerator, (memoString) => {
   let memo = Memo.fromString(memoString);
   let memoBase58 = Memo.toBase58(memo);
-  let memoBase581 = Test.encoding.memoToBase58(memoString);
+  let memoBase581 = mlTest.encoding.memoToBase58(memoString);
   expect(memoBase58).toEqual(memoBase581);
   let memoRecovered = Memo.fromBase58(memoBase58);
   expect(memoRecovered).toEqual(memo);
@@ -148,7 +150,7 @@ test(
 
     assert(isCallDepthValid(zkappCommand));
     let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
-    let ocamlCommitments = Test.hashFromJson.transactionCommitments(
+    let ocamlCommitments = mlTest.hashFromJson.transactionCommitments(
       JSON.stringify(zkappCommandJson),
       NetworkId.toString(networkId)
     );
@@ -196,7 +198,7 @@ test(
     expect(recoveredZkappCommand).toEqual(zkappCommand);
 
     // tx commitment
-    let ocamlCommitments = Test.hashFromJson.transactionCommitments(
+    let ocamlCommitments = mlTest.hashFromJson.transactionCommitments(
       JSON.stringify(zkappCommandJson),
       NetworkId.toString(networkId)
     );
@@ -208,7 +210,7 @@ test(
 
     let memo = Memo.fromBase58(memoBase58);
     let memoHash = Memo.hash(memo);
-    let memoHashSnarky = Test.encoding.memoHashBase58(memoBase58);
+    let memoHashSnarky = mlTest.encoding.memoHashBase58(memoBase58);
     expect(memoHash).toEqual(FieldConst.toBigint(memoHashSnarky));
 
     let feePayerAccountUpdate = accountUpdateFromFeePayer(feePayer);
@@ -216,7 +218,7 @@ test(
 
     let feePayerInput = AccountUpdate.toInput(feePayerAccountUpdate);
     let feePayerInput1 = MlHashInput.from(
-      Test.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
+      mlTest.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
     );
     expect(stringify(feePayerInput.fields)).toEqual(
       stringify(feePayerInput1.fields)
@@ -245,7 +247,7 @@ test(
       feePayerKey,
       networkId
     );
-    let sigOCaml = Test.signature.signFieldElement(
+    let sigOCaml = mlTest.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
       NetworkId.toString(networkId)

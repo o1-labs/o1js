@@ -32,7 +32,7 @@ class PaymentContainer extends SmartContract {
 let proofsEnabled = false;
 if (proofsEnabled) await PaymentContainer.compile();
 
-let Local = Mina.LocalBlockchain({ proofsEnabled });
+let Local = await Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp

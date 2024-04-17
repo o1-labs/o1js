@@ -47,7 +47,7 @@ class PayoutOnlyOnce extends SmartContract {
 
 const NullifierTree = new MerkleMap();
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: true });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the contract

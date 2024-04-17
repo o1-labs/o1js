@@ -73,7 +73,7 @@ ReducerProfiler.start('Reducer zkApp test flow');
 const doProofs = true;
 const initialCounter = Field(0);
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 let [feePayer] = Local.testAccounts;

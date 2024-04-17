@@ -86,7 +86,7 @@ class StorageContract extends SmartContract {
 
 let k = 1 << 4;
 
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 let cs = await StorageContract.analyzeMethods();
 

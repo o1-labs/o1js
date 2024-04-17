@@ -49,7 +49,7 @@ class RecursiveContract extends SmartContract {
   }
 }
 
-Mina.setActiveInstance(Mina.LocalBlockchain());
+Mina.setActiveInstance(await Mina.LocalBlockchain());
 let publicKey = PrivateKey.random().toPublicKey();
 let zkApp = new RecursiveContract(publicKey);
 

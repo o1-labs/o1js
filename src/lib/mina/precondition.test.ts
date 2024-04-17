@@ -23,7 +23,7 @@ let feePayer: Mina.TestPublicKey;
 
 beforeAll(async () => {
   // set up local blockchain, create contract account keys, deploy the contract
-  let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+  let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
   [feePayer] = Local.testAccounts;
 

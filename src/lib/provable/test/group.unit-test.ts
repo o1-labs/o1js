@@ -2,9 +2,11 @@ import { Group } from '../wrapped.js';
 import { test, Random } from '../../testing/property.js';
 import { Provable } from '../provable.js';
 import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
-import { runAndCheckSync } from '../core/provable-context.js';
+import { synchronousRunners } from '../core/provable-context.js';
 import { Scalar } from '../scalar.js';
 import { Field } from '../field.js';
+
+let { runAndCheckSync } = await synchronousRunners();
 
 console.log('group consistency tests');
 

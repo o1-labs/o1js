@@ -38,7 +38,7 @@ class C extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 let [sender, tokenAccount1] = Local.testAccounts;

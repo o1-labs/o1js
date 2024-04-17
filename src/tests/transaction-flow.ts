@@ -122,7 +122,7 @@ async function sendAndVerifyTransaction(
 
 const transactionFee = 100_000_000;
 
-const Local = Mina.LocalBlockchain();
+const Local = await Mina.LocalBlockchain();
 const Remote = Mina.Network({
   mina: 'http://localhost:8080/graphql',
   archive: 'http://localhost:8282 ',

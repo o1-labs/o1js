@@ -19,7 +19,7 @@ class BlockHeightReference extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 const [feePayer] = Local.testAccounts;

@@ -16,7 +16,6 @@
     "zero knowledge"
   ],
   "type": "module",
-  "main": "./dist/web/index.js",
   "exports": {
     "types": "./dist/node/index.d.ts",
     "browser": "./dist/web/index.js",
