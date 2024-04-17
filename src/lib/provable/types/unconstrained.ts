@@ -110,7 +110,7 @@ and Provable.asProver() blocks, which execute outside the proof.
     });
   }
 
-  static provable: UnconstrainedProvable<any> & {
+  static provable: Provable<Unconstrained<any>> & {
     toInput: (x: Unconstrained<any>) => {
       fields?: Field[];
       packed?: [Field, number][];
@@ -126,5 +126,3 @@ and Provable.asProver() blocks, which execute outside the proof.
     toInput: () => ({}),
   };
 }
-
-type UnconstrainedProvable<T> = Provable<Unconstrained<T>, T>;
