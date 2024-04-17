@@ -408,7 +408,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   // next() should be called previous(), isAtEnd() should be isAtStart(),
   // startIterating should start at the end, etc.
 
-  next() {
+  next({ unsafe = false } = {}) {
     // next corresponds to `pop()` in MerkleList
     // it returns a dummy element if we're at the end of the array
     let { previousHash, element } = Provable.witness(
@@ -431,6 +431,9 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       Math.min(i + 1, this.data.get().length)
     );
     this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
+
+    if (unsafe) return element;
+
     return Provable.if(
       isDummy,
       this.innerProvable,
@@ -439,7 +442,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  previous() {
+  previous({ unsafe = false } = {}) {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     // this is like MerkleList.push() but we witness the next element instead of taking it as input,
     // and we return a dummy element if we're at the start of the array
@@ -456,6 +459,8 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     let currentHash = this.nextHash(this.currentHash, element);
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
     this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+
+    if (unsafe) return element;
 
     return Provable.if(
       isDummy,

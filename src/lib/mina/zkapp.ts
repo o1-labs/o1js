@@ -1314,10 +1314,10 @@ class ${contract.constructor.name} extends SmartContract {
       const listIter = actionLists.startIteratingReverse();
 
       for (let i = 0; i < maxTransactionsWithActions; i++) {
-        let merkleActions = listIter.previous();
+        let merkleActions = listIter.previous({ unsafe: true });
         let actionIter = merkleActions.startIterating();
         for (let j = 0; j < maxActionsPerMethod; j++) {
-          let action = actionIter.next();
+          let action = actionIter.next({ unsafe: true });
           state = reduce(state, action);
         }
       }
