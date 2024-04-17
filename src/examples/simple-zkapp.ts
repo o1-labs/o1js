@@ -133,7 +133,6 @@ tx = await Mina.transaction(sender, async () => {
 });
 await tx.prove();
 await tx.sign([sender.key]).send();
-sender;
 
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
