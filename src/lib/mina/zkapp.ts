@@ -1401,26 +1401,22 @@ class ${contract.constructor.name} extends SmartContract {
         config?.fromActionState ?? Actions.emptyActionState()
       ) {}
 
-      let actionsForAccount: A[][] = [];
-      Provable.asProver(() => {
-        let actions = Mina.getActions(
+      return Provable.witness(MerkleActions.provable, () => {
+        let actionFields = Mina.getActions(
           contract.address,
           config,
           contract.self.tokenId
         );
-        actionsForAccount = actions.map((event) =>
-          // putting our string-Fields back into the original action type
+        // convert string-Fields back into the original action type
+        let actions = actionFields.map((event) =>
           event.actions.map((action) =>
             (reducer.actionType as ProvablePure<A>).fromFields(
               action.map(Field)
             )
           )
         );
+        return MerkleActions.from(actions.map((a) => ActionList.from(a)));
       });
-
-      return Provable.witness(MerkleActions.provable, () =>
-        MerkleActions.from(actionsForAccount.map((a) => ActionList.from(a)))
-      );
     },
 
     async fetchActions(config?: {
