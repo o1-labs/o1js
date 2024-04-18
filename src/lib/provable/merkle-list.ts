@@ -500,6 +500,15 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         return this.startIterating({ data: unconstrained, hash });
       }
 
+      static fromLast(array: T[]): MerkleListIterator<T> {
+        array = [...array].reverse();
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
+        let unconstrained = Unconstrained.witness(() =>
+          data.map((x) => toConstant(type, x))
+        );
+        return this.startIteratingFromLast({ data: unconstrained, hash });
+      }
+
       static startIterating({
         data,
         hash,
