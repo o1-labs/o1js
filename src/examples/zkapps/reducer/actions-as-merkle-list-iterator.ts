@@ -47,16 +47,17 @@ class ActionsContract extends SmartContract {
 
     let counter = Field(0);
 
-    let iter = actions.startIteratingReverse();
+    let iter = actions.startIterating();
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
       let merkleActions = iter.next();
-      let innerIter = merkleActions.startIterating();
+      let innerIter = merkleActions.startIteratingFromLast();
       for (let j = 0; j < MAX_ACTIONS_PER_UPDATE; j++) {
         let action = innerIter.next();
         counter = counter.add(action);
       }
     }
+    iter.assertAtEnd();
 
     this.counter.set(this.counter.getAndRequireEquals().add(counter));
   }
@@ -66,15 +67,12 @@ class ActionsContract extends SmartContract {
 
 // set up a local blockchain
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let [
-  { publicKey: sender, privateKey: senderKey },
-  { publicKey: zkappAddress, privateKey: zkappKey },
-] = Local.testAccounts;
+let [sender, contractAddress] = Local.testAccounts;
 
-let zkapp = new ActionsContract(zkappAddress);
+let contract = new ActionsContract(contractAddress);
 
 // deploy the contract
 
@@ -83,28 +81,28 @@ console.log(
   `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
   (await ActionsContract.analyzeMethods()).accumulate.rows
 );
-let deployTx = await Mina.transaction(sender, async () => zkapp.deploy());
-await deployTx.sign([senderKey, zkappKey]).send();
+let deployTx = await Mina.transaction(sender, async () => contract.deploy());
+await deployTx.sign([sender.key, contractAddress.key]).send();
 
 // push some actions
 
 let dispatchTx = await Mina.transaction(sender, async () => {
-  await zkapp.increment(Field(1));
-  await zkapp.increment(Field(3));
-  await zkapp.increment(Field(1));
-  await zkapp.increment(Field(9));
-  await zkapp.increment(Field(18));
+  await contract.increment(Field(1));
+  await contract.increment(Field(3));
+  await contract.increment(Field(1));
+  await contract.increment(Field(9));
+  await contract.increment(Field(18));
 });
 await dispatchTx.prove();
-await dispatchTx.sign([senderKey]).send();
+await dispatchTx.sign([sender.key]).send();
 
-assert(zkapp.reducer.getActions().data.get().length === 5);
+assert(contract.reducer.getActions().data.get().length === 5);
 
 // accumulate actions
 
 Local.setProofsEnabled(true);
-let accTx = await Mina.transaction(sender, () => zkapp.accumulate());
+let accTx = await Mina.transaction(sender, () => contract.accumulate());
 await accTx.prove();
-await accTx.sign([senderKey]).send();
+await accTx.sign([sender.key]).send();
 
-assert(zkapp.counter.get().toBigInt() === 32n);
+assert(contract.counter.get().toBigInt() === 32n);

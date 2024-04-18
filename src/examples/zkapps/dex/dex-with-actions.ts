@@ -261,8 +261,8 @@ class DexTokenHolder extends SmartContract {
     let l = Provable.witness(UInt64, (): UInt64 => {
       let l = dex.totalSupply.get().toBigInt();
       // dex.totalSupply.assertNothing();
-      for (let [action] of actions) {
-        l += action.dl.toBigInt();
+      for (let action of actions.data.get()) {
+        l += action.element.data.get()[0].element.dl.toBigInt();
       }
       return UInt64.from(l);
     });

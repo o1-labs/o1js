@@ -1251,7 +1251,7 @@ type ReducerReturn<Action> = {
   fetchActions({
     fromActionState,
     endActionState,
-  }: {
+  }?: {
     fromActionState?: Field;
     endActionState?: Field;
   }): Promise<Action[][]>;
