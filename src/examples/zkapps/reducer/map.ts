@@ -77,7 +77,7 @@ class StorageContract extends SmartContract {
         state: Option.empty(),
         actionState: Reducer.initialActionState,
       },
-      { maxTransactionsWithActions: k }
+      { maxUpdatesWithActions: k }
     );
 
     return optionValue;

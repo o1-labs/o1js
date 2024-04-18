@@ -1204,8 +1204,8 @@ type ReducerReturn<Action> = {
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionState: Field },
     options?: {
-      maxTransactionsWithActions?: number;
-      maxActionsPerMethod?: number;
+      maxUpdatesWithActions?: number;
+      maxActionsPerUpdate?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): { state: State; actionState: Field };
@@ -1220,8 +1220,8 @@ type ReducerReturn<Action> = {
     reduce: (action: Action) => void,
     fromActionState: Field,
     options?: {
-      maxTransactionsWithActions?: number;
-      maxActionsPerMethod?: number;
+      maxUpdatesWithActions?: number;
+      maxActionsPerUpdate?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): Field;
@@ -1286,16 +1286,16 @@ class ${contract.constructor.name} extends SmartContract {
         actionState: initialActionState,
       }: { state: S; actionState: Field },
       {
-        maxTransactionsWithActions = 32,
-        maxActionsPerMethod = 1,
+        maxUpdatesWithActions = 32,
+        maxActionsPerUpdate = 1,
         skipActionStatePrecondition = false,
       } = {}
     ): { state: S; actionState: Field } {
       Provable.asProver(() => {
-        if (actionLists.data.get().length > maxTransactionsWithActions) {
+        if (actionLists.data.get().length > maxUpdatesWithActions) {
           throw Error(
-            `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxTransactionsWithActions}.
-  Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
+            `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxUpdatesWithActions}.
+  Use the optional \`maxUpdatesWithActions\` argument to increase this number.`
           );
         }
       });
@@ -1314,12 +1314,12 @@ class ${contract.constructor.name} extends SmartContract {
 
       const listIter = actionLists.startIterating();
 
-      for (let i = 0; i < maxTransactionsWithActions; i++) {
+      for (let i = 0; i < maxUpdatesWithActions; i++) {
         let { element: merkleActions, isDummy } = listIter.Unsafe.next();
         let actionIter = merkleActions.startIteratingFromLast();
         let newState = state;
 
-        if (maxActionsPerMethod === 1) {
+        if (maxActionsPerUpdate === 1) {
           // special case with less work, because the only action is a dummy iff merkleActions is a dummy
           let action = Provable.witness(
             reducer.actionType,
@@ -1335,7 +1335,7 @@ class ${contract.constructor.name} extends SmartContract {
 
           newState = reduce(newState, action);
         } else {
-          for (let j = 0; j < maxActionsPerMethod; j++) {
+          for (let j = 0; j < maxActionsPerUpdate; j++) {
             let { element: action, isDummy } = actionIter.Unsafe.previous();
             newState = Provable.if(
               isDummy,

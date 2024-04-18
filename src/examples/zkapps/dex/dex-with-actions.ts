@@ -288,7 +288,7 @@ class DexTokenHolder extends SmartContract {
       },
       fromActionState,
       {
-        maxTransactionsWithActions: DexTokenHolder.redeemActionBatchSize,
+        maxUpdatesWithActions: DexTokenHolder.redeemActionBatchSize,
         // DEX contract doesn't allow setting preconditions from outside (= w/o proof)
         skipActionStatePrecondition: true,
       }

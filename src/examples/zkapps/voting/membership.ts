@@ -200,7 +200,7 @@ export class Membership_ extends SmartContract {
         },
         // initial state
         { state: committedMembers, actionState: accumulatedMembers },
-        { maxTransactionsWithActions: 2 }
+        { maxUpdatesWithActions: 2 }
       );
 
     this.committedMembers.set(newCommittedMembers);
