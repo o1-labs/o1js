@@ -594,6 +594,7 @@ class AccountUpdate implements Types.AccountUpdate {
   private isSelf: boolean;
 
   static Actions = Actions;
+  static Events = Events;
 
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization: Control = {}, isSelf = false) {
@@ -874,28 +875,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   hash(): Field {
-    // these two ways of hashing are (and have to be) consistent / produce the same hash
-    // TODO: there's no reason anymore to use two different hashing methods here!
-    // -- the "inCheckedComputation" branch works in all circumstances now
-    // we just leave this here for a couple more weeks, because it checks
-    // consistency between JS & OCaml hashing on *every single account update
-    // proof* we create. It will give us 100% confidence that the two
-    // implementations are equivalent, and catch regressions quickly
-    if (Provable.inCheckedComputation()) {
-      let input = Types.AccountUpdate.toInput(this);
-      return hashWithPrefix(
-        zkAppBodyPrefix(activeInstance.getNetworkId()),
-        packToFields(input)
-      );
-    } else {
-      let json = Types.AccountUpdate.toJSON(this);
-      return Field(
-        Test.hashFromJson.accountUpdate(
-          JSON.stringify(json),
-          NetworkId.toString(activeInstance.getNetworkId())
-        )
-      );
-    }
+    let input = Types.AccountUpdate.toInput(this);
+    return hashWithPrefix(
+      zkAppBodyPrefix(activeInstance.getNetworkId()),
+      packToFields(input)
+    );
   }
 
   toPublicInput({

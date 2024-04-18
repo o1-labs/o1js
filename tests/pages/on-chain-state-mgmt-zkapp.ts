@@ -41,36 +41,30 @@ export class OnChainStateMgmtZkAppPage {
   }
 
   async checkDeployedZkApp() {
-    await expect(this.eventsContainer).toContainText('Deploying zkApp');
-    await expect(this.eventsContainer).toContainText('Initial zkApp State: 2');
-    await expect(this.eventsContainer).toContainText(
-      'zkApp Deployed successfully!'
-    );
+    await expect(this.eventsContainer).toContainText('Deploying');
+    await expect(this.eventsContainer).toContainText('Initial state: 2');
+    await expect(this.eventsContainer).toContainText('Deployed successfully!');
     await expect(this.zkAppStateContainer).toHaveText('2');
   }
 
   async checkUpdatedZkAppState(currentValue: string, nextValue: string) {
     await expect(this.eventsContainer).toContainText(
-      `Updating zkApp State from ${currentValue} to ${nextValue}`
+      `Updating state from ${currentValue} to ${nextValue}`
     );
     await expect(this.eventsContainer).toContainText(
-      `zkApp State successfully updated to: ${nextValue}!`
+      `State successfully updated to: ${nextValue}!`
     );
     await expect(this.zkAppStateContainer).toHaveText(nextValue);
   }
 
   async checkZkAppDeploymentFailureByFeeExcess() {
-    await expect(this.eventsContainer).toContainText('Deploying zkApp');
-    await expect(this.eventsContainer).toContainText(
-      'zkApp Deployment failure'
-    );
+    await expect(this.eventsContainer).toContainText('Deploying');
+    await expect(this.eventsContainer).toContainText('Deployment failure');
     await expect(this.eventsContainer).toContainText('Invalid_fee_excess');
   }
 
   async checkZkAppStateUpdateFailureByUnknownAccount() {
-    await expect(this.eventsContainer).toContainText(
-      'zkApp State Update failure'
-    );
+    await expect(this.eventsContainer).toContainText('State update failure');
     await expect(this.eventsContainer).toContainText(
       'Could not find account for public key'
     );
@@ -83,10 +77,10 @@ export class OnChainStateMgmtZkAppPage {
     expectedValue: string
   ) {
     await expect(this.eventsContainer).toContainText(
-      `Updating zkApp State from ${actualValue} to ${expectedValue}`
+      `Updating state from ${actualValue} to ${expectedValue}`
     );
     await expect(this.eventsContainer).toContainText(
-      `zkApp State Update failure: Field.assertEquals(): ${nextValue} != ${expectedValue}`
+      `State Update failure: Field.assertEquals(): ${nextValue} != ${expectedValue}`
     );
     await expect(this.zkAppStateContainer).toHaveText(actualValue);
   }

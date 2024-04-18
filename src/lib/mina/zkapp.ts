@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Gate, Pickles } from '../../snarky.js';
+import { Gate, Pickles, initializeBindings } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import {
   AccountUpdate,
@@ -706,6 +706,7 @@ class SmartContract extends SmartContractBase {
       ._verificationKey;
     if (verificationKey === undefined) {
       if (!Mina.getProofsEnabled()) {
+        await initializeBindings();
         let [, data, hash] = Pickles.dummyVerificationKey();
         verificationKey = { data, hash: Field(hash) };
       } else {

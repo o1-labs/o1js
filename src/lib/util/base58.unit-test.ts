@@ -3,6 +3,8 @@ import { Test } from '../../snarky.js';
 import { expect } from 'expect';
 import { test, Random, withHardCoded } from '../testing/property.js';
 
+let mlTest = await Test();
+
 let bytes = withHardCoded(
   Random.bytes(Random.nat(100)),
   [0, 0, 0, 0] // definitely test some zero bytes
@@ -12,7 +14,7 @@ let version = Random.nat(100);
 test(bytes, version, (bytes, version, assert) => {
   let binaryString = String.fromCharCode(...bytes);
   let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-  let base58Ocaml = Test.encoding.toBase58(ocamlBytes, version);
+  let base58Ocaml = mlTest.encoding.toBase58(ocamlBytes, version);
 
   // check consistency with OCaml result
   let base58 = toBase58Check(bytes, version);
