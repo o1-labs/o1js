@@ -33,6 +33,7 @@ export {
   bilinear,
   ScaledVar,
   Constant,
+  getLinear,
 };
 
 /**
