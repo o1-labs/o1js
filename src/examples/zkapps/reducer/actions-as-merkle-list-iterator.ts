@@ -68,7 +68,7 @@ class ActionsContract extends SmartContract {
     let actionss = this.reducer.getActions();
 
     let merkleActionss = Provable.witness(MerkleActionss.provable, () =>
-      MerkleActionss.fromReverse(actionss.map((as) => MerkleActions.from(as)))
+      MerkleActionss.from(actionss.map((as) => MerkleActions.from(as)))
     );
 
     // prove that we know the correct action state
@@ -76,7 +76,7 @@ class ActionsContract extends SmartContract {
 
     let counter = Field(0);
 
-    let iter = merkleActionss.startIteratingReverse();
+    let iter = merkleActionss.startIterating();
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
       let merkleActions = iter.next();
