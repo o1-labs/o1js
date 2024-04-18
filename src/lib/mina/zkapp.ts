@@ -1304,6 +1304,8 @@ class ${contract.constructor.name} extends SmartContract {
       const actionStateAfterReduce = actionLists.hash;
 
       // ensure we "append" the action state correctly by starting with the initial actionState
+      // TODO: I guess this means we don't need the `initialActionState` argument anymore
+      // TODO: and we don't need the action state return argument either
       actionLists.Constructor.emptyHash.assertEquals(initialActionState);
 
       if (!skipActionStatePrecondition) {
@@ -1327,10 +1329,12 @@ class ${contract.constructor.name} extends SmartContract {
               actionIter.data.get()[0]?.element ??
               actionIter.innerProvable.empty()
           );
-
           let emptyHash = actionIter.Constructor.emptyHash;
           let finalHash = actionIter.nextHash(emptyHash, action);
           finalHash = Provable.if(isDummy, emptyHash, finalHash);
+
+          // note: this asserts nothing in the isDummy case, because `actionIter.hash` is not well-defined
+          // but it doesn't matter because we're also skipping all state and action state updates in that case
           actionIter.hash.assertEquals(finalHash);
 
           newState = reduce(newState, action);
