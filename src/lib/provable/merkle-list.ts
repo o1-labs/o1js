@@ -425,50 +425,20 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  previous() {
+  next() {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     // this is like MerkleList.push() but we witness the next element instead of taking it as input,
     // and we return a dummy element if we're at the start of the array
-    let element = Provable.witness(this.innerProvable, () => {
-      return (
-        this.data.get()[this.currentIndex.get()] ?? {
-          previousHash: this.Constructor.emptyHash,
-          element: this.innerProvable.empty(),
-        }
-      ).element;
-    });
+    let element = Provable.witness(
+      this.innerProvable,
+      () =>
+        this.data.get()[this.currentIndex.get()].element ??
+        this.innerProvable.empty()
+    );
 
-    let isDummy = this.isAtStart();
+    let isDummy = this.isAtEnd();
     let currentHash = this.nextHash(this.currentHash, element);
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
-    this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
-
-    return Provable.if(
-      isDummy,
-      this.innerProvable,
-      this.innerProvable.empty(),
-      element
-    );
-  }
-
-  next() {
-    // instead of starting from index `0`, we start at index `length - 1` and go in reverse
-    let { previousHash, element } = Provable.witness(
-      WithHash(this.innerProvable),
-      () => {
-        return (
-          this.data.get()[this.currentIndex.get()] ?? {
-            previousHash: this.Constructor.emptyHash,
-            element: this.innerProvable.empty(),
-          }
-        );
-      }
-    );
-
-    let currentHash = this.nextHash(previousHash, element);
-    let isDummy = this.isAtEnd();
-    this.currentHash = Provable.if(isDummy, this.hash, currentHash);
-
     this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
 
     return Provable.if(
