@@ -6,12 +6,8 @@
  * a blueprint for processing actions in a custom and more explicit way.
  */
 import {
-  AccountUpdate,
-  Bool,
   Field,
-  MerkleList,
   Mina,
-  Provable,
   State,
   state,
   Reducer,
@@ -19,28 +15,6 @@ import {
   method,
   assert,
 } from 'o1js';
-
-const { Actions } = AccountUpdate;
-
-// in this example, an action is just a increment of type Field
-// the actions within one account update are a Merkle list with a custom hash
-const emptyHash = Actions.empty().hash;
-const nextHash = (hash: Field, action: Field) =>
-  Actions.pushEvent({ hash, data: [] }, action.toFields()).hash;
-
-class MerkleActions extends MerkleList.create(Field, nextHash, emptyHash) {}
-
-// the "action state" / actions from many account updates is a Merkle list
-// of the above Merkle list, with another custom hash
-let emptyActionsHash = Actions.emptyActionState();
-const nextActionsHash = (hash: Field, actions: MerkleActions) =>
-  Actions.updateSequenceState(hash, actions.hash);
-
-class MerkleActionss extends MerkleList.create(
-  MerkleActions.provable,
-  nextActionsHash,
-  emptyActionsHash
-) {}
 
 // constants for our static-sized provable code
 const MAX_UPDATES_WITH_ACTIONS = 100;
@@ -61,22 +35,25 @@ class ActionsContract extends SmartContract {
   }
 
   @method
+  async twoIncrements(inc1: Field, inc2: Field) {
+    this.reducer.dispatch(inc1);
+    this.reducer.dispatch(inc2);
+  }
+
+  @method
   async accumulate() {
     // get actions and, in a witness block, wrap them in a Merkle list of lists
 
     // get all actions
-    let actionss = this.reducer.getActions();
-
-    let merkleActionss = Provable.witness(MerkleActionss.provable, () =>
-      MerkleActionss.from(actionss.map((as) => MerkleActions.from(as)))
-    );
+    let actions = this.reducer.getActions();
 
     // prove that we know the correct action state
-    this.account.actionState.requireEquals(merkleActionss.hash);
+    this.account.actionState.requireEquals(actions.hash);
 
     let counter = Field(0);
 
-    let iter = merkleActionss.startIterating();
+    let iter = actions.startIterating();
+    let lastAction = Field(0);
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
       let merkleActions = iter.next();
@@ -84,8 +61,15 @@ class ActionsContract extends SmartContract {
       for (let j = 0; j < MAX_ACTIONS_PER_UPDATE; j++) {
         let action = innerIter.next();
         counter = counter.add(action);
+
+        // we require that every action is greater than the previous one, except for dummy (0) actions
+        // this checks that actions are applied in the right order
+        assert(action.equals(0).or(action.greaterThan(lastAction)));
+        lastAction = action;
       }
+      innerIter.assertAtEnd();
     }
+    iter.assertAtEnd();
 
     this.counter.set(this.counter.getAndRequireEquals().add(counter));
   }
@@ -98,9 +82,9 @@ class ActionsContract extends SmartContract {
 let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let [sender, zkappAddress] = Local.testAccounts;
+let [sender, contractAddress] = Local.testAccounts;
 
-let zkapp = new ActionsContract(zkappAddress);
+let contract = new ActionsContract(contractAddress);
 
 // deploy the contract
 
@@ -109,28 +93,28 @@ console.log(
   `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
   (await ActionsContract.analyzeMethods()).accumulate.rows
 );
-let deployTx = await Mina.transaction(sender, async () => zkapp.deploy());
-await deployTx.sign([sender.key, zkappAddress.key]).send();
+let deployTx = await Mina.transaction(sender, async () => contract.deploy());
+await deployTx.sign([sender.key, contractAddress.key]).send();
 
 // push some actions
 
 let dispatchTx = await Mina.transaction(sender, async () => {
-  await zkapp.increment(Field(1));
-  await zkapp.increment(Field(3));
-  await zkapp.increment(Field(1));
-  await zkapp.increment(Field(9));
-  await zkapp.increment(Field(18));
+  await contract.increment(Field(1));
+  await contract.increment(Field(3));
+  await contract.increment(Field(5));
+  await contract.increment(Field(9));
+  await contract.twoIncrements(Field(18), Field(19));
 });
 await dispatchTx.prove();
 await dispatchTx.sign([sender.key]).send();
 
-assert(zkapp.reducer.getActions().length === 5);
+assert(contract.reducer.getActions().data.get().length === 5);
 
 // accumulate actions
 
 Local.setProofsEnabled(true);
-let accTx = await Mina.transaction(sender, () => zkapp.accumulate());
+let accTx = await Mina.transaction(sender, () => contract.accumulate());
 await accTx.prove();
 await accTx.sign([sender.key]).send();
 
-assert(zkapp.counter.get().toBigInt() === 32n);
+assert(contract.counter.get().toBigInt() === 55n);

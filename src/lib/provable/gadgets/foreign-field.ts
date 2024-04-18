@@ -741,7 +741,6 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
 
   // case of one variable, one constant
 
-  if (Field3.isConstant(x)) return assertLessThan(y_, x);
   if (Field3.isConstant(y_)) {
     y = typeof y === 'bigint' ? y : Field3.toBigint(y);
     // this case is not included below, because ffadd doesn't support negative moduli
