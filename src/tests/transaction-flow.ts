@@ -55,19 +55,18 @@ class SimpleZkapp extends SmartContract {
       endActionState,
     });
 
-    const { state: newCounter, actionState: newActionState } =
-      this.reducer.reduce(
-        pendingActions,
-        Field,
-        (state: Field, _action: Field) => {
-          return state.add(1);
-        },
-        { state: counter, actionState }
-      );
+    const newCounter = this.reducer.reduce(
+      pendingActions,
+      Field,
+      (state: Field, _action: Field) => {
+        return state.add(1);
+      },
+      counter
+    );
 
     // update on-chain state
     this.counter.set(newCounter);
-    this.actionState.set(newActionState);
+    this.actionState.set(pendingActions.hash);
   }
 
   @method async update(y: Field, publicKey: PublicKey) {
@@ -103,7 +102,7 @@ async function testLocalAndRemote(
 }
 
 async function sendAndVerifyTransaction(
-  transaction: Mina.Transaction,
+  transaction: Mina.Transaction<false, false>,
   throwOnFail = false
 ) {
   await transaction.prove();
