@@ -1417,7 +1417,9 @@ class ${contract.constructor.name} extends SmartContract {
             )
           )
         );
-        return MerkleActions.from(actions.map((a) => ActionList.from(a)));
+        return MerkleActions.from(
+          actions.map((a) => ActionList.fromReverse(a))
+        );
       });
     },
 
