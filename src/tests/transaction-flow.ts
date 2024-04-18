@@ -43,10 +43,8 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method async rollupIncrements() {
-    const counter = this.counter.get();
-    this.counter.requireEquals(counter);
-    const actionState = this.actionState.get();
-    this.actionState.requireEquals(actionState);
+    const counter = this.counter.getAndRequireEquals();
+    const actionState = this.actionState.getAndRequireEquals();
 
     const endActionState = this.account.actionState.getAndRequireEquals();
 
@@ -273,14 +271,17 @@ await testLocalAndRemote(async () => {
       () => zkApp.incrementCounter()
     );
     transaction.sign([senderKey, zkAppKey]);
-    await sendAndVerifyTransaction(transaction);
+    await sendAndVerifyTransaction(transaction, true);
+
+    // wait a minute so this definitely arrives at the archive node
+    await new Promise((resolve) => setTimeout(resolve, 60000));
 
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       async () => zkApp.rollupIncrements()
     );
     transaction.sign([senderKey, zkAppKey]);
-    await sendAndVerifyTransaction(transaction);
+    await sendAndVerifyTransaction(transaction, true);
 
     let counter = await zkApp.counter.fetch();
     assert(counter !== undefined, 'could not fetch counter');
@@ -297,14 +298,17 @@ await testLocalAndRemote(async () => {
       }
     );
     transaction.sign([senderKey, zkAppKey]);
-    await sendAndVerifyTransaction(transaction);
+    await sendAndVerifyTransaction(transaction, true);
+
+    // wait a minute so this definitely arrives at the archive node
+    await new Promise((resolve) => setTimeout(resolve, 60000));
 
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       async () => zkApp.rollupIncrements()
     );
     transaction.sign([senderKey, zkAppKey]);
-    await sendAndVerifyTransaction(transaction);
+    await sendAndVerifyTransaction(transaction, true);
 
     counter = await zkApp.counter.fetch();
     assert(counter !== undefined, 'could not fetch counter');
