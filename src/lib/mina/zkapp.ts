@@ -32,6 +32,7 @@ import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
   Poseidon,
+  ProvableHashable,
   hashConstant,
   isHashable,
   packToFields,
@@ -73,6 +74,7 @@ import {
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
+import { MerkleList } from '../provable/merkle-list.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
@@ -1184,45 +1186,42 @@ type ReducerReturn<Action> = {
    *    fromActionState: actionState,
    *  });
    *
-   *  let { state: newState, actionState: newActionState } =
-   *  this.reducer.reduce(
-   *     pendingActions,
-   *     Field,
-   *     (state: Field, _action: Field) => {
-   *       return state.add(1);
-   *     },
-   *     { state: initialState, actionState: initialActionState  }
-   *   );
+   *  let newState = this.reducer.reduce(
+   *    pendingActions,
+   *    Field, // the state type
+   *    (state: Field, _action: Field) => {
+   *      return state.add(1);
+   *    },
+   *    initialState // initial state
+   * );
    * ```
    *
    */
   reduce<State>(
-    actions: Action[][],
+    actions: MerkleList<MerkleList<Action>>,
     stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
-    initial: { state: State; actionState: Field },
+    initial: State,
     options?: {
-      maxTransactionsWithActions?: number;
-      maxActionsPerMethod?: number;
+      maxUpdatesWithActions?: number;
+      maxActionsPerUpdate?: number;
       skipActionStatePrecondition?: boolean;
     }
-  ): { state: State; actionState: Field };
+  ): State;
   /**
    * Perform circuit logic for every {@link Action} in the list.
    *
    * This is a wrapper around {@link reduce} for when you don't need `state`.
-   * Accepts the `fromActionState` and returns the updated action state.
    */
   forEach(
-    actions: Action[][],
+    actions: MerkleList<MerkleList<Action>>,
     reduce: (action: Action) => void,
-    fromActionState: Field,
     options?: {
-      maxTransactionsWithActions?: number;
-      maxActionsPerMethod?: number;
+      maxUpdatesWithActions?: number;
+      maxActionsPerUpdate?: number;
       skipActionStatePrecondition?: boolean;
     }
-  ): Field;
+  ): void;
   /**
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
@@ -1230,6 +1229,14 @@ type ReducerReturn<Action> = {
    *    fromActionState: actionState,
    * });
    * ```
+   *
+   * The final action state can be accessed on `pendingActions.hash`.
+   * ```ts
+   * let endActionState = pendingActions.hash;
+   * ```
+   *
+   * If the optional `endActionState` is provided, the list of actions will be fetched up to that state.
+   * In that case, `pendingActions.hash` is guaranteed to equal `endActionState`.
    */
   getActions({
     fromActionState,
@@ -1237,7 +1244,7 @@ type ReducerReturn<Action> = {
   }?: {
     fromActionState?: Field;
     endActionState?: Field;
-  }): Action[][];
+  }): MerkleList<MerkleList<Action>>;
   /**
    * Fetches the list of previously emitted {@link Action}s by zkapp {@link SmartContract}.
    * ```ts
@@ -1249,7 +1256,7 @@ type ReducerReturn<Action> = {
   fetchActions({
     fromActionState,
     endActionState,
-  }: {
+  }?: {
     fromActionState?: Field;
     endActionState?: Field;
   }): Promise<Action[][]>;
@@ -1276,119 +1283,148 @@ class ${contract.constructor.name} extends SmartContract {
     },
 
     reduce<S>(
-      actionLists: A[][],
+      actionLists: MerkleList<MerkleList<A>>,
       stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
-      { state, actionState }: { state: S; actionState: Field },
+      state: S,
       {
-        maxTransactionsWithActions = 32,
-        maxActionsPerMethod = 1,
+        maxUpdatesWithActions = 32,
+        maxActionsPerUpdate = 1,
         skipActionStatePrecondition = false,
       } = {}
-    ): { state: S; actionState: Field } {
-      if (actionLists.length > maxTransactionsWithActions) {
-        throw Error(
-          `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxTransactionsWithActions}.
-Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
-        );
-      }
-      // TODO find out max actions per method automatically?
-      let possibleActionsPerTransaction = Array.from(
-        { length: maxActionsPerMethod + 1 },
-        (_, i) => i
-      );
-      let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
-        Provable.Array(reducer.actionType, n)
-      );
-      for (let i = 0; i < maxTransactionsWithActions; i++) {
-        let actions = i < actionLists.length ? actionLists[i] : [];
-        let length = actions.length;
-        let lengths = possibleActionsPerTransaction.map((n) =>
-          Provable.witness(Bool, () => Bool(length === n))
-        );
-        // create dummy actions for the other possible action lengths,
-        // -> because this needs to be a statically-sized computation we have to operate on all of them
-        let actionss = possibleActionsPerTransaction.map((n, i) => {
-          let type = possibleActionTypes[i];
-          return Provable.witness(type, () =>
-            length === n ? actions : emptyValue(type)
+    ): S {
+      Provable.asProver(() => {
+        if (actionLists.data.get().length > maxUpdatesWithActions) {
+          throw Error(
+            `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxUpdatesWithActions}.
+  Use the optional \`maxUpdatesWithActions\` argument to increase this number.`
           );
-        });
-        // for each action length, compute the events hash and then pick the actual one
-        let eventsHashes = actionss.map((actions) => {
-          let events = actions.map((a) => reducer.actionType.toFields(a));
-          return Actions.hash(events);
-        });
-        let eventsHash = Provable.switch(lengths, Field, eventsHashes);
-        let newActionsHash = Actions.updateSequenceState(
-          actionState,
-          eventsHash
-        );
-        let isEmpty = lengths[0];
-        // update state hash, if this is not an empty action
-        actionState = Provable.if(isEmpty, actionState, newActionsHash);
-        // also, for each action length, compute the new state and then pick the actual one
-        let newStates = actionss.map((actions) => {
-          // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-          let newState = Provable.witness(stateType, () => state);
-          Provable.assertEqual(stateType, newState, state);
-          // apply actions in reverse order since that's how they were stored at dispatch
-          [...actions].reverse().forEach((action) => {
-            newState = reduce(newState, action);
-          });
-          return newState;
-        });
-        // update state
-        state = Provable.switch(lengths, stateType, newStates);
-      }
+        }
+      });
+
       if (!skipActionStatePrecondition) {
-        contract.account.actionState.requireEquals(actionState);
+        // the actionList.hash is the hash of all actions in that list, appended to the previous hash (the previous list of historical actions)
+        // this must equal one of the action states as preconditions to build a chain to that we only use actions that were dispatched between the current on chain action state and the initialActionState
+        contract.account.actionState.requireEquals(actionLists.hash);
       }
-      return { state, actionState };
+
+      const listIter = actionLists.startIterating();
+
+      for (let i = 0; i < maxUpdatesWithActions; i++) {
+        let { element: merkleActions, isDummy } = listIter.Unsafe.next();
+        let actionIter = merkleActions.startIterating();
+        let newState = state;
+
+        if (maxActionsPerUpdate === 1) {
+          // special case with less work, because the only action is a dummy iff merkleActions is a dummy
+          let action = Provable.witness(
+            reducer.actionType,
+            () =>
+              actionIter.data.get()[0]?.element ??
+              actionIter.innerProvable.empty()
+          );
+          let emptyHash = actionIter.Constructor.emptyHash;
+          let finalHash = actionIter.nextHash(emptyHash, action);
+          finalHash = Provable.if(isDummy, emptyHash, finalHash);
+
+          // note: this asserts nothing in the isDummy case, because `actionIter.hash` is not well-defined
+          // but it doesn't matter because we're also skipping all state and action state updates in that case
+          actionIter.hash.assertEquals(finalHash);
+
+          newState = reduce(newState, action);
+        } else {
+          for (let j = 0; j < maxActionsPerUpdate; j++) {
+            let { element: action, isDummy } = actionIter.Unsafe.next();
+            newState = Provable.if(
+              isDummy,
+              stateType,
+              newState,
+              reduce(newState, action)
+            );
+          }
+          // note: this asserts nothing about the iterated actions if `MerkleActions` is a dummy
+          // which doesn't matter because we're also skipping all state and action state updates in that case
+          actionIter.assertAtEnd();
+        }
+
+        state = Provable.if(isDummy, stateType, state, newState);
+      }
+
+      // important: we check that by iterating, we actually reached the claimed final action state
+      listIter.assertAtEnd();
+
+      return state;
     },
 
     forEach(
-      actionLists: A[][],
+      actionLists: MerkleList<MerkleList<A>>,
       callback: (action: A) => void,
-      fromActionState: Field,
       config
-    ): Field {
+    ) {
       const stateType = provable(null);
-      let { actionState } = this.reduce(
+      this.reduce(
         actionLists,
         stateType,
         (_, action) => {
           callback(action);
           return null;
         },
-        { state: null, actionState: fromActionState },
+        null,
         config
       );
-      return actionState;
     },
 
     getActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
-    }): A[][] {
-      let actionsForAccount: A[][] = [];
-      Provable.asProver(() => {
-        let actions = Mina.getActions(
+    }): MerkleList<MerkleList<A>> {
+      const Action = reducer.actionType;
+      const emptyHash = Actions.empty().hash;
+      const nextHash = (hash: Field, action: A) =>
+        Actions.pushEvent({ hash, data: [] }, Action.toFields(action)).hash;
+
+      class ActionList extends MerkleList.create(
+        Action as unknown as ProvableHashable<A>,
+        nextHash,
+        emptyHash
+      ) {}
+
+      class MerkleActions extends MerkleList.create(
+        ActionList.provable,
+        (hash: Field, actions: ActionList) =>
+          Actions.updateSequenceState(hash, actions.hash),
+        // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
+        // otherwise we are only fetching a part of the history, which starts at `fromActionState`
+        // TODO does this show that `emptyHash` should be part of the instance, not the class? that would make the provable representation bigger though
+        config?.fromActionState ?? Actions.emptyActionState()
+      ) {}
+
+      let actions = Provable.witness(MerkleActions.provable, () => {
+        let actionFields = Mina.getActions(
           contract.address,
           config,
-          contract.self.tokenId
+          contract.tokenId
         );
-        actionsForAccount = actions.map((event) =>
-          // putting our string-Fields back into the original action type
+        // convert string-Fields back into the original action type
+        let actions = actionFields.map((event) =>
           event.actions.map((action) =>
             (reducer.actionType as ProvablePure<A>).fromFields(
               action.map(Field)
             )
           )
         );
+        return MerkleActions.from(
+          actions.map((a) => ActionList.fromReverse(a))
+        );
       });
-      return actionsForAccount;
+      // note that we don't have to assert anything about the initial action state here,
+      // because it is taken directly and not witnessed
+      if (config?.endActionState !== undefined) {
+        actions.hash.assertEquals(config.endActionState);
+      }
+      return actions;
     },
+
     async fetchActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
@@ -1396,7 +1432,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       let result = await Mina.fetchActions(
         contract.address,
         config,
-        contract.self.tokenId
+        contract.tokenId
       );
       if ('error' in result) {
         throw Error(JSON.stringify(result));

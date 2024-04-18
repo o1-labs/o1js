@@ -18,6 +18,7 @@ jobs:
         test_type:
           [
             'Simple integration tests',
+            'Reducer integration tests',
             'DEX integration tests',
             'DEX integration test with proofs',
             'Voting integration tests',

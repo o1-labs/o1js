@@ -274,20 +274,23 @@ export class Voting_ extends SmartContract {
     let committedVotes = this.committedVotes.get();
     this.committedVotes.requireEquals(committedVotes);
 
-    let { state: newCommittedVotes, actionState: newAccumulatedVotes } =
-      this.reducer.reduce(
-        this.reducer.getActions({ fromActionState: accumulatedVotes }),
-        Field,
-        (state: Field, action: Member) => {
-          // apply one vote
-          action = action.addVote();
-          // this is the new root after we added one vote
-          return action.votesWitness.calculateRoot(action.getHash());
-        },
-        // initial state
-        { state: committedVotes, actionState: accumulatedVotes }
-      );
+    let actions = this.reducer.getActions({
+      fromActionState: accumulatedVotes,
+    });
+    let newCommittedVotes = this.reducer.reduce(
+      actions,
+      Field,
+      (state: Field, action: Member) => {
+        // apply one vote
+        action = action.addVote();
+        // this is the new root after we added one vote
+        return action.votesWitness.calculateRoot(action.getHash());
+      },
+      // initial state
+      committedVotes
+    );
 
+    let newAccumulatedVotes = actions.hash;
     this.committedVotes.set(newCommittedVotes);
     this.accumulatedVotes.set(newAccumulatedVotes);
 
