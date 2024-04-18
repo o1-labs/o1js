@@ -351,6 +351,10 @@ type MerkleListIteratorBase<T> = {
  * We maintain two commitments:
  * - One to the entire array, to be able to prove that we end iteration at the correct point.
  * - One to the array from the current index until the end, to efficiently step forward.
+ *
+ * **Warning**: While `MerkleList` APIs are safe to use in any context, `MerkleListIterator` APIs are more low-level and require more care.
+ * In particular, calling next repeatedly does not prove anything about the actual contents of the list unless you check that the entire list
+ * was traversed at the end, using `.assertAtEnd()`.
  */
 class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   // fixed parts
@@ -461,6 +465,14 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
+  /**
+   * Returns some element and moves the internal hash pointer forward by one step.
+   *
+   * A dummy element is returned if we're past the end of the list.
+   *
+   * **Warning**: Until the iterator is at the end of the list and you call `.assertAtEnd()`,
+   * this does not prove that the returned elements are actually part of the list.
+   */
   next() {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     // this is like MerkleList.push() but we witness the next element instead of taking it as input,
