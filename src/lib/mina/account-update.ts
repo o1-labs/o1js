@@ -1298,7 +1298,7 @@ class AccountUpdateForest extends MerkleList.create(
       let children = AccountUpdateForest.fromSimpleForest(node.children);
       return { accountUpdate, children, id: node.accountUpdate.id };
     });
-    return AccountUpdateForest.from(nodes);
+    return AccountUpdateForest.fromReverse(nodes);
   }
 
   // TODO this comes from paranoia and might be removed later
