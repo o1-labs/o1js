@@ -95,13 +95,10 @@ class ActionsContract extends SmartContract {
 
 // set up a local blockchain
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-let [
-  { publicKey: sender, privateKey: senderKey },
-  { publicKey: zkappAddress, privateKey: zkappKey },
-] = Local.testAccounts;
+let [sender, zkappAddress] = Local.testAccounts;
 
 let zkapp = new ActionsContract(zkappAddress);
 
@@ -113,7 +110,7 @@ console.log(
   (await ActionsContract.analyzeMethods()).accumulate.rows
 );
 let deployTx = await Mina.transaction(sender, async () => zkapp.deploy());
-await deployTx.sign([senderKey, zkappKey]).send();
+await deployTx.sign([sender.key, zkappAddress.key]).send();
 
 // push some actions
 
@@ -125,7 +122,7 @@ let dispatchTx = await Mina.transaction(sender, async () => {
   await zkapp.increment(Field(18));
 });
 await dispatchTx.prove();
-await dispatchTx.sign([senderKey]).send();
+await dispatchTx.sign([sender.key]).send();
 
 assert(zkapp.reducer.getActions().length === 5);
 
@@ -134,6 +131,6 @@ assert(zkapp.reducer.getActions().length === 5);
 Local.setProofsEnabled(true);
 let accTx = await Mina.transaction(sender, () => zkapp.accumulate());
 await accTx.prove();
-await accTx.sign([senderKey]).send();
+await accTx.sign([sender.key]).send();
 
 assert(zkapp.counter.get().toBigInt() === 32n);
