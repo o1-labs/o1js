@@ -1311,11 +1311,11 @@ class ${contract.constructor.name} extends SmartContract {
         contract.account.actionState.requireEquals(actionStateAfterReduce);
       }
 
-      const listIter = actionLists.startIteratingReverse();
+      const listIter = actionLists.startIterating();
 
       for (let i = 0; i < maxTransactionsWithActions; i++) {
-        let { element: merkleActions, isDummy } = listIter.Unsafe.previous();
-        let actionIter = merkleActions.startIterating();
+        let { element: merkleActions, isDummy } = listIter.Unsafe.next();
+        let actionIter = merkleActions.startIteratingFromLast();
         let newState = state;
 
         if (maxActionsPerMethod === 1) {
@@ -1335,7 +1335,7 @@ class ${contract.constructor.name} extends SmartContract {
           newState = reduce(newState, action);
         } else {
           for (let j = 0; j < maxActionsPerMethod; j++) {
-            let { element: action, isDummy } = actionIter.Unsafe.next();
+            let { element: action, isDummy } = actionIter.Unsafe.previous();
             newState = Provable.if(
               isDummy,
               stateType,
@@ -1345,14 +1345,14 @@ class ${contract.constructor.name} extends SmartContract {
           }
           // note: this asserts nothing about the iterated actions if `MerkleActions` is a dummy
           // which doesn't matter because we're also skipping all state and action state updates in that case
-          actionIter.assertAtEnd();
+          actionIter.assertAtStart();
         }
 
         state = Provable.if(isDummy, stateType, state, newState);
       }
 
       // important: we check that by iterating, we actually reached the claimed final action state
-      listIter.assertAtStart();
+      listIter.assertAtEnd();
 
       return { state, actionState: actionStateAfterReduce };
     },
@@ -1419,11 +1419,10 @@ class ${contract.constructor.name} extends SmartContract {
       });
 
       return Provable.witness(MerkleActions.provable, () =>
-        MerkleActions.fromReverse(
-          actionsForAccount.map((a) => ActionList.from(a))
-        )
+        MerkleActions.from(actionsForAccount.map((a) => ActionList.from(a)))
       );
     },
+
     async fetchActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
