@@ -1186,15 +1186,14 @@ type ReducerReturn<Action> = {
    *    fromActionState: actionState,
    *  });
    *
-   *  let { state: newState, actionState: newActionState } =
-   *  this.reducer.reduce(
-   *     pendingActions,
-   *     Field,
-   *     (state: Field, _action: Field) => {
-   *       return state.add(1);
-   *     },
-   *     { state: initialState, actionState: initialActionState  }
-   *   );
+   *  let newState = this.reducer.reduce(
+   *    pendingActions,
+   *    Field, // the state type
+   *    (state: Field, _action: Field) => {
+   *      return state.add(1);
+   *    },
+   *    initialState // initial state
+   * );
    * ```
    *
    */
@@ -1202,29 +1201,27 @@ type ReducerReturn<Action> = {
     actions: MerkleList<MerkleList<Action>>,
     stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
-    initial: { state: State; actionState: Field },
+    initial: State,
     options?: {
       maxUpdatesWithActions?: number;
       maxActionsPerUpdate?: number;
       skipActionStatePrecondition?: boolean;
     }
-  ): { state: State; actionState: Field };
+  ): State;
   /**
    * Perform circuit logic for every {@link Action} in the list.
    *
    * This is a wrapper around {@link reduce} for when you don't need `state`.
-   * Accepts the `fromActionState` and returns the updated action state.
    */
   forEach(
     actions: MerkleList<MerkleList<Action>>,
     reduce: (action: Action) => void,
-    fromActionState: Field,
     options?: {
       maxUpdatesWithActions?: number;
       maxActionsPerUpdate?: number;
       skipActionStatePrecondition?: boolean;
     }
-  ): Field;
+  ): void;
   /**
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
@@ -1232,6 +1229,14 @@ type ReducerReturn<Action> = {
    *    fromActionState: actionState,
    * });
    * ```
+   *
+   * The final action state can be accessed on `pendingActions.hash`.
+   * ```ts
+   * let endActionState = pendingActions.hash;
+   * ```
+   *
+   * If the optional `endActionState` is provided, the list of actions will be fetched up to that state.
+   * In that case, `pendingActions.hash` is guaranteed to equal `endActionState`.
    */
   getActions({
     fromActionState,
@@ -1281,16 +1286,13 @@ class ${contract.constructor.name} extends SmartContract {
       actionLists: MerkleList<MerkleList<A>>,
       stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
-      {
-        state,
-        actionState: initialActionState,
-      }: { state: S; actionState: Field },
+      state: S,
       {
         maxUpdatesWithActions = 32,
         maxActionsPerUpdate = 1,
         skipActionStatePrecondition = false,
       } = {}
-    ): { state: S; actionState: Field } {
+    ): S {
       Provable.asProver(() => {
         if (actionLists.data.get().length > maxUpdatesWithActions) {
           throw Error(
@@ -1300,18 +1302,10 @@ class ${contract.constructor.name} extends SmartContract {
         }
       });
 
-      // the new action state is the hash of all here processed actions and all their previous already reduced actions
-      const actionStateAfterReduce = actionLists.hash;
-
-      // ensure we "append" the action state correctly by starting with the initial actionState
-      // TODO: I guess this means we don't need the `initialActionState` argument anymore
-      // TODO: and we don't need the action state return argument either
-      actionLists.Constructor.emptyHash.assertEquals(initialActionState);
-
       if (!skipActionStatePrecondition) {
         // the actionList.hash is the hash of all actions in that list, appended to the previous hash (the previous list of historical actions)
         // this must equal one of the action states as preconditions to build a chain to that we only use actions that were dispatched between the current on chain action state and the initialActionState
-        contract.account.actionState.requireEquals(actionStateAfterReduce);
+        contract.account.actionState.requireEquals(actionLists.hash);
       }
 
       const listIter = actionLists.startIterating();
@@ -1359,27 +1353,25 @@ class ${contract.constructor.name} extends SmartContract {
       // important: we check that by iterating, we actually reached the claimed final action state
       listIter.assertAtEnd();
 
-      return { state, actionState: actionStateAfterReduce };
+      return state;
     },
 
     forEach(
       actionLists: MerkleList<MerkleList<A>>,
       callback: (action: A) => void,
-      fromActionState: Field,
       config
-    ): Field {
+    ) {
       const stateType = provable(null);
-      let { actionState } = this.reduce(
+      this.reduce(
         actionLists,
         stateType,
         (_, action) => {
           callback(action);
           return null;
         },
-        { state: null, actionState: fromActionState },
+        null,
         config
       );
-      return actionState;
     },
 
     getActions(config?: {
@@ -1403,11 +1395,11 @@ class ${contract.constructor.name} extends SmartContract {
           Actions.updateSequenceState(hash, actions.hash),
         // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
         // otherwise we are only fetching a part of the history, which starts at `fromActionState`
-        // TODO this shows that `emptyHash` should be part of the instance, not the class
+        // TODO does this show that `emptyHash` should be part of the instance, not the class? that would make the provable representation bigger though
         config?.fromActionState ?? Actions.emptyActionState()
       ) {}
 
-      return Provable.witness(MerkleActions.provable, () => {
+      let actions = Provable.witness(MerkleActions.provable, () => {
         let actionFields = Mina.getActions(
           contract.address,
           config,
@@ -1425,6 +1417,12 @@ class ${contract.constructor.name} extends SmartContract {
           actions.map((a) => ActionList.fromReverse(a))
         );
       });
+      // note that we don't have to assert anything about the initial action state here,
+      // because it is taken directly and not witnessed
+      if (config?.endActionState !== undefined) {
+        actions.hash.assertEquals(config.endActionState);
+      }
+      return actions;
     },
 
     async fetchActions(config?: {

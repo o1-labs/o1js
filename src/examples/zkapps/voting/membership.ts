@@ -119,7 +119,7 @@ export class Membership_ extends SmartContract {
     this.accumulatedMembers.requireEquals(accumulatedMembers);
 
     // checking if the member already exists within the accumulator
-    let { state: exists } = this.reducer.reduce(
+    let exists = this.reducer.reduce(
       this.reducer.getActions({
         fromActionState: accumulatedMembers,
       }),
@@ -128,7 +128,7 @@ export class Membership_ extends SmartContract {
         return Provable.equal(Member, action, member).or(state);
       },
       // initial state
-      { state: Bool(false), actionState: accumulatedMembers }
+      Bool(false)
     );
 
     /*
@@ -178,30 +178,30 @@ export class Membership_ extends SmartContract {
       fromActionState: accumulatedMembers,
     });
 
-    let { state: newCommittedMembers, actionState: newAccumulatedMembers } =
-      this.reducer.reduce(
-        pendingActions,
-        Field,
-        (state: Field, action: Member) => {
-          // because we inserted empty members, we need to check if a member is empty or "real"
-          let isRealMember = Provable.if(
-            action.publicKey.equals(PublicKey.empty()),
-            Bool(false),
-            Bool(true)
-          );
+    let newCommittedMembers = this.reducer.reduce(
+      pendingActions,
+      Field,
+      (state: Field, action: Member) => {
+        // because we inserted empty members, we need to check if a member is empty or "real"
+        let isRealMember = Provable.if(
+          action.publicKey.equals(PublicKey.empty()),
+          Bool(false),
+          Bool(true)
+        );
 
-          // if the member is real and not empty, we calculate and return the new merkle root
-          // otherwise, we simply return the unmodified state - this is our way of branching
-          return Provable.if(
-            isRealMember,
-            action.witness.calculateRoot(action.getHash()),
-            state
-          );
-        },
-        // initial state
-        { state: committedMembers, actionState: accumulatedMembers },
-        { maxUpdatesWithActions: 2 }
-      );
+        // if the member is real and not empty, we calculate and return the new merkle root
+        // otherwise, we simply return the unmodified state - this is our way of branching
+        return Provable.if(
+          isRealMember,
+          action.witness.calculateRoot(action.getHash()),
+          state
+        );
+      },
+      // initial state
+      committedMembers,
+      { maxUpdatesWithActions: 2 }
+    );
+    let newAccumulatedMembers = pendingActions.hash;
 
     this.committedMembers.set(newCommittedMembers);
     this.accumulatedMembers.set(newAccumulatedMembers);

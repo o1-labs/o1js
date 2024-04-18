@@ -63,7 +63,7 @@ class StorageContract extends SmartContract {
 
     let keyHash = Poseidon.hash(key.toFields());
 
-    let { state: optionValue } = this.reducer.reduce(
+    let optionValue = this.reducer.reduce(
       pendingActions,
       Option,
       (state, action) => {
@@ -73,10 +73,7 @@ class StorageContract extends SmartContract {
           value: Provable.if(currentMatch, action.value, state.value),
         };
       },
-      {
-        state: Option.empty(),
-        actionState: Reducer.initialActionState,
-      },
+      Option.empty(),
       { maxUpdatesWithActions: k }
     );
 

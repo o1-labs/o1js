@@ -270,7 +270,7 @@ class DexTokenHolder extends SmartContract {
     // get our token balance
     let x = this.account.balance.getAndRequireEquals();
 
-    let redeemActionState = dex.reducer.forEach(
+    dex.reducer.forEach(
       actions,
       ({ address, dl }) => {
         // for every user that redeemed liquidity, we calculate the token output
@@ -286,7 +286,6 @@ class DexTokenHolder extends SmartContract {
         l = l.sub(dl);
         x = x.add(dx);
       },
-      fromActionState,
       {
         maxUpdatesWithActions: DexTokenHolder.redeemActionBatchSize,
         // DEX contract doesn't allow setting preconditions from outside (= w/o proof)
@@ -295,10 +294,10 @@ class DexTokenHolder extends SmartContract {
     );
 
     // update action state so these payments can't be triggered a 2nd time
-    this.redeemActionState.set(redeemActionState);
+    this.redeemActionState.set(actions.hash);
 
     // precondition on the DEX contract, to prove we used the right actions & token supply
-    await dex.assertActionsAndSupply(redeemActionState, l);
+    await dex.assertActionsAndSupply(actions.hash, l);
   }
 
   // this works for both directions (in our case where both tokens use the same contract)
