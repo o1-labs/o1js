@@ -22,6 +22,7 @@ export {
 } from './lib/provable/crypto/poseidon.js';
 export { Keccak } from './lib/provable/crypto/keccak.js';
 export { Hash } from './lib/provable/crypto/hash.js';
+export * from './lib/util/match.js';
 
 export { assert } from './lib/provable/gadgets/common.js';
 

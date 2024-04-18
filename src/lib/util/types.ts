@@ -1,6 +1,8 @@
 import { assert } from './errors.js';
 
-export { AnyFunction, Tuple, TupleN, AnyTuple, TupleMap };
+export { Guard, AnyFunction, Tuple, TupleN, AnyTuple, TupleMap };
+
+type Guard<T, U extends T> = (value: T) => value is U;
 
 type AnyFunction = (...args: any) => any;
 
