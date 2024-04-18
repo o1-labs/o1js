@@ -191,6 +191,20 @@ class MerkleList<T> implements MerkleListBase<T> {
     return new this.Constructor({ hash: this.hash, data });
   }
 
+  /**
+   * Iterate through the list in a fixed number of steps any apply a given callback on each element.
+   *
+   * Proves that the iteration traverses the entire list.
+   * Once past the last element, dummy elements will be passed to the callback.
+   */
+  iterate(length: number, callback: (element: T, i: number) => void) {
+    let iter = this.startIterating();
+    for (let i = 0; i < length; i++) {
+      callback(iter.next(), i);
+    }
+    iter.assertAtEnd();
+  }
+
   startIterating(): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
     return merkleArray.startIterating(this);
