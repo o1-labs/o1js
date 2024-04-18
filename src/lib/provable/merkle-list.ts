@@ -324,9 +324,9 @@ type MerkleListIteratorBase<T> = {
 
 /**
  * MerkleListIterator helps iterating through a Merkle list.
- * This works similar to calling `list.pop()` repeatedly, but maintaining the entire list instead of removing elements.
+ * This works similar to calling `list.pop()` or `list.push()` repeatedly, but maintaining the entire list instead of removing elements.
  *
- * The core method that supports iteration is {@link next()}.
+ * The core methods that support iteration are {@link next()} and {@link previous()}.
  *
  * ```ts
  * let iterator = MerkleListIterator.startIterating(list);
@@ -334,8 +334,8 @@ type MerkleListIteratorBase<T> = {
  * let firstElement = iterator.next();
  * ```
  *
- * We maintain two commitments, both of which are equivalent to a Merkle list hash starting _from the end_ of the array:
- * - One to the entire array, to prove that we start iterating at the beginning.
+ * We maintain two commitments:
+ * - One to the entire array, to be able to prove that we end iteration at the correct point.
  * - One to the array from the current index until the end, to efficiently step forward.
  */
 class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
@@ -402,8 +402,8 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   }
 
   previous() {
-    // next corresponds to `pop()` in MerkleList
-    // it returns a dummy element if we're at the end of the array
+    // `previous()` corresponds to `pop()` in MerkleList
+    // it returns a dummy element if we're at the start of the array
     let { previousHash, element } = Provable.witness(
       WithHash(this.innerProvable),
       () =>
@@ -421,7 +421,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash.assertEquals(requiredHash);
 
     this.currentIndex.updateAsProver((i) =>
-      Math.min(i + 1, this.data.get().length - 1)
+      Math.min(i + 1, this.data.get().length)
     );
 
     this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
@@ -437,7 +437,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   next() {
     // instead of starting from index `0`, we start at index `length - 1` and go in reverse
     // this is like MerkleList.push() but we witness the next element instead of taking it as input,
-    // and we return a dummy element if we're at the start of the array
+    // and we return a dummy element if we're at the end of the array
     let element = Provable.witness(
       this.innerProvable,
       () =>
@@ -448,7 +448,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     let isDummy = this.isAtEnd();
     let currentHash = this.nextHash(this.currentHash, element);
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
-    this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+    this.currentIndex.updateAsProver((i) => Math.max(i - 1, -1));
 
     return Provable.if(
       isDummy,
@@ -513,7 +513,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         let isDummy = self.isAtEnd();
         let currentHash = self.nextHash(self.currentHash, element);
         self.currentHash = Provable.if(isDummy, self.hash, currentHash);
-        self.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
+        self.currentIndex.updateAsProver((i) => Math.max(i - 1, -1));
 
         return { element, isDummy };
       },
@@ -585,6 +585,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
           data,
           hash,
           currentHash: emptyHash_,
+          // note: for an empty list or any list which is "at the end", the currentIndex is -1
           currentIndex: Unconstrained.witness(() => data.get().length - 1),
         });
       }
