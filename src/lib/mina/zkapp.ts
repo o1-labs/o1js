@@ -1398,6 +1398,7 @@ class ${contract.constructor.name} extends SmartContract {
           Actions.updateSequenceState(hash, actions.hash),
         // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
         // otherwise we are only fetching a part of the history, which starts at `fromActionState`
+        // TODO this shows that `emptyHash` should be part of the instance, not the class
         config?.fromActionState ?? Actions.emptyActionState()
       ) {}
 
@@ -1405,7 +1406,7 @@ class ${contract.constructor.name} extends SmartContract {
         let actionFields = Mina.getActions(
           contract.address,
           config,
-          contract.self.tokenId
+          contract.tokenId
         );
         // convert string-Fields back into the original action type
         let actions = actionFields.map((event) =>
@@ -1426,7 +1427,7 @@ class ${contract.constructor.name} extends SmartContract {
       let result = await Mina.fetchActions(
         contract.address,
         config,
-        contract.self.tokenId
+        contract.tokenId
       );
       if ('error' in result) {
         throw Error(JSON.stringify(result));
