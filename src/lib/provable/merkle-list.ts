@@ -221,6 +221,7 @@ class MerkleList<T> implements MerkleListBase<T> {
     // override static methods with strict types
     empty: () => MerkleList<T>;
     from: (array: T[]) => MerkleList<T>;
+    fromReverse: (array: T[]) => MerkleList<T>;
     provable: ProvableHashable<MerkleList<T>>;
   } {
     class MerkleListTBase extends MerkleList<T> {
@@ -240,6 +241,14 @@ class MerkleList<T> implements MerkleListBase<T> {
 
       static from(array: T[]): MerkleList<T> {
         array = [...array].reverse();
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
+        let unconstrained = Unconstrained.witness(() =>
+          data.map((x) => toConstant(type, x))
+        );
+        return new this({ data: unconstrained, hash });
+      }
+
+      static fromReverse(array: T[]): MerkleList<T> {
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
           data.map((x) => toConstant(type, x))
@@ -557,6 +566,15 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
           data.map((x) => toConstant(type, x))
         );
         return this.startIterating({ data: unconstrained, hash });
+      }
+
+      static fromLast(array: T[]): MerkleListIterator<T> {
+        array = [...array].reverse();
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
+        let unconstrained = Unconstrained.witness(() =>
+          data.map((x) => toConstant(type, x))
+        );
+        return this.startIteratingFromLast({ data: unconstrained, hash });
       }
 
       static startIterating({

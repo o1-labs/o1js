@@ -45,8 +45,6 @@ class MerkleListReducing extends SmartContract {
   async assertContainsAddress(address: PublicKey) {
     // get actions and, in a witness block, wrap them in a Merkle list of lists
 
-    // note: need to reverse here because `getActions()` returns the last pushed action last,
-    // but MerkleList.from() wants it to be first to match the natural iteration order
     let actions = this.reducer.getActions();
 
     // prove that we know the correct action state
