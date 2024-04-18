@@ -103,7 +103,7 @@ async function testLocalAndRemote(
 }
 
 async function sendAndVerifyTransaction(
-  transaction: Mina.Transaction,
+  transaction: Mina.Transaction<false, false>,
   throwOnFail = false
 ) {
   await transaction.prove();
@@ -282,6 +282,10 @@ await testLocalAndRemote(async () => {
     transaction.sign([senderKey, zkAppKey]);
     await sendAndVerifyTransaction(transaction);
 
+    let counter = await zkApp.counter.fetch();
+    assert(counter !== undefined, 'could not fetch counter');
+    counter.assertEquals(1);
+
     transaction = await Mina.transaction(
       { sender, fee: transactionFee },
       async () => {
@@ -301,6 +305,10 @@ await testLocalAndRemote(async () => {
     );
     transaction.sign([senderKey, zkAppKey]);
     await sendAndVerifyTransaction(transaction);
+
+    counter = await zkApp.counter.fetch();
+    assert(counter !== undefined, 'could not fetch counter');
+    counter.assertEquals(6);
   } catch (error) {
     assert.ifError(error);
   }
