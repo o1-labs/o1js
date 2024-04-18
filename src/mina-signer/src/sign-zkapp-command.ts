@@ -101,6 +101,7 @@ function verifyAccountUpdateSignature(
   transactionCommitments: { commitment: bigint; fullCommitment: bigint },
   networkId: NetworkId
 ) {
+  console.log('verifyAccountUpdateSignature', update.authorization.signature);
   if (update.authorization.signature === undefined) return false;
 
   let { publicKey, useFullCommitment } = update.body;
@@ -108,7 +109,12 @@ function verifyAccountUpdateSignature(
   let usedCommitment = useFullCommitment ? fullCommitment : commitment;
   let signature = Signature.fromBase58(update.authorization.signature);
 
-  return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
+  let ok = verifyFieldElement(signature, usedCommitment, publicKey, networkId);
+  console.dir(
+    { signature, usedCommitment, publicKey, networkId, ok },
+    { depth: null }
+  );
+  return ok;
 }
 
 function transactionCommitments(
