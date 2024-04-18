@@ -48,11 +48,12 @@ class SimpleZkapp extends SmartContract {
     const actionState = this.actionState.get();
     this.actionState.requireEquals(actionState);
 
-    const endActionState = this.account.actionState.getAndRequireEquals();
+    // TODO: fix correct fetching of endActionState
+    //const endActionState = this.account.actionState.getAndRequireEquals();
 
     const pendingActions = this.reducer.getActions({
       fromActionState: actionState,
-      endActionState,
+      //endActionState,
     });
 
     const newCounter = this.reducer.reduce(
