@@ -6,7 +6,6 @@
  * a blueprint for processing actions in a custom and more explicit way.
  */
 import {
-  Bool,
   Field,
   Mina,
   State,
@@ -36,6 +35,12 @@ class ActionsContract extends SmartContract {
   }
 
   @method
+  async twoIncrements(inc1: Field, inc2: Field) {
+    this.reducer.dispatch(inc1);
+    this.reducer.dispatch(inc2);
+  }
+
+  @method
   async accumulate() {
     // get actions and, in a witness block, wrap them in a Merkle list of lists
 
@@ -48,14 +53,21 @@ class ActionsContract extends SmartContract {
     let counter = Field(0);
 
     let iter = actions.startIterating();
+    let lastAction = Field(0);
 
     for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
       let merkleActions = iter.next();
-      let innerIter = merkleActions.startIteratingFromLast();
+      let innerIter = merkleActions.startIterating();
       for (let j = 0; j < MAX_ACTIONS_PER_UPDATE; j++) {
         let action = innerIter.next();
         counter = counter.add(action);
+
+        // we require that every action is greater than the previous one, except for dummy (0) actions
+        // this checks that actions are applied in the right order
+        assert(action.equals(0).or(action.greaterThan(lastAction)));
+        lastAction = action;
       }
+      innerIter.assertAtEnd();
     }
     iter.assertAtEnd();
 
@@ -89,9 +101,9 @@ await deployTx.sign([sender.key, contractAddress.key]).send();
 let dispatchTx = await Mina.transaction(sender, async () => {
   await contract.increment(Field(1));
   await contract.increment(Field(3));
-  await contract.increment(Field(1));
+  await contract.increment(Field(5));
   await contract.increment(Field(9));
-  await contract.increment(Field(18));
+  await contract.twoIncrements(Field(18), Field(19));
 });
 await dispatchTx.prove();
 await dispatchTx.sign([sender.key]).send();
@@ -105,4 +117,4 @@ let accTx = await Mina.transaction(sender, () => contract.accumulate());
 await accTx.prove();
 await accTx.sign([sender.key]).send();
 
-assert(contract.counter.get().toBigInt() === 32n);
+assert(contract.counter.get().toBigInt() === 55n);

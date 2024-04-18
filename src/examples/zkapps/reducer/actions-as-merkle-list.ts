@@ -43,14 +43,12 @@ class MerkleListReducing extends SmartContract {
 
   @method
   async assertContainsAddress(address: PublicKey) {
-    // get actions and, in a witness block, wrap them in a Merkle list of lists
-
     let actions = this.reducer.getActions();
 
     // prove that we know the correct action state
     this.account.actionState.requireEquals(actions.hash);
 
-    // now our provable code to process the actions is very straight-forward
+    // our provable code to process actions in reverse order is very straight-forward
     // (note: if we're past the actual sizes, `.pop()` returns a dummy Action -- in this case, the "empty" public key which is not equal to any real address)
     let hasAddress = Bool(false);
 
@@ -63,7 +61,8 @@ class MerkleListReducing extends SmartContract {
       }
     }
 
-    assert(hasAddress);
+    assert(actions.isEmpty()); // we processed all actions
+    assert(hasAddress); // we found the address
   }
 }
 
