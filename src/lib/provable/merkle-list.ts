@@ -342,20 +342,20 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     Object.assign(this, value);
   }
 
-  assertAtEnd() {
+  assertAtStart() {
     return this.currentHash.assertEquals(this.Constructor.emptyHash);
   }
 
-  isAtStart() {
+  isAtEnd() {
     return this.currentHash.equals(this.hash);
   }
 
-  jumpToStart() {
+  jumpToEnd() {
     this.currentIndex.setTo(Unconstrained.witness(() => 0));
     this.currentHash = this.hash;
   }
 
-  jumpToStartIf(condition: Bool) {
+  jumpToEndIf(condition: Bool) {
     Provable.asProver(() => {
       if (condition.toBoolean()) {
         this.currentIndex.set(0);
@@ -364,22 +364,22 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash = Provable.if(condition, this.hash, this.currentHash);
   }
 
-  assertAtStart() {
+  assertAtEnd() {
     return this.currentHash.assertEquals(this.hash);
   }
 
-  isAtEnd() {
+  isAtStart() {
     return this.currentHash.equals(this.Constructor.emptyHash);
   }
 
-  jumpToEnd() {
+  jumpToStart() {
     this.currentIndex.setTo(
       Unconstrained.witness(() => this.data.get().length)
     );
     this.currentHash = this.Constructor.emptyHash;
   }
 
-  jumpToEndIf(condition: Bool) {
+  jumpToStartIf(condition: Bool) {
     Provable.asProver(() => {
       if (condition.toBoolean()) {
         this.currentIndex.set(this.data.get().length);
@@ -404,7 +404,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         }
     );
 
-    let isDummy = this.isAtEnd();
+    let isDummy = this.isAtStart();
     let emptyHash = this.Constructor.emptyHash;
     let correctHash = this.nextHash(previousHash, element);
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
@@ -439,7 +439,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
 
     let currentHash = this.nextHash(previousHash, element);
-    let isDummy = this.isAtStart();
+    let isDummy = this.isAtEnd();
     this.currentHash = Provable.if(isDummy, this.hash, currentHash);
 
     let { previousHash: previousHash_ } = Provable.witness(
@@ -454,7 +454,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       }
     );
 
-    let targetHash = Provable.if(this.isAtStart(), this.hash, previousHash_);
+    let targetHash = Provable.if(this.isAtEnd(), this.hash, previousHash_);
     targetHash.assertEquals(this.currentHash);
 
     this.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
