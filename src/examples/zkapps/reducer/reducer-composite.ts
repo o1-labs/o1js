@@ -90,7 +90,7 @@ if (doProofs) {
 
 console.log(
   'rows: ',
-  (await CounterZkapp.analyzeMethods())['rollupIncrements'].rows
+  (await Counter.analyzeMethods())['rollupIncrements'].rows
 );
 
 console.log('deploy');
