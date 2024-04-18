@@ -9,15 +9,19 @@
 import { initializeBindings } from 'o1js';
 import { logResult } from '../benchmark.js';
 import { EcdsaBenchmark } from '../benchmarks/ecdsa.js';
+import { InitBenchmark } from '../benchmarks/init.js';
 import {
   readPreviousResultFromInfluxDb,
   writeResultToInfluxDb,
 } from '../utils/influxdb-utils.js';
 
-await initializeBindings();
+const results = [];
 
-// Run all benchmarks
-const results = [...(await EcdsaBenchmark.run())];
+// Run the initialization benchmark
+results.push(...(await InitBenchmark.run()));
+// Run all other benchmarks
+await initializeBindings();
+results.push(...(await EcdsaBenchmark.run()));
 
 // Process and log results
 for (const result of results) {
