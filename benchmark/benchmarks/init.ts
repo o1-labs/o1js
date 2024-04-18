@@ -17,6 +17,5 @@ const InitBenchmark = benchmark(
     await initializeBindings();
     toc();
   },
-  // two warmups to ensure full caching
-  { numberOfWarmups: 2, numberOfRuns: 5 }
+  { numberOfWarmups: 0, numberOfRuns: 1 }
 );

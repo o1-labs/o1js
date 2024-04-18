@@ -7,6 +7,7 @@
  * ./run benchmark/runners/simple.ts --bundle
  * ```
  */
+
 import { initializeBindings } from 'o1js';
 import { logResult } from '../benchmark.js';
 import { EcdsaBenchmark } from '../benchmarks/ecdsa.js';
