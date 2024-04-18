@@ -441,7 +441,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     let element = Provable.witness(
       this.innerProvable,
       () =>
-        this.data.get()[this.currentIndex.get()].element ??
+        this.data.get()[this.currentIndex.get()]?.element ??
         this.innerProvable.empty()
     );
 
