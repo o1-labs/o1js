@@ -456,13 +456,13 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     let self = this;
     return {
       /**
-       * Version of {@link next} which doesn't guarantee anything about
-       * the returned element in case the iterator is at the end.
+       * Version of {@link previous} which doesn't guarantee anything about
+       * the returned element in case the iterator is at the start.
        *
        * Instead, the `isDummy` flag is also returned so that this case can
        * be handled in a custom way.
        */
-      next() {
+      previous() {
         let { previousHash, element } = Provable.witness(
           WithHash(self.innerProvable),
           () =>
@@ -472,7 +472,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
             }
         );
 
-        let isDummy = self.isAtEnd();
+        let isDummy = self.isAtStart();
         let emptyHash = self.Constructor.emptyHash;
         let correctHash = self.nextHash(previousHash, element);
         let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
@@ -487,13 +487,13 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       },
 
       /**
-       * Version of {@link previous} which doesn't guarantee anything about
-       * the returned element in case the iterator is at the start.
+       * Version of {@link next} which doesn't guarantee anything about
+       * the returned element in case the iterator is at the end.
        *
        * Instead, the `isDummy` flag is also returned so that this case can
        * be handled in a custom way.
        */
-      previous() {
+      next() {
         let element = Provable.witness(self.innerProvable, () => {
           return (
             self.data.get()[self.currentIndex.get()]?.element ??
@@ -501,7 +501,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
           );
         });
 
-        let isDummy = self.isAtStart();
+        let isDummy = self.isAtEnd();
         let currentHash = self.nextHash(self.currentHash, element);
         self.currentHash = Provable.if(isDummy, self.hash, currentHash);
         self.currentIndex.updateAsProver((i) => Math.max(i - 1, 0));
