@@ -17,5 +17,6 @@ const InitBenchmark = benchmark(
     await initializeBindings();
     toc();
   },
+  // Run once with no warmups to get the worst-case scenario metrics
   { numberOfWarmups: 0, numberOfRuns: 1 }
 );
