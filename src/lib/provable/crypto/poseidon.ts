@@ -8,6 +8,7 @@ import { Poseidon as PoseidonBigint } from '../../../bindings/crypto/poseidon.js
 import { assert } from '../../util/errors.js';
 import { rangeCheckN } from '../gadgets/range-check.js';
 import { TupleN } from '../../util/types.js';
+import { Group } from '../group.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -32,8 +33,13 @@ type ProvableHashable<T> = Provable<T> & Hashable<T>;
 class Sponge {
   #sponge: unknown;
 
+  // TODO: implement constant version in TS. currently, you need to call `initializeBindings()` before successfully calling this
   constructor() {
     let isChecked = Provable.inCheckedComputation();
+    assert(
+      Snarky !== undefined,
+      'Poseidon.Sponge(): bindings are not initialized, try calling `await initializeBindings()` first.'
+    );
     this.#sponge = Snarky.poseidon.sponge.create(isChecked);
   }
 
@@ -78,38 +84,44 @@ const Poseidon = {
     return [Field(0), Field(0), Field(0)];
   },
 
-  hashToGroup(input: Field[]) {
-    if (isConstant(input)) {
-      let result = PoseidonBigint.hashToGroup(toBigints(input));
-      assert(result !== undefined, 'hashToGroup works on all inputs');
-      let { x, y } = result;
-      return {
-        x: Field(x),
-        y: { x0: Field(y.x0), x1: Field(y.x1) },
-      };
-    }
+  Unsafe: {
+    /**
+     * Low-level version of `Poseidon.hashToGroup()`.
+     *
+     * **Warning**: This function is marked unsafe because its output is not deterministic.
+     * It returns the square root of a value without constraining which of the two possible
+     * square roots is chosen. This allows the prover to choose between two different hashes,
+     * which can be a vulnerability if consuming code treats the output as unique.
+     */
+    hashToGroup(input: Field[]) {
+      if (isConstant(input)) {
+        let result = PoseidonBigint.hashToGroup(toBigints(input));
+        assert(result !== undefined, 'hashToGroup works on all inputs');
+        return new Group(result);
+      }
 
-    // y = sqrt(y^2)
-    let [, xv, yv] = Snarky.poseidon.hashToGroup(MlFieldArray.to(input));
+      // y = sqrt(y^2)
+      let [, x, y] = Snarky.poseidon.hashToGroup(MlFieldArray.to(input));
+      return new Group({ x, y });
+    },
+  },
 
-    let x = Field(xv);
-    let y = Field(yv);
+  /**
+   * Hashes a list of field elements to a point on the Pallas curve.
+   *
+   * The output point is deterministic and its discrete log is not efficiently computable.
+   */
+  hashToGroup(input: Field[]): Group {
+    if (isConstant(input)) return Poseidon.Unsafe.hashToGroup(input);
 
-    let x0 = Provable.witness(Field, () => {
-      // the even root of y^2 will become x0, so the APIs are uniform
-      let isEven = y.toBigInt() % 2n === 0n;
+    let { x, y } = Poseidon.Unsafe.hashToGroup(input);
 
-      // we just change the order so the even root is x0
-      // y.mul(-1); is the second root of sqrt(y^2)
-      return isEven ? y : y.mul(-1);
-    });
+    // the y coordinate is calculated using a square root, so it has two possible values
+    // to make the output deterministic, we negate y if it is odd
+    let sign = Field.from(1n).sub(y.isOdd().toField().mul(2n)); // -1 is y is odd, 1 else
+    y = y.mul(sign);
 
-    let x1 = x0.mul(-1);
-
-    // we check that either x0 or x1 match the original root y
-    y.equals(x0).or(y.equals(x1)).assertTrue();
-
-    return { x, y: { x0, x1 } };
+    return new Group({ x, y });
   },
 
   /**

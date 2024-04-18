@@ -26,41 +26,36 @@ class NestedCall extends SmartContract {
 
 // setup
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: true });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
-let [
-  { publicKey: sender, privateKey: senderKey },
-  { publicKey: zkappAddress, privateKey: zkappKey },
-] = Local.testAccounts;
+let [sender, contractAccount] = Local.testAccounts;
 
 await NestedCall.compile();
-let zkapp = new NestedCall(zkappAddress);
+let contract = new NestedCall(contractAccount);
 
-// deploy zkapp
-
-await (await Mina.transaction(sender, () => zkapp.deploy()))
-  .sign([zkappKey, senderKey])
+await (await Mina.transaction(sender, () => contract.deploy()))
+  .sign([contractAccount.key, sender.key])
   .send();
 
 // deposit call
 
-let balanceBefore = Mina.getBalance(zkappAddress);
+let balanceBefore = Mina.getBalance(contractAccount);
 
-let depositTx = await Mina.transaction(sender, () => zkapp.deposit());
+let depositTx = await Mina.transaction(sender, () => contract.deposit());
 console.log(depositTx.toPretty());
 await depositTx.prove();
-await depositTx.sign([senderKey]).send();
+await depositTx.sign([sender.key]).send();
 
-Mina.getBalance(zkappAddress).assertEquals(balanceBefore.add(1));
+Mina.getBalance(contractAccount).assertEquals(balanceBefore.add(1));
 
 // deposit call using tree
 
 balanceBefore = balanceBefore.add(1);
 
-depositTx = await Mina.transaction(sender, () => zkapp.depositUsingTree());
+depositTx = await Mina.transaction(sender, () => contract.depositUsingTree());
 console.log(depositTx.toPretty());
 await depositTx.prove();
-await depositTx.sign([senderKey]).send();
+await depositTx.sign([sender.key]).send();
 
-Mina.getBalance(zkappAddress).assertEquals(balanceBefore.add(1));
+Mina.getBalance(contractAccount).assertEquals(balanceBefore.add(1));

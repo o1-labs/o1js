@@ -1,4 +1,12 @@
-import { Encryption, Encoding, PrivateKey, Provable } from 'o1js';
+import {
+  Encryption,
+  Encoding,
+  PrivateKey,
+  Provable,
+  initializeBindings,
+} from 'o1js';
+
+await initializeBindings();
 
 // generate keys
 let privateKey = PrivateKey.random();

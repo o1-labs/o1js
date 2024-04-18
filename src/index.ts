@@ -1,5 +1,5 @@
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger } from './snarky.js';
+export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
@@ -51,10 +51,12 @@ export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 
 export * as Mina from './lib/mina/mina.js';
 export {
-  type Transaction,
+  Transaction,
+  type TransactionPromise,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionPromise,
 } from './lib/mina/transaction.js';
 export type { DeployArgs } from './lib/mina/zkapp.js';
 export {

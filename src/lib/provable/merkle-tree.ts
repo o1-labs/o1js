@@ -26,8 +26,8 @@ type Witness = { isLeft: boolean; sibling: Field }[];
  * Levels are indexed from leaves (level 0) to root (level N - 1).
  */
 class MerkleTree {
-  private nodes: Record<number, Record<string, Field>> = {};
-  private zeroes: Field[];
+  nodes: Record<number, Record<string, Field>> = {};
+  zeroes: Field[];
 
   /**
    * Creates a new, empty [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).

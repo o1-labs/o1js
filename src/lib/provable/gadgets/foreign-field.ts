@@ -23,13 +23,27 @@ import {
   l3,
   compactMultiRangeCheck,
 } from './range-check.js';
-import { createBool, createField } from '../core/field-constructor.js';
+import {
+  createBool,
+  createField,
+  getField,
+} from '../core/field-constructor.js';
+import type { Bool } from '../bool.js';
 
 // external API
 export { ForeignField, Field3 };
 
 // internal API
-export { bigint3, Sign, split, combine, weakBound, Sum, assertMul };
+export {
+  bigint3,
+  Sign,
+  split,
+  combine,
+  weakBound,
+  Sum,
+  assertMul,
+  field3FromBits,
+};
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -768,6 +782,17 @@ function assertLessThanOrEqual(x: Field3, y: bigint | Field3) {
   // provable case
   // we compute z = y - x and check that z \in [0, 2^3l), which implies x <= y
   sum([y_, x], [-1n], 0n);
+}
+
+// Field3 from/to bits
+
+function field3FromBits(bits: Bool[]): Field3 {
+  const Field = getField();
+  let limbSize = Number(l);
+  let l0 = Field.fromBits(bits.slice(0 * limbSize, 1 * limbSize));
+  let l1 = Field.fromBits(bits.slice(1 * limbSize, 2 * limbSize));
+  let l2 = Field.fromBits(bits.slice(2 * limbSize, 3 * limbSize));
+  return [l0, l1, l2];
 }
 
 // helpers

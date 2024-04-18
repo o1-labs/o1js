@@ -4,9 +4,19 @@ import { Tuple } from '../../util/types.js';
 import type { Bool } from '../bool.js';
 import { fieldVar } from '../gates.js';
 import { existsOne } from '../core/exists.js';
-import { createField } from '../core/field-constructor.js';
+import { createField, isBool } from '../core/field-constructor.js';
 
-export { toVars, toVar, isVar, assert, bitSlice, divideWithRemainder };
+export {
+  toVars,
+  toVar,
+  isVar,
+  assert,
+  bitSlice,
+  bit,
+  divideWithRemainder,
+  packBits,
+  isConstant,
+};
 
 /**
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.
@@ -56,8 +66,33 @@ function bitSlice(x: bigint, start: number, length: number) {
   return (x >> BigInt(start)) & ((1n << BigInt(length)) - 1n);
 }
 
+function bit(x: bigint, i: number) {
+  return (x >> BigInt(i)) & 1n;
+}
+
 function divideWithRemainder(numerator: bigint, denominator: bigint) {
   const quotient = numerator / denominator;
   const remainder = numerator - denominator * quotient;
   return { quotient, remainder };
+}
+
+// pack bools into a single field element
+
+/**
+ * Helper function to provably pack bits into a single field element.
+ * Just returns the sum without any boolean checks.
+ */
+function packBits(bits: (Field | Bool)[]): Field {
+  let n = bits.length;
+  let sum = createField(0n);
+  for (let i = 0; i < n; i++) {
+    let bit = bits[i];
+    if (isBool(bit)) bit = bit.toField();
+    sum = sum.add(bit.mul(1n << BigInt(i)));
+  }
+  return sum.seal();
+}
+
+function isConstant(...args: (Field | Bool)[]): boolean {
+  return args.every((x) => x.isConstant());
 }

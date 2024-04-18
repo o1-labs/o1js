@@ -18,6 +18,8 @@ import { Ml } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/provable/core/fieldvar.js';
 import { NetworkId } from './types.js';
 
+let mlTest = await Test();
+
 // check consistency with OCaml, where we expose the function to sign 1 field element with "testnet"
 function checkConsistentSingle(
   msg: Field,
@@ -44,7 +46,7 @@ function checkConsistentSingle(
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = Test.signature.signFieldElement(
+  let actualTest = mlTest.signature.signFieldElement(
     msgMl,
     keyMl,
     NetworkId.toString(networkId)

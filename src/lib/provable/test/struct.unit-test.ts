@@ -142,7 +142,7 @@ class MyContract extends SmartContract {
   }
 }
 
-setActiveInstance(LocalBlockchain());
+setActiveInstance(await LocalBlockchain());
 
 await MyContract.compile();
 let key = PrivateKey.random();
