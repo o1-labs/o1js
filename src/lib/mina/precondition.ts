@@ -331,7 +331,7 @@ function preconditionSubclass<
 >(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: Provable<U>,
+  fieldType: Provable<U> & { empty(): U },
   context: PreconditionContext
 ) {
   if (fieldType === undefined) {
@@ -381,6 +381,7 @@ function preconditionSubclass<
       ) as AnyCondition<U>;
       if ('isSome' in property) {
         property.isSome = Bool(false);
+        property.value = fieldType.empty();
       }
       context.constrained.add(longKey);
     },

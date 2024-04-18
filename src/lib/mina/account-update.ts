@@ -15,7 +15,6 @@ import { Pickles, Test } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
-  TypesBigint,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
@@ -82,7 +81,6 @@ import {
 } from './smart-contract-context.js';
 import { assert } from '../util/assert.js';
 import { RandomId } from '../provable/types/auxiliary.js';
-import { NetworkId } from '../../mina-signer/src/types.js';
 import { From } from '../../bindings/lib/provable-generic.js';
 
 // external API
