@@ -1316,7 +1316,7 @@ class ${contract.constructor.name} extends SmartContract {
 
       for (let i = 0; i < maxUpdatesWithActions; i++) {
         let { element: merkleActions, isDummy } = listIter.Unsafe.next();
-        let actionIter = merkleActions.startIteratingFromLast();
+        let actionIter = merkleActions.startIterating();
         let newState = state;
 
         if (maxActionsPerUpdate === 1) {
@@ -1336,7 +1336,7 @@ class ${contract.constructor.name} extends SmartContract {
           newState = reduce(newState, action);
         } else {
           for (let j = 0; j < maxActionsPerUpdate; j++) {
-            let { element: action, isDummy } = actionIter.Unsafe.previous();
+            let { element: action, isDummy } = actionIter.Unsafe.next();
             newState = Provable.if(
               isDummy,
               stateType,
@@ -1346,7 +1346,7 @@ class ${contract.constructor.name} extends SmartContract {
           }
           // note: this asserts nothing about the iterated actions if `MerkleActions` is a dummy
           // which doesn't matter because we're also skipping all state and action state updates in that case
-          actionIter.assertAtStart();
+          actionIter.assertAtEnd();
         }
 
         state = Provable.if(isDummy, stateType, state, newState);
