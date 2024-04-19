@@ -381,7 +381,17 @@ function preconditionSubclass<
       ) as AnyCondition<U>;
       if ('isSome' in property) {
         property.isSome = Bool(false);
-        property.value = fieldType.empty();
+        if ('lower' in property.value && 'upper' in property.value) {
+          if (fieldType === UInt64) {
+            property.value.lower = UInt64.zero as U;
+            property.value.upper = UInt64.MAXINT() as U;
+          } else if (fieldType === UInt32) {
+            property.value.lower = UInt32.zero as U;
+            property.value.upper = UInt32.MAXINT() as U;
+          }
+        } else {
+          property.value = fieldType.empty();
+        }
       }
       context.constrained.add(longKey);
     },
