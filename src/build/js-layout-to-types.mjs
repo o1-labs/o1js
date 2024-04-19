@@ -27,7 +27,7 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
     converters[name] = {
       typeName: name,
       type: writeType(typeData.checkedType, false, false, withTypeMap).output,
-      valueType: writeType(typeData, true, false, true).output,
+      valueType: writeType(typeData.checkedType, true, false, true).output,
       jsonType: writeType(typeData, false, true, true).output,
     };
     typeData = typeData.checkedType;
