@@ -1,6 +1,17 @@
-import { Field, Group, Gadgets, Provable, Scalar, Hash, Bytes } from 'o1js';
+import {
+  Field,
+  Group,
+  Gadgets,
+  Provable,
+  Scalar,
+  Hash,
+  Bytes,
+  Bool,
+  UInt64,
+  Nullifier,
+} from 'o1js';
 
-export { GroupCS, BitwiseCS, HashCS };
+export { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS };
 
 const GroupCS = constraintSystem('Group Primitive', {
   add() {
@@ -123,6 +134,56 @@ const HashCS = constraintSystem('Hashes', {
   },
 });
 
+const witness = () => Provable.witness(Field, () => Field(0));
+
+const BasicCS = constraintSystem('Basic', {
+  equals() {
+    let [x, y, z] = [witness(), witness(), witness()];
+    x.equals(y);
+    z.equals(1);
+  },
+  if() {
+    let b = Provable.witness(Bool, () => Bool(false));
+    let [x, y, z] = [witness(), witness(), witness()];
+    Provable.if(b, x, y);
+    Provable.if(b, z, Field(1));
+  },
+  toBits() {
+    let x = witness();
+    x.toBits();
+  },
+
+  // comparisons
+  assertLessThan() {
+    let [x, y] = [witness(), witness()];
+    x.assertLessThan(y);
+  },
+  lessThan() {
+    let [x, y] = [witness(), witness()];
+    x.lessThan(y);
+  },
+  assertLessThanUInt64() {
+    let x = Provable.witness(UInt64, () => new UInt64(0));
+    let y = Provable.witness(UInt64, () => new UInt64(0));
+    x.assertLessThan(y);
+  },
+  lessThanUInt64() {
+    let x = Provable.witness(UInt64, () => new UInt64(0));
+    let y = Provable.witness(UInt64, () => new UInt64(0));
+    x.lessThan(y);
+  },
+});
+
+const CryptoCS = constraintSystem('Crypto', {
+  nullifier() {
+    let nullifier = Provable.witness(Nullifier, (): Nullifier => {
+      throw Error('not implemented');
+    });
+    let x = Provable.witness(Field, () => Field(0));
+    nullifier.verify([x, x, x]);
+  },
+});
+
 // mock ZkProgram API for testing
 
 function constraintSystem(
@@ -132,7 +193,7 @@ function constraintSystem(
   let methodKeys = Object.keys(obj);
 
   return {
-    analyzeMethods() {
+    async analyzeMethods() {
       let cs: Record<
         string,
         {
@@ -141,7 +202,7 @@ function constraintSystem(
         }
       > = {};
       for (let key of methodKeys) {
-        let { rows, digest } = Provable.constraintSystem(obj[key]);
+        let { rows, digest } = await Provable.constraintSystem(obj[key]);
         cs[key] = {
           digest,
           rows,
@@ -155,6 +216,6 @@ function constraintSystem(
       };
     },
     name,
-    digest: () => name,
+    digest: async () => name,
   };
 }

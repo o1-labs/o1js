@@ -6,17 +6,13 @@ import {
   VerificationKey,
   method,
   Permissions,
-  isReady,
-  PrivateKey,
   Mina,
   AccountUpdate,
-  Circuit,
   Provable,
   TransactionVersion,
-  UInt32,
 } from 'o1js';
 
-class Foo extends SmartContract {
+class SelfUpdater extends SmartContract {
   init() {
     super.init();
     this.account.permissions.set({
@@ -28,57 +24,54 @@ class Foo extends SmartContract {
     });
   }
 
-  @method replaceVerificationKey(verificationKey: VerificationKey) {
+  @method async replaceVerificationKey(verificationKey: VerificationKey) {
     this.account.verificationKey.set(verificationKey);
   }
 }
 
 class Bar extends SmartContract {
-  @method call() {
+  @method async call() {
     Provable.log('Bar');
   }
 }
 
 // setup
 
-await isReady;
-
-const Local = Mina.LocalBlockchain({ proofsEnabled: true });
+const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
-const zkAppPrivateKey = PrivateKey.random();
-const zkAppAddress = zkAppPrivateKey.toPublicKey();
-const zkApp = new Foo(zkAppAddress);
+const contractAccount = Mina.TestPublicKey.random();
+const contract = new SelfUpdater(contractAccount);
 
-const { privateKey: deployerKey, publicKey: deployerAccount } =
-  Local.testAccounts[0];
+const [deployer] = Local.testAccounts;
 
 // deploy first verification key
 
-await Foo.compile();
+await SelfUpdater.compile();
 
-const tx = await Mina.transaction(deployerAccount, () => {
-  AccountUpdate.fundNewAccount(deployerAccount);
-  zkApp.deploy();
+const tx = await Mina.transaction(deployer, async () => {
+  AccountUpdate.fundNewAccount(deployer);
+  await contract.deploy();
 });
 await tx.prove();
-await tx.sign([deployerKey, zkAppPrivateKey]).send();
+await tx.sign([deployer.key, contractAccount.key]).send();
 
-const fooVerificationKey = Mina.getAccount(zkAppAddress).zkapp?.verificationKey;
+const fooVerificationKey =
+  Mina.getAccount(contractAccount).zkapp?.verificationKey;
 Provable.log('original verification key', fooVerificationKey);
 
 // update verification key
 
 const { verificationKey: barVerificationKey } = await Bar.compile();
 
-const tx2 = await Mina.transaction(deployerAccount, () => {
-  zkApp.replaceVerificationKey(barVerificationKey);
+const tx2 = await Mina.transaction(deployer, async () => {
+  await contract.replaceVerificationKey(barVerificationKey);
 });
 await tx2.prove();
-await tx2.sign([deployerKey]).send();
+await tx2.sign([deployer.key]).send();
 
 const updatedVerificationKey =
-  Mina.getAccount(zkAppAddress).zkapp?.verificationKey;
+  Mina.getAccount(contractAccount).zkapp?.verificationKey;
 
 // should be different from Foo
 Provable.log('updated verification key', updatedVerificationKey);

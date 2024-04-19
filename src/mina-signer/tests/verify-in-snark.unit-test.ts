@@ -1,9 +1,9 @@
-import { Field } from '../../lib/core.js';
-import { ZkProgram } from '../../lib/proof-system.js';
+import { Field } from '../../lib/provable/wrapped.js';
+import { ZkProgram } from '../../lib/proof-system/zkprogram.js';
 import Client from '../mina-signer.js';
-import { PrivateKey, Signature } from '../../lib/signature.js';
+import { PrivateKey, Signature } from '../../lib/provable/crypto/signature.js';
 import { expect } from 'expect';
-import { Provable } from '../../lib/provable.js';
+import { Provable } from '../../lib/provable/provable.js';
 
 let fields = [10n, 20n, 30n, 340817401n, 2091283n, 1n, 0n];
 let privateKey = 'EKENaWFuAiqktsnWmxq8zaoR8bSgVdscsghJE5tV6hPoNm8qBKWM';
@@ -36,7 +36,7 @@ const MyProgram = ZkProgram({
   methods: {
     verifySignature: {
       privateInputs: [Signature, Message],
-      method(signature: Signature, message: Field[]) {
+      async method(signature: Signature, message: Field[]) {
         signature.verify(publicKey, message).assertTrue();
       },
     },

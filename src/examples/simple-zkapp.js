@@ -6,19 +6,14 @@
 import {
   Field,
   State,
-  PrivateKey,
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   declareState,
   declareMethods,
-  shutdown,
 } from 'o1js';
 
-await isReady;
-
-class SimpleZkapp extends SmartContract {
+class Updater extends SmartContract {
   constructor(address) {
     super(address);
     this.x = State();
@@ -31,7 +26,7 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  update(y) {
+  async update(y) {
     this.emitEvent('update', y);
     this.emitEvent('update', y);
     this.account.balance.assertEquals(this.account.balance.get());
@@ -40,37 +35,33 @@ class SimpleZkapp extends SmartContract {
     this.x.set(x.add(y));
   }
 }
-declareState(SimpleZkapp, { x: Field });
-declareMethods(SimpleZkapp, { update: [Field] });
+declareState(Updater, { x: Field });
+declareMethods(Updater, { update: [Field] });
 
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
+const [feePayer] = Local.testAccounts
 
-let zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
+let contractAccount = Mina.TestAccount.random()
 
 let initialState = Field(1);
-let zkapp = new SimpleZkapp(zkappAddress);
+let contract = new Updater(contractAccount);
 
 console.log('compile');
-await SimpleZkapp.compile();
+await Updater.compile();
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  zkapp.deploy();
+  await contract.deploy();
 });
-await tx.sign([feePayerKey, zkappKey]).send();
+await tx.sign([feePayer.key, contractAccount.key]).send();
 
-console.log('initial state: ' + zkapp.x.get());
+console.log('initial state: ' + contract.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayer, () => zkapp.update(Field(3)));
+tx = await Mina.transaction(feePayer, () => contract.update(Field(3)));
 await tx.prove();
-await tx.sign([feePayerKey]).send();
-console.log('final state: ' + zkapp.x.get());
-
-shutdown();
+await tx.sign([feePayer.key]).send();
+console.log('final state: ' + contract.x.get());

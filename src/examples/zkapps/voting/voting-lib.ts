@@ -2,7 +2,7 @@ import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
 import { Voting_ } from './voting.js';
 import { Mina, PrivateKey } from 'o1js';
-import { Printer } from 'prettier';
+
 /**
  * Updates off-chain storage when registering a member or candidate
  * @param {bigint} i index of memberStore or candidatesStore
@@ -72,16 +72,18 @@ export function getResults(
  */
 export async function assertValidTx(
   expectToBeValid: boolean,
-  cb: () => void,
-  feePayer: PrivateKey,
+  cb: () => Promise<void>,
+  signers: PrivateKey | [PrivateKey, ...PrivateKey[]],
   msg?: string
 ) {
   let failed = false;
   let err;
+  if (!Array.isArray(signers)) signers = [signers];
+  let [feePayer] = signers;
   try {
     let tx = await Mina.transaction(feePayer.toPublicKey(), cb);
     await tx.prove();
-    await tx.sign([feePayer]).send();
+    await tx.sign(signers).send();
   } catch (e: any) {
     failed = true;
     err = e;

@@ -6,6 +6,7 @@ import {
   UInt64,
   UInt32,
   Permissions,
+  Reducer,
 } from 'o1js';
 import { deployContracts, deployInvalidContracts } from './deploy-contracts.js';
 import { DummyContract } from './dummy-contract.js';
@@ -84,8 +85,8 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
-        verificationKeySet.voting.voterRegistration(m);
+      async () => {
+        await verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer
     );
@@ -95,14 +96,16 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
-        let vkUpdate = AccountUpdate.createSigned(params.votingKey);
+      async () => {
+        let vkUpdate = AccountUpdate.createSigned(
+          params.votingKey.toPublicKey()
+        );
         vkUpdate.account.verificationKey.set({
           ...verificationKey,
           hash: Field(verificationKey.hash),
         });
       },
-      verificationKeySet.feePayer
+      [verificationKeySet.feePayer, params.votingKey]
     );
 
     m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
@@ -110,8 +113,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        verificationKeySet.voting.voterRegistration(m);
+      async () => {
+        await verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer,
       'Invalid proof'
@@ -156,8 +159,8 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
-        permissionedSet.voting.voterRegistration(m);
+      async () => {
+        await permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer
     );
@@ -166,8 +169,10 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
-        let permUpdate = AccountUpdate.createSigned(params.voterKey);
+      async () => {
+        let permUpdate = AccountUpdate.createSigned(
+          params.voterKey.toPublicKey()
+        );
 
         permUpdate.account.permissions.set({
           ...Permissions.default(),
@@ -175,7 +180,7 @@ export async function testSet(
           editActionState: Permissions.impossible(),
         });
       },
-      permissionedSet.feePayer
+      [permissionedSet.feePayer, params.voterKey]
     );
 
     console.log('trying to invoke method with invalid permissions...');
@@ -185,8 +190,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        permissionedSet.voting.voterRegistration(m);
+      async () => {
+        await permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer,
       'actions'
@@ -228,9 +233,12 @@ export async function testSet(
     invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
 
     try {
-      let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
-        invalidSet.voting.voterRegistration(m);
-      });
+      let tx = await Mina.transaction(
+        invalidSet.feePayer.toPublicKey(),
+        async () => {
+          await invalidSet.voting.voterRegistration(m);
+        }
+      );
       await tx.prove();
       await tx.sign([invalidSet.feePayer]).send();
     } catch (err: any) {
@@ -279,7 +287,7 @@ export async function testSet(
       try {
         let tx = await Mina.transaction(
           sequenceOverflowSet.feePayer.toPublicKey(),
-          () => {
+          async () => {
             let m = Member.from(
               PrivateKey.random().toPublicKey(),
 
@@ -290,7 +298,7 @@ export async function testSet(
               m.balance.toString()
             );
 
-            sequenceOverflowSet.voting.voterRegistration(m);
+            await sequenceOverflowSet.voting.voterRegistration(m);
           }
         );
         await tx.prove();
@@ -300,19 +308,19 @@ export async function testSet(
       }
     }
 
-    if (sequenceOverflowSet.voterContract.reducer.getActions().length < 3) {
+    if (actionsLength(sequenceOverflowSet.voterContract) < 3) {
       throw Error(
-        `Did not emit expected actions! Only emitted ${
-          sequenceOverflowSet.voterContract.reducer.getActions().length
-        }`
+        `Did not emit expected actions! Only emitted ${actionsLength(
+          sequenceOverflowSet.voterContract
+        )}`
       );
     }
 
     try {
       let tx = await Mina.transaction(
         sequenceOverflowSet.feePayer.toPublicKey(),
-        () => {
-          sequenceOverflowSet.voting.approveRegistrations();
+        async () => {
+          await sequenceOverflowSet.voting.approveRegistrations();
         }
       );
       await tx.prove();
@@ -381,13 +389,13 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
-        voting.voterRegistration(newVoter1);
+      async () => {
+        await voting.voterRegistration(newVoter1);
       },
       feePayer
     );
 
-    if (voterContract.reducer.getActions().length !== 1) {
+    if (actionsLength(voterContract) !== 1) {
       throw Error(
         'Should have emitted 1 event after registering only one valid voter'
       );
@@ -437,8 +445,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        voting.voterRegistration(newVoterLow);
+      async () => {
+        await voting.voterRegistration(newVoterLow);
       },
       feePayer,
       'Balance not high enough!'
@@ -453,8 +461,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        voting.voterRegistration(newVoterHigh);
+      async () => {
+        await voting.voterRegistration(newVoterHigh);
       },
       feePayer,
       'Balance too high!'
@@ -464,14 +472,14 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        voting.voterRegistration(newVoter1);
+      async () => {
+        await voting.voterRegistration(newVoter1);
       },
       feePayer,
       'Member already exists!'
     );
 
-    if (voterContract.reducer.getActions().length !== 1) {
+    if (actionsLength(voterContract) !== 1) {
       throw Error(
         'Should have emitted 1 event after registering only one valid voter'
       );
@@ -500,7 +508,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         let newCandidate = registerMember(
           0n,
           Member.from(
@@ -513,7 +521,7 @@ export async function testSet(
         );
 
         // register new candidate
-        voting.candidateRegistration(newCandidate);
+        await voting.candidateRegistration(newCandidate);
       },
       feePayer
     );
@@ -522,7 +530,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         let newCandidate = registerMember(
           1n,
           Member.from(
@@ -535,13 +543,13 @@ export async function testSet(
         );
 
         // register new candidate
-        voting.candidateRegistration(newCandidate);
+        await voting.candidateRegistration(newCandidate);
       },
       feePayer
     );
 
-    let numberOfEvents = candidateContract.reducer.getActions().length;
-    if (candidateContract.reducer.getActions().length !== 2) {
+    let numberOfEvents = actionsLength(candidateContract);
+    if (numberOfEvents !== 2) {
       throw Error(
         `Should have emitted 2 event after registering 2 candidates. ${numberOfEvents} emitted`
       );
@@ -579,9 +587,9 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         // register new candidate
-        voting.approveRegistrations();
+        await voting.approveRegistrations();
       },
       feePayer
     );
@@ -636,8 +644,8 @@ export async function testSet(
     );
     Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
 
-    let previousEventsVoter = voterContract.reducer.getActions().length;
-    let previousEventsCandidate = candidateContract.reducer.getActions().length;
+    let previousEventsVoter = actionsLength(voterContract);
+    let previousEventsCandidate = actionsLength(candidateContract);
 
     let lateCandidate = Member.from(
       PrivateKey.random().toPublicKey(),
@@ -647,9 +655,9 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         // register late candidate
-        voting.candidateRegistration(lateCandidate);
+        await voting.candidateRegistration(lateCandidate);
       },
       feePayer,
       'Outside of election period!'
@@ -667,20 +675,18 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         // register late voter
-        voting.voterRegistration(lateVoter);
+        await voting.voterRegistration(lateVoter);
       },
       feePayer,
       'Outside of election period!'
     );
 
-    if (previousEventsVoter !== voterContract.reducer.getActions().length) {
+    if (previousEventsVoter !== actionsLength(voterContract)) {
       throw Error('events emitted but should not have been');
     }
-    if (
-      previousEventsCandidate !== candidateContract.reducer.getActions().length
-    ) {
+    if (previousEventsCandidate !== actionsLength(candidateContract)) {
       throw Error('events emitted but should not have been');
     }
 
@@ -725,8 +731,8 @@ export async function testSet(
     let beforeCommitted = voting.committedVotes.get();
     await assertValidTx(
       true,
-      () => {
-        voting.countVotes();
+      async () => {
+        await voting.countVotes();
       },
       feePayer
     );
@@ -761,7 +767,7 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
+      async () => {
         // attempting to vote for the registered candidate
         currentCandidate = candidatesStore.get(0n)!;
         currentCandidate.witness = new MyMerkleWitness(
@@ -774,14 +780,14 @@ export async function testSet(
         let v = votersStore.get(0n)!;
         v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
 
-        voting.vote(currentCandidate, v);
+        await voting.vote(currentCandidate, v);
       },
       feePayer
     );
 
     vote(0n, votesStore, candidatesStore);
 
-    numberOfEvents = voting.reducer.getActions().length;
+    numberOfEvents = actionsLength(voting);
     if (numberOfEvents !== 1) {
       throw Error('Should have emitted 1 event after voting for a candidate');
     }
@@ -816,10 +822,10 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         // attempting to vote for the registered candidate
 
-        voting.vote(fakeCandidate, votersStore.get(0n)!);
+        await voting.vote(fakeCandidate, votersStore.get(0n)!);
       },
       feePayer,
       'Member is not a candidate!'
@@ -835,8 +841,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        voting.vote(fakeVoter, votersStore.get(0n)!);
+      async () => {
+        await voting.vote(fakeVoter, votersStore.get(0n)!);
       },
       feePayer,
       'Member is not a candidate!'
@@ -846,9 +852,9 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
+      async () => {
         const voter = votersStore.get(0n)!;
-        voting.vote(voter, votersStore.get(0n)!);
+        await voting.vote(voter, votersStore.get(0n)!);
       },
       feePayer,
       'Member is not a candidate!'
@@ -874,8 +880,8 @@ export async function testSet(
 
     await assertValidTx(
       true,
-      () => {
-        voting.countVotes();
+      async () => {
+        await voting.countVotes();
       },
       feePayer
     );
@@ -927,8 +933,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        voting.voterRegistration(voter);
+      async () => {
+        await voting.voterRegistration(voter);
       },
       feePayer,
       'Outside of election period!'
@@ -944,8 +950,8 @@ export async function testSet(
 
     await assertValidTx(
       false,
-      () => {
-        voting.candidateRegistration(candidate);
+      async () => {
+        await voting.candidateRegistration(candidate);
       },
       feePayer,
       'Outside of election period!'
@@ -953,4 +959,10 @@ export async function testSet(
   }
 
   console.log('test successful!');
+}
+
+// TODO maybe this type should actually be what is exported as the `Reducer` type
+// the existing `Reducer` type is just a simple input argument type that can be inlined
+function actionsLength(contract: { reducer: ReturnType<typeof Reducer> }) {
+  return contract.reducer.getActions().data.get().length;
 }

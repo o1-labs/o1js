@@ -15,8 +15,8 @@ import { Membership_ } from './membership.js';
 import { Voting_ } from './voting.js';
 
 class InvalidContract extends SmartContract {
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.none(),
@@ -52,40 +52,46 @@ export async function deployContracts(
   Local: any;
   feePayer: PrivateKey;
 }> {
-  let Local = Mina.LocalBlockchain({
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled,
     enforceTransactionLimits: true,
   });
   Mina.setActiveInstance(Local);
 
-  let feePayerKey = Local.testAccounts[0].privateKey;
-  let feePayer = Local.testAccounts[0].publicKey;
+  let [feePayer] = Local.testAccounts;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
-    voting.deploy({ zkappKey: params.votingKey });
+    await voting.deploy();
     voting.committedVotes.set(votesRoot);
     voting.accumulatedVotes.set(Reducer.initialActionState);
 
-    candidateContract.deploy({ zkappKey: params.candidateKey });
+    await candidateContract.deploy();
     candidateContract.committedMembers.set(candidateRoot);
     candidateContract.accumulatedMembers.set(Reducer.initialActionState);
 
-    voterContract.deploy({ zkappKey: params.voterKey });
+    await voterContract.deploy();
     voterContract.committedMembers.set(voterRoot);
     voterContract.accumulatedMembers.set(Reducer.initialActionState);
   });
-  await tx.sign([feePayerKey]).send();
+  await tx
+    .sign([
+      feePayer.key,
+      params.votingKey,
+      params.candidateKey,
+      params.voterKey,
+    ])
+    .send();
 
   console.log('successfully deployed contracts');
   return {
     voterContract,
     candidateContract,
     voting,
-    feePayer: feePayerKey,
+    feePayer: feePayer.key,
     Local,
   };
 }
@@ -116,21 +122,20 @@ export async function deployInvalidContracts(
   Local: any;
   feePayer: PrivateKey;
 }> {
-  let Local = Mina.LocalBlockchain({
+  let Local = await Mina.LocalBlockchain({
     proofsEnabled: false,
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
 
-  let feePayerKey = Local.testAccounts[0].privateKey;
-  let feePayer = Local.testAccounts[0].publicKey;
+  let [feePayer] = Local.testAccounts;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  let tx = await Mina.transaction(feePayer, () => {
+  let tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer, 3);
 
-    voting.deploy({ zkappKey: params.votingKey });
+    await voting.deploy();
     voting.committedVotes.set(votesRoot);
     voting.accumulatedVotes.set(Reducer.initialActionState);
 
@@ -140,7 +145,7 @@ export async function deployInvalidContracts(
       params.candidateKey.toPublicKey()
     );
 
-    invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
+    await invalidCandidateContract.deploy();
 
     candidateContract = invalidCandidateContract as Membership_;
 
@@ -148,18 +153,25 @@ export async function deployInvalidContracts(
       params.voterKey.toPublicKey()
     );
 
-    invalidVoterContract.deploy({ zkappKey: params.voterKey });
+    await invalidVoterContract.deploy();
 
     voterContract = invalidVoterContract as Membership_;
   });
-  await tx.sign([feePayerKey]).send();
+  await tx
+    .sign([
+      feePayer.key,
+      params.votingKey,
+      params.candidateKey,
+      params.voterKey,
+    ])
+    .send();
 
   console.log('successfully deployed contracts');
   return {
     voterContract,
     candidateContract,
     voting,
-    feePayer: feePayerKey,
+    feePayer: feePayer.key,
     Local,
   };
 }

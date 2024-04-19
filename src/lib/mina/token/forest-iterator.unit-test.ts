@@ -6,20 +6,20 @@ import {
   AccountUpdateForest,
   TokenId,
   hashAccountUpdate,
-} from '../../account-update.js';
+} from '../account-update.js';
 import { TypesBigint } from '../../../bindings/mina-transaction/types.js';
-import { Pickles } from '../../../snarky.js';
+import { Pickles, initializeBindings } from '../../../snarky.js';
 import {
   accountUpdatesToCallForest,
   callForestHash,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
 import assert from 'assert';
-import { Field, Bool } from '../../core.js';
-import { Bool as BoolB } from '../../../provable/field-bigint.js';
-import { PublicKey } from '../../signature.js';
+import { Field, Bool } from '../../provable/wrapped.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 
+await initializeBindings();
 let [, data, hashMl] = Pickles.dummyVerificationKey();
 let dummyVerificationKey = { data, hash: hashMl[1] };
 
@@ -33,8 +33,8 @@ const accountUpdateBigint = Random.map(
     // ensure that, by default, all account updates are token-accessible
     a.body.mayUseToken =
       a.body.callDepth === 0
-        ? { parentsOwnToken: BoolB(true), inheritFromParent: BoolB(false) }
-        : { parentsOwnToken: BoolB(false), inheritFromParent: BoolB(true) };
+        ? { parentsOwnToken: true, inheritFromParent: false }
+        : { parentsOwnToken: false, inheritFromParent: true };
     return a;
   }
 );
@@ -56,7 +56,7 @@ test.custom({ timeBudget: 1000 })(
   (flatUpdatesBigint) => {
     // reference: bigint callforest hash from mina-signer
     let forestBigint = accountUpdatesToCallForest(flatUpdatesBigint);
-    let expectedHash = callForestHash(forestBigint);
+    let expectedHash = callForestHash(forestBigint, 'testnet');
 
     let flatUpdates = flatUpdatesBigint.map(accountUpdateFromBigint);
     let forest = AccountUpdateForest.fromFlatArray(flatUpdates);
@@ -69,19 +69,20 @@ test.custom({ timeBudget: 1000 })(
 
 test.custom({ timeBudget: 1000 })(flatAccountUpdates, (flatUpdates) => {
   // prepare call forest from flat account updates
-  let forest = AccountUpdateForest.fromFlatArray(flatUpdates).startIterating();
+  let forest =
+    AccountUpdateForest.fromFlatArray(flatUpdates).startIteratingFromLast();
   let updates = flatUpdates.filter((u) => u.body.callDepth === 0);
 
   // step through top-level by calling forest.next() repeatedly
   let n = updates.length;
   for (let i = 0; i < n; i++) {
     let expected = updates[i];
-    let actual = forest.next().accountUpdate.unhash();
+    let actual = forest.previous().accountUpdate.unhash();
     assertEqual(actual, expected);
   }
 
   // doing next() again should return a dummy
-  let actual = forest.next().accountUpdate.unhash();
+  let actual = forest.previous().accountUpdate.unhash();
   assertEqual(actual, AccountUpdate.dummy());
 });
 

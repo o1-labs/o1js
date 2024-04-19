@@ -1,7 +1,7 @@
 import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
 
-let cs = Provable.constraintSystem(() => {
-  let f = Provable.witness(Field, () => Field(12));
+let cs = await Provable.constraintSystem(() => {
+  let f = Provable.witness(Field, () => 12);
 
   let res1 = Gadgets.rotate64(f, 2, 'left');
   let res2 = Gadgets.rotate64(f, 2, 'right');
@@ -19,8 +19,8 @@ const BitwiseProver = ZkProgram({
   methods: {
     rot: {
       privateInputs: [],
-      method: () => {
-        let a = Provable.witness(Field, () => Field(48));
+      async method() {
+        let a = Provable.witness(Field, () => 48);
         let actualLeft = Gadgets.rotate64(a, 2, 'left');
         let actualRight = Gadgets.rotate64(a, 2, 'right');
 
@@ -33,9 +33,9 @@ const BitwiseProver = ZkProgram({
     },
     xor: {
       privateInputs: [],
-      method: () => {
-        let a = Provable.witness(Field, () => Field(5));
-        let b = Provable.witness(Field, () => Field(2));
+      async method() {
+        let a = Provable.witness(Field, () => 5);
+        let b = Provable.witness(Field, () => 2);
         let actual = Gadgets.xor(a, b, 4);
         let expected = Field(7);
         actual.assertEquals(expected);
@@ -43,9 +43,9 @@ const BitwiseProver = ZkProgram({
     },
     and: {
       privateInputs: [],
-      method: () => {
-        let a = Provable.witness(Field, () => Field(3));
-        let b = Provable.witness(Field, () => Field(5));
+      async method() {
+        let a = Provable.witness(Field, () => 3);
+        let b = Provable.witness(Field, () => 5);
         let actual = Gadgets.and(a, b, 4);
         let expected = Field(1);
         actual.assertEquals(expected);

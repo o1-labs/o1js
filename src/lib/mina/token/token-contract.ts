@@ -1,15 +1,17 @@
-import { Bool } from '../../core.js';
-import { UInt64, Int64 } from '../../int.js';
-import { Provable } from '../../provable.js';
-import { PublicKey } from '../../signature.js';
+import { Bool } from '../../provable/wrapped.js';
+import { UInt64, Int64 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
   AccountUpdateTree,
   Permissions,
-} from '../../account-update.js';
-import { DeployArgs, SmartContract } from '../../zkapp.js';
+  TokenId,
+} from '../account-update.js';
+import { DeployArgs, SmartContract } from '../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
+import { tokenMethods } from './token-methods.js';
 
 export { TokenContract };
 
@@ -25,18 +27,60 @@ const MAX_ACCOUNT_UPDATES = 20;
 abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
 
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
+  /**
+   * Deploys a {@link TokenContract}.
+   *
+   * In addition to base smart contract deployment, this adds two steps:
+   * - set the `access` permission to `proofOrSignature()`, to prevent against unauthorized token operations
+   *   - not doing this would imply that anyone can bypass token contract authorization and simply mint themselves tokens
+   * - require the zkapp account to be new, using the `isNew` precondition.
+   *   this guarantees that the access permission is set from the very start of the existence of this account.
+   *   creating the zkapp account before deployment would otherwise be a security vulnerability that is too easy to introduce.
+   *
+   * Note that because of the `isNew` precondition, the zkapp account must not be created prior to calling `deploy()`.
+   *
+   * If the contract needs to be re-deployed, you can switch off this behaviour by overriding the `isNew` precondition:
+   * ```ts
+   * async deploy() {
+   *   await super.deploy();
+   *   // DON'T DO THIS ON THE INITIAL DEPLOYMENT!
+   *   this.account.isNew.requireNothing();
+   * }
+   * ```
+   */
+  async deploy(args?: DeployArgs) {
+    await super.deploy(args);
+
+    // set access permission, to prevent unauthorized token operations
     this.account.permissions.set({
       ...Permissions.default(),
       access: Permissions.proofOrSignature(),
     });
+
+    // assert that this account is new, to ensure unauthorized token operations
+    // are not possible before this contract is deployed
+    // see https://github.com/o1-labs/o1js/issues/1439 for details
+    this.account.isNew.requireEquals(Bool(true));
+  }
+
+  /**
+   * Returns the `tokenId` of the token managed by this contract.
+   */
+  deriveTokenId() {
+    return TokenId.derive(this.address, this.tokenId);
+  }
+
+  /**
+   * Helper methods to use from within a token contract.
+   */
+  get internal() {
+    return tokenMethods(this.self);
   }
 
   // APPROVABLE API has to be specified by subclasses,
   // but the hard part is `forEachUpdate()`
 
-  abstract approveBase(forest: AccountUpdateForest): void;
+  abstract approveBase(forest: AccountUpdateForest): Promise<void>;
 
   /**
    * Iterate through the account updates in `updates` and apply `callback` to each.
@@ -47,7 +91,10 @@ abstract class TokenContract extends SmartContract {
     updates: AccountUpdateForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
   ) {
-    let iterator = TokenAccountUpdateIterator.create(updates, this.token.id);
+    let iterator = TokenAccountUpdateIterator.create(
+      updates,
+      this.deriveTokenId()
+    );
 
     // iterate through the forest and apply user-defined logc
     for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
@@ -87,17 +134,19 @@ abstract class TokenContract extends SmartContract {
   /**
    * Approve a single account update (with arbitrarily many children).
    */
-  approveAccountUpdate(accountUpdate: AccountUpdate | AccountUpdateTree) {
+  async approveAccountUpdate(accountUpdate: AccountUpdate | AccountUpdateTree) {
     let forest = toForest([accountUpdate]);
-    this.approveBase(forest);
+    await this.approveBase(forest);
   }
 
   /**
    * Approve a list of account updates (with arbitrarily many children).
    */
-  approveAccountUpdates(accountUpdates: (AccountUpdate | AccountUpdateTree)[]) {
+  async approveAccountUpdates(
+    accountUpdates: (AccountUpdate | AccountUpdateTree)[]
+  ) {
     let forest = toForest(accountUpdates);
-    this.approveBase(forest);
+    await this.approveBase(forest);
   }
 
   // TRANSFERABLE API - simple wrapper around Approvable API
@@ -105,13 +154,13 @@ abstract class TokenContract extends SmartContract {
   /**
    * Transfer `amount` of tokens from `from` to `to`.
    */
-  transfer(
+  async transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
     amount: UInt64 | number | bigint
   ) {
-    // coerce the inputs to AccountUpdate and pass to `approveUpdates()`
-    let tokenId = this.token.id;
+    // coerce the inputs to AccountUpdate and pass to `approveBase()`
+    let tokenId = this.deriveTokenId();
     if (from instanceof PublicKey) {
       from = AccountUpdate.defaultAccountUpdate(from, tokenId);
       from.requireSignature();
@@ -126,7 +175,7 @@ abstract class TokenContract extends SmartContract {
     to.balanceChange = Int64.from(amount);
 
     let forest = toForest([from, to]);
-    this.approveBase(forest);
+    await this.approveBase(forest);
   }
 }
 

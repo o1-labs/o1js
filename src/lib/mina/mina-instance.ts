@@ -1,25 +1,40 @@
 /**
  * This module holds the global Mina instance and its interface.
  */
-import type { Field } from '../field.js';
-import { UInt64, UInt32 } from '../int.js';
-import type { PublicKey, PrivateKey } from '../signature.js';
-import type { Transaction, TransactionId } from '../mina.js';
-import type { Account } from './account.js';
-import type { NetworkValue } from '../precondition.js';
-import type * as Fetch from '../fetch.js';
+import { Field } from '../provable/wrapped.js';
+import { UInt64, UInt32 } from '../provable/int.js';
+import { PublicKey } from '../provable/crypto/signature.js';
+import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
+import type { Account } from './account.js';
+import type { NetworkValue } from './precondition.js';
+import type * as Fetch from './fetch.js';
+import type {
+  TransactionPromise,
+  PendingTransactionPromise,
+  Transaction,
+} from './transaction.js';
 
 export {
   Mina,
   FeePayerSpec,
-  DeprecatedFeePayerSpec,
   ActionStates,
   NetworkConstants,
   defaultNetworkConstants,
   activeInstance,
   setActiveInstance,
   ZkappStateLength,
+  currentSlot,
+  getAccount,
+  hasAccount,
+  getBalance,
+  getNetworkId,
+  getNetworkConstants,
+  getNetworkState,
+  fetchEvents,
+  fetchActions,
+  getActions,
+  getProofsEnabled,
 };
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -44,25 +59,6 @@ type FeePayerSpec =
     }
   | undefined;
 
-type DeprecatedFeePayerSpec =
-  | PublicKey
-  | PrivateKey
-  | ((
-      | {
-          feePayerKey: PrivateKey;
-          sender?: PublicKey;
-        }
-      | {
-          feePayerKey?: PrivateKey;
-          sender: PublicKey;
-        }
-    ) & {
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    })
-  | undefined;
-
 type ActionStates = {
   fromActionState?: Field;
   endActionState?: Field;
@@ -77,25 +73,23 @@ type NetworkConstants = {
   accountCreationFee: UInt64;
 };
 
-interface Mina {
+type Mina = {
   transaction(
-    sender: DeprecatedFeePayerSpec,
-    f: () => void
-  ): Promise<Transaction>;
+    sender: FeePayerSpec,
+    f: () => Promise<void>
+  ): TransactionPromise<false, false>;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   getNetworkConstants(): NetworkConstants;
-  /**
-   * @deprecated use {@link getNetworkConstants}
-   */
-  accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): Promise<TransactionId>;
+  sendTransaction(
+    transaction: Transaction<boolean, boolean>
+  ): PendingTransactionPromise;
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
-    filterOptions?: Fetch.EventActionFilterOptions
+    filterOptions?: EventActionFilterOptions
   ) => ReturnType<typeof Fetch.fetchEvents>;
   fetchActions: (
     publicKey: PublicKey,
@@ -109,10 +103,9 @@ interface Mina {
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
   getNetworkId(): NetworkId;
-}
+};
 
 let activeInstance: Mina = {
-  accountCreationFee: () => defaultNetworkConstants.accountCreationFee,
   getNetworkConstants: () => defaultNetworkConstants,
   currentSlot: noActiveInstance,
   hasAccount: noActiveInstance,
@@ -136,4 +129,90 @@ function setActiveInstance(m: Mina) {
 
 function noActiveInstance(): never {
   throw Error('Must call Mina.setActiveInstance first');
+}
+
+/**
+ * @return The current slot number, according to the active Mina instance.
+ */
+function currentSlot(): UInt32 {
+  return activeInstance.currentSlot();
+}
+
+/**
+ * @return The account data associated to the given public key.
+ */
+function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
+  return activeInstance.getAccount(publicKey, tokenId);
+}
+
+/**
+ * Checks if an account exists within the ledger.
+ */
+function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
+  return activeInstance.hasAccount(publicKey, tokenId);
+}
+
+/**
+ * @return The current Mina network ID.
+ */
+function getNetworkId() {
+  return activeInstance.getNetworkId();
+}
+
+/**
+ * @return Data associated with the current Mina network constants.
+ */
+function getNetworkConstants() {
+  return activeInstance.getNetworkConstants();
+}
+
+/**
+ * @return Data associated with the current state of the Mina network.
+ */
+function getNetworkState() {
+  return activeInstance.getNetworkState();
+}
+
+/**
+ * @return The balance associated to the given public key.
+ */
+function getBalance(publicKey: PublicKey, tokenId?: Field) {
+  return activeInstance.getAccount(publicKey, tokenId).balance;
+}
+
+/**
+ * @return A list of emitted events associated to the given public key.
+ */
+async function fetchEvents(
+  publicKey: PublicKey,
+  tokenId: Field,
+  filterOptions: EventActionFilterOptions = {}
+) {
+  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+async function fetchActions(
+  publicKey: PublicKey,
+  actionStates?: ActionStates,
+  tokenId?: Field
+) {
+  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+function getActions(
+  publicKey: PublicKey,
+  actionStates?: ActionStates,
+  tokenId?: Field
+) {
+  return activeInstance.getActions(publicKey, actionStates, tokenId);
+}
+
+function getProofsEnabled() {
+  return activeInstance.proofsEnabled;
 }

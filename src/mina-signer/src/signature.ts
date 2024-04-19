@@ -1,12 +1,12 @@
 import { blake2b } from 'blakejs';
-import { Field } from '../../provable/field-bigint.js';
+import { Field } from './field-bigint.js';
 import {
   Group,
   Scalar,
   PrivateKey,
   versionNumbers,
   PublicKey,
-} from '../../provable/curve-bigint.js';
+} from './curve-bigint.js';
 import {
   HashInput,
   hashWithPrefix,
@@ -17,14 +17,14 @@ import {
   packToFieldsLegacy,
   inputToBitsLegacy,
   HashLegacy,
-} from '../../provable/poseidon-bigint.js';
+} from './poseidon-bigint.js';
 import {
   bitsToBytes,
   bytesToBits,
   record,
   withVersionNumber,
 } from '../../bindings/lib/binable.js';
-import { base58 } from '../../lib/base58.js';
+import { base58 } from '../../lib/util/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
 import { NetworkId } from './types.js';
@@ -39,6 +39,8 @@ export {
   signLegacy,
   verifyLegacy,
   deriveNonce,
+  signaturePrefix,
+  zkAppBodyPrefix,
 };
 
 const networkIdMainnet = 0x01n;
@@ -150,10 +152,10 @@ function deriveNonce(
 ): Scalar {
   let { x, y } = publicKey;
   let d = Field(privateKey);
-  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
+  let id = getNetworkIdHashInput(networkId);
   let input = HashInput.append(message, {
     fields: [x, y, d],
-    packed: [[id, 8]],
+    packed: [id],
   });
   let packedInput = packToFields(input);
   let inputBits = packedInput.map(Field.toBits).flat();
@@ -189,11 +191,7 @@ function hashMessage(
 ): Scalar {
   let { x, y } = publicKey;
   let input = HashInput.append(message, { fields: [x, y, r] });
-  let prefix =
-    networkId === 'mainnet'
-      ? prefixes.signatureMainnet
-      : prefixes.signatureTestnet;
-  return hashWithPrefix(prefix, packToFields(input));
+  return hashWithPrefix(signaturePrefix(networkId), packToFields(input));
 }
 
 /**
@@ -280,7 +278,7 @@ function deriveNonceLegacy(
 ): Scalar {
   let { x, y } = publicKey;
   let scalarBits = Scalar.toBits(privateKey);
-  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
+  let id = getNetworkIdHashInput(networkId)[0];
   let idBits = bytesToBits([Number(id)]);
   let input = HashInputLegacy.append(message, {
     fields: [x, y],
@@ -311,9 +309,68 @@ function hashMessageLegacy(
 ): Scalar {
   let { x, y } = publicKey;
   let input = HashInputLegacy.append(message, { fields: [x, y, r], bits: [] });
-  let prefix =
-    networkId === 'mainnet'
-      ? prefixes.signatureMainnet
-      : prefixes.signatureTestnet;
+  let prefix = signaturePrefix(networkId);
   return HashLegacy.hashWithPrefix(prefix, packToFieldsLegacy(input));
 }
+
+const numberToBytePadded = (b: number) => b.toString(2).padStart(8, '0');
+
+function networkIdOfString(n: string): [bigint, number] {
+  let l = n.length;
+  let acc = '';
+  for (let i = l - 1; i >= 0; i--) {
+    let b = n.charCodeAt(i);
+    let padded = numberToBytePadded(b);
+    acc = acc.concat(padded);
+  }
+  return [BigInt('0b' + acc), acc.length];
+}
+
+function getNetworkIdHashInput(network: NetworkId): [bigint, number] {
+  let s = NetworkId.toString(network);
+  switch (s) {
+    case 'mainnet':
+      return [networkIdMainnet, 8];
+    case 'testnet':
+      return [networkIdTestnet, 8];
+    default:
+      return networkIdOfString(s);
+  }
+}
+
+const createCustomPrefix = (prefix: string) => {
+  const maxLength = 20;
+  const paddingChar = '*';
+  let length = prefix.length;
+
+  if (length <= maxLength) {
+    let diff = maxLength - length;
+    return prefix + paddingChar.repeat(diff);
+  } else {
+    return prefix.substring(0, maxLength);
+  }
+};
+
+const signaturePrefix = (network: NetworkId) => {
+  let s = NetworkId.toString(network);
+  switch (s) {
+    case 'mainnet':
+      return prefixes.signatureMainnet;
+    case 'testnet':
+      return prefixes.signatureTestnet;
+    default:
+      return createCustomPrefix(s + 'Signature');
+  }
+};
+
+const zkAppBodyPrefix = (network: NetworkId) => {
+  let s = NetworkId.toString(network);
+  switch (s) {
+    case 'mainnet':
+      return prefixes.zkappBodyMainnet;
+    case 'testnet':
+      return prefixes.zkappBodyTestnet;
+    default:
+      return createCustomPrefix(s + 'ZkappBody');
+  }
+};

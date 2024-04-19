@@ -35,7 +35,7 @@ const network = Mina.Network({
 });
 Mina.setActiveInstance(network);
 
-let tx, pendingTx: Mina.TransactionId, balances, oldBalances;
+let tx, pendingTx: Mina.PendingTransaction, balances, oldBalances;
 
 // compile contracts & wait for fee payer to be funded
 const senderKey = useCustomLocalNetwork
@@ -47,9 +47,9 @@ if (!useCustomLocalNetwork) {
   await ensureFundedAccount(senderKey.toBase58());
 }
 
-TokenContract.analyzeMethods();
-DexTokenHolder.analyzeMethods();
-Dex.analyzeMethods();
+await TokenContract.analyzeMethods();
+await DexTokenHolder.analyzeMethods();
+await Dex.analyzeMethods();
 
 tic('compile (token)');
 await TokenContract.compile();
@@ -72,15 +72,15 @@ let userSpec = { sender: addresses.user, fee: 0.1e9 };
 
 if (successfulTransactions <= 0) {
   tic('deploy & init token contracts');
-  tx = await Mina.transaction(senderSpec, () => {
-    const accountFee = Mina.getNetworkConstants().accountCreationFee;
+  tx = await Mina.transaction(senderSpec, async () => {
+    await tokenX.deploy();
+    await tokenY.deploy();
+
     // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
-    let feePayerUpdate = AccountUpdate.createSigned(sender);
-    feePayerUpdate.balance.subInPlace(accountFee.mul(2));
-    feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
-    feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
-    tokenX.deploy();
-    tokenY.deploy();
+    const accountFee = Mina.getNetworkConstants().accountCreationFee;
+    let feePayerUpdate = AccountUpdate.fundNewAccount(sender, 2);
+    feePayerUpdate.send({ to: tokenX.self, amount: accountFee });
+    feePayerUpdate.send({ to: tokenY.self, amount: accountFee });
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();
@@ -95,16 +95,16 @@ if (successfulTransactions <= 0) {
 
 if (successfulTransactions <= 1) {
   tic('deploy dex contracts');
-  tx = await Mina.transaction(senderSpec, () => {
+  tx = await Mina.transaction(senderSpec, async () => {
     // pay fees for creating 3 dex accounts
     AccountUpdate.createSigned(sender).balance.subInPlace(
       Mina.getNetworkConstants().accountCreationFee.mul(3)
     );
-    dex.deploy();
-    dexTokenHolderX.deploy();
-    tokenX.approveAccountUpdate(dexTokenHolderX.self);
-    dexTokenHolderY.deploy();
-    tokenY.approveAccountUpdate(dexTokenHolderY.self);
+    await dex.deploy();
+    await dexTokenHolderX.deploy();
+    await tokenX.approveAccountUpdate(dexTokenHolderX.self);
+    await dexTokenHolderY.deploy();
+    await tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.dex]).send();
@@ -121,12 +121,20 @@ let USER_DX = 1_000n;
 
 if (successfulTransactions <= 2) {
   tic('transfer tokens to user');
-  tx = await Mina.transaction(senderSpec, () => {
+  tx = await Mina.transaction(senderSpec, async () => {
     // pay fees for creating 3 user accounts
     let feePayer = AccountUpdate.fundNewAccount(sender, 3);
     feePayer.send({ to: addresses.user, amount: 8e9 }); // give users MINA to pay fees
-    tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
-    tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
+    await tokenX.transfer(
+      addresses.tokenX,
+      addresses.user,
+      UInt64.from(USER_DX)
+    );
+    await tokenY.transfer(
+      addresses.tokenY,
+      addresses.user,
+      UInt64.from(USER_DX)
+    );
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();
@@ -142,9 +150,9 @@ if (successfulTransactions <= 2) {
 if (successfulTransactions <= 3) {
   // this is done in advance to avoid account update limit in `supply`
   tic("create user's lq token account");
-  tx = await Mina.transaction(userSpec, () => {
+  tx = await Mina.transaction(userSpec, async () => {
     AccountUpdate.fundNewAccount(addresses.user);
-    dex.createAccount();
+    await dex.createAccount();
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -163,8 +171,8 @@ if (successfulTransactions <= 3) {
 
 if (successfulTransactions <= 4) {
   tic('supply liquidity');
-  tx = await Mina.transaction(userSpec, () => {
-    dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
+  tx = await Mina.transaction(userSpec, async () => {
+    await dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -185,8 +193,8 @@ let USER_DL = 100n;
 
 if (successfulTransactions <= 5) {
   tic('redeem liquidity, step 1');
-  tx = await Mina.transaction(userSpec, () => {
-    dex.redeemInitialize(UInt64.from(USER_DL));
+  tx = await Mina.transaction(userSpec, async () => {
+    await dex.redeemInitialize(UInt64.from(USER_DL));
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -203,9 +211,9 @@ if (successfulTransactions <= 5) {
 
 if (successfulTransactions <= 6) {
   tic('redeem liquidity, step 2a (get back token X)');
-  tx = await Mina.transaction(userSpec, () => {
-    dexTokenHolderX.redeemLiquidityFinalize();
-    tokenX.approveAccountUpdate(dexTokenHolderX.self);
+  tx = await Mina.transaction(userSpec, async () => {
+    await dexTokenHolderX.redeemLiquidityFinalize();
+    await tokenX.approveAccountUpdate(dexTokenHolderX.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -222,9 +230,9 @@ if (successfulTransactions <= 6) {
 
 if (successfulTransactions <= 7) {
   tic('redeem liquidity, step 2b (get back token Y)');
-  tx = await Mina.transaction(userSpec, () => {
-    dexTokenHolderY.redeemLiquidityFinalize();
-    tokenY.approveAccountUpdate(dexTokenHolderY.self);
+  tx = await Mina.transaction(userSpec, async () => {
+    await dexTokenHolderY.redeemLiquidityFinalize();
+    await tokenY.approveAccountUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -246,8 +254,8 @@ if (successfulTransactions <= 8) {
 
   tic('swap 10 X for Y');
   USER_DX = 10n;
-  tx = await Mina.transaction(userSpec, () => {
-    dex.swapX(UInt64.from(USER_DX));
+  tx = await Mina.transaction(userSpec, async () => {
+    await dex.swapX(UInt64.from(USER_DX));
   });
   await tx.prove();
   pendingTx = await tx.sign([keys.user]).send();
@@ -285,13 +293,15 @@ async function ensureFundedAccount(privateKeyBase58: string) {
   return { senderKey, sender };
 }
 
-function logPendingTransaction(pendingTx: Mina.TransactionId) {
-  if (!pendingTx.isSuccess) throw Error('transaction failed');
+function logPendingTransaction(pendingTx: Mina.PendingTransaction) {
+  if (pendingTx.status === 'rejected') throw Error('transaction failed');
   console.log(
     'tx sent: ' +
       (useCustomLocalNetwork
-        ? `file://${os.homedir()}/.cache/zkapp-cli/lightnet/explorer/<version>/index.html?target=transaction&hash=${pendingTx.hash()}`
-        : `https://minascan.io/berkeley/tx/${pendingTx.hash()}?type=zk-tx`)
+        ? `file://${os.homedir()}/.cache/zkapp-cli/lightnet/explorer/<version>/index.html?target=transaction&hash=${
+            pendingTx.hash
+          }`
+        : `https://minascan.io/berkeley/tx/${pendingTx.hash}?type=zk-tx`)
   );
 }
 

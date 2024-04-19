@@ -31,21 +31,22 @@ export { Erc20Like, TrivialCoin };
  *   (in order to get proof authorization), and can't be created by the token contract itself.
  * - `transfer()` doesn't return a boolean, because in the zkApp protocol,
  *   a transaction succeeds or fails in its entirety, and there is no need to handle partial failures.
+ * - All method signatures are async to support async circuits / fetching data from the chain.
  */
 type Erc20Like = {
   // pure view functions which don't need @method
-  name?: () => CircuitString;
-  symbol?: () => CircuitString;
-  decimals?: () => Field;
-  totalSupply(): UInt64;
-  balanceOf(owner: PublicKey | AccountUpdate): UInt64;
+  name?: () => Promise<CircuitString>;
+  symbol?: () => Promise<CircuitString>;
+  decimals?: () => Promise<Field>;
+  totalSupply(): Promise<UInt64>;
+  balanceOf(owner: PublicKey | AccountUpdate): Promise<UInt64>;
 
   // mutations which need @method
   transfer(
     from: PublicKey | AccountUpdate,
     to: PublicKey | AccountUpdate,
     value: UInt64
-  ): void; // emits "Transfer" event
+  ): Promise<void>; // emits "Transfer" event
 
   // events
   events: {
@@ -71,8 +72,8 @@ class TrivialCoin extends TokenContract implements Erc20Like {
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
 
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
+  async deploy(args?: DeployArgs) {
+    await super.deploy(args);
     this.account.tokenSymbol.set('TRIV');
 
     // make account non-upgradable forever
@@ -87,12 +88,12 @@ class TrivialCoin extends TokenContract implements Erc20Like {
     });
   }
 
-  @method init() {
+  @method async init() {
     super.init();
 
     // mint the entire supply to the token account with the same address as this contract
     let address = this.self.body.publicKey;
-    let receiver = this.token.mint({ address, amount: this.SUPPLY });
+    let receiver = this.internal.mint({ address, amount: this.SUPPLY });
 
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.requireEquals(Bool(true));
@@ -105,24 +106,24 @@ class TrivialCoin extends TokenContract implements Erc20Like {
   }
 
   // ERC20 API
-  name(): CircuitString {
+  async name() {
     return CircuitString.fromString('TrivialCoin');
   }
-  symbol(): CircuitString {
+  async symbol() {
     return CircuitString.fromString('TRIV');
   }
-  decimals(): Field {
+  async decimals() {
     return Field(9);
   }
-  totalSupply(): UInt64 {
+  async totalSupply() {
     return this.SUPPLY;
   }
-  balanceOf(owner: PublicKey | AccountUpdate): UInt64 {
+  async balanceOf(owner: PublicKey | AccountUpdate) {
     let update =
       owner instanceof PublicKey
-        ? AccountUpdate.create(owner, this.token.id)
+        ? AccountUpdate.create(owner, this.deriveTokenId())
         : owner;
-    this.approveAccountUpdate(update);
+    await this.approveAccountUpdate(update);
     return update.account.balance.getAndRequireEquals();
   }
 
@@ -136,7 +137,7 @@ class TrivialCoin extends TokenContract implements Erc20Like {
 
   // implement Approvable API
 
-  @method approveBase(forest: AccountUpdateForest) {
+  @method async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
 }
