@@ -20,14 +20,15 @@ let builtinLeafTypes = new Set([
 ]);
 let indent = '';
 
-function writeType(typeData, isJson, withTypeMap) {
+function writeType(typeData, isValue, isJson, withTypeMap) {
   let converters = {};
-  if (!isJson && typeData.checkedType) {
+  if (!(isJson || isValue) && typeData.checkedType) {
     let name = typeData.checkedTypeName;
     converters[name] = {
       typeName: name,
-      type: writeType(typeData.checkedType, false, withTypeMap).output,
-      jsonType: writeType(typeData, true, true).output,
+      type: writeType(typeData.checkedType, false, false, withTypeMap).output,
+      valueType: writeType(typeData.checkedType, true, false, true).output,
+      jsonType: writeType(typeData, false, true, true).output,
     };
     typeData = typeData.checkedType;
   }
@@ -37,7 +38,7 @@ function writeType(typeData, isJson, withTypeMap) {
       output,
       dependencies,
       converters: j,
-    } = writeType(inner, isJson, withTypeMap);
+    } = writeType(inner, isValue, isJson, withTypeMap);
     mergeObject(converters, j);
     return {
       output: `${output}[]`,
@@ -50,7 +51,7 @@ function writeType(typeData, isJson, withTypeMap) {
       output,
       dependencies,
       converters: j,
-    } = writeType(inner, isJson, withTypeMap);
+    } = writeType(inner, isValue, isJson, withTypeMap);
     if (optionType === 'flaggedOption' || optionType === 'closedInterval') {
       dependencies ??= new Set();
       dependencies.add('Bool');
@@ -84,7 +85,7 @@ function writeType(typeData, isJson, withTypeMap) {
         value = value.inner;
         questionMark = '?';
       }
-      let inner = writeType(value, isJson, withTypeMap);
+      let inner = writeType(value, isValue, isJson, withTypeMap);
       mergeSet(dependencies, inner.dependencies);
       mergeObject(converters, inner.converters);
       output += indent + `${key}${questionMark}: ${inner.output};\n`;
@@ -93,8 +94,8 @@ function writeType(typeData, isJson, withTypeMap) {
     output += indent + '}';
     return { output, dependencies, converters };
   }
-  if (withTypeMap & !builtinLeafTypes.has(type)) {
-    type = `${isJson ? 'Json.' : ''}TypeMap["${type}"]`;
+  if (withTypeMap && !builtinLeafTypes.has(type)) {
+    type = `${isJson ? 'Json.' : isValue ? 'Value.' : ''}TypeMap["${type}"]`;
   }
   // built in type
   if (builtinLeafTypes.has(type)) return { output: type, converters };
@@ -119,17 +120,25 @@ function writeTsContent({
 
   let fromLayout = isProvable ? 'provableFromLayout' : 'signableFromLayout';
   let FromLayout = isProvable ? 'ProvableFromLayout' : 'SignableFromLayout';
+  let Type = (Name, T, TValue, ...args) =>
+    `${Name}<${(isProvable ? [T, TValue, ...args] : [T, ...args]).join(', ')}>`;
+
   let GenericType = isProvable ? 'GenericProvableExtended' : 'GenericSignable';
   let GeneratedType = isProvable ? 'ProvableExtended' : 'Signable';
 
-  for (let [Type, value] of Object.entries(types)) {
-    let inner = writeType(value, isJson);
-    exports.add(Type);
+  for (let [T, value] of Object.entries(types)) {
+    let inner = writeType(value, false, isJson);
+    exports.add(T);
     mergeSet(dependencies, inner.dependencies);
     mergeObject(converters, inner.converters);
-    output += `type ${Type} = ${inner.output};\n\n`;
+    output += `type ${T} = ${inner.output};\n\n`;
     if (!isJson) {
-      output += `let ${Type} = ${fromLayout}<${Type}, Json.${Type}>(jsLayout.${Type} as any);\n\n`;
+      output += `let ${T} = ${Type(
+        fromLayout,
+        T,
+        `Value.${T}`,
+        `Json.${T}`
+      )}(jsLayout.${T} as any);\n\n`;
     }
   }
 
@@ -149,6 +158,9 @@ ${
     ? `import { ${GenericType} } from '../../lib/generic.js';\n` +
       `import { ${FromLayout}, GenericLayout } from '../../lib/from-layout.js';\n` +
       "import * as Json from './transaction-json.js';\n" +
+      (isProvable
+        ? "import * as Value from './transaction-bigint.js';\n"
+        : '') +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
 }
@@ -169,7 +181,12 @@ ${
   (!isJson || '') &&
   `
 const TypeMap: {
-  [K in keyof TypeMap]: ${GeneratedType}<TypeMap[K], Json.TypeMap[K]>;
+  [K in keyof TypeMap]: ${Type(
+    GeneratedType,
+    'TypeMap[K]',
+    'Value.TypeMap[K]',
+    'Json.TypeMap[K]'
+  )};
 } = {
   ${[...typeMapKeys].join(', ')}
 }
@@ -179,17 +196,33 @@ const TypeMap: {
 ${
   (!isJson || '') &&
   `
-type ${GeneratedType}<T, TJson> = ${GenericType}<T, TJson, Field>;
+type ${Type(GeneratedType, 'T', 'TValue', 'TJson')} = ${Type(
+    GenericType,
+    'T',
+    'TValue',
+    'TJson',
+    'Field'
+  )};
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = { ${customTypes
-    .map((c) => `${c.typeName}: ${GeneratedType}<${c.type}, ${c.jsonType}>;`)
+    .map(
+      (c) =>
+        `${c.typeName}: ${Type(
+          GeneratedType,
+          c.type,
+          c.valueType,
+          c.jsonType
+        )};`
+    )
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
-let { ${fromLayout}, toJSONEssential, empty } = ${FromLayout}<
-  TypeMap,
-  Json.TypeMap
->(TypeMap, customTypes);
+let { ${fromLayout}, toJSONEssential, empty } = ${Type(
+    FromLayout,
+    'TypeMap',
+    'Value.TypeMap',
+    'Json.TypeMap'
+  )}(TypeMap, customTypes);
 `
 }
 

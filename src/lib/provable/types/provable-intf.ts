@@ -14,7 +14,7 @@ export { Provable, ProvablePure };
  *
  * Note: These methods are meant to be used by the library internally and are not directly when writing provable code.
  */
-type Provable<T> = {
+type Provable<T, TValue = any> = {
   /**
    * A function that takes `value`, an element of type `T`, as argument and returns
    * an array of {@link Field} elements that make up the provable data of `value`.
@@ -64,6 +64,16 @@ type Provable<T> = {
    * @param value - the element of type `T` to put assertions on.
    */
   check: (value: T) => void;
+
+  /**
+   * Convert provable type to a normal JS type.
+   */
+  toValue: (x: T) => TValue;
+
+  /**
+   * Convert provable type from a normal JS type.
+   */
+  fromValue: (x: TValue | T) => T;
 };
 
 /**
@@ -73,6 +83,6 @@ type Provable<T> = {
  *
  * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
  */
-type ProvablePure<T> = Omit<Provable<T>, 'fromFields'> & {
+type ProvablePure<T, TValue = any> = Omit<Provable<T, TValue>, 'fromFields'> & {
   fromFields: (fields: Field[]) => T;
 };

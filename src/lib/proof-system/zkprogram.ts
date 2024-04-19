@@ -73,12 +73,12 @@ export {
 };
 
 type Undefined = undefined;
-const Undefined: ProvablePureExtended<undefined, null> =
+const Undefined: ProvablePureExtended<undefined, undefined, null> =
   EmptyUndefined<Field>();
 type Empty = Undefined;
 const Empty = Undefined;
 type Void = undefined;
-const Void: ProvablePureExtended<void, null> = EmptyVoid<Field>();
+const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
 class Proof<Input, Output> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;

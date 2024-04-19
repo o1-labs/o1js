@@ -15,6 +15,7 @@ import type {
 import { Provable } from '../provable.js';
 import { Proof } from '../../proof-system/zkprogram.js';
 import { ProvablePure } from './provable-intf.js';
+import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 
 // external API
 export {
@@ -47,15 +48,17 @@ type ProvableExtension<T, TJson = any> = {
   empty: () => T;
 };
 
-type ProvableExtended<T, TJson = any> = Provable<T> &
+type ProvableExtended<T, TValue = any, TJson = any> = Provable<T, TValue> &
   ProvableExtension<T, TJson>;
-type ProvablePureExtended<T, TJson = any> = ProvablePure<T> &
+type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
+  T,
+  TValue
+> &
   ProvableExtension<T, TJson>;
 
 type Struct<T> = ProvableExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
-type StructPure<T> = ProvablePure<NonMethods<T>> &
-  ProvableExtension<NonMethods<T>> &
+type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
 type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
@@ -136,13 +139,15 @@ type AnyConstructor = Constructor<any>;
 function Struct<
   A,
   T extends InferProvable<A> = InferProvable<A>,
+  V extends InferValue<A> = InferValue<A>,
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
   type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
-    ? ProvablePure<T>
-    : Provable<T>) & {
+    ? ProvablePure<T, V>
+    : Provable<T, V>) & {
+    fromValue: (value: From<A>) => T;
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
@@ -224,6 +229,23 @@ function Struct<
     static check(value: T) {
       return this.type.check(value);
     }
+
+    /**
+     * `Provable<T>.toValue()`
+     */
+    static toValue(x: T): V {
+      return this.type.toValue(x) as V;
+    }
+
+    /**
+     * `Provable<T>.fromValue()`
+     */
+    static fromValue(v: From<A>): T {
+      let value = this.type.fromValue(v as any);
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
+    }
+
     /**
      * This method is for internal use, you will probably not need it.
      * Recover a struct from its raw field elements and auxiliary data.

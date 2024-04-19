@@ -33,8 +33,8 @@ const accountUpdateBigint = Random.map(
     // ensure that, by default, all account updates are token-accessible
     a.body.mayUseToken =
       a.body.callDepth === 0
-        ? { parentsOwnToken: 1n, inheritFromParent: 0n }
-        : { parentsOwnToken: 0n, inheritFromParent: 1n };
+        ? { parentsOwnToken: true, inheritFromParent: false }
+        : { parentsOwnToken: false, inheritFromParent: true };
     return a;
   }
 );

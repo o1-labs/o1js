@@ -22,6 +22,7 @@ import {
   generateWitness,
 } from './core/provable-context.js';
 import { witness, witnessAsync } from './types/witness.js';
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 
 // external API
 export { Provable };
@@ -46,7 +47,7 @@ export {
  *
  * Note: These methods are meant to be used by the library internally and are not directly when writing provable code.
  */
-type Provable<T> = Provable_<T>;
+type Provable<T, TValue = any> = Provable_<T, TValue>;
 
 const Provable = {
   /**
@@ -60,7 +61,7 @@ const Provable = {
    * ```ts
    * let invX = Provable.witness(Field, () => {
    *   // compute the inverse of `x` outside the circuit, however you like!
-   *   return Field.inv(x));
+   *   return Field.inv(x);
    * }
    * // prove that `invX` is really the inverse of `x`:
    * invX.mul(x).assertEquals(1);
@@ -446,7 +447,7 @@ let memoizationContext = Context.create<MemoizationContext>();
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return Provable.witness<T>(type as Provable<T>, () => {
+  return Provable.witness(type as Provable<T>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;
@@ -481,8 +482,9 @@ function provableArray<A extends FlexibleProvable<any>>(
   length: number
 ): InferredProvable<A[]> {
   type T = InferProvable<A>;
+  type TValue = InferValue<A>;
   type TJson = InferJson<A>;
-  let type = elementType as ProvableExtended<T>;
+  let type = elementType as ProvableExtended<T, TValue, TJson>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
@@ -528,6 +530,15 @@ function provableArray<A extends FlexibleProvable<any>>(
         (type as any).check(array[i]);
       }
     },
+
+    toValue(x) {
+      return x.map((v) => type.toValue(v));
+    },
+
+    fromValue(x) {
+      return x.map((v) => type.fromValue(v));
+    },
+
     /**
      * Encodes this structure into a JSON-like object.
      */
@@ -565,5 +576,5 @@ function provableArray<A extends FlexibleProvable<any>>(
       }
       return Array.from({ length }, () => type.empty());
     },
-  } satisfies ProvableExtended<T[], TJson[]> as any;
+  } satisfies ProvableExtended<T[], TValue[], TJson[]> as any;
 }

@@ -72,10 +72,7 @@ function xor(a: Field, b: Field, length: number) {
   }
 
   // calculate expected xor output
-  let outputXor = Provable.witness(
-    Field,
-    () => new Field(a.toBigInt() ^ b.toBigInt())
-  );
+  let outputXor = Provable.witness(Field, () => a.toBigInt() ^ b.toBigInt());
 
   // builds the xor gadget chain
   buildXor(a, b, outputXor, padLength);
@@ -176,10 +173,7 @@ function and(a: Field, b: Field, length: number) {
   }
 
   // calculate expect and output
-  let outputAnd = Provable.witness(
-    Field,
-    () => new Field(a.toBigInt() & b.toBigInt())
-  );
+  let outputAnd = Provable.witness(Field, () => a.toBigInt() & b.toBigInt());
 
   // compute values for gate
   // explanation: https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and
@@ -264,7 +258,7 @@ function rot64(
       const rotated = shifted + excess;
       // Compute bound to check excess < 2^rot
       const bound = excess + big2Power64 - big2PowerRot;
-      return [rotated, excess, shifted, bound].map(Field.from);
+      return [rotated, excess, shifted, bound];
     }
   );
 

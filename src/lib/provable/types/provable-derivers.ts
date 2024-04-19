@@ -9,6 +9,7 @@ import {
   IsPure as GenericIsPure,
   createHashInput,
   Constructor,
+  InferValue,
 } from '../../../bindings/lib/provable-generic.js';
 import { Tuple } from '../../util/types.js';
 import { GenericHashInput } from '../../../bindings/lib/generic.js';
@@ -38,9 +39,12 @@ type ProvableExtension<T, TJson = any> = {
   fromJSON: (x: TJson) => T;
   empty: () => T;
 };
-type ProvableExtended<T, TJson = any> = Provable<T> &
+type ProvableExtended<T, TValue = any, TJson = any> = Provable<T, TValue> &
   ProvableExtension<T, TJson>;
-type ProvablePureExtended<T, TJson = any> = ProvablePure<T> &
+type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
+  T,
+  TValue
+> &
   ProvableExtension<T, TJson>;
 
 type InferProvable<T> = GenericInferProvable<T, Field>;
@@ -83,6 +87,10 @@ function provableFromClass<A, T extends InferProvable<A>>(
         raw.check(value);
       }
     },
+    toValue: raw.toValue,
+    fromValue(x) {
+      return construct(Class, raw.fromValue(x));
+    },
     toInput: raw.toInput,
     toJSON: raw.toJSON,
     fromJSON(x) {
@@ -93,7 +101,7 @@ function provableFromClass<A, T extends InferProvable<A>>(
         ? Class.empty()
         : construct(Class, raw.empty());
     },
-  } satisfies ProvableExtended<T, InferJson<A>> as any;
+  } satisfies ProvableExtended<T, InferValue<A>, InferJson<A>> as any;
 }
 
 function construct<Raw, T extends Raw>(Class: Constructor<T>, value: Raw): T {

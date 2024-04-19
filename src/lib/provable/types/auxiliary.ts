@@ -8,6 +8,8 @@ const RandomId: ProvableHashable<number> = {
   toAuxiliary: (v = Math.random()) => [v],
   fromFields: (_, [v]) => v,
   check: () => {},
+  toValue: (x) => x,
+  fromValue: (x) => x,
   toInput: () => ({}),
   empty: () => Math.random(),
 };

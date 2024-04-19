@@ -204,6 +204,7 @@ function isHashable<T>(obj: any): obj is Hashable<T> {
 
 const TokenSymbolPure: ProvableExtended<
   { symbol: string; field: Field },
+  string,
   string
 > = {
   toFields({ field }) {
@@ -221,6 +222,19 @@ const TokenSymbolPure: ProvableExtended<
   check({ field }: TokenSymbol) {
     rangeCheckN(48, field);
   },
+  toValue({ symbol }) {
+    return symbol;
+  },
+  fromValue(symbol: string | TokenSymbol) {
+    if (typeof symbol !== 'string') return symbol;
+    let bytesLength = new TextEncoder().encode(symbol).length;
+    if (bytesLength > 6)
+      throw Error(
+        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
+      );
+    let field = prefixToField(symbol);
+    return { symbol, field };
+  },
   toJSON({ symbol }) {
     return symbol;
   },
@@ -236,14 +250,8 @@ const TokenSymbolPure: ProvableExtended<
   },
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
-  static from(symbol: string): TokenSymbol {
-    let bytesLength = new TextEncoder().encode(symbol).length;
-    if (bytesLength > 6)
-      throw Error(
-        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
-      );
-    let field = prefixToField(symbol);
-    return { symbol, field };
+  static from(value: string | TokenSymbol) {
+    return TokenSymbol.fromValue(value) as TokenSymbol;
   }
 }
 
