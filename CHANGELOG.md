@@ -38,6 +38,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improved functionality of `MerkleList` and `MerkleListIterator` for easier traversal of `MerkleList`s. https://github.com/o1-labs/o1js/pull/1562
 - Simplified internal logic of reducer. https://github.com/o1-labs/o1js/pull/1577
   - `contract.getActions()` now returns a `MerkleList`
+- Add `toValue()` and `fromValue()` interface to `Provable<T>` to encode how provable types map to plain JS values https://github.com/o1-labs/o1js/pull/1271
+  - You can now return the plain value from a `Provable.witness()` callback, and it will be transformed into the provable type
+- Remove `Account()` constructor which was no different from `AccountUpdate.create().account`, and export `Account` type instead. https://github.com/o1-labs/o1js/pull/1598
 
 ### Added
 

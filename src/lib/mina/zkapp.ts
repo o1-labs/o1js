@@ -77,7 +77,7 @@ import { ProvablePure } from '../provable/types/provable-intf.js';
 import { MerkleList } from '../provable/merkle-list.js';
 
 // external API
-export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
+export { SmartContract, method, DeployArgs, declareMethods, Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 type AsyncFunction = (...args: any) => Promise<any>;
@@ -1477,14 +1477,6 @@ const SmartContractContext = {
 type DeployArgs =
   | { verificationKey?: { data: string; hash: string | Field } }
   | undefined;
-
-function Account(address: PublicKey, tokenId?: Field) {
-  if (smartContractContext.get()) {
-    return AccountUpdate.create(address, tokenId).account;
-  } else {
-    return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
-  }
-}
 
 // alternative API which can replace decorators, works in pure JS
 
