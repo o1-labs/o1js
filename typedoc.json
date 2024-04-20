@@ -24,7 +24,7 @@
   "excludeProtected": true,
   "excludeReferences": true,
 
-
+  // https://www.typedoc-plugin-markdown.org/options
   "fileExtension": ".mdx",
   "hidePageHeader": true,
   "hidePageTitle": true,
@@ -35,11 +35,7 @@
   "propertiesFormat": "list",
   "typeDeclarationFormat": "list",
   "indexFormat": "table",
-  "entryFileName": "Overview.mdx",
-
-  "textContentMappings": {
-    "breadcrumbs.home": "API",
-    "kind.typeAlias.singular": "Type",
-    "kind.typeAlias.plural": "Types",
-  }
+  "mergeReadme": true,
+  "expandParameters": true,
+  "expandObjects": true,
 }
