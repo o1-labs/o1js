@@ -1,16 +1,24 @@
 {
   "name": "o1js",
-  "plugin": ["typedoc-plugin-markdown"],
+  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-merge-modules"],
+  // https://typedoc.org/options
+  "tsconfig": "tsconfig.web.json",
   "out": "o1js-reference",
   "cleanOutputDir": true,
   "githubPages": false,
   "exclude": ["dist/**/*", "src/mina-signer/**/*", "src/bindings/**/*", "src/examples/**/*", "src/lib/provable/+(core|test)/**/*", "src/**/*(test|unit-test).ts"],
   "entryPoints": [
     "src/index.ts",
+    "src/lib/provable/field.ts",
+    "src/lib/provable/bool.ts",
+    "src/lib/provable/group.ts",
+    "src/lib/provable/int.ts",
+    "src/lib/provable/scalar.ts",
+    "src/lib/provable/merkle-list.ts",
+    "src/lib/provable/merkle-map.ts",
+    "src/lib/provable/merkle-tree.ts",
   ],
   "entryPointStrategy": "resolve",
-  "tsconfig": "tsconfig.web.json",
-
   "excludeInternal": true,
   "excludePrivate": true,
   "excludeProtected": true,
