@@ -1,8 +1,7 @@
 /**
  * RSA signature verification with o1js
  */
-import { Field, Gadgets, Provable, Struct, ZkProgram, provable } from 'o1js';
-import { tic, toc } from '../../utils/tic-toc.node.js';
+import { Field, Gadgets, Provable, Struct, provable } from 'o1js';
 
 export { 
   Bigint2048, 
@@ -165,30 +164,3 @@ function rangeCheck128Signed(xSigned: Field) {
     .isDefinitelyInRangeN(128, x)
     .assertTrue("BigInt carry should not exceed 128 bits!");
 }
-
-let rsa = ZkProgram({
-  name: 'rsa-verify',
-
-  methods: {
-    verify: {
-      privateInputs: [Bigint2048, Bigint2048, Bigint2048],
-
-      async method(
-        message: Bigint2048,
-        signature: Bigint2048,
-        modulus: Bigint2048
-      ) {
-        rsaVerify65537(message, signature, modulus);
-      },
-    },
-  },
-});
-
-let { verify } = await rsa.analyzeMethods();
-
-console.log(verify.summary());
-console.log('rows', verify.rows);
-
-tic('compile');
-await rsa.compile();
-toc();
