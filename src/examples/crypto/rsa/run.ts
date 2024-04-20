@@ -1,6 +1,3 @@
-
-
-
 import { ZkProgram } from 'o1js';
 import  { 
     Bigint2048, 
