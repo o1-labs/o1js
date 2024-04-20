@@ -288,6 +288,21 @@ class Bool {
   }
 
   /**
+   * `Provable<Bool>.toValue()`
+   */
+  static toValue(x: Bool): boolean {
+    return x.toBoolean();
+  }
+
+  /**
+   * `Provable<Bool>.fromValue()`
+   */
+  static fromValue(b: boolean | Bool) {
+    if (typeof b === 'boolean') return new Bool(b);
+    return b;
+  }
+
+  /**
    * Serialize a {@link Bool} to a JSON string.
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
@@ -349,11 +364,6 @@ class Bool {
      * @param x a {@link Field}
      */
     fromField(x: Field) {
-      asProver(() => {
-        let x0 = x.toBigInt();
-        if (x0 !== 0n && x0 !== 1n)
-          throw Error(`Bool.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);
-      });
       return new Bool(x.value);
     },
   };

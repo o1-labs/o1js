@@ -454,7 +454,7 @@ class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
   static _provable:
-    | ProvablePureExtended<UnreducedForeignField, string>
+    | ProvablePureExtended<UnreducedForeignField, bigint, string>
     | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
@@ -474,7 +474,7 @@ class AlmostForeignField extends ForeignFieldWithMul {
   }
 
   static _provable:
-    | ProvablePureExtended<AlmostForeignField, string>
+    | ProvablePureExtended<AlmostForeignField, bigint, string>
     | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
@@ -516,7 +516,7 @@ class CanonicalForeignField extends ForeignFieldWithMul {
   }
 
   static _provable:
-    | ProvablePureExtended<CanonicalForeignField, string>
+    | ProvablePureExtended<CanonicalForeignField, bigint, string>
     | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
@@ -696,7 +696,7 @@ type Constructor<T> = new (...args: any[]) => T;
 
 function provable<F extends ForeignField>(
   Class: Constructor<F> & { check(x: ForeignField): void }
-): ProvablePureExtended<F, string> {
+): ProvablePureExtended<F, bigint, string> {
   return {
     toFields(x) {
       return x.value;
@@ -713,6 +713,12 @@ function provable<F extends ForeignField>(
     },
     check(x: ForeignField) {
       Class.check(x);
+    },
+    toValue(x) {
+      return x.toBigInt();
+    },
+    fromValue(x) {
+      return new Class(x);
     },
     // ugh
     toJSON(x: ForeignField) {

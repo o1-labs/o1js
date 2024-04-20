@@ -33,8 +33,8 @@ const accountUpdateBigint = Random.map(
     // ensure that, by default, all account updates are token-accessible
     a.body.mayUseToken =
       a.body.callDepth === 0
-        ? { parentsOwnToken: 1n, inheritFromParent: 0n }
-        : { parentsOwnToken: 0n, inheritFromParent: 1n };
+        ? { parentsOwnToken: true, inheritFromParent: false }
+        : { parentsOwnToken: false, inheritFromParent: true };
     return a;
   }
 );
@@ -69,19 +69,20 @@ test.custom({ timeBudget: 1000 })(
 
 test.custom({ timeBudget: 1000 })(flatAccountUpdates, (flatUpdates) => {
   // prepare call forest from flat account updates
-  let forest = AccountUpdateForest.fromFlatArray(flatUpdates).startIterating();
+  let forest =
+    AccountUpdateForest.fromFlatArray(flatUpdates).startIteratingFromLast();
   let updates = flatUpdates.filter((u) => u.body.callDepth === 0);
 
   // step through top-level by calling forest.next() repeatedly
   let n = updates.length;
   for (let i = 0; i < n; i++) {
     let expected = updates[i];
-    let actual = forest.next().accountUpdate.unhash();
+    let actual = forest.previous().accountUpdate.unhash();
     assertEqual(actual, expected);
   }
 
   // doing next() again should return a dummy
-  let actual = forest.next().accountUpdate.unhash();
+  let actual = forest.previous().accountUpdate.unhash();
   assertEqual(actual, AccountUpdate.dummy());
 });
 

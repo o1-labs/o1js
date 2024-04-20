@@ -71,6 +71,7 @@ function inCompileMode() {
 
 function asProver(f: () => void) {
   if (inCheckedComputation()) {
+    // TODO make this start a "witness block" context
     Snarky.run.asProver(f);
   } else {
     f();

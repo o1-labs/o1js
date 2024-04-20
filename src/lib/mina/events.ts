@@ -59,16 +59,23 @@ function createEvents<Field>({
   };
   const EventsProvable = {
     ...Events,
-    ...dataAsHash({
+    ...dataAsHash<Field[][], bigint[][], string[][], Field>({
       empty: Events.empty,
-      toJSON(data: Field[][]) {
+      toValue(data) {
+        return data.map((row) => row.map((e) => Field.toBigint(e)));
+      },
+      fromValue(value) {
+        return value.map((row) => row.map((e) => Field(e)));
+      },
+      toJSON(data) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
-      fromJSON(json: string[][]) {
+      fromJSON(json) {
         let data = json.map((row) => row.map((e) => Field.fromJSON(e)));
         let hash = Events.hash(data);
         return { data, hash };
       },
+      Field,
     }),
   };
 
@@ -104,10 +111,16 @@ function createEvents<Field>({
     },
   };
 
-  const SequenceEventsProvable = {
+  const ActionsProvable = {
     ...Actions,
-    ...dataAsHash({
+    ...dataAsHash<Field[][], bigint[][], string[][], Field>({
       empty: Actions.empty,
+      toValue(data) {
+        return data.map((row) => row.map((e) => Field.toBigint(e)));
+      },
+      fromValue(value) {
+        return value.map((row) => row.map((e) => Field(e)));
+      },
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -116,21 +129,33 @@ function createEvents<Field>({
         let hash = Actions.hash(data);
         return { data, hash };
       },
+      Field,
     }),
   };
 
-  return { Events: EventsProvable, Actions: SequenceEventsProvable };
+  return { Events: EventsProvable, Actions: ActionsProvable };
 }
 
-function dataAsHash<T, J, Field>({
+function dataAsHash<T, V, J, Field>({
   empty,
+  toValue,
+  fromValue,
   toJSON,
   fromJSON,
+  Field,
 }: {
   empty: () => { data: T; hash: Field };
+  toValue: (value: T) => V;
+  fromValue: (value: V | T) => T;
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
-}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> {
+  Field: GenericSignableField<Field>;
+}): GenericProvableExtended<
+  { data: T; hash: Field },
+  { data: V; hash: bigint },
+  J,
+  Field
+> {
   return {
     empty,
     sizeInFields() {
@@ -144,6 +169,12 @@ function dataAsHash<T, J, Field>({
     },
     fromFields([hash], [data]) {
       return { data, hash };
+    },
+    toValue({ data, hash }) {
+      return { data: toValue(data), hash: Field.toBigint(hash) };
+    },
+    fromValue({ data, hash }) {
+      return { data: fromValue(data), hash: Field(hash) };
     },
     toJSON({ data }) {
       return toJSON(data);

@@ -76,7 +76,7 @@ class Scalar implements ShiftedScalar {
    *
    * See {@link FieldVar} for an explanation of constants vs. variables.
    */
-  toConstant() {
+  toConstant(): Scalar {
     if (this.isConstant()) return this;
     return Provable.toConstant(Scalar, this);
   }
@@ -282,6 +282,14 @@ class Scalar implements ShiftedScalar {
      * which relies on that range is scalar multiplication -- which constrains the range itself.
      */
     return Bool.check(s.lowBit);
+  }
+
+  static toValue(x: Scalar) {
+    return x.toBigInt();
+  }
+
+  static fromValue(x: bigint) {
+    return Scalar.from(x);
   }
 
   // ProvableExtended<Scalar>

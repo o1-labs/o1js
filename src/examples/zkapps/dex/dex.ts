@@ -126,8 +126,14 @@ function createDex({
      */
     async supplyLiquidity(dx: UInt64) {
       // calculate dy outside circuit
-      let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
-      let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
+      let x = Mina.getAccount(
+        this.address,
+        TokenId.derive(this.tokenX)
+      ).balance;
+      let y = Mina.getAccount(
+        this.address,
+        TokenId.derive(this.tokenY)
+      ).balance;
       if (x.value.isConstant() && x.value.equals(0).toBoolean()) {
         throw Error(
           'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'

@@ -29,6 +29,7 @@ import {
   getField,
 } from '../core/field-constructor.js';
 import type { Bool } from '../bool.js';
+import { ProvablePureExtended } from '../types/struct.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -473,7 +474,16 @@ const Field3 = {
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
    * range checks.
    */
-  provable: provableTuple([provableLimb, provableLimb, provableLimb]),
+  provable: {
+    ...provableTuple([provableLimb, provableLimb, provableLimb]),
+    toValue(x): bigint {
+      return Field3.toBigint(x);
+    },
+    fromValue(x): Field3 {
+      if (typeof x === 'bigint') return Field3.from(x);
+      return x;
+    },
+  } satisfies ProvablePureExtended<Field3, bigint, [string, string, string]>,
 };
 
 type Field2 = [Field, Field];
@@ -741,7 +751,6 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
 
   // case of one variable, one constant
 
-  if (Field3.isConstant(x)) return assertLessThan(y_, x);
   if (Field3.isConstant(y_)) {
     y = typeof y === 'bigint' ? y : Field3.toBigint(y);
     // this case is not included below, because ffadd doesn't support negative moduli

@@ -23,8 +23,8 @@ import { assert } from '../../util/assert.js';
 let { runAndCheckSync } = await synchronousRunners();
 
 // types
-Field satisfies Provable<Field>;
-Field satisfies ProvablePure<Field>;
+Field satisfies Provable<Field, bigint>;
+Field satisfies ProvablePure<Field, bigint>;
 Field satisfies ProvableExtended<Field>;
 Field satisfies Binable<Field>;
 
@@ -145,7 +145,7 @@ equivalent({ from: [field], to: bool })(
 test(Random.field, (x0, assert) => {
   runAndCheckSync(() => {
     // Var
-    let x = Provable.witness(Field, () => Field(x0));
+    let x = Provable.witness(Field, () => x0);
     assert(x.value[0] === FieldType.Var);
     assert(typeof x.value[1] === 'number');
     throws(() => x.toConstant());
@@ -184,8 +184,8 @@ test(Random.field, (x0, assert) => {
 test(Random.field, Random.field, (x0, y0, assert) => {
   runAndCheckSync(() => {
     // equals
-    let x = Provable.witness(Field, () => Field(x0));
-    let y = Provable.witness(Field, () => Field(y0));
+    let x = Provable.witness(Field, () => x0);
+    let y = Provable.witness(Field, () => y0);
 
     let b = x.equals(y);
     b.assertEquals(x0 === y0);

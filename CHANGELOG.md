@@ -35,6 +35,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Added `Poseidon.Unsafe.hashToGroup()` as a more efficient, non-deterministic version for advanced use cases
 - A `Transaction`'s `prove` method no longer returns the proofs promise directly, but rather returns a `Transaction` promise, the resolved value of which contains a `proofs` prop. https://github.com/o1-labs/o1js/pull/1567
 - The `Transaction` type now has two type params `Proven extends boolean` and `Signed extends boolean`, which are used to conditionally show/hide relevant state. https://github.com/o1-labs/o1js/pull/1567
+- Improved functionality of `MerkleList` and `MerkleListIterator` for easier traversal of `MerkleList`s. https://github.com/o1-labs/o1js/pull/1562
+- Simplified internal logic of reducer. https://github.com/o1-labs/o1js/pull/1577
+  - `contract.getActions()` now returns a `MerkleList`
+- Add `toValue()` and `fromValue()` interface to `Provable<T>` to encode how provable types map to plain JS values https://github.com/o1-labs/o1js/pull/1271
+  - You can now return the plain value from a `Provable.witness()` callback, and it will be transformed into the provable type
+- Remove `Account()` constructor which was no different from `AccountUpdate.create().account`, and export `Account` type instead. https://github.com/o1-labs/o1js/pull/1598
 
 ### Added
 

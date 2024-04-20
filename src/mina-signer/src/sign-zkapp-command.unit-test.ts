@@ -56,7 +56,7 @@ test(Random.json.publicKey, (publicKeyBase58) => {
   let pkSnarky = PublicKeySnarky.fromBase58(publicKeyBase58);
   let pk = PublicKey.fromJSON(publicKeyBase58);
   expect(pk.x).toEqual(pkSnarky.x.toBigInt());
-  expect(pk.isOdd).toEqual(pkSnarky.isOdd.toField().toBigInt());
+  expect(pk.isOdd).toEqual(pkSnarky.isOdd.toBoolean());
   expect(PublicKey.toJSON(pk)).toEqual(publicKeyBase58);
 });
 
@@ -285,7 +285,7 @@ console.log('to/from json, hashes & signatures are consistent! 🎉');
 
 function fixVerificationKey(a: AccountUpdate) {
   // ensure verification key is valid
-  if (a.body.update.verificationKey.isSome === 1n) {
+  if (a.body.update.verificationKey.isSome) {
     let [, data, hash] = Pickles.dummyVerificationKey();
     a.body.update.verificationKey.value = {
       data,

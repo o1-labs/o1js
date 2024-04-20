@@ -268,5 +268,13 @@ function provableFromTuple(
     check(xs: Array<any>) {
       types.forEach((typ, i) => (typ as any).check(xs[i]));
     },
+
+    toValue(x) {
+      return types.map((typ, i) => typ.toValue(x[i]));
+    },
+
+    fromValue(x) {
+      return types.map((typ, i) => typ.fromValue(x[i]));
+    },
   };
 }

@@ -220,6 +220,16 @@ class Group {
     return x1.equals(x2).and(y1.equals(y2));
   }
 
+  static toValue({ x, y }: Group) {
+    return { x: x.toBigInt(), y: y.toBigInt() };
+  }
+
+  static fromValue(
+    g: { x: bigint | number | Field; y: bigint | number | Field } | Group
+  ) {
+    return new Group(g);
+  }
+
   /**
    * Serializes this {@link Group} element to a JSON object.
    *
