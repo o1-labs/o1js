@@ -106,6 +106,7 @@ class MerkleList<T> implements MerkleListBase<T> {
    */
   pushIf(condition: Bool, element: T) {
     let previousHash = this.hash;
+
     this.hash = Provable.if(
       condition,
       this.nextHash(previousHash, element),
@@ -195,6 +196,11 @@ class MerkleList<T> implements MerkleListBase<T> {
     return merkleArray.startIterating(this);
   }
 
+  startIteratingFromLast(): MerkleListIterator<T> {
+    let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
+    return merkleArray.startIteratingFromLast(this);
+  }
+
   /**
    * Create a Merkle list type
    *
@@ -215,6 +221,7 @@ class MerkleList<T> implements MerkleListBase<T> {
     // override static methods with strict types
     empty: () => MerkleList<T>;
     from: (array: T[]) => MerkleList<T>;
+    fromReverse: (array: T[]) => MerkleList<T>;
     provable: ProvableHashable<MerkleList<T>>;
   } {
     class MerkleListTBase extends MerkleList<T> {
@@ -233,6 +240,15 @@ class MerkleList<T> implements MerkleListBase<T> {
       }
 
       static from(array: T[]): MerkleList<T> {
+        array = [...array].reverse();
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
+        let unconstrained = Unconstrained.witness(() =>
+          data.map((x) => toConstant(type, x))
+        );
+        return new this({ data: unconstrained, hash });
+      }
+
+      static fromReverse(array: T[]): MerkleList<T> {
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
           data.map((x) => toConstant(type, x))
@@ -308,9 +324,9 @@ type MerkleListIteratorBase<T> = {
 
 /**
  * MerkleListIterator helps iterating through a Merkle list.
- * This works similar to calling `list.pop()` repeatedly, but maintaining the entire list instead of removing elements.
+ * This works similar to calling `list.pop()` or `list.push()` repeatedly, but maintaining the entire list instead of removing elements.
  *
- * The core method that supports iteration is {@link next()}.
+ * The core methods that support iteration are {@link next()} and {@link previous()}.
  *
  * ```ts
  * let iterator = MerkleListIterator.startIterating(list);
@@ -318,8 +334,8 @@ type MerkleListIteratorBase<T> = {
  * let firstElement = iterator.next();
  * ```
  *
- * We maintain two commitments, both of which are equivalent to a Merkle list hash starting _from the end_ of the array:
- * - One to the entire array, to prove that we start iterating at the beginning.
+ * We maintain two commitments:
+ * - One to the entire array, to be able to prove that we end iteration at the correct point.
  * - One to the array from the current index until the end, to efficiently step forward.
  */
 class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
@@ -336,19 +352,43 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   }
 
   assertAtStart() {
-    return this.currentHash.assertEquals(this.hash);
+    return this.currentHash.assertEquals(this.Constructor.emptyHash);
   }
 
   isAtEnd() {
+    return this.currentHash.equals(this.hash);
+  }
+
+  jumpToEnd() {
+    this.currentIndex.setTo(Unconstrained.witness(() => 0));
+    this.currentHash = this.hash;
+  }
+
+  jumpToEndIf(condition: Bool) {
+    Provable.asProver(() => {
+      if (condition.toBoolean()) {
+        this.currentIndex.set(0);
+      }
+    });
+    this.currentHash = Provable.if(condition, this.hash, this.currentHash);
+  }
+
+  assertAtEnd() {
+    return this.currentHash.assertEquals(this.hash);
+  }
+
+  isAtStart() {
     return this.currentHash.equals(this.Constructor.emptyHash);
   }
-  jumpToEnd() {
+
+  jumpToStart() {
     this.currentIndex.setTo(
       Unconstrained.witness(() => this.data.get().length)
     );
     this.currentHash = this.Constructor.emptyHash;
   }
-  jumpToEndIf(condition: Bool) {
+
+  jumpToStartIf(condition: Bool) {
     Provable.asProver(() => {
       if (condition.toBoolean()) {
         this.currentIndex.set(this.data.get().length);
@@ -361,27 +401,42 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     );
   }
 
-  next() {
-    // next corresponds to `pop()` in MerkleList
-    // it returns a dummy element if we're at the end of the array
+  _index(direction: 'next' | 'previous', i?: number) {
+    i ??= this.currentIndex.get();
+    if (direction === 'next') {
+      return Math.min(Math.max(i, -1), this.data.get().length - 1);
+    } else {
+      return Math.max(Math.min(i, this.data.get().length), 0);
+    }
+  }
+  _updateIndex(direction: 'next' | 'previous') {
+    this.currentIndex.updateAsProver(() => {
+      let i = this._index(direction);
+      return this._index(direction, direction === 'next' ? i - 1 : i + 1);
+    });
+  }
+
+  previous() {
+    // `previous()` corresponds to `pop()` in MerkleList
+    // it returns a dummy element if we're at the start of the array
     let { previousHash, element } = Provable.witness(
       WithHash(this.innerProvable),
       () =>
-        this.data.get()[this.currentIndex.get()] ?? {
+        this.data.get()[this._index('previous')] ?? {
           previousHash: this.Constructor.emptyHash,
           element: this.innerProvable.empty(),
         }
     );
 
-    let isDummy = this.isAtEnd();
+    let isDummy = this.isAtStart();
     let emptyHash = this.Constructor.emptyHash;
     let correctHash = this.nextHash(previousHash, element);
     let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
+
     this.currentHash.assertEquals(requiredHash);
 
-    this.currentIndex.updateAsProver((i) =>
-      Math.min(i + 1, this.data.get().length)
-    );
+    this._updateIndex('previous');
+
     this.currentHash = Provable.if(isDummy, emptyHash, previousHash);
 
     return Provable.if(
@@ -390,6 +445,90 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       this.innerProvable.empty(),
       element
     );
+  }
+
+  next() {
+    // instead of starting from index `0`, we start at index `length - 1` and go in reverse
+    // this is like MerkleList.push() but we witness the next element instead of taking it as input,
+    // and we return a dummy element if we're at the end of the array
+    let element = Provable.witness(
+      this.innerProvable,
+      () =>
+        this.data.get()[this._index('next')]?.element ??
+        this.innerProvable.empty()
+    );
+
+    let isDummy = this.isAtEnd();
+    let currentHash = this.nextHash(this.currentHash, element);
+    this.currentHash = Provable.if(isDummy, this.hash, currentHash);
+    this._updateIndex('next');
+
+    return Provable.if(
+      isDummy,
+      this.innerProvable,
+      this.innerProvable.empty(),
+      element
+    );
+  }
+
+  /**
+   * Low-level APIs for advanced uses
+   */
+  get Unsafe() {
+    let self = this;
+    return {
+      /**
+       * Version of {@link previous} which doesn't guarantee anything about
+       * the returned element in case the iterator is at the start.
+       *
+       * Instead, the `isDummy` flag is also returned so that this case can
+       * be handled in a custom way.
+       */
+      previous() {
+        let { previousHash, element } = Provable.witness(
+          WithHash(self.innerProvable),
+          () =>
+            self.data.get()[self._index('previous')] ?? {
+              previousHash: self.Constructor.emptyHash,
+              element: self.innerProvable.empty(),
+            }
+        );
+
+        let isDummy = self.isAtStart();
+        let emptyHash = self.Constructor.emptyHash;
+        let correctHash = self.nextHash(previousHash, element);
+        let requiredHash = Provable.if(isDummy, emptyHash, correctHash);
+
+        self.currentHash.assertEquals(requiredHash);
+
+        self._updateIndex('previous');
+        self.currentHash = Provable.if(isDummy, emptyHash, previousHash);
+        return { element, isDummy };
+      },
+
+      /**
+       * Version of {@link next} which doesn't guarantee anything about
+       * the returned element in case the iterator is at the end.
+       *
+       * Instead, the `isDummy` flag is also returned so that this case can
+       * be handled in a custom way.
+       */
+      next() {
+        let element = Provable.witness(self.innerProvable, () => {
+          return (
+            self.data.get()[self._index('next')]?.element ??
+            self.innerProvable.empty()
+          );
+        });
+
+        let isDummy = self.isAtEnd();
+        let currentHash = self.nextHash(self.currentHash, element);
+        self.currentHash = Provable.if(isDummy, self.hash, currentHash);
+        self._updateIndex('next');
+
+        return { element, isDummy };
+      },
+    };
   }
 
   clone(): MerkleListIterator<T> {
@@ -413,6 +552,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   ): typeof MerkleListIterator<T> & {
     from: (array: T[]) => MerkleListIterator<T>;
     startIterating: (list: MerkleListBase<T>) => MerkleListIterator<T>;
+    startIteratingFromLast: (list: MerkleListBase<T>) => MerkleListIterator<T>;
     empty: () => MerkleListIterator<T>;
     provable: ProvableHashable<MerkleListIterator<T>>;
   } {
@@ -439,7 +579,29 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         return this.startIterating({ data: unconstrained, hash });
       }
 
+      static fromLast(array: T[]): MerkleListIterator<T> {
+        array = [...array].reverse();
+        let { hash, data } = withHashes(array, nextHash, emptyHash_);
+        let unconstrained = Unconstrained.witness(() =>
+          data.map((x) => toConstant(type, x))
+        );
+        return this.startIteratingFromLast({ data: unconstrained, hash });
+      }
+
       static startIterating({
+        data,
+        hash,
+      }: MerkleListBase<T>): MerkleListIterator<T> {
+        return new this({
+          data,
+          hash,
+          currentHash: emptyHash_,
+          // note: for an empty list or any list which is "at the end", the currentIndex is -1
+          currentIndex: Unconstrained.witness(() => data.get().length - 1),
+        });
+      }
+
+      static startIteratingFromLast({
         data,
         hash,
       }: MerkleListBase<T>): MerkleListIterator<T> {

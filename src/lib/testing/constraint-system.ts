@@ -14,8 +14,8 @@ import { Random } from './random.js';
 import { test } from './property.js';
 import { Undefined, ZkProgram } from '../proof-system/zkprogram.js';
 import {
-  constraintSystemSync,
   printGates,
+  synchronousRunners,
 } from '../provable/core/provable-context.js';
 
 export {
@@ -34,6 +34,9 @@ export {
   repeat,
   ConstraintSystemTest,
 };
+
+// TODO get rid of this top-level await by making `test` support async functions
+let { constraintSystemSync } = await synchronousRunners();
 
 /**
  * `constraintSystem()` is a test runner to check properties of constraint systems.
@@ -366,11 +369,11 @@ function toGatess(
 
 // Random generator for arbitrary provable types
 
-function provable<T>(spec: CsVarSpec<T>): Provable<T> {
+function provable<T>(spec: CsVarSpec<T>): Provable<T, any> {
   return 'provable' in spec ? spec.provable : spec;
 }
 
-function layout<T>(type: Provable<T>): Random<T> {
+function layout<T>(type: Provable<T, any>): Random<T> {
   let length = type.sizeInFields();
 
   return Random(() => {
@@ -379,7 +382,7 @@ function layout<T>(type: Provable<T>): Random<T> {
   });
 }
 
-function instantiate<T>(type: Provable<T>, value: T) {
+function instantiate<T>(type: Provable<T, any>, value: T) {
   let fields = type.toFields(value).map((x) => instantiateFieldVar(x.value));
   return type.fromFields(fields, type.toAuxiliary());
 }
@@ -441,13 +444,13 @@ function drawFieldType(): FieldType {
 
 // types
 
-type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
-type InferCsVar<T> = T extends { provable: Provable<infer U> }
+type CsVarSpec<T> = Provable<T, any> | { provable: Provable<T, any> };
+type InferCsVar<T> = T extends { provable: Provable<infer U, any> }
   ? U
-  : T extends Provable<infer U>
+  : T extends Provable<infer U, any>
   ? U
   : never;
 type CsParams<In extends Tuple<CsVarSpec<any>>> = {
   [k in keyof In]: InferCsVar<In[k]>;
 };
-type TypeAndValue<T> = { type: Provable<T>; value: T };
+type TypeAndValue<T> = { type: Provable<T, any>; value: T };

@@ -86,6 +86,35 @@ abstract class CircuitValue {
     return (this.constructor as any).toFields(this);
   }
 
+  static toValue<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
+    const res: any = {};
+    let fields: [string, any][] = (this as any).prototype._fields ?? [];
+    fields.forEach(([key, propType]) => {
+      res[key] = propType.toValue((v as any)[key]);
+    });
+    return res;
+  }
+
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    value: any
+  ): InstanceType<T> {
+    let props: any = {};
+    let fields: [string, any][] = (this as any).prototype._fields ?? [];
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw Error(`${this.name}.fromValue(): invalid input ${value}`);
+    }
+    for (let i = 0; i < fields.length; ++i) {
+      let [key, propType] = fields[i];
+      if (value[key] === undefined) {
+        throw Error(`${this.name}.fromValue(): invalid input ${value}`);
+      } else {
+        props[key] = propType.fromValue(value[key]);
+      }
+    }
+    return Object.assign(Object.create(this.prototype), props);
+  }
+
   toJSON(): any {
     return (this.constructor as any).toJSON(this);
   }

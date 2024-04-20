@@ -1,4 +1,6 @@
 import { Bool, Character, Provable, CircuitString, Field } from 'o1js';
+import { describe, test } from 'node:test';
+import { expect } from 'expect';
 
 describe('Circuit String', () => {
   describe('#equals', () => {
@@ -25,15 +27,12 @@ describe('Circuit String', () => {
     test('returns false when values are not equal', async () => {
       const str = CircuitString.fromString('Your size');
       const not_same_str = CircuitString.fromString('size');
+
       expect(str.equals(not_same_str)).toEqual(Bool(false));
 
-      await Provable.runAndCheck(() => {
-        const str = Provable.witness(CircuitString, () => {
-          return CircuitString.fromString('Your size');
-        });
-        const not_same_str = Provable.witness(CircuitString, () => {
-          return CircuitString.fromString('size');
-        });
+      Provable.runAndCheck(() => {
+        const str = Provable.witness(CircuitString, () => 'Your size');
+        const not_same_str = Provable.witness(CircuitString, () => 'size');
         Provable.asProver(() => {
           expect(str.equals(not_same_str).toBoolean()).toEqual(false);
         });
@@ -163,10 +162,10 @@ describe('Circuit String', () => {
     });
   }); */
 
-  describe('with invalid input', () => {
-    test.skip('cannot use a character out of range', async () => {
-      await expect(async () => {
-        await Provable.runAndCheck(() => {
+  describe.skip('with invalid input', () => {
+    test('cannot use a character out of range', () => {
+      expect(() => {
+        Provable.runAndCheck(() => {
           const str = Provable.witness(CircuitString, () => {
             return CircuitString.fromCharacters([
               new Character(Field(100)),

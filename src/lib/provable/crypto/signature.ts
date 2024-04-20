@@ -114,6 +114,17 @@ class PrivateKey extends CircuitValue {
   static toBase58(privateKey: { s: Scalar }) {
     return PrivateKeyBigint.toBase58(privateKey.s.toBigInt());
   }
+
+  static toValue(v: PrivateKey) {
+    return v.toBigInt();
+  }
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    v: bigint | PrivateKey
+  ): InstanceType<T> {
+    if (v instanceof PrivateKey) return v as any;
+    return PrivateKey.fromBigInt(v) as any;
+  }
 }
 
 // TODO: this doesn't have a non-default check method yet. does it need one?
@@ -163,8 +174,8 @@ class PublicKey extends CircuitValue {
    * Creates a {@link PublicKey} from a JSON structure element.
    * @returns a {@link PublicKey}.
    */
-  static from(g: { x: Field; isOdd: Bool }) {
-    return PublicKey.fromObject(g);
+  static from(g: { x: Field | bigint; isOdd: Bool | boolean }) {
+    return PublicKey.fromObject({ x: Field.from(g.x), isOdd: Bool(g.isOdd) });
   }
 
   /**
@@ -172,7 +183,7 @@ class PublicKey extends CircuitValue {
    * @returns an empty {@link PublicKey}
    */
   static empty<T extends AnyConstructor>(): InstanceType<T> {
-    return PublicKey.from({ x: Field(0), isOdd: Bool(false) }) as any;
+    return PublicKey.from({ x: 0n, isOdd: false }) as any;
   }
 
   /**
@@ -209,7 +220,7 @@ class PublicKey extends CircuitValue {
     x = toConstantField(x, 'toBase58', 'pk', 'public key');
     return PublicKeyBigint.toBase58({
       x: x.toBigInt(),
-      isOdd: isOdd.toBoolean() ? 1n : 0n,
+      isOdd: isOdd.toBoolean(),
     });
   }
 
@@ -227,6 +238,16 @@ class PublicKey extends CircuitValue {
    */
   static fromJSON<T extends AnyConstructor>(this: T, publicKey: string) {
     return PublicKey.fromBase58(publicKey) as InstanceType<T>;
+  }
+
+  static toValue({ x, isOdd }: PublicKey) {
+    return { x: x.toBigInt(), isOdd: isOdd.toBoolean() };
+  }
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    { x, isOdd }: { x: Field | bigint; isOdd: Bool | boolean }
+  ): InstanceType<T> {
+    return PublicKey.from({ x: Field.from(x), isOdd: Bool(isOdd) }) as any;
   }
 }
 

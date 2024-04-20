@@ -198,14 +198,13 @@ class Bool {
    * This can only be called on non-witness values.
    */
   toBoolean(): boolean {
-    let value: FieldConst;
     if (this.isConstant()) {
-      value = this.value[1];
-    } else if (Snarky.run.inProverBlock()) {
-      value = Snarky.field.readVar(this.value);
-    } else {
+      return FieldConst.equal(this.value[1], FieldConst[1]);
+    }
+    if (!Snarky.run.inProverBlock()) {
       throw Error(readVarMessage('toBoolean', 'b', 'Bool'));
     }
+    let value = Snarky.field.readVar(this.value);
     return FieldConst.equal(value, FieldConst[1]);
   }
 
@@ -289,6 +288,21 @@ class Bool {
   }
 
   /**
+   * `Provable<Bool>.toValue()`
+   */
+  static toValue(x: Bool): boolean {
+    return x.toBoolean();
+  }
+
+  /**
+   * `Provable<Bool>.fromValue()`
+   */
+  static fromValue(b: boolean | Bool) {
+    if (typeof b === 'boolean') return new Bool(b);
+    return b;
+  }
+
+  /**
    * Serialize a {@link Bool} to a JSON string.
    * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
@@ -350,11 +364,6 @@ class Bool {
      * @param x a {@link Field}
      */
     fromField(x: Field) {
-      asProver(() => {
-        let x0 = x.toBigInt();
-        if (x0 !== 0n && x0 !== 1n)
-          throw Error(`Bool.Unsafe.ofField(): Expected 0 or 1, got ${x0}`);
-      });
       return new Bool(x.value);
     },
   };

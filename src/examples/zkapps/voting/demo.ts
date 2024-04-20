@@ -10,7 +10,7 @@ import {
   ElectionPreconditions,
 } from './preconditions.js';
 
-let Local = Mina.LocalBlockchain({
+let Local = await Mina.LocalBlockchain({
   proofsEnabled: false,
   enforceTransactionLimits: false,
 });
@@ -141,7 +141,7 @@ await tx.sign([feePayer.key]).send();
   */
 console.log(
   '3 events?? ',
-  contracts.voterContract.reducer.getActions({}).length === 3
+  (await contracts.voterContract.reducer.fetchActions()).length === 3
 );
 
 /*
@@ -194,7 +194,7 @@ await tx.sign([feePayer.key]).send();
   */
 console.log(
   '2 events?? ',
-  contracts.candidateContract.reducer.getActions({}).length === 2
+  (await contracts.candidateContract.reducer.fetchActions()).length === 2
 );
 
 /*
@@ -270,7 +270,7 @@ vote(0n);
 
 console.log(
   '1 vote sequence event? ',
-  contracts.voting.reducer.getActions({}).length === 1
+  (await contracts.voting.reducer.fetchActions()).length === 1
 );
 
 /*

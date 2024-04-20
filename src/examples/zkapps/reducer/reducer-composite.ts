@@ -40,31 +40,29 @@ class Counter extends SmartContract {
 
   @method async rollupIncrements() {
     // get previous counter & actions hash, assert that they're the same as on-chain values
-    let counter = this.counter.get();
-    this.counter.requireEquals(counter);
-    let actionState = this.actionState.get();
-    this.actionState.requireEquals(actionState);
+    let counter = this.counter.getAndRequireEquals();
+    let actionState = this.actionState.getAndRequireEquals();
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({
       fromActionState: actionState,
     });
 
-    let { state: newCounter, actionState: newActionState } =
-      this.reducer.reduce(
-        pendingActions,
-        // state type
-        Field,
-        // function that says how to apply an action
-        (state: Field, action: MaybeIncrement) => {
-          return Provable.if(action.isIncrement, state.add(1), state);
-        },
-        { state: counter, actionState }
-      );
+    let newCounter = this.reducer.reduce(
+      pendingActions,
+      // state type
+      Field,
+      // function that says how to apply an action
+      (state: Field, action: MaybeIncrement) => {
+        return Provable.if(action.isIncrement, state.add(1), state);
+      },
+      counter,
+      { maxUpdatesWithActions: 10 }
+    );
 
     // update on-chain state
     this.counter.set(newCounter);
-    this.actionState.set(newActionState);
+    this.actionState.set(pendingActions.hash);
   }
 }
 
@@ -73,7 +71,7 @@ ReducerProfiler.start('Reducer zkApp test flow');
 const doProofs = true;
 const initialCounter = Field(0);
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 let [feePayer] = Local.testAccounts;
@@ -87,6 +85,11 @@ if (doProofs) {
   console.log('compile');
   await Counter.compile();
 }
+
+console.log(
+  'rows: ',
+  (await Counter.analyzeMethods())['rollupIncrements'].rows
+);
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {

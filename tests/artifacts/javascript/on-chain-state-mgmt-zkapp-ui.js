@@ -17,7 +17,7 @@ logEvents(
 );
 
 // Setup local ledger
-let Local = Mina.LocalBlockchain();
+let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
 const [feePayer] = Local.testAccounts;
@@ -78,7 +78,7 @@ updateButton.addEventListener('click', async (event) => {
       );
     });
 
-    const [proof] = await transaction.prove();
+    const [proof] = (await transaction.prove()).proofs;
 
     if (verificationKey) {
       let isVerified = await verify(proof, verificationKey.data);

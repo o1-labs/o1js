@@ -95,11 +95,11 @@ const PublicKey = {
     if (y === undefined) {
       throw Error('PublicKey.toGroup: not a valid group element');
     }
-    if (isOdd !== (y & 1n)) y = Field.negate(y);
+    if (isOdd !== !!(y & 1n)) y = Field.negate(y);
     return { x, y };
   },
   fromGroup({ x, y }: Group): PublicKey {
-    let isOdd = (y & 1n) as Bool;
+    let isOdd = !!(y & 1n);
     return { x, isOdd };
   },
 

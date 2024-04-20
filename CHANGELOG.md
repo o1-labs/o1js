@@ -28,18 +28,34 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
   - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
   - Breaks circuits that used EC addition, like ECDSA
+- `Mina.LocalBlockchain()` and `Proof.fromJSON()` are made async https://github.com/o1-labs/o1js/pull/1583
+  - These were the last remaining sync APIs that depended on an async setup task; making them async enables removing top-level await
 - `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
 - `Poseidon.hashToGroup()` now returns a `Group` directly, and constrains it to be deterministic https://github.com/o1-labs/o1js/pull/1546
   - Added `Poseidon.Unsafe.hashToGroup()` as a more efficient, non-deterministic version for advanced use cases
-
-### Changes
-
-- Make `MerkleTree.{nodes,zeroes}` public properties https://github.com/o1-labs/o1js/pull/1555
-  - This makes it possible to clone merkle trees, which is often needed
+- A `Transaction`'s `prove` method no longer returns the proofs promise directly, but rather returns a `Transaction` promise, the resolved value of which contains a `proofs` prop. https://github.com/o1-labs/o1js/pull/1567
+- The `Transaction` type now has two type params `Proven extends boolean` and `Signed extends boolean`, which are used to conditionally show/hide relevant state. https://github.com/o1-labs/o1js/pull/1567
+- Improved functionality of `MerkleList` and `MerkleListIterator` for easier traversal of `MerkleList`s. https://github.com/o1-labs/o1js/pull/1562
+- Simplified internal logic of reducer. https://github.com/o1-labs/o1js/pull/1577
+  - `contract.getActions()` now returns a `MerkleList`
+- Add `toValue()` and `fromValue()` interface to `Provable<T>` to encode how provable types map to plain JS values https://github.com/o1-labs/o1js/pull/1271
+  - You can now return the plain value from a `Provable.witness()` callback, and it will be transformed into the provable type
+- Remove `Account()` constructor which was no different from `AccountUpdate.create().account`, and export `Account` type instead. https://github.com/o1-labs/o1js/pull/1598
 
 ### Added
 
 - Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
+- `Mina.transaction` has been reworked such that one can call methods directly on the returned promise (now a `TransactionPromise`). This enables a fluent / method-chaining API. https://github.com/o1-labs/o1js/pull/1567
+- `TransactionPendingPromise` enables calling `wait` directly on the promise returned by calling `send` on a `Transaction`. https://github.com/o1-labs/o1js/pull/1567
+- `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
+  - calling this function is optional
+
+### Changes
+
+- Remove top-level await https://github.com/o1-labs/o1js/pull/1583
+  - To simplify integration with bundlers like webpack
+- Make `MerkleTree.{nodes,zeroes}` public properties https://github.com/o1-labs/o1js/pull/1555
+  - This makes it possible to clone merkle trees, which is often needed
 
 ### Fixed
 

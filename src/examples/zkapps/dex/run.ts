@@ -4,7 +4,7 @@ import { getProfiler } from '../../utils/profiler.js';
 import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
 let proofsEnabled = false;
-let Local = Mina.LocalBlockchain({
+let Local = await Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
 });
@@ -32,7 +32,7 @@ if (proofsEnabled) {
 await main({ withVesting: false });
 
 // swap out ledger so we can start fresh
-Local = Mina.LocalBlockchain({
+Local = await Mina.LocalBlockchain({
   proofsEnabled,
   enforceTransactionLimits: false,
 });

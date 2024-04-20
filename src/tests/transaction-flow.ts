@@ -48,26 +48,26 @@ class SimpleZkapp extends SmartContract {
     const actionState = this.actionState.get();
     this.actionState.requireEquals(actionState);
 
-    const endActionState = this.account.actionState.getAndRequireEquals();
+    // TODO: fix correct fetching of endActionState
+    //const endActionState = this.account.actionState.getAndRequireEquals();
 
     const pendingActions = this.reducer.getActions({
       fromActionState: actionState,
-      endActionState,
+      //endActionState,
     });
 
-    const { state: newCounter, actionState: newActionState } =
-      this.reducer.reduce(
-        pendingActions,
-        Field,
-        (state: Field, _action: Field) => {
-          return state.add(1);
-        },
-        { state: counter, actionState }
-      );
+    const newCounter = this.reducer.reduce(
+      pendingActions,
+      Field,
+      (state: Field, _action: Field) => {
+        return state.add(1);
+      },
+      counter
+    );
 
     // update on-chain state
     this.counter.set(newCounter);
-    this.actionState.set(newActionState);
+    this.actionState.set(pendingActions.hash);
   }
 
   @method async update(y: Field, publicKey: PublicKey) {
@@ -103,7 +103,7 @@ async function testLocalAndRemote(
 }
 
 async function sendAndVerifyTransaction(
-  transaction: Mina.Transaction,
+  transaction: Mina.Transaction<false, false>,
   throwOnFail = false
 ) {
   await transaction.prove();
@@ -122,7 +122,7 @@ async function sendAndVerifyTransaction(
 
 const transactionFee = 100_000_000;
 
-const Local = Mina.LocalBlockchain();
+const Local = await Mina.LocalBlockchain();
 const Remote = Mina.Network({
   mina: 'http://localhost:8080/graphql',
   archive: 'http://localhost:8282 ',

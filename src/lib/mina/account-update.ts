@@ -15,7 +15,6 @@ import { Pickles, Test } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
-  TypesBigint,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
@@ -82,7 +81,7 @@ import {
 } from './smart-contract-context.js';
 import { assert } from '../util/assert.js';
 import { RandomId } from '../provable/types/auxiliary.js';
-import { NetworkId } from '../../mina-signer/src/types.js';
+import { From } from '../../bindings/lib/provable-generic.js';
 
 // external API
 export {
@@ -875,28 +874,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   hash(): Field {
-    // these two ways of hashing are (and have to be) consistent / produce the same hash
-    // TODO: there's no reason anymore to use two different hashing methods here!
-    // -- the "inCheckedComputation" branch works in all circumstances now
-    // we just leave this here for a couple more weeks, because it checks
-    // consistency between JS & OCaml hashing on *every single account update
-    // proof* we create. It will give us 100% confidence that the two
-    // implementations are equivalent, and catch regressions quickly
-    if (Provable.inCheckedComputation()) {
-      let input = Types.AccountUpdate.toInput(this);
-      return hashWithPrefix(
-        zkAppBodyPrefix(activeInstance.getNetworkId()),
-        packToFields(input)
-      );
-    } else {
-      let json = Types.AccountUpdate.toJSON(this);
-      return Field(
-        Test.hashFromJson.accountUpdate(
-          JSON.stringify(json),
-          NetworkId.toString(activeInstance.getNetworkId())
-        )
-      );
-    }
+    let input = Types.AccountUpdate.toInput(this);
+    return hashWithPrefix(
+      zkAppBodyPrefix(activeInstance.getNetworkId()),
+      packToFields(input)
+    );
   }
 
   toPublicInput({
@@ -1084,6 +1066,14 @@ class AccountUpdate implements Types.AccountUpdate {
       new AccountUpdate(accountUpdate.body, accountUpdate.authorization),
       other
     );
+  }
+  static toValue = Types.AccountUpdate.toValue;
+  static fromValue(
+    value: From<typeof Types.AccountUpdate> | AccountUpdate
+  ): AccountUpdate {
+    if (value instanceof AccountUpdate) return value;
+    let accountUpdate = Types.AccountUpdate.fromValue(value);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 
   static witness<T>(
@@ -1299,7 +1289,7 @@ class AccountUpdateForest extends MerkleList.create(
       let children = AccountUpdateForest.fromSimpleForest(node.children);
       return { accountUpdate, children, id: node.accountUpdate.id };
     });
-    return AccountUpdateForest.from(nodes);
+    return AccountUpdateForest.fromReverse(nodes);
   }
 
   // TODO this comes from paranoia and might be removed later
@@ -1827,7 +1817,11 @@ function addMissingSignatures(
 ): ZkappCommandSigned {
   let additionalPublicKeys = privateKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = transactionCommitments(
-    TypesBigint.ZkappCommand.fromJSON(ZkappCommand.toJSON(zkappCommand)),
+    {
+      ...Types.ZkappCommand.toValue(zkappCommand),
+      // TODO: represent memo in encoded form already?
+      memo: Memo.toBase58(Memo.fromString(zkappCommand.memo)),
+    },
     activeInstance.getNetworkId()
   );
 

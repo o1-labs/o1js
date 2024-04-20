@@ -1,7 +1,7 @@
 import { SimpleLedger } from './transaction-logic/ledger.js';
 import { Ml } from '../ml/conversion.js';
 import { transactionCommitments } from '../../mina-signer/src/sign-zkapp-command.js';
-import { Ledger, Test } from '../../snarky.js';
+import { Ledger, Test, initializeBindings } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
@@ -26,6 +26,8 @@ import {
   IncludedTransaction,
   RejectedTransaction,
   PendingTransactionStatus,
+  PendingTransactionPromise,
+  toPendingTransactionPromise,
 } from './transaction.js';
 import {
   type FeePayerSpec,
@@ -63,10 +65,11 @@ namespace TestPublicKey {
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-function LocalBlockchain({
+async function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
 } = {}) {
+  await initializeBindings();
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
@@ -135,147 +138,153 @@ function LocalBlockchain({
     getNetworkState() {
       return networkState;
     },
-    async sendTransaction(txn: Transaction): Promise<PendingTransaction> {
-      let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
-      let commitments = transactionCommitments(
-        TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
-        this.getNetworkId()
-      );
+    sendTransaction(
+      txn: Transaction<boolean, boolean>
+    ): PendingTransactionPromise {
+      return toPendingTransactionPromise(async () => {
+        let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
+        let commitments = transactionCommitments(
+          TypesBigint.ZkappCommand.fromJSON(zkappCommandJson),
+          this.getNetworkId()
+        );
 
-      if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
+        if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
-      // create an ad-hoc ledger to record changes to accounts within the transaction
-      let simpleLedger = SimpleLedger.create();
+        // create an ad-hoc ledger to record changes to accounts within the transaction
+        let simpleLedger = SimpleLedger.create();
 
-      for (const update of txn.transaction.accountUpdates) {
-        let authIsProof = !!update.authorization.proof;
-        let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
-        // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
-        // this resulted in an assertion OCaml error, which didn't contain any useful information
-        if (kindIsProof && !authIsProof) {
-          throw Error(
-            `The actual authorization does not match the expected authorization kind. Did you forget to invoke \`await tx.prove();\`?`
-          );
-        }
+        for (const update of txn.transaction.accountUpdates) {
+          let authIsProof = !!update.authorization.proof;
+          let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
+          // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
+          // this resulted in an assertion OCaml error, which didn't contain any useful information
+          if (kindIsProof && !authIsProof) {
+            throw Error(
+              `The actual authorization does not match the expected authorization kind. Did you forget to invoke \`await tx.prove();\`?`
+            );
+          }
 
-        let account = simpleLedger.load(update.body);
+          let account = simpleLedger.load(update.body);
 
-        // the first time we encounter an account, use it from the persistent ledger
-        if (account === undefined) {
-          let accountJson = ledger.getAccount(
-            Ml.fromPublicKey(update.body.publicKey),
-            Ml.constFromField(update.body.tokenId)
-          );
-          if (accountJson !== undefined) {
-            let storedAccount = Account.fromJSON(accountJson);
-            simpleLedger.store(storedAccount);
-            account = storedAccount;
+          // the first time we encounter an account, use it from the persistent ledger
+          if (account === undefined) {
+            let accountJson = ledger.getAccount(
+              Ml.fromPublicKey(update.body.publicKey),
+              Ml.constFromField(update.body.tokenId)
+            );
+            if (accountJson !== undefined) {
+              let storedAccount = Account.fromJSON(accountJson);
+              simpleLedger.store(storedAccount);
+              account = storedAccount;
+            }
+          }
+
+          // TODO: verify account update even if the account doesn't exist yet, using a default initial account
+          if (account !== undefined) {
+            let publicInput = update.toPublicInput(txn.transaction);
+            await verifyAccountUpdate(
+              account,
+              update,
+              publicInput,
+              commitments,
+              this.proofsEnabled,
+              this.getNetworkId()
+            );
+            simpleLedger.apply(update);
           }
         }
 
-        // TODO: verify account update even if the account doesn't exist yet, using a default initial account
-        if (account !== undefined) {
-          let publicInput = update.toPublicInput(txn.transaction);
-          await verifyAccountUpdate(
-            account,
-            update,
-            publicInput,
-            commitments,
-            this.proofsEnabled,
-            this.getNetworkId()
-          );
-          simpleLedger.apply(update);
-        }
-      }
-
-      let status: PendingTransactionStatus = 'pending';
-      const errors: string[] = [];
-      try {
-        ledger.applyJsonTransaction(
-          JSON.stringify(zkappCommandJson),
-          defaultNetworkConstants.accountCreationFee.toString(),
-          JSON.stringify(networkState)
-        );
-      } catch (err: any) {
-        status = 'rejected';
+        let status: PendingTransactionStatus = 'pending';
+        const errors: string[] = [];
         try {
-          const errorMessages = JSON.parse(err.message);
-          const formattedError = invalidTransactionError(
-            txn.transaction,
-            errorMessages,
-            {
-              accountCreationFee:
-                defaultNetworkConstants.accountCreationFee.toString(),
-            }
+          ledger.applyJsonTransaction(
+            JSON.stringify(zkappCommandJson),
+            defaultNetworkConstants.accountCreationFee.toString(),
+            JSON.stringify(networkState)
           );
-          errors.push(formattedError);
-        } catch (parseError: any) {
-          const fallbackErrorMessage =
-            err.message || parseError.message || 'Unknown error occurred';
-          errors.push(fallbackErrorMessage);
-        }
-      }
-
-      // fetches all events from the transaction and stores them
-      // events are identified and associated with a publicKey and tokenId
-      txn.transaction.accountUpdates.forEach((p, i) => {
-        let pJson = zkappCommandJson.accountUpdates[i];
-        let addr = pJson.body.publicKey;
-        let tokenId = pJson.body.tokenId;
-        events[addr] ??= {};
-        if (p.body.events.data.length > 0) {
-          events[addr][tokenId] ??= [];
-          let updatedEvents = p.body.events.data.map((data) => {
-            return {
-              data,
-              transactionInfo: {
-                transactionHash: '',
-                transactionStatus: '',
-                transactionMemo: '',
-              },
-            };
-          });
-          events[addr][tokenId].push({
-            events: updatedEvents,
-            blockHeight: networkState.blockchainLength,
-            globalSlot: networkState.globalSlotSinceGenesis,
-            // The following fields are fetched from the Mina network. For now, we mock these values out
-            // since networkState does not contain these fields.
-            blockHash: '',
-            parentBlockHash: '',
-            chainStatus: '',
-          });
+        } catch (err: any) {
+          status = 'rejected';
+          try {
+            const errorMessages = JSON.parse(err.message);
+            const formattedError = invalidTransactionError(
+              txn.transaction,
+              errorMessages,
+              {
+                accountCreationFee:
+                  defaultNetworkConstants.accountCreationFee.toString(),
+              }
+            );
+            errors.push(formattedError);
+          } catch (parseError: any) {
+            const fallbackErrorMessage =
+              err.message || parseError.message || 'Unknown error occurred';
+            errors.push(fallbackErrorMessage);
+          }
         }
 
-        // actions/sequencing events
+        // fetches all events from the transaction and stores them
+        // events are identified and associated with a publicKey and tokenId
+        txn.transaction.accountUpdates.forEach((p, i) => {
+          let pJson = zkappCommandJson.accountUpdates[i];
+          let addr = pJson.body.publicKey;
+          let tokenId = pJson.body.tokenId;
+          events[addr] ??= {};
+          if (p.body.events.data.length > 0) {
+            events[addr][tokenId] ??= [];
+            let updatedEvents = p.body.events.data.map((data) => {
+              return {
+                data,
+                transactionInfo: {
+                  transactionHash: '',
+                  transactionStatus: '',
+                  transactionMemo: '',
+                },
+              };
+            });
+            events[addr][tokenId].push({
+              events: updatedEvents,
+              blockHeight: networkState.blockchainLength,
+              globalSlot: networkState.globalSlotSinceGenesis,
+              // The following fields are fetched from the Mina network. For now, we mock these values out
+              // since networkState does not contain these fields.
+              blockHash: '',
+              parentBlockHash: '',
+              chainStatus: '',
+            });
+          }
 
-        // most recent action state
-        let storedActions = actions[addr]?.[tokenId];
-        let latestActionState_ =
-          storedActions?.[storedActions.length - 1]?.hash;
-        // if there exists no hash, this means we initialize our latest hash with the empty state
-        let latestActionState =
-          latestActionState_ !== undefined
-            ? Field(latestActionState_)
-            : Actions.emptyActionState();
+          // actions/sequencing events
 
-        actions[addr] ??= {};
-        if (p.body.actions.data.length > 0) {
-          let newActionState = Actions.updateSequenceState(
-            latestActionState,
-            p.body.actions.hash
-          );
-          actions[addr][tokenId] ??= [];
-          actions[addr][tokenId].push({
-            actions: pJson.body.actions,
-            hash: newActionState.toString(),
-          });
-        }
-      });
+          // most recent action state
+          let storedActions = actions[addr]?.[tokenId];
+          let latestActionState_ =
+            storedActions?.[storedActions.length - 1]?.hash;
+          // if there exists no hash, this means we initialize our latest hash with the empty state
+          let latestActionState =
+            latestActionState_ !== undefined
+              ? Field(latestActionState_)
+              : Actions.emptyActionState();
 
-      const hash = Test.transactionHash.hashZkAppCommand(txn.toJSON());
-      const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> =
-        {
+          actions[addr] ??= {};
+          if (p.body.actions.data.length > 0) {
+            let newActionState = Actions.updateSequenceState(
+              latestActionState,
+              p.body.actions.hash
+            );
+            actions[addr][tokenId] ??= [];
+            actions[addr][tokenId].push({
+              actions: pJson.body.actions,
+              hash: newActionState.toString(),
+            });
+          }
+        });
+
+        let test = await Test();
+        const hash = test.transactionHash.hashZkAppCommand(txn.toJSON());
+        const pendingTransaction: Omit<
+          PendingTransaction,
+          'wait' | 'safeWait'
+        > = {
           status,
           errors,
           transaction: txn.transaction,
@@ -284,39 +293,40 @@ function LocalBlockchain({
           toPretty: txn.toPretty,
         };
 
-      const wait = async (_options?: {
-        maxAttempts?: number;
-        interval?: number;
-      }): Promise<IncludedTransaction> => {
-        const pendingTransaction = await safeWait(_options);
-        if (pendingTransaction.status === 'rejected') {
-          throw Error(
-            `Transaction failed with errors:\n${pendingTransaction.errors.join(
-              '\n'
-            )}`
-          );
-        }
-        return pendingTransaction;
-      };
+        const wait = async (_options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }): Promise<IncludedTransaction> => {
+          const pendingTransaction = await safeWait(_options);
+          if (pendingTransaction.status === 'rejected') {
+            throw Error(
+              `Transaction failed with errors:\n${pendingTransaction.errors.join(
+                '\n'
+              )}`
+            );
+          }
+          return pendingTransaction;
+        };
 
-      const safeWait = async (_options?: {
-        maxAttempts?: number;
-        interval?: number;
-      }): Promise<IncludedTransaction | RejectedTransaction> => {
-        if (status === 'rejected') {
-          return createRejectedTransaction(
-            pendingTransaction,
-            pendingTransaction.errors
-          );
-        }
-        return createIncludedTransaction(pendingTransaction);
-      };
+        const safeWait = async (_options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }): Promise<IncludedTransaction | RejectedTransaction> => {
+          if (status === 'rejected') {
+            return createRejectedTransaction(
+              pendingTransaction,
+              pendingTransaction.errors
+            );
+          }
+          return createIncludedTransaction(pendingTransaction);
+        };
 
-      return {
-        ...pendingTransaction,
-        wait,
-        safeWait,
-      };
+        return {
+          ...pendingTransaction,
+          wait,
+          safeWait,
+        };
+      });
     },
     transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       return toTransactionPromise(async () => {
@@ -412,4 +422,4 @@ function LocalBlockchain({
   };
 }
 // assert type compatibility without preventing LocalBlockchain to return additional properties / methods
-LocalBlockchain satisfies (...args: any) => Mina;
+LocalBlockchain satisfies (...args: any) => Promise<Mina>;

@@ -16,7 +16,7 @@ import { MlHashInput } from '../ml/conversion.js';
 import { MlFieldConstArray } from '../ml/fields.js';
 import { Test } from '../../snarky.js';
 
-let { hashInputFromJson } = Test;
+let { hashInputFromJson } = await Test();
 
 // types
 type Body = Types.AccountUpdate['body'];
@@ -27,20 +27,22 @@ type NetworkPrecondition = Body['preconditions']['network'];
 
 // provables
 let bodyLayout = jsLayout.AccountUpdate.entries.body;
-let Timing = provableFromLayout<Timing, any>(
+let Timing = provableFromLayout<Timing, any, any>(
   bodyLayout.entries.update.entries.timing.inner as any
 );
-let Permissions_ = provableFromLayout<Permissions, any>(
+let Permissions_ = provableFromLayout<Permissions, any, any>(
   bodyLayout.entries.update.entries.permissions.inner as any
 );
-let Update = provableFromLayout<Update, any>(bodyLayout.entries.update as any);
-let AccountPrecondition = provableFromLayout<AccountPrecondition, any>(
+let Update = provableFromLayout<Update, any, any>(
+  bodyLayout.entries.update as any
+);
+let AccountPrecondition = provableFromLayout<AccountPrecondition, any, any>(
   bodyLayout.entries.preconditions.entries.account as any
 );
-let NetworkPrecondition = provableFromLayout<NetworkPrecondition, any>(
+let NetworkPrecondition = provableFromLayout<NetworkPrecondition, any, any>(
   bodyLayout.entries.preconditions.entries.network as any
 );
-let Body = provableFromLayout<Body, any>(bodyLayout as any);
+let Body = provableFromLayout<Body, any, any>(bodyLayout as any);
 
 // test with random account updates
 test(Random.json.accountUpdate, (accountUpdateJson) => {

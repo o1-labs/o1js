@@ -23,7 +23,7 @@ let feePayer: Mina.TestPublicKey;
 
 beforeAll(async () => {
   // set up local blockchain, create contract account keys, deploy the contract
-  let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+  let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
   Mina.setActiveInstance(Local);
   [feePayer] = Local.testAccounts;
 
@@ -208,6 +208,50 @@ describe('preconditions', () => {
     await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
   });
 
+  it('unsatisfied requireEquals should be overridden by requireNothing', async () => {
+    let nonce = contract.account.nonce.get();
+    let publicKey = PublicKey.from({ x: Field(-1), isOdd: Bool(false) });
+
+    await Mina.transaction(feePayer, async () => {
+      for (let precondition of implementedNumber) {
+        let p = precondition().get();
+        precondition().requireEquals(p.add(1) as any);
+        precondition().requireNothing();
+      }
+      for (let precondition of implementedBool) {
+        let p = precondition().get();
+        precondition().requireEquals(p.not());
+        precondition().requireNothing();
+      }
+      contract.account.delegate.requireEquals(publicKey);
+      contract.account.delegate.requireNothing();
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    })
+      .sign([feePayer.key, contractAccount.key])
+      .send();
+    // check that tx was applied, by checking nonce was incremented
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('unsatisfied requireBetween should be overridden by requireNothing', async () => {
+    let nonce = contract.account.nonce.get();
+
+    await Mina.transaction(feePayer, async () => {
+      for (let precondition of implementedWithRange) {
+        let p: any = precondition().get();
+        precondition().requireBetween(p.add(20), p.add(30));
+        precondition().requireNothing();
+      }
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    })
+      .sign([feePayer.key, contractAccount.key])
+      .send();
+    // check that tx was applied, by checking nonce was incremented
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
   // TODO: is this a gotcha that should be addressed?
   // the test below fails, so it seems that nonce is applied successfully with a WRONG precondition..
   // however, this is just because `zkapp.requireSignature()` overwrites the nonce precondition with one that is satisfied
@@ -227,7 +271,6 @@ let implementedNumber = [
   () => contract.account.receiptChainHash,
   () => contract.network.blockchainLength,
   () => contract.network.globalSlotSinceGenesis,
-  () => contract.network.timestamp,
   () => contract.network.minWindowDensity,
   () => contract.network.totalCurrency,
   () => contract.network.stakingEpochData.epochLength,
@@ -251,6 +294,7 @@ let implementedBool = [
 let implemented = [
   ...implementedNumber,
   ...implementedBool,
+  () => contract.network.timestamp,
   () => contract.account.delegate,
 ];
 let implementedWithRange = [

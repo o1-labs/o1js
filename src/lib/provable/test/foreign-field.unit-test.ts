@@ -1,5 +1,5 @@
 import { Field } from '../wrapped.js';
-import { createForeignField } from '../foreign-field.js';
+import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { Fq } from '../../../bindings/crypto/finite-field.js';
 import { expect } from 'expect';
 import {
@@ -55,13 +55,13 @@ test(Random.scalar, (x0, assert) => {
 let f = spec({
   rng: Random.scalar,
   there: ForeignScalar.from,
-  back: (x) => x.toBigInt(),
+  back: (x: AlmostForeignField) => x.toBigInt(),
   provable: ForeignScalar.AlmostReduced.provable,
 });
 let u264 = spec({
   rng: Random.bignat(1n << 264n),
   there: ForeignScalar.from,
-  back: (x) => x.toBigInt(),
+  back: (x: ForeignScalar) => x.toBigInt(),
   provable: ForeignScalar.Unreduced.provable,
 });
 

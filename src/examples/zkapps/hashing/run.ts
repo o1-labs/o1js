@@ -4,7 +4,7 @@ import { Mina, PrivateKey, AccountUpdate, Bytes } from 'o1js';
 let txn;
 let proofsEnabled = true;
 // setup local ledger
-let Local = Mina.LocalBlockchain({ proofsEnabled });
+let Local = await Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
 
 if (proofsEnabled) {

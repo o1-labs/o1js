@@ -7,6 +7,7 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
+  TransactionPromise,
 } from 'o1js';
 
 class SimpleZkapp extends SmartContract {
@@ -26,7 +27,7 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: false });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
@@ -52,10 +53,21 @@ await Mina.transaction(sender, async () => {
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('increment');
-const incrementTx = Mina.transaction(sender, async () => {
+
+await Mina.transaction(sender, async () => {
   await zkapp.increment();
-}).sign([sender.key]);
-await incrementTx.then((v) => v.prove());
-await incrementTx.send().wait();
+})
+  .prove()
+  .sign([sender.key])
+  .send()
+  .wait();
 
 console.log('final state: ' + zkapp.x.get());
+
+const a = Mina.transaction(sender, async () => {
+  await zkapp.increment();
+});
+a satisfies TransactionPromise<false, false>;
+const b = a.prove() satisfies TransactionPromise<true, false>;
+const c = b.sign([sender.key]) satisfies TransactionPromise<true, true>;
+await c.send().wait();

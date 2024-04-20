@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Snarky } from '../../snarky.js';
+import { Snarky, initializeBindings } from '../../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../snarky.js';
 import { Provable } from '../provable/provable.js';
@@ -28,9 +28,10 @@ class Circuit {
    * const keypair = await MyCircuit.generateKeypair();
    * ```
    */
-  static generateKeypair() {
+  static async generateKeypair() {
     let main = mainFromCircuitData(this._main);
     let publicInputSize = this._main.publicInputType.sizeInFields();
+    await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () => {
         let keypair = Snarky.circuit.compile(main, publicInputSize);
@@ -47,10 +48,15 @@ class Circuit {
    * const proof = await MyCircuit.prove(privateInput, publicInput, keypair);
    * ```
    */
-  static prove(privateInput: any[], publicInput: any[], keypair: Keypair) {
+  static async prove(
+    privateInput: any[],
+    publicInput: any[],
+    keypair: Keypair
+  ) {
     let main = mainFromCircuitData(this._main, privateInput);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
+    await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () => {
         let proof = Snarky.circuit.prove(
@@ -73,12 +79,13 @@ class Circuit {
    * const isValid = await MyCircuit.verify(publicInput, keypair.vk, proof);
    * ```
    */
-  static verify(
+  static async verify(
     publicInput: any[],
     verificationKey: VerificationKey,
     proof: Proof
   ) {
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
+    await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () =>
         Snarky.circuit.verify(
@@ -260,6 +267,14 @@ function provableFromTuple(
 
     check(xs: Array<any>) {
       types.forEach((typ, i) => (typ as any).check(xs[i]));
+    },
+
+    toValue(x) {
+      return types.map((typ, i) => typ.toValue(x[i]));
+    },
+
+    fromValue(x) {
+      return types.map((typ, i) => typ.fromValue(x[i]));
     },
   };
 }

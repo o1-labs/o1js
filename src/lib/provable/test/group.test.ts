@@ -1,16 +1,13 @@
 import { Bool, Group, Scalar, Provable } from 'o1js';
 
 describe('group', () => {
-  let g = Group({
-    x: -1,
-    y: 2,
-  });
+  let g = Group({ x: -1, y: 2 });
 
   describe('Inside circuit', () => {
     describe('group membership', () => {
       it('valid element does not throw', async () => {
         await Provable.runAndCheck(() => {
-          Provable.witness(Group, () => g);
+          Provable.witness(Group, () => ({ x: -1, y: 2 }));
         });
       });
 

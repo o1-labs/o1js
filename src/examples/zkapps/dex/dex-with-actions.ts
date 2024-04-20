@@ -146,8 +146,8 @@ class Dex extends TokenContract {
    */
   async supplyLiquidity(dx: UInt64) {
     // calculate dy outside circuit
-    let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
-    let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
+    let x = Mina.getAccount(this.address, TokenId.derive(this.tokenX)).balance;
+    let y = Mina.getAccount(this.address, TokenId.derive(this.tokenY)).balance;
     if (x.value.isConstant() && x.value.equals(0).toBoolean()) {
       throw Error(
         'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
@@ -258,19 +258,19 @@ class DexTokenHolder extends SmartContract {
 
     // get total supply of liquidity tokens _before_ applying these actions
     // (each redeem action _decreases_ the supply, so we increase it here)
-    let l = Provable.witness(UInt64, (): UInt64 => {
+    let l = Provable.witness(UInt64, () => {
       let l = dex.totalSupply.get().toBigInt();
       // dex.totalSupply.assertNothing();
-      for (let [action] of actions) {
-        l += action.dl.toBigInt();
+      for (let action of actions.data.get()) {
+        l += action.element.data.get()[0].element.dl.toBigInt();
       }
-      return UInt64.from(l);
+      return l;
     });
 
     // get our token balance
     let x = this.account.balance.getAndRequireEquals();
 
-    let redeemActionState = dex.reducer.forEach(
+    dex.reducer.forEach(
       actions,
       ({ address, dl }) => {
         // for every user that redeemed liquidity, we calculate the token output
@@ -286,19 +286,18 @@ class DexTokenHolder extends SmartContract {
         l = l.sub(dl);
         x = x.add(dx);
       },
-      fromActionState,
       {
-        maxTransactionsWithActions: DexTokenHolder.redeemActionBatchSize,
+        maxUpdatesWithActions: DexTokenHolder.redeemActionBatchSize,
         // DEX contract doesn't allow setting preconditions from outside (= w/o proof)
         skipActionStatePrecondition: true,
       }
     );
 
     // update action state so these payments can't be triggered a 2nd time
-    this.redeemActionState.set(redeemActionState);
+    this.redeemActionState.set(actions.hash);
 
     // precondition on the DEX contract, to prove we used the right actions & token supply
-    await dex.assertActionsAndSupply(redeemActionState, l);
+    await dex.assertActionsAndSupply(actions.hash, l);
   }
 
   // this works for both directions (in our case where both tokens use the same contract)

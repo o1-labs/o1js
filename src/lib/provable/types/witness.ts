@@ -1,31 +1,33 @@
 import type { Field } from '../field.js';
-import type { FlexibleProvable } from './struct.js';
+import type { FlexibleProvable, InferProvable } from './struct.js';
 import type { Provable } from './provable-intf.js';
 import {
   inCheckedComputation,
   snarkContext,
 } from '../core/provable-context.js';
 import { exists, existsAsync } from '../core/exists.js';
+import { From } from '../../../bindings/lib/provable-generic.js';
 
 export { witness, witnessAsync };
 
-function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
-  type: S,
+function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
+  type: A,
   compute: () => T
-): T {
+): InferProvable<A> {
+  type S = InferProvable<A>;
   let ctx = snarkContext.get();
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, compute());
+    return clone(type, type.fromValue(compute()));
   }
-  let proverValue: T | undefined = undefined;
+  let proverValue: S | undefined = undefined;
   let fields: Field[];
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
     fields = exists(type.sizeInFields(), () => {
-      proverValue = compute();
+      proverValue = type.fromValue(compute());
       let fields = type.toFields(proverValue);
       return fields.map((x) => x.toBigInt());
     });
@@ -35,7 +37,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   // rebuild the value from its fields (which are now variables) and aux data
   let aux = type.toAuxiliary(proverValue);
-  let value = (type as Provable<T>).fromFields(fields, aux);
+  let value = (type as Provable<S>).fromFields(fields, aux);
 
   // add type-specific constraints
   type.check(value);
