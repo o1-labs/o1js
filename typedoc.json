@@ -37,8 +37,8 @@
   "fileExtension": ".mdx",
   "hidePageHeader": true,
   "hidePageTitle": true,
-  "hideBreadcrumbs": true,
   "excludeGroups": true,
+  "hideBreadcrumbs": true,
   "useCodeBlocks": true,
   "parametersFormat": "list",
   "propertiesFormat": "list",
@@ -47,4 +47,5 @@
   "mergeReadme": true,
   "expandParameters": true,
   "expandObjects": true,
+  "gitRevision": "main"
 }
