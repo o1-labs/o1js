@@ -3,13 +3,10 @@ import {
   Field,
   ZkProgram,
   verify,
-  isReady,
   Proof,
   JsonProof,
   Provable,
 } from 'o1js';
-
-await isReady;
 
 let MyProgram = ZkProgram({
   name: 'example-with-input',
@@ -18,14 +15,14 @@ let MyProgram = ZkProgram({
   methods: {
     baseCase: {
       privateInputs: [],
-      method(input: Field) {
+      async method(input: Field) {
         input.assertEquals(Field(0));
       },
     },
 
     inductiveCase: {
       privateInputs: [SelfProof],
-      method(input: Field, earlierProof: SelfProof<Field, void>) {
+      async method(input: Field, earlierProof: SelfProof<Field, void>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(input);
       },

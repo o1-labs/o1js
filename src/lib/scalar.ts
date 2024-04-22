@@ -99,7 +99,10 @@ class Scalar {
    * **Warning**: The bits are interpreted as the bits of 2s + 1 + 2^255, where s is the Scalar.
    */
   static fromBits(bits: Bool[]) {
-    return Scalar.fromFields(bits.map((b) => b.toField()));
+    return Scalar.fromFields([
+      ...bits.map((b) => b.toField()),
+      ...Array(Fq.sizeInBits - bits.length).fill(new Bool(false)),
+    ]);
   }
 
   /**
@@ -231,6 +234,20 @@ class Scalar {
    */
   toFields(): Field[] {
     return Scalar.toFields(this);
+  }
+
+  /**
+   * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   *
+   * This function is the implementation of `ProvableExtended.toInput()` for the {@link Scalar} type.
+   *
+   * @param value - The {@link Scalar} element to get the `input` array.
+   *
+   * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
+   *
+   */
+  static toInput(x: Scalar): { packed: [Field, number][] } {
+    return { packed: Scalar.toFields(x).map((f) => [f, 1]) };
   }
 
   /**

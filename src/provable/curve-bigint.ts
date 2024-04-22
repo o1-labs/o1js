@@ -143,4 +143,19 @@ const PrivateKey = {
   toPublicKey(key: PrivateKey) {
     return PublicKey.fromGroup(Group.scale(Group.generatorMina, key));
   },
+  convertPrivateKeyToBase58WithMod,
 };
+
+const Bigint256 = BinableBigint(256, () => {
+  // no check supplied, allows any string of 256 bits
+});
+const OutOfDomainKey = base58(
+  withVersionNumber(Bigint256, versionNumbers.scalar),
+  versionBytes.privateKey
+);
+
+function convertPrivateKeyToBase58WithMod(keyBase58: string): string {
+  let key = OutOfDomainKey.fromBase58(keyBase58);
+  key = mod(key, Fq.modulus);
+  return PrivateKey.toBase58(key);
+}

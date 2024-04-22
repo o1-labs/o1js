@@ -17,7 +17,7 @@ class PayoutOnlyOnce extends SmartContract {
   @state(Field) nullifierRoot = State<Field>();
   @state(Field) nullifierMessage = State<Field>();
 
-  @method payout(nullifier: Nullifier) {
+  @method async payout(nullifier: Nullifier) {
     let nullifierRoot = this.nullifierRoot.getAndRequireEquals();
     let nullifierMessage = this.nullifierMessage.getAndRequireEquals();
 
@@ -72,10 +72,10 @@ console.log('compile');
 await PayoutOnlyOnce.compile();
 
 console.log('deploy');
-let tx = await Mina.transaction(sender, () => {
+let tx = await Mina.transaction(sender, async () => {
   let senderUpdate = AccountUpdate.fundNewAccount(sender);
   senderUpdate.send({ to: zkappAddress, amount: initialBalance });
-  zkapp.deploy({ zkappKey });
+  await zkapp.deploy({ zkappKey });
 
   zkapp.nullifierRoot.set(NullifierTree.getRoot());
   zkapp.nullifierMessage.set(nullifierMessage);
@@ -94,9 +94,9 @@ let jsonNullifier = Nullifier.createTestNullifier(
 console.log(jsonNullifier);
 
 console.log('pay out');
-tx = await Mina.transaction(sender, () => {
+tx = await Mina.transaction(sender, async () => {
   AccountUpdate.fundNewAccount(sender);
-  zkapp.payout(Nullifier.fromJSON(jsonNullifier));
+  await zkapp.payout(Nullifier.fromJSON(jsonNullifier));
 });
 await tx.prove();
 await tx.sign([senderKey]).send();
@@ -109,8 +109,8 @@ console.log(
 console.log('trying second pay out');
 
 try {
-  tx = await Mina.transaction(sender, () => {
-    zkapp.payout(Nullifier.fromJSON(jsonNullifier));
+  tx = await Mina.transaction(sender, async () => {
+    await zkapp.payout(Nullifier.fromJSON(jsonNullifier));
   });
 
   await tx.prove();

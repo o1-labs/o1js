@@ -59,13 +59,13 @@ class Leaderboard extends SmartContract {
   // a commitment is a cryptographic primitive that allows us to commit to data, with the ability to "reveal" it later
   @state(Field) commitment = State<Field>();
 
-  @method init() {
+  @method async init() {
     super.init();
     this.commitment.set(initialCommitment);
   }
 
   @method
-  guessPreimage(guess: Field, account: Account, path: MyMerkleWitness) {
+  async guessPreimage(guess: Field, account: Account, path: MyMerkleWitness) {
     // this is our hash! its the hash of the preimage "22", but keep it a secret!
     let target = Field(
       '17057234437185175411792943285768571642343179330449434169483610110583519635705'
@@ -133,12 +133,12 @@ console.log('Deploying leaderboard..');
 if (doProofs) {
   await Leaderboard.compile();
 }
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer).send({
     to: zkappAddress,
     amount: initialBalance,
   });
-  leaderboardZkApp.deploy();
+  await leaderboardZkApp.deploy();
 });
 await tx.prove();
 await tx.sign([feePayerKey, zkappKey]).send();
@@ -155,8 +155,8 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   let w = Tree.getWitness(index);
   let witness = new MyMerkleWitness(w);
 
-  let tx = await Mina.transaction(feePayer, () => {
-    leaderboardZkApp.guessPreimage(Field(guess), account, witness);
+  let tx = await Mina.transaction(feePayer, async () => {
+    await leaderboardZkApp.guessPreimage(Field(guess), account, witness);
   });
   await tx.prove();
   await tx.sign([feePayerKey, zkappKey]).send();

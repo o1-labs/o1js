@@ -17,7 +17,7 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../circuit-value.js';
 import { assertPositiveInteger } from '../../bindings/crypto/non-negative.js';
-import { arrayGet, assertBoolean } from './basic.js';
+import { arrayGet } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { Hashed } from '../provable-types/packed.js';
 
@@ -475,7 +475,7 @@ function multiScalarMul(
 
 function negateIf(condition: Field, P: Point, f: bigint) {
   let y = Provable.if(
-    Bool.Unsafe.ofField(condition),
+    Bool.Unsafe.fromField(condition),
     Field3.provable,
     ForeignField.negate(P.y, f),
     P.y
@@ -515,18 +515,18 @@ function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
   // (in theory this would allow us to hard-code the high quotient limb to zero in the ffmul below, and save 2 RCs.. but not worth it)
   let s0: Field3 = [s00, s01, Field.from(0n)];
   let s1: Field3 = [s10, s11, Field.from(0n)];
-  assertBoolean(s0Negative);
-  assertBoolean(s1Negative);
+  s0Negative.assertBool();
+  s1Negative.assertBool();
 
   // prove that s1*lambda = s - s0
   let lambda = Provable.if(
-    Bool.Unsafe.ofField(s1Negative),
+    Bool.Unsafe.fromField(s1Negative),
     Field3.provable,
     Field3.from(Curve.Scalar.negate(Curve.Endo.scalar)),
     Field3.from(Curve.Endo.scalar)
   );
   let rhs = Provable.if(
-    Bool.Unsafe.ofField(s0Negative),
+    Bool.Unsafe.fromField(s0Negative),
     Field3.provable,
     ForeignField.Sum(s).add(s0).finish(Curve.order),
     ForeignField.Sum(s).sub(s0).finish(Curve.order)

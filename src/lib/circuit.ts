@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { ProvablePure, Snarky } from '../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from './ml/fields.js';
-import { withThreadPool } from '../bindings/js/wrapper.js';
+import { withThreadPool } from '../snarky.js';
 import { Provable } from './provable.js';
 import { snarkContext, gatesFromJson } from './provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from './errors.js';
@@ -266,20 +266,27 @@ function circuitMain(
   };
 }
 
+type ProvableInputPure<T> = ProvablePure<T> | { provable: ProvablePure<T> };
+
 // TODO support auxiliary data
-function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
+function provableFromTuple(
+  inputTypes: ProvableInputPure<any>[]
+): ProvablePure<any> {
+  let types = inputTypes.map((t) => ('provable' in t ? t.provable : t));
   return {
     sizeInFields: () => {
-      return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
+      return types.reduce((acc, type) => acc + type.sizeInFields(), 0);
     },
 
     toFields: (t: Array<any>) => {
-      if (t.length !== typs.length) {
-        throw new Error(`typOfArray: Expected ${typs.length}, got ${t.length}`);
+      if (t.length !== types.length) {
+        throw new Error(
+          `typOfArray: Expected ${types.length}, got ${t.length}`
+        );
       }
       let res = [];
       for (let i = 0; i < t.length; ++i) {
-        res.push(...typs[i].toFields(t[i]));
+        res.push(...types[i].toFields(t[i]));
       }
       return res;
     },
@@ -291,7 +298,7 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
     fromFields: (xs: Array<any>) => {
       let offset = 0;
       let res: Array<any> = [];
-      typs.forEach((typ) => {
+      types.forEach((typ) => {
         const n = typ.sizeInFields();
         res.push(typ.fromFields(xs.slice(offset, offset + n)));
         offset += n;
@@ -300,7 +307,7 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
     },
 
     check(xs: Array<any>) {
-      typs.forEach((typ, i) => (typ as any).check(xs[i]));
+      types.forEach((typ, i) => (typ as any).check(xs[i]));
     },
   };
 }

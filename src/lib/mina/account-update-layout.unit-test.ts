@@ -6,13 +6,15 @@ import { SmartContract, method } from '../zkapp.js';
 // smart contract which creates an account update that has a child of its own
 
 class NestedCall extends SmartContract {
-  @method deposit() {
-    let payerUpdate = AccountUpdate.createSigned(this.sender);
+  @method async deposit() {
+    let sender = this.sender.getUnconstrained();
+    let payerUpdate = AccountUpdate.createSigned(sender);
     payerUpdate.send({ to: this.address, amount: UInt64.one });
   }
 
-  @method depositUsingTree() {
-    let payerUpdate = AccountUpdate.createSigned(this.sender);
+  @method async depositUsingTree() {
+    let sender = this.sender.getUnconstrained();
+    let payerUpdate = AccountUpdate.createSigned(sender);
     let receiverUpdate = AccountUpdate.create(this.address);
     payerUpdate.send({ to: receiverUpdate, amount: UInt64.one });
 

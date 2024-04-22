@@ -2,12 +2,10 @@ import {
   AccountUpdate,
   Bool,
   fetchAccount,
-  isReady,
   Mina,
   PrivateKey,
   PublicKey,
   Reducer,
-  shutdown,
   SmartContract,
   UInt32,
   UInt64,
@@ -20,7 +18,6 @@ import {
   ElectionPreconditions,
 } from './preconditions.js';
 import { getResults, vote } from './voting-lib.js';
-await isReady;
 
 const Berkeley = Mina.Network({
   mina: 'https://proxy.berkeley.minaexplorer.com/graphql',
@@ -91,14 +88,14 @@ let tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Deploying contracts',
   },
-  () => {
+  async () => {
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
 
     contracts.voting.deploy({ zkappKey: params.votingKey });
     contracts.voting.committedVotes.set(storage.votesStore.getRoot());
     contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
-    contracts.candidateContract.deploy({ zkappKey: params.candidateKey });
+    await contracts.candidateContract.deploy({ zkappKey: params.candidateKey });
     contracts.candidateContract.committedMembers.set(
       storage.candidatesStore.getRoot()
     );
@@ -106,7 +103,7 @@ let tx = await Mina.transaction(
       Reducer.initialActionState
     );
 
-    contracts.voterContract.deploy({ zkappKey: params.voterKey });
+    await contracts.voterContract.deploy({ zkappKey: params.voterKey });
     contracts.voterContract.committedMembers.set(storage.votersStore.getRoot());
     contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
   }
@@ -125,13 +122,13 @@ tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Registering a voter',
   },
-  () => {
+  async () => {
     let m = registerMember(
       0n,
       Member.from(members[0], UInt64.from(150)),
       storage.votersStore
     );
-    contracts.voting.voterRegistration(m);
+    await contracts.voting.voterRegistration(m);
   }
 );
 await tx.prove();
@@ -147,13 +144,13 @@ tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Registering a candidate',
   },
-  () => {
+  async () => {
     let m = registerMember(
       0n,
       Member.from(members[1], UInt64.from(150)),
       storage.candidatesStore
     );
-    contracts.voting.candidateRegistration(m);
+    await contracts.voting.candidateRegistration(m);
   }
 );
 await tx.prove();
@@ -171,8 +168,8 @@ tx = await Mina.transaction(
     fee: 10_000_000,
     memo: 'Approving registrations',
   },
-  () => {
-    contracts.voting.approveRegistrations();
+  async () => {
+    await contracts.voting.approveRegistrations();
   }
 );
 await tx.prove();
@@ -184,7 +181,7 @@ await fetchAllAccounts();
 console.log('voting for a candidate');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 10_000_000, memo: 'Casting vote' },
-  () => {
+  async () => {
     let currentCandidate = storage.candidatesStore.get(0n)!;
 
     currentCandidate.witness = new MyMerkleWitness(
@@ -198,7 +195,7 @@ tx = await Mina.transaction(
     v.witness = new MyMerkleWitness(storage.votersStore.getWitness(0n));
     console.log(v.witness.calculateRoot(v.getHash()).toString());
     console.log(contracts.voting.committedVotes.get().toString());
-    contracts.voting.vote(currentCandidate, v);
+    await contracts.voting.vote(currentCandidate, v);
   }
 );
 await tx.prove();
@@ -212,8 +209,8 @@ await fetchAllAccounts();
 console.log('counting votes');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 10_000_000, memo: 'Counting votes' },
-  () => {
-    contracts.voting.countVotes();
+  async () => {
+    await contracts.voting.countVotes();
   }
 );
 await tx.prove();
@@ -272,5 +269,3 @@ function registerMember(
   m.witness = new MyMerkleWitness(store.getWitness(i));
   return m;
 }
-
-shutdown();

@@ -31,7 +31,7 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  update(y) {
+  async update(y) {
     this.emitEvent('update', y);
     this.emitEvent('update', y);
     this.account.balance.assertEquals(this.account.balance.get());
@@ -59,9 +59,9 @@ console.log('compile');
 await SimpleZkapp.compile();
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  zkapp.deploy();
+  await zkapp.deploy();
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 

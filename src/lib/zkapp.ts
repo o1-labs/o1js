@@ -26,7 +26,13 @@ import {
 } from './circuit-value.js';
 import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
-import { Poseidon, hashConstant } from './hash.js';
+import {
+  HashInput,
+  Poseidon,
+  hashConstant,
+  isHashable,
+  packToFields,
+} from './hash.js';
 import { UInt32, UInt64 } from './int.js';
 import * as Mina from './mina.js';
 import {
@@ -39,7 +45,6 @@ import {
   Empty,
   emptyValue,
   getPreviousProofsForProver,
-  isAsFields,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
@@ -53,7 +58,6 @@ import {
   inCheckedComputation,
   inCompile,
   inProver,
-  snarkContext,
 } from './provable-context.js';
 import { Cache } from './proof-system/cache.js';
 import { assert } from './gadgets/common.js';
@@ -66,28 +70,41 @@ import {
 } from './mina/smart-contract-context.js';
 import { deprecatedToken } from './mina/token/token-methods.js';
 import type { TokenContract } from './mina/token/token-contract.js';
+import { assertPromise } from './util/assert.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods, Account, Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
+type AsyncFunction = (...args: any) => Promise<any>;
 
 /**
- * A decorator to use in a zkApp to mark a method as callable by anyone.
+ * A decorator to use in a zkApp to mark a method as provable.
  * You can use inside your zkApp class as:
  *
  * ```
- * \@method myMethod(someArg: Field) {
+ * \@method async myMethod(someArg: Field) {
+ *   // your code here
+ * }
+ * ```
+ *
+ * To return a value from the method, you have to explicitly declare the return type using the {@link method.returns} decorator:
+ * ```
+ * \@method.returns(Field)
+ * async myMethod(someArg: Field): Promise<Field> {
  *   // your code here
  * }
  * ```
  */
-function method<T extends SmartContract>(
-  target: T & { constructor: any },
-  methodName: keyof T & string,
-  descriptor: PropertyDescriptor
+function method<K extends string, T extends SmartContract>(
+  target: T & {
+    [k in K]: (...args: any) => Promise<void>;
+  },
+  methodName: K & string & keyof T,
+  descriptor: PropertyDescriptor,
+  returnType?: Provable<any>
 ) {
-  const ZkappClass = target.constructor;
+  const ZkappClass = target.constructor as typeof SmartContract;
   if (reservedPropNames.has(methodName)) {
     throw Error(`Property name ${methodName} is reserved.`);
   }
@@ -98,11 +115,6 @@ function method<T extends SmartContract>(
   }
   let paramTypes: Provable<any>[] = Reflect.getMetadata(
     'design:paramtypes',
-    target,
-    methodName
-  );
-  let returnType: Provable<any> = Reflect.getMetadata(
-    'design:returntype',
     target,
     methodName
   );
@@ -126,7 +138,7 @@ function method<T extends SmartContract>(
     SelfProof
   );
 
-  if (isAsFields(returnType)) {
+  if (returnType !== undefined) {
     internalMethodEntry.returnType = returnType;
     methodEntry.returnType = returnType;
   }
@@ -138,19 +150,47 @@ function method<T extends SmartContract>(
   ZkappClass._maxProofsVerified = Math.max(
     ZkappClass._maxProofsVerified,
     methodEntry.proofArgs.length
-  );
-  let func = descriptor.value;
+  ) as 0 | 1 | 2;
+  let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
 
+/**
+ * A decorator to mark a zkApp method as provable, and declare its return type.
+ *
+ * ```
+ * \@method.returns(Field)
+ * async myMethod(someArg: Field): Promise<Field> {
+ *   // your code here
+ * }
+ * ```
+ */
+method.returns = function <K extends string, T extends SmartContract, R>(
+  returnType: Provable<R>
+) {
+  return function decorateMethod(
+    target: T & {
+      [k in K]: (...args: any) => Promise<R>;
+    },
+    methodName: K & string & keyof T,
+    descriptor: PropertyDescriptor
+  ) {
+    return method(target as any, methodName, descriptor, returnType);
+  };
+};
+
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
-  method: Function,
+  method: AsyncFunction,
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
   let methodName = methodIntf.methodName;
-  return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
+  let noPromiseError = `Expected \`${ZkappClass.name}.${methodName}()\` to return a promise.`;
+  return async function wrappedMethod(
+    this: SmartContract,
+    ...actualArgs: any[]
+  ) {
     cleanStatePrecondition(this);
     // special case: any AccountUpdate that is passed as an argument to a method
     // is unlinked from its current location, to allow the method to link it to itself
@@ -197,7 +237,10 @@ function wrapMethod(
             let result: unknown;
             try {
               let clonedArgs = actualArgs.map(cloneCircuitValue);
-              result = method.apply(this, clonedArgs);
+              result = await assertPromise(
+                method.apply(this, clonedArgs),
+                noPromiseError
+              );
             } finally {
               memoizationContext.leave(id);
             }
@@ -227,7 +270,10 @@ function wrapMethod(
           }
         } else if (!Mina.currentTransaction.has()) {
           // outside a transaction, just call the method, but check precondition invariants
-          let result = method.apply(this, actualArgs);
+          let result = await assertPromise(
+            method.apply(this, actualArgs),
+            noPromiseError
+          );
           // check the self accountUpdate right after calling the method
           // TODO: this needs to be done in a unified way for all account updates that are created
           assertPreconditionInvariants(this.self);
@@ -249,16 +295,19 @@ function wrapMethod(
           let memoId = memoizationContext.enter(memoContext);
           let result: any;
           try {
-            result = method.apply(
-              this,
-              actualArgs.map((a, i) => {
-                let arg = methodIntf.allArgs[i];
-                if (arg.type === 'witness') {
-                  let type = methodIntf.witnessArgs[arg.index];
-                  return Provable.witness(type, () => a);
-                }
-                return a;
-              })
+            result = await assertPromise(
+              method.apply(
+                this,
+                actualArgs.map((a, i) => {
+                  let arg = methodIntf.allArgs[i];
+                  if (arg.type === 'witness') {
+                    let type = methodIntf.witnessArgs[arg.index];
+                    return Provable.witness(type, () => a);
+                  }
+                  return a;
+                })
+              ),
+              noPromiseError
             );
           } finally {
             memoizationContext.leave(memoId);
@@ -324,27 +373,10 @@ function wrapMethod(
       selfAccountUpdate(this, methodName)
     );
     try {
-      // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
-      // so we have to explain to the user how to do that
-      let { returnType } = methodIntf;
-      let noReturnTypeError =
-        `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
-        `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
-        `@method ${methodIntf.methodName}(): Field {\n` +
-        `  // ...\n` +
-        `}\n\n` +
-        `Note: Only types built out of \`Field\` are valid return types. This includes o1js primitive types and custom CircuitValues.`;
-      // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
-      if (
-        ZkappClass._methodMetadata?.[methodIntf.methodName]?.hasReturn &&
-        returnType === undefined
-      ) {
-        throw Error(noReturnTypeError);
-      }
       // we just reuse the blinding value of the caller for the callee
       let blindingValue = getBlindingValue();
 
-      let runCalledContract = () => {
+      let runCalledContract = async () => {
         let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
@@ -358,7 +390,10 @@ function wrapMethod(
         let memoId = memoizationContext.enter(memoContext);
         let result: any;
         try {
-          result = method.apply(this, constantArgs.map(cloneCircuitValue));
+          result = await assertPromise(
+            method.apply(this, constantArgs.map(cloneCircuitValue)),
+            noPromiseError
+          );
         } finally {
           memoizationContext.leave(memoId);
         }
@@ -366,11 +401,12 @@ function wrapMethod(
         assertStatePrecondition(this);
 
         if (result !== undefined) {
-          if (returnType === undefined) {
-            throw Error(noReturnTypeError);
-          } else {
-            result = toConstant(returnType, result);
-          }
+          let { returnType } = methodIntf;
+          assert(
+            returnType !== undefined,
+            "Bug: returnType is undefined but the method result isn't."
+          );
+          result = toConstant(returnType, result);
         }
 
         // store inputs + result in callData
@@ -412,9 +448,12 @@ function wrapMethod(
       let {
         accountUpdate,
         result: { result, children },
-      } = AccountUpdate.witness<{ result: any; children: AccountUpdateForest }>(
+      } = await AccountUpdate.witness<{
+        result: any;
+        children: AccountUpdateForest;
+      }>(
         provable({
-          result: returnType ?? provable(null),
+          result: methodIntf.returnType ?? provable(null),
           children: AccountUpdateForest.provable,
         }),
         runCalledContract,
@@ -479,16 +518,30 @@ function computeCallData(
 ) {
   let { returnType, methodName } = methodIntf;
   let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
-  let argSizesAndFields: Field[][] = args.map(({ type, value }) => [
-    Field(type.sizeInFields()),
-    ...type.toFields(value),
-  ]);
+
+  let input: HashInput = { fields: [], packed: [] };
+  for (let { type, value } of args) {
+    if (isHashable(type)) {
+      input = HashInput.append(input, type.toInput(value));
+    } else {
+      input.fields!.push(
+        ...[Field(type.sizeInFields()), ...type.toFields(value)]
+      );
+    }
+  }
+  const totalArgFields = packToFields(input);
   let totalArgSize = Field(
     args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0)
   );
-  let totalArgFields = argSizesAndFields.flat();
+
   let returnSize = Field(returnType?.sizeInFields() ?? 0);
-  let returnFields = returnType?.toFields(returnValue) ?? [];
+  input = { fields: [], packed: [] };
+  if (isHashable(returnType)) {
+    input = HashInput.append(input, returnType.toInput(returnValue));
+  } else {
+    input.fields!.push(...(returnType?.toFields(returnValue) ?? []));
+  }
+  let returnFields = packToFields(input);
   let methodNameFields = Encoding.stringToFields(methodName);
   return [
     // we have to encode the sizes of arguments / return value, so that fields can't accidentally shift
@@ -531,7 +584,6 @@ class SmartContract extends SmartContractBase {
       actions: number;
       rows: number;
       digest: string;
-      hasReturn: boolean;
       gates: Gate[];
     }
   >; // keyed by method name
@@ -585,18 +637,18 @@ class SmartContract extends SmartContractBase {
   } = {}) {
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
-      return (
+      return async (
         publicInput: unknown,
         publicKey: PublicKey,
         tokenId: Field,
         ...args: unknown[]
       ) => {
         let instance = new this(publicKey, tokenId);
-        (instance as any)[methodName](publicInput, ...args);
+        await (instance as any)[methodName](publicInput, ...args);
       };
     });
     // run methods once to get information that we need already at compile time
-    let methodsMeta = this.analyzeMethods();
+    let methodsMeta = await this.analyzeMethods();
     let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
@@ -620,9 +672,9 @@ class SmartContract extends SmartContractBase {
    * a cached verification key can be used.
    * @returns the digest, as a hex string
    */
-  static digest() {
+  static async digest() {
     // TODO: this should use the method digests in a deterministic order!
-    let methodData = this.analyzeMethods();
+    let methodData = await this.analyzeMethods();
     let hash = hashConstant(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
@@ -633,14 +685,14 @@ class SmartContract extends SmartContractBase {
    * Deploys a {@link SmartContract}.
    *
    * ```ts
-   * let tx = await Mina.transaction(sender, () => {
+   * let tx = await Mina.transaction(sender, async () => {
    *   AccountUpdate.fundNewAccount(sender);
-   *   zkapp.deploy();
+   *   await zkapp.deploy();
    * });
    * tx.sign([senderKey, zkAppKey]);
    * ```
    */
-  deploy({
+  async deploy({
     verificationKey,
     zkappKey,
   }: {
@@ -673,7 +725,7 @@ class SmartContract extends SmartContractBase {
       !Mina.hasAccount(this.address) ||
       Mina.getAccount(this.address).zkapp?.verificationKey === undefined;
     if (!shouldInit) return;
-    else this.init();
+    else await this.init();
     let initUpdate = this.self;
     // switch back to the deploy account update so the user can make modifications to it
     this.#executionState = {
@@ -801,31 +853,40 @@ super.init();
 
   #_senderState: { sender: PublicKey; transactionId: number };
 
-  /**
-   * The public key of the current transaction's sender account.
-   *
-   * Throws an error if not inside a transaction, or the sender wasn't passed in.
-   *
-   * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-   * A malicious prover could use any other public key without affecting the validity of the proof.
-   */
-  get sender(): PublicKey {
-    // TODO this logic now has some overlap with this.self, we should combine them somehow
-    // (but with care since the logic in this.self is a bit more complicated)
-    if (!Mina.currentTransaction.has()) {
-      throw Error(
-        `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
-      );
-    }
-    let transactionId = Mina.currentTransaction.id();
-    if (this.#_senderState?.transactionId === transactionId) {
-      return this.#_senderState.sender;
-    } else {
-      let sender = Provable.witness(PublicKey, () => Mina.sender());
-      this.#_senderState = { transactionId, sender };
+  sender = {
+    self: this as SmartContract,
+    /**
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     */
+    getUnconstrained(): PublicKey {
+      // TODO this logic now has some overlap with this.self, we should combine them somehow
+      // (but with care since the logic in this.self is a bit more complicated)
+      if (!Mina.currentTransaction.has()) {
+        throw Error(
+          `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+        );
+      }
+      let transactionId = Mina.currentTransaction.id();
+      if (this.self.#_senderState?.transactionId === transactionId) {
+        return this.self.#_senderState.sender;
+      } else {
+        let sender = Provable.witness(PublicKey, () => Mina.sender());
+        this.self.#_senderState = { transactionId, sender };
+        return sender;
+      }
+    },
+
+    getAndRequireSignature(): PublicKey {
+      let sender = this.getUnconstrained();
+      AccountUpdate.createSigned(sender);
       return sender;
-    }
-  }
+    },
+  };
 
   /**
    * Current account of the {@link SmartContract}.
@@ -1073,11 +1134,10 @@ super.init();
    * @returns an object, keyed by method name, each entry containing:
    *  - `rows` the size of the constraint system created by this method
    *  - `digest` a digest of the method circuit
-   *  - `hasReturn` a boolean indicating whether the method returns a value
    *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
-  static analyzeMethods({ printSummary = false } = {}) {
+  static async analyzeMethods({ printSummary = false } = {}) {
     let ZkappClass = this as typeof SmartContract;
     let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
@@ -1085,26 +1145,18 @@ super.init();
       !methodIntfs.every((m) => m.methodName in methodMetadata) &&
       !inAnalyze()
     ) {
-      if (snarkContext.get().inRunAndCheck) {
-        let err = new Error(
-          'Can not analyze methods inside Provable.runAndCheck, because this creates a circuit nested in another circuit'
-        );
-        // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () => ZkappClass.analyzeMethods();
-        throw err;
-      }
       let id: number;
       let insideSmartContract = !!smartContractContext.get();
       if (insideSmartContract) id = smartContractContext.enter(null);
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, result, gates, summary } = analyzeMethod(
+          let { rows, digest, gates, summary } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
-            (publicInput, publicKey, tokenId, ...args) => {
+            async (publicInput, publicKey, tokenId, ...args) => {
               let instance: SmartContract = new ZkappClass(publicKey, tokenId);
-              let result = (instance as any)[methodIntf.methodName](
+              let result = await (instance as any)[methodIntf.methodName](
                 publicInput,
                 ...args
               );
@@ -1116,7 +1168,6 @@ super.init();
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
-            hasReturn: result !== undefined,
             gates,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());
@@ -1186,6 +1237,7 @@ type ReducerReturn<Action> = {
     initial: { state: State; actionState: Field },
     options?: {
       maxTransactionsWithActions?: number;
+      maxActionsPerMethod?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): { state: State; actionState: Field };
@@ -1201,6 +1253,7 @@ type ReducerReturn<Action> = {
     fromActionState: Field,
     options?: {
       maxTransactionsWithActions?: number;
+      maxActionsPerMethod?: number;
       skipActionStatePrecondition?: boolean;
     }
   ): Field;
@@ -1263,6 +1316,7 @@ class ${contract.constructor.name} extends SmartContract {
       { state, actionState }: { state: S; actionState: Field },
       {
         maxTransactionsWithActions = 32,
+        maxActionsPerMethod = 1,
         skipActionStatePrecondition = false,
       } = {}
     ): { state: S; actionState: Field } {
@@ -1272,13 +1326,11 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
-      let methodData = (
-        contract.constructor as typeof SmartContract
-      ).analyzeMethods();
-      let possibleActionsPerTransaction = [
-        ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
-      ].sort((x, y) => x - y);
-
+      // TODO find out max actions per method automatically?
+      let possibleActionsPerTransaction = Array.from(
+        { length: maxActionsPerMethod + 1 },
+        (_, i) => i
+      );
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         Provable.Array(reducer.actionType, n)
       );
@@ -1324,7 +1376,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         state = Provable.switch(lengths, stateType, newStates);
       }
       if (!skipActionStatePrecondition) {
-        contract.account.actionState.assertEquals(actionState);
+        contract.account.actionState.requireEquals(actionState);
       }
       return { state, actionState };
     },
@@ -1462,7 +1514,7 @@ function declareMethods<T extends typeof SmartContract>(
     let target = SmartContract.prototype;
     Reflect.metadata('design:paramtypes', argumentTypes)(target, key);
     let descriptor = Object.getOwnPropertyDescriptor(target, key)!;
-    method(SmartContract.prototype, key as any, descriptor);
+    method(SmartContract.prototype as any, key as any, descriptor);
     Object.defineProperty(target, key, descriptor);
   }
 }

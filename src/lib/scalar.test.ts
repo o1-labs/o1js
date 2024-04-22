@@ -1,22 +1,12 @@
-import { shutdown, isReady, Field, Bool, Provable, Scalar } from 'o1js';
+import { Field, Provable, Scalar } from 'o1js';
 
 describe('scalar', () => {
-  beforeAll(async () => {
-    await isReady;
-  });
-
-  afterAll(async () => {
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
-
   describe('scalar', () => {
     describe('Inside circuit', () => {
       describe('toFields', () => {
         it('should return an array of Fields', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               const x = Provable.witness(Scalar, () => Scalar.random());
               const fieldArr = x.toFields();
               expect(Array.isArray(fieldArr)).toBe(true);
@@ -29,7 +19,7 @@ describe('scalar', () => {
         it('should return the same', () => {
           expect(() => {
             let s0 = Scalar.random();
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               let s1 = Provable.witness(Scalar, () => s0);
               Provable.assertEqual(Scalar.fromFields(s1.toFields()), s0);
             });
@@ -40,7 +30,7 @@ describe('scalar', () => {
       describe('fromBits', () => {
         it('should return a Scalar', () => {
           expect(() => {
-            Provable.runAndCheck(() => {
+            Provable.runAndCheckSync(() => {
               Provable.witness(Scalar, () =>
                 Scalar.fromBits(Field.random().toBits())
               );
@@ -51,7 +41,7 @@ describe('scalar', () => {
 
       describe('random', () => {
         it('two different calls should be different', () => {
-          Provable.runAndCheck(() => {
+          Provable.runAndCheckSync(() => {
             const x = Provable.witness(Scalar, () => Scalar.random());
             const y = Provable.witness(Scalar, () => Scalar.random());
             expect(x).not.toEqual(y);

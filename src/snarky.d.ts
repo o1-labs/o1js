@@ -20,25 +20,31 @@ import type {
   SnarkKeyHeader,
   MlWrapVerificationKey,
 } from './lib/proof-system/prover-keys.js';
-import { getWasm } from './bindings/js/wrapper.js';
 import type {
   WasmFpSrs,
   WasmFqSrs,
 } from './bindings/compiled/node_bindings/plonk_wasm.cjs';
+import * as wasm from './bindings/compiled/node_bindings/plonk_wasm.cjs';
 import type { KimchiGateType } from './lib/gates.ts';
+import type { MlConstraintSystem } from './lib/provable-context.ts';
+import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, getWasm };
+export { ProvablePure, Provable, Ledger, Pickles, Gate, GateType, wasm };
 
 // internal
 export {
   Snarky,
   Test,
+  WasmModule,
+  withThreadPool,
   JsonGate,
   MlPublicKey,
   MlPublicKeyVar,
   FeatureFlags,
   MlFeatureFlags,
 };
+
+type WasmModule = typeof wasm;
 
 /**
  * `Provable<T>` is the general circuit type interface in o1js. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
@@ -173,24 +179,27 @@ declare namespace Snarky {
  */
 declare const Snarky: {
   /**
-   * witness `sizeInFields` field element variables
-   *
-   * Note: this is called "exists" because in a proof, you use it like this:
-   * > "I prove that there exists x, such that (some statement)"
-   */
-  exists(
-    sizeInFields: number,
-    compute: () => MlArray<FieldConst>
-  ): MlArray<VarFieldVar>;
-  /**
-   * witness a single field element variable
-   */
-  existsVar(compute: () => FieldConst): VarFieldVar;
-
-  /**
    * APIs that have to do with running provable code
    */
   run: {
+    /**
+     * witness `sizeInFields` field element variables
+     *
+     * Note: this is called "exists" because in a proof, you use it like this:
+     * > "I prove that there exists x, such that (some statement)"
+     */
+    exists(
+      sizeInFields: number,
+      compute: () => MlArray<FieldConst>
+    ): MlArray<VarFieldVar>;
+    /**
+     * witness a single field element variable
+     */
+    existsOne(compute: () => FieldConst): VarFieldVar;
+    /**
+     * Checks whether Snarky runs in "prover mode", that is, with witnesses
+     */
+    inProver(): MlBool;
     /**
      * Runs code as a prover.
      */
@@ -200,39 +209,64 @@ declare const Snarky: {
      */
     inProverBlock(): boolean;
     /**
-     * Runs code and checks its correctness.
+     * Setting that controls whether snarky throws an exception on violated constraint.
      */
-    runAndCheck(f: () => void): void;
+    setEvalConstraints(value: MlBool): void;
     /**
-     * Runs code in prover mode, without checking correctness.
+     * Starts constraint system runner and returns a function to finish it.
      */
-    runUnchecked(f: () => void): void;
+    enterConstraintSystem(): () => MlConstraintSystem;
     /**
-     * Returns information about the constraint system in the callback function.
+     * Starts witness generation and returns a function to finish it.
      */
-    constraintSystem(f: () => void): {
-      rows: number;
-      digest: string;
-      json: JsonConstraintSystem;
+    enterGenerateWitness(): () => [
+      _: 0,
+      public_inputs: FieldVector,
+      auxiliary_inputs: FieldVector
+    ];
+    /**
+     * Starts an asProver / witness block and returns a function to finish it.
+     */
+    enterAsProver(
+      size: number
+    ): (fields: MlOption<MlArray<FieldConst>>) => MlArray<VarFieldVar>;
+
+    /**
+     * Operations on snarky's internal state
+     */
+    state: {
+      allocVar(state: SnarkyState): FieldVar;
+      storeFieldElt(state: SnarkyState, x: FieldConst): FieldVar;
+      getVariableValue(state: SnarkyState, x: FieldVar): FieldConst;
+
+      asProver(state: SnarkyState): MlBool;
+      setAsProver(state: SnarkyState, value: MlBool): void;
+      hasWitness(state: SnarkyState): MlBool;
     };
+  };
+
+  /**
+   * APIs to interact with a `Backend.R1CS_constraint_system.t`
+   */
+  constraintSystem: {
+    /**
+     * Returns the number of rows of the constraint system.
+     */
+    rows(system: MlConstraintSystem): number;
+    /**
+     * Returns an md5 digest of the constraint system.
+     */
+    digest(system: MlConstraintSystem): string;
+    /**
+     * Returns a JSON representation of the constraint system.
+     */
+    toJson(system: MlConstraintSystem): JsonConstraintSystem;
   };
 
   /**
    * APIs to add constraints on field variables
    */
   field: {
-    /**
-     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
-     */
-    add(x: FieldVar, y: FieldVar): FieldVar;
-    /**
-     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
-     */
-    scale(c: FieldConst, x: FieldVar): FieldVar;
-    /**
-     * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
-     */
-    mul(x: FieldVar, y: FieldVar): FieldVar;
     /**
      * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
      */
@@ -262,14 +296,6 @@ declare const Snarky: {
       y: FieldVar
     ): [_: 0, less: BoolVar, lessOrEqual: BoolVar];
     /**
-     *
-     */
-    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
-    /**
-     *
-     */
-    fromBits(bits: MlArray<BoolVar>): FieldVar;
-    /**
      * returns x truncated to the lowest `16 * lengthDiv16` bits
      * => can be used to assert that x fits in `16 * lengthDiv16` bits.
      *
@@ -277,23 +303,6 @@ declare const Snarky: {
      * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
      */
     truncateToBits16(lengthDiv16: number, x: FieldVar): FieldVar;
-    /**
-     * returns a new witness from an AST
-     * (implemented with toConstantAndTerms)
-     */
-    seal(x: FieldVar): VarFieldVar;
-    /**
-     * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
-     * returns `(c, [(c0, i0), ..., (cn, in)])`;
-     * c is optional
-     */
-    toConstantAndTerms(
-      x: FieldVar
-    ): [
-      _: 0,
-      constant: MlOption<FieldConst>,
-      terms: MlList<MlPair<FieldConst, number>>
-    ];
   };
 
   gates: {
@@ -471,18 +480,6 @@ declare const Snarky: {
     ): void;
   };
 
-  bool: {
-    not(x: BoolVar): BoolVar;
-
-    and(x: BoolVar, y: BoolVar): BoolVar;
-
-    or(x: BoolVar, y: BoolVar): BoolVar;
-
-    equals(x: BoolVar, y: BoolVar): BoolVar;
-
-    assertEqual(x: BoolVar, y: BoolVar): void;
-  };
-
   group: {
     scale(p: MlGroup, s: MlArray<BoolVar>): MlGroup;
   };
@@ -541,6 +538,27 @@ declare const Snarky: {
     };
   };
 };
+
+type MlRef<T> = [_: 0, contents: T];
+
+type SnarkyVector = [0, [unknown, number, FieldVector]];
+type ConstraintSystem = unknown;
+
+type SnarkyState = [
+  _: 0,
+  system: MlOption<ConstraintSystem>,
+  input: SnarkyVector,
+  aux: SnarkyVector,
+  eval_constraints: MlBool,
+  num_inputs: number,
+  next_auxiliary: MlRef<number>,
+  has_witness: MlBool,
+  stack: MlList<MlString>,
+  handler: unknown,
+  is_running: MlBool,
+  as_prover: MlRef<MlBool>,
+  log_constraint: unknown
+];
 
 type GateType =
   | 'Zero'
@@ -735,11 +753,11 @@ declare namespace Pickles {
     /**
      * The main circuit functions
      */
-    main: (publicInput: MlArray<FieldVar>) => {
+    main: (publicInput: MlArray<FieldVar>) => Promise<{
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
       shouldVerify: MlArray<BoolVar>;
-    };
+    }>;
     /**
      * Feature flags which enable certain custom gates
      */
@@ -810,7 +828,7 @@ declare const Pickles: {
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => [_: 0, data: string, hash: FieldConst];
+    getVerificationKey: () => Promise<[_: 0, data: string, hash: FieldConst]>;
   };
 
   verify(
@@ -848,3 +866,5 @@ declare const Pickles: {
     fromMlString(s: MlString): string;
   };
 };
+
+declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;

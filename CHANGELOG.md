@@ -15,20 +15,66 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/3b5f7c7...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
 
 ### Breaking changes
 
-- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422
+- **Async circuits**. Require all smart contract and zkprogram methods to be async https://github.com/o1-labs/o1js/pull/1477
+  - This change allows you to use `await` inside your methods. Change the method signature by adding the `async` keyword.
+  - Don't forget to add `await` to all contract calls! `await MyContract.myMethod();`
+  - To declare a return value from a method, use the new `@method.returns()` decorator
+- Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
+- Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
+  - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
+  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
+- Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
+  Replaced by more explicit APIs:
+  - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
+  - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
+- `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
+  - The default value is 1 and should work for most existing contracts
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+  - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
+  - Equivalent changes were made to `UInt32`
+- Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461
+- Remove `Field.rangeCheckHelper()` which was too low-level and easy to misuse https://github.com/o1-labs/o1js/pull/1485
+  - Also, rename the misleadingly named `Gadgets.isInRangeN()` to `Gadgets.isDefinitelyInRangeN()`
+- Rename `Bool.Unsafe.ofField()` to `Bool.Unsafe.fromField()` https://github.com/o1-labs/o1js/pull/1485
+- Replace the namespaced type exports `Gadgets.Field3` and `Gadgets.ForeignField.Sum` with `Field3` and `ForeignFieldSum`
+  - Unfortunately, the namespace didn't play well with auto-imports in TypeScript
+
+### Added
+
+- `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
+- Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
+- Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
+
+## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
+
+### Breaking changes
+
+- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422 https://github.com/o1-labs/o1js/pull/1480
   - Changed the `TransactionId` type to `Transaction`. Additionally added `PendingTransaction` and `RejectedTransaction` types to better represent the state of a transaction.
-  - `transaction.send()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns a `PendingTransaction` object that contains the error. Use `transaction.sendOrThrowIfError` to throw the error if the transaction was not successful.
-  - `transaction.wait()` no longer throws an error if the transaction was not successful for `Mina.LocalBlockchain` and `Mina.Network`. Instead, it returns either a `IncludedTransaction` or `RejectedTransaction`. Use `transaction.waitOrThrowIfError` to throw the error if the transaction was not successful.
+  - `Transaction.safeSend()` and `PendingTransaction.safeWait()` are introduced to return a `IncludedTransaction` or `RejectedTransaction` object without throwing errors.
+  - `transaction.send()` throws an error if the transaction was not successful for both `Mina.LocalBlockchain` and `Mina.Network` and returns a `PendingTransaction` object if it was successful. Use `transaction.safeSend` to send a transaction that will not throw an error and either return a `PendingTransaction` or `RejectedTransaction`.
+  - `transaction.wait()` throws an error if the transaction was not successful for both `Mina.LocalBlockchain` and `Mina.Network` and returns a `IncludedTransaction` object if it was successful. Use `transaction.safeWait` to send a transaction that will not throw an error and either return a `IncludedTransaction` or `RejectedTransaction`.
   - `transaction.hash()` is no longer a function, it is now a property that returns the hash of the transaction.
+  - Changed `Transaction.isSuccess` to `Transaction.status` to better represent the state of a transaction.
+- Improved efficiency of computing `AccountUpdate.callData` by packing field elements into as few field elements as possible https://github.com/o1-labs/o1js/pull/1458
+  - This leads to a large reduction in the number of constraints used when inputs to a zkApp method are many field elements (e.g. a long list of `Bool`s)
+- Return events in the `LocalBlockchain` in reverse chronological order (latest events at the beginning) to match the behavior of the `Network` https://github.com/o1-labs/o1js/pull/1460
 
 ### Added
 
 - Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
 - `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+- `setNumberOfWorkers()` to allow developer to override the number of workers used during compilation and proof generation/verification https://github.com/o1-labs/o1js/pull/1456
+
+### Changed
+
+- Improve all-around performance by reverting the Apple silicon workaround (https://github.com/o1-labs/o1js/pull/683) as the root problem is now fixed upstream https://github.com/o1-labs/o1js/pull/1456
+- Improved error message when trying to use `fetchActions`/`fetchEvents` with a missing Archive Node endpoint https://github.com/o1-labs/o1js/pull/1459
 
 ### Deprecated
 
@@ -39,6 +85,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+- Make `Circuit` handle types with a `.provable` property (like those used in ECDSA) https://github.com/o1-labs/o1js/pull/1471
+  - To support offchain, non-Pickles proofs of ECDSA signatures
 
 ## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
 

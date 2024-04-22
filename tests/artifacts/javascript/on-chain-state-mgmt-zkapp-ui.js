@@ -44,11 +44,11 @@ deployButton.addEventListener('click', async () => {
 
   try {
     await HelloWorld.compile();
-    const deploymentTransaction = await Mina.transaction(feePayer, () => {
+    const deploymentTransaction = await Mina.transaction(feePayer, async () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
-      zkAppInstance.deploy();
+      await zkAppInstance.deploy();
     });
 
     await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
@@ -84,8 +84,8 @@ updateButton.addEventListener('click', async (event) => {
       `Updating zkApp State from ${currentState} to ${zkAppStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
     );
-    const transaction = await Mina.transaction(feePayer, () => {
-      zkAppInstance.update(
+    const transaction = await Mina.transaction(feePayer, async () => {
+      await zkAppInstance.update(
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );

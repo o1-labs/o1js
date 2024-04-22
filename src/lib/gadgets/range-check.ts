@@ -11,9 +11,8 @@ export {
   rangeCheck32,
   multiRangeCheck,
   compactMultiRangeCheck,
-  rangeCheckHelper,
   rangeCheckN,
-  isInRangeN,
+  isDefinitelyInRangeN,
   rangeCheck8,
   rangeCheck16,
 };
@@ -239,6 +238,12 @@ function rangeCheck1Helper(inputs: {
 
 /**
  * Helper function that creates a new {@link Field} element from the first `length` bits of this {@link Field} element.
+ *
+ * This returns the `x` truncated to `length` bits. However, it does **not** prove this truncation or any
+ * other relation of the output with `x`.
+ *
+ * This only proves that the output value is in the range [0, 2^length), and so can be combined
+ * with the initial value to prove a range check.
  */
 function rangeCheckHelper(length: number, x: Field) {
   assert(
@@ -284,9 +289,15 @@ function rangeCheckN(n: number, x: Field, message: string = '') {
 }
 
 /**
- * Checks that x is in the range [0, 2^n) and returns a Boolean indicating whether the check passed.
+ * Returns a boolean which, being true, proves that x is in the range [0, 2^n).
+ *
+ * **Beware**: The output being false does **not** prove that x is not in the range [0, 2^n).
+ * In other words, it can happen that this returns false even if x is in the range [0, 2^n).
+ *
+ * This should not be viewed as a standalone provable method but as an advanced helper function
+ * for gadgets which need a weakened form of range check.
  */
-function isInRangeN(n: number, x: Field) {
+function isDefinitelyInRangeN(n: number, x: Field) {
   assert(
     n <= Fp.sizeInBits,
     `bit length must be ${Fp.sizeInBits} or less, got ${n}`
@@ -311,7 +322,7 @@ function rangeCheck16(x: Field) {
     return;
   }
   // check that x fits in 16 bits
-  x.rangeCheckHelper(16).assertEquals(x);
+  rangeCheckHelper(16, x).assertEquals(x);
 }
 
 function rangeCheck8(x: Field) {
@@ -324,8 +335,8 @@ function rangeCheck8(x: Field) {
   }
 
   // check that x fits in 16 bits
-  x.rangeCheckHelper(16).assertEquals(x);
+  rangeCheckHelper(16, x).assertEquals(x);
   // check that 2^8 x fits in 16 bits
   let x256 = x.mul(1 << 8).seal();
-  x256.rangeCheckHelper(16).assertEquals(x256);
+  rangeCheckHelper(16, x256).assertEquals(x256);
 }

@@ -70,7 +70,7 @@ function padding(data: FlexibleBytes): UInt32[][] {
     // chunk 4 bytes into one UInt32, as expected by SHA256
     // bytesToWord expects little endian, so we reverse the bytes
     chunks.push(
-      UInt32.from(bytesToWord(paddedMessage.slice(i, i + 4).reverse()))
+      UInt32.Unsafe.fromField(bytesToWord(paddedMessage.slice(i, i + 4).reverse()))
     );
   }
 
@@ -104,7 +104,7 @@ const SHA256 = {
           .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
         // mod 32bit the unreduced field element
-        W[t] = UInt32.from(divMod32(unreduced, 16).remainder);
+        W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 16).remainder);
       }
 
       // initialize working variables
@@ -133,11 +133,11 @@ const SHA256 = {
         h = g;
         g = f;
         f = e;
-        e = UInt32.from(divMod32(d.value.add(unreducedT1), 16).remainder); // mod 32bit the unreduced field element
+        e = UInt32.Unsafe.fromField(divMod32(d.value.add(unreducedT1), 16).remainder); // mod 32bit the unreduced field element
         d = c;
         c = b;
         b = a;
-        a = UInt32.from(divMod32(unreducedT2.add(unreducedT1), 16).remainder); // mod 32bit
+        a = UInt32.Unsafe.fromField(divMod32(unreducedT2.add(unreducedT1), 16).remainder); // mod 32bit
       }
 
       // new intermediate hash value
@@ -163,7 +163,7 @@ function Ch(x: UInt32, y: UInt32, z: UInt32) {
   let xAndY = x.and(y).value;
   let xNotAndZ = x.not().and(z).value;
   let ch = xAndY.add(xNotAndZ).seal();
-  return UInt32.from(ch);
+  return UInt32.Unsafe.fromField(ch);
 }
 
 function Maj(x: UInt32, y: UInt32, z: UInt32) {
@@ -172,7 +172,7 @@ function Maj(x: UInt32, y: UInt32, z: UInt32) {
   let sum = x.value.add(y.value).add(z.value).seal();
   let xor = x.xor(y).xor(z).value;
   let maj = sum.sub(xor).div(2).seal();
-  return UInt32.from(maj);
+  return UInt32.Unsafe.fromField(maj);
 }
 
 function SigmaZero(x: UInt32) {
@@ -276,5 +276,5 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
 
   // since xor() is implicitly range-checking both of its inputs, this provides the missing
   // proof that xRotR0, xRotR1, xRotR2 < 2^32, which implies x0 < 2^d0, x1 < 2^d1, x2 < 2^d2
-  return UInt32.from(xRotR0).xor(new UInt32(xRotR1)).xor(new UInt32(xRotR2));
+  return UInt32.Unsafe.fromField(xRotR0).xor(UInt32.Unsafe.fromField(xRotR1)).xor(UInt32.Unsafe.fromField(xRotR2));
 }

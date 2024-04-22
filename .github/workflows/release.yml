@@ -23,6 +23,7 @@ jobs:
       - name: Check if it's an even week
         run: |
           WEEK_NUM=$(date +'%V')
+          WEEK_NUM=$((10#$WEEK_NUM))
           if [ $((WEEK_NUM % 2)) -ne 0 ]; then
             echo "Odd week number ($WEEK_NUM), terminating job."
             exit 1

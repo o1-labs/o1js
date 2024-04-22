@@ -94,7 +94,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
   });
   let parentTokenId = Field(field);
 
-  Provable.runAndCheck(() => {
+  Provable.runAndCheckSync(() => {
     tokenOwner = Provable.witness(PublicKey, () => tokenOwner);
     parentTokenId = Provable.witness(Field, () => parentTokenId);
 

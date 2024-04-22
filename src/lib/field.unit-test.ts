@@ -17,6 +17,7 @@ import {
   bool,
   Spec,
 } from './testing/equivalent.js';
+import { runAndCheckSync } from './provable-context.js';
 
 // types
 Field satisfies Provable<Field>;
@@ -131,6 +132,13 @@ equivalent({ from: [field], to: unit })(
   (x) => x === 0n || x === 1n || throwError('not boolean'),
   (x) => x.assertBool()
 );
+equivalent({ from: [field], to: unit })(
+  (x) => x === 0n || x === 1n || throwError('not boolean'),
+  (x) => {
+    let y = Provable.witness(Field, () => x.div(2));
+    y.mul(2).assertBool();
+  }
+);
 equivalent({ from: [smallField], to: bool })(
   (x) => (x & 1n) === 0n,
   (x) => x.isEven()
@@ -138,7 +146,7 @@ equivalent({ from: [smallField], to: bool })(
 
 // non-constant field vars
 test(Random.field, (x0, assert) => {
-  Provable.runAndCheck(() => {
+  runAndCheckSync(() => {
     // Var
     let x = Provable.witness(Field, () => Field(x0));
     assert(x.value[0] === FieldType.Var);
@@ -177,7 +185,7 @@ test(Random.field, (x0, assert) => {
 
 // some provable operations
 test(Random.field, Random.field, (x0, y0, assert) => {
-  Provable.runAndCheck(() => {
+  runAndCheckSync(() => {
     // equals
     let x = Provable.witness(Field, () => Field(x0));
     let y = Provable.witness(Field, () => Field(y0));
@@ -195,7 +203,9 @@ test(Random.field, Random.field, (x0, y0, assert) => {
     Provable.asProver(() => assert(z.toBigInt() === Fp.mul(x0, y0)));
 
     // toBits / fromBits
-    let bits = Fp.toBits(x0);
+    // Fp.toBits() returns 255 bits, but our new to/from impl only accepts <=254
+    // https://github.com/o1-labs/o1js/pull/1461
+    let bits = Fp.toBits(x0).slice(0, -1);
     let x1 = Provable.witness(Field, () => Field.fromBits(bits));
     let bitsVars = x1.toBits();
     Provable.asProver(() =>

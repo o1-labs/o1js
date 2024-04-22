@@ -24,9 +24,9 @@ const zkAppInstance = new HashStorage(zkAppAddress);
 const hashData = Bytes.from(Array.from({ length: 32 }, (_, i) => i));
 
 console.log('Deploying Hash Example....');
-txn = await Mina.transaction(feePayer.publicKey, () => {
+txn = await Mina.transaction(feePayer.publicKey, async () => {
   AccountUpdate.fundNewAccount(feePayer.publicKey);
-  zkAppInstance.deploy();
+  await zkAppInstance.deploy();
 });
 await txn.sign([feePayer.privateKey, zkAppPrivateKey]).send();
 
@@ -37,8 +37,8 @@ let currentState;
 console.log('Initial State', initialState);
 
 console.log(`Updating commitment from ${initialState} using SHA256 ...`);
-txn = await Mina.transaction(feePayer.publicKey, () => {
-  zkAppInstance.SHA256(hashData);
+txn = await Mina.transaction(feePayer.publicKey, async () => {
+  await zkAppInstance.SHA256(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.privateKey]).send();
@@ -46,8 +46,8 @@ currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 console.log(`Current state successfully updated to ${currentState}`);
 
 console.log(`Updating commitment from ${initialState} using SHA384 ...`);
-txn = await Mina.transaction(feePayer.publicKey, () => {
-  zkAppInstance.SHA384(hashData);
+txn = await Mina.transaction(feePayer.publicKey, async () => {
+  await zkAppInstance.SHA384(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.privateKey]).send();
@@ -55,8 +55,8 @@ currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 console.log(`Current state successfully updated to ${currentState}`);
 
 console.log(`Updating commitment from ${initialState} using SHA512 ...`);
-txn = await Mina.transaction(feePayer.publicKey, () => {
-  zkAppInstance.SHA512(hashData);
+txn = await Mina.transaction(feePayer.publicKey, async () => {
+  await zkAppInstance.SHA512(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.privateKey]).send();
@@ -64,8 +64,8 @@ currentState = Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
 console.log(`Current state successfully updated to ${currentState}`);
 
 console.log(`Updating commitment from ${initialState} using Keccak256...`);
-txn = await Mina.transaction(feePayer.publicKey, () => {
-  zkAppInstance.Keccak256(hashData);
+txn = await Mina.transaction(feePayer.publicKey, async () => {
+  await zkAppInstance.Keccak256(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.privateKey]).send();

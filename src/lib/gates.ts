@@ -1,5 +1,5 @@
 import { Snarky } from '../snarky.js';
-import { FieldConst, type Field } from './field.js';
+import { FieldConst, type Field, FieldVar } from './field.js';
 import { exists } from './gadgets/common.js';
 import { MlArray, MlTuple } from './ml/base.js';
 import { TupleN } from './util/types.js';
@@ -16,6 +16,8 @@ export {
   foreignFieldMul,
   KimchiGateType,
 };
+
+export { fieldVar };
 
 const Gates = {
   rangeCheck0,
@@ -131,23 +133,27 @@ function xor(
  */
 function generic(
   coefficients: {
-    left: bigint;
-    right: bigint;
-    out: bigint;
-    mul: bigint;
-    const: bigint;
+    left: bigint | FieldConst;
+    right: bigint | FieldConst;
+    out: bigint | FieldConst;
+    mul: bigint | FieldConst;
+    const: bigint | FieldConst;
   },
-  inputs: { left: Field; right: Field; out: Field }
+  inputs: {
+    left: Field | FieldVar;
+    right: Field | FieldVar;
+    out: Field | FieldVar;
+  }
 ) {
   Snarky.gates.generic(
-    FieldConst.fromBigint(coefficients.left),
-    inputs.left.value,
-    FieldConst.fromBigint(coefficients.right),
-    inputs.right.value,
-    FieldConst.fromBigint(coefficients.out),
-    inputs.out.value,
-    FieldConst.fromBigint(coefficients.mul),
-    FieldConst.fromBigint(coefficients.const)
+    fieldConst(coefficients.left),
+    fieldVar(inputs.left),
+    fieldConst(coefficients.right),
+    fieldVar(inputs.right),
+    fieldConst(coefficients.out),
+    fieldVar(inputs.out),
+    fieldConst(coefficients.mul),
+    fieldConst(coefficients.const)
   );
 }
 
@@ -264,4 +270,14 @@ enum KimchiGateType {
   ForeignFieldMul,
   Xor16,
   Rot64,
+}
+
+// helper
+
+function fieldVar(x: Field | FieldVar | bigint): FieldVar {
+  if (typeof x === 'bigint') return FieldVar.constant(x);
+  return Array.isArray(x) ? x : x.value;
+}
+function fieldConst(x: bigint | FieldConst): FieldConst {
+  return typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
 }
