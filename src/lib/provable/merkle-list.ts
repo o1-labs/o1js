@@ -205,14 +205,14 @@ class MerkleList<T> implements MerkleListBase<T> {
     iter.assertAtEnd();
   }
 
-  startIterating(): MerkleListIterator<T> {
+  startIterating(iterations?: number): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
-    return merkleArray.startIterating(this);
+    return merkleArray.startIterating(this, iterations);
   }
 
-  startIteratingFromLast(): MerkleListIterator<T> {
+  startIteratingFromLast(iterations?: number): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
-    return merkleArray.startIteratingFromLast(this);
+    return merkleArray.startIteratingFromLast(this, iterations);
   }
 
   /**
@@ -336,6 +336,11 @@ type MerkleListIteratorBase<T> = {
   currentIndex: Unconstrained<number>;
 };
 
+type Direction = 'forth' | 'back';
+const Direction: { forth: Direction; back: Direction } = {
+  forth: 'forth',
+  back: 'back',
+};
 /**
  * MerkleListIterator helps iterating through a Merkle list.
  * This works similar to calling `list.pop()` or `list.push()` repeatedly, but maintaining the entire list instead of removing elements.
@@ -360,13 +365,21 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   // fixed parts
   readonly data: Unconstrained<WithHash<T>[]>;
   readonly hash: Field;
+  private iterations?: number;
+  private direction: Direction = Direction.forth;
 
   // mutable parts
   currentHash: Field;
   currentIndex: Unconstrained<number>;
 
-  constructor(value: MerkleListIteratorBase<T>) {
+  constructor(
+    value: MerkleListIteratorBase<T>,
+    direction: Direction,
+    iterations?: number
+  ) {
     Object.assign(this, value);
+    this.iterations = iterations;
+    this.direction = direction;
   }
 
   assertAtStart() {
@@ -560,12 +573,24 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
   clone(): MerkleListIterator<T> {
     let data = Unconstrained.witness(() => [...this.data.get()]);
     let currentIndex = Unconstrained.witness(() => this.currentIndex.get());
-    return new this.Constructor({
-      data,
-      hash: this.hash,
-      currentHash: this.currentHash,
-      currentIndex,
-    });
+    return new this.Constructor(
+      {
+        data,
+        hash: this.hash,
+        currentHash: this.currentHash,
+        currentIndex,
+      },
+      this.direction,
+      this.iterations
+    );
+  }
+
+  *[Symbol.iterator]() {
+    if (!this.iterations) throw Error('set iterations first');
+    for (let i = 0; i < this.iterations; i++) {
+      if (this.direction === Direction.forth) yield this.next();
+      else yield this.previous();
+    }
   }
 
   /**
@@ -577,8 +602,14 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     emptyHash_ = emptyHash
   ): typeof MerkleListIterator<T> & {
     from: (array: T[]) => MerkleListIterator<T>;
-    startIterating: (list: MerkleListBase<T>) => MerkleListIterator<T>;
-    startIteratingFromLast: (list: MerkleListBase<T>) => MerkleListIterator<T>;
+    startIterating: (
+      list: MerkleListBase<T>,
+      iterations?: number
+    ) => MerkleListIterator<T>;
+    startIteratingFromLast: (
+      list: MerkleListBase<T>,
+      iterations?: number
+    ) => MerkleListIterator<T>;
     empty: () => MerkleListIterator<T>;
     provable: ProvableHashable<MerkleListIterator<T>>;
   } {
@@ -614,29 +645,37 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         return this.startIteratingFromLast({ data: unconstrained, hash });
       }
 
-      static startIterating({
-        data,
-        hash,
-      }: MerkleListBase<T>): MerkleListIterator<T> {
-        return new this({
-          data,
-          hash,
-          currentHash: emptyHash_,
-          // note: for an empty list or any list which is "at the end", the currentIndex is -1
-          currentIndex: Unconstrained.witness(() => data.get().length - 1),
-        });
+      static startIterating(
+        { data, hash }: MerkleListBase<T>,
+        iterations?: number
+      ): MerkleListIterator<T> {
+        return new this(
+          {
+            data,
+            hash,
+            currentHash: emptyHash_,
+            // note: for an empty list or any list which is "at the end", the currentIndex is -1
+            currentIndex: Unconstrained.witness(() => data.get().length - 1),
+          },
+          Direction.forth,
+          iterations
+        );
       }
 
-      static startIteratingFromLast({
-        data,
-        hash,
-      }: MerkleListBase<T>): MerkleListIterator<T> {
-        return new this({
-          data,
-          hash,
-          currentHash: hash,
-          currentIndex: Unconstrained.from(0),
-        });
+      static startIteratingFromLast(
+        { data, hash }: MerkleListBase<T>,
+        iterations?: number
+      ): MerkleListIterator<T> {
+        return new this(
+          {
+            data,
+            hash,
+            currentHash: hash,
+            currentIndex: Unconstrained.from(0),
+          },
+          Direction.back,
+          iterations
+        );
       }
 
       static empty(): MerkleListIterator<T> {
