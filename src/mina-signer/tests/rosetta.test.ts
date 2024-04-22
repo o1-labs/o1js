@@ -1,7 +1,7 @@
 import Client from '../dist/node/mina-signer/mina-signer.js';
 import { fieldFromHex, fieldToHex, signatureJsonToHex, signatureJsonFromHex, UnsignedTransaction, publicKeyToHex, signTransaction } from '../dist/node/mina-signer/src/rosetta.js';
-import { PublicKey } from '../src/curve-bigint.js';
-import { Field } from '../src/field-bigint.js';
+import { PublicKey } from '../dist/node/mina-signer/src/curve-bigint.js';
+import { Field } from '../dist/node/mina-signer/src/field-bigint.js';
 
 describe('Rosetta', () => {
   let client: Client;
