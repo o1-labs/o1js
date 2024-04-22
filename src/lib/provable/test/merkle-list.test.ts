@@ -95,5 +95,17 @@ describe('Merkle List and Iterator', () => {
         iter.previous().assertEquals(Field(0));
       });
     });
+
+    it('Symbol.Iterator should work', () => {
+      let xs = [Field(1), Field(2), Field(3)];
+      let list = List.from(xs);
+
+      let i = 0;
+
+      for (const e of list.startIterating(5)) {
+        e.assertEquals(xs[i] ?? Field(0));
+        i++;
+      }
+    });
   });
 });
