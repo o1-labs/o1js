@@ -19,7 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 > No unreleased changes yet
 
-## [1.0.0](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...968a35111) - 2024-04-22
+## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...968a35111) - 2024-04-22
 
 ### Breaking changes
 
