@@ -745,13 +745,13 @@ declare const Pickles: {
     // Create a side-loaded key tag
     create:(name: string, numProofsVerified: 0 | 1 | 2, publicInputLength: number, publicOutputLength: number) => unknown /* tag */,
     // Instantiate the verification key inside the circuit (required).
-    inCircuit:(tag: unknown, verificationKey: string) => undefined,
+    inCircuit:(tag: unknown, verificationKey: unknown) => undefined,
     // Instantiate the verification key in prover-only logic (also required).
     inProver:(tag: unknown, verificationKey: string) => undefined,
     // Create an in-circuit representation of a verification key
-    vkToCircuit:(verificationKey: unknown) => unknown /* verificationKeyInCircuit */,
+    vkToCircuit:(verificationKey: () => string) => unknown /* verificationKeyInCircuit */,
     // Get the digest of a verification key in the circuit
-    vkDigest:(verificationKeyInCircuit: unknown) => Field,
+    vkDigest:(verificationKeyInCircuit: unknown) => MlArray<FieldVar>,
 };
 
   util: {

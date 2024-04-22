@@ -3,7 +3,7 @@ import {
   EmptyUndefined,
   EmptyVoid,
 } from '../../bindings/lib/generic.js';
-import { initializeBindings, withThreadPool } from '../../snarky.js';
+import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
 import {
   Pickles,
   FeatureFlags,
@@ -39,10 +39,13 @@ import {
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
+import { prefixToField } from '../../bindings/lib/binable.js';
+import { prefixes } from '../../bindings/crypto/constants.js';
 
 // public API
 export {
   Proof,
+  DynamicProof,
   SelfProof,
   JsonProof,
   ZkProgram,
@@ -80,7 +83,7 @@ const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
-class Proof<Input, Output> {
+class ProofBase<Input, Output> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
   static publicOutputType: FlexibleProvablePure<any> = undefined as any;
   static tag: () => { name: string } = () => {
@@ -95,12 +98,6 @@ class Proof<Input, Output> {
   maxProofsVerified: 0 | 1 | 2;
   shouldVerify = Bool(false);
 
-  verify() {
-    this.shouldVerify = Bool(true);
-  }
-  verifyIf(condition: Bool) {
-    this.shouldVerify = condition;
-  }
   toJSON(): JsonProof {
     let type = getStatementType(this.constructor as any);
     return {
@@ -110,6 +107,33 @@ class Proof<Input, Output> {
       proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof]),
     };
   }
+
+  constructor({
+    proof,
+    publicInput,
+    publicOutput,
+    maxProofsVerified,
+  }: {
+    proof: Pickles.Proof;
+    publicInput: Input;
+    publicOutput: Output;
+    maxProofsVerified: 0 | 1 | 2;
+  }) {
+    this.publicInput = publicInput;
+    this.publicOutput = publicOutput;
+    this.proof = proof; // TODO optionally convert from string?
+    this.maxProofsVerified = maxProofsVerified;
+  }
+}
+
+class Proof<Input, Output> extends ProofBase<Input, Output> {
+  verify() {
+    this.shouldVerify = Bool(true);
+  }
+  verifyIf(condition: Bool) {
+    this.shouldVerify = condition;
+  }
+
   static async fromJSON<S extends Subclass<typeof Proof>>(
     this: S,
     {
@@ -135,23 +159,6 @@ class Proof<Input, Output> {
       proof,
       maxProofsVerified,
     }) as any;
-  }
-
-  constructor({
-    proof,
-    publicInput,
-    publicOutput,
-    maxProofsVerified,
-  }: {
-    proof: Pickles.Proof;
-    publicInput: Input;
-    publicOutput: Output;
-    maxProofsVerified: 0 | 1 | 2;
-  }) {
-    this.publicInput = publicInput;
-    this.publicOutput = publicOutput;
-    this.proof = proof; // TODO optionally convert from string?
-    this.maxProofsVerified = maxProofsVerified;
   }
 
   /**
@@ -191,8 +198,95 @@ class Proof<Input, Output> {
   }
 }
 
+var sideloadedKeysCounter = 0;
+
+class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
+  public static maxProofsVerified: 0 | 1 | 2;
+
+  private static memoizedCounter: number | undefined;
+
+  static tag() {
+    let counter: number;
+    if (this.memoizedCounter !== undefined) {
+      counter = this.memoizedCounter;
+    } else {
+      counter = sideloadedKeysCounter++;
+      this.memoizedCounter = counter;
+    }
+    return { name: `o1js-sideloaded-${counter}` };
+  }
+
+  usedVerificationKey?: VerificationKey;
+
+  verify(vk: VerificationKey) {
+    this.shouldVerify = Bool(true);
+    this.usedVerificationKey = vk;
+  }
+  verifyIf(vk: VerificationKey, condition: Bool) {
+    this.shouldVerify = condition;
+    this.usedVerificationKey = vk;
+  }
+
+  static async fromJSON<S extends Subclass<typeof DynamicProof>>(
+    this: S,
+    {
+      maxProofsVerified,
+      proof: proofString,
+      publicInput: publicInputJson,
+      publicOutput: publicOutputJson,
+    }: JsonProof
+  ): Promise<
+    DynamicProof<
+      InferProvable<S['publicInputType']>,
+      InferProvable<S['publicOutputType']>
+    >
+  > {
+    await initializeBindings();
+    let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
+    let type = getStatementType(this);
+    let publicInput = type.input.fromFields(publicInputJson.map(Field));
+    let publicOutput = type.output.fromFields(publicOutputJson.map(Field));
+    return new this({
+      publicInput,
+      publicOutput,
+      proof,
+      maxProofsVerified,
+    }) as any;
+  }
+
+  static async dummy<S extends Subclass<typeof DynamicProof>>(
+    this: S,
+    publicInput: InferProvable<S['publicInputType']>,
+    publicOutput: InferProvable<S['publicOutputType']>,
+    maxProofsVerified: 0 | 1 | 2,
+    domainLog2: number = 14
+  ): Promise<InstanceType<S>> {
+    return this.fromProof(
+      await Proof.dummy<
+        InferProvable<S['publicInputType']>,
+        InferProvable<S['publicOutputType']>
+      >(publicInput, publicOutput, maxProofsVerified, domainLog2)
+    );
+  }
+
+  static fromProof<S extends Subclass<typeof DynamicProof>>(
+    this: S,
+    proof: Proof<
+      InferProvable<S['publicInputType']>,
+      InferProvable<S['publicOutputType']>
+    >
+  ): InstanceType<S> {
+    return new this({
+      publicInput: proof.publicInput,
+      publicOutput: proof.publicOutput,
+      maxProofsVerified: proof.maxProofsVerified,
+      proof: proof.proof,
+    }) as InstanceType<S>;
+  }
+}
+
 async function verify(
-  proof: Proof<any, any> | JsonProof,
+  proof: ProofBase<any, any> | JsonProof,
   verificationKey: string | VerificationKey
 ) {
   await initializeBindings();
@@ -245,6 +339,16 @@ let CompiledTag = {
     compiledTags.set(tag, compiledTag);
   },
 };
+
+let sideloadedKeysMap: Record<string, unknown> = {};
+let SideloadedTag = {
+  get(tag: string): unknown | undefined {
+    return sideloadedKeysMap[tag];
+  },
+  store(tag: string, compiledTag: unknown) {
+    sideloadedKeysMap[tag] = compiledTag;
+  },
+}
 
 function ZkProgram<
   StatementType extends {
@@ -511,15 +615,20 @@ function sortMethodArguments(
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
   let witnessArgs: Provable<unknown>[] = [];
-  let proofArgs: Subclass<typeof Proof>[] = [];
+  let proofArgs: Subclass<typeof ProofBase>[] = [];
   let allArgs: { type: 'proof' | 'witness'; index: number }[] = [];
   for (let i = 0; i < privateInputs.length; i++) {
     let privateInput = privateInputs[i];
     if (isProof(privateInput)) {
-      if (privateInput === Proof) {
+      if (
+        privateInput === ProofBase ||
+        privateInput === Proof ||
+        privateInput === DynamicProof
+      ) {
+        const proofClassName = privateInput.name;
         throw Error(
-          `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
-            `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
+          `You cannot use the \`${proofClassName}\` class directly. Instead, define a subclass:\n` +
+            `class MyProof extends ${proofClassName}<PublicInput, PublicOutput> { ... }`
         );
       }
       allArgs.push({ type: 'proof', index: proofArgs.length });
@@ -562,12 +671,19 @@ function isAsFields(
     )
   );
 }
-function isProof(type: unknown): type is typeof Proof {
-  // the second case covers subclasses
+function isProof(type: unknown): type is typeof ProofBase {
+  // the third case covers subclasses
   return (
     type === Proof ||
-    (typeof type === 'function' && type.prototype instanceof Proof)
+    type === DynamicProof ||
+    (typeof type === 'function' && type.prototype instanceof ProofBase)
   );
+}
+
+function isDynamicProof(
+  type: Subclass<typeof ProofBase>
+): type is Subclass<typeof DynamicProof> {
+  return typeof type === 'function' && type.prototype instanceof DynamicProof;
 }
 
 function getPreviousProofsForProver(
@@ -589,7 +705,7 @@ type MethodInterface = {
   // TODO: unify types of arguments
   // proofs should just be `Provable<T>` as well
   witnessArgs: Provable<unknown>[];
-  proofArgs: Subclass<typeof Proof>[];
+  proofArgs: Subclass<typeof ProofBase>[];
   allArgs: { type: 'witness' | 'proof'; index: number }[];
   returnType?: Provable<any>;
 };
@@ -733,6 +849,20 @@ function analyzeMethod(
   });
 }
 
+function inCircuitVkHash(inCircuitVk: unknown): Field {
+  // Check hash
+  const digest = Pickles.sideLoaded.vkDigest(inCircuitVk);
+
+  const salt = Snarky.poseidon.update(
+    MlFieldArray.to([Field(0), Field(0), Field(0)]),
+    MlFieldArray.to([prefixToField(Field, prefixes.sideLoadedVK)])
+  );
+
+  const newState = Snarky.poseidon.update(salt, digest);
+  const stateFields = MlFieldArray.from(newState) as [Field, Field, Field];
+  return stateFields[0];
+}
+
 function picklesRuleFromFunction(
   publicInputType: ProvablePure<unknown>,
   publicOutputType: ProvablePure<unknown>,
@@ -747,7 +877,10 @@ function picklesRuleFromFunction(
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
-    let proofs: Proof<any, any>[] = [];
+    let proofs: {
+      proofInstance: ProofBase<any, any>;
+      classReference: Subclass<typeof ProofBase<any, any>>;
+    }[] = [];
     let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
@@ -774,7 +907,9 @@ function picklesRuleFromFunction(
         publicOutput = Provable.witness(type.output, () => publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
-        proofs.push(proofInstance);
+
+        proofs.push({ proofInstance, classReference: Proof });
+
         let input = toFieldVars(type.input, publicInput);
         let output = toFieldVars(type.output, publicOutput);
         previousStatements.push(MlPair(input, output));
@@ -787,6 +922,36 @@ function picklesRuleFromFunction(
       let input = fromFieldVars(publicInputType, publicInput);
       result = await func(input, ...finalArgs);
     }
+
+    proofs.forEach(({ proofInstance, classReference }, index) => {
+      if (proofInstance instanceof DynamicProof) {
+        const tag = classReference.tag();
+
+        const computedTag = SideloadedTag.get(tag.name);
+        const vk = proofInstance.usedVerificationKey;
+
+        if (vk === undefined) {
+          throw new Error(
+            'proof.verify() not called, call it at least once in your circuit'
+          );
+        }
+
+        if (Provable.inProver()) {
+          Pickles.sideLoaded.inProver(computedTag, vk.data);
+        }
+        const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
+
+        const hash = inCircuitVkHash(circuitVk);
+
+        // Assert the validity of the auxiliary vk-data by comparing the witnessed and computed hash
+        Field(hash).assertEquals(
+          vk.hash,
+          'Provided VerificationKey hash not correct'
+        );
+        Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
+      }
+    });
+
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
@@ -794,7 +959,7 @@ function picklesRuleFromFunction(
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
       shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.shouldVerify.toField().value)
+        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
       ),
     };
   }
@@ -808,7 +973,26 @@ function picklesRuleFromFunction(
   let proofsToVerify = proofArgs.map((Proof) => {
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
-    else {
+    else if (isDynamicProof(Proof)) {
+      // Initialize side-loaded verification keys
+      let computedTag: unknown;
+      if (SideloadedTag.get(tag.name) === undefined) {
+        // Only create the tag if it hasn't already been created for this specific Proof class
+        const maxProofsVerified = Proof.maxProofsVerified;
+
+        computedTag = Pickles.sideLoaded.create(
+          tag.name,
+          maxProofsVerified,
+          Proof.publicInputType?.sizeInFields() ?? 0,
+          Proof.publicOutputType?.sizeInFields() ?? 0
+        );
+
+        SideloadedTag.store(tag.name, computedTag);
+      } else {
+        computedTag = SideloadedTag.get(tag.name);
+      }
+      return { isSelf: false, tag: computedTag };
+    } else {
       let compiledTag = CompiledTag.get(tag);
       if (compiledTag === undefined) {
         throw Error(
@@ -887,7 +1071,7 @@ function methodArgumentTypesAndValues(
       typesAndValues.push({ type: witnessArgs[index], value: arg });
     } else if (type === 'proof') {
       let Proof = proofArgs[index];
-      let proof = arg as Proof<any, any>;
+      let proof = arg as ProofBase<any, any>;
       let types = getStatementType(Proof);
       // TODO this is cumbersome, would be nicer to have a single Provable for the statement stored on Proof
       let type = provablePure({ input: types.input, output: types.output });
@@ -914,7 +1098,7 @@ function emptyWitness<T>(type: Provable<T>) {
 function getStatementType<
   T,
   O,
-  P extends Subclass<typeof Proof> = typeof Proof
+  P extends Subclass<typeof ProofBase> = typeof ProofBase
 >(Proof: P): { input: ProvablePure<T>; output: ProvablePure<O> } {
   if (
     Proof.publicInputType === undefined ||
@@ -1045,7 +1229,7 @@ function Prover<ProverData>() {
 
 // helper types
 
-type Infer<T> = T extends Subclass<typeof Proof>
+type Infer<T> = T extends Subclass<typeof ProofBase>
   ? InstanceType<T>
   : InferProvable<T>;
 
@@ -1060,7 +1244,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
 
-type PrivateInput = Provable<any> | Subclass<typeof Proof>;
+type PrivateInput = Provable<any> | Subclass<typeof ProofBase>;
 
 type Method<
   PublicInput,

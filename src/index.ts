@@ -1,5 +1,5 @@
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger, initializeBindings } from './snarky.js';
+export { Ledger, initializeBindings, Pickles } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
@@ -71,6 +71,7 @@ export { state, State, declareState } from './lib/mina/state.js';
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
   Proof,
+  DynamicProof,
   SelfProof,
   verify,
   Empty,
