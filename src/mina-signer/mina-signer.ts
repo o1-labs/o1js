@@ -1,6 +1,6 @@
 import { PrivateKey, PublicKey } from './src/curve-bigint.js';
 import * as Json from './src/types.js';
-import type { SignedLegacy, Signed, NetworkId } from './src/types.js';
+import type { SignedLegacy, Signed, NetworkId, SignedRosetta } from './src/types.js';
 
 import {
   isPayment,
@@ -27,10 +27,7 @@ import {
 } from './src/sign-legacy.js';
 import { hashPayment, hashStakeDelegation } from './src/transaction-hash.js';
 import { Memo } from './src/memo.js';
-import {
-  publicKeyToHex,
-  rosettaTransactionToSignedCommand,
-} from './src/rosetta.js';
+import * as Rosetta from './src/rosetta.js';
 import { sign, Signature, verify } from './src/signature.js';
 import { createNullifier } from './src/nullifier.js';
 
@@ -208,6 +205,32 @@ class Client {
    */
   verifyMessage({ data, signature, publicKey }: SignedLegacy<string>): boolean {
     return verifyStringSignature(data, signature, publicKey, this.network);
+  }
+
+  /**
+   * Signs a Rosetta transaction
+   *
+   * @param transaction An object describing the transaction to be signed.
+   * @param privateKey The private key used to sign the transaction (in Base58
+   * format).
+   * @returns A signature of the transaction in Rosetta format.
+   */
+  signRosettaTransaction(
+    transaction: Rosetta.UnsignedTransaction,
+    privateKey: Json.PrivateKey
+  ): SignedRosetta<Rosetta.UnsignedTransaction> {
+    return Rosetta.signTransaction(transaction, privateKey, this.network);
+  }
+
+  /**
+   * Verifies a signature created by {@link signRosettaTransaction}.
+   *
+   * @param signedTransaction The signed transaction (in Rosetta format)
+   * @returns True if the `signedTransaction` contains a valid signature
+   * matching the transaction and publicKey.
+   */
+  verifyRosettaTransaction(signedTransaction: SignedRosetta<Rosetta.UnsignedTransaction>): boolean {
+    return Rosetta.verifyTransaction(signedTransaction, this.network);
   }
 
   /**
@@ -425,8 +448,21 @@ class Client {
    */
   signedRosettaTransactionToSignedCommand(signedRosettaTxn: string): string {
     let parsedTx = JSON.parse(signedRosettaTxn);
-    let command = rosettaTransactionToSignedCommand(parsedTx);
+    let command = Rosetta.rosettaTransactionToSignedCommand(parsedTx);
     return JSON.stringify({ data: command });
+  }
+
+  /**
+   * Creates the payload for Rosetta /construction/combine using a response
+   * from /construction/payloads.
+   *
+   * @param signingPayload A payload resulting from /construction/payloads
+   * @param privateKey The private key used to sign the transaction
+   * @returns A string with the resulting payload for /construction/combine.
+   */
+  rosettaCombinePayload(signingPayload: string, privateKey: Json.PrivateKey) {
+    let parsedPayload = JSON.parse(signingPayload);
+    return JSON.stringify(Rosetta.rosettaCombinePayload(parsedPayload, privateKey, this.network));
   }
 
   /**
@@ -438,7 +474,7 @@ class Client {
    */
   publicKeyToRaw(publicKeyBase58: string): string {
     let publicKey = PublicKey.fromBase58(publicKeyBase58);
-    return publicKeyToHex(publicKey);
+    return Rosetta.publicKeyToHex(publicKey);
   }
 
   /**

@@ -75,6 +75,9 @@ export type Signed<T> = {
   data: T;
 };
 
+// distinguish from Signed because signature is in hex format
+export type SignedRosetta<T> = Signed<T>;
+
 export type SignedAny = SignedLegacy<SignableData> | Signed<ZkappCommand>;
 
 export type Group = {
