@@ -7,17 +7,18 @@ import {
   verify,
   verifyFieldElement,
 } from './signature.js';
-import { Ledger, Test } from '../../snarky.js';
-import { Field as FieldSnarky } from '../../lib/core.js';
-import { Field } from '../../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
+import { Test } from '../../snarky.js';
+import { Field } from './field-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/crypto/signature.js';
 import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
-import { HashInput } from '../../bindings/lib/provable-bigint.js';
+import { HashInput } from './derivers-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
-import { FieldConst } from '../../lib/field.js';
+import { FieldConst } from '../../lib/provable/core/fieldvar.js';
 import { NetworkId } from './types.js';
+
+let mlTest = await Test();
 
 // check consistency with OCaml, where we expose the function to sign 1 field element with "testnet"
 function checkConsistentSingle(
@@ -45,7 +46,7 @@ function checkConsistentSingle(
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = Test.signature.signFieldElement(
+  let actualTest = mlTest.signature.signFieldElement(
     msgMl,
     keyMl,
     NetworkId.toString(networkId)

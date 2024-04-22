@@ -3,11 +3,11 @@
  */
 
 import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
-import { HashInput } from '../circuit-value.js';
-import { Bool, Field } from '../core.js';
-import { FieldConst, FieldVar } from '../field.js';
-import { Scalar, ScalarConst } from '../scalar.js';
-import { PrivateKey, PublicKey } from '../signature.js';
+import { HashInput } from '../provable/types/struct.js';
+import { Bool, Field } from '../provable/wrapped.js';
+import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
+import { Scalar, ScalarConst } from '../provable/scalar.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { MlPair, MlBool, MlArray } from './base.js';
 import { MlFieldConstArray } from './fields.js';
 
@@ -71,18 +71,18 @@ function varToField(x: FieldVar): Field {
   return Field(x);
 }
 
-function fromScalar(s: Scalar) {
-  return s.toConstant().constantValue;
+function fromScalar(s: Scalar): ScalarConst {
+  return [0, s.toBigInt()];
 }
 function toScalar(s: ScalarConst) {
-  return Scalar.from(s);
+  return Scalar.from(s[1]);
 }
 
 function fromPrivateKey(sk: PrivateKey) {
   return fromScalar(sk.s);
 }
 function toPrivateKey(sk: ScalarConst) {
-  return new PrivateKey(Scalar.from(sk));
+  return new PrivateKey(Scalar.from(sk[1]));
 }
 
 function fromPublicKey(pk: PublicKey): MlPublicKey {

@@ -1,5 +1,11 @@
 let start = performance.now();
-await import('../../snarky.js');
+let { initializeBindings } = await import('o1js');
 let time = performance.now() - start;
 
-console.log(`import jsoo: ${time.toFixed(0)}ms`);
+console.log(`import o1js: ${time.toFixed(0)}ms`);
+
+start = performance.now();
+await initializeBindings();
+time = performance.now() - start;
+
+console.log(`initialize bindings: ${time.toFixed(0)}ms`);

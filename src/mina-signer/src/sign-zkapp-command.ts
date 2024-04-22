@@ -1,15 +1,11 @@
-import { Bool, Field, Sign, UInt32 } from '../../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import { Bool, Field, Sign, UInt32 } from './field-bigint.js';
+import { PrivateKey, PublicKey } from './curve-bigint.js';
 import {
   Json,
   AccountUpdate,
   ZkappCommand,
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-} from '../../provable/poseidon-bigint.js';
+import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
   Signature,
@@ -58,10 +54,10 @@ function signZkappCommand(
 
   // sign other updates with the same public key that require a signature
   for (let update of zkappCommand.accountUpdates) {
-    if (update.body.authorizationKind.isSigned === 0n) continue;
+    if (!update.body.authorizationKind.isSigned) continue;
     if (!PublicKey.equal(update.body.publicKey, publicKey)) continue;
     let { useFullCommitment } = update.body;
-    let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+    let usedCommitment = useFullCommitment ? fullCommitment : commitment;
     let signature = signFieldElement(usedCommitment, privateKey, networkId);
     update.authorization = { signature: Signature.toBase58(signature) };
   }
@@ -88,10 +84,10 @@ function verifyZkappCommandSignature(
 
   // verify other signatures for the same public key
   for (let update of zkappCommand.accountUpdates) {
-    if (update.body.authorizationKind.isSigned === 0n) continue;
+    if (!update.body.authorizationKind.isSigned) continue;
     if (!PublicKey.equal(update.body.publicKey, publicKey)) continue;
     let { useFullCommitment } = update.body;
-    let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+    let usedCommitment = useFullCommitment ? fullCommitment : commitment;
     if (update.authorization.signature === undefined) return false;
     let signature = Signature.fromBase58(update.authorization.signature);
     ok = verifyFieldElement(signature, usedCommitment, publicKey, networkId);
@@ -109,7 +105,7 @@ function verifyAccountUpdateSignature(
 
   let { publicKey, useFullCommitment } = update.body;
   let { commitment, fullCommitment } = transactionCommitments;
-  let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+  let usedCommitment = useFullCommitment ? fullCommitment : commitment;
   let signature = Signature.fromBase58(update.authorization.signature);
 
   return verifyFieldElement(signature, usedCommitment, publicKey, networkId);

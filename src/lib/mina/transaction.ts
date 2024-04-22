@@ -7,33 +7,33 @@ import {
   addMissingSignatures,
   TokenId,
   addMissingProofs,
-} from '../account-update.js';
-import { prettifyStacktrace } from '../errors.js';
-import { Field } from '../core.js';
-import { PrivateKey, PublicKey } from '../signature.js';
-import { UInt32, UInt64 } from '../int.js';
-import { Empty, Proof } from '../proof-system.js';
+} from './account-update.js';
+import { Field } from '../provable/wrapped.js';
+import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
+import { UInt32, UInt64 } from '../provable/int.js';
+import { Empty, Proof } from '../proof-system/zkprogram.js';
 import { currentTransaction } from './transaction-context.js';
-import { Provable } from '../provable.js';
-import { assertPreconditionInvariants } from '../precondition.js';
+import { Provable } from '../provable/provable.js';
+import { assertPreconditionInvariants } from './precondition.js';
 import { Account } from './account.js';
-import {
-  type DeprecatedFeePayerSpec,
-  type FeePayerSpec,
-  activeInstance,
-} from './mina-instance.js';
-import * as Fetch from '../fetch.js';
+import { type FeePayerSpec, activeInstance } from './mina-instance.js';
+import * as Fetch from './fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../util/assert.js';
+import { Types } from 'src/bindings/mina-transaction/types.js';
 
 export {
-  type Transaction,
+  Transaction,
+  type TransactionPromise,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionPromise,
   type PendingTransactionStatus,
   createTransaction,
+  toTransactionPromise,
+  toPendingTransactionPromise,
   sendTransaction,
   newTransaction,
   getAccount,
@@ -42,12 +42,7 @@ export {
   createIncludedTransaction,
 };
 
-/**
- * Defines the structure and operations associated with a transaction.
- * This type encompasses methods for serializing the transaction, signing it, generating proofs,
- * and submitting it to the network.
- */
-type Transaction = {
+type TransactionCommon = {
   /**
    * Transaction structure used to describe a state transition on the Mina blockchain.
    */
@@ -68,32 +63,10 @@ type Transaction = {
    */
   toGraphqlQuery(): string;
   /**
-   * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
-   * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
-   * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
-   * @returns The {@link Transaction} instance with all required signatures applied.
-   * @example
-   * ```ts
-   * const signedTx = transaction.sign([userPrivateKey]);
-   * console.log('Transaction signed successfully.');
-   * ```
-   */
-  sign(additionalKeys?: PrivateKey[]): Transaction;
-  /**
-   * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
-   * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
-   * This can take some time.
-   * @example
-   * ```ts
-   * await transaction.prove();
-   * ```
-   */
-  prove(): Promise<(Proof<ZkappPublicInput, Empty> | undefined)[]>;
-  /**
    * Submits the {@link Transaction} to the network. This method asynchronously sends the transaction
    * for processing. If successful, it returns a {@link PendingTransaction} instance, which can be used to monitor the transaction's progress.
    * If the transaction submission fails, this method throws an error that should be caught and handled appropriately.
-   * @returns A promise that resolves to a {@link PendingTransaction} instance representing the submitted transaction if the submission is successful.
+   * @returns A {@link PendingTransactionPromise}, which resolves to a {@link PendingTransaction} instance representing the submitted transaction if the submission is successful.
    * @throws An error if the transaction cannot be sent or processed by the network, containing details about the failure.
    * @example
    * ```ts
@@ -105,7 +78,27 @@ type Transaction = {
    * }
    * ```
    */
-  send(): Promise<PendingTransaction>;
+};
+
+namespace Transaction {
+  export function fromJSON(
+    json: Types.Json.ZkappCommand
+  ): Transaction<false, false> {
+    let transaction = ZkappCommand.fromJSON(json);
+    return newTransaction(transaction, activeInstance.proofsEnabled);
+  }
+}
+
+/**
+ * Defines the structure and operations associated with a transaction.
+ * This type encompasses methods for serializing the transaction, signing it, generating proofs,
+ * and submitting it to the network.
+ */
+type Transaction<
+  Proven extends boolean,
+  Signed extends boolean
+> = TransactionCommon & {
+  send(): PendingTransactionPromise;
   /**
    * Sends the {@link Transaction} to the network. Unlike the standard {@link Transaction.send}, this function does not throw an error if internal errors are detected. Instead, it returns a {@link PendingTransaction} if the transaction is successfully sent for processing or a {@link RejectedTransaction} if it encounters errors during processing or is outright rejected by the Mina daemon.
    * @returns {Promise<PendingTransaction | RejectedTransaction>} A promise that resolves to a {@link PendingTransaction} if the transaction is accepted for processing, or a {@link RejectedTransaction} if the transaction fails or is rejected.
@@ -120,7 +113,39 @@ type Transaction = {
    * ```
    */
   safeSend(): Promise<PendingTransaction | RejectedTransaction>;
-};
+} & (Proven extends false
+    ? {
+        /**
+         * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
+         * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
+         * This can take some time.
+         * @example
+         * ```ts
+         * await transaction.prove();
+         * ```
+         */
+        prove(): Promise<Transaction<true, Signed>>;
+      }
+    : {
+        /** The proofs generated as the result of calling `prove`. */
+        proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
+      }) &
+  (Signed extends false
+    ? {
+        /**
+         * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
+         * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
+         * @param privateKeys The list of keys that should be used to sign the {@link Transaction}
+         * @returns The {@link Transaction} instance with all required signatures applied.
+         * @example
+         * ```ts
+         * const signedTx = transaction.sign([userPrivateKey]);
+         * console.log('Transaction signed successfully.');
+         * ```
+         */
+        sign(privateKeys: PrivateKey[]): Transaction<Proven, true>;
+      }
+    : {});
 
 type PendingTransactionStatus = 'pending' | 'rejected';
 /**
@@ -129,7 +154,7 @@ type PendingTransactionStatus = 'pending' | 'rejected';
  * adding methods to monitor the transaction's progress towards being finalized (either included in a block or rejected).
  */
 type PendingTransaction = Pick<
-  Transaction,
+  TransactionCommon,
   'transaction' | 'toJSON' | 'toPretty'
 > & {
   /**
@@ -281,8 +306,90 @@ type RejectedTransaction = Pick<
   errors: string[];
 };
 
+/**
+ * A `Promise<Transaction>` with some additional methods for making chained method calls
+ * into the pending value upon its resolution.
+ */
+type TransactionPromise<
+  Proven extends boolean,
+  Signed extends boolean
+> = Promise<Transaction<Proven, Signed>> & {
+  /** Equivalent to calling the resolved `Transaction`'s `send` method. */
+  send(): PendingTransactionPromise;
+} & (Proven extends false
+    ? {
+        /**
+         * Calls `prove` upon resolution of the `Transaction`. Returns a
+         * new `TransactionPromise` with the field `proofPromise` containing
+         * a promise which resolves to the proof array.
+         */
+        prove(): TransactionPromise<true, Signed>;
+      }
+    : {
+        /**
+         * If the chain of method calls that produced the current `TransactionPromise`
+         * contains a `prove` call, then this field contains a promise resolving to the
+         * proof array which was output from the underlying `prove` call.
+         */
+        proofs(): Promise<Transaction<true, Signed>['proofs']>;
+      }) &
+  (Signed extends false
+    ? {
+        /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
+        sign(
+          ...args: Parameters<Transaction<Proven, Signed>['sign']>
+        ): TransactionPromise<Proven, true>;
+      }
+    : {});
+
+function toTransactionPromise<Proven extends boolean, Signed extends boolean>(
+  getPromise: () => Promise<Transaction<Proven, Signed>>
+): TransactionPromise<Proven, Signed> {
+  const pending = getPromise().then();
+  return Object.assign(pending, {
+    sign(...args: Parameters<Transaction<boolean, false>['sign']>) {
+      return toTransactionPromise(() =>
+        pending.then((v) => (v as Transaction<Proven, false>).sign(...args))
+      );
+    },
+    send() {
+      return toPendingTransactionPromise(() => pending.then((v) => v.send()));
+    },
+    prove() {
+      return toTransactionPromise(() =>
+        pending.then((v) => (v as never as Transaction<false, Signed>).prove())
+      );
+    },
+    proofs() {
+      return pending.then(
+        (v) => (v as never as Transaction<true, Proven>).proofs
+      );
+    },
+  }) as never as TransactionPromise<Proven, Signed>;
+}
+
+/**
+ * A `Promise<PendingTransaction>` with an additional `wait` method, which calls
+ * into the inner `TransactionStatus`'s `wait` method upon its resolution.
+ */
+type PendingTransactionPromise = Promise<PendingTransaction> & {
+  /** Equivalent to calling the resolved `PendingTransaction`'s `wait` method. */
+  wait: PendingTransaction['wait'];
+};
+
+function toPendingTransactionPromise(
+  getPromise: () => Promise<PendingTransaction>
+): PendingTransactionPromise {
+  const pending = getPromise().then();
+  return Object.assign(pending, {
+    wait(...args: Parameters<PendingTransaction['wait']>) {
+      return pending.then((v) => v.wait(...args));
+    },
+  });
+}
+
 async function createTransaction(
-  feePayer: DeprecatedFeePayerSpec,
+  feePayer: FeePayerSpec,
   f: () => Promise<unknown>,
   numberOfRuns: 0 | 1 | undefined,
   {
@@ -290,29 +397,24 @@ async function createTransaction(
     isFinalRunOutsideCircuit = true,
     proofsEnabled = true,
   } = {}
-): Promise<Transaction> {
+): Promise<Transaction<false, false>> {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
   let feePayerSpec: {
     sender?: PublicKey;
-    feePayerKey?: PrivateKey;
     fee?: number | string | UInt64;
     memo?: string;
     nonce?: number;
   };
   if (feePayer === undefined) {
     feePayerSpec = {};
-  } else if (feePayer instanceof PrivateKey) {
-    feePayerSpec = { feePayerKey: feePayer, sender: feePayer.toPublicKey() };
   } else if (feePayer instanceof PublicKey) {
     feePayerSpec = { sender: feePayer };
   } else {
     feePayerSpec = feePayer;
-    if (feePayerSpec.sender === undefined)
-      feePayerSpec.sender = feePayerSpec.feePayerKey?.toPublicKey();
   }
-  let { feePayerKey, sender, fee, memo = '', nonce } = feePayerSpec;
+  let { sender, fee, memo = '', nonce } = feePayerSpec;
 
   let transactionId = currentTransaction.enter({
     sender,
@@ -368,8 +470,6 @@ async function createTransaction(
       Fetch.addCachedAccount(senderAccount);
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
-    if (feePayerKey !== undefined)
-      feePayerAccountUpdate.lazyAuthorization!.privateKey = feePayerKey;
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
         fee instanceof UInt64 ? fee : UInt64.from(String(fee));
@@ -390,18 +490,25 @@ async function createTransaction(
 }
 
 function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
-  let self: Transaction = {
+  let self: Transaction<false, false> = {
     transaction,
-    sign(additionalKeys?: PrivateKey[]) {
-      self.transaction = addMissingSignatures(self.transaction, additionalKeys);
+    sign(privateKeys: PrivateKey[]) {
+      self.transaction = addMissingSignatures(self.transaction, privateKeys);
       return self;
     },
-    async prove() {
-      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
-        proofsEnabled,
+    prove() {
+      return toTransactionPromise(async () => {
+        let { zkappCommand, proofs } = await addMissingProofs(
+          self.transaction,
+          {
+            proofsEnabled,
+          }
+        );
+        self.transaction = zkappCommand;
+        return Object.assign(self as never as Transaction<true, false>, {
+          proofs,
+        });
       });
-      self.transaction = zkappCommand;
-      return proofs;
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
@@ -413,16 +520,18 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     toGraphqlQuery() {
       return sendZkappQuery(self.toJSON());
     },
-    async send() {
-      const pendingTransaction = await sendTransaction(self);
-      if (pendingTransaction.errors.length > 0) {
-        throw Error(
-          `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
-            '\n- '
-          )}`
-        );
-      }
-      return pendingTransaction;
+    send() {
+      return toPendingTransactionPromise(async () => {
+        const pendingTransaction = await sendTransaction(self);
+        if (pendingTransaction.errors.length > 0) {
+          throw Error(
+            `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
+              '\n- '
+            )}`
+          );
+        }
+        return pendingTransaction;
+      });
     },
     async safeSend() {
       const pendingTransaction = await sendTransaction(self);
@@ -454,32 +563,16 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
 function transaction(
   sender: FeePayerSpec,
   f: () => Promise<void>
-): Promise<Transaction>;
-function transaction(f: () => Promise<void>): Promise<Transaction>;
-/**
- * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
- * ```
- * // good
- * Mina.transaction(publicKey, ...);
- * Mina.transaction({ sender: publicKey }, ...);
- *
- * // deprecated
- * Mina.transaction(privateKey, ...);
- * Mina.transaction({ feePayerKey: privateKey }, ...);
- * ```
- */
+): TransactionPromise<false, false>;
+function transaction(f: () => Promise<void>): TransactionPromise<false, false>;
 function transaction(
-  sender: DeprecatedFeePayerSpec,
-  f: () => Promise<void>
-): Promise<Transaction>;
-function transaction(
-  senderOrF: DeprecatedFeePayerSpec | (() => Promise<void>),
+  senderOrF: FeePayerSpec | (() => Promise<void>),
   fOrUndefined?: () => Promise<void>
-): Promise<Transaction> {
-  let sender: DeprecatedFeePayerSpec;
+): TransactionPromise<false, false> {
+  let sender: FeePayerSpec;
   let f: () => Promise<void>;
   if (fOrUndefined !== undefined) {
-    sender = senderOrF as DeprecatedFeePayerSpec;
+    sender = senderOrF as FeePayerSpec;
     f = fOrUndefined;
   } else {
     sender = undefined;
@@ -488,7 +581,8 @@ function transaction(
   return activeInstance.transaction(sender, f);
 }
 
-async function sendTransaction(txn: Transaction) {
+// TODO: should we instead constrain to `Transaction<true, true>`?
+async function sendTransaction(txn: Transaction<boolean, boolean>) {
   return await activeInstance.sendTransaction(txn);
 }
 

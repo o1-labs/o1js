@@ -15,8 +15,8 @@ jobs:
       fail-fast: true
       matrix:
         node: [20]
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        runners: [sdk-self-hosted-linux-amd64, sdk-self-hosted-linux-arm64]
+    runs-on: ${{ matrix.runners }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Build o1js and execute benchmarks on ${{ matrix.os }} and Node.JS ${{ matrix.node }}
+      - name: Build o1js and execute benchmarks on ${{ matrix.runners }} and Node.JS ${{ matrix.node }}
         env:
           GIT_BRANCH: ${{ github.head_ref || github.ref_name }}
           INFLUXDB_URL: ${{ secrets.INFLUXDB_URL }}
@@ -37,6 +37,8 @@ jobs:
           git submodule update --init --recursive
           npm ci
           npm run build
-          bash run-ci-benchmarks.sh
+          echo 'Running o1js benchmarks.'
+          node --enable-source-maps --stack-trace-limit=1000 src/build/run.js benchmark/runners/init.ts --bundle >>benchmarks.log 2>&1
+          node --enable-source-maps --stack-trace-limit=1000 src/build/run.js benchmark/runners/simple.ts --bundle >>benchmarks.log 2>&1
           cat benchmarks.log >> $GITHUB_STEP_SUMMARY
         shell: bash

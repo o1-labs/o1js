@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 case $TEST_TYPE in
@@ -10,6 +10,12 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/composability.ts --bundle
   ./run src/tests/fake-proof.ts
   ./run tests/vk-regression/diverse-zk-program-run.ts --bundle
+  ;;
+
+"Reducer integration tests")
+  echo "Running reducer integration tests"
+  ./run src/examples/zkapps/reducer/actions-as-merkle-list.ts --bundle
+  ./run src/examples/zkapps/reducer/actions-as-merkle-list-iterator.ts --bundle
   ;;
 
 "Voting integration tests")

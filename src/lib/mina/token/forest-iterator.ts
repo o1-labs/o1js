@@ -3,15 +3,12 @@ import {
   AccountUpdateForest,
   AccountUpdateTreeBase,
   TokenId,
-} from '../../account-update.js';
-import { Field } from '../../core.js';
-import { Provable } from '../../provable.js';
-import { Struct } from '../../circuit-value.js';
-import { assert } from '../../gadgets/common.js';
-import {
-  MerkleListIterator,
-  MerkleList,
-} from '../../provable-types/merkle-list.js';
+} from '../account-update.js';
+import { Field } from '../../provable/wrapped.js';
+import { Provable } from '../../provable/provable.js';
+import { Struct } from '../../provable/types/struct.js';
+import { assert } from '../../provable/gadgets/common.js';
+import { MerkleListIterator, MerkleList } from '../../provable/merkle-list.js';
 
 export { TokenAccountUpdateIterator };
 
@@ -68,7 +65,7 @@ class TokenAccountUpdateIterator {
 
   static create(forest: AccountUpdateForest, selfToken: Field) {
     return new TokenAccountUpdateIterator(
-      AccountUpdateIterator.startIterating(forest),
+      AccountUpdateIterator.startIteratingFromLast(forest),
       MayUseToken.ParentsOwnToken,
       selfToken
     );
@@ -87,8 +84,8 @@ class TokenAccountUpdateIterator {
    */
   next() {
     // get next account update from the current forest (might be a dummy)
-    let { accountUpdate, children } = this.currentLayer.forest.next();
-    let childForest = AccountUpdateIterator.startIterating(children);
+    let { accountUpdate, children } = this.currentLayer.forest.previous();
+    let childForest = AccountUpdateIterator.startIteratingFromLast(children);
     let childLayer = {
       forest: childForest,
       mayUseToken: MayUseToken.InheritFromParent,
@@ -109,7 +106,7 @@ class TokenAccountUpdateIterator {
 
     // if we don't have to check the children, ignore the forest by jumping to its end
     let skipSubtree = canAccessThisToken.not().or(isSelf);
-    childForest.jumpToEndIf(skipSubtree);
+    childForest.jumpToStartIf(skipSubtree);
 
     // there are three cases for how to proceed:
     // 1. if we have to process children, we step down and add the current layer to the stack of unfinished parent layers
@@ -117,8 +114,8 @@ class TokenAccountUpdateIterator {
     //    (below, this is the case where the current layer is first pushed to and then popped from the stack of unfinished parent layers)
     // 3. if both of the above are false, we step up to the next unfinished parent layer
     let currentForest = this.currentLayer.forest;
-    let currentLayerFinished = currentForest.isAtEnd();
-    let childLayerFinished = childForest.isAtEnd();
+    let currentLayerFinished = currentForest.isAtStart();
+    let childLayerFinished = childForest.isAtStart();
 
     this.unfinishedParentLayers.pushIf(
       currentLayerFinished.not(),
@@ -139,7 +136,7 @@ class TokenAccountUpdateIterator {
 
   assertFinished(message?: string) {
     assert(
-      this.currentLayer.forest.isAtEnd(),
+      this.currentLayer.forest.isAtStart(),
       message ?? 'TokenAccountUpdateIterator not finished'
     );
   }

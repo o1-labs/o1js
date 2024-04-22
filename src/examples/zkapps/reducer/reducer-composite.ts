@@ -21,7 +21,7 @@ class MaybeIncrement extends Struct({
 }) {}
 const INCREMENT = { isIncrement: Bool(true), otherData: Field(0) };
 
-class CounterZkapp extends SmartContract {
+class Counter extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
   reducer = Reducer({ actionType: MaybeIncrement });
 
@@ -40,31 +40,29 @@ class CounterZkapp extends SmartContract {
 
   @method async rollupIncrements() {
     // get previous counter & actions hash, assert that they're the same as on-chain values
-    let counter = this.counter.get();
-    this.counter.requireEquals(counter);
-    let actionState = this.actionState.get();
-    this.actionState.requireEquals(actionState);
+    let counter = this.counter.getAndRequireEquals();
+    let actionState = this.actionState.getAndRequireEquals();
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({
       fromActionState: actionState,
     });
 
-    let { state: newCounter, actionState: newActionState } =
-      this.reducer.reduce(
-        pendingActions,
-        // state type
-        Field,
-        // function that says how to apply an action
-        (state: Field, action: MaybeIncrement) => {
-          return Provable.if(action.isIncrement, state.add(1), state);
-        },
-        { state: counter, actionState }
-      );
+    let newCounter = this.reducer.reduce(
+      pendingActions,
+      // state type
+      Field,
+      // function that says how to apply an action
+      (state: Field, action: MaybeIncrement) => {
+        return Provable.if(action.isIncrement, state.add(1), state);
+      },
+      counter,
+      { maxUpdatesWithActions: 10 }
+    );
 
     // update on-chain state
     this.counter.set(newCounter);
-    this.actionState.set(newActionState);
+    this.actionState.set(pendingActions.hash);
   }
 }
 
@@ -73,96 +71,98 @@ ReducerProfiler.start('Reducer zkApp test flow');
 const doProofs = true;
 const initialCounter = Field(0);
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = await Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
-// a test account that pays all the fees, and puts additional funds into the zkapp
-let feePayerKey = Local.testAccounts[0].privateKey;
-let feePayer = Local.testAccounts[0].publicKey;
+let [feePayer] = Local.testAccounts;
 
-// the zkapp account
-let zkappKey = PrivateKey.fromBase58(
-  'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
+// the contract account
+let contractAccount = Mina.TestPublicKey(
+  PrivateKey.fromBase58('EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD')
 );
-let zkappAddress = zkappKey.toPublicKey();
-let zkapp = new CounterZkapp(zkappAddress);
+let contract = new Counter(contractAccount);
 if (doProofs) {
   console.log('compile');
-  await CounterZkapp.compile();
+  await Counter.compile();
 }
+
+console.log(
+  'rows: ',
+  (await Counter.analyzeMethods())['rollupIncrements'].rows
+);
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {
   AccountUpdate.fundNewAccount(feePayer);
-  await zkapp.deploy();
-  zkapp.counter.set(initialCounter);
-  zkapp.actionState.set(Reducer.initialActionState);
+  await contract.deploy();
+  contract.counter.set(initialCounter);
+  contract.actionState.set(Reducer.initialActionState);
 });
-await tx.sign([feePayerKey, zkappKey]).send();
+await tx.sign([feePayer.key, contractAccount.key]).send();
 
 console.log('applying actions..');
 
 console.log('action 1');
 
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.incrementCounter();
+  await contract.incrementCounter();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('action 2');
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.incrementCounter();
+  await contract.incrementCounter();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('action 3');
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.incrementCounter();
+  await contract.incrementCounter();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('rolling up pending actions..');
 
-console.log('state before: ' + zkapp.counter.get());
+console.log('state before: ' + contract.counter.get());
 
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.rollupIncrements();
+  await contract.rollupIncrements();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
-console.log('state after rollup: ' + zkapp.counter.get());
-assert.deepEqual(zkapp.counter.get().toString(), '3');
+console.log('state after rollup: ' + contract.counter.get());
+assert.deepEqual(contract.counter.get().toString(), '3');
 
 console.log('applying more actions');
 
 console.log('action 4 (no increment)');
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.dispatchData(Field.random());
+  await contract.dispatchData(Field.random());
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('action 5');
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.incrementCounter();
+  await contract.incrementCounter();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
 console.log('rolling up pending actions..');
 
-console.log('state before: ' + zkapp.counter.get());
+console.log('state before: ' + contract.counter.get());
 
 tx = await Mina.transaction(feePayer, async () => {
-  await zkapp.rollupIncrements();
+  await contract.rollupIncrements();
 });
 await tx.prove();
-await tx.sign([feePayerKey]).send();
+await tx.sign([feePayer.key]).send();
 
-console.log('state after rollup: ' + zkapp.counter.get());
-assert.equal(zkapp.counter.get().toString(), '4');
+console.log('state after rollup: ' + contract.counter.get());
+assert.equal(contract.counter.get().toString(), '4');
 ReducerProfiler.stop().store();

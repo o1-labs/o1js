@@ -6,6 +6,7 @@ import {
   UInt64,
   UInt32,
   Permissions,
+  Reducer,
 } from 'o1js';
 import { deployContracts, deployInvalidContracts } from './deploy-contracts.js';
 import { DummyContract } from './dummy-contract.js';
@@ -96,13 +97,15 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        let vkUpdate = AccountUpdate.createSigned(params.votingKey);
+        let vkUpdate = AccountUpdate.createSigned(
+          params.votingKey.toPublicKey()
+        );
         vkUpdate.account.verificationKey.set({
           ...verificationKey,
           hash: Field(verificationKey.hash),
         });
       },
-      verificationKeySet.feePayer
+      [verificationKeySet.feePayer, params.votingKey]
     );
 
     m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
@@ -167,7 +170,9 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        let permUpdate = AccountUpdate.createSigned(params.voterKey);
+        let permUpdate = AccountUpdate.createSigned(
+          params.voterKey.toPublicKey()
+        );
 
         permUpdate.account.permissions.set({
           ...Permissions.default(),
@@ -175,7 +180,7 @@ export async function testSet(
           editActionState: Permissions.impossible(),
         });
       },
-      permissionedSet.feePayer
+      [permissionedSet.feePayer, params.voterKey]
     );
 
     console.log('trying to invoke method with invalid permissions...');
@@ -303,11 +308,11 @@ export async function testSet(
       }
     }
 
-    if (sequenceOverflowSet.voterContract.reducer.getActions().length < 3) {
+    if (actionsLength(sequenceOverflowSet.voterContract) < 3) {
       throw Error(
-        `Did not emit expected actions! Only emitted ${
-          sequenceOverflowSet.voterContract.reducer.getActions().length
-        }`
+        `Did not emit expected actions! Only emitted ${actionsLength(
+          sequenceOverflowSet.voterContract
+        )}`
       );
     }
 
@@ -390,7 +395,7 @@ export async function testSet(
       feePayer
     );
 
-    if (voterContract.reducer.getActions().length !== 1) {
+    if (actionsLength(voterContract) !== 1) {
       throw Error(
         'Should have emitted 1 event after registering only one valid voter'
       );
@@ -474,7 +479,7 @@ export async function testSet(
       'Member already exists!'
     );
 
-    if (voterContract.reducer.getActions().length !== 1) {
+    if (actionsLength(voterContract) !== 1) {
       throw Error(
         'Should have emitted 1 event after registering only one valid voter'
       );
@@ -543,8 +548,8 @@ export async function testSet(
       feePayer
     );
 
-    let numberOfEvents = candidateContract.reducer.getActions().length;
-    if (candidateContract.reducer.getActions().length !== 2) {
+    let numberOfEvents = actionsLength(candidateContract);
+    if (numberOfEvents !== 2) {
       throw Error(
         `Should have emitted 2 event after registering 2 candidates. ${numberOfEvents} emitted`
       );
@@ -639,8 +644,8 @@ export async function testSet(
     );
     Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
 
-    let previousEventsVoter = voterContract.reducer.getActions().length;
-    let previousEventsCandidate = candidateContract.reducer.getActions().length;
+    let previousEventsVoter = actionsLength(voterContract);
+    let previousEventsCandidate = actionsLength(candidateContract);
 
     let lateCandidate = Member.from(
       PrivateKey.random().toPublicKey(),
@@ -678,12 +683,10 @@ export async function testSet(
       'Outside of election period!'
     );
 
-    if (previousEventsVoter !== voterContract.reducer.getActions().length) {
+    if (previousEventsVoter !== actionsLength(voterContract)) {
       throw Error('events emitted but should not have been');
     }
-    if (
-      previousEventsCandidate !== candidateContract.reducer.getActions().length
-    ) {
+    if (previousEventsCandidate !== actionsLength(candidateContract)) {
       throw Error('events emitted but should not have been');
     }
 
@@ -784,7 +787,7 @@ export async function testSet(
 
     vote(0n, votesStore, candidatesStore);
 
-    numberOfEvents = voting.reducer.getActions().length;
+    numberOfEvents = actionsLength(voting);
     if (numberOfEvents !== 1) {
       throw Error('Should have emitted 1 event after voting for a candidate');
     }
@@ -956,4 +959,10 @@ export async function testSet(
   }
 
   console.log('test successful!');
+}
+
+// TODO maybe this type should actually be what is exported as the `Reducer` type
+// the existing `Reducer` type is just a simple input argument type that can be inlined
+function actionsLength(contract: { reducer: ReturnType<typeof Reducer> }) {
+  return contract.reducer.getActions().data.get().length;
 }

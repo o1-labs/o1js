@@ -15,7 +15,54 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/74948acac...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...HEAD)
+
+### Breaking changes
+
+- Native curve improvements https://github.com/o1-labs/o1js/pull/1530
+  - Change the internal representation of `Scalar` from 255 Bools to 1 Bool and 1 Field (low bit and high 254 bits)
+  - Make `Group.scale()` support all scalars (previously did not support 0, 1 and -1)
+  - Make `Group.scale()` directly accept `Field` elements, and much more efficient than previous methods of scaling by Fields
+    - As a result, `Signature.verify()` and `Nullifier.verify()` use much fewer constraints
+  - Fix `Scalar.fromBits()` to not produce a shifted scalar; shifting is no longer exposed to users of `Scalar`.
+- Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
+  - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
+  - Breaks circuits that used EC addition, like ECDSA
+- `Mina.LocalBlockchain()` and `Proof.fromJSON()` are made async https://github.com/o1-labs/o1js/pull/1583
+  - These were the last remaining sync APIs that depended on an async setup task; making them async enables removing top-level await
+- `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
+- `Poseidon.hashToGroup()` now returns a `Group` directly, and constrains it to be deterministic https://github.com/o1-labs/o1js/pull/1546
+  - Added `Poseidon.Unsafe.hashToGroup()` as a more efficient, non-deterministic version for advanced use cases
+- A `Transaction`'s `prove` method no longer returns the proofs promise directly, but rather returns a `Transaction` promise, the resolved value of which contains a `proofs` prop. https://github.com/o1-labs/o1js/pull/1567
+- The `Transaction` type now has two type params `Proven extends boolean` and `Signed extends boolean`, which are used to conditionally show/hide relevant state. https://github.com/o1-labs/o1js/pull/1567
+- Improved functionality of `MerkleList` and `MerkleListIterator` for easier traversal of `MerkleList`s. https://github.com/o1-labs/o1js/pull/1562
+- Simplified internal logic of reducer. https://github.com/o1-labs/o1js/pull/1577
+  - `contract.getActions()` now returns a `MerkleList`
+- Add `toValue()` and `fromValue()` interface to `Provable<T>` to encode how provable types map to plain JS values https://github.com/o1-labs/o1js/pull/1271
+  - You can now return the plain value from a `Provable.witness()` callback, and it will be transformed into the provable type
+- Remove `Account()` constructor which was no different from `AccountUpdate.create().account`, and export `Account` type instead. https://github.com/o1-labs/o1js/pull/1598
+
+### Added
+
+- Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
+- `Mina.transaction` has been reworked such that one can call methods directly on the returned promise (now a `TransactionPromise`). This enables a fluent / method-chaining API. https://github.com/o1-labs/o1js/pull/1567
+- `TransactionPendingPromise` enables calling `wait` directly on the promise returned by calling `send` on a `Transaction`. https://github.com/o1-labs/o1js/pull/1567
+- `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
+  - calling this function is optional
+
+### Changes
+
+- Remove top-level await https://github.com/o1-labs/o1js/pull/1583
+  - To simplify integration with bundlers like webpack
+- Make `MerkleTree.{nodes,zeroes}` public properties https://github.com/o1-labs/o1js/pull/1555
+  - This makes it possible to clone merkle trees, which is often needed
+
+### Fixed
+
+- Fix error when computing Merkle map witnesses, introduced in the last version due to the `toBits()` change https://github.com/o1-labs/o1js/pull/1559
+- Improved error message when compiling a program that has no methods. https://github.com/o1-labs/o1js/pull/1563
+
+## [0.18.0](https://github.com/o1-labs/o1js/compare/74948acac...1b6fd8b8e) - 2024-04-09
 
 ### Breaking changes
 
@@ -26,7 +73,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
 - Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
   - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
-  - `Provable.runAndCheckSync()` added and immediately deprecated for a smoother upgrade path for tests
+- **Remove deprecated APIs**
+  - Remove `CircuitValue`, `prop`, `arrayProp` and `matrixProp` https://github.com/o1-labs/o1js/pull/1507
+  - Remove `Mina.accountCreationFee()`, `Mina.BerkeleyQANet`, all APIs which accept private keys for feepayers, `Token`, `AccountUpdate.tokenSymbol`, `SmartContract.{token, setValue, setPermissions}`, "assert" methods for preconditions, `MerkleTee.calculateRootSlow()`, `Scalar.fromBigInt()`, `UInt64.lt()` and friends, deprecated static methods on `Group`, utility methods on `Circuit` like `Circuit.if()`, `Field.isZero()`, `isReady` and `shutdown()` https://github.com/o1-labs/o1js/pull/1515
+- Remove `privateKey` from the accepted arguments of `SmartContract.deploy()` https://github.com/o1-labs/o1js/pull/1515
+- **Efficient comparisons**. Support arbitrary bit lengths for `Field` comparisons and massively reduce their constraints https://github.com/o1-labs/o1js/pull/1523
+  - `Field.assertLessThan()` goes from 510 to 24 constraints, `Field.lessThan()` from 509 to 38
+  - Moderately improve other comparisons: `UInt64.assertLessThan()` from 27 to 14, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
+  - Massively improve `Field.isEven()`, add `Field.isOdd()`
+  - `PrivateKey.toPublicKey()` from 358 to 119 constraints thanks to `isOdd()`
+  - Add `Gadgets.ForeignField.assertLessThanOrEqual()` and support two variables as input to `ForeignField.assertLessThan()`
 - Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
   Replaced by more explicit APIs:
   - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
@@ -43,12 +99,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Rename `Bool.Unsafe.ofField()` to `Bool.Unsafe.fromField()` https://github.com/o1-labs/o1js/pull/1485
 - Replace the namespaced type exports `Gadgets.Field3` and `Gadgets.ForeignField.Sum` with `Field3` and `ForeignFieldSum`
   - Unfortunately, the namespace didn't play well with auto-imports in TypeScript
+- Add `Gadgets.rangeCheck3x12()` and fix proof system bug that prevented it from working https://github.com/o1-labs/o1js/pull/1534
+- Update transaction version and other bindings changes to ensure berkeley compatibility https://github.com/o1-labs/o1js/pull/1542
 
 ### Added
 
 - `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
 - Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
 - Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
+
+### Changed
+
+- `field.assertBool()` now also returns the `Field` as a `Bool` for ergonomics https://github.com/o1-labs/o1js/pull/1523
 
 ## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
 

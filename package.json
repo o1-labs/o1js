@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "keywords": [
@@ -16,7 +16,6 @@
     "zero knowledge"
   ],
   "type": "module",
-  "main": "./dist/web/index.js",
   "exports": {
     "types": "./dist/node/index.d.ts",
     "browser": "./dist/web/index.js",
@@ -39,7 +38,7 @@
     "snarky-run": "src/build/run.js"
   },
   "engines": {
-    "node": ">=16.4.0"
+    "node": ">=18.14.0"
   },
   "scripts": {
     "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",

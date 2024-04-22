@@ -1,68 +1,73 @@
-export type { ProvablePure } from './snarky.js';
-export { Ledger } from './snarky.js';
-export { Field, Bool, Group, Scalar } from './lib/core.js';
+export type { ProvablePure } from './lib/provable/types/provable-intf.js';
+export { Ledger, initializeBindings } from './snarky.js';
+export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
   ForeignField,
   AlmostForeignField,
   CanonicalForeignField,
-} from './lib/foreign-field.js';
-export { createForeignCurve, ForeignCurve } from './lib/foreign-curve.js';
-export { createEcdsa, EcdsaSignature } from './lib/foreign-ecdsa.js';
-export { Poseidon, TokenSymbol, ProvableHashable } from './lib/hash.js';
-export { Keccak } from './lib/keccak.js';
-export { Hash } from './lib/hashes-combined.js';
+} from './lib/provable/foreign-field.js';
+export {
+  createForeignCurve,
+  ForeignCurve,
+} from './lib/provable/crypto/foreign-curve.js';
+export {
+  createEcdsa,
+  EcdsaSignature,
+} from './lib/provable/crypto/foreign-ecdsa.js';
+export {
+  Poseidon,
+  TokenSymbol,
+  ProvableHashable,
+} from './lib/provable/crypto/poseidon.js';
+export { Keccak } from './lib/provable/crypto/keccak.js';
+export { Hash } from './lib/provable/crypto/hash.js';
 
-export { assert } from './lib/gadgets/common.js';
+export { assert } from './lib/provable/gadgets/common.js';
 
-export * from './lib/signature.js';
+export * from './lib/provable/crypto/signature.js';
 export type {
   ProvableExtended,
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
-} from './lib/circuit-value.js';
+} from './lib/provable/types/struct.js';
+export { provable, provablePure, Struct } from './lib/provable/types/struct.js';
+export { Unconstrained } from './lib/provable/types/unconstrained.js';
+export { Provable } from './lib/provable/provable.js';
 export {
-  CircuitValue,
-  prop,
-  arrayProp,
-  matrixProp,
-  provable,
-  provablePure,
-  Struct,
-  Unconstrained,
-} from './lib/circuit-value.js';
-export { Provable } from './lib/provable.js';
-export { Circuit, Keypair, public_, circuitMain } from './lib/circuit.js';
-export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/int.js';
-export { Bytes } from './lib/provable-types/provable-types.js';
-export { Packed, Hashed } from './lib/provable-types/packed.js';
-export { Gadgets } from './lib/gadgets/gadgets.js';
+  Circuit,
+  Keypair,
+  public_,
+  circuitMain,
+} from './lib/proof-system/circuit.js';
+export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
+export { Bytes } from './lib/provable/wrapped-classes.js';
+export { Packed, Hashed } from './lib/provable/packed.js';
+export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
-export {
-  MerkleList,
-  MerkleListIterator,
-} from './lib/provable-types/merkle-list.js';
+export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 
-export * as Mina from './lib/mina.js';
+export * as Mina from './lib/mina/mina.js';
 export {
-  type Transaction,
+  Transaction,
+  type TransactionPromise,
   type PendingTransaction,
   type IncludedTransaction,
   type RejectedTransaction,
+  type PendingTransactionPromise,
 } from './lib/mina/transaction.js';
-export type { DeployArgs } from './lib/zkapp.js';
+export type { DeployArgs } from './lib/mina/zkapp.js';
 export {
   SmartContract,
   method,
   declareMethods,
-  Account,
   Reducer,
-} from './lib/zkapp.js';
-export { state, State, declareState } from './lib/state.js';
+} from './lib/mina/zkapp.js';
+export { state, State, declareState } from './lib/mina/state.js';
 
-export type { JsonProof } from './lib/proof-system.js';
+export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
   Proof,
   SelfProof,
@@ -71,11 +76,11 @@ export {
   Undefined,
   Void,
   VerificationKey,
-} from './lib/proof-system.js';
+} from './lib/proof-system/zkprogram.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
+export { Account } from './lib/mina/account.js';
 export {
-  Token,
   TokenId,
   AccountUpdate,
   Permissions,
@@ -83,7 +88,7 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
-} from './lib/account-update.js';
+} from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
 export { TokenContract } from './lib/mina/token/token-contract.js';
@@ -101,25 +106,25 @@ export {
   setArchiveGraphqlEndpoint,
   sendZkapp,
   Lightnet,
-} from './lib/fetch.js';
-export * as Encryption from './lib/encryption.js';
+} from './lib/mina/fetch.js';
+export * as Encryption from './lib/provable/crypto/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
-export { Character, CircuitString } from './lib/string.js';
-export { MerkleTree, MerkleWitness } from './lib/merkle-tree.js';
-export { MerkleMap, MerkleMapWitness } from './lib/merkle-map.js';
+export { Character, CircuitString } from './lib/provable/string.js';
+export { MerkleTree, MerkleWitness } from './lib/provable/merkle-tree.js';
+export { MerkleMap, MerkleMapWitness } from './lib/provable/merkle-map.js';
 
-export { Nullifier } from './lib/nullifier.js';
+export { Nullifier } from './lib/provable/crypto/nullifier.js';
 
-export { ZkProgram } from './lib/proof-system.js';
+export { ZkProgram } from './lib/proof-system/zkprogram.js';
 
-export { Crypto } from './lib/crypto.js';
+export { Crypto } from './lib/provable/crypto/crypto.js';
 
 export type { NetworkId } from './mina-signer/mina-signer.js';
 
 export { setNumberOfWorkers } from './lib/proof-system/workers.js';
 
 // experimental APIs
-import { memoizeWitness } from './lib/provable.js';
+import { memoizeWitness } from './lib/provable/provable.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -135,16 +140,3 @@ namespace Experimental {
 }
 
 Error.stackTraceLimit = 100000;
-
-// deprecated stuff
-export { isReady, shutdown };
-
-/**
- * @deprecated `await isReady` is no longer needed. Remove it from your code.
- */
-let isReady = Promise.resolve();
-
-/**
- * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
- */
-function shutdown() {}

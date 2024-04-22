@@ -1,12 +1,7 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Poseidon } from '../../bindings/crypto/poseidon.js';
-import {
-  Group,
-  PublicKey,
-  Scalar,
-  PrivateKey,
-} from '../../provable/curve-bigint.js';
-import { Field } from '../../provable/field-bigint.js';
+import { Group, PublicKey, Scalar, PrivateKey } from './curve-bigint.js';
+import { Field } from './field-bigint.js';
 import { Nullifier } from './types.js';
 
 export { createNullifier };
@@ -26,9 +21,8 @@ function createNullifier(message: Field[], sk: PrivateKey): Nullifier {
 
   const r = Scalar.random();
 
-  const gm = Hash([...message, ...Group.toFields(pk)]);
-  if (!gm) throw Error('hashToGroup: Point is undefined');
-  const h_m_pk = { x: gm.x, y: gm.y.x0 };
+  const h_m_pk = Hash([...message, ...Group.toFields(pk)]);
+  if (!h_m_pk) throw Error('hashToGroup: Point is undefined');
 
   const nullifier = Group.scale(h_m_pk, sk);
   const h_m_pk_r = Group.scale(h_m_pk, r);

@@ -29,13 +29,17 @@ import {
   PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
-import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
+import {
+  Scalar,
+  PrivateKey,
+  Group,
+} from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { alphabet } from '../base58.js';
+import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { Signable } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../mina-signer/src/derivers-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';

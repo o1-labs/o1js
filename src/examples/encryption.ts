@@ -2,12 +2,11 @@ import {
   Encryption,
   Encoding,
   PrivateKey,
-  isReady,
-  Circuit,
   Provable,
+  initializeBindings,
 } from 'o1js';
 
-await isReady;
+await initializeBindings();
 
 // generate keys
 let privateKey = PrivateKey.random();

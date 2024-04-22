@@ -1,6 +1,5 @@
 /**
- * Simple benchmarks runner
- * Exercises benchmarks and logs the results
+ * Simple benchmarks runner with historical data preservation in cloud storage (if configured)
  *
  * Run with
  * ```
@@ -8,14 +7,15 @@
  * ```
  */
 
-import { logResult } from '../benchmark.js';
-import EcdsaBenchmark from '../benchmarks/ecdsa.js';
+import { initializeBindings } from 'o1js';
+import { EcdsaBenchmarks } from '../benchmarks/ecdsa.js';
+import { processAndLogBenchmarkResults } from '../utils/result-utils.js';
 
-// Run all benchmarks
-const results = [...(await EcdsaBenchmark.run())];
+const results = [];
+await initializeBindings();
+
+// Run benchmarks and collect results
+results.push(...(await EcdsaBenchmarks.run()));
 
 // Process and log results
-for (const result of results) {
-  logResult(result);
-  console.log('\n');
-}
+await processAndLogBenchmarkResults(results);

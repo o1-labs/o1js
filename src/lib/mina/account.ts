@@ -1,16 +1,16 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
-import { Bool, Field } from '../core.js';
-import { Permissions } from '../account-update.js';
-import { UInt32, UInt64 } from '../int.js';
-import { PublicKey } from '../signature.js';
-import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
+import { Bool, Field } from '../provable/wrapped.js';
+import { Permissions } from './account-update.js';
+import { UInt32, UInt64 } from '../provable/int.js';
+import { PublicKey } from '../provable/crypto/signature.js';
+import { TokenId, ReceiptChainHash } from './base58-encodings.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import {
   customTypes,
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { ProvableExtended } from '../circuit-value.js';
+import { ProvableExtended } from '../provable/types/struct.js';
 import { FetchedAccount } from './graphql.js';
 
 export { Account, PartialAccount };

@@ -103,8 +103,12 @@ function getStatistics(numbers: number[]) {
   }
   let n = numbers.length;
   let mean = sum / n;
-  let variance = (sumSquares - sum ** 2 / n) / (n - 1);
-
+  let variance: number;
+  if (n > 1) {
+    variance = (sumSquares - sum ** 2 / n) / (n - 1);
+  } else {
+    variance = 0;
+  }
   return { mean, variance, size: n };
 }
 
@@ -112,7 +116,7 @@ function logResult(
   result: BenchmarkResult,
   previousResult?: BenchmarkResult
 ): void {
-  console.log(result.label + `\n`);
+  console.log(result.label);
   console.log(`time: ${resultToString(result)}`);
 
   if (previousResult === undefined) return;
