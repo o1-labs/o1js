@@ -63,7 +63,6 @@ export {
   SmartContract,
   method,
   declareMethods,
-  Account,
   Reducer,
 } from './lib/mina/zkapp.js';
 export { state, State, declareState } from './lib/mina/state.js';
@@ -81,6 +80,7 @@ export {
 } from './lib/proof-system/zkprogram.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
+export { Account } from './lib/mina/account.js';
 export {
   TokenId,
   AccountUpdate,

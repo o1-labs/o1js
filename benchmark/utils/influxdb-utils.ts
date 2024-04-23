@@ -56,7 +56,7 @@ export function writeResultToInfluxDb(result: BenchmarkResult): void {
       influxDbWriteClient.close();
     }
   } else {
-    console.info('Skipping writing to InfluxDB: client is not configured.');
+    debugLog('Skipping writing to InfluxDB: client is not configured.');
   }
 }
 
@@ -66,6 +66,7 @@ export function readPreviousResultFromInfluxDb(
   return new Promise((resolve) => {
     const { org, bucket } = INFLUXDB_CLIENT_OPTIONS;
     if (!influxDbClient || !org || !bucket) {
+      debugLog('Skipping querying InfluxDB: client is not configured.');
       resolve(undefined);
       return;
     }
@@ -129,4 +130,12 @@ export function readPreviousResultFromInfluxDb(
       resolve(undefined);
     }
   });
+}
+
+function debugLog(message: string): void {
+  // We can also use https://www.npmjs.com/package/debug
+  // should we need more configuration options over the debug logging in the future
+  if (process.env.DEBUG) {
+    console.log(message);
+  }
 }

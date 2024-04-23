@@ -5,4 +5,5 @@ echo ""
 echo "Running o1js benchmarks."
 echo ""
 
-./run benchmark/runners/with-cloud-history.ts --bundle >>benchmarks.log 2>&1
+./run benchmark/runners/init.ts --bundle >>benchmarks.log 2>&1
+./run benchmark/runners/simple.ts --bundle >>benchmarks.log 2>&1
