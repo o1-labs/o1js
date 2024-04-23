@@ -1,5 +1,3 @@
-// import { DynamicProof, Void, ZkProgram, VerificationKey, Proof, Field } from "o1js"
-import fs from "node:fs";
 import { DynamicProof, Proof, VerificationKey, Void, ZkProgram } from "./zkprogram.js";
 import { Field, Struct } from "../../index.js";
 import { it, describe, before } from 'node:test';
@@ -98,25 +96,15 @@ describe("sideloaded", () => {
     let program2Vk: VerificationKey;
 
     before(async () => {
-        // Generate sample proofs
-        console.log("Beforeall")
-
         program1Vk = (await program1.compile()).verificationKey;
         program2Vk = (await program2.compile()).verificationKey;
 
-        // const proof1 = await program1.foo(Field(1), Field(1))
-        // program1Proof = proof1;
-        // fs.writeFileSync("proof.json", JSON.stringify(proof1.toJSON()))
+        // Generate sample proofs
+        const proof1 = await program1.foo(Field(1), Field(1))
+        program1Proof = proof1;
 
-        // const proof2 = await program2.foo({ field1: Field(1), field2: Field(2) }, Field(3))
-        // program2Proof = proof2;
-        // fs.writeFileSync("proof2.json", JSON.stringify(proof2.toJSON()))
-
-        const proof1Json = JSON.parse(fs.readFileSync("proof.json").toString())
-        program1Proof = await ZkProgram.Proof(program1).fromJSON(proof1Json);
-
-        const proof2Json = JSON.parse(fs.readFileSync("proof2.json").toString())
-        program2Proof = await ZkProgram.Proof(program2).fromJSON(proof2Json);
+        const proof2 = await program2.foo({ field1: Field(1), field2: Field(2) }, Field(3))
+        program2Proof = proof2;
     
         await sideloadedProgram.compile()
     })
@@ -152,7 +140,7 @@ describe("sideloaded", () => {
         const proof2 = SampleSideloadedProof2.fromProof(program2Proof);
     
         // VK for proof2 wrong
-        expect(async () => {
+        await expect(async () => {
             return await sideloadedProgram.recurseTwoSideloaded(Field(7), proof1, program1Vk, proof2, program1Vk);
         }).rejects.toThrow()
     })
