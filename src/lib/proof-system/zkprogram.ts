@@ -850,7 +850,6 @@ function analyzeMethod(
 }
 
 function inCircuitVkHash(inCircuitVk: unknown): Field {
-  // Check hash
   const digest = Pickles.sideLoaded.vkDigest(inCircuitVk);
 
   const salt = Snarky.poseidon.update(
@@ -907,9 +906,7 @@ function picklesRuleFromFunction(
         publicOutput = Provable.witness(type.output, () => publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
-
         proofs.push({ proofInstance, classReference: Proof });
-
         let input = toFieldVars(type.input, publicInput);
         let output = toFieldVars(type.output, publicOutput);
         previousStatements.push(MlPair(input, output));
@@ -925,8 +922,8 @@ function picklesRuleFromFunction(
 
     proofs.forEach(({ proofInstance, classReference }, index) => {
       if (proofInstance instanceof DynamicProof) {
+        // Initialize side-loaded verification key
         const tag = classReference.tag();
-
         const computedTag = SideloadedTag.get(tag.name);
         const vk = proofInstance.usedVerificationKey;
 
@@ -941,9 +938,8 @@ function picklesRuleFromFunction(
         }
         const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
 
-        const hash = inCircuitVkHash(circuitVk);
-
         // Assert the validity of the auxiliary vk-data by comparing the witnessed and computed hash
+        const hash = inCircuitVkHash(circuitVk);
         Field(hash).assertEquals(
           vk.hash,
           'Provided VerificationKey hash not correct'
@@ -974,19 +970,15 @@ function picklesRuleFromFunction(
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
     else if (isDynamicProof(Proof)) {
-      // Initialize side-loaded verification keys
       let computedTag: unknown;
+      // Only create the tag if it hasn't already been created for this specific Proof class
       if (SideloadedTag.get(tag.name) === undefined) {
-        // Only create the tag if it hasn't already been created for this specific Proof class
-        const maxProofsVerified = Proof.maxProofsVerified;
-
         computedTag = Pickles.sideLoaded.create(
           tag.name,
-          maxProofsVerified,
+          Proof.maxProofsVerified,
           Proof.publicInputType?.sizeInFields() ?? 0,
           Proof.publicOutputType?.sizeInFields() ?? 0
         );
-
         SideloadedTag.store(tag.name, computedTag);
       } else {
         computedTag = SideloadedTag.get(tag.name);
