@@ -11,8 +11,16 @@ import {
   verify,
 } from 'o1js';
 
+/**
+ * This example showcases how DynamicProofs can be used along with a merkletree that stores
+ * the verification keys that can be used to verify it. 
+ * The MainProgram has two methods, addSideloadedProgram that adds a given verification key
+ * to the tree, and validateUsingTree that uses a given tree leaf to verify a given child-proof
+ * using the verification tree stored under that leaf. 
+ */
+
 const sideloadedProgram = ZkProgram({
-  name: 'zkprogram1',
+  name: 'childProgram',
   publicInput: Field,
   publicOutput: Field,
   methods: {
