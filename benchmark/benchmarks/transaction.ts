@@ -43,7 +43,6 @@ const [feePayer] = Local.testAccounts;
 const { verificationKey } = await SimpleZkapp.compile();
 
 let transaction;
-let pendingTransaction;
 
 const TxnBenchmarks = benchmark(
   'txn',
@@ -66,11 +65,7 @@ const TxnBenchmarks = benchmark(
     toc();
 
     tic('simple zkapp deploy transaction local sending');
-    pendingTransaction = transaction.send();
-    toc();
-
-    tic('simple zkapp deploy transaction local waiting');
-    await pendingTransaction.wait();
+    await transaction.send();
     toc();
 
     tic('simple zkapp call transaction construction');
@@ -89,11 +84,7 @@ const TxnBenchmarks = benchmark(
     toc();
 
     tic('simple zkapp call transaction local sending');
-    pendingTransaction = transaction.send();
-    toc();
-
-    tic('simple zkapp call transaction local waiting');
-    await pendingTransaction.wait();
+    await transaction.send();
     toc();
   },
   // two warmups to ensure full caching
