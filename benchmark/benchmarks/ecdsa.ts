@@ -1,5 +1,5 @@
 /**
- * ECDSA benchmark
+ * ECDSA benchmarks
  */
 
 import { Provable } from 'o1js';

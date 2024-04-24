@@ -15,14 +15,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/968a35111...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/02c5e8d4d...HEAD)
 
 ### Fixed
 
 - Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
 - Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
 
-## [1.0.0](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...968a35111) - 2024-04-22
+### Added
+
+- Exposed sideloaded verification keys https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
+  - Added Proof type `DynamicProof` that allows verification through specifying a verification key in-circuit
+
+## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...02c5e8d4d) - 2024-04-22
 
 ### Breaking changes
 
