@@ -200,6 +200,37 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
 
 var sideloadedKeysCounter = 0;
 
+/**
+ * The `DynamicProof` class enables circuits to verify proofs using in-ciruit verfication keys.
+ * This is opposed to the baked-in verification keys of the `Proof` class.
+ *
+ * In order to use this, a subclass of DynamicProof that specifies the public input and output types along with the maxProofsVerified number has to be created.
+ *
+ * ```ts
+ * export class SideloadedProgramProof extends DynamicProof<MyStruct, Field> {
+ *   static publicInputType = MyStruct;
+ *   static publicOutputType = Field;
+ *   static maxProofsVerified = 0 as const;
+ * }
+ * ```
+ *
+ * The `maxProofsVerified` constant is a product of the child circuit and indicates the maximum number that that circuit verifies itself.
+ * If you are unsure about what that is for you, you should use `2`.
+ *
+ * Any `DynamicProof` subclass can be used as private input to ZkPrograms or SmartContracts along with a `VerificationKey` input.
+ * ```ts
+ * proof.verify(verificationKey)
+ * ```
+ *
+ * NOTE: In the case of `DynamicProof`s, the circuit makes no assertions about the verificationKey used on its own.
+ * This is the responsibility of the application developer and should always implement appropriate checks.
+ * This pattern differs a lot from the usage of normal `Proof`, where the verification key is baked into the compiled circuit.
+ * @see {@link src/examples/zkprogram/dynamic-keys-merkletree.ts} for an example of how this can be done using merkle trees
+ *
+ * Assertions generally only happen using the vk hash that is part of the `VerificationKey` struct along with the raw vk data as auxilary data.
+ * When using verify() on a `DynamicProof`, Pickles makes sure that the verification key data matches the hash.
+ * Therefore all manual assertions have to be made on the vk's hash and it can be assumed that the vk's data is checked to match the hash if it is used with verify().
+ */
 class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
   public static maxProofsVerified: 0 | 1 | 2;
 
@@ -218,6 +249,10 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
 
   usedVerificationKey?: VerificationKey;
 
+  /**
+   * Verifies this DynamicProof using a given verification key
+   * @param vk The verification key this proof will be verified against
+   */
   verify(vk: VerificationKey) {
     this.shouldVerify = Bool(true);
     this.usedVerificationKey = vk;
@@ -269,6 +304,11 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
     );
   }
 
+  /**
+   * Converts a Proof into a DynamicProof carrying over all relevant data.
+   * This method can be used to convert a Proof computed by a ZkProgram
+   * into a DynamicProof that is accepted in a circuit that accepts DynamicProofs
+   */
   static fromProof<S extends Subclass<typeof DynamicProof>>(
     this: S,
     proof: Proof<
@@ -348,7 +388,7 @@ let SideloadedTag = {
   store(tag: string, compiledTag: unknown) {
     sideloadedKeysMap[tag] = compiledTag;
   },
-}
+};
 
 function ZkProgram<
   StatementType extends {
@@ -920,32 +960,33 @@ function picklesRuleFromFunction(
       result = await func(input, ...finalArgs);
     }
 
-    proofs.forEach(({ proofInstance, classReference }, index) => {
-      if (proofInstance instanceof DynamicProof) {
-        // Initialize side-loaded verification key
-        const tag = classReference.tag();
-        const computedTag = SideloadedTag.get(tag.name);
-        const vk = proofInstance.usedVerificationKey;
-
-        if (vk === undefined) {
-          throw new Error(
-            'proof.verify() not called, call it at least once in your circuit'
-          );
-        }
-
-        if (Provable.inProver()) {
-          Pickles.sideLoaded.inProver(computedTag, vk.data);
-        }
-        const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
-
-        // Assert the validity of the auxiliary vk-data by comparing the witnessed and computed hash
-        const hash = inCircuitVkHash(circuitVk);
-        Field(hash).assertEquals(
-          vk.hash,
-          'Provided VerificationKey hash not correct'
-        );
-        Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
+    proofs.forEach(({ proofInstance, classReference }) => {
+      if (!(proofInstance instanceof DynamicProof)) {
+        return;
       }
+      // Initialize side-loaded verification key
+      const tag = classReference.tag();
+      const computedTag = SideloadedTag.get(tag.name);
+      const vk = proofInstance.usedVerificationKey;
+
+      if (vk === undefined) {
+        throw new Error(
+          'proof.verify() not called, call it at least once in your circuit'
+        );
+      }
+
+      if (Provable.inProver()) {
+        Pickles.sideLoaded.inProver(computedTag, vk.data);
+      }
+      const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
+
+      // Assert the validity of the auxiliary vk-data by comparing the witnessed and computed hash
+      const hash = inCircuitVkHash(circuitVk);
+      Field(hash).assertEquals(
+        vk.hash,
+        'Provided VerificationKey hash not correct'
+      );
+      Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
     });
 
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case

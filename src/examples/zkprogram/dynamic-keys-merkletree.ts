@@ -13,10 +13,10 @@ import {
 
 /**
  * This example showcases how DynamicProofs can be used along with a merkletree that stores
- * the verification keys that can be used to verify it. 
+ * the verification keys that can be used to verify it.
  * The MainProgram has two methods, addSideloadedProgram that adds a given verification key
  * to the tree, and validateUsingTree that uses a given tree leaf to verify a given child-proof
- * using the verification tree stored under that leaf. 
+ * using the verification tree stored under that leaf.
  */
 
 const sideloadedProgram = ZkProgram({
@@ -33,7 +33,7 @@ const sideloadedProgram = ZkProgram({
   },
 });
 
-export class SideloadedProgramProof extends DynamicProof<Field, Field> {
+class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static publicInputType = Field;
   static publicOutputType = Field;
   static maxProofsVerified = 0 as const;
@@ -59,6 +59,7 @@ const mainProgram = ZkProgram({
         vk: VerificationKey,
         merkleWitness: MerkleTreeWitness
       ) {
+        // In practice, this method would be guarded via some access control mechanism
         const currentRoot = merkleWitness.calculateRoot(Field(0));
         publicInput.treeRoot.assertEquals(
           currentRoot,

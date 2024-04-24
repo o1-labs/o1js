@@ -124,29 +124,18 @@ const sideloadedProgram2 = ZkProgram({
   },
 });
 
-describe('sideloaded', () => {
-  let program1Proof: Proof<Field, void>;
-  let program2Proof: Proof<Program2Struct, Field>;
+describe('sideloaded', async () => {
+  let program1Vk = (await program1.compile()).verificationKey;
+  let program2Vk = (await program2.compile()).verificationKey;
 
-  let program1Vk: VerificationKey;
-  let program2Vk: VerificationKey;
+  // Generate sample proofs
+  const program1Proof = await program1.foo(Field(1), Field(1));
+  const program2Proof = await program2.foo(
+    { field1: Field(1), field2: Field(2) },
+    Field(3)
+  );
 
-  before(async () => {
-    program1Vk = (await program1.compile()).verificationKey;
-    program2Vk = (await program2.compile()).verificationKey;
-
-    // Generate sample proofs
-    const proof1 = await program1.foo(Field(1), Field(1));
-    program1Proof = proof1;
-
-    const proof2 = await program2.foo(
-      { field1: Field(1), field2: Field(2) },
-      Field(3)
-    );
-    program2Proof = proof2;
-
-    await sideloadedProgram.compile();
-  });
+  await sideloadedProgram.compile();
 
   it('should convert proof to DynamicProof', async () => {
     const proof = SampleSideloadedProof.fromProof(program1Proof);

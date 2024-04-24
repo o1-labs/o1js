@@ -11,7 +11,7 @@ import {
 /**
  * This example showcases mutual recursion (A -> B -> A) through two circuits that respectively
  * add or multiply a given publicInput.
- * Every multiplication or addition step consumes a previous proof from the other circuit to verify prior state. 
+ * Every multiplication or addition step consumes a previous proof from the other circuit to verify prior state.
  */
 
 class DynamicMultiplyProof extends DynamicProof<Undefined, Field> {
@@ -32,6 +32,10 @@ const add = ZkProgram({
         proof: DynamicMultiplyProof,
         vk: VerificationKey
       ) {
+        // TODO The incoming verification key isn't constrained in any way, therefore a malicious prover
+        // can inject any vk they like which could lead to security issues. In practice, there would always
+        // be some sort of access control to limit the set of possible vks used.
+
         const multiplyResult = proof.publicOutput;
         // Skip verification in case the input is 0, as that is our base-case
         proof.verifyIf(vk, multiplyResult.equals(Field(0)).not());
