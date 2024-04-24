@@ -57,7 +57,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
   - calling this function is optional
 
-### Changes
+### Changed
 
 - Remove top-level await https://github.com/o1-labs/o1js/pull/1583
   - To simplify integration with bundlers like webpack
