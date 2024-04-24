@@ -371,7 +371,7 @@ class UInt64 extends CircuitValue {
    * ```
    */
   rightShift(bits: number) {
-    return new UInt64(Bitwise.leftShift64(this.value, bits).value);
+    return new UInt64(Bitwise.rightShift64(this.value, bits).value);
   }
 
   /**
