@@ -19,7 +19,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- Fixed issue in `UInt64.rightShift()` method where it incorrectly performed a left shift instead of a right shift.
+- Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift.
+- Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length `< 176`.
 
 ## [1.0.0](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...968a35111) - 2024-04-22
 
