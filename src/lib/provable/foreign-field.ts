@@ -357,10 +357,19 @@ class ForeignField {
     let limbSize = Number(l);
     let xBits = l0.toBits(Math.min(length, limbSize));
     length -= limbSize;
-    if (length <= 0) return xBits;
+    if (length <= 0) {
+      // constrain the remaining two high-limbs to be zero, return the first limb
+      l1.assertEquals(0);
+      l2.assertEquals(0);
+      return xBits;
+    }
     let yBits = l1.toBits(Math.min(length, limbSize));
     length -= limbSize;
-    if (length <= 0) return [...xBits, ...yBits];
+    if (length <= 0) {
+      // constrain the highest limb to be zero, return the first two limbs
+      l2.assertEquals(0);
+      return [...xBits, ...yBits];
+    }
     let zBits = l2.toBits(Math.min(length, limbSize));
     return [...xBits, ...yBits, ...zBits];
   }
