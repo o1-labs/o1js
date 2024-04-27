@@ -1,13 +1,6 @@
 import { ZkProgram } from 'o1js';
-import {
-  Bigint2048,
-  rsaVerify65537,
-} from '../../../../dist/examples/crypto/rsa/rsa.js';
-import {
-  generateDigestBigint,
-  generateRsaParams,
-  rsaSign,
-} from '../../../../dist/examples/crypto/rsa/testUtils.js';
+import { Bigint2048, rsaVerify65537 } from './rsa.js';
+import { generateDigestBigint, generateRsaParams, rsaSign } from './utils.js';
 
 let rsaZkProgram = ZkProgram({
   name: 'rsa-verify',
