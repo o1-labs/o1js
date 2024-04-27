@@ -2,17 +2,13 @@
  * RSA signature verification with o1js
  */
 import { Field, Gadgets, Provable, Struct, provable } from 'o1js';
-import { Fp } from '../../../bindings/crypto/finite-field.js';
 
-export { 
-  Bigint2048, 
-  rsaVerify65537,
-} 
+export { Bigint2048, rsaVerify65537 };
 
 const mask = (1n << 116n) - 1n;
 
 /**
- * We use 116-bit limbs, which means 18 limbs for a 2048-bit numbers as used in RSA.
+ * We use 116-bit limbs, which means 18 limbs for 2048-bit numbers as used in RSA.
  */
 const Field18 = Provable.Array(Field, 18);
 
@@ -102,10 +98,7 @@ function multiply(
   for (let i = 0; i < 2 * 18 - 2; i++) {
     let res_i = res[i].add(carry);
 
-    carry = Provable.witness(Field, () => {
-      let res_in = res_i.toBigInt();
-      return Field(res_in * (Fp.inverse(2n ** 116n) ?? 0n));
-    });
+    carry = Provable.witness(Field, () => res_i.div(1n << 116n));
     rangeCheck128Signed(carry);
 
     // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
@@ -165,10 +158,10 @@ function rangeCheck116(x: Field) {
 function rangeCheck128Signed(xSigned: Field) {
   let x = xSigned.add(1n << 127n);
 
-  let [x0, x1] = Provable.witness(Provable.Array(Field, 2), () => {
+  let [x0, x1] = Provable.witnessFields(2, () => {
     const x0 = x.toBigInt() & ((1n << 64n) - 1n);
     const x1 = x.toBigInt() >> 64n;
-    return [x0, x1].map(Field)
+    return [x0, x1];
   });
 
   Gadgets.rangeCheck64(x0);
