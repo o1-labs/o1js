@@ -21,9 +21,8 @@ import {
   constraintSystem,
   generateWitness,
 } from './core/provable-context.js';
-import { witness, witnessAsync } from './types/witness.js';
+import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
-import { exists } from './core/exists.js';
 
 // external API
 export { Provable };
@@ -74,7 +73,7 @@ const Provable = {
    * but optimized for witnessing plain field elements, which is especially common
    * in low-level provable code.
    */
-  witnessFields: exists,
+  witnessFields,
   /**
    * Create a new witness from an async callback.
    *
