@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import bigInt from 'big-integer';
 
 export {
@@ -88,5 +88,22 @@ function generateRsaParams(primeSize: number) {
  */
 function rsaSign(message: bigint, privateKey: bigint, modulus: bigint): bigint {
   // Calculate the signature using modular exponentiation
-  return toBigInt(bigInt(message).modPow(privateKey, modulus));
+  return power(message, privateKey, modulus);
+}
+
+// modular exponentiation, a^n % p
+function power(a: bigint, n: bigint, p: bigint) {
+  a = mod(a, p);
+  let x = 1n;
+  for (; n > 0n; n >>= 1n) {
+    if (n & 1n) x = mod(x * a, p);
+    a = mod(a * a, p);
+  }
+  return x;
+}
+
+function mod(x: bigint, p: bigint) {
+  x = x % p;
+  if (x < 0) return x + p;
+  return x;
 }
