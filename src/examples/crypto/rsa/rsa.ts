@@ -1,8 +1,13 @@
 /**
  * RSA signature verification with o1js
  */
-import { Field, Gadgets, Provable, Struct, ZkProgram, provable } from 'o1js';
-import { tic, toc } from '../utils/tic-toc.node.js';
+import { Field, Gadgets, Provable, Struct, provable } from 'o1js';
+import { Fp } from '../../../bindings/crypto/finite-field.js';
+
+export { 
+  Bigint2048, 
+  rsaVerify65537,
+} 
 
 const mask = (1n << 116n) - 1n;
 
@@ -97,10 +102,9 @@ function multiply(
   for (let i = 0; i < 2 * 18 - 2; i++) {
     let res_i = res[i].add(carry);
 
-    [carry] = Provable.witnessFields(1, () => {
+    carry = Provable.witness(Field, () => {
       let res_in = res_i.toBigInt();
-      if (res_in > 1n << 128n) res_in -= Field.ORDER;
-      return [res_in >> 116n];
+      return Field(res_in * (Fp.inverse(2n ** 116n) ?? 0n));
     });
     rangeCheck128Signed(carry);
 
@@ -161,40 +165,14 @@ function rangeCheck116(x: Field) {
 function rangeCheck128Signed(xSigned: Field) {
   let x = xSigned.add(1n << 127n);
 
-  let [x0, x1] = Provable.witnessFields(2, () => [
-    x.toBigInt() & ((1n << 64n) - 1n),
-    x.toBigInt() >> 64n,
-  ]);
+  let [x0, x1] = Provable.witness(Provable.Array(Field, 2), () => {
+    const x0 = x.toBigInt() & ((1n << 64n) - 1n);
+    const x1 = x.toBigInt() >> 64n;
+    return [x0, x1].map(Field)
+  });
 
   Gadgets.rangeCheck64(x0);
   Gadgets.rangeCheck64(x1);
 
   x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
-
-let rsa = ZkProgram({
-  name: 'rsa-verify',
-
-  methods: {
-    verify: {
-      privateInputs: [Bigint2048, Bigint2048, Bigint2048],
-
-      async method(
-        message: Bigint2048,
-        signature: Bigint2048,
-        modulus: Bigint2048
-      ) {
-        rsaVerify65537(message, signature, modulus);
-      },
-    },
-  },
-});
-
-let { verify } = await rsa.analyzeMethods();
-
-console.log(verify.summary());
-console.log('rows', verify.rows);
-
-tic('compile');
-await rsa.compile();
-toc();

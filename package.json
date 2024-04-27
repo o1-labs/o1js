@@ -94,6 +94,7 @@
     "typescript": "5.1"
   },
   "dependencies": {
+    "big-integer": "^1.6.52",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "isomorphic-fetch": "^3.0.0",
