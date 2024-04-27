@@ -1,30 +1,30 @@
 import { ZkProgram } from 'o1js';
-import  { 
-    Bigint2048, 
-    rsaVerify65537,
+import {
+  Bigint2048,
+  rsaVerify65537,
 } from '../../../../dist/examples/crypto/rsa/rsa.js';
-import { 
-    generateDigestBigint,
-    generateRsaParams,
-    rsaSign,
+import {
+  generateDigestBigint,
+  generateRsaParams,
+  rsaSign,
 } from '../../../../dist/examples/crypto/rsa/testUtils.js';
 
 let rsaZkProgram = ZkProgram({
-    name: 'rsa-verify',
+  name: 'rsa-verify',
 
-    methods: {
-        verifyRsa65537: {
-            privateInputs: [Bigint2048, Bigint2048, Bigint2048],
+  methods: {
+    verifyRsa65537: {
+      privateInputs: [Bigint2048, Bigint2048, Bigint2048],
 
-            async method(
-                message: Bigint2048,
-                signature: Bigint2048,
-                modulus: Bigint2048
-            ) {
-                rsaVerify65537(message, signature, modulus);
-            },
-        },
+      async method(
+        message: Bigint2048,
+        signature: Bigint2048,
+        modulus: Bigint2048
+      ) {
+        rsaVerify65537(message, signature, modulus);
+      },
     },
+  },
 });
 
 let { verifyRsa65537 } = await rsaZkProgram.analyzeMethods();
