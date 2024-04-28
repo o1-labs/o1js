@@ -1193,9 +1193,14 @@ async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   );
 }
 
+let dummyProofCache: string | undefined;
+
 async function dummyBase64Proof() {
+  if (dummyProofCache) return dummyProofCache;
   let proof = await dummyProof(2, 15);
-  return Pickles.proofToBase64([2, proof]);
+  let base64Proof = Pickles.proofToBase64([2, proof]);
+  dummyProofCache = base64Proof;
+  return base64Proof;
 }
 
 // what feature flags to set to enable certain gate types
