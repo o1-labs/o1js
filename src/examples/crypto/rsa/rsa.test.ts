@@ -1,4 +1,3 @@
-import bigInt from 'big-integer';
 import { Bigint2048, rsaVerify65537 } from './rsa.js';
 import { generateDigestBigint, generateRsaParams, rsaSign } from './utils.js';
 import { expect } from 'expect';
@@ -30,28 +29,16 @@ describe('RSA65537 verification tests', () => {
     };
 
     const message = Bigint2048.from(13n);
-    const rsaSig = Bigint2048.from(
-      BigInt('0x' + bigInt(13n).modPow(params.d, params.n).toString(16))
-    );
+    const rsaSig = Bigint2048.from(rsaSign(13n, params.d, params.n));
     const modul = Bigint2048.from(params.n);
 
     rsaVerify65537(message, rsaSig, modul);
   });
 
-  it('should accept RSA signature with randomly generated parameters: 512-bits', () => {
+  it('should accept RSA signature with randomly generated parameters: 512-bits (20 iterations)', () => {
     const input = generateDigestBigint('hello there!');
-    const params = generateRsaParams(512);
 
-    const message = Bigint2048.from(input);
-    const signature = Bigint2048.from(rsaSign(input, params.d, params.n));
-    const modulus = Bigint2048.from(params.n);
-
-    rsaVerify65537(message, signature, modulus);
-  });
-
-  it.skip('should accept RSA signature with randomly generated parameters: 512-bits - 100 iterations', () => {
-    for (let i = 0; i < 100; i++) {
-      const input = generateDigestBigint('hello there!');
+    for (let i = 0; i < 20; i++) {
       const params = generateRsaParams(512);
 
       const message = Bigint2048.from(input);
@@ -62,20 +49,10 @@ describe('RSA65537 verification tests', () => {
     }
   });
 
-  it('should accept RSA signature with randomly generated parameters: 1024-bits', () => {
+  it('should accept RSA signature with randomly generated parameters: 1024-bits (10 iterations)', () => {
     const input = generateDigestBigint('how is it going!');
-    const params = generateRsaParams(1024);
 
-    const message = Bigint2048.from(input);
-    const signature = Bigint2048.from(rsaSign(input, params.d, params.n));
-    const modulus = Bigint2048.from(params.n);
-
-    rsaVerify65537(message, signature, modulus);
-  });
-
-  it.skip('should accept RSA signature with randomly generated parameters: 1024-bits - 100 iterations', () => {
-    for (let i = 0; i < 50; i++) {
-      const input = generateDigestBigint('how is it going!');
+    for (let i = 0; i < 10; i++) {
       const params = generateRsaParams(1024);
 
       const message = Bigint2048.from(input);
@@ -86,20 +63,10 @@ describe('RSA65537 verification tests', () => {
     }
   });
 
-  it('should accept RSA signature with randomly generated parameters: 2048-bits', () => {
+  it('should accept RSA signature with randomly generated parameters: 2048-bits (5 iterations)', () => {
     const input = generateDigestBigint('how are you!');
-    const params = generateRsaParams(2048);
 
-    const message = Bigint2048.from(input);
-    const signature = Bigint2048.from(rsaSign(input, params.d, params.n));
-    const modulus = Bigint2048.from(params.n);
-
-    rsaVerify65537(message, signature, modulus);
-  });
-
-  it.skip('should accept RSA signature with randomly generated parameters: 2048-bits - 50 iterations', () => {
-    for (let i = 0; i < 25; i++) {
-      const input = generateDigestBigint('how are you!');
+    for (let i = 0; i < 5; i++) {
       const params = generateRsaParams(2048);
 
       const message = Bigint2048.from(input);

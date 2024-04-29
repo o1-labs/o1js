@@ -23,7 +23,6 @@ let rsaZkProgram = ZkProgram({
 let { verifyRsa65537 } = await rsaZkProgram.analyzeMethods();
 
 console.log(verifyRsa65537.summary());
-// console.log('rows', verifyRsa65537.rows);
 
 console.time('compile');
 const forceRecompileEnabled = false;
