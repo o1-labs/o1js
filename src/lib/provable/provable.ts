@@ -21,7 +21,7 @@ import {
   constraintSystem,
   generateWitness,
 } from './core/provable-context.js';
-import { witness, witnessAsync } from './types/witness.js';
+import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 
 // external API
@@ -68,6 +68,12 @@ const Provable = {
    * ```
    */
   witness,
+  /**
+   * Witness a tuple of field elements. This works just like {@link Provable.witness},
+   * but optimized for witnessing plain field elements, which is especially common
+   * in low-level provable code.
+   */
+  witnessFields,
   /**
    * Create a new witness from an async callback.
    *

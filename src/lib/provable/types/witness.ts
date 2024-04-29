@@ -7,8 +7,10 @@ import {
 } from '../core/provable-context.js';
 import { exists, existsAsync } from '../core/exists.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
+import { TupleN } from '../../util/types.js';
+import { createField } from '../core/field-constructor.js';
 
-export { witness, witnessAsync };
+export { witness, witnessAsync, witnessFields };
 
 function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
   type: A,
@@ -79,6 +81,25 @@ async function witnessAsync<
   type.check(value);
 
   return value;
+}
+
+function witnessFields<
+  N extends number,
+  C extends () => TupleN<bigint | Field, N>
+>(size: N, compute: C): TupleN<Field, N> {
+  // outside provable code, we just call the callback and return its cloned result
+  if (!inCheckedComputation() || snarkContext.get().inWitnessBlock) {
+    let fields = compute().map((x) => createField(x));
+    return TupleN.fromArray(size, fields);
+  }
+
+  // call into `exists` to witness the field elements
+  return exists(size, () => {
+    let fields = compute().map((x) =>
+      typeof x === 'bigint' ? x : x.toBigInt()
+    );
+    return TupleN.fromArray(size, fields);
+  });
 }
 
 function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {

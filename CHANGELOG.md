@@ -27,6 +27,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Exposed sideloaded verification keys https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
   - Added Proof type `DynamicProof` that allows verification through specifying a verification key in-circuit
+- `Provable.witnessFields()` to easily witness a tuple of field elements https://github.com/o1-labs/o1js/pull/1229
+- Example for implementing RSA verification in o1js https://github.com/o1-labs/o1js/pull/1229 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
+  - Check out https://github.com/o1-labs/o1js/blob/main/src/examples/crypto/rsa/rsa.ts and tests in the same folder
+
+### Changed
+
+- `Gadgets.rangeCheck64()` now returns individual range-checked limbs for advanced use cases https://github.com/o1-labs/o1js/pull/1229
 
 ## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...02c5e8d4d) - 2024-04-22
 
