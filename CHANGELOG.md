@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
 - Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
+- Make `dummyBase64Proof()` lazy. Significant speed up when generating many account updates with authorization `Proof` while proofs turned off. https://github.com/o1-labs/o1js/pull/1624
 
 ### Added
 
