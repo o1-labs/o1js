@@ -1,6 +1,4 @@
-import { createHash } from 'node:crypto';
-
-export { generateDigestBigint, generateRsaParams, rsaSign };
+export { sha256Bigint, generateRsaParams, rsaSign, randomPrime };
 
 /**
  * Generates an RSA signature for the given message using the private key and modulus.
@@ -19,26 +17,24 @@ function rsaSign(message: bigint, privateKey: bigint, modulus: bigint): bigint {
  * @param  message - The input message to be hashed.
  * @returns The SHA-256 hash of the input message as a native bigint.
  */
-function generateDigestBigint(message: string) {
-  const digest = createHash('sha256').update(message, 'utf8').digest('hex');
-  return BigInt('0x' + digest);
+async function sha256Bigint(message: string) {
+  let messageBytes = new TextEncoder().encode(message);
+  let digestBytes = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', messageBytes)
+  );
+  return bytesToBigint(digestBytes);
 }
 
 /**
  * Generates RSA parameters including prime numbers, public exponent, and private exponent.
- * @param primeSize - The bit size of the prime numbers used for generating the RSA parameters.
+ * @param bitSize - The bit size of the prime numbers used for generating the RSA parameters.
  * @returns An object containing the RSA parameters:
- *                    - p (prime),
- *                    - q (prime),
- *                    - n (modulus),
- *                    - phiN (Euler's totient function),
- *                    - e (public exponent),
- *                    - d (private exponent).
+ * `n` (modulus), `e` (public exponent), `d` (private exponent).
  */
-function generateRsaParams(primeSize: number) {
+function generateRsaParams(bitSize: number) {
   // Generate two random prime numbers
-  const p = randomPrime(primeSize / 2);
-  const q = randomPrime(primeSize / 2);
+  const p = randomPrime(bitSize / 2);
+  const q = randomPrime(bitSize / 2);
 
   // Public exponent
   const e = 65537n;
@@ -49,7 +45,7 @@ function generateRsaParams(primeSize: number) {
   // Private exponent
   const d = inverse(e, phiN);
 
-  return { p, q, n: p * q, phiN, e, d };
+  return { n: p * q, e, d };
 }
 
 // random primes
