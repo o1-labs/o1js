@@ -15,7 +15,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/02c5e8d4d...HEAD)
+
+### Fixed
+
+- Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
+- Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
+
+### Added
+
+- Exposed sideloaded verification keys https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
+  - Added Proof type `DynamicProof` that allows verification through specifying a verification key in-circuit
+
+## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...02c5e8d4d) - 2024-04-22
 
 ### Breaking changes
 
@@ -38,6 +50,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improved functionality of `MerkleList` and `MerkleListIterator` for easier traversal of `MerkleList`s. https://github.com/o1-labs/o1js/pull/1562
 - Simplified internal logic of reducer. https://github.com/o1-labs/o1js/pull/1577
   - `contract.getActions()` now returns a `MerkleList`
+- Add `toValue()` and `fromValue()` interface to `Provable<T>` to encode how provable types map to plain JS values https://github.com/o1-labs/o1js/pull/1271
+  - You can now return the plain value from a `Provable.witness()` callback, and it will be transformed into the provable type
+- Remove `Account()` constructor which was no different from `AccountUpdate.create().account`, and export `Account` type instead. https://github.com/o1-labs/o1js/pull/1598
 
 ### Added
 
@@ -47,7 +62,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
   - calling this function is optional
 
-### Changes
+### Changed
 
 - Remove top-level await https://github.com/o1-labs/o1js/pull/1583
   - To simplify integration with bundlers like webpack

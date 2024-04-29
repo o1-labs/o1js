@@ -1,5 +1,5 @@
 /**
- * ECDSA benchmark
+ * ECDSA benchmarks
  */
 
 import { Provable } from 'o1js';
@@ -11,14 +11,14 @@ import {
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { benchmark } from '../benchmark.js';
 
-export { EcdsaBenchmark };
+export { EcdsaBenchmarks };
 
 let privateKey = Secp256k1.Scalar.random();
 let publicKey = Secp256k1.generator.scale(privateKey);
 let message = Bytes32.fromString("what's up");
 let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
-const EcdsaBenchmark = benchmark(
+const EcdsaBenchmarks = benchmark(
   'ecdsa',
   async (tic, toc) => {
     tic('build constraint system');

@@ -28,34 +28,6 @@ git submodule update --init --recursive
 
 For most users, building o1js is as simple as running:
 
-# o1js README-dev
-
-o1js is a TypeScript framework designed for zk-SNARKs and zkApps on the Mina blockchain.
-
-- [zkApps Overview](https://docs.minaprotocol.com/zkapps)
-- [Mina README](/src/mina/README.md)
-
-For more information on our development process and how to contribute, see [CONTRIBUTING.md](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md). This document is meant to guide you through building o1js from source and understanding the development workflow.
-
-## Prerequisites
-
-Before starting, ensure you have the following tools installed:
-
-- [Git](https://git-scm.com/)
-- [Node.js and npm](https://nodejs.org/)
-- [Dune](https://github.com/ocaml/dune) (only needed when compiling o1js from source)
-- [Cargo](https://www.rust-lang.org/learn/get-started) (only needed when compiling o1js from source)
-
-After cloning the repository, you need to fetch the submodules:
-
-```sh
-git submodule update --init --recursive
-```
-
-## Building o1js
-
-For most users, building o1js is as simple as running:
-
 ```sh
 npm install
 npm run build

@@ -354,7 +354,7 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * Performs a left right operation on the provided {@link UInt64} element.
+   * Performs a right shift operation on the provided {@link UInt64} element.
    * This operation is similar to the `>>` shift operation in JavaScript,
    * where bits are shifted to the right, and the overflowing bits are discarded.
    *
@@ -366,12 +366,12 @@ class UInt64 extends CircuitValue {
    * @example
    * ```ts
    * const x = UInt64.from(0b001100); // 12 in binary
-   * const y = x.rightShift(2); // left shift by 2 bits
-   * y.assertEquals(0b000011); // 48 in binary
+   * const y = x.rightShift(2); // right shift by 2 bits
+   * y.assertEquals(0b000011); // 3 in binary
    * ```
    */
   rightShift(bits: number) {
-    return new UInt64(Bitwise.leftShift64(this.value, bits).value);
+    return new UInt64(Bitwise.rightShift64(this.value, bits).value);
   }
 
   /**
