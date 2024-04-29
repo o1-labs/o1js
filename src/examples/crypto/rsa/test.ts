@@ -1,5 +1,10 @@
 import { Bigint2048, rsaVerify65537 } from './rsa.js';
-import { generateDigestBigint, generateRsaParams, rsaSign } from './utils.js';
+import {
+  sha256Bigint,
+  generateRsaParams,
+  rsaSign,
+  randomPrime,
+} from './utils.js';
 import { expect } from 'expect';
 import { it, describe } from 'node:test';
 
@@ -9,7 +14,6 @@ describe('RSA65537 verification tests', () => {
     const rsaSig = Bigint2048.from(31n);
     const modul = Bigint2048.from(33n);
 
-    // Provable RSA verification
     rsaVerify65537(message, rsaSig, modul);
   });
 
@@ -34,8 +38,8 @@ describe('RSA65537 verification tests', () => {
     rsaVerify65537(message, rsaSig, modul);
   });
 
-  it('should accept RSA signature with randomly generated parameters: 512-bits (20 iterations)', () => {
-    const input = generateDigestBigint('hello there!');
+  it('should accept RSA signature with randomly generated parameters: 512-bits (20 iterations)', async () => {
+    const input = await sha256Bigint('hello there!');
 
     for (let i = 0; i < 20; i++) {
       const params = generateRsaParams(512);
@@ -48,8 +52,8 @@ describe('RSA65537 verification tests', () => {
     }
   });
 
-  it('should accept RSA signature with randomly generated parameters: 1024-bits (10 iterations)', () => {
-    const input = generateDigestBigint('how is it going!');
+  it('should accept RSA signature with randomly generated parameters: 1024-bits (10 iterations)', async () => {
+    const input = await sha256Bigint('how is it going!');
 
     for (let i = 0; i < 10; i++) {
       const params = generateRsaParams(1024);
@@ -62,8 +66,8 @@ describe('RSA65537 verification tests', () => {
     }
   });
 
-  it('should accept RSA signature with randomly generated parameters: 2048-bits (5 iterations)', () => {
-    const input = generateDigestBigint('how are you!');
+  it('should accept RSA signature with randomly generated parameters: 2048-bits (5 iterations)', async () => {
+    const input = await sha256Bigint('how are you!');
 
     for (let i = 0; i < 5; i++) {
       const params = generateRsaParams(2048);
@@ -76,8 +80,8 @@ describe('RSA65537 verification tests', () => {
     }
   });
 
-  it('should reject RSA signature with randomly generated parameters larger than 2048-bits', () => {
-    const input = generateDigestBigint('how are you!');
+  it('should reject RSA signature with randomly generated parameters larger than 2048 bits', async () => {
+    const input = await sha256Bigint('how are you!');
     const params = generateRsaParams(2560);
 
     const message = Bigint2048.from(input);
@@ -87,20 +91,20 @@ describe('RSA65537 verification tests', () => {
     expect(() => rsaVerify65537(message, signature, modulus)).toThrowError();
   });
 
-  it('should reject RSA signature with non-compliant modulus: 1024-bits', () => {
-    const input = generateDigestBigint('hello!');
-    const params = generateRsaParams(1024);
+  it('should reject RSA signature with non-compliant modulus: 2048 bits', async () => {
+    const input = await sha256Bigint('hello!');
+    const params = generateRsaParams(2048);
 
     const message = Bigint2048.from(input);
     const signature = Bigint2048.from(rsaSign(input, params.d, params.n));
-    const modulus = Bigint2048.from(params.phiN); // Tamper with modulus
+    const modulus = Bigint2048.from(randomPrime(2048)); // Tamper with modulus
 
     expect(() => rsaVerify65537(message, signature, modulus)).toThrowError();
   });
 
-  it('should reject RSA signature with non-compliant input: 1024-bits', () => {
-    const input = generateDigestBigint('hello!');
-    const params = generateRsaParams(1024);
+  it('should reject RSA signature with non-compliant input: 2048 bits', async () => {
+    const input = await sha256Bigint('hello!');
+    const params = generateRsaParams(2048);
 
     const message = Bigint2048.from(35n); // Tamper with input
     const signature = Bigint2048.from(rsaSign(input, params.d, params.n));
@@ -109,9 +113,9 @@ describe('RSA65537 verification tests', () => {
     expect(() => rsaVerify65537(message, signature, modulus)).toThrowError();
   });
 
-  it('should reject non compliant RSA signature: false private key: 1024-bits', () => {
-    const input = generateDigestBigint('hello!');
-    const params = generateRsaParams(1024);
+  it('should reject non compliant RSA signature: false private key: 2048 bits', async () => {
+    const input = await sha256Bigint('hello!');
+    const params = generateRsaParams(2048);
 
     const message = Bigint2048.from(input);
     const signature = Bigint2048.from(rsaSign(input, params.e, params.n)); // Tamper with private key
@@ -120,9 +124,9 @@ describe('RSA65537 verification tests', () => {
     expect(() => rsaVerify65537(message, signature, modulus)).toThrowError();
   });
 
-  it('should reject non-compliant RSA signature: false signature modulus : 1024-bits', () => {
-    const input = generateDigestBigint('hello!');
-    const params = generateRsaParams(1024);
+  it('should reject non-compliant RSA signature: false signature modulus : 2048 bits', async () => {
+    const input = await sha256Bigint('hello!');
+    const params = generateRsaParams(2048);
 
     const message = Bigint2048.from(input);
     const signature = Bigint2048.from(rsaSign(input, params.d, 1223n)); // Tamper with signature modulus
