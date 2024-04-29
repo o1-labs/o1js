@@ -3,7 +3,6 @@ import { generateDigestBigint, generateRsaParams, rsaSign } from './utils.js';
 import { expect } from 'expect';
 import { it, describe } from 'node:test';
 
-//TODO Refactor tests
 describe('RSA65537 verification tests', () => {
   it('should accept a simple RSA signature', () => {
     const message = Bigint2048.from(4n);
