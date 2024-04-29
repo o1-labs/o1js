@@ -75,6 +75,7 @@ function millerRabinTest(n: bigint): 'composite' | 'probably prime' {
   const k = 10;
   if (n === 2n || n === 3n) return 'probably prime';
   if (n < 2n) return 'composite';
+
   // check if divisible by one of first few primes
   for (let p of knownPrimes) {
     if (n % p === 0n && n > p) return 'composite';
@@ -87,7 +88,6 @@ function millerRabinTest(n: bigint): 'composite' | 'probably prime' {
 
   WitnessLoop: for (let i = 0; i < k; i++) {
     let a = randomBigintRange(2n, n - 2n);
-    // let x = a ** d % n; // too large
     let x = power(a, d, n);
     if (x === 1n || x === n - 1n) continue;
     for (let i = 0; i + 1 < r; i++) {
@@ -144,8 +144,8 @@ function power(a: bigint, n: bigint, p: bigint) {
 }
 
 // modular inverse, 1/a in Z_p
-function inverse(a_: bigint, p: bigint) {
-  let a = mod(a_, p);
+function inverse(a: bigint, p: bigint) {
+  a = mod(a, p);
   if (a === 0n) throw Error('modular inverse: division by 0');
   let b = p;
   let [x, y, u, v] = [0n, 1n, 1n, 0n];
