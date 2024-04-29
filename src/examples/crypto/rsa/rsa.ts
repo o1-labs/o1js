@@ -1,7 +1,14 @@
 /**
  * RSA signature verification with o1js
  */
-import { Field, Gadgets, Provable, Struct, provable } from 'o1js';
+import {
+  Field,
+  Gadgets,
+  Provable,
+  Struct,
+  Unconstrained,
+  provable,
+} from 'o1js';
 
 export { Bigint2048, rsaVerify65537 };
 
@@ -12,17 +19,20 @@ const mask = (1n << 116n) - 1n;
  */
 const Field18 = Provable.Array(Field, 18);
 
-class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
-  modmul(x: Bigint2048, y: Bigint2048) {
+class Bigint2048 extends Struct({
+  fields: Field18,
+  value: Unconstrained.provable as Provable<Unconstrained<bigint>>,
+}) {
+  modMul(x: Bigint2048, y: Bigint2048) {
     return multiply(x, y, this);
   }
 
-  modsquare(x: Bigint2048) {
+  modSquare(x: Bigint2048) {
     return multiply(x, x, this, { isSquare: true });
   }
 
-  toBigInt() {
-    return this.value;
+  toBigint() {
+    return this.value.get();
   }
 
   static from(x: bigint) {
@@ -32,7 +42,7 @@ class Bigint2048 extends Struct({ fields: Field18, value: BigInt }) {
       fields.push(Field(x & mask));
       x >>= 116n;
     }
-    return new Bigint2048({ fields, value });
+    return new Bigint2048({ fields, value: Unconstrained.from(value) });
   }
 
   static check(x: { fields: Field[] }) {
@@ -58,56 +68,56 @@ function multiply(
   let { q, r } = Provable.witness(
     provable({ q: Bigint2048, r: Bigint2048 }),
     () => {
-      let xy = x.toBigInt() * y.toBigInt();
-      let p0 = p.toBigInt();
+      let xy = x.toBigint() * y.toBigint();
+      let p0 = p.toBigint();
       let q = xy / p0;
       let r = xy - q * p0;
       return { q: Bigint2048.from(q), r: Bigint2048.from(r) };
     }
   );
 
-  // compute res = xy - qp - r
-  // we can use a sum of native field products for each result limb, because
+  // compute delta = xy - qp - r
+  // we can use a sum of native field products for each limb, because
   // input limbs are range-checked to 116 bits, and 2*116 + log(2*18-1) = 232 + 6 fits the native field.
-  let res: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
+  let delta: Field[] = Array.from({ length: 2 * 18 - 1 }, () => Field(0));
   let [X, Y, Q, R, P] = [x.fields, y.fields, q.fields, r.fields, p.fields];
 
   for (let i = 0; i < 18; i++) {
     // when squaring, we can save constraints by not computing xi * xj twice
     if (isSquare) {
       for (let j = 0; j < i; j++) {
-        res[i + j] = res[i + j].add(X[i].mul(X[j]).mul(2n));
+        delta[i + j] = delta[i + j].add(X[i].mul(X[j]).mul(2n));
       }
-      res[2 * i] = res[2 * i].add(X[i].mul(X[i]));
+      delta[2 * i] = delta[2 * i].add(X[i].mul(X[i]));
     } else {
       for (let j = 0; j < 18; j++) {
-        res[i + j] = res[i + j].add(X[i].mul(Y[j]));
+        delta[i + j] = delta[i + j].add(X[i].mul(Y[j]));
       }
     }
 
     for (let j = 0; j < 18; j++) {
-      res[i + j] = res[i + j].sub(Q[i].mul(P[j]));
+      delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
     }
 
-    res[i] = res[i].sub(R[i]);
+    delta[i] = delta[i].sub(R[i]).seal();
   }
 
-  // perform carrying on res to show that it is zero
+  // perform carrying on the difference to show that it is zero
   let carry = Field(0);
 
   for (let i = 0; i < 2 * 18 - 2; i++) {
-    let res_i = res[i].add(carry);
+    let deltaPlusCarry = delta[i].add(carry).seal();
 
-    carry = Provable.witness(Field, () => res_i.div(1n << 116n));
+    carry = Provable.witness(Field, () => deltaPlusCarry.div(1n << 116n));
     rangeCheck128Signed(carry);
 
     // (xy - qp - r)_i + c_(i-1) === c_i * 2^116
     // proves that bits i*116 to (i+1)*116 of res are zero
-    res_i.assertEquals(carry.mul(1n << 116n));
+    deltaPlusCarry.assertEquals(carry.mul(1n << 116n));
   }
 
-  // last carry is 0 ==> all of res is 0 ==> x*y = q*p + r as integers
-  res[2 * 18 - 2].add(carry).assertEquals(0n);
+  // last carry is 0 ==> all of diff is 0 ==> x*y = q*p + r as integers
+  delta[2 * 18 - 2].add(carry).assertEquals(0n);
 
   return r;
 }
@@ -127,10 +137,10 @@ function rsaVerify65537(
   // square 16 times
   let x = signature;
   for (let i = 0; i < 16; i++) {
-    x = modulus.modsquare(x);
+    x = modulus.modSquare(x);
   }
   // multiply by signature
-  x = modulus.modmul(x, signature);
+  x = modulus.modMul(x, signature);
 
   // check that x == message
   Provable.assertEqual(Bigint2048, message, x);
