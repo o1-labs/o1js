@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import minimist from 'minimist';
-import { buildAndImport, buildOne } from './buildExample.js';
+import { buildAndImport, buildOne } from './build-example.js';
 
 let {
   _: [filePath],

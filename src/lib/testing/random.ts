@@ -29,17 +29,21 @@ import {
   PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
-import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
+import {
+  Scalar,
+  PrivateKey,
+  Group,
+} from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { alphabet } from '../base58.js';
+import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { Signable } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../mina-signer/src/derivers-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import type { FiniteField } from '../../bindings/crypto/finite_field.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 
 export { Random, sample, withHardCoded };
 
@@ -138,6 +142,7 @@ const Generators: Generators = {
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
+  TransactionVersion: uint32,
 };
 let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -162,7 +167,8 @@ const accountUpdate = mapWithInvalid(
       a.body.authorizationKind.isProved = Bool(false);
     }
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = Field(0);
+      a.body.authorizationKind.verificationKeyHash =
+        VerificationKeyHash.empty();
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
@@ -244,6 +250,7 @@ const JsonGenerators: JsonGenerators = {
   null: constant(null),
   string: base58(nat(50)),
   number: nat(3),
+  TransactionVersion: json_.uint32,
 };
 let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -356,7 +363,7 @@ function generatorFromLayout<T>(
         return array(element, size);
       },
       reduceObject(keys, object) {
-        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overriden)
+        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overridden)
         if (keys.includes('verificationKeyHash')) {
           (object as any).verificationKeyHash = noInvalid(
             (object as any).verificationKeyHash

@@ -4,7 +4,6 @@ import {
   createEcdsa,
   createForeignCurve,
   Bool,
-  Keccak,
   Bytes,
 } from 'o1js';
 
@@ -23,16 +22,8 @@ const keccakAndEcdsa = ZkProgram({
   methods: {
     verifyEcdsa: {
       privateInputs: [Ecdsa.provable, Secp256k1.provable],
-      method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
+      async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
         return signature.verify(message, publicKey);
-      },
-    },
-
-    sha3: {
-      privateInputs: [],
-      method(message: Bytes32) {
-        Keccak.nistSha3(256, message);
-        return Bool(true);
       },
     },
   },
@@ -46,7 +37,7 @@ const ecdsa = ZkProgram({
   methods: {
     verifySignedHash: {
       privateInputs: [Ecdsa.provable, Secp256k1.provable],
-      method(message: Scalar, signature: Ecdsa, publicKey: Secp256k1) {
+      async method(message: Scalar, signature: Ecdsa, publicKey: Secp256k1) {
         return signature.verifySignedHash(message, publicKey);
       },
     },

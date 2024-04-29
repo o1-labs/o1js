@@ -90,13 +90,13 @@ class AlmostSmallField extends SmallField.AlmostReduced {}
 class MyContract extends SmartContract {
   @state(AlmostSmallField.provable) x = State<AlmostSmallField>();
 
-  @method myMethod(y: AlmostSmallField) {
+  @method async myMethod(y: AlmostSmallField) {
     let x = y.mul(2);
     Provable.log(x);
     this.x.set(x.assertAlmostReduced());
   }
 }
-MyContract.analyzeMethods(); // works
+await MyContract.analyzeMethods(); // works
 
 // btw - we support any finite field up to 259 bits. for example, the seqp256k1 base field:
 let Fseqp256k1 = createForeignField((1n << 256n) - (1n << 32n) - 0b1111010001n);

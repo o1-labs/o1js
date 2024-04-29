@@ -8,8 +8,9 @@
 # 1. Identifies the latest version number in the CHANGELOG (following semantic versioning).
 # 2. Increments the patch segment of the version number for the new release.
 # 3. Retrieves the current Git commit hash and truncates it for brevity.
-# 4. Updates the CHANGELOG.md file:
-#    - Adds a new entry for the upcoming release using the incremented version number.
+# 4. Captures the current date in YYYY-MM-DD format.
+# 5. Updates the CHANGELOG.md file:
+#    - Adds a new entry for the upcoming release using the incremented version number and the current date.
 #    - Updates the link for the [Unreleased] section to point from the current commit to HEAD.
 #
 # Usage:
@@ -30,5 +31,9 @@ echo "New version: $new_version"
 current_commit=$(git rev-parse HEAD | cut -c 1-9)
 echo "Current commit: $current_commit"
 
-# Step 4: Update the CHANGELOG
-sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/1ad7333e9e...$current_commit)/" CHANGELOG.md
+# Step 4: Capture the current date in YYYY-MM-DD format
+current_date=$(date +%Y-%m-%d)
+echo "Current date: $current_date"
+
+# Step 5: Update the CHANGELOG
+sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/1ad7333e9e...$current_commit) - $current_date/" CHANGELOG.md

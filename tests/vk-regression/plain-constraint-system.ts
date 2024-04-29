@@ -1,6 +1,17 @@
-import { Field, Group, Gadgets, Provable, Scalar, Hash, Bytes } from 'o1js';
+import {
+  Field,
+  Group,
+  Gadgets,
+  Provable,
+  Scalar,
+  Hash,
+  Bytes,
+  Bool,
+  UInt64,
+  Nullifier,
+} from 'o1js';
 
-export { GroupCS, BitwiseCS, HashCS };
+export { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS };
 
 const GroupCS = constraintSystem('Group Primitive', {
   add() {
@@ -34,13 +45,20 @@ const GroupCS = constraintSystem('Group Primitive', {
 });
 
 const BitwiseCS = constraintSystem('Bitwise Primitive', {
-  rot() {
+  rot32() {
+    let a = Provable.witness(Field, () => new Field(12));
+    Gadgets.rotate32(a, 2, 'left');
+    Gadgets.rotate32(a, 2, 'right');
+    Gadgets.rotate32(a, 4, 'left');
+    Gadgets.rotate32(a, 4, 'right');
+  },
+  rot64() {
     let a = Provable.witness(Field, () => new Field(12));
     Gadgets.rangeCheck64(a); // `rotate()` doesn't do this
-    Gadgets.rotate(a, 2, 'left');
-    Gadgets.rotate(a, 2, 'right');
-    Gadgets.rotate(a, 4, 'left');
-    Gadgets.rotate(a, 4, 'right');
+    Gadgets.rotate64(a, 2, 'left');
+    Gadgets.rotate64(a, 2, 'right');
+    Gadgets.rotate64(a, 4, 'left');
+    Gadgets.rotate64(a, 4, 'right');
   },
   xor() {
     let a = Provable.witness(Field, () => new Field(5n));
@@ -66,13 +84,13 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
   },
   leftShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.leftShift(a, 2);
-    Gadgets.leftShift(a, 4);
+    Gadgets.leftShift64(a, 2);
+    Gadgets.leftShift64(a, 4);
   },
   rightShift() {
     let a = Provable.witness(Field, () => new Field(12));
-    Gadgets.rightShift(a, 2);
-    Gadgets.rightShift(a, 4);
+    Gadgets.rightShift64(a, 2);
+    Gadgets.rightShift64(a, 4);
   },
   and() {
     let a = Provable.witness(Field, () => new Field(5n));
@@ -116,6 +134,56 @@ const HashCS = constraintSystem('Hashes', {
   },
 });
 
+const witness = () => Provable.witness(Field, () => Field(0));
+
+const BasicCS = constraintSystem('Basic', {
+  equals() {
+    let [x, y, z] = [witness(), witness(), witness()];
+    x.equals(y);
+    z.equals(1);
+  },
+  if() {
+    let b = Provable.witness(Bool, () => Bool(false));
+    let [x, y, z] = [witness(), witness(), witness()];
+    Provable.if(b, x, y);
+    Provable.if(b, z, Field(1));
+  },
+  toBits() {
+    let x = witness();
+    x.toBits();
+  },
+
+  // comparisons
+  assertLessThan() {
+    let [x, y] = [witness(), witness()];
+    x.assertLessThan(y);
+  },
+  lessThan() {
+    let [x, y] = [witness(), witness()];
+    x.lessThan(y);
+  },
+  assertLessThanUInt64() {
+    let x = Provable.witness(UInt64, () => new UInt64(0));
+    let y = Provable.witness(UInt64, () => new UInt64(0));
+    x.assertLessThan(y);
+  },
+  lessThanUInt64() {
+    let x = Provable.witness(UInt64, () => new UInt64(0));
+    let y = Provable.witness(UInt64, () => new UInt64(0));
+    x.lessThan(y);
+  },
+});
+
+const CryptoCS = constraintSystem('Crypto', {
+  nullifier() {
+    let nullifier = Provable.witness(Nullifier, (): Nullifier => {
+      throw Error('not implemented');
+    });
+    let x = Provable.witness(Field, () => Field(0));
+    nullifier.verify([x, x, x]);
+  },
+});
+
 // mock ZkProgram API for testing
 
 function constraintSystem(
@@ -125,7 +193,7 @@ function constraintSystem(
   let methodKeys = Object.keys(obj);
 
   return {
-    analyzeMethods() {
+    async analyzeMethods() {
       let cs: Record<
         string,
         {
@@ -134,7 +202,7 @@ function constraintSystem(
         }
       > = {};
       for (let key of methodKeys) {
-        let { rows, digest } = Provable.constraintSystem(obj[key]);
+        let { rows, digest } = await Provable.constraintSystem(obj[key]);
         cs[key] = {
           digest,
           rows,
@@ -148,6 +216,6 @@ function constraintSystem(
       };
     },
     name,
-    digest: () => name,
+    digest: async () => name,
   };
 }

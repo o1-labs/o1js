@@ -3,13 +3,10 @@ import {
   Field,
   ZkProgram,
   verify,
-  isReady,
   Proof,
   JsonProof,
   Provable,
 } from 'o1js';
-
-await isReady;
 
 let MyProgram = ZkProgram({
   name: 'example-with-input',
@@ -18,14 +15,14 @@ let MyProgram = ZkProgram({
   methods: {
     baseCase: {
       privateInputs: [],
-      method(input: Field) {
+      async method(input: Field) {
         input.assertEquals(Field(0));
       },
     },
 
     inductiveCase: {
       privateInputs: [SelfProof],
-      method(input: Field, earlierProof: SelfProof<Field, void>) {
+      async method(input: Field, earlierProof: SelfProof<Field, void>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(input);
       },
@@ -46,7 +43,7 @@ console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
 let proof = await MyProgram.baseCase(Field(0));
-proof = testJsonRoundtrip(MyProof, proof);
+proof = await testJsonRoundtrip(MyProof, proof);
 
 // type sanity check
 proof satisfies Proof<Field, void>;
@@ -61,7 +58,7 @@ console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
 proof = await MyProgram.inductiveCase(Field(1), proof);
-proof = testJsonRoundtrip(MyProof, proof);
+proof = await testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
 ok = await verify(proof, verificationKey);
@@ -73,7 +70,7 @@ console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
 proof = await MyProgram.inductiveCase(Field(2), proof);
-proof = testJsonRoundtrip(MyProof, proof);
+proof = await testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
 ok = await verify(proof.toJSON(), verificationKey);
@@ -82,7 +79,7 @@ console.log('ok?', ok && proof.publicInput.toString() === '2');
 
 function testJsonRoundtrip<
   P extends Proof<any, any>,
-  MyProof extends { fromJSON(jsonProof: JsonProof): P }
+  MyProof extends { fromJSON(jsonProof: JsonProof): Promise<P> }
 >(MyProof: MyProof, proof: P) {
   let jsonProof = proof.toJSON();
   console.log(

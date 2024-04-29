@@ -6,20 +6,24 @@
  */
 import { Gate, GateType } from '../../snarky.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { Field, FieldType, FieldVar } from '../field.js';
-import { Provable } from '../provable.js';
+import { Field } from '../provable/field.js';
+import { FieldType, FieldVar } from '../provable/core/fieldvar.js';
+import { Provable } from '../provable/provable.js';
 import { Tuple } from '../util/types.js';
 import { Random } from './random.js';
 import { test } from './property.js';
-import { Undefined, ZkProgram } from '../proof_system.js';
-import { printGates } from '../provable-context.js';
+import { Undefined, ZkProgram } from '../proof-system/zkprogram.js';
+import {
+  printGates,
+  synchronousRunners,
+} from '../provable/core/provable-context.js';
 
 export {
   constraintSystem,
   not,
   and,
   or,
-  satisfies,
+  fulfills,
   equals,
   contains,
   allConstant,
@@ -30,6 +34,9 @@ export {
   repeat,
   ConstraintSystemTest,
 };
+
+// TODO get rid of this top-level await by making `test` support async functions
+let { constraintSystemSync } = await synchronousRunners();
 
 /**
  * `constraintSystem()` is a test runner to check properties of constraint systems.
@@ -62,7 +69,7 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
     let layouts = args.slice(0, -1);
 
     // compute the constraint system
-    let { gates } = Provable.constraintSystem(() => {
+    let { gates } = constraintSystemSync(() => {
       // each random input "layout" has to be instantiated into vars in this circuit
       let values = types.map((type, i) =>
         instantiate(type, layouts[i])
@@ -186,7 +193,7 @@ function or(...tests: ConstraintSystemTest[]): ConstraintSystemTest {
 /**
  * General test
  */
-function satisfies(
+function fulfills(
   label: string,
   run: (cs: Gate[], inputs: TypeAndValue<any>[]) => boolean
 ): ConstraintSystemTest {
@@ -276,10 +283,7 @@ function ifNotAllConstant(test: ConstraintSystemTest): ConstraintSystemTest {
 /**
  * Test whether constraint system is empty.
  */
-const isEmpty = satisfies(
-  'constraint system is empty',
-  (cs) => cs.length === 0
-);
+const isEmpty = fulfills('constraint system is empty', (cs) => cs.length === 0);
 
 /**
  * Modifies a test so that it runs on the constraint system with generic gates filtered out.
@@ -319,7 +323,7 @@ constraintSystem.gates = function gates<Input extends Tuple<CsVarSpec<any>>>(
   main: (...args: CsParams<Input>) => void
 ) {
   let types = inputs.from.map(provable);
-  let { gates } = Provable.constraintSystem(() => {
+  let { gates } = constraintSystemSync(() => {
     let values = types.map((type) =>
       Provable.witness(type, (): unknown => {
         throw Error('not needed');
@@ -365,11 +369,11 @@ function toGatess(
 
 // Random generator for arbitrary provable types
 
-function provable<T>(spec: CsVarSpec<T>): Provable<T> {
+function provable<T>(spec: CsVarSpec<T>): Provable<T, any> {
   return 'provable' in spec ? spec.provable : spec;
 }
 
-function layout<T>(type: Provable<T>): Random<T> {
+function layout<T>(type: Provable<T, any>): Random<T> {
   let length = type.sizeInFields();
 
   return Random(() => {
@@ -378,7 +382,7 @@ function layout<T>(type: Provable<T>): Random<T> {
   });
 }
 
-function instantiate<T>(type: Provable<T>, value: T) {
+function instantiate<T>(type: Provable<T, any>, value: T) {
   let fields = type.toFields(value).map((x) => instantiateFieldVar(x.value));
   return type.fromFields(fields, type.toAuxiliary());
 }
@@ -440,13 +444,13 @@ function drawFieldType(): FieldType {
 
 // types
 
-type CsVarSpec<T> = Provable<T> | { provable: Provable<T> };
-type InferCsVar<T> = T extends { provable: Provable<infer U> }
+type CsVarSpec<T> = Provable<T, any> | { provable: Provable<T, any> };
+type InferCsVar<T> = T extends { provable: Provable<infer U, any> }
   ? U
-  : T extends Provable<infer U>
+  : T extends Provable<infer U, any>
   ? U
   : never;
 type CsParams<In extends Tuple<CsVarSpec<any>>> = {
   [k in keyof In]: InferCsVar<In[k]>;
 };
-type TypeAndValue<T> = { type: Provable<T>; value: T };
+type TypeAndValue<T> = { type: Provable<T, any>; value: T };

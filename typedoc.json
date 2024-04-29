@@ -1,16 +1,50 @@
 {
   "name": "o1js",
   "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-merge-modules"],
+  // https://typedoc.org/options
+  "tsconfig": "tsconfig.web.json",
   "out": "o1js-reference",
   "cleanOutputDir": true,
   "githubPages": false,
-  "exclude": ["dist/**/*", "src/mina-signer/**/*", "src/examples/**/*"],
+  "exclude": [
+    "dist/**/*",
+    "src/mina-signer/**/*",
+    "src/bindings/**/*",
+    "src/examples/**/*",
+    "src/lib/provable/+(core|test)/**/*",
+    "src/**/*(test|unit-test).ts",
+    "src/lib/provable/provable.ts"
+  ],
   "entryPoints": [
     "src/index.ts",
-    "src/snarky.d.ts",
-    "src/lib/field.ts",
-    "src/lib/group.ts",
-    "src/lib/bool.ts"
+    "src/lib/provable/field.ts",
+    "src/lib/provable/bool.ts",
+    "src/lib/provable/group.ts",
+    "src/lib/provable/int.ts",
+    "src/lib/provable/scalar.ts",
+    "src/lib/provable/merkle-list.ts",
+    "src/lib/provable/merkle-map.ts",
+    "src/lib/provable/merkle-tree.ts",
+    "src/lib/provable/types/provable-intf.ts"
   ],
-  "entryPointStrategy": "resolve"
+  "entryPointStrategy": "resolve",
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeReferences": true,
+
+  // https://www.typedoc-plugin-markdown.org/options
+  "fileExtension": ".mdx",
+  "hidePageHeader": true,
+  "hidePageTitle": true,
+  "excludeGroups": true,
+  "hideBreadcrumbs": true,
+  "useCodeBlocks": true,
+  "parametersFormat": "list",
+  "propertiesFormat": "list",
+  "typeDeclarationFormat": "list",
+  "indexFormat": "table",
+  "mergeReadme": true,
+  "expandParameters": true,
+  "expandObjects": true,
 }
