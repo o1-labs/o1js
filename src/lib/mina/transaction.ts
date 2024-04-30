@@ -21,7 +21,7 @@ import * as Fetch from './fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../util/assert.js';
-import { Types } from 'src/bindings/mina-transaction/types.js';
+import { Types } from '../../bindings/mina-transaction/types.js';
 
 export {
   Transaction,
