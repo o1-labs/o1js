@@ -101,7 +101,7 @@ describe('Rosetta', () => {
   });
 
   it('generates valid combine payload', () => {
-    const combinePayload = client.rosettaCombinePayload(JSON.stringify(rosettaUnsignedPayload), privateKey);
+    const combinePayload = client.rosettaCombinePayload(rosettaUnsignedPayload, privateKey);
     const expectedCombinePayload = {
       network_identifier: { blockchain: 'mina', network: 'mainnet' },
       unsigned_transaction: rosettaUnsignedTxn,
@@ -118,6 +118,6 @@ describe('Rosetta', () => {
         }
       ]
     };
-    expect(combinePayload).toBe(JSON.stringify(expectedCombinePayload));
+    expect(combinePayload).toBe(expectedCombinePayload);
   });
 });
