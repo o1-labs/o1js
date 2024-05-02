@@ -7,7 +7,6 @@ import {
   Body,
   Events,
   Permissions,
-  Actions,
   TokenId,
   ZkappCommand,
   zkAppProver,
@@ -20,8 +19,6 @@ import {
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
-  InferProvable,
-  provable,
 } from '../provable/types/struct.js';
 import {
   Provable,
@@ -32,7 +29,6 @@ import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
   Poseidon,
-  ProvableHashable,
   hashConstant,
   isHashable,
   packToFields,
@@ -47,7 +43,6 @@ import {
   analyzeMethod,
   compileProgram,
   Empty,
-  emptyValue,
   getPreviousProofsForProver,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
@@ -75,6 +70,7 @@ import {
 import { assertPromise } from '../util/assert.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
 import { getReducer, Reducer } from './actions/reducer.js';
+import { provable } from '../provable/types/provable-derivers.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods };

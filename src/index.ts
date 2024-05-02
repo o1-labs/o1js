@@ -32,7 +32,11 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
-export { provable, provablePure, Struct } from './lib/provable/types/struct.js';
+export {
+  provable,
+  provablePure,
+} from './lib/provable/types/provable-derivers.js';
+export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
 export { Provable } from './lib/provable/provable.js';
 export {

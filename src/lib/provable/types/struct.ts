@@ -21,8 +21,6 @@ import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 export {
   ProvableExtended,
   ProvablePureExtended,
-  provable,
-  provablePure,
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
