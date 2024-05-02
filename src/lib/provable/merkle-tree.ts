@@ -64,6 +64,15 @@ class MerkleTree {
   }
 
   /**
+   * Returns a leaf at a given index.
+   * @param index Index of the leaf.
+   * @returns The data of the leaf.
+   */
+  getLeaf(key: bigint) {
+    return this.getNode(0, key);
+  }
+
+  /**
    * Returns the root of the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
    * @returns The root of the Merkle Tree.
    */
