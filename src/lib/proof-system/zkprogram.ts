@@ -44,6 +44,7 @@ import { prefixes } from '../../bindings/crypto/constants.js';
 
 // public API
 export {
+  ProofBase,
   Proof,
   DynamicProof,
   SelfProof,

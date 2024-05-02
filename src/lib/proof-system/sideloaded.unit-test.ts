@@ -5,7 +5,7 @@ import {
   Void,
   ZkProgram,
 } from './zkprogram.js';
-import { Field, Struct } from '../../index.js';
+import { Field, SmartContract, Struct, method } from '../../index.js';
 import { it, describe, before } from 'node:test';
 import { expect } from 'expect';
 
@@ -124,6 +124,17 @@ const sideloadedProgram2 = ZkProgram({
   },
 });
 
+export class SideloadedSmartContract extends SmartContract {
+  @method async setValue(
+    value: Field,
+    proof: SampleSideloadedProof,
+    vk: VerificationKey
+  ) {
+    proof.verify(vk);
+    proof.publicInput.assertEquals(value);
+  }
+}
+
 describe('sideloaded', async () => {
   let program1Vk = (await program1.compile()).verificationKey;
   let program2Vk = (await program2.compile()).verificationKey;
@@ -210,5 +221,9 @@ describe('sideloaded', async () => {
     const tag2 = SampleSideloadedProof2.tag();
 
     expect(tag1).not.toStrictEqual(tag2);
+  });
+
+  it('should compile with SmartContracts', async () => {
+    await SideloadedSmartContract.compile();
   });
 });
