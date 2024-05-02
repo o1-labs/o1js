@@ -7,6 +7,7 @@ import { MerkleTree } from '../../provable/merkle-tree.js';
 import { Struct } from '../../provable/types/struct.js';
 import { SelfProof } from '../../proof-system/zkprogram.js';
 import { Provable } from '../../provable/provable.js';
+import { AnyTuple } from '../../util/types.js';
 
 // our action type
 class MerkleLeaf extends Struct({ key: Field, value: Field }) {}
@@ -40,15 +41,28 @@ class MerkleMapState extends Struct({
  * - creates an initial proof A -> B (this is the `isRecursive: false` case)
  * - or, takes an existing proof A -> B, adds its own logic to prove B -> B', so that the output is a proof A -> B'
  */
-const merkleUpdateBatch =
-  (maxUpdatesPerBatch: number, maxActionsPerUpdate: number) =>
-  async (
+const merkleUpdateBatch = (
+  maxUpdatesPerBatch: number,
+  maxActionsPerUpdate: number
+) => ({
+  privateInputs: [
+    // the actions to process
+    ActionIterator.provable,
+    // the merkle tree to update
+    Unconstrained.provable,
+    // flag to set whether this is a recursive call
+    Bool,
+    // recursive proof for A -> B
+    SelfProof,
+  ] satisfies AnyTuple,
+
+  async method(
     stateA: MerkleMapState,
     actions: ActionIterator,
     tree: Unconstrained<MerkleTree>,
     isRecursive: Bool,
     recursiveProof: SelfProof<MerkleMapState, MerkleMapState>
-  ): Promise<MerkleMapState> => {
+  ): Promise<MerkleMapState> {
     // in the non-recursive case, this skips verifying the proof so we can pass in a dummy proof
     recursiveProof.verifyIf(isRecursive);
 
@@ -85,7 +99,8 @@ const merkleUpdateBatch =
       merkleRoot: root,
       actionState: actions.currentHash,
     };
-  };
+  },
+});
 
 function MerkleMapRollup({
   maxUpdatesPerBatch = 10,
@@ -96,19 +111,7 @@ function MerkleMapRollup({
     publicInput: MerkleMapState,
     publicOutput: MerkleMapState,
     methods: {
-      nextBatch: {
-        privateInputs: [
-          // the actions to process
-          ActionIterator.provable,
-          // the merkle tree to update
-          Unconstrained.provable,
-          // flag to set whether this is a recursive call
-          Bool,
-          // recursive proof for A -> B
-          SelfProof,
-        ],
-        method: merkleUpdateBatch(maxUpdatesPerBatch, maxActionsPerUpdate),
-      },
+      nextBatch: merkleUpdateBatch(maxUpdatesPerBatch, maxActionsPerUpdate),
     },
   });
 
