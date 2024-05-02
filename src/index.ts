@@ -59,12 +59,8 @@ export {
   type PendingTransactionPromise,
 } from './lib/mina/transaction.js';
 export type { DeployArgs } from './lib/mina/zkapp.js';
-export {
-  SmartContract,
-  method,
-  declareMethods,
-  Reducer,
-} from './lib/mina/zkapp.js';
+export { SmartContract, method, declareMethods } from './lib/mina/zkapp.js';
+export { Reducer } from './lib/mina/actions/reducer.js';
 export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
