@@ -157,7 +157,7 @@ function MerkleMapRollup({
       return result;
     },
 
-    async prove(actions: MerkleList<MerkleList<MerkleLeaf>>, tree: MerkleTree) {
+    async prove(tree: MerkleTree, actions: MerkleList<MerkleList<MerkleLeaf>>) {
       assert(tree.height === TREE_HEIGHT, 'Tree height must match');
       await this.compile();
 
@@ -211,9 +211,37 @@ function MerkleMapRollup({
         console.timeEnd(`batch ${i}`);
       }
 
-      return proof;
+      // do the same updates outside the circuit
+      tree = merkleUpdateOutside(actions, tree, {
+        maxUpdatesPerBatch,
+        maxActionsPerUpdate,
+      });
+
+      return { proof, tree };
     },
 
     program: merkleMapRollup,
   };
+}
+
+// very annoying: we have to repeat the merkle updates outside the circuit
+
+function merkleUpdateOutside(
+  actions: MerkleList<MerkleList<MerkleLeaf>>,
+  tree: MerkleTree,
+  { maxUpdatesPerBatch = 10, maxActionsPerUpdate = 5 } = {}
+) {
+  tree = tree.clone();
+
+  actions.forEach(maxUpdatesPerBatch, (actionsList, isDummy) => {
+    if (isDummy.toBoolean()) return;
+
+    actionsList.forEach(maxActionsPerUpdate, ({ key, value }, isDummy) => {
+      if (isDummy.toBoolean()) return;
+
+      tree.setLeaf(key.toBigInt(), value);
+    });
+  });
+
+  return tree;
 }
