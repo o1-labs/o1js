@@ -293,6 +293,9 @@ function cloneCircuitValue<T>(obj: T): T {
   if (obj.constructor !== undefined && 'clone' in obj.constructor) {
     return (obj as any).constructor.clone(obj);
   }
+  if ('clone' in obj && typeof obj.clone === 'function') {
+    return (obj as any).clone(obj);
+  }
 
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
