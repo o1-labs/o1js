@@ -104,7 +104,7 @@ describe('Rosetta', () => {
     const combinePayload = client.rosettaCombinePayload(rosettaUnsignedPayload, privateKey);
     const expectedCombinePayload = {
       network_identifier: { blockchain: 'mina', network: 'mainnet' },
-      unsigned_transaction: rosettaUnsignedTxn,
+      unsigned_transaction: JSON.stringify(rosettaUnsignedTxn),
       signatures: [
         {
           hex_bytes: mainnetSignatureHex,
@@ -118,6 +118,6 @@ describe('Rosetta', () => {
         }
       ]
     };
-    expect(combinePayload).toBe(expectedCombinePayload);
+    expect(JSON.stringify(combinePayload)).toBe(JSON.stringify(expectedCombinePayload));
   });
 });
