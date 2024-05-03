@@ -9,23 +9,9 @@ import { SelfProof } from '../../proof-system/zkprogram.js';
 import { Provable } from '../../provable/provable.js';
 import { AnyTuple } from '../../util/types.js';
 import { assert } from '../../provable/gadgets/common.js';
+import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
 
 export { MerkleMapRollup };
-
-// our action type
-// TODO downside of not including the full state data in an action is that we have to mess with events or another data source separately
-// TODO we could store the full data, and the [key, value] as the _last two field elements_. then we could prove a custom poseidon hash
-// TODO where you can provide a prehash of the full data, and only hash the last two elements in provable code
-// TOOD -- proving that the key and value are correct, but saving the work of hashing the full data
-// TODO and then the size of the full data could be up to 100 elements
-class MerkleLeaf extends Struct({ key: Field, value: Field }) {}
-
-class ActionList extends MerkleList.create(
-  MerkleLeaf,
-  (hash: Field, action: MerkleLeaf) =>
-    Actions.pushEvent({ hash, data: [] }, MerkleLeaf.toFields(action)).hash,
-  Actions.empty().hash
-) {}
 
 class ActionIterator extends MerkleListIterator.create(
   ActionList.provable,
