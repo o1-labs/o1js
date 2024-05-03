@@ -2,7 +2,6 @@ import { OffchainState } from './offchain-state.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { UInt64 } from '../../provable/int.js';
 import { SmartContract, method } from '../zkapp.js';
-import { assert } from '../../provable/gadgets/common.js';
 import { AccountUpdate, Mina } from '../../../index.js';
 
 const state = OffchainState({
@@ -26,12 +25,13 @@ class ExampleContract extends SmartContract {
   @method
   async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
     let fromOption = await state.fields.accounts.get(from);
-    assert(fromOption.isSome, 'sender account exists');
+    let fromBalance = fromOption.assertSome('sender account exists');
 
-    let toBalance = (await state.fields.accounts.get(to)).orElse(0n);
+    let toOption = await state.fields.accounts.get(to);
+    let toBalance = toOption.orElse(0n);
 
     // (this also checks that the sender has enough balance)
-    state.fields.accounts.set(from, fromOption.value.sub(amount));
+    state.fields.accounts.set(from, fromBalance.sub(amount));
     state.fields.accounts.set(to, toBalance.add(amount));
   }
 

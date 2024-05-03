@@ -6,6 +6,7 @@ import { Bool } from './wrapped.js';
 export { Option };
 
 type Option<T, V = any> = { isSome: Bool; value: T } & {
+  assertSome(message?: string): T;
   orElse(defaultValue: T | V): T;
 };
 
@@ -27,6 +28,11 @@ function Option<T, V>(
         this.value,
         type.fromValue(defaultValue)
       );
+    }
+
+    assertSome(message?: string): T {
+      this.isSome.assertTrue(message);
+      return this.value;
     }
 
     static from(value?: V | T) {
