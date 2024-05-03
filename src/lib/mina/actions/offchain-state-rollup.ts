@@ -11,7 +11,7 @@ import { AnyTuple } from '../../util/types.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
 
-export { MerkleMapRollup };
+export { OffchainStateRollup };
 
 class ActionIterator extends MerkleListIterator.create(
   ActionList.provable,
@@ -125,11 +125,11 @@ const merkleUpdateBatch = (
   },
 });
 
-function MerkleMapRollup({
+function OffchainStateRollup({
   maxUpdatesPerBatch = 10,
   maxActionsPerUpdate = 5,
 } = {}) {
-  let merkleMapRollup = ZkProgram({
+  let offchainStateRollup = ZkProgram({
     name: 'merkle-map-rollup',
     publicInput: MerkleMapState,
     publicOutput: MerkleMapState,
@@ -138,14 +138,16 @@ function MerkleMapRollup({
     },
   });
 
-  let MerkleRollupProof = ZkProgram.Proof(merkleMapRollup);
+  let RollupProof = ZkProgram.Proof(offchainStateRollup);
 
   let isCompiled = true;
 
   return {
+    Proof: RollupProof,
+
     async compile() {
       if (isCompiled) return;
-      let result = await merkleMapRollup.compile();
+      let result = await offchainStateRollup.compile();
       isCompiled = true;
       return result;
     },
@@ -171,12 +173,12 @@ function MerkleMapRollup({
       // dummy proof
       console.time('dummy');
       let dummyState = MerkleMapState.empty();
-      let dummy = await MerkleRollupProof.dummy(dummyState, dummyState, 1);
+      let dummy = await RollupProof.dummy(dummyState, dummyState, 1);
       console.timeEnd('dummy');
 
       // base proof
       console.time('batch 0');
-      let proof = await merkleMapRollup.nextBatch(
+      let proof = await offchainStateRollup.nextBatch(
         inputState,
         iterator,
         Unconstrained.from(tree),
@@ -194,7 +196,7 @@ function MerkleMapRollup({
         }
 
         console.time(`batch ${i}`);
-        proof = await merkleMapRollup.nextBatch(
+        proof = await offchainStateRollup.nextBatch(
           inputState,
           iterator,
           Unconstrained.from(tree),
@@ -213,7 +215,7 @@ function MerkleMapRollup({
       return { proof, tree };
     },
 
-    program: merkleMapRollup,
+    program: offchainStateRollup,
   };
 }
 
