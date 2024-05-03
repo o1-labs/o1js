@@ -72,7 +72,7 @@ await Mina.transaction(sender, async () => {
   await contract.deploy();
   await contract.createAccount(sender, UInt64.from(1000));
 })
-  .sign([sender.key])
+  .sign([sender.key, contractAccount.key])
   .prove()
   .send();
 
