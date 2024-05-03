@@ -3,10 +3,14 @@ import { Actionable } from './offchain-state-serialization.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { Field } from '../../provable/field.js';
 import { Proof } from '../../proof-system/zkprogram.js';
-import { MerkleMapState } from './offchain-state-rollup.js';
+import {
+  MerkleMapState,
+  OffchainStateRollup,
+} from './offchain-state-rollup.js';
 import { Option } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
+import { assert } from 'src/lib/provable/gadgets/common.js';
 
 export { OffchainState };
 
@@ -71,13 +75,77 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
 >(config: Config): OffchainState<Config> {
-  throw new Error('Not implemented');
+  // setup internal state of this "class"
+  let internal = {
+    _contract: undefined as Contract | undefined,
+
+    get contract() {
+      assert(
+        internal._contract === undefined,
+        'Must call `setContractAccount()` first'
+      );
+      return internal._contract;
+    },
+  };
+
+  const notImplemented = (): any => assert(false, 'Not implemented');
+
+  let rollup = OffchainStateRollup();
+
+  function field(index: number, type: Any) {
+    return {
+      get: notImplemented,
+      set: notImplemented,
+    };
+  }
+
+  function map(index: number, keyType: Any, valueType: Any) {
+    return {
+      get: notImplemented,
+      set: notImplemented,
+    };
+  }
+
+  return {
+    setContractClass(contract) {
+      notImplemented();
+    },
+
+    setContractAccount(contract) {
+      internal._contract = contract;
+    },
+
+    async compile() {
+      await rollup.compile();
+    },
+
+    async createSettlementProof() {
+      return notImplemented();
+    },
+
+    Proof: rollup.Proof,
+
+    async settle(proof) {
+      notImplemented();
+    },
+
+    fields: Object.fromEntries(
+      Object.entries(config).map(([key, kind], i) => [
+        key,
+        kind.kind === 'offchain-field'
+          ? field(i, kind.type)
+          : kind.kind === 'offchain-map'
+          ? map(i, kind.keyType, kind.valueType)
+          : notImplemented(),
+      ])
+    ) as any,
+  };
 }
 
 OffchainState.Map = OffchainMap;
 OffchainState.Field = OffchainField;
 
-// helpers
+// type helpers
 
 type Any = Actionable<any>;
 type Contract = { address: PublicKey; tokenId: Field };
