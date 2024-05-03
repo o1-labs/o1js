@@ -79,28 +79,8 @@ await Mina.transaction(sender, async () => {
 // settle
 
 let proof = await state.createSettlementProof();
-await Mina.transaction(sender, async () => {
-  await contract.settle(proof);
-})
-  .sign([sender.key])
-  .prove()
-  .send();
 
-// transfer
-
-await Mina.transaction(sender, async () => {
-  await contract.transfer(sender, receiver, UInt64.from(100));
-})
-  .sign([sender.key])
-  .prove()
-  .send();
-
-// settle
-
-proof = await state.createSettlementProof();
-await Mina.transaction(sender, async () => {
-  await contract.settle(proof);
-})
+await Mina.transaction(sender, () => contract.settle(proof))
   .sign([sender.key])
   .prove()
   .send();
@@ -111,3 +91,28 @@ let supply = await contract.getSupply();
 
 console.log('balance', balance.toString());
 console.log('supply', supply.toString());
+
+// transfer
+
+await Mina.transaction(sender, () =>
+  contract.transfer(sender, receiver, UInt64.from(100))
+)
+  .sign([sender.key])
+  .prove()
+  .send();
+
+// settle
+
+proof = await state.createSettlementProof();
+
+await Mina.transaction(sender, () => contract.settle(proof))
+  .sign([sender.key])
+  .prove()
+  .send();
+
+// check balance and supply
+let balance2 = await contract.getBalance(receiver);
+let supply2 = await contract.getSupply();
+
+console.log('balance', balance2.toString());
+console.log('supply', supply2.toString());
