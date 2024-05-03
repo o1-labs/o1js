@@ -62,9 +62,6 @@ const merkleUpdateBatch = (
     isRecursive: Bool,
     recursiveProof: SelfProof<MerkleMapState, MerkleMapState>
   ): Promise<MerkleMapState> {
-    // clone tree so we don't modify it
-    tree = Unconstrained.witness(() => tree.get().clone());
-
     // in the non-recursive case, this skips verifying the proof so we can pass in a dummy proof
     recursiveProof.verifyIf(isRecursive);
 
@@ -162,6 +159,8 @@ function OffchainStateRollup({
     async prove(tree: MerkleTree, actions: MerkleList<MerkleList<MerkleLeaf>>) {
       assert(tree.height === TREE_HEIGHT, 'Tree height must match');
       await this.compile();
+      // clone the tree so we don't modify the input
+      tree = tree.clone();
 
       let n = actions.data.get().length;
       let nBatches = Math.ceil(n / maxUpdatesPerBatch);
@@ -213,12 +212,6 @@ function OffchainStateRollup({
         console.timeEnd(`batch ${i}`);
       }
 
-      // do the same updates outside the circuit
-      tree = merkleUpdateOutside(actions, tree, {
-        maxUpdatesPerBatch,
-        maxActionsPerUpdate,
-      });
-
       return { proof, tree };
     },
 
@@ -226,7 +219,7 @@ function OffchainStateRollup({
   };
 }
 
-// very annoying: we have to repeat the merkle updates outside the circuit
+// TODO: do we have to repeat the merkle updates outside the circuit?
 
 function merkleUpdateOutside(
   actions: MerkleList<MerkleList<MerkleLeaf>>,
