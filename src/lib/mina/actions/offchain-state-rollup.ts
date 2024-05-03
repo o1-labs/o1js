@@ -11,7 +11,7 @@ import { AnyTuple } from '../../util/types.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
 
-export { OffchainStateRollup };
+export { OffchainStateRollup, MerkleMapState };
 
 class ActionIterator extends MerkleListIterator.create(
   ActionList.provable,
