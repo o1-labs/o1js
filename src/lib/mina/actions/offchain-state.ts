@@ -10,7 +10,7 @@ import {
 import { Option } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
-import { assert } from 'src/lib/provable/gadgets/common.js';
+import { assert } from '../../provable/gadgets/common.js';
 
 export { OffchainState };
 
