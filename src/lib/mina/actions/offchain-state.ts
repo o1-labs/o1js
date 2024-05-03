@@ -6,6 +6,7 @@ import { Proof } from '../../proof-system/zkprogram.js';
 import { MerkleMapState } from './offchain-state-rollup.js';
 import { Option } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
+import { SmartContract } from '../zkapp.js';
 
 export { OffchainState };
 
@@ -26,7 +27,7 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   };
 
   /**
-   * Set the contract that this offchain state is connected with.
+   * Set the contract class that this offchain state appliues to.
    *
    * Note: This declares two _onchain_ state fields on the contract,
    * which it uses to keep commitments to the offchain state and processed actions.
@@ -35,7 +36,21 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    *
    * It also sets the reducer for this contract, so you can't use another reducer with this contract.
    */
-  setContract(contract: Contract): void;
+  setContractClass(contract: typeof SmartContract): void;
+
+  /**
+   * Set the contract that this offchain state is connected with.
+   *
+   * This tells the offchain state about the account to fetch data from.
+   */
+  setContractAccount(contract: Contract): void;
+
+  /**
+   * Compile the offchain state ZkProgram.
+   *
+   * Note: If this is not done explicitly, it will be done before creating the first proof automatically.
+   */
+  compile(): Promise<void>;
 
   /**
    * Create a proof that the offchain state is in a valid state.
