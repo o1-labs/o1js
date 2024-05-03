@@ -21,10 +21,17 @@ import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { MerkleList } from '../../provable/merkle-list.js';
 import * as Mina from '../mina.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import { Provable } from 'src/lib/provable/provable.js';
+import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
 
-export { fromAction, toAction, MerkleLeaf, ActionList, fetchMerkleLeaves };
+export {
+  fromAction,
+  toAction,
+  MerkleLeaf,
+  ActionList,
+  fetchMerkleLeaves,
+  Actionable,
+};
 
 type Action = [...Field[], Field, Field];
 type Actionable<T> = ProvableHashable<T> & ProvablePure<T>;
