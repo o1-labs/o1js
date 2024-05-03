@@ -62,17 +62,24 @@ const merkleUpdateBatch = (
     isRecursive: Bool,
     recursiveProof: SelfProof<MerkleMapState, MerkleMapState>
   ): Promise<MerkleMapState> {
+    // clone tree so we don't modify it
+    tree = Unconstrained.witness(() => tree.get().clone());
+
     // in the non-recursive case, this skips verifying the proof so we can pass in a dummy proof
     recursiveProof.verifyIf(isRecursive);
 
     // in the recursive case, the recursive proof's initial state has to match this proof's initial state
-    stateA = Provable.if(
-      isRecursive,
+    // TODO maybe a dedicated `assertEqualIf()` is more efficient and readable
+    Provable.assertEqual(
       MerkleMapState,
-      stateA,
-      recursiveProof.publicInput
+      recursiveProof.publicInput,
+      Provable.if(
+        isRecursive,
+        MerkleMapState,
+        stateA,
+        recursiveProof.publicInput
+      )
     );
-    Provable.assertEqual(MerkleMapState, recursiveProof.publicInput, stateA);
 
     // the state we start with
     let stateB = Provable.if(
