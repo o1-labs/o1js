@@ -1,4 +1,3 @@
-import { Constructor } from 'src/bindings/lib/provable-generic.js';
 import {
   Bool,
   UInt64,
@@ -35,12 +34,12 @@ class SubcontractB extends SmartContract implements Subcontract {
 
 // caller contract that calls the subcontract
 
-class Caller extends SmartContract {
-  Subcontract: Constructor<Subcontract> = SubcontractA;
+let Subcontract: new (...args: any) => Subcontract = SubcontractA;
 
+class Caller extends SmartContract {
   @method
   async call(a: UInt64, b: UInt64, address: PublicKey) {
-    const subcontract = new this.Subcontract(address);
+    const subcontract = new Subcontract(address);
     await subcontract.submethod(a, b);
   }
 }
@@ -82,7 +81,7 @@ await Mina.transaction(sender, () => caller.call(x, y, aAccount))
 
 // subcontract B call
 
-caller.Subcontract = SubcontractB;
+Subcontract = SubcontractB;
 
 await Mina.transaction(sender, () => caller.call(x, y, bAccount))
   .prove()
