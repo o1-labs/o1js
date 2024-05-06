@@ -43,7 +43,7 @@ class Caller extends SmartContract {
   }
 
   // subcontract to call. this property is changed below
-  // TODO: having to set this property is a hack, it would be nice to
+  // TODO: having to set this property is a hack, it would be nice to pass the contract as parameter
   static Subcontract: new (...args: any) => Subcontract = SubcontractA;
 }
 
