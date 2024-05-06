@@ -1612,13 +1612,23 @@ function diffRecursive(
   let { transaction, index, accountUpdate: input } = inputData;
   diff(transaction, index, prover.toPretty(), input.toPretty());
   // TODO
-  let inputChildren = accountUpdateLayout()!.get(input)!.children.mutable!;
-  let proverChildren = accountUpdateLayout()!.get(prover)!.children.mutable!;
+  let proverChildren = accountUpdateLayout()?.get(prover)?.children.mutable;
+  if (proverChildren === undefined) return;
+
+  // collect input children
+  let inputChildren: AccountUpdate[] = [];
+  let callDepth = input.body.callDepth;
+  for (let i = index; i < transaction.accountUpdates.length; i++) {
+    let update = transaction.accountUpdates[i];
+    if (update.body.callDepth <= callDepth) break;
+    if (update.body.callDepth === callDepth + 1) inputChildren.push(update);
+  }
+
   let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
-    let inputChild = inputChildren[i].mutable;
+    let inputChild = inputChildren[i];
     let child = proverChildren[i].mutable;
-    if (!inputChild || !child) return;
+    if (!child) return;
     diffRecursive(child, { transaction, index, accountUpdate: inputChild });
   }
 }
