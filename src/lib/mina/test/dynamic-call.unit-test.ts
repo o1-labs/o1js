@@ -1,3 +1,9 @@
+/**
+ * Tests that shows we can call a subcontract dynamically based on the address,
+ * as long as its signature matches the signature our contract was compiled against.
+ *
+ * In other words, the exact implementation/constraints of zkApp methods we call are not hard-coded in the caller contract.
+ */
 import {
   Bool,
   UInt64,
@@ -6,11 +12,6 @@ import {
   PublicKey,
   Mina,
 } from '../../../index.js';
-
-/**
- * Tests that we can call a subcontract dynamically based on the address
- * as long as its signature matches the signature our contract was compiled against.
- */
 
 type Subcontract = SmartContract & {
   submethod(a: UInt64, b: UInt64): Promise<Bool>;
@@ -34,17 +35,19 @@ class SubcontractB extends SmartContract implements Subcontract {
 
 // caller contract that calls the subcontract
 
-let Subcontract: new (...args: any) => Subcontract = SubcontractA;
-
 class Caller extends SmartContract {
   @method
   async call(a: UInt64, b: UInt64, address: PublicKey) {
-    const subcontract = new Subcontract(address);
+    const subcontract = new Caller.Subcontract(address);
     await subcontract.submethod(a, b);
   }
+
+  // subcontract to call. this property is changed below
+  // TODO: having to set this property is a hack, it would be nice to
+  static Subcontract: new (...args: any) => Subcontract = SubcontractA;
 }
 
-// test
+// TEST BELOW
 
 // setup
 
@@ -81,7 +84,7 @@ await Mina.transaction(sender, () => caller.call(x, y, aAccount))
 
 // subcontract B call
 
-Subcontract = SubcontractB;
+Caller.Subcontract = SubcontractB;
 
 await Mina.transaction(sender, () => caller.call(x, y, bAccount))
   .prove()
