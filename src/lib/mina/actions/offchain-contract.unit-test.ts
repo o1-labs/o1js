@@ -18,6 +18,8 @@ class ExampleContract extends SmartContract {
   async createAccount(address: PublicKey, amountToMint: UInt64) {
     state.fields.accounts.set(address, amountToMint);
 
+    // TODO `totalSupply` easily gets into a wrong state here on concurrent calls.
+    // and using `.update()` doesn't help either
     let totalSupply = await state.fields.totalSupply.get();
     state.fields.totalSupply.set(totalSupply.add(amountToMint));
   }
@@ -30,9 +32,17 @@ class ExampleContract extends SmartContract {
     let toOption = await state.fields.accounts.get(to);
     let toBalance = toOption.orElse(0n);
 
-    // (this also checks that the sender has enough balance)
-    state.fields.accounts.set(from, fromBalance.sub(amount));
-    state.fields.accounts.set(to, toBalance.add(amount));
+    // TODO we use `update` here so that previous balances can't be overridden
+    // but this still includes a trivial double-spend opportunity, because the updates are not rejected atomically:
+    // if the `to` update gets accepted but the `from` update fails, it's a double-spend
+    state.fields.accounts.update(from, {
+      from: fromBalance,
+      to: fromBalance.sub(amount),
+    });
+    state.fields.accounts.update(to, {
+      from: toBalance,
+      to: toBalance.add(amount),
+    });
   }
 
   @method.returns(UInt64)

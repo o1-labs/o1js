@@ -162,6 +162,13 @@ type OffchainField<T, TValue> = {
    * Set the value of the field.
    */
   set(value: T | TValue): void;
+  /**
+   * Update the value of the field, while requiring a specific previous value.
+   *
+   * If the previous value does not match, the update will not be applied.
+   * If no previous value is present, the `from` value is ignored and the update applied unconditionally.
+   */
+  update(update: { from: T | TValue; to: T | TValue }): void;
 };
 
 function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
@@ -176,6 +183,13 @@ type OffchainMap<K, V, VValue> = {
    * Set the value for this key.
    */
   set(key: K, value: V | VValue): void;
+  /**
+   * Update the value of the field, while requiring a specific previous value.
+   *
+   * If the previous value does not match, the update will not be applied.
+   * If no previous value is present, the `from` value is ignored and the update applied unconditionally.
+   */
+  update(key: K, update: { from: V | VValue; to: V | VValue }): void;
 };
 
 type OffchainStateKind =
