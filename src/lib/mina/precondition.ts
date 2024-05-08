@@ -19,6 +19,7 @@ import {
   ZkappUri,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import type { Types } from '../../bindings/mina-transaction/types.js';
+import type { Permissions } from './account-update.js';
 import { ZkappStateLength } from './mina-instance.js';
 
 export {
@@ -615,6 +616,8 @@ type UpdateValueOriginal = {
 type UpdateValue = {
   [K in keyof Update_]: K extends 'zkappUri' | 'tokenSymbol'
     ? string
+    : K extends 'permissions'
+    ? Permissions
     : Update_[K]['value'];
 };
 

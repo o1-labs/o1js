@@ -152,6 +152,18 @@ const False = () => Bool(false);
  * documentation on those methods to learn more.
  */
 type Permission = Types.AuthRequired;
+
+class VerificationKeyPermission {
+  constructor(public auth: Permission, public txnVersion: UInt32) {}
+
+  // TODO this class could be made incompatible with a plain object (breaking change)
+  // private _ = undefined;
+
+  static withCurrentTxnVersion(perm: Permission) {
+    return new VerificationKeyPermission(perm, TransactionVersion.current());
+  }
+}
+
 let Permission = {
   /**
    * Modification is impossible.
@@ -197,6 +209,65 @@ let Permission = {
     signatureNecessary: False(),
     signatureSufficient: True(),
   }),
+
+  /**
+   * Special Verification key permissions.
+   *
+   * The difference to normal permissions is that `Permission.proof` and `Permission.impossible` are replaced by less restrictive permissions:
+   * - `impossible` is replaced by `impossibleUntilHardfork`
+   * - `proof` is replaced by `proofUntilHardfork`
+   *
+   * The issue is that a future hardfork which changes the proof system could mean that old verification keys can no longer
+   * be used to verify proofs in the new proof system, and the zkApp would have to be redeployed to adapt the verification key to the new proof system.
+   *
+   * Having either `impossible` or `proof` would mean that these zkApps can't be upgraded after this hypothetical hardfork, and would become unusable.
+   *
+   * A future hardfork would manifest as an increment in the "transaction version" of zkApps, which you can check with {@link TransactionVersion.current()}.
+   *
+   * The `impossibleUntilHardfork` and `proofUntilHardfork` have an additional `txnVersion` field.
+   * These permissions follow the same semantics of not upgradable, or only upgradable with proofs,
+   * _as long as_ the current transaction version is the same as the one one the permission.
+   *
+   * If the current transaction version is higher than the one on the permission, the permission is treated as `signature`,
+   * and the zkApp can be redeployed with a signature of the original account owner.
+   */
+  VerificationKey: {
+    /**
+     * Modification is impossible, until the next hardfork.
+     *
+     * After a hardfork which changes the {@link TransactionVersion}, the permission is treated as `signature`.
+     */
+    impossibleUntilHardfork: () =>
+      VerificationKeyPermission.withCurrentTxnVersion(Permission.impossible()),
+
+    /**
+     * Modification is always permitted
+     */
+    none: () =>
+      VerificationKeyPermission.withCurrentTxnVersion(Permission.none()),
+
+    /**
+     * Modification is permitted by zkapp proofs only; but only until the next hardfork.
+     *
+     * After a hardfork which changes the {@link TransactionVersion}, the permission is treated as `signature`.
+     */
+    proofUntilHardfork: () =>
+      VerificationKeyPermission.withCurrentTxnVersion(Permission.proof()),
+
+    /**
+     * Modification is permitted by signatures only, using the private key of the zkapp account
+     */
+    signature: () =>
+      VerificationKeyPermission.withCurrentTxnVersion(Permission.signature()),
+
+    /**
+     * Modification is permitted by zkapp proofs or signatures
+     */
+    proofOrSignature: () =>
+      VerificationKeyPermission.withCurrentTxnVersion(
+        Permission.proofOrSignature()
+      ),
+  },
 };
 
 // TODO: we could replace the interface below if we could bridge annotations from OCaml
@@ -242,10 +313,7 @@ interface Permissions extends Permissions_ {
    * key associated with the circuit tied to this account. Effectively
    * "upgradeability" of the smart contract.
    */
-  setVerificationKey: {
-    auth: Permission;
-    txnVersion: UInt32;
-  };
+  setVerificationKey: VerificationKeyPermission;
 
   /**
    * The {@link Permission} corresponding to the ability to set the zkapp uri
@@ -283,6 +351,7 @@ interface Permissions extends Permissions_ {
 }
 let Permissions = {
   ...Permission,
+
   /**
    * Default permissions are:
    *
@@ -311,10 +380,7 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.signature(),
     setZkappUri: Permission.signature(),
     editActionState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
@@ -330,10 +396,7 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.signature(),
     setZkappUri: Permission.signature(),
     editActionState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
@@ -350,10 +413,7 @@ let Permissions = {
     access: Permission.none(),
     setDelegate: Permission.none(),
     setPermissions: Permission.none(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.none(),
     setZkappUri: Permission.none(),
     editActionState: Permission.none(),
     setTokenSymbol: Permission.none(),
@@ -369,10 +429,7 @@ let Permissions = {
     access: Permission.impossible(),
     setDelegate: Permission.impossible(),
     setPermissions: Permission.impossible(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.impossibleUntilHardfork(),
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
     setTokenSymbol: Permission.impossible(),
