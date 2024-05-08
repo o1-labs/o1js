@@ -9,7 +9,6 @@ import {
   Mina,
   AccountUpdate,
   Provable,
-  TransactionVersion,
 } from 'o1js';
 
 class SelfUpdater extends SmartContract {
@@ -17,10 +16,7 @@ class SelfUpdater extends SmartContract {
     super.init();
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: {
-        auth: Permissions.proof(),
-        txnVersion: TransactionVersion.current(),
-      },
+      setVerificationKey: Permissions.VerificationKey.proofUntilHardfork(),
     });
   }
 

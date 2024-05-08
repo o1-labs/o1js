@@ -13,7 +13,6 @@ import {
   TokenContract,
   AccountUpdateForest,
   Struct,
-  TransactionVersion,
 } from 'o1js';
 
 export { Erc20Like, TrivialCoin };
@@ -79,10 +78,7 @@ class TrivialCoin extends TokenContract implements Erc20Like {
     // make account non-upgradable forever
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: {
-        auth: Permissions.impossible(),
-        txnVersion: TransactionVersion.current(),
-      },
+      setVerificationKey: Permissions.VerificationKey.impossibleUntilHardfork(),
       setPermissions: Permissions.impossible(),
       access: Permissions.proofOrSignature(),
     });
