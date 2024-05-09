@@ -1,12 +1,5 @@
 import { expect } from 'expect';
-import {
-  AccountUpdate,
-  Mina,
-  Permissions,
-  PrivateKey,
-  UInt64,
-  TransactionVersion,
-} from 'o1js';
+import { AccountUpdate, Mina, Permissions, PrivateKey, UInt64 } from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
 import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
@@ -446,10 +439,8 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey: {
-        auth: Permissions.impossible(),
-        txnVersion: TransactionVersion.current(),
-      },
+      setVerificationKey:
+        Permissions.VerificationKey.impossibleDuringCurrentVersion(),
     });
   });
   await tx.prove();
