@@ -439,7 +439,8 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey: Permissions.VerificationKey.impossibleUntilHardfork(),
+      setVerificationKey:
+        Permissions.VerificationKey.impossibleDuringCurrentVersion(),
     });
   });
   await tx.prove();

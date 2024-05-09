@@ -16,7 +16,8 @@ class SelfUpdater extends SmartContract {
     super.init();
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.VerificationKey.proofUntilHardfork(),
+      setVerificationKey:
+        Permissions.VerificationKey.proofDuringCurrentVersion(),
     });
   }
 

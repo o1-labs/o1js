@@ -78,7 +78,8 @@ class TrivialCoin extends TokenContract implements Erc20Like {
     // make account non-upgradable forever
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.VerificationKey.impossibleUntilHardfork(),
+      setVerificationKey:
+        Permissions.VerificationKey.impossibleDuringCurrentVersion(),
       setPermissions: Permissions.impossible(),
       access: Permissions.proofOrSignature(),
     });

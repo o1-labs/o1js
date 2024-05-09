@@ -159,7 +159,7 @@ class VerificationKeyPermission {
   // TODO this class could be made incompatible with a plain object (breaking change)
   // private _ = undefined;
 
-  static withCurrentTxnVersion(perm: Permission) {
+  static withCurrentVersion(perm: Permission) {
     return new VerificationKeyPermission(perm, TransactionVersion.current());
   }
 }
@@ -214,21 +214,21 @@ let Permission = {
    * Special Verification key permissions.
    *
    * The difference to normal permissions is that `Permission.proof` and `Permission.impossible` are replaced by less restrictive permissions:
-   * - `impossible` is replaced by `impossibleUntilHardfork`
-   * - `proof` is replaced by `proofUntilHardfork`
+   * - `impossible` is replaced by `impossibleDuringCurrentVersion`
+   * - `proof` is replaced by `proofDuringCurrentVersion`
    *
    * The issue is that a future hardfork which changes the proof system could mean that old verification keys can no longer
    * be used to verify proofs in the new proof system, and the zkApp would have to be redeployed to adapt the verification key to the new proof system.
    *
    * Having either `impossible` or `proof` would mean that these zkApps can't be upgraded after this hypothetical hardfork, and would become unusable.
    *
-   * A future hardfork would manifest as an increment in the "transaction version" of zkApps, which you can check with {@link TransactionVersion.current()}.
+   * Such a future hardfork would manifest as an increment in the "transaction version" of zkApps, which you can check with {@link TransactionVersion.current()}.
    *
-   * The `impossibleUntilHardfork` and `proofUntilHardfork` have an additional `txnVersion` field.
+   * The `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` have an additional `txnVersion` field.
    * These permissions follow the same semantics of not upgradable, or only upgradable with proofs,
    * _as long as_ the current transaction version is the same as the one one the permission.
    *
-   * If the current transaction version is higher than the one on the permission, the permission is treated as `signature`,
+   * Once the current transaction version is higher than the one on the permission, the permission is treated as `signature`,
    * and the zkApp can be redeployed with a signature of the original account owner.
    */
   VerificationKey: {
@@ -237,34 +237,33 @@ let Permission = {
      *
      * After a hardfork which changes the {@link TransactionVersion}, the permission is treated as `signature`.
      */
-    impossibleUntilHardfork: () =>
-      VerificationKeyPermission.withCurrentTxnVersion(Permission.impossible()),
+    impossibleDuringCurrentVersion: () =>
+      VerificationKeyPermission.withCurrentVersion(Permission.impossible()),
 
     /**
      * Modification is always permitted
      */
-    none: () =>
-      VerificationKeyPermission.withCurrentTxnVersion(Permission.none()),
+    none: () => VerificationKeyPermission.withCurrentVersion(Permission.none()),
 
     /**
      * Modification is permitted by zkapp proofs only; but only until the next hardfork.
      *
      * After a hardfork which changes the {@link TransactionVersion}, the permission is treated as `signature`.
      */
-    proofUntilHardfork: () =>
-      VerificationKeyPermission.withCurrentTxnVersion(Permission.proof()),
+    proofDuringCurrentVersion: () =>
+      VerificationKeyPermission.withCurrentVersion(Permission.proof()),
 
     /**
      * Modification is permitted by signatures only, using the private key of the zkapp account
      */
     signature: () =>
-      VerificationKeyPermission.withCurrentTxnVersion(Permission.signature()),
+      VerificationKeyPermission.withCurrentVersion(Permission.signature()),
 
     /**
      * Modification is permitted by zkapp proofs or signatures
      */
     proofOrSignature: () =>
-      VerificationKeyPermission.withCurrentTxnVersion(
+      VerificationKeyPermission.withCurrentVersion(
         Permission.proofOrSignature()
       ),
   },
@@ -429,7 +428,8 @@ let Permissions = {
     access: Permission.impossible(),
     setDelegate: Permission.impossible(),
     setPermissions: Permission.impossible(),
-    setVerificationKey: Permission.VerificationKey.impossibleUntilHardfork(),
+    setVerificationKey:
+      Permission.VerificationKey.impossibleDuringCurrentVersion(),
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
     setTokenSymbol: Permission.impossible(),
