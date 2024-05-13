@@ -193,7 +193,7 @@ function OffchainState<
 
         // push action on account update
         let update = contract().self;
-        Actions.pushEvent(update.body.actions, action);
+        update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
       update: notImplemented,
       async get() {
@@ -225,7 +225,7 @@ function OffchainState<
 
         // push action on account update
         let update = contract().self;
-        Actions.pushEvent(update.body.actions, action);
+        update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
       update: notImplemented,
       async get(key) {
