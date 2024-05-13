@@ -24,19 +24,30 @@ import * as Mina from '../mina.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
-import { TupleN } from '../../util/types.js';
+import { MerkleMap } from '../../provable/merkle-map.js';
 
 export {
-  fromAction,
+  toKeyHash,
   toAction,
+  fromActionWithoutHashes,
   MerkleLeaf,
   ActionList,
   fetchMerkleLeaves,
+  fetchMerkleMap,
   Actionable,
 };
 
 type Action = [...Field[], Field, Field];
 type Actionable<T, V = any> = ProvableHashable<T, V> & ProvablePure<T, V>;
+
+function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
+  prefix: Field,
+  keyType: KeyType,
+  key: KeyType extends undefined ? undefined : K
+): Field {
+  let keySize = keyType?.sizeInFields() ?? 0;
+  return hashPackedWithPrefix([prefix, Field(keySize)], keyType, key);
+}
 
 function toAction<K, V, KeyType extends Actionable<K> | undefined>(
   prefix: Field,
@@ -45,51 +56,26 @@ function toAction<K, V, KeyType extends Actionable<K> | undefined>(
   key: KeyType extends undefined ? undefined : K,
   value: V
 ): Action {
-  let keySize = keyType?.sizeInFields() ?? 0;
-  let combinedSize = 2 + keySize + valueType.sizeInFields();
+  let combinedSize = valueType.sizeInFields();
   let padding = combinedSize % 2 === 0 ? [] : [Field(0)];
 
-  let keyHash = hashPackedWithPrefix([prefix, Field(keySize)], keyType, key);
+  let keyHash = hashPackedWithPrefix([prefix, Field(0)], keyType, key);
   let valueHash = Poseidon.hashPacked(valueType, value);
-  return [
-    ...(keyType?.toFields(key as K) ?? []),
-    ...valueType.toFields(value),
-    ...padding,
-    keyHash,
-    valueHash,
-  ];
+  return [...valueType.toFields(value), ...padding, keyHash, valueHash];
 }
 
-function fromAction<K, V, KeyType extends Actionable<K> | undefined>(
-  keyType: KeyType,
+function fromActionWithoutHashes<V>(
   valueType: Actionable<V>,
-  action: Action
-): {
-  prefix: [Field, Field];
-  key: KeyType extends undefined ? undefined : K;
-  value: V;
-} {
-  let keySize = keyType?.sizeInFields() ?? 0;
+  action: Field[]
+): V {
   let valueSize = valueType.sizeInFields();
-  let paddingSize = (2 + keySize + valueSize) % 2 === 0 ? 0 : 1;
-  assert(
-    action.length === 2 + keySize + valueSize + paddingSize + 2,
-    'invalid action size'
-  );
-  let prefix = TupleN.fromArray(2, action.slice(0, 2));
-  let key: K | undefined = undefined;
+  let paddingSize = valueSize % 2 === 0 ? 0 : 1;
+  assert(action.length === valueSize + paddingSize, 'invalid action size');
 
-  if (keyType !== undefined) {
-    key = keyType.fromFields(action.slice(2, 2 + keySize));
-    keyType.check(key);
-  }
-
-  let value = valueType.fromFields(
-    action.slice(2 + keySize, 2 + keySize + valueSize)
-  );
+  let value = valueType.fromFields(action.slice(0, valueSize));
   valueType.check(value);
 
-  return { prefix, key: key as any, value };
+  return value;
 }
 
 function hashPackedWithPrefix<T, Type extends Actionable<T> | undefined>(
@@ -182,4 +168,39 @@ async function fetchMerkleLeaves(
     event.actions.map((action) => MerkleLeaf.fromAction(action.map(Field)))
   );
   return MerkleActions.from(merkleLeafs.map((a) => ActionList.fromReverse(a)));
+}
+
+/**
+ * Recreate Merkle tree from fetched actions.
+ *
+ * We also deserialize a keyHash -> value map from the leaves.
+ */
+async function fetchMerkleMap(
+  contract: { address: PublicKey; tokenId: Field },
+  endActionState?: Field
+): Promise<{ merkleMap: MerkleMap; valueMap: Map<bigint, Field[]> }> {
+  let result = await Mina.fetchActions(
+    contract.address,
+    { endActionState },
+    contract.tokenId
+  );
+  if ('error' in result) throw Error(JSON.stringify(result));
+
+  let leaves = result
+    .map((event) =>
+      event.actions
+        .map((action) => MerkleLeaf.fromAction(action.map(Field)))
+        .reverse()
+    )
+    .flat();
+
+  let merkleMap = new MerkleMap();
+  let valueMap = new Map<bigint, Field[]>();
+
+  for (let leaf of leaves) {
+    merkleMap.set(leaf.key, leaf.value);
+    valueMap.set(leaf.key.toBigInt(), leaf.prefix.get());
+  }
+
+  return { merkleMap, valueMap };
 }

@@ -1,6 +1,11 @@
 import { InferProvable } from '../../provable/types/struct.js';
-import { Actionable, toAction } from './offchain-state-serialization.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
+import {
+  Actionable,
+  fetchMerkleMap,
+  fromActionWithoutHashes,
+  toAction,
+  toKeyHash,
+} from './offchain-state-serialization.js';
 import { Field } from '../../provable/wrapped.js';
 import { Proof } from '../../proof-system/zkprogram.js';
 import {
@@ -11,8 +16,11 @@ import { Option } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
-import { declareState } from '../state.js';
+import { State, declareState } from '../state.js';
 import { Actions } from '../account-update.js';
+import { MerkleMap, MerkleMapWitness } from '../../provable/merkle-map.js';
+import { Provable } from '../../provable/provable.js';
+import { Poseidon } from '../../provable/crypto/poseidon.js';
 
 export { OffchainState };
 
@@ -47,9 +55,9 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
    * Set the contract that this offchain state is connected with.
    *
-   * This tells the offchain state about the account to fetch data from and modify.
+   * This tells the offchain state about the account to fetch data from and modify, and lets it handle actions and onchain state.
    */
-  setContractAccount(contract: SmartContract): void;
+  setContractInstance(contract: SmartContract): void;
 
   /**
    * Compile the offchain state ZkProgram.
@@ -74,12 +82,19 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   settle(proof: Proof<MerkleMapState, MerkleMapState>): Promise<void>;
 };
 
+type OffchainStateContract = SmartContract & {
+  stateRoot: State<Field>;
+  actionState: State<Field>;
+};
+
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
 >(config: Config): OffchainState<Config> {
   // setup internal state of this "class"
   let internal = {
-    _contract: undefined as SmartContract | undefined,
+    _contract: undefined as OffchainStateContract | undefined,
+    _merkleMap: undefined as MerkleMap | undefined,
+    _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
       assert(
@@ -89,10 +104,68 @@ function OffchainState<
       return internal._contract;
     },
   };
+  const onchainActionState = async () => {
+    let actionState = await internal.contract.actionState.fetch();
+    assert(actionState !== undefined, 'Could not fetch action state');
+    return actionState;
+  };
+
+  const merkleMaps = async () => {
+    if (internal._merkleMap !== undefined && internal._valueMap !== undefined) {
+      return { merkleMap: internal._merkleMap, valueMap: internal._valueMap };
+    }
+    let actionState = await onchainActionState();
+    let { merkleMap, valueMap } = await fetchMerkleMap(
+      internal.contract,
+      actionState
+    );
+    internal._merkleMap = merkleMap;
+    internal._valueMap = valueMap;
+    return { merkleMap, valueMap };
+  };
 
   const notImplemented = (): any => assert(false, 'Not implemented');
 
   let rollup = OffchainStateRollup();
+
+  /**
+   * generic get which works for both fields and maps
+   */
+  async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
+    // get onchain merkle root
+    let stateRoot = internal.contract.stateRoot.getAndRequireEquals();
+
+    // witness the actual value
+    const optionType = Option(valueType);
+    let value = await Provable.witnessAsync(optionType, async () => {
+      let { valueMap } = await merkleMaps();
+      let valueFields = valueMap.get(key.toBigInt());
+      if (valueFields === undefined) {
+        return optionType.from();
+      }
+      let value = fromActionWithoutHashes(valueType, valueFields);
+      return optionType.from(value);
+    });
+
+    // witness a merkle witness
+    let witness = await Provable.witnessAsync(MerkleMapWitness, async () => {
+      let { merkleMap } = await merkleMaps();
+      return merkleMap.getWitness(key);
+    });
+
+    // anchor the value against the onchain root and passed in key
+    // we also allow the value to be missing, in which case the map must contain the 0 element
+    let valueHash = Provable.if(
+      value.isSome,
+      Poseidon.hashPacked(valueType, value.value),
+      Field(0)
+    );
+    let [actualRoot, actualKey] = witness.computeRootAndKey(valueHash);
+    key.assertEquals(actualKey, 'key mismatch');
+    stateRoot.assertEquals(actualRoot, 'root mismatch');
+
+    return value;
+  }
 
   function field<T, TValue>(
     index: number,
@@ -100,27 +173,28 @@ function OffchainState<
   ): OffchainField<T, TValue> {
     const prefix = Field(index);
 
-    function selfToAction(value: T | TValue): Field[] {
-      return toAction(
-        prefix,
-        undefined,
-        type,
-        undefined,
-        type.fromValue(value)
-      );
-    }
-
     return {
       set(value) {
         // serialize into action
-        let action = selfToAction(value);
+        let action = toAction(
+          prefix,
+          undefined,
+          type,
+          undefined,
+          type.fromValue(value)
+        );
 
         // push action on account update
         let update = internal.contract.self;
         Actions.pushEvent(update.body.actions, action);
       },
       update: notImplemented,
-      get: notImplemented,
+      async get() {
+        let key = toKeyHash(prefix, undefined, undefined);
+        let optionValue = await get(key, type);
+        // for fields that are not in the map, we return the default value -- similar to onchain state
+        return optionValue.orElse(type.empty());
+      },
     };
   }
 
@@ -131,27 +205,26 @@ function OffchainState<
   ): OffchainMap<K, V, VValue> {
     const prefix = Field(index);
 
-    function selfToAction(key: K, value: V | VValue): Field[] {
-      return toAction(
-        prefix,
-        keyType,
-        valueType,
-        key,
-        valueType.fromValue(value)
-      );
-    }
-
     return {
       set(key, value) {
         // serialize into action
-        let action = selfToAction(key, value);
+        let action = toAction(
+          prefix,
+          keyType,
+          valueType,
+          key,
+          valueType.fromValue(value)
+        );
 
         // push action on account update
         let update = internal.contract.self;
         Actions.pushEvent(update.body.actions, action);
       },
       update: notImplemented,
-      get: notImplemented,
+      async get(key) {
+        let keyHash = toKeyHash(prefix, keyType, key);
+        return await get(keyHash, valueType);
+      },
     };
   }
 
@@ -160,8 +233,10 @@ function OffchainState<
       declareState(contract, { stateRoot: Field, actionState: Field });
     },
 
-    setContractAccount(contract) {
-      internal._contract = contract;
+    setContractInstance(contract) {
+      (contract as any).actionState = State();
+      (contract as any).stateRoot = State();
+      internal._contract = contract as any;
     },
 
     async compile() {
@@ -195,7 +270,6 @@ OffchainState.Field = OffchainField;
 // type helpers
 
 type Any = Actionable<any>;
-type Contract = { address: PublicKey; tokenId: Field };
 
 function OffchainField<T extends Any>(type: T) {
   return { kind: 'offchain-field' as const, type };

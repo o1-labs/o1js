@@ -73,7 +73,7 @@ Mina.setActiveInstance(Local);
 
 let [sender, receiver, contractAccount] = Local.testAccounts;
 let contract = new ExampleContract(contractAccount);
-state.setContractAccount(contract);
+state.setContractInstance(contract);
 
 await ExampleContract.compile();
 
