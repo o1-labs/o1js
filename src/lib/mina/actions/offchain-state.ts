@@ -19,10 +19,10 @@ import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { State } from '../state.js';
 import { Actions } from '../account-update.js';
-import { MerkleMap, MerkleMapWitness } from '../../provable/merkle-map.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
 import { smartContractContext } from '../smart-contract-context.js';
+import { MerkleTree, MerkleWitness } from '../../provable/merkle-tree.js';
 
 export { OffchainState, OffchainStateCommitments };
 
@@ -82,13 +82,15 @@ type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
 
+const MerkleWitness256 = MerkleWitness(256);
+
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
 >(config: Config): OffchainState<Config> {
   // setup internal state of this "class"
   let internal = {
     _contract: undefined as OffchainStateContract | undefined,
-    _merkleMap: undefined as MerkleMap | undefined,
+    _merkleMap: undefined as MerkleTree | undefined,
     _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
@@ -155,9 +157,9 @@ function OffchainState<
     });
 
     // witness a merkle witness
-    let witness = await Provable.witnessAsync(MerkleMapWitness, async () => {
+    let witness = await Provable.witnessAsync(MerkleWitness256, async () => {
       let { merkleMap } = await merkleMaps();
-      return merkleMap.getWitness(key);
+      return new MerkleWitness256(merkleMap.getWitness(key.toBigInt()));
     });
 
     // anchor the value against the onchain root and passed in key
@@ -167,7 +169,8 @@ function OffchainState<
       Poseidon.hashPacked(valueType, value.value),
       Field(0)
     );
-    let [actualRoot, actualKey] = witness.computeRootAndKey(valueHash);
+    let actualKey = witness.calculateIndex();
+    let actualRoot = witness.calculateRoot(valueHash);
     key.assertEquals(actualKey, 'key mismatch');
     stateRoot.assertEquals(actualRoot, 'root mismatch');
 
@@ -253,7 +256,7 @@ function OffchainState<
         fromActionState: actionState,
       });
 
-      let result = await rollup.prove(merkleMap.tree, actions);
+      let result = await rollup.prove(merkleMap, actions);
 
       // update internal merkle maps as well
       // TODO make this not insanely recompute everything

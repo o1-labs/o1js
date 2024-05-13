@@ -24,7 +24,7 @@ import * as Mina from '../mina.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
-import { MerkleMap } from '../../provable/merkle-map.js';
+import { MerkleTree } from '../../provable/merkle-tree.js';
 
 export {
   toKeyHash,
@@ -45,8 +45,7 @@ function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
   keyType: KeyType,
   key: KeyType extends undefined ? undefined : K
 ): Field {
-  let keySize = keyType?.sizeInFields() ?? 0;
-  return hashPackedWithPrefix([prefix, Field(keySize)], keyType, key);
+  return hashPackedWithPrefix([prefix, Field(0)], keyType, key);
 }
 
 function toAction<K, V, KeyType extends Actionable<K> | undefined>(
@@ -179,7 +178,7 @@ async function fetchMerkleLeaves(
 async function fetchMerkleMap(
   contract: { address: PublicKey; tokenId: Field },
   endActionState?: Field
-): Promise<{ merkleMap: MerkleMap; valueMap: Map<bigint, Field[]> }> {
+): Promise<{ merkleMap: MerkleTree; valueMap: Map<bigint, Field[]> }> {
   let result = await Mina.fetchActions(
     contract.address,
     { endActionState },
@@ -195,11 +194,11 @@ async function fetchMerkleMap(
     )
     .flat();
 
-  let merkleMap = new MerkleMap();
+  let merkleMap = new MerkleTree(256);
   let valueMap = new Map<bigint, Field[]>();
 
   for (let leaf of leaves) {
-    merkleMap.set(leaf.key, leaf.value);
+    merkleMap.setLeaf(leaf.key.toBigInt(), leaf.value);
     valueMap.set(leaf.key.toBigInt(), leaf.prefix.get());
   }
 

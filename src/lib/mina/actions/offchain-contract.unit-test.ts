@@ -72,7 +72,7 @@ class ExampleContract extends SmartContract {
 // test code below
 
 // setup
-const proofsEnabled = false;
+const proofsEnabled = true;
 
 const Local = await Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
@@ -157,8 +157,8 @@ await Mina.transaction(sender, () => contract.settle(proof))
 console.timeEnd('settle 2');
 
 // check balance and supply
-let balance2 = await contract.getBalance(receiver);
 let supply2 = await contract.getSupply();
 
-console.log('balance', balance2.toString());
+console.log('balance (sender)', (await contract.getBalance(sender)).toString());
+console.log('balance (recv)', (await contract.getBalance(receiver)).toString());
 console.log('supply', supply2.toString());
