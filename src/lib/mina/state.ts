@@ -162,7 +162,7 @@ function state<A>(stateType: FlexibleProvablePure<A>) {
  */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
-  states: Record<string, FlexibleProvablePure<unknown>>
+  states: Record<string, FlexibleProvablePure<any>>
 ) {
   for (let key in states) {
     let CircuitValue = states[key];

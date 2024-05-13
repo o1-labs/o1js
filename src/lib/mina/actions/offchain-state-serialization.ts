@@ -11,6 +11,7 @@ import {
   Poseidon,
   ProvableHashable,
   hashWithPrefix,
+  packToFields,
   salt,
 } from '../../provable/crypto/poseidon.js';
 import { Field } from '../../provable/wrapped.js';
@@ -23,6 +24,7 @@ import * as Mina from '../mina.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
+import { TupleN } from '../../util/types.js';
 
 export {
   fromAction,
@@ -34,21 +36,23 @@ export {
 };
 
 type Action = [...Field[], Field, Field];
-type Actionable<T> = ProvableHashable<T> & ProvablePure<T>;
+type Actionable<T, V = any> = ProvableHashable<T, V> & ProvablePure<T, V>;
 
-function toAction<K, V>(
-  keyType: Actionable<K>,
+function toAction<K, V, KeyType extends Actionable<K> | undefined>(
+  prefix: Field,
+  keyType: KeyType,
   valueType: Actionable<V>,
-  key: K,
+  key: KeyType extends undefined ? undefined : K,
   value: V
 ): Action {
-  let combinedSize = keyType.sizeInFields() + valueType.sizeInFields();
+  let keySize = keyType?.sizeInFields() ?? 0;
+  let combinedSize = 2 + keySize + valueType.sizeInFields();
   let padding = combinedSize % 2 === 0 ? [] : [Field(0)];
 
-  let keyHash = Poseidon.hashPacked(keyType, key);
+  let keyHash = hashPackedWithPrefix([prefix, Field(keySize)], keyType, key);
   let valueHash = Poseidon.hashPacked(valueType, value);
   return [
-    ...keyType.toFields(key),
+    ...(keyType?.toFields(key as K) ?? []),
     ...valueType.toFields(value),
     ...padding,
     keyHash,
@@ -56,26 +60,54 @@ function toAction<K, V>(
   ];
 }
 
-function fromAction<K, V>(
-  keyType: Actionable<K>,
+function fromAction<K, V, KeyType extends Actionable<K> | undefined>(
+  keyType: KeyType,
   valueType: Actionable<V>,
   action: Action
-): { key: K; value: V } {
-  let keySize = keyType.sizeInFields();
+): {
+  prefix: [Field, Field];
+  key: KeyType extends undefined ? undefined : K;
+  value: V;
+} {
+  let keySize = keyType?.sizeInFields() ?? 0;
   let valueSize = valueType.sizeInFields();
-  let paddingSize = (keySize + valueSize) % 2 === 0 ? 0 : 1;
+  let paddingSize = (2 + keySize + valueSize) % 2 === 0 ? 0 : 1;
   assert(
-    action.length === keySize + valueSize + paddingSize + 2,
+    action.length === 2 + keySize + valueSize + paddingSize + 2,
     'invalid action size'
   );
+  let prefix = TupleN.fromArray(2, action.slice(0, 2));
+  let key: K | undefined = undefined;
 
-  let key = keyType.fromFields(action.slice(0, keySize));
-  keyType.check(key);
+  if (keyType !== undefined) {
+    key = keyType.fromFields(action.slice(2, 2 + keySize));
+    keyType.check(key);
+  }
 
-  let value = valueType.fromFields(action.slice(keySize, keySize + valueSize));
+  let value = valueType.fromFields(
+    action.slice(2 + keySize, 2 + keySize + valueSize)
+  );
   valueType.check(value);
 
-  return { key, value };
+  return { prefix, key: key as any, value };
+}
+
+function hashPackedWithPrefix<T, Type extends Actionable<T> | undefined>(
+  prefix: [Field, Field],
+  type: Type,
+  value: Type extends undefined ? undefined : T
+) {
+  // hash constant prefix
+  let state = Poseidon.initialState();
+  state = Poseidon.update(state, prefix);
+
+  // hash value if a type was passed in
+  if (type !== undefined) {
+    let input = type.toInput(value as T);
+    let packed = packToFields(input);
+    state = Poseidon.update(state, packed);
+  }
+  return state[0];
 }
 
 /**

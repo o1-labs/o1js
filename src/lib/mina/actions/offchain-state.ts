@@ -1,7 +1,7 @@
 import { InferProvable } from '../../provable/types/struct.js';
-import { Actionable } from './offchain-state-serialization.js';
+import { Actionable, toAction } from './offchain-state-serialization.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import { Field } from '../../provable/field.js';
+import { Field } from '../../provable/wrapped.js';
 import { Proof } from '../../proof-system/zkprogram.js';
 import {
   MerkleMapState,
@@ -11,6 +11,8 @@ import { Option } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
+import { declareState } from '../state.js';
+import { Actions } from '../account-update.js';
 
 export { OffchainState };
 
@@ -45,9 +47,9 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
    * Set the contract that this offchain state is connected with.
    *
-   * This tells the offchain state about the account to fetch data from.
+   * This tells the offchain state about the account to fetch data from and modify.
    */
-  setContractAccount(contract: Contract): void;
+  setContractAccount(contract: SmartContract): void;
 
   /**
    * Compile the offchain state ZkProgram.
@@ -77,11 +79,11 @@ function OffchainState<
 >(config: Config): OffchainState<Config> {
   // setup internal state of this "class"
   let internal = {
-    _contract: undefined as Contract | undefined,
+    _contract: undefined as SmartContract | undefined,
 
     get contract() {
       assert(
-        internal._contract === undefined,
+        internal._contract !== undefined,
         'Must call `setContractAccount()` first'
       );
       return internal._contract;
@@ -92,23 +94,70 @@ function OffchainState<
 
   let rollup = OffchainStateRollup();
 
-  function field(index: number, type: Any) {
+  function field<T, TValue>(
+    index: number,
+    type: Actionable<T, TValue>
+  ): OffchainField<T, TValue> {
+    const prefix = Field(index);
+
+    function selfToAction(value: T | TValue): Field[] {
+      return toAction(
+        prefix,
+        undefined,
+        type,
+        undefined,
+        type.fromValue(value)
+      );
+    }
+
     return {
+      set(value) {
+        // serialize into action
+        let action = selfToAction(value);
+
+        // push action on account update
+        let update = internal.contract.self;
+        Actions.pushEvent(update.body.actions, action);
+      },
+      update: notImplemented,
       get: notImplemented,
-      set: notImplemented,
     };
   }
 
-  function map(index: number, keyType: Any, valueType: Any) {
+  function map<K, V, VValue>(
+    index: number,
+    keyType: Actionable<K>,
+    valueType: Actionable<V>
+  ): OffchainMap<K, V, VValue> {
+    const prefix = Field(index);
+
+    function selfToAction(key: K, value: V | VValue): Field[] {
+      return toAction(
+        prefix,
+        keyType,
+        valueType,
+        key,
+        valueType.fromValue(value)
+      );
+    }
+
     return {
+      set(key, value) {
+        // serialize into action
+        let action = selfToAction(key, value);
+
+        // push action on account update
+        let update = internal.contract.self;
+        Actions.pushEvent(update.body.actions, action);
+      },
+      update: notImplemented,
       get: notImplemented,
-      set: notImplemented,
     };
   }
 
   return {
     setContractClass(contract) {
-      notImplemented();
+      declareState(contract, { stateRoot: Field, actionState: Field });
     },
 
     setContractAccount(contract) {
@@ -134,9 +183,7 @@ function OffchainState<
         key,
         kind.kind === 'offchain-field'
           ? field(i, kind.type)
-          : kind.kind === 'offchain-map'
-          ? map(i, kind.keyType, kind.valueType)
-          : notImplemented(),
+          : map(i, kind.keyType, kind.valueType),
       ])
     ) as any,
   };

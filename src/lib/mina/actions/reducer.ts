@@ -138,7 +138,7 @@ function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
       'You are trying to use a reducer without having declared its type.\n' +
         `Make sure to add a property \`reducer\` on ${contract.constructor.name}, for example:
 class ${contract.constructor.name} extends SmartContract {
-  reducer = { actionType: Field };
+  reducer = Reducer({ actionType: Field });
 }`
     );
   return {
