@@ -3,6 +3,7 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { UInt64 } from '../../provable/int.js';
 import { SmartContract, method } from '../zkapp.js';
 import { Mina, State, state } from '../../../index.js';
+import assert from 'assert';
 
 const offchainState = OffchainState({
   accounts: OffchainState.Map(PublicKey, UInt64),
@@ -38,19 +39,15 @@ class ExampleContract extends SmartContract {
     let toOption = await offchainState.fields.accounts.get(to);
     let toBalance = toOption.orElse(0n);
 
-    // TODO we use `update` here so that previous balances can't be overridden
-    // but this still includes a trivial double-spend opportunity, because the updates are not rejected atomically:
-    // if the `to` update gets accepted but the `from` update fails, it's a double-spend
+    /**
+     * FIXME using `set()` here is completely insecure, a sender can easily double-spend by sending multiple transactions,
+     * which will all use the same initial balance.
+     * Even using a naive version of `update()` would give a double-spend opportunity, because the updates are not rejected atomically:
+     * if the `to` update gets accepted but the `from` update fails, it's a double-spend
+     * => properly implementing this needs a version of `update()` that rejects all state actions in one update if any of them fails!
+     */
     offchainState.fields.accounts.set(from, fromBalance.sub(amount));
-    // state.fields.accounts.update(from, {
-    //   from: fromBalance,
-    //   to: fromBalance.sub(amount),
-    // });
     offchainState.fields.accounts.set(to, toBalance.add(amount));
-    // state.fields.accounts.update(to, {
-    //   from: toBalance,
-    //   to: toBalance.add(amount),
-    // });
   }
 
   @method.returns(UInt64)
@@ -82,9 +79,9 @@ let contract = new ExampleContract(contractAccount);
 offchainState.setContractInstance(contract);
 
 if (proofsEnabled) {
-  console.time('compile');
+  console.time('compile program');
   await offchainState.compile();
-  console.timeEnd('compile');
+  console.timeEnd('compile program');
   console.time('compile contract');
   await ExampleContract.compile();
   console.timeEnd('compile contract');
@@ -126,11 +123,7 @@ await Mina.transaction(sender, () => contract.settle(proof))
 console.timeEnd('settle 1');
 
 // check balance and supply
-let supply = await contract.getSupply();
-
-console.log('balance (sender)', (await contract.getBalance(sender)).toString());
-console.log('balance (recv)', (await contract.getBalance(receiver)).toString());
-console.log('supply', supply.toString());
+await checkAgainstSupply(1000n);
 
 // transfer
 
@@ -157,8 +150,18 @@ await Mina.transaction(sender, () => contract.settle(proof))
 console.timeEnd('settle 2');
 
 // check balance and supply
-let supply2 = await contract.getSupply();
+await checkAgainstSupply(1000n);
 
-console.log('balance (sender)', (await contract.getBalance(sender)).toString());
-console.log('balance (recv)', (await contract.getBalance(receiver)).toString());
-console.log('supply', supply2.toString());
+// test helper
+
+async function checkAgainstSupply(expectedSupply: bigint) {
+  let supply = (await contract.getSupply()).toBigInt();
+  assert.strictEqual(supply, expectedSupply);
+
+  let balanceSender = (await contract.getBalance(sender)).toBigInt();
+  let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
+
+  console.log('balance (sender)', balanceSender);
+  console.log('balance (recv)', balanceReceiver);
+  assert.strictEqual(balanceSender + balanceReceiver, supply);
+}
