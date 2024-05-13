@@ -1,5 +1,5 @@
-import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Field, Bool } from '../../provable/wrapped.js';
+import { Proof, ZkProgram } from '../../proof-system/zkprogram.js';
+import { Field } from '../../provable/wrapped.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
@@ -7,7 +7,6 @@ import { MerkleTree, MerkleWitness } from '../../provable/merkle-tree.js';
 import { Struct } from '../../provable/types/struct.js';
 import { SelfProof } from '../../proof-system/zkprogram.js';
 import { Provable } from '../../provable/provable.js';
-import { AnyTuple } from '../../util/types.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
 import { MerkleMap } from '../../provable/merkle-map.js';
@@ -44,103 +43,66 @@ class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
 // TODO: it would be nice to abstract the logic for proving a chain of state transition proofs
 
 /**
- * This function represents a proof that we can go from MerkleMapState A -> B
- * One call of `merkleUpdateBatch()` either
- * - creates an initial proof A -> B (this is the `isRecursive: false` case)
- * - or, takes an existing proof A -> B, adds its own logic to prove B -> B', so that the output is a proof A -> B'
+ * Common logic for the proof that we can go from MerkleMapState A -> B
  */
-const merkleUpdateBatch = (
-  maxUpdatesPerBatch: number,
-  maxActionsPerUpdate: number
-) => ({
-  privateInputs: [
-    // the actions to process
-    ActionIterator.provable,
-    // the merkle tree to update
-    Unconstrained.provable,
-    // flag to set whether this is a recursive call
-    Bool,
-    // recursive proof for A -> B
-    SelfProof,
-  ] satisfies AnyTuple,
-
-  async method(
-    stateA: OffchainStateCommitments,
-    actions: ActionIterator,
-    tree: Unconstrained<MerkleTree>,
-    isRecursive: Bool,
-    recursiveProof: SelfProof<
-      OffchainStateCommitments,
-      OffchainStateCommitments
-    >
-  ): Promise<OffchainStateCommitments> {
-    // in the non-recursive case, this skips verifying the proof so we can pass in a dummy proof
-    recursiveProof.verifyIf(isRecursive);
-
-    // in the recursive case, the recursive proof's initial state has to match this proof's initial state
-    // TODO maybe a dedicated `assertEqualIf()` is more efficient and readable
-    Provable.assertEqual(
-      OffchainStateCommitments,
-      recursiveProof.publicInput,
-      Provable.if(
-        isRecursive,
-        OffchainStateCommitments,
-        stateA,
-        recursiveProof.publicInput
-      )
-    );
-
-    // the state we start with
-    let stateB = Provable.if(
-      isRecursive,
-      OffchainStateCommitments,
-      recursiveProof.publicOutput,
-      stateA
-    );
-    // this would be unnecessary if the iterator could just be the public input
-    actions.currentHash.assertEquals(stateB.actionState);
-    let root = stateB.root;
-
-    // TODO: would be more efficient to linearize the actions first and then iterate over them,
-    // so we don't do the merkle lookup `maxActionsPerUpdate` times every time
-    // update merkle root for each action
-    for (let i = 0; i < maxUpdatesPerBatch; i++) {
-      actions.next().forEach(maxActionsPerUpdate, ({ key, value }, isDummy) => {
-        // merkle witness
-        let witness = Provable.witness(
-          MerkleMapWitness,
-          () => new MerkleMapWitness(tree.get().getWitness(key.toBigInt()))
-        );
-
-        // previous value at the key
-        let previousValue = Provable.witness(Field, () =>
-          tree.get().getLeaf(key.toBigInt())
-        );
-
-        // prove that the witness is correct, by comparing the implied root and key
-        // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
-        witness.calculateIndex().assertEquals(key);
-        witness.calculateRoot(previousValue).assertEquals(root);
-
-        // store new value in at the key
-        let newRoot = witness.calculateRoot(value);
-
-        // update the tree, outside the circuit (this should all be part of a better merkle tree API)
-        Provable.asProver(() => {
-          // ignore dummy value
-          if (isDummy.toBoolean()) return;
-          tree.get().setLeaf(key.toBigInt(), value);
-        });
-
-        // update root
-        root = Provable.if(isDummy, root, newRoot);
-      });
-    }
-
-    return { root, actionState: actions.currentHash };
+function merkleUpdateBatch(
+  {
+    maxUpdatesPerBatch,
+    maxActionsPerUpdate,
+  }: {
+    maxUpdatesPerBatch: number;
+    maxActionsPerUpdate: number;
   },
-});
+  stateA: OffchainStateCommitments,
+  actions: ActionIterator,
+  tree: Unconstrained<MerkleTree>
+): OffchainStateCommitments {
+  // this would be unnecessary if the iterator could just be the public input
+  actions.currentHash.assertEquals(stateA.actionState);
+  let root = stateA.root;
 
+  // TODO: would be more efficient to linearize the actions first and then iterate over them,
+  // so we don't do the merkle lookup `maxActionsPerUpdate` times every time
+  // update merkle root for each action
+  for (let i = 0; i < maxUpdatesPerBatch; i++) {
+    actions.next().forEach(maxActionsPerUpdate, ({ key, value }, isDummy) => {
+      // merkle witness
+      let witness = Provable.witness(
+        MerkleMapWitness,
+        () => new MerkleMapWitness(tree.get().getWitness(key.toBigInt()))
+      );
+
+      // previous value at the key
+      let previousValue = Provable.witness(Field, () =>
+        tree.get().getLeaf(key.toBigInt())
+      );
+
+      // prove that the witness is correct, by comparing the implied root and key
+      // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
+      witness.calculateIndex().assertEquals(key);
+      witness.calculateRoot(previousValue).assertEquals(root);
+
+      // store new value in at the key
+      let newRoot = witness.calculateRoot(value);
+
+      // update the tree, outside the circuit (this should all be part of a better merkle tree API)
+      Provable.asProver(() => {
+        // ignore dummy value
+        if (isDummy.toBoolean()) return;
+        tree.get().setLeaf(key.toBigInt(), value);
+      });
+
+      // update root
+      root = Provable.if(isDummy, root, newRoot);
+    });
+  }
+
+  return { root, actionState: actions.currentHash };
+}
+
+/**
+ * This program represents a proof that we can go from MerkleMapState A -> B
+ */
 function OffchainStateRollup({
   maxUpdatesPerBatch = 2,
   maxActionsPerUpdate = 2,
@@ -150,7 +112,66 @@ function OffchainStateRollup({
     publicInput: OffchainStateCommitments,
     publicOutput: OffchainStateCommitments,
     methods: {
-      nextBatch: merkleUpdateBatch(maxUpdatesPerBatch, maxActionsPerUpdate),
+      /**
+       * `firstBatch()` creates the initial proof A -> B
+       */
+      firstBatch: {
+        // [actions, tree]
+        privateInputs: [ActionIterator.provable, Unconstrained.provable],
+
+        async method(
+          stateA: OffchainStateCommitments,
+          actions: ActionIterator,
+          tree: Unconstrained<MerkleTree>
+        ): Promise<OffchainStateCommitments> {
+          return merkleUpdateBatch(
+            { maxUpdatesPerBatch, maxActionsPerUpdate },
+            stateA,
+            actions,
+            tree
+          );
+        },
+      },
+      /**
+       * `nextBatch()` takes an existing proof A -> B, adds its own logic to prove B -> B', so that the output is a proof A -> B'
+       */
+      nextBatch: {
+        // [actions, tree, proof]
+        privateInputs: [
+          ActionIterator.provable,
+          Unconstrained.provable,
+          SelfProof,
+        ],
+
+        async method(
+          stateA: OffchainStateCommitments,
+          actions: ActionIterator,
+          tree: Unconstrained<MerkleTree>,
+          recursiveProof: Proof<
+            OffchainStateCommitments,
+            OffchainStateCommitments
+          >
+        ): Promise<OffchainStateCommitments> {
+          recursiveProof.verify();
+
+          // in the recursive case, the recursive proof's initial state has to match this proof's initial state
+          Provable.assertEqual(
+            OffchainStateCommitments,
+            recursiveProof.publicInput,
+            stateA
+          );
+
+          // the state we start with
+          let stateB = recursiveProof.publicOutput;
+
+          return merkleUpdateBatch(
+            { maxUpdatesPerBatch, maxActionsPerUpdate },
+            stateB,
+            actions,
+            tree
+          );
+        },
+      },
     },
   });
 
@@ -188,20 +209,12 @@ function OffchainStateRollup({
         actionState: iterator.currentHash,
       });
 
-      // dummy proof
-      console.time('dummy');
-      let dummyState = OffchainStateCommitments.empty();
-      let dummy = await RollupProof.dummy(dummyState, dummyState, 1);
-      console.timeEnd('dummy');
-
       // base proof
       console.time('batch 0');
-      let proof = await offchainStateRollup.nextBatch(
+      let proof = await offchainStateRollup.firstBatch(
         inputState,
         iterator,
-        Unconstrained.from(tree),
-        Bool(false),
-        dummy
+        Unconstrained.from(tree)
       );
       console.timeEnd('batch 0');
 
@@ -218,7 +231,6 @@ function OffchainStateRollup({
           inputState,
           iterator,
           Unconstrained.from(tree),
-          Bool(true),
           proof
         );
         console.timeEnd(`batch ${i}`);
