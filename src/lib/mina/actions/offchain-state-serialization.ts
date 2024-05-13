@@ -103,7 +103,7 @@ function hashPackedWithPrefix<T, Type extends Actionable<T> | undefined>(
 class MerkleLeaf extends Struct({
   key: Field,
   value: Field,
-  prefix: Unconstrained.provable as Provable<Unconstrained<Field[]>>,
+  prefix: Unconstrained.provableWithEmpty<Field[]>([]),
 }) {
   static fromAction(action: Field[]) {
     assert(action.length >= 2, 'invalid action size');
