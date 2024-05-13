@@ -10,8 +10,9 @@ import { Provable } from '../../provable/provable.js';
 import { AnyTuple } from '../../util/types.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
+import { MerkleMap } from '../../provable/merkle-map.js';
 
-export { OffchainStateRollup, MerkleMapState };
+export { OffchainStateRollup, OffchainStateCommitments };
 
 class ActionIterator extends MerkleListIterator.create(
   ActionList.provable,
@@ -21,13 +22,21 @@ class ActionIterator extends MerkleListIterator.create(
   Actions.emptyActionState()
 ) {}
 
-class MerkleMapState extends Struct({
+class OffchainStateCommitments extends Struct({
   // this should just be a MerkleTree type that carries the full tree as aux data
   root: Field,
   // TODO: make zkprogram support auxiliary data in public inputs
   // actionState: ActionIterator.provable,
   actionState: Field,
-}) {}
+}) {
+  static empty() {
+    let emptyMerkleRoot = new MerkleMap().getRoot();
+    return new OffchainStateCommitments({
+      root: emptyMerkleRoot,
+      actionState: Actions.emptyActionState(),
+    });
+  }
+}
 
 const TREE_HEIGHT = 256;
 class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
@@ -56,23 +65,26 @@ const merkleUpdateBatch = (
   ] satisfies AnyTuple,
 
   async method(
-    stateA: MerkleMapState,
+    stateA: OffchainStateCommitments,
     actions: ActionIterator,
     tree: Unconstrained<MerkleTree>,
     isRecursive: Bool,
-    recursiveProof: SelfProof<MerkleMapState, MerkleMapState>
-  ): Promise<MerkleMapState> {
+    recursiveProof: SelfProof<
+      OffchainStateCommitments,
+      OffchainStateCommitments
+    >
+  ): Promise<OffchainStateCommitments> {
     // in the non-recursive case, this skips verifying the proof so we can pass in a dummy proof
     recursiveProof.verifyIf(isRecursive);
 
     // in the recursive case, the recursive proof's initial state has to match this proof's initial state
     // TODO maybe a dedicated `assertEqualIf()` is more efficient and readable
     Provable.assertEqual(
-      MerkleMapState,
+      OffchainStateCommitments,
       recursiveProof.publicInput,
       Provable.if(
         isRecursive,
-        MerkleMapState,
+        OffchainStateCommitments,
         stateA,
         recursiveProof.publicInput
       )
@@ -81,7 +93,7 @@ const merkleUpdateBatch = (
     // the state we start with
     let stateB = Provable.if(
       isRecursive,
-      MerkleMapState,
+      OffchainStateCommitments,
       recursiveProof.publicOutput,
       stateA
     );
@@ -130,13 +142,13 @@ const merkleUpdateBatch = (
 });
 
 function OffchainStateRollup({
-  maxUpdatesPerBatch = 10,
-  maxActionsPerUpdate = 5,
+  maxUpdatesPerBatch = 2,
+  maxActionsPerUpdate = 2,
 } = {}) {
   let offchainStateRollup = ZkProgram({
     name: 'merkle-map-rollup',
-    publicInput: MerkleMapState,
-    publicOutput: MerkleMapState,
+    publicInput: OffchainStateCommitments,
+    publicOutput: OffchainStateCommitments,
     methods: {
       nextBatch: merkleUpdateBatch(maxUpdatesPerBatch, maxActionsPerUpdate),
     },
@@ -171,14 +183,14 @@ function OffchainStateRollup({
       // input state
       let iterator = actions.startIterating();
 
-      let inputState = new MerkleMapState({
+      let inputState = new OffchainStateCommitments({
         root: tree.getRoot(),
         actionState: iterator.currentHash,
       });
 
       // dummy proof
       console.time('dummy');
-      let dummyState = MerkleMapState.empty();
+      let dummyState = OffchainStateCommitments.empty();
       let dummy = await RollupProof.dummy(dummyState, dummyState, 1);
       console.timeEnd('dummy');
 

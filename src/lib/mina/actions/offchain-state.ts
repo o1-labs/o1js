@@ -10,20 +10,20 @@ import {
 import { Field } from '../../provable/wrapped.js';
 import { Proof } from '../../proof-system/zkprogram.js';
 import {
-  MerkleMapState,
+  OffchainStateCommitments,
   OffchainStateRollup,
 } from './offchain-state-rollup.js';
 import { Option } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
-import { State, declareState } from '../state.js';
+import { State } from '../state.js';
 import { Actions } from '../account-update.js';
 import { MerkleMap, MerkleMapWitness } from '../../provable/merkle-map.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
 
-export { OffchainState };
+export { OffchainState, OffchainStateCommitments };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
@@ -42,23 +42,13 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   };
 
   /**
-   * Set the contract class that this offchain state appliues to.
-   *
-   * Note: This declares two _onchain_ state fields on the contract,
-   * which it uses to keep commitments to the offchain state and processed actions.
-   *
-   * This means that the contract has only 6 remaining onchain state fields available.
-   *
-   * It also sets the reducer for this contract, so you can't use another reducer with this contract.
-   */
-  setContractClass(contract: typeof SmartContract): void;
-
-  /**
    * Set the contract that this offchain state is connected with.
    *
    * This tells the offchain state about the account to fetch data from and modify, and lets it handle actions and onchain state.
    */
-  setContractInstance(contract: SmartContract): void;
+  setContractInstance(
+    contract: SmartContract & { offchainState: State<OffchainStateCommitments> }
+  ): void;
 
   /**
    * Compile the offchain state ZkProgram.
@@ -70,21 +60,25 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
    * Create a proof that the offchain state is in a valid state.
    */
-  createSettlementProof(): Promise<Proof<MerkleMapState, MerkleMapState>>;
+  createSettlementProof(): Promise<
+    Proof<OffchainStateCommitments, OffchainStateCommitments>
+  >;
 
   /**
    * The custom proof class for state settlement proofs, that have to be passed into the settling method.
    */
-  Proof: typeof Proof<MerkleMapState, MerkleMapState>;
+  Proof: typeof Proof<OffchainStateCommitments, OffchainStateCommitments>;
 
   /**
    * Settle the offchain state.
    */
-  settle(proof: Proof<MerkleMapState, MerkleMapState>): Promise<void>;
+  settle(
+    proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
+  ): Promise<void>;
 };
 
 type OffchainStateContract = SmartContract & {
-  offchainState: State<MerkleMapState>;
+  offchainState: State<OffchainStateCommitments>;
 };
 
 function OffchainState<
@@ -230,13 +224,8 @@ function OffchainState<
   }
 
   return {
-    setContractClass(contract) {
-      declareState(contract, { offchainState: MerkleMapState });
-    },
-
     setContractInstance(contract) {
-      (contract as any).offchainState = State();
-      internal._contract = contract as any;
+      internal._contract = contract;
     },
 
     async compile() {
@@ -272,7 +261,7 @@ function OffchainState<
 
       // check that proof moves state forward from the one currently storedö
       let state = internal.contract.offchainState.getAndRequireEquals();
-      Provable.assertEqual(MerkleMapState, state, proof.publicInput);
+      Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
 
       // require that proof uses the correct pending actions
       internal.contract.account.actionState.requireEquals(
