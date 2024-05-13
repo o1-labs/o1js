@@ -35,14 +35,16 @@ class ExampleContract extends SmartContract {
     // TODO we use `update` here so that previous balances can't be overridden
     // but this still includes a trivial double-spend opportunity, because the updates are not rejected atomically:
     // if the `to` update gets accepted but the `from` update fails, it's a double-spend
-    state.fields.accounts.update(from, {
-      from: fromBalance,
-      to: fromBalance.sub(amount),
-    });
-    state.fields.accounts.update(to, {
-      from: toBalance,
-      to: toBalance.add(amount),
-    });
+    state.fields.accounts.set(from, fromBalance.sub(amount));
+    // state.fields.accounts.update(from, {
+    //   from: fromBalance,
+    //   to: fromBalance.sub(amount),
+    // });
+    state.fields.accounts.set(to, toBalance.add(amount));
+    // state.fields.accounts.update(to, {
+    //   from: toBalance,
+    //   to: toBalance.add(amount),
+    // });
   }
 
   @method.returns(UInt64)
