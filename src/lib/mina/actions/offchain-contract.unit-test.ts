@@ -75,6 +75,7 @@ let [sender, receiver, contractAccount] = Local.testAccounts;
 let contract = new ExampleContract(contractAccount);
 state.setContractInstance(contract);
 
+await state.compile();
 await ExampleContract.compile();
 
 // deploy and create first account

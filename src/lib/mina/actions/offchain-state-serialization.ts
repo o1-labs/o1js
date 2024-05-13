@@ -170,6 +170,7 @@ async function fetchMerkleLeaves(
   return MerkleActions.from(merkleLeafs.map((a) => ActionList.fromReverse(a)));
 }
 
+// TODO this should be `updateMerkleMap`, and we should call it on every get() and settle()
 /**
  * Recreate Merkle tree from fetched actions.
  *

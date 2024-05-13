@@ -1,6 +1,7 @@
 import { InferProvable } from '../../provable/types/struct.js';
 import {
   Actionable,
+  fetchMerkleLeaves,
   fetchMerkleMap,
   fromActionWithoutHashes,
   toAction,
@@ -83,8 +84,7 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 };
 
 type OffchainStateContract = SmartContract & {
-  stateRoot: State<Field>;
-  actionState: State<Field>;
+  offchainState: State<MerkleMapState>;
 };
 
 function OffchainState<
@@ -105,7 +105,8 @@ function OffchainState<
     },
   };
   const onchainActionState = async () => {
-    let actionState = await internal.contract.actionState.fetch();
+    let actionState = (await internal.contract.offchainState.fetch())
+      ?.actionState;
     assert(actionState !== undefined, 'Could not fetch action state');
     return actionState;
   };
@@ -133,7 +134,7 @@ function OffchainState<
    */
   async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
     // get onchain merkle root
-    let stateRoot = internal.contract.stateRoot.getAndRequireEquals();
+    let stateRoot = internal.contract.offchainState.getAndRequireEquals().root;
 
     // witness the actual value
     const optionType = Option(valueType);
@@ -230,12 +231,11 @@ function OffchainState<
 
   return {
     setContractClass(contract) {
-      declareState(contract, { stateRoot: Field, actionState: Field });
+      declareState(contract, { offchainState: MerkleMapState });
     },
 
     setContractInstance(contract) {
-      (contract as any).actionState = State();
-      (contract as any).stateRoot = State();
+      (contract as any).offchainState = State();
       internal._contract = contract as any;
     },
 
@@ -244,13 +244,43 @@ function OffchainState<
     },
 
     async createSettlementProof() {
-      return notImplemented();
+      let { merkleMap } = await merkleMaps();
+
+      // fetch pending actions
+      let actionState = await onchainActionState();
+      let actions = await fetchMerkleLeaves(internal.contract, {
+        fromActionState: actionState,
+      });
+
+      let result = await rollup.prove(merkleMap.tree, actions);
+
+      // update internal merkle maps as well
+      // TODO make this not insanely recompute everything
+      let { merkleMap: newMerkleMap, valueMap: newValueMap } =
+        await fetchMerkleMap(internal.contract);
+      internal._merkleMap = newMerkleMap;
+      internal._valueMap = newValueMap;
+
+      return result.proof;
     },
 
     Proof: rollup.Proof,
 
     async settle(proof) {
-      notImplemented();
+      // verify the proof
+      proof.verify();
+
+      // check that proof moves state forward from the one currently storedö
+      let state = internal.contract.offchainState.getAndRequireEquals();
+      Provable.assertEqual(MerkleMapState, state, proof.publicInput);
+
+      // require that proof uses the correct pending actions
+      internal.contract.account.actionState.requireEquals(
+        proof.publicOutput.actionState
+      );
+
+      // update the state
+      internal.contract.offchainState.set(proof.publicOutput);
     },
 
     fields: Object.fromEntries(

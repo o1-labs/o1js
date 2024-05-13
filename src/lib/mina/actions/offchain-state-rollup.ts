@@ -144,7 +144,7 @@ function OffchainStateRollup({
 
   let RollupProof = ZkProgram.Proof(offchainStateRollup);
 
-  let isCompiled = true;
+  let isCompiled = false;
 
   return {
     Proof: RollupProof,
