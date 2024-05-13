@@ -13,7 +13,7 @@ import type {
   IsPure,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
-import { Proof } from '../../proof-system/zkprogram.js';
+import { DynamicProof, Proof } from '../../proof-system/zkprogram.js';
 import { ProvablePure } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 
@@ -311,7 +311,7 @@ function cloneCircuitValue<T>(obj: T): T {
   if (isPrimitive(obj)) {
     return obj;
   }
-  if (obj instanceof Proof) {
+  if (obj instanceof Proof || obj instanceof DynamicProof) {
     return obj;
   }
 

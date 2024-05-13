@@ -69,6 +69,7 @@ export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
+  type ProofBase,
   Proof,
   DynamicProof,
   SelfProof,
