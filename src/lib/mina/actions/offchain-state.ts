@@ -22,6 +22,7 @@ import { Actions } from '../account-update.js';
 import { MerkleMap, MerkleMapWitness } from '../../provable/merkle-map.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
+import { smartContractContext } from '../smart-contract-context.js';
 
 export { OffchainState, OffchainStateCommitments };
 
@@ -123,12 +124,23 @@ function OffchainState<
 
   let rollup = OffchainStateRollup();
 
+  function contract() {
+    let ctx = smartContractContext.get();
+    assert(ctx !== null, 'get() must be called within a contract method');
+    assert(
+      ctx.this.constructor === internal.contract.constructor,
+      'Offchain state methods can only be called on the contract that you called setContractInstance() on'
+    );
+    return ctx.this as OffchainStateContract;
+  }
+
   /**
    * generic get which works for both fields and maps
    */
   async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
     // get onchain merkle root
-    let stateRoot = internal.contract.offchainState.getAndRequireEquals().root;
+
+    let stateRoot = contract().offchainState.getAndRequireEquals().root;
 
     // witness the actual value
     const optionType = Option(valueType);
@@ -180,7 +192,7 @@ function OffchainState<
         );
 
         // push action on account update
-        let update = internal.contract.self;
+        let update = contract().self;
         Actions.pushEvent(update.body.actions, action);
       },
       update: notImplemented,
@@ -212,7 +224,7 @@ function OffchainState<
         );
 
         // push action on account update
-        let update = internal.contract.self;
+        let update = contract().self;
         Actions.pushEvent(update.body.actions, action);
       },
       update: notImplemented,
@@ -260,16 +272,16 @@ function OffchainState<
       proof.verify();
 
       // check that proof moves state forward from the one currently storedö
-      let state = internal.contract.offchainState.getAndRequireEquals();
+      let state = contract().offchainState.getAndRequireEquals();
       Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
 
       // require that proof uses the correct pending actions
-      internal.contract.account.actionState.requireEquals(
+      contract().account.actionState.requireEquals(
         proof.publicOutput.actionState
       );
 
       // update the state
-      internal.contract.offchainState.set(proof.publicOutput);
+      contract().offchainState.set(proof.publicOutput);
     },
 
     fields: Object.fromEntries(
