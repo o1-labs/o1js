@@ -10,6 +10,7 @@ import { Provable } from '../../provable/provable.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
 import { MerkleMap } from '../../provable/merkle-map.js';
+import { getProofsEnabled } from '../mina.js';
 
 export { OffchainStateRollup, OffchainStateCommitments };
 
@@ -191,7 +192,7 @@ function OffchainStateRollup({
 
     async prove(tree: MerkleTree, actions: MerkleList<MerkleList<MerkleLeaf>>) {
       assert(tree.height === TREE_HEIGHT, 'Tree height must match');
-      await this.compile();
+      if (getProofsEnabled()) await this.compile();
       // clone the tree so we don't modify the input
       tree = tree.clone();
 
@@ -208,6 +209,20 @@ function OffchainStateRollup({
         root: tree.getRoot(),
         actionState: iterator.currentHash,
       });
+
+      // if proofs are disabled, create a dummy proof and final state, and return
+      if (!getProofsEnabled()) {
+        tree = merkleUpdateOutside(actions, tree, {
+          maxUpdatesPerBatch,
+          maxActionsPerUpdate,
+        });
+        let finalState = new OffchainStateCommitments({
+          root: tree.getRoot(),
+          actionState: iterator.hash,
+        });
+        let proof = await RollupProof.dummy(inputState, finalState, 2, 15);
+        return { proof, tree };
+      }
 
       // base proof
       console.time('batch 0');

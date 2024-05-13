@@ -72,20 +72,23 @@ class ExampleContract extends SmartContract {
 // test code below
 
 // setup
+const proofsEnabled = false;
 
-const Local = await Mina.LocalBlockchain();
+const Local = await Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
 
 let [sender, receiver, contractAccount] = Local.testAccounts;
 let contract = new ExampleContract(contractAccount);
 offchainState.setContractInstance(contract);
 
-console.time('compile');
-await offchainState.compile();
-console.timeEnd('compile');
-console.time('compile contract');
-await ExampleContract.compile();
-console.timeEnd('compile contract');
+if (proofsEnabled) {
+  console.time('compile');
+  await offchainState.compile();
+  console.timeEnd('compile');
+  console.time('compile contract');
+  await ExampleContract.compile();
+  console.timeEnd('compile contract');
+}
 
 // deploy and create first account
 
@@ -123,10 +126,10 @@ await Mina.transaction(sender, () => contract.settle(proof))
 console.timeEnd('settle 1');
 
 // check balance and supply
-let balance = await contract.getBalance(receiver);
 let supply = await contract.getSupply();
 
-console.log('balance', balance.toString());
+console.log('balance (sender)', (await contract.getBalance(sender)).toString());
+console.log('balance (recv)', (await contract.getBalance(receiver)).toString());
 console.log('supply', supply.toString());
 
 // transfer
