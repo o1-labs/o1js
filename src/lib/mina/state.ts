@@ -372,7 +372,7 @@ function getLayoutPosition<A>({
 
 function getLayout(scClass: typeof SmartContract) {
   let sc = smartContracts.get(scClass);
-  if (sc === undefined) throw Error('bug');
+  if (sc === undefined) return new Map();
   if (sc.layout === undefined) {
     let layout = new Map();
     sc.layout = layout;
