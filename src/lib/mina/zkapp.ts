@@ -51,7 +51,12 @@ import {
   sortMethodArguments,
 } from '../proof-system/zkprogram.js';
 import { PublicKey } from '../provable/crypto/signature.js';
-import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
+import {
+  InternalStateType,
+  assertStatePrecondition,
+  cleanStatePrecondition,
+  getLayout,
+} from './state.js';
 import {
   inAnalyze,
   inCheckedComputation,
@@ -766,9 +771,21 @@ super.init();
     // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
     this.account.provedState.requireEquals(Bool(false));
     let accountUpdate = this.self;
+
+    // set all state fields to 0
     for (let i = 0; i < ZkappStateLength; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
     }
+
+    // for all explicitly declared states, set them to their default value
+    let stateKeys = getLayout(this.constructor as typeof SmartContract).keys();
+    for (let key of stateKeys) {
+      let state = this[key as keyof this] as InternalStateType<any> | undefined;
+      if (state !== undefined && state.defaultValue !== undefined) {
+        state.set(state.defaultValue);
+      }
+    }
+
     AccountUpdate.attachToTransaction(accountUpdate);
   }
 
