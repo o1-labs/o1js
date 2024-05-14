@@ -25,6 +25,7 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
 import { MerkleTree } from '../../provable/merkle-tree.js';
+import { Option } from '../../provable/option.js';
 
 export {
   toKeyHash,
@@ -63,7 +64,7 @@ function toAction<K, V, KeyType extends Actionable<K> | undefined>({
   valueType: Actionable<V>;
   key: KeyType extends undefined ? undefined : K;
   value: V;
-  previousValue?: V;
+  previousValue?: Option<V>;
 }): Action {
   let valueSize = valueType.sizeInFields();
   let padding = valueSize % 2 === 0 ? [] : [Field(0)];
@@ -73,7 +74,11 @@ function toAction<K, V, KeyType extends Actionable<K> | undefined>({
   let usesPreviousValue = Bool(previousValue !== undefined).toField();
   let previousValueHash =
     previousValue !== undefined
-      ? Poseidon.hashPacked(valueType, previousValue)
+      ? Provable.if(
+          previousValue.isSome,
+          Poseidon.hashPacked(valueType, previousValue.value),
+          Field(0)
+        )
       : Field(0);
   let valueHash = Poseidon.hashPacked(valueType, value);
 

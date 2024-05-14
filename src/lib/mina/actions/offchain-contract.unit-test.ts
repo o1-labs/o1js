@@ -50,11 +50,11 @@ class ExampleContract extends SmartContract {
      * This is safe, because both updates will only be accepted if both previous balances are still correct.
      */
     offchainState.fields.accounts.update(from, {
-      from: fromBalance,
+      from: fromOption,
       to: fromBalance.sub(amount),
     });
     offchainState.fields.accounts.update(to, {
-      from: toBalance,
+      from: toOption,
       to: toBalance.add(amount),
     });
   }

@@ -120,8 +120,6 @@ function OffchainState<
     return { merkleMap, valueMap };
   };
 
-  const notImplemented = (): any => assert(false, 'Not implemented');
-
   let rollup = OffchainStateRollup();
 
   function contract() {
@@ -207,7 +205,7 @@ function OffchainState<
           valueType: type,
           key: undefined,
           value: type.fromValue(to),
-          previousValue: type.fromValue(from),
+          previousValue: from,
         });
 
         // push action on account update
@@ -255,7 +253,7 @@ function OffchainState<
           valueType,
           key,
           value: valueType.fromValue(to),
-          previousValue: valueType.fromValue(from),
+          previousValue: from,
         });
 
         // push action on account update
@@ -355,9 +353,10 @@ type OffchainField<T, TValue> = {
    * Update the value of the field, while requiring a specific previous value.
    *
    * If the previous value does not match, the update will not be applied.
-   * If no previous value is present, the `from` value is ignored and the update applied unconditionally.
+   *
+   * Note that the previous value is an option: to require that the field was not set before, use `Option.none()`.
    */
-  update(update: { from: T | TValue; to: T | TValue }): void;
+  update(update: { from: Option<T>; to: T | TValue }): void;
 };
 
 function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
@@ -376,9 +375,10 @@ type OffchainMap<K, V, VValue> = {
    * Update the value of the field, while requiring a specific previous value.
    *
    * If the previous value does not match, the update will not be applied.
-   * If no previous value is present, the `from` value is ignored and the update applied unconditionally.
+   *
+   * Note that the previous value is an option: to require that the field was not set before, use `Option.none()`.
    */
-  update(key: K, update: { from: V | VValue; to: V | VValue }): void;
+  update(key: K, update: { from: Option<V>; to: V | VValue }): void;
 };
 
 type OffchainStateKind =
