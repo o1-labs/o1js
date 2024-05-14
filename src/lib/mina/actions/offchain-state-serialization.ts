@@ -37,6 +37,7 @@ export {
   ActionList,
   fetchMerkleLeaves,
   fetchMerkleMap,
+  updateMerkleMap,
   Actionable,
 };
 
@@ -265,21 +266,60 @@ async function fetchMerkleMap(
   );
   if ('error' in result) throw Error(JSON.stringify(result));
 
-  let leaves = result
-    .map((event) =>
-      event.actions
-        .map((action) => MerkleLeaf.fromAction(action.map(Field)))
-        .reverse()
-    )
-    .flat();
+  let leaves = result.map((event) =>
+    event.actions
+      .map((action) => MerkleLeaf.fromAction(action.map(Field)))
+      .reverse()
+  );
 
   let merkleMap = new MerkleTree(256);
   let valueMap = new Map<bigint, Field[]>();
 
-  for (let leaf of leaves) {
-    merkleMap.setLeaf(leaf.key.toBigInt(), leaf.value);
-    valueMap.set(leaf.key.toBigInt(), leaf.prefix.get());
-  }
+  updateMerkleMap(leaves, merkleMap, valueMap);
 
   return { merkleMap, valueMap };
+}
+
+function updateMerkleMap(
+  updates: MerkleLeaf[][],
+  tree: MerkleTree,
+  valueMap?: Map<bigint, Field[]>
+) {
+  let intermediateTree = tree.clone();
+
+  for (let leaves of updates) {
+    let isValidUpdate = true;
+    let updates: { key: bigint; value: bigint; fullValue: Field[] }[] = [];
+
+    for (let leaf of leaves) {
+      let { key, value, usesPreviousValue, previousValue, prefix } =
+        MerkleLeaf.toValue(leaf);
+
+      // the update is invalid if there is an unsatisfied precondition
+      let isValidAction =
+        !usesPreviousValue ||
+        intermediateTree.getLeaf(key).toBigInt() === previousValue;
+
+      if (!isValidAction) {
+        isValidUpdate = false;
+
+        break;
+      }
+
+      // update the intermediate tree, save updates for final tree
+      intermediateTree.setLeaf(key, Field(value));
+      updates.push({ key, value, fullValue: prefix.get() });
+    }
+
+    if (isValidUpdate) {
+      // if the update was valid, we can commit the updates
+      for (let { key, value, fullValue } of updates) {
+        tree.setLeaf(key, Field(value));
+        if (valueMap) valueMap.set(key, fullValue);
+      }
+    } else {
+      // if the update was invalid, we have to roll back the intermediate tree
+      intermediateTree = tree.clone();
+    }
+  }
 }

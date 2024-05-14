@@ -111,7 +111,11 @@ console.timeEnd('deploy');
 
 console.time('create account');
 await Mina.transaction(sender, async () => {
+  // first call (should succeed)
   await contract.createAccount(sender, UInt64.from(1000));
+
+  // second call (should fail)
+  await contract.createAccount(sender, UInt64.from(2000));
 })
   .sign([sender.key])
   .prove()
@@ -137,9 +141,13 @@ await checkAgainstSupply(1000n);
 // transfer
 
 console.time('transfer');
-await Mina.transaction(sender, () =>
-  contract.transfer(sender, receiver, UInt64.from(100))
-)
+await Mina.transaction(sender, async () => {
+  // first call (should succeed)
+  await contract.transfer(sender, receiver, UInt64.from(100));
+
+  // second call (should fail)
+  await contract.transfer(sender, receiver, UInt64.from(200));
+})
   .sign([sender.key])
   .prove()
   .send();
