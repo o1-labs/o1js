@@ -14,7 +14,7 @@ import {
   packToFields,
   salt,
 } from '../../provable/crypto/poseidon.js';
-import { Field } from '../../provable/wrapped.js';
+import { Field, Bool } from '../../provable/wrapped.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
 import { Struct } from '../../provable/types/struct.js';
@@ -48,19 +48,41 @@ function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
   return hashPackedWithPrefix([prefix, Field(0)], keyType, key);
 }
 
-function toAction<K, V, KeyType extends Actionable<K> | undefined>(
-  prefix: Field,
-  keyType: KeyType,
-  valueType: Actionable<V>,
-  key: KeyType extends undefined ? undefined : K,
-  value: V
-): Action {
+function toAction<K, V, KeyType extends Actionable<K> | undefined>({
+  prefix,
+  keyType,
+  valueType,
+  key,
+  value,
+  previousValue,
+}: {
+  prefix: Field;
+  keyType: KeyType;
+  valueType: Actionable<V>;
+  key: KeyType extends undefined ? undefined : K;
+  value: V;
+  previousValue?: V;
+}): Action {
   let valueSize = valueType.sizeInFields();
   let padding = valueSize % 2 === 0 ? [] : [Field(0)];
 
   let keyHash = hashPackedWithPrefix([prefix, Field(0)], keyType, key);
+
+  let usesPreviousValue = Bool(previousValue !== undefined).toField();
+  let previousValueHash =
+    previousValue !== undefined
+      ? Poseidon.hashPacked(valueType, previousValue)
+      : Field(0);
   let valueHash = Poseidon.hashPacked(valueType, value);
-  return [...valueType.toFields(value), ...padding, keyHash, valueHash];
+
+  return [
+    ...valueType.toFields(value),
+    ...padding,
+    usesPreviousValue,
+    previousValueHash,
+    keyHash,
+    valueHash,
+  ];
 }
 
 function fromActionWithoutHashes<V>(
@@ -102,13 +124,22 @@ function hashPackedWithPrefix<T, Type extends Actionable<T> | undefined>(
 class MerkleLeaf extends Struct({
   key: Field,
   value: Field,
+  usesPreviousValue: Bool,
+  previousValue: Field,
   prefix: Unconstrained.provableWithEmpty<Field[]>([]),
 }) {
   static fromAction(action: Field[]) {
-    assert(action.length >= 2, 'invalid action size');
-    let [key, value] = action.slice(-2);
-    let prefix = Unconstrained.from(action.slice(0, -2));
-    return new MerkleLeaf({ key, value, prefix });
+    assert(action.length >= 4, 'invalid action size');
+    let [usesPreviousValue_, previousValue, key, value] = action.slice(-4);
+    let usesPreviousValue = usesPreviousValue_.assertBool();
+    let prefix = Unconstrained.from(action.slice(0, -4));
+    return new MerkleLeaf({
+      usesPreviousValue,
+      previousValue,
+      key,
+      value,
+      prefix,
+    });
   }
 
   /**
@@ -122,7 +153,12 @@ class MerkleLeaf extends Struct({
       let init = salt(prefixes.event) as [Field, Field, Field];
       return Poseidon.update(init, prefix);
     });
-    return Poseidon.update(preHashState, [action.key, action.value])[0];
+    return Poseidon.update(preHashState, [
+      action.usesPreviousValue.toField(),
+      action.previousValue,
+      action.key,
+      action.value,
+    ])[0];
   }
 }
 

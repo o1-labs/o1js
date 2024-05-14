@@ -186,13 +186,13 @@ function OffchainState<
     return {
       set(value) {
         // serialize into action
-        let action = toAction(
+        let action = toAction({
           prefix,
-          undefined,
-          type,
-          undefined,
-          type.fromValue(value)
-        );
+          keyType: undefined,
+          valueType: type,
+          key: undefined,
+          value: type.fromValue(value),
+        });
 
         // push action on account update
         let update = contract().self;
@@ -218,13 +218,13 @@ function OffchainState<
     return {
       set(key, value) {
         // serialize into action
-        let action = toAction(
+        let action = toAction({
           prefix,
           keyType,
           valueType,
           key,
-          valueType.fromValue(value)
-        );
+          value: valueType.fromValue(value),
+        });
 
         // push action on account update
         let update = contract().self;
