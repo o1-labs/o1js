@@ -10,6 +10,22 @@ type Option<T, V = any> = { isSome: Bool; value: T } & {
   orElse(defaultValue: T | V): T;
 };
 
+/**
+ * Define an optional version of a provable type.
+ *
+ * @example
+ * ```ts
+ * class OptionUInt64 extends Option(UInt64) {}
+ *
+ * // create an optional UInt64
+ * let some = OptionUInt64.from(5n);
+ * let none = OptionUInt64.none();
+ *
+ * // get back a UInt64
+ * let five: UInt64 = some.assertSome('must have a value');
+ * let zero: UInt64 = none.orElse(0n); // specify a default value
+ * ```
+ */
 function Option<T, V>(
   type: Provable<T, V>
 ): Provable<
