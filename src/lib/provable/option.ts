@@ -1,14 +1,17 @@
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { emptyValue } from '../proof-system/zkprogram.js';
 import { Provable } from './provable.js';
-import { Struct } from './types/struct.js';
+import { InferProvable, Struct } from './types/struct.js';
 import { Bool } from './wrapped.js';
 
-export { Option };
+export { Option, OptionOrValue };
 
 type Option<T, V = any> = { isSome: Bool; value: T } & {
   assertSome(message?: string): T;
   orElse(defaultValue: T | V): T;
 };
+
+type OptionOrValue<T, V> = Option<T, V> | { isSome: boolean; value: V };
 
 /**
  * Define an optional version of a provable type.
@@ -26,17 +29,20 @@ type Option<T, V = any> = { isSome: Bool; value: T } & {
  * let zero: UInt64 = none.orElse(0n); // specify a default value
  * ```
  */
-function Option<T, V>(
-  type: Provable<T, V>
+function Option<A extends Provable<any, any>>(
+  type: A
 ): Provable<
-  Option<T, V>,
+  Option<InferProvable<A>, InferValue<A>>,
   // TODO make V | undefined the value type
-  { isSome: boolean; value: V }
+  { isSome: boolean; value: InferValue<A> }
 > & {
-  from(value?: T): Option<T, V>;
-  none(): Option<T, V>;
+  from(value?: InferProvable<A>): Option<InferProvable<A>, InferValue<A>>;
+  none(): Option<InferProvable<A>, InferValue<A>>;
 } {
-  const Super = Struct({ isSome: Bool, value: type });
+  type T = InferProvable<A>;
+  type V = InferValue<A>;
+
+  const Super = Struct({ isSome: Bool, value: type as Provable<T, V> });
   return class Option_ extends Super {
     orElse(defaultValue: T | V): T {
       return Provable.if(
