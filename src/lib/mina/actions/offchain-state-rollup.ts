@@ -13,6 +13,7 @@ import {
   LinearizedAction,
   LinearizedActionList,
   MerkleLeaf,
+  updateMerkleMap,
 } from './offchain-state-serialization.js';
 import { MerkleMap } from '../../provable/merkle-map.js';
 import { getProofsEnabled } from '../mina.js';
@@ -94,8 +95,7 @@ function merkleUpdateBatch(
   let root = stateA.root;
   let intermediateRoot = root;
 
-  type TreeUpdate = { key: Field; value: Field };
-  let intermediateUpdates: TreeUpdate[] = [];
+  let intermediateUpdates: { key: Field; value: Field }[] = [];
   let intermediateTree = Unconstrained.witness(() => tree.get().clone());
 
   let isValidUpdate = Bool(true);
@@ -277,7 +277,22 @@ function OffchainStateRollup({
 
       // if proofs are disabled, create a dummy proof and final state, and return
       if (!getProofsEnabled()) {
-        tree = merkleUpdateOutside(actions, tree);
+        // convert actions to nested array
+        let actionsList = actions.data
+          .get()
+          .map(({ element: actionsList }) =>
+            actionsList.data
+              .get()
+              .map(({ element }) => element)
+              // TODO reverse needed because of bad internal merkle list representation
+              .reverse()
+          )
+          // TODO reverse needed because of bad internal merkle list representation
+          .reverse();
+
+        // update the tree outside the circuit
+        updateMerkleMap(actionsList, tree);
+
         let finalState = new OffchainStateCommitments({
           root: tree.getRoot(),
           actionState: iterator.hash,
@@ -316,7 +331,7 @@ function OffchainStateRollup({
   };
 }
 
-// from a nested list of actions, create a slice (iterator) starting at `index` that has at most `batchSize` actions in it\
+// from a nested list of actions, create a slice (iterator) starting at `index` that has at most `batchSize` actions in it.
 // also moves the original iterator forward to start after the slice
 function sliceActions(actions: ActionIterator, batchSize: number) {
   class ActionListsList extends MerkleList.create(
@@ -347,21 +362,4 @@ function sliceActions(actions: ActionIterator, batchSize: number) {
   }
 
   return slice.startIterating();
-}
-
-// TODO: do we have to repeat the merkle updates outside the circuit?
-
-function merkleUpdateOutside(
-  actions: MerkleList<MerkleList<MerkleLeaf>>,
-  tree: MerkleTree
-) {
-  tree = tree.clone();
-
-  actions.data.get().forEach(({ element: actionsList }) => {
-    actionsList.data.get().forEach(({ element: { key, value } }) => {
-      tree.setLeaf(key.toBigInt(), value);
-    });
-  });
-
-  return tree;
 }
