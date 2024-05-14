@@ -48,10 +48,10 @@ class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
  */
 function merkleUpdateBatch(
   {
-    maxUpdatesPerBatch,
+    maxActionsPerBatch,
     maxActionsPerUpdate,
   }: {
-    maxUpdatesPerBatch: number;
+    maxActionsPerBatch: number;
     maxActionsPerUpdate: number;
   },
   stateA: OffchainStateCommitments,
@@ -62,41 +62,47 @@ function merkleUpdateBatch(
   actions.currentHash.assertEquals(stateA.actionState);
   let root = stateA.root;
 
-  // TODO: would be more efficient to linearize the actions first and then iterate over them,
-  // so we don't do the merkle lookup `maxActionsPerUpdate` times every time
-  // update merkle root for each action
-  for (let i = 0; i < maxUpdatesPerBatch; i++) {
-    actions.next().forEach(maxActionsPerUpdate, ({ key, value }, isDummy) => {
-      // merkle witness
-      let witness = Provable.witness(
-        MerkleMapWitness,
-        () => new MerkleMapWitness(tree.get().getWitness(key.toBigInt()))
-      );
+  // linearize actions into a flat MerkleList, so we don't process an insane amount of dummy actions
+  let linearActions = ActionList.empty();
 
-      // previous value at the key
-      let previousValue = Provable.witness(Field, () =>
-        tree.get().getLeaf(key.toBigInt())
-      );
-
-      // prove that the witness is correct, by comparing the implied root and key
-      // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
-      witness.calculateIndex().assertEquals(key);
-      witness.calculateRoot(previousValue).assertEquals(root);
-
-      // store new value in at the key
-      let newRoot = witness.calculateRoot(value);
-
-      // update the tree, outside the circuit (this should all be part of a better merkle tree API)
-      Provable.asProver(() => {
-        // ignore dummy value
-        if (isDummy.toBoolean()) return;
-        tree.get().setLeaf(key.toBigInt(), value);
-      });
-
-      // update root
-      root = Provable.if(isDummy, root, newRoot);
+  for (let i = 0; i < maxActionsPerBatch; i++) {
+    actions.next().forEach(maxActionsPerUpdate, (action, isDummy) => {
+      linearActions.pushIf(isDummy.not(), action);
     });
   }
+  actions.assertAtEnd();
+
+  // update merkle root for each action
+  linearActions.forEach(maxActionsPerBatch, ({ key, value }, isDummy) => {
+    // merkle witness
+    let witness = Provable.witness(
+      MerkleMapWitness,
+      () => new MerkleMapWitness(tree.get().getWitness(key.toBigInt()))
+    );
+
+    // previous value at the key
+    let previousValue = Provable.witness(Field, () =>
+      tree.get().getLeaf(key.toBigInt())
+    );
+
+    // prove that the witness is correct, by comparing the implied root and key
+    // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
+    witness.calculateIndex().assertEquals(key);
+    witness.calculateRoot(previousValue).assertEquals(root);
+
+    // store new value in at the key
+    let newRoot = witness.calculateRoot(value);
+
+    // update the tree, outside the circuit (this should all be part of a better merkle tree API)
+    Provable.asProver(() => {
+      // ignore dummy value
+      if (isDummy.toBoolean()) return;
+      tree.get().setLeaf(key.toBigInt(), value);
+    });
+
+    // update root
+    root = Provable.if(isDummy, root, newRoot);
+  });
 
   return { root, actionState: actions.currentHash };
 }
@@ -105,10 +111,13 @@ function merkleUpdateBatch(
  * This program represents a proof that we can go from OffchainStateCommitments A -> B
  */
 function OffchainStateRollup({
-  // 1 actions uses about 7.5k constraints
-  // we can fit 7 * 7.5k = 52.5k constraints in one method next to the proof verification
-  maxUpdatesPerBatch = 3,
-  maxActionsPerUpdate = 2,
+  // 1 action uses about 7.5k constraints
+  // we can fit at most 7 * 7.5k = 52.5k constraints in one method next to proof verification
+  // => we use `maxActionsPerBatch = 6` to safely stay below the constraint limit
+  // the second parameter `maxActionsPerUpdate` only weakly affects # constraints, but has to be <= `maxActionsPerBatch`
+  // => so we set it to the same value
+  maxActionsPerBatch = 6,
+  maxActionsPerUpdate = 6,
 } = {}) {
   let offchainStateRollup = ZkProgram({
     name: 'merkle-map-rollup',
@@ -128,7 +137,7 @@ function OffchainStateRollup({
           tree: Unconstrained<MerkleTree>
         ): Promise<OffchainStateCommitments> {
           return merkleUpdateBatch(
-            { maxUpdatesPerBatch, maxActionsPerUpdate },
+            { maxActionsPerBatch, maxActionsPerUpdate },
             stateA,
             actions,
             tree
@@ -168,7 +177,7 @@ function OffchainStateRollup({
           let stateB = recursiveProof.publicOutput;
 
           return merkleUpdateBatch(
-            { maxUpdatesPerBatch, maxActionsPerUpdate },
+            { maxActionsPerBatch, maxActionsPerUpdate },
             stateB,
             actions,
             tree
@@ -199,15 +208,8 @@ function OffchainStateRollup({
       // clone the tree so we don't modify the input
       tree = tree.clone();
 
-      let n = actions.data.get().length;
-      let nBatches = Math.ceil(n / maxUpdatesPerBatch);
-
-      // if there are no actions, we still need to create a valid proof for the empty transition
-      if (n === 0) nBatches = 1;
-
       // input state
       let iterator = actions.startIterating();
-
       let inputState = new OffchainStateCommitments({
         root: tree.getRoot(),
         actionState: iterator.currentHash,
@@ -215,10 +217,7 @@ function OffchainStateRollup({
 
       // if proofs are disabled, create a dummy proof and final state, and return
       if (!getProofsEnabled()) {
-        tree = merkleUpdateOutside(actions, tree, {
-          maxUpdatesPerBatch,
-          maxActionsPerUpdate,
-        });
+        tree = merkleUpdateOutside(actions, tree);
         let finalState = new OffchainStateCommitments({
           root: tree.getRoot(),
           actionState: iterator.hash,
@@ -229,25 +228,23 @@ function OffchainStateRollup({
 
       // base proof
       console.time('batch 0');
+      let slice = sliceActions(iterator, maxActionsPerBatch);
       let proof = await offchainStateRollup.firstBatch(
         inputState,
-        iterator,
+        slice,
         Unconstrained.from(tree)
       );
       console.timeEnd('batch 0');
 
       // recursive proofs
-      for (let i = 1; i < nBatches; i++) {
-        // update iterator (would be nice if the method call would just return the updated one)
-        iterator.currentHash = proof.publicOutput.actionState;
-        for (let j = 0; j < maxUpdatesPerBatch; j++) {
-          iterator._updateIndex('next');
-        }
+      for (let i = 1; ; i++) {
+        if (iterator.isAtEnd().toBoolean()) break;
 
         console.time(`batch ${i}`);
+        let slice = sliceActions(iterator, maxActionsPerBatch);
         proof = await offchainStateRollup.nextBatch(
           inputState,
-          iterator,
+          slice,
           Unconstrained.from(tree),
           proof
         );
@@ -259,21 +256,49 @@ function OffchainStateRollup({
   };
 }
 
+// from a nested list of actions, create a slice (iterator) starting at `index` that has at most `batchSize` actions in it\
+// also moves the original iterator forward to start after the slice
+function sliceActions(actions: ActionIterator, batchSize: number) {
+  class ActionListsList extends MerkleList.create(
+    ActionList.provable,
+    (hash: Field, actions: ActionList) =>
+      Actions.updateSequenceState(hash, actions.hash),
+    actions.currentHash
+  ) {}
+
+  let slice = ActionListsList.empty();
+  let totalSize = 0;
+
+  while (true) {
+    // stop if we reach the end of the list
+    if (actions.isAtEnd().toBoolean()) break;
+
+    let nextList = actions.data.get()[actions._index('next')].element;
+    let nextSize = nextList.data.get().length;
+    assert(
+      nextSize <= batchSize,
+      'Actions in one update exceed maximum batch size'
+    );
+    if (totalSize + nextSize > batchSize) break;
+
+    let nextMerkleList = actions.next();
+    slice.push(nextMerkleList);
+    totalSize += nextSize;
+  }
+
+  return slice.startIterating();
+}
+
 // TODO: do we have to repeat the merkle updates outside the circuit?
 
 function merkleUpdateOutside(
   actions: MerkleList<MerkleList<MerkleLeaf>>,
-  tree: MerkleTree,
-  { maxUpdatesPerBatch = 10, maxActionsPerUpdate = 5 } = {}
+  tree: MerkleTree
 ) {
   tree = tree.clone();
 
-  actions.forEach(maxUpdatesPerBatch, (actionsList, isDummy) => {
-    if (isDummy.toBoolean()) return;
-
-    actionsList.forEach(maxActionsPerUpdate, ({ key, value }, isDummy) => {
-      if (isDummy.toBoolean()) return;
-
+  actions.data.get().forEach(({ element: actionsList }) => {
+    actionsList.data.get().forEach(({ element: { key, value } }) => {
       tree.setLeaf(key.toBigInt(), value);
     });
   });
