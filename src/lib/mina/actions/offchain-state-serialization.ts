@@ -55,8 +55,8 @@ function toAction<K, V, KeyType extends Actionable<K> | undefined>(
   key: KeyType extends undefined ? undefined : K,
   value: V
 ): Action {
-  let combinedSize = valueType.sizeInFields();
-  let padding = combinedSize % 2 === 0 ? [] : [Field(0)];
+  let valueSize = valueType.sizeInFields();
+  let padding = valueSize % 2 === 0 ? [] : [Field(0)];
 
   let keyHash = hashPackedWithPrefix([prefix, Field(0)], keyType, key);
   let valueHash = Poseidon.hashPacked(valueType, value);

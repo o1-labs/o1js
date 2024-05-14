@@ -44,7 +44,7 @@ class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
 // TODO: it would be nice to abstract the logic for proving a chain of state transition proofs
 
 /**
- * Common logic for the proof that we can go from MerkleMapState A -> B
+ * Common logic for the proof that we can go from OffchainStateCommitments A -> B
  */
 function merkleUpdateBatch(
   {
@@ -102,7 +102,7 @@ function merkleUpdateBatch(
 }
 
 /**
- * This program represents a proof that we can go from MerkleMapState A -> B
+ * This program represents a proof that we can go from OffchainStateCommitments A -> B
  */
 function OffchainStateRollup({
   maxUpdatesPerBatch = 2,
@@ -182,6 +182,7 @@ function OffchainStateRollup({
 
   return {
     Proof: RollupProof,
+    program: offchainStateRollup,
 
     async compile() {
       if (isCompiled) return;
@@ -253,8 +254,6 @@ function OffchainStateRollup({
 
       return { proof, tree };
     },
-
-    program: offchainStateRollup,
   };
 }
 

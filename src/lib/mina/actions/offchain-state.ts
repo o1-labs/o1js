@@ -53,13 +53,11 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 
   /**
    * Compile the offchain state ZkProgram.
-   *
-   * Note: If this is not done explicitly, it will be done before creating the first proof automatically.
    */
   compile(): Promise<void>;
 
   /**
-   * Create a proof that the offchain state is in a valid state.
+   * Create a proof that updates the commitments to offchain state: Merkle root and action state.
    */
   createSettlementProof(): Promise<
     Proof<OffchainStateCommitments, OffchainStateCommitments>
@@ -128,10 +126,13 @@ function OffchainState<
 
   function contract() {
     let ctx = smartContractContext.get();
-    assert(ctx !== null, 'get() must be called within a contract method');
+    assert(
+      ctx !== null,
+      'Offchain state methods must be called within a contract method'
+    );
     assert(
       ctx.this.constructor === internal.contract.constructor,
-      'Offchain state methods can only be called on the contract that you called setContractInstance() on'
+      'Offchain state methods can only be called on the same contract that you called setContractInstance() on'
     );
     return ctx.this as OffchainStateContract;
   }
@@ -141,7 +142,6 @@ function OffchainState<
    */
   async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
     // get onchain merkle root
-
     let stateRoot = contract().offchainState.getAndRequireEquals().root;
 
     // witness the actual value
@@ -260,6 +260,8 @@ function OffchainState<
 
       // update internal merkle maps as well
       // TODO make this not insanely recompute everything
+      // - take new tree from `result`
+      // - update value map in `prove()`, or separately based on `actions`
       let { merkleMap: newMerkleMap, valueMap: newValueMap } =
         await fetchMerkleMap(internal.contract);
       internal._merkleMap = newMerkleMap;
@@ -274,7 +276,7 @@ function OffchainState<
       // verify the proof
       proof.verify();
 
-      // check that proof moves state forward from the one currently storedö
+      // check that proof moves state forward from the one currently stored
       let state = contract().offchainState.getAndRequireEquals();
       Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
 
