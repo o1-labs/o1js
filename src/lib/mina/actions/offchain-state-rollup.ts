@@ -115,15 +115,6 @@ function merkleUpdateBatch(
     let actualPreviousValue = Provable.witness(Field, () =>
       intermediateTree.get().getLeaf(key.toBigInt())
     );
-    Provable.log({
-      key,
-      value,
-      isCheckPoint,
-      isDummy,
-      usesPreviousValue,
-      previousValue,
-      actualPreviousValue,
-    });
 
     // prove that the witness and `actualPreviousValue` is correct, by comparing the implied root and key
     // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0

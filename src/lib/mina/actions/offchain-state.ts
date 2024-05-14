@@ -215,9 +215,7 @@ function OffchainState<
 
       async get() {
         let key = toKeyHash(prefix, undefined, undefined);
-        let optionValue = await get(key, type);
-        // for fields that are not in the map, we return the default value -- similar to onchain state
-        return optionValue.orElse(type.empty());
+        return await get(key, type);
       },
     };
   }
@@ -342,13 +340,15 @@ function OffchainField<T extends Any>(type: T) {
 }
 type OffchainField<T, TValue> = {
   /**
-   * Get the value of the field.
+   * Get the value of the field, or none if it doesn't exist yet.
    */
-  get(): Promise<T>;
+  get(): Promise<Option<T>>;
+
   /**
    * Set the value of the field.
    */
   set(value: T | TValue): void;
+
   /**
    * Update the value of the field, while requiring a specific previous value.
    *
@@ -367,10 +367,12 @@ type OffchainMap<K, V, VValue> = {
    * Get the value for this key, or none if it doesn't exist.
    */
   get(key: K): Promise<Option<V, VValue>>;
+
   /**
    * Set the value for this key.
    */
   set(key: K, value: V | VValue): void;
+
   /**
    * Update the value of the field, while requiring a specific previous value.
    *

@@ -27,13 +27,13 @@ class ExampleContract extends SmartContract {
 
     // TODO using `update()` on the total supply means that this method
     // can only be called once every settling cycle
-    let totalSupply = await offchainState.fields.totalSupply.get();
-    offchainState.fields.totalSupply.set(totalSupply.add(amountToMint));
-    // TODO this fails, because `from` does not yield the correct value hash if the field was not set before
-    // offchainState.fields.totalSupply.update({
-    //   from: totalSupply,
-    //   to: totalSupply.add(amountToMint),
-    // });
+    let totalSupplyOption = await offchainState.fields.totalSupply.get();
+    let totalSupply = totalSupplyOption.orElse(0n);
+
+    offchainState.fields.totalSupply.update({
+      from: totalSupplyOption,
+      to: totalSupply.add(amountToMint),
+    });
   }
 
   @method
@@ -61,7 +61,7 @@ class ExampleContract extends SmartContract {
 
   @method.returns(UInt64)
   async getSupply() {
-    return await offchainState.fields.totalSupply.get();
+    return (await offchainState.fields.totalSupply.get()).orElse(0n);
   }
 
   @method.returns(UInt64)
