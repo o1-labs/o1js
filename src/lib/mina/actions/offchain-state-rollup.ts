@@ -302,20 +302,17 @@ function OffchainStateRollup({
       }
 
       // base proof
-      console.time('batch 0');
       let slice = sliceActions(iterator, maxActionsPerBatch);
       let proof = await offchainStateRollup.firstBatch(
         inputState,
         slice,
         Unconstrained.from(tree)
       );
-      console.timeEnd('batch 0');
 
       // recursive proofs
       for (let i = 1; ; i++) {
         if (iterator.isAtEnd().toBoolean()) break;
 
-        console.time(`batch ${i}`);
         let slice = sliceActions(iterator, maxActionsPerBatch);
         proof = await offchainStateRollup.nextBatch(
           inputState,
@@ -323,7 +320,6 @@ function OffchainStateRollup({
           Unconstrained.from(tree),
           proof
         );
-        console.timeEnd(`batch ${i}`);
       }
 
       return { proof, tree };
