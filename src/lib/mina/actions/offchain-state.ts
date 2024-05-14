@@ -198,7 +198,23 @@ function OffchainState<
         let update = contract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
-      update: notImplemented,
+
+      update({ from, to }) {
+        // serialize into action
+        let action = toAction({
+          prefix,
+          keyType: undefined,
+          valueType: type,
+          key: undefined,
+          value: type.fromValue(to),
+          previousValue: type.fromValue(from),
+        });
+
+        // push action on account update
+        let update = contract().self;
+        update.body.actions = Actions.pushEvent(update.body.actions, action);
+      },
+
       async get() {
         let key = toKeyHash(prefix, undefined, undefined);
         let optionValue = await get(key, type);
@@ -230,7 +246,23 @@ function OffchainState<
         let update = contract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
-      update: notImplemented,
+
+      update(key, { from, to }) {
+        // serialize into action
+        let action = toAction({
+          prefix,
+          keyType,
+          valueType,
+          key,
+          value: valueType.fromValue(to),
+          previousValue: valueType.fromValue(from),
+        });
+
+        // push action on account update
+        let update = contract().self;
+        update.body.actions = Actions.pushEvent(update.body.actions, action);
+      },
+
       async get(key) {
         let keyHash = toKeyHash(prefix, keyType, key);
         return await get(keyHash, valueType);
