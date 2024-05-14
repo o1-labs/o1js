@@ -1,4 +1,4 @@
-import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { emptyValue } from '../proof-system/zkprogram.js';
 import { Provable } from './provable.js';
 import { InferProvable, Struct } from './types/struct.js';
@@ -11,7 +11,7 @@ type Option<T, V = any> = { isSome: Bool; value: T } & {
   orElse(defaultValue: T | V): T;
 };
 
-type OptionOrValue<T, V> = Option<T, V> | { isSome: boolean; value: V };
+type OptionOrValue<T, V> = { isSome: boolean | Bool; value: V | T };
 
 /**
  * Define an optional version of a provable type.
@@ -36,6 +36,9 @@ function Option<A extends Provable<any, any>>(
   // TODO make V | undefined the value type
   { isSome: boolean; value: InferValue<A> }
 > & {
+  fromValue: (
+    value: From<{ isSome: typeof Bool; value: A }>
+  ) => Option<InferProvable<A>, InferValue<A>>;
   from(value?: InferProvable<A>): Option<InferProvable<A>, InferValue<A>>;
   none(): Option<InferProvable<A>, InferValue<A>>;
 } {
