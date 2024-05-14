@@ -98,12 +98,12 @@ function merkleUpdateBatch(
   let intermediateUpdates: TreeUpdate[] = [];
   let intermediateTree = Unconstrained.witness(() => tree.get().clone());
 
+  let isValidUpdate = Bool(true);
+
   linearActions.forEach(maxActionsPerBatch, (element, isDummy) => {
-    let {
-      action: { key, value },
-      isCheckPoint,
-    } = element;
-    // Provable.log({ key, value, isEndOfUpdate, isDummy });
+    let { action, isCheckPoint } = element;
+    let { key, value, usesPreviousValue, previousValue } = action;
+    // Provable.log({ key, value, isCheckPoint, isDummy });
 
     // merkle witness
     let witness = Provable.witness(
@@ -113,22 +113,32 @@ function merkleUpdateBatch(
     );
 
     // previous value at the key
-    let previousValue = Provable.witness(Field, () =>
+    let actualPreviousValue = Provable.witness(Field, () =>
       tree.get().getLeaf(key.toBigInt())
     );
 
-    // prove that the witness is correct, by comparing the implied root and key
+    // prove that the witness and `actualPreviousValue` is correct, by comparing the implied root and key
     // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
     witness.calculateIndex().assertEquals(key);
-    witness.calculateRoot(previousValue).assertEquals(intermediateRoot);
+    witness.calculateRoot(actualPreviousValue).assertEquals(intermediateRoot);
+
+    // if an expected previous value was provided, check whether it matches the actual previous value
+    // otherwise, the entire update in invalidated
+    let matchesPreviousValue = actualPreviousValue.equals(previousValue);
+    let isValidAction = usesPreviousValue.implies(matchesPreviousValue);
+    isValidUpdate = isValidUpdate.and(isValidAction);
 
     // store new value in at the key
     let newRoot = witness.calculateRoot(value);
 
-    // update root
+    // update intermediate root if this wasn't a dummy action
     intermediateRoot = Provable.if(isDummy, intermediateRoot, newRoot);
-    root = Provable.if(isCheckPoint, intermediateRoot, root);
-    // intermediateRoot = Provable.if(isCheckPoint, root, intermediateRoot);
+
+    // at checkpoints, update the root, if the entire update was valid
+    root = Provable.if(isCheckPoint.and(isValidUpdate), intermediateRoot, root);
+    // at checkpoints, reset intermediate values
+    isValidUpdate = Provable.if(isCheckPoint, Bool(true), isValidUpdate);
+    intermediateRoot = Provable.if(isCheckPoint, root, intermediateRoot);
 
     // update the tree, outside the circuit (this should all be part of a better merkle tree API)
     Provable.asProver(() => {
@@ -138,13 +148,18 @@ function merkleUpdateBatch(
       intermediateTree.get().setLeaf(key.toBigInt(), value);
       intermediateUpdates.push({ key, value });
 
-      let isEnd = isCheckPoint.toBoolean();
-
-      if (isEnd) {
-        intermediateUpdates.forEach(({ key, value }) => {
-          tree.get().setLeaf(key.toBigInt(), value);
-        });
-        intermediateUpdates = [];
+      if (isCheckPoint.toBoolean()) {
+        // if the update was valid, apply the intermediate updates to the actual tree
+        if (isValidUpdate.toBoolean()) {
+          intermediateUpdates.forEach(({ key, value }) => {
+            tree.get().setLeaf(key.toBigInt(), value);
+          });
+          intermediateUpdates = [];
+        }
+        // otherwise, we have to roll back the intermediate tree (TODO: inefficient)
+        else {
+          intermediateTree.set(tree.get().clone());
+        }
       }
     });
   });
