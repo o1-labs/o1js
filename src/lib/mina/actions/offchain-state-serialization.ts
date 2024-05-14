@@ -31,6 +31,8 @@ export {
   toAction,
   fromActionWithoutHashes,
   MerkleLeaf,
+  LinearizedAction,
+  LinearizedActionList,
   ActionList,
   fetchMerkleLeaves,
   fetchMerkleMap,
@@ -172,6 +174,42 @@ function pushAction(actionsHash: Field, action: MerkleLeaf) {
 class ActionList extends MerkleList.create(
   MerkleLeaf,
   pushAction,
+  Actions.empty().hash
+) {}
+
+class LinearizedAction extends Struct({
+  action: MerkleLeaf,
+  /**
+   * Whether this action is the last in an account update.
+   * In a linearized sequence of actions, this value determines the points at which we commit an atomic update to the Merkle tree.
+   */
+  isCheckPoint: Bool,
+}) {
+  /**
+   * A custom method to hash an action which only hashes the key and value in provable code.
+   * Therefore, it only proves that the key and value are part of the action, and nothing about
+   * the rest of the action.
+   */
+  static hash({ action, isCheckPoint }: LinearizedAction) {
+    let preHashState = Provable.witnessFields(3, () => {
+      let prefix = action.prefix.get();
+      let init = salt(prefixes.event) as [Field, Field, Field];
+      return Poseidon.update(init, prefix);
+    });
+    return Poseidon.update(preHashState, [
+      // pack two bools into 1 field
+      action.usesPreviousValue.toField().add(isCheckPoint.toField().mul(2)),
+      action.previousValue,
+      action.key,
+      action.value,
+    ])[0];
+  }
+}
+
+class LinearizedActionList extends MerkleList.create(
+  LinearizedAction,
+  (hash: Field, action: LinearizedAction) =>
+    Poseidon.hash([hash, LinearizedAction.hash(action)]),
   Actions.empty().hash
 ) {}
 

@@ -1,5 +1,5 @@
 import { Proof, ZkProgram } from '../../proof-system/zkprogram.js';
-import { Field } from '../../provable/wrapped.js';
+import { Bool, Field } from '../../provable/wrapped.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
@@ -8,7 +8,12 @@ import { Struct } from '../../provable/types/struct.js';
 import { SelfProof } from '../../proof-system/zkprogram.js';
 import { Provable } from '../../provable/provable.js';
 import { assert } from '../../provable/gadgets/common.js';
-import { ActionList, MerkleLeaf } from './offchain-state-serialization.js';
+import {
+  ActionList,
+  LinearizedAction,
+  LinearizedActionList,
+  MerkleLeaf,
+} from './offchain-state-serialization.js';
 import { MerkleMap } from '../../provable/merkle-map.js';
 import { getProofsEnabled } from '../mina.js';
 
@@ -60,24 +65,51 @@ function merkleUpdateBatch(
 ): OffchainStateCommitments {
   // this would be unnecessary if the iterator could just be the public input
   actions.currentHash.assertEquals(stateA.actionState);
-  let root = stateA.root;
 
   // linearize actions into a flat MerkleList, so we don't process an insane amount of dummy actions
-  let linearActions = ActionList.empty();
+  let linearActions = LinearizedActionList.empty();
 
   for (let i = 0; i < maxActionsPerBatch; i++) {
-    actions.next().forEach(maxActionsPerUpdate, (action, isDummy) => {
-      linearActions.pushIf(isDummy.not(), action);
-    });
+    let inner = actions.next().startIterating();
+    let isAtEnd = Bool(false);
+    for (let i = 0; i < maxActionsPerUpdate; i++) {
+      let { element: action, isDummy } = inner.Unsafe.next();
+      let isCheckPoint = inner.isAtEnd();
+      [isAtEnd, isCheckPoint] = [
+        isAtEnd.or(isCheckPoint),
+        isCheckPoint.and(isAtEnd.not()),
+      ];
+      linearActions.pushIf(
+        isDummy.not(),
+        new LinearizedAction({ action, isCheckPoint })
+      );
+    }
+    inner.assertAtEnd(
+      `Expected at most ${maxActionsPerUpdate} actions per account update.`
+    );
   }
   actions.assertAtEnd();
 
-  // update merkle root for each action
-  linearActions.forEach(maxActionsPerBatch, ({ key, value }, isDummy) => {
+  // update merkle root at once for the actions of each account update
+  let root = stateA.root;
+  let intermediateRoot = root;
+
+  type TreeUpdate = { key: Field; value: Field };
+  let intermediateUpdates: TreeUpdate[] = [];
+  let intermediateTree = Unconstrained.witness(() => tree.get().clone());
+
+  linearActions.forEach(maxActionsPerBatch, (element, isDummy) => {
+    let {
+      action: { key, value },
+      isCheckPoint,
+    } = element;
+    // Provable.log({ key, value, isEndOfUpdate, isDummy });
+
     // merkle witness
     let witness = Provable.witness(
       MerkleMapWitness,
-      () => new MerkleMapWitness(tree.get().getWitness(key.toBigInt()))
+      () =>
+        new MerkleMapWitness(intermediateTree.get().getWitness(key.toBigInt()))
     );
 
     // previous value at the key
@@ -88,20 +120,33 @@ function merkleUpdateBatch(
     // prove that the witness is correct, by comparing the implied root and key
     // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
     witness.calculateIndex().assertEquals(key);
-    witness.calculateRoot(previousValue).assertEquals(root);
+    witness.calculateRoot(previousValue).assertEquals(intermediateRoot);
 
     // store new value in at the key
     let newRoot = witness.calculateRoot(value);
+
+    // update root
+    intermediateRoot = Provable.if(isDummy, intermediateRoot, newRoot);
+    root = Provable.if(isCheckPoint, intermediateRoot, root);
+    // intermediateRoot = Provable.if(isCheckPoint, root, intermediateRoot);
 
     // update the tree, outside the circuit (this should all be part of a better merkle tree API)
     Provable.asProver(() => {
       // ignore dummy value
       if (isDummy.toBoolean()) return;
-      tree.get().setLeaf(key.toBigInt(), value);
-    });
 
-    // update root
-    root = Provable.if(isDummy, root, newRoot);
+      intermediateTree.get().setLeaf(key.toBigInt(), value);
+      intermediateUpdates.push({ key, value });
+
+      let isEnd = isCheckPoint.toBoolean();
+
+      if (isEnd) {
+        intermediateUpdates.forEach(({ key, value }) => {
+          tree.get().setLeaf(key.toBigInt(), value);
+        });
+        intermediateUpdates = [];
+      }
+    });
   });
 
   return { root, actionState: actions.currentHash };
