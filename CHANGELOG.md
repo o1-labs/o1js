@@ -19,8 +19,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `Option` for defining an optional version of any provable type https://github.com/o1-labs/o1js/pull/1630
+- `MerkleTree.clone()` and `MerkleTree.getLeaf()`, new convenience methods for merkle trees https://github.com/o1-labs/o1js/pull/1630
+- `MerkleList.forEach()`, a simple and safe way for iterating over a `MerkleList`
+- `Unconstrained.provableWithEmpty()` to create an unconstrained provable type with a known `empty()` value https://github.com/o1-labs/o1js/pull/1630
 - `Permissions.VerificationKey`, a namespace for verification key permissions https://github.com/o1-labs/o1js/pull/1639
   - Includes more accurate names for the `impossible` and `proof` permissions for verification keys, which are now called `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` respectively.
+
+### Changed
+
+- `State()` now optionally accepts an initial value as input parameter https://github.com/o1-labs/o1js/pull/1630
+  - Example: `@state(Field) x = State(Field(1));`
+  - Initial values will be set in the default `init()` method
+  - You no longer need a custom `init()` method to set initial values
 
 ### Fixes
 
