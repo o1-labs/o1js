@@ -13,7 +13,7 @@ import {
   OffchainStateCommitments,
   OffchainStateRollup,
 } from './offchain-state-rollup.js';
-import { Option } from '../../provable/option.js';
+import { Option, OptionOrValue } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
@@ -180,6 +180,7 @@ function OffchainState<
     type: Actionable<T, TValue>
   ): OffchainField<T, TValue> {
     const prefix = Field(index);
+    let optionType = Option(type);
 
     return {
       set(value) {
@@ -205,7 +206,7 @@ function OffchainState<
           valueType: type,
           key: undefined,
           value: type.fromValue(to),
-          previousValue: from,
+          previousValue: optionType.fromValue(from),
         });
 
         // push action on account update
@@ -223,9 +224,10 @@ function OffchainState<
   function map<K, V, VValue>(
     index: number,
     keyType: Actionable<K>,
-    valueType: Actionable<V>
+    valueType: Actionable<V, VValue>
   ): OffchainMap<K, V, VValue> {
     const prefix = Field(index);
+    let optionType = Option(valueType);
 
     return {
       set(key, value) {
@@ -251,7 +253,7 @@ function OffchainState<
           valueType,
           key,
           value: valueType.fromValue(to),
-          previousValue: from,
+          previousValue: optionType.fromValue(from),
         });
 
         // push action on account update
@@ -342,7 +344,7 @@ type OffchainField<T, TValue> = {
   /**
    * Get the value of the field, or none if it doesn't exist yet.
    */
-  get(): Promise<Option<T>>;
+  get(): Promise<Option<T, TValue>>;
 
   /**
    * Set the value of the field.
@@ -356,7 +358,7 @@ type OffchainField<T, TValue> = {
    *
    * Note that the previous value is an option: to require that the field was not set before, use `Option.none()`.
    */
-  update(update: { from: Option<T>; to: T | TValue }): void;
+  update(update: { from: OptionOrValue<T, TValue>; to: T | TValue }): void;
 };
 
 function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
@@ -380,7 +382,10 @@ type OffchainMap<K, V, VValue> = {
    *
    * Note that the previous value is an option: to require that the field was not set before, use `Option.none()`.
    */
-  update(key: K, update: { from: Option<V>; to: V | VValue }): void;
+  update(
+    key: K,
+    update: { from: OptionOrValue<V, VValue>; to: V | VValue }
+  ): void;
 };
 
 type OffchainStateKind =
