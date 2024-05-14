@@ -105,7 +105,9 @@ function merkleUpdateBatch(
  * This program represents a proof that we can go from OffchainStateCommitments A -> B
  */
 function OffchainStateRollup({
-  maxUpdatesPerBatch = 2,
+  // 1 actions uses about 7.5k constraints
+  // we can fit 7 * 7.5k = 52.5k constraints in one method next to the proof verification
+  maxUpdatesPerBatch = 3,
   maxActionsPerUpdate = 2,
 } = {}) {
   let offchainStateRollup = ZkProgram({
