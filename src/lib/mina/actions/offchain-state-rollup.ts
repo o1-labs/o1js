@@ -103,7 +103,6 @@ function merkleUpdateBatch(
   linearActions.forEach(maxActionsPerBatch, (element, isDummy) => {
     let { action, isCheckPoint } = element;
     let { key, value, usesPreviousValue, previousValue } = action;
-    // Provable.log({ key, value, isCheckPoint, isDummy });
 
     // merkle witness
     let witness = Provable.witness(
@@ -114,8 +113,17 @@ function merkleUpdateBatch(
 
     // previous value at the key
     let actualPreviousValue = Provable.witness(Field, () =>
-      tree.get().getLeaf(key.toBigInt())
+      intermediateTree.get().getLeaf(key.toBigInt())
     );
+    Provable.log({
+      key,
+      value,
+      isCheckPoint,
+      isDummy,
+      usesPreviousValue,
+      previousValue,
+      actualPreviousValue,
+    });
 
     // prove that the witness and `actualPreviousValue` is correct, by comparing the implied root and key
     // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
@@ -137,6 +145,7 @@ function merkleUpdateBatch(
     // at checkpoints, update the root, if the entire update was valid
     root = Provable.if(isCheckPoint.and(isValidUpdate), intermediateRoot, root);
     // at checkpoints, reset intermediate values
+    let wasValidUpdate = isValidUpdate;
     isValidUpdate = Provable.if(isCheckPoint, Bool(true), isValidUpdate);
     intermediateRoot = Provable.if(isCheckPoint, root, intermediateRoot);
 
@@ -150,16 +159,16 @@ function merkleUpdateBatch(
 
       if (isCheckPoint.toBoolean()) {
         // if the update was valid, apply the intermediate updates to the actual tree
-        if (isValidUpdate.toBoolean()) {
+        if (wasValidUpdate.toBoolean()) {
           intermediateUpdates.forEach(({ key, value }) => {
             tree.get().setLeaf(key.toBigInt(), value);
           });
-          intermediateUpdates = [];
         }
         // otherwise, we have to roll back the intermediate tree (TODO: inefficient)
         else {
           intermediateTree.set(tree.get().clone());
         }
+        intermediateUpdates = [];
       }
     });
   });

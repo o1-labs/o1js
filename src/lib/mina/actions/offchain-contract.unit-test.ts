@@ -25,10 +25,15 @@ class ExampleContract extends SmartContract {
   async createAccount(address: PublicKey, amountToMint: UInt64) {
     offchainState.fields.accounts.set(address, amountToMint);
 
-    // TODO `totalSupply` easily gets into a wrong state here on concurrent calls.
-    // and using `.update()` doesn't help either
+    // TODO using `update()` on the total supply means that this method
+    // can only be called once every settling cycle
     let totalSupply = await offchainState.fields.totalSupply.get();
     offchainState.fields.totalSupply.set(totalSupply.add(amountToMint));
+    // TODO this fails, because `from` does not yield the correct value hash if the field was not set before
+    // offchainState.fields.totalSupply.update({
+    //   from: totalSupply,
+    //   to: totalSupply.add(amountToMint),
+    // });
   }
 
   @method
@@ -40,14 +45,18 @@ class ExampleContract extends SmartContract {
     let toBalance = toOption.orElse(0n);
 
     /**
-     * FIXME using `set()` here is completely insecure, a sender can easily double-spend by sending multiple transactions,
-     * which will all use the same initial balance.
-     * Even using a naive version of `update()` would give a double-spend opportunity, because the updates are not rejected atomically:
-     * if the `to` update gets accepted but the `from` update fails, it's a double-spend
-     * => properly implementing this needs a version of `update()` that rejects all state actions in one update if any of them fails!
+     * Update both accounts atomically.
+     *
+     * This is safe, because both updates will only be accepted if both previous balances are still correct.
      */
-    offchainState.fields.accounts.set(from, fromBalance.sub(amount));
-    offchainState.fields.accounts.set(to, toBalance.add(amount));
+    offchainState.fields.accounts.update(from, {
+      from: fromBalance,
+      to: fromBalance.sub(amount),
+    });
+    offchainState.fields.accounts.update(to, {
+      from: toBalance,
+      to: toBalance.add(amount),
+    });
   }
 
   @method.returns(UInt64)
