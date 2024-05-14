@@ -150,7 +150,7 @@ function OffchainState<
       let { valueMap } = await merkleMaps();
       let valueFields = valueMap.get(key.toBigInt());
       if (valueFields === undefined) {
-        return optionType.from();
+        return optionType.none();
       }
       let value = fromActionWithoutHashes(valueType, valueFields);
       return optionType.from(value);

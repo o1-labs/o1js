@@ -18,6 +18,7 @@ function Option<T, V>(
   { isSome: boolean; value: V }
 > & {
   from(value?: T): Option<T, V>;
+  none(): Option<T, V>;
 } {
   const Super = Struct({ isSome: Bool, value: type });
   return class Option_ extends Super {
@@ -39,6 +40,9 @@ function Option<T, V>(
       return value === undefined
         ? new Option_({ isSome: Bool(false), value: emptyValue(type) })
         : new Option_({ isSome: Bool(true), value: type.fromValue(value) });
+    }
+    static none() {
+      return Option_.from(undefined);
     }
 
     static fromFields(fields: any[], aux?: any): Option_ {
