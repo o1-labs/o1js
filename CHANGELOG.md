@@ -21,7 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- **Offchain storage MVP** exported under `Experimental.OffchainStorage` https://github.com/o1-labs/o1js/pull/1630 https://github.com/o1-labs/o1js/pull/1652
+- **Offchain state MVP** exported under `Experimental.OffchainState` https://github.com/o1-labs/o1js/pull/1630 https://github.com/o1-labs/o1js/pull/1652
   - allows you to store any number of fields and key-value maps on your zkApp
   - implemented using actions which define an offchain Merkle tree
 - `Option` for defining an optional version of any provable type https://github.com/o1-labs/o1js/pull/1630
