@@ -183,7 +183,7 @@ function OffchainState<
     let optionType = Option(type);
 
     return {
-      set(value) {
+      overwrite(value) {
         // serialize into action
         let action = toAction({
           prefix,
@@ -230,7 +230,7 @@ function OffchainState<
     let optionType = Option(valueType);
 
     return {
-      set(key, value) {
+      overwrite(key, value) {
         // serialize into action
         let action = toAction({
           prefix,
@@ -347,18 +347,23 @@ type OffchainField<T, TValue> = {
   get(): Promise<Option<T, TValue>>;
 
   /**
-   * Set the value of the field.
-   */
-  set(value: T | TValue): void;
-
-  /**
    * Update the value of the field, while requiring a specific previous value.
    *
    * If the previous value does not match, the update will not be applied.
    *
-   * Note that the previous value is an option: to require that the field was not set before, use `Option.none()`.
+   * Note that the previous value is an option: to require that the field was not set before, use `Option(type).none()` or `undefined`.
    */
   update(update: { from: OptionOrValue<T, TValue>; to: T | TValue }): void;
+
+  /**
+   * Set the value of the field to the given value, without taking into account the previous value.
+   *
+   * **Warning**: if this is performed by multiple zkapp calls concurrently (between one call to `settle()` and the next),
+   * calls that are applied later will simply overwrite and ignore whatever changes were made by earlier calls.
+   *
+   * This behaviour can imply a security risk in many applications, so use `overwrite()` with caution.
+   */
+  overwrite(value: T | TValue): void;
 };
 
 function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
@@ -371,21 +376,26 @@ type OffchainMap<K, V, VValue> = {
   get(key: K): Promise<Option<V, VValue>>;
 
   /**
-   * Set the value for this key.
-   */
-  set(key: K, value: V | VValue): void;
-
-  /**
    * Update the value of the field, while requiring a specific previous value.
    *
    * If the previous value does not match, the update will not be applied.
    *
-   * Note that the previous value is an option: to require that the field was not set before, use `Option.none()`.
+   * Note that the previous value is an option: to require that the field was not set before, use `Option(type).none()` or `undefined`.
    */
   update(
     key: K,
     update: { from: OptionOrValue<V, VValue>; to: V | VValue }
   ): void;
+
+  /**
+   * Set the value for this key to the given value, without taking into account the previous value.
+   *
+   * **Warning**: if the same key is modified by multiple zkapp calls concurrently (between one call to `settle()` and the next),
+   * calls that are applied later will simply overwrite and ignore whatever changes were made by earlier calls.
+   *
+   * This behaviour can imply a security risk in many applications, so use `overwrite()` with caution.
+   */
+  overwrite(key: K, value: V | VValue): void;
 };
 
 type OffchainStateKind =

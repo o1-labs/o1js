@@ -23,7 +23,7 @@ class ExampleContract extends SmartContract {
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
-    offchainState.fields.accounts.set(address, amountToMint);
+    offchainState.fields.accounts.overwrite(address, amountToMint);
 
     // TODO using `update()` on the total supply means that this method
     // can only be called once every settling cycle
