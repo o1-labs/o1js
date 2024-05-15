@@ -104,8 +104,6 @@ if (proofsEnabled) {
   console.timeEnd('compile contract');
 }
 
-Local.setProofsEnabled(false);
-
 // deploy and create first account
 
 console.time('deploy');
@@ -148,39 +146,38 @@ console.timeEnd('settle 1');
 // check balance and supply
 await check({ expectedSupply: 1000n, expectedSenderBalance: 1000n });
 
-// transfer
+// transfer (should succeed)
 
 console.time('transfer');
 await Mina.transaction(sender, async () => {
-  // first call (should succeed)
   await contract.transfer(sender, receiver, UInt64.from(100));
-
-  // more calls that should all fail
-  // (these are enough to need two proof steps during settlement)
-  await contract.transfer(sender, receiver, UInt64.from(200));
-  await contract.transfer(sender, receiver, UInt64.from(300));
-  await contract.transfer(sender, receiver, UInt64.from(400));
-  await contract.transfer(sender, receiver, UInt64.from(500));
 })
   .sign([sender.key])
   .prove()
   .send();
 console.timeEnd('transfer');
 
-// create another account
+console.time('more transfers');
+Local.setProofsEnabled(false); // we run these without proofs to save time
 
-console.time('create account 2');
 await Mina.transaction(sender, async () => {
-  await contract.createAccount(other, UInt64.from(500));
+  // more transfers that should fail
+  // (these are enough to need two proof steps during settlement)
+  await contract.transfer(sender, receiver, UInt64.from(200));
+  await contract.transfer(sender, receiver, UInt64.from(300));
+  await contract.transfer(sender, receiver, UInt64.from(400));
+  await contract.transfer(sender, receiver, UInt64.from(500));
+
+  // create another account (should succeed)
+  await contract.createAccount(other, UInt64.from(555));
 })
   .sign([sender.key])
   .prove()
   .send();
-console.timeEnd('create account 2');
+console.timeEnd('more transfers');
 
 // settle
-
-Local.setProofsEnabled(true);
+Local.setProofsEnabled(proofsEnabled);
 
 console.time('settlement proof 2');
 proof = await offchainState.createSettlementProof();
@@ -194,7 +191,7 @@ await Mina.transaction(sender, () => contract.settle(proof))
 console.timeEnd('settle 2');
 
 // check balance and supply
-await check({ expectedSupply: 1500n, expectedSenderBalance: 900n });
+await check({ expectedSupply: 1555n, expectedSenderBalance: 900n });
 
 // test helper
 
@@ -210,9 +207,10 @@ async function check({
 
   let balanceSender = (await contract.getBalance(sender)).toBigInt();
   let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
+  let balanceOther = (await contract.getBalance(other)).toBigInt();
 
   console.log('balance (sender)', balanceSender);
   console.log('balance (recv)', balanceReceiver);
-  assert.strictEqual(balanceSender + balanceReceiver, supply);
+  assert.strictEqual(balanceSender + balanceReceiver + balanceOther, supply);
   assert.strictEqual(balanceSender, expectedSenderBalance);
 }
