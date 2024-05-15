@@ -209,7 +209,9 @@ class MerkleList<T> implements MerkleListBase<T> {
       let { element, isDummy } = iter.Unsafe.next();
       callback(element, isDummy, i);
     }
-    iter.assertAtEnd();
+    iter.assertAtEnd(
+      `Expected MerkleList to have at most ${length} elements, but it has more.`
+    );
   }
 
   startIterating(): MerkleListIterator<T> {
@@ -394,8 +396,11 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash = Provable.if(condition, this.hash, this.currentHash);
   }
 
-  assertAtEnd() {
-    return this.currentHash.assertEquals(this.hash);
+  assertAtEnd(message?: string) {
+    return this.currentHash.assertEquals(
+      this.hash,
+      message ?? 'Merkle list iterator is not at the end'
+    );
   }
 
   isAtStart() {
