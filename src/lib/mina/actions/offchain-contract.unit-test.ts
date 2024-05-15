@@ -32,7 +32,11 @@ class ExampleContract extends SmartContract {
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
-    offchainState.fields.accounts.overwrite(address, amountToMint);
+    // setting `from` to `undefined` means that the account must not exist yet
+    offchainState.fields.accounts.update(address, {
+      from: undefined,
+      to: amountToMint,
+    });
 
     // TODO using `update()` on the total supply means that this method
     // can only be called once every settling cycle
@@ -166,10 +170,12 @@ await Mina.transaction(sender, async () => {
   await contract.transfer(sender, receiver, UInt64.from(200));
   await contract.transfer(sender, receiver, UInt64.from(300));
   await contract.transfer(sender, receiver, UInt64.from(400));
-  await contract.transfer(sender, receiver, UInt64.from(500));
 
   // create another account (should succeed)
   await contract.createAccount(other, UInt64.from(555));
+
+  // create existing account again (should fail)
+  await contract.createAccount(receiver, UInt64.from(333));
 })
   .sign([sender.key])
   .prove()
