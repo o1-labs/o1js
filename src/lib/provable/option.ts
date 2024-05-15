@@ -74,7 +74,7 @@ function Option<A extends Provable<any, any>>(
         return { isSome: Bool(false), value: emptyValue(strictType) };
       // TODO: this isn't 100% robust. We would need recursive type validation on any nested objects to make it work
       if (typeof value === 'object' && 'isSome' in value)
-        return PlainOption.fromValue(value as any);
+        return PlainOption.fromValue(value as any); // type-cast here is ok, matches implementation
       return { isSome: Bool(true), value: strictType.fromValue(value) };
     },
   };
