@@ -21,8 +21,6 @@ import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 export {
   ProvableExtended,
   ProvablePureExtended,
-  provable,
-  provablePure,
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
@@ -294,6 +292,9 @@ function cloneCircuitValue<T>(obj: T): T {
   // classes that define clone() are cloned using that method
   if (obj.constructor !== undefined && 'clone' in obj.constructor) {
     return (obj as any).constructor.clone(obj);
+  }
+  if ('clone' in obj && typeof obj.clone === 'function') {
+    return (obj as any).clone(obj);
   }
 
   // built-in JS datatypes with custom cloning strategies

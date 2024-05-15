@@ -32,7 +32,11 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
-export { provable, provablePure, Struct } from './lib/provable/types/struct.js';
+export {
+  provable,
+  provablePure,
+} from './lib/provable/types/provable-derivers.js';
+export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
 export { Provable } from './lib/provable/provable.js';
 export {
@@ -48,6 +52,7 @@ export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
+export { Option } from './lib/provable/option.js';
 
 export * as Mina from './lib/mina/mina.js';
 export {
@@ -59,12 +64,8 @@ export {
   type PendingTransactionPromise,
 } from './lib/mina/transaction.js';
 export type { DeployArgs } from './lib/mina/zkapp.js';
-export {
-  SmartContract,
-  method,
-  declareMethods,
-  Reducer,
-} from './lib/mina/zkapp.js';
+export { SmartContract, method, declareMethods } from './lib/mina/zkapp.js';
+export { Reducer } from './lib/mina/actions/reducer.js';
 export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';

@@ -1,4 +1,5 @@
-import { provable, Struct } from '../types/struct.js';
+import { Struct } from '../types/struct.js';
+import { provable } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
 import { UInt32 } from '../int.js';
 import { PrivateKey, PublicKey } from '../crypto/signature.js';

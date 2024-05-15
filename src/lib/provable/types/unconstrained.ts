@@ -115,6 +115,7 @@ and Provable.asProver() blocks, which execute outside the proof.
       fields?: Field[];
       packed?: [Field, number][];
     };
+    empty: () => Unconstrained<any>;
   } = {
     sizeInFields: () => 0,
     toFields: () => [],
@@ -124,5 +125,21 @@ and Provable.asProver() blocks, which execute outside the proof.
     toValue: (t) => t,
     fromValue: (t) => t,
     toInput: () => ({}),
+    empty: (): any => {
+      throw Error('There is no default empty value for Unconstrained.');
+    },
   };
+
+  static provableWithEmpty<T>(empty: T): Provable<Unconstrained<T>> & {
+    toInput: (x: Unconstrained<any>) => {
+      fields?: Field[];
+      packed?: [Field, number][];
+    };
+    empty: () => Unconstrained<any>;
+  } {
+    return {
+      ...Unconstrained.provable,
+      empty: () => Unconstrained.from(empty),
+    };
+  }
 }

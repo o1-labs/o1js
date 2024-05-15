@@ -1,10 +1,9 @@
 import {
   cloneCircuitValue,
   FlexibleProvable,
-  provable,
-  provablePure,
   StructNoJson,
 } from '../provable/types/struct.js';
+import { provable, provablePure } from '../provable/types/provable-derivers.js';
 import {
   memoizationContext,
   memoizeWitness,
