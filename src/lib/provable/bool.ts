@@ -92,6 +92,22 @@ class Bool {
   }
 
   /**
+   * Whether this Bool implies another Bool `y`.
+   *
+   * This is the same as `x.not().or(y)`: if `x` is true, then `y` must be true for the implication to be true.
+   *
+   * @example
+   * ```ts
+   * let isZero = x.equals(0);
+   * let lessThan10 = x.lessThan(10);
+   * assert(isZero.implies(lessThan10), 'x = 0 implies x < 10');
+   * ```
+   */
+  implies(y: Bool | boolean): Bool {
+    return this.not().or(y);
+  }
+
+  /**
    * Proves that this {@link Bool} is equal to `y`.
    * @param y a {@link Bool}.
    */

@@ -1,14 +1,22 @@
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { emptyValue } from '../proof-system/zkprogram.js';
 import { Provable } from './provable.js';
-import { Struct } from './types/struct.js';
+import { InferProvable, Struct } from './types/struct.js';
+import { provable } from './types/provable-derivers.js';
 import { Bool } from './wrapped.js';
 
-export { Option };
+export { Option, OptionOrValue };
 
 type Option<T, V = any> = { isSome: Bool; value: T } & {
   assertSome(message?: string): T;
   orElse(defaultValue: T | V): T;
 };
+
+type OptionOrValue<T, V> =
+  | { isSome: boolean | Bool; value: T | V }
+  | T
+  | V
+  | undefined;
 
 /**
  * Define an optional version of a provable type.
@@ -26,24 +34,59 @@ type Option<T, V = any> = { isSome: Bool; value: T } & {
  * let zero: UInt64 = none.orElse(0n); // specify a default value
  * ```
  */
-function Option<T, V>(
-  type: Provable<T, V>
+function Option<A extends Provable<any, any>>(
+  type: A
 ): Provable<
-  Option<T, V>,
-  // TODO make V | undefined the value type
-  { isSome: boolean; value: V }
+  Option<InferProvable<A>, InferValue<A>>,
+  InferValue<A> | undefined
 > & {
-  from(value?: T): Option<T, V>;
-  none(): Option<T, V>;
+  fromValue(
+    value:
+      | { isSome: boolean | Bool; value: InferProvable<A> | InferValue<A> }
+      | InferProvable<A>
+      | InferValue<A>
+      | undefined
+  ): Option<InferProvable<A>, InferValue<A>>;
+  from(
+    value?: InferProvable<A> | InferValue<A>
+  ): Option<InferProvable<A>, InferValue<A>>;
+  none(): Option<InferProvable<A>, InferValue<A>>;
 } {
-  const Super = Struct({ isSome: Bool, value: type });
+  type T = InferProvable<A>;
+  type V = InferValue<A>;
+  let strictType: Provable<T, V> = type;
+
+  // construct a provable with a JS type of `T | undefined`
+  const PlainOption: Provable<
+    { isSome: Bool; value: T },
+    { isSome: boolean; value: V }
+  > = provable({ isSome: Bool, value: strictType });
+
+  const RawOption = {
+    ...PlainOption,
+
+    toValue({ isSome, value }: { isSome: Bool; value: T }) {
+      return isSome.toBoolean() ? strictType.toValue(value) : undefined;
+    },
+
+    fromValue(value: OptionOrValue<T, V>) {
+      if (value === undefined)
+        return { isSome: Bool(false), value: emptyValue(strictType) };
+      // TODO: this isn't 100% robust. We would need recursive type validation on any nested objects to make it work
+      if (typeof value === 'object' && 'isSome' in value)
+        return PlainOption.fromValue(value as any); // type-cast here is ok, matches implementation
+      return { isSome: Bool(true), value: strictType.fromValue(value) };
+    },
+  };
+
+  const Super = Struct(RawOption);
   return class Option_ extends Super {
     orElse(defaultValue: T | V): T {
       return Provable.if(
         this.isSome,
-        type,
+        strictType,
         this.value,
-        type.fromValue(defaultValue)
+        strictType.fromValue(defaultValue)
       );
     }
 
@@ -54,8 +97,11 @@ function Option<T, V>(
 
     static from(value?: V | T) {
       return value === undefined
-        ? new Option_({ isSome: Bool(false), value: emptyValue(type) })
-        : new Option_({ isSome: Bool(true), value: type.fromValue(value) });
+        ? new Option_({ isSome: Bool(false), value: emptyValue(strictType) })
+        : new Option_({
+            isSome: Bool(true),
+            value: strictType.fromValue(value),
+          });
     }
     static none() {
       return Option_.from(undefined);
@@ -64,7 +110,7 @@ function Option<T, V>(
     static fromFields(fields: any[], aux?: any): Option_ {
       return new Option_(Super.fromFields(fields, aux));
     }
-    static fromValue(value: { isSome: boolean | Bool; value: V | T }) {
+    static fromValue(value: OptionOrValue<T, V>) {
       return new Option_(Super.fromValue(value));
     }
   };

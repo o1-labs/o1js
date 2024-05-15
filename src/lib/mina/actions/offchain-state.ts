@@ -13,7 +13,7 @@ import {
   OffchainStateCommitments,
   OffchainStateRollup,
 } from './offchain-state-rollup.js';
-import { Option } from '../../provable/option.js';
+import { Option, OptionOrValue } from '../../provable/option.js';
 import { InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
@@ -70,6 +70,24 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 
   /**
    * Settle the offchain state.
+   *
+   * Use this in a contract method as follows:
+   *
+   * @example
+   * ```ts
+   * class StateProof extends offchainState.Proof {}
+   *
+   * // ...
+   *
+   * class MyContract extends SmartContract {
+   *   \@method
+   *   async settle(proof: StateProof) {
+   *     await offchainState.settle(proof);
+   *   }
+   * }
+   * ```
+   *
+   * The `StateProof` can be created by calling `offchainState.createSettlementProof()`.
    */
   settle(
     proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
@@ -82,6 +100,35 @@ type OffchainStateContract = SmartContract & {
 
 const MerkleWitness256 = MerkleWitness(256);
 
+/**
+ * Offchain state for a `SmartContract`.
+ *
+ * ```ts
+ * // declare your offchain state
+ *
+ * const offchainState = OffchainState({
+ *   accounts: OffchainState.Map(PublicKey, UInt64),
+ *   totalSupply: OffchainState.Field(UInt64),
+ * });
+ *
+ * // use it in a contract, by adding an onchain state field of type `OffchainStateCommitments`
+ *
+ * class MyContract extends SmartContract {
+ *  \@state(OffchainStateCommitments) offchainState = State(
+ *    OffchainStateCommitments.empty()
+ *   );
+ *
+ *   // ...
+ * }
+ *
+ * // set the contract instance
+ *
+ * let contract = new MyContract(address);
+ * offchainState.setContractInstance(contract);
+ * ```
+ *
+ * See the individual methods on `offchainState` for more information on usage.
+ */
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
 >(config: Config): OffchainState<Config> {
@@ -119,8 +166,6 @@ function OffchainState<
     internal._valueMap = valueMap;
     return { merkleMap, valueMap };
   };
-
-  const notImplemented = (): any => assert(false, 'Not implemented');
 
   let rollup = OffchainStateRollup();
 
@@ -182,28 +227,43 @@ function OffchainState<
     type: Actionable<T, TValue>
   ): OffchainField<T, TValue> {
     const prefix = Field(index);
+    let optionType = Option(type);
 
     return {
-      set(value) {
+      overwrite(value) {
         // serialize into action
-        let action = toAction(
+        let action = toAction({
           prefix,
-          undefined,
-          type,
-          undefined,
-          type.fromValue(value)
-        );
+          keyType: undefined,
+          valueType: type,
+          key: undefined,
+          value: type.fromValue(value),
+        });
 
         // push action on account update
         let update = contract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
-      update: notImplemented,
+
+      update({ from, to }) {
+        // serialize into action
+        let action = toAction({
+          prefix,
+          keyType: undefined,
+          valueType: type,
+          key: undefined,
+          value: type.fromValue(to),
+          previousValue: optionType.fromValue(from),
+        });
+
+        // push action on account update
+        let update = contract().self;
+        update.body.actions = Actions.pushEvent(update.body.actions, action);
+      },
+
       async get() {
         let key = toKeyHash(prefix, undefined, undefined);
-        let optionValue = await get(key, type);
-        // for fields that are not in the map, we return the default value -- similar to onchain state
-        return optionValue.orElse(type.empty());
+        return await get(key, type);
       },
     };
   }
@@ -211,26 +271,43 @@ function OffchainState<
   function map<K, V, VValue>(
     index: number,
     keyType: Actionable<K>,
-    valueType: Actionable<V>
+    valueType: Actionable<V, VValue>
   ): OffchainMap<K, V, VValue> {
     const prefix = Field(index);
+    let optionType = Option(valueType);
 
     return {
-      set(key, value) {
+      overwrite(key, value) {
         // serialize into action
-        let action = toAction(
+        let action = toAction({
           prefix,
           keyType,
           valueType,
           key,
-          valueType.fromValue(value)
-        );
+          value: valueType.fromValue(value),
+        });
 
         // push action on account update
         let update = contract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
-      update: notImplemented,
+
+      update(key, { from, to }) {
+        // serialize into action
+        let action = toAction({
+          prefix,
+          keyType,
+          valueType,
+          key,
+          value: valueType.fromValue(to),
+          previousValue: optionType.fromValue(from),
+        });
+
+        // push action on account update
+        let update = contract().self;
+        update.body.actions = Actions.pushEvent(update.body.actions, action);
+      },
+
       async get(key) {
         let keyHash = toKeyHash(prefix, keyType, key);
         return await get(keyHash, valueType);
@@ -312,20 +389,28 @@ function OffchainField<T extends Any>(type: T) {
 }
 type OffchainField<T, TValue> = {
   /**
-   * Get the value of the field.
+   * Get the value of the field, or none if it doesn't exist yet.
    */
-  get(): Promise<T>;
-  /**
-   * Set the value of the field.
-   */
-  set(value: T | TValue): void;
+  get(): Promise<Option<T, TValue>>;
+
   /**
    * Update the value of the field, while requiring a specific previous value.
    *
    * If the previous value does not match, the update will not be applied.
-   * If no previous value is present, the `from` value is ignored and the update applied unconditionally.
+   *
+   * Note that the previous value is an option: to require that the field was not set before, use `Option(type).none()` or `undefined`.
    */
-  update(update: { from: T | TValue; to: T | TValue }): void;
+  update(update: { from: OptionOrValue<T, TValue>; to: T | TValue }): void;
+
+  /**
+   * Set the value of the field to the given value, without taking into account the previous value.
+   *
+   * **Warning**: if this is performed by multiple zkapp calls concurrently (between one call to `settle()` and the next),
+   * calls that are applied later will simply overwrite and ignore whatever changes were made by earlier calls.
+   *
+   * This behaviour can imply a security risk in many applications, so use `overwrite()` with caution.
+   */
+  overwrite(value: T | TValue): void;
 };
 
 function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
@@ -336,17 +421,28 @@ type OffchainMap<K, V, VValue> = {
    * Get the value for this key, or none if it doesn't exist.
    */
   get(key: K): Promise<Option<V, VValue>>;
-  /**
-   * Set the value for this key.
-   */
-  set(key: K, value: V | VValue): void;
+
   /**
    * Update the value of the field, while requiring a specific previous value.
    *
    * If the previous value does not match, the update will not be applied.
-   * If no previous value is present, the `from` value is ignored and the update applied unconditionally.
+   *
+   * Note that the previous value is an option: to require that the field was not set before, use `Option(type).none()` or `undefined`.
    */
-  update(key: K, update: { from: V | VValue; to: V | VValue }): void;
+  update(
+    key: K,
+    update: { from: OptionOrValue<V, VValue>; to: V | VValue }
+  ): void;
+
+  /**
+   * Set the value for this key to the given value, without taking into account the previous value.
+   *
+   * **Warning**: if the same key is modified by multiple zkapp calls concurrently (between one call to `settle()` and the next),
+   * calls that are applied later will simply overwrite and ignore whatever changes were made by earlier calls.
+   *
+   * This behaviour can imply a security risk in many applications, so use `overwrite()` with caution.
+   */
+  overwrite(key: K, value: V | VValue): void;
 };
 
 type OffchainStateKind =

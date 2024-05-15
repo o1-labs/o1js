@@ -15,10 +15,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/4a17de857...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/6a1012162...HEAD)
+
+## [1.2.0](https://github.com/o1-labs/o1js/compare/4a17de857...6a1012162) - 2024-05-14
 
 ### Added
 
+- **Offchain state MVP** exported under `Experimental.OffchainState` https://github.com/o1-labs/o1js/pull/1630 https://github.com/o1-labs/o1js/pull/1652
+  - allows you to store any number of fields and key-value maps on your zkApp
+  - implemented using actions which define an offchain Merkle tree
 - `Option` for defining an optional version of any provable type https://github.com/o1-labs/o1js/pull/1630
 - `MerkleTree.clone()` and `MerkleTree.getLeaf()`, new convenience methods for merkle trees https://github.com/o1-labs/o1js/pull/1630
 - `MerkleList.forEach()`, a simple and safe way for iterating over a `MerkleList`
