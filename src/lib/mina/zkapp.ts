@@ -19,6 +19,7 @@ import {
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
+  InferProvable,
 } from '../provable/types/struct.js';
 import {
   Provable,
@@ -170,12 +171,14 @@ function method<K extends string, T extends SmartContract>(
  * }
  * ```
  */
-method.returns = function <K extends string, T extends SmartContract, R>(
-  returnType: Provable<R>
-) {
+method.returns = function <
+  K extends string,
+  T extends SmartContract,
+  R extends Provable<any>
+>(returnType: R) {
   return function decorateMethod(
     target: T & {
-      [k in K]: (...args: any) => Promise<R>;
+      [k in K]: (...args: any) => Promise<InferProvable<R>>;
     },
     methodName: K & string & keyof T,
     descriptor: PropertyDescriptor
