@@ -51,25 +51,18 @@ class ActionsContract extends SmartContract {
     this.account.actionState.requireEquals(actions.hash);
 
     let counter = Field(0);
-
-    let iter = actions.startIterating();
     let lastAction = Field(0);
 
-    for (let i = 0; i < MAX_UPDATES_WITH_ACTIONS; i++) {
-      let merkleActions = iter.next();
-      let innerIter = merkleActions.startIterating();
-      for (let j = 0; j < MAX_ACTIONS_PER_UPDATE; j++) {
-        let action = innerIter.next();
+    actions.iterate(MAX_UPDATES_WITH_ACTIONS, (innerActions) =>
+      innerActions.iterate(MAX_ACTIONS_PER_UPDATE, (action) => {
         counter = counter.add(action);
 
         // we require that every action is greater than the previous one, except for dummy (0) actions
         // this checks that actions are applied in the right order
         assert(action.equals(0).or(action.greaterThan(lastAction)));
         lastAction = action;
-      }
-      innerIter.assertAtEnd();
-    }
-    iter.assertAtEnd();
+      })
+    );
 
     this.counter.set(this.counter.getAndRequireEquals().add(counter));
   }
