@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/6a1012162...HEAD)
 
+### Fixes
+
+- Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
+
 ## [1.2.0](https://github.com/o1-labs/o1js/compare/4a17de857...6a1012162) - 2024-05-14
 
 ### Added
@@ -41,7 +45,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixes
 
 - Fix absolute imports which prevented compilation in some TS projects that used o1js https://github.com/o1-labs/o1js/pull/1628
-- Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
 
 ## [1.1.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...4a17de857) - 2024-04-30
 
