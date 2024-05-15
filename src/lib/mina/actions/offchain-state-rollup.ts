@@ -126,8 +126,10 @@ function merkleUpdateBatch(
 
     // prove that the witness and `actualPreviousValue` is correct, by comparing the implied root and key
     // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
-    witness.calculateIndex().assertEquals(key);
-    witness.calculateRoot(actualPreviousValue).assertEquals(intermediateRoot);
+    witness.calculateIndex().assertEquals(key, 'key mismatch');
+    witness
+      .calculateRoot(actualPreviousValue)
+      .assertEquals(intermediateRoot, 'root mismatch');
 
     // if an expected previous value was provided, check whether it matches the actual previous value
     // otherwise, the entire update in invalidated
@@ -153,14 +155,14 @@ function merkleUpdateBatch(
       // ignore dummy value
       if (isDummy.toBoolean()) return;
 
-      intermediateTree.get().setLeaf(key.toBigInt(), value);
+      intermediateTree.get().setLeaf(key.toBigInt(), value.toConstant());
       intermediateUpdates.push({ key, value });
 
       if (isCheckPoint.toBoolean()) {
         // if the update was valid, apply the intermediate updates to the actual tree
         if (wasValidUpdate.toBoolean()) {
           intermediateUpdates.forEach(({ key, value }) => {
-            tree.get().setLeaf(key.toBigInt(), value);
+            tree.get().setLeaf(key.toBigInt(), value.toConstant());
           });
         }
         // otherwise, we have to roll back the intermediate tree (TODO: inefficient)
@@ -306,7 +308,7 @@ function OffchainStateRollup({
           actionState: iterator.hash,
         });
         let proof = await RollupProof.dummy(inputState, finalState, 2, 15);
-        return { proof, tree };
+        return { proof, tree, nProofs: 0 };
       }
 
       // base proof
@@ -318,8 +320,10 @@ function OffchainStateRollup({
       );
 
       // recursive proofs
+      let nProofs = 1;
       for (let i = 1; ; i++) {
         if (iterator.isAtEnd().toBoolean()) break;
+        nProofs++;
 
         let slice = sliceActions(iterator, maxActionsPerBatch);
         proof = await offchainStateRollup.nextBatch(
@@ -330,7 +334,7 @@ function OffchainStateRollup({
         );
       }
 
-      return { proof, tree };
+      return { proof, tree, nProofs };
     },
   };
 }
