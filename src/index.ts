@@ -128,6 +128,7 @@ export { setNumberOfWorkers } from './lib/proof-system/workers.js';
 
 // experimental APIs
 import { memoizeWitness } from './lib/provable/provable.js';
+import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -140,6 +141,19 @@ const Experimental_ = {
  */
 namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
+
+  // offchain state
+  export let OffchainState = OffchainState_.OffchainState;
+
+  /**
+   * Commitments that keep track of the current state of an offchain Merkle tree constructed from actions.
+   * Intended to be stored on-chain.
+   *
+   * Fields:
+   * - `root`: The root of the current Merkle tree
+   * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
+   */
+  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments {}
 }
 
 Error.stackTraceLimit = 100000;

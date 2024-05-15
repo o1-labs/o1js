@@ -28,6 +28,14 @@ class ActionIterator extends MerkleListIterator.create(
   Actions.emptyActionState()
 ) {}
 
+/**
+ * Commitments that keep track of the current state of an offchain Merkle tree constructed from actions.
+ * Intended to be stored on-chain.
+ *
+ * Fields:
+ * - `root`: The root of the current Merkle tree
+ * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
+ */
 class OffchainStateCommitments extends Struct({
   // this should just be a MerkleTree type that carries the full tree as aux data
   root: Field,

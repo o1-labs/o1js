@@ -70,6 +70,24 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 
   /**
    * Settle the offchain state.
+   *
+   * Use this in a contract method as follows:
+   *
+   * @example
+   * ```ts
+   * class StateProof extends offchainState.Proof {}
+   *
+   * // ...
+   *
+   * class MyContract extends SmartContract {
+   *   \@method
+   *   async settle(proof: StateProof) {
+   *     await offchainState.settle(proof);
+   *   }
+   * }
+   * ```
+   *
+   * The `StateProof` can be created by calling `offchainState.createSettlementProof()`.
    */
   settle(
     proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
@@ -82,6 +100,35 @@ type OffchainStateContract = SmartContract & {
 
 const MerkleWitness256 = MerkleWitness(256);
 
+/**
+ * Offchain state for a `SmartContract`.
+ *
+ * ```ts
+ * // declare your offchain state
+ *
+ * const offchainState = OffchainState({
+ *   accounts: OffchainState.Map(PublicKey, UInt64),
+ *   totalSupply: OffchainState.Field(UInt64),
+ * });
+ *
+ * // use it in a contract, by adding an onchain state field of type `OffchainStateCommitments`
+ *
+ * class MyContract extends SmartContract {
+ *  \@state(OffchainStateCommitments) offchainState = State(
+ *    OffchainStateCommitments.empty()
+ *   );
+ *
+ *   // ...
+ * }
+ *
+ * // set the contract instance
+ *
+ * let contract = new MyContract(address);
+ * offchainState.setContractInstance(contract);
+ * ```
+ *
+ * See the individual methods on `offchainState` for more information on usage.
+ */
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
 >(config: Config): OffchainState<Config> {
