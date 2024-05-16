@@ -18,6 +18,8 @@ import { Bool } from '../bool.js';
 import assert from 'assert/strict';
 import { FieldType } from '../core/fieldvar.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
+import { Group } from '../group.js';
+import { modifiedField } from '../types/fields.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },
@@ -85,6 +87,26 @@ expect(jsValue).toEqual({
 
 expect(type.fromValue(jsValue)).toEqual(value);
 
+// empty
+let empty = type.empty();
+expect(empty).toEqual({
+  nested: { a: 0, b: false },
+  other: '',
+  pk: PublicKey.empty(),
+  bool: new Bool(false),
+  uint: [UInt32.zero, UInt32.zero],
+});
+
+// empty with Group
+expect(provable({ value: Group }).empty()).toEqual({ value: Group.zero });
+
+// fails with a clear error on input without an empty method
+const FieldWithoutEmpty = modifiedField({});
+delete (FieldWithoutEmpty as any).empty;
+expect(() => provable({ value: FieldWithoutEmpty }).empty()).toThrow(
+  'Expected `empty()` method on anonymous type object'
+);
+
 // check
 await Provable.runAndCheck(() => {
   type.check(value);
@@ -120,7 +142,7 @@ class MyStructPure extends Struct({
   uint: [UInt32, UInt32],
 }) {}
 
-// Struct.from() works on both js and provable inputs
+// Struct.fromValue() works on both js and provable inputs
 
 let myStructInput = {
   nested: { a: Field(1), b: 2n },
