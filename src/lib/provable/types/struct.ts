@@ -1,7 +1,6 @@
 import { Field, Bool, Scalar, Group } from '../wrapped.js';
 import {
   provable,
-  provablePure,
   provableTuple,
   HashInput,
   NonMethods,
