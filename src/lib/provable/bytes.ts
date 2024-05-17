@@ -161,12 +161,12 @@ class Bytes {
   }
 
   /**
-   * Create {@link Bytes} from a string.
-   *
-   * Inputs smaller than `this.size` are padded with zero bytes.
+   * Create a {@link Bytes} containing the given JavaScript string {str}.
+   * If provided, the {encoding} parameter identifies the character encoding.
+   * If not provided, {encoding} defaults to 'utf8'.
    */
-  static fromString(s: string) {
-    let bytes = new TextEncoder().encode(s);
+  static fromString(s: string, encoding?: BufferEncoding) {
+    let bytes = Buffer.from(s, encoding);
     return this.from(bytes);
   }
 
@@ -179,22 +179,17 @@ class Bytes {
   }
 
   /**
-   * Create {@link Bytes} from a hex string.
+   * Decodes {@link Bytes} to a string according to the specified character encoding in `encoding`. `start` and `end` may be passed to decode only a subset of `Bytes`.
    *
-   * Inputs smaller than `this.size` are padded with zero bytes.
+   * If `encoding` is `'utf8'` and a byte sequence in the input is not valid UTF-8,
+   * then each invalid byte is replaced with the replacement character `U+FFFD`.
+   *
+   * @param [encoding='utf8'] The character encoding to use.
+   * @param [start=0] The byte offset to start decoding at.
+   * @param [end=buf.length] The byte offset to stop decoding at (not inclusive).
    */
-  static fromHex(xs: string): Bytes {
-    let bytes = chunkString(xs, 2).map((s) => parseInt(s, 16));
-    return this.from(bytes);
-  }
-
-  /**
-   * Convert {@link Bytes} to a hex string.
-   */
-  toHex(): string {
-    return this.bytes
-      .map((x) => x.toBigInt().toString(16).padStart(2, '0'))
-      .join('');
+  toString(encoding?: BufferEncoding, start?: number, end?: number): string {
+    return Buffer.from(this.toBytes()).toString(encoding, start, end);
   }
 
   // dynamic subclassing infra
