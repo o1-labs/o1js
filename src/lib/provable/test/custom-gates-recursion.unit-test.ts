@@ -1,3 +1,6 @@
+/**
+ * This tests that we can use optional custom gates plus recursion in the same zkprogram proof.
+ */
 import { Bool } from '../wrapped.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Provable } from '../provable.js';
@@ -48,20 +51,6 @@ let program = ZkProgram({
     },
   },
 });
-
-// console.time('ecdsa verify (constant)');
-// program.rawMethods.ecdsa(emptyProof);
-// console.timeEnd('ecdsa verify (constant)');
-
-// console.time('ecdsa verify (witness gen / check)');
-// Provable.runAndCheck(program.rawMethods.ecdsa);
-// console.timeEnd('ecdsa verify (witness gen / check)');
-
-// console.time('ecdsa verify (build constraint system)');
-// let cs = program.analyzeMethods().ecdsa;
-// console.timeEnd('ecdsa verify (build constraint system)');
-
-// console.log(cs.summary());
 
 console.time('ecdsa verify (compile)');
 await emptyProgram.compile();
