@@ -11,7 +11,6 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
-  TransactionVersion,
 } from 'o1js';
 
 import { Member } from './member.js';
@@ -103,10 +102,7 @@ export class Voting_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
-      setVerificationKey: {
-        auth: Permissions.none(),
-        txnVersion: TransactionVersion.current(),
-      },
+      setVerificationKey: Permissions.VerificationKey.none(),
       setPermissions: Permissions.proofOrSignature(),
     });
     this.accumulatedVotes.set(Reducer.initialActionState);

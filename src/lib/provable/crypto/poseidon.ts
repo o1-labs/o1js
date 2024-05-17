@@ -28,7 +28,7 @@ export {
 };
 
 type Hashable<T> = { toInput: (x: T) => HashInput; empty: () => T };
-type ProvableHashable<T> = Provable<T> & Hashable<T>;
+type ProvableHashable<T, V = any> = Provable<T, V> & Hashable<T>;
 
 class Sponge {
   #sponge: unknown;

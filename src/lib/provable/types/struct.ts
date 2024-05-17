@@ -1,7 +1,6 @@
 import { Field, Bool, Scalar, Group } from '../wrapped.js';
 import {
   provable,
-  provablePure,
   provableTuple,
   HashInput,
   NonMethods,
@@ -13,7 +12,7 @@ import type {
   IsPure,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
-import { Proof } from '../../proof-system/zkprogram.js';
+import { DynamicProof, Proof } from '../../proof-system/zkprogram.js';
 import { ProvablePure } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 
@@ -21,8 +20,6 @@ import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 export {
   ProvableExtended,
   ProvablePureExtended,
-  provable,
-  provablePure,
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
@@ -295,6 +292,9 @@ function cloneCircuitValue<T>(obj: T): T {
   if (obj.constructor !== undefined && 'clone' in obj.constructor) {
     return (obj as any).constructor.clone(obj);
   }
+  if ('clone' in obj && typeof obj.clone === 'function') {
+    return (obj as any).clone(obj);
+  }
 
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
@@ -310,7 +310,7 @@ function cloneCircuitValue<T>(obj: T): T {
   if (isPrimitive(obj)) {
     return obj;
   }
-  if (obj instanceof Proof) {
+  if (obj instanceof Proof || obj instanceof DynamicProof) {
     return obj;
   }
 

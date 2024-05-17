@@ -12,7 +12,12 @@ import { ProvablePure } from '../provable/types/provable-intf.js';
 // external API
 export { State, state, declareState };
 // internal API
-export { assertStatePrecondition, cleanStatePrecondition };
+export {
+  assertStatePrecondition,
+  cleanStatePrecondition,
+  getLayout,
+  InternalStateType,
+};
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -70,8 +75,8 @@ type State<A> = {
    */
   fromAppState(appState: Field[]): A;
 };
-function State<A>(): State<A> {
-  return createState<A>();
+function State<A>(defaultValue?: A): State<A> {
+  return createState<A>(defaultValue);
 }
 
 /**
@@ -162,7 +167,7 @@ function state<A>(stateType: FlexibleProvablePure<A>) {
  */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
-  states: Record<string, FlexibleProvablePure<unknown>>
+  states: Record<string, FlexibleProvablePure<any>>
 ) {
   for (let key in states) {
     let CircuitValue = states[key];
@@ -181,11 +186,15 @@ type StateAttachedContract<A> = {
   cachedVariable?: A;
 };
 
-type InternalStateType<A> = State<A> & { _contract?: StateAttachedContract<A> };
+type InternalStateType<A> = State<A> & {
+  _contract?: StateAttachedContract<A>;
+  defaultValue?: A;
+};
 
-function createState<T>(): InternalStateType<T> {
+function createState<T>(defaultValue?: T): InternalStateType<T> {
   return {
     _contract: undefined as StateAttachedContract<T> | undefined,
+    defaultValue,
 
     set(state: T) {
       if (this._contract === undefined)
@@ -363,7 +372,7 @@ function getLayoutPosition<A>({
 
 function getLayout(scClass: typeof SmartContract) {
   let sc = smartContracts.get(scClass);
-  if (sc === undefined) throw Error('bug');
+  if (sc === undefined) return new Map();
   if (sc.layout === undefined) {
     let layout = new Map();
     sc.layout = layout;

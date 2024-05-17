@@ -15,17 +15,43 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/02c5e8d4d...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/6a1012162...HEAD)
 
-### Fixed
+### Fixes
 
-- Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
-- Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
-- Make `dummyBase64Proof()` lazy. Significant speed up when generating many account updates with authorization `Proof` while proofs turned off. https://github.com/o1-labs/o1js/pull/1624
+- Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
+- Fix `Struct.empty()` returning a garbage object when one of the base types doesn't support `empty()` https://github.com/o1-labs/o1js/pull/1657
+
+## [1.2.0](https://github.com/o1-labs/o1js/compare/4a17de857...6a1012162) - 2024-05-14
 
 ### Added
 
-- Exposed sideloaded verification keys https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
+- **Offchain state MVP** exported under `Experimental.OffchainState` https://github.com/o1-labs/o1js/pull/1630 https://github.com/o1-labs/o1js/pull/1652
+  - allows you to store any number of fields and key-value maps on your zkApp
+  - implemented using actions which define an offchain Merkle tree
+- `Option` for defining an optional version of any provable type https://github.com/o1-labs/o1js/pull/1630
+- `MerkleTree.clone()` and `MerkleTree.getLeaf()`, new convenience methods for merkle trees https://github.com/o1-labs/o1js/pull/1630
+- `MerkleList.forEach()`, a simple and safe way for iterating over a `MerkleList`
+- `Unconstrained.provableWithEmpty()` to create an unconstrained provable type with a known `empty()` value https://github.com/o1-labs/o1js/pull/1630
+- `Permissions.VerificationKey`, a namespace for verification key permissions https://github.com/o1-labs/o1js/pull/1639
+  - Includes more accurate names for the `impossible` and `proof` permissions for verification keys, which are now called `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` respectively.
+
+### Changed
+
+- `State()` now optionally accepts an initial value as input parameter https://github.com/o1-labs/o1js/pull/1630
+  - Example: `@state(Field) x = State(Field(1));`
+  - Initial values will be set in the default `init()` method
+  - You no longer need a custom `init()` method to set initial values
+
+### Fixes
+
+- Fix absolute imports which prevented compilation in some TS projects that used o1js https://github.com/o1-labs/o1js/pull/1628
+
+## [1.1.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...4a17de857) - 2024-04-30
+
+### Added
+
+- Exposed **sideloaded verification keys** https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
   - Added Proof type `DynamicProof` that allows verification through specifying a verification key in-circuit
 - `Provable.witnessFields()` to easily witness a tuple of field elements https://github.com/o1-labs/o1js/pull/1229
 - Example for implementing RSA verification in o1js https://github.com/o1-labs/o1js/pull/1229 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
@@ -34,6 +60,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - `Gadgets.rangeCheck64()` now returns individual range-checked limbs for advanced use cases https://github.com/o1-labs/o1js/pull/1229
+
+### Fixed
+
+- Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
+- Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
+- Make `dummyBase64Proof()` lazy. Significant speed up when generating many account updates with authorization `Proof` while proofs turned off. https://github.com/o1-labs/o1js/pull/1624
 
 ## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...02c5e8d4d) - 2024-04-22
 

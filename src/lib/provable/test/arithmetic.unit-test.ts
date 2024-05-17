@@ -7,7 +7,7 @@ import {
 } from '../../testing/equivalent.js';
 import { Field } from '../wrapped.js';
 import { Gadgets } from '../gadgets/gadgets.js';
-import { provable } from '../types/struct.js';
+import { provable } from '../types/provable-derivers.js';
 import { assert } from '../gadgets/common.js';
 
 let Arithmetic = ZkProgram({

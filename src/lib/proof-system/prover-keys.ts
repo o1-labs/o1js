@@ -53,7 +53,7 @@ function parseHeader(
   methods: MethodInterface[],
   header: SnarkKeyHeader
 ): CacheHeader {
-  let hash = Pickles.util.fromMlString(header[1][2][8]);
+  let hash = Pickles.util.fromMlString(header[1][2][7]);
   switch (header[0]) {
     case KeyType.StepProvingKey:
     case KeyType.StepVerificationKey: {
@@ -211,9 +211,8 @@ type MlSnarkKeysHeader = [
   headerVersion: number,
   kind: [_: 0, type: MlString, identifier: MlString],
   constraintConstants: unknown,
-  commits: unknown,
+  commit: MlString,
   length: number,
-  commitDate: MlString,
   constraintSystemHash: MlString,
   identifyingHash: MlString
 ];

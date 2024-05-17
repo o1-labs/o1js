@@ -26,7 +26,7 @@ The easiest way to write zk programs is using o1js.
 
 o1js is a TypeScript library for [zk-SNARKs](https://minaprotocol.com/blog/what-are-zk-snarks) and zkApps. You can use o1js to write zk smart contracts based on zero-knowledge proofs for the Mina Protocol.
 
-o1js is automatically included when you create a project using the [Mina zkApp CLI](https://github.com/o1-labs/zkapp-cli).
+o1js is automatically included when you create a project using the [zkApp CLI](https://www.npmjs.com/package/zkapp-cli).
 
 ## Learn More
 
