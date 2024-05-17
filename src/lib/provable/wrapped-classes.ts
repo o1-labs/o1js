@@ -10,12 +10,11 @@ type Bytes = InternalBytes;
  * ```ts
  * class Bytes32 extends Bytes(32) {}
  *
- * let bytes = Bytes32.fromHex('deadbeef');
+ * let bytes = Bytes32.fromString('deadbeef', 'hex');
  * ```
  */
 function Bytes(size: number) {
   return createBytes(size);
 }
 Bytes.from = InternalBytes.from;
-Bytes.fromHex = InternalBytes.fromHex;
 Bytes.fromString = InternalBytes.fromString;
