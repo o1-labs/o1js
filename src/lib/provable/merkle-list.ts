@@ -191,6 +191,29 @@ class MerkleList<T> implements MerkleListBase<T> {
     return new this.Constructor({ hash: this.hash, data });
   }
 
+  /**
+   * Iterate through the list in a fixed number of steps any apply a given callback on each element.
+   *
+   * Proves that the iteration traverses the entire list.
+   * Once past the last element, dummy elements will be passed to the callback.
+   *
+   * Note: There are no guarantees about the contents of dummy elements, so the callback is expected
+   * to handle the `isDummy` flag separately.
+   */
+  forEach(
+    length: number,
+    callback: (element: T, isDummy: Bool, i: number) => void
+  ) {
+    let iter = this.startIterating();
+    for (let i = 0; i < length; i++) {
+      let { element, isDummy } = iter.Unsafe.next();
+      callback(element, isDummy, i);
+    }
+    iter.assertAtEnd(
+      `Expected MerkleList to have at most ${length} elements, but it has more.`
+    );
+  }
+
   startIterating(): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
     return merkleArray.startIterating(this);
@@ -373,8 +396,11 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash = Provable.if(condition, this.hash, this.currentHash);
   }
 
-  assertAtEnd() {
-    return this.currentHash.assertEquals(this.hash);
+  assertAtEnd(message?: string) {
+    return this.currentHash.assertEquals(
+      this.hash,
+      message ?? 'Merkle list iterator is not at the end'
+    );
   }
 
   isAtStart() {

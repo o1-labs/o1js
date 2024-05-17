@@ -6,7 +6,7 @@ import { assert } from '../gadgets/common.js';
 import { Bytes } from '../wrapped-classes.js';
 import { CurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { simpleMapToCurve } from '../gadgets/elliptic-curve.js';
-import { provable } from '../types/struct.js';
+import { provable } from '../types/provable-derivers.js';
 
 export {
   foreignField,

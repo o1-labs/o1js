@@ -317,6 +317,10 @@ class Scalar implements ShiftedScalar {
   static fromJSON(x: string) {
     return Scalar.from(SignableFq.fromJSON(x));
   }
+
+  static empty() {
+    return Scalar.from(0n);
+  }
 }
 
 // internal helpers

@@ -192,7 +192,7 @@ function rosettaCombinePayload(
   network: NetworkId
 ) {
   let signature = signTransaction(
-    unsignedPayload.unsigned_transaction,
+    JSON.parse(unsignedPayload.unsigned_transaction),
     privateKey,
     network
   );
@@ -282,7 +282,7 @@ function rosettaTransactionToSignedCommand({
 }
 
 type UnsignedPayload = {
-  unsigned_transaction: UnsignedTransaction;
+  unsigned_transaction: string;
   payloads: unknown[];
 };
 

@@ -18,9 +18,8 @@ import {
   InferProvable,
   ProvablePureExtended,
   Struct,
-  provable,
-  provablePure,
 } from '../provable/types/struct.js';
+import { provable, provablePure } from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { snarkContext } from '../provable/core/provable-context.js';
@@ -44,6 +43,7 @@ import { prefixes } from '../../bindings/crypto/constants.js';
 
 // public API
 export {
+  ProofBase,
   Proof,
   DynamicProof,
   SelfProof,

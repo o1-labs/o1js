@@ -18,14 +18,13 @@ const doProofs = true;
 const beforeGenesis = UInt64.from(Date.now());
 
 class SimpleZkapp extends SmartContract {
-  @state(Field) x = State<Field>();
+  @state(Field) x = State(initialState);
 
   events = { update: Field, payout: UInt64, payoutReceiver: PublicKey };
 
   @method
   async init() {
     super.init();
-    this.x.set(initialState);
   }
 
   @method.returns(Field)

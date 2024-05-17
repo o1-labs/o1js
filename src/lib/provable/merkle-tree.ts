@@ -43,6 +43,17 @@ class MerkleTree {
   }
 
   /**
+   * Return a new MerkleTree with the same contents as this one.
+   */
+  clone() {
+    let newTree = new MerkleTree(this.height);
+    for (let [level, nodes] of Object.entries(this.nodes)) {
+      newTree.nodes[level as any as number] = { ...nodes };
+    }
+    return newTree;
+  }
+
+  /**
    * Returns a node which lives at a given index and level.
    * @param level Level of the node.
    * @param index Index of the node.
@@ -50,6 +61,15 @@ class MerkleTree {
    */
   getNode(level: number, index: bigint): Field {
     return this.nodes[level]?.[index.toString()] ?? this.zeroes[level];
+  }
+
+  /**
+   * Returns a leaf at a given index.
+   * @param index Index of the leaf.
+   * @returns The data of the leaf.
+   */
+  getLeaf(key: bigint) {
+    return this.getNode(0, key);
   }
 
   /**
@@ -149,7 +169,7 @@ class MerkleTree {
 }
 
 /**
- * The {@link BaseMerkleWitness} class defines a circuit-compatible base class for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
+ * The {@link BaseMerkleWitness} class defines a circuit-compatible base class for [Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof).
  */
 class BaseMerkleWitness extends CircuitValue {
   static height: number;
