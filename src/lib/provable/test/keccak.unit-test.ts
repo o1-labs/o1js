@@ -66,7 +66,7 @@ for (let length of lengths) {
   // bytes to hex roundtrip
   equivalent({ from: [inputBytes], to: inputBytes })(
     (x) => x,
-    (x) => Bytes.fromString(x.toString('hex'), 'hex'),
+    (x) => Bytes.fromHex(x.toHex()),
     `Bytes toHex`
   );
 }
@@ -75,8 +75,8 @@ for (let length of lengths) {
 
 for (let { nist, length, message, expected } of testVectors()) {
   let Hash = nist ? Keccak.nistSha3 : Keccak.preNist;
-  let actual = Hash(length, Bytes.fromString(message, 'hex'));
-  expect(actual).toEqual(Bytes.fromString(expected, 'hex'));
+  let actual = Hash(length, Bytes.fromHex(message));
+  expect(actual).toEqual(Bytes.fromHex(expected));
 }
 
 // MISC QUICK TESTS

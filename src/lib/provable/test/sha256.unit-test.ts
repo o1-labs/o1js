@@ -52,7 +52,7 @@ await equivalentAsync(
 
 for (let { preimage, hash } of testVectors()) {
   let actual = Gadgets.SHA256.hash(Bytes.fromString(preimage));
-  expect(actual.toString('hex')).toEqual(hash);
+  expect(actual.toHex()).toEqual(hash);
 }
 
 function testVectors() {
