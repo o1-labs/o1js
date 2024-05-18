@@ -17,6 +17,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/6a1012162...HEAD)
 
+### Added
+
+- Added `base64Encode()` and `base64Decode(byteLength)` methods to the **Bytes** type class.
+
+### Changed
+
+- Replaced `fromHex(s)` and `toHex()` methods in the Bytes type class with new implementations that utilize string reading/writing, offering better support for more encodings by leveraging the powerful Buffer class methods.
+
 ### Fixes
 
 - Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
