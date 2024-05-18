@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
 - Fix `Struct.empty()` returning a garbage object when one of the base types doesn't support `empty()` https://github.com/o1-labs/o1js/pull/1657
+- Fix `Option.value_exn None` error when using certain custom gates in combination with recursion https://github.com/o1-labs/o1js/issues/1336 https://github.com/MinaProtocol/mina/pull/15588
 
 ## [1.2.0](https://github.com/o1-labs/o1js/compare/4a17de857...6a1012162) - 2024-05-14
 
