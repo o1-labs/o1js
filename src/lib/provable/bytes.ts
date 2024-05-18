@@ -179,6 +179,25 @@ class Bytes {
   }
 
   /**
+   * Create {@link Bytes} from a hex string.
+   *
+   * Inputs smaller than `this.size` are padded with zero bytes.
+   */
+  static fromHex(xs: string): Bytes {
+    let bytes = chunkString(xs, 2).map((s) => parseInt(s, 16));
+    return this.from(bytes);
+  }
+
+  /**
+   * Convert {@link Bytes} to a hex string.
+   */
+  toHex(): string {
+    return this.bytes
+      .map((x) => x.toBigInt().toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  /**
    * Decodes {@link Bytes} to a string according to the specified character encoding in `encoding`. `start` and `end` may be passed to decode only a subset of `Bytes`.
    *
    * If `encoding` is `'utf8'` and a byte sequence in the input is not valid UTF-8,
