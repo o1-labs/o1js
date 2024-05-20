@@ -1142,14 +1142,26 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Negates the value.
-   *
-   * `Int64.from(5).neg()` will turn into `Int64.from(-5)`
+   * @deprecated Use {@link negV2()} instead.
    */
   neg() {
     // doesn't need further check if `this` is valid
     return new Int64(this.magnitude, this.sgn.neg());
   }
+
+  /**
+   * Negates the value.
+   *
+   * `Int64.from(5).neg()` will turn into `Int64.from(-5)`
+   */
+  negV2() {
+    return Provable.if(
+      this.magnitude.value.equals(0),
+      Int64.zero,
+      new Int64(this.magnitude, this.sgn.neg())
+    );
+  }
+
   /**
    * Addition with overflow checking.
    */
