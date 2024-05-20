@@ -996,6 +996,10 @@ class Sign extends CircuitValue {
   isPositive() {
     return this.value.equals(1);
   }
+  isNegative() {
+    return this.value.equals(-1);
+  }
+
   toString() {
     return this.value.toString();
   }
@@ -1143,6 +1147,7 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   /**
    * @deprecated Use {@link negV2()} instead.
+   * The current implementation will not be backwards-compatible with v2.
    */
   neg() {
     // doesn't need further check if `this` is valid
@@ -1188,7 +1193,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
    * `z` such that `z * y <= x`.
-   *
+   * On negative numbers, this rounds towards zero.
    */
   div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
@@ -1196,16 +1201,29 @@ class Int64 extends CircuitValue implements BalanceChange {
     let sign = this.sgn.mul(y_.sgn);
     return new Int64(quotient, sign);
   }
+
+  /**
+   * @deprecated Use {@link modV2()} instead.
+   * This implementation is vulnerable whenever `this` is zero.
+   * It allows the prover to return `y` instead of 0 as the result.
+   */
+  mod(y: UInt64 | number | string | bigint | UInt32) {
+    let y_ = UInt64.from(y);
+    let rest = this.magnitude.divMod(y_).rest.value;
+    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
+    return new Int64(new UInt64(rest.value));
+  }
+
   /**
    * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisible by `y`.
    */
-  mod(y: UInt64 | number | string | bigint | UInt32) {
+  modV2(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
+    rest = Provable.if(this.isNegative(), y_.value.sub(rest), rest);
     return new Int64(new UInt64(rest.value));
   }
 
@@ -1228,6 +1246,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
   /**
    * @deprecated Use {@link isPositiveV2()} or {@link isNonNegativeV2()} instead.
+   * The current implementation actually tests for non-negativity.
    */
   isPositive() {
     return this.sgn.isPositive();
@@ -1248,7 +1267,14 @@ class Int64 extends CircuitValue implements BalanceChange {
     return this.sgn.isPositive();
   }
 
-  // TODO enable this check method in v2
+  /**
+   * Checks if the value is negative (x < 0).
+   */
+  isNegative() {
+    return this.sgn.isNegative();
+  }
+
+  // TODO enable this check method in v2, to force a unique representation of 0
   static checkV2({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
     // check that the magnitude is in range
     UInt64.check(magnitude);
