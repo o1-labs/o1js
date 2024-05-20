@@ -1227,9 +1227,24 @@ class Int64 extends CircuitValue implements BalanceChange {
     this.toField().assertEquals(y_.toField(), message);
   }
   /**
-   * Checks if the value is positive.
+   * @deprecated Use {@link isPositiveV2()} or {@link isNonNegativeV2()} instead.
    */
   isPositive() {
+    return this.sgn.isPositive();
+  }
+
+  /**
+   * Checks if the value is positive (x > 0).
+   */
+  isPositiveV2() {
+    return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
+  }
+
+  /**
+   * Checks if the value is non-negative (x >= 0).
+   */
+  isNonNegativeV2() {
+    // this will be the correct logic when `checkV2` is enabled
     return this.sgn.isPositive();
   }
 
