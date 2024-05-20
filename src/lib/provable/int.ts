@@ -969,7 +969,7 @@ class Sign extends CircuitValue {
   }
   static check(x: Sign) {
     // x^2 === 1  <=>  x === 1 or x === -1
-    x.value.square().assertEquals(Field(1));
+    x.value.square().assertEquals(1);
   }
   static empty<T extends AnyConstructor>(): InstanceType<T> {
     return Sign.one as any;
@@ -994,7 +994,7 @@ class Sign extends CircuitValue {
     return new Sign(this.value.mul(y.value));
   }
   isPositive() {
-    return this.value.equals(Field(1));
+    return this.value.equals(1);
   }
   toString() {
     return this.value.toString();
@@ -1019,7 +1019,7 @@ type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
  */
 class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
-  // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
+  // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64
 
   @prop magnitude: UInt64; // absolute value
   @prop sgn: Sign; // +/- 1
@@ -1060,9 +1060,9 @@ class Int64 extends CircuitValue implements BalanceChange {
     let isValidNegative = Field.ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
     if (!isValidPositive && !isValidNegative)
       throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
-    let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
+    let magnitude = (isValidPositive ? x : x.neg()).toConstant();
     let sign = isValidPositive ? Sign.one : Sign.minusOne;
-    return new Int64(new UInt64(magnitude.value), sign);
+    return new Int64(UInt64.Unsafe.fromField(magnitude), sign);
   }
 
   // this doesn't check ranges because we assume they're already checked on UInts
@@ -1219,6 +1219,20 @@ class Int64 extends CircuitValue implements BalanceChange {
    */
   isPositive() {
     return this.sgn.isPositive();
+  }
+
+  // TODO enable this check method in v2
+  static checkV2({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
+    // check that the magnitude is in range
+    UInt64.check(magnitude);
+    // check that the sign is valid
+    Sign.check(sgn);
+
+    // check unique representation of 0: we can't have magnitude = 0 and sgn = -1
+    // magnitude + sign != -1 (this check works because magnitude >= 0)
+    magnitude.value
+      .add(sgn.value)
+      .assertNotEquals(-1, 'Int64: 0 must have positive sign');
   }
 }
 
