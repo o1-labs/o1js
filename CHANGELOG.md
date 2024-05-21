@@ -19,12 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Added `base64Encode()` and `base64Decode(byteLength)` methods to the **Bytes** type class.
-- Added `toString(encoding?: BufferEncoding, start?: number, end?: number)` method for converting Bytes to string with different encodings and optional byte range selection.
-
-### Changed
-
-- Changed fromString(s) to support more encodings, aligned with the native BufferEncoding union type.
+- Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class.
 
 ### Fixes
 

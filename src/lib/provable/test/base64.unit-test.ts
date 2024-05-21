@@ -23,10 +23,10 @@ function generateRandomString(
   const randomLength = Math.floor(Math.random() * maxLength) + 1;
 
   // Generate random bytes
-  const randomBytes = Bytes(randomLength).random();
+  const randomBytes = Bytes(randomLength).random().toBytes();
 
   // Convert to string given the chosen encoding
-  const randomString = randomBytes.toString(encoding);
+  const randomString = Buffer.from(randomBytes).toString(encoding);
 
   return randomString;
 }
@@ -49,7 +49,7 @@ describe('Base64 Decode Tests', () => {
     for (let i = 0; i < decodedString.length; i++) {
       expectedDecodedBytes[i] = decodedString.charCodeAt(i);
     }
-    // Assert that the decoded bytes match the expected decoded bytes
+
     expect(decodedBytes).toEqual(expectedDecodedBytes);
   }
 
@@ -89,7 +89,6 @@ describe('Base64 Encode Tests', () => {
     // Calculate the expected encoded bytes using JS implementation
     const expectedEncodedBytes = Bytes.from(Buffer.from(btoa(input)));
 
-    // Assert that the decoded bytes match the expected decoded bytes
     expect(encodedBytes).toEqual(expectedEncodedBytes);
   }
 

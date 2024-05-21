@@ -62,111 +62,12 @@ class Bytes {
   }
 
   /**
-   * Base64 encode bytes.
-   */
-  base64Encode(): Bytes {
-    const uint8Bytes = this.bytes;
-
-    // Convert each byte to its 8-bit binary representation and reverse endianness
-    let plainBits: Bool[] = uint8Bytes
-      .map((b) => b.value.toBits(8).reverse())
-      .flat();
-
-    // Calculate the bit padding required to make the total bits length a multiple of 6
-    const bitPadding =
-      plainBits.length % 6 !== 0 ? 6 - (plainBits.length % 6) : 0;
-
-    // Add the required bit padding with 0 bits
-    plainBits.push(...Array(bitPadding).fill(new Bool(false)));
-
-    let encodedBytes: UInt8[] = [];
-
-    // Process the bits 6 at a time and encode to Base64
-    for (let i = 0; i < plainBits.length; i += 6) {
-      // Slice the next 6 bits and reverse endianness
-      let byteBits = plainBits.slice(i, i + 6).reverse();
-
-      // Convert the 6-bit chunk to a UInt8 value for indexing the Base64 table
-      const indexTableByte = new UInt8(Field.fromBits(byteBits).value);
-
-      // Use the index to get the corresponding Base64 character and add to the result
-      encodedBytes.push(base64ELookup(indexTableByte));
-    }
-
-    // Add '=' padding to the encoded output if required
-    const paddingLength =
-      uint8Bytes.length % 3 !== 0 ? 3 - (uint8Bytes.length % 3) : 0;
-    encodedBytes.push(...Array(paddingLength).fill(UInt8.from(61)));
-
-    return Bytes.from(encodedBytes);
-  }
-
-  /**
-   * Decode Base64-encoded bytes.
+   * Create {@link Bytes} from a string.
    *
-   * @param byteLength The length of the output decoded bytes.
+   * Inputs smaller than `this.size` are padded with zero bytes.
    */
-  base64Decode(byteLength: number): Bytes {
-    const encodedB64Bytes = this.bytes;
-
-    const charLength = encodedB64Bytes.length;
-    assert(
-      charLength % 4 === 0,
-      'Input base64 byte length should be a multiple of 4!'
-    );
-
-    let decodedB64Bytes: UInt8[] = [];
-
-    let bitsIn: Bool[][][] = Array.from({ length: charLength / 4 }, () => []);
-    let bitsOut: Bool[][][] = Array.from({ length: charLength / 4 }, () =>
-      Array.from({ length: 4 }, () => [])
-    );
-
-    let idx = 0;
-    for (let i = 0; i < charLength; i += 4) {
-      for (let j = 0; j < 4; j++) {
-        const translated = base64DLookup(encodedB64Bytes[i + j]);
-        bitsIn[i / 4][j] = translated.toBits(6);
-      }
-
-      // Convert from four 6-bit words to three 8-bit words, unpacking the base64 encoding
-      bitsOut[i / 4][0] = [
-        bitsIn[i / 4][1][4],
-        bitsIn[i / 4][1][5],
-        ...bitsIn[i / 4][0],
-      ];
-
-      for (let j = 0; j < 4; j++) {
-        bitsOut[i / 4][1][j] = bitsIn[i / 4][2][j + 2];
-        bitsOut[i / 4][1][j + 4] = bitsIn[i / 4][1][j];
-      }
-
-      bitsOut[i / 4][2] = [
-        ...bitsIn[i / 4][3],
-        bitsIn[i / 4][2][0],
-        bitsIn[i / 4][2][1],
-      ];
-
-      for (let j = 0; j < 3; j++) {
-        if (idx + j < byteLength) {
-          decodedB64Bytes[idx + j] = new UInt8(
-            Field.fromBits(bitsOut[i / 4][j]).value
-          );
-        }
-      }
-      idx += 3;
-    }
-
-    return Bytes.from(decodedB64Bytes);
-  }
-
-  /**
-   * Create a {@link Bytes} containing the given JavaScript string {str}.
-   * If provided, the {encoding} parameter identifies the character encoding.
-   * If not provided, {encoding} defaults to 'utf8'.
-   */
-  static fromString(s: string, encoding?: BufferEncoding) {
-    let bytes = Buffer.from(s, encoding);
+  static fromString(s: string) {
+    let bytes = new TextEncoder().encode(s);
     return this.from(bytes);
   }
 
@@ -198,17 +99,99 @@ class Bytes {
   }
 
   /**
-   * Decodes {@link Bytes} to a string according to the specified character encoding in `encoding`. `start` and `end` may be passed to decode only a subset of `Bytes`.
-   *
-   * If `encoding` is `'utf8'` and a byte sequence in the input is not valid UTF-8,
-   * then each invalid byte is replaced with the replacement character `U+FFFD`.
-   *
-   * @param [encoding='utf8'] The character encoding to use.
-   * @param [start=0] The byte offset to start decoding at.
-   * @param [end=buf.length] The byte offset to stop decoding at (not inclusive).
+   * Base64 encode bytes.
    */
-  toString(encoding?: BufferEncoding, start?: number, end?: number): string {
-    return Buffer.from(this.toBytes()).toString(encoding, start, end);
+  base64Encode(): Bytes {
+    const uint8Bytes = this.bytes;
+
+    // Convert each byte to its 8-bit binary representation and reverse endianness
+    let plainBits: Bool[] = uint8Bytes
+      .map((b) => b.value.toBits(8).reverse())
+      .flat();
+
+    // Calculate the bit padding required to make the total bits length a multiple of 6
+    const bitPadding =
+      plainBits.length % 6 !== 0 ? 6 - (plainBits.length % 6) : 0;
+
+    // Add the required bit padding with 0 bits
+    plainBits.push(...Array(bitPadding).fill(new Bool(false)));
+
+    let encodedBytes: UInt8[] = [];
+
+    // Process the bits 6 at a time and encode to Base64
+    for (let i = 0; i < plainBits.length; i += 6) {
+      // Slice the next 6 bits and reverse endianness
+      let byteBits = plainBits.slice(i, i + 6).reverse();
+
+      // Convert the 6-bit chunk to a UInt8 value for indexing the Base64 table
+      const indexTableByte = UInt8.Unsafe.fromField(Field.fromBits(byteBits));
+
+      // Use the index to get the corresponding Base64 character and add to the result
+      encodedBytes.push(base64EncodeLookup(indexTableByte));
+    }
+
+    // Add '=' padding to the encoded output if required
+    const paddingLength =
+      uint8Bytes.length % 3 !== 0 ? 3 - (uint8Bytes.length % 3) : 0;
+    encodedBytes.push(...Array(paddingLength).fill(UInt8.from(61)));
+
+    return Bytes.from(encodedBytes);
+  }
+
+  /**
+   * Decode Base64-encoded bytes.
+   *
+   * @param byteLength The length of the output decoded bytes.
+   * @returns Decoded bytes as {@link Bytes}.
+   *
+   * @warning
+   * Ensure the input Base64 string does not contain '=' characters in the middle,
+   * as it can cause unexpected decoding results.
+   */
+  base64Decode(byteLength: number): Bytes {
+    const encodedB64Bytes = this.bytes;
+
+    const charLength = encodedB64Bytes.length;
+    assert(
+      charLength % 4 === 0,
+      'Input base64 byte length should be a multiple of 4!'
+    );
+
+    let decodedB64Bytes: UInt8[] = new Array(byteLength).fill(UInt8.from(0));
+
+    let bitsIn: Bool[][][] = Array.from({ length: charLength / 4 }, () => []);
+    let bitsOut: Bool[][][] = Array.from({ length: charLength / 4 }, () =>
+      Array.from({ length: 4 }, () => [])
+    );
+
+    let idx = 0;
+    for (let i = 0; i < charLength / 4; i++) {
+      for (let j = 0; j < 4; j++) {
+        const translated = base64DecodeLookup(encodedB64Bytes[4 * i + j]);
+        bitsIn[i][j] = translated.toBits(6);
+      }
+
+      // Convert from four 6-bit words to three 8-bit words, unpacking the base64 encoding
+      bitsOut[i][0] = [bitsIn[i][1][4], bitsIn[i][1][5], ...bitsIn[i][0]];
+
+      for (let j = 0; j < 4; j++) {
+        bitsOut[i][1][j] = bitsIn[i][2][j + 2];
+        bitsOut[i][1][j + 4] = bitsIn[i][1][j];
+      }
+
+      bitsOut[i][2] = [...bitsIn[i][3], bitsIn[i][2][0], bitsIn[i][2][1]];
+
+      for (let j = 0; j < 3; j++) {
+        if (idx + j < byteLength) {
+          decodedB64Bytes[idx + j] = UInt8.Unsafe.fromField(
+            Field.fromBits(bitsOut[i][j])
+          );
+        }
+      }
+      idx += 3;
+    }
+
+    return Bytes.from(decodedB64Bytes);
   }
 
   // dynamic subclassing infra
@@ -255,7 +238,7 @@ function createBytes(size: number): typeof Bytes {
  * @param input - The Base64 encoded byte to be decoded.
  * @returns - The corresponding decoded value as a Field.
  */
-function base64DLookup(input: UInt8): Field {
+function base64DecodeLookup(input: UInt8): Field {
   // Initialize a Field to validate if the input byte is a valid Base64 character
   let isValidBase64Chars = new Field(0);
 
@@ -312,7 +295,7 @@ function base64DLookup(input: UInt8): Field {
  * @param input - The byte to be encoded to Base64.
  * @returns - The corresponding Base64 encoded character as a UInt8.
  */
-function base64ELookup(input: UInt8): UInt8 {
+function base64EncodeLookup(input: UInt8): UInt8 {
   // Initialize a Field to validate if the input byte is included in the Base64 index table
   let isValidBase64Chars = new Field(0);
 
@@ -355,5 +338,5 @@ function base64ELookup(input: UInt8): UInt8 {
     'Invalid character detected: The input contains a byte that is not present in the BASE64 index table!'
   );
 
-  return new UInt8(sum_slash.value);
+  return UInt8.Unsafe.fromField(sum_slash);
 }
