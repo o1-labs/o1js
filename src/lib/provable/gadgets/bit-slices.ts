@@ -18,9 +18,10 @@ export { bytesToWord, wordToBytes, wordsToBytes, bytesToWords, sliceField3 };
 /**
  * Convert an array of UInt8 to a Field element. Expects little endian representation.
  */
-function bytesToWord(wordBytes: UInt8[]): Field {
+function bytesToWord(wordBytes: UInt8[], reverseEndianness = false): Field {
   return wordBytes.reduce((acc, byte, idx) => {
-    const shift = 1n << BigInt(8 * idx);
+    const shiftBits = reverseEndianness ? 3 - idx : idx;
+    const shift = 1n << BigInt(8 * shiftBits);
     return acc.add(byte.value.mul(shift));
   }, Field.from(0));
 }
@@ -29,16 +30,21 @@ function bytesToWord(wordBytes: UInt8[]): Field {
  * Convert a Field element to an array of UInt8. Expects little endian representation.
  * @param bytesPerWord number of bytes per word
  */
-function wordToBytes(word: Field, bytesPerWord = 8): UInt8[] {
+function wordToBytes(
+  word: Field,
+  bytesPerWord = 8,
+  reverseEndianness = false
+): UInt8[] {
   let bytes = Provable.witness(Provable.Array(UInt8, bytesPerWord), () => {
     let w = word.toBigInt();
-    return Array.from({ length: bytesPerWord }, (_, k) =>
-      UInt8.from((w >> BigInt(8 * k)) & 0xffn)
-    );
+    return Array.from({ length: bytesPerWord }, (_, k) => {
+      const shiftBits = reverseEndianness ? 3 - k : k;
+      return UInt8.from((w >> BigInt(8 * shiftBits)) & 0xffn);
+    });
   });
 
   // check decomposition
-  bytesToWord(bytes).assertEquals(word);
+  bytesToWord(bytes, reverseEndianness).assertEquals(word);
 
   return bytes;
 }
@@ -54,8 +60,14 @@ function wordsToBytes(words: Field[], bytesPerWord = 8): UInt8[] {
  * Convert an array of UInt8 to an array of Field elements. Expects little endian representation.
  * @param bytesPerWord number of bytes per word
  */
-function bytesToWords(bytes: UInt8[], bytesPerWord = 8): Field[] {
-  return chunk(bytes, bytesPerWord).map(bytesToWord);
+function bytesToWords(
+  bytes: UInt8[],
+  bytesPerWord = 8,
+  reverseEndianness = false
+): Field[] {
+  return chunk(bytes, bytesPerWord).map((w) =>
+    bytesToWord(w, reverseEndianness)
+  );
 }
 
 // conversion between 3-limb foreign fields and arbitrary bit slices
