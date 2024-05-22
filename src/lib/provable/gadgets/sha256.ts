@@ -12,7 +12,7 @@ import { bytesToWord, wordToBytes } from './bit-slices.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';
 
-export { SHA256 };
+export { SHA256, SHA256Hasher };
 
 const SHA256Constants = {
   // constants §4.2.2
@@ -162,6 +162,7 @@ const SHA256 = {
     // wordToBytes expects little endian, so we reverse the bytes
     return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
   },
+  update: (data: Bytes) => new SHA256Hasher().update(data),
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
@@ -286,4 +287,269 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
   return UInt32.Unsafe.fromField(xRotR0)
     .xor(UInt32.Unsafe.fromField(xRotR1))
     .xor(UInt32.Unsafe.fromField(xRotR2));
+}
+
+class SHA256Hasher {
+  /** Length of hash output = 32 bytes*/
+  readonly digestLength = 32;
+
+  /** Block size = 64 bytes*/
+  readonly blockSize = 64;
+
+  protected _words: UInt32[] = []; // hash state
+  private _temp: UInt32[] = new Array(64).fill(UInt32.from(0)); // temporary state
+  private _bytes: UInt8[] = new Array(128).fill(UInt8.from(0)); // bytes for data to hash
+  private _bytesLength = 0; // number of bytes in "buffer"
+  private _bytesHashed = 0; // number of total bytes hashed
+  private _finished = false; // indicates whether the hash was finalized
+
+  constructor() {
+    this.reset();
+  }
+
+  protected _initState() {
+    const H = SHA256Constants.H.map((x) => UInt32.from(x));
+
+    this._words[0] = H[0];
+    this._words[1] = H[1];
+    this._words[2] = H[2];
+    this._words[3] = H[3];
+    this._words[4] = H[4];
+    this._words[5] = H[5];
+    this._words[6] = H[6];
+    this._words[7] = H[7];
+  }
+
+  /**
+   * Resets hash state making it possible
+   * to re-use this instance to hash other data.
+   */
+  private reset(): this {
+    this._initState();
+    this._bytesLength = 0;
+    this._bytesHashed = 0;
+    this._finished = false;
+    return this;
+  }
+
+  /**
+   * Cleans internal bytes and resets hash state.
+   */
+  private clean() {
+    this.wipe<UInt8>(this._bytes, UInt8.from(0));
+    this.wipe<UInt32>(this._temp, UInt32.from(0));
+    this.reset();
+  }
+
+  /**
+   * Sets all values in the given array to zero and returns it.   */
+  private wipe<T>(array: T[], defaultValue: T): T[] {
+    return array.fill(defaultValue);
+  }
+
+  private hashBlocks(
+    W: UInt32[],
+    H: UInt32[],
+    M: UInt8[],
+    pos: number,
+    len: number
+  ): number {
+    while (len >= 64) {
+      let a = H[0];
+      let b = H[1];
+      let c = H[2];
+      let d = H[3];
+      let e = H[4];
+      let f = H[5];
+      let g = H[6];
+      let h = H[7];
+
+      for (let i = 0; i < 16; i++) {
+        let j = pos + i * 4;
+        W[i] = new UInt32(
+          Field.fromBits(
+            M.slice(j, (j += 4))
+              .map((x) => x.value.toBits(8))
+              .reverse()
+              .flat()
+          ).value
+        );
+      }
+
+      for (let t = 16; t <= 63; t++) {
+        // the field element is unreduced and not proven to be 32bit, we will do this later to save constraints
+        let unreduced = DeltaOne(W[t - 2])
+          .value.add(W[t - 7].value)
+          .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
+
+        // mod 32bit the unreduced field element
+        W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 16).remainder);
+      }
+
+      // main loop
+      for (let t = 0; t <= 63; t++) {
+        const K_t = Field(SHA256Constants.K[t]);
+        // T1 is unreduced and not proven to be 32bit, we will do this later to save constraints
+        const unreducedT1 = h.value
+          .add(SigmaOne(e).value)
+          .add(Ch(e, f, g).value)
+          .add(K_t)
+          .add(W[t].value)
+          .seal();
+
+        // T2 is also unreduced
+        const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
+
+        h = g;
+        g = f;
+        f = e;
+        e = UInt32.Unsafe.fromField(
+          divMod32(d.value.add(unreducedT1), 16).remainder
+        ); // mod 32bit the unreduced field element
+        d = c;
+        c = b;
+        b = a;
+        a = UInt32.Unsafe.fromField(
+          divMod32(unreducedT2.add(unreducedT1), 16).remainder
+        ); // mod 32bit
+      }
+
+      H[0] = H[0].addMod32(a);
+      H[1] = H[1].addMod32(b);
+      H[2] = H[2].addMod32(c);
+      H[3] = H[3].addMod32(d);
+      H[4] = H[4].addMod32(e);
+      H[5] = H[5].addMod32(f);
+      H[6] = H[6].addMod32(g);
+      H[7] = H[7].addMod32(h);
+
+      pos += 64;
+      len -= 64;
+    }
+    return pos;
+  }
+
+  /**
+   * Writes 4-byte big-endian representation of 32-bit unsigned
+   * value to byte array starting at offset.
+   *
+   * If byte array is not given, creates a new 4-byte one.
+   *
+   * Returns the output byte array.
+   */
+  public wordToBytes(
+    value: number | UInt32,
+    out: UInt8[] = new Array(4).fill(UInt8.from(0)),
+    offset = 0
+  ): UInt8[] {
+    if (typeof value === 'number') {
+      out[offset + 0] = UInt8.from((value >> 24) & 0xff);
+      out[offset + 1] = UInt8.from((value >> 16) & 0xff);
+      out[offset + 2] = UInt8.from((value >> 8) & 0xff);
+      out[offset + 3] = UInt8.from(value & 0xff);
+    } else {
+      let bytes: UInt8[] = wordToBytes(value.value, 8, true);
+
+      out[offset + 0] = UInt8.from(bytes[0]);
+      out[offset + 1] = UInt8.from(bytes[1]);
+      out[offset + 2] = UInt8.from(bytes[2]);
+      out[offset + 3] = UInt8.from(bytes[3]);
+    }
+
+    return out;
+  }
+
+  /**
+   * Updates hash state with the given data.
+   *
+   * Throws error when trying to update already finalized hash:
+   * instance must be reset to update it again.
+   */
+  update(data: Bytes, dataLength: number = data.length): this {
+    if (this._finished) {
+      throw new Error("SHA256: can't update because hash was finished.");
+    }
+    let dataPos = 0;
+    this._bytesHashed += dataLength;
+    if (this._bytesLength > 0) {
+      while (this._bytesLength < this.blockSize && dataLength > 0) {
+        this._bytes[this._bytesLength++] = data.bytes[dataPos++];
+        dataLength--;
+      }
+      if (this._bytesLength === this.blockSize) {
+        this.hashBlocks(
+          this._temp,
+          this._words,
+          this._bytes,
+          0,
+          this.blockSize
+        );
+        this._bytesLength = 0;
+      }
+    }
+    if (dataLength >= this.blockSize) {
+      dataPos = this.hashBlocks(
+        this._temp,
+        this._words,
+        data.bytes,
+        dataPos,
+        dataLength
+      );
+      dataLength %= this.blockSize;
+    }
+    while (dataLength > 0) {
+      this._bytes[this._bytesLength++] = data.bytes[dataPos++];
+      dataLength--;
+    }
+    return this;
+  }
+
+  /**
+   * Finalizes hash state and puts hash into out.
+   * If hash was already finalized, puts the same value.
+   */
+  private finish(out: UInt8[]): this {
+    if (!this._finished) {
+      const bytesHashed = this._bytesHashed;
+      const left = this._bytesLength;
+      const bitLenHi = (bytesHashed / 0x20000000) | 0;
+      const bitLenLo = bytesHashed << 3;
+      const padLength = bytesHashed % 64 < 56 ? 64 : 128;
+
+      this._bytes[left] = UInt8.from(0x80);
+      for (let i = left + 1; i < padLength - 8; i++) {
+        this._bytes[i] = UInt8.from(0);
+      }
+      this.wordToBytes(bitLenHi, this._bytes, padLength - 8);
+      this.wordToBytes(bitLenLo, this._bytes, padLength - 4);
+
+      this.hashBlocks(this._temp, this._words, this._bytes, 0, padLength);
+
+      this._finished = true;
+    }
+
+    for (let i = 0; i < this.digestLength / 4; i++) {
+      this.wordToBytes(this._words[i], out, i * 4);
+    }
+
+    return this;
+  }
+
+  /**
+   * Returns the final hash digest.
+   */
+  digest(): Bytes {
+    const out: UInt8[] = new Array(this.digestLength).fill(UInt8.from(0));
+    this.finish(out);
+
+    return Bytes.from(out);
+  }
+
+  static hash(data: Bytes): Bytes {
+    const hasher = new SHA256Hasher();
+    hasher.update(data);
+    const digest = hasher.digest();
+    hasher.clean();
+    return digest;
+  }
 }
