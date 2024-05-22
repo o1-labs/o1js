@@ -19,6 +19,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- Added `SHA256Hasher` class that allows streaming preimage bytes into a provable SHA256 hash function.
+  - exposed via `Gadgets.SHA256.update(data)`
+
+### Added
+
 - Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class.
 
 ### Fixes
