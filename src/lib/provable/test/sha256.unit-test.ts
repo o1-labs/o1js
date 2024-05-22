@@ -8,7 +8,10 @@ import {
   equivalentProvable,
 } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
+import { describe, test } from 'node:test';
 import { expect } from 'expect';
+import { concatBytes } from '@noble/hashes/utils';
+import { SHA256 } from '../gadgets/sha256.js';
 
 sample(Random.nat(400), 5).forEach((preimageLength) => {
   let inputBytes = bytes(preimageLength);
@@ -76,3 +79,57 @@ function testVectors() {
     },
   ];
 }
+
+describe('SHA256 Sliding Window Tests', () => {
+  // Define iteration limit to make tests quicker
+  const MAX_ITERATION = false;
+  const TEST_SIZE = MAX_ITERATION ? 256 : 20;
+
+  let BYTES_768 = new Uint8Array(256 * 3);
+  // Fill with random data
+  for (let i = 0; i < (256 * 3) / 32; i++)
+    BYTES_768.set(
+      nobleSha256.create().update(new Uint8Array(i)).digest(),
+      i * 32
+    );
+
+  test(`Partial: SHA256`, async () => {
+    const sha256Digest = nobleSha256.create().update(BYTES_768).digest();
+    for (let i = 0; i < TEST_SIZE; i++) {
+      let b1 = BYTES_768.subarray(0, i);
+      for (let j = 0; j < TEST_SIZE; j++) {
+        let b2 = BYTES_768.subarray(i, i + j);
+        let b3 = BYTES_768.subarray(i + j);
+        expect(concatBytes(b1, b2, b3)).toEqual(BYTES_768);
+        expect(
+          SHA256.update(Bytes.from(b1))
+            .update(Bytes.from(b2))
+            .update(Bytes.from(b3))
+            .digest()
+            .toBytes()
+        ).toEqual(sha256Digest);
+      }
+    }
+  });
+
+  // Same as before, but creates copy of each slice, which changes dataoffset of typed array
+  // Catched bug in blake2
+  test(`Partial (copy): SHA256 partial`, () => {
+    const sha256Digest = nobleSha256.create().update(BYTES_768).digest();
+    for (let i = 0; i < TEST_SIZE; i++) {
+      let b1 = BYTES_768.subarray(0, i).slice();
+      for (let j = 0; j < TEST_SIZE; j++) {
+        let b2 = BYTES_768.subarray(i, i + j).slice();
+        let b3 = BYTES_768.subarray(i + j).slice();
+        expect(concatBytes(b1, b2, b3)).toEqual(BYTES_768);
+        expect(
+          SHA256.update(Bytes.from(b1))
+            .update(Bytes.from(b2))
+            .update(Bytes.from(b3))
+            .digest()
+            .toBytes()
+        ).toEqual(sha256Digest);
+      }
+    }
+  });
+});
