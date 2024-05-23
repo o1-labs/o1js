@@ -366,13 +366,13 @@ class SHA256Hasher {
 
       for (let i = 0; i < 16; i++) {
         let j = pos + i * 4;
-        W[i] = new UInt32(
+        W[i] = UInt32.Unsafe.fromField(
           Field.fromBits(
             M.slice(j, (j += 4))
               .map((x) => x.value.toBits(8))
               .reverse()
               .flat()
-          ).value
+          )
         );
       }
 
