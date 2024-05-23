@@ -21,7 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class.
+- Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class. https://github.com/o1-labs/o1js/pull/1659
 
 ### Fixes
 
