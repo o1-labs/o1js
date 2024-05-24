@@ -386,7 +386,7 @@ class Field {
    * ```ts
    * const someField = Field(42);
    * const inverse = someField.inv();
-   * inverse.assertEquals(Field(1).div(example)); // This statement is always true regardless of the value of `someField`
+   * inverse.assertEquals(Field(1).div(someField)); // This statement is always true regardless of the value of `someField`
    * ```
    *
    * **Warning**: This is a modular inverse. See {@link div} method for more details.
