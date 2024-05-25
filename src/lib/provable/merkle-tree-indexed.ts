@@ -1,8 +1,13 @@
-import { Field } from './field.js';
+import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
+import { Field } from './wrapped.js';
 import { Option } from './option.js';
 import { Struct } from './types/struct.js';
+import { InferValue } from 'src/bindings/lib/provable-generic.js';
+import { assert } from './gadgets/common.js';
 
 type IndexedMerkleMapBase = {
+  root: Field;
+
   // (lower-level) method to insert a new leaf `(key, value)`. proves that `key` doesn't exist yet
   insert(key: Field, value: Field): void;
 
@@ -27,3 +32,53 @@ class Leaf extends Struct({
   nextKey: Field,
   nextIndex: Field,
 }) {}
+
+class IndexedMerkleMap implements IndexedMerkleMapBase {
+  // data defining the provable interface of a tree
+  root: Field;
+  readonly height: number;
+
+  // the raw data stored in the tree
+  readonly leaves: InferValue<typeof Leaf>[] = [];
+
+  // helpers structures
+  length: number; // length of the leaves array
+  readonly nodes: Field[][] = []; // for every level, an array of hashes
+
+  /**
+   * Creates a new, empty Indexed Merkle Map, given its height.
+   */
+  constructor(height: number) {
+    this.root = Field(zero(height - 1));
+  }
+
+  insert(key: Field, value: Field) {
+    assert(false, 'not implemented');
+  }
+
+  update(key: Field, value: Field) {
+    assert(false, 'not implemented');
+  }
+
+  set(key: Field, value: Field) {
+    assert(false, 'not implemented');
+  }
+
+  get(key: Field): Option<Field> {
+    assert(false, 'not implemented');
+  }
+
+  remove(key: Field) {
+    assert(false, 'not implemented');
+  }
+}
+
+// cache of zero hashes
+const zeroes = [0n];
+function zero(level: number) {
+  for (let i = zeroes.length; i <= level; i++) {
+    let zero = zeroes[i - 1];
+    zeroes[i] = PoseidonBigint.hash([zero, zero]);
+  }
+  return zeroes[level];
+}
