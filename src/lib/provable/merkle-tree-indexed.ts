@@ -4,6 +4,7 @@ import { Option } from './option.js';
 import { Struct } from './types/struct.js';
 import { InferValue } from 'src/bindings/lib/provable-generic.js';
 import { assert } from './gadgets/common.js';
+import { Unconstrained } from './types/unconstrained.js';
 
 type IndexedMerkleMapBase = {
   root: Field;
@@ -36,14 +37,16 @@ class Leaf extends Struct({
 class IndexedMerkleMap implements IndexedMerkleMapBase {
   // data defining the provable interface of a tree
   root: Field;
+  length: Field; // length of the leaves array
   readonly height: number;
 
-  // the raw data stored in the tree
-  readonly leaves: InferValue<typeof Leaf>[] = [];
+  // the raw data stored in the tree, plus helper structures
+  readonly data: Unconstrained<{
+    readonly leaves: InferValue<typeof Leaf>[];
 
-  // helper structures
-  length: number = 0; // length of the leaves array
-  readonly nodes: (bigint | undefined)[][]; // for every level, an array of hashes
+    // for every level, an array of hashes
+    readonly nodes: (bigint | undefined)[][];
+  }>;
 
   /**
    * Creates a new, empty Indexed Merkle Map, given its height.
@@ -51,10 +54,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   constructor(height: number) {
     this.root = Field(empty(height - 1));
 
-    this.nodes = Array(height);
+    let nodes: (bigint | undefined)[][] = Array(height);
     for (let level = 0; level < height; level++) {
-      this.nodes[level] = [];
+      nodes[level] = [];
     }
+
+    this.length = Field(0);
+    let leaves: InferValue<typeof Leaf>[] = [];
+
+    this.data = Unconstrained.from({ leaves, nodes });
   }
 
   insert(key: Field, value: Field) {
@@ -81,8 +89,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // invariant: for every node that is not undefined, its descendants are either empty or not undefined
   private setLeafNode(index: number, leaf: bigint) {
-    this.nodes[0][index] = leaf;
+    let nodes = this.data.get().nodes;
 
+    nodes[0][index] = leaf;
     let isLeft = index % 2 === 0;
 
     for (let level = 1; level < this.height; level++) {
@@ -90,14 +99,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
       let left = this.getNode(level - 1, index * 2, isLeft);
       let right = this.getNode(level - 1, index * 2 + 1, !isLeft);
-      this.nodes[level][index] = PoseidonBigint.hash([left, right]);
+      nodes[level][index] = PoseidonBigint.hash([left, right]);
 
       isLeft = index % 2 === 0;
     }
   }
 
   private getNode(level: number, index: number, nonEmpty: boolean) {
-    let node = this.nodes[level]?.[index];
+    let nodes = this.data.get().nodes;
+    let node = nodes[level]?.[index];
     if (node === undefined) {
       if (nonEmpty)
         throw Error(
