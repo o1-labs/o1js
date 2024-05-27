@@ -33,6 +33,7 @@ class Leaf extends Struct({
   nextKey: Field,
   nextIndex: Field,
 }) {}
+type LeafValue = InferValue<typeof Leaf>;
 
 class IndexedMerkleMap implements IndexedMerkleMapBase {
   // data defining the provable interface of a tree
@@ -42,10 +43,13 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // the raw data stored in the tree, plus helper structures
   readonly data: Unconstrained<{
-    readonly leaves: InferValue<typeof Leaf>[];
+    readonly leaves: LeafValue[];
 
     // for every level, an array of hashes
     readonly nodes: (bigint | undefined)[][];
+
+    // sorted list of low nodes
+    readonly lowNodes: LeafValue[];
   }>;
 
   /**
@@ -60,9 +64,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     }
 
     this.length = Field(0);
-    let leaves: InferValue<typeof Leaf>[] = [];
-
-    this.data = Unconstrained.from({ leaves, nodes });
+    let leaves: LeafValue[] = [];
+    let lowNodes: LeafValue[] = [];
+    this.data = Unconstrained.from({ leaves, lowNodes, nodes });
   }
 
   insert(key: Field, value: Field) {
@@ -86,6 +90,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   // helper methods
+
+  private getLowNode(key: bigint) {}
 
   // invariant: for every node that is not undefined, its descendants are either empty or not undefined
   private setLeafNode(index: number, leaf: bigint) {
