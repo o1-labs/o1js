@@ -88,7 +88,7 @@ const SHA256 = {
     // padding the message $5.1.1 into blocks that are a multiple of 512
     let messageBlocks = padding(data);
 
-    const H = SHA256Constants.H.map((x) => UInt32.from(x));
+    let H = SHA256Constants.H.map((x) => UInt32.from(x));
     const K = SHA256Constants.K.map((x) => UInt32.from(x));
 
     const N = messageBlocks.length;
@@ -110,52 +110,7 @@ const SHA256 = {
         W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 16).remainder);
       }
 
-      // initialize working variables
-      let a = H[0];
-      let b = H[1];
-      let c = H[2];
-      let d = H[3];
-      let e = H[4];
-      let f = H[5];
-      let g = H[6];
-      let h = H[7];
-
-      // main loop
-      for (let t = 0; t <= 63; t++) {
-        // T1 is unreduced and not proven to be 32bit, we will do this later to save constraints
-        const unreducedT1 = h.value
-          .add(SigmaOne(e).value)
-          .add(Ch(e, f, g).value)
-          .add(K[t].value)
-          .add(W[t].value)
-          .seal();
-
-        // T2 is also unreduced
-        const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
-
-        h = g;
-        g = f;
-        f = e;
-        e = UInt32.Unsafe.fromField(
-          divMod32(d.value.add(unreducedT1), 16).remainder
-        ); // mod 32bit the unreduced field element
-        d = c;
-        c = b;
-        b = a;
-        a = UInt32.Unsafe.fromField(
-          divMod32(unreducedT2.add(unreducedT1), 16).remainder
-        ); // mod 32bit
-      }
-
-      // new intermediate hash value
-      H[0] = H[0].addMod32(a);
-      H[1] = H[1].addMod32(b);
-      H[2] = H[2].addMod32(c);
-      H[3] = H[3].addMod32(d);
-      H[4] = H[4].addMod32(e);
-      H[5] = H[5].addMod32(f);
-      H[6] = H[6].addMod32(g);
-      H[7] = H[7].addMod32(h);
+      H = sha256Compression(H, W, K);
     }
 
     // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
@@ -286,4 +241,63 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
   return UInt32.Unsafe.fromField(xRotR0)
     .xor(UInt32.Unsafe.fromField(xRotR1))
     .xor(UInt32.Unsafe.fromField(xRotR2));
+}
+
+/**
+ * Performs the SHA-256 compression function on the given hash values and message schedule.
+ *
+ * @param H - The initial or intermediate hash values (8-element array of UInt32).
+ * @param W - The message schedule (64-element array of UInt32).
+ * @param K - The constants used in the SHA-256 algorithm (64-element array of UInt32).
+ * @returns The updated intermediate hash values after compression.
+ */
+function sha256Compression(H: UInt32[], W: UInt32[], K: UInt32[]) {
+  // initialize working variables
+  let a = H[0];
+  let b = H[1];
+  let c = H[2];
+  let d = H[3];
+  let e = H[4];
+  let f = H[5];
+  let g = H[6];
+  let h = H[7];
+
+  // main loop
+  for (let t = 0; t <= 63; t++) {
+    // T1 is unreduced and not proven to be 32bit, we will do this later to save constraints
+    const unreducedT1 = h.value
+      .add(SigmaOne(e).value)
+      .add(Ch(e, f, g).value)
+      .add(K[t].value)
+      .add(W[t].value)
+      .seal();
+
+    // T2 is also unreduced
+    const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
+
+    h = g;
+    g = f;
+    f = e;
+    e = UInt32.Unsafe.fromField(
+      divMod32(d.value.add(unreducedT1), 16).remainder
+    ); // mod 32bit the unreduced field element
+    d = c;
+    c = b;
+    b = a;
+    a = UInt32.Unsafe.fromField(
+      divMod32(unreducedT2.add(unreducedT1), 16).remainder
+    ); // mod 32bit
+  }
+
+  // new intermediate hash value
+  H[0] = H[0].addMod32(a);
+  H[1] = H[1].addMod32(b);
+  H[2] = H[2].addMod32(c);
+  H[3] = H[3].addMod32(d);
+  H[4] = H[4].addMod32(e);
+  H[5] = H[5].addMod32(f);
+  H[6] = H[6].addMod32(g);
+  H[7] = H[7].addMod32(h);
+
+  return H;
 }
