@@ -155,27 +155,27 @@ function bisectUnique(
   lowIndex: number;
   foundValue: boolean;
 } {
-  // invariants: iLow <= (target index) <= iHigh and 0 <= iLow < length
-  let [iLow, iHigh] = [0, length];
+  let [iLow, iHigh] = [0, length - 1];
+  if (getValue(iLow) > target) return { lowIndex: -1, foundValue: false };
+  if (getValue(iHigh) < target) return { lowIndex: iHigh, foundValue: false };
+
+  // invariant: 0 <= iLow <= lowIndex <= iHigh < length
+  // since we are either returning or reducing (iHigh - iLow), we'll eventually terminate correctly
   while (true) {
     if (iHigh === iLow) {
-      let foundValue = getValue(iLow) === target;
-      return { lowIndex: iLow, foundValue };
-    } else if (iHigh - iLow === 1) {
-      // this gets us to the iHigh = iLow case in the next iteration
-      if (getValue(iHigh) <= target) iLow = iHigh;
-      else iHigh = iLow;
+      return { lowIndex: iLow, foundValue: getValue(iLow) === target };
+    }
+    // either iLow + 1 = iHigh = iMid, or iLow < iMid < iHigh
+    // in both cases, the range gets strictly smaller
+    let iMid = Math.ceil((iLow + iHigh) / 2);
+    if (getValue(iMid) <= target) {
+      // iMid is in the candidate set, and strictly larger than iLow
+      // preserves iLow <= lowIndex
+      iLow = iMid;
     } else {
-      // because of the other cases, we know that iLow < iMid < iHigh
-      let iMid = Math.floor((iLow + iHigh) / 2);
-      if (getValue(iMid) <= target) {
-        iLow = iMid;
-      } else {
-        // we can use iMid - 1 because
-        // - iMid > iLow >= 0, and
-        // - iMid is no longer a candidate index that we can return
-        iHigh = iMid - 1;
-      }
+      // iMid is no longer in the candidate set, so we can exclude it right away
+      // preserves lowIndex <= iHigh
+      iHigh = iMid - 1;
     }
   }
 }
