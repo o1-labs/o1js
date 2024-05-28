@@ -1273,7 +1273,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Checks if the value is negative (x < 0).
    */
   isNegative() {
-    return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
+    return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isNegative());
   }
 
   // TODO enable this check method in v2, to force a unique representation of 0
