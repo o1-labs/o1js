@@ -102,9 +102,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     key.assertLessThan(lowNode.nextKey, 'Key already exists in the tree');
 
     // update low node
-    let nextIndex = this.length;
-    let newLowNode = { ...lowNode, nextKey: key, nextIndex };
-    this.updateLeaf(newLowNode);
+    this.updateLeaf(lowNode, { nextKey: key, nextIndex: this.length });
 
     // append new leaf
     this.appendLeaf(lowNode, { key, value });
@@ -135,16 +133,34 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
   }
 
-  updateLeaf(leaf: Leaf) {
-    let node = Leaf.hash(leaf);
+  /**
+   * Update existing leaf with new pointers
+   */
+  updateLeaf(
+    leaf: Leaf,
+    { nextKey, nextIndex }: { nextKey: Field; nextIndex: Field }
+  ) {
+    // update root
+    let newLeaf = { ...leaf, nextKey, nextIndex };
+    let node = Leaf.hash(newLeaf);
     let index = leaf.index;
     this.root = this.computeRoot(node, index);
+
     Provable.asProver(() => {
       // update internal hash nodes
       this.setLeafNode(index.get(), node.toBigInt());
+
+      // update leaf lists
+      let { leaves, sortedLeaves } = this.data.get();
+      let leafValue = Leaf.toValue(newLeaf);
+      leaves[index.get()] = leafValue;
+      sortedLeaves[leaf.sortedIndex.get()] = leafValue;
     });
   }
 
+  /**
+   * Append a new leaf based on the pointers of the previous low node
+   */
   appendLeaf(low: Leaf, { key, value }: { key: Field; value: Field }) {
     let index = Unconstrained.witness(() => Number(this.length.toBigInt()));
 
