@@ -1223,7 +1223,10 @@ class Int64 extends CircuitValue implements BalanceChange {
   modV2(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Provable.if(this.isNegative(), y_.value.sub(rest), rest);
+    let isNonNegative = this.magnitude
+      .equals(UInt64.zero)
+      .or(this.sgn.isPositive());
+    rest = Provable.if(isNonNegative, rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest.value));
   }
 
@@ -1245,8 +1248,8 @@ class Int64 extends CircuitValue implements BalanceChange {
     this.toField().assertEquals(y_.toField(), message);
   }
   /**
-   * @deprecated Use {@link isPositiveV2()} or {@link isNonNegativeV2()} instead.
-   * The current implementation actually tests for non-negativity.
+   * @deprecated Use {@link isPositiveV2} instead.
+   * The current implementation actually tests for non-negativity, but is wrong for the negative representation of 0.
    */
   isPositive() {
     return this.sgn.isPositive();
@@ -1260,21 +1263,22 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   // TODO add this when `checkV2` is enabled
-  // right now it would be misleading
+  // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is non-negative (x >= 0).
    */
   // isNonNegativeV2() {
-  //   // this will be the correct logic when `checkV2` is enabled
   //   return this.sgn.isPositive();
   // }
 
+  // TODO add this when `checkV2` is enabled
+  // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is negative (x < 0).
    */
-  isNegative() {
-    return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isNegative());
-  }
+  // isNegative() {
+  //   return this.sgn.isNegative();
+  // }
 
   // TODO enable this check method in v2, to force a unique representation of 0
   static checkV2({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
