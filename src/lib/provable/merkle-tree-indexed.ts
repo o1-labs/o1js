@@ -65,16 +65,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // the raw data stored in the tree, plus helper structures
   readonly data: Unconstrained<{
-    // leaves sorted by index
-    readonly leaves: LeafValue[];
-
-    // leaves sorted by key, with a circular linked list encoded by nextKey
-    // we always have sortedLeaves[n-1].nextKey = 0 = sortedLeaves[0].key
-    // for i=0,...n-2, sortedLeaves[i].nextKey = sortedLeaves[i+1].key
-    readonly sortedLeaves: LeafValue[];
-
     // for every level, an array of hashes
     readonly nodes: (bigint | undefined)[][];
+
+    // leaves sorted by key, with a circular linked list encoded by nextKey
+    // we always have
+    // sortedLeaves[0].key = 0
+    // sortedLeaves[n-1].nextKey = Field.ORDER - 1
+    // for i=0,...n-2, sortedLeaves[i].nextKey = sortedLeaves[i+1].key
+    readonly sortedLeaves: LeafValue[];
   }>;
 
   /**
@@ -224,9 +223,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       this.setLeafNode(i, node.toBigInt());
 
       // update leaf lists
-      let { leaves, sortedLeaves } = this.data.get();
+      let { sortedLeaves } = this.data.get();
       let leafValue = Leaf.toValue(newLeaf);
-      leaves[i] = leafValue;
       sortedLeaves[leaf.sortedIndex.get()] = leafValue;
     });
   }
@@ -255,8 +253,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
         sortedIndex: Unconstrained.from(iSorted),
       });
 
-      let { leaves, sortedLeaves } = this.data.get();
-      leaves.push(leafValue);
+      let { sortedLeaves } = this.data.get();
       sortedLeaves.splice(iSorted, 0, leafValue);
     });
   }
@@ -273,13 +270,11 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       // update leaf lists
       let leafValue = Leaf.toValue(leaf);
       let iSorted = leaf.sortedIndex.get();
-      let { leaves, sortedLeaves } = this.data.get();
+      let { sortedLeaves } = this.data.get();
 
       if (Bool(leafExists).toBoolean()) {
-        leaves[i] = leafValue;
         sortedLeaves[iSorted] = leafValue;
       } else {
-        leaves.push(leafValue);
         sortedLeaves.splice(iSorted, 0, leafValue);
       }
     });
