@@ -17,6 +17,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/54d6545bf...HEAD)
 
+### Deprecated
+
+- `Int64.isPositive()` and `Int64.mod()` deprecated because they behave incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
+  - This can pose an attack surface, since it is easy to maliciously pick either the `+0` or the `-0` representation
+  - Use `Int64.isPositiveV2()` and `Int64.modV2()` instead
+  - Also deprecated `Int64.neg()` in favor of `Int64.negV2()`, for compatibility with v2 version of `Int64` that will use `Int64.checkV2()`
+
 ## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf)
 
 ### Added
