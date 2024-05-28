@@ -39,15 +39,17 @@ type BaseLeaf = {
 };
 
 class Leaf extends Struct({
-  key: Field,
   value: Field,
+
+  key: Field,
   nextKey: Field,
+
+  index: Field,
   nextIndex: Field,
 
-  index: Unconstrained.provableWithEmpty(0),
   sortedIndex: Unconstrained.provableWithEmpty(0),
 }) {
-  static hash({ key, value, nextKey, nextIndex }: BaseLeaf) {
+  static hashNode({ key, value, nextKey, nextIndex }: BaseLeaf) {
     return Poseidon.hash([key, value, nextKey, nextIndex]);
   }
 }
@@ -77,6 +79,11 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
    * Creates a new, empty Indexed Merkle Map, given its height.
    */
   constructor(height: number) {
+    assert(height > 0, 'height must be positive');
+    assert(
+      height < 53,
+      'height must be less than 53, so that we can use 64-bit floats to represent indices.'
+    );
     this.root = Field(empty(height - 1));
 
     let nodes: (bigint | undefined)[][] = Array(height);
@@ -133,16 +140,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   // helper methods
 
   proveInclusion(leaf: Leaf, message?: string) {
-    let node = Leaf.hash(leaf);
-    let index = leaf.index;
-    let root = this.computeRoot(node, index);
+    let node = Leaf.hashNode(leaf);
+    let root = this.computeRoot(leaf.index, node);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
   }
 
   /**
    * Update existing leaf.
    *
-   * Note: we never update the key of a leaf.
+   * Note: we never update the key or index of a leaf.
    */
   updateLeaf(
     leaf: Leaf,
@@ -150,18 +156,18 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   ) {
     // update root
     let newLeaf = { ...leaf, ...partialLeaf };
-    let node = Leaf.hash(newLeaf);
-    let index = leaf.index;
-    this.root = this.computeRoot(node, index);
+    let node = Leaf.hashNode(newLeaf);
+    this.root = this.computeRoot(leaf.index, node);
 
     Provable.asProver(() => {
       // update internal hash nodes
-      this.setLeafNode(index.get(), node.toBigInt());
+      let i = Number(leaf.index.toBigInt());
+      this.setLeafNode(i, node.toBigInt());
 
       // update leaf lists
       let { leaves, sortedLeaves } = this.data.get();
       let leafValue = Leaf.toValue(newLeaf);
-      leaves[index.get()] = leafValue;
+      leaves[i] = leafValue;
       sortedLeaves[leaf.sortedIndex.get()] = leafValue;
     });
   }
@@ -170,17 +176,17 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
    * Append a new leaf based on the pointers of the previous low node
    */
   appendLeaf(low: Leaf, { key, value }: { key: Field; value: Field }) {
-    let index = Unconstrained.witness(() => Number(this.length.toBigInt()));
-
     // update root and length
+    let index = this.length;
     let leaf = { key, value, nextKey: low.nextKey, nextIndex: low.nextIndex };
-    let node = Leaf.hash(leaf);
-    this.root = this.computeRoot(node, index);
+    let node = Leaf.hashNode(leaf);
+    this.root = this.computeRoot(index, node);
     this.length = this.length.add(1);
 
     Provable.asProver(() => {
       // update internal hash nodes
-      this.setLeafNode(index.get(), node.toBigInt());
+      let i = Number(index.toBigInt());
+      this.setLeafNode(i, node.toBigInt());
 
       // update leaf lists
       let sortedIndex = low.sortedIndex.get() + 1;
@@ -196,19 +202,24 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     });
   }
 
-  // TODO this does not provably use the index!
-  computeRoot(node: Field, index: Unconstrained<number>) {
+  /**
+   * Compute the root given a leaf node and its index.
+   */
+  computeRoot(index: Field, node: Field) {
+    let indexU = Unconstrained.from(Number(index.toBigInt()));
+    let indexBits = index.toBits(this.height - 1);
+
     for (let level = 0; level < this.height - 1; level++) {
       // in every iteration, we witness a sibling and hash it to get the parent node
-      let isLeft = Provable.witness(Bool, () => index.get() % 2 === 0);
+      let isRight = indexBits[level];
       let sibling = Provable.witness(Field, () => {
-        let i = index.get();
-        let isLeft = i % 2 === 0;
+        let i = indexU.get();
+        let isLeft = !isRight.toBoolean();
         return this.getNode(level, isLeft ? i + 1 : i - 1, false);
       });
-      let [left, right] = maybeSwap(isLeft, node, sibling);
+      let [right, left] = maybeSwap(isRight, node, sibling);
       node = Poseidon.hash([left, right]);
-      index.updateAsProver((i) => i >> 1);
+      indexU.updateAsProver((i) => i >> 1);
     }
     // now, `node` is the root of the tree
     return node;
