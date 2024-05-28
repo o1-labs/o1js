@@ -1,7 +1,7 @@
 import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
 import { Bool, Field } from './wrapped.js';
 import { Option } from './option.js';
-import { Struct } from './types/struct.js';
+import { Struct, provableTuple } from './types/struct.js';
 import { InferValue } from 'src/bindings/lib/provable-generic.js';
 import { assert } from './gadgets/common.js';
 import { Unconstrained } from './types/unconstrained.js';
@@ -9,6 +9,7 @@ import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { maybeSwap } from './merkle-tree.js';
 import { assertDefined } from '../util/errors.js';
+import { provable } from './types/provable-derivers.js';
 
 type IndexedMerkleMapBase = {
   root: Field;
@@ -91,9 +92,20 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       nodes[level] = [];
     }
 
-    this.length = Field(0);
-    let leaves: LeafValue[] = [];
-    let sortedLeaves: LeafValue[] = [];
+    let firstLeaf = {
+      key: 0n,
+      value: 0n,
+      // maximum, which is always greater than any key that is a hash
+      nextKey: Field.ORDER - 1n,
+      index: 0n,
+      nextIndex: 0n, // TODO: ok?
+      sortedIndex: Unconstrained.from(0),
+    };
+    this.setLeafNode(0, Leaf.hashNode(Leaf.fromValue(firstLeaf)).toBigInt());
+
+    this.length = Field(1);
+    let leaves: LeafValue[] = [firstLeaf];
+    let sortedLeaves: LeafValue[] = [firstLeaf];
     this.data = Unconstrained.from({ leaves, sortedLeaves, nodes });
   }
 
@@ -115,9 +127,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   update(key: Field, value: Field) {
     // prove that the key exists by presenting a leaf that contains it
-    let self = Provable.witness(Leaf, () =>
-      assertDefined(this.findLeaf(key).self, 'Key does not exist in the tree')
-    );
+    let self = Provable.witness(Leaf, () => this.findLeaf(key).self);
     this.proveInclusion(self, 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf');
 
@@ -127,7 +137,10 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   set(key: Field, value: Field) {
     // prove whether the key exists or not, by showing a valid low node and checking if it points to the key
-    let low = Provable.witness(Leaf, () => this.findLeaf(key).low);
+    let { low, self } = Provable.witness(
+      provable({ low: Leaf, self: Leaf }),
+      () => this.findLeaf(key)
+    );
     this.proveInclusion(low, 'Invalid low node');
     low.key.assertLessThan(key, 'Invalid low node');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node');
@@ -135,19 +148,30 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
 
+    // prove inclusion of this node if it already exists
+    this.proveInclusionIf(keyExists, self, 'Invalid leaf');
+    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf');
+
     // the leaf's index depends on whether it exists
     let index = Provable.if(keyExists, low.nextIndex, this.length);
 
     // update low node, or leave it as is
     let newLow = { ...low, nextKey: key, nextIndex: index };
-    let nodeLow = Leaf.hashNode(newLow);
-    this.root = this.computeRoot(low.index, nodeLow);
+    this.root = this.computeRoot(low.index, Leaf.hashNode(newLow));
+    this.setLeafUnconstrained(true, newLow);
 
     // update leaf, or append a new one
-    // TODO damn I think we need another inclusion proof for the previous leaf
-    throw Error('not implemented');
-    let TODO: any = {};
-    this.setLeafUnconstrained(keyExists, low, TODO);
+    let newLeaf = {
+      key,
+      value,
+      nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
+      nextIndex: Provable.if(keyExists, self.nextIndex, low.nextIndex),
+      index,
+      sortedIndex: Unconstrained.witness(() => low.sortedIndex.get() + 1),
+    };
+    this.root = this.computeRoot(index, Leaf.hashNode(newLeaf));
+    this.length = Provable.if(keyExists, this.length, this.length.add(1));
+    this.setLeafUnconstrained(keyExists, newLeaf);
   }
 
   get(key: Field): Option<Field> {
@@ -165,6 +189,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     let node = Leaf.hashNode(leaf);
     let root = this.computeRoot(leaf.index, node);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+  }
+
+  proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
+    let node = Leaf.hashNode(leaf);
+    let root = this.computeRoot(leaf.index, node);
+    assert(
+      condition.implies(root.equals(this.root)),
+      message ?? 'Leaf is not included in the tree'
+    );
   }
 
   /**
@@ -224,26 +257,18 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   /**
    * Append a new leaf based on the pointers of the previous low node
    */
-  private setLeafUnconstrained(
-    leafExists: Bool,
-    low: Leaf,
-    leaf: BaseLeaf & { index: Field }
-  ) {
+  private setLeafUnconstrained(leafExists: Bool | boolean, leaf: Leaf) {
     Provable.asProver(() => {
       // update internal hash nodes
       let i = Number(leaf.index.toBigInt());
       this.setLeafNode(i, Leaf.hashNode(leaf).toBigInt());
 
       // update leaf lists
-      let iSorted = low.sortedIndex.get() + 1;
-      let leafValue = Leaf.toValue({
-        ...leaf,
-        sortedIndex: Unconstrained.from(iSorted),
-      });
-
+      let leafValue = Leaf.toValue(leaf);
+      let iSorted = leaf.sortedIndex.get();
       let { leaves, sortedLeaves } = this.data.get();
 
-      if (leafExists.toBoolean()) {
+      if (Bool(leafExists).toBoolean()) {
         leaves[i] = leafValue;
         sortedLeaves[iSorted] = leafValue;
       } else {
@@ -296,8 +321,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       leaves.length
     );
     let low = foundValue ? leaves[lowIndex - 1] : leaves[lowIndex];
-    let self = foundValue ? leaves[lowIndex] : undefined;
-    return { low, self };
+    let self = foundValue ? leaves[lowIndex] : Leaf.toValue(Leaf.empty());
+    return { foundValue, low, self };
   }
 
   // invariant: for every node that is not undefined, its descendants are either empty or not undefined
