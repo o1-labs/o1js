@@ -135,3 +135,47 @@ function empty(level: number) {
   }
   return emptyNodes[level];
 }
+
+// helper
+
+/**
+ * Bisect indices in an array of unique values that is sorted in ascending order.
+ *
+ * `getValue()` returns the value at the given index.
+ *
+ * We return
+ * `lowIndex` := max { i in [0, length) | getValue(i) <= target }
+ * `foundValue` := whether `getValue(lowIndex) == target`
+ */
+function bisectUnique(
+  target: bigint,
+  getValue: (index: number) => bigint,
+  length: number
+): {
+  lowIndex: number;
+  foundValue: boolean;
+} {
+  // invariants: iLow <= (target index) <= iHigh and 0 <= iLow < length
+  let [iLow, iHigh] = [0, length];
+  while (true) {
+    if (iHigh === iLow) {
+      let foundValue = getValue(iLow) === target;
+      return { lowIndex: iLow, foundValue };
+    } else if (iHigh - iLow === 1) {
+      // this gets us to the iHigh = iLow case in the next iteration
+      if (getValue(iHigh) <= target) iLow = iHigh;
+      else iHigh = iLow;
+    } else {
+      // because of the other cases, we know that iLow < iMid < iHigh
+      let iMid = Math.floor((iLow + iHigh) / 2);
+      if (getValue(iMid) <= target) {
+        iLow = iMid;
+      } else {
+        // we can use iMid - 1 because
+        // - iMid > iLow >= 0, and
+        // - iMid is no longer a candidate index that we can return
+        iHigh = iMid - 1;
+      }
+    }
+  }
+}
