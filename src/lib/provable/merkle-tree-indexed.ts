@@ -49,6 +49,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     readonly nodes: (bigint | undefined)[][];
 
     // sorted list of low nodes
+    // we always have lowNodes[n-1].nextKey = 0 = lowNodes[0].key
+    // for i=0,...n-2, lowNodes[i].nextKey = lowNodes[i+1].key
     readonly lowNodes: LeafValue[];
   }>;
 
@@ -91,7 +93,19 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // helper methods
 
-  private getLowNode(key: bigint) {}
+  private findNode(key: bigint) {
+    assert(key > 0n, 'key must be positive');
+
+    let lowNodes = this.data.get().lowNodes;
+    let { lowIndex, foundValue } = bisectUnique(
+      key,
+      (i) => lowNodes[i].key,
+      lowNodes.length
+    );
+    let lowNode = foundValue ? lowNodes[lowIndex - 1] : lowNodes[lowIndex];
+    let thisNode = foundValue ? lowNodes[lowIndex] : undefined;
+    return { lowNode, thisNode };
+  }
 
   // invariant: for every node that is not undefined, its descendants are either empty or not undefined
   private setLeafNode(index: number, leaf: bigint) {
