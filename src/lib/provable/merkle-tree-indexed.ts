@@ -8,6 +8,7 @@ import { Unconstrained } from './types/unconstrained.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { maybeSwap } from './merkle-tree.js';
+import { assertDefined } from '../util/errors.js';
 
 type IndexedMerkleMapBase = {
   root: Field;
@@ -30,6 +31,13 @@ type IndexedMerkleMapBase = {
   remove(key: Field): void;
 };
 
+type BaseLeaf = {
+  key: Field;
+  value: Field;
+  nextKey: Field;
+  nextIndex: Field;
+};
+
 class Leaf extends Struct({
   key: Field,
   value: Field,
@@ -39,17 +47,7 @@ class Leaf extends Struct({
   index: Unconstrained.provableWithEmpty(0),
   sortedIndex: Unconstrained.provableWithEmpty(0),
 }) {
-  static hash({
-    key,
-    value,
-    nextKey,
-    nextIndex,
-  }: {
-    key: Field;
-    value: Field;
-    nextKey: Field;
-    nextIndex: Field;
-  }) {
+  static hash({ key, value, nextKey, nextIndex }: BaseLeaf) {
     return Poseidon.hash([key, value, nextKey, nextIndex]);
   }
 }
@@ -109,7 +107,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   update(key: Field, value: Field) {
-    assert(false, 'not implemented');
+    // prove that the key exists by presenting a leaf that contains it
+    let self = Provable.witness(Leaf, () =>
+      assertDefined(this.findLeaf(key).self, 'Key does not exist in the tree')
+    );
+    this.proveInclusion(self, 'Key does not exist in the tree');
+    self.key.assertEquals(key, 'Invalid leaf');
+
+    // update leaf
+    this.updateLeaf(self, { value });
   }
 
   set(key: Field, value: Field) {
@@ -134,14 +140,16 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   /**
-   * Update existing leaf with new pointers
+   * Update existing leaf.
+   *
+   * Note: we never update the key of a leaf.
    */
   updateLeaf(
     leaf: Leaf,
-    { nextKey, nextIndex }: { nextKey: Field; nextIndex: Field }
+    partialLeaf: Partial<{ value: Field; nextKey: Field; nextIndex: Field }>
   ) {
     // update root
-    let newLeaf = { ...leaf, nextKey, nextIndex };
+    let newLeaf = { ...leaf, ...partialLeaf };
     let node = Leaf.hash(newLeaf);
     let index = leaf.index;
     this.root = this.computeRoot(node, index);
@@ -188,6 +196,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     });
   }
 
+  // TODO this does not provably use the index!
   computeRoot(node: Field, index: Unconstrained<number>) {
     for (let level = 0; level < this.height - 1; level++) {
       // in every iteration, we witness a sibling and hash it to get the parent node
