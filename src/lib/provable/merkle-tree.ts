@@ -11,7 +11,7 @@ import { Provable } from './provable.js';
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };
 
 // internal API
-export { maybeSwap };
+export { conditionalSwap };
 
 type Witness = { isLeft: boolean; sibling: Field }[];
 
@@ -207,7 +207,7 @@ class BaseMerkleWitness extends CircuitValue {
 
     for (let i = 1; i < n; ++i) {
       let isLeft = this.isLeft[i - 1];
-      const [left, right] = maybeSwap(isLeft, hash, this.path[i - 1]);
+      const [left, right] = conditionalSwap(isLeft, hash, this.path[i - 1]);
       hash = Poseidon.hash([left, right]);
     }
 
@@ -248,7 +248,7 @@ function MerkleWitness(height: number): typeof BaseMerkleWitness {
 
 // swap two values if the boolean is false, otherwise keep them as they are
 // more efficient than 2x `Provable.if()` by reusing an intermediate variable
-function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
+function conditionalSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   let m = b.toField().mul(x.sub(y)); // b*(x - y)
   const x_ = y.add(m); // y + b*(x - y)
   const y_ = x.sub(m); // x - b*(x - y) = x + b*(y - x)

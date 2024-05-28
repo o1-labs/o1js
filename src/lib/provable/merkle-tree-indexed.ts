@@ -7,7 +7,9 @@ import { assert } from './gadgets/common.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
-import { maybeSwap } from './merkle-tree.js';
+import { conditionalSwap } from './merkle-tree.js';
+
+export { IndexedMerkleMap };
 
 type IndexedMerkleMapBase = {
   root: Field;
@@ -296,7 +298,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
         let isLeft = !isRight.toBoolean();
         return this.getNode(level, isLeft ? i + 1 : i - 1, false);
       });
-      let [right, left] = maybeSwap(isRight, node, sibling);
+      let [right, left] = conditionalSwap(isRight, node, sibling);
       node = Poseidon.hash([left, right]);
       indexU.updateAsProver((i) => i >> 1);
     }
