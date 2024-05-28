@@ -246,6 +246,7 @@ function MerkleWitness(height: number): typeof BaseMerkleWitness {
   return MerkleWitness_;
 }
 
+// swap two values if the boolean is false, otherwise keep them as they are
 // more efficient than 2x `Provable.if()` by reusing an intermediate variable
 function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   let m = b.toField().mul(x.sub(y)); // b*(x - y)

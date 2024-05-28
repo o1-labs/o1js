@@ -1,10 +1,13 @@
 import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
-import { Field } from './wrapped.js';
+import { Bool, Field } from './wrapped.js';
 import { Option } from './option.js';
 import { Struct } from './types/struct.js';
 import { InferValue } from 'src/bindings/lib/provable-generic.js';
 import { assert } from './gadgets/common.js';
 import { Unconstrained } from './types/unconstrained.js';
+import { Provable } from './provable.js';
+import { Poseidon } from './crypto/poseidon.js';
+import { maybeSwap } from './merkle-tree.js';
 
 type IndexedMerkleMapBase = {
   root: Field;
@@ -32,6 +35,8 @@ class Leaf extends Struct({
   value: Field,
   nextKey: Field,
   nextIndex: Field,
+
+  index: Unconstrained.provableWithEmpty(0),
 }) {}
 type LeafValue = InferValue<typeof Leaf>;
 
@@ -43,15 +48,16 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // the raw data stored in the tree, plus helper structures
   readonly data: Unconstrained<{
+    // leaves sorted by index
     readonly leaves: LeafValue[];
+
+    // leaves sorted by key, with a circular linked list encoded by nextKey
+    // we always have sortedLeaves[n-1].nextKey = 0 = sortedLeaves[0].key
+    // for i=0,...n-2, sortedLeaves[i].nextKey = sortedLeaves[i+1].key
+    readonly sortedLeaves: LeafValue[];
 
     // for every level, an array of hashes
     readonly nodes: (bigint | undefined)[][];
-
-    // sorted list of low nodes
-    // we always have lowNodes[n-1].nextKey = 0 = lowNodes[0].key
-    // for i=0,...n-2, lowNodes[i].nextKey = lowNodes[i+1].key
-    readonly lowNodes: LeafValue[];
   }>;
 
   /**
@@ -67,12 +73,19 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
     this.length = Field(0);
     let leaves: LeafValue[] = [];
-    let lowNodes: LeafValue[] = [];
-    this.data = Unconstrained.from({ leaves, lowNodes, nodes });
+    let sortedLeaves: LeafValue[] = [];
+    this.data = Unconstrained.from({ leaves, sortedLeaves, nodes });
   }
 
   insert(key: Field, value: Field) {
-    assert(false, 'not implemented');
+    let lowNode = Provable.witness(Leaf, () => this.findNode(key).lowNode);
+
+    // prove that the key doesn't exist yet and we have a valid low node
+    lowNode.key.assertLessThan(key);
+    key.assertLessThan(lowNode.nextKey);
+    // TODO
+
+    let newIndex = this.length;
   }
 
   update(key: Field, value: Field) {
@@ -93,17 +106,44 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // helper methods
 
-  private findNode(key: bigint) {
-    assert(key > 0n, 'key must be positive');
+  proveInclusion(leaf: Leaf, message?: string) {
+    let node = Poseidon.hashPacked(Leaf, leaf);
+    let index = Unconstrained.witness(() => leaf.index.get());
 
-    let lowNodes = this.data.get().lowNodes;
+    for (let level = 1; level < this.height; level++) {
+      // in every iteration, we witness a sibling and hash it to get the parent node
+      let isLeft = Provable.witness(Bool, () => index.get() % 2 === 0);
+      let sibling = Provable.witness(Field, () => {
+        let i = index.get();
+        let isLeft = i % 2 === 0;
+        return this.getNode(level - 1, isLeft ? i + 1 : i - 1, false);
+      });
+      let [left, right] = maybeSwap(isLeft, node, sibling);
+      node = Poseidon.hash([left, right]);
+      index.updateAsProver((i) => i >> 1);
+    }
+
+    // now, `node` is the root of the tree, and we can check it against the actual root
+    node.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+  }
+
+  private findNode(key_: Field | bigint) {
+    let key = typeof key_ === 'bigint' ? key_ : key_.toBigInt();
+    assert(key >= 0n, 'key must be positive');
+    let leaves = this.data.get().sortedLeaves;
+
+    // this case is typically invalid, but we want to handle it gracefully here
+    // and reject it using comparison constraints
+    if (key === 0n)
+      return { lowNode: leaves[leaves.length - 1], thisNode: leaves[0] };
+
     let { lowIndex, foundValue } = bisectUnique(
       key,
-      (i) => lowNodes[i].key,
-      lowNodes.length
+      (i) => leaves[i].key,
+      leaves.length
     );
-    let lowNode = foundValue ? lowNodes[lowIndex - 1] : lowNodes[lowIndex];
-    let thisNode = foundValue ? lowNodes[lowIndex] : undefined;
+    let lowNode = foundValue ? leaves[lowIndex - 1] : leaves[lowIndex];
+    let thisNode = foundValue ? leaves[lowIndex] : undefined;
     return { lowNode, thisNode };
   }
 
@@ -170,6 +210,7 @@ function bisectUnique(
   foundValue: boolean;
 } {
   let [iLow, iHigh] = [0, length - 1];
+  // handle out of bounds
   if (getValue(iLow) > target) return { lowIndex: -1, foundValue: false };
   if (getValue(iHigh) < target) return { lowIndex: iHigh, foundValue: false };
 
