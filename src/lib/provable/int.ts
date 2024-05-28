@@ -1259,19 +1259,21 @@ class Int64 extends CircuitValue implements BalanceChange {
     return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
   }
 
+  // TODO add this when `checkV2` is enabled
+  // right now it would be misleading
   /**
    * Checks if the value is non-negative (x >= 0).
    */
-  isNonNegativeV2() {
-    // this will be the correct logic when `checkV2` is enabled
-    return this.sgn.isPositive();
-  }
+  // isNonNegativeV2() {
+  //   // this will be the correct logic when `checkV2` is enabled
+  //   return this.sgn.isPositive();
+  // }
 
   /**
    * Checks if the value is negative (x < 0).
    */
   isNegative() {
-    return this.sgn.isNegative();
+    return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
   }
 
   // TODO enable this check method in v2, to force a unique representation of 0
