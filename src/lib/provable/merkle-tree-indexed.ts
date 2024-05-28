@@ -1,15 +1,13 @@
 import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
 import { Bool, Field } from './wrapped.js';
 import { Option } from './option.js';
-import { Struct, provableTuple } from './types/struct.js';
+import { Struct } from './types/struct.js';
 import { InferValue } from 'src/bindings/lib/provable-generic.js';
 import { assert } from './gadgets/common.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { maybeSwap } from './merkle-tree.js';
-import { assertDefined } from '../util/errors.js';
-import { provable } from './types/provable-derivers.js';
 
 type IndexedMerkleMapBase = {
   root: Field;
@@ -29,7 +27,7 @@ type IndexedMerkleMapBase = {
 
   // optional / nice-to-have: remove a key and its value from the tree; proves that the key is included.
   // (implementation: leave a wasted leaf in place but skip it in the linked list encoding)
-  remove(key: Field): void;
+  // remove(key: Field): void;
 };
 
 type BaseLeaf = {
@@ -55,6 +53,9 @@ class Leaf extends Struct({
   }
 }
 type LeafValue = InferValue<typeof Leaf>;
+
+class OptionField extends Option(Field) {}
+class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
 
 class IndexedMerkleMap implements IndexedMerkleMapBase {
   // data defining the provable interface of a tree
@@ -136,11 +137,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   set(key: Field, value: Field) {
-    // prove whether the key exists or not, by showing a valid low node and checking if it points to the key
-    let { low, self } = Provable.witness(
-      provable({ low: Leaf, self: Leaf }),
-      () => this.findLeaf(key)
-    );
+    // prove whether the key exists or not, by showing a valid low node
+    let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
     this.proveInclusion(low, 'Invalid low node');
     low.key.assertLessThan(key, 'Invalid low node');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node');
@@ -148,7 +146,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
 
-    // prove inclusion of this node if it already exists
+    // prove inclusion of this leaf if it exists
     this.proveInclusionIf(keyExists, self, 'Invalid leaf');
     assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf');
 
@@ -175,11 +173,20 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   get(key: Field): Option<Field> {
-    assert(false, 'not implemented');
-  }
+    // prove whether the key exists or not, by showing a valid low node
+    let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
+    this.proveInclusion(low, 'Invalid low node');
+    low.key.assertLessThan(key, 'Invalid low node');
+    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node');
 
-  remove(key: Field) {
-    assert(false, 'not implemented');
+    // the key exists iff lowNode.nextKey == key
+    let keyExists = low.nextKey.equals(key);
+
+    // prove inclusion of this leaf if it exists
+    this.proveInclusionIf(keyExists, self, 'Invalid leaf');
+    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf');
+
+    return new OptionField({ isSome: keyExists, value: self.value });
   }
 
   // helper methods
