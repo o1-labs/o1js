@@ -99,18 +99,18 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   insert(key: Field, value: Field) {
     // prove that the key doesn't exist yet by presenting a valid low node
-    let lowNode = Provable.witness(Leaf, () => this.findLeaf(key).low);
-    this.proveInclusion(lowNode, 'Invalid low node');
-    lowNode.key.assertLessThan(key, 'Invalid low node');
+    let low = Provable.witness(Leaf, () => this.findLeaf(key).low);
+    this.proveInclusion(low, 'Invalid low node');
+    low.key.assertLessThan(key, 'Invalid low node');
 
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
-    key.assertLessThan(lowNode.nextKey, 'Key already exists in the tree');
+    key.assertLessThan(low.nextKey, 'Key already exists in the tree');
 
     // update low node
-    this.updateLeaf(lowNode, { nextKey: key, nextIndex: this.length });
+    this.updateLeaf(low, { nextKey: key, nextIndex: this.length });
 
     // append new leaf
-    this.appendLeaf(lowNode, { key, value });
+    this.appendLeaf(low, { key, value });
   }
 
   update(key: Field, value: Field) {
@@ -126,7 +126,28 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   set(key: Field, value: Field) {
-    assert(false, 'not implemented');
+    // prove whether the key exists or not, by showing a valid low node and checking if it points to the key
+    let low = Provable.witness(Leaf, () => this.findLeaf(key).low);
+    this.proveInclusion(low, 'Invalid low node');
+    low.key.assertLessThan(key, 'Invalid low node');
+    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node');
+
+    // the key exists iff lowNode.nextKey == key
+    let keyExists = low.nextKey.equals(key);
+
+    // the leaf's index depends on whether it exists
+    let index = Provable.if(keyExists, low.nextIndex, this.length);
+
+    // update low node, or leave it as is
+    let newLow = { ...low, nextKey: key, nextIndex: index };
+    let nodeLow = Leaf.hashNode(newLow);
+    this.root = this.computeRoot(low.index, nodeLow);
+
+    // update leaf, or append a new one
+    // TODO damn I think we need another inclusion proof for the previous leaf
+    throw Error('not implemented');
+    let TODO: any = {};
+    this.setLeafUnconstrained(keyExists, low, TODO);
   }
 
   get(key: Field): Option<Field> {
@@ -140,6 +161,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   // helper methods
 
   proveInclusion(leaf: Leaf, message?: string) {
+    // TODO: here, we don't actually care about the index, so we could add a mode where `computeRoot()` doesn't prove it
     let node = Leaf.hashNode(leaf);
     let root = this.computeRoot(leaf.index, node);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
@@ -150,10 +172,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
    *
    * Note: we never update the key or index of a leaf.
    */
-  updateLeaf(
-    leaf: Leaf,
-    partialLeaf: Partial<{ value: Field; nextKey: Field; nextIndex: Field }>
-  ) {
+  updateLeaf(leaf: Leaf, partialLeaf: Partial<BaseLeaf>) {
     // update root
     let newLeaf = { ...leaf, ...partialLeaf };
     let node = Leaf.hashNode(newLeaf);
@@ -189,16 +208,48 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       this.setLeafNode(i, node.toBigInt());
 
       // update leaf lists
-      let sortedIndex = low.sortedIndex.get() + 1;
+      let iSorted = low.sortedIndex.get() + 1;
       let leafValue = Leaf.toValue({
         ...leaf,
         index,
-        sortedIndex: Unconstrained.from(sortedIndex),
+        sortedIndex: Unconstrained.from(iSorted),
       });
 
       let { leaves, sortedLeaves } = this.data.get();
       leaves.push(leafValue);
-      sortedLeaves.splice(sortedIndex, 0, leafValue);
+      sortedLeaves.splice(iSorted, 0, leafValue);
+    });
+  }
+
+  /**
+   * Append a new leaf based on the pointers of the previous low node
+   */
+  private setLeafUnconstrained(
+    leafExists: Bool,
+    low: Leaf,
+    leaf: BaseLeaf & { index: Field }
+  ) {
+    Provable.asProver(() => {
+      // update internal hash nodes
+      let i = Number(leaf.index.toBigInt());
+      this.setLeafNode(i, Leaf.hashNode(leaf).toBigInt());
+
+      // update leaf lists
+      let iSorted = low.sortedIndex.get() + 1;
+      let leafValue = Leaf.toValue({
+        ...leaf,
+        sortedIndex: Unconstrained.from(iSorted),
+      });
+
+      let { leaves, sortedLeaves } = this.data.get();
+
+      if (leafExists.toBoolean()) {
+        leaves[i] = leafValue;
+        sortedLeaves[iSorted] = leafValue;
+      } else {
+        leaves.push(leafValue);
+        sortedLeaves.splice(iSorted, 0, leafValue);
+      }
     });
   }
 
