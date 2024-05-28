@@ -37,7 +37,22 @@ class Leaf extends Struct({
   nextIndex: Field,
 
   index: Unconstrained.provableWithEmpty(0),
-}) {}
+  sortedIndex: Unconstrained.provableWithEmpty(0),
+}) {
+  static hash({
+    key,
+    value,
+    nextKey,
+    nextIndex,
+  }: {
+    key: Field;
+    value: Field;
+    nextKey: Field;
+    nextIndex: Field;
+  }) {
+    return Poseidon.hash([key, value, nextKey, nextIndex]);
+  }
+}
 type LeafValue = InferValue<typeof Leaf>;
 
 class IndexedMerkleMap implements IndexedMerkleMapBase {
@@ -78,14 +93,21 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   insert(key: Field, value: Field) {
-    let lowNode = Provable.witness(Leaf, () => this.findNode(key).lowNode);
+    // prove that the key doesn't exist yet by presenting a valid low node
+    let lowNode = Provable.witness(Leaf, () => this.findLeaf(key).low);
+    this.proveInclusion(lowNode, 'Invalid low node');
+    lowNode.key.assertLessThan(key, 'Invalid low node');
 
-    // prove that the key doesn't exist yet and we have a valid low node
-    lowNode.key.assertLessThan(key);
-    key.assertLessThan(lowNode.nextKey);
-    // TODO
+    // if the key does exist, we have lowNode.nextKey == key, and this line fails
+    key.assertLessThan(lowNode.nextKey, 'Key already exists in the tree');
 
-    let newIndex = this.length;
+    // update low node
+    let nextIndex = this.length;
+    let newLowNode = { ...lowNode, nextKey: key, nextIndex };
+    this.updateLeaf(newLowNode);
+
+    // append new leaf
+    this.appendLeaf(lowNode, { key, value });
   }
 
   update(key: Field, value: Field) {
@@ -107,44 +129,88 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   // helper methods
 
   proveInclusion(leaf: Leaf, message?: string) {
-    let node = Poseidon.hashPacked(Leaf, leaf);
-    let index = Unconstrained.witness(() => leaf.index.get());
+    let node = Leaf.hash(leaf);
+    let index = leaf.index;
+    let root = this.computeRoot(node, index);
+    root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+  }
 
-    for (let level = 1; level < this.height; level++) {
+  updateLeaf(leaf: Leaf) {
+    let node = Leaf.hash(leaf);
+    let index = leaf.index;
+    this.root = this.computeRoot(node, index);
+    Provable.asProver(() => {
+      // update internal hash nodes
+      this.setLeafNode(index.get(), node.toBigInt());
+    });
+  }
+
+  appendLeaf(low: Leaf, { key, value }: { key: Field; value: Field }) {
+    let index = Unconstrained.witness(() => Number(this.length.toBigInt()));
+
+    // update root and length
+    let leaf = { key, value, nextKey: low.nextKey, nextIndex: low.nextIndex };
+    let node = Leaf.hash(leaf);
+    this.root = this.computeRoot(node, index);
+    this.length = this.length.add(1);
+
+    Provable.asProver(() => {
+      // update internal hash nodes
+      this.setLeafNode(index.get(), node.toBigInt());
+
+      // update leaf lists
+      let sortedIndex = low.sortedIndex.get() + 1;
+      let leafValue = Leaf.toValue({
+        ...leaf,
+        index,
+        sortedIndex: Unconstrained.from(sortedIndex),
+      });
+
+      let { leaves, sortedLeaves } = this.data.get();
+      leaves.push(leafValue);
+      sortedLeaves.splice(sortedIndex, 0, leafValue);
+    });
+  }
+
+  computeRoot(node: Field, index: Unconstrained<number>) {
+    for (let level = 0; level < this.height - 1; level++) {
       // in every iteration, we witness a sibling and hash it to get the parent node
       let isLeft = Provable.witness(Bool, () => index.get() % 2 === 0);
       let sibling = Provable.witness(Field, () => {
         let i = index.get();
         let isLeft = i % 2 === 0;
-        return this.getNode(level - 1, isLeft ? i + 1 : i - 1, false);
+        return this.getNode(level, isLeft ? i + 1 : i - 1, false);
       });
       let [left, right] = maybeSwap(isLeft, node, sibling);
       node = Poseidon.hash([left, right]);
       index.updateAsProver((i) => i >> 1);
     }
-
-    // now, `node` is the root of the tree, and we can check it against the actual root
-    node.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+    // now, `node` is the root of the tree
+    return node;
   }
 
-  private findNode(key_: Field | bigint) {
+  /**
+   * Given a key, returns both the low node and the node that contains the key.
+   *
+   * Assumes to run outside provable code.
+   */
+  private findLeaf(key_: Field | bigint) {
     let key = typeof key_ === 'bigint' ? key_ : key_.toBigInt();
     assert(key >= 0n, 'key must be positive');
     let leaves = this.data.get().sortedLeaves;
 
     // this case is typically invalid, but we want to handle it gracefully here
     // and reject it using comparison constraints
-    if (key === 0n)
-      return { lowNode: leaves[leaves.length - 1], thisNode: leaves[0] };
+    if (key === 0n) return { low: leaves[leaves.length - 1], self: leaves[0] };
 
     let { lowIndex, foundValue } = bisectUnique(
       key,
       (i) => leaves[i].key,
       leaves.length
     );
-    let lowNode = foundValue ? leaves[lowIndex - 1] : leaves[lowIndex];
-    let thisNode = foundValue ? leaves[lowIndex] : undefined;
-    return { lowNode, thisNode };
+    let low = foundValue ? leaves[lowIndex - 1] : leaves[lowIndex];
+    let self = foundValue ? leaves[lowIndex] : undefined;
+    return { low, self };
   }
 
   // invariant: for every node that is not undefined, its descendants are either empty or not undefined
