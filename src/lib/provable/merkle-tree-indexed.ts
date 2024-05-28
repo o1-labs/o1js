@@ -85,7 +85,6 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       height < 53,
       'height must be less than 53, so that we can use 64-bit floats to represent indices.'
     );
-    this.root = Field(empty(height - 1));
 
     let nodes: (bigint | undefined)[][] = Array(height);
     for (let level = 0; level < height; level++) {
@@ -101,7 +100,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       nextIndex: 0n, // TODO: ok?
       sortedIndex: Unconstrained.from(0),
     };
-    this.setLeafNode(0, Leaf.hashNode(Leaf.fromValue(firstLeaf)).toBigInt());
+    let firstNode = Leaf.hashNode(Leaf.fromValue(firstLeaf));
+    this.setLeafNode(0, firstNode.toBigInt());
+    this.root = Field(this.getNode(height - 1, 0, true));
 
     this.length = Field(1);
     let leaves: LeafValue[] = [firstLeaf];
