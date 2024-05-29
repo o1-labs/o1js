@@ -1,4 +1,9 @@
-import { Bytes12, SHA256Program } from './sha256.js';
+import {
+  Bytes12,
+  SHA256Program,
+  SHA256ProgramPartial,
+  SHA256ProgramEntire,
+} from './sha256.js';
 
 console.time('compile');
 await SHA256Program.compile();
@@ -21,3 +26,12 @@ if (
 )
   throw new Error('Invalid sha256 digest!');
 if (!isValid) throw new Error('Invalid proof');
+
+console.log(
+  'sha256-entire rows:',
+  (await SHA256ProgramEntire.analyzeMethods()).sha256.rows
+);
+console.log(
+  'sha256-partial rows:',
+  (await SHA256ProgramPartial.analyzeMethods()).sha256.rows
+);
