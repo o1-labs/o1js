@@ -20,7 +20,7 @@ export { Leaf };
  * Class factory for an Indexed Merkle Map with a given height.
  *
  * ```ts
- * class MerkleMap extends IndexedMerkleMap(3) {}
+ * class MerkleMap extends IndexedMerkleMap(33) {}
  *
  * let map = new MerkleMap();
  *
@@ -37,6 +37,7 @@ export { Leaf };
  *   methods: {
  *     test: {
  *       privateInputs: [MerkleMap.provable, Field],
+ *
  *       method(map: MerkleMap, key: Field) {
  *         // get the value associated with `key`
  *         let value = map.get(key).orElse(0n);

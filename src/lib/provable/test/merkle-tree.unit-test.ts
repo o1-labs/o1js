@@ -10,11 +10,11 @@ import { constraintSystem } from '../../testing/constraint-system.js';
 import { field } from '../../testing/equivalent.js';
 import { throwError } from './test-utils.js';
 
-const height = 32;
-const IndexedMap32 = IndexedMerkleMap(height);
-const indexedMap = new IndexedMap32();
+const height = 31;
+const IndexedMap30 = IndexedMerkleMap(height);
+const indexedMap = new IndexedMap30();
 
-// compare constraints used by indexed merkle map vs sparse merkle map
+// compare constraints used by indexed merkle map (with 1B leaves) vs sparse merkle map
 
 console.log(
   'indexed merkle map (get)',
