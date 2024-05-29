@@ -19,7 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `IndexedMerkleMap`, a better primitive for Merkleized storage which uses 4-8x fewer constraints than `MerkleMap` https://github.com/o1-labs/o1js/pull/1666
+- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage which uses 4-8x fewer constraints than `MerkleMap` https://github.com/o1-labs/o1js/pull/1666
   - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code.
 
 ### Deprecated
