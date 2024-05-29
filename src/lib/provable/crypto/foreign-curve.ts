@@ -242,6 +242,7 @@ class ForeignCurve {
   static _Scalar?: typeof AlmostForeignField;
   static _provable?: ProvablePureExtended<
     ForeignCurve,
+    { x: bigint; y: bigint },
     { x: string; y: string }
   >;
 
