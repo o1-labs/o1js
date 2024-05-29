@@ -3,6 +3,12 @@ import { conditionalSwap } from '../merkle-tree.js';
 import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';
 import { MerkleMap } from '../merkle-map.js';
+import { IndexedMerkleMap } from '../merkle-tree-indexed.js';
+import { Provable } from '../provable.js';
+
+let map = new IndexedMerkleMap(32);
+let x = map.get(0n);
+Provable.log('value at 0', x);
 
 test(Random.bool, Random.field, Random.field, (b, x, y) => {
   let [x0, y0] = conditionalSwap(Bool(!!b), Field(x), Field(y));

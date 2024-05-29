@@ -114,12 +114,11 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       sortedIndex: Unconstrained.from(0),
     };
     let firstNode = Leaf.hashNode(Leaf.fromValue(firstLeaf));
-    this.setLeafNode(0, firstNode.toBigInt());
-    this.root = Field(this.getNode(height - 1, 0, true));
-
+    let root = Nodes.setLeafNode(nodes, 0, firstNode.toBigInt());
+    this.root = Field(root);
     this.length = Field(1);
-    let sortedLeaves: LeafValue[] = [firstLeaf];
-    this.data = Unconstrained.from({ nodes, sortedLeaves });
+
+    this.data = Unconstrained.from({ nodes, sortedLeaves: [firstLeaf] });
   }
 
   insert(key: Field | bigint, value: Field | bigint) {
@@ -255,7 +254,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       let sibling = Provable.witness(Field, () => {
         let i = indexU.get();
         let isLeft = !isRight.toBoolean();
-        return this.getNode(level, isLeft ? i + 1 : i - 1, false);
+        let nodes = this.data.get().nodes;
+        return Nodes.getNode(nodes, level, isLeft ? i + 1 : i - 1, false);
       });
       let [right, left] = conditionalSwap(isRight, node, sibling);
       node = Poseidon.hash([left, right]);
@@ -298,7 +298,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     Provable.asProver(() => {
       // update internal hash nodes
       let i = Number(leaf.index.toBigInt());
-      this.setLeafNode(i, Leaf.hashNode(leaf).toBigInt());
+      let nodes = this.data.get().nodes;
+      Nodes.setLeafNode(nodes, i, Leaf.hashNode(leaf).toBigInt());
 
       // update sorted list
       let leafValue = Leaf.toValue(leaf);
@@ -312,27 +313,36 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       }
     });
   }
+}
 
-  // invariant: for every node that is not undefined, its descendants are either empty or not undefined
-  private setLeafNode(index: number, leaf: bigint) {
-    let nodes = this.data.get().nodes;
-
+type Nodes = (bigint | undefined)[][];
+namespace Nodes {
+  /**
+   * Sets the leaf node at the given index, updates all parent nodes and returns the new root.
+   */
+  export function setLeafNode(nodes: Nodes, index: number, leaf: bigint) {
     nodes[0][index] = leaf;
     let isLeft = index % 2 === 0;
+    let height = nodes.length;
 
-    for (let level = 1; level < this.height; level++) {
+    for (let level = 1; level < height; level++) {
       index = Math.floor(index / 2);
 
-      let left = this.getNode(level - 1, index * 2, isLeft);
-      let right = this.getNode(level - 1, index * 2 + 1, !isLeft);
+      let left = getNode(nodes, level - 1, index * 2, isLeft);
+      let right = getNode(nodes, level - 1, index * 2 + 1, !isLeft);
       nodes[level][index] = PoseidonBigint.hash([left, right]);
 
       isLeft = index % 2 === 0;
     }
+    return getNode(nodes, height - 1, 0, true);
   }
 
-  private getNode(level: number, index: number, nonEmpty: boolean) {
-    let nodes = this.data.get().nodes;
+  export function getNode(
+    nodes: Nodes,
+    level: number,
+    index: number,
+    nonEmpty: boolean
+  ) {
     let node = nodes[level]?.[index];
     if (node === undefined) {
       if (nonEmpty)
@@ -343,17 +353,17 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     }
     return node;
   }
-}
 
-// cache of empty nodes (=: zero leaves and nodes with only empty nodes below them)
-const emptyNodes = [0n];
+  // cache of empty nodes (=: zero leaves and nodes with only empty nodes below them)
+  const emptyNodes = [0n];
 
-function empty(level: number) {
-  for (let i = emptyNodes.length; i <= level; i++) {
-    let zero = emptyNodes[i - 1];
-    emptyNodes[i] = PoseidonBigint.hash([zero, zero]);
+  export function empty(level: number) {
+    for (let i = emptyNodes.length; i <= level; i++) {
+      let zero = emptyNodes[i - 1];
+      emptyNodes[i] = PoseidonBigint.hash([zero, zero]);
+    }
+    return emptyNodes[level];
   }
-  return emptyNodes[level];
 }
 
 // helper
