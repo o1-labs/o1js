@@ -50,11 +50,17 @@ export { Leaf };
  * })
  * ```
  */
-function IndexedMerkleMap(height: number) {
-  return class IndexedMerkleMap extends IndexedMerkleMapAbstract {
+function IndexedMerkleMap(height: number): typeof IndexedMerkleMapBase {
+  assert(height > 0, 'height must be positive');
+  assert(
+    height < 53,
+    'height must be less than 53, so that we can use 64-bit floats to represent indices.'
+  );
+
+  return class IndexedMerkleMap extends IndexedMerkleMapBase {
     constructor() {
       // we can't access the abstract `height` property in the base constructor
-      super(height);
+      super();
     }
 
     get height() {
@@ -74,13 +80,15 @@ const provableBase = {
   }),
 };
 
-abstract class IndexedMerkleMapAbstract {
+class IndexedMerkleMapBase {
   // data defining the provable interface of a tree
   root: Field;
   length: Field; // length of the leaves array
 
   // static data defining constraints
-  abstract get height(): number;
+  get height() {
+    return 0;
+  }
 
   // the raw data stored in the tree, plus helper structures
   readonly data: Unconstrained<{
@@ -97,33 +105,30 @@ abstract class IndexedMerkleMapAbstract {
 
   // we'd like to do `abstract static provable` here but that's not supported
   static provable: Provable<
-    IndexedMerkleMapAbstract,
+    IndexedMerkleMapBase,
     InferValue<typeof provableBase>
   > = undefined as any;
 
   /**
    * Creates a new, empty Indexed Merkle Map, given its height.
    */
-  constructor(height: number) {
-    assert(height > 0, 'height must be positive');
-    assert(
-      height < 53,
-      'height must be less than 53, so that we can use 64-bit floats to represent indices.'
-    );
+  constructor() {
+    let height = this.height;
 
     let nodes: (bigint | undefined)[][] = Array(height);
     for (let level = 0; level < height; level++) {
       nodes[level] = [];
     }
 
-    let firstLeaf = IndexedMerkleMapAbstract._firstLeaf;
-    let firstNode = Leaf.hashNode(IndexedMerkleMapAbstract._firstLeaf);
-    let root = Nodes.setLeafNode(nodes, 0, firstNode.toBigInt());
+    let firstLeaf = IndexedMerkleMapBase._firstLeaf;
+    let firstNode = Leaf.hashNode(firstLeaf).toBigInt();
+    let root = Nodes.setLeafNode(nodes, 0, firstNode);
     this.root = Field(root);
     this.length = Field(1);
 
     this.data = Unconstrained.from({ nodes, sortedLeaves: [firstLeaf] });
   }
+
   static _firstLeaf = {
     key: 0n,
     value: 0n,

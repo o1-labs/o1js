@@ -134,11 +134,11 @@ and Provable.asProver() blocks, which execute outside the proof.
     Unconstrained<T>,
     Unconstrained<T>
   > & {
-    toInput: (x: Unconstrained<any>) => {
+    toInput: (x: Unconstrained<T>) => {
       fields?: Field[];
       packed?: [Field, number][];
     };
-    empty: () => Unconstrained<any>;
+    empty: () => Unconstrained<T>;
   } {
     return {
       ...Unconstrained.provable,
