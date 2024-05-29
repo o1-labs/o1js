@@ -52,6 +52,7 @@ export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
+export { IndexedMerkleMap } from './lib/provable/merkle-tree-indexed.js';
 export { Option } from './lib/provable/option.js';
 
 export * as Mina from './lib/mina/mina.js';
