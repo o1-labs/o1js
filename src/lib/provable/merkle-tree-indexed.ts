@@ -242,9 +242,28 @@ abstract class IndexedMerkleMapAbstract {
   /**
    * Get a value from a key.
    *
-   * Returns an option which is `None` if the key doesn't exist. (In that case, the option's value is unconstrained.)
+   * Proves that the key already exists in the map yet and fails otherwise.
    */
-  get(key: Field | bigint): Option<Field, bigint> {
+  get(key: Field | bigint): Field {
+    key = Field(key);
+
+    // prove that the key exists by presenting a leaf that contains it
+    let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
+    this.proveInclusion(self, 'Key does not exist in the tree');
+    self.key.assertEquals(key, 'Invalid leaf (key)');
+
+    return self.value;
+  }
+
+  /**
+   * Get a value from a key.
+   *
+   * Returns an option which is `None` if the key doesn't exist. (In that case, the option's value is unconstrained.)
+   *
+   * Note that this is more flexible than `get()` and allows you to handle the case where the key doesn't exist.
+   * However, it uses about twice as many constraints for that reason.
+   */
+  getOption(key: Field | bigint): Option<Field, bigint> {
     key = Field(key);
 
     // prove whether the key exists or not, by showing a valid low node

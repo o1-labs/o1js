@@ -22,6 +22,12 @@ console.log(
     indexedMap.get(key);
   })
 );
+console.log(
+  'indexed merkle map (get option)',
+  constraintSystem.size({ from: [field] }, (key) => {
+    indexedMap.getOption(key);
+  })
+);
 
 console.log(
   'sparse merkle map (get)',
@@ -93,13 +99,13 @@ console.log(
   expect(() => map.insert(-1n, 11n)).toThrow('Key already exists');
   expect(() => map.set(-1n, 12n)).toThrow('Invalid leaf');
 
-  expect(map.get(1n).assertSome().toBigInt()).toEqual(13n);
-  expect(map.get(2n).assertSome().toBigInt()).toEqual(14n);
-  expect(map.get(3n).isSome.toBoolean()).toEqual(false);
+  expect(map.getOption(1n).assertSome().toBigInt()).toEqual(13n);
+  expect(map.getOption(2n).assertSome().toBigInt()).toEqual(14n);
+  expect(map.getOption(3n).isSome.toBoolean()).toEqual(false);
 
   map.update(2n, 15n);
   map.update(0n, 12n);
-  expect(map.get(2n).assertSome().toBigInt()).toEqual(15n);
+  expect(map.getOption(2n).assertSome().toBigInt()).toEqual(15n);
 
   // TODO get() doesn't work on 0n because the low node checks fail
   // expect(map.get(0n).assertSome().toBigInt()).toEqual(12n);
@@ -112,9 +118,9 @@ console.log(
 
   map.set(4n, 16n);
   map.set(1n, 17n);
-  expect(map.get(4n).assertSome().toBigInt()).toEqual(16n);
-  expect(map.get(1n).assertSome().toBigInt()).toEqual(17n);
-  expect(map.get(5n).isSome.toBoolean()).toEqual(false);
+  expect(map.get(4n).toBigInt()).toEqual(16n);
+  expect(map.getOption(1n).assertSome().toBigInt()).toEqual(17n);
+  expect(map.getOption(5n).isSome.toBoolean()).toEqual(false);
 
   // can't insert more than 2^(height - 1) = 2^2 = 4 keys
   expect(() => map.insert(8n, 19n)).toThrow('4 does not fit in 2 bits');
@@ -192,10 +198,13 @@ test(
 
       for (let i = 0; i < n; i++) {
         // confirm we still have the same keys and values
-        map.get(initialKeysF[i]).assertSome().assertEquals(initialValues[i]);
+        map
+          .getOption(initialKeysF[i])
+          .assertSome()
+          .assertEquals(initialValues[i]);
 
         // new keys are not in the map
-        map.get(keysF[i]).isSome.assertFalse();
+        map.getOption(keysF[i]).isSome.assertFalse();
       }
 
       // can't update a non-existent key
@@ -211,8 +220,8 @@ test(
 
       // check that the updated keys and values are in the map
       for (let i = 0; i < n; i++) {
-        map.get(keysF[i]).assertSome().assertEquals(initialValues[i]);
-        map.get(initialKeysF[i]).assertSome().assertEquals(valuesF[i]);
+        map.getOption(keysF[i]).assertSome().assertEquals(initialValues[i]);
+        map.get(initialKeysF[i]).assertEquals(valuesF[i]);
       }
 
       // update the new keys with the new values
@@ -228,11 +237,13 @@ test(
 
     // check that the map is still the same
     for (let i = 0; i < n; i++) {
-      expect(map.get(keys[i]).assertSome()).toEqual(Field(values[i]));
-      expect(map.get(initialKeys[i]).assertSome()).toEqual(Field(values[i]));
+      expect(map.getOption(keys[i]).assertSome()).toEqual(Field(values[i]));
+      expect(map.getOption(initialKeys[i]).assertSome()).toEqual(
+        Field(values[i])
+      );
     }
     // random element is not in the map
-    expect(map.get(Field.random()).isSome).toEqual(Bool(false));
+    expect(map.getOption(Field.random()).isSome).toEqual(Bool(false));
     // length is as expected
     expect(map.length).toEqual(Field(2 * n + 1));
 
