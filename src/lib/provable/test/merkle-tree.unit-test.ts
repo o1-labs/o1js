@@ -80,6 +80,25 @@ console.log(
   )
 );
 
+console.log(
+  '\nindexed merkle map (assert included)',
+  constraintSystem.size({ from: [field] }, (key) => {
+    indexedMap.assertIncluded(key);
+  })
+);
+console.log(
+  'indexed merkle map (assert not included)',
+  constraintSystem.size({ from: [field] }, (key) => {
+    indexedMap.assertNotIncluded(key);
+  })
+);
+console.log(
+  'indexed merkle map (is included)',
+  constraintSystem.size({ from: [field] }, (key) => {
+    indexedMap.isIncluded(key);
+  })
+);
+
 // some manual tests for IndexedMerkleMap
 {
   let map = new (IndexedMerkleMap(3))();
