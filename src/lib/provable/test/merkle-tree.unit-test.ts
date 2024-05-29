@@ -9,6 +9,13 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
 {
   let map = new (IndexedMerkleMap(3))();
 
+  // there's 1 element in the map at the beginning
+  // check initial root against `MerkleTree` implementation
+  expect(map.length.toBigInt()).toEqual(1n);
+  let initialTree = new MerkleTree(3);
+  initialTree.setLeaf(0n, Leaf.hashNode(IndexedMerkleMap(3)._firstLeaf));
+  expect(map.root).toEqual(initialTree.getRoot());
+
   map.insert(2n, 14n);
   map.insert(1n, 13n);
 
@@ -31,6 +38,9 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
   // can't insert the same key twice
   expect(() => map.insert(1n, 17n)).toThrow('Key already exists');
 
+  // can't update a non-existent key
+  expect(() => map.update(3n, 16n)).toThrow('Key does not exist');
+
   map.set(4n, 16n);
   map.set(1n, 17n);
   expect(map.get(4n).assertSome().toBigInt()).toEqual(16n);
@@ -40,6 +50,9 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
   // can't insert more than 2^(height - 1) = 2^2 = 4 keys
   expect(() => map.insert(8n, 19n)).toThrow('4 does not fit in 2 bits');
   expect(() => map.set(8n, 19n)).toThrow('4 does not fit in 2 bits');
+
+  // check that length is as expected
+  expect(map.length.toBigInt()).toEqual(4n);
 
   // check that internal nodes exactly match `MerkleTree` implementation
   let keys = [0n, 2n, 1n, 4n]; // insertion order

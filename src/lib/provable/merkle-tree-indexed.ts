@@ -94,21 +94,22 @@ abstract class IndexedMerkleMapAbstract {
       nodes[level] = [];
     }
 
-    let firstLeaf = {
-      key: 0n,
-      value: 0n,
-      // maximum, which is always greater than any key that is a hash
-      nextKey: Field.ORDER - 1n,
-      index: 0n,
-      nextIndex: 0n, // TODO: ok?
-    };
-    let firstNode = Leaf.hashNode(firstLeaf);
+    let firstLeaf = IndexedMerkleMapAbstract._firstLeaf;
+    let firstNode = Leaf.hashNode(IndexedMerkleMapAbstract._firstLeaf);
     let root = Nodes.setLeafNode(nodes, 0, firstNode.toBigInt());
     this.root = Field(root);
     this.length = Field(1);
 
     this.data = Unconstrained.from({ nodes, sortedLeaves: [firstLeaf] });
   }
+  static _firstLeaf = {
+    key: 0n,
+    value: 0n,
+    // maximum, which is always greater than any key that is a hash
+    nextKey: Field.ORDER - 1n,
+    index: 0n,
+    nextIndex: 0n, // TODO: ok?
+  };
 
   /**
    * Insert a new leaf `(key, value)`.
