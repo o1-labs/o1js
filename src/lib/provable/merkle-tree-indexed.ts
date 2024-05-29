@@ -24,10 +24,10 @@ export { Leaf };
  *
  * let map = new MerkleMap();
  *
- * map.set(2n, 14n);
- * map.set(1n, 13n);
+ * map.insert(2n, 14n);
+ * map.insert(1n, 13n);
  *
- * let x = map.get(2n).assertSome(); // 14
+ * let x = map.get(2n); // 14
  * ```
  *
  * Indexed Merkle maps can be used directly in provable code:
@@ -40,7 +40,7 @@ export { Leaf };
  *
  *       method(map: MerkleMap, key: Field) {
  *         // get the value associated with `key`
- *         let value = map.get(key).orElse(0n);
+ *         let value = map.getOption(key).orElse(0n);
  *
  *         // increment the value by 1
  *         map.set(key, value.add(1));
@@ -148,7 +148,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
-    this.proveInclusion(low, 'Invalid low node (root)');
+    this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
 
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
@@ -158,7 +158,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // update low node
     let newLow = { ...low, nextKey: key, nextIndex: index };
-    this.root = this.computeRoot(newLow.index, Leaf.hashNode(newLow));
+    this.root = this._computeRoot(newLow.index, Leaf.hashNode(newLow));
     this._setLeafUnconstrained(true, newLow);
 
     // create and append new leaf
@@ -169,7 +169,7 @@ abstract class IndexedMerkleMapAbstract {
       nextIndex: low.nextIndex,
     });
 
-    this.root = this.computeRoot(indexBits, Leaf.hashNode(leaf));
+    this.root = this._computeRoot(indexBits, Leaf.hashNode(leaf));
     this.length = this.length.add(1);
     this._setLeafUnconstrained(false, leaf);
   }
@@ -185,19 +185,24 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove that the key exists by presenting a leaf that contains it
     let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
-    this.proveInclusion(self, 'Key does not exist in the tree');
+    this._proveInclusion(self, 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf (key)');
 
     // at this point, we know that we have a valid update; so we can mutate internal data
 
     // update leaf
     let newSelf = { ...self, value };
-    this.root = this.computeRoot(self.index, Leaf.hashNode(newSelf));
+    this.root = this._computeRoot(self.index, Leaf.hashNode(newSelf));
     this._setLeafUnconstrained(true, newSelf);
   }
 
   /**
    * Perform _either_ an insertion or update, depending on whether the key exists.
+   *
+   * Note: This method is handling both the `insert()` and `update()` case at the same time, so you
+   * can use it if you don't know whether the key exists or not.
+   *
+   * However, this comes at an efficiency cost, so prefer to use `insert()` or `update()` if you know whether the key exists.
    */
   set(key: Field | bigint, value: Field | bigint) {
     key = Field(key);
@@ -205,7 +210,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
-    this.proveInclusion(low, 'Invalid low node (root)');
+    this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
 
@@ -217,14 +222,14 @@ abstract class IndexedMerkleMapAbstract {
     let indexBits = index.toBits(this.height - 1);
 
     // prove inclusion of this leaf if it exists
-    this.proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
+    this._proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
     assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     // at this point, we know that we have a valid update or insertion; so we can mutate internal data
 
     // update low node, or leave it as is
     let newLow = { ...low, nextKey: key, nextIndex: index };
-    this.root = this.computeRoot(low.index, Leaf.hashNode(newLow));
+    this.root = this._computeRoot(low.index, Leaf.hashNode(newLow));
     this._setLeafUnconstrained(true, newLow);
 
     // update leaf, or append a new one
@@ -234,7 +239,7 @@ abstract class IndexedMerkleMapAbstract {
       nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
       nextIndex: Provable.if(keyExists, self.nextIndex, low.nextIndex),
     });
-    this.root = this.computeRoot(indexBits, Leaf.hashNode(newLeaf));
+    this.root = this._computeRoot(indexBits, Leaf.hashNode(newLeaf));
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
     this._setLeafUnconstrained(keyExists, newLeaf);
   }
@@ -249,7 +254,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove that the key exists by presenting a leaf that contains it
     let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
-    this.proveInclusion(self, 'Key does not exist in the tree');
+    this._proveInclusion(self, 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf (key)');
 
     return self.value;
@@ -268,7 +273,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
-    this.proveInclusion(low, 'Invalid low node (root)');
+    this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
 
@@ -276,7 +281,7 @@ abstract class IndexedMerkleMapAbstract {
     let keyExists = low.nextKey.equals(key);
 
     // prove inclusion of this leaf if it exists
-    this.proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
+    this._proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
     assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     return new OptionField({ isSome: keyExists, value: self.value });
@@ -292,7 +297,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove that the key exists by presenting a leaf that contains it
     let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
-    this.proveInclusion(self, message ?? 'Key does not exist in the tree');
+    this._proveInclusion(self, message ?? 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf (key)');
   }
 
@@ -304,7 +309,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
-    this.proveInclusion(low, 'Invalid low node (root)');
+    this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThan(
       low.nextKey,
@@ -320,7 +325,7 @@ abstract class IndexedMerkleMapAbstract {
 
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
-    this.proveInclusion(low, 'Invalid low node (root)');
+    this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
 
@@ -332,20 +337,20 @@ abstract class IndexedMerkleMapAbstract {
   /**
    * Helper method to prove inclusion of a leaf in the tree.
    */
-  proveInclusion(leaf: Leaf, message?: string) {
+  _proveInclusion(leaf: Leaf, message?: string) {
     // TODO: here, we don't actually care about the index,
     // so we could add a mode where `computeRoot()` doesn't prove it
     let node = Leaf.hashNode(leaf);
-    let root = this.computeRoot(leaf.index, node);
+    let root = this._computeRoot(leaf.index, node);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
   }
 
   /**
    * Helper method to conditionally prove inclusion of a leaf in the tree.
    */
-  proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
+  _proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
     let node = Leaf.hashNode(leaf);
-    let root = this.computeRoot(leaf.index, node);
+    let root = this._computeRoot(leaf.index, node);
     assert(
       condition.implies(root.equals(this.root)),
       message ?? 'Leaf is not included in the tree'
@@ -357,7 +362,7 @@ abstract class IndexedMerkleMapAbstract {
    *
    * The index can be given as a `Field` or as an array of bits.
    */
-  computeRoot(index: Field | Bool[], node: Field) {
+  _computeRoot(index: Field | Bool[], node: Field) {
     let indexBits =
       index instanceof Field ? index.toBits(this.height - 1) : index;
 
