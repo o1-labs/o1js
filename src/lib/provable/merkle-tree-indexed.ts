@@ -282,6 +282,51 @@ abstract class IndexedMerkleMapAbstract {
     return new OptionField({ isSome: keyExists, value: self.value });
   }
 
+  // methods to check for inclusion for a key without being concerned about the value
+
+  /**
+   * Prove that the given key exists in the map.
+   */
+  assertIncluded(key: Field | bigint, message?: string) {
+    key = Field(key);
+
+    // prove that the key exists by presenting a leaf that contains it
+    let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
+    this.proveInclusion(self, message ?? 'Key does not exist in the tree');
+    self.key.assertEquals(key, 'Invalid leaf (key)');
+  }
+
+  /**
+   * Prove that the given key does not exist in the map.
+   */
+  assertNotIncluded(key: Field | bigint, message?: string) {
+    key = Field(key);
+
+    // prove that the key does not exist yet, by showing a valid low node
+    let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
+    this.proveInclusion(low, 'Invalid low node (root)');
+    low.key.assertLessThan(key, 'Invalid low node (key)');
+    key.assertLessThan(
+      low.nextKey,
+      message ?? 'Key already exists in the tree'
+    );
+  }
+
+  /**
+   * Check whether the given key exists in the map.
+   */
+  isIncluded(key: Field | bigint): Bool {
+    key = Field(key);
+
+    // prove that the key does not exist yet, by showing a valid low node
+    let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
+    this.proveInclusion(low, 'Invalid low node (root)');
+    low.key.assertLessThan(key, 'Invalid low node (key)');
+    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
+
+    return low.nextKey.equals(key);
+  }
+
   // helper methods
 
   /**
