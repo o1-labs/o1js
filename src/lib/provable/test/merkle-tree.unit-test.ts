@@ -2,10 +2,77 @@ import { Bool, Field } from '../wrapped.js';
 import { MerkleTree, conditionalSwap } from '../merkle-tree.js';
 import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';
-import { MerkleMap } from '../merkle-map.js';
+import { MerkleMap, MerkleMapWitness } from '../merkle-map.js';
 import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
 import { synchronousRunners } from '../core/provable-context.js';
 import { Provable } from '../provable.js';
+import { constraintSystem } from '../../testing/constraint-system.js';
+import { field } from '../../testing/equivalent.js';
+import { throwError } from './test-utils.js';
+
+const height = 32;
+const IndexedMap32 = IndexedMerkleMap(height);
+const indexedMap = new IndexedMap32();
+
+// compare constraints used by indexed merkle map vs sparse merkle map
+
+console.log(
+  'indexed merkle map (get)',
+  constraintSystem.size({ from: [field] }, (key) => {
+    indexedMap.get(key);
+  })
+);
+
+console.log(
+  'sparse merkle map (get)',
+  constraintSystem.size(
+    { from: [field, field, field, field] },
+    (root, key, value) => {
+      let mapWitness = Provable.witness(MerkleMapWitness, () =>
+        throwError('unused')
+      );
+      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(value);
+      key.assertEquals(actualKey);
+      root.assertEquals(actualRoot);
+    }
+  )
+);
+
+console.log(
+  '\nindexed merkle map (insert)',
+  constraintSystem.size({ from: [field, field] }, (key, value) => {
+    indexedMap.insert(key, value);
+  })
+);
+console.log(
+  'indexed merkle map (update)',
+  constraintSystem.size({ from: [field, field] }, (key, value) => {
+    indexedMap.update(key, value);
+  })
+);
+console.log(
+  'indexed merkle map (set)',
+  constraintSystem.size({ from: [field, field] }, (key, value) => {
+    indexedMap.set(key, value);
+  })
+);
+
+console.log(
+  'sparse merkle map (set)',
+  constraintSystem.size(
+    { from: [field, field, field, field] },
+    (root, key, oldValue, value) => {
+      let mapWitness = Provable.witness(MerkleMapWitness, () =>
+        throwError('unused')
+      );
+      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(oldValue);
+      key.assertEquals(actualKey);
+      root.assertEquals(actualRoot);
+
+      let [_newRoot] = mapWitness.computeRootAndKey(value);
+    }
+  )
+);
 
 // some manual tests for IndexedMerkleMap
 {
@@ -93,7 +160,7 @@ import { Provable } from '../provable.js';
 
 // property tests for indexed merkle map
 
-let uniformField = Random(Field.random);
+let uniformField = Random.map(Random(Field.random), (x) => x.toBigInt());
 let { runAndCheckSync } = await synchronousRunners();
 
 let n = 5;
@@ -114,38 +181,43 @@ test(
       map.insert(initialKeys[i], initialValues[i]);
     }
 
+    const witness = (x: Field | bigint) => Provable.witness(Field, () => x);
+
     // pass the map to a circuit
     runAndCheckSync(() => {
       map = Provable.witness(MerkleMap.provable, () => map);
+      let initialKeysF = initialKeys.map(witness);
+      let keysF = keys.map(witness);
+      let valuesF = values.map(witness);
 
       for (let i = 0; i < n; i++) {
         // confirm we still have the same keys and values
-        map.get(initialKeys[i]).assertSome().assertEquals(initialValues[i]);
+        map.get(initialKeysF[i]).assertSome().assertEquals(initialValues[i]);
 
         // new keys are not in the map
-        map.get(keys[i]).isSome.assertFalse();
+        map.get(keysF[i]).isSome.assertFalse();
       }
 
       // can't update a non-existent key
-      expect(() => map.update(keys[i0], values[i0])).toThrow(
+      expect(() => map.update(keysF[i0], valuesF[i0])).toThrow(
         'Key does not exist'
       );
 
       // set initial values at new keys, and values at initial keys
       for (let i = 0; i < n; i++) {
-        map.set(keys[i], initialValues[i]);
-        map.set(initialKeys[i], values[i]);
+        map.set(keysF[i], initialValues[i]);
+        map.set(initialKeysF[i], valuesF[i]);
       }
 
       // check that the updated keys and values are in the map
       for (let i = 0; i < n; i++) {
-        map.get(keys[i]).assertSome().assertEquals(initialValues[i]);
-        map.get(initialKeys[i]).assertSome().assertEquals(values[i]);
+        map.get(keysF[i]).assertSome().assertEquals(initialValues[i]);
+        map.get(initialKeysF[i]).assertSome().assertEquals(valuesF[i]);
       }
 
       // update the new keys with the new values
       for (let i = 0; i < n; i++) {
-        map.update(keys[i], values[i]);
+        map.update(keys[i], valuesF[i]);
       }
 
       // move the map back to constants
