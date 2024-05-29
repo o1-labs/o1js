@@ -1,5 +1,5 @@
 import { Bool, Field } from '../wrapped.js';
-import { conditionalSwap } from '../merkle-tree.js';
+import { MerkleTree, conditionalSwap } from '../merkle-tree.js';
 import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';
 import { MerkleMap } from '../merkle-map.js';
@@ -35,12 +35,20 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
   // can't insert more than 2^(height - 1) = 2^2 = 4 keys
   expect(() => map.insert(8n, 19n)).toThrow('4 does not fit in 2 bits');
 
-  // check nodes against `MerkleTree` implementation
+  // check that internal nodes exactly match `MerkleTree` implementation
   let keys = [0n, 2n, 1n, 4n]; // insertion order
   let leaves = keys.map((key) => Leaf.hashNode(map._findLeaf(key).self));
+  let tree = new MerkleTree(3);
+  tree.fill(leaves);
+  let nodes = map.data.get().nodes;
+
+  for (let level = 0; level < 3; level++) {
+    for (let i = 0; i < 2 ** (2 - level); i++) {
+      expect(nodes[level][i]).toEqual(tree.nodes[level][i].toBigInt());
+    }
+  }
 
   console.dir(map.data.get().sortedLeaves, { depth: null });
-  console.dir(map.data.get().nodes, { depth: null });
 }
 
 test(Random.bool, Random.field, Random.field, (b, x, y) => {
