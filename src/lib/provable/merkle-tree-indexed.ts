@@ -52,6 +52,16 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     readonly sortedLeaves: LeafValue[];
   }>;
 
+  static provable = provableFromClass(IndexedMerkleMap, {
+    root: Field,
+    length: Field,
+    height: Number,
+    data: Unconstrained.provableWithEmpty({
+      nodes: [] as (bigint | undefined)[][],
+      sortedLeaves: [] as LeafValue[],
+    }),
+  });
+
   /**
    * Creates a new, empty Indexed Merkle Map, given its height.
    */
