@@ -15,7 +15,6 @@ import {
   MerkleLeaf,
   updateMerkleMap,
 } from './offchain-state-serialization.js';
-import { MerkleMap } from '../../provable/merkle-map.js';
 import { getProofsEnabled } from '../mina.js';
 
 export { OffchainStateRollup, OffchainStateCommitments };
@@ -27,6 +26,9 @@ class ActionIterator extends MerkleListIterator.create(
   // we don't have to care about the initial hash here because we will just step forward
   Actions.emptyActionState()
 ) {}
+
+const TREE_HEIGHT = 256;
+class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
 
 /**
  * Commitments that keep track of the current state of an offchain Merkle tree constructed from actions.
@@ -44,16 +46,13 @@ class OffchainStateCommitments extends Struct({
   actionState: Field,
 }) {
   static empty() {
-    let emptyMerkleRoot = new MerkleMap().getRoot();
+    let emptyMerkleRoot = new MerkleTree(TREE_HEIGHT).getRoot();
     return new OffchainStateCommitments({
       root: emptyMerkleRoot,
       actionState: Actions.emptyActionState(),
     });
   }
 }
-
-const TREE_HEIGHT = 256;
-class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
 
 // TODO: it would be nice to abstract the logic for proving a chain of state transition proofs
 
