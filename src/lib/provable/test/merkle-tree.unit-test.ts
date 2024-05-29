@@ -12,6 +12,11 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
   map.insert(2n, 14n);
   map.insert(1n, 13n);
 
+  // -1 (the max value) can't be inserted, because there's always a value pointing to it,
+  // and yet it's not included as a leaf
+  expect(() => map.insert(-1n, 11n)).toThrow('Key already exists');
+  expect(() => map.set(-1n, 12n)).toThrow('Invalid leaf');
+
   expect(map.get(1n).assertSome().toBigInt()).toEqual(13n);
   expect(map.get(2n).assertSome().toBigInt()).toEqual(14n);
   expect(map.get(3n).isSome.toBoolean()).toEqual(false);
@@ -34,6 +39,7 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
 
   // can't insert more than 2^(height - 1) = 2^2 = 4 keys
   expect(() => map.insert(8n, 19n)).toThrow('4 does not fit in 2 bits');
+  expect(() => map.set(8n, 19n)).toThrow('4 does not fit in 2 bits');
 
   // check that internal nodes exactly match `MerkleTree` implementation
   let keys = [0n, 2n, 1n, 4n]; // insertion order

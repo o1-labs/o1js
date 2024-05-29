@@ -131,6 +131,8 @@ abstract class IndexedMerkleMapAbstract {
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
     key.assertLessThan(low.nextKey, 'Key already exists in the tree');
 
+    // at this point, we know that we have a valid insertion; so we can mutate internal data
+
     // update low node
     let newLow = { ...low, nextKey: key, nextIndex: index };
     this.root = this.computeRoot(newLow.index, Leaf.hashNode(newLow));
@@ -163,6 +165,8 @@ abstract class IndexedMerkleMapAbstract {
     this.proveInclusion(self, 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf (key)');
 
+    // at this point, we know that we have a valid update; so we can mutate internal data
+
     // update leaf
     let newSelf = { ...self, value };
     this.root = this.computeRoot(self.index, Leaf.hashNode(newSelf));
@@ -185,12 +189,15 @@ abstract class IndexedMerkleMapAbstract {
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
 
+    // the leaf's index depends on whether it exists
+    let index = Provable.if(keyExists, low.nextIndex, this.length);
+    let indexBits = index.toBits(this.height - 1);
+
     // prove inclusion of this leaf if it exists
     this.proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
     assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
-    // the leaf's index depends on whether it exists
-    let index = Provable.if(keyExists, low.nextIndex, this.length);
+    // at this point, we know that we have a valid update or insertion; so we can mutate internal data
 
     // update low node, or leave it as is
     let newLow = { ...low, nextKey: key, nextIndex: index };
@@ -204,7 +211,7 @@ abstract class IndexedMerkleMapAbstract {
       nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
       nextIndex: Provable.if(keyExists, self.nextIndex, low.nextIndex),
     });
-    this.root = this.computeRoot(index, Leaf.hashNode(newLeaf));
+    this.root = this.computeRoot(indexBits, Leaf.hashNode(newLeaf));
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
     this._setLeafUnconstrained(keyExists, newLeaf);
   }
