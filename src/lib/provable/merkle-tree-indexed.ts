@@ -98,6 +98,19 @@ class IndexedMerkleMapBase {
     readonly sortedLeaves: StoredLeaf[];
   }>;
 
+  clone() {
+    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
+    cloned.root = this.root;
+    cloned.length = this.length;
+    cloned.data.updateAsProver(({ nodes, sortedLeaves }) => {
+      return {
+        nodes: nodes.map((row) => [...row]),
+        sortedLeaves: [...sortedLeaves],
+      };
+    });
+    return cloned;
+  }
+
   // we'd like to do `abstract static provable` here but that's not supported
   static provable: Provable<
     IndexedMerkleMapBase,
@@ -626,10 +639,10 @@ class Leaf extends Struct({
 }
 
 type StoredLeaf = {
-  value: bigint;
-  key: bigint;
-  nextKey: bigint;
-  index: number;
+  readonly value: bigint;
+  readonly key: bigint;
+  readonly nextKey: bigint;
+  readonly index: number;
 };
 
 class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
