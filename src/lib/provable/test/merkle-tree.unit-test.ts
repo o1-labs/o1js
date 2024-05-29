@@ -4,6 +4,8 @@ import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';
 import { MerkleMap } from '../merkle-map.js';
 import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
+import { synchronousRunners } from '../core/provable-context.js';
+import { Provable } from '../provable.js';
 
 // some manual tests for IndexedMerkleMap
 {
@@ -89,6 +91,93 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
   }
 }
 
+// property tests for indexed merkle map
+
+let uniformField = Random(Field.random);
+let { runAndCheckSync } = await synchronousRunners();
+
+let n = 5;
+
+test(
+  Random.array(uniformField, n),
+  Random.array(uniformField, n),
+  Random.array(Random.field, n),
+  Random.array(Random.field, n),
+  Random.int(6, 40),
+  Random.int(0, n - 1),
+  (initialKeys, keys, initialValues, values, height, i0) => {
+    class MerkleMap extends IndexedMerkleMap(height) {}
+
+    // fill a merkle map with the initial keys and values outside provable code
+    let map = new MerkleMap();
+    for (let i = 0; i < n; i++) {
+      map.insert(initialKeys[i], initialValues[i]);
+    }
+
+    // pass the map to a circuit
+    runAndCheckSync(() => {
+      map = Provable.witness(MerkleMap.provable, () => map);
+
+      for (let i = 0; i < n; i++) {
+        // confirm we still have the same keys and values
+        map.get(initialKeys[i]).assertSome().assertEquals(initialValues[i]);
+
+        // new keys are not in the map
+        map.get(keys[i]).isSome.assertFalse();
+      }
+
+      // can't update a non-existent key
+      expect(() => map.update(keys[i0], values[i0])).toThrow(
+        'Key does not exist'
+      );
+
+      // set initial values at new keys, and values at initial keys
+      for (let i = 0; i < n; i++) {
+        map.set(keys[i], initialValues[i]);
+        map.set(initialKeys[i], values[i]);
+      }
+
+      // check that the updated keys and values are in the map
+      for (let i = 0; i < n; i++) {
+        map.get(keys[i]).assertSome().assertEquals(initialValues[i]);
+        map.get(initialKeys[i]).assertSome().assertEquals(values[i]);
+      }
+
+      // update the new keys with the new values
+      for (let i = 0; i < n; i++) {
+        map.update(keys[i], values[i]);
+      }
+
+      // move the map back to constants
+      Provable.asProver(() => {
+        map = Provable.toConstant(MerkleMap.provable, map);
+      });
+    });
+
+    // check that the map is still the same
+    for (let i = 0; i < n; i++) {
+      expect(map.get(keys[i]).assertSome()).toEqual(Field(values[i]));
+      expect(map.get(initialKeys[i]).assertSome()).toEqual(Field(values[i]));
+    }
+    // random element is not in the map
+    expect(map.get(Field.random()).isSome).toEqual(Bool(false));
+    // length is as expected
+    expect(map.length).toEqual(Field(2 * n + 1));
+
+    // creating a new map with the same key-value pairs, where keys are inserted in the same order, gives the same root
+    let map2 = new MerkleMap();
+    for (let i = 0; i < n; i++) {
+      map2.insert(initialKeys[i], values[i]);
+    }
+    for (let i = 0; i < n; i++) {
+      map2.insert(keys[i], values[i]);
+    }
+    expect(map.root).toEqual(map2.root);
+  }
+);
+
+// property tests for conditional swap
+
 test(Random.bool, Random.field, Random.field, (b, x, y) => {
   let [x0, y0] = conditionalSwap(Bool(!!b), Field(x), Field(y));
 
@@ -101,6 +190,8 @@ test(Random.bool, Random.field, Random.field, (b, x, y) => {
     expect(y0.toBigInt()).toEqual(x);
   }
 });
+
+// property tests for merkle map
 
 test(Random.field, (key) => {
   let map = new MerkleMap();
