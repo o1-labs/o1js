@@ -122,7 +122,10 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.data = Unconstrained.from({ nodes, sortedLeaves });
   }
 
-  insert(key: Field, value: Field) {
+  insert(key: Field | bigint, value: Field | bigint) {
+    key = Field(key);
+    value = Field(value);
+
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this.findLeaf(key).low);
     this.proveInclusion(low, 'Invalid low node');
@@ -149,7 +152,10 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.setLeafUnconstrained(false, leaf);
   }
 
-  update(key: Field, value: Field) {
+  update(key: Field | bigint, value: Field | bigint) {
+    key = Field(key);
+    value = Field(value);
+
     // prove that the key exists by presenting a leaf that contains it
     let self = Provable.witness(Leaf, () => this.findLeaf(key).self);
     this.proveInclusion(self, 'Key does not exist in the tree');
@@ -161,7 +167,10 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.setLeafUnconstrained(true, newSelf);
   }
 
-  set(key: Field, value: Field) {
+  set(key: Field | bigint, value: Field | bigint) {
+    key = Field(key);
+    value = Field(value);
+
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
     this.proveInclusion(low, 'Invalid low node');
@@ -195,7 +204,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.setLeafUnconstrained(keyExists, newLeaf);
   }
 
-  get(key: Field): Option<Field> {
+  get(key: Field | bigint): Option<Field> {
+    key = Field(key);
+
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
     this.proveInclusion(low, 'Invalid low node');
