@@ -196,8 +196,10 @@ class IndexedMerkleMapBase {
    * Update an existing leaf `(key, value)`.
    *
    * Proves that the `key` exists.
+   *
+   * Returns the previous value.
    */
-  update(key: Field | bigint, value: Field | bigint) {
+  update(key: Field | bigint, value: Field | bigint): Field {
     key = Field(key);
     value = Field(value);
 
@@ -212,6 +214,8 @@ class IndexedMerkleMapBase {
     let newSelf = { ...self, value };
     this.root = this._computeRoot(self.index, Leaf.hashNode(newSelf));
     this._setLeafUnconstrained(true, newSelf);
+
+    return self.value;
   }
 
   /**
@@ -221,8 +225,10 @@ class IndexedMerkleMapBase {
    * can use it if you don't know whether the key exists or not.
    *
    * However, this comes at an efficiency cost, so prefer to use `insert()` or `update()` if you know whether the key exists.
+   *
+   * Returns the previous value, as an option (which is `None` if the key didn't exist before).
    */
-  set(key: Field | bigint, value: Field | bigint) {
+  set(key: Field | bigint, value: Field | bigint): Option<Field, bigint> {
     key = Field(key);
     value = Field(value);
 
@@ -260,6 +266,9 @@ class IndexedMerkleMapBase {
     this.root = this._computeRoot(indexBits, Leaf.hashNode(newLeaf));
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
     this._setLeafUnconstrained(keyExists, newLeaf);
+
+    // return the previous value
+    return new OptionField({ isSome: keyExists, value: self.value });
   }
 
   /**
