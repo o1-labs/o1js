@@ -21,6 +21,17 @@ sample(Random.nat(400), 5).forEach((preimageLength) => {
   );
 });
 
+sample(Random.nat(2000), 5).forEach((preimageLength) => {
+  let inputBytes = bytes(preimageLength);
+  let outputBytes = bytes(256 / 8);
+
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
+    (x) => nobleSha256(x),
+    (x) => Gadgets.SHA256.partialHash(x),
+    `sha256-partial preimage length ${preimageLength}`
+  );
+});
+
 const Sha256Program = ZkProgram({
   name: `sha256`,
   publicOutput: Bytes(32).provable,
@@ -51,8 +62,10 @@ await equivalentAsync(
 });
 
 for (let { preimage, hash } of testVectors()) {
-  let actual = Gadgets.SHA256.hash(Bytes.fromString(preimage));
-  expect(actual.toHex()).toEqual(hash);
+  let actual1 = Gadgets.SHA256.hash(Bytes.fromString(preimage));
+  let actual2 = Gadgets.SHA256.partialHash(Bytes.fromString(preimage));
+  expect(actual1.toHex()).toEqual(hash);
+  expect(actual2.toHex()).toEqual(hash);
 }
 
 function testVectors() {
