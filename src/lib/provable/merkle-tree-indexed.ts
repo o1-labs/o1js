@@ -2,7 +2,7 @@ import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
 import { Bool, Field } from './wrapped.js';
 import { Option } from './option.js';
 import { Struct } from './types/struct.js';
-import { InferValue } from 'src/bindings/lib/provable-generic.js';
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { assert } from './gadgets/common.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Provable } from './provable.js';
@@ -12,11 +12,49 @@ import { provableFromClass } from './types/provable-derivers.js';
 
 export { IndexedMerkleMap };
 
-class IndexedMerkleMap {
+/**
+ * Class factory for an Indexed Merkle Map with a given height.
+ *
+ * ```ts
+ * let map = new (IndexedMerkleMap(3))();
+ *
+ * map.set(2n, 14n);
+ * map.set(1n, 13n);
+ *
+ * let x = map.get(2n).assertSome(); // 14
+ * ```
+ */
+function IndexedMerkleMap(height: number) {
+  return class IndexedMerkleMap extends IndexedMerkleMapAbstract {
+    constructor() {
+      // we can't access the abstract `height` property in the base constructor
+      super(height);
+    }
+
+    get height() {
+      return height;
+    }
+
+    static provable = provableFromClass(IndexedMerkleMap, provableBase);
+  };
+}
+
+const provableBase = {
+  root: Field,
+  length: Field,
+  data: Unconstrained.provableWithEmpty({
+    nodes: [] as (bigint | undefined)[][],
+    sortedLeaves: [] as LeafValue[],
+  }),
+};
+
+abstract class IndexedMerkleMapAbstract {
   // data defining the provable interface of a tree
   root: Field;
   length: Field; // length of the leaves array
-  readonly height: number;
+
+  // static data defining constraints
+  abstract get height(): number;
 
   // the raw data stored in the tree, plus helper structures
   readonly data: Unconstrained<{
@@ -31,14 +69,11 @@ class IndexedMerkleMap {
     readonly sortedLeaves: LeafValue[];
   }>;
 
-  static provable = provableFromClass(IndexedMerkleMap, {
-    root: Field,
-    length: Field,
-    data: Unconstrained.provableWithEmpty({
-      nodes: [] as (bigint | undefined)[][],
-      sortedLeaves: [] as LeafValue[],
-    }),
-  });
+  // we'd like to do `abstract static provable` here but that's not supported
+  static provable: Provable<
+    IndexedMerkleMapAbstract,
+    InferValue<typeof provableBase>
+  > = undefined as any;
 
   /**
    * Creates a new, empty Indexed Merkle Map, given its height.
@@ -49,7 +84,6 @@ class IndexedMerkleMap {
       height < 53,
       'height must be less than 53, so that we can use 64-bit floats to represent indices.'
     );
-    this.height = height;
 
     let nodes: (bigint | undefined)[][] = Array(height);
     for (let level = 0; level < height; level++) {
@@ -84,7 +118,7 @@ class IndexedMerkleMap {
     value = Field(value);
 
     // prove that the key doesn't exist yet by presenting a valid low node
-    let low = Provable.witness(Leaf, () => this.findLeaf(key).low);
+    let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this.proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
 
@@ -95,7 +129,7 @@ class IndexedMerkleMap {
     let index = this.length;
     let newLow = { ...low, nextKey: key, nextIndex: index };
     this.root = this.computeRoot(newLow.index, Leaf.hashNode(newLow));
-    this.setLeafUnconstrained(true, newLow);
+    this._setLeafUnconstrained(true, newLow);
 
     // create and append new leaf
     let leaf = Leaf.nextAfter(newLow, {
@@ -107,7 +141,7 @@ class IndexedMerkleMap {
 
     this.root = this.computeRoot(index, Leaf.hashNode(leaf));
     this.length = this.length.add(1);
-    this.setLeafUnconstrained(false, leaf);
+    this._setLeafUnconstrained(false, leaf);
   }
 
   /**
@@ -120,14 +154,14 @@ class IndexedMerkleMap {
     value = Field(value);
 
     // prove that the key exists by presenting a leaf that contains it
-    let self = Provable.witness(Leaf, () => this.findLeaf(key).self);
+    let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
     this.proveInclusion(self, 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf (key)');
 
     // update leaf
     let newSelf = { ...self, value };
     this.root = this.computeRoot(self.index, Leaf.hashNode(newSelf));
-    this.setLeafUnconstrained(true, newSelf);
+    this._setLeafUnconstrained(true, newSelf);
   }
 
   /**
@@ -138,7 +172,7 @@ class IndexedMerkleMap {
     value = Field(value);
 
     // prove whether the key exists or not, by showing a valid low node
-    let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
+    let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
     this.proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
@@ -156,7 +190,7 @@ class IndexedMerkleMap {
     // update low node, or leave it as is
     let newLow = { ...low, nextKey: key, nextIndex: index };
     this.root = this.computeRoot(low.index, Leaf.hashNode(newLow));
-    this.setLeafUnconstrained(true, newLow);
+    this._setLeafUnconstrained(true, newLow);
 
     // update leaf, or append a new one
     let newLeaf = Leaf.nextAfter(newLow, {
@@ -167,7 +201,7 @@ class IndexedMerkleMap {
     });
     this.root = this.computeRoot(index, Leaf.hashNode(newLeaf));
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
-    this.setLeafUnconstrained(keyExists, newLeaf);
+    this._setLeafUnconstrained(keyExists, newLeaf);
   }
 
   /**
@@ -179,7 +213,7 @@ class IndexedMerkleMap {
     key = Field(key);
 
     // prove whether the key exists or not, by showing a valid low node
-    let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
+    let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
     this.proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
@@ -254,9 +288,9 @@ class IndexedMerkleMap {
    *
    * If the key does not exist, a dummy value is returned for the leaf.
    *
-   * Assumes to run outside provable code.
+   * Can only be called outside provable code.
    */
-  findLeaf(key_: Field | bigint): InferValue<typeof LeafPair> {
+  _findLeaf(key_: Field | bigint): InferValue<typeof LeafPair> {
     let key = typeof key_ === 'bigint' ? key_ : key_.toBigInt();
     assert(key >= 0n, 'key must be positive');
     let leaves = this.data.get().sortedLeaves;
@@ -286,7 +320,7 @@ class IndexedMerkleMap {
   /**
    * Update or append a leaf in our internal data structures
    */
-  private setLeafUnconstrained(leafExists: Bool | boolean, leaf: Leaf) {
+  _setLeafUnconstrained(leafExists: Bool | boolean, leaf: Leaf) {
     Provable.asProver(() => {
       let { nodes, sortedLeaves } = this.data.get();
 
@@ -414,8 +448,9 @@ type LeafValue = {
   nextIndex: bigint;
 };
 
-class OptionField extends Option(Field) {}
 class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
+
+class OptionField extends Option(Field) {}
 
 // helper
 

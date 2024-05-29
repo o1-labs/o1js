@@ -6,18 +6,15 @@ import { MerkleMap } from '../merkle-map.js';
 import { IndexedMerkleMap } from '../merkle-tree-indexed.js';
 
 console.log('new map');
-let map = new IndexedMerkleMap(3);
+let map = new (IndexedMerkleMap(3))();
 
 console.log('insert 2 and 1');
 map.insert(2n, 14n);
 map.insert(1n, 13n);
 // console.dir(map.findLeaf(2n), { depth: null });
 
-console.log('test');
 expect(map.get(1n).assertSome().toBigInt()).toEqual(13n);
 expect(map.get(2n).assertSome().toBigInt()).toEqual(14n);
-
-console.dir(map.data.get().sortedLeaves, { depth: null });
 
 console.log('update 2 and 0');
 map.update(2n, 15n);
