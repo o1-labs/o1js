@@ -43,9 +43,9 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
 
   // check that internal nodes exactly match `MerkleTree` implementation
   let keys = [0n, 2n, 1n, 4n]; // insertion order
-  let leaves = keys.map((key) => Leaf.hashNode(map._findLeaf(key).self));
+  let leafNodes = keys.map((key) => Leaf.hashNode(map._findLeaf(key).self));
   let tree = new MerkleTree(3);
-  tree.fill(leaves);
+  tree.fill(leafNodes);
   let nodes = map.data.get().nodes;
 
   for (let level = 0; level < 3; level++) {
@@ -54,7 +54,26 @@ import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
     }
   }
 
-  console.dir(map.data.get().sortedLeaves, { depth: null });
+  // check that internal `sortedLeaves` are as expected
+
+  // data sorted by key:
+  let sorted = [
+    { key: 0n, value: 12n, index: 0n },
+    { key: 1n, value: 17n, index: 2n },
+    { key: 2n, value: 15n, index: 1n },
+    { key: 4n, value: 16n, index: 3n },
+  ];
+  let sortedLeaves = map.data.get().sortedLeaves;
+
+  for (let i = 0; i < 4; i++) {
+    expect(sortedLeaves[i]).toEqual({
+      key: sorted[i].key,
+      value: sorted[i].value,
+      nextKey: sorted[i + 1]?.key ?? Field.ORDER - 1n,
+      index: sorted[i].index,
+      nextIndex: sorted[i + 1]?.index ?? 0n,
+    });
+  }
 }
 
 test(Random.bool, Random.field, Random.field, (b, x, y) => {
