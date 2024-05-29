@@ -3,27 +3,45 @@ import { conditionalSwap } from '../merkle-tree.js';
 import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';
 import { MerkleMap } from '../merkle-map.js';
-import { IndexedMerkleMap } from '../merkle-tree-indexed.js';
+import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
 
-console.log('new map');
-let map = new (IndexedMerkleMap(3))();
+// some manual tests for IndexedMerkleMap
+{
+  let map = new (IndexedMerkleMap(3))();
 
-console.log('insert 2 and 1');
-map.insert(2n, 14n);
-map.insert(1n, 13n);
-// console.dir(map.findLeaf(2n), { depth: null });
+  map.insert(2n, 14n);
+  map.insert(1n, 13n);
 
-expect(map.get(1n).assertSome().toBigInt()).toEqual(13n);
-expect(map.get(2n).assertSome().toBigInt()).toEqual(14n);
+  expect(map.get(1n).assertSome().toBigInt()).toEqual(13n);
+  expect(map.get(2n).assertSome().toBigInt()).toEqual(14n);
+  expect(map.get(3n).isSome.toBoolean()).toEqual(false);
 
-console.log('update 2 and 0');
-map.update(2n, 15n);
-map.update(0n, 12n);
-// TODO get() doesn't work on 0n because the low node checks fail
-// expect(map.get(0n).assertSome().toBigInt()).toEqual(12n);
-expect(map.get(2n).assertSome().toBigInt()).toEqual(15n);
+  map.update(2n, 15n);
+  map.update(0n, 12n);
+  expect(map.get(2n).assertSome().toBigInt()).toEqual(15n);
 
-console.dir(map.data.get().sortedLeaves, { depth: null });
+  // TODO get() doesn't work on 0n because the low node checks fail
+  // expect(map.get(0n).assertSome().toBigInt()).toEqual(12n);
+
+  // can't insert the same key twice
+  expect(() => map.insert(1n, 17n)).toThrow('Key already exists');
+
+  map.set(4n, 16n);
+  map.set(1n, 17n);
+  expect(map.get(4n).assertSome().toBigInt()).toEqual(16n);
+  expect(map.get(1n).assertSome().toBigInt()).toEqual(17n);
+  expect(map.get(5n).isSome.toBoolean()).toEqual(false);
+
+  // can't insert more than 2^(height - 1) = 2^2 = 4 keys
+  expect(() => map.insert(8n, 19n)).toThrow('4 does not fit in 2 bits');
+
+  // check nodes against `MerkleTree` implementation
+  let keys = [0n, 2n, 1n, 4n]; // insertion order
+  let leaves = keys.map((key) => Leaf.hashNode(map._findLeaf(key).self));
+
+  console.dir(map.data.get().sortedLeaves, { depth: null });
+  console.dir(map.data.get().nodes, { depth: null });
+}
 
 test(Random.bool, Random.field, Random.field, (b, x, y) => {
   let [x0, y0] = conditionalSwap(Bool(!!b), Field(x), Field(y));

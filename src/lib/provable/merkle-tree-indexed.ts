@@ -2,7 +2,7 @@ import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
 import { Bool, Field } from './wrapped.js';
 import { Option } from './option.js';
 import { Struct } from './types/struct.js';
-import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { assert } from './gadgets/common.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Provable } from './provable.js';
@@ -10,7 +10,11 @@ import { Poseidon } from './crypto/poseidon.js';
 import { conditionalSwap } from './merkle-tree.js';
 import { provableFromClass } from './types/provable-derivers.js';
 
+// external API
 export { IndexedMerkleMap };
+
+// internal API
+export { Leaf };
 
 /**
  * Class factory for an Indexed Merkle Map with a given height.
@@ -98,9 +102,7 @@ abstract class IndexedMerkleMapAbstract {
       index: 0n,
       nextIndex: 0n, // TODO: ok?
     };
-    let firstNode = Leaf.hashNode(
-      Leaf.fromValue({ ...firstLeaf, sortedIndex: Unconstrained.from(0) })
-    );
+    let firstNode = Leaf.hashNode(firstLeaf);
     let root = Nodes.setLeafNode(nodes, 0, firstNode.toBigInt());
     this.root = Field(root);
     this.length = Field(1);
@@ -117,6 +119,10 @@ abstract class IndexedMerkleMapAbstract {
     key = Field(key);
     value = Field(value);
 
+    // check that we can insert a new leaf, by asserting the length fits in the tree
+    let index = this.length;
+    let indexBits = index.toBits(this.height - 1);
+
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this.proveInclusion(low, 'Invalid low node (root)');
@@ -126,7 +132,6 @@ abstract class IndexedMerkleMapAbstract {
     key.assertLessThan(low.nextKey, 'Key already exists in the tree');
 
     // update low node
-    let index = this.length;
     let newLow = { ...low, nextKey: key, nextIndex: index };
     this.root = this.computeRoot(newLow.index, Leaf.hashNode(newLow));
     this._setLeafUnconstrained(true, newLow);
@@ -139,7 +144,7 @@ abstract class IndexedMerkleMapAbstract {
       nextIndex: low.nextIndex,
     });
 
-    this.root = this.computeRoot(index, Leaf.hashNode(leaf));
+    this.root = this.computeRoot(indexBits, Leaf.hashNode(leaf));
     this.length = this.length.add(1);
     this._setLeafUnconstrained(false, leaf);
   }
@@ -255,10 +260,18 @@ abstract class IndexedMerkleMapAbstract {
 
   /**
    * Helper method to compute the root given a leaf node and its index.
+   *
+   * The index can be given as a `Field` or as an array of bits.
    */
-  computeRoot(index: Field, node: Field) {
-    let indexU = Unconstrained.witness(() => Number(index.toBigInt()));
-    let indexBits = index.toBits(this.height - 1);
+  computeRoot(index: Field | Bool[], node: Field) {
+    let indexBits =
+      index instanceof Field ? index.toBits(this.height - 1) : index;
+
+    assert(indexBits.length === this.height - 1, `Invalid index size`);
+
+    let indexU = Unconstrained.witness(() =>
+      Number(Field.fromBits(indexBits).toBigInt())
+    );
 
     for (let level = 0; level < this.height - 1; level++) {
       // in every iteration, we witness a sibling and hash it to get the parent node
@@ -268,14 +281,9 @@ abstract class IndexedMerkleMapAbstract {
         indexU.set(i >> 1);
         let isLeft = !isRight.toBoolean();
         let nodes = this.data.get().nodes;
-        let sibling = Nodes.getNode(
-          nodes,
-          level,
-          isLeft ? i + 1 : i - 1,
-          false
-        );
-        return sibling;
+        return Nodes.getNode(nodes, level, isLeft ? i + 1 : i - 1, false);
       });
+
       let [right, left] = conditionalSwap(isRight, node, sibling);
       node = Poseidon.hash([left, right]);
     }
@@ -394,12 +402,12 @@ namespace Nodes {
 
 // leaf
 
-type BaseLeaf = {
-  key: Field;
-  value: Field;
-  nextKey: Field;
-  nextIndex: Field;
-};
+class BaseLeaf extends Struct({
+  key: Field,
+  value: Field,
+  nextKey: Field,
+  nextIndex: Field,
+}) {}
 
 class Leaf extends Struct({
   value: Field,
@@ -412,10 +420,18 @@ class Leaf extends Struct({
 
   sortedIndex: Unconstrained.provableWithEmpty(0),
 }) {
-  static hashNode({ key, value, nextKey, nextIndex }: BaseLeaf) {
-    return Poseidon.hash([key, value, nextKey, nextIndex]);
+  /**
+   * Compute a leaf node: the hash of a leaf that becomes part of the Merkle tree.
+   */
+  static hashNode(leaf: From<typeof BaseLeaf>) {
+    // note: we don't have to include the `index` in the leaf hash,
+    // because computing the root already commits to the index
+    return Poseidon.hashPacked(BaseLeaf, BaseLeaf.fromValue(leaf));
   }
 
+  /**
+   * Create a new leaf, given its low node.
+   */
   static nextAfter(low: Leaf, leaf: BaseLeaf): Leaf {
     return {
       key: leaf.key,
