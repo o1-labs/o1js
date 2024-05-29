@@ -139,6 +139,8 @@ const SHA256 = {
     // wordToBytes expects little endian, so we reverse the bytes
     return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
   },
+  compression: sha256Compression,
+  prepareMessageSchedule,
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
