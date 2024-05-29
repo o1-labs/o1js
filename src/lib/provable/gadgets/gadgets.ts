@@ -873,6 +873,13 @@ const Gadgets = {
    * let digest = Gadgets.SHA256.hash(preimage);
    * ```
    *
+   * Similarly, it's possible to use a `partialHash` function for faster SHA256 hashing, the difference is that it hashes all the blocks up to a `blockIndex` outside the snark, and then only run the last few hashing blocks inside the snark.
+   *
+   * ```ts
+   * let preimage = Bytes.fromString("hello world");
+   * let digest = Gadgets.SHA256.partialHash(preimage);
+   * ```
+   * 
    */
   SHA256: SHA256,
 };

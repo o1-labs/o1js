@@ -11,6 +11,7 @@ import { divMod32 } from './arithmetic.js';
 import { bytesToWord, wordToBytes } from './bit-slices.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';
+import { Provable } from '../provable.js';
 
 export { SHA256 };
 
@@ -100,6 +101,41 @@ const SHA256 = {
     }
 
     // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
+    // wordToBytes expects little endian, so we reverse the bytes
+    return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
+  },
+  partialHash(data: FlexibleBytes, blockIndex?: number) {
+    //TODO message block padding can be witnessed for further constraint reduction
+    let messageBlocks = padding(data);
+
+    const K = SHA256Constants.K.map((x) => UInt32.from(x));
+
+    const N = messageBlocks.length;
+
+    const fibonacciNumbers = generateFibonacci(N);
+    const fibonacciIndexer =
+      fibonacciNumbers.at(-1)! < N - 1
+        ? fibonacciNumbers.at(-1)
+        : fibonacciNumbers.at(-2);
+    blockIndex = blockIndex ?? fibonacciIndexer;
+
+    if (N <= 2) return SHA256.hash(data);
+
+    let H = SHA256Constants.H.map((x) => UInt32.from(x));
+    H = Provable.witness(Provable.Array(UInt32, 8), () => {
+      for (let i = 0; i <= blockIndex!; i++) {
+        const W = prepareMessageSchedule(messageBlocks[i]);
+        H = sha256Compression(H, W, K);
+      }
+      return H;
+    });
+
+    for (let i = blockIndex! + 1; i < N; i++) {
+      const W = prepareMessageSchedule(messageBlocks[i]);
+      H = sha256Compression(H, W, K);
+    }
+
+    // the message schedule is converted to big endian bytes
     // wordToBytes expects little endian, so we reverse the bytes
     return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
   },
@@ -311,4 +347,20 @@ function prepareMessageSchedule(M: UInt32[]) {
   }
 
   return W;
+}
+
+/**
+ * Recursively generates Fibonacci numbers up to a given limit.
+ *
+ * @param limit The upper limit for the Fibonacci sequence.
+ * @param fibs The current array of Fibonacci numbers.
+ * @returns An array of Fibonacci numbers up to the given limit.
+ */
+function generateFibonacci(limit: number, fibs: number[] = [0, 1]): number[] {
+  const [a, b] = fibs.slice(-2);
+  const nextNumber = a + b;
+
+  if (nextNumber > limit) return fibs;
+
+  return generateFibonacci(limit, [...fibs, nextNumber]);
 }
