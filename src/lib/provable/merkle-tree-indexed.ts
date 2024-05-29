@@ -20,12 +20,33 @@ export { Leaf };
  * Class factory for an Indexed Merkle Map with a given height.
  *
  * ```ts
- * let map = new (IndexedMerkleMap(3))();
+ * class MerkleMap extends IndexedMerkleMap(3) {}
+ *
+ * let map = new MerkleMap();
  *
  * map.set(2n, 14n);
  * map.set(1n, 13n);
  *
  * let x = map.get(2n).assertSome(); // 14
+ * ```
+ *
+ * Indexed Merkle maps can be used directly in provable code:
+ *
+ * ```ts
+ * ZkProgram({
+ *   methods: {
+ *     test: {
+ *       privateInputs: [MerkleMap.provable, Field],
+ *       method(map: MerkleMap, key: Field) {
+ *         // get the value associated with `key`
+ *         let value = map.get(key).orElse(0n);
+ *
+ *         // increment the value by 1
+ *         map.set(key, value.add(1));
+ *       }
+ *     }
+ *   }
+ * })
  * ```
  */
 function IndexedMerkleMap(height: number) {
@@ -222,7 +243,7 @@ abstract class IndexedMerkleMapAbstract {
    *
    * Returns an option which is `None` if the key doesn't exist. (In that case, the option's value is unconstrained.)
    */
-  get(key: Field | bigint): Option<Field> {
+  get(key: Field | bigint): Option<Field, bigint> {
     key = Field(key);
 
     // prove whether the key exists or not, by showing a valid low node
