@@ -12,28 +12,7 @@ import { provableFromClass } from './types/provable-derivers.js';
 
 export { IndexedMerkleMap };
 
-type IndexedMerkleMapBase = {
-  root: Field;
-
-  // (lower-level) method to insert a new leaf `(key, value)`. proves that `key` doesn't exist yet
-  insert(key: Field, value: Field): void;
-
-  // (lower-level) method to update an existing leaf `(key, value)`. proves that the `key` exists.
-  update(key: Field, value: Field): void;
-
-  // method that performs _either_ an insertion or update, depending on whether the key exists
-  set(key: Field, value: Field): void;
-
-  // method to get a value from a key. returns an option to account for the key not existing
-  // note: this has to prove that the option's `isSome` is correct
-  get(key: Field): Option<Field>; // the optional `Field` here is the value
-
-  // optional / nice-to-have: remove a key and its value from the tree; proves that the key is included.
-  // (implementation: leave a wasted leaf in place but skip it in the linked list encoding)
-  // remove(key: Field): void;
-};
-
-class IndexedMerkleMap implements IndexedMerkleMapBase {
+class IndexedMerkleMap {
   // data defining the provable interface of a tree
   root: Field;
   length: Field; // length of the leaves array
@@ -55,7 +34,6 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   static provable = provableFromClass(IndexedMerkleMap, {
     root: Field,
     length: Field,
-    height: Number,
     data: Unconstrained.provableWithEmpty({
       nodes: [] as (bigint | undefined)[][],
       sortedLeaves: [] as LeafValue[],
@@ -96,6 +74,11 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.data = Unconstrained.from({ nodes, sortedLeaves: [firstLeaf] });
   }
 
+  /**
+   * Insert a new leaf `(key, value)`.
+   *
+   * Proves that `key` doesn't exist yet.
+   */
   insert(key: Field | bigint, value: Field | bigint) {
     key = Field(key);
     value = Field(value);
@@ -127,6 +110,11 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.setLeafUnconstrained(false, leaf);
   }
 
+  /**
+   * Update an existing leaf `(key, value)`.
+   *
+   * Proves that the `key` exists.
+   */
   update(key: Field | bigint, value: Field | bigint) {
     key = Field(key);
     value = Field(value);
@@ -142,6 +130,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.setLeafUnconstrained(true, newSelf);
   }
 
+  /**
+   * Perform _either_ an insertion or update, depending on whether the key exists.
+   */
   set(key: Field | bigint, value: Field | bigint) {
     key = Field(key);
     value = Field(value);
@@ -179,6 +170,11 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     this.setLeafUnconstrained(keyExists, newLeaf);
   }
 
+  /**
+   * Get a value from a key.
+   *
+   * Returns an option which is `None` if the key doesn't exist. (In that case, the option's value is unconstrained.)
+   */
   get(key: Field | bigint): Option<Field> {
     key = Field(key);
 
@@ -200,6 +196,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
   // helper methods
 
+  /**
+   * Helper method to prove inclusion of a leaf in the tree.
+   */
   proveInclusion(leaf: Leaf, message?: string) {
     // TODO: here, we don't actually care about the index,
     // so we could add a mode where `computeRoot()` doesn't prove it
@@ -208,6 +207,9 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
   }
 
+  /**
+   * Helper method to conditionally prove inclusion of a leaf in the tree.
+   */
   proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
     let node = Leaf.hashNode(leaf);
     let root = this.computeRoot(leaf.index, node);
@@ -218,7 +220,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 
   /**
-   * Compute the root given a leaf node and its index.
+   * Helper method to compute the root given a leaf node and its index.
    */
   computeRoot(index: Field, node: Field) {
     let indexU = Unconstrained.witness(() => Number(index.toBigInt()));
