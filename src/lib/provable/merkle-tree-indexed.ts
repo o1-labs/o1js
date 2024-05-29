@@ -58,14 +58,33 @@ class Leaf extends Struct({
     return {
       key: leaf.key,
       value: leaf.value,
-      nextKey: leaf.key,
+      nextKey: leaf.nextKey,
       nextIndex: leaf.nextIndex,
       index: low.nextIndex,
       sortedIndex: Unconstrained.witness(() => low.sortedIndex.get() + 1),
     };
   }
+
+  static toBigints(leaf: Leaf): LeafValue {
+    return {
+      key: leaf.key.toBigInt(),
+      value: leaf.value.toBigInt(),
+      nextKey: leaf.nextKey.toBigInt(),
+      index: leaf.index.toBigInt(),
+      nextIndex: leaf.nextIndex.toBigInt(),
+    };
+  }
 }
-type LeafValue = InferValue<typeof Leaf>;
+
+type LeafValue = {
+  value: bigint;
+
+  key: bigint;
+  nextKey: bigint;
+
+  index: bigint;
+  nextIndex: bigint;
+};
 
 class OptionField extends Option(Field) {}
 class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
@@ -81,7 +100,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     // for every level, an array of hashes
     readonly nodes: (bigint | undefined)[][];
 
-    // leaves sorted by key, with a circular linked list encoded by nextKey
+    // leaves sorted by key, with a linked list encoded by nextKey
     // we always have
     // sortedLeaves[0].key = 0
     // sortedLeaves[n-1].nextKey = Field.ORDER - 1
@@ -98,6 +117,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       height < 53,
       'height must be less than 53, so that we can use 64-bit floats to represent indices.'
     );
+    this.height = height;
 
     let nodes: (bigint | undefined)[][] = Array(height);
     for (let level = 0; level < height; level++) {
@@ -111,9 +131,10 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       nextKey: Field.ORDER - 1n,
       index: 0n,
       nextIndex: 0n, // TODO: ok?
-      sortedIndex: Unconstrained.from(0),
     };
-    let firstNode = Leaf.hashNode(Leaf.fromValue(firstLeaf));
+    let firstNode = Leaf.hashNode(
+      Leaf.fromValue({ ...firstLeaf, sortedIndex: Unconstrained.from(0) })
+    );
     let root = Nodes.setLeafNode(nodes, 0, firstNode.toBigInt());
     this.root = Field(root);
     this.length = Field(1);
@@ -127,8 +148,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this.findLeaf(key).low);
-    this.proveInclusion(low, 'Invalid low node');
-    low.key.assertLessThan(key, 'Invalid low node');
+    this.proveInclusion(low, 'Invalid low node (root)');
+    low.key.assertLessThan(key, 'Invalid low node (key)');
 
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
     key.assertLessThan(low.nextKey, 'Key already exists in the tree');
@@ -146,6 +167,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       nextKey: low.nextKey,
       nextIndex: low.nextIndex,
     });
+
     this.root = this.computeRoot(index, Leaf.hashNode(leaf));
     this.length = this.length.add(1);
     this.setLeafUnconstrained(false, leaf);
@@ -158,7 +180,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
     // prove that the key exists by presenting a leaf that contains it
     let self = Provable.witness(Leaf, () => this.findLeaf(key).self);
     this.proveInclusion(self, 'Key does not exist in the tree');
-    self.key.assertEquals(key, 'Invalid leaf');
+    self.key.assertEquals(key, 'Invalid leaf (key)');
 
     // update leaf
     let newSelf = { ...self, value };
@@ -172,16 +194,16 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
-    this.proveInclusion(low, 'Invalid low node');
-    low.key.assertLessThan(key, 'Invalid low node');
-    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node');
+    this.proveInclusion(low, 'Invalid low node (root)');
+    low.key.assertLessThan(key, 'Invalid low node (key)');
+    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
 
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
 
     // prove inclusion of this leaf if it exists
-    this.proveInclusionIf(keyExists, self, 'Invalid leaf');
-    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf');
+    this.proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
+    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     // the leaf's index depends on whether it exists
     let index = Provable.if(keyExists, low.nextIndex, this.length);
@@ -208,16 +230,16 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
 
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this.findLeaf(key));
-    this.proveInclusion(low, 'Invalid low node');
-    low.key.assertLessThan(key, 'Invalid low node');
-    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node');
+    this.proveInclusion(low, 'Invalid low node (root)');
+    low.key.assertLessThan(key, 'Invalid low node (key)');
+    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
 
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
 
     // prove inclusion of this leaf if it exists
-    this.proveInclusionIf(keyExists, self, 'Invalid leaf');
-    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf');
+    this.proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
+    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     return new OptionField({ isSome: keyExists, value: self.value });
   }
@@ -225,8 +247,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   // helper methods
 
   proveInclusion(leaf: Leaf, message?: string) {
-    // TODO: here, we don't actually care about the index, so we could add a mode where
-    // `computeRoot()` doesn't prove it
+    // TODO: here, we don't actually care about the index,
+    // so we could add a mode where `computeRoot()` doesn't prove it
     let node = Leaf.hashNode(leaf);
     let root = this.computeRoot(leaf.index, node);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
@@ -245,7 +267,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
    * Compute the root given a leaf node and its index.
    */
   computeRoot(index: Field, node: Field) {
-    let indexU = Unconstrained.from(Number(index.toBigInt()));
+    let indexU = Unconstrained.witness(() => Number(index.toBigInt()));
     let indexBits = index.toBits(this.height - 1);
 
     for (let level = 0; level < this.height - 1; level++) {
@@ -253,13 +275,19 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       let isRight = indexBits[level];
       let sibling = Provable.witness(Field, () => {
         let i = indexU.get();
+        indexU.set(i >> 1);
         let isLeft = !isRight.toBoolean();
         let nodes = this.data.get().nodes;
-        return Nodes.getNode(nodes, level, isLeft ? i + 1 : i - 1, false);
+        let sibling = Nodes.getNode(
+          nodes,
+          level,
+          isLeft ? i + 1 : i - 1,
+          false
+        );
+        return sibling;
       });
       let [right, left] = conditionalSwap(isRight, node, sibling);
       node = Poseidon.hash([left, right]);
-      indexU.updateAsProver((i) => i >> 1);
     }
     // now, `node` is the root of the tree
     return node;
@@ -272,23 +300,31 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
    *
    * Assumes to run outside provable code.
    */
-  private findLeaf(key_: Field | bigint) {
+  findLeaf(key_: Field | bigint): InferValue<typeof LeafPair> {
     let key = typeof key_ === 'bigint' ? key_ : key_.toBigInt();
     assert(key >= 0n, 'key must be positive');
     let leaves = this.data.get().sortedLeaves;
 
     // this case is typically invalid, but we want to handle it gracefully here
     // and reject it using comparison constraints
-    if (key === 0n) return { low: Leaf.toValue(Leaf.empty()), self: leaves[0] };
+    if (key === 0n)
+      return {
+        low: Leaf.toValue(Leaf.empty()),
+        self: { ...leaves[0], sortedIndex: Unconstrained.from(0) },
+      };
 
     let { lowIndex, foundValue } = bisectUnique(
       key,
       (i) => leaves[i].key,
       leaves.length
     );
-    let low = foundValue ? leaves[lowIndex - 1] : leaves[lowIndex];
-    let self = foundValue ? leaves[lowIndex] : Leaf.toValue(Leaf.empty());
-    return { foundValue, low, self };
+    let iLow = foundValue ? lowIndex - 1 : lowIndex;
+    let low = { ...leaves[iLow], sortedIndex: Unconstrained.from(iLow) };
+
+    let iSelf = foundValue ? lowIndex : 0;
+    let selfBase = foundValue ? leaves[lowIndex] : Leaf.toBigints(Leaf.empty());
+    let self = { ...selfBase, sortedIndex: Unconstrained.from(iSelf) };
+    return { low, self };
   }
 
   /**
@@ -303,7 +339,7 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
       Nodes.setLeafNode(nodes, i, Leaf.hashNode(leaf).toBigInt());
 
       // update sorted list
-      let leafValue = Leaf.toValue(leaf);
+      let leafValue = Leaf.toBigints(leaf);
       let iSorted = leaf.sortedIndex.get();
 
       if (Bool(leafExists).toBoolean()) {
@@ -322,17 +358,15 @@ namespace Nodes {
    */
   export function setLeafNode(nodes: Nodes, index: number, leaf: bigint) {
     nodes[0][index] = leaf;
-    let isLeft = index % 2 === 0;
     let height = nodes.length;
 
-    for (let level = 1; level < height; level++) {
+    for (let level = 0; level < height - 1; level++) {
+      let isLeft = index % 2 === 0;
       index = Math.floor(index / 2);
 
-      let left = getNode(nodes, level - 1, index * 2, isLeft);
-      let right = getNode(nodes, level - 1, index * 2 + 1, !isLeft);
-      nodes[level][index] = PoseidonBigint.hash([left, right]);
-
-      isLeft = index % 2 === 0;
+      let left = getNode(nodes, level, index * 2, isLeft);
+      let right = getNode(nodes, level, index * 2 + 1, !isLeft);
+      nodes[level + 1][index] = PoseidonBigint.hash([left, right]);
     }
     return getNode(nodes, height - 1, 0, true);
   }
