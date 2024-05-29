@@ -17,6 +17,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/54d6545bf...HEAD)
 
+### Added
+
+- **SHA256 partial hash function** exposed via or `Gadgets.SHA256`.
+- Low-Level SHA256 API exposed `compression` and `prepareMessageSchedule` functions as part of `Gadgets.SHA256`.
+
 ## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf)
 
 ### Added
