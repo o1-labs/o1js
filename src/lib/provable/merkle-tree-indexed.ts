@@ -8,6 +8,7 @@ import { Unconstrained } from './types/unconstrained.js';
 import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { conditionalSwap } from './merkle-tree.js';
+import { provableFromClass } from './types/provable-derivers.js';
 
 export { IndexedMerkleMap };
 
@@ -31,63 +32,6 @@ type IndexedMerkleMapBase = {
   // (implementation: leave a wasted leaf in place but skip it in the linked list encoding)
   // remove(key: Field): void;
 };
-
-type BaseLeaf = {
-  key: Field;
-  value: Field;
-  nextKey: Field;
-  nextIndex: Field;
-};
-
-class Leaf extends Struct({
-  value: Field,
-
-  key: Field,
-  nextKey: Field,
-
-  index: Field,
-  nextIndex: Field,
-
-  sortedIndex: Unconstrained.provableWithEmpty(0),
-}) {
-  static hashNode({ key, value, nextKey, nextIndex }: BaseLeaf) {
-    return Poseidon.hash([key, value, nextKey, nextIndex]);
-  }
-
-  static nextAfter(low: Leaf, leaf: BaseLeaf): Leaf {
-    return {
-      key: leaf.key,
-      value: leaf.value,
-      nextKey: leaf.nextKey,
-      nextIndex: leaf.nextIndex,
-      index: low.nextIndex,
-      sortedIndex: Unconstrained.witness(() => low.sortedIndex.get() + 1),
-    };
-  }
-
-  static toBigints(leaf: Leaf): LeafValue {
-    return {
-      key: leaf.key.toBigInt(),
-      value: leaf.value.toBigInt(),
-      nextKey: leaf.nextKey.toBigInt(),
-      index: leaf.index.toBigInt(),
-      nextIndex: leaf.nextIndex.toBigInt(),
-    };
-  }
-}
-
-type LeafValue = {
-  value: bigint;
-
-  key: bigint;
-  nextKey: bigint;
-
-  index: bigint;
-  nextIndex: bigint;
-};
-
-class OptionField extends Option(Field) {}
-class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
 
 class IndexedMerkleMap implements IndexedMerkleMapBase {
   // data defining the provable interface of a tree
@@ -351,6 +295,8 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
   }
 }
 
+// helpers for updating nodes
+
 type Nodes = (bigint | undefined)[][];
 namespace Nodes {
   /**
@@ -399,6 +345,65 @@ namespace Nodes {
     return emptyNodes[level];
   }
 }
+
+// leaf
+
+type BaseLeaf = {
+  key: Field;
+  value: Field;
+  nextKey: Field;
+  nextIndex: Field;
+};
+
+class Leaf extends Struct({
+  value: Field,
+
+  key: Field,
+  nextKey: Field,
+
+  index: Field,
+  nextIndex: Field,
+
+  sortedIndex: Unconstrained.provableWithEmpty(0),
+}) {
+  static hashNode({ key, value, nextKey, nextIndex }: BaseLeaf) {
+    return Poseidon.hash([key, value, nextKey, nextIndex]);
+  }
+
+  static nextAfter(low: Leaf, leaf: BaseLeaf): Leaf {
+    return {
+      key: leaf.key,
+      value: leaf.value,
+      nextKey: leaf.nextKey,
+      nextIndex: leaf.nextIndex,
+      index: low.nextIndex,
+      sortedIndex: Unconstrained.witness(() => low.sortedIndex.get() + 1),
+    };
+  }
+
+  static toBigints(leaf: Leaf): LeafValue {
+    return {
+      key: leaf.key.toBigInt(),
+      value: leaf.value.toBigInt(),
+      nextKey: leaf.nextKey.toBigInt(),
+      index: leaf.index.toBigInt(),
+      nextIndex: leaf.nextIndex.toBigInt(),
+    };
+  }
+}
+
+type LeafValue = {
+  value: bigint;
+
+  key: bigint;
+  nextKey: bigint;
+
+  index: bigint;
+  nextIndex: bigint;
+};
+
+class OptionField extends Option(Field) {}
+class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
 
 // helper
 
