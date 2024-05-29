@@ -296,15 +296,15 @@ class IndexedMerkleMap implements IndexedMerkleMapBase {
    */
   private setLeafUnconstrained(leafExists: Bool | boolean, leaf: Leaf) {
     Provable.asProver(() => {
+      let { nodes, sortedLeaves } = this.data.get();
+
       // update internal hash nodes
       let i = Number(leaf.index.toBigInt());
-      let nodes = this.data.get().nodes;
       Nodes.setLeafNode(nodes, i, Leaf.hashNode(leaf).toBigInt());
 
       // update sorted list
       let leafValue = Leaf.toValue(leaf);
       let iSorted = leaf.sortedIndex.get();
-      let { sortedLeaves } = this.data.get();
 
       if (Bool(leafExists).toBoolean()) {
         sortedLeaves[iSorted] = leafValue;
