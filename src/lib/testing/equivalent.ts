@@ -284,6 +284,11 @@ function spec<T, S>(spec: {
 }): Spec<T, S>;
 function spec<T>(spec: {
   rng: Random<T>;
+  provable: Provable<T>;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): ProvableSpec<T, T>;
+function spec<T>(spec: {
+  rng: Random<T>;
   assertEqual?: (x: T, y: T, message: string) => void;
 }): Spec<T, T>;
 function spec<T, S>(spec: {
@@ -327,7 +332,7 @@ let bool: ProvableSpec<boolean, Bool> = {
 };
 let boolean: Spec<boolean, boolean> = fromRandom(Random.boolean);
 
-function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
+function fieldWithRng(rng: Random<bigint>): ProvableSpec<bigint, Field> {
   return { ...field, rng };
 }
 
