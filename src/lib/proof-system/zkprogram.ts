@@ -38,6 +38,7 @@ import {
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
+import { Unconstrained } from '../provable/types/unconstrained.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 
