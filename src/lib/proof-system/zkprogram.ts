@@ -16,6 +16,7 @@ import {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
+  ProvableExtended,
   ProvablePureExtended,
   Struct,
 } from '../provable/types/struct.js';
