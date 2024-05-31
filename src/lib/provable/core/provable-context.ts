@@ -11,6 +11,9 @@ import { prettifyStacktrace } from '../../util/errors.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { MlBool } from '../../ml/base.js';
 
+import { Proof, Subclass } from '../../proof-system/zkprogram.js';
+import { Bool } from '../bool.js';
+
 // internal API
 export {
   snarkContext,
