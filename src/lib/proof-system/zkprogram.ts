@@ -80,6 +80,7 @@ export {
   isAsFields,
   Prover,
   dummyBase64Proof,
+  Subclass,
 };
 
 type Undefined = undefined;
