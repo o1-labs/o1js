@@ -20,7 +20,11 @@ import {
   ProvablePureExtended,
   Struct,
 } from '../provable/types/struct.js';
-import { provable, provablePure } from '../provable/types/provable-derivers.js';
+import {
+  provable,
+  provablePure,
+  provableFromClass,
+} from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import {
@@ -1191,6 +1195,13 @@ ZkProgram.Proof = function <
     static publicInputType = program.publicInputType;
     static publicOutputType = program.publicOutputType;
     static tag = () => program;
+    static get provable() {
+      return provableFromClass(ZkProgramProof, {
+        publicInput: program.publicInputType,
+        publicOutput: program.publicOutputType,
+        proof: Unconstrained.provable,
+      });
+    }
   };
 };
 
