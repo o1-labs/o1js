@@ -29,6 +29,15 @@ type CircuitContext = {
   proofs: ProofContext[];
 };
 
+let circuitContext = Context.create<null | CircuitContext>({});
+
+const CircuitContext = {
+  enter(methodName: string) {
+    let context: CircuitContext = { methodName, proofs: [] };
+    let id = circuitContext.enter(context);
+    return { id, context };
+  },
+};
 // internal API
 export {
   snarkContext,
