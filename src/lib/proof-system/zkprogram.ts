@@ -102,7 +102,7 @@ class ProofBase<Input, Output> {
   };
   publicInput: Input;
   publicOutput: Output;
-  proof: Pickles.Proof;
+  proof: Unconstrained<Pickles.Proof>;
   maxProofsVerified: 0 | 1 | 2;
   shouldVerify = Bool(false);
 
@@ -129,7 +129,7 @@ class ProofBase<Input, Output> {
   }) {
     this.publicInput = publicInput;
     this.publicOutput = publicOutput;
-    this.proof = proof; // TODO optionally convert from string?
+    this.proof = Unconstrained.from(proof); // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
   }
 }
