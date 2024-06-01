@@ -40,6 +40,9 @@ const CircuitContext = {
 };
 // internal API
 export {
+  ProofContext,
+  circuitContext,
+  CircuitContext,
   snarkContext,
   SnarkContext,
   asProver,
