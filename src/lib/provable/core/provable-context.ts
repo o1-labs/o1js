@@ -12,7 +12,17 @@ import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { MlBool } from '../../ml/base.js';
 
 import { Proof, Subclass } from '../../proof-system/zkprogram.js';
+import { ProvablePure } from '../types/provable-intf.js';
 import { Bool } from '../bool.js';
+
+type ProofContext = {
+  proofClass: Subclass<typeof Proof>;
+  publicInput: ProvablePure<unknown>;
+  publicOutput: ProvablePure<unknown>;
+  proof: unknown;
+  shouldVerify: Bool;
+  maxProofsVerified: number;
+};
 
 // internal API
 export {
