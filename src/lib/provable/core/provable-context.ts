@@ -23,6 +23,11 @@ type ProofContext = {
   shouldVerify: Bool;
   maxProofsVerified: number;
 };
+// context that observes and collects meta data about circuits and their methods
+type CircuitContext = {
+  methodName: string;
+  proofs: ProofContext[];
+};
 
 // internal API
 export {
