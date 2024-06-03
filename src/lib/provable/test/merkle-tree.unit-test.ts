@@ -111,6 +111,9 @@ console.log(
   initialTree.setLeaf(0n, Leaf.hashNode(IndexedMerkleMap(3)._firstLeaf));
   expect(map.root).toEqual(initialTree.getRoot());
 
+  // the initial value at key 0 is 0
+  expect(map.getOption(0n).assertSome().toBigInt()).toEqual(0n);
+
   map.insert(-1n, 14n); // -1 is the largest possible value
   map.insert(1n, 13n);
 
