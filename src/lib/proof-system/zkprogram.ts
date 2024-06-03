@@ -1216,6 +1216,14 @@ ZkProgram.Proof = function <
         proof: Unconstrained.provable,
       });
     }
+
+    static witness(
+      cb: () => Proof<PublicInput, PublicOutput>
+    ): Proof<PublicInput, PublicOutput> {
+      let p = Provable.witness(this.provable, cb);
+
+      return cb();
+    }
   };
 };
 
