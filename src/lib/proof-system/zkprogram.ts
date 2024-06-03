@@ -31,6 +31,8 @@ import {
   inAnalyze,
   inCompile,
   inProver,
+  CircuitContext,
+  circuitContext,
   snarkContext,
 } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
