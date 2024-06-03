@@ -350,10 +350,10 @@ class IndexedMerkleMapBase {
    * Helper method to prove inclusion of a leaf in the tree.
    */
   _proveInclusion(leaf: Leaf, message?: string) {
-    // TODO: here, we don't actually care about the index,
-    // so we could add a mode where `computeRoot()` doesn't prove it
     let node = Leaf.hashNode(leaf);
-    let { root, path } = this._computeRoot(leaf.index, node);
+    // here, we don't care at which index the leaf is included, so we pass it in as unconstrained
+    let index = Unconstrained.from(leaf.index);
+    let { root, path } = this._computeRoot(node, index);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
 
     return path;
@@ -364,7 +364,9 @@ class IndexedMerkleMapBase {
    */
   _proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
     let node = Leaf.hashNode(leaf);
-    let { root } = this._computeRoot(leaf.index, node);
+    // here, we don't care at which index the leaf is included, so we pass it in as unconstrained
+    let index = Unconstrained.from(leaf.index);
+    let { root } = this._computeRoot(node, index);
     assert(
       condition.implies(root.equals(this.root)),
       message ?? 'Leaf is not included in the tree'
@@ -376,9 +378,9 @@ class IndexedMerkleMapBase {
    *
    * This validates the path against the current root, so that we can use it to insert a new leaf.
    */
-  _proveEmpty(index: Field | Bool[]) {
+  _proveEmpty(index: Bool[]) {
     let node = Field(0n);
-    let { root, path } = this._computeRoot(index, node);
+    let { root, path } = this._computeRoot(node, index);
     root.assertEquals(this.root, 'Leaf is not empty');
 
     return path;
@@ -391,12 +393,12 @@ class IndexedMerkleMapBase {
    */
   _proveInclusionOrEmpty(
     condition: Bool,
-    index: Field | Bool[],
+    index: Bool[],
     leaf: Leaf,
     message?: string
   ) {
     let node = Provable.if(condition, Leaf.hashNode(leaf), Field(0n));
-    let { root, path } = this._computeRoot(index, node);
+    let { root, path } = this._computeRoot(node, index);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
 
     return path;
@@ -407,9 +409,9 @@ class IndexedMerkleMapBase {
    *
    * Returns the new root.
    */
-  _proveUpdate(leaf: Leaf, path: { witness: Field[]; index: Bool[] }) {
+  _proveUpdate(leaf: Leaf, path: { index: Bool[]; witness: Field[] }) {
     let node = Leaf.hashNode(leaf);
-    let { root } = this._computeRoot(path.index, node, path.witness);
+    let { root } = this._computeRoot(node, path.index, path.witness);
     return root;
   }
 
@@ -418,9 +420,18 @@ class IndexedMerkleMapBase {
    *
    * The index can be given as a `Field` or as an array of bits.
    */
-  _computeRoot(index: Field | Bool[], node: Field, witness?: Field[]) {
+  _computeRoot(
+    node: Field,
+    index: Unconstrained<Field> | Bool[],
+    witness?: Field[]
+  ) {
+    // if the index was passed in as unconstrained, we witness its bits here
     let indexBits =
-      index instanceof Field ? index.toBits(this.height - 1) : index;
+      index instanceof Unconstrained
+        ? Provable.witness(Provable.Array(Bool, this.height - 1), () =>
+            index.get().toBits(this.height - 1)
+          )
+        : index;
 
     // if the witness was not passed in, we create it here
     let witness_ =
