@@ -1197,6 +1197,18 @@ ZkProgram.Proof = function <
     static publicInputType = program.publicInputType;
     static publicOutputType = program.publicOutputType;
     static tag = () => program;
+
+    static declare(proof: Proof<PublicInput, PublicOutput>) {
+      if (inAnalyze()) {
+        let ctx = circuitContext.get()!;
+        ctx.proofs.push({
+          proof: this,
+          input: proof.publicInput,
+          output: proof.publicOutput,
+        });
+      }
+    }
+
     static get provable() {
       return provableFromClass(ZkProgramProof, {
         publicInput: program.publicInputType,
