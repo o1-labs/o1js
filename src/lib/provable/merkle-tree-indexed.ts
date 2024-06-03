@@ -122,7 +122,7 @@ class IndexedMerkleMapBase {
 
     let firstLeaf = IndexedMerkleMapBase._firstLeaf;
     let firstNode = Leaf.hashNode(firstLeaf).toBigInt();
-    let root = Nodes.setLeafNode(nodes, 0, firstNode);
+    let root = Nodes.setLeaf(nodes, 0, firstNode);
     this.root = Field(root);
     this.length = Field(1);
 
@@ -438,7 +438,7 @@ class IndexedMerkleMapBase {
 
       // update internal hash nodes
       let i = Number(leaf.index.toBigInt());
-      Nodes.setLeafNode(nodes, i, Leaf.hashNode(leaf).toBigInt());
+      Nodes.setLeaf(nodes, i, Leaf.hashNode(leaf).toBigInt());
 
       // update sorted list
       let leafValue = Leaf.toBigints(leaf);
@@ -460,7 +460,7 @@ namespace Nodes {
   /**
    * Sets the leaf node at the given index, updates all parent nodes and returns the new root.
    */
-  export function setLeafNode(nodes: Nodes, index: number, leaf: bigint) {
+  export function setLeaf(nodes: Nodes, index: number, leaf: bigint) {
     nodes[0][index] = leaf;
     let height = nodes.length;
 
@@ -580,8 +580,8 @@ class OptionField extends Option(Field) {}
  * `getValue()` returns the value at the given index.
  *
  * We return
- * `lowIndex` := max { i in [0, length) | getValue(i) <= target }
- * `foundValue` := whether `getValue(lowIndex) == target`
+ * - `lowIndex := max { i in [0, length) | getValue(i) <= target }`
+ * - `foundValue` := whether `getValue(lowIndex) == target`
  */
 function bisectUnique(
   target: bigint,
@@ -597,13 +597,10 @@ function bisectUnique(
   if (getValue(iHigh) < target) return { lowIndex: iHigh, foundValue: false };
 
   // invariant: 0 <= iLow <= lowIndex <= iHigh < length
-  // since we are either returning or reducing (iHigh - iLow), we'll eventually terminate correctly
-  while (true) {
-    if (iHigh === iLow) {
-      return { lowIndex: iLow, foundValue: getValue(iLow) === target };
-    }
-    // either iLow + 1 = iHigh = iMid, or iLow < iMid < iHigh
-    // in both cases, the range gets strictly smaller
+  // since we are decreasing (iHigh - iLow) in every iteration, we'll terminate
+  while (iHigh !== iLow) {
+    // we have iLow < iMid <= iHigh
+    // in both branches, the range gets strictly smaller
     let iMid = Math.ceil((iLow + iHigh) / 2);
     if (getValue(iMid) <= target) {
       // iMid is in the candidate set, and strictly larger than iLow
@@ -615,4 +612,6 @@ function bisectUnique(
       iHigh = iMid - 1;
     }
   }
+
+  return { lowIndex: iLow, foundValue: getValue(iLow) === target };
 }
