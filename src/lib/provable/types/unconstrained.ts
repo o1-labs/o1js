@@ -86,7 +86,8 @@ and Provable.asProver() blocks, which execute outside the proof.
    * let xWrapped = Unconstrained.witness(() => Provable.toConstant(type, x));
    * ```
    */
-  static from<T>(value: T) {
+  static from<T>(value: T | Unconstrained<T>) {
+    if (value instanceof Unconstrained) return value;
     return new Unconstrained(true, value);
   }
 
