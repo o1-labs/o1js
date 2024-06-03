@@ -1263,14 +1263,23 @@ ZkProgram.Proof = function <
     static tag = () => program;
 
     static declare(proof: Proof<PublicInput, PublicOutput>) {
-      if (inAnalyze()) {
-        let ctx = circuitContext.get()!;
-        ctx.proofs.push({
-          proof: this,
-          input: proof.publicInput,
-          output: proof.publicOutput,
-        });
-      }
+      let ctx = circuitContext.get()!;
+      console.log('declaring', {
+        proof: proof.proof,
+        publicInput: proof.publicInput,
+        publicOutput: proof.publicOutput,
+        maxProofsVerified: proof.maxProofsVerified,
+        proofClass: this,
+        shouldVerify: proof.shouldVerify,
+      });
+      ctx.proofs.push({
+        proof: proof.proof,
+        publicInput: proof.publicInput,
+        publicOutput: proof.publicOutput,
+        maxProofsVerified: proof.maxProofsVerified,
+        proofClass: this,
+        shouldVerify: proof.shouldVerify,
+      });
     }
 
     static get provable() {
@@ -1278,7 +1287,7 @@ ZkProgram.Proof = function <
         publicInput: program.publicInputType,
         publicOutput: program.publicOutputType,
         proof: Unconstrained.provable,
-      });
+      }) satisfies ProvableExtended<ZkProgramProof>;
     }
 
     static witness(
