@@ -58,11 +58,6 @@ function IndexedMerkleMap(height: number): typeof IndexedMerkleMapBase {
   );
 
   return class IndexedMerkleMap extends IndexedMerkleMapBase {
-    constructor() {
-      // we can't access the abstract `height` property in the base constructor
-      super();
-    }
-
     get height() {
       return height;
     }
@@ -76,7 +71,7 @@ const provableBase = {
   length: Field,
   data: Unconstrained.provableWithEmpty({
     nodes: [] as (bigint | undefined)[][],
-    sortedLeaves: [] as LeafValue[],
+    sortedLeaves: [] as StoredLeaf[],
   }),
 };
 
@@ -86,11 +81,11 @@ class IndexedMerkleMapBase {
   length: Field; // length of the leaves array
 
   // static data defining constraints
-  get height() {
-    return 0;
+  get height(): number {
+    throw Error('Height must be defined in a subclass');
   }
 
-  // the raw data stored in the tree, plus helper structures
+  // the raw data stored in the tree
   readonly data: Unconstrained<{
     // for every level, an array of hashes
     readonly nodes: (bigint | undefined)[][];
@@ -100,7 +95,7 @@ class IndexedMerkleMapBase {
     // sortedLeaves[0].key = 0
     // sortedLeaves[n-1].nextKey = Field.ORDER - 1
     // for i=0,...n-2, sortedLeaves[i].nextKey = sortedLeaves[i+1].key
-    readonly sortedLeaves: LeafValue[];
+    readonly sortedLeaves: StoredLeaf[];
   }>;
 
   // we'd like to do `abstract static provable` here but that's not supported
@@ -110,7 +105,7 @@ class IndexedMerkleMapBase {
   > = undefined as any;
 
   /**
-   * Creates a new, empty Indexed Merkle Map, given its height.
+   * Creates a new, empty Indexed Merkle Map.
    */
   constructor() {
     let height = this.height;
@@ -478,7 +473,7 @@ class IndexedMerkleMapBase {
     if (key === 0n)
       return {
         low: Leaf.toValue(Leaf.empty()),
-        self: Leaf.fromBigints(leaves[0], 0),
+        self: Leaf.fromStored(leaves[0], 0),
       };
 
     let { lowIndex, foundValue } = bisectUnique(
@@ -487,11 +482,11 @@ class IndexedMerkleMapBase {
       leaves.length
     );
     let iLow = foundValue ? lowIndex - 1 : lowIndex;
-    let low = Leaf.fromBigints(leaves[iLow], iLow);
+    let low = Leaf.fromStored(leaves[iLow], iLow);
 
     let iSelf = foundValue ? lowIndex : 0;
-    let selfBase = foundValue ? leaves[lowIndex] : Leaf.toBigints(Leaf.empty());
-    let self = Leaf.fromBigints(selfBase, iSelf);
+    let selfBase = foundValue ? leaves[lowIndex] : Leaf.toStored(Leaf.empty());
+    let self = Leaf.fromStored(selfBase, iSelf);
     return { low, self };
   }
 
@@ -507,7 +502,7 @@ class IndexedMerkleMapBase {
       Nodes.setLeaf(nodes, i, Leaf.hashNode(leaf).toBigInt());
 
       // update sorted list
-      let leafValue = Leaf.toBigints(leaf);
+      let leafValue = Leaf.toStored(leaf);
       let iSorted = leaf.sortedIndex.get();
 
       if (Bool(leafExists).toBoolean()) {
@@ -584,6 +579,7 @@ class Leaf extends Struct({
   key: Field,
   nextKey: Field,
 
+  // auxiliary data that tells us where the leaf is stored
   index: Unconstrained.provableWithEmpty(0),
   sortedIndex: Unconstrained.provableWithEmpty(0),
 }) {
@@ -591,7 +587,7 @@ class Leaf extends Struct({
    * Compute a leaf node: the hash of a leaf that becomes part of the Merkle tree.
    */
   static hashNode(leaf: From<typeof BaseLeaf>) {
-    // note: we don't have to include the `index` in the leaf hash,
+    // note: we don't have to include the index in the leaf hash,
     // because computing the root already commits to the index
     return Poseidon.hashPacked(BaseLeaf, BaseLeaf.fromValue(leaf));
   }
@@ -609,7 +605,9 @@ class Leaf extends Struct({
     };
   }
 
-  static toBigints(leaf: Leaf): LeafValue {
+  // convert to/from internally stored format
+
+  static toStored(leaf: Leaf): StoredLeaf {
     return {
       key: leaf.key.toBigInt(),
       value: leaf.value.toBigInt(),
@@ -618,7 +616,7 @@ class Leaf extends Struct({
     };
   }
 
-  static fromBigints(leaf: LeafValue, sortedIndex: number) {
+  static fromStored(leaf: StoredLeaf, sortedIndex: number) {
     return {
       ...leaf,
       index: Unconstrained.from(leaf.index),
@@ -627,7 +625,7 @@ class Leaf extends Struct({
   }
 }
 
-type LeafValue = {
+type StoredLeaf = {
   value: bigint;
   key: bigint;
   nextKey: bigint;
