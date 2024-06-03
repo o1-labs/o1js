@@ -792,6 +792,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  witnessedProofs,
 }: {
   publicInputType: ProvablePure<any>;
   publicOutputType: ProvablePure<any>;
@@ -801,6 +802,11 @@ async function compileProgram({
   proofSystemTag: { name: string };
   cache: Cache;
   forceRecompile: boolean;
+  witnessedProofs: {
+    proof: Subclass<typeof Proof>;
+    input: ProvablePure<unknown>;
+    output: ProvablePure<unknown>;
+  }[][];
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   await initializeBindings();
@@ -816,7 +822,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       methods[i],
       proofSystemTag,
       methodEntry,
-      gates[i]
+      gates[i],
+      witnessedProofs[i]
     )
   );
   let maxProofs = getMaxProofsVerified(methodIntfs);
