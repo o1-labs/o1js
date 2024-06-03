@@ -153,7 +153,7 @@ class IndexedMerkleMapBase {
 
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
-    this._proveInclusion(low, 'Invalid low node (root)');
+    let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
 
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
@@ -163,10 +163,10 @@ class IndexedMerkleMapBase {
 
     // update low node
     let newLow = { ...low, nextKey: key, nextIndex: index };
-    this.root = this._computeRoot(newLow.index, Leaf.hashNode(newLow));
+    this.root = this._proveUpdate(newLow, lowPath);
     this._setLeafUnconstrained(true, newLow);
 
-    // create and append new leaf
+    // create new leaf to append
     let leaf = Leaf.nextAfter(newLow, {
       key,
       value,
@@ -174,7 +174,9 @@ class IndexedMerkleMapBase {
       nextIndex: low.nextIndex,
     });
 
-    this.root = this._computeRoot(indexBits, Leaf.hashNode(leaf));
+    // prove empty slot in the tree, and insert our leaf
+    let path = this._proveEmpty(indexBits);
+    this.root = this._proveUpdate(leaf, path);
     this.length = this.length.add(1);
     this._setLeafUnconstrained(false, leaf);
   }
@@ -190,14 +192,14 @@ class IndexedMerkleMapBase {
 
     // prove that the key exists by presenting a leaf that contains it
     let self = Provable.witness(Leaf, () => this._findLeaf(key).self);
-    this._proveInclusion(self, 'Key does not exist in the tree');
+    let path = this._proveInclusion(self, 'Key does not exist in the tree');
     self.key.assertEquals(key, 'Invalid leaf (key)');
 
     // at this point, we know that we have a valid update; so we can mutate internal data
 
     // update leaf
     let newSelf = { ...self, value };
-    this.root = this._computeRoot(self.index, Leaf.hashNode(newSelf));
+    this.root = this._proveUpdate(newSelf, path);
     this._setLeafUnconstrained(true, newSelf);
   }
 
@@ -215,7 +217,7 @@ class IndexedMerkleMapBase {
 
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
-    this._proveInclusion(low, 'Invalid low node (root)');
+    let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
     low.key.assertLessThan(key, 'Invalid low node (key)');
     key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
 
@@ -226,16 +228,21 @@ class IndexedMerkleMapBase {
     let index = Provable.if(keyExists, low.nextIndex, this.length);
     let indexBits = index.toBits(this.height - 1);
 
-    // prove inclusion of this leaf if it exists
-    this._proveInclusionIf(keyExists, self, 'Invalid leaf (root)');
-    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
-
     // at this point, we know that we have a valid update or insertion; so we can mutate internal data
 
     // update low node, or leave it as is
     let newLow = { ...low, nextKey: key, nextIndex: index };
-    this.root = this._computeRoot(low.index, Leaf.hashNode(newLow));
+    this.root = this._proveUpdate(newLow, lowPath);
     this._setLeafUnconstrained(true, newLow);
+
+    // prove inclusion of this leaf if it exists
+    let path = this._proveInclusionOrEmpty(
+      keyExists,
+      indexBits,
+      self,
+      'Invalid leaf (root)'
+    );
+    assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     // update leaf, or append a new one
     let newLeaf = Leaf.nextAfter(newLow, {
@@ -244,7 +251,7 @@ class IndexedMerkleMapBase {
       nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
       nextIndex: Provable.if(keyExists, self.nextIndex, low.nextIndex),
     });
-    this.root = this._computeRoot(indexBits, Leaf.hashNode(newLeaf));
+    this.root = this._proveUpdate(newLeaf, path);
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
     this._setLeafUnconstrained(keyExists, newLeaf);
   }
@@ -346,8 +353,10 @@ class IndexedMerkleMapBase {
     // TODO: here, we don't actually care about the index,
     // so we could add a mode where `computeRoot()` doesn't prove it
     let node = Leaf.hashNode(leaf);
-    let root = this._computeRoot(leaf.index, node);
+    let { root, path } = this._computeRoot(leaf.index, node);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+
+    return path;
   }
 
   /**
@@ -355,7 +364,7 @@ class IndexedMerkleMapBase {
    */
   _proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
     let node = Leaf.hashNode(leaf);
-    let root = this._computeRoot(leaf.index, node);
+    let { root } = this._computeRoot(leaf.index, node);
     assert(
       condition.implies(root.equals(this.root)),
       message ?? 'Leaf is not included in the tree'
@@ -363,36 +372,86 @@ class IndexedMerkleMapBase {
   }
 
   /**
+   * Helper method to prove inclusion of an empty leaf in the tree.
+   *
+   * This validates the path against the current root, so that we can use it to insert a new leaf.
+   */
+  _proveEmpty(index: Field | Bool[]) {
+    let node = Field(0n);
+    let { root, path } = this._computeRoot(index, node);
+    root.assertEquals(this.root, 'Leaf is not empty');
+
+    return path;
+  }
+
+  /**
+   * Helper method to conditionally prove inclusion of a leaf in the tree.
+   *
+   * If the condition is false, we prove that the tree contains an empty leaf instead.
+   */
+  _proveInclusionOrEmpty(
+    condition: Bool,
+    index: Field | Bool[],
+    leaf: Leaf,
+    message?: string
+  ) {
+    let node = Provable.if(condition, Leaf.hashNode(leaf), Field(0n));
+    let { root, path } = this._computeRoot(index, node);
+    root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+
+    return path;
+  }
+
+  /**
+   * Helper method to update the root against a previously validated path.
+   *
+   * Returns the new root.
+   */
+  _proveUpdate(leaf: Leaf, path: { witness: Field[]; index: Bool[] }) {
+    let node = Leaf.hashNode(leaf);
+    let { root } = this._computeRoot(path.index, node, path.witness);
+    return root;
+  }
+
+  /**
    * Helper method to compute the root given a leaf node and its index.
    *
    * The index can be given as a `Field` or as an array of bits.
    */
-  _computeRoot(index: Field | Bool[], node: Field) {
+  _computeRoot(index: Field | Bool[], node: Field, witness?: Field[]) {
     let indexBits =
       index instanceof Field ? index.toBits(this.height - 1) : index;
 
-    assert(indexBits.length === this.height - 1, `Invalid index size`);
+    // if the witness was not passed in, we create it here
+    let witness_ =
+      witness ??
+      Provable.witnessFields(this.height - 1, () => {
+        let witness: bigint[] = [];
+        let index = Number(Field.fromBits(indexBits));
+        let { nodes } = this.data.get();
 
-    let indexU = Unconstrained.witness(() =>
-      Number(Field.fromBits(indexBits).toBigInt())
-    );
+        for (let level = 0; level < this.height - 1; level++) {
+          let i = index % 2 === 0 ? index + 1 : index - 1;
+          let sibling = Nodes.getNode(nodes, level, i, false);
+          witness.push(sibling);
+          index >>= 1;
+        }
+
+        return witness;
+      });
+
+    assert(indexBits.length === this.height - 1, 'Invalid index size');
+    assert(witness_.length === this.height - 1, 'Invalid witness size');
 
     for (let level = 0; level < this.height - 1; level++) {
-      // in every iteration, we witness a sibling and hash it to get the parent node
       let isRight = indexBits[level];
-      let sibling = Provable.witness(Field, () => {
-        let i = indexU.get();
-        indexU.set(i >> 1);
-        let isLeft = !isRight.toBoolean();
-        let nodes = this.data.get().nodes;
-        return Nodes.getNode(nodes, level, isLeft ? i + 1 : i - 1, false);
-      });
+      let sibling = witness_[level];
 
       let [right, left] = conditionalSwap(isRight, node, sibling);
       node = Poseidon.hash([left, right]);
     }
     // now, `node` is the root of the tree
-    return node;
+    return { root: node, path: { witness: witness_, index: indexBits } };
   }
 
   /**
@@ -479,6 +538,7 @@ namespace Nodes {
     nodes: Nodes,
     level: number,
     index: number,
+    // whether the node is required to be non-empty
     nonEmpty: boolean
   ) {
     let node = nodes[level]?.[index];
