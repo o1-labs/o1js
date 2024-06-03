@@ -49,6 +49,10 @@ export { Leaf };
  *   }
  * })
  * ```
+ *
+ * Initially, every `IndexedMerkleMap` is populated by a single key-value pair: `(0, 0)`. The value for key `0` can be updated like any other.
+ * When keys and values are hash outputs, `(0, 0)` can serve as a convenient way to represent a dummy update to the tree, since 0 is not
+ * effciently computable as a hash image, and this update doesn't affect the Merkle root.
  */
 function IndexedMerkleMap(height: number): typeof IndexedMerkleMapBase {
   assert(height > 0, 'height must be positive');
