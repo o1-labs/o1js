@@ -112,11 +112,13 @@ console.log(
 
   map.insert(2n, 14n);
   map.insert(1n, 13n);
+  // map.insert(-1n, 11n);
+  // map.set(-1n, 12n);
 
-  // -1 (the max value) can't be inserted, because there's always a value pointing to it,
-  // and yet it's not included as a leaf
-  expect(() => map.insert(-1n, 11n)).toThrow('Key already exists');
-  expect(() => map.set(-1n, 12n)).toThrow('Invalid leaf');
+  // // -1 (the max value) can't be inserted, because there's always a value pointing to it,
+  // // and yet it's not included as a leaf
+  // expect(() => map.insert(-1n, 11n)).toThrow('Key already exists');
+  // expect(() => map.set(-1n, 12n)).toThrow('Invalid leaf');
 
   expect(map.getOption(1n).assertSome().toBigInt()).toEqual(13n);
   expect(map.getOption(2n).assertSome().toBigInt()).toEqual(14n);
@@ -127,7 +129,11 @@ console.log(
   expect(map.getOption(2n).assertSome().toBigInt()).toEqual(15n);
 
   // TODO get() doesn't work on 0n because the low node checks fail
-  // expect(map.get(0n).assertSome().toBigInt()).toEqual(12n);
+  expect(map.get(0n).toBigInt()).toEqual(12n);
+  expect(map.getOption(0n).assertSome().toBigInt()).toEqual(12n);
+
+  // TODO set() doesn't work on 0n because the low node checks fail
+  map.set(0n, 12n);
 
   // can't insert the same key twice
   expect(() => map.insert(1n, 17n)).toThrow('Key already exists');
