@@ -528,7 +528,9 @@ class IndexedMerkleMapBase {
       let iSorted = leaf.sortedIndex.get();
 
       if (Bool(leafExists).toBoolean()) {
-        sortedLeaves[iSorted] = leafValue;
+        // for key=0, the sorted index overflows the length because we compute it as low.sortedIndex + 1
+        // in that case, it should wrap back to 0
+        sortedLeaves[iSorted % sortedLeaves.length] = leafValue;
       } else {
         sortedLeaves.splice(iSorted, 0, leafValue);
       }
@@ -714,7 +716,6 @@ function assertInRangeStrict(
   high: Field,
   message?: string
 ) {
-  Provable.log('assertInRangeStrict', { low, x, high });
   // exclude x=0
   x.assertNotEquals(0n, message ?? '0 is not in any range');
 
@@ -740,8 +741,6 @@ function assertInRangeStrict(
  * - note: 0 in (n, 0] succeeds for any n!
  */
 function assertInRange(low: Field, x: Field, high: Field, message?: string) {
-  Provable.log('assertInRange', { low, x, high });
-
   // for low < x, we need to handle the x=0 case separately
   let xIsZero = x.equals(0n);
   let lowSafe = Provable.witness(Field, () => (xIsZero.toBoolean() ? 0n : low));

@@ -102,6 +102,7 @@ console.log(
 // some manual tests for IndexedMerkleMap
 {
   let map = new (IndexedMerkleMap(3))();
+  const minus1 = Field.ORDER - 1n;
 
   // there's 1 element in the map at the beginning
   // check initial root against `MerkleTree` implementation
@@ -110,30 +111,19 @@ console.log(
   initialTree.setLeaf(0n, Leaf.hashNode(IndexedMerkleMap(3)._firstLeaf));
   expect(map.root).toEqual(initialTree.getRoot());
 
-  map.insert(2n, 14n);
+  map.insert(-1n, 14n); // -1 is the largest possible value
   map.insert(1n, 13n);
-  // map.insert(-1n, 11n);
-  // map.set(-1n, 12n);
-
-  // // -1 (the max value) can't be inserted, because there's always a value pointing to it,
-  // // and yet it's not included as a leaf
-  // expect(() => map.insert(-1n, 11n)).toThrow('Key already exists');
-  // expect(() => map.set(-1n, 12n)).toThrow('Invalid leaf');
 
   expect(map.getOption(1n).assertSome().toBigInt()).toEqual(13n);
-  expect(map.getOption(2n).assertSome().toBigInt()).toEqual(14n);
+  expect(map.getOption(-1n).assertSome().toBigInt()).toEqual(14n);
   expect(map.getOption(3n).isSome.toBoolean()).toEqual(false);
 
-  map.update(2n, 15n);
+  map.update(-1n, 15n);
   map.update(0n, 12n);
-  expect(map.getOption(2n).assertSome().toBigInt()).toEqual(15n);
+  expect(map.getOption(-1n).assertSome().toBigInt()).toEqual(15n);
 
-  // TODO get() doesn't work on 0n because the low node checks fail
   expect(map.get(0n).toBigInt()).toEqual(12n);
   expect(map.getOption(0n).assertSome().toBigInt()).toEqual(12n);
-
-  // TODO set() doesn't work on 0n because the low node checks fail
-  map.set(0n, 12n);
 
   // can't insert the same key twice
   expect(() => map.insert(1n, 17n)).toThrow('Key already exists');
@@ -143,6 +133,7 @@ console.log(
 
   map.set(4n, 16n);
   map.set(1n, 17n);
+  map.set(0n, 12n);
   expect(map.get(4n).toBigInt()).toEqual(16n);
   expect(map.getOption(1n).assertSome().toBigInt()).toEqual(17n);
   expect(map.getOption(5n).isSome.toBoolean()).toEqual(false);
@@ -155,7 +146,7 @@ console.log(
   expect(map.length.toBigInt()).toEqual(4n);
 
   // check that internal nodes exactly match `MerkleTree` implementation
-  let keys = [0n, 2n, 1n, 4n]; // insertion order
+  let keys = [0n, minus1, 1n, 4n]; // insertion order
   let leafNodes = keys.map((key) => Leaf.hashNode(map._findLeaf(key).self));
   let tree = new MerkleTree(3);
   tree.fill(leafNodes);
@@ -173,8 +164,8 @@ console.log(
   let sorted = [
     { key: 0n, value: 12n, index: 0 },
     { key: 1n, value: 17n, index: 2 },
-    { key: 2n, value: 15n, index: 1 },
     { key: 4n, value: 16n, index: 3 },
+    { key: minus1, value: 15n, index: 1 },
   ];
   let sortedLeaves = map.data.get().sortedLeaves;
 
@@ -182,7 +173,7 @@ console.log(
     expect(sortedLeaves[i]).toEqual({
       key: sorted[i].key,
       value: sorted[i].value,
-      nextKey: sorted[i + 1]?.key ?? Field.ORDER - 1n,
+      nextKey: sorted[i + 1]?.key ?? 0n,
       index: sorted[i].index,
     });
   }
