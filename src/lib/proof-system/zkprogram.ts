@@ -521,6 +521,7 @@ function ZkProgram<
   } = {}) {
     let methodsMeta = await analyzeMethods();
     let gates = methodKeys.map((k) => methodsMeta[k].gates);
+    let witnessedProofs = methodKeys.map((k) => methodsMeta[k].proofData);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
@@ -531,6 +532,7 @@ function ZkProgram<
       cache,
       forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
+      witnessedProofs,
     });
     compileOutput = { provers, verify };
     return { verificationKey };
