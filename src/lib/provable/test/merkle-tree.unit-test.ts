@@ -178,7 +178,6 @@ console.log(
       value: sorted[i].value,
       nextKey: sorted[i + 1]?.key ?? Field.ORDER - 1n,
       index: sorted[i].index,
-      nextIndex: sorted[i + 1]?.index ?? 0n,
     });
   }
 }

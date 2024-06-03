@@ -135,7 +135,6 @@ class IndexedMerkleMapBase {
     // maximum, which is always greater than any key that is a hash
     nextKey: Field.ORDER - 1n,
     index: 0n,
-    nextIndex: 0n, // TODO: ok?
   };
 
   /**
@@ -162,7 +161,7 @@ class IndexedMerkleMapBase {
     // at this point, we know that we have a valid insertion; so we can mutate internal data
 
     // update low node
-    let newLow = { ...low, nextKey: key, nextIndex: index };
+    let newLow = { ...low, nextKey: key };
     this.root = this._proveUpdate(newLow, lowPath);
     this._setLeafUnconstrained(true, newLow);
 
@@ -170,8 +169,8 @@ class IndexedMerkleMapBase {
     let leaf = Leaf.nextAfter(newLow, {
       key,
       value,
+      index,
       nextKey: low.nextKey,
-      nextIndex: low.nextIndex,
     });
 
     // prove empty slot in the tree, and insert our leaf
@@ -225,13 +224,13 @@ class IndexedMerkleMapBase {
     let keyExists = low.nextKey.equals(key);
 
     // the leaf's index depends on whether it exists
-    let index = Provable.if(keyExists, low.nextIndex, this.length);
+    let index = Provable.if(keyExists, self.index, this.length);
     let indexBits = index.toBits(this.height - 1);
 
     // at this point, we know that we have a valid update or insertion; so we can mutate internal data
 
     // update low node, or leave it as is
-    let newLow = { ...low, nextKey: key, nextIndex: index };
+    let newLow = { ...low, nextKey: key };
     this.root = this._proveUpdate(newLow, lowPath);
     this._setLeafUnconstrained(true, newLow);
 
@@ -248,8 +247,8 @@ class IndexedMerkleMapBase {
     let newLeaf = Leaf.nextAfter(newLow, {
       key,
       value,
+      index,
       nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
-      nextIndex: Provable.if(keyExists, self.nextIndex, low.nextIndex),
     });
     this.root = this._proveUpdate(newLeaf, path);
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
@@ -394,7 +393,7 @@ class IndexedMerkleMapBase {
   _proveInclusionOrEmpty(
     condition: Bool,
     index: Bool[],
-    leaf: Leaf,
+    leaf: BaseLeaf,
     message?: string
   ) {
     let node = Provable.if(condition, Leaf.hashNode(leaf), Field(0n));
@@ -409,7 +408,7 @@ class IndexedMerkleMapBase {
    *
    * Returns the new root.
    */
-  _proveUpdate(leaf: Leaf, path: { index: Bool[]; witness: Field[] }) {
+  _proveUpdate(leaf: BaseLeaf, path: { index: Bool[]; witness: Field[] }) {
     let node = Leaf.hashNode(leaf);
     let { root } = this._computeRoot(node, path.index, path.witness);
     return root;
@@ -581,7 +580,6 @@ class BaseLeaf extends Struct({
   key: Field,
   value: Field,
   nextKey: Field,
-  nextIndex: Field,
 }) {}
 
 class Leaf extends Struct({
@@ -591,8 +589,6 @@ class Leaf extends Struct({
   nextKey: Field,
 
   index: Field,
-  nextIndex: Field,
-
   sortedIndex: Unconstrained.provableWithEmpty(0),
 }) {
   /**
@@ -607,13 +603,12 @@ class Leaf extends Struct({
   /**
    * Create a new leaf, given its low node.
    */
-  static nextAfter(low: Leaf, leaf: BaseLeaf): Leaf {
+  static nextAfter(low: Leaf, leaf: BaseLeaf & { index: Field }): Leaf {
     return {
       key: leaf.key,
       value: leaf.value,
       nextKey: leaf.nextKey,
-      nextIndex: leaf.nextIndex,
-      index: low.nextIndex,
+      index: leaf.index,
       sortedIndex: Unconstrained.witness(() => low.sortedIndex.get() + 1),
     };
   }
@@ -624,19 +619,15 @@ class Leaf extends Struct({
       value: leaf.value.toBigInt(),
       nextKey: leaf.nextKey.toBigInt(),
       index: leaf.index.toBigInt(),
-      nextIndex: leaf.nextIndex.toBigInt(),
     };
   }
 }
 
 type LeafValue = {
   value: bigint;
-
   key: bigint;
   nextKey: bigint;
-
   index: bigint;
-  nextIndex: bigint;
 };
 
 class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
