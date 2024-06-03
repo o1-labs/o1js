@@ -34,6 +34,7 @@ import {
   CircuitContext,
   circuitContext,
   snarkContext,
+  ProofContext,
 } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
 import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
@@ -515,13 +516,14 @@ function ZkProgram<
       }
     | undefined;
 
+  let witnessedProofs: ProofContext[][] = [];
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
   } = {}) {
     let methodsMeta = await analyzeMethods();
     let gates = methodKeys.map((k) => methodsMeta[k].gates);
-    let witnessedProofs = methodKeys.map((k) => methodsMeta[k].proofData);
+    witnessedProofs = methodKeys.map((k) => methodsMeta[k].proofData);
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
@@ -554,8 +556,9 @@ function ZkProgram<
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
+
       let previousProofs = MlArray.to(
-        getPreviousProofsForProver(args, methodIntfs[i])
+        getPreviousProofsForProver(args, methodIntfs[i], witnessedProofs[i])
       );
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
@@ -744,7 +747,12 @@ function isDynamicProof(
 
 function getPreviousProofsForProver(
   methodArgs: any[],
-  { allArgs }: MethodInterface
+  { allArgs }: MethodInterface,
+  witnessedProofs: {
+    proof: Subclass<typeof Proof>;
+    input: ProvablePure<unknown>;
+    output: ProvablePure<unknown>;
+  }[]
 ) {
   let previousProofs: Pickles.Proof[] = [];
   for (let i = 0; i < allArgs.length; i++) {
@@ -753,6 +761,11 @@ function getPreviousProofsForProver(
       previousProofs[arg.index] = (methodArgs[i] as Proof<any, any>).proof;
     }
   }
+
+  for (let i = 0; i < witnessedProofs.length; i++) {
+    previousProofs.push(witnessedProofs[i].proof);
+  }
+
   return previousProofs;
 }
 
