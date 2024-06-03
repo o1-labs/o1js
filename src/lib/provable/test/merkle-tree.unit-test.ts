@@ -165,10 +165,10 @@ console.log(
 
   // data sorted by key:
   let sorted = [
-    { key: 0n, value: 12n, index: 0n },
-    { key: 1n, value: 17n, index: 2n },
-    { key: 2n, value: 15n, index: 1n },
-    { key: 4n, value: 16n, index: 3n },
+    { key: 0n, value: 12n, index: 0 },
+    { key: 1n, value: 17n, index: 2 },
+    { key: 2n, value: 15n, index: 1 },
+    { key: 4n, value: 16n, index: 3 },
   ];
   let sortedLeaves = map.data.get().sortedLeaves;
 

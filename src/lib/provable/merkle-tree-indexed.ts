@@ -134,7 +134,7 @@ class IndexedMerkleMapBase {
     value: 0n,
     // maximum, which is always greater than any key that is a hash
     nextKey: Field.ORDER - 1n,
-    index: 0n,
+    index: 0,
   };
 
   /**
@@ -166,10 +166,9 @@ class IndexedMerkleMapBase {
     this._setLeafUnconstrained(true, newLow);
 
     // create new leaf to append
-    let leaf = Leaf.nextAfter(newLow, {
+    let leaf = Leaf.nextAfter(newLow, index, {
       key,
       value,
-      index,
       nextKey: low.nextKey,
     });
 
@@ -224,7 +223,8 @@ class IndexedMerkleMapBase {
     let keyExists = low.nextKey.equals(key);
 
     // the leaf's index depends on whether it exists
-    let index = Provable.if(keyExists, self.index, this.length);
+    let index = Provable.witness(Field, () => self.index.get());
+    index = Provable.if(keyExists, index, this.length);
     let indexBits = index.toBits(this.height - 1);
 
     // at this point, we know that we have a valid update or insertion; so we can mutate internal data
@@ -244,10 +244,9 @@ class IndexedMerkleMapBase {
     assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     // update leaf, or append a new one
-    let newLeaf = Leaf.nextAfter(newLow, {
+    let newLeaf = Leaf.nextAfter(newLow, index, {
       key,
       value,
-      index,
       nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
     });
     this.root = this._proveUpdate(newLeaf, path);
@@ -351,8 +350,7 @@ class IndexedMerkleMapBase {
   _proveInclusion(leaf: Leaf, message?: string) {
     let node = Leaf.hashNode(leaf);
     // here, we don't care at which index the leaf is included, so we pass it in as unconstrained
-    let index = Unconstrained.from(leaf.index);
-    let { root, path } = this._computeRoot(node, index);
+    let { root, path } = this._computeRoot(node, leaf.index);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
 
     return path;
@@ -364,8 +362,7 @@ class IndexedMerkleMapBase {
   _proveInclusionIf(condition: Bool, leaf: Leaf, message?: string) {
     let node = Leaf.hashNode(leaf);
     // here, we don't care at which index the leaf is included, so we pass it in as unconstrained
-    let index = Unconstrained.from(leaf.index);
-    let { root } = this._computeRoot(node, index);
+    let { root } = this._computeRoot(node, leaf.index);
     assert(
       condition.implies(root.equals(this.root)),
       message ?? 'Leaf is not included in the tree'
@@ -421,14 +418,14 @@ class IndexedMerkleMapBase {
    */
   _computeRoot(
     node: Field,
-    index: Unconstrained<Field> | Bool[],
+    index: Unconstrained<number> | Bool[],
     witness?: Field[]
   ) {
     // if the index was passed in as unconstrained, we witness its bits here
     let indexBits =
       index instanceof Unconstrained
         ? Provable.witness(Provable.Array(Bool, this.height - 1), () =>
-            index.get().toBits(this.height - 1)
+            Field(index.get()).toBits(this.height - 1)
           )
         : index;
 
@@ -481,7 +478,7 @@ class IndexedMerkleMapBase {
     if (key === 0n)
       return {
         low: Leaf.toValue(Leaf.empty()),
-        self: { ...leaves[0], sortedIndex: Unconstrained.from(0) },
+        self: Leaf.fromBigints(leaves[0], 0),
       };
 
     let { lowIndex, foundValue } = bisectUnique(
@@ -490,11 +487,11 @@ class IndexedMerkleMapBase {
       leaves.length
     );
     let iLow = foundValue ? lowIndex - 1 : lowIndex;
-    let low = { ...leaves[iLow], sortedIndex: Unconstrained.from(iLow) };
+    let low = Leaf.fromBigints(leaves[iLow], iLow);
 
     let iSelf = foundValue ? lowIndex : 0;
     let selfBase = foundValue ? leaves[lowIndex] : Leaf.toBigints(Leaf.empty());
-    let self = { ...selfBase, sortedIndex: Unconstrained.from(iSelf) };
+    let self = Leaf.fromBigints(selfBase, iSelf);
     return { low, self };
   }
 
@@ -506,7 +503,7 @@ class IndexedMerkleMapBase {
       let { nodes, sortedLeaves } = this.data.get();
 
       // update internal hash nodes
-      let i = Number(leaf.index.toBigInt());
+      let i = leaf.index.get();
       Nodes.setLeaf(nodes, i, Leaf.hashNode(leaf).toBigInt());
 
       // update sorted list
@@ -584,11 +581,10 @@ class BaseLeaf extends Struct({
 
 class Leaf extends Struct({
   value: Field,
-
   key: Field,
   nextKey: Field,
 
-  index: Field,
+  index: Unconstrained.provableWithEmpty(0),
   sortedIndex: Unconstrained.provableWithEmpty(0),
 }) {
   /**
@@ -601,14 +597,14 @@ class Leaf extends Struct({
   }
 
   /**
-   * Create a new leaf, given its low node.
+   * Create a new leaf, given its low node and index.
    */
-  static nextAfter(low: Leaf, leaf: BaseLeaf & { index: Field }): Leaf {
+  static nextAfter(low: Leaf, index: Field, leaf: BaseLeaf): Leaf {
     return {
       key: leaf.key,
       value: leaf.value,
       nextKey: leaf.nextKey,
-      index: leaf.index,
+      index: Unconstrained.witness(() => Number(index)),
       sortedIndex: Unconstrained.witness(() => low.sortedIndex.get() + 1),
     };
   }
@@ -618,7 +614,15 @@ class Leaf extends Struct({
       key: leaf.key.toBigInt(),
       value: leaf.value.toBigInt(),
       nextKey: leaf.nextKey.toBigInt(),
-      index: leaf.index.toBigInt(),
+      index: leaf.index.get(),
+    };
+  }
+
+  static fromBigints(leaf: LeafValue, sortedIndex: number) {
+    return {
+      ...leaf,
+      index: Unconstrained.from(leaf.index),
+      sortedIndex: Unconstrained.from(sortedIndex),
     };
   }
 }
@@ -627,7 +631,7 @@ type LeafValue = {
   value: bigint;
   key: bigint;
   nextKey: bigint;
-  index: bigint;
+  index: number;
 };
 
 class LeafPair extends Struct({ low: Leaf, self: Leaf }) {}
