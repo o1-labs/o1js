@@ -915,12 +915,19 @@ function analyzeMethod(
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
 ) {
+  console.log('ANALYZING METHOD, ENTERING CONTEXT');
+
+  let { context } = CircuitContext.enter(methodIntf.methodName);
+  let id = circuitContext.enter(context);
+  let proofData = context.proofs;
+  circuitContext.leave(id);
   return Provable.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
     // note: returning the method result here makes this handle async methods
     if (publicInputType === Undefined || publicInputType === Void)
       return method(...args);
+
     return method(publicInput, ...args);
   });
 }
@@ -944,7 +951,12 @@ function picklesRuleFromFunction(
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
-  gates: Gate[]
+  gates: Gate[],
+  witnessedProofs: {
+    proof: Subclass<typeof Proof>;
+    input: ProvablePure<unknown>;
+    output: ProvablePure<unknown>;
+  }[]
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -960,6 +972,7 @@ function picklesRuleFromFunction(
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
+        console.log('argType === witness,', arg);
         let type = witnessArgs[arg.index];
         try {
           finalArgs[i] = Provable.witness(type, () => {
@@ -970,6 +983,7 @@ function picklesRuleFromFunction(
           throw e;
         }
       } else if (arg.type === 'proof') {
+        console.log('argType === proof,', arg);
         let Proof = proofArgs[arg.index];
         let type = getStatementType(Proof);
         let proof_ = (argsWithoutPublicInput?.[i] as Proof<any, any>) ?? {
@@ -988,6 +1002,40 @@ function picklesRuleFromFunction(
         previousStatements.push(MlPair(input, output));
       }
     }
+
+    for (let i = 0; i < witnessedProofs.length; i++) {
+      console.log('WE ARE WITNESSING A PROOF');
+
+      let ProofData = witnessedProofs[i];
+      let Proof = ProofData.proof;
+      let type = getStatementType(Proof);
+      Provable.log(Proof);
+
+      let { input: input_, output: output_ } = ProofData;
+      Provable.log(input_);
+      console.log('---------');
+      let proof_ = {
+        proof: undefined,
+        publicInput: emptyValue(type.input),
+        publicOutput: emptyValue(type.output),
+      };
+      let { proof, publicInput, publicOutput } = proof_;
+      Provable.log(publicInput);
+      Provable.log(publicOutput);
+      publicInput = Provable.witness(type.input, () => publicInput);
+      publicOutput = Provable.witness(type.output, () => publicOutput);
+      let proofInstance = new Proof({
+        publicInput,
+        publicOutput,
+        proof,
+      });
+      finalArgs[i] = proofInstance;
+      proofs.push(proofInstance);
+      let input = toFieldVars(type.input, publicInput);
+      let output = toFieldVars(type.output, publicOutput);
+      previousStatements.push(MlPair(input, output));
+    }
+
     let result: any;
     if (publicInputType === Undefined || publicInputType === Void) {
       result = await func(...finalArgs);
