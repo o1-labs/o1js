@@ -944,11 +944,7 @@ function picklesRuleFromFunction(
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
   gates: Gate[],
-  witnessedProofs: {
-    proof: Subclass<typeof Proof>;
-    input: ProvablePure<unknown>;
-    output: ProvablePure<unknown>;
-  }[]
+  witnessedProofs: ProofContext[]
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -997,7 +993,6 @@ function picklesRuleFromFunction(
 
     for (let i = 0; i < witnessedProofs.length; i++) {
       console.log('WE ARE WITNESSING A PROOF');
-
       let proofContext = witnessedProofs[i];
       console.log('proofContext', proofContext.proof);
       let ProofClass = proofContext.proofClass;
