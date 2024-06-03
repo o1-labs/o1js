@@ -140,7 +140,8 @@ class IndexedMerkleMapBase {
   static _firstLeaf = {
     key: 0n,
     value: 0n,
-    // maximum, which is always greater than any key that is a hash
+    // the 0 key encodes the minimum and maximum at the same time
+    // so, if a second node is inserted, it will get `nextKey = 0`, and thus point to the first node
     nextKey: 0n,
     index: 0,
   };
@@ -161,7 +162,8 @@ class IndexedMerkleMapBase {
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
-    assertInRangeStrict(
+    // if the key does exist, we have lowNode.nextKey == key, and this line fails
+    assertStrictlyBetween(
       low.key,
       key,
       low.nextKey,
@@ -232,7 +234,7 @@ class IndexedMerkleMapBase {
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
     let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
-    assertInRange(low.key, key, low.nextKey, 'Invalid low node (key)');
+    assertBetween(low.key, key, low.nextKey, 'Invalid low node (key)');
 
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
@@ -302,7 +304,7 @@ class IndexedMerkleMapBase {
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
     this._proveInclusion(low, 'Invalid low node (root)');
-    assertInRange(low.key, key, low.nextKey, 'Invalid low node (key)');
+    assertBetween(low.key, key, low.nextKey, 'Invalid low node (key)');
 
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
@@ -337,7 +339,7 @@ class IndexedMerkleMapBase {
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this._proveInclusion(low, 'Invalid low node (root)');
-    assertInRangeStrict(
+    assertStrictlyBetween(
       low.key,
       key,
       low.nextKey,
@@ -354,7 +356,7 @@ class IndexedMerkleMapBase {
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this._proveInclusion(low, 'Invalid low node (root)');
-    assertInRange(low.key, key, low.nextKey, 'Invalid low node (key)');
+    assertBetween(low.key, key, low.nextKey, 'Invalid low node (key)');
 
     return low.nextKey.equals(key);
   }
@@ -704,23 +706,25 @@ function bisectUnique(
   return { lowIndex: iLow, foundValue: getValue(iLow) === target };
 }
 
+// custom comparison methods where 0 can act as the min and max value simultaneously
+
 /**
- * Assert that x in (low, high), i.e. low < x < high, with the following exceptions:
+ * Assert that `x in (low, high)`, i.e. low < x < high, with the following exceptions:
  *
- * - high=0 is treated as the maximum value, so x in (low, 0) always succeeds if only low < x; except for x = 0.
- * - x=0 is also treated as the maximum value, so 0 in (low, high) always fails, because x >= high.
+ * - high=0 is treated as the maximum value, so `x in (low, 0)` always succeeds if only low < x; except for x = 0.
+ * - x=0 is also treated as the maximum value, so `0 in (low, high)` always fails, because x >= high.
  */
-function assertInRangeStrict(
+function assertStrictlyBetween(
   low: Field,
   x: Field,
   high: Field,
   message?: string
 ) {
   // exclude x=0
-  x.assertNotEquals(0n, message ?? '0 is not in any range');
+  x.assertNotEquals(0n, message ?? '0 is not in any strict range');
 
   // normal assertion for low < x
-  low.assertLessThan(x, message ?? 'Expected low < x');
+  low.assertLessThan(x, message);
 
   // for x < high, use a safe comparison that also works if high=0
   let highIsZero = high.equals(0n);
@@ -734,13 +738,13 @@ function assertInRangeStrict(
 }
 
 /**
- * Assert that x in (low, high], i.e. low < x <= high, with the following exceptions:
+ * Assert that `x in (low, high]`, i.e. low < x <= high, with the following exceptions:
  *
- * - high=0 is treated as the maximum value, so x in (low, 0] always succeeds if only low < x.
- * - x=0 is also treated as the maximum value, so 0 in (low, high] fails except if high=0.
- * - note: 0 in (n, 0] succeeds for any n!
+ * - high=0 is treated as the maximum value, so `x in (low, 0]` always succeeds if only low < x.
+ * - x=0 is also treated as the maximum value, so `0 in (low, high]` fails except if high=0.
+ * - note: `0 in (n, 0]` succeeds for any n!
  */
-function assertInRange(low: Field, x: Field, high: Field, message?: string) {
+function assertBetween(low: Field, x: Field, high: Field, message?: string) {
   // for low < x, we need to handle the x=0 case separately
   let xIsZero = x.equals(0n);
   let lowSafe = Provable.witness(Field, () => (xIsZero.toBoolean() ? 0n : low));
