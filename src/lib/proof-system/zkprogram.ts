@@ -119,7 +119,7 @@ class ProofBase<Input, Output> {
       publicInput: type.input.toFields(this.publicInput).map(String),
       publicOutput: type.output.toFields(this.publicOutput).map(String),
       maxProofsVerified: this.maxProofsVerified,
-      proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof]),
+      proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof.get()]),
     };
   }
 
@@ -748,11 +748,7 @@ function isDynamicProof(
 function getPreviousProofsForProver(
   methodArgs: any[],
   { allArgs }: MethodInterface,
-  witnessedProofs: {
-    proof: Subclass<typeof Proof>;
-    input: ProvablePure<unknown>;
-    output: ProvablePure<unknown>;
-  }[]
+  witnessedProofs: ProofContext[]
 ) {
   let previousProofs: Pickles.Proof[] = [];
   for (let i = 0; i < allArgs.length; i++) {
@@ -763,7 +759,7 @@ function getPreviousProofsForProver(
   }
 
   for (let i = 0; i < witnessedProofs.length; i++) {
-    previousProofs.push(witnessedProofs[i].proof);
+    previousProofs.push(witnessedProofs[i].proof as Unconstrained<unknown>);
   }
 
   return previousProofs;
