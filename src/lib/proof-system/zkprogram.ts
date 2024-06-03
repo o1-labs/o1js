@@ -798,11 +798,7 @@ async function compileProgram({
   proofSystemTag: { name: string };
   cache: Cache;
   forceRecompile: boolean;
-  witnessedProofs: {
-    proof: Subclass<typeof Proof>;
-    input: ProvablePure<unknown>;
-    output: ProvablePure<unknown>;
-  }[][];
+  witnessedProofs: ProofContext[][];
   overrideWrapDomain?: 0 | 1 | 2;
 }) {
   await initializeBindings();
@@ -1002,12 +998,13 @@ function picklesRuleFromFunction(
     for (let i = 0; i < witnessedProofs.length; i++) {
       console.log('WE ARE WITNESSING A PROOF');
 
-      let ProofData = witnessedProofs[i];
-      let Proof = ProofData.proof;
-      let type = getStatementType(Proof);
+      let proofContext = witnessedProofs[i];
+      console.log('proofContext', proofContext.proof);
+      let ProofClass = proofContext.proofClass;
+      let type = getStatementType(proofContext.proofClass);
       Provable.log(Proof);
 
-      let { input: input_, output: output_ } = ProofData;
+      let { publicInput: input_, publicOutput: output_ } = proofContext;
       Provable.log(input_);
       console.log('---------');
       let proof_ = {
@@ -1020,12 +1017,13 @@ function picklesRuleFromFunction(
       Provable.log(publicOutput);
       publicInput = Provable.witness(type.input, () => publicInput);
       publicOutput = Provable.witness(type.output, () => publicOutput);
-      let proofInstance = new Proof({
+      let proofInstance = new ProofClass({
         publicInput,
         publicOutput,
         proof,
       });
-      finalArgs[i] = proofInstance;
+      proofInstance.shouldVerify = Bool(true);
+      // finalArgs[i] = proofInstance;
       proofs.push(proofInstance);
       let input = toFieldVars(type.input, publicInput);
       let output = toFieldVars(type.output, publicOutput);
