@@ -504,15 +504,18 @@ function multiScalarMul(
   // a Point is 6 field elements, the hash is just 1 field element
   const HashedPoint = Hashed.create(Point.provable);
 
-  let hashedTables = tables.map((table) =>
-    table.map((point) => HashedPoint.hash(point))
-  );
-
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
   // soundness follows because add() and double() are sound, on all inputs that are valid non-zero curve points
   ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
+
+  let hashedTables: Hashed<Point>[][] = [];
+  if (hashed) {
+    hashedTables = tables.map((table) =>
+      table.map((point) => HashedPoint.hash(point))
+    );
+  }
 
   for (let i = maxBits - 1; i >= 0; i--) {
     // add in multiple of each point
