@@ -67,38 +67,6 @@ class EcdsaSignature {
   }
 
   /**
-   * Verify the ECDSA signature given the message (an array of bytes) and public key (a {@link Curve} point).
-   *
-   * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
-   * So, to actually prove validity of a signature, you need to assert that the result is true.
-   *
-   * @throws if one of the signature scalars is zero or if the public key is not on the curve.
-   *
-   * @example
-   * ```ts
-   * // create classes for your curve
-   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
-   * class Scalar extends Secp256k1.Scalar {}
-   * class Ecdsa extends createEcdsa(Secp256k1) {}
-   *
-   * let message = 'my message';
-   * let messageBytes = new TextEncoder().encode(message);
-   *
-   * // outside provable code: create inputs
-   * let privateKey = Scalar.random();
-   * let publicKey = Secp256k1.generator.scale(privateKey);
-   * let signature = Ecdsa.sign(messageBytes, privateKey.toBigInt());
-   *
-   * // ...
-   * // in provable code: create input witnesses (or use method inputs, or constants)
-   * let pk = Provable.witness(Secp256k1.provable, () => publicKey);
-   * let msg = Provable.witness(Provable.Array(Field, 9), () => messageBytes.map(Field));
-   * let sig = Provable.witness(Ecdsa.provable, () => signature);
-   *
-   * // verify signature
-   * let isValid = sig.verify(msg, pk);
-   * isValid.assertTrue('signature verifies');
-   * ```
    * @deprecated There is a security vulnerability in this method. Use {@link verifyV2} instead.
    */
   verify(message: Bytes, publicKey: FlexiblePoint) {
@@ -148,11 +116,6 @@ class EcdsaSignature {
   }
 
   /**
-   * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
-   *
-   * This is a building block of {@link EcdsaSignature.verify}, where the input message is also hashed.
-   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
-   * choosing the hashing algorithm.
    * @deprecated There is a security vulnerability in this method. Use {@link verifySignedHashV2} instead.
    */
   verifySignedHash(

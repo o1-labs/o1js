@@ -285,20 +285,6 @@ function verifyEcdsaGeneric(
 }
 
 /**
- * Verify an ECDSA signature.
- *
- * Details about the `config` parameter:
- * - For both the generator point `G` and public key `P`, `config` allows you to specify:
- *   - the `windowSize` which is used in scalar multiplication for this point.
- *     this flexibility is good because the optimal window size is different for constant and non-constant points.
- *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
- *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
- *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
- *     if these are not provided, they are computed on the fly.
- *     for the constant G, computing multiples costs no constraints, so passing them in makes no real difference.
- *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
- *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
- * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
  * @deprecated There is a security vulnerability with this function, allowing a prover to modify witness values than what is expected. Use {@link verifyEcdsaV2} instead.
  */
 function verifyEcdsa(
