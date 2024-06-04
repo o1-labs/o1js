@@ -102,19 +102,6 @@ class IndexedMerkleMapBase {
     readonly sortedLeaves: StoredLeaf[];
   }>;
 
-  clone() {
-    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
-    cloned.root = this.root;
-    cloned.length = this.length;
-    cloned.data.updateAsProver(({ nodes, sortedLeaves }) => {
-      return {
-        nodes: nodes.map((row) => [...row]),
-        sortedLeaves: [...sortedLeaves],
-      };
-    });
-    return cloned;
-  }
-
   // we'd like to do `abstract static provable` here but that's not supported
   static provable: Provable<
     IndexedMerkleMapBase,
@@ -149,6 +136,48 @@ class IndexedMerkleMapBase {
     nextKey: 0n,
     index: 0,
   };
+
+  /**
+   * Clone the entire Merkle map.
+   *
+   * This method is provable.
+   */
+  clone() {
+    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
+    cloned.root = this.root;
+    cloned.length = this.length;
+    cloned.data.updateAsProver(({ nodes, sortedLeaves }) => {
+      return {
+        nodes: nodes.map((row) => [...row]),
+        sortedLeaves: [...sortedLeaves],
+      };
+    });
+    return cloned;
+  }
+
+  /**
+   * Overwrite the entire Merkle map with another one.
+   *
+   * This method is provable.
+   */
+  overwrite(other: IndexedMerkleMapBase) {
+    this.overwriteIf(true, other);
+  }
+
+  /**
+   * Overwrite the entire Merkle map with another one, if the condition is true.
+   *
+   * This method is provable.
+   */
+  overwriteIf(condition: Bool | boolean, other: IndexedMerkleMapBase) {
+    condition = Bool(condition);
+
+    this.root = Provable.if(condition, other.root, this.root);
+    this.length = Provable.if(condition, other.length, this.length);
+    this.data.updateAsProver(() =>
+      Bool(condition).toBoolean() ? other.clone().data.get() : this.data.get()
+    );
+  }
 
   /**
    * Insert a new leaf `(key, value)`.
