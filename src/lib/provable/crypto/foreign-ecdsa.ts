@@ -67,6 +67,15 @@ class EcdsaSignature {
   }
 
   /**
+   * @deprecated There is a security vulnerability in this method. Use {@link verifyV2} instead.
+   */
+  verify(message: Bytes, publicKey: FlexiblePoint) {
+    let msgHashBytes = Keccak.ethereum(message);
+    let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
+    return this.verifySignedHash(msgHash, publicKey);
+  }
+
+  /**
    * Verify the ECDSA signature given the message (an array of bytes) and public key (a {@link Curve} point).
    *
    * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
@@ -100,10 +109,27 @@ class EcdsaSignature {
    * isValid.assertTrue('signature verifies');
    * ```
    */
-  verify(message: Bytes, publicKey: FlexiblePoint) {
+  verifyV2(message: Bytes, publicKey: FlexiblePoint) {
     let msgHashBytes = Keccak.ethereum(message);
     let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
-    return this.verifySignedHash(msgHash, publicKey);
+    return this.verifySignedHashV2(msgHash, publicKey);
+  }
+
+  /**
+   * @deprecated There is a security vulnerability in this method. Use {@link verifySignedHashV2} instead.
+   */
+  verifySignedHash(
+    msgHash: AlmostForeignField | bigint,
+    publicKey: FlexiblePoint
+  ) {
+    let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
+    let publicKey_ = this.Constructor.Curve.from(publicKey);
+    return Ecdsa.verify(
+      this.Constructor.Curve.Bigint,
+      toObject(this),
+      msgHash_.value,
+      toPoint(publicKey_)
+    );
   }
 
   /**
@@ -113,13 +139,13 @@ class EcdsaSignature {
    * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
    * choosing the hashing algorithm.
    */
-  verifySignedHash(
+  verifySignedHashV2(
     msgHash: AlmostForeignField | bigint,
     publicKey: FlexiblePoint
   ) {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
-    return Ecdsa.verify(
+    return Ecdsa.verifyV2(
       this.Constructor.Curve.Bigint,
       toObject(this),
       msgHash_.value,

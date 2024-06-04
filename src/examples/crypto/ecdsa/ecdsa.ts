@@ -23,7 +23,7 @@ const keccakAndEcdsa = ZkProgram({
     verifyEcdsa: {
       privateInputs: [Ecdsa.provable, Secp256k1.provable],
       async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
-        return signature.verify(message, publicKey);
+        return signature.verifyV2(message, publicKey);
       },
     },
   },
@@ -38,7 +38,7 @@ const ecdsa = ZkProgram({
     verifySignedHash: {
       privateInputs: [Ecdsa.provable, Secp256k1.provable],
       async method(message: Scalar, signature: Ecdsa, publicKey: Secp256k1) {
-        return signature.verifySignedHash(message, publicKey);
+        return signature.verifySignedHashV2(message, publicKey);
       },
     },
   },
