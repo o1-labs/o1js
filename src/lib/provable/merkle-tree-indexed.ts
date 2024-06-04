@@ -102,19 +102,6 @@ class IndexedMerkleMapBase {
     readonly sortedLeaves: StoredLeaf[];
   }>;
 
-  clone() {
-    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
-    cloned.root = this.root;
-    cloned.length = this.length;
-    cloned.data.updateAsProver(({ nodes, sortedLeaves }) => {
-      return {
-        nodes: nodes.map((row) => [...row]),
-        sortedLeaves: [...sortedLeaves],
-      };
-    });
-    return cloned;
-  }
-
   // we'd like to do `abstract static provable` here but that's not supported
   static provable: Provable<
     IndexedMerkleMapBase,
@@ -149,6 +136,25 @@ class IndexedMerkleMapBase {
     nextKey: 0n,
     index: 0,
   };
+
+  /**
+   * Clone the entire Merkle map.
+   *
+   * This method is provable.
+   */
+  clone() {
+    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
+    cloned.root = this.root;
+    cloned.length = this.length;
+    cloned.data.updateAsProver(() => {
+      let { nodes, sortedLeaves } = this.data.get();
+      return {
+        nodes: nodes.map((row) => [...row]),
+        sortedLeaves: [...sortedLeaves],
+      };
+    });
+    return cloned;
+  }
 
   /**
    * Insert a new leaf `(key, value)`.
