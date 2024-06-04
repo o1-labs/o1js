@@ -654,7 +654,7 @@ class Field {
    * Assert that this {@link Field} is less than another "field-like" value.
    *
    * Note: This uses fewer constraints than `x.lessThan(y).assertTrue()`.
-   * See {@link Field.lessThan} for more details.
+   * See {@link lessThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
