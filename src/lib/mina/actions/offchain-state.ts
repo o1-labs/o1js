@@ -22,7 +22,7 @@ import { Actions } from '../account-update.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
 import { smartContractContext } from '../smart-contract-context.js';
-import { MerkleTree, MerkleWitness } from '../../provable/merkle-tree.js';
+import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 
 export { OffchainState, OffchainStateCommitments };
 
@@ -98,7 +98,7 @@ type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
 
-const MerkleWitness256 = MerkleWitness(256);
+class IndexedMerkleMap31 extends IndexedMerkleMap(31) {}
 
 /**
  * Offchain state for a `SmartContract`.
@@ -135,13 +135,13 @@ function OffchainState<
   // setup internal state of this "class"
   let internal = {
     _contract: undefined as OffchainStateContract | undefined,
-    _merkleMap: undefined as MerkleTree | undefined,
+    _merkleMap: undefined as IndexedMerkleMap31 | undefined,
     _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
       assert(
         internal._contract !== undefined,
-        'Must call `setContractAccount()` first'
+        'Must call `setContractInstance()` first'
       );
       return internal._contract;
     },
@@ -189,7 +189,17 @@ function OffchainState<
     // get onchain merkle root
     let stateRoot = contract().offchainState.getAndRequireEquals().root;
 
-    // witness the actual value
+    // witness the merkle map & anchor against the onchain root
+    let map = await Provable.witnessAsync(
+      IndexedMerkleMap31.provable,
+      async () => (await merkleMaps()).merkleMap
+    );
+    map.root.assertEquals(stateRoot, 'root mismatch');
+
+    // get the value hash
+    let valueHash = map.getOption(key);
+
+    // witness the full value
     const optionType = Option(valueType);
     let value = await Provable.witnessAsync(optionType, async () => {
       let { valueMap } = await merkleMaps();
@@ -201,23 +211,12 @@ function OffchainState<
       return optionType.from(value);
     });
 
-    // witness a merkle witness
-    let witness = await Provable.witnessAsync(MerkleWitness256, async () => {
-      let { merkleMap } = await merkleMaps();
-      return new MerkleWitness256(merkleMap.getWitness(key.toBigInt()));
-    });
-
-    // anchor the value against the onchain root and passed in key
-    // we also allow the value to be missing, in which case the map must contain the 0 element
-    let valueHash = Provable.if(
-      value.isSome,
-      Poseidon.hashPacked(valueType, value.value),
-      Field(0)
+    // assert that the value hash matches the value, or both are none
+    let hashMatches = Poseidon.hashPacked(valueType, value.value).equals(
+      valueHash.value
     );
-    let actualKey = witness.calculateIndex();
-    let actualRoot = witness.calculateRoot(valueHash);
-    key.assertEquals(actualKey, 'key mismatch');
-    stateRoot.assertEquals(actualRoot, 'root mismatch');
+    let bothNone = value.isSome.or(valueHash.isSome).not();
+    assert(hashMatches.or(bothNone), 'value hash mismatch');
 
     return value;
   }
