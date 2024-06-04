@@ -428,6 +428,7 @@ function OffchainState<
 
 OffchainState.Map = OffchainMap;
 OffchainState.Field = OffchainField;
+OffchainState.Commitments = OffchainStateCommitments;
 
 // type helpers
 

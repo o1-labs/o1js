@@ -98,7 +98,7 @@ function merkleUpdateBatch(
   actions.assertAtEnd();
 
   // tree must match the public Merkle root; the method operates on the tree internally
-  // TODO: this would be simpler if the tree was the public input direcetly
+  // TODO: this would be simpler if the tree was the public input directly
   stateA.root.assertEquals(tree.root);
 
   let intermediateTree = tree.clone();
@@ -175,7 +175,7 @@ function OffchainStateRollup({
           tree: IndexedMerkleMapN
         ): Promise<OffchainStateCommitments> {
           return merkleUpdateBatch(
-            { maxActionsPerProof: maxActionsPerProof, maxActionsPerUpdate },
+            { maxActionsPerProof, maxActionsPerUpdate },
             stateA,
             actions,
             tree
@@ -215,7 +215,7 @@ function OffchainStateRollup({
           let stateB = recursiveProof.publicOutput;
 
           return merkleUpdateBatch(
-            { maxActionsPerProof: maxActionsPerProof, maxActionsPerUpdate },
+            { maxActionsPerProof, maxActionsPerUpdate },
             stateB,
             actions,
             tree

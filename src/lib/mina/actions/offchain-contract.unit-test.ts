@@ -11,7 +11,7 @@ import assert from 'assert';
 
 const proofsEnabled = true;
 
-const { OffchainState, OffchainStateCommitments } = Experimental;
+const { OffchainState } = Experimental;
 
 const offchainState = OffchainState(
   {
@@ -26,9 +26,7 @@ class StateProof extends offchainState.Proof {}
 // example contract that interacts with offchain state
 
 class ExampleContract extends SmartContract {
-  // TODO could have sugar for this like
-  // @OffchainState.commitment offchainState = OffchainState.Commitment();
-  @state(OffchainStateCommitments) offchainState = offchainState.commitments();
+  @state(OffchainState.Commitments) offchainState = offchainState.commitments();
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
