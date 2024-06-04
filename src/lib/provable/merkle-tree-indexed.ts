@@ -49,6 +49,10 @@ export { Leaf };
  *   }
  * })
  * ```
+ *
+ * Initially, every `IndexedMerkleMap` is populated by a single key-value pair: `(0, 0)`. The value for key `0` can be updated like any other.
+ * When keys and values are hash outputs, `(0, 0)` can serve as a convenient way to represent a dummy update to the tree, since 0 is not
+ * effciently computable as a hash image, and this update doesn't affect the Merkle root.
  */
 function IndexedMerkleMap(height: number): typeof IndexedMerkleMapBase {
   assert(height > 0, 'height must be positive');
@@ -98,19 +102,6 @@ class IndexedMerkleMapBase {
     readonly sortedLeaves: StoredLeaf[];
   }>;
 
-  clone() {
-    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
-    cloned.root = this.root;
-    cloned.length = this.length;
-    cloned.data.updateAsProver(({ nodes, sortedLeaves }) => {
-      return {
-        nodes: nodes.map((row) => [...row]),
-        sortedLeaves: [...sortedLeaves],
-      };
-    });
-    return cloned;
-  }
-
   // we'd like to do `abstract static provable` here but that's not supported
   static provable: Provable<
     IndexedMerkleMapBase,
@@ -140,10 +131,30 @@ class IndexedMerkleMapBase {
   static _firstLeaf = {
     key: 0n,
     value: 0n,
-    // maximum, which is always greater than any key that is a hash
-    nextKey: Field.ORDER - 1n,
+    // the 0 key encodes the minimum and maximum at the same time
+    // so, if a second node is inserted, it will get `nextKey = 0`, and thus point to the first node
+    nextKey: 0n,
     index: 0,
   };
+
+  /**
+   * Clone the entire Merkle map.
+   *
+   * This method is provable.
+   */
+  clone() {
+    let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
+    cloned.root = this.root;
+    cloned.length = this.length;
+    cloned.data.updateAsProver(() => {
+      let { nodes, sortedLeaves } = this.data.get();
+      return {
+        nodes: nodes.map((row) => [...row]),
+        sortedLeaves: [...sortedLeaves],
+      };
+    });
+    return cloned;
+  }
 
   /**
    * Insert a new leaf `(key, value)`.
@@ -161,10 +172,13 @@ class IndexedMerkleMapBase {
     // prove that the key doesn't exist yet by presenting a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
-    low.key.assertLessThan(key, 'Invalid low node (key)');
-
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
-    key.assertLessThan(low.nextKey, 'Key already exists in the tree');
+    assertStrictlyBetween(
+      low.key,
+      key,
+      low.nextKey,
+      'Key already exists in the tree'
+    );
 
     // at this point, we know that we have a valid insertion; so we can mutate internal data
 
@@ -230,8 +244,7 @@ class IndexedMerkleMapBase {
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
     let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
-    low.key.assertLessThan(key, 'Invalid low node (key)');
-    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
+    assertBetween(low.key, key, low.nextKey, 'Invalid low node (key)');
 
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
@@ -301,8 +314,7 @@ class IndexedMerkleMapBase {
     // prove whether the key exists or not, by showing a valid low node
     let { low, self } = Provable.witness(LeafPair, () => this._findLeaf(key));
     this._proveInclusion(low, 'Invalid low node (root)');
-    low.key.assertLessThan(key, 'Invalid low node (key)');
-    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
+    assertBetween(low.key, key, low.nextKey, 'Invalid low node (key)');
 
     // the key exists iff lowNode.nextKey == key
     let keyExists = low.nextKey.equals(key);
@@ -337,8 +349,9 @@ class IndexedMerkleMapBase {
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this._proveInclusion(low, 'Invalid low node (root)');
-    low.key.assertLessThan(key, 'Invalid low node (key)');
-    key.assertLessThan(
+    assertStrictlyBetween(
+      low.key,
+      key,
       low.nextKey,
       message ?? 'Key already exists in the tree'
     );
@@ -353,8 +366,7 @@ class IndexedMerkleMapBase {
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this._proveInclusion(low, 'Invalid low node (root)');
-    low.key.assertLessThan(key, 'Invalid low node (key)');
-    key.assertLessThanOrEqual(low.nextKey, 'Invalid low node (next key)');
+    assertBetween(low.key, key, low.nextKey, 'Invalid low node (key)');
 
     return low.nextKey.equals(key);
   }
@@ -494,7 +506,7 @@ class IndexedMerkleMapBase {
     // and reject it using comparison constraints
     if (key === 0n)
       return {
-        low: Leaf.toValue(Leaf.empty()),
+        low: Leaf.fromStored(leaves[leaves.length - 1], leaves.length - 1),
         self: Leaf.fromStored(leaves[0], 0),
       };
 
@@ -528,7 +540,9 @@ class IndexedMerkleMapBase {
       let iSorted = leaf.sortedIndex.get();
 
       if (Bool(leafExists).toBoolean()) {
-        sortedLeaves[iSorted] = leafValue;
+        // for key=0, the sorted index overflows the length because we compute it as low.sortedIndex + 1
+        // in that case, it should wrap back to 0
+        sortedLeaves[iSorted % sortedLeaves.length] = leafValue;
       } else {
         sortedLeaves.splice(iSorted, 0, leafValue);
       }
@@ -700,4 +714,58 @@ function bisectUnique(
   }
 
   return { lowIndex: iLow, foundValue: getValue(iLow) === target };
+}
+
+// custom comparison methods where 0 can act as the min and max value simultaneously
+
+/**
+ * Assert that `x in (low, high)`, i.e. low < x < high, with the following exceptions:
+ *
+ * - high=0 is treated as the maximum value, so `x in (low, 0)` always succeeds if only low < x; except for x = 0.
+ * - x=0 is also treated as the maximum value, so `0 in (low, high)` always fails, because x >= high.
+ */
+function assertStrictlyBetween(
+  low: Field,
+  x: Field,
+  high: Field,
+  message?: string
+) {
+  // exclude x=0
+  x.assertNotEquals(0n, message ?? '0 is not in any strict range');
+
+  // normal assertion for low < x
+  low.assertLessThan(x, message);
+
+  // for x < high, use a safe comparison that also works if high=0
+  let highIsZero = high.equals(0n);
+  let xSafe = Provable.witness(Field, () => (highIsZero.toBoolean() ? 0n : x));
+  let highSafe = Provable.witness(Field, () =>
+    highIsZero.toBoolean() ? 1n : high
+  );
+  xSafe.assertLessThan(highSafe, message);
+  assert(xSafe.equals(x).or(highIsZero), message);
+  assert(highSafe.equals(high).or(highIsZero), message);
+}
+
+/**
+ * Assert that `x in (low, high]`, i.e. low < x <= high, with the following exceptions:
+ *
+ * - high=0 is treated as the maximum value, so `x in (low, 0]` always succeeds if only low < x.
+ * - x=0 is also treated as the maximum value, so `0 in (low, high]` fails except if high=0.
+ * - note: `0 in (n, 0]` succeeds for any n!
+ */
+function assertBetween(low: Field, x: Field, high: Field, message?: string) {
+  // for low < x, we need to handle the x=0 case separately
+  let xIsZero = x.equals(0n);
+  let lowSafe = Provable.witness(Field, () => (xIsZero.toBoolean() ? 0n : low));
+  let xSafe1 = Provable.witness(Field, () => (xIsZero.toBoolean() ? 1n : x));
+  lowSafe.assertLessThan(xSafe1, message);
+  assert(lowSafe.equals(low).or(xIsZero), message);
+  assert(xSafe1.equals(x).or(xIsZero), message);
+
+  // for x <= high, we need to handle the high=0 case separately
+  let highIsZero = high.equals(0n);
+  let xSafe0 = Provable.witness(Field, () => (highIsZero.toBoolean() ? 0n : x));
+  xSafe0.assertLessThanOrEqual(high, message);
+  assert(xSafe0.equals(x).or(highIsZero), message);
 }
