@@ -342,7 +342,8 @@ function wrapMethod(
                 // proofs actually don't have to be cloned
                 previousProofs: getPreviousProofsForProver(
                   actualArgs,
-                  methodIntf
+                  methodIntf,
+                  []
                 ),
                 ZkappClass,
                 memoized,
@@ -434,7 +435,8 @@ function wrapMethod(
               args: constantArgs,
               previousProofs: getPreviousProofsForProver(
                 constantArgs,
-                methodIntf
+                methodIntf,
+                []
               ),
               ZkappClass,
               memoized,
