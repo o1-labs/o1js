@@ -164,6 +164,7 @@ class EcdsaSignature {
   static _Curve?: typeof ForeignCurve;
   static _provable?: ProvablePureExtended<
     EcdsaSignature,
+    { r: bigint; s: bigint },
     { r: string; s: string }
   >;
 
