@@ -286,6 +286,11 @@ function OffchainStateRollup({
       let slice = sliceActions(iterator, maxActionsPerProof);
       let proof = await offchainStateRollup.firstBatch(inputState, slice, tree);
 
+      // update tree root/length again, they aren't mutated :(
+      // TODO: this shows why the full tree should be the public output
+      tree.root = proof.publicOutput.root;
+      tree.length = Field(tree.data.get().sortedLeaves.length);
+
       // recursive proofs
       let nProofs = 1;
       for (let i = 1; ; i++) {
@@ -299,6 +304,10 @@ function OffchainStateRollup({
           tree,
           proof
         );
+
+        // update tree root/length again, they aren't mutated :(
+        tree.root = proof.publicOutput.root;
+        tree.length = Field(tree.data.get().sortedLeaves.length);
       }
 
       return { proof, tree, nProofs };
