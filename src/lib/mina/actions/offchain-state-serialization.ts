@@ -39,13 +39,15 @@ export {
   fetchMerkleMap,
   updateMerkleMap,
   Actionable,
+  TREE_HEIGHT,
 };
 
 type Action = [...Field[], Field, Field];
 type Actionable<T, V = any> = ProvableHashable<T, V> & ProvablePure<T, V>;
 
 // TODO: make 31 a parameter
-class IndexedMerkleMap31 extends IndexedMerkleMap(31) {}
+const TREE_HEIGHT = 31;
+class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
   prefix: Field,
@@ -299,9 +301,9 @@ function updateMerkleMap(
         MerkleLeaf.toValue(leaf);
 
       // the update is invalid if there is an unsatisfied precondition
+      let previous = intermediateTree.getOption(key).orElse(0n);
       let isValidAction =
-        !usesPreviousValue ||
-        intermediateTree.get(key).toBigInt() === previousValue;
+        !usesPreviousValue || previous.toBigInt() === previousValue;
 
       if (!isValidAction) {
         isValidUpdate = false;

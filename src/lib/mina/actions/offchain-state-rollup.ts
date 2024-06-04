@@ -12,6 +12,7 @@ import {
   LinearizedAction,
   LinearizedActionList,
   MerkleLeaf,
+  TREE_HEIGHT,
   updateMerkleMap,
 } from './offchain-state-serialization.js';
 import { getProofsEnabled } from '../mina.js';
@@ -27,7 +28,6 @@ class ActionIterator extends MerkleListIterator.create(
 ) {}
 
 // TODO: make 31 a parameter
-const TREE_HEIGHT = 31;
 class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 /**
@@ -102,7 +102,6 @@ function merkleUpdateBatch(
   // TODO: this would be simpler if the tree was the public input direcetly
   stateA.root.assertEquals(tree.root);
 
-  let initialTree = tree;
   let intermediateTree = tree.clone();
   let isValidUpdate = Bool(true);
 
@@ -127,24 +126,12 @@ function merkleUpdateBatch(
     isValidUpdate = isValidUpdate.and(isValidAction);
 
     // at checkpoints, update the tree, if the entire update was valid
-    tree = Provable.if(
-      isCheckPoint.and(isValidUpdate),
-      IndexedMerkleMap31.provable,
-      intermediateTree,
-      tree
-    );
+    tree.overwriteIf(isCheckPoint.and(isValidUpdate), intermediateTree);
+
     // at checkpoints, reset intermediate values
     isValidUpdate = Provable.if(isCheckPoint, Bool(true), isValidUpdate);
-    intermediateTree = Provable.if(
-      isCheckPoint,
-      IndexedMerkleMap31.provable,
-      tree,
-      intermediateTree
-    );
+    intermediateTree.overwriteIf(isCheckPoint, tree);
   });
-
-  // mutate the input tree with the final state
-  initialTree.overwrite(tree);
 
   return { root: tree.root, actionState: actions.currentHash };
 }

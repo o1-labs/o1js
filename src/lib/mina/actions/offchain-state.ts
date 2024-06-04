@@ -1,6 +1,7 @@
 import { InferProvable } from '../../provable/types/struct.js';
 import {
   Actionable,
+  TREE_HEIGHT,
   fetchMerkleLeaves,
   fetchMerkleMap,
   fromActionWithoutHashes,
@@ -98,7 +99,7 @@ type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
 
-class IndexedMerkleMap31 extends IndexedMerkleMap(31) {}
+class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 /**
  * Offchain state for a `SmartContract`.
