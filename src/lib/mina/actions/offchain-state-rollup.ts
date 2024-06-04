@@ -1,9 +1,8 @@
 import { Proof, ZkProgram } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
-import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
-import { MerkleTree, MerkleWitness } from '../../provable/merkle-tree.js';
+import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 import { Struct } from '../../provable/types/struct.js';
 import { SelfProof } from '../../proof-system/zkprogram.js';
 import { Provable } from '../../provable/provable.js';
@@ -27,8 +26,9 @@ class ActionIterator extends MerkleListIterator.create(
   Actions.emptyActionState()
 ) {}
 
-const TREE_HEIGHT = 256;
-class MerkleMapWitness extends MerkleWitness(TREE_HEIGHT) {}
+// TODO: make 31 a parameter
+const TREE_HEIGHT = 31;
+class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 /**
  * Commitments that keep track of the current state of an offchain Merkle tree constructed from actions.
@@ -46,7 +46,7 @@ class OffchainStateCommitments extends Struct({
   actionState: Field,
 }) {
   static empty() {
-    let emptyMerkleRoot = new MerkleTree(TREE_HEIGHT).getRoot();
+    let emptyMerkleRoot = new IndexedMerkleMap31().root;
     return new OffchainStateCommitments({
       root: emptyMerkleRoot,
       actionState: Actions.emptyActionState(),
@@ -69,7 +69,7 @@ function merkleUpdateBatch(
   },
   stateA: OffchainStateCommitments,
   actions: ActionIterator,
-  tree: Unconstrained<MerkleTree>
+  tree: IndexedMerkleMap31
 ): OffchainStateCommitments {
   // this would be unnecessary if the iterator could just be the public input
   actions.currentHash.assertEquals(stateA.actionState);
@@ -98,82 +98,55 @@ function merkleUpdateBatch(
   }
   actions.assertAtEnd();
 
-  // update merkle root at once for the actions of each account update
-  let root = stateA.root;
-  let intermediateRoot = root;
+  // tree must match the public Merkle root; the method operates on the tree internally
+  // TODO: this would be simpler if the tree was the public input direcetly
+  stateA.root.assertEquals(tree.root);
 
-  let intermediateUpdates: { key: Field; value: Field }[] = [];
-  let intermediateTree = Unconstrained.witness(() => tree.get().clone());
-
+  let initialTree = tree;
+  let intermediateTree = tree.clone();
   let isValidUpdate = Bool(true);
 
   linearActions.forEach(maxActionsPerBatch, (element, isDummy) => {
     let { action, isCheckPoint } = element;
     let { key, value, usesPreviousValue, previousValue } = action;
 
-    // merkle witness
-    let witness = Provable.witness(
-      MerkleMapWitness,
-      () =>
-        new MerkleMapWitness(intermediateTree.get().getWitness(key.toBigInt()))
-    );
+    // make sure that if this is a dummy action, we use the canonical dummy (key, value) pair
+    key = Provable.if(isDummy, Field(0n), key);
+    value = Provable.if(isDummy, Field(0n), value);
 
-    // previous value at the key
-    let actualPreviousValue = Provable.witness(Field, () =>
-      intermediateTree.get().getLeaf(key.toBigInt())
-    );
-
-    // prove that the witness and `actualPreviousValue` is correct, by comparing the implied root and key
-    // note: this just works if the (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
-    witness.calculateIndex().assertEquals(key, 'key mismatch');
-    witness
-      .calculateRoot(actualPreviousValue)
-      .assertEquals(intermediateRoot, 'root mismatch');
+    // set (key, value) in the intermediate tree
+    // note: this just works if (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
+    let actualPreviousValue = intermediateTree.set(key, value);
 
     // if an expected previous value was provided, check whether it matches the actual previous value
     // otherwise, the entire update in invalidated
-    let matchesPreviousValue = actualPreviousValue.equals(previousValue);
+    let matchesPreviousValue = actualPreviousValue
+      .orElse(0n)
+      .equals(previousValue);
     let isValidAction = usesPreviousValue.implies(matchesPreviousValue);
     isValidUpdate = isValidUpdate.and(isValidAction);
 
-    // store new value in at the key
-    let newRoot = witness.calculateRoot(value);
-
-    // update intermediate root if this wasn't a dummy action
-    intermediateRoot = Provable.if(isDummy, intermediateRoot, newRoot);
-
-    // at checkpoints, update the root, if the entire update was valid
-    root = Provable.if(isCheckPoint.and(isValidUpdate), intermediateRoot, root);
+    // at checkpoints, update the tree, if the entire update was valid
+    tree = Provable.if(
+      isCheckPoint.and(isValidUpdate),
+      IndexedMerkleMap31.provable,
+      intermediateTree,
+      tree
+    );
     // at checkpoints, reset intermediate values
-    let wasValidUpdate = isValidUpdate;
     isValidUpdate = Provable.if(isCheckPoint, Bool(true), isValidUpdate);
-    intermediateRoot = Provable.if(isCheckPoint, root, intermediateRoot);
-
-    // update the tree, outside the circuit (this should all be part of a better merkle tree API)
-    Provable.asProver(() => {
-      // ignore dummy value
-      if (isDummy.toBoolean()) return;
-
-      intermediateTree.get().setLeaf(key.toBigInt(), value.toConstant());
-      intermediateUpdates.push({ key, value });
-
-      if (isCheckPoint.toBoolean()) {
-        // if the update was valid, apply the intermediate updates to the actual tree
-        if (wasValidUpdate.toBoolean()) {
-          intermediateUpdates.forEach(({ key, value }) => {
-            tree.get().setLeaf(key.toBigInt(), value.toConstant());
-          });
-        }
-        // otherwise, we have to roll back the intermediate tree (TODO: inefficient)
-        else {
-          intermediateTree.set(tree.get().clone());
-        }
-        intermediateUpdates = [];
-      }
-    });
+    intermediateTree = Provable.if(
+      isCheckPoint,
+      IndexedMerkleMap31.provable,
+      tree,
+      intermediateTree
+    );
   });
 
-  return { root, actionState: actions.currentHash };
+  // mutate the input tree with the final state
+  initialTree.overwrite(tree);
+
+  return { root: tree.root, actionState: actions.currentHash };
 }
 
 /**
@@ -198,12 +171,12 @@ function OffchainStateRollup({
        */
       firstBatch: {
         // [actions, tree]
-        privateInputs: [ActionIterator.provable, Unconstrained.provable],
+        privateInputs: [ActionIterator.provable, IndexedMerkleMap31.provable],
 
         async method(
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
-          tree: Unconstrained<MerkleTree>
+          tree: IndexedMerkleMap31
         ): Promise<OffchainStateCommitments> {
           return merkleUpdateBatch(
             { maxActionsPerBatch, maxActionsPerUpdate },
@@ -220,14 +193,14 @@ function OffchainStateRollup({
         // [actions, tree, proof]
         privateInputs: [
           ActionIterator.provable,
-          Unconstrained.provable,
+          IndexedMerkleMap31.provable,
           SelfProof,
         ],
 
         async method(
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
-          tree: Unconstrained<MerkleTree>,
+          tree: IndexedMerkleMap31,
           recursiveProof: Proof<
             OffchainStateCommitments,
             OffchainStateCommitments
@@ -271,7 +244,10 @@ function OffchainStateRollup({
       return result;
     },
 
-    async prove(tree: MerkleTree, actions: MerkleList<MerkleList<MerkleLeaf>>) {
+    async prove(
+      tree: IndexedMerkleMap31,
+      actions: MerkleList<MerkleList<MerkleLeaf>>
+    ) {
       assert(tree.height === TREE_HEIGHT, 'Tree height must match');
       if (getProofsEnabled()) await this.compile();
       // clone the tree so we don't modify the input
@@ -280,7 +256,7 @@ function OffchainStateRollup({
       // input state
       let iterator = actions.startIterating();
       let inputState = new OffchainStateCommitments({
-        root: tree.getRoot(),
+        root: tree.root,
         actionState: iterator.currentHash,
       });
 
@@ -303,7 +279,7 @@ function OffchainStateRollup({
         updateMerkleMap(actionsList, tree);
 
         let finalState = new OffchainStateCommitments({
-          root: tree.getRoot(),
+          root: tree.root,
           actionState: iterator.hash,
         });
         let proof = await RollupProof.dummy(inputState, finalState, 2, 15);
@@ -312,11 +288,7 @@ function OffchainStateRollup({
 
       // base proof
       let slice = sliceActions(iterator, maxActionsPerBatch);
-      let proof = await offchainStateRollup.firstBatch(
-        inputState,
-        slice,
-        Unconstrained.from(tree)
-      );
+      let proof = await offchainStateRollup.firstBatch(inputState, slice, tree);
 
       // recursive proofs
       let nProofs = 1;
@@ -328,7 +300,7 @@ function OffchainStateRollup({
         proof = await offchainStateRollup.nextBatch(
           inputState,
           slice,
-          Unconstrained.from(tree),
+          tree,
           proof
         );
       }
