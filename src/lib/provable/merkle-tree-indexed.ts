@@ -11,7 +11,7 @@ import { conditionalSwap } from './merkle-tree.js';
 import { provableFromClass } from './types/provable-derivers.js';
 
 // external API
-export { IndexedMerkleMap };
+export { IndexedMerkleMap, IndexedMerkleMapBase };
 
 // internal API
 export { Leaf };

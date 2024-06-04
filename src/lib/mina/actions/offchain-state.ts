@@ -1,7 +1,6 @@
 import { InferProvable } from '../../provable/types/struct.js';
 import {
   Actionable,
-  TREE_HEIGHT,
   fetchMerkleLeaves,
   fetchMerkleMap,
   fromActionWithoutHashes,
@@ -93,13 +92,16 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   settle(
     proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
   ): Promise<void>;
+
+  /**
+   * Commitments to the offchain state, to use in your onchain state.
+   */
+  commitments(): State<OffchainStateCommitments>;
 };
 
 type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
-
-class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 /**
  * Offchain state for a `SmartContract`.
@@ -132,11 +134,49 @@ class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
  */
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
->(config: Config): OffchainState<Config> {
+>(
+  config: Config,
+  options?: {
+    /**
+     * The base-2 logarithm of the total capacity of the offchain state.
+     *
+     * Example: if you want to have 1 million individual state fields and map entries available,
+     * set this to 20, because 2^20 ~= 1M.
+     *
+     * The default is 30, which allows for ~1 billion entries.
+     *
+     * Passing in lower numbers will reduce the number of constraints required to prove offchain state updates,
+     * which we will make proof creation slightly faster.
+     * Instead, you could also use a smaller total capacity to increase the `maxActionsPerProof`, so that fewer proofs are required,
+     * which will reduce the proof time even more, but only in the case of many actions.
+     */
+    logTotalCapacity?: number;
+    /**
+     * The maximum number of offchain state actions that can be included in a single account update.
+     *
+     * In other words, you must not call `.update()` or `.overwrite()` more than this number of times in any of your smart contract methods.
+     *
+     * The default is 4.
+     *
+     * Note: When increasing this, consider decreasing `maxActionsPerProof` or `logTotalCapacity` in order to not exceed the circuit size limit.
+     */
+    maxActionsPerUpdate?: number;
+    maxActionsPerProof?: number;
+  }
+): OffchainState<Config> {
+  // read options
+  let {
+    logTotalCapacity = 30,
+    maxActionsPerUpdate = 4,
+    maxActionsPerProof,
+  } = options ?? {};
+  const height = logTotalCapacity + 1;
+  class IndexedMerkleMapN extends IndexedMerkleMap(height) {}
+
   // setup internal state of this "class"
   let internal = {
     _contract: undefined as OffchainStateContract | undefined,
-    _merkleMap: undefined as IndexedMerkleMap31 | undefined,
+    _merkleMap: undefined as IndexedMerkleMapN | undefined,
     _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
@@ -160,6 +200,7 @@ function OffchainState<
     }
     let actionState = await onchainActionState();
     let { merkleMap, valueMap } = await fetchMerkleMap(
+      height,
       internal.contract,
       actionState
     );
@@ -168,7 +209,11 @@ function OffchainState<
     return { merkleMap, valueMap };
   };
 
-  let rollup = OffchainStateRollup();
+  let rollup = OffchainStateRollup({
+    logTotalCapacity,
+    maxActionsPerProof,
+    maxActionsPerUpdate,
+  });
 
   function contract() {
     let ctx = smartContractContext.get();
@@ -192,7 +237,7 @@ function OffchainState<
 
     // witness the merkle map & anchor against the onchain root
     let map = await Provable.witnessAsync(
-      IndexedMerkleMap31.provable,
+      IndexedMerkleMapN.provable,
       async () => (await merkleMaps()).merkleMap
     );
     map.root.assertEquals(stateRoot, 'root mismatch');
@@ -340,7 +385,7 @@ function OffchainState<
       // - take new tree from `result`
       // - update value map in `prove()`, or separately based on `actions`
       let { merkleMap: newMerkleMap, valueMap: newValueMap } =
-        await fetchMerkleMap(internal.contract);
+        await fetchMerkleMap(height, internal.contract);
       internal._merkleMap = newMerkleMap;
       internal._valueMap = newValueMap;
 
@@ -374,6 +419,10 @@ function OffchainState<
           : map(i, kind.keyType, kind.valueType),
       ])
     ) as any,
+
+    commitments() {
+      return State(OffchainStateCommitments.emptyFromHeight(height));
+    },
   };
 }
 

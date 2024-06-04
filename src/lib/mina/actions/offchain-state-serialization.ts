@@ -25,7 +25,10 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
 import { Option } from '../../provable/option.js';
-import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
+import {
+  IndexedMerkleMap,
+  IndexedMerkleMapBase,
+} from '../../provable/merkle-tree-indexed.js';
 
 export {
   toKeyHash,
@@ -39,15 +42,10 @@ export {
   fetchMerkleMap,
   updateMerkleMap,
   Actionable,
-  TREE_HEIGHT,
 };
 
 type Action = [...Field[], Field, Field];
 type Actionable<T, V = any> = ProvableHashable<T, V> & ProvablePure<T, V>;
-
-// TODO: make 31 a parameter
-const TREE_HEIGHT = 31;
-class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
   prefix: Field,
@@ -261,9 +259,13 @@ async function fetchMerkleLeaves(
  * We also deserialize a keyHash -> value map from the leaves.
  */
 async function fetchMerkleMap(
+  height: number,
   contract: { address: PublicKey; tokenId: Field },
   endActionState?: Field
-): Promise<{ merkleMap: IndexedMerkleMap31; valueMap: Map<bigint, Field[]> }> {
+): Promise<{
+  merkleMap: IndexedMerkleMapBase;
+  valueMap: Map<bigint, Field[]>;
+}> {
   let result = await Mina.fetchActions(
     contract.address,
     { endActionState },
@@ -277,7 +279,7 @@ async function fetchMerkleMap(
       .reverse()
   );
 
-  let merkleMap = new IndexedMerkleMap31();
+  let merkleMap = new (IndexedMerkleMap(height))();
   let valueMap = new Map<bigint, Field[]>();
 
   updateMerkleMap(leaves, merkleMap, valueMap);
@@ -287,7 +289,7 @@ async function fetchMerkleMap(
 
 function updateMerkleMap(
   updates: MerkleLeaf[][],
-  tree: IndexedMerkleMap31,
+  tree: IndexedMerkleMapBase,
   valueMap?: Map<bigint, Field[]>
 ) {
   let intermediateTree = tree.clone();

@@ -2,7 +2,10 @@ import { Proof, ZkProgram } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
-import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
+import {
+  IndexedMerkleMap,
+  IndexedMerkleMapBase,
+} from '../../provable/merkle-tree-indexed.js';
 import { Struct } from '../../provable/types/struct.js';
 import { SelfProof } from '../../proof-system/zkprogram.js';
 import { Provable } from '../../provable/provable.js';
@@ -12,7 +15,6 @@ import {
   LinearizedAction,
   LinearizedActionList,
   MerkleLeaf,
-  TREE_HEIGHT,
   updateMerkleMap,
 } from './offchain-state-serialization.js';
 import { getProofsEnabled } from '../mina.js';
@@ -26,9 +28,6 @@ class ActionIterator extends MerkleListIterator.create(
   // we don't have to care about the initial hash here because we will just step forward
   Actions.emptyActionState()
 ) {}
-
-// TODO: make 31 a parameter
-class IndexedMerkleMap31 extends IndexedMerkleMap(TREE_HEIGHT) {}
 
 /**
  * Commitments that keep track of the current state of an offchain Merkle tree constructed from actions.
@@ -45,8 +44,8 @@ class OffchainStateCommitments extends Struct({
   // actionState: ActionIterator.provable,
   actionState: Field,
 }) {
-  static empty() {
-    let emptyMerkleRoot = new IndexedMerkleMap31().root;
+  static emptyFromHeight(height: number) {
+    let emptyMerkleRoot = new (IndexedMerkleMap(height))().root;
     return new OffchainStateCommitments({
       root: emptyMerkleRoot,
       actionState: Actions.emptyActionState(),
@@ -61,15 +60,15 @@ class OffchainStateCommitments extends Struct({
  */
 function merkleUpdateBatch(
   {
-    maxActionsPerBatch,
+    maxActionsPerProof,
     maxActionsPerUpdate,
   }: {
-    maxActionsPerBatch: number;
+    maxActionsPerProof: number;
     maxActionsPerUpdate: number;
   },
   stateA: OffchainStateCommitments,
   actions: ActionIterator,
-  tree: IndexedMerkleMap31
+  tree: IndexedMerkleMapBase
 ): OffchainStateCommitments {
   // this would be unnecessary if the iterator could just be the public input
   actions.currentHash.assertEquals(stateA.actionState);
@@ -77,7 +76,7 @@ function merkleUpdateBatch(
   // linearize actions into a flat MerkleList, so we don't process an insane amount of dummy actions
   let linearActions = LinearizedActionList.empty();
 
-  for (let i = 0; i < maxActionsPerBatch; i++) {
+  for (let i = 0; i < maxActionsPerProof; i++) {
     let inner = actions.next().startIterating();
     let isAtEnd = Bool(false);
     for (let i = 0; i < maxActionsPerUpdate; i++) {
@@ -105,7 +104,7 @@ function merkleUpdateBatch(
   let intermediateTree = tree.clone();
   let isValidUpdate = Bool(true);
 
-  linearActions.forEach(maxActionsPerBatch, (element, isDummy) => {
+  linearActions.forEach(maxActionsPerProof, (element, isDummy) => {
     let { action, isCheckPoint } = element;
     let { key, value, usesPreviousValue, previousValue } = action;
 
@@ -145,16 +144,19 @@ function OffchainStateRollup({
    *
    * 1967*A + 87*A*U + 2
    *
-   * where A = maxActionsPerBatch and U = maxActionsPerUpdate.
+   * where A = maxActionsPerProof and U = maxActionsPerUpdate.
    *
    * To determine defaults, we set U=4 which should cover most use cases while ensuring
    * that the main loop which is independent of U dominates.
    *
    * Targeting ~50k constraints, to leave room for recursive verification, yields A=22.
    */
-  maxActionsPerBatch = 22,
+  maxActionsPerProof = 22,
   maxActionsPerUpdate = 4,
+  logTotalCapacity = 30,
 } = {}) {
+  class IndexedMerkleMapN extends IndexedMerkleMap(logTotalCapacity + 1) {}
+
   let offchainStateRollup = ZkProgram({
     name: 'merkle-map-rollup',
     publicInput: OffchainStateCommitments,
@@ -165,15 +167,15 @@ function OffchainStateRollup({
        */
       firstBatch: {
         // [actions, tree]
-        privateInputs: [ActionIterator.provable, IndexedMerkleMap31.provable],
+        privateInputs: [ActionIterator.provable, IndexedMerkleMapN.provable],
 
         async method(
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
-          tree: IndexedMerkleMap31
+          tree: IndexedMerkleMapN
         ): Promise<OffchainStateCommitments> {
           return merkleUpdateBatch(
-            { maxActionsPerBatch, maxActionsPerUpdate },
+            { maxActionsPerProof: maxActionsPerProof, maxActionsPerUpdate },
             stateA,
             actions,
             tree
@@ -187,14 +189,14 @@ function OffchainStateRollup({
         // [actions, tree, proof]
         privateInputs: [
           ActionIterator.provable,
-          IndexedMerkleMap31.provable,
+          IndexedMerkleMapN.provable,
           SelfProof,
         ],
 
         async method(
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
-          tree: IndexedMerkleMap31,
+          tree: IndexedMerkleMapN,
           recursiveProof: Proof<
             OffchainStateCommitments,
             OffchainStateCommitments
@@ -213,7 +215,7 @@ function OffchainStateRollup({
           let stateB = recursiveProof.publicOutput;
 
           return merkleUpdateBatch(
-            { maxActionsPerBatch, maxActionsPerUpdate },
+            { maxActionsPerProof: maxActionsPerProof, maxActionsPerUpdate },
             stateB,
             actions,
             tree
@@ -239,10 +241,10 @@ function OffchainStateRollup({
     },
 
     async prove(
-      tree: IndexedMerkleMap31,
+      tree: IndexedMerkleMapN,
       actions: MerkleList<MerkleList<MerkleLeaf>>
     ) {
-      assert(tree.height === TREE_HEIGHT, 'Tree height must match');
+      assert(tree.height === logTotalCapacity + 1, 'Tree height must match');
       if (getProofsEnabled()) await this.compile();
       // clone the tree so we don't modify the input
       tree = tree.clone();
@@ -281,7 +283,7 @@ function OffchainStateRollup({
       }
 
       // base proof
-      let slice = sliceActions(iterator, maxActionsPerBatch);
+      let slice = sliceActions(iterator, maxActionsPerProof);
       let proof = await offchainStateRollup.firstBatch(inputState, slice, tree);
 
       // recursive proofs
@@ -290,7 +292,7 @@ function OffchainStateRollup({
         if (iterator.isAtEnd().toBoolean()) break;
         nProofs++;
 
-        let slice = sliceActions(iterator, maxActionsPerBatch);
+        let slice = sliceActions(iterator, maxActionsPerProof);
         proof = await offchainStateRollup.nextBatch(
           inputState,
           slice,

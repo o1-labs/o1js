@@ -2,7 +2,6 @@ import {
   SmartContract,
   method,
   Mina,
-  State,
   state,
   PublicKey,
   UInt64,
@@ -14,10 +13,13 @@ const proofsEnabled = true;
 
 const { OffchainState, OffchainStateCommitments } = Experimental;
 
-const offchainState = OffchainState({
-  accounts: OffchainState.Map(PublicKey, UInt64),
-  totalSupply: OffchainState.Field(UInt64),
-});
+const offchainState = OffchainState(
+  {
+    accounts: OffchainState.Map(PublicKey, UInt64),
+    totalSupply: OffchainState.Field(UInt64),
+  },
+  { logTotalCapacity: 10, maxActionsPerProof: 5 }
+);
 
 class StateProof extends offchainState.Proof {}
 
@@ -26,9 +28,7 @@ class StateProof extends offchainState.Proof {}
 class ExampleContract extends SmartContract {
   // TODO could have sugar for this like
   // @OffchainState.commitment offchainState = OffchainState.Commitment();
-  @state(OffchainStateCommitments) offchainState = State(
-    OffchainStateCommitments.empty()
-  );
+  @state(OffchainStateCommitments) offchainState = offchainState.commitments();
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
