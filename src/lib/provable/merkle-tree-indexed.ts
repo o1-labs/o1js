@@ -146,7 +146,8 @@ class IndexedMerkleMapBase {
     let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
     cloned.root = this.root;
     cloned.length = this.length;
-    cloned.data.updateAsProver(({ nodes, sortedLeaves }) => {
+    cloned.data.updateAsProver(() => {
+      let { nodes, sortedLeaves } = this.data.get();
       return {
         nodes: nodes.map((row) => [...row]),
         sortedLeaves: [...sortedLeaves],
