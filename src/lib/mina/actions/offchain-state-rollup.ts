@@ -153,13 +153,20 @@ function merkleUpdateBatch(
  * This program represents a proof that we can go from OffchainStateCommitments A -> B
  */
 function OffchainStateRollup({
-  // 1 action uses about 7.5k constraints
-  // we can fit at most 7 * 7.5k = 52.5k constraints in one method next to proof verification
-  // => we use `maxActionsPerBatch = 6` to safely stay below the constraint limit
-  // the second parameter `maxActionsPerUpdate` only weakly affects # constraints, but has to be <= `maxActionsPerBatch`
-  // => so we set it to the same value
-  maxActionsPerBatch = 6,
-  maxActionsPerUpdate = 6,
+  /**
+   * the constraints used in one batch proof with a height-31 tree are:
+   *
+   * 1967*A + 87*A*U + 2
+   *
+   * where A = maxActionsPerBatch and U = maxActionsPerUpdate.
+   *
+   * To determine defaults, we set U=4 which should cover most use cases while ensuring
+   * that the main loop which is independent of U dominates.
+   *
+   * Targeting ~50k constraints, to leave room for recursive verification, yields A=22.
+   */
+  maxActionsPerBatch = 22,
+  maxActionsPerUpdate = 4,
 } = {}) {
   let offchainStateRollup = ZkProgram({
     name: 'merkle-map-rollup',
