@@ -11,7 +11,7 @@ type SecureBoxJson = {
   pw_primitive: string;
   nonce: string;
   pwsalt: string;
-  pwdiff: number[];
+  pwdiff: [number, number];
   ciphertext: string;
 };
 
