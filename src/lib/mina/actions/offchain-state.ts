@@ -22,7 +22,7 @@ import { Actions } from '../account-update.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
 import { smartContractContext } from '../smart-contract-context.js';
-import { MerkleTree, MerkleWitness } from '../../provable/merkle-tree.js';
+import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 
 export { OffchainState, OffchainStateCommitments };
 
@@ -92,13 +92,16 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   settle(
     proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
   ): Promise<void>;
+
+  /**
+   * Commitments to the offchain state, to use in your onchain state.
+   */
+  commitments(): State<OffchainStateCommitments>;
 };
 
 type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
-
-const MerkleWitness256 = MerkleWitness(256);
 
 /**
  * Offchain state for a `SmartContract`.
@@ -131,17 +134,55 @@ const MerkleWitness256 = MerkleWitness(256);
  */
 function OffchainState<
   const Config extends { [key: string]: OffchainStateKind }
->(config: Config): OffchainState<Config> {
+>(
+  config: Config,
+  options?: {
+    /**
+     * The base-2 logarithm of the total capacity of the offchain state.
+     *
+     * Example: if you want to have 1 million individual state fields and map entries available,
+     * set this to 20, because 2^20 ~= 1M.
+     *
+     * The default is 30, which allows for ~1 billion entries.
+     *
+     * Passing in lower numbers will reduce the number of constraints required to prove offchain state updates,
+     * which we will make proof creation slightly faster.
+     * Instead, you could also use a smaller total capacity to increase the `maxActionsPerProof`, so that fewer proofs are required,
+     * which will reduce the proof time even more, but only in the case of many actions.
+     */
+    logTotalCapacity?: number;
+    /**
+     * The maximum number of offchain state actions that can be included in a single account update.
+     *
+     * In other words, you must not call `.update()` or `.overwrite()` more than this number of times in any of your smart contract methods.
+     *
+     * The default is 4.
+     *
+     * Note: When increasing this, consider decreasing `maxActionsPerProof` or `logTotalCapacity` in order to not exceed the circuit size limit.
+     */
+    maxActionsPerUpdate?: number;
+    maxActionsPerProof?: number;
+  }
+): OffchainState<Config> {
+  // read options
+  let {
+    logTotalCapacity = 30,
+    maxActionsPerUpdate = 4,
+    maxActionsPerProof,
+  } = options ?? {};
+  const height = logTotalCapacity + 1;
+  class IndexedMerkleMapN extends IndexedMerkleMap(height) {}
+
   // setup internal state of this "class"
   let internal = {
     _contract: undefined as OffchainStateContract | undefined,
-    _merkleMap: undefined as MerkleTree | undefined,
+    _merkleMap: undefined as IndexedMerkleMapN | undefined,
     _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
       assert(
         internal._contract !== undefined,
-        'Must call `setContractAccount()` first'
+        'Must call `setContractInstance()` first'
       );
       return internal._contract;
     },
@@ -159,6 +200,7 @@ function OffchainState<
     }
     let actionState = await onchainActionState();
     let { merkleMap, valueMap } = await fetchMerkleMap(
+      height,
       internal.contract,
       actionState
     );
@@ -167,7 +209,11 @@ function OffchainState<
     return { merkleMap, valueMap };
   };
 
-  let rollup = OffchainStateRollup();
+  let rollup = OffchainStateRollup({
+    logTotalCapacity,
+    maxActionsPerProof,
+    maxActionsPerUpdate,
+  });
 
   function contract() {
     let ctx = smartContractContext.get();
@@ -189,7 +235,17 @@ function OffchainState<
     // get onchain merkle root
     let stateRoot = contract().offchainState.getAndRequireEquals().root;
 
-    // witness the actual value
+    // witness the merkle map & anchor against the onchain root
+    let map = await Provable.witnessAsync(
+      IndexedMerkleMapN.provable,
+      async () => (await merkleMaps()).merkleMap
+    );
+    map.root.assertEquals(stateRoot, 'root mismatch');
+
+    // get the value hash
+    let valueHash = map.getOption(key);
+
+    // witness the full value
     const optionType = Option(valueType);
     let value = await Provable.witnessAsync(optionType, async () => {
       let { valueMap } = await merkleMaps();
@@ -201,23 +257,12 @@ function OffchainState<
       return optionType.from(value);
     });
 
-    // witness a merkle witness
-    let witness = await Provable.witnessAsync(MerkleWitness256, async () => {
-      let { merkleMap } = await merkleMaps();
-      return new MerkleWitness256(merkleMap.getWitness(key.toBigInt()));
-    });
-
-    // anchor the value against the onchain root and passed in key
-    // we also allow the value to be missing, in which case the map must contain the 0 element
-    let valueHash = Provable.if(
-      value.isSome,
-      Poseidon.hashPacked(valueType, value.value),
-      Field(0)
+    // assert that the value hash matches the value, or both are none
+    let hashMatches = Poseidon.hashPacked(valueType, value.value).equals(
+      valueHash.value
     );
-    let actualKey = witness.calculateIndex();
-    let actualRoot = witness.calculateRoot(valueHash);
-    key.assertEquals(actualKey, 'key mismatch');
-    stateRoot.assertEquals(actualRoot, 'root mismatch');
+    let bothNone = value.isSome.or(valueHash.isSome).not();
+    assert(hashMatches.or(bothNone), 'value hash mismatch');
 
     return value;
   }
@@ -340,7 +385,7 @@ function OffchainState<
       // - take new tree from `result`
       // - update value map in `prove()`, or separately based on `actions`
       let { merkleMap: newMerkleMap, valueMap: newValueMap } =
-        await fetchMerkleMap(internal.contract);
+        await fetchMerkleMap(height, internal.contract);
       internal._merkleMap = newMerkleMap;
       internal._valueMap = newValueMap;
 
@@ -374,11 +419,16 @@ function OffchainState<
           : map(i, kind.keyType, kind.valueType),
       ])
     ) as any,
+
+    commitments() {
+      return State(OffchainStateCommitments.emptyFromHeight(height));
+    },
   };
 }
 
 OffchainState.Map = OffchainMap;
 OffchainState.Field = OffchainField;
+OffchainState.Commitments = OffchainStateCommitments;
 
 // type helpers
 

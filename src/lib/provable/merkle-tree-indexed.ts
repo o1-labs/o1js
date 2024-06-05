@@ -11,7 +11,7 @@ import { conditionalSwap } from './merkle-tree.js';
 import { provableFromClass } from './types/provable-derivers.js';
 
 // external API
-export { IndexedMerkleMap };
+export { IndexedMerkleMap, IndexedMerkleMapBase };
 
 // internal API
 export { Leaf };
@@ -154,6 +154,30 @@ class IndexedMerkleMapBase {
       };
     });
     return cloned;
+  }
+
+  /**
+   * Overwrite the entire Merkle map with another one.
+   *
+   * This method is provable.
+   */
+  overwrite(other: IndexedMerkleMapBase) {
+    this.overwriteIf(true, other);
+  }
+
+  /**
+   * Overwrite the entire Merkle map with another one, if the condition is true.
+   *
+   * This method is provable.
+   */
+  overwriteIf(condition: Bool | boolean, other: IndexedMerkleMapBase) {
+    condition = Bool(condition);
+
+    this.root = Provable.if(condition, other.root, this.root);
+    this.length = Provable.if(condition, other.length, this.length);
+    this.data.updateAsProver(() =>
+      Bool(condition).toBoolean() ? other.clone().data.get() : this.data.get()
+    );
   }
 
   /**

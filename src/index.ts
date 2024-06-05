@@ -52,7 +52,10 @@ export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
-import { IndexedMerkleMap } from './lib/provable/merkle-tree-indexed.js';
+import {
+  IndexedMerkleMap,
+  IndexedMerkleMapBase,
+} from './lib/provable/merkle-tree-indexed.js';
 export { Option } from './lib/provable/option.js';
 
 export * as Mina from './lib/mina/mina.js';
@@ -146,6 +149,7 @@ namespace Experimental {
 
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;
+  export type IndexedMerkleMap = IndexedMerkleMapBase;
 
   // offchain state
   export let OffchainState = OffchainState_.OffchainState;
