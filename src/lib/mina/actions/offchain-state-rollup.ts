@@ -108,13 +108,8 @@ function merkleUpdateBatch(
     let { action, isCheckPoint } = element;
     let { key, value, usesPreviousValue, previousValue } = action;
 
-    // make sure that if this is a dummy action, we use the canonical dummy (key, value) pair
-    key = Provable.if(isDummy, Field(0n), key);
-    value = Provable.if(isDummy, Field(0n), value);
-
-    // set (key, value) in the intermediate tree
-    // note: this just works if (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
-    let actualPreviousValue = intermediateTree.set(key, value);
+    // set (key, value) in the intermediate tree - if the action is not a dummy
+    let actualPreviousValue = intermediateTree.setIf(isDummy.not(), key, value);
 
     // if an expected previous value was provided, check whether it matches the actual previous value
     // otherwise, the entire update in invalidated
