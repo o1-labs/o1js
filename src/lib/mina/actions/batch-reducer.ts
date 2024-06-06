@@ -1,7 +1,7 @@
 import { MerkleList } from '../../provable/merkle-list.js';
 import { TupleN } from '../../util/types.js';
 import { Proof } from '../../proof-system/zkprogram.js';
-import { Field } from '../../provable/wrapped.js';
+import { Bool, Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
 import { assertDefined } from '../../util/errors.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
@@ -18,6 +18,9 @@ import {
 } from '../../provable/crypto/poseidon.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
 import { Actions } from '../account-update.js';
+import { contract } from '../smart-contract-context.js';
+import { State } from '../state.js';
+import { Option } from '../../provable/option.js';
 
 export { BatchReducer, ActionBatch, ActionBatchProof };
 
@@ -45,6 +48,11 @@ type BatchReducer<
   BatchSize extends number = number
 > = BatchReducerBase<ActionType, BatchSize>;
 
+type BatchReducerContract = SmartContract & {
+  reducer?: undefined;
+  actionState: State<Field>;
+};
+
 /**
  * A reducer to process actions in fixed-size batches.
  */
@@ -56,14 +64,21 @@ class BatchReducerBase<ActionType, BatchSize extends number = number> {
     throw Error('Action type must be defined in a subclass');
   }
 
-  _contract?: SmartContract;
+  _contract?: BatchReducerContract;
+  contract() {
+    let contract_ = assertDefined(
+      this._contract,
+      'Contract instance must be set before calling this method'
+    );
+    return contract(contract_.constructor) as BatchReducerContract;
+  }
 
   /**
    * Set the smart contract instance this reducer is connected with.
    *
    * Note: This is a required step before using `dispatch()`, `proveNextBatch()` or `processNextBatch()`.
    */
-  setContractInstance(contract: SmartContract & { reducer?: undefined }) {
+  setContractInstance(contract: BatchReducerContract) {
     this._contract = contract;
   }
 
@@ -87,15 +102,25 @@ class BatchReducerBase<ActionType, BatchSize extends number = number> {
    * **Warning**: Calling this twice in the same contract doesn't mean processing two different batches of actions,
    * but rather processing the same batch of actions twice (= the current next batch according to onchain state).
    */
-  processNextBatch(
-    proof: Promise<Proof<Field, Field>>,
-    callback: (action: InferProvable<ActionType>) => void
+  async processNextBatch(
+    proof: Proof<Field, Field>,
+    callback: (action: InferProvable<ActionType>, isDummy: Bool) => void
   ): Promise<void> {
-    let contract = assertDefined(
-      this._contract,
-      'Contract instance must be set before processing actions'
-    );
-    notImplemented();
+    let contract = this.contract();
+
+    // get actions based on the current action state
+    let actionState = contract.actionState.getAndRequireEquals();
+    let actions = await this.getActions(actionState, this.batchSize);
+
+    // verify the actions & proof against the onchain action state
+    let finalActionState = contract.account.actionState.getAndRequireEquals();
+    actions.verify(actionState, finalActionState, proof);
+
+    // process the actions
+    actions.forEach(callback);
+
+    // update the action state
+    contract.actionState.set(actions.batchActions.hash);
   }
 
   /**
@@ -169,7 +194,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     throw Error('Batch size must be defined in a subclass');
   }
 
-  batch: TupleN<Action, BatchSize>;
+  batch: TupleN<Option<Action>, BatchSize>;
 
   initialActionState: Field;
   get finalActionState(): Field {
@@ -181,7 +206,6 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
 
   constructor(input: {
     batch: TupleN<Action, BatchSize>;
-    batchSize: BatchSize;
     initialActionState: Field;
     batchActions: MerkleList<MerkleList<Field>>;
     remainingActions: MerkleList<MerkleList<Field>>;
@@ -194,7 +218,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
    *
    * Note: This is simply a for-loop over the fixed-size `batch`.
    */
-  forEach(callback: (action: Action) => void): void {
+  forEach(callback: (action: Action, isDummy: Bool) => void): void {
     notImplemented();
   }
 
@@ -240,9 +264,12 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
   actionType: ActionType,
   batchSize: N
 ) => ({
-  batch: Provable.Array(actionType, batchSize) as unknown as ProvableHashable<
-    TupleN<InferProvable<ActionType>, N>,
-    TupleN<InferValue<ActionType>, N>
+  batch: Provable.Array(
+    Option(actionType),
+    batchSize
+  ) as unknown as ProvableHashable<
+    TupleN<Option<InferProvable<ActionType>>, N>,
+    TupleN<InferValue<ActionType> | undefined, N>
   >,
   initialActionState: Field,
   batchActions: FieldListList.provable,

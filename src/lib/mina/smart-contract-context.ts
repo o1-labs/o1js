@@ -2,8 +2,14 @@ import type { SmartContract } from './zkapp.js';
 import type { AccountUpdate, AccountUpdateLayout } from './account-update.js';
 import { Context } from '../util/global-context.js';
 import { currentTransaction } from './transaction-context.js';
+import { assert } from '../util/assert.js';
 
-export { smartContractContext, SmartContractContext, accountUpdateLayout };
+export {
+  smartContractContext,
+  SmartContractContext,
+  accountUpdateLayout,
+  contract,
+};
 
 type SmartContractContext = {
   this: SmartContract;
@@ -22,4 +28,16 @@ function accountUpdateLayout() {
   layout ??= currentTransaction()?.layout;
 
   return layout;
+}
+
+function contract(expectedConstructor?: Function) {
+  let ctx = smartContractContext.get();
+  assert(ctx !== null, 'This method must be called within a contract method');
+  if (expectedConstructor !== undefined) {
+    assert(
+      ctx.this.constructor === expectedConstructor,
+      `This method must be called on a ${expectedConstructor.name} contract`
+    );
+  }
+  return ctx.this;
 }
