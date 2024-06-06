@@ -27,7 +27,10 @@ export { BatchReducer, ActionBatch, ActionBatchProof };
 /**
  * A reducer to process actions in fixed-size batches.
  */
-function BatchReducer<ActionType, BatchSize extends number = number>(
+function BatchReducer<
+  ActionType extends Actionable<unknown>,
+  BatchSize extends number = number
+>(
   actionType: ActionType,
   batchSize: BatchSize
 ): BatchReducer<ActionType, BatchSize> {
@@ -44,7 +47,7 @@ function BatchReducer<ActionType, BatchSize extends number = number>(
 }
 
 type BatchReducer<
-  ActionType,
+  ActionType extends Actionable<unknown>,
   BatchSize extends number = number
 > = BatchReducerBase<ActionType, BatchSize>;
 
@@ -56,7 +59,10 @@ type BatchReducerContract = SmartContract & {
 /**
  * A reducer to process actions in fixed-size batches.
  */
-class BatchReducerBase<ActionType, BatchSize extends number = number> {
+class BatchReducerBase<
+  ActionType extends Actionable<unknown>,
+  BatchSize extends number = number
+> {
   get batchSize(): BatchSize {
     throw Error('Batch size must be defined in a subclass');
   }
@@ -86,11 +92,9 @@ class BatchReducerBase<ActionType, BatchSize extends number = number> {
    * Submit an action.
    */
   dispatch(action: From<ActionType>) {
-    let contract = assertDefined(
-      this._contract,
-      'Contract instance must be set before dispatching actions'
-    );
-    notImplemented();
+    let update = this.contract().self;
+    let fields = this.actionType.toFields(this.actionType.fromValue(action));
+    update.body.actions = Actions.pushEvent(update.body.actions, fields);
   }
 
   /**
@@ -163,12 +167,14 @@ class BatchReducerBase<ActionType, BatchSize extends number = number> {
  * is connected to a given final action state (typically stored onchain) by the `remainingActions`.
  */
 function ActionBatch<
-  ActionType extends Actionable<any>,
+  ActionType extends Actionable<unknown>,
   BatchSize extends number = number
 >(
   actionType: ActionType,
   batchSize: BatchSize
-): typeof ActionBatchBase<InferProvable<ActionType>, BatchSize> {
+): typeof ActionBatchBase<InferProvable<ActionType>, BatchSize> & {
+  provable: ProvableExtended<ActionBatch<InferProvable<ActionType>, BatchSize>>;
+} {
   return class ActionBatch_ extends ActionBatchBase<
     InferProvable<ActionType>,
     BatchSize
@@ -177,7 +183,7 @@ function ActionBatch<
       return batchSize;
     }
 
-    provable = provableFromClass(
+    static provable = provableFromClass(
       ActionBatch_,
       provableBase(actionType, batchSize)
     );
@@ -241,7 +247,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     notImplemented();
   }
 
-  provable: ProvableExtended<ActionBatch<Action, BatchSize>> = undefined as any;
+  static provable: ProvableExtended<any> = undefined as any;
 }
 
 type ActionBatchProof = Proof<Field, Field>;
