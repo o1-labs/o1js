@@ -21,6 +21,8 @@ import { Actions } from '../account-update.js';
 import { contract } from '../smart-contract-context.js';
 import { State } from '../state.js';
 import { Option } from '../../provable/option.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { fetchActions } from '../mina-instance.js';
 
 export { BatchReducer, ActionBatch, ActionBatchProof };
 
@@ -139,7 +141,12 @@ class BatchReducerBase<
       await contract.actionState.fetch(),
       'Could not fetch action state'
     );
-    let actions = await this.getActions(actionState, this.batchSize);
+    let actions = await fetchActionBatch(
+      contract,
+      actionState,
+      this.actionType,
+      this.batchSize
+    );
     return await actions.prove();
   }
 
@@ -252,8 +259,85 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     notImplemented();
   }
 
-  static provable: ProvableExtended<any> = undefined as any;
+  static check(value: ActionBatchBase<any, any>) {
+    notImplemented();
+  }
+
+  static provable?: ProvableExtended<any> = undefined;
 }
+
+// helpers for fetching actions
+
+async function fetchActionBatch<Action, N extends number>(
+  contract: { address: PublicKey; tokenId: Field },
+  fromActionState: Field,
+  actionType: Actionable<Action>,
+  batchSize: N
+): Promise<ActionBatch<Action, N>> {
+  let result = await fetchActions(
+    contract.address,
+    { fromActionState },
+    contract.tokenId
+  );
+  if ('error' in result) throw Error(JSON.stringify(result));
+
+  let actionFields = result.map(({ actions }) =>
+    actions.map((action) => action.map(Field.from)).reverse()
+  );
+
+  let sliced = sliceFirstBatch(actionFields, batchSize);
+
+  let batch = TupleN.fromArray(
+    batchSize,
+    sliced.batch.flatMap((actions) =>
+      actions.map((action) => actionType.fromFields(action))
+    )
+  );
+
+  let batchActions = actionsToFieldList(sliced.batch);
+  let remainingActions = actionsToFieldList(sliced.remaining);
+
+  return new ActionBatchBase({
+    batch,
+    initialActionState: fromActionState,
+    batchActions,
+    remainingActions,
+  });
+}
+
+/**
+ * Slice two lists of lists of actions such that the first list contains at most `batchSize` actions _in total_,
+ * and the second list contains the remaining actions.
+ */
+function sliceFirstBatch<Action>(
+  actions: Action[][],
+  batchSize: number
+): { batch: Action[][]; remaining: Action[][] } {
+  let totalSize = 0;
+  let batch: Action[][] = [];
+  let remaining: Action[][] = [...actions];
+
+  for (let i = 0; i < actions.length; i++) {
+    totalSize += remaining[0].length;
+    if (totalSize > batchSize) break;
+
+    batch.push(remaining.shift()!);
+  }
+  return { batch, remaining };
+}
+
+/**
+ *
+ */
+function actionsToFieldList(actions: Field[][][]) {
+  let hashes = actions.map((actions) =>
+    actions.map((action) => hashWithPrefix(prefixes.event, action))
+  );
+  let lists = hashes.map((hashes) => FieldList.from(hashes.map(Field)));
+  return FieldListList.from(lists);
+}
+
+// types
 
 type ActionBatchProof = Proof<Field, Field>;
 
