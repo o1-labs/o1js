@@ -130,12 +130,17 @@ class BatchReducerBase<
   /**
    * Create a proof which helps guarantee the correctness of the next actions batch.
    */
-  proveNextBatch(): Promise<ActionBatchProof> {
+  async proveNextBatch(): Promise<ActionBatchProof> {
     let contract = assertDefined(
       this._contract,
       'Contract instance must be set before proving actions'
     );
-    notImplemented();
+    let actionState = assertDefined(
+      await contract.actionState.fetch(),
+      'Could not fetch action state'
+    );
+    let actions = await this.getActions(actionState, this.batchSize);
+    return await actions.prove();
   }
 
   /**
