@@ -33,7 +33,7 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    * ```ts
    * const state = OffchainState({ totalSupply: OffchainState.Field(UInt64) });
    *
-   * state.fields.totalSupply.set(UInt64.from(100));
+   * state.fields.totalSupply.overwrite(UInt64.from(100));
    *
    * let supply = await state.fields.totalSupply.get();
    * ```
