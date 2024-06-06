@@ -41,7 +41,7 @@ function BatchReducer<
       return batchSize;
     }
     get actionType() {
-      return actionType;
+      return actionType as any;
     }
   }
 
@@ -63,12 +63,13 @@ type BatchReducerContract = SmartContract & {
  */
 class BatchReducerBase<
   ActionType extends Actionable<unknown>,
-  BatchSize extends number = number
+  BatchSize extends number = number,
+  Action = InferProvable<ActionType>
 > {
   get batchSize(): BatchSize {
     throw Error('Batch size must be defined in a subclass');
   }
-  get actionType(): ActionType {
+  get actionType(): Actionable<Action> {
     throw Error('Action type must be defined in a subclass');
   }
 
@@ -110,7 +111,7 @@ class BatchReducerBase<
    */
   async processNextBatch(
     proof: Proof<Field, Field>,
-    callback: (action: InferProvable<ActionType>, isDummy: Bool) => void
+    callback: (action: Action, isDummy: Bool) => void
   ): Promise<void> {
     let contract = this.contract();
 
@@ -157,15 +158,19 @@ class BatchReducerBase<
    * For typical use cases, {@link processNextBatch} does exactly what's needed
    * inside your smart contract method to process the next batch of actions.
    */
-  getActions<N extends number = BatchSize>(
+  async getActions<N extends number = BatchSize>(
     fromActionState: Field,
     batchSize?: N
-  ): Promise<ActionBatch<InferProvable<ActionType>, N>> {
+  ): Promise<ActionBatch<Action, N>> {
     let contract = assertDefined(
       this._contract,
       'Contract instance must be set before fetching actions'
     );
-    notImplemented();
+    let batchSize_ = (batchSize ?? this.batchSize) as N;
+    const ActionB = ActionBatch(this.actionType, batchSize_);
+    return Provable.witnessAsync(ActionB.provable, () =>
+      fetchActionBatch(contract, fromActionState, this.actionType, batchSize_)
+    );
   }
 }
 
@@ -179,7 +184,7 @@ class BatchReducerBase<
  * is connected to a given final action state (typically stored onchain) by the `remainingActions`.
  */
 function ActionBatch<
-  ActionType extends Actionable<unknown>,
+  ActionType extends Actionable<any>,
   BatchSize extends number = number
 >(
   actionType: ActionType,
@@ -284,7 +289,6 @@ async function fetchActionBatch<Action, N extends number>(
   let actionFields = result.map(({ actions }) =>
     actions.map((action) => action.map(Field.from)).reverse()
   );
-
   let sliced = sliceFirstBatch(actionFields, batchSize);
 
   let batch = TupleN.fromArray(
@@ -293,11 +297,10 @@ async function fetchActionBatch<Action, N extends number>(
       actions.map((action) => actionType.fromFields(action))
     )
   );
+  let batchActions = actionFieldsToMerkleList(sliced.batch);
+  let remainingActions = actionFieldsToMerkleList(sliced.remaining);
 
-  let batchActions = actionsToFieldList(sliced.batch);
-  let remainingActions = actionsToFieldList(sliced.remaining);
-
-  return new ActionBatchBase({
+  return new (ActionBatch(actionType, batchSize))({
     batch,
     initialActionState: fromActionState,
     batchActions,
@@ -326,10 +329,7 @@ function sliceFirstBatch<Action>(
   return { batch, remaining };
 }
 
-/**
- *
- */
-function actionsToFieldList(actions: Field[][][]) {
+function actionFieldsToMerkleList(actions: Field[][][]): FieldListList {
   let hashes = actions.map((actions) =>
     actions.map((action) => hashWithPrefix(prefixes.event, action))
   );
