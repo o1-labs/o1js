@@ -3,27 +3,68 @@ import { TupleN } from '../../util/types.js';
 import { Proof } from '../../proof-system/zkprogram.js';
 import { Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
+import { assertDefined } from '../../util/errors.js';
+import { From } from '../../../bindings/lib/provable-generic.js';
+import { InferProvable } from '../../provable/types/struct.js';
 
 export { BatchReducer, ActionBatch, ActionBatchProof };
 
 /**
  * A reducer to process actions in fixed-size batches.
  */
-type BatchReducer<ActionType, BatchSize extends number = number> = {
-  _batchSize: BatchSize;
-  _contract?: SmartContract & { reducer?: undefined };
+function BatchReducer<ActionType, BatchSize extends number = number>(
+  actionType: ActionType,
+  batchSize: BatchSize
+): BatchReducer<ActionType, BatchSize> {
+  class BatchReducer_ extends BatchReducerBase<ActionType, BatchSize> {
+    get batchSize() {
+      return batchSize;
+    }
+    get actionType() {
+      return actionType;
+    }
+  }
+
+  return new BatchReducer_();
+}
+
+type BatchReducer<
+  ActionType,
+  BatchSize extends number = number
+> = BatchReducerBase<ActionType, BatchSize>;
+
+/**
+ * A reducer to process actions in fixed-size batches.
+ */
+class BatchReducerBase<ActionType, BatchSize extends number = number> {
+  get batchSize(): BatchSize {
+    throw Error('Batch size must be defined in a subclass');
+  }
+  get actionType(): ActionType {
+    throw Error('Action type must be defined in a subclass');
+  }
+
+  _contract?: SmartContract;
 
   /**
    * Set the smart contract instance this reducer is connected with.
    *
-   * Note: This is a required step before using `dispatch()` or `processNextBatch()`.
+   * Note: This is a required step before using `dispatch()`, `proveNextBatch()` or `processNextBatch()`.
    */
-  setContractInstance(contract: SmartContract): void;
+  setContractInstance(contract: SmartContract & { reducer?: undefined }) {
+    this._contract = contract;
+  }
 
   /**
    * Submit an action.
    */
-  dispatch(action: ActionType): void;
+  dispatch(action: From<ActionType>) {
+    let contract = assertDefined(
+      this._contract,
+      'Contract instance must be set before dispatching actions'
+    );
+    notImplemented();
+  }
 
   /**
    * Process the next batch of actions.
@@ -36,13 +77,25 @@ type BatchReducer<ActionType, BatchSize extends number = number> = {
    */
   processNextBatch(
     proof: Promise<Proof<Field, Field>>,
-    callback: (action: ActionType, actionsProof: Proof<Field, Field>) => void
-  ): Promise<void>;
+    callback: (action: InferProvable<ActionType>) => void
+  ): Promise<void> {
+    let contract = assertDefined(
+      this._contract,
+      'Contract instance must be set before processing actions'
+    );
+    notImplemented();
+  }
 
   /**
    * Create a proof which helps guarantee the correctness of the next actions batch.
    */
-  proveNextBatch(): Promise<ActionBatchProof>;
+  proveNextBatch(): Promise<ActionBatchProof> {
+    let contract = assertDefined(
+      this._contract,
+      'Contract instance must be set before proving actions'
+    );
+    notImplemented();
+  }
 
   /**
    * Fetch a batch of actions to process, starting from a given action state.
@@ -51,11 +104,17 @@ type BatchReducer<ActionType, BatchSize extends number = number> = {
    * For typical use cases, {@link processNextBatch} does exactly what's needed
    * inside your smart contract method to process the next batch of actions.
    */
-  getActions<N extends number>(
+  getActions<N extends number = BatchSize>(
     fromActionState: Field,
-    batchSize: N
-  ): Promise<ActionBatch<ActionType, N>>;
-};
+    batchSize?: N
+  ): Promise<ActionBatch<InferProvable<ActionType>, N>> {
+    let contract = assertDefined(
+      this._contract,
+      'Contract instance must be set before fetching actions'
+    );
+    notImplemented();
+  }
+}
 
 /**
  * Provable type that represents a batch of actions.
@@ -66,8 +125,8 @@ type BatchReducer<ActionType, BatchSize extends number = number> = {
  * The `prove()` and `verify()` methods are intended to prove the missing part: namely, that the batch
  * is connected to a given final action state (typically stored onchain) by the `remainingActions`.
  */
-type ActionBatch<ActionType, BatchSize extends number = number> = {
-  batch: TupleN<ActionType, BatchSize>;
+type ActionBatch<Action, BatchSize extends number = number> = {
+  batch: TupleN<Action, BatchSize>;
   batchSize: BatchSize;
 
   initialActionState: Field;
@@ -79,9 +138,9 @@ type ActionBatch<ActionType, BatchSize extends number = number> = {
   /**
    * Iterate over the actions in this batch.
    *
-   * Note: This is simply a for-loop over the fixed-size `batchActions`.
+   * Note: This is simply a for-loop over the fixed-size `batch`.
    */
-  forEach(callback: (action: ActionType) => void): void;
+  forEach(callback: (action: Action) => void): void;
 
   /**
    * Verify the validity of this batch of actions against the given initial & final action states and the provided proof.
@@ -100,3 +159,7 @@ type ActionBatch<ActionType, BatchSize extends number = number> = {
 };
 
 type ActionBatchProof = Proof<Field, Field>;
+
+function notImplemented(): never {
+  throw Error('Not implemented');
+}
