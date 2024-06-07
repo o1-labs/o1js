@@ -106,8 +106,13 @@ class BatchReducerBase<
    * Verifies the validity of the processed batch of actions against the onchain action state,
    * with the help of the provided proof that you can create with `proveNextBatch()`.
    *
-   * **Warning**: Calling this twice in the same contract doesn't mean processing two different batches of actions,
-   * but rather processing the same batch of actions twice (= the current next batch according to onchain state).
+   * **Important**: The callback exposes the action's value along with an `isDummy` flag.
+   * This is necessary because we process a dynamically-sized list in a fixed number of steps. Dummies will be passed to your callback
+   * once the actual actions are exhausted. There are no guarantees about the `value` in case that `isDummy` is `true`,
+   * so make sure to handle the `isDummy` case appropriately.
+   *
+   * **Warning**: Calling `processNextBatch()` twice in the same contract doesn't mean processing two different batches of actions,
+   * but rather, processing the same batch of actions twice (= the current next batch according to onchain state).
    */
   async processNextBatch(
     proof: Proof<Field, Field>,
@@ -240,9 +245,16 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
    * Iterate over the actions in this batch.
    *
    * Note: This is simply a for-loop over the fixed-size `batch`.
+   *
+   * **Warning**: The callback exposes the action's value along with an `isDummy` flag.
+   * This is necessary because we process a dynamically-sized list in a fixed number of steps.
+   * There are no guarantees about the `value` in case that `isDummy` is `true`, so make sure to handle this case appropriately.
    */
   forEach(callback: (action: Action, isDummy: Bool) => void): void {
-    notImplemented();
+    for (let i = 0; i < this.batchSize; i++) {
+      let { isSome, value } = this.batch[i];
+      callback(value, isSome);
+    }
   }
 
   /**
