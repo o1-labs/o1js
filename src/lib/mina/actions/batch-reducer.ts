@@ -32,48 +32,23 @@ export { BatchReducer, ActionBatch, ActionBatchProof };
 /**
  * A reducer to process actions in fixed-size batches.
  */
-function BatchReducer<
-  ActionType extends Actionable<unknown>,
-  BatchSize extends number = number
->(
-  actionType: ActionType,
-  batchSize: BatchSize
-): BatchReducer<ActionType, BatchSize> {
-  class BatchReducer_ extends BatchReducerBase<ActionType, BatchSize> {
-    get batchSize() {
-      return batchSize;
-    }
-    get actionType() {
-      return actionType as any;
-    }
-  }
-
-  return new BatchReducer_();
-}
-
-type BatchReducer<
-  ActionType extends Actionable<unknown>,
-  BatchSize extends number = number
-> = BatchReducerBase<ActionType, BatchSize>;
-
-type BatchReducerContract = SmartContract & {
-  reducer?: undefined;
-  actionState: State<Field>;
-};
-
-/**
- * A reducer to process actions in fixed-size batches.
- */
-class BatchReducerBase<
+class BatchReducer<
   ActionType extends Actionable<unknown>,
   BatchSize extends number = number,
   Action = InferProvable<ActionType>
 > {
-  get batchSize(): BatchSize {
-    throw Error('Batch size must be defined in a subclass');
-  }
-  get actionType(): Actionable<Action> {
-    throw Error('Action type must be defined in a subclass');
+  batchSize: BatchSize;
+  actionType: Actionable<Action>;
+  program: ActionStateProgram;
+
+  constructor(
+    actionType: ActionType,
+    batchSize: BatchSize,
+    maxUpdatesPerProof = 100
+  ) {
+    this.batchSize = batchSize;
+    this.actionType = actionType as Actionable<Action>;
+    this.program = actionStateProgram(maxUpdatesPerProof);
   }
 
   _contract?: BatchReducerContract;
@@ -139,6 +114,13 @@ class BatchReducerBase<
   }
 
   /**
+   * Compile the recursive action batch prover.
+   */
+  async compile() {
+    return await this.program.compile();
+  }
+
+  /**
    * Create a proof which helps guarantee the correctness of the next actions batch.
    */
   async proveNextBatch(): Promise<ActionBatchProof> {
@@ -156,7 +138,7 @@ class BatchReducerBase<
       this.actionType,
       this.batchSize
     );
-    return await actions.prove();
+    return await proveActionBatch(actions, this.program);
   }
 
   /**
@@ -187,6 +169,11 @@ class BatchReducerBase<
     );
   }
 }
+
+type BatchReducerContract = SmartContract & {
+  reducer?: undefined;
+  actionState: State<Field>;
+};
 
 /**
  * Provable type that represents a batch of actions.
@@ -312,20 +299,12 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
   }
 
   /**
-   * Prove the validity of this batch of actions, by showing that the `remainingActions`, when applied after the
-   * `batchActions`, result in a final state that forms the proof's public output.
-   */
-  prove(): Promise<ActionBatchProof> {
-    notImplemented();
-  }
-
-  /**
    * `check` proves the consistency of `batch`, `batchActions` and `initialActionState`:
    * When applying the actions in `batch` to the initial action state `initialActionState`,
    * we obtain the same hash that `batchActions` represents.
    *
    * Note: `check()` doesn't prove anything about the `remainingActions` -- this has to be done separately
-   * with a recurisve proof, created using `prove()` and verified in provable code using `verify()`.
+   * with a recursive proof, created using `proveActionBatch()` and verified in provable code using `verify()`.
    */
   static check<Action>(value: ActionBatchBase<Action, any>) {
     // check basic type properties
@@ -500,10 +479,22 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
 
 // recursive action batch proof
 
+async function proveActionBatch<Action, N extends number>(
+  actionBatch: ActionBatch<Action, N>,
+  program: { proveChunk: any }
+): Promise<ActionBatchProof> {
+  notImplemented();
+}
+
+type ActionStateProgram = {
+  compile(): Promise<{ verificationKey: { data: string; hash: Field } }>;
+  proveChunk: any;
+};
+
 /**
  * Create program that proves a hash chain from action state A to action state B.
  */
-function actionStateProgram(maxActionsPerProof: number) {
+function actionStateProgram(maxUpdatesPerProof: number): ActionStateProgram {
   return ZkProgram({
     name: 'action-state-prover',
     publicInput: Field, // start action state
@@ -531,7 +522,7 @@ function actionStateProgram(maxActionsPerProof: number) {
             proofSoFar.publicOutput,
             startState
           );
-          for (let i = 0; i < maxActionsPerProof; i++) {
+          for (let i = 0; i < maxUpdatesPerProof; i++) {
             state = update(state, i, actionHashes);
           }
           return state;
