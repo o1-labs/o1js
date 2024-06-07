@@ -1,4 +1,4 @@
-import { MerkleList } from '../../provable/merkle-list.js';
+import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { TupleN } from '../../util/types.js';
 import { Proof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
@@ -194,7 +194,8 @@ function ActionBatch<
   BatchSize extends number = number
 >(
   actionType: ActionType,
-  batchSize: BatchSize
+  batchSize: BatchSize,
+  { maxActionsPerUpdate = 4 } = {}
 ): typeof ActionBatchBase<InferProvable<ActionType>, BatchSize> & {
   provable: ProvableExtended<ActionBatch<InferProvable<ActionType>, BatchSize>>;
 } {
@@ -204,6 +205,12 @@ function ActionBatch<
   > {
     get batchSize() {
       return batchSize;
+    }
+    get maxActionsPerUpdate() {
+      return maxActionsPerUpdate;
+    }
+    get actionType() {
+      return actionType as Actionable<InferProvable<ActionType>>;
     }
 
     static provable = provableFromClass(
@@ -219,13 +226,32 @@ type ActionBatch<Action, BatchSize extends number = number> = ActionBatchBase<
 >;
 
 class ActionBatchBase<Action, BatchSize extends number = number> {
+  // provable properties
+
+  batch: TupleN<Option<Action>, BatchSize>;
+  initialActionState: Field;
+  batchActions: MerkleListIterator<MerkleList<Field>>;
+  remainingActions: MerkleListIterator<MerkleList<Field>>;
+
+  // static data defining the constraints
+
   get batchSize(): BatchSize {
     throw Error('Batch size must be defined in a subclass');
   }
+  /**
+   * How many actions can fit in a single inner Merkle list.
+   *
+   * The default is 4.
+   */
+  get maxActionsPerUpdate(): number {
+    return 4;
+  }
+  get actionType(): Actionable<Action> {
+    throw Error('Action type must be defined in a subclass');
+  }
 
-  batch: TupleN<Option<Action>, BatchSize>;
+  // convenience getters
 
-  initialActionState: Field;
   get actionStateAfterBatch(): Field {
     return this.batchActions.hash;
   }
@@ -233,13 +259,10 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     return this.remainingActions.hash;
   }
 
-  batchActions: MerkleList<MerkleList<Field>>;
-  remainingActions: MerkleList<MerkleList<Field>>;
-
   constructor(input: {
     batch: TupleN<Action, BatchSize>;
     initialActionState: Field;
-    batchActions: MerkleList<MerkleList<Field>>;
+    batchActions: MerkleListIterator<MerkleList<Field>>;
     remainingActions: MerkleList<MerkleList<Field>>;
   }) {
     Object.assign(this, input);
@@ -301,8 +324,42 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
    * Note: `check()` doesn't prove anything about the `remainingActions` -- this has to be done separately
    * with a recurisve proof, created using `prove()` and verified in provable code using `verify()`.
    */
-  static check(value: ActionBatchBase<any, any>) {
-    notImplemented();
+  static check<Action>(value: ActionBatchBase<Action, any>) {
+    // check basic type properties
+    assertDefined(this.provable).check(value);
+
+    let {
+      batch,
+      initialActionState,
+      batchActions,
+      maxActionsPerUpdate,
+      batchSize,
+      actionType,
+    } = value;
+
+    // linearize `batchActions` into a flat MerkleList
+    batchActions.currentHash.assertEquals(initialActionState);
+    let batchActionsFlat = FieldList.empty();
+
+    for (let i = 0; i < batchSize; i++) {
+      batchActions.next().forEach(maxActionsPerUpdate, (action, isDummy) => {
+        batchActionsFlat.pushIf(isDummy.not(), action);
+      });
+    }
+    batchActions.assertAtEnd();
+    batchActions.jumpToStart();
+    batchActions.currentHash = initialActionState;
+
+    // similarly, push `batch` into a flat list of dynamic size
+    let batchFlat = FieldList.empty();
+
+    for (let i = 0; i < batchSize; i++) {
+      let { isSome, value } = batch[i];
+      batchFlat.pushIf(isSome, hashAction(actionType.toFields(value)));
+    }
+
+    // check that the two flat lists are equal
+    batchActionsFlat.hash.assertEquals(batchFlat.hash);
   }
 
   static provable?: ProvableExtended<any> = undefined;
@@ -334,8 +391,14 @@ async function fetchActionBatch<Action, N extends number>(
       actions.map((action) => actionType.fromFields(action))
     )
   );
-  let batchActions = actionFieldsToMerkleList(sliced.batch);
-  let remainingActions = actionFieldsToMerkleList(sliced.remaining);
+  let batchActions = actionFieldsToMerkleList(
+    fromActionState,
+    sliced.batch
+  ).startIterating();
+  let remainingActions = actionFieldsToMerkleList(
+    batchActions.hash,
+    sliced.remaining
+  );
 
   return new (ActionBatch(actionType, batchSize))({
     batch,
@@ -366,12 +429,22 @@ function sliceFirstBatch<Action>(
   return { batch, remaining };
 }
 
-function actionFieldsToMerkleList(actions: Field[][][]): FieldListList {
-  let hashes = actions.map((actions) =>
-    actions.map((action) => hashWithPrefix(prefixes.event, action))
-  );
+function actionFieldsToMerkleList(initialState: Field, actions: Field[][][]) {
+  let hashes = actions.map((actions) => actions.map(hashAction));
   let lists = hashes.map((hashes) => FieldList.from(hashes.map(Field)));
+
+  class FieldListList extends MerkleList.create<MerkleList<Field>>(
+    FieldList.provable,
+    (hash: Field, actions: FieldList): Field =>
+      Actions.updateSequenceState(hash, actions.hash),
+    initialState
+  ) {}
+
   return FieldListList.from(lists);
+}
+
+function hashAction(action: Field[]): Field {
+  return hashWithPrefix(prefixes.event, action);
 }
 
 // types
@@ -385,7 +458,7 @@ class FieldList extends MerkleList.create<Field>(
   Actions.empty().hash
 ) {}
 
-class FieldListList extends MerkleList.create<MerkleList<Field>>(
+class FieldListIterator extends MerkleListIterator.create<MerkleList<Field>>(
   FieldList.provable,
   (hash: Field, actions: FieldList): Field =>
     Actions.updateSequenceState(hash, actions.hash),
@@ -404,8 +477,8 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
     TupleN<InferValue<ActionType> | undefined, N>
   >,
   initialActionState: Field,
-  batchActions: FieldListList.provable,
-  remainingActions: FieldListList.provable,
+  batchActions: FieldListIterator.provable,
+  remainingActions: FieldListIterator.provable,
 });
 
 function notImplemented(): never {
