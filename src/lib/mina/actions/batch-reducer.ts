@@ -27,7 +27,11 @@ import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
 
+// external API
 export { BatchReducer, ActionBatch };
+
+// internal API
+export { actionBatchProgram, proveActionBatch };
 
 /**
  * A reducer to process actions in fixed-size batches.
@@ -291,7 +295,11 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
    * Create a proof that connects this action batch with a final action state.
    */
   prove(program: ActionBatchProgram): Promise<ActionBatchProof> {
-    return proveActionBatch(this, program);
+    return proveActionBatch(
+      this.initialActionState,
+      this.remainingActions.get(),
+      program
+    );
   }
 
   /**
@@ -496,13 +504,12 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
 
 // recursive action batch proof
 
-async function proveActionBatch<Action, N extends number>(
-  actionBatch: ActionBatch<Action, N>,
+async function proveActionBatch(
+  initialActionState: Field,
+  actions: ActionHashes,
   program: ActionBatchProgram
 ): Promise<ActionBatchProof> {
   let { maxUpdatesPerProof } = program;
-  let { initialActionState } = actionBatch;
-  let actions = actionBatch.remainingActions.get();
   const ActionBatchProof = ZkProgram.Proof(program);
 
   // split actions in chunks of `maxUpdatesPerProof` each
@@ -571,7 +578,7 @@ type ActionBatchProgram = {
 /**
  * Create program that proves a hash chain from action state A to action state B.
  */
-function actionBatchProgram(maxUpdatesPerProof: number): ActionBatchProgram {
+function actionBatchProgram(maxUpdatesPerProof: number) {
   let program = ZkProgram({
     name: 'action-state-prover',
     publicInput: Field, // start action state
