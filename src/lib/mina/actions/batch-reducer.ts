@@ -33,22 +33,26 @@ export { BatchReducer, ActionBatch, ActionBatchProof };
  * A reducer to process actions in fixed-size batches.
  */
 class BatchReducer<
-  ActionType extends Actionable<unknown>,
+  ActionType extends Actionable<any>,
   BatchSize extends number = number,
   Action = InferProvable<ActionType>
 > {
   batchSize: BatchSize;
   actionType: Actionable<Action>;
-  program: ActionStateProgram;
+  program: ActionBatchProgram;
 
-  constructor(
-    actionType: ActionType,
-    batchSize: BatchSize,
-    maxUpdatesPerProof = 100
-  ) {
+  constructor({
+    actionType,
+    batchSize,
+    maxUpdatesPerProof = 100,
+  }: {
+    actionType: ActionType;
+    batchSize: BatchSize;
+    maxUpdatesPerProof?: number;
+  }) {
     this.batchSize = batchSize;
     this.actionType = actionType as Actionable<Action>;
-    this.program = actionStateProgram(maxUpdatesPerProof);
+    this.program = actionBacthProgram(maxUpdatesPerProof);
   }
 
   _contract?: BatchReducerContract;
@@ -138,7 +142,7 @@ class BatchReducer<
       this.actionType,
       this.batchSize
     );
-    return await proveActionBatch(actions, this.program);
+    return actions.prove(this.program);
   }
 
   /**
@@ -275,6 +279,13 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
       let { isSome, value } = this.batch[i];
       callback(value, isSome);
     }
+  }
+
+  /**
+   * Create a proof that connects this action batch with a final action state.
+   */
+  prove(program: ActionBatchProgram): Promise<ActionBatchProof> {
+    return proveActionBatch(this, program);
   }
 
   /**
@@ -481,7 +492,7 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
 
 async function proveActionBatch<Action, N extends number>(
   actionBatch: ActionBatch<Action, N>,
-  program: ActionStateProgram
+  program: ActionBatchProgram
 ): Promise<ActionBatchProof> {
   let { maxUpdatesPerProof } = program;
   let { initialActionState } = actionBatch;
@@ -534,7 +545,7 @@ async function proveActionBatch<Action, N extends number>(
   return proof;
 }
 
-type ActionStateProgram = {
+type ActionBatchProgram = {
   name: string;
   publicInputType: typeof Field;
   publicOutputType: typeof Field;
@@ -554,7 +565,7 @@ type ActionStateProgram = {
 /**
  * Create program that proves a hash chain from action state A to action state B.
  */
-function actionStateProgram(maxUpdatesPerProof: number): ActionStateProgram {
+function actionBacthProgram(maxUpdatesPerProof: number): ActionBatchProgram {
   let program = ZkProgram({
     name: 'action-state-prover',
     publicInput: Field, // start action state

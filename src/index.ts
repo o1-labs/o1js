@@ -133,6 +133,9 @@ export { setNumberOfWorkers } from './lib/proof-system/workers.js';
 // experimental APIs
 import { memoizeWitness } from './lib/provable/provable.js';
 import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
+import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
+import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
+import { InferProvable } from './lib/provable/types/struct.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -163,6 +166,34 @@ namespace Experimental {
    * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
    */
   export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments {}
+
+  // batch reducer
+
+  /**
+   * A reducer to process actions in fixed-size batches.
+   */
+  export class BatchReducer<
+    ActionType extends Actionable<any>,
+    BatchSize extends number = number,
+    Action = InferProvable<ActionType>
+  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
+
+  /**
+   * Provable type that represents a batch of actions.
+   *
+   * This comes with the built-in guarantee that the given `batch` exactly contains the same actions
+   * as `batchActions` with the initial state `initialActionState`.
+   *
+   * The `prove()` and `verify()` methods are intended to prove the missing part: namely, that the batch
+   * is connected to a given final action state (typically stored onchain) by the `remainingActions`.
+   */
+  export let ActionBatch = BatchReducer_.ActionBatch;
+  export type ActionBatch<
+    Action,
+    BatchSize extends number = number
+  > = BatchReducer_.ActionBatch<Action, BatchSize>;
+
+  export type ActionBatchProof = BatchReducer_.ActionBatchProof;
 }
 
 Error.stackTraceLimit = 100000;
