@@ -57,6 +57,10 @@ class BatchReducer<
     this.Proof = ZkProgram.Proof(this.program);
   }
 
+  static get initialActionState() {
+    return Actions.emptyActionState();
+  }
+
   _contract?: BatchReducerContract;
   contract() {
     let contract_ = assertDefined(
