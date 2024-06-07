@@ -269,6 +269,9 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     finalActionState: Field,
     actionBatchProof: ActionBatchProof
   ): void {
+    // verify the proof
+    actionBatchProof.verify();
+
     // initial action state consistency
     this.initialActionState.assertEquals(initialActionState);
 
