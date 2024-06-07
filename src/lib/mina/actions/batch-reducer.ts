@@ -27,7 +27,7 @@ import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
 
-export { BatchReducer, ActionBatch, ActionBatchProof };
+export { BatchReducer, ActionBatch };
 
 /**
  * A reducer to process actions in fixed-size batches.
@@ -40,6 +40,7 @@ class BatchReducer<
   batchSize: BatchSize;
   actionType: Actionable<Action>;
   program: ActionBatchProgram;
+  Proof: typeof Proof<Field, Field>;
 
   constructor({
     actionType,
@@ -52,7 +53,8 @@ class BatchReducer<
   }) {
     this.batchSize = batchSize;
     this.actionType = actionType as Actionable<Action>;
-    this.program = actionBacthProgram(maxUpdatesPerProof);
+    this.program = actionBatchProgram(maxUpdatesPerProof);
+    this.Proof = ZkProgram.Proof(this.program);
   }
 
   _contract?: BatchReducerContract;
@@ -565,7 +567,7 @@ type ActionBatchProgram = {
 /**
  * Create program that proves a hash chain from action state A to action state B.
  */
-function actionBacthProgram(maxUpdatesPerProof: number): ActionBatchProgram {
+function actionBatchProgram(maxUpdatesPerProof: number): ActionBatchProgram {
   let program = ZkProgram({
     name: 'action-state-prover',
     publicInput: Field, // start action state

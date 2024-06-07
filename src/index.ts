@@ -192,8 +192,6 @@ namespace Experimental {
     Action,
     BatchSize extends number = number
   > = BatchReducer_.ActionBatch<Action, BatchSize>;
-
-  export type ActionBatchProof = BatchReducer_.ActionBatchProof;
 }
 
 Error.stackTraceLimit = 100000;
