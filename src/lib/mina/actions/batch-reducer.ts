@@ -121,12 +121,12 @@ class BatchReducerBase<
     let contract = this.contract();
 
     // get actions based on the current action state
-    let actionState = contract.actionState.getAndRequireEquals();
-    let actions = await this.getActions(actionState, this.batchSize);
+    let initialActionState = contract.actionState.getAndRequireEquals();
+    let actions = await this.getActionBatch(initialActionState, this.batchSize);
 
     // verify the actions & proof against the onchain action state
     let finalActionState = contract.account.actionState.getAndRequireEquals();
-    actions.verify(actionState, finalActionState, proof);
+    actions.verify(initialActionState, finalActionState, proof);
 
     // process the actions
     actions.forEach(callback);
@@ -160,10 +160,11 @@ class BatchReducerBase<
    * Fetch a batch of actions to process, starting from a given action state.
    *
    * **Warning**: This is a lower-level API to give you additional flexibility.
-   * For typical use cases, {@link processNextBatch} does exactly what's needed
-   * inside your smart contract method to process the next batch of actions.
+   * For typical cases, use {@link processNextBatch}. It calls this method internally and
+   * does exactly what's needed inside your smart contract method to process the next batch of actions
+   * while verifying that it's valid against the onchain state.
    */
-  async getActions<N extends number = BatchSize>(
+  async getActionBatch<N extends number = BatchSize>(
     fromActionState: Field,
     batchSize?: N
   ): Promise<ActionBatch<Action, N>> {
@@ -225,6 +226,9 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
   batch: TupleN<Option<Action>, BatchSize>;
 
   initialActionState: Field;
+  get actionStateAfterBatch(): Field {
+    return this.batchActions.hash;
+  }
   get finalActionState(): Field {
     return this.remainingActions.hash;
   }
@@ -265,7 +269,17 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     finalActionState: Field,
     actionBatchProof: ActionBatchProof
   ): void {
-    notImplemented();
+    // initial action state consistency
+    this.initialActionState.assertEquals(initialActionState);
+
+    // action state after batch consistency
+    this.actionStateAfterBatch.assertEquals(actionBatchProof.publicInput);
+
+    // final action state consistency
+    // TODO the fact that we duplicate an equality check here suggests that we store one too many instance of the final action state
+    // => do we even need this.remainingActions?
+    this.finalActionState.assertEquals(finalActionState);
+    this.finalActionState.assertEquals(actionBatchProof.publicOutput);
   }
 
   /**
@@ -276,6 +290,14 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     notImplemented();
   }
 
+  /**
+   * `check` proves the consistency of `batch`, `batchActions` and `initialActionState`:
+   * When applying the actions in `batch` to the initial action state `initialActionState`,
+   * we obtain the same hash that `batchActions` represents.
+   *
+   * Note: `check()` doesn't prove anything about the `remainingActions` -- this has to be done separately
+   * with a recurisve proof, created using `prove()` and verified in provable code using `verify()`.
+   */
   static check(value: ActionBatchBase<any, any>) {
     notImplemented();
   }
