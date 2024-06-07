@@ -1,6 +1,6 @@
 import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { TupleN } from '../../util/types.js';
-import { Proof } from '../../proof-system/zkprogram.js';
+import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
 import { assertDefined } from '../../util/errors.js';
@@ -23,6 +23,9 @@ import { State } from '../state.js';
 import { Option } from '../../provable/option.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { fetchActions } from '../mina-instance.js';
+import { ZkProgram } from '../../proof-system/zkprogram.js';
+import { Unconstrained } from '../../provable/types/unconstrained.js';
+import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
 
 export { BatchReducer, ActionBatch, ActionBatchProof };
 
@@ -146,7 +149,7 @@ class BatchReducerBase<
     let actionState = assertDefined(
       await contract.actionState.fetch(),
       'Could not fetch action state'
-    );
+    ).toBigInt();
     let actions = await fetchActionBatch(
       contract,
       actionState,
@@ -175,7 +178,12 @@ class BatchReducerBase<
     let batchSize_ = (batchSize ?? this.batchSize) as N;
     const ActionB = ActionBatch(this.actionType, batchSize_);
     return Provable.witnessAsync(ActionB.provable, () =>
-      fetchActionBatch(contract, fromActionState, this.actionType, batchSize_)
+      fetchActionBatch(
+        contract,
+        fromActionState.toBigInt(),
+        this.actionType,
+        batchSize_
+      )
     );
   }
 }
@@ -231,7 +239,11 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
   batch: TupleN<Option<Action>, BatchSize>;
   initialActionState: Field;
   batchActions: MerkleListIterator<MerkleList<Field>>;
-  remainingActions: MerkleListIterator<MerkleList<Field>>;
+  remainingActions: Unconstrained<(bigint | undefined)[]>;
+
+  get actionStateAfterBatch(): Field {
+    return this.batchActions.hash;
+  }
 
   // static data defining the constraints
 
@@ -250,22 +262,16 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     throw Error('Action type must be defined in a subclass');
   }
 
-  // convenience getters
-
-  get actionStateAfterBatch(): Field {
-    return this.batchActions.hash;
-  }
-  get finalActionState(): Field {
-    return this.remainingActions.hash;
-  }
-
   constructor(input: {
-    batch: TupleN<Action, BatchSize>;
+    batch: TupleN<Option<Action>, BatchSize>;
     initialActionState: Field;
     batchActions: MerkleListIterator<MerkleList<Field>>;
-    remainingActions: MerkleList<MerkleList<Field>>;
+    remainingActions: Unconstrained<ActionHashes>;
   }) {
-    Object.assign(this, input);
+    this.batch = input.batch;
+    this.initialActionState = input.initialActionState;
+    this.batchActions = input.batchActions;
+    this.remainingActions = input.remainingActions;
   }
 
   /**
@@ -302,10 +308,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
     this.actionStateAfterBatch.assertEquals(actionBatchProof.publicInput);
 
     // final action state consistency
-    // TODO the fact that we duplicate an equality check here suggests that we store one too many instance of the final action state
-    // => do we even need this.remainingActions?
-    this.finalActionState.assertEquals(finalActionState);
-    this.finalActionState.assertEquals(actionBatchProof.publicOutput);
+    finalActionState.assertEquals(actionBatchProof.publicOutput);
   }
 
   /**
@@ -369,42 +372,43 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
 
 async function fetchActionBatch<Action, N extends number>(
   contract: { address: PublicKey; tokenId: Field },
-  fromActionState: Field,
+  fromActionState: bigint,
   actionType: Actionable<Action>,
   batchSize: N
 ): Promise<ActionBatch<Action, N>> {
   let result = await fetchActions(
     contract.address,
-    { fromActionState },
+    { fromActionState: Field(fromActionState) },
     contract.tokenId
   );
   if ('error' in result) throw Error(JSON.stringify(result));
 
   let actionFields = result.map(({ actions }) =>
-    actions.map((action) => action.map(Field.from)).reverse()
+    actions.map((action) => action.map(BigInt)).reverse()
   );
   let sliced = sliceFirstBatch(actionFields, batchSize);
 
-  let batch = TupleN.fromArray(
-    batchSize,
-    sliced.batch.flatMap((actions) =>
-      actions.map((action) => actionType.fromFields(action))
-    )
+  let incompleteBatch = sliced.batch.flatMap((actions) =>
+    actions.map((action) => actionType.fromFields(action.map(Field.from)))
   );
+  const OptionAction = Option(actionType);
+  let batch: Option<Action>[] = Array(batchSize);
+
+  for (let i = 0; i < batchSize; i++) {
+    batch[i] = OptionAction.from(incompleteBatch[i]);
+  }
+
   let batchActions = actionFieldsToMerkleList(
     fromActionState,
     sliced.batch
   ).startIterating();
-  let remainingActions = actionFieldsToMerkleList(
-    batchActions.hash,
-    sliced.remaining
-  );
+  let remainingActions = actionFieldsToHashes(sliced.remaining);
 
   return new (ActionBatch(actionType, batchSize))({
-    batch,
-    initialActionState: fromActionState,
+    batch: TupleN.fromArray(batchSize, batch),
+    initialActionState: Field(fromActionState),
     batchActions,
-    remainingActions,
+    remainingActions: Unconstrained.from(remainingActions),
   });
 }
 
@@ -429,22 +433,35 @@ function sliceFirstBatch<Action>(
   return { batch, remaining };
 }
 
-function actionFieldsToMerkleList(initialState: Field, actions: Field[][][]) {
+function actionFieldsToMerkleList(initialState: bigint, actions: bigint[][][]) {
   let hashes = actions.map((actions) => actions.map(hashAction));
-  let lists = hashes.map((hashes) => FieldList.from(hashes.map(Field)));
+  let lists = hashes.map((hashes) => FieldList.from(hashes));
 
   class FieldListList extends MerkleList.create<MerkleList<Field>>(
     FieldList.provable,
     (hash: Field, actions: FieldList): Field =>
       Actions.updateSequenceState(hash, actions.hash),
-    initialState
+    Field(initialState)
   ) {}
 
   return FieldListList.from(lists);
 }
 
-function hashAction(action: Field[]): Field {
-  return hashWithPrefix(prefixes.event, action);
+function actionFieldsToHashes(actions: bigint[][][]) {
+  return actions.map((actions) =>
+    actions.reduce(pushAction, Actions.empty().hash.toBigInt())
+  );
+}
+
+function pushAction(actionsHash: bigint, action: bigint[]): bigint {
+  return hashWithPrefixBigint(prefixes.sequenceEvents, [
+    actionsHash,
+    hashWithPrefixBigint(prefixes.event, action),
+  ]);
+}
+
+function hashAction(action: (Field | bigint)[]): Field {
+  return hashWithPrefix(prefixes.event, action.map(Field.from));
 }
 
 // types
@@ -453,7 +470,7 @@ type ActionBatchProof = Proof<Field, Field>;
 
 class FieldList extends MerkleList.create<Field>(
   Field,
-  (actionsHash: Field, actionHash: Field): Field =>
+  (actionsHash: Field, actionHash: Field) =>
     hashWithPrefix(prefixes.sequenceEvents, [actionsHash, actionHash]),
   Actions.empty().hash
 ) {}
@@ -478,8 +495,70 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
   >,
   initialActionState: Field,
   batchActions: FieldListIterator.provable,
-  remainingActions: FieldListIterator.provable,
+  remainingActions: UnconstrainedActionHashes,
 });
+
+// recursive action batch proof
+
+/**
+ * Create program that proves a hash chain from action state A to action state B.
+ */
+function actionStateProgram(maxActionsPerProof: number) {
+  return ZkProgram({
+    name: 'action-state-prover',
+    publicInput: Field, // start action state
+    publicOutput: Field, // end action state
+
+    methods: {
+      proveChunk: {
+        privateInputs: [SelfProof, Bool, UnconstrainedActionHashes],
+
+        async method(
+          startState: Field,
+          proofSoFar: Proof<Field, Field>,
+          isRecursive: Bool,
+          actionHashes: Unconstrained<ActionHashes>
+        ): Promise<Field> {
+          proofSoFar.verifyIf(isRecursive);
+          let proofStart = Provable.if(
+            isRecursive,
+            startState,
+            proofSoFar.publicInput
+          );
+          proofSoFar.publicInput.assertEquals(proofStart);
+          let state = Provable.if(
+            isRecursive,
+            proofSoFar.publicOutput,
+            startState
+          );
+          for (let i = 0; i < maxActionsPerProof; i++) {
+            state = update(state, i, actionHashes);
+          }
+          return state;
+        },
+      },
+    },
+  });
+}
+
+const OptionField = Option(Field);
+type ActionHashes = (bigint | undefined)[];
+const UnconstrainedActionHashes = Unconstrained.provableWithEmpty<ActionHashes>(
+  []
+);
+
+/**
+ * Proves: "There are _some_ actions that get me from the previous to the new state"
+ */
+function update(
+  state: Field,
+  i: number,
+  actionHashes: Unconstrained<ActionHashes>
+) {
+  let actionHash = Provable.witness(OptionField, () => actionHashes.get()[i]);
+  let newState = Actions.updateSequenceState(state, actionHash.value);
+  return Provable.if(actionHash.isSome, newState, state);
+}
 
 function notImplemented(): never {
   throw Error('Not implemented');
