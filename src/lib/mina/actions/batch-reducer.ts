@@ -481,21 +481,81 @@ const provableBase = <ActionType extends Actionable<any>, N extends number>(
 
 async function proveActionBatch<Action, N extends number>(
   actionBatch: ActionBatch<Action, N>,
-  program: { proveChunk: any }
+  program: ActionStateProgram
 ): Promise<ActionBatchProof> {
-  notImplemented();
+  let { maxUpdatesPerProof } = program;
+  let { initialActionState } = actionBatch;
+  let actions = actionBatch.remainingActions.get();
+  const ActionBatchProof = ZkProgram.Proof(program);
+
+  // split actions in chunks of `maxUpdatesPerProof` each
+  let chunks: Unconstrained<ActionHashes>[] = [];
+
+  let n = actions.length;
+  let nChunks = Math.ceil(n / maxUpdatesPerProof);
+
+  // if there are no actions, we still need to create a proof
+  if (n === 0) nChunks = 1;
+
+  for (let i = 0, k = 0; i < nChunks; i++) {
+    let batch: ActionHashes = [];
+    for (let j = 0; j < maxUpdatesPerProof; j++, k++) {
+      batch[j] = actions[k];
+    }
+    chunks[i] = Unconstrained.from(batch);
+  }
+
+  console.time('dummy');
+  let dummy = await ActionBatchProof.dummy(Field(0), Field(0), 1, 14);
+  console.timeEnd('dummy');
+
+  console.log('creating proof 0...');
+  console.time('proof 0');
+  let proof = await program.proveChunk(
+    initialActionState,
+    dummy,
+    Bool(false),
+    chunks[0]
+  );
+  console.timeEnd('proof 0');
+
+  for (let i = 1; i < nChunks; i++) {
+    console.log(`creating proof ${i}...`);
+    console.time(`proof ${i}`);
+    proof = await program.proveChunk(
+      initialActionState,
+      proof,
+      Bool(true),
+      chunks[i]
+    );
+    console.timeEnd(`proof ${i}`);
+  }
+
+  return proof;
 }
 
 type ActionStateProgram = {
+  name: string;
+  publicInputType: typeof Field;
+  publicOutputType: typeof Field;
+
   compile(): Promise<{ verificationKey: { data: string; hash: Field } }>;
-  proveChunk: any;
+
+  proveChunk: (
+    startState: Field,
+    proofSoFar: ActionBatchProof,
+    isRecursive: Bool,
+    actionHashes: Unconstrained<ActionHashes>
+  ) => Promise<ActionBatchProof>;
+
+  maxUpdatesPerProof: number;
 };
 
 /**
  * Create program that proves a hash chain from action state A to action state B.
  */
 function actionStateProgram(maxUpdatesPerProof: number): ActionStateProgram {
-  return ZkProgram({
+  let program = ZkProgram({
     name: 'action-state-prover',
     publicInput: Field, // start action state
     publicOutput: Field, // end action state
@@ -506,7 +566,7 @@ function actionStateProgram(maxUpdatesPerProof: number): ActionStateProgram {
 
         async method(
           startState: Field,
-          proofSoFar: Proof<Field, Field>,
+          proofSoFar: ActionBatchProof,
           isRecursive: Bool,
           actionHashes: Unconstrained<ActionHashes>
         ): Promise<Field> {
@@ -530,6 +590,7 @@ function actionStateProgram(maxUpdatesPerProof: number): ActionStateProgram {
       },
     },
   });
+  return Object.assign(program, { maxUpdatesPerProof });
 }
 
 const OptionField = Option(Field);
