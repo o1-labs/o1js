@@ -17,11 +17,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/54d6545bf...HEAD)
 
+### Added
+
+- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage which uses 4-8x fewer constraints than `MerkleMap` https://github.com/o1-labs/o1js/pull/1666
+  - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code.
+
+### Deprecated
+
+- `Int64.isPositive()` and `Int64.mod()` deprecated because they behave incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
+  - This can pose an attack surface, since it is easy to maliciously pick either the `+0` or the `-0` representation
+  - Use `Int64.isPositiveV2()` and `Int64.modV2()` instead
+  - Also deprecated `Int64.neg()` in favor of `Int64.negV2()`, for compatibility with v2 version of `Int64` that will use `Int64.checkV2()`
+- `Ecdsa.verify()` and `Ecdsa.verifySignedHash()` deprecated in favor of `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2()` due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1669
+
 ## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf)
 
 ### Added
 
 - Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class. https://github.com/o1-labs/o1js/pull/1659
+- Added `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2` methods to the `Ecdsa` class. https://github.com/o1-labs/o1js/pull/1669
 
 ### Fixes
 

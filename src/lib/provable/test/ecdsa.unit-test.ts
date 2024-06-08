@@ -75,7 +75,7 @@ for (let Curve of curves) {
     let hasGlv = Curve.hasEndomorphism;
     if (noGlv) Curve.hasEndomorphism = false; // hack to force non-GLV version
     try {
-      return Ecdsa.verify(Curve, sig.signature, sig.msg, sig.publicKey);
+      return Ecdsa.verifyV2(Curve, sig.signature, sig.msg, sig.publicKey);
     } finally {
       Curve.hasEndomorphism = hasGlv;
     }
@@ -140,7 +140,7 @@ let msgHash =
 const ia = initialAggregator(Secp256k1);
 const config = { G: { windowSize: 4 }, P: { windowSize: 4 }, ia };
 
-let program = ZkProgram({
+let deprecatedVerify = ZkProgram({
   name: 'ecdsa',
   publicOutput: Bool,
   methods: {
@@ -155,6 +155,32 @@ let program = ZkProgram({
         let publicKey_ = Provable.witness(Point.provable, () => publicKey);
 
         return Ecdsa.verify(
+          Secp256k1,
+          signature_,
+          msgHash_,
+          publicKey_,
+          config
+        );
+      },
+    },
+  },
+});
+
+let program = ZkProgram({
+  name: 'ecdsa',
+  publicOutput: Bool,
+  methods: {
+    ecdsa: {
+      privateInputs: [],
+      async method() {
+        let signature_ = Provable.witness(
+          Ecdsa.Signature.provable,
+          () => signature
+        );
+        let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
+        let publicKey_ = Provable.witness(Point.provable, () => publicKey);
+
+        return Ecdsa.verifyV2(
           Secp256k1,
           signature_,
           msgHash_,
@@ -182,11 +208,14 @@ console.log(cs.summary());
 
 console.time('ecdsa verify (compile)');
 await program.compile();
+await deprecatedVerify.compile();
 console.timeEnd('ecdsa verify (compile)');
 
 console.time('ecdsa verify (prove)');
 let proof = await program.ecdsa();
+let proof2 = await deprecatedVerify.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');
+assert(await deprecatedVerify.verify(proof2), 'deprecated proof verifies');
 proof.publicOutput.assertTrue('signature verifies');

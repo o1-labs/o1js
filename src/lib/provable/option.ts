@@ -39,19 +39,23 @@ function Option<A extends Provable<any, any>>(
 ): Provable<
   Option<InferProvable<A>, InferValue<A>>,
   InferValue<A> | undefined
-> & {
-  fromValue(
-    value:
-      | { isSome: boolean | Bool; value: InferProvable<A> | InferValue<A> }
-      | InferProvable<A>
-      | InferValue<A>
-      | undefined
-  ): Option<InferProvable<A>, InferValue<A>>;
-  from(
-    value?: InferProvable<A> | InferValue<A>
-  ): Option<InferProvable<A>, InferValue<A>>;
-  none(): Option<InferProvable<A>, InferValue<A>>;
-} {
+> &
+  (new (option: { isSome: Bool; value: InferProvable<A> }) => Option<
+    InferProvable<A>,
+    InferValue<A>
+  >) & {
+    fromValue(
+      value:
+        | { isSome: boolean | Bool; value: InferProvable<A> | InferValue<A> }
+        | InferProvable<A>
+        | InferValue<A>
+        | undefined
+    ): Option<InferProvable<A>, InferValue<A>>;
+    from(
+      value?: InferProvable<A> | InferValue<A>
+    ): Option<InferProvable<A>, InferValue<A>>;
+    none(): Option<InferProvable<A>, InferValue<A>>;
+  } {
   type T = InferProvable<A>;
   type V = InferValue<A>;
   let strictType: Provable<T, V> = type;

@@ -212,33 +212,32 @@ function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
   return xEquals.and(yEquals);
 }
 
-/**
- * Verify an ECDSA signature.
- *
- * Details about the `config` parameter:
- * - For both the generator point `G` and public key `P`, `config` allows you to specify:
- *   - the `windowSize` which is used in scalar multiplication for this point.
- *     this flexibility is good because the optimal window size is different for constant and non-constant points.
- *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
- *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
- *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
- *     if these are not provided, they are computed on the fly.
- *     for the constant G, computing multiples costs no constraints, so passing them in makes no real difference.
- *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
- *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
- * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
- */
-function verifyEcdsa(
+function verifyEcdsaGeneric(
   Curve: CurveAffine,
   signature: Ecdsa.Signature,
   msgHash: Field3,
   publicKey: Point,
+  multiScalarMul: (
+    scalars: Field3[],
+    points: Point[],
+    Curve: CurveAffine,
+    tableConfigs?: (
+      | {
+          windowSize?: number;
+          multiples?: Point[];
+        }
+      | undefined
+    )[],
+    mode?: 'assert-nonzero' | 'assert-zero',
+    ia?: point,
+    hashed?: boolean
+  ) => Point,
   config: {
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
   } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
-) {
+): Bool {
   // constant case
   if (
     EcdsaSignature.isConstant(signature) &&
@@ -286,6 +285,69 @@ function verifyEcdsa(
 }
 
 /**
+ * @deprecated There is a security vulnerability with this function, allowing a prover to modify witness values than what is expected. Use {@link verifyEcdsaV2} instead.
+ */
+function verifyEcdsa(
+  Curve: CurveAffine,
+  signature: Ecdsa.Signature,
+  msgHash: Field3,
+  publicKey: Point,
+  config: {
+    G?: { windowSize: number; multiples?: Point[] };
+    P?: { windowSize: number; multiples?: Point[] };
+    ia?: point;
+  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
+) {
+  return verifyEcdsaGeneric(
+    Curve,
+    signature,
+    msgHash,
+    publicKey,
+    (scalars, points, Curve, configs, mode, ia) =>
+      multiScalarMul(scalars, points, Curve, configs, mode, ia, true),
+    config
+  );
+}
+
+/**
+ * Verify an ECDSA signature.
+ *
+ * Details about the `config` parameter:
+ * - For both the generator point `G` and public key `P`, `config` allows you to specify:
+ *   - the `windowSize` which is used in scalar multiplication for this point.
+ *     this flexibility is good because the optimal window size is different for constant and non-constant points.
+ *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
+ *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
+ *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
+ *     if these are not provided, they are computed on the fly.
+ *     for the constant G, computing multiples costs no constraints, so passing them in makes no real difference.
+ *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
+ *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
+ * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
+ */
+function verifyEcdsaV2(
+  Curve: CurveAffine,
+  signature: Ecdsa.Signature,
+  msgHash: Field3,
+  publicKey: Point,
+  config: {
+    G?: { windowSize: number; multiples?: Point[] };
+    P?: { windowSize: number; multiples?: Point[] };
+    ia?: point;
+  } = { G: { windowSize: 4 }, P: { windowSize: 3 } }
+) {
+  return verifyEcdsaGeneric(
+    Curve,
+    signature,
+    msgHash,
+    publicKey,
+    (scalars, points, Curve, configs, mode, ia) =>
+      multiScalarMul(scalars, points, Curve, configs, mode, ia, false),
+    config
+  );
+}
+
+/**
  * Bigint implementation of ECDSA verify
  */
 function verifyEcdsaConstant(
@@ -309,6 +371,36 @@ function verifyEcdsaConstant(
   if (Curve.equal(R, Curve.zero)) return false;
 
   return Curve.Scalar.equal(R.x, r);
+}
+
+function multiScalarMulConstant(
+  scalars: Field3[],
+  points: Point[],
+  Curve: CurveAffine,
+  mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero'
+): Point {
+  let n = points.length;
+  assert(scalars.length === n, 'Points and scalars lengths must match');
+  assertPositiveInteger(n, 'Expected at least 1 point and scalar');
+  let useGlv = Curve.hasEndomorphism;
+
+  // TODO dedicated MSM
+  let s = scalars.map(Field3.toBigint);
+  let P = points.map(Point.toBigint);
+  let sum = Curve.zero;
+  for (let i = 0; i < n; i++) {
+    if (useGlv) {
+      sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
+    } else {
+      sum = Curve.add(sum, Curve.scale(P[i], s[i]));
+    }
+  }
+  if (mode === 'assert-zero') {
+    assert(sum.infinity, 'scalar multiplication: expected zero result');
+    return Point.from(Curve.zero);
+  }
+  assert(!sum.infinity, 'scalar multiplication: expected non-zero result');
+  return Point.from(sum);
 }
 
 /**
@@ -339,7 +431,8 @@ function multiScalarMul(
     | undefined
   )[] = [],
   mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero',
-  ia?: point
+  ia?: point,
+  hashed: boolean = true
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
@@ -348,23 +441,7 @@ function multiScalarMul(
 
   // constant case
   if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
-    // TODO dedicated MSM
-    let s = scalars.map(Field3.toBigint);
-    let P = points.map(Point.toBigint);
-    let sum = Curve.zero;
-    for (let i = 0; i < n; i++) {
-      if (useGlv) {
-        sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
-      } else {
-        sum = Curve.add(sum, Curve.scale(P[i], s[i]));
-      }
-    }
-    if (mode === 'assert-zero') {
-      assert(sum.infinity, 'scalar multiplication: expected zero result');
-      return Point.from(Curve.zero);
-    }
-    assert(!sum.infinity, 'scalar multiplication: expected non-zero result');
-    return Point.from(sum);
+    return multiScalarMulConstant(scalars, points, Curve, mode);
   }
 
   // parse or build point tables
@@ -427,15 +504,18 @@ function multiScalarMul(
   // a Point is 6 field elements, the hash is just 1 field element
   const HashedPoint = Hashed.create(Point.provable);
 
-  let hashedTables = tables.map((table) =>
-    table.map((point) => HashedPoint.hash(point))
-  );
-
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
   // soundness follows because add() and double() are sound, on all inputs that are valid non-zero curve points
   ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
+
+  let hashedTables: Hashed<Point>[][] = [];
+  if (hashed) {
+    hashedTables = tables.map((table) =>
+      table.map((point) => HashedPoint.hash(point))
+    );
+  }
 
   for (let i = maxBits - 1; i >= 0; i--) {
     // add in multiple of each point
@@ -444,14 +524,22 @@ function multiScalarMul(
       if (i % windowSize === 0) {
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
-        let sjP =
-          windowSize === 1
-            ? points[j]
-            : arrayGetGeneric(
-                HashedPoint.provable,
-                hashedTables[j],
-                sj
-              ).unhash();
+        let sjP;
+        if (hashed) {
+          sjP =
+            windowSize === 1
+              ? points[j]
+              : arrayGetGeneric(
+                  HashedPoint.provable,
+                  hashedTables[j],
+                  sj
+                ).unhash();
+        } else {
+          sjP =
+            windowSize === 1
+              ? points[j]
+              : arrayGetGeneric(Point.provable, tables[j], sj);
+        }
 
         // ec addition
         let added = add(sum, sjP, Curve);
@@ -725,6 +813,7 @@ const EcdsaSignature = {
 const Ecdsa = {
   sign: signEcdsa,
   verify: verifyEcdsa,
+  verifyV2: verifyEcdsaV2,
   Signature: EcdsaSignature,
 };
 

@@ -86,7 +86,8 @@ and Provable.asProver() blocks, which execute outside the proof.
    * let xWrapped = Unconstrained.witness(() => Provable.toConstant(type, x));
    * ```
    */
-  static from<T>(value: T) {
+  static from<T>(value: T | Unconstrained<T>) {
+    if (value instanceof Unconstrained) return value;
     return new Unconstrained(true, value);
   }
 
@@ -134,11 +135,11 @@ and Provable.asProver() blocks, which execute outside the proof.
     Unconstrained<T>,
     Unconstrained<T>
   > & {
-    toInput: (x: Unconstrained<any>) => {
+    toInput: (x: Unconstrained<T>) => {
       fields?: Field[];
       packed?: [Field, number][];
     };
-    empty: () => Unconstrained<any>;
+    empty: () => Unconstrained<T>;
   } {
     return {
       ...Unconstrained.provable,

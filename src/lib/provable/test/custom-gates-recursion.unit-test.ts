@@ -46,7 +46,7 @@ let program = ZkProgram({
         let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
         let publicKey_ = Provable.witness(Point.provable, () => publicKey);
 
-        return Ecdsa.verify(Secp256k1, signature_, msgHash_, publicKey_);
+        return Ecdsa.verifyV2(Secp256k1, signature_, msgHash_, publicKey_);
       },
     },
   },
