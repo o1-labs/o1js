@@ -24,7 +24,7 @@ import {
   type ActionQueryResponse,
   type EventActionFilterOptions,
   type SendZkAppResponse,
-  type FetchedAccount,
+  type FetchedAccountResponse,
   type CurrentSlotResponse,
   sendZkappQuery,
   lastBlockQuery,
@@ -202,14 +202,14 @@ async function fetchAccountInternal(
   config?: FetchConfig
 ) {
   const { publicKey, tokenId } = accountInfo;
-  let [response, error] = await makeGraphqlRequest<FetchedAccount>(
+  let [response, error] = await makeGraphqlRequest<FetchedAccountResponse>(
     accountQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
     config
   );
   if (error !== undefined) return { account: undefined, error };
-  let fetchedAccount = response?.data;
+  let fetchedAccount = response?.data?.account;
   if (!fetchedAccount) {
     return {
       account: undefined,
