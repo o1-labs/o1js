@@ -289,12 +289,15 @@ type GenesisConstants = {
 };
 let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
+const emptyKey = PublicKey.empty().toBase58();
+
 function markAccountToBeFetched(
   publicKey: PublicKey,
   tokenId: Field,
   graphqlEndpoint: string
 ) {
   let publicKeyBase58 = publicKey.toBase58();
+  if (publicKeyBase58 === emptyKey) return;
   let tokenBase58 = TokenId.toBase58(tokenId);
   accountsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
