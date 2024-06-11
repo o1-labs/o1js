@@ -139,4 +139,17 @@ namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
 }
 
+// // v2 API
+// export { V2 };
+// 
+// const V2_ = {
+// 	AccountUpdate,
+// };
+// 
+// namespace V2 {
+// 	export let AccountUpdate = V2_.AccountUpdate;
+// }
+
+export * from './lib/mina/v2.js';
+
 Error.stackTraceLimit = 100000;

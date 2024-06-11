@@ -70,6 +70,9 @@ export {
   isAsFields,
   Prover,
   dummyBase64Proof,
+	PrivateInput,
+	Tuple,
+	TupleToInstances
 };
 
 type Undefined = undefined;
