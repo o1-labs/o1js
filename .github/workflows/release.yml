@@ -77,6 +77,6 @@ jobs:
           git checkout -b $NEW_BRANCH
           git push -u origin $NEW_BRANCH
           git push --tags
-          gh pr create --base main --head $NEW_BRANCH --title "Release $NEW_VERSION [CHECK SEMVER BEFORE MERGE]" --body "This is an automated PR to update to version $NEW_VERSION. Please check [SemVer](https://semver.org/) for correct versioning before merging this PR."
+          gh pr create --base main --head $NEW_BRANCH --title "Release $NEW_VERSION [CHECK SEMVER BEFORE MERGE]" --body "This is an automated PR to update to version $NEW_VERSION.\n\nPlease check [SemVer](https://semver.org/) for correct versioning before merging this PR."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
