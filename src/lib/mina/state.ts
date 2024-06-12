@@ -207,10 +207,6 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       stateAsFields.forEach((x, i) => {
         let appStateSlot =
           accountUpdate.body.update.appState[layout.offset + i];
-        if (!appStateSlot)
-          throw Error(
-            `Attempted to set on-chain state variable \`${this._contract?.key}\`. Currently, only a total of 8 fields elements of on-chain state are supported.`
-          );
         AccountUpdate.setValue(appStateSlot, x);
       });
     },
@@ -382,6 +378,11 @@ function getLayout(scClass: typeof SmartContract) {
       layout.set(key, { offset, length });
       offset += length;
     });
+    if (offset > 8) {
+      throw Error(
+        `Found ${offset} on-chain state field elements on ${scClass.name}. Currently, only a total of 8 field elements of state are supported.`
+      );
+    }
   }
   return sc.layout;
 }
