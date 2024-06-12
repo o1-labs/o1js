@@ -37,8 +37,8 @@ import {
 } from '../proof-system/zkprogram.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import {
-  Events,
-  Actions,
+  Events as BaseEvents,
+  Actions as BaseActions,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import {
@@ -132,6 +132,31 @@ type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
 type MayUseToken = AccountUpdateBody['mayUseToken'];
+
+type Events = BaseEvents;
+const Events = {
+  ...BaseEvents,
+  pushEvent(events: Events, event: Field[]): Events {
+    events = BaseEvents.pushEvent(events, event);
+    Provable.asProver(() => {
+      // make sure unconstrained data is stored as constants
+      events.data[0] = events.data[0].map((e) => Field(Field.toBigint(e)));
+    });
+    return events;
+  },
+};
+type Actions = BaseActions;
+const Actions = {
+  ...BaseActions,
+  pushEvent(actions: Actions, action: Field[]): Actions {
+    actions = BaseActions.pushEvent(actions, action);
+    Provable.asProver(() => {
+      // make sure unconstrained data is stored as constants
+      actions.data[0] = actions.data[0].map((e) => Field(Field.toBigint(e)));
+    });
+    return actions;
+  },
+};
 
 /**
  * Either set a value or keep it the same.
