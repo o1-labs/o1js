@@ -2,7 +2,7 @@ import { SmartContract } from '../zkapp.js';
 import * as Mina from '../mina.js';
 import { OffchainState } from '../actions/offchain-state.js';
 
-export { testLocal };
+export { testLocal, transaction };
 
 async function testLocal<S extends SmartContract>(
   Contract: typeof SmartContract & (new (...args: any) => S),
@@ -14,7 +14,7 @@ async function testLocal<S extends SmartContract>(
     accounts: Record<string, Mina.TestPublicKey>;
     contract: S;
     Local: Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
-  }) => Promise<void>
+  }) => TestAction[]
 ) {
   const Local = await Mina.LocalBlockchain({ proofsEnabled });
   Mina.setActiveInstance(Local);
@@ -58,7 +58,36 @@ async function testLocal<S extends SmartContract>(
     .send();
   console.timeEnd('deploy');
 
-  // run tests
+  // run test spec to return actions
 
-  await callback({ accounts, contract: contract as S, Local });
+  let testActions = callback({
+    accounts,
+    contract: contract as S,
+    Local,
+  });
+
+  // run actions
+
+  for (let action of testActions) {
+    if (typeof action === 'function') {
+      await action();
+    } else if (action.type === 'transaction') {
+      console.time(action.label);
+      await Mina.transaction(sender, action.callback)
+        .sign([sender.key])
+        .prove()
+        .send();
+      console.timeEnd(action.label);
+    }
+  }
+}
+
+// types and helper structures
+
+type TestAction =
+  | ((...args: any) => any)
+  | { type: 'transaction'; label: string; callback: () => Promise<void> };
+
+function transaction(label: string, callback: () => Promise<void>): TestAction {
+  return { type: 'transaction', label, callback };
 }

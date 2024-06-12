@@ -8,7 +8,7 @@ import {
   Experimental,
 } from '../../../index.js';
 import assert from 'assert';
-import { testLocal } from '../test/test-contract.js';
+import { testLocal, transaction } from '../test/test-contract.js';
 
 const { OffchainState } = Experimental;
 
@@ -92,54 +92,49 @@ const proofsEnabled = false;
 await testLocal(
   ExampleContract,
   { proofsEnabled, offchainState },
-  async ({ accounts: { sender, receiver, other }, contract, Local }) => {
+  ({ accounts: { sender, receiver, other }, contract, Local }) => [
     // create first account
-
-    console.time('create account');
-    await Mina.transaction(sender, async () => {
+    transaction('create account', async () => {
       // first call (should succeed)
       await contract.createAccount(sender, UInt64.from(1000));
 
       // second call (should fail)
       await contract.createAccount(sender, UInt64.from(2000));
-    })
-      .sign([sender.key])
-      .prove()
-      .send();
-    console.timeEnd('create account');
+    }),
 
     // settle
+    async () => {
+      console.time('settlement proof 1');
+      let proof = await offchainState.createSettlementProof();
+      console.timeEnd('settlement proof 1');
 
-    console.time('settlement proof 1');
-    let proof = await offchainState.createSettlementProof();
-    console.timeEnd('settlement proof 1');
-
-    console.time('settle 1');
-    await Mina.transaction(sender, () => contract.settle(proof))
-      .sign([sender.key])
-      .prove()
-      .send();
-    console.timeEnd('settle 1');
+      console.time('settle 1');
+      await Mina.transaction(sender, () => contract.settle(proof))
+        .sign([sender.key])
+        .prove()
+        .send();
+      console.timeEnd('settle 1');
+    },
 
     // check balance and supply
-    await check({ expectedSupply: 1000n, expectedSenderBalance: 1000n });
+    () =>
+      check({
+        contract,
+        expectedSupply: 1000n,
+        expectedSenderBalance: 1000n,
+        accounts: { sender, receiver, other },
+      }),
 
     // transfer (should succeed)
+    transaction('transfer', () =>
+      contract.transfer(sender, receiver, UInt64.from(100))
+    ),
 
-    console.time('transfer');
-    await Mina.transaction(sender, async () => {
-      await contract.transfer(sender, receiver, UInt64.from(100));
-    })
-      .sign([sender.key])
-      .prove()
-      .send();
-    console.timeEnd('transfer');
+    // we run some calls without proofs to save time
+    () => Local.setProofsEnabled(false),
 
-    console.time('more transfers');
-    Local.setProofsEnabled(false); // we run these without proofs to save time
-
-    await Mina.transaction(sender, async () => {
-      // more transfers that should fail
+    // more transfers that should fail
+    transaction('more transfers', async () => {
       // (these are enough to need two proof steps during settlement)
       await contract.transfer(sender, receiver, UInt64.from(200));
       await contract.transfer(sender, receiver, UInt64.from(300));
@@ -150,52 +145,56 @@ await testLocal(
 
       // create existing account again (should fail)
       await contract.createAccount(receiver, UInt64.from(333));
-    })
-      .sign([sender.key])
-      .prove()
-      .send();
-    console.timeEnd('more transfers');
+    }),
 
     // settle
-    Local.setProofsEnabled(proofsEnabled);
+    async () => {
+      Local.setProofsEnabled(proofsEnabled);
+      console.time('settlement proof 2');
+      let proof = await offchainState.createSettlementProof();
+      console.timeEnd('settlement proof 2');
 
-    console.time('settlement proof 2');
-    proof = await offchainState.createSettlementProof();
-    console.timeEnd('settlement proof 2');
-
-    console.time('settle 2');
-    await Mina.transaction(sender, () => contract.settle(proof))
-      .sign([sender.key])
-      .prove()
-      .send();
-    console.timeEnd('settle 2');
+      console.time('settle 2');
+      await Mina.transaction(sender, () => contract.settle(proof))
+        .sign([sender.key])
+        .prove()
+        .send();
+      console.timeEnd('settle 2');
+    },
 
     // check balance and supply
-    await check({ expectedSupply: 1555n, expectedSenderBalance: 900n });
-
-    // test helper
-
-    async function check({
-      expectedSupply,
-      expectedSenderBalance,
-    }: {
-      expectedSupply: bigint;
-      expectedSenderBalance: bigint;
-    }) {
-      let supply = (await contract.getSupply()).toBigInt();
-      assert.strictEqual(supply, expectedSupply);
-
-      let balanceSender = (await contract.getBalance(sender)).toBigInt();
-      let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
-      let balanceOther = (await contract.getBalance(other)).toBigInt();
-
-      console.log('balance (sender)', balanceSender);
-      console.log('balance (recv)', balanceReceiver);
-      assert.strictEqual(
-        balanceSender + balanceReceiver + balanceOther,
-        supply
-      );
-      assert.strictEqual(balanceSender, expectedSenderBalance);
-    }
-  }
+    () =>
+      check({
+        contract,
+        expectedSupply: 1555n,
+        expectedSenderBalance: 900n,
+        accounts: { sender, receiver, other },
+      }),
+  ]
 );
+
+// test helper
+
+async function check({
+  contract,
+  expectedSupply,
+  expectedSenderBalance,
+  accounts: { sender, receiver, other },
+}: {
+  contract: ExampleContract;
+  expectedSupply: bigint;
+  expectedSenderBalance: bigint;
+  accounts: { sender: PublicKey; receiver: PublicKey; other: PublicKey };
+}) {
+  let supply = (await contract.getSupply()).toBigInt();
+  assert.strictEqual(supply, expectedSupply);
+
+  let balanceSender = (await contract.getBalance(sender)).toBigInt();
+  let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
+  let balanceOther = (await contract.getBalance(other)).toBigInt();
+
+  console.log('balance (sender)', balanceSender);
+  console.log('balance (recv)', balanceReceiver);
+  assert.strictEqual(balanceSender + balanceReceiver + balanceOther, supply);
+  assert.strictEqual(balanceSender, expectedSenderBalance);
+}
