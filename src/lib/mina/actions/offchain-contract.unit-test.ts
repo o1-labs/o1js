@@ -10,8 +10,6 @@ import {
 import assert from 'assert';
 import { testLocal } from '../test/test-contract.js';
 
-const proofsEnabled = true;
-
 const { OffchainState } = Experimental;
 
 const offchainState = OffchainState(
@@ -89,33 +87,12 @@ class ExampleContract extends SmartContract {
 
 // test code below
 
-if (proofsEnabled) {
-  console.time('compile program');
-  await offchainState.compile();
-  console.timeEnd('compile program');
-}
+const proofsEnabled = false;
 
 await testLocal(
   ExampleContract,
-  { proofsEnabled },
-  async ({
-    accounts: { sender, receiver, contractAccount, other },
-    contract,
-    Local,
-  }) => {
-    offchainState.setContractInstance(contract);
-
-    // deploy and create first account
-
-    console.time('deploy');
-    await Mina.transaction(sender, async () => {
-      await contract.deploy();
-    })
-      .sign([sender.key, contractAccount.key])
-      .prove()
-      .send();
-    console.timeEnd('deploy');
-
+  { proofsEnabled, offchainState },
+  async ({ accounts: { sender, receiver, other }, contract, Local }) => {
     // create first account
 
     console.time('create account');
