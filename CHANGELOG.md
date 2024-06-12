@@ -19,10 +19,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
+### Breaking Changes
+
+- Improve efficiency of `Experimental.OffchainState` implementation https://github.com/o1-labs/o1js/pull/1672
+  - Comes with breaking changes to the internal circuits of `OffchainState`
+  - Also, introduce `offchainState.commitments()` to initialize the state commitments onchain. Using `OffchainStateCommitments.empty()` no longer works.
+
 ### Added
 
-- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage which uses 4-8x fewer constraints than `MerkleMap` https://github.com/o1-labs/o1js/pull/1666
-  - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code.
+- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage https://github.com/o1-labs/o1js/pull/1666 https://github.com/o1-labs/o1js/pull/1671
+  - Uses 4-8x fewer constraints than `MerkleMap`
+  - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code
+- Added `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2` methods to the `Ecdsa` class. https://github.com/o1-labs/o1js/pull/1669
 
 ### Deprecated
 
@@ -36,12 +44,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix handling of fetch response for non-existing accounts https://github.com/o1-labs/o1js/pull/1679
 
-## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf)
+## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf) - 2024-05-23
 
 ### Added
 
 - Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class. https://github.com/o1-labs/o1js/pull/1659
-- Added `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2` methods to the `Ecdsa` class. https://github.com/o1-labs/o1js/pull/1669
 
 ### Fixes
 
