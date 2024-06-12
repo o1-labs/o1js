@@ -24,8 +24,11 @@ import * as Mina from '../mina.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { Provable } from '../../provable/provable.js';
 import { Actions } from '../account-update.js';
-import { MerkleTree } from '../../provable/merkle-tree.js';
 import { Option } from '../../provable/option.js';
+import {
+  IndexedMerkleMap,
+  IndexedMerkleMapBase,
+} from '../../provable/merkle-tree-indexed.js';
 
 export {
   toKeyHash,
@@ -256,9 +259,13 @@ async function fetchMerkleLeaves(
  * We also deserialize a keyHash -> value map from the leaves.
  */
 async function fetchMerkleMap(
+  height: number,
   contract: { address: PublicKey; tokenId: Field },
   endActionState?: Field
-): Promise<{ merkleMap: MerkleTree; valueMap: Map<bigint, Field[]> }> {
+): Promise<{
+  merkleMap: IndexedMerkleMapBase;
+  valueMap: Map<bigint, Field[]>;
+}> {
   let result = await Mina.fetchActions(
     contract.address,
     { endActionState },
@@ -272,7 +279,7 @@ async function fetchMerkleMap(
       .reverse()
   );
 
-  let merkleMap = new MerkleTree(256);
+  let merkleMap = new (IndexedMerkleMap(height))();
   let valueMap = new Map<bigint, Field[]>();
 
   updateMerkleMap(leaves, merkleMap, valueMap);
@@ -282,44 +289,43 @@ async function fetchMerkleMap(
 
 function updateMerkleMap(
   updates: MerkleLeaf[][],
-  tree: MerkleTree,
+  tree: IndexedMerkleMapBase,
   valueMap?: Map<bigint, Field[]>
 ) {
   let intermediateTree = tree.clone();
 
   for (let leaves of updates) {
     let isValidUpdate = true;
-    let updates: { key: bigint; value: bigint; fullValue: Field[] }[] = [];
+    let updates: { key: bigint; fullValue: Field[] }[] = [];
 
     for (let leaf of leaves) {
       let { key, value, usesPreviousValue, previousValue, prefix } =
         MerkleLeaf.toValue(leaf);
 
       // the update is invalid if there is an unsatisfied precondition
+      let previous = intermediateTree.getOption(key).orElse(0n);
       let isValidAction =
-        !usesPreviousValue ||
-        intermediateTree.getLeaf(key).toBigInt() === previousValue;
+        !usesPreviousValue || previous.toBigInt() === previousValue;
 
       if (!isValidAction) {
         isValidUpdate = false;
-
         break;
       }
 
       // update the intermediate tree, save updates for final tree
-      intermediateTree.setLeaf(key, Field(value));
-      updates.push({ key, value, fullValue: prefix.get() });
+      intermediateTree.set(key, value);
+      updates.push({ key, fullValue: prefix.get() });
     }
 
     if (isValidUpdate) {
       // if the update was valid, we can commit the updates
-      for (let { key, value, fullValue } of updates) {
-        tree.setLeaf(key, Field(value));
+      tree.overwrite(intermediateTree);
+      for (let { key, fullValue } of updates) {
         if (valueMap) valueMap.set(key, fullValue);
       }
     } else {
       // if the update was invalid, we have to roll back the intermediate tree
-      intermediateTree = tree.clone();
+      intermediateTree.overwrite(tree);
     }
   }
 }

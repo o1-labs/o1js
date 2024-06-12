@@ -15,14 +15,41 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/54d6545bf...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/40c597775...HEAD)
 
 ### Added
 
 - **SHA256 partial hash function** exposed via or `Gadgets.SHA256`.
 - Low-Level SHA256 API exposed `compression` and `prepareMessageSchedule` functions as part of `Gadgets.SHA256`.
 
-## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf)
+## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
+
+### Breaking Changes
+
+- Improve efficiency of `Experimental.OffchainState` implementation https://github.com/o1-labs/o1js/pull/1672
+  - Comes with breaking changes to the internal circuits of `OffchainState`
+  - Also, introduce `offchainState.commitments()` to initialize the state commitments onchain. Using `OffchainStateCommitments.empty()` no longer works.
+
+### Added
+
+- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage https://github.com/o1-labs/o1js/pull/1666 https://github.com/o1-labs/o1js/pull/1671
+  - Uses 4-8x fewer constraints than `MerkleMap`
+  - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code
+- Added `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2` methods to the `Ecdsa` class. https://github.com/o1-labs/o1js/pull/1669
+
+### Deprecated
+
+- `Int64.isPositive()` and `Int64.mod()` deprecated because they behave incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
+  - This can pose an attack surface, since it is easy to maliciously pick either the `+0` or the `-0` representation
+  - Use `Int64.isPositiveV2()` and `Int64.modV2()` instead
+  - Also deprecated `Int64.neg()` in favor of `Int64.negV2()`, for compatibility with v2 version of `Int64` that will use `Int64.checkV2()`
+- `Ecdsa.verify()` and `Ecdsa.verifySignedHash()` deprecated in favor of `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2()` due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1669
+
+### Fixed
+
+- Fix handling of fetch response for non-existing accounts https://github.com/o1-labs/o1js/pull/1679
+
+## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf) - 2024-05-23
 
 ### Added
 

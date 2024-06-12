@@ -4,6 +4,7 @@ export {
   prettifyStacktrace,
   prettifyStacktracePromise,
   assert,
+  assertDefined,
 };
 
 /**
@@ -279,4 +280,15 @@ function assert(
   message = 'Failed assertion.'
 ): asserts condition {
   if (!condition) throw Bug(message);
+}
+
+/**
+ * Assert that the value is not undefined, return the value.
+ */
+function assertDefined<T>(
+  value: T | undefined,
+  message = 'Input value is undefined.'
+): T {
+  if (value !== undefined) throw Bug(message);
+  return value as T;
 }

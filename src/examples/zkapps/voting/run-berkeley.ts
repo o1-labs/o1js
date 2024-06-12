@@ -20,8 +20,8 @@ import {
 import { getResults, vote } from './voting-lib.js';
 
 const Berkeley = Mina.Network({
-  mina: 'https://proxy.berkeley.minaexplorer.com/graphql',
-  archive: 'https://archive-node-api.p42.xyz/',
+  mina: 'https://api.minascan.io/node/devnet/v1/graphql',
+  archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
 });
 Mina.setActiveInstance(Berkeley);
 

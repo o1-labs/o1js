@@ -58,7 +58,7 @@ const { provable } = createDerivers<Field>();
 
 function provablePure<A>(
   typeObj: A
-): ProvablePureExtended<InferProvable<A>, InferJson<A>> {
+): ProvablePureExtended<InferProvable<A>, InferValue<A>, InferJson<A>> {
   return provable(typeObj, { isPure: true }) as any;
 }
 
@@ -70,8 +70,8 @@ function provableFromClass<A, T extends InferProvable<A>>(
   Class: Constructor<T> & { check?: (x: T) => void; empty?: () => T },
   typeObj: A
 ): IsPure<A> extends true
-  ? ProvablePureExtended<T, InferJson<A>>
-  : ProvableExtended<T, InferJson<A>> {
+  ? ProvablePureExtended<T, InferValue<A>, InferJson<A>>
+  : ProvableExtended<T, InferValue<A>, InferJson<A>> {
   let raw = provable(typeObj);
   return {
     sizeInFields: raw.sizeInFields,

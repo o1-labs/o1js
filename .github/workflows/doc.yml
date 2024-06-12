@@ -1,4 +1,4 @@
-name: Build o1js
+name: o1js typedoc
 on:
   push:
     branches:
