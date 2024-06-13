@@ -86,7 +86,7 @@ class ExampleContract extends SmartContract {
 
 // test code below
 
-const proofsEnabled = false;
+const proofsEnabled = true;
 
 await testLocal(
   ExampleContract,
