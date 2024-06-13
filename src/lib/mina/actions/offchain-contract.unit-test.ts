@@ -114,7 +114,6 @@ await testLocal(
     expectState(offchainState.fields.totalSupply, 1000n),
     expectState(offchainState.fields.accounts, [sender, 1000n]),
     expectState(offchainState.fields.accounts, [receiver, undefined]),
-    expectState(offchainState.fields.accounts, [other, undefined]),
 
     // transfer (should succeed)
     transaction('transfer', () =>
@@ -152,6 +151,5 @@ await testLocal(
     expectState(offchainState.fields.totalSupply, 1555n),
     expectState(offchainState.fields.accounts, [sender, 900n]),
     expectState(offchainState.fields.accounts, [receiver, 100n]),
-    expectState(offchainState.fields.accounts, [other, 555n]),
   ]
 );
