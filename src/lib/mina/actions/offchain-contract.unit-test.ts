@@ -108,12 +108,7 @@ await testLocal(
       let proof = await offchainState.createSettlementProof();
       console.timeEnd('settlement proof 1');
 
-      console.time('settle 1');
-      await Mina.transaction(sender, () => contract.settle(proof))
-        .sign([sender.key])
-        .prove()
-        .send();
-      console.timeEnd('settle 1');
+      return transaction('settle 1', () => contract.settle(proof));
     },
 
     // check balance and supply
@@ -154,12 +149,7 @@ await testLocal(
       let proof = await offchainState.createSettlementProof();
       console.timeEnd('settlement proof 2');
 
-      console.time('settle 2');
-      await Mina.transaction(sender, () => contract.settle(proof))
-        .sign([sender.key])
-        .prove()
-        .send();
-      console.timeEnd('settle 2');
+      return transaction('settle 2', () => contract.settle(proof));
     },
 
     // check balance and supply
@@ -186,8 +176,8 @@ async function check({
   expectedSenderBalance: bigint;
   accounts: { sender: PublicKey; receiver: PublicKey; other: PublicKey };
 }) {
-  let supply = (await contract.getSupply()).toBigInt();
-  assert.strictEqual(supply, expectedSupply);
+  let supply = (await offchainState.fields.totalSupply.get()).orElse(0n);
+  assert.strictEqual(supply.toBigInt(), expectedSupply);
 
   let balanceSender = (await contract.getBalance(sender)).toBigInt();
   let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
@@ -195,6 +185,9 @@ async function check({
 
   console.log('balance (sender)', balanceSender);
   console.log('balance (recv)', balanceReceiver);
-  assert.strictEqual(balanceSender + balanceReceiver + balanceOther, supply);
+  assert.strictEqual(
+    balanceSender + balanceReceiver + balanceOther,
+    expectedSupply
+  );
   assert.strictEqual(balanceSender, expectedSenderBalance);
 }

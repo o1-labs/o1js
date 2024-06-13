@@ -68,9 +68,12 @@ async function testLocal<S extends SmartContract>(
 
   // run actions
 
-  for (let action of testActions) {
+  async function runAction(action: TestAction): Promise<void> {
     if (typeof action === 'function') {
-      await action();
+      let maybe = await action();
+      if (maybe !== undefined) {
+        await runAction(maybe);
+      }
     } else if (action.type === 'transaction') {
       console.time(action.label);
       await Mina.transaction(sender, action.callback)
@@ -78,14 +81,22 @@ async function testLocal<S extends SmartContract>(
         .prove()
         .send();
       console.timeEnd(action.label);
+    } else {
+      throw new Error('unknown action type');
     }
+  }
+
+  for (let action of testActions) {
+    await runAction(action);
   }
 }
 
 // types and helper structures
 
+type MaybePromise<T> = T | Promise<T>;
+
 type TestAction =
-  | ((...args: any) => any)
+  | ((...args: any) => MaybePromise<TestAction | void>)
   | { type: 'transaction'; label: string; callback: () => Promise<void> };
 
 function transaction(label: string, callback: () => Promise<void>): TestAction {
