@@ -1,14 +1,13 @@
 import {
   SmartContract,
   method,
-  Mina,
   state,
   PublicKey,
   UInt64,
   Experimental,
 } from '../../../index.js';
 import assert from 'assert';
-import { testLocal, transaction } from '../test/test-contract.js';
+import { expectState, testLocal, transaction } from '../test/test-contract.js';
 
 const { OffchainState } = Experimental;
 
@@ -112,6 +111,7 @@ await testLocal(
     },
 
     // check balance and supply
+    expectState(offchainState.fields.totalSupply, 1000n),
     () =>
       check({
         contract,
@@ -153,6 +153,7 @@ await testLocal(
     },
 
     // check balance and supply
+    expectState(offchainState.fields.totalSupply, 1555n),
     () =>
       check({
         contract,

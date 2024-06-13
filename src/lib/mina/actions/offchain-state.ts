@@ -24,7 +24,11 @@ import { Poseidon } from '../../provable/crypto/poseidon.js';
 import { smartContractContext } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 
+// external API
 export { OffchainState, OffchainStateCommitments };
+
+// internal API
+export { OffchainField, OffchainMap };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
@@ -283,6 +287,8 @@ function OffchainState<
     let optionType = Option(type);
 
     return {
+      _type: type,
+
       overwrite(value) {
         // serialize into action
         let action = toAction({
@@ -446,6 +452,8 @@ function OffchainField<T extends Any>(type: T) {
   return { kind: 'offchain-field' as const, type };
 }
 type OffchainField<T, TValue> = {
+  _type: Provable<T, TValue>;
+
   /**
    * Get the value of the field, or none if it doesn't exist yet.
    */
