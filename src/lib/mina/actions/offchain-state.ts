@@ -336,6 +336,9 @@ function OffchainState<
     let optionType = Option(valueType);
 
     return {
+      _keyType: keyType,
+      _valueType: valueType,
+
       overwrite(key, value) {
         // serialize into action
         let action = toAction({
@@ -483,6 +486,9 @@ function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
   return { kind: 'offchain-map' as const, keyType: key, valueType: value };
 }
 type OffchainMap<K, V, VValue> = {
+  _keyType: Provable<K>;
+  _valueType: Provable<V, VValue>;
+
   /**
    * Get the value for this key, or none if it doesn't exist.
    */

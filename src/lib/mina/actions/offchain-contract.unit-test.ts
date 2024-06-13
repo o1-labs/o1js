@@ -112,13 +112,9 @@ await testLocal(
 
     // check balance and supply
     expectState(offchainState.fields.totalSupply, 1000n),
-    () =>
-      check({
-        contract,
-        expectedSupply: 1000n,
-        expectedSenderBalance: 1000n,
-        accounts: { sender, receiver, other },
-      }),
+    expectState(offchainState.fields.accounts, [sender, 1000n]),
+    expectState(offchainState.fields.accounts, [receiver, undefined]),
+    expectState(offchainState.fields.accounts, [other, undefined]),
 
     // transfer (should succeed)
     transaction('transfer', () =>
@@ -154,41 +150,8 @@ await testLocal(
 
     // check balance and supply
     expectState(offchainState.fields.totalSupply, 1555n),
-    () =>
-      check({
-        contract,
-        expectedSupply: 1555n,
-        expectedSenderBalance: 900n,
-        accounts: { sender, receiver, other },
-      }),
+    expectState(offchainState.fields.accounts, [sender, 900n]),
+    expectState(offchainState.fields.accounts, [receiver, 100n]),
+    expectState(offchainState.fields.accounts, [other, 555n]),
   ]
 );
-
-// test helper
-
-async function check({
-  contract,
-  expectedSupply,
-  expectedSenderBalance,
-  accounts: { sender, receiver, other },
-}: {
-  contract: ExampleContract;
-  expectedSupply: bigint;
-  expectedSenderBalance: bigint;
-  accounts: { sender: PublicKey; receiver: PublicKey; other: PublicKey };
-}) {
-  let supply = (await offchainState.fields.totalSupply.get()).orElse(0n);
-  assert.strictEqual(supply.toBigInt(), expectedSupply);
-
-  let balanceSender = (await contract.getBalance(sender)).toBigInt();
-  let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
-  let balanceOther = (await contract.getBalance(other)).toBigInt();
-
-  console.log('balance (sender)', balanceSender);
-  console.log('balance (recv)', balanceReceiver);
-  assert.strictEqual(
-    balanceSender + balanceReceiver + balanceOther,
-    expectedSupply
-  );
-  assert.strictEqual(balanceSender, expectedSenderBalance);
-}

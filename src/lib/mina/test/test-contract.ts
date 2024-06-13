@@ -1,6 +1,10 @@
 import { SmartContract } from '../zkapp.js';
 import * as Mina from '../mina.js';
-import { OffchainField, OffchainState } from '../actions/offchain-state.js';
+import {
+  OffchainField,
+  OffchainMap,
+  OffchainState,
+} from '../actions/offchain-state.js';
 import assert from 'assert';
 import { Option } from '../../provable/option.js';
 
@@ -85,8 +89,14 @@ async function testLocal<S extends SmartContract>(
       console.timeEnd(action.label);
     } else if (action.type === 'expect-state') {
       let { state, expected, message } = action;
-      let actual = Option(state._type).toValue(await state.get());
-      assert.deepStrictEqual(actual, expected, message);
+      if ('_type' in state) {
+        let actual = Option(state._type).toValue(await state.get());
+        assert.deepStrictEqual(actual, expected, message);
+      } else if ('_valueType' in state) {
+        let [key, value] = expected;
+        let actual = Option(state._valueType).toValue(await state.get(key));
+        assert.deepStrictEqual(actual, value, message);
+      }
     } else {
       throw new Error('unknown action type');
     }
@@ -115,16 +125,18 @@ function transaction(label: string, callback: () => Promise<void>): TestAction {
   return { type: 'transaction', label, callback };
 }
 
-function expectState<State extends OffchainField<any, any>>(
-  state: State,
-  expected: Expected<State>,
+function expectState<S extends State>(
+  state: S,
+  expected: Expected<S>,
   message?: string
 ): TestAction {
   return { type: 'expect-state', state, expected, message };
 }
 
-type State = OffchainField<any, any>;
+type State = OffchainField<any, any> | OffchainMap<any, any, any>;
 
 type Expected<S extends State> = S extends OffchainField<any, infer V>
   ? V | undefined
+  : S extends OffchainMap<infer K, any, infer V>
+  ? [K, V | undefined]
   : never;
