@@ -228,12 +228,20 @@ function OffchainState<
     return ctx.this as OffchainStateContract;
   }
 
+  function maybeContract() {
+    try {
+      return contract();
+    } catch {
+      return internal.contract;
+    }
+  }
+
   /**
    * generic get which works for both fields and maps
    */
   async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
     // get onchain merkle root
-    let stateRoot = contract().offchainState.getAndRequireEquals().root;
+    let stateRoot = maybeContract().offchainState.getAndRequireEquals().root;
 
     // witness the merkle map & anchor against the onchain root
     let map = await Provable.witnessAsync(
