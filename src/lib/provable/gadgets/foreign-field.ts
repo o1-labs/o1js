@@ -548,16 +548,9 @@ function assertMul(
   let y0 = y.finishForMulInput(f);
   let xy0 = xy.finish(f);
 
-  // x is chained into the ffmul gate
-  let x0 = x.finishForMulInput(f, true);
-
   // constant case
-  if (
-    Field3.isConstant(x0) &&
-    Field3.isConstant(y0) &&
-    Field3.isConstant(xy0)
-  ) {
-    let x_ = Field3.toBigint(x0);
+  if (x.isConstant() && Field3.isConstant(y0) && Field3.isConstant(xy0)) {
+    let x_ = Field3.toBigint(x.finish(f));
     let y_ = Field3.toBigint(y0);
     let xy_ = Field3.toBigint(xy0);
     assert(
@@ -566,6 +559,14 @@ function assertMul(
     );
     return;
   }
+
+  // ensure y0 and xy0 have no constant limbs left
+  // otherwise, the foreign field mul gate doing the same would break the gate chaining below
+  y0 = toVars(y0);
+  xy0 = toVars(xy0);
+
+  // x is chained into the ffmul gate
+  let x0 = x.finishForMulInput(f, true);
 
   assertMulInternal(x0, y0, xy0, f, message);
 }
