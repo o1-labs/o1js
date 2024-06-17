@@ -18,6 +18,7 @@ import type {
   MlUnit,
   MlString,
   MlTuple,
+  MlArrayMaybeElements,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
@@ -45,7 +46,6 @@ export {
   JsonGate,
   MlPublicKey,
   MlPublicKeyVar,
-  FeatureFlags,
   MlFeatureFlags,
 };
 
@@ -598,17 +598,6 @@ type Test = {
   };
 };
 
-type FeatureFlags = {
-  rangeCheck0: boolean;
-  rangeCheck1: boolean;
-  foreignFieldAdd: boolean;
-  foreignFieldMul: boolean;
-  xor: boolean;
-  rot: boolean;
-  lookup: boolean;
-  runtimeTables: boolean;
-};
-
 type MlFeatureFlags = [
   _: 0,
   rangeCheck0: MlBool,
@@ -747,7 +736,8 @@ declare const Pickles: {
       name: string,
       numProofsVerified: 0 | 1 | 2,
       publicInputLength: number,
-      publicOutputLength: number
+      publicOutputLength: number,
+      featureFlags: MlArrayMaybeElements<MlFeatureFlags>
     ) => unknown /* tag */;
     // Instantiate the verification key inside the circuit (required).
     inCircuit: (tag: unknown, verificationKey: unknown) => undefined;

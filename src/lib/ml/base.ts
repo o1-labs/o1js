@@ -14,6 +14,7 @@ export {
   MlUnit,
   MlString,
   MlTuple,
+  MlArrayMaybeElements,
 };
 
 // ocaml types
@@ -25,6 +26,11 @@ type MlOption<T> = 0 | [0, T];
 type MlBool = 0 | 1;
 type MlResult<T, E> = [0, T] | [1, E];
 type MlUnit = 0;
+
+// custom types
+type MlArrayMaybeElements<MlArray extends any[]> = {
+  [K in keyof MlArray]: MlArray[K] extends 0 ? 0 : MlOption<MlArray[K]>;
+};
 
 /**
  * js_of_ocaml representation of a byte array,
