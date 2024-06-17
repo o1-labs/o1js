@@ -42,6 +42,7 @@ const sideloadedProgram = ZkProgram({
   },
 });
 
+// given a zkProgram, we compute the feature flags that we need in order to verify proofs that were generated
 const featureFlags = await FeatureFlags.fromZkProgram(sideloadedProgram);
 
 class SideloadedProgramProof extends DynamicProof<Field, Field> {
@@ -49,7 +50,7 @@ class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static publicOutputType = Field;
   static maxProofsVerified = 0 as const;
 
-  // we configure this side loaded proof to only accept proofs that doesn't use any feature flags (custom gates)
+  // we use the feature flags that we computed from the `sideloadedProgram` ZkProgram
   static featureFlags = featureFlags;
 }
 

@@ -85,17 +85,23 @@ const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
-type MaybeFeatureFlag = boolean | undefined;
 type FeatureFlags = {
-  rangeCheck0: MaybeFeatureFlag;
-  rangeCheck1: MaybeFeatureFlag;
-  foreignFieldAdd: MaybeFeatureFlag;
-  foreignFieldMul: MaybeFeatureFlag;
-  xor: MaybeFeatureFlag;
-  rot: MaybeFeatureFlag;
-  lookup: MaybeFeatureFlag;
-  runtimeTables: MaybeFeatureFlag;
+  rangeCheck0: boolean | undefined;
+  rangeCheck1: boolean | undefined;
+  foreignFieldAdd: boolean | undefined;
+  foreignFieldMul: boolean | undefined;
+  xor: boolean | undefined;
+  rot: boolean | undefined;
+  lookup: boolean | undefined;
+  runtimeTables: boolean | undefined;
 };
+/**
+ * Feature flags indicate what custom gates are used in a proof of circuit.
+ * Side loading, for example, requires a set of feature flags in advance (at compile time) in order to verify and side load proofs.
+ * If the side loaded proofs and verification keys do not match the specified feature flag configurations, the verification will fail.
+ * Flags specified as `undefined` are considered as `maybe` by Pickles. This means, proofs can be sided loaded that can, but don't have to, use a specific custom gate.
+ * _Note:_ `Maybe` feature flags incur a small proving overhead.
+ */
 const FeatureFlags = {
   /**
    * Returns a feature flag configuration where all flags are set to false.
@@ -129,6 +135,10 @@ const FeatureFlags = {
    */
   fromGates: (gates: Gate[]) => featureFlagsFromGates(gates),
 
+  /**
+   * Given a ZkProgram, return the feature flag configuration that fits the given program.
+   * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
+   */
   fromZkProgram: fromZkProgram,
 };
 
@@ -141,6 +151,7 @@ async function fromZkProgram<
 >(program: P): Promise<FeatureFlags> {
   let methodIntfs = await program.analyzeMethods();
 
+  // compute feature flags that belong to each method
   let flags = Object.entries(methodIntfs).map(([_, { gates }]) => {
     return featureFlagsFromGates(gates);
   });
@@ -162,7 +173,7 @@ async function fromZkProgram<
     runtimeTables: false,
   };
 
-  // only one method defines the feature flags
+  // if there's only one method that means it defines the feature flags for the entire program
   if (flags.length === 1) return flags[0];
 
   // calculating the crossover between all methods, compute the shared feature flag set
@@ -173,6 +184,7 @@ async function fromZkProgram<
         globalFlags[flagType] = currentFlag;
       } else if (globalFlags[flagType] != currentFlag) {
         // if flags conflict, set them to undefined to account for both cases (true and false) ^= maybe
+        // otherwise side loading couldn't verify some proofs of some method branches!
         globalFlags[flagType] = undefined;
       }
     }
@@ -341,10 +353,11 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
    * For example, if we want to side load proofs that use foreign field arithmetic custom gates, we have to make Pickles aware of that by defining
    * these custom gates.
    *
-   * _Note:_ Only proofs use exactly the same composition of custom gates as was expected by Pickles can be verified.
-   * If you want to verify _any_ proofs, no matter what custom gates it uses, you can use {@link FeatureFlags.allMaybe}. Please note that this might incur a small overhead.
+   * _Note:_ Only proofs that use the exact same composition of custom gates which were expected by Pickles can be verified using side loading.
+   * If you want to verify _any_ proof, no matter what custom gates it uses, you can use {@link FeatureFlags.allMaybe}. Please note that this might incur a small overhead.
    *
    * You can also toggle specific feature flags manually by specifying them here.
+   * Alternatively, you can use {@FeatureFlags.fromZkProgram} to compute the set of feature flags that are compatible with a given program.
    */
   static featureFlags: FeatureFlags = FeatureFlags.allMaybe;
 
