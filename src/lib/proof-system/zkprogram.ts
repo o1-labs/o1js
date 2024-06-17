@@ -37,7 +37,6 @@ import {
 import { ProvablePure } from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
-import { rangeCheck0 } from '../provable/gates.js';
 
 // public API
 export {
