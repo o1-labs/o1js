@@ -155,19 +155,15 @@ function checkRange(lower: bigint, upper: bigint, name: string) {
   return (x: bigint) => {
     if (x < lower)
       throw Error(
-        `${name}: inputs smaller than ${lower} are not allowed, got ${x}. ${
-          name === 'Scalar'
-            ? 'You may want to use `convertPrivateKeyToBase58WithMod` before using this key.'
-            : ''
-        }`
+        `${name}: inputs smaller than ${lower} are not allowed, got ${x} \
+        ${name === 'Scalar' ? 'You may want to use `convertPrivateKeyToBase58WithMod` before using this key.' : ''}
+        `
       );
     if (x >= upper)
       throw Error(
-        `${name}: inputs larger than ${upper - 1n} are not allowed, got ${x}. ${
-          name === 'Scalar'
-            ? 'You may want to use `convertPrivateKeyToBase58WithMod` before using this key.'
-            : ''
-        }`
+        `${name}: inputs larger than ${upper - 1n} are not allowed, got ${x} \
+        ${name === 'Scalar' ? 'You may want to use `convertPrivateKeyToBase58WithMod` before using this key.' : ''}
+        `
       );
   };
 }
