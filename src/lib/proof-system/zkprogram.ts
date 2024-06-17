@@ -140,9 +140,10 @@ async function fromZkProgram<
   }
 >(program: P): Promise<FeatureFlags> {
   let methodIntfs = await program.analyzeMethods();
-  let flags = Object.entries(methodIntfs).map(([_, { gates }]) =>
-    featureFlagsFromGates(gates)
-  );
+
+  let flags = Object.entries(methodIntfs).map(([_, { gates }]) => {
+    return featureFlagsFromGates(gates);
+  });
 
   if (flags.length === 0)
     throw Error(
@@ -161,21 +162,21 @@ async function fromZkProgram<
     runtimeTables: false,
   };
 
-  // nothing to look at
+  // only one method defines the feature flags
   if (flags.length === 1) return flags[0];
 
+  // calculating the crossover between all methods, compute the shared feature flag set
   flags.forEach((featureFlags, i) => {
-    for (const [flagType, flag] of Object.entries(featureFlags)) {
+    for (const [flagType, currentFlag] of Object.entries(featureFlags)) {
       if (i === 0) {
-        // at the beginning, initialize flags freely
-        globalFlags[flagType] = flag;
-      } else if (globalFlags[flagType] != flag) {
-        // if flags dont match and we are not in the first iteration, set them to undefined to account for both cases (true and false) ^= maybe
+        // initialize first iteration of flags freely
+        globalFlags[flagType] = currentFlag;
+      } else if (globalFlags[flagType] != currentFlag) {
+        // if flags conflict, set them to undefined to account for both cases (true and false) ^= maybe
         globalFlags[flagType] = undefined;
       }
     }
   });
-
   return globalFlags as FeatureFlags;
 }
 
@@ -1335,7 +1336,16 @@ const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
 };
 
 function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
-  let flags: FeatureFlags = FeatureFlags.allNone;
+  let flags: FeatureFlags = {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  };
   for (let gate of gates) {
     let flag = gateToFlag[gate.type];
     if (flag !== undefined) flags[flag] = true;
