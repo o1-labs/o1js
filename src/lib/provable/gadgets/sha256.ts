@@ -94,22 +94,7 @@ const SHA256 = {
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
-      const M = messageBlocks[i];
-      // for each message block of 16 x 32bit do:
-      const W: UInt32[] = [];
-
-      // prepare message block
-      for (let t = 0; t <= 15; t++) W[t] = M[t];
-      for (let t = 16; t <= 63; t++) {
-        // the field element is unreduced and not proven to be 32bit, we will do this later to save constraints
-        let unreduced = DeltaOne(W[t - 2])
-          .value.add(W[t - 7].value)
-          .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
-
-        // mod 32bit the unreduced field element
-        W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 16).remainder);
-      }
-
+      const W = computeMessageSchedule(messageBlocks[i]);
       H = sha256Compression(H, W, K);
     }
 
@@ -118,6 +103,7 @@ const SHA256 = {
     return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
   },
   compression: sha256Compression,
+  computeMessageSchedule,
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
@@ -301,4 +287,29 @@ function sha256Compression(H: UInt32[], W: UInt32[], K: UInt32[]) {
   H[7] = H[7].addMod32(h);
 
   return H;
+}
+
+/**
+ * Prepares the message schedule for the SHA-256 compression function from the given message block.
+ *
+ * @param M - The 512-bit message block (16-element array of UInt32).
+ * @returns The message schedule (64-element array of UInt32).
+ */
+function computeMessageSchedule(M: UInt32[]) {
+  // for each message block of 16 x 32bit do:
+  const W: UInt32[] = [];
+
+  // prepare message block
+  for (let t = 0; t <= 15; t++) W[t] = M[t];
+  for (let t = 16; t <= 63; t++) {
+    // the field element is unreduced and not proven to be 32bit, we will do this later to save constraints
+    let unreduced = DeltaOne(W[t - 2])
+      .value.add(W[t - 7].value)
+      .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
+
+    // mod 32bit the unreduced field element
+    W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 16).remainder);
+  }
+
+  return W;
 }
