@@ -97,6 +97,9 @@ type FeatureFlags = {
   runtimeTables: MaybeFeatureFlag;
 };
 const FeatureFlags = {
+  /**
+   * Returns a feature flag configuration where all flags are set to false.
+   */
   allNone: {
     rangeCheck0: false,
     rangeCheck1: false,
@@ -107,6 +110,9 @@ const FeatureFlags = {
     lookup: false,
     runtimeTables: false,
   },
+  /**
+   * Returns a feature flag configuration where all flags are optional.
+   */
   allMaybe: {
     rangeCheck0: undefined,
     rangeCheck1: undefined,
@@ -117,6 +123,11 @@ const FeatureFlags = {
     lookup: undefined,
     runtimeTables: undefined,
   },
+
+  /**
+   * Given a list of gates, returns the feature flag configuration that the gates use.
+   */
+  fromGates: (gates: Gate[]) => featureFlagsFromGates(gates),
 };
 
 class ProofBase<Input, Output> {
@@ -1096,7 +1107,7 @@ function picklesRuleFromFunction(
     }
   });
 
-  let featureFlags = computeFeatureFlags(gates);
+  let featureFlags = featureFlagsToMl(featureFlagsFromGates(gates));
 
   return {
     identifier: methodName,
@@ -1274,7 +1285,7 @@ const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
   Lookup: 'lookup',
 };
 
-function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
+function featureFlagsFromGates(gates: Gate[]) {
   let flags: FeatureFlags = {
     rangeCheck0: false,
     rangeCheck1: false,
@@ -1289,6 +1300,10 @@ function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
     let flag = gateToFlag[gate.type];
     if (flag !== undefined) flags[flag] = true;
   }
+  return flags;
+}
+
+function featureFlagsToMl(flags: FeatureFlags): MlFeatureFlags {
   return [
     0,
     ...Object.entries(flags).map(([_, flag]) =>
