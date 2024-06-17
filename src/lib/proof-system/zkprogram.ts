@@ -128,7 +128,56 @@ const FeatureFlags = {
    * Given a list of gates, returns the feature flag configuration that the gates use.
    */
   fromGates: (gates: Gate[]) => featureFlagsFromGates(gates),
+
+  fromZkProgram: fromZkProgram,
 };
+
+async function fromZkProgram<
+  P extends {
+    analyzeMethods: () => Promise<{
+      [I in keyof any]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    }>;
+  }
+>(program: P): Promise<FeatureFlags> {
+  let methodIntfs = await program.analyzeMethods();
+  let flags = Object.entries(methodIntfs).map(([_, { gates }]) =>
+    featureFlagsFromGates(gates)
+  );
+
+  if (flags.length === 0)
+    throw Error(
+      'The ZkProgram has no methods, in order to calculate feature flags, please attach a method to your ZkProgram.'
+    );
+
+  // initialize feature flags to all false
+  let globalFlags: Record<string, boolean | undefined> = {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  };
+
+  // nothing to look at
+  if (flags.length === 1) return flags[0];
+
+  flags.forEach((featureFlags, i) => {
+    for (const [flagType, flag] of Object.entries(featureFlags)) {
+      if (i === 0) {
+        // at the beginning, initialize flags freely
+        globalFlags[flagType] = flag;
+      } else if (globalFlags[flagType] != flag) {
+        // if flags dont match and we are not in the first iteration, set them to undefined to account for both cases (true and false) ^= maybe
+        globalFlags[flagType] = undefined;
+      }
+    }
+  });
+
+  return globalFlags as FeatureFlags;
+}
 
 class ProofBase<Input, Output> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
@@ -1285,17 +1334,8 @@ const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
   Lookup: 'lookup',
 };
 
-function featureFlagsFromGates(gates: Gate[]) {
-  let flags: FeatureFlags = {
-    rangeCheck0: false,
-    rangeCheck1: false,
-    foreignFieldAdd: false,
-    foreignFieldMul: false,
-    xor: false,
-    rot: false,
-    lookup: false,
-    runtimeTables: false,
-  };
+function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
+  let flags: FeatureFlags = FeatureFlags.allNone;
   for (let gate of gates) {
     let flag = gateToFlag[gate.type];
     if (flag !== undefined) flags[flag] = true;
