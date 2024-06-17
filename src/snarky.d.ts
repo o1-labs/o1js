@@ -18,7 +18,7 @@ import type {
   MlUnit,
   MlString,
   MlTuple,
-  MlArrayMaybeElements,
+  MlArrayOptionalElements,
 } from './lib/ml/base.js';
 import type { MlHashInput } from './lib/ml/conversion.js';
 import type {
@@ -737,7 +737,7 @@ declare const Pickles: {
       numProofsVerified: 0 | 1 | 2,
       publicInputLength: number,
       publicOutputLength: number,
-      featureFlags: MlArrayMaybeElements<MlFeatureFlags>
+      featureFlags: MlArrayOptionalElements<MlFeatureFlags>
     ) => unknown /* tag */;
     // Instantiate the verification key inside the circuit (required).
     inCircuit: (tag: unknown, verificationKey: unknown) => undefined;

@@ -24,7 +24,7 @@ import {
   MlResult,
   MlPair,
   MlOption,
-  MlArrayMaybeElements,
+  MlArrayOptionalElements,
 } from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
@@ -1070,7 +1070,7 @@ function picklesRuleFromFunction(
           ...Object.entries(Proof.featureFlags).map(([_, flag]) =>
             MlOption.mapTo(flag, MlBool)
           ),
-        ] as MlArrayMaybeElements<MlFeatureFlags>;
+        ] as MlArrayOptionalElements<MlFeatureFlags>;
 
         computedTag = Pickles.sideLoaded.create(
           tag.name,

@@ -14,7 +14,7 @@ export {
   MlUnit,
   MlString,
   MlTuple,
-  MlArrayMaybeElements,
+  MlArrayOptionalElements,
 };
 
 // ocaml types
@@ -28,7 +28,7 @@ type MlResult<T, E> = [0, T] | [1, E];
 type MlUnit = 0;
 
 // custom types
-type MlArrayMaybeElements<MlArray extends any[]> = {
+type MlArrayOptionalElements<MlArray extends any[]> = {
   [K in keyof MlArray]: MlArray[K] extends 0 ? 0 : MlOption<MlArray[K]>;
 };
 
