@@ -31,8 +31,18 @@ const sideloadedProgram = ZkProgram({
         return publicInput.add(privateInput);
       },
     },
+    assertAndAdd: {
+      privateInputs: [Field],
+      async method(publicInput: Field, privateInput: Field) {
+        // this uses assert to test range check gates and their feature flags
+        publicInput.assertLessThanOrEqual(privateInput);
+        return publicInput.add(privateInput);
+      },
+    },
   },
 });
+
+const featureFlags = await FeatureFlags.fromZkProgram(sideloadedProgram);
 
 class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static publicInputType = Field;
@@ -40,7 +50,7 @@ class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static maxProofsVerified = 0 as const;
 
   // we configure this side loaded proof to only accept proofs that doesn't use any feature flags (custom gates)
-  static featureFlags = FeatureFlags.allNone;
+  static featureFlags = featureFlags;
 }
 
 const tree = new MerkleTree(64);
@@ -120,7 +130,7 @@ console.log('Compiling circuits...');
 const programVk = (await sideloadedProgram.compile()).verificationKey;
 const mainVk = (await mainProgram.compile()).verificationKey;
 
-console.log('Proving deployment of sideloaded key');
+console.log('Proving deployment of side-loaded key');
 const rootBefore = tree.getRoot();
 tree.setLeaf(1n, programVk.hash);
 const witness = new MerkleTreeWitness(tree.getWitness(1n));
@@ -147,4 +157,19 @@ const proof2 = await mainProgram.validateUsingTree(
 );
 
 const validProof2 = await verify(proof2, mainVk);
+console.log('ok?', validProof2);
+
+console.log('Proving different method of child program');
+const childProof2 = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
+
+console.log('Proving verification inside main program');
+const proof3 = await mainProgram.validateUsingTree(
+  proof1.publicOutput,
+  proof1,
+  programVk,
+  witness,
+  SideloadedProgramProof.fromProof(childProof)
+);
+
+const validProof3 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);
