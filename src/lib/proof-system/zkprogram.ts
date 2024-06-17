@@ -1065,13 +1065,19 @@ function picklesRuleFromFunction(
       let computedTag: unknown;
       // Only create the tag if it hasn't already been created for this specific Proof class
       if (SideloadedTag.get(tag.name) === undefined) {
-        console.log('feature flags', Proof.featureFlags);
+        let featureFlags = [
+          0,
+          ...Object.entries(Proof.featureFlags).map(([_, flag]) =>
+            MlOption.mapTo(flag, MlBool)
+          ),
+        ] as MlArrayMaybeElements<MlFeatureFlags>;
+
         computedTag = Pickles.sideLoaded.create(
           tag.name,
           Proof.maxProofsVerified,
           Proof.publicInputType?.sizeInFields() ?? 0,
           Proof.publicOutputType?.sizeInFields() ?? 0,
-          featureFlagsToOptionalMl(Proof.featureFlags)
+          featureFlags
         );
         SideloadedTag.store(tag.name, computedTag);
       } else {
@@ -1267,15 +1273,6 @@ const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
   Rot64: 'rot',
   Lookup: 'lookup',
 };
-
-function featureFlagsToOptionalMl(
-  flags: FeatureFlags
-): MlArrayMaybeElements<MlFeatureFlags> {
-  return [
-    0,
-    ...Object.entries(flags).map(([_, flag]) => MlOption.mapTo(flag, MlBool)),
-  ] as MlArrayMaybeElements<MlFeatureFlags>;
-}
 
 function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
   let flags: FeatureFlags = {
