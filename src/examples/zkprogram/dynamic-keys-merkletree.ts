@@ -1,5 +1,6 @@
 import {
   DynamicProof,
+  FeatureFlags,
   Field,
   MerkleTree,
   MerkleWitness,
@@ -37,6 +38,9 @@ class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static publicInputType = Field;
   static publicOutputType = Field;
   static maxProofsVerified = 0 as const;
+
+  // we configure this side loaded proof to only accept proofs that doesn't use any feature flags (custom gates)
+  static featureFlags = FeatureFlags.allNone;
 }
 
 const tree = new MerkleTree(64);
