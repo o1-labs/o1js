@@ -130,7 +130,7 @@ const FeatureFlags = {
   /**
    * Given a list of gates, returns the feature flag configuration that the gates use.
    */
-  fromGates: (gates: Gate[]) => featureFlagsFromGates(gates),
+  fromGates: featureFlagsFromGates,
 
   /**
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
