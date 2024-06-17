@@ -630,7 +630,7 @@ declare namespace Pickles {
     /**
      * Feature flags which enable certain custom gates
      */
-    featureFlags: MlFeatureFlags;
+    featureFlags: MlArrayOptionalElements<MlFeatureFlags>;
     /**
      * Description of previous proofs to verify in this rule
      */

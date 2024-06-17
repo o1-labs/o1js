@@ -1160,7 +1160,7 @@ function picklesRuleFromFunction(
     }
   });
 
-  let featureFlags = featureFlagsToMl(featureFlagsFromGates(gates));
+  let featureFlags = featureFlagsToMlOption(featureFlagsFromGates(gates));
 
   return {
     identifier: methodName,
@@ -1354,31 +1354,6 @@ function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
     if (flag !== undefined) flags[flag] = true;
   }
   return flags;
-}
-
-function featureFlagsToMl(flags: FeatureFlags): MlFeatureFlags {
-  const {
-    rangeCheck0,
-    rangeCheck1,
-    foreignFieldAdd,
-    foreignFieldMul,
-    xor,
-    rot,
-    lookup,
-    runtimeTables,
-  } = flags;
-
-  return [
-    0,
-    MlBool(rangeCheck0 ?? false),
-    MlBool(rangeCheck1 ?? false),
-    MlBool(foreignFieldAdd ?? false),
-    MlBool(foreignFieldMul ?? false),
-    MlBool(xor ?? false),
-    MlBool(rot ?? false),
-    MlBool(lookup ?? false),
-    MlBool(runtimeTables ?? false),
-  ];
 }
 
 function featureFlagsToMlOption(
