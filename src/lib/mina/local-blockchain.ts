@@ -99,6 +99,7 @@ async function LocalBlockchain({
     string,
     Record<string, { actions: string[][]; hash: string }[]>
   > = {};
+  const originalProofsEnabled = proofsEnabled;
 
   return {
     getNetworkId: () => 'testnet' as NetworkId,
@@ -418,6 +419,9 @@ async function LocalBlockchain({
     },
     setProofsEnabled(newProofsEnabled: boolean) {
       this.proofsEnabled = newProofsEnabled;
+    },
+    resetProofsEnabled() {
+      this.proofsEnabled = originalProofsEnabled;
     },
   };
 }
