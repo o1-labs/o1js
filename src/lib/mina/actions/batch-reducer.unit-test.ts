@@ -23,7 +23,8 @@ import {
 } from '../test/test-contract.js';
 const { IndexedMerkleMap, BatchReducer } = Experimental;
 
-const AMOUNT = 100_000n;
+const MINA = 1_000_000_000n;
+const AMOUNT = 10n * MINA;
 
 class MerkleMap extends IndexedMerkleMap(10) {}
 
@@ -114,9 +115,9 @@ await testLocal(
     Local,
   }) => {
     // create a new map of accounts that are eligible for the airdrop
-    // for every eligible account, we store 1 in the map, representing TRUE
     eligible.overwrite(new MerkleMap());
 
+    // for every eligible account, we store 1 in the map, representing TRUE
     // eve is not eligible, the others are
     [alice, bob, charlie, danny].forEach((address) =>
       eligible.insert(key(address), 1n)
@@ -124,11 +125,11 @@ await testLocal(
     let newEligible = eligible; // for tracking updates to the eligible map
 
     return [
-      // preparation: sender funds the contract with 10M MINA
+      // preparation: sender funds the contract with 100 MINA
       transaction('fund contract', async () => {
         AccountUpdate.createSigned(sender).send({
           to: contract.address,
-          amount: 10_000_000n,
+          amount: 100n * MINA,
         });
       }),
 
