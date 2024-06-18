@@ -33,7 +33,7 @@ async function testLocal<S extends SmartContract>(
     contract: S;
     Local: LocalBlockchain;
   }) => TestAction[]
-) {
+): Promise<LocalBlockchain> {
   // instance-independent setup: compile programs
 
   offchainState?.setContractClass(Contract as any);
@@ -123,17 +123,20 @@ async function testLocal<S extends SmartContract>(
   // if proofsEnabled is 'both', run the test with AND without proofs
 
   console.log();
+  let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
+
   if (proofsEnabled === 'both' || proofsEnabled === false) {
     if (proofsEnabled === 'both') console.log('(without proofs)');
-    const LocalNoProofs = await Mina.LocalBlockchain({ proofsEnabled: false });
-    await execute(LocalNoProofs);
+    await execute(Local);
   }
 
   if (proofsEnabled === 'both' || proofsEnabled === true) {
     if (proofsEnabled === 'both') console.log('\n(with proofs)');
-    const LocalWithProofs = await Mina.LocalBlockchain({ proofsEnabled: true });
-    await execute(LocalWithProofs);
+    Local = await Mina.LocalBlockchain({ proofsEnabled: true });
+    await execute(Local);
   }
+
+  return Local;
 }
 
 async function runAction(
