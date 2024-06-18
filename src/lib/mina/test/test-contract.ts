@@ -8,9 +8,9 @@ import {
 import assert from 'assert';
 import { Option } from '../../provable/option.js';
 import { BatchReducer } from '../actions/batch-reducer.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
+import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 
-export { testLocal, transaction, expectState, expectBalance };
+export { testLocal, transaction, deploy, expectState, expectBalance };
 
 type LocalBlockchain = Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
 
@@ -107,8 +107,10 @@ async function testLocal<S extends SmartContract>(
 
     // run actions
 
+    let spec = { localInstance: Local, contractClass: Contract };
+
     for (let action of testActions) {
-      await runAction(Local, action);
+      await runAction(spec, action);
     }
   }
 
@@ -130,45 +132,67 @@ async function testLocal<S extends SmartContract>(
 }
 
 async function runAction(
-  localInstance: LocalBlockchain,
+  spec: {
+    localInstance: LocalBlockchain;
+    contractClass: typeof SmartContract;
+  },
   action: TestAction
 ): Promise<void> {
+  let { localInstance, contractClass: Contract } = spec;
+  let [sender, contractAccount] = localInstance.testAccounts;
+
   if (typeof action === 'function') {
     let maybe = await action();
     if (maybe !== undefined) {
-      await runAction(localInstance, maybe);
+      await runAction(spec, maybe);
     }
   } else if (action.type === 'transaction') {
     console.time(action.label);
-    let s = action.sender ?? localInstance.testAccounts[0];
-    let tx = await Mina.transaction(s, action.callback);
+    let feepayer = action.sender ?? sender;
+    let signers = [feepayer.key, ...(action.signers ?? [])];
+    let tx = await Mina.transaction(feepayer, action.callback);
     await assertionWithTrace(action.trace, async () => {
       // console.log(action.label, tx.toPretty());
-      await tx.sign([s.key]).prove();
+      await tx.sign(signers).prove();
       await tx.send();
     });
     console.timeEnd(action.label);
+  } else if (action.type === 'deploy') {
+    let { options, trace } = action;
+    let account = options?.account ?? contractAccount;
+    let contract = options?.contract ?? Contract;
+    let instance =
+      contract instanceof SmartContract ? contract : new contract(account);
+
+    await runAction(spec, {
+      type: 'transaction',
+      label: 'deploy',
+      callback: () => instance.deploy(),
+      trace,
+      sender,
+      signers: [account.key],
+    });
   } else if (action.type === 'expect-state') {
-    let { state, expected, trace, message } = action;
+    let { state, expected, trace, label } = action;
     if ('_type' in state) {
       let type = state._type;
       await assertionWithTrace(trace, async () => {
         let actual = Option(type).toValue(await state.get());
-        assert.deepStrictEqual(actual, expected, message);
+        assert.deepStrictEqual(actual, expected, label);
       });
     } else if ('_valueType' in state) {
       let [key, value] = expected;
       let type = state._valueType;
       await assertionWithTrace(trace, async () => {
         let actual = Option(type).toValue(await state.get(key));
-        assert.deepStrictEqual(actual, value, message);
+        assert.deepStrictEqual(actual, value, label);
       });
     }
   } else if (action.type === 'expect-balance') {
-    let { address, expected, message, trace } = action;
+    let { address, expected, label, trace } = action;
     await assertionWithTrace(trace, () => {
       let actual = Mina.getBalance(address).toBigInt();
-      assert.deepStrictEqual(actual, expected, message);
+      assert.deepStrictEqual(actual, expected, label);
     });
   } else {
     throw new Error('unknown action type');
@@ -179,29 +203,31 @@ async function runAction(
 
 type MaybePromise<T> = T | Promise<T>;
 
+type BaseTestAction = { type: string; trace?: string; label?: string };
+
 type TestAction =
   | ((...args: any) => MaybePromise<TestAction | void>)
-  | {
-      type: 'transaction';
-      trace?: string;
-      label: string;
-      callback: () => Promise<void>;
-      sender?: Mina.TestPublicKey;
-    }
-  | {
-      type: 'expect-state';
-      trace?: string;
-      message?: string;
-      state: State;
-      expected: Expected<State>;
-    }
-  | {
-      type: 'expect-balance';
-      trace?: string;
-      message?: string;
-      address: PublicKey;
-      expected: bigint;
-    };
+  | (BaseTestAction &
+      (
+        | {
+            type: 'transaction';
+            label: string;
+            callback: () => Promise<void>;
+            sender?: Mina.TestPublicKey;
+            signers?: PrivateKey[];
+          }
+        | {
+            type: 'deploy';
+            options?: {
+              contract?: typeof SmartContract | SmartContract;
+              account?: Mina.TestPublicKey;
+            };
+          }
+        | { type: 'expect-state'; state: State; expected: Expected<State> }
+        | { type: 'expect-balance'; address: PublicKey; expected: bigint }
+      ));
+
+// transaction-like instructions
 
 function transaction(label: string, callback: () => Promise<void>): TestAction {
   let trace = Error().stack?.slice(5);
@@ -214,13 +240,23 @@ transaction.from =
     return { type: 'transaction', label, callback, sender, trace };
   };
 
+function deploy(options?: {
+  contract?: SmartContract;
+  account?: Mina.TestPublicKey;
+}): TestAction {
+  let trace = Error().stack?.slice(5);
+  return { type: 'deploy', options, trace };
+}
+
+// assertion-like instructions
+
 function expectState<S extends State>(
   state: S,
   expected: Expected<S>,
   message?: string
 ): TestAction {
   let trace = Error().stack?.slice(5);
-  return { type: 'expect-state', state, expected, trace, message };
+  return { type: 'expect-state', state, expected, trace, label: message };
 }
 
 function expectBalance(
@@ -235,7 +271,7 @@ function expectBalance(
       typeof address === 'string' ? PublicKey.fromBase58(address) : address,
     expected,
     trace,
-    message,
+    label: message,
   };
 }
 

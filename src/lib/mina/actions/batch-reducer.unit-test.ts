@@ -17,6 +17,7 @@ import {
   Permissions,
 } from '../../../index.js';
 import {
+  deploy,
   expectBalance,
   testLocal,
   transaction,
@@ -109,7 +110,7 @@ await testLocal(
   { proofsEnabled: 'both', batchReducer, autoDeploy: false },
   ({
     contract,
-    accounts: { sender, contractAccount, alice, bob, charlie, danny, eve },
+    accounts: { sender, alice, bob, charlie, danny, eve },
     Local,
   }) => {
     // create a new map of accounts that are eligible for the airdrop
@@ -128,7 +129,7 @@ await testLocal(
 
     return [
       // explicit deploy because only now we defined the correct eligible map
-      transaction.from(contractAccount)('deploy', () => contract.deploy()),
+      deploy(),
 
       // preparation: sender funds the contract with 10M MINA
       transaction('fund contract', async () => {
