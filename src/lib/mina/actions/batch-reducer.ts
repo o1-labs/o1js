@@ -3,7 +3,7 @@ import { TupleN } from '../../util/types.js';
 import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
-import { assertDefined } from '../../util/errors.js';
+import { assertDefined } from '../../util/assert.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 import {
   InferProvable,
@@ -287,7 +287,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
   forEach(callback: (action: Action, isDummy: Bool) => void): void {
     for (let i = 0; i < this.batchSize; i++) {
       let { isSome, value } = this.batch[i];
-      callback(value, isSome);
+      callback(value, isSome.not());
     }
   }
 
@@ -296,7 +296,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
    */
   prove(program: ActionBatchProgram): Promise<ActionBatchProof> {
     return proveActionBatch(
-      this.initialActionState,
+      this.actionStateAfterBatch,
       this.remainingActions.get(),
       program
     );
@@ -331,10 +331,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
    * Note: `check()` doesn't prove anything about the `remainingActions` -- this has to be done separately
    * with a recursive proof, created using `proveActionBatch()` and verified in provable code using `verify()`.
    */
-  static check<Action>(value: ActionBatchBase<Action, any>) {
-    // check basic type properties
-    assertDefined(this.provable).check(value);
-
+  static check<Action>(value: ActionBatchBase<Action>) {
     let {
       batch,
       initialActionState,
@@ -343,6 +340,10 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
       batchSize,
       actionType,
     } = value;
+    const optionType = Option(actionType);
+
+    // check basic type properties
+    batch.forEach((action) => optionType.check(action));
 
     // linearize `batchActions` into a flat MerkleList
     batchActions.currentHash.assertEquals(initialActionState);
@@ -634,8 +635,4 @@ function update(
   let actionHash = Provable.witness(OptionField, () => actionHashes.get()[i]);
   let newState = Actions.updateSequenceState(state, actionHash.value);
   return Provable.if(actionHash.isSome, newState, state);
-}
-
-function notImplemented(): never {
-  throw Error('Not implemented');
 }
