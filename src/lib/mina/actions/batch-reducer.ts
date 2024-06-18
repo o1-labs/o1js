@@ -79,9 +79,9 @@ class BatchReducer<
     );
   }
 
-  contract() {
+  contract(): BatchReducerContract {
     let Contract = this.contractClass();
-    return contract(Contract) as BatchReducerContract;
+    return contract(Contract);
   }
 
   /**

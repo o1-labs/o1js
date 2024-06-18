@@ -30,7 +30,9 @@ function accountUpdateLayout() {
   return layout;
 }
 
-function contract(expectedConstructor?: Function) {
+function contract<S extends SmartContract>(
+  expectedConstructor?: new (...args: any) => S
+): S {
   let ctx = smartContractContext.get();
   assert(ctx !== null, 'This method must be called within a contract method');
   if (expectedConstructor !== undefined) {
@@ -39,5 +41,5 @@ function contract(expectedConstructor?: Function) {
       `This method must be called on a ${expectedConstructor.name} contract`
     );
   }
-  return ctx.this;
+  return ctx.this as S;
 }
