@@ -15,7 +15,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/40c597775...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/f16e26a20...HEAD)
+
+### Added
+
+- **SHA256 low-level API** exposed via `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1689
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
