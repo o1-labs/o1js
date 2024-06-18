@@ -20,10 +20,12 @@ async function testLocal<S extends SmartContract>(
     proofsEnabled,
     offchainState,
     batchReducer,
+    autoDeploy = true,
   }: {
     proofsEnabled: boolean | 'both';
     offchainState?: OffchainState<any>;
     batchReducer?: BatchReducer<any>;
+    autoDeploy?: boolean;
   },
   callback: (input: {
     accounts: Record<string, Mina.TestPublicKey>;
@@ -82,17 +84,6 @@ async function testLocal<S extends SmartContract>(
     offchainState?.setContractInstance(contract as any);
     batchReducer?.setContractInstance(contract as any);
 
-    // deploy
-    // TODO: figure out if the contract is already deployed on this instance,
-    // and only deploy if it's not
-
-    console.time('deploy');
-    await Mina.transaction(sender, () => contract.deploy())
-      .sign([sender.key, contractAccount.key])
-      .prove()
-      .send();
-    console.timeEnd('deploy');
-
     // run test spec to return actions
 
     let testActions = callback({
@@ -100,6 +91,19 @@ async function testLocal<S extends SmartContract>(
       contract: contract as S,
       Local,
     });
+
+    // deploy is the implicit first action
+    // TODO: figure out if the contract is already deployed on this instance,
+    // and only deploy if it's not
+
+    if (autoDeploy) {
+      console.time('deploy');
+      await Mina.transaction(sender, () => contract.deploy())
+        .sign([sender.key, contractAccount.key])
+        .prove()
+        .send();
+      console.timeEnd('deploy');
+    }
 
     // run actions
 
@@ -138,9 +142,11 @@ async function runAction(
     console.time(action.label);
     let s = action.sender ?? localInstance.testAccounts[0];
     let tx = await Mina.transaction(s, action.callback);
-    // console.log(action.label, tx.toPretty());
-    await tx.sign([s.key]).prove();
-    await tx.send();
+    await assertionWithTrace(action.trace, async () => {
+      // console.log(action.label, tx.toPretty());
+      await tx.sign([s.key]).prove();
+      await tx.send();
+    });
     console.timeEnd(action.label);
   } else if (action.type === 'expect-state') {
     let { state, expected, trace, message } = action;
@@ -177,6 +183,7 @@ type TestAction =
   | ((...args: any) => MaybePromise<TestAction | void>)
   | {
       type: 'transaction';
+      trace?: string;
       label: string;
       callback: () => Promise<void>;
       sender?: Mina.TestPublicKey;
@@ -197,12 +204,14 @@ type TestAction =
     };
 
 function transaction(label: string, callback: () => Promise<void>): TestAction {
-  return { type: 'transaction', label, callback };
+  let trace = Error().stack?.slice(5);
+  return { type: 'transaction', label, callback, trace };
 }
 transaction.from =
   (sender: Mina.TestPublicKey) =>
   (label: string, callback: () => Promise<void>): TestAction => {
-    return { type: 'transaction', label, callback, sender };
+    let trace = Error().stack?.slice(5);
+    return { type: 'transaction', label, callback, sender, trace };
   };
 
 function expectState<S extends State>(
@@ -245,7 +254,7 @@ async function assertionWithTrace(trace: string | undefined, fn: () => any) {
     await fn();
   } catch (err: any) {
     if (trace !== undefined) {
-      err.message += `\nAssertion was created here:\n${trace}\n\nError was thrown from here:`;
+      err.message += `\n\nAssertion was created here:${trace}\n\nError was thrown from here:`;
     }
     throw Error(err.message);
   }
