@@ -88,7 +88,7 @@ const SHA256 = {
     // padding the message $5.1.1 into blocks that are a multiple of 512
     let messageBlocks = padding(data);
 
-    let H = SHA256Constants.H.map((x) => UInt32.from(x));
+    let H = SHA256.initialState;
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
@@ -102,6 +102,9 @@ const SHA256 = {
   },
   compression: sha256Compression,
   createMessageSchedule,
+  get initialState() {
+    return SHA256Constants.H.map((x) => UInt32.from(x));
+  },
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
