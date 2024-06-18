@@ -29,6 +29,24 @@ async function testLocal<S extends SmartContract>(
     Local: Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
   }) => TestAction[]
 ) {
+  batchReducer?.setContractClass(Contract as any);
+
+  if (proofsEnabled) {
+    if (offchainState !== undefined) {
+      console.time('compile program');
+      await offchainState.compile();
+      console.timeEnd('compile program');
+    }
+    if (batchReducer !== undefined) {
+      console.time('compile reducer');
+      await batchReducer.compile();
+      console.timeEnd('compile reducer');
+    }
+    console.time('compile contract');
+    await Contract.compile();
+    console.timeEnd('compile contract');
+  }
+
   const Local = await Mina.LocalBlockchain({ proofsEnabled });
   Mina.setActiveInstance(Local);
 
@@ -49,22 +67,6 @@ async function testLocal<S extends SmartContract>(
   let contract = new Contract(contractAccount);
   offchainState?.setContractInstance(contract as any);
   batchReducer?.setContractInstance(contract as any);
-
-  if (proofsEnabled) {
-    if (offchainState !== undefined) {
-      console.time('compile program');
-      await offchainState.compile();
-      console.timeEnd('compile program');
-    }
-    if (batchReducer !== undefined) {
-      console.time('compile reducer');
-      await batchReducer.compile();
-      console.timeEnd('compile reducer');
-    }
-    console.time('compile contract');
-    await Contract.compile();
-    console.timeEnd('compile contract');
-  }
 
   // deploy
 

@@ -4,7 +4,11 @@ import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
 import { assertDefined } from '../../util/assert.js';
-import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
+import {
+  Constructor,
+  From,
+  InferValue,
+} from '../../../bindings/lib/provable-generic.js';
 import {
   InferProvable,
   ProvableExtended,
@@ -66,12 +70,18 @@ class BatchReducer<
   }
 
   _contract?: BatchReducerContract;
-  contract() {
-    let contract_ = assertDefined(
-      this._contract,
-      'Contract instance must be set before calling this method'
+  _contractClass?: BatchReducerContractClass;
+
+  contractClass(): BatchReducerContractClass {
+    return assertDefined(
+      this._contractClass,
+      'Contract instance or class must be set before calling this method'
     );
-    return contract(contract_.constructor) as BatchReducerContract;
+  }
+
+  contract() {
+    let Contract = this.contractClass();
+    return contract(Contract) as BatchReducerContract;
   }
 
   /**
@@ -81,6 +91,17 @@ class BatchReducer<
    */
   setContractInstance(contract: BatchReducerContract) {
     this._contract = contract;
+    this._contractClass = contract.constructor as BatchReducerContractClass;
+  }
+
+  /**
+   * Set the smart contract class this reducer is connected with.
+   *
+   * Note: You can use either this method or `setContractInstance()` before calling `compile()`.
+   * However, `setContractInstance()` is required for `proveNextBatch()`.
+   */
+  setContractClass(contractClass: BatchReducerContractClass) {
+    this._contractClass = contractClass;
   }
 
   /**
@@ -114,7 +135,11 @@ class BatchReducer<
 
     // get actions based on the current action state
     let initialActionState = contract.actionState.getAndRequireEquals();
-    let actions = await this.getActionBatch(initialActionState, this.batchSize);
+    let actions = await this.getActionBatch(
+      initialActionState,
+      this.batchSize,
+      contract
+    );
 
     // verify the actions & proof against the onchain action state
     let finalActionState = contract.account.actionState.getAndRequireEquals();
@@ -165,20 +190,19 @@ class BatchReducer<
    */
   async getActionBatch<N extends number = BatchSize>(
     fromActionState: Field,
-    batchSize?: N
-  ): Promise<ActionBatch<Action, N>> {
-    let contract = assertDefined(
+    batchSize = this.batchSize as number as N,
+    contract = assertDefined(
       this._contract,
       'Contract instance must be set before fetching actions'
-    );
-    let batchSize_ = (batchSize ?? this.batchSize) as N;
-    const ActionB = ActionBatch(this.actionType, batchSize_);
+    )
+  ): Promise<ActionBatch<Action, N>> {
+    const ActionB = ActionBatch(this.actionType, batchSize);
     return Provable.witnessAsync(ActionB.provable, () =>
       fetchActionBatch(
         contract,
         fromActionState.toBigInt(),
         this.actionType,
-        batchSize_
+        batchSize
       )
     );
   }
@@ -188,6 +212,8 @@ type BatchReducerContract = SmartContract & {
   reducer?: undefined;
   actionState: State<Field>;
 };
+type BatchReducerContractClass = typeof SmartContract &
+  Constructor<BatchReducerContract>;
 
 /**
  * Provable type that represents a batch of actions.
