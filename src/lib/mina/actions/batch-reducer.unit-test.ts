@@ -107,10 +107,11 @@ const eligible = new MerkleMap();
 
 await testLocal(
   Airdrop,
-  { proofsEnabled: 'both', batchReducer, autoDeploy: false },
+  { proofsEnabled: 'both', batchReducer },
   ({
     contract,
-    accounts: { sender, alice, bob, charlie, danny, eve },
+    accounts: { sender },
+    newAccounts: { alice, bob, charlie, danny, eve },
     Local,
   }) => {
     // create a new map of accounts that are eligible for the airdrop
@@ -124,9 +125,6 @@ await testLocal(
     let newEligible = eligible; // for tracking updates to the eligible map
 
     return [
-      // explicit deploy because only now we defined the correct eligible map
-      deploy(),
-
       // preparation: sender funds the contract with 10M MINA
       transaction('fund contract', async () => {
         AccountUpdate.createSigned(sender).send({

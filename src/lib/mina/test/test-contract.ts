@@ -29,6 +29,7 @@ async function testLocal<S extends SmartContract>(
   },
   callback: (input: {
     accounts: Record<string, Mina.TestPublicKey>;
+    newAccounts: Record<string, Mina.TestPublicKey>;
     contract: S;
     Local: LocalBlockchain;
   }) => TestAction[]
@@ -67,14 +68,27 @@ async function testLocal<S extends SmartContract>(
       sender,
       contractAccount,
     };
+    let i = 2;
     let accounts: Record<string, Mina.TestPublicKey> = new Proxy(
       originalAccounts,
       {
         get(accounts, name: string) {
           if (name in accounts) return accounts[name];
-          // TODO would be nicer to use accounts that already exist
-          let account = Mina.TestPublicKey.random();
+          let account = Local.testAccounts[i++];
+          assert(account !== undefined, 'ran out of test accounts');
           accounts[name] = account;
+          return account;
+        },
+      }
+    );
+
+    let newAccounts: Record<string, Mina.TestPublicKey> = new Proxy(
+      {},
+      {
+        get(accounts, name: string) {
+          if (name in accounts) return newAccounts[name];
+          let account = Mina.TestPublicKey.random();
+          newAccounts[name] = account;
           return account;
         },
       }
@@ -84,29 +98,20 @@ async function testLocal<S extends SmartContract>(
     offchainState?.setContractInstance(contract as any);
     batchReducer?.setContractInstance(contract as any);
 
-    // run test spec to return actions
-
+    // run test setup to return actions
     let testActions = callback({
       accounts,
+      newAccounts,
       contract: contract as S,
       Local,
     });
 
-    // deploy is the implicit first action
-    // TODO: figure out if the contract is already deployed on this instance,
+    // deploy is the implicit first action (can be disabled with autoDeploy = false)
+    // TODO: figure out if the contract is already deployed on Mina instance,
     // and only deploy if it's not
-
-    if (autoDeploy) {
-      console.time('deploy');
-      await Mina.transaction(sender, () => contract.deploy())
-        .sign([sender.key, contractAccount.key])
-        .prove()
-        .send();
-      console.timeEnd('deploy');
-    }
+    if (autoDeploy) testActions.unshift(deploy());
 
     // run actions
-
     let spec = { localInstance: Local, contractClass: Contract };
 
     for (let action of testActions) {
