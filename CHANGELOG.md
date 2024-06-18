@@ -17,6 +17,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/40c597775...HEAD)
 
+### Added
+
+- `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
+  - Avoids the account update limit
+  - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
+- `AccountUpdate.createIf()` to conditionally add an account update to the current transaction https://github.com/o1-labs/o1js/pull/1676
+- `IndexedMerkleMap.setIf()` to set a key-value pair conditionally https://github.com/o1-labs/o1js/pull/1676
+
+### Changed
+
+- Internally upgrade o1js to TypeScript 5.4 https://github.com/o1-labs/o1js/pull/1676
+- Start developing an internal framework for local zkapp testing https://github.com/o1-labs/o1js/pull/1676
+- Improve error message when o1js global state is accessed in an invalid way https://github.com/o1-labs/o1js/pull/1676
+
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
 ### Breaking Changes
