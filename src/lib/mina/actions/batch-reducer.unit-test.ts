@@ -167,6 +167,7 @@ await testLocal(
     expectBalance(charlie, 0n), // we only processed 3 claims, charlie was the 4th
     expectBalance(danny, 0n), // danny didn't claim yet
 
+    // another claim + final settling
     transaction.from(danny)('danny claims', () => contract.claim()),
 
     // settle claims, 2
