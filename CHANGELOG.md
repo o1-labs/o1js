@@ -44,7 +44,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix handling of fetch response for non-existing accounts https://github.com/o1-labs/o1js/pull/1679
 
-## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf)
+## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf) - 2024-05-23
 
 ### Added
 
