@@ -1,10 +1,10 @@
-export { Context };
+export { Context, setDebugContext };
 
 namespace Context {
   export type id = number;
 
   export type t<Context> = (() => Context | undefined) & {
-    data: { context: Context; id: id }[];
+    data: { context: Context; id: id; trace?: string }[];
     allowsNesting: boolean;
 
     get(): Context;
@@ -84,14 +84,24 @@ function enter<C>(t: Context.t<C>, context: C): Context.id {
     throw Error(contextConflictMessage);
   }
   let id = Math.random();
-  t.data.push({ context, id });
+  let trace = debugContext ? Error().stack : undefined;
+  t.data.push({ context, id, trace });
   return id;
 }
 
 function leave<C>(t: Context.t<C>, id: Context.id): C {
   let current = t.data.pop();
   if (current === undefined) throw Error(contextConflictMessage);
-  if (current.id !== id) throw Error(contextConflictMessage);
+  if (current.id !== id) {
+    if (current.trace) {
+      console.log('\nactual context created here:', current.trace);
+    }
+    let expected = t.data.find((c) => c.id === id);
+    if (expected?.trace) {
+      console.log('\nexpected context created here:', expected.trace);
+    }
+    throw Error(contextConflictMessage);
+  }
   return current.context;
 }
 
@@ -106,3 +116,10 @@ function get<C>(t: Context.t<C>): C {
 let contextConflictMessage =
   "It seems you're running multiple provers concurrently within" +
   ' the same JavaScript thread, which, at the moment, is not supported and would lead to bugs.';
+
+// for debugging this error
+let debugContext = false;
+
+function setDebugContext(debug: boolean) {
+  debugContext = debug;
+}
