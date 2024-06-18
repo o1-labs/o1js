@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **SHA256 low-level API** exposed via `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1689 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
 - Added the option to specify custom feature flags for sided loaded proofs in the `DynamicProof` class.
   - Feature flags are requires to tell Pickles what proof structure it should expect when side loading dynamic proofs and verification keys. https://github.com/o1-labs/o1js/pull/1688
 
