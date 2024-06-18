@@ -92,7 +92,7 @@ const SHA256 = {
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
-      const W = computeMessageSchedule(messageBlocks[i]);
+      const W = createMessageSchedule(messageBlocks[i]);
       H = sha256Compression(H, W);
     }
 
@@ -101,7 +101,7 @@ const SHA256 = {
     return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
   },
   compression: sha256Compression,
-  computeMessageSchedule,
+  createMessageSchedule,
 };
 
 function Ch(x: UInt32, y: UInt32, z: UInt32) {
@@ -293,7 +293,7 @@ function sha256Compression(H: UInt32[], W: UInt32[]) {
  * @param M - The 512-bit message block (16-element array of UInt32).
  * @returns The message schedule (64-element array of UInt32).
  */
-function computeMessageSchedule(M: UInt32[]) {
+function createMessageSchedule(M: UInt32[]) {
   // for each message block of 16 x 32bit do:
   const W: UInt32[] = [];
 
