@@ -7,15 +7,22 @@ import {
 } from '../actions/offchain-state.js';
 import assert from 'assert';
 import { Option } from '../../provable/option.js';
+import { BatchReducer } from '../actions/batch-reducer.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 
-export { testLocal, transaction, expectState };
+export { testLocal, transaction, expectState, expectBalance };
 
 async function testLocal<S extends SmartContract>(
   Contract: typeof SmartContract & (new (...args: any) => S),
   {
     proofsEnabled,
     offchainState,
-  }: { proofsEnabled: boolean; offchainState?: OffchainState<any> },
+    batchReducer,
+  }: {
+    proofsEnabled: boolean;
+    offchainState?: OffchainState<any>;
+    batchReducer?: BatchReducer<any>;
+  },
   callback: (input: {
     accounts: Record<string, Mina.TestPublicKey>;
     contract: S;
@@ -41,12 +48,18 @@ async function testLocal<S extends SmartContract>(
 
   let contract = new Contract(contractAccount);
   offchainState?.setContractInstance(contract as any);
+  batchReducer?.setContractInstance(contract as any);
 
   if (proofsEnabled) {
     if (offchainState !== undefined) {
       console.time('compile program');
       await offchainState.compile();
       console.timeEnd('compile program');
+    }
+    if (batchReducer !== undefined) {
+      console.time('compile reducer');
+      await batchReducer.compile();
+      console.timeEnd('compile reducer');
     }
     console.time('compile contract');
     await Contract.compile();
@@ -82,10 +95,11 @@ async function testLocal<S extends SmartContract>(
       }
     } else if (action.type === 'transaction') {
       console.time(action.label);
-      await Mina.transaction(sender, action.callback)
-        .sign([sender.key])
-        .prove()
-        .send();
+      let s = action.sender ?? sender;
+      let tx = await Mina.transaction(s, action.callback);
+      // console.log(action.label, tx.toPretty());
+      await tx.sign([s.key]).prove();
+      await tx.send();
       console.timeEnd(action.label);
     } else if (action.type === 'expect-state') {
       let { state, expected, message } = action;
@@ -97,6 +111,10 @@ async function testLocal<S extends SmartContract>(
         let actual = Option(state._valueType).toValue(await state.get(key));
         assert.deepStrictEqual(actual, value, message);
       }
+    } else if (action.type === 'expect-balance') {
+      let { address, expected, message } = action;
+      let actual = Mina.getBalance(address).toBigInt();
+      assert.deepStrictEqual(actual, expected, message);
     } else {
       throw new Error('unknown action type');
     }
@@ -113,17 +131,33 @@ type MaybePromise<T> = T | Promise<T>;
 
 type TestAction =
   | ((...args: any) => MaybePromise<TestAction | void>)
-  | { type: 'transaction'; label: string; callback: () => Promise<void> }
+  | {
+      type: 'transaction';
+      label: string;
+      callback: () => Promise<void>;
+      sender?: Mina.TestPublicKey;
+    }
   | {
       type: 'expect-state';
       state: State;
       expected: Expected<State>;
+      message?: string;
+    }
+  | {
+      type: 'expect-balance';
+      address: PublicKey;
+      expected: bigint;
       message?: string;
     };
 
 function transaction(label: string, callback: () => Promise<void>): TestAction {
   return { type: 'transaction', label, callback };
 }
+transaction.from =
+  (sender: Mina.TestPublicKey) =>
+  (label: string, callback: () => Promise<void>): TestAction => {
+    return { type: 'transaction', label, callback, sender };
+  };
 
 function expectState<S extends State>(
   state: S,
@@ -131,6 +165,20 @@ function expectState<S extends State>(
   message?: string
 ): TestAction {
   return { type: 'expect-state', state, expected, message };
+}
+
+function expectBalance(
+  address: PublicKey | string,
+  expected: bigint,
+  message?: string
+): TestAction {
+  return {
+    type: 'expect-balance',
+    address:
+      typeof address === 'string' ? PublicKey.fromBase58(address) : address,
+    expected,
+    message,
+  };
 }
 
 type State = OffchainField<any, any> | OffchainMap<any, any, any>;
