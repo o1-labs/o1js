@@ -1,3 +1,6 @@
+/**
+ * Framework for testing Mina smart contracts against a local Mina instance.
+ */
 import { SmartContract } from '../zkapp.js';
 import * as Mina from '../mina.js';
 import {
@@ -32,7 +35,7 @@ async function testLocal<S extends SmartContract>(
     newAccounts: Record<string, Mina.TestPublicKey>;
     contract: S;
     Local: LocalBlockchain;
-  }) => TestAction[]
+  }) => TestInstruction[]
 ): Promise<LocalBlockchain> {
   // instance-independent setup: compile programs
 
@@ -98,24 +101,24 @@ async function testLocal<S extends SmartContract>(
     offchainState?.setContractInstance(contract as any);
     batchReducer?.setContractInstance(contract as any);
 
-    // run test setup to return actions
-    let testActions = callback({
+    // run test setup to return instructions
+    let instructions = callback({
       accounts,
       newAccounts,
       contract: contract as S,
       Local,
     });
 
-    // deploy is the implicit first action (can be disabled with autoDeploy = false)
+    // deploy is the implicit first instruction (can be disabled with autoDeploy = false)
     // TODO: figure out if the contract is already deployed on Mina instance,
     // and only deploy if it's not
-    if (autoDeploy) testActions.unshift(deploy());
+    if (autoDeploy) instructions.unshift(deploy());
 
-    // run actions
+    // run instructions
     let spec = { localInstance: Local, contractClass: Contract };
 
-    for (let action of testActions) {
-      await runAction(spec, action);
+    for (let instruction of instructions) {
+      await runInstruction(spec, instruction);
     }
   }
 
@@ -139,40 +142,40 @@ async function testLocal<S extends SmartContract>(
   return Local;
 }
 
-async function runAction(
+async function runInstruction(
   spec: {
     localInstance: LocalBlockchain;
     contractClass: typeof SmartContract;
   },
-  action: TestAction
+  instruction: TestInstruction
 ): Promise<void> {
   let { localInstance, contractClass: Contract } = spec;
   let [sender, contractAccount] = localInstance.testAccounts;
 
-  if (typeof action === 'function') {
-    let maybe = await action();
+  if (typeof instruction === 'function') {
+    let maybe = await instruction();
     if (maybe !== undefined) {
-      await runAction(spec, maybe);
+      await runInstruction(spec, maybe);
     }
-  } else if (action.type === 'transaction') {
-    console.time(action.label);
-    let feepayer = action.sender ?? sender;
-    let signers = [feepayer.key, ...(action.signers ?? [])];
-    let tx = await Mina.transaction(feepayer, action.callback);
-    await assertionWithTrace(action.trace, async () => {
-      // console.log(action.label, tx.toPretty());
+  } else if (instruction.type === 'transaction') {
+    console.time(instruction.label);
+    let feepayer = instruction.sender ?? sender;
+    let signers = [feepayer.key, ...(instruction.signers ?? [])];
+    let tx = await Mina.transaction(feepayer, instruction.callback);
+    await assertionWithTrace(instruction.trace, async () => {
+      // console.log(instruction.label, tx.toPretty());
       await tx.sign(signers).prove();
       await tx.send();
     });
-    console.timeEnd(action.label);
-  } else if (action.type === 'deploy') {
-    let { options, trace } = action;
+    console.timeEnd(instruction.label);
+  } else if (instruction.type === 'deploy') {
+    let { options, trace } = instruction;
     let account = options?.account ?? contractAccount;
     let contract = options?.contract ?? Contract;
     let instance =
       contract instanceof SmartContract ? contract : new contract(account);
 
-    await runAction(spec, {
+    await runInstruction(spec, {
       type: 'transaction',
       label: 'deploy',
       callback: () => instance.deploy(),
@@ -180,8 +183,8 @@ async function runAction(
       sender,
       signers: [account.key],
     });
-  } else if (action.type === 'expect-state') {
-    let { state, expected, trace, label } = action;
+  } else if (instruction.type === 'expect-state') {
+    let { state, expected, trace, label } = instruction;
     if ('_type' in state) {
       let type = state._type;
       await assertionWithTrace(trace, async () => {
@@ -196,14 +199,14 @@ async function runAction(
         assert.deepStrictEqual(actual, value, label);
       });
     }
-  } else if (action.type === 'expect-balance') {
-    let { address, expected, label, trace } = action;
+  } else if (instruction.type === 'expect-balance') {
+    let { address, expected, label, trace } = instruction;
     await assertionWithTrace(trace, () => {
       let actual = Mina.getBalance(address).toBigInt();
       assert.deepStrictEqual(actual, expected, label);
     });
   } else {
-    throw new Error('unknown action type');
+    throw new Error('Unknown test instruction type');
   }
 }
 
@@ -211,11 +214,11 @@ async function runAction(
 
 type MaybePromise<T> = T | Promise<T>;
 
-type BaseTestAction = { type: string; trace?: string; label?: string };
+type BaseInstruction = { type: string; trace?: string; label?: string };
 
-type TestAction =
-  | ((...args: any) => MaybePromise<TestAction | void>)
-  | (BaseTestAction &
+type TestInstruction =
+  | ((...args: any) => MaybePromise<TestInstruction | void>)
+  | (BaseInstruction &
       (
         | {
             type: 'transaction';
@@ -237,13 +240,16 @@ type TestAction =
 
 // transaction-like instructions
 
-function transaction(label: string, callback: () => Promise<void>): TestAction {
+function transaction(
+  label: string,
+  callback: () => Promise<void>
+): TestInstruction {
   let trace = Error().stack?.slice(5);
   return { type: 'transaction', label, callback, trace };
 }
 transaction.from =
   (sender: Mina.TestPublicKey) =>
-  (label: string, callback: () => Promise<void>): TestAction => {
+  (label: string, callback: () => Promise<void>): TestInstruction => {
     let trace = Error().stack?.slice(5);
     return { type: 'transaction', label, callback, sender, trace };
   };
@@ -251,7 +257,7 @@ transaction.from =
 function deploy(options?: {
   contract?: SmartContract;
   account?: Mina.TestPublicKey;
-}): TestAction {
+}): TestInstruction {
   let trace = Error().stack?.slice(5);
   return { type: 'deploy', options, trace };
 }
@@ -262,7 +268,7 @@ function expectState<S extends State>(
   state: S,
   expected: Expected<S>,
   message?: string
-): TestAction {
+): TestInstruction {
   let trace = Error().stack?.slice(5);
   return { type: 'expect-state', state, expected, trace, label: message };
 }
@@ -271,7 +277,7 @@ function expectBalance(
   address: PublicKey | string,
   expected: bigint,
   message?: string
-): TestAction {
+): TestInstruction {
   let trace = Error().stack?.slice(5);
   return {
     type: 'expect-balance',
