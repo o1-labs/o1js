@@ -7,7 +7,6 @@ import {
   Experimental,
   Field,
   method,
-  Mina,
   Poseidon,
   Provable,
   PublicKey,
@@ -27,14 +26,6 @@ const { IndexedMerkleMap, BatchReducer } = Experimental;
 const AMOUNT = 100_000n;
 
 class MerkleMap extends IndexedMerkleMap(10) {}
-
-// a couple of test accounts
-const accounts = Mina.TestPublicKey.random(20);
-
-// create a map of accounts that are eligible for the airdrop
-// for every eligible account, we store 1 in the map, representing TRUE
-const eligible = new MerkleMap();
-accounts.forEach((address) => eligible.insert(key(address), 1n));
 
 // set up reducer
 let batchReducer = new BatchReducer({ actionType: PublicKey, batchSize: 3 });
@@ -70,7 +61,7 @@ class Airdrop extends SmartContract {
 
   @method.returns(MerkleMap.provable)
   async settleClaims(proof: ActionBatchProof) {
-    // witness merkle map and assert that it matches the onchain root
+    // witness merkle map and require that it matches the onchain root
     let eligibleMap = Provable.witness(MerkleMap.provable, () =>
       eligible.clone()
     );
@@ -110,82 +101,98 @@ function key(address: PublicKey) {
 }
 
 // TEST BELOW
-const proofsEnabled = true;
 
-// unpack some of the eligible accounts
-let [alice, bob, charlie, danny] = accounts;
-
-// a random, non-eligible account
-let eve = Mina.TestPublicKey.random();
-
-let newEligible = eligible; // for tracking updates to the eligible map
+const eligible = new MerkleMap();
 
 await testLocal(
   Airdrop,
-  { proofsEnabled, batchReducer },
-  ({ contract, accounts: { sender }, Local }) => [
-    // preparation: sender funds the contract with 10M MINA
-    transaction('fund contract', async () => {
-      AccountUpdate.createSigned(sender).send({
-        to: contract.address,
-        amount: 10_000_000n,
-      });
-    }),
+  { proofsEnabled: 'both', batchReducer, autoDeploy: false },
+  ({
+    contract,
+    accounts: { sender, contractAccount, alice, bob, charlie, danny, eve },
+    Local,
+  }) => {
+    // create a new map of accounts that are eligible for the airdrop
+    // for every eligible account, we store 1 in the map, representing TRUE
+    eligible.overwrite(new MerkleMap());
 
-    // preparation: create user accounts
-    transaction('create accounts', async () => {
-      for (let address of [alice, bob, charlie, danny, eve]) {
-        AccountUpdate.create(address); // empty account update causes account creation
-      }
-      AccountUpdate.fundNewAccount(sender, 5);
-    }),
+    // eve is not eligible, the others are
+    [alice, bob, charlie, danny].forEach((address) =>
+      eligible.insert(key(address), 1n)
+    );
+    let newEligible = eligible; // for tracking updates to the eligible map
 
-    // first 4 accounts claim
-    // (we skip proofs here because they're not interesting for this test)
-    () => Local.setProofsEnabled(false),
-    transaction.from(alice)('alice claims', () => contract.claim()),
-    transaction.from(bob)('bob claims', () => contract.claim()),
-    transaction.from(eve)('eve claims', () => contract.claim()),
-    transaction.from(charlie)('charlie claims', () => contract.claim()),
-    () => Local.setProofsEnabled(proofsEnabled),
+    // hack: recreate contract to reflect fresh eligible map
+    contract = new Airdrop(contract.address);
+    batchReducer.setContractInstance(contract);
 
-    // settle claims, 1
-    async () => {
-      console.time('batch proof 1');
-      let proof = await batchReducer.proveNextBatch();
-      console.timeEnd('batch proof 1');
+    return [
+      // explicit deploy because only now we defined the correct eligible map
+      transaction.from(contractAccount)('deploy', () => contract.deploy()),
 
-      return transaction('settle claims 1', async () => {
-        newEligible = await contract.settleClaims(proof);
-      });
-    },
-    () => eligible.overwrite(newEligible), // update the eligible map
+      // preparation: sender funds the contract with 10M MINA
+      transaction('fund contract', async () => {
+        AccountUpdate.createSigned(sender).send({
+          to: contract.address,
+          amount: 10_000_000n,
+        });
+      }),
 
-    expectBalance(alice, AMOUNT),
-    expectBalance(bob, AMOUNT),
-    expectBalance(eve, 0n), // eve was not eligible
-    expectBalance(charlie, 0n), // we only processed 3 claims, charlie was the 4th
-    expectBalance(danny, 0n), // danny didn't claim yet
+      // preparation: create user accounts
+      transaction('create accounts', async () => {
+        for (let address of [alice, bob, charlie, danny, eve]) {
+          AccountUpdate.create(address); // empty account update causes account creation
+        }
+        AccountUpdate.fundNewAccount(sender, 5);
+      }),
 
-    // another claim + final settling
-    transaction.from(danny)('danny claims', () => contract.claim()),
+      // first 4 accounts claim
+      // (we skip proofs here because they're not interesting for this test)
+      () => Local.setProofsEnabled(false),
+      transaction.from(alice)('alice claims', () => contract.claim()),
+      transaction.from(bob)('bob claims', () => contract.claim()),
+      transaction.from(eve)('eve claims', () => contract.claim()),
+      transaction.from(charlie)('charlie claims', () => contract.claim()),
+      () => Local.resetProofsEnabled(),
 
-    // settle claims, 2
-    async () => {
-      console.time('batch proof 2');
-      let proof = await batchReducer.proveNextBatch();
-      console.timeEnd('batch proof 2');
+      // settle claims, 1
+      async () => {
+        console.time('batch proof 1');
+        let proof = await batchReducer.proveNextBatch();
+        console.timeEnd('batch proof 1');
 
-      return transaction('settle claims 2', async () => {
-        newEligible = await contract.settleClaims(proof);
-      });
-    },
-    () => eligible.overwrite(newEligible),
+        return transaction('settle claims 1', async () => {
+          newEligible = await contract.settleClaims(proof);
+        });
+      },
+      () => eligible.overwrite(newEligible), // update the eligible map
 
-    expectBalance(alice, AMOUNT),
-    expectBalance(bob, AMOUNT),
-    expectBalance(eve, 0n),
-    expectBalance(charlie, AMOUNT),
-    expectBalance(danny, AMOUNT),
-  ]
+      expectBalance(alice, AMOUNT),
+      expectBalance(bob, AMOUNT),
+      expectBalance(eve, 0n), // eve was not eligible
+      expectBalance(charlie, 0n), // we only processed 3 claims, charlie was the 4th
+      expectBalance(danny, 0n), // danny didn't claim yet
+
+      // another claim + final settling
+      transaction.from(danny)('danny claims', () => contract.claim()),
+
+      // settle claims, 2
+      async () => {
+        console.time('batch proof 2');
+        let proof = await batchReducer.proveNextBatch();
+        console.timeEnd('batch proof 2');
+
+        return transaction('settle claims 2', async () => {
+          newEligible = await contract.settleClaims(proof);
+        });
+      },
+      () => eligible.overwrite(newEligible),
+
+      expectBalance(alice, AMOUNT),
+      expectBalance(bob, AMOUNT),
+      expectBalance(eve, 0n),
+      expectBalance(charlie, AMOUNT),
+      expectBalance(danny, AMOUNT),
+    ];
+  }
 );
