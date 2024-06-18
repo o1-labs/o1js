@@ -4,7 +4,6 @@ import {
   GenericProvableExtended,
   GenericSignableField,
 } from '../../bindings/lib/generic.js';
-import { Provable } from '../provable/provable.js';
 
 export { createEvents, dataAsHash };
 
@@ -49,11 +48,7 @@ function createEvents<Field>({
     pushEvent(events: Events, event: Event): Events {
       let eventHash = hashWithPrefix(prefixes.event, event);
       let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
-      let data = [...events.data];
-      Provable.asProver(() => {
-        data.unshift(event.map((e) => Field(Field.toBigint(e))));
-      });
-      return { hash, data };
+      return { hash, data: [event, ...events.data] };
     },
     fromList(events: Event[]): Events {
       return [...events].reverse().reduce(Events.pushEvent, Events.empty());
@@ -96,11 +91,7 @@ function createEvents<Field>({
         actions.hash,
         eventHash,
       ]);
-      let data = [...actions.data];
-      Provable.asProver(() => {
-        data.unshift(event.map((e) => Field(Field.toBigint(e))));
-      });
-      return { hash, data };
+      return { hash, data: [event, ...actions.data] };
     },
     fromList(events: Event[]): Events {
       return [...events].reverse().reduce(Actions.pushEvent, Actions.empty());
