@@ -85,11 +85,9 @@ class ExampleContract extends SmartContract {
 
 // test code below
 
-const proofsEnabled = true;
-
 await testLocal(
   ExampleContract,
-  { proofsEnabled, offchainState },
+  { proofsEnabled: true, offchainState },
   ({ accounts: { sender, receiver, other }, contract, Local }) => [
     // create first account
     transaction('create account', async () => {
@@ -138,7 +136,7 @@ await testLocal(
 
     // settle
     async () => {
-      Local.setProofsEnabled(proofsEnabled);
+      Local.resetProofsEnabled();
       console.time('settlement proof 2');
       let proof = await offchainState.createSettlementProof();
       console.timeEnd('settlement proof 2');

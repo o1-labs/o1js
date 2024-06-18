@@ -17,7 +17,6 @@ import {
   Permissions,
 } from '../../../index.js';
 import {
-  deploy,
   expectBalance,
   testLocal,
   transaction,
