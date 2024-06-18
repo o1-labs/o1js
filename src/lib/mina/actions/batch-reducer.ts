@@ -22,7 +22,7 @@ import { contract } from '../smart-contract-context.js';
 import { State } from '../state.js';
 import { Option } from '../../provable/option.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import { fetchActions } from '../mina-instance.js';
+import { fetchActions, getProofsEnabled } from '../mina-instance.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
@@ -513,6 +513,16 @@ async function proveActionBatch(
   let { maxUpdatesPerProof } = program;
   const ActionBatchProof = ZkProgram.Proof(program);
 
+  // if proofs are disabled, just compute the final action state and return a dummy proof
+  if (!getProofsEnabled()) {
+    let state = initialActionState;
+    for (let action of actions) {
+      if (action === undefined) continue;
+      state = Actions.updateSequenceState(state, Field(action));
+    }
+    return await ActionBatchProof.dummy(initialActionState, state, 1, 14);
+  }
+
   // split actions in chunks of `maxUpdatesPerProof` each
   let chunks: Unconstrained<ActionHashes>[] = [];
 
@@ -530,20 +540,14 @@ async function proveActionBatch(
     chunks[i] = Unconstrained.from(batch);
   }
 
-  let dummy = await ActionBatchProof.dummy(Field(0), Field(0), 1, 14);
+  let proof = await ActionBatchProof.dummy(Field(0), Field(0), 1, 14);
 
-  let proof = await program.proveChunk(
-    initialActionState,
-    dummy,
-    Bool(false),
-    chunks[0]
-  );
-
-  for (let i = 1; i < nChunks; i++) {
+  for (let i = 0; i < nChunks; i++) {
+    let isRecursive = Bool(i > 0);
     proof = await program.proveChunk(
       initialActionState,
       proof,
-      Bool(true),
+      isRecursive,
       chunks[i]
     );
   }
