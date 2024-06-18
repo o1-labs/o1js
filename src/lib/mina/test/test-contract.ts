@@ -21,7 +21,7 @@ async function testLocal<S extends SmartContract>(
     offchainState,
     batchReducer,
   }: {
-    proofsEnabled: boolean;
+    proofsEnabled: boolean | 'both';
     offchainState?: OffchainState<any>;
     batchReducer?: BatchReducer<any>;
   },
@@ -109,9 +109,20 @@ async function testLocal<S extends SmartContract>(
   }
 
   // create local instance and execute test
+  // if proofsEnabled is 'both', run the test with AND without proofs
 
-  const Local = await Mina.LocalBlockchain({ proofsEnabled });
-  await execute(Local);
+  console.log();
+  if (proofsEnabled === 'both' || proofsEnabled === false) {
+    if (proofsEnabled === 'both') console.log('(without proofs)');
+    const LocalNoProofs = await Mina.LocalBlockchain({ proofsEnabled: false });
+    await execute(LocalNoProofs);
+  }
+
+  if (proofsEnabled === 'both' || proofsEnabled === true) {
+    if (proofsEnabled === 'both') console.log('\n(with proofs)');
+    const LocalWithProofs = await Mina.LocalBlockchain({ proofsEnabled: true });
+    await execute(LocalWithProofs);
+  }
 }
 
 async function runAction(
@@ -132,19 +143,25 @@ async function runAction(
     await tx.send();
     console.timeEnd(action.label);
   } else if (action.type === 'expect-state') {
-    let { state, expected, message } = action;
+    let { state, expected, trace, message } = action;
     if ('_type' in state) {
       let actual = Option(state._type).toValue(await state.get());
-      assert.deepStrictEqual(actual, expected, message);
+      assertionWithTrace(trace, () =>
+        assert.deepStrictEqual(actual, expected, message)
+      );
     } else if ('_valueType' in state) {
       let [key, value] = expected;
       let actual = Option(state._valueType).toValue(await state.get(key));
-      assert.deepStrictEqual(actual, value, message);
+      assertionWithTrace(trace, () => {
+        assert.deepStrictEqual(actual, value, message);
+      });
     }
   } else if (action.type === 'expect-balance') {
-    let { address, expected, message } = action;
+    let { address, expected, message, trace } = action;
     let actual = Mina.getBalance(address).toBigInt();
-    assert.deepStrictEqual(actual, expected, message);
+    assertionWithTrace(trace, () =>
+      assert.deepStrictEqual(actual, expected, message)
+    );
   } else {
     throw new Error('unknown action type');
   }
@@ -164,15 +181,17 @@ type TestAction =
     }
   | {
       type: 'expect-state';
+      trace?: string;
+      message?: string;
       state: State;
       expected: Expected<State>;
-      message?: string;
     }
   | {
       type: 'expect-balance';
+      trace?: string;
+      message?: string;
       address: PublicKey;
       expected: bigint;
-      message?: string;
     };
 
 function transaction(label: string, callback: () => Promise<void>): TestAction {
@@ -189,7 +208,8 @@ function expectState<S extends State>(
   expected: Expected<S>,
   message?: string
 ): TestAction {
-  return { type: 'expect-state', state, expected, message };
+  let trace = Error().stack?.slice(5);
+  return { type: 'expect-state', state, expected, trace, message };
 }
 
 function expectBalance(
@@ -197,11 +217,13 @@ function expectBalance(
   expected: bigint,
   message?: string
 ): TestAction {
+  let trace = Error().stack?.slice(5);
   return {
     type: 'expect-balance',
     address:
       typeof address === 'string' ? PublicKey.fromBase58(address) : address,
     expected,
+    trace,
     message,
   };
 }
@@ -213,3 +235,16 @@ type Expected<S extends State> = S extends OffchainField<any, infer V>
   : S extends OffchainMap<infer K, any, infer V>
   ? [K, V | undefined]
   : never;
+
+// error helper
+
+function assertionWithTrace(trace: string | undefined, fn: () => any) {
+  try {
+    fn();
+  } catch (err: any) {
+    if (trace !== undefined) {
+      err.message += `\nAssertion was created here:\n${trace}\nError was thrown from here:`;
+    }
+    throw Error(err.message);
+  }
+}
