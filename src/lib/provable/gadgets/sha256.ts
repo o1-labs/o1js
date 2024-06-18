@@ -89,13 +89,11 @@ const SHA256 = {
     let messageBlocks = padding(data);
 
     let H = SHA256Constants.H.map((x) => UInt32.from(x));
-    const K = SHA256Constants.K.map((x) => UInt32.from(x));
-
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
       const W = computeMessageSchedule(messageBlocks[i]);
-      H = sha256Compression(H, W, K);
+      H = sha256Compression(H, W);
     }
 
     // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
@@ -235,10 +233,10 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
  *
  * @param H - The initial or intermediate hash values (8-element array of UInt32).
  * @param W - The message schedule (64-element array of UInt32).
- * @param K - The constants used in the SHA-256 algorithm (64-element array of UInt32).
+ *
  * @returns The updated intermediate hash values after compression.
  */
-function sha256Compression(H: UInt32[], W: UInt32[], K: UInt32[]) {
+function sha256Compression(H: UInt32[], W: UInt32[]) {
   // initialize working variables
   let a = H[0];
   let b = H[1];
@@ -255,7 +253,7 @@ function sha256Compression(H: UInt32[], W: UInt32[], K: UInt32[]) {
     const unreducedT1 = h.value
       .add(SigmaOne(e).value)
       .add(Ch(e, f, g).value)
-      .add(K[t].value)
+      .add(SHA256Constants.K[t])
       .add(W[t].value)
       .seal();
 
