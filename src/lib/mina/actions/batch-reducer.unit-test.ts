@@ -1,7 +1,6 @@
 /**
  * Example implementation of a MINA airdrop that allows concurrent withdrawals.
  */
-import { setDebugContext } from 'src/lib/util/global-context.js';
 import {
   AccountUpdate,
   Bool,
@@ -33,7 +32,9 @@ class MerkleMap extends IndexedMerkleMap(10) {}
 const accounts = Mina.TestPublicKey.random(20);
 
 // create a map of accounts that are eligible for the airdrop
-const eligible = createEligibleMap(accounts);
+// for every eligible account, we store 1 in the map, representing TRUE
+const eligible = new MerkleMap();
+accounts.forEach((address) => eligible.insert(key(address), 1n));
 
 // set up reducer
 let batchReducer = new BatchReducer({ actionType: PublicKey, batchSize: 3 });
@@ -50,7 +51,9 @@ class Airdrop extends SmartContract {
   actionState = State(BatchReducer.initialActionState);
 
   @method
-  async claim(address: PublicKey) {
+  async claim() {
+    let address = this.sender.getUnconstrained();
+
     // ensure that the MINA account already exists and that the sender knows its private key
     let au = AccountUpdate.createSigned(address);
     au.body.useFullCommitment = Bool(true); // ensures the signature attests to the entire transaction
@@ -67,25 +70,22 @@ class Airdrop extends SmartContract {
 
   @method.returns(MerkleMap.provable)
   async settleClaims(proof: ActionBatchProof) {
-    // fetch merkle map and assert that it matches the onchain root
-    let root = this.eligibleRoot.getAndRequireEquals();
-    let eligible = await Provable.witnessAsync(
-      MerkleMap.provable,
-      fetchEligibleMap
+    // witness merkle map and assert that it matches the onchain root
+    let eligibleMap = Provable.witness(MerkleMap.provable, () =>
+      eligible.clone()
     );
-    eligible.root.assertEquals(root);
+    this.eligibleRoot.requireEquals(eligibleMap.root);
 
     // process claims by reducing actions
     await batchReducer.processNextBatch(proof, (address, isDummy) => {
       // check whether the claim is valid = exactly contained in the map
       let addressKey = key(address);
-      let isValidField = eligible.getOption(addressKey).orElse(0n);
-      Provable.log(address, isValidField, isDummy);
+      let isValidField = eligibleMap.getOption(addressKey).orElse(0n);
       isValidField = Provable.if(isDummy, Field(0), isValidField);
       let isValid = Bool.Unsafe.fromField(isValidField); // not unsafe, because only bools can be put in the map
 
       // if the claim is valid, zero out the account in the map
-      eligible.setIf(isValid, addressKey, 0n);
+      eligibleMap.setIf(isValid, addressKey, 0n);
 
       // if the claim is valid, send 100 MINA to the account
       let amount = Provable.if(isValid, UInt64.from(AMOUNT), UInt64.zero);
@@ -95,24 +95,11 @@ class Airdrop extends SmartContract {
     });
 
     // update the onchain root and action state pointer
-    this.eligibleRoot.set(eligible.root);
+    this.eligibleRoot.set(eligibleMap.root);
 
     // return the updated eligible map
-    return eligible;
+    return eligibleMap;
   }
-}
-
-/**
- * Helper function to create a map of eligible accounts.
- */
-function createEligibleMap(accounts: PublicKey[]) {
-  // predefined MerkleMap of eligible accounts
-  const eligible = new MerkleMap();
-
-  // for every eligible account, we store 1 = TRUE in the map
-  accounts.forEach((account) => eligible.insert(key(account), 1n));
-
-  return eligible;
 }
 
 /**
@@ -122,24 +109,20 @@ function key(address: PublicKey) {
   return Poseidon.hash(address.toFields());
 }
 
-/**
- * Mock for fetching the (partial) Merkle Map from a service endpoint.
- */
-async function fetchEligibleMap() {
-  return eligible.clone();
-}
+// TEST BELOW
+const proofsEnabled = true;
 
-// test below
+// unpack some of the eligible accounts
+let [alice, bob, charlie, danny] = accounts;
 
-let [alice, bob, charlie, dan] = accounts;
+// a random, non-eligible account
 let eve = Mina.TestPublicKey.random();
 
-let newEligible = eligible;
-setDebugContext(true);
+let newEligible = eligible; // for tracking updates to the eligible map
 
 await testLocal(
   Airdrop,
-  { proofsEnabled: true, batchReducer },
+  { proofsEnabled, batchReducer },
   ({ contract, accounts: { sender }, Local }) => [
     // preparation: sender funds the contract with 10M MINA
     transaction('fund contract', async () => {
@@ -149,22 +132,22 @@ await testLocal(
       });
     }),
 
-    // preparation: create alice, bob, and charlie accounts
+    // preparation: create user accounts
     transaction('create accounts', async () => {
-      AccountUpdate.fundNewAccount(sender, 5);
-
-      for (let address of [alice, bob, charlie, dan, eve]) {
-        AccountUpdate.create(address);
+      for (let address of [alice, bob, charlie, danny, eve]) {
+        AccountUpdate.create(address); // empty account update causes account creation
       }
+      AccountUpdate.fundNewAccount(sender, 5);
     }),
 
     // first 4 accounts claim
+    // (we skip proofs here because they're not interesting for this test)
     () => Local.setProofsEnabled(false),
-    transaction.from(alice)('alice claims', () => contract.claim(alice)),
-    transaction.from(bob)('bob claims', () => contract.claim(bob)),
-    transaction.from(eve)('eve claims', () => contract.claim(eve)),
-    transaction.from(charlie)('charlie claims', () => contract.claim(charlie)),
-    () => Local.setProofsEnabled(true),
+    transaction.from(alice)('alice claims', () => contract.claim()),
+    transaction.from(bob)('bob claims', () => contract.claim()),
+    transaction.from(eve)('eve claims', () => contract.claim()),
+    transaction.from(charlie)('charlie claims', () => contract.claim()),
+    () => Local.setProofsEnabled(proofsEnabled),
 
     // settle claims, 1
     async () => {
@@ -176,15 +159,15 @@ await testLocal(
         newEligible = await contract.settleClaims(proof);
       });
     },
-    () => eligible.overwrite(newEligible),
+    () => eligible.overwrite(newEligible), // update the eligible map
 
     expectBalance(alice, AMOUNT),
     expectBalance(bob, AMOUNT),
-    expectBalance(eve, 0n), // because eve was not eligible
-    expectBalance(charlie, 0n), // because we only processed 3 claims
-    expectBalance(dan, 0n), // didn't claim yet
+    expectBalance(eve, 0n), // eve was not eligible
+    expectBalance(charlie, 0n), // we only processed 3 claims, charlie was the 4th
+    expectBalance(danny, 0n), // danny didn't claim yet
 
-    transaction.from(dan)('danny claims', async () => contract.claim(dan)),
+    transaction.from(danny)('danny claims', () => contract.claim()),
 
     // settle claims, 2
     async () => {
@@ -202,6 +185,6 @@ await testLocal(
     expectBalance(bob, AMOUNT),
     expectBalance(eve, 0n),
     expectBalance(charlie, AMOUNT),
-    expectBalance(dan, AMOUNT),
+    expectBalance(danny, AMOUNT),
   ]
 );

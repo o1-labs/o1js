@@ -530,30 +530,22 @@ async function proveActionBatch(
     chunks[i] = Unconstrained.from(batch);
   }
 
-  console.time('dummy');
   let dummy = await ActionBatchProof.dummy(Field(0), Field(0), 1, 14);
-  console.timeEnd('dummy');
 
-  console.log('creating proof 0...');
-  console.time('proof 0');
   let proof = await program.proveChunk(
     initialActionState,
     dummy,
     Bool(false),
     chunks[0]
   );
-  console.timeEnd('proof 0');
 
   for (let i = 1; i < nChunks; i++) {
-    console.log(`creating proof ${i}...`);
-    console.time(`proof ${i}`);
     proof = await program.proveChunk(
       initialActionState,
       proof,
       Bool(true),
       chunks[i]
     );
-    console.timeEnd(`proof ${i}`);
   }
 
   return proof;
