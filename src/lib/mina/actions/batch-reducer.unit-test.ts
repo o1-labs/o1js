@@ -123,10 +123,6 @@ await testLocal(
     );
     let newEligible = eligible; // for tracking updates to the eligible map
 
-    // hack: recreate contract to reflect fresh eligible map
-    contract = new Airdrop(contract.address);
-    batchReducer.setContractInstance(contract);
-
     return [
       // explicit deploy because only now we defined the correct eligible map
       deploy(),
