@@ -12,6 +12,8 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 
 export { testLocal, transaction, expectState, expectBalance };
 
+type LocalBlockchain = Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
+
 async function testLocal<S extends SmartContract>(
   Contract: typeof SmartContract & (new (...args: any) => S),
   {
@@ -26,9 +28,11 @@ async function testLocal<S extends SmartContract>(
   callback: (input: {
     accounts: Record<string, Mina.TestPublicKey>;
     contract: S;
-    Local: Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
+    Local: LocalBlockchain;
   }) => TestAction[]
 ) {
+  // instance-independent setup: compile programs
+
   batchReducer?.setContractClass(Contract as any);
 
   if (proofsEnabled) {
@@ -47,83 +51,101 @@ async function testLocal<S extends SmartContract>(
     console.timeEnd('compile contract');
   }
 
-  const Local = await Mina.LocalBlockchain({ proofsEnabled });
-  Mina.setActiveInstance(Local);
+  // how to execute this test against a particular local Mina instance
 
-  let [sender, contractAccount] = Local.testAccounts;
+  async function execute(Local: LocalBlockchain) {
+    Mina.setActiveInstance(Local);
 
-  let accounts: Record<string, Mina.TestPublicKey> = new Proxy(
-    { sender, contractAccount },
-    {
-      get(accounts, name) {
-        if (name in accounts) return (accounts as any)[name];
-        let account = Mina.TestPublicKey.random();
-        (accounts as any)[name] = account;
-        return account;
-      },
-    }
-  );
+    // set up accounts and connect contract to offchain state, reducer
 
-  let contract = new Contract(contractAccount);
-  offchainState?.setContractInstance(contract as any);
-  batchReducer?.setContractInstance(contract as any);
+    let [sender, contractAccount] = Local.testAccounts;
 
-  // deploy
-
-  console.time('deploy');
-  await Mina.transaction(sender, async () => {
-    await contract.deploy();
-  })
-    .sign([sender.key, contractAccount.key])
-    .prove()
-    .send();
-  console.timeEnd('deploy');
-
-  // run test spec to return actions
-
-  let testActions = callback({
-    accounts,
-    contract: contract as S,
-    Local,
-  });
-
-  // run actions
-
-  async function runAction(action: TestAction): Promise<void> {
-    if (typeof action === 'function') {
-      let maybe = await action();
-      if (maybe !== undefined) {
-        await runAction(maybe);
+    let originalAccounts: Record<string, Mina.TestPublicKey> = {
+      sender,
+      contractAccount,
+    };
+    let accounts: Record<string, Mina.TestPublicKey> = new Proxy(
+      originalAccounts,
+      {
+        get(accounts, name: string) {
+          if (name in accounts) return accounts[name];
+          // TODO would be nicer to use accounts that already exist
+          let account = Mina.TestPublicKey.random();
+          accounts[name] = account;
+          return account;
+        },
       }
-    } else if (action.type === 'transaction') {
-      console.time(action.label);
-      let s = action.sender ?? sender;
-      let tx = await Mina.transaction(s, action.callback);
-      // console.log(action.label, tx.toPretty());
-      await tx.sign([s.key]).prove();
-      await tx.send();
-      console.timeEnd(action.label);
-    } else if (action.type === 'expect-state') {
-      let { state, expected, message } = action;
-      if ('_type' in state) {
-        let actual = Option(state._type).toValue(await state.get());
-        assert.deepStrictEqual(actual, expected, message);
-      } else if ('_valueType' in state) {
-        let [key, value] = expected;
-        let actual = Option(state._valueType).toValue(await state.get(key));
-        assert.deepStrictEqual(actual, value, message);
-      }
-    } else if (action.type === 'expect-balance') {
-      let { address, expected, message } = action;
-      let actual = Mina.getBalance(address).toBigInt();
-      assert.deepStrictEqual(actual, expected, message);
-    } else {
-      throw new Error('unknown action type');
+    );
+
+    let contract = new Contract(contractAccount);
+    offchainState?.setContractInstance(contract as any);
+    batchReducer?.setContractInstance(contract as any);
+
+    // deploy
+    // TODO: figure out if the contract is already deployed on this instance,
+    // and only deploy if it's not
+
+    console.time('deploy');
+    await Mina.transaction(sender, () => contract.deploy())
+      .sign([sender.key, contractAccount.key])
+      .prove()
+      .send();
+    console.timeEnd('deploy');
+
+    // run test spec to return actions
+
+    let testActions = callback({
+      accounts,
+      contract: contract as S,
+      Local,
+    });
+
+    // run actions
+
+    for (let action of testActions) {
+      await runAction(Local, action);
     }
   }
 
-  for (let action of testActions) {
-    await runAction(action);
+  // create local instance and execute test
+
+  const Local = await Mina.LocalBlockchain({ proofsEnabled });
+  await execute(Local);
+}
+
+async function runAction(
+  localInstance: LocalBlockchain,
+  action: TestAction
+): Promise<void> {
+  if (typeof action === 'function') {
+    let maybe = await action();
+    if (maybe !== undefined) {
+      await runAction(localInstance, maybe);
+    }
+  } else if (action.type === 'transaction') {
+    console.time(action.label);
+    let s = action.sender ?? localInstance.testAccounts[0];
+    let tx = await Mina.transaction(s, action.callback);
+    // console.log(action.label, tx.toPretty());
+    await tx.sign([s.key]).prove();
+    await tx.send();
+    console.timeEnd(action.label);
+  } else if (action.type === 'expect-state') {
+    let { state, expected, message } = action;
+    if ('_type' in state) {
+      let actual = Option(state._type).toValue(await state.get());
+      assert.deepStrictEqual(actual, expected, message);
+    } else if ('_valueType' in state) {
+      let [key, value] = expected;
+      let actual = Option(state._valueType).toValue(await state.get(key));
+      assert.deepStrictEqual(actual, value, message);
+    }
+  } else if (action.type === 'expect-balance') {
+    let { address, expected, message } = action;
+    let actual = Mina.getBalance(address).toBigInt();
+    assert.deepStrictEqual(actual, expected, message);
+  } else {
+    throw new Error('unknown action type');
   }
 }
 
