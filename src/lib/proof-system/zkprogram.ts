@@ -1,16 +1,6 @@
-import {
-  EmptyNull,
-  EmptyUndefined,
-  EmptyVoid,
-} from '../../bindings/lib/generic.js';
+import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
 import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
-import {
-  Pickles,
-  FeatureFlags,
-  MlFeatureFlags,
-  Gate,
-  GateType,
-} from '../../snarky.js';
+import { Pickles, MlFeatureFlags, Gate, GateType } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import {
   FlexibleProvable,
@@ -24,7 +14,14 @@ import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { snarkContext } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
-import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
+import {
+  MlArray,
+  MlBool,
+  MlResult,
+  MlPair,
+  MlOption,
+  MlArrayOptionalElements,
+} from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
 import { Cache, readCache, writeCache } from './cache.js';
@@ -54,6 +51,7 @@ export {
   Undefined,
   Void,
   VerificationKey,
+  FeatureFlags,
 };
 
 // internal API
@@ -82,6 +80,113 @@ type Empty = Undefined;
 const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
+
+type FeatureFlags = {
+  rangeCheck0: boolean | undefined;
+  rangeCheck1: boolean | undefined;
+  foreignFieldAdd: boolean | undefined;
+  foreignFieldMul: boolean | undefined;
+  xor: boolean | undefined;
+  rot: boolean | undefined;
+  lookup: boolean | undefined;
+  runtimeTables: boolean | undefined;
+};
+/**
+ * Feature flags indicate what custom gates are used in a proof of circuit.
+ * Side loading, for example, requires a set of feature flags in advance (at compile time) in order to verify and side load proofs.
+ * If the side loaded proofs and verification keys do not match the specified feature flag configurations, the verification will fail.
+ * Flags specified as `undefined` are considered as `maybe` by Pickles. This means, proofs can be sided loaded that can, but don't have to, use a specific custom gate.
+ * _Note:_ `Maybe` feature flags incur a proving overhead.
+ */
+const FeatureFlags = {
+  /**
+   * Returns a feature flag configuration where all flags are set to false.
+   */
+  allNone: {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  },
+  /**
+   * Returns a feature flag configuration where all flags are optional.
+   */
+  allMaybe: {
+    rangeCheck0: undefined,
+    rangeCheck1: undefined,
+    foreignFieldAdd: undefined,
+    foreignFieldMul: undefined,
+    xor: undefined,
+    rot: undefined,
+    lookup: undefined,
+    runtimeTables: undefined,
+  },
+
+  /**
+   * Given a list of gates, returns the feature flag configuration that the gates use.
+   */
+  fromGates: featureFlagsFromGates,
+
+  /**
+   * Given a ZkProgram, return the feature flag configuration that fits the given program.
+   * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
+   */
+  fromZkProgram: featureFlagsfromZkProgram,
+};
+
+async function featureFlagsfromZkProgram<
+  P extends {
+    analyzeMethods: () => Promise<{
+      [I in keyof any]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    }>;
+  }
+>(program: P): Promise<FeatureFlags> {
+  let methodIntfs = await program.analyzeMethods();
+
+  // compute feature flags that belong to each method
+  let flags = Object.entries(methodIntfs).map(([_, { gates }]) => {
+    return featureFlagsFromGates(gates);
+  });
+
+  if (flags.length === 0)
+    throw Error(
+      'The ZkProgram has no methods, in order to calculate feature flags, please attach a method to your ZkProgram.'
+    );
+
+  // initialize feature flags to all false
+  let globalFlags: Record<string, boolean | undefined> = {
+    rangeCheck0: false,
+    rangeCheck1: false,
+    foreignFieldAdd: false,
+    foreignFieldMul: false,
+    xor: false,
+    rot: false,
+    lookup: false,
+    runtimeTables: false,
+  };
+
+  // if there's only one method that means it defines the feature flags for the entire program
+  if (flags.length === 1) return flags[0];
+
+  // calculating the crossover between all methods, compute the shared feature flag set
+  flags.forEach((featureFlags, i) => {
+    for (const [flagType, currentFlag] of Object.entries(featureFlags)) {
+      if (i === 0) {
+        // initialize first iteration of flags freely
+        globalFlags[flagType] = currentFlag;
+      } else if (globalFlags[flagType] != currentFlag) {
+        // if flags conflict, set them to undefined to account for both cases (true and false) ^= maybe
+        // otherwise side loading couldn't verify some proofs of some method branches!
+        globalFlags[flagType] = undefined;
+      }
+    }
+  });
+  return globalFlags as FeatureFlags;
+}
 
 class ProofBase<Input, Output> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
@@ -227,7 +332,7 @@ var sideloadedKeysCounter = 0;
  * This pattern differs a lot from the usage of normal `Proof`, where the verification key is baked into the compiled circuit.
  * @see {@link src/examples/zkprogram/dynamic-keys-merkletree.ts} for an example of how this can be done using merkle trees
  *
- * Assertions generally only happen using the vk hash that is part of the `VerificationKey` struct along with the raw vk data as auxilary data.
+ * Assertions generally only happen using the vk hash that is part of the `VerificationKey` struct along with the raw vk data as auxiliary data.
  * When using verify() on a `DynamicProof`, Pickles makes sure that the verification key data matches the hash.
  * Therefore all manual assertions have to be made on the vk's hash and it can be assumed that the vk's data is checked to match the hash if it is used with verify().
  */
@@ -235,6 +340,22 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
   public static maxProofsVerified: 0 | 1 | 2;
 
   private static memoizedCounter: number | undefined;
+
+  /**
+   * As the name indicates, feature flags are features of the proof system.
+   *
+   * If we want to side load proofs and verification keys, we first have to tell Pickles what _shape_ of proofs it should expect.
+   *
+   * For example, if we want to side load proofs that use foreign field arithmetic custom gates, we have to make Pickles aware of that by defining
+   * these custom gates.
+   *
+   * _Note:_ Only proofs that use the exact same composition of custom gates which were expected by Pickles can be verified using side loading.
+   * If you want to verify _any_ proof, no matter what custom gates it uses, you can use {@link FeatureFlags.allMaybe}. Please note that this might incur a significant overhead.
+   *
+   * You can also toggle specific feature flags manually by specifying them here.
+   * Alternatively, you can use {@FeatureFlags.fromZkProgram} to compute the set of feature flags that are compatible with a given program.
+   */
+  static featureFlags: FeatureFlags = FeatureFlags.allNone;
 
   static tag() {
     let counter: number;
@@ -1018,7 +1139,8 @@ function picklesRuleFromFunction(
           tag.name,
           Proof.maxProofsVerified,
           Proof.publicInputType?.sizeInFields() ?? 0,
-          Proof.publicOutputType?.sizeInFields() ?? 0
+          Proof.publicOutputType?.sizeInFields() ?? 0,
+          featureFlagsToMlOption(Proof.featureFlags)
         );
         SideloadedTag.store(tag.name, computedTag);
       } else {
@@ -1037,7 +1159,7 @@ function picklesRuleFromFunction(
     }
   });
 
-  let featureFlags = computeFeatureFlags(gates);
+  let featureFlags = featureFlagsToMlOption(featureFlagsFromGates(gates));
 
   return {
     identifier: methodName,
@@ -1215,7 +1337,7 @@ const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
   Lookup: 'lookup',
 };
 
-function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
+function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
   let flags: FeatureFlags = {
     rangeCheck0: false,
     rangeCheck1: false,
@@ -1230,16 +1352,33 @@ function computeFeatureFlags(gates: Gate[]): MlFeatureFlags {
     let flag = gateToFlag[gate.type];
     if (flag !== undefined) flags[flag] = true;
   }
+  return flags;
+}
+
+function featureFlagsToMlOption(
+  flags: FeatureFlags
+): MlArrayOptionalElements<MlFeatureFlags> {
+  const {
+    rangeCheck0,
+    rangeCheck1,
+    foreignFieldAdd,
+    foreignFieldMul,
+    xor,
+    rot,
+    lookup,
+    runtimeTables,
+  } = flags;
+
   return [
     0,
-    MlBool(flags.rangeCheck0),
-    MlBool(flags.rangeCheck1),
-    MlBool(flags.foreignFieldAdd),
-    MlBool(flags.foreignFieldMul),
-    MlBool(flags.xor),
-    MlBool(flags.rot),
-    MlBool(flags.lookup),
-    MlBool(flags.runtimeTables),
+    MlOption.mapTo(rangeCheck0, MlBool),
+    MlOption.mapTo(rangeCheck1, MlBool),
+    MlOption.mapTo(foreignFieldAdd, MlBool),
+    MlOption.mapTo(foreignFieldMul, MlBool),
+    MlOption.mapTo(xor, MlBool),
+    MlOption.mapTo(rot, MlBool),
+    MlOption.mapTo(lookup, MlBool),
+    MlOption.mapTo(runtimeTables, MlBool),
   ];
 }
 

@@ -83,6 +83,7 @@ export {
   Undefined,
   Void,
   VerificationKey,
+  FeatureFlags,
 } from './lib/proof-system/zkprogram.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
