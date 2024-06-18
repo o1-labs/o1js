@@ -1,4 +1,4 @@
-export { Context, setDebugContext };
+export { Context };
 
 namespace Context {
   export type id = number;
@@ -84,7 +84,7 @@ function enter<C>(t: Context.t<C>, context: C): Context.id {
     throw Error(contextConflictMessage);
   }
   let id = Math.random();
-  let trace = debugContext ? Error().stack?.slice(5) : undefined;
+  let trace = Error().stack?.slice(5);
   t.data.push({ context, id, trace });
   return id;
 }
@@ -127,10 +127,3 @@ let contextConflictMessage = `The global context managed by o1js reached an inco
   - Running async o1js operations (like proving) in parallel is not supported! Try running everything serially.
   
 Investigate the stack traces below for more hints about the problem.`;
-
-// for debugging this error
-let debugContext = false;
-
-function setDebugContext(debug: boolean) {
-  debugContext = debug;
-}
