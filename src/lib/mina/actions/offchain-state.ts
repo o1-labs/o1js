@@ -14,15 +14,19 @@ import {
   OffchainStateRollup,
 } from './offchain-state-rollup.js';
 import { Option, OptionOrValue } from '../../provable/option.js';
-import { InferValue } from '../../../bindings/lib/provable-generic.js';
+import {
+  Constructor,
+  InferValue,
+} from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { State } from '../state.js';
 import { Actions } from '../account-update.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
-import { smartContractContext } from '../smart-contract-context.js';
+import { contract, smartContractContext } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
+import { assertDefined } from '../../util/assert.js';
 
 // external API
 export { OffchainState, OffchainStateCommitments };
@@ -51,9 +55,15 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    *
    * This tells the offchain state about the account to fetch data from and modify, and lets it handle actions and onchain state.
    */
-  setContractInstance(
-    contract: SmartContract & { offchainState: State<OffchainStateCommitments> }
-  ): void;
+  setContractInstance(contract: OffchainStateContract): void;
+
+  /**
+   * Set the smart contract class that this offchain state is connected with.
+   *
+   * This is an alternative for `setContractInstance()` which lets you compile offchain state before knowing an contract instance.
+   * However, you must call `setContractInstance()` before calling `createSettlementProof()`.
+   */
+  setContractClass(contract: OffchainStateContractClass): void;
 
   /**
    * Compile the offchain state ZkProgram.
@@ -106,6 +116,8 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
+type OffchainStateContractClass = typeof SmartContract &
+  Constructor<OffchainStateContract>;
 
 /**
  * Offchain state for a `SmartContract`.
@@ -180,15 +192,15 @@ function OffchainState<
   // setup internal state of this "class"
   let internal = {
     _contract: undefined as OffchainStateContract | undefined,
+    _contractClass: undefined as OffchainStateContractClass | undefined,
     _merkleMap: undefined as IndexedMerkleMapN | undefined,
     _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
-      assert(
-        internal._contract !== undefined,
+      return assertDefined(
+        internal._contract,
         'Must call `setContractInstance()` first'
       );
-      return internal._contract;
     },
   };
   const onchainActionState = async () => {
@@ -219,22 +231,17 @@ function OffchainState<
     maxActionsPerUpdate,
   });
 
-  function contract() {
-    let ctx = smartContractContext.get();
-    assert(
-      ctx !== null,
-      'Offchain state methods must be called within a contract method'
+  function getContract(): OffchainStateContract {
+    let Contract = assertDefined(
+      internal._contractClass,
+      'Must call `setContractInstance()` or `setContractClass()` first'
     );
-    assert(
-      ctx.this.constructor === internal.contract.constructor,
-      'Offchain state methods can only be called on the same contract that you called setContractInstance() on'
-    );
-    return ctx.this as OffchainStateContract;
+    return contract(Contract);
   }
 
   function maybeContract() {
     try {
-      return contract();
+      return getContract();
     } catch {
       return internal.contract;
     }
@@ -300,7 +307,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -316,7 +323,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -350,7 +357,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -366,7 +373,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -380,6 +387,11 @@ function OffchainState<
   return {
     setContractInstance(contract) {
       internal._contract = contract;
+      internal._contractClass =
+        contract.constructor as OffchainStateContractClass;
+    },
+    setContractClass(contractClass) {
+      internal._contractClass = contractClass;
     },
 
     async compile() {
@@ -416,16 +428,16 @@ function OffchainState<
       proof.verify();
 
       // check that proof moves state forward from the one currently stored
-      let state = contract().offchainState.getAndRequireEquals();
+      let state = getContract().offchainState.getAndRequireEquals();
       Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
 
       // require that proof uses the correct pending actions
-      contract().account.actionState.requireEquals(
+      getContract().account.actionState.requireEquals(
         proof.publicOutput.actionState
       );
 
       // update the state
-      contract().offchainState.set(proof.publicOutput);
+      getContract().offchainState.set(proof.publicOutput);
     },
 
     fields: Object.fromEntries(

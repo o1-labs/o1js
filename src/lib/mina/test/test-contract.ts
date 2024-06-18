@@ -33,6 +33,7 @@ async function testLocal<S extends SmartContract>(
 ) {
   // instance-independent setup: compile programs
 
+  offchainState?.setContractClass(Contract as any);
   batchReducer?.setContractClass(Contract as any);
 
   if (proofsEnabled) {

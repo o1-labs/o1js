@@ -6,7 +6,6 @@ import {
   UInt64,
   Experimental,
 } from '../../../index.js';
-import assert from 'assert';
 import { expectState, testLocal, transaction } from '../test/test-contract.js';
 
 const { OffchainState } = Experimental;
