@@ -145,23 +145,25 @@ async function runAction(
   } else if (action.type === 'expect-state') {
     let { state, expected, trace, message } = action;
     if ('_type' in state) {
-      let actual = Option(state._type).toValue(await state.get());
-      assertionWithTrace(trace, () =>
-        assert.deepStrictEqual(actual, expected, message)
-      );
+      let type = state._type;
+      await assertionWithTrace(trace, async () => {
+        let actual = Option(type).toValue(await state.get());
+        assert.deepStrictEqual(actual, expected, message);
+      });
     } else if ('_valueType' in state) {
       let [key, value] = expected;
-      let actual = Option(state._valueType).toValue(await state.get(key));
-      assertionWithTrace(trace, () => {
+      let type = state._valueType;
+      await assertionWithTrace(trace, async () => {
+        let actual = Option(type).toValue(await state.get(key));
         assert.deepStrictEqual(actual, value, message);
       });
     }
   } else if (action.type === 'expect-balance') {
     let { address, expected, message, trace } = action;
-    let actual = Mina.getBalance(address).toBigInt();
-    assertionWithTrace(trace, () =>
-      assert.deepStrictEqual(actual, expected, message)
-    );
+    await assertionWithTrace(trace, () => {
+      let actual = Mina.getBalance(address).toBigInt();
+      assert.deepStrictEqual(actual, expected, message);
+    });
   } else {
     throw new Error('unknown action type');
   }
@@ -238,12 +240,12 @@ type Expected<S extends State> = S extends OffchainField<any, infer V>
 
 // error helper
 
-function assertionWithTrace(trace: string | undefined, fn: () => any) {
+async function assertionWithTrace(trace: string | undefined, fn: () => any) {
   try {
-    fn();
+    await fn();
   } catch (err: any) {
     if (trace !== undefined) {
-      err.message += `\nAssertion was created here:\n${trace}\nError was thrown from here:`;
+      err.message += `\nAssertion was created here:\n${trace}\n\nError was thrown from here:`;
     }
     throw Error(err.message);
   }
