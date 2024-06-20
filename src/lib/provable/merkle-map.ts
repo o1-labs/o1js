@@ -13,6 +13,10 @@ class MerkleMap {
   /**
    * Creates a new, empty Merkle Map.
    * @returns A new MerkleMap
+   * @example
+   * ```ts
+   * const merkleMap = new MerkleMap();
+   * ```
    */
   constructor() {
     this.tree = new MerkleTree(256);
@@ -34,6 +38,12 @@ class MerkleMap {
    * Sets a key of the merkle map to a given value.
    * @param key The key to set in the map.
    * @param value The value to set.
+   * @example
+   * ```ts
+   * cosnt key = Field(5);
+   * const value = Field(10);
+   * merkleMap.set(key, value);
+   * ```
    */
   set(key: Field, value: Field) {
     const index = this._keyToIndex(key);
@@ -44,6 +54,12 @@ class MerkleMap {
    * Returns a value given a key. Values are by default Field(0).
    * @param key The key to get the value from.
    * @returns The value stored at the key.
+   * @example
+   * ```ts
+   * const key = Field(5);
+   * const value = merkleMap.get(key);
+   * console.log(value); // Output: the value at key 5 or Field(0) if key does not exist
+   * ```
    */
   get(key: Field) {
     const index = this._keyToIndex(key);
@@ -53,6 +69,10 @@ class MerkleMap {
   /**
    * Returns the root of the Merkle Map.
    * @returns The root of the Merkle Map.
+   * @example
+   * ```ts
+   * const root = merkleMap.getRoot();
+   * ```
    */
   getRoot() {
     return this.tree.getRoot();
@@ -62,6 +82,11 @@ class MerkleMap {
    * Returns a circuit-compatible witness (also known as [Merkle Proof or Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof)) for the given key.
    * @param key The key to make a witness for.
    * @returns A MerkleMapWitness, which can be used to assert changes to the MerkleMap, and the witness's key.
+   * @example
+   * ```ts
+   * const key = Field(5);
+   * const witness = merkleMap.getWitness(key);
+   * ```
    */
   getWitness(key: Field) {
     const index = this._keyToIndex(key);
