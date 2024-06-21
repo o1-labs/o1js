@@ -26,6 +26,13 @@ class MerkleMap {
     // the bit map is reversed to make reconstructing the key during proving more convenient
     let bits = BinableFp.toBits(key.toBigInt()).reverse();
 
+    // Make sure that the key fits in 254 bits, in order to avoid collisions since the Pasta field modulus is smaller than 2^255
+    if (bits[0]) {
+      throw Error(
+        'Key must be less than 2^254, to avoid collisions in the field modulus. Please use a smaller key.'
+      );
+    }
+
     let n = 0n;
     for (let i = bits.length - 1; i >= 0; i--) {
       n = (n << 1n) | BigInt(bits[i]);

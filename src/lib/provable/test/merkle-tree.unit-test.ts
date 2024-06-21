@@ -296,7 +296,14 @@ test(Random.bool, Random.field, Random.field, (b, x, y) => {
 
 test(Random.field, (key) => {
   let map = new MerkleMap();
-  let witness = map.getWitness(Field(key));
-  let [, calculatedKey] = witness.computeRootAndKey(Field(0));
-  expect(calculatedKey.toBigInt()).toEqual(key);
+  // Check that the key fits in 254 bits, if it doesn't, we should throw an error (since the Pasta field modulus is smaller than 2^255)
+  if (key > 2n ** 254n) {
+    console.log(key, ' is too large for the field');
+    let witness = map.getWitness(Field(key));
+    expect(() => witness.computeRootAndKey(Field(0))).toThrowError();
+  } else {
+    let witness = map.getWitness(Field(key));
+    let [, calculatedKey] = witness.computeRootAndKey(Field(0));
+    expect(calculatedKey.toBigInt()).toEqual(key);
+  }
 });
