@@ -25,6 +25,8 @@ export { Hash } from './lib/provable/crypto/hash.js';
 
 export { assert } from './lib/provable/gadgets/common.js';
 
+export { CircuitValue, prop, arrayProp } from './lib/provable/types/circuit-value.js';
+
 export * from './lib/provable/crypto/signature.js';
 export type {
   ProvableExtended,
