@@ -24,7 +24,7 @@ import { State } from '../state.js';
 import { Actions } from '../account-update.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
-import { contract, smartContractContext } from '../smart-contract-context.js';
+import { contract } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 import { assertDefined } from '../../util/assert.js';
 
@@ -252,14 +252,15 @@ function OffchainState<
    */
   async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
     // get onchain merkle root
-    let stateRoot = maybeContract().offchainState.getAndRequireEquals().root;
+    let state = maybeContract().offchainState.getAndRequireEquals();
 
     // witness the merkle map & anchor against the onchain root
     let map = await Provable.witnessAsync(
       IndexedMerkleMapN.provable,
       async () => (await merkleMaps()).merkleMap
     );
-    map.root.assertEquals(stateRoot, 'root mismatch');
+    map.root.assertEquals(state.root, 'root mismatch');
+    map.length.assertEquals(state.length, 'length mismatch');
 
     // get the value hash
     let valueHash = map.getOption(key);

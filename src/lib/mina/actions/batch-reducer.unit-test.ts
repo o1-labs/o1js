@@ -40,6 +40,9 @@ class Airdrop extends SmartContract {
   eligibleRoot = State(eligible.root);
 
   @state(Field)
+  eligibleLength = State(eligible.length);
+
+  @state(Field)
   actionState = State(BatchReducer.initialActionState);
 
   @method
@@ -67,6 +70,7 @@ class Airdrop extends SmartContract {
       eligible.clone()
     );
     this.eligibleRoot.requireEquals(eligibleMap.root);
+    this.eligibleLength.requireEquals(eligibleMap.length);
 
     // process claims by reducing actions
     await batchReducer.processNextBatch(proof, (address, isDummy) => {
