@@ -60,7 +60,7 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
    * Set the smart contract class that this offchain state is connected with.
    *
-   * This is an alternative for `setContractInstance()` which lets you compile offchain state before knowing an contract instance.
+   * This is an alternative for `setContractInstance()` which lets you compile offchain state without having a contract instance.
    * However, you must call `setContractInstance()` before calling `createSettlementProof()`.
    */
   setContractClass(contract: OffchainStateContractClass): void;

@@ -83,6 +83,9 @@ class ExampleContract extends SmartContract {
   }
 }
 
+// connect contract to offchain state
+offchainState.setContractClass(ExampleContract);
+
 // test code below
 
 await testLocal(
