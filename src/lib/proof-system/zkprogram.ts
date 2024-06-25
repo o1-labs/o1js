@@ -142,26 +142,26 @@ const FeatureFlags = {
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
    */
   fromZkProgram: async (program: AnalysableProgram) => {
-    let methodIntfs = await program.analyzeMethods();
-    return featureFlagsfromFlatMethodIntfs(Object.values(methodIntfs));
+    return await fromZkProgramList([program]);
   },
 
   /**
    * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of program.
    * This function considers all methods of all specified ZkPrograms and finds a configuration that fits all.
    */
-  fromZkProgramList: async (programs: Array<AnalysableProgram>) => {
-    let flatMethodIntfs: Array<
-      UnwrapPromise<ReturnType<typeof analyzeMethod>>
-    > = [];
-    for await (const program of programs) {
-      let methodInterface = await program.analyzeMethods();
-      flatMethodIntfs.push(...Object.values(methodInterface));
-    }
-
-    return featureFlagsfromFlatMethodIntfs(flatMethodIntfs);
-  },
+  fromZkProgramList,
 };
+
+async function fromZkProgramList(programs: Array<AnalysableProgram>) {
+  let flatMethodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>> =
+    [];
+  for await (const program of programs) {
+    let methodInterface = await program.analyzeMethods();
+    flatMethodIntfs.push(...Object.values(methodInterface));
+  }
+
+  return featureFlagsfromFlatMethodIntfs(flatMethodIntfs);
+}
 
 async function featureFlagsfromFlatMethodIntfs(
   methodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>>
