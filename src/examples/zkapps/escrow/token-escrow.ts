@@ -44,7 +44,7 @@ class TokenEscrow extends SmartContract {
    */
   @method async withdrawOptimized(amount: UInt64) {
     // only the admin can withdraw
-    let adminAU = AccountUpdate.createSigned(admin, tokenId); // forces admin to sign
+    let adminAU = AccountUpdate.createSigned(admin, this.tokenId); // forces admin to sign
     adminAU.body.useFullCommitment = Bool(true); // admin signs full tx so that the signature can't be reused against them
 
     // withdraw the amount
