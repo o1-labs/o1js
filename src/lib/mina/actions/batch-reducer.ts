@@ -36,6 +36,7 @@ import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
 import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { MerkleActions } from './action-types.js';
 
 // external API
 export { BatchReducer, ActionBatch };
@@ -221,7 +222,8 @@ class BatchReducer<
       endActionState,
       witnesses,
       this.stackProgram,
-      this.maxUpdatesFinalProof
+      this.maxUpdatesFinalProof,
+      this.actionType
     );
   }
 
@@ -715,11 +717,22 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
 
 const BasicFieldList = MerkleList.create(Field);
 
-class ActionStackHints extends Struct({
-  isRecursive: Bool,
-  finalStack: BasicFieldList.provable,
-  witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
-}) {}
+type ActionStackHints<T> = {
+  isRecursive: Bool;
+  finalStack: MerkleActions<T>;
+  witnesses: Unconstrained<ActionWitnesses>;
+};
+
+function ActionStackHints<
+  A extends Actionable<any>,
+  T extends InferProvable<A> = InferProvable<A>
+>(actionType: A, fromActionState?: Field): Provable<ActionStackHints<T>> {
+  return Struct({
+    isRecursive: Bool,
+    finalStack: MerkleActions(actionType, fromActionState).provable,
+    witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+  });
+}
 
 /**
  * Prove that a list of actions can be stacked in reverse order.
@@ -727,12 +740,13 @@ class ActionStackHints extends Struct({
  * Does not process reversing of all input actions - instead, we leave a final chunk of actions unprocessed.
  * The final chunk will be done in the smart contract which also verifies the proof.
  */
-async function provePartialActionStack(
+async function provePartialActionStack<T>(
   endActionState: bigint,
   actions: ActionWitnesses,
   program: ActionStackProgram,
-  finalChunkSize: number
-): Promise<{ proof: ActionStackProof; hints: ActionStackHints }> {
+  finalChunkSize: number,
+  actionType: Actionable<T>
+): Promise<{ proof: ActionStackProof; hints: ActionStackHints<T> }> {
   let finalActionsChunk = actions.slice(0, finalChunkSize);
   let remainingActions = actions.slice(finalChunkSize);
 
@@ -748,14 +762,16 @@ async function provePartialActionStack(
     stack.push(Field(action.hash));
   }
 
-  return {
-    proof,
-    hints: new ActionStackHints({
-      isRecursive: isEmpty.not(),
-      finalStack: stack,
-      witnesses: Unconstrained.from(finalActionsChunk),
-    }),
-  };
+  throw Error('Not implemented');
+
+  // return {
+  //   proof,
+  //   hints: new ActionStackHints({
+  //     isRecursive: isEmpty.not(),
+  //     finalStack: stack,
+  //     witnesses: Unconstrained.from(finalActionsChunk),
+  //   }),
+  // };
 }
 
 async function proveActionStack(
