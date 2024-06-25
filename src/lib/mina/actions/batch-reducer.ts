@@ -35,6 +35,7 @@ import { fetchActions, getProofsEnabled } from '../mina-instance.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
+import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
 
 // external API
 export { BatchReducer, ActionBatch };
@@ -58,21 +59,29 @@ class BatchReducer<
   batchSize: BatchSize;
   actionType: Actionable<Action>;
   program: ActionBatchProgram;
+  stackProgram: ActionStackProgram;
   Proof: typeof Proof<Field, Field>;
+  StackProof: typeof Proof<Field, ActionStackState>;
+  maxUpdatesFinalProof: number;
 
   constructor({
     actionType,
     batchSize,
-    maxUpdatesPerProof = 100,
+    maxUpdatesPerProof = 300,
+    maxUpdatesFinalProof = 100,
   }: {
     actionType: ActionType;
     batchSize: BatchSize;
     maxUpdatesPerProof?: number;
+    maxUpdatesFinalProof?: number;
   }) {
     this.batchSize = batchSize;
     this.actionType = actionType as Actionable<Action>;
     this.program = actionBatchProgram(maxUpdatesPerProof);
     this.Proof = ZkProgram.Proof(this.program);
+    this.maxUpdatesFinalProof = maxUpdatesFinalProof;
+    this.stackProgram = actionStackProgram(maxUpdatesPerProof);
+    this.StackProof = ZkProgram.Proof(this.stackProgram);
   }
 
   static get initialActionState() {
@@ -188,6 +197,32 @@ class BatchReducer<
       this.batchSize
     );
     return actions.prove(this.program);
+  }
+
+  /**
+   * Create a proof which helps guarantee the correctness of the next actions batch(es).
+   */
+  async proveNextBatches() {
+    let contract = assertDefined(
+      this._contract,
+      'Contract instance must be set before proving actions'
+    );
+    let actionState = assertDefined(
+      await contract.actionState.fetch(),
+      'Could not fetch action state'
+    ).toBigInt();
+
+    let { endActionState, witnesses } = await fetchActionWitnesses(
+      contract,
+      actionState,
+      this.actionType
+    );
+    return provePartialActionStack(
+      endActionState,
+      witnesses,
+      this.stackProgram,
+      this.maxUpdatesFinalProof
+    );
   }
 
   /**
@@ -453,6 +488,32 @@ async function fetchActionBatch<Action, N extends number>(
   });
 }
 
+// TODO return a list of actions as well
+async function fetchActionWitnesses(
+  contract: { address: PublicKey; tokenId: Field },
+  fromActionState: bigint,
+  actionType: Actionable<any>
+) {
+  let result = await fetchActions(
+    contract.address,
+    { fromActionState: Field(fromActionState) },
+    contract.tokenId
+  );
+  if ('error' in result) throw Error(JSON.stringify(result));
+
+  let actionFields = result.map(({ actions }) =>
+    actions.map((action) => action.map(BigInt)).reverse()
+  );
+  let actionState = fromActionState;
+  let witnesses: ActionWitnesses = [];
+
+  for (let actionsHash of actionFieldsToHashes(actionFields)) {
+    witnesses.push({ hash: actionsHash, stateBefore: actionState });
+    actionState = ActionsBigint.updateSequenceState(actionState, actionsHash);
+  }
+  return { endActionState: actionState, witnesses };
+}
+
 /**
  * Slice two lists of lists of actions such that the first list contains at most `batchSize` actions _in total_,
  * and the second list contains the remaining actions.
@@ -490,7 +551,7 @@ function actionFieldsToMerkleList(initialState: bigint, actions: bigint[][][]) {
 
 function actionFieldsToHashes(actions: bigint[][][]) {
   return actions.map((actions) =>
-    actions.reduce(pushAction, Actions.empty().hash.toBigInt())
+    actions.reduce(pushAction, ActionsBigint.empty().hash)
   );
 }
 
@@ -667,7 +728,7 @@ class ActionStackHints extends Struct({
  * The final chunk will be done in the smart contract which also verifies the proof.
  */
 async function provePartialActionStack(
-  endActionState: Field,
+  endActionState: bigint,
   actions: ActionWitnesses,
   program: ActionStackProgram,
   finalChunkSize: number
@@ -698,7 +759,7 @@ async function provePartialActionStack(
 }
 
 async function proveActionStack(
-  endActionState: Field,
+  endActionState: bigint | Field,
   actions: ActionWitnesses,
   program: ActionStackProgram
 ): Promise<{
@@ -706,6 +767,7 @@ async function proveActionStack(
   proof: ActionStackProof;
   stack: MerkleList<Field>;
 }> {
+  endActionState = Field(endActionState);
   let { maxUpdatesPerProof } = program;
   const ActionStackProof = ZkProgram.Proof(program);
 
