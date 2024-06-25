@@ -141,9 +141,8 @@ const FeatureFlags = {
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
    */
-  fromZkProgram: async (program: AnalysableProgram) => {
-    return await fromZkProgramList([program]);
-  },
+  fromZkProgram: async (program: AnalysableProgram) =>
+    await fromZkProgramList([program]),
 
   /**
    * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of program.
