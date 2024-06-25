@@ -749,6 +749,30 @@ type ActionStackProgram = {
 };
 
 /**
+ * Process a chunk of size `maxUpdatesPerProof` from the input actions,
+ * stack them in reverse order.
+ */
+function actionStackChunk(
+  maxUpdatesPerProof: number,
+  startState: ActionStackState,
+  witnesses: Unconstrained<ActionWitnesses>
+): ActionStackState {
+  // we pop off actions from the input merkle list (= input.actions + actionHashes),
+  // and push them onto a new merkle list
+  class Stack extends MerkleList.create(Field, undefined, startState.stack) {}
+  let stack = Stack.empty();
+  let actions = startState.actions;
+
+  for (let i = maxUpdatesPerProof - 1; i >= 0; i--) {
+    let { didPop, state, hash } = pop(actions, i, witnesses);
+    stack.pushIf(didPop, hash);
+    actions = state;
+  }
+
+  return new ActionStackState({ actions, stack: stack.hash });
+}
+
+/**
  * Create program that pops actions from a hash list and pushes them to a new list in reverse order.
  */
 function actionStackProgram(maxUpdatesPerProof: number): ActionStackProgram {
@@ -775,7 +799,7 @@ function actionStackProgram(maxUpdatesPerProof: number): ActionStackProgram {
           isRecursive: Bool,
           witnesses: Unconstrained<ActionWitnesses>
         ): Promise<ActionStackState> {
-          // this method call extends proofSoFar
+          // make this proof extend proofSoFar
           proofSoFar.verifyIf(isRecursive);
           Provable.assertEqualIf(
             isRecursive,
@@ -783,24 +807,15 @@ function actionStackProgram(maxUpdatesPerProof: number): ActionStackProgram {
             input,
             proofSoFar.publicInput
           );
-          let { actions, stack: stackHash } = Provable.if(
+          let initialState = { actions: input, stack: emptyHash };
+          let startState = Provable.if(
             isRecursive,
             ActionStackState,
             proofSoFar.publicOutput,
-            { actions: input, stack: emptyHash }
+            initialState
           );
 
-          // we "pop off" actions from the input merkle list (= input.actions + actionHashes), and push them onto a new merkle list
-          class Stack extends MerkleList.create(Field, undefined, stackHash) {}
-          let stack = Stack.empty();
-
-          for (let i = maxUpdatesPerProof - 1; i >= 0; i--) {
-            let { didPop, state, hash } = pop(actions, i, witnesses);
-            stack.pushIf(didPop, hash);
-            actions = state;
-          }
-
-          return new ActionStackState({ actions, stack: stack.hash });
+          return actionStackChunk(maxUpdatesPerProof, startState, witnesses);
         },
       },
     },
