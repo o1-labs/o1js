@@ -37,7 +37,7 @@ console.log(
       let mapWitness = Provable.witness(MerkleMapWitness, () =>
         throwError('unused')
       );
-      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(value);
+      let [actualRoot, actualKey] = mapWitness.computeRootAndKeyV2(value);
       key.assertEquals(actualKey);
       root.assertEquals(actualRoot);
     }
@@ -71,11 +71,11 @@ console.log(
       let mapWitness = Provable.witness(MerkleMapWitness, () =>
         throwError('unused')
       );
-      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(oldValue);
+      let [actualRoot, actualKey] = mapWitness.computeRootAndKeyV2(oldValue);
       key.assertEquals(actualKey);
       root.assertEquals(actualRoot);
 
-      let [_newRoot] = mapWitness.computeRootAndKey(value);
+      let [_newRoot] = mapWitness.computeRootAndKeyV2(value);
     }
   )
 );
@@ -298,12 +298,13 @@ test(Random.field, (key) => {
   let map = new MerkleMap();
   // Check that the key fits in 254 bits, if it doesn't, we should throw an error (since the Pasta field modulus is smaller than 2^255)
   if (key > 2n ** 254n) {
-    console.log(key, ' is too large for the field');
-    let witness = map.getWitness(Field(key));
-    expect(() => witness.computeRootAndKey(Field(0))).toThrowError();
+    expect(() => {
+      let witness = map.getWitness(Field(key));
+      witness.computeRootAndKeyV2(Field(0));
+    }).toThrowError();
   } else {
     let witness = map.getWitness(Field(key));
-    let [, calculatedKey] = witness.computeRootAndKey(Field(0));
+    let [, calculatedKey] = witness.computeRootAndKeyV2(Field(0));
     expect(calculatedKey.toBigInt()).toEqual(key);
   }
 });
