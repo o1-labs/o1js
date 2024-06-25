@@ -40,7 +40,12 @@ import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src
 export { BatchReducer, ActionBatch };
 
 // internal API
-export { actionBatchProgram, proveActionBatch };
+export {
+  actionBatchProgram,
+  proveActionBatch,
+  actionStackProgram,
+  proveActionStack,
+};
 
 /**
  * A reducer to process actions in fixed-size batches.
@@ -775,7 +780,7 @@ function actionStackChunk(
 /**
  * Create program that pops actions from a hash list and pushes them to a new list in reverse order.
  */
-function actionStackProgram(maxUpdatesPerProof: number): ActionStackProgram {
+function actionStackProgram(maxUpdatesPerProof: number) {
   let program = ZkProgram({
     name: 'action-stack-prover',
 
