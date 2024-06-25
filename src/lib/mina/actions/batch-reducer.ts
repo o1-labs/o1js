@@ -652,6 +652,51 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
 
 // recursive action stacking proof
 
+const BasicFieldList = MerkleList.create(Field);
+
+class ActionStackHints extends Struct({
+  isRecursive: Bool,
+  finalStack: BasicFieldList.provable,
+  witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+}) {}
+
+/**
+ * Prove that a list of actions can be stacked in reverse order.
+ *
+ * Does not process reversing of all input actions - instead, we leave a final chunk of actions unprocessed.
+ * The final chunk will be done in the smart contract which also verifies the proof.
+ */
+async function provePartialActionStack(
+  endActionState: Field,
+  actions: ActionWitnesses,
+  program: ActionStackProgram,
+  finalChunkSize: number
+): Promise<{ proof: ActionStackProof; hints: ActionStackHints }> {
+  let finalActionsChunk = actions.slice(0, finalChunkSize);
+  let remainingActions = actions.slice(finalChunkSize);
+
+  let { isEmpty, proof, stack } = await proveActionStack(
+    endActionState,
+    remainingActions,
+    program
+  );
+
+  // finish the stack
+  for (let action of [...finalActionsChunk].reverse()) {
+    if (action === undefined) continue;
+    stack.push(Field(action.hash));
+  }
+
+  return {
+    proof,
+    hints: new ActionStackHints({
+      isRecursive: isEmpty.not(),
+      finalStack: stack,
+      witnesses: Unconstrained.from(finalActionsChunk),
+    }),
+  };
+}
+
 async function proveActionStack(
   endActionState: Field,
   actions: ActionWitnesses,
@@ -668,7 +713,7 @@ async function proveActionStack(
   let isEmpty = Bool(n === 0);
 
   // compute the final stack up front: actions in reverse order
-  let stack = MerkleList.create(Field).empty();
+  let stack = BasicFieldList.empty();
   for (let action of [...actions].reverse()) {
     if (action === undefined) continue;
     stack.push(Field(action.hash));
