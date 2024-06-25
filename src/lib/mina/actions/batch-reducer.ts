@@ -647,6 +647,75 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
 
 // recursive action stacking proof
 
+async function proveActionStack(
+  endActionState: Field,
+  actions: ActionWitnesses,
+  program: ActionStackProgram
+): Promise<{
+  isEmpty: Bool;
+  proof: ActionStackProof;
+  stack: MerkleList<Field>;
+}> {
+  let { maxUpdatesPerProof } = program;
+  const ActionStackProof = ZkProgram.Proof(program);
+
+  let n = actions.length;
+  let isEmpty = Bool(n === 0);
+
+  // compute the final stack up front: actions in reverse order
+  let stack = MerkleList.create(Field).empty();
+  for (let action of [...actions].reverse()) {
+    if (action === undefined) continue;
+    stack.push(Field(action.hash));
+  }
+
+  // if proofs are disabled, return a dummy proof
+  if (!getProofsEnabled()) {
+    let startActionState = actions[0]?.stateBefore ?? endActionState;
+    let proof = await ActionStackProof.dummy(
+      endActionState,
+      { actions: Field(startActionState), stack: stack.hash },
+      1,
+      14
+    );
+    return { isEmpty, proof, stack };
+  }
+
+  // split actions in chunks of `maxUpdatesPerProof` each
+  let chunks: Unconstrained<ActionWitnesses>[] = [];
+  let nChunks = Math.ceil(n / maxUpdatesPerProof);
+
+  for (let i = 0, k = 0; i < nChunks; i++) {
+    let batch: ActionWitnesses = [];
+    for (let j = 0; j < maxUpdatesPerProof; j++, k++) {
+      batch[j] = actions[k];
+    }
+    chunks[i] = Unconstrained.from(batch);
+  }
+
+  // dummy proof; will be returned if there are no actions
+  let proof = await ActionStackProof.dummy(
+    Field(0),
+    ActionStackState.empty(),
+    1,
+    14
+  );
+
+  for (let i = nChunks - 1; i >= 0; i--) {
+    let isRecursive = Bool(i < nChunks - 1);
+    proof = await program.proveChunk(
+      endActionState,
+      proof,
+      isRecursive,
+      chunks[i]
+    );
+  }
+  // sanity check
+  proof.publicOutput.stack.assertEquals(stack.hash, 'Stack hash mismatch');
+
+  return { isEmpty, proof, stack };
+}
+
 /**
  * Intermediate result of popping from a list of actions and stacking them in reverse order.
  */
@@ -725,7 +794,7 @@ function actionStackProgram(maxUpdatesPerProof: number): ActionStackProgram {
           class Stack extends MerkleList.create(Field, undefined, stackHash) {}
           let stack = Stack.empty();
 
-          for (let i = 0; i < maxUpdatesPerProof; i++) {
+          for (let i = maxUpdatesPerProof - 1; i >= 0; i--) {
             let { didPop, state, hash } = pop(actions, i, witnesses);
             stack.pushIf(didPop, hash);
             actions = state;
