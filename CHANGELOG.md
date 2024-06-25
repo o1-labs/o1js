@@ -24,6 +24,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Feature flags are required to tell Pickles what proof structure it should expect when side loading dynamic proofs and verification keys.
   - `FeatureFlags` is now exported and provides a set of helper functions to compute feature flags correctly.
 
+### Deprecated
+
+- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
+
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
 ### Breaking Changes
