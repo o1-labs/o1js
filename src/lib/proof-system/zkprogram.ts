@@ -81,6 +81,12 @@ const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
+type AnalysableProgram = {
+  analyzeMethods: () => Promise<{
+    [I in keyof any]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+  }>;
+};
+
 type FeatureFlags = {
   rangeCheck0: boolean | undefined;
   rangeCheck1: boolean | undefined;
@@ -135,23 +141,34 @@ const FeatureFlags = {
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
    */
-  fromZkProgram: featureFlagsfromZkProgram,
+  fromZkProgram: async (program: AnalysableProgram) =>
+    await fromZkProgramList([program]),
+
+  /**
+   * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of programs.
+   * This function considers all methods of all specified ZkPrograms and finds a configuration that fits all.
+   */
+  fromZkProgramList,
 };
 
-async function featureFlagsfromZkProgram<
-  P extends {
-    analyzeMethods: () => Promise<{
-      [I in keyof any]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
-    }>;
+async function fromZkProgramList(programs: Array<AnalysableProgram>) {
+  let flatMethodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>> =
+    [];
+  for (const program of programs) {
+    let methodInterface = await program.analyzeMethods();
+    flatMethodIntfs.push(...Object.values(methodInterface));
   }
->(program: P): Promise<FeatureFlags> {
-  let methodIntfs = await program.analyzeMethods();
 
+  return featureFlagsfromFlatMethodIntfs(flatMethodIntfs);
+}
+
+async function featureFlagsfromFlatMethodIntfs(
+  methodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>>
+): Promise<FeatureFlags> {
   // compute feature flags that belong to each method
-  let flags = Object.entries(methodIntfs).map(([_, { gates }]) => {
+  let flags = methodIntfs.map(({ gates }) => {
     return featureFlagsFromGates(gates);
   });
-
   if (flags.length === 0)
     throw Error(
       'The ZkProgram has no methods, in order to calculate feature flags, please attach a method to your ZkProgram.'
