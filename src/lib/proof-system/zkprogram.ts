@@ -154,7 +154,7 @@ const FeatureFlags = {
 async function fromZkProgramList(programs: Array<AnalysableProgram>) {
   let flatMethodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>> =
     [];
-  for await (const program of programs) {
+  for (const program of programs) {
     let methodInterface = await program.analyzeMethods();
     flatMethodIntfs.push(...Object.values(methodInterface));
   }
