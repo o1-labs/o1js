@@ -1,4 +1,8 @@
-import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
+import {
+  MerkleList,
+  MerkleListIterator,
+  emptyHash,
+} from '../../provable/merkle-list.js';
 import { TupleN } from '../../util/types.js';
 import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
@@ -10,6 +14,7 @@ import {
   InferValue,
 } from '../../../bindings/lib/provable-generic.js';
 import {
+  Struct,
   InferProvable,
   ProvableExtended,
 } from '../../provable/types/struct.js';
@@ -497,8 +502,6 @@ function hashAction(action: (Field | bigint)[]): Field {
 
 // types
 
-type ActionBatchProof = Proof<Field, Field>;
-
 class FieldList extends MerkleList.create<Field>(
   Field,
   (actionsHash: Field, actionHash: Field) =>
@@ -581,6 +584,8 @@ async function proveActionBatch(
   return proof;
 }
 
+type ActionBatchProof = Proof<Field, Field>;
+
 type ActionBatchProgram = {
   name: string;
   publicInputType: typeof Field;
@@ -588,12 +593,12 @@ type ActionBatchProgram = {
 
   compile(): Promise<{ verificationKey: { data: string; hash: Field } }>;
 
-  proveChunk: (
+  proveChunk(
     startState: Field,
     proofSoFar: ActionBatchProof,
     isRecursive: Bool,
     actionHashes: Unconstrained<ActionHashes>
-  ) => Promise<ActionBatchProof>;
+  ): Promise<ActionBatchProof>;
 
   maxUpdatesPerProof: number;
 };
@@ -618,12 +623,12 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
           actionHashes: Unconstrained<ActionHashes>
         ): Promise<Field> {
           proofSoFar.verifyIf(isRecursive);
-          let proofStart = Provable.if(
+          Provable.assertEqualIf(
             isRecursive,
+            Field,
             startState,
             proofSoFar.publicInput
           );
-          proofSoFar.publicInput.assertEquals(proofStart);
           let state = Provable.if(
             isRecursive,
             proofSoFar.publicOutput,
@@ -633,6 +638,100 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
             state = update(state, i, actionHashes);
           }
           return state;
+        },
+      },
+    },
+  });
+  return Object.assign(program, { maxUpdatesPerProof });
+}
+
+// recursive action stacking proof
+
+/**
+ * Intermediate result of popping from a list of actions and stacking them in reverse order.
+ */
+class ActionStackState extends Struct({
+  actions: Field,
+  stack: Field,
+}) {}
+
+type ActionStackProof = Proof<Field, ActionStackState>;
+type ActionWitnesses = ({ hash: bigint; stateBefore: bigint } | undefined)[];
+
+class OptionActionWitness extends Option(
+  Struct({ hash: Field, stateBefore: Field })
+) {}
+
+type ActionStackProgram = {
+  name: string;
+  publicInputType: typeof Field;
+  publicOutputType: typeof ActionStackState;
+
+  compile(): Promise<{ verificationKey: { data: string; hash: Field } }>;
+
+  proveChunk(
+    input: Field,
+    proofSoFar: ActionStackProof,
+    isRecursive: Bool,
+    actionWitnesses: Unconstrained<ActionWitnesses>
+  ): Promise<ActionStackProof>;
+
+  maxUpdatesPerProof: number;
+};
+
+/**
+ * Create program that pops actions from a hash list and pushes them to a new list in reverse order.
+ */
+function actionStackProgram(maxUpdatesPerProof: number): ActionStackProgram {
+  let program = ZkProgram({
+    name: 'action-stack-prover',
+
+    // input: actions to pop from
+    publicInput: Field,
+
+    // output: actions after popping, and the new stack
+    publicOutput: ActionStackState,
+
+    methods: {
+      proveChunk: {
+        privateInputs: [
+          SelfProof,
+          Bool,
+          Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+        ],
+
+        async method(
+          input: Field,
+          proofSoFar: ActionStackProof,
+          isRecursive: Bool,
+          witnesses: Unconstrained<ActionWitnesses>
+        ): Promise<ActionStackState> {
+          // this method call extends proofSoFar
+          proofSoFar.verifyIf(isRecursive);
+          Provable.assertEqualIf(
+            isRecursive,
+            Field,
+            input,
+            proofSoFar.publicInput
+          );
+          let { actions, stack: stackHash } = Provable.if(
+            isRecursive,
+            ActionStackState,
+            proofSoFar.publicOutput,
+            { actions: input, stack: emptyHash }
+          );
+
+          // we "pop off" actions from the input merkle list (= input.actions + actionHashes), and push them onto a new merkle list
+          class Stack extends MerkleList.create(Field, undefined, stackHash) {}
+          let stack = Stack.empty();
+
+          for (let i = 0; i < maxUpdatesPerProof; i++) {
+            let { didPop, state, hash } = pop(actions, i, witnesses);
+            stack.pushIf(didPop, hash);
+            actions = state;
+          }
+
+          return new ActionStackState({ actions, stack: stack.hash });
         },
       },
     },
@@ -657,4 +756,30 @@ function update(
   let actionHash = Provable.witness(OptionField, () => actionHashes.get()[i]);
   let newState = Actions.updateSequenceState(state, actionHash.value);
   return Provable.if(actionHash.isSome, newState, state);
+}
+
+/**
+ * Proves: "Here are some actions that got me from the new state to the current state"
+ *
+ * Can also return a None option if there are no actions or the prover chooses to skip popping an action.
+ */
+function pop(
+  state: Field,
+  i: number,
+  witnesses: Unconstrained<ActionWitnesses>
+): { didPop: Bool; state: Field; hash: Field } {
+  let { isSome, value: witness } = Provable.witness(
+    OptionActionWitness,
+    () => witnesses.get()[i]
+  );
+  let impliedState = Actions.updateSequenceState(
+    witness.stateBefore,
+    witness.hash
+  );
+  Provable.assertEqualIf(isSome, Field, impliedState, state);
+  return {
+    didPop: isSome,
+    state: Provable.if(isSome, witness.stateBefore, state),
+    hash: witness.hash,
+  };
 }
