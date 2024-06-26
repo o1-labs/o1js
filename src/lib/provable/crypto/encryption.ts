@@ -42,6 +42,36 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
 }
 
 /**
+ * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
+ */
+function encryptV2(message: Field[], otherPublicKey: PublicKey) {
+  // key exchange
+  let privateKey = Provable.witness(Scalar, () => Scalar.random());
+  let publicKey = Group.generator.scale(privateKey);
+  let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
+
+  let sponge = new Poseidon.Sponge();
+  sponge.absorb(sharedSecret.x); // don't think we need y, that's enough entropy
+
+  // encryption
+  let cipherText = [];
+  for (let i = 0; i < message.length; i++) {
+    let keyStream = sponge.squeeze();
+    let encryptedChunk = message[i].add(keyStream);
+    if (message.length - 1 === i) encryptedChunk = encryptedChunk.add(1);
+    cipherText.push(encryptedChunk);
+    // absorb for the auth tag (two at a time for saving permutations)
+    if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
+    if (i % 2 === 1 || i === message.length - 1) sponge.absorb(cipherText[i]);
+  }
+  // authentication tag
+  let authenticationTag = sponge.squeeze();
+  cipherText.push(authenticationTag);
+
+  return { publicKey, cipherText };
+}
+
+/**
  * @deprecated Use {@link decryptV2} instead.
  *
  * Decrypts a {@link CipherText} using a {@link PrivateKey}.^
@@ -71,36 +101,6 @@ function decrypt(
   sponge.squeeze().assertEquals(authenticationTag!);
 
   return message;
-}
-
-/**
- * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
- */
-function encryptV2(message: Field[], otherPublicKey: PublicKey) {
-  // key exchange
-  let privateKey = Provable.witness(Scalar, () => Scalar.random());
-  let publicKey = Group.generator.scale(privateKey);
-  let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
-
-  let sponge = new Poseidon.Sponge();
-  sponge.absorb(sharedSecret.x); // don't think we need y, that's enough entropy
-
-  // encryption
-  let cipherText = [];
-  for (let i = 0; i < message.length; i++) {
-    let keyStream = sponge.squeeze();
-    let encryptedChunk = message[i].add(keyStream);
-    if (message.length - 1 === i) encryptedChunk = encryptedChunk.add(1);
-    cipherText.push(encryptedChunk);
-    // absorb for the auth tag (two at a time for saving permutations)
-    if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
-    if (i % 2 === 1 || i === message.length - 1) sponge.absorb(cipherText[i]);
-  }
-  // authentication tag
-  let authenticationTag = sponge.squeeze();
-  cipherText.push(authenticationTag);
-
-  return { publicKey, cipherText };
 }
 
 /**
