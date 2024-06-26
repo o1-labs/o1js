@@ -27,6 +27,7 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
   for (let i = 0; i < message.length; i++) {
     let keyStream = sponge.squeeze();
     let encryptedChunk = message[i].add(keyStream);
+    if (message.length - 1 === i) encryptedChunk = encryptedChunk.add(1);
     cipherText.push(encryptedChunk);
     // absorb for the auth tag (two at a time for saving permutations)
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
@@ -58,6 +59,7 @@ function decrypt(
   for (let i = 0; i < cipherText.length; i++) {
     let keyStream = sponge.squeeze();
     let messageChunk = cipherText[i].sub(keyStream);
+    if (cipherText.length - 1 === i) messageChunk = messageChunk.sub(1);
     message.push(messageChunk);
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
     if (i % 2 === 1 || i === cipherText.length - 1)
