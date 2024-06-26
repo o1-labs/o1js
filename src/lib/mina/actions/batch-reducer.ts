@@ -377,24 +377,25 @@ class BatchReducer<
       this._contract,
       'Contract instance must be set before proving actions'
     );
-    let actionState = assertDefined(
+    let fromActionState = assertDefined(
       await contract.actionState.fetch(),
       'Could not fetch action state'
     ).toBigInt();
 
-    let { endActionState, witnesses } = await fetchActionWitnesses(
+    // TODO witnesses is just a dumbed down representation of `actions`, we could compute them from actions
+    let { endActionState, witnesses, actions } = await fetchActionWitnesses(
       contract,
-      actionState,
+      fromActionState,
       this.actionType
     );
 
-    let { proof, hints } = await provePartialActionStack(
+    let { proof, isRecursive, finalWitnesses } = await provePartialActionStack(
       endActionState,
       witnesses,
       this.stackProgram,
-      this.maxUpdatesFinalProof,
-      this.actionType
+      this.maxUpdatesFinalProof
     );
+
     throw Error('Not implemented');
   }
 
@@ -704,11 +705,10 @@ async function fetchActionBatch<Action, N extends number>(
   });
 }
 
-// TODO return a list of actions as well
-async function fetchActionWitnesses(
+async function fetchActionWitnesses<T>(
   contract: { address: PublicKey; tokenId: Field },
   fromActionState: bigint,
-  actionType: Actionable<any>
+  actionType: Actionable<T>
 ) {
   let result = await fetchActions(
     contract.address,
@@ -720,6 +720,12 @@ async function fetchActionWitnesses(
   let actionFields = result.map(({ actions }) =>
     actions.map((action) => action.map(BigInt)).reverse()
   );
+  let actions = MerkleActions.fromFields(
+    actionType,
+    actionFields,
+    fromActionState
+  );
+
   let actionState = fromActionState;
   let witnesses: ActionWitnesses = [];
 
@@ -727,7 +733,7 @@ async function fetchActionWitnesses(
     witnesses.push({ hash: actionsHash, stateBefore: actionState });
     actionState = ActionsBigint.updateSequenceState(actionState, actionsHash);
   }
-  return { endActionState: actionState, witnesses };
+  return { endActionState: actionState, witnesses, actions };
 }
 
 /**
@@ -931,61 +937,32 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
 
 const BasicFieldList = MerkleList.create(Field);
 
-type ActionStackHints<T> = {
-  isRecursive: Bool;
-  finalStack: MerkleActions<T>;
-  witnesses: Unconstrained<ActionWitnesses>;
-};
-
-function ActionStackHints<
-  A extends Actionable<any>,
-  T extends InferProvable<A> = InferProvable<A>
->(actionType: A, fromActionState?: Field): Provable<ActionStackHints<T>> {
-  return Struct({
-    isRecursive: Bool,
-    finalStack: MerkleActions(actionType, fromActionState).provable,
-    witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
-  });
-}
-
 /**
  * Prove that a list of actions can be stacked in reverse order.
  *
  * Does not process reversing of all input actions - instead, we leave a final chunk of actions unprocessed.
  * The final chunk will be done in the smart contract which also verifies the proof.
  */
-async function provePartialActionStack<T>(
+async function provePartialActionStack(
   endActionState: bigint,
-  actions: ActionWitnesses,
+  witnesses: ActionWitnesses,
   program: ActionStackProgram,
-  finalChunkSize: number,
-  actionType: Actionable<T>
-): Promise<{ proof: ActionStackProof; hints: ActionStackHints<T> }> {
-  let finalActionsChunk = actions.slice(0, finalChunkSize);
-  let remainingActions = actions.slice(finalChunkSize);
+  finalChunkSize: number
+) {
+  let finalActionsChunk = witnesses.slice(0, finalChunkSize);
+  let remainingActions = witnesses.slice(finalChunkSize);
 
-  let { isEmpty, proof, stack } = await proveActionStack(
+  let { isEmpty, proof } = await proveActionStack(
     endActionState,
     remainingActions,
     program
   );
 
-  // finish the stack
-  for (let action of [...finalActionsChunk].reverse()) {
-    if (action === undefined) continue;
-    stack.push(Field(action.hash));
-  }
-
-  throw Error('Not implemented');
-
-  // return {
-  //   proof,
-  //   hints: new ActionStackHints({
-  //     isRecursive: isEmpty.not(),
-  //     finalStack: stack,
-  //     witnesses: Unconstrained.from(finalActionsChunk),
-  //   }),
-  // };
+  return {
+    proof,
+    isRecursive: isEmpty.not(),
+    finalWitnesses: Unconstrained.from(finalActionsChunk),
+  };
 }
 
 async function proveActionStack(
@@ -995,7 +972,6 @@ async function proveActionStack(
 ): Promise<{
   isEmpty: Bool;
   proof: ActionStackProof;
-  stack: MerkleList<Field>;
 }> {
   endActionState = Field(endActionState);
   let { maxUpdatesPerProof } = program;
@@ -1020,7 +996,7 @@ async function proveActionStack(
       1,
       14
     );
-    return { isEmpty, proof, stack };
+    return { isEmpty, proof };
   }
 
   // split actions in chunks of `maxUpdatesPerProof` each
@@ -1055,7 +1031,7 @@ async function proveActionStack(
   // sanity check
   proof.publicOutput.stack.assertEquals(stack.hash, 'Stack hash mismatch');
 
-  return { isEmpty, proof, stack };
+  return { isEmpty, proof };
 }
 
 /**
