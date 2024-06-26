@@ -7,7 +7,7 @@ import { Hashed } from '../../provable/packed.js';
 import { hashWithPrefix } from '../../provable/crypto/poseidon.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
 
-export { MerkleActions };
+export { MerkleActions, FlatActions };
 
 const emptyActionsHash = Actions.empty().hash;
 const emptyActionState = Actions.emptyActionState();
@@ -38,4 +38,22 @@ function MerkleActions<
       hashWithPrefix(prefixes.sequenceEvents, [hash, actions.hash]),
     fromActionState ?? emptyActionState
   );
+}
+
+/**
+ * Provable representation of a flat list of actions.
+ *
+ * If the amount of logic per action is heavy, it is usually good to flatten the nested actions
+ * list into a single list like this one.
+ */
+type FlatActions<T> = MerkleList<Hashed<T>>;
+
+function FlatActions<
+  A extends Actionable<any>,
+  T extends InferProvable<A> = InferProvable<A>
+>(actionType: A) {
+  const HashedAction = Hashed.create(actionType as Actionable<T>, (action) =>
+    hashWithPrefix(prefixes.event, actionType.toFields(action))
+  );
+  return MerkleList.create(HashedAction.provable);
 }

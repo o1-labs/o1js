@@ -7,7 +7,7 @@ import { TupleN } from '../../util/types.js';
 import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
-import { assertDefined } from '../../util/assert.js';
+import { assert, assertDefined } from '../../util/assert.js';
 import {
   Constructor,
   From,
@@ -36,7 +36,7 @@ import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
 import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
-import { MerkleActions } from './action-types.js';
+import { FlatActions, MerkleActions } from './action-types.js';
 
 // external API
 export { BatchReducer, ActionBatch };
@@ -64,17 +64,20 @@ class BatchReducer<
   Proof: typeof Proof<Field, Field>;
   StackProof: typeof Proof<Field, ActionStackState>;
   maxUpdatesFinalProof: number;
+  maxActionsPerUpdate: number;
 
   constructor({
     actionType,
     batchSize,
     maxUpdatesPerProof = 300,
     maxUpdatesFinalProof = 100,
+    maxActionsPerUpdate = batchSize,
   }: {
     actionType: ActionType;
     batchSize: BatchSize;
     maxUpdatesPerProof?: number;
     maxUpdatesFinalProof?: number;
+    maxActionsPerUpdate?: number;
   }) {
     this.batchSize = batchSize;
     this.actionType = actionType as Actionable<Action>;
@@ -83,6 +86,12 @@ class BatchReducer<
     this.maxUpdatesFinalProof = maxUpdatesFinalProof;
     this.stackProgram = actionStackProgram(maxUpdatesPerProof);
     this.StackProof = ZkProgram.Proof(this.stackProgram);
+
+    assert(
+      maxActionsPerUpdate <= batchSize,
+      'Invalid maxActionsPerUpdate, must be smaller than the batch size because we process entire updates at once.'
+    );
+    this.maxActionsPerUpdate = maxActionsPerUpdate;
   }
 
   static get initialActionState() {
@@ -184,8 +193,9 @@ class BatchReducer<
       stack: MerkleActions<Action>;
       witnesses: Unconstrained<ActionWitnesses>;
     },
-    callback: (action: Action, isDummy: Bool) => void
+    callback: (action: Action, isDummy: Bool, i: number) => void
   ): Promise<void> {
+    let { actionType, batchSize } = this;
     let contract = this.contract();
 
     // step 0: validate our action end states
@@ -217,7 +227,7 @@ class BatchReducer<
 
     // finish building the stack
     let { actions: actionState, stack: stackHash } = actionStackChunk(
-      this.program.maxUpdatesPerProof,
+      this.maxUpdatesFinalProof,
       startState,
       hints.witnesses
     );
@@ -242,11 +252,70 @@ class BatchReducer<
     let { stack } = hints;
     stack.hash.assertEquals(stackHashToUse);
 
-    // step 3. process the actions
+    // step 3. pop off the actions we want to process from the stack
+    // we should take as many as possible with the constraints that:
+    // - we process entire lists (= account updates) at once
+    // - we process at most `this.batchSize` actions
+    // - we can't process more than the stack contains
+    let nActionLists = Unconstrained.witness(() => {
+      let lists = stack.toArrayUnconstrained().get();
+      let n = 0;
+      let totalSize = 0;
+      for (let list of lists.reverse()) {
+        totalSize += list.lengthUnconstrained().get();
+        if (totalSize > batchSize) break;
+        n++;
+      }
+      return n;
+    });
 
-    // TODO
+    // linearize the stack into a flat list which contains exactly the actions we process
+    let flatActions = FlatActions(actionType).empty();
 
-    // step 4. update the onchain processed action state and stack
+    for (let i = 0; i < batchSize; i++) {
+      // note: we allow the prover to pop off as many actions as they want
+      let shouldPop = Provable.witness(Bool, () => i < nActionLists.get());
+      let actionList = stack.popIfUnsafe(shouldPop);
+
+      // if we didn't pop, must guarantee that the action list is empty
+      actionList = Provable.if(
+        shouldPop,
+        stack.innerProvable,
+        actionList,
+        stack.innerProvable.empty()
+      );
+
+      // push all actions to the flat list
+      actionList.forEach(this.maxActionsPerUpdate, (action, isDummy) => {
+        flatActions.pushIf(isDummy.not(), action);
+      });
+
+      // if we pop, we also update the processed action state
+      let nextActionState = Actions.updateSequenceState(
+        processedActionState,
+        actionList.hash
+      );
+      processedActionState = Provable.if(
+        shouldPop,
+        nextActionState,
+        processedActionState
+      );
+    }
+
+    // step 4. run user logic on the actions
+    // note: only here we do the work of unhashing the actions
+    // we also make it easier to write the reducer code by making sure dummy actions are dummy values
+    flatActions.forEach(batchSize, (action, isDummy, i) => {
+      let actionValue = Provable.if(
+        isDummy,
+        actionType,
+        actionType.empty(),
+        action.unhash()
+      );
+      callback(actionValue, isDummy, i);
+    });
+
+    // step 5. update the onchain processed action state and stack
     contract.actionStack.set(stack.hash);
     contract.actionState.set(processedActionState);
   }
