@@ -74,9 +74,6 @@ function encryptInternal(
   return { publicKey, cipherText };
 }
 
-/**
- * Decrypts a {@link CipherText} using a {@link PrivateKey}.
- */
 function decryptInternal(
   { publicKey, cipherText }: CipherText,
   privateKey: PrivateKey,
