@@ -92,6 +92,7 @@ class Airdrop extends SmartContract {
 
     // update the onchain root and action state pointer
     this.eligibleRoot.set(eligibleMap.root);
+    this.eligibleLength.set(eligibleMap.length);
 
     // return the updated eligible map
     return eligibleMap;

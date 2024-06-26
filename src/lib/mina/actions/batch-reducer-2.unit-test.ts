@@ -32,7 +32,12 @@ const AMOUNT = 10n * MINA;
 class MerkleMap extends IndexedMerkleMap(10) {}
 
 // set up reducer
-let batchReducer = new BatchReducer({ actionType: PublicKey, batchSize: 3 });
+let batchReducer = new BatchReducer({
+  actionType: PublicKey,
+  batchSize: 3,
+  maxUpdatesFinalProof: 6,
+  maxUpdatesPerProof: 6,
+});
 class ActionStackProof extends batchReducer.StackProof {}
 class Hints extends ActionStackHints(PublicKey) {}
 
@@ -99,6 +104,7 @@ class Airdrop extends SmartContract {
 
     // update the onchain root and action state pointer
     this.eligibleRoot.set(eligibleMap.root);
+    this.eligibleLength.set(eligibleMap.length);
 
     // return the updated eligible map
     return eligibleMap;
@@ -164,30 +170,30 @@ await testLocal(
       // settle claims, 1
       async () => {
         console.time('batch proof 1');
-        let batches = await batchReducer.preparePendingBatches();
+        let batches = await batchReducer.prepareBatches();
         console.timeEnd('batch proof 1');
-        console.log({ batches });
+        // console.dir({ batches: batches.map((b) => b.hints) }, { depth: 8 });
 
         let i = 0;
         for (let { proof, hints } of batches) {
           console.time(`settle claims 1-${i}`);
-          await Mina.transaction(sender, async () => {
+          let tx = await Mina.transaction(sender, async () => {
             newEligible = await contract.settleClaims(proof, hints);
           })
             .sign([sender.key])
-            .prove()
-            .send();
+            .prove();
+          console.log(tx.toPretty());
+          await tx.send();
           console.timeEnd(`settle claims 1-${i}`);
           i++;
           eligible.overwrite(newEligible);
         }
       },
-      () => eligible.overwrite(newEligible), // update the eligible map
 
       expectBalance(alice, AMOUNT),
       expectBalance(bob, AMOUNT),
       expectBalance(eve, 0n), // eve was not eligible
-      expectBalance(charlie, 0n), // we only processed 3 claims, charlie was the 4th
+      expectBalance(charlie, AMOUNT),
       expectBalance(danny, 0n), // danny didn't claim yet
 
       // another claim + final settling
@@ -196,9 +202,8 @@ await testLocal(
       // settle claims, 2
       async () => {
         console.time('batch proof 2');
-        let batches = await batchReducer.preparePendingBatches();
+        let batches = await batchReducer.prepareBatches();
         console.timeEnd('batch proof 2');
-        console.log({ batches });
 
         let i = 0;
         for (let { proof, hints } of batches) {
@@ -224,9 +229,8 @@ await testLocal(
       // settle claims, 3
       async () => {
         console.time('batch proof 3');
-        let batches = await batchReducer.preparePendingBatches();
+        let batches = await batchReducer.prepareBatches();
         console.timeEnd('batch proof 3');
-        console.log({ batches });
         assert(batches.length === 0, 'no more claims to settle');
       },
     ];
