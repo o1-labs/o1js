@@ -186,24 +186,36 @@ class BatchReducer<
    */
   async processBatch(
     proof: Proof<Field, ActionStackState>,
-    hints: {
-      processedActionState: Field;
-      onchainActionState: Field;
-      isRecursive: Bool;
-      stack: MerkleActions<Action>;
-      witnesses: Unconstrained<ActionWitnesses>;
-    },
+    hints: ActionStackReducerHints<Action>,
     callback: (action: Action, isDummy: Bool, i: number) => void
   ): Promise<void> {
     let { actionType, batchSize } = this;
     let contract = this.contract();
 
-    // step 0: validate our action end states
-    let { onchainActionState, processedActionState } = hints;
-    contract.account.actionState.requireEquals(onchainActionState);
+    // step 0: validate onchain states
+
+    let {
+      useOnchainStack,
+      processedActionState,
+      onchainActionState,
+      onchainStack,
+    } = hints;
+    let useNewStack = useOnchainStack.not();
+
+    // we definitely need to know the processed action state, because we will update it
     contract.actionState.requireEquals(processedActionState);
 
-    // step 1: continue the proof that pops pending onchain actions to build up the "final stack"
+    // only require the onchain stack if we use it
+    contract.actionStack.requireEqualsIf(useOnchainStack, onchainStack);
+
+    // only require the onchain action state if we are recomputing the stack (otherwise, the onchain stack is known to be valid)
+    contract.account.actionState.requireEqualsIf(
+      useNewStack,
+      onchainActionState
+    );
+
+    // step 1: continue the proof that pops pending onchain actions to build up the final stack
+
     let { isRecursive } = hints;
     proof.verifyIf(isRecursive);
 
@@ -225,35 +237,39 @@ class BatchReducer<
       initialState
     );
 
-    // finish building the stack
-    let { actions: actionState, stack: stackHash } = actionStackChunk(
+    // finish creating the new stack
+    let stackingResult = actionStackChunk(
       this.maxUpdatesFinalProof,
       startState,
       hints.witnesses
     );
 
-    // step 2. picking the correct stack of actions to process
-    // the stack is considered "complete" if it goes all the way from `onchainActionState` to `processedActionState`
-    let isComplete = actionState.equals(processedActionState);
+    // step 2. pick the correct stack of actions to process
 
-    // now there are two cases:
-    // 1. we managed to create a new complete stack (with or without the recursive's proof help)
-    //    => we can pop off actions from this stack
-    // 2. we only managed to create a partial stack, and so popping off the top won't give us the correct next action
-    //    => we fall back to popping off the stack currently stored onchain
-    //       (which is always known to be correct, but may be empty or smaller than what we can possibly process)
-    let onchainStackHash = contract.actionStack.get();
-    let stackHashToUse = Provable.if(isComplete, stackHash, onchainStackHash);
+    // if we use the new stack, make sure it's correct: it has to go all the way back
+    // from `onchainActionState` to `processedActionState`
+    Provable.assertEqualIf(
+      useNewStack,
+      Field,
+      stackingResult.actions,
+      processedActionState
+    );
 
-    // we set a precondition on the onchain stack, but only if we're even using it
-    contract.actionStack.requireEqualsIf(isComplete.not(), onchainStackHash);
+    let stackToUse = Provable.if(
+      useOnchainStack,
+      onchainStack,
+      stackingResult.stack
+    );
 
-    // our input hint gives us the actual actions contained in the stack
+    // our input hint gives us the actual actions contained in this stack
     let { stack } = hints;
-    stack.hash.assertEquals(stackHashToUse);
+    stack.hash.assertEquals(stackToUse);
+
+    // invariant: from this point on, the stack contains actual pending action lists in their correct (reversed) order
 
     // step 3. pop off the actions we want to process from the stack
-    // we should take as many as possible with the constraints that:
+
+    // we should take as many actions as possible, within the constraints that:
     // - we process entire lists (= account updates) at once
     // - we process at most `this.batchSize` actions
     // - we can't process more than the stack contains
@@ -273,7 +289,8 @@ class BatchReducer<
     let flatActions = FlatActions(actionType).empty();
 
     for (let i = 0; i < batchSize; i++) {
-      // note: we allow the prover to pop off as many actions as they want
+      // note: we allow the prover to pop off as many actions as they want (up to `batchSize`)
+      // if they pop off less than possible, it doesn't violate our invariant that the stack contains pending actions in correct order
       let shouldPop = Provable.witness(Bool, () => i < nActionLists.get());
       let actionList = stack.popIfUnsafe(shouldPop);
 
@@ -303,8 +320,9 @@ class BatchReducer<
     }
 
     // step 4. run user logic on the actions
+
     // note: only here we do the work of unhashing the actions
-    // we also make it easier to write the reducer code by making sure dummy actions are dummy values
+    // we also make it easier to write the reducer code by making sure dummy actions have dummy values
     flatActions.forEach(batchSize, (action, isDummy, i) => {
       let actionValue = Provable.if(
         isDummy,
@@ -316,8 +334,9 @@ class BatchReducer<
     });
 
     // step 5. update the onchain processed action state and stack
-    contract.actionStack.set(stack.hash);
+
     contract.actionState.set(processedActionState);
+    contract.actionStack.set(stack.hash);
   }
 
   /**
@@ -349,9 +368,11 @@ class BatchReducer<
   }
 
   /**
-   * Create a proof which helps guarantee the correctness of the next actions batch(es).
+   * Create a proof which returns the next actions batch(es) to process and helps guarantee their correctness.
    */
-  async proveNextBatches() {
+  async proveNextBatches(): Promise<
+    { proof: ActionStackProof; hints: ActionStackReducerHints<Action> }[]
+  > {
     let contract = assertDefined(
       this._contract,
       'Contract instance must be set before proving actions'
@@ -366,13 +387,15 @@ class BatchReducer<
       actionState,
       this.actionType
     );
-    return provePartialActionStack(
+
+    let { proof, hints } = await provePartialActionStack(
       endActionState,
       witnesses,
       this.stackProgram,
       this.maxUpdatesFinalProof,
       this.actionType
     );
+    throw Error('Not implemented');
   }
 
   /**
@@ -594,6 +617,48 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
 
   static provable?: ProvableExtended<any> = undefined;
 }
+
+// hints for the action stack reducer
+
+/**
+ * Inputs to a single call of `processBatch()`.
+ *
+ * `proveNextBatches()` will prepare as many of these as we need to catch up with the chain.
+ */
+type ActionStackReducerHints<Action> = {
+  /**
+   * Whether to use the onchain stack or the new one we compute.
+   */
+  useOnchainStack: Bool;
+
+  /**
+   * Current onchain fields, kept track of externally for robustness.
+   *
+   * Note:
+   * - If `useOnchainStack = true`, the `onchainActionState` doesn't have to be correct (we only need it to prove validity of a new stack).
+   * - If `useOnchainStack = false`, the `onchainStack` doesn't have to be correct as we don't use it.
+   */
+  processedActionState: Field;
+  onchainActionState: Field;
+  onchainStack: Field;
+
+  /**
+   * The stack of actions to process.
+   *
+   * Note: this is either the current onchain stack or the new stack, + witnesses which contain the actual actions.
+   */
+  stack: MerkleActions<Action>;
+
+  /**
+   * Whether a recursive proof was needed to compute the stack, or not.
+   */
+  isRecursive: Bool;
+
+  /**
+   * Witnesses needed to finalize the stack computation.
+   */
+  witnesses: Unconstrained<ActionWitnesses>;
+};
 
 // helpers for fetching actions
 
