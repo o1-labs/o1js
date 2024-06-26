@@ -1088,7 +1088,7 @@ async function proveActionStack(
   // dummy proof; will be returned if there are no actions
   let proof = await ActionStackProof.dummy(
     Field(0),
-    ActionStackState.empty(),
+    { actions: emptyActionState, stack: emptyActionState },
     1,
     14
   );
