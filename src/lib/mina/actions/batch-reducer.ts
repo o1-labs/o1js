@@ -373,6 +373,7 @@ class BatchReducer<
   async proveNextBatches(): Promise<
     { proof: ActionStackProof; hints: ActionStackReducerHints<Action> }[]
   > {
+    let { batchSize, actionType } = this;
     let contract = assertDefined(
       this._contract,
       'Contract instance must be set before proving actions'
@@ -389,6 +390,9 @@ class BatchReducer<
       this.actionType
     );
 
+    // if there are no pending actions, there is no need to call the reducer
+    if (witnesses.length === 0) return [];
+
     let { proof, isRecursive, finalWitnesses } = await provePartialActionStack(
       endActionState,
       witnesses,
@@ -396,7 +400,56 @@ class BatchReducer<
       this.maxUpdatesFinalProof
     );
 
-    throw Error('Not implemented');
+    // create the stack from full actions
+    let stack = MerkleActions(actionType).fromReverse(
+      actions.toArrayUnconstrained().get()
+    );
+
+    let batches: ActionStackReducerHints<Action>[] = [];
+    let baseHint = {
+      isRecursive,
+      onchainActionState: Field(endActionState),
+      witnesses: finalWitnesses,
+    };
+
+    // for the remaining batches, trace the steps of the zkapp method
+    // in updating processedActionState, stack, onchainStack
+    let stackArray = stack.toArrayUnconstrained().get();
+    let processedActionState = Field(fromActionState);
+    let onchainStack = Field(0); // incorrect, but not used in the first batch
+    let useOnchainStack = Bool(false);
+    let i = stackArray.length - 1;
+
+    // add batches as long as we haven't emptied the stack
+    while (i >= 0) {
+      batches.push({
+        ...baseHint,
+        useOnchainStack,
+        processedActionState,
+        onchainStack,
+        stack: stack.clone(),
+      });
+
+      // pop off actions as long as we can fit them in a batch
+      let currentBatchSize = 0;
+      while (i >= 0) {
+        currentBatchSize += stackArray[i].lengthUnconstrained().get();
+        if (currentBatchSize > batchSize) break;
+        let actionList = stack.pop();
+        processedActionState = Actions.updateSequenceState(
+          processedActionState,
+          actionList.hash
+        );
+        i--;
+      }
+      onchainStack = stack.hash;
+      useOnchainStack = Bool(true);
+    }
+
+    // sanity check: we should have put all actions in batches
+    stack.isEmpty().assertTrue();
+
+    return batches.map((hints) => ({ proof, hints }));
   }
 
   /**
@@ -660,6 +713,18 @@ type ActionStackReducerHints<Action> = {
    */
   witnesses: Unconstrained<ActionWitnesses>;
 };
+
+function ActionStackReducerHints<A extends Actionable<any>>(actionType: A) {
+  return Struct({
+    useOnchainStack: Bool,
+    processedActionState: Field,
+    onchainActionState: Field,
+    onchainStack: Field,
+    stack: MerkleActions(actionType).provable,
+    isRecursive: Bool,
+    witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+  });
+}
 
 // helpers for fetching actions
 
