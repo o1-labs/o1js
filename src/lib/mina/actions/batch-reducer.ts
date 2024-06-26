@@ -39,7 +39,7 @@ import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/tra
 import { FlatActions, MerkleActions } from './action-types.js';
 
 // external API
-export { BatchReducer, ActionBatch };
+export { BatchReducer, ActionBatch, ActionStackHints };
 
 // internal API
 export {
@@ -95,6 +95,9 @@ class BatchReducer<
   }
 
   static get initialActionState() {
+    return Actions.emptyActionState();
+  }
+  static get initialActionStack() {
     return Actions.emptyActionState();
   }
 
@@ -186,7 +189,7 @@ class BatchReducer<
    */
   async processBatch(
     proof: Proof<Field, ActionStackState>,
-    hints: ActionStackReducerHints<Action>,
+    hints: ActionStackHints<Action>,
     callback: (action: Action, isDummy: Bool, i: number) => void
   ): Promise<void> {
     let { actionType, batchSize } = this;
@@ -343,7 +346,9 @@ class BatchReducer<
    * Compile the recursive action batch prover.
    */
   async compile() {
-    return await this.program.compile();
+    // TODO remove this.program
+    // return await this.program.compile();
+    return await this.stackProgram.compile();
   }
 
   /**
@@ -370,8 +375,8 @@ class BatchReducer<
   /**
    * Create a proof which returns the next actions batch(es) to process and helps guarantee their correctness.
    */
-  async proveNextBatches(): Promise<
-    { proof: ActionStackProof; hints: ActionStackReducerHints<Action> }[]
+  async preparePendingBatches(): Promise<
+    { proof: ActionStackProof; hints: ActionStackHints<Action> }[]
   > {
     let { batchSize, actionType } = this;
     let contract = assertDefined(
@@ -405,7 +410,7 @@ class BatchReducer<
       actions.toArrayUnconstrained().get()
     );
 
-    let batches: ActionStackReducerHints<Action>[] = [];
+    let batches: ActionStackHints<Action>[] = [];
     let baseHint = {
       isRecursive,
       onchainActionState: Field(endActionState),
@@ -679,7 +684,7 @@ class ActionBatchBase<Action, BatchSize extends number = number> {
  *
  * `proveNextBatches()` will prepare as many of these as we need to catch up with the chain.
  */
-type ActionStackReducerHints<Action> = {
+type ActionStackHints<Action> = {
   /**
    * Whether to use the onchain stack or the new one we compute.
    */
@@ -714,7 +719,7 @@ type ActionStackReducerHints<Action> = {
   witnesses: Unconstrained<ActionWitnesses>;
 };
 
-function ActionStackReducerHints<A extends Actionable<any>>(actionType: A) {
+function ActionStackHints<A extends Actionable<any>>(actionType: A) {
   return Struct({
     useOnchainStack: Bool,
     processedActionState: Field,
