@@ -21,6 +21,7 @@ import {
 import type { Types } from '../../bindings/mina-transaction/types.js';
 import type { Permissions } from './account-update.js';
 import { ZkappStateLength } from './mina-instance.js';
+import { assertInternal } from '../util/errors.js';
 
 export {
   preconditions,
@@ -180,6 +181,15 @@ function Network(accountUpdate: AccountUpdate): Network {
       );
       return network.globalSlotSinceGenesis.requireEquals(slot);
     },
+    requireEqualsIf(condition: Bool, value: UInt64) {
+      let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
+      let slot = timestampToGlobalSlot(
+        value,
+        `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
+          `i.e., the genesis timestamp plus an integer number of slots.`
+      );
+      return network.globalSlotSinceGenesis.requireEqualsIf(condition, slot);
+    },
     requireBetween(lower: UInt64, upper: UInt64) {
       let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
       return network.globalSlotSinceGenesis.requireBetween(
@@ -326,6 +336,15 @@ function preconditionSubClassWithRange<
   };
 }
 
+function defaultLower(fieldType: any) {
+  assertInternal(fieldType === UInt32 || fieldType === UInt64);
+  return (fieldType as typeof UInt32 | typeof UInt64).zero;
+}
+function defaultUpper(fieldType: any) {
+  assertInternal(fieldType === UInt32 || fieldType === UInt64);
+  return (fieldType as typeof UInt32 | typeof UInt64).MAXINT();
+}
+
 function preconditionSubclass<
   K extends LongKey,
   U extends FlatPreconditionValue[K]
@@ -338,6 +357,7 @@ function preconditionSubclass<
   if (fieldType === undefined) {
     throw Error(`this.${longKey}: fieldType undefined`);
   }
+
   let obj = {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
@@ -375,6 +395,36 @@ function preconditionSubclass<
         setPath(accountUpdate.body.preconditions, longKey, value);
       }
     },
+    requireEqualsIf(condition: Bool, value: U) {
+      context.constrained.add(longKey);
+      let property = getPath(
+        accountUpdate.body.preconditions,
+        longKey
+      ) as AnyCondition<U>;
+      assertInternal('isSome' in property);
+      property.isSome = condition;
+      if ('lower' in property.value && 'upper' in property.value) {
+        property.value.lower = Provable.if(
+          condition,
+          fieldType,
+          value,
+          defaultLower(fieldType) as U
+        );
+        property.value.upper = Provable.if(
+          condition,
+          fieldType,
+          value,
+          defaultUpper(fieldType) as U
+        );
+      } else {
+        property.value = Provable.if(
+          condition,
+          fieldType,
+          value,
+          fieldType.empty()
+        );
+      }
+    },
     requireNothing() {
       let property = getPath(
         accountUpdate.body.preconditions,
@@ -383,13 +433,8 @@ function preconditionSubclass<
       if ('isSome' in property) {
         property.isSome = Bool(false);
         if ('lower' in property.value && 'upper' in property.value) {
-          if (fieldType === UInt64) {
-            property.value.lower = UInt64.zero as U;
-            property.value.upper = UInt64.MAXINT() as U;
-          } else if (fieldType === UInt32) {
-            property.value.lower = UInt32.zero as U;
-            property.value.upper = UInt32.MAXINT() as U;
-          }
+          property.value.lower = defaultLower(fieldType) as U;
+          property.value.upper = defaultUpper(fieldType) as U;
         } else {
           property.value = fieldType.empty();
         }
@@ -588,6 +633,7 @@ type PreconditionSubclassType<U> = {
   get(): U;
   getAndRequireEquals(): U;
   requireEquals(value: U): void;
+  requireEqualsIf(condition: Bool, value: U): void;
   requireNothing(): void;
 };
 type PreconditionSubclassRangeType<U> = PreconditionSubclassType<U> & {

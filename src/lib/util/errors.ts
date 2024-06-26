@@ -4,6 +4,7 @@ export {
   prettifyStacktrace,
   prettifyStacktracePromise,
   assert,
+  assert as assertInternal,
 };
 
 /**
