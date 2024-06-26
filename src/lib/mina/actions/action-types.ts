@@ -12,6 +12,9 @@ export { MerkleActions };
 const emptyActionsHash = Actions.empty().hash;
 const emptyActionState = Actions.emptyActionState();
 
+/**
+ * Provable representation of actions and their three levels of Merkleization.
+ */
 type MerkleActions<T> = MerkleList<MerkleList<Hashed<T>>>;
 
 function MerkleActions<
