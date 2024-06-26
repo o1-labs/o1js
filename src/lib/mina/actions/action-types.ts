@@ -21,23 +21,56 @@ function MerkleActions<
   A extends Actionable<any>,
   T extends InferProvable<A> = InferProvable<A>
 >(actionType: A, fromActionState?: Field) {
-  const HashedAction = Hashed.create(actionType as Actionable<T>, (action) =>
-    hashWithPrefix(prefixes.event, actionType.toFields(action))
-  );
-
-  const ActionList = MerkleList.create(
-    HashedAction.provable,
-    (hash, action) =>
-      hashWithPrefix(prefixes.sequenceEvents, [hash, action.hash]),
-    emptyActionsHash
-  );
-
   return MerkleList.create(
-    ActionList.provable,
+    MerkleActionList(actionType).provable,
     (hash, actions) =>
       hashWithPrefix(prefixes.sequenceEvents, [hash, actions.hash]),
     fromActionState ?? emptyActionState
   );
+}
+MerkleActions.fromFields = actionFieldsToMerkleList;
+
+type MerkleActionList<T> = MerkleList<Hashed<T>>;
+
+function MerkleActionList<
+  A extends Actionable<any>,
+  T extends InferProvable<A> = InferProvable<A>
+>(actionType: A) {
+  return MerkleList.create(
+    HashedAction(actionType).provable,
+    (hash, action) =>
+      hashWithPrefix(prefixes.sequenceEvents, [hash, action.hash]),
+    emptyActionsHash
+  );
+}
+
+type HashedAction<T> = Hashed<T>;
+
+function HashedAction<
+  A extends Actionable<any>,
+  T extends InferProvable<A> = InferProvable<A>
+>(actionType: A) {
+  return Hashed.create(actionType as Actionable<T>, (action) =>
+    hashWithPrefix(prefixes.event, actionType.toFields(action))
+  );
+}
+
+function actionFieldsToMerkleList<T>(
+  actionType: Actionable<T>,
+  fields: bigint[][][],
+  fromActionState?: bigint
+) {
+  const HashedActionT = HashedAction(actionType);
+  const MerkleActionListT = MerkleActionList(actionType);
+  const MerkleActionsT = MerkleActions(
+    actionType,
+    fromActionState ? Field(fromActionState) : undefined
+  );
+  let actions = fields.map((event) =>
+    event.map((action) => actionType.fromFields(action.map(Field)))
+  );
+  let hashes = actions.map((as) => as.map((a) => HashedActionT.hash(a)));
+  return MerkleActionsT.from(hashes.map((h) => MerkleActionListT.from(h)));
 }
 
 /**
