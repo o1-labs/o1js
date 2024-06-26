@@ -7,7 +7,8 @@ import { Hashed } from '../../provable/packed.js';
 import { hashWithPrefix } from '../../provable/crypto/poseidon.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
 
-export { MerkleActions, FlatActions };
+export { MerkleActions, MerkleActionHashes, FlatActions };
+export { emptyActionState, emptyActionsHash };
 
 const emptyActionsHash = Actions.empty().hash;
 const emptyActionState = Actions.emptyActionState();
@@ -71,6 +72,21 @@ function actionFieldsToMerkleList<T>(
   );
   let hashes = actions.map((as) => as.map((a) => HashedActionT.hash(a)));
   return MerkleActionsT.from(hashes.map((h) => MerkleActionListT.from(h)));
+}
+
+/**
+ * Simplified representation of actions where we don't use inner action lists but
+ * only their hashesm, which are plain Field elements.
+ */
+type MerkleActionHashes<T> = MerkleList<Field>;
+
+function MerkleActionHashes(fromActionState?: Field) {
+  return MerkleList.create(
+    Field,
+    (hash, actionsHash) =>
+      hashWithPrefix(prefixes.sequenceEvents, [hash, actionsHash]),
+    fromActionState ?? emptyActionState
+  );
 }
 
 /**

@@ -36,7 +36,12 @@ import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
 import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
-import { FlatActions, MerkleActions } from './action-types.js';
+import {
+  FlatActions,
+  MerkleActionHashes,
+  MerkleActions,
+  emptyActionState,
+} from './action-types.js';
 
 // external API
 export { BatchReducer, ActionBatch, ActionStackHints };
@@ -232,7 +237,7 @@ class BatchReducer<
 
     // the final piece of the proof either starts from the onchain action state + an empty stack,
     // or from the previous proof output
-    let initialState = { actions: onchainActionState, stack: emptyHash };
+    let initialState = { actions: onchainActionState, stack: emptyActionState };
     let startState = Provable.if(
       isRecursive,
       ActionStackState,
@@ -266,6 +271,7 @@ class BatchReducer<
 
     // our input hint gives us the actual actions contained in this stack
     let { stack } = hints;
+    stack = stack.clone(); // defend against this code running twice
     stack.hash.assertEquals(stackToUse);
 
     // invariant: from this point on, the stack contains actual pending action lists in their correct (reversed) order
@@ -375,7 +381,7 @@ class BatchReducer<
   /**
    * Create a proof which returns the next actions batch(es) to process and helps guarantee their correctness.
    */
-  async preparePendingBatches(): Promise<
+  async prepareBatches(): Promise<
     { proof: ActionStackProof; hints: ActionStackHints<Action> }[]
   > {
     let { batchSize, actionType } = this;
@@ -1005,8 +1011,6 @@ function actionBatchProgram(maxUpdatesPerProof: number) {
 
 // recursive action stacking proof
 
-const BasicFieldList = MerkleList.create(Field);
-
 /**
  * Prove that a list of actions can be stacked in reverse order.
  *
@@ -1051,7 +1055,7 @@ async function proveActionStack(
   let isEmpty = Bool(n === 0);
 
   // compute the final stack up front: actions in reverse order
-  let stack = BasicFieldList.empty();
+  let stack = MerkleActionHashes().empty();
   for (let action of [...actions].reverse()) {
     if (action === undefined) continue;
     stack.push(Field(action.hash));
@@ -1147,8 +1151,7 @@ function actionStackChunk(
 ): ActionStackState {
   // we pop off actions from the input merkle list (= input.actions + actionHashes),
   // and push them onto a new merkle list
-  class Stack extends MerkleList.create(Field, undefined, startState.stack) {}
-  let stack = Stack.empty();
+  let stack = MerkleActionHashes(startState.stack).empty();
   let actions = startState.actions;
 
   for (let i = maxUpdatesPerProof - 1; i >= 0; i--) {
@@ -1195,7 +1198,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
             input,
             proofSoFar.publicInput
           );
-          let initialState = { actions: input, stack: emptyHash };
+          let initialState = { actions: input, stack: emptyActionState };
           let startState = Provable.if(
             isRecursive,
             ActionStackState,
