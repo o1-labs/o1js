@@ -22,7 +22,6 @@ import {
   testLocal,
   transaction,
 } from '../test/test-contract.js';
-import { ActionStackHints } from './batch-reducer.js';
 const { IndexedMerkleMap, BatchReducer } = Experimental;
 
 const MINA = 1_000_000_000n;
@@ -43,8 +42,8 @@ let batchReducer = new BatchReducer({
   maxUpdatesFinalProof: 4,
   maxUpdatesPerProof: 4,
 });
-class ActionStackProof extends batchReducer.StackProof {}
-class Hints extends ActionStackHints(PublicKey) {}
+class Batch extends batchReducer.Batch {}
+class BatchProof extends batchReducer.BatchProof {}
 
 /**
  * Contract that manages airdrop claims.
@@ -88,7 +87,7 @@ class UnsafeAirdrop extends SmartContract {
    * Note: This two-step process is necessary so that multiple users can claim concurrently.
    */
   @method.returns(MerkleMap.provable)
-  async settleClaims(proof: ActionStackProof, hints: Hints) {
+  async settleClaims(batch: Batch, proof: BatchProof) {
     // witness merkle map and require that it matches the onchain root
     let eligibleMap = Provable.witness(MerkleMap.provable, () =>
       eligible.clone()
@@ -97,7 +96,7 @@ class UnsafeAirdrop extends SmartContract {
     this.eligibleLength.requireEquals(eligibleMap.length);
 
     // process claims by reducing actions
-    await batchReducer.processBatch(proof, hints, (address, isDummy) => {
+    await batchReducer.processBatch({ batch, proof }, (address, isDummy) => {
       // check whether the claim is valid = exactly contained in the map
       let addressKey = key(address);
       let isValidField = eligibleMap.getOption(addressKey).orElse(0n);
@@ -188,14 +187,14 @@ await testLocal(
 
         // should not cause a recursive proof because onchain action processing was set to handle 4 actions
         assert(
-          batches[0].hints.isRecursive.toBoolean() === false,
+          batches[0].batch.isRecursive.toBoolean() === false,
           'not recursive'
         );
 
-        return batches.flatMap(({ proof, hints }, i) => [
+        return batches.flatMap(({ batch, proof }, i) => [
           // we create one transaction for each batch
           transaction(`settle claims 1-${i}`, async () => {
-            newEligible = await contract.settleClaims(proof, hints);
+            newEligible = await contract.settleClaims(batch, proof);
           }),
           // after each transaction, we update our local merkle map
           () => eligible.overwrite(newEligible),
@@ -228,14 +227,14 @@ await testLocal(
 
         // should have caused a recursive proof (2 actually) because ceil(9/4) = 3 proofs are needed (one of them done as part of the zkApp)
         assert(
-          batches[0].hints.isRecursive.toBoolean() === true,
+          batches[0].batch.isRecursive.toBoolean() === true,
           'is recursive'
         );
 
-        return batches.flatMap(({ proof, hints }, i) => [
+        return batches.flatMap(({ batch, proof }, i) => [
           // we create one transaction for each batch
           transaction(`settle claims 2-${i}`, async () => {
-            newEligible = await contract.settleClaims(proof, hints);
+            newEligible = await contract.settleClaims(batch, proof);
           }),
           // after each transaction, we update our local merkle map
           () => eligible.overwrite(newEligible),

@@ -1,8 +1,4 @@
-import {
-  MerkleList,
-  MerkleListIterator,
-  emptyHash,
-} from '../../provable/merkle-list.js';
+import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { TupleN } from '../../util/types.js';
 import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
 import { Bool, Field } from '../../provable/wrapped.js';
@@ -44,7 +40,7 @@ import {
 } from './action-types.js';
 
 // external API
-export { BatchReducer, ActionBatch, ActionStackHints };
+export { BatchReducer };
 
 // internal API
 export {
@@ -64,10 +60,13 @@ class BatchReducer<
 > {
   batchSize: BatchSize;
   actionType: Actionable<Action>;
+  Batch: ReturnType<typeof ActionStackHints>;
+
   program: ActionBatchProgram;
   stackProgram: ActionStackProgram;
   Proof: typeof Proof<Field, Field>;
-  StackProof: typeof Proof<Field, ActionStackState>;
+  BatchProof: typeof Proof<Field, ActionStackState>;
+
   maxUpdatesFinalProof: number;
   maxActionsPerUpdate: number;
 
@@ -86,11 +85,13 @@ class BatchReducer<
   }) {
     this.batchSize = batchSize;
     this.actionType = actionType as Actionable<Action>;
+    this.Batch = ActionStackHints(this.actionType);
+
     this.program = actionBatchProgram(maxUpdatesPerProof);
     this.Proof = ZkProgram.Proof(this.program);
     this.maxUpdatesFinalProof = maxUpdatesFinalProof;
     this.stackProgram = actionStackProgram(maxUpdatesPerProof);
-    this.StackProof = ZkProgram.Proof(this.stackProgram);
+    this.BatchProof = ZkProgram.Proof(this.stackProgram);
 
     assert(
       maxActionsPerUpdate <= batchSize,
@@ -193,8 +194,13 @@ class BatchReducer<
    * Process a batch of actions.
    */
   async processBatch(
-    proof: Proof<Field, ActionStackState>,
-    hints: ActionStackHints<Action>,
+    {
+      batch,
+      proof,
+    }: {
+      batch: ActionStackHints<Action>;
+      proof: Proof<Field, ActionStackState>;
+    },
     callback: (action: Action, isDummy: Bool, i: number) => void
   ): Promise<void> {
     let { actionType, batchSize } = this;
@@ -207,7 +213,7 @@ class BatchReducer<
       processedActionState,
       onchainActionState,
       onchainStack,
-    } = hints;
+    } = batch;
     let useNewStack = useOnchainStack.not();
 
     // we definitely need to know the processed action state, because we will update it
@@ -224,7 +230,7 @@ class BatchReducer<
 
     // step 1: continue the proof that pops pending onchain actions to build up the final stack
 
-    let { isRecursive } = hints;
+    let { isRecursive } = batch;
     proof.verifyIf(isRecursive);
 
     // if the proof is valid, it has to start from onchain action state
@@ -249,7 +255,7 @@ class BatchReducer<
     let stackingResult = actionStackChunk(
       this.maxUpdatesFinalProof,
       startState,
-      hints.witnesses
+      batch.witnesses
     );
 
     // step 2. pick the correct stack of actions to process
@@ -270,7 +276,7 @@ class BatchReducer<
     );
 
     // our input hint gives us the actual actions contained in this stack
-    let { stack } = hints;
+    let { stack } = batch;
     stack = stack.clone(); // defend against this code running twice
     stack.hash.assertEquals(stackToUse);
 
@@ -382,7 +388,7 @@ class BatchReducer<
    * Create a proof which returns the next actions batch(es) to process and helps guarantee their correctness.
    */
   async prepareBatches(): Promise<
-    { proof: ActionStackProof; hints: ActionStackHints<Action> }[]
+    { proof: ActionStackProof; batch: ActionStackHints<Action> }[]
   > {
     let { batchSize, actionType } = this;
     let contract = assertDefined(
@@ -460,7 +466,7 @@ class BatchReducer<
     // sanity check: we should have put all actions in batches
     stack.isEmpty().assertTrue();
 
-    return batches.map((hints) => ({ proof, hints }));
+    return batches.map((batch) => ({ proof, batch }));
   }
 
   /**
