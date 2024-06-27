@@ -1,8 +1,6 @@
 import {
   BatchReducer,
-  actionBatchProgram,
   actionStackProgram,
-  proveActionBatch,
   proveActionStack,
 } from './batch-reducer.js';
 import { Field } from '../../../index.js';
@@ -37,44 +35,6 @@ function randomActionWitnesses(n: number) {
   }
   return { witnesses, endActionState: Field(state) };
 }
-
-let program = actionBatchProgram(300);
-
-console.time('compile batch prover');
-await program.compile();
-console.timeEnd('compile batch prover');
-
-await describe('action batch prover', async () => {
-  let state = BatchReducer.initialActionState;
-
-  await it('does 0 actions', async () => {
-    let startState = state;
-
-    console.time('prove');
-    let proof = await proveActionBatch(startState, [], program);
-    console.timeEnd('prove');
-
-    expect(proof.publicInput).toEqual(startState);
-    expect(proof.publicOutput).toEqual(startState);
-  });
-
-  await it('does 500 actions', async () => {
-    let startState = state;
-
-    console.time('prove');
-    let proof = await proveActionBatch(
-      startState,
-      randomActionHashes(500),
-      program
-    );
-    console.timeEnd('prove');
-
-    let endState = proof.publicOutput;
-    expect(endState).not.toEqual(startState);
-    expect(proof.publicInput).toEqual(startState);
-    state = endState;
-  });
-});
 
 let stackProgram = actionStackProgram(100);
 

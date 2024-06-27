@@ -14,9 +14,10 @@ import {
   State,
   state,
   UInt64,
-  Permissions,
+  assert,
 } from '../../../index.js';
 import {
+  TestInstruction,
   expectBalance,
   testLocal,
   transaction,
@@ -29,13 +30,31 @@ const AMOUNT = 10n * MINA;
 class MerkleMap extends IndexedMerkleMap(10) {}
 
 // set up reducer
-let batchReducer = new BatchReducer({ actionType: PublicKey, batchSize: 3 });
-class ActionBatchProof extends batchReducer.Proof {}
+let batchReducer = new BatchReducer({
+  actionType: PublicKey,
+
+  // artificially low batch size to test batch splitting more easily
+  batchSize: 3,
+
+  // artificially low max pending action lists we process per proof, to test recursive proofs
+  // the default is 100 in the final (zkApp) proof, and 300 per recursive proof
+  // these could be set even higher (at the cost of larger proof times in the case of few actions)
+  maxUpdatesFinalProof: 4,
+  maxUpdatesPerProof: 4,
+});
+class Batch extends batchReducer.Batch {}
+class BatchProof extends batchReducer.BatchProof {}
 
 /**
  * Contract that manages airdrop claims.
+ *
+ * WARNING: This airdrop design is UNSAFE against attacks by users that set their permissions such that sending them MINA is impossible.
+ * A single such user which claims the airdrop will cause the reducer to be deadlocked forever.
+ * Workarounds exist but they require too much code which this example is not about.
+ *
+ * THIS IS JUST FOR TESTING. BE CAREFUL ABOUT REDUCER DEADLOCKS IN PRODUCTION CODE!
  */
-class Airdrop extends SmartContract {
+class UnsafeAirdrop extends SmartContract {
   @state(Field)
   eligibleRoot = State(eligible.root);
 
@@ -45,6 +64,12 @@ class Airdrop extends SmartContract {
   @state(Field)
   actionState = State(BatchReducer.initialActionState);
 
+  @state(Field)
+  actionStack = State(BatchReducer.initialActionStack);
+
+  /**
+   * Claim an airdrop.
+   */
   @method
   async claim() {
     let address = this.sender.getUnconstrained();
@@ -53,18 +78,16 @@ class Airdrop extends SmartContract {
     let au = AccountUpdate.createSigned(address);
     au.body.useFullCommitment = Bool(true); // ensures the signature attests to the entire transaction
 
-    // TODO we can only allow claiming to accounts that are disabling permissions updates
-    // otherwise we risk contract deadlock if an account needs receive/access authorization
-    au.account.permissions.set({
-      ...Permissions.initial(),
-      setPermissions: Permissions.impossible(),
-    });
-
     batchReducer.dispatch(address);
   }
 
+  /**
+   * Go through pending claims and pay them out.
+   *
+   * Note: This two-step process is necessary so that multiple users can claim concurrently.
+   */
   @method.returns(MerkleMap.provable)
-  async settleClaims(proof: ActionBatchProof) {
+  async settleClaims(batch: Batch, proof: BatchProof) {
     // witness merkle map and require that it matches the onchain root
     let eligibleMap = Provable.witness(MerkleMap.provable, () =>
       eligible.clone()
@@ -73,7 +96,7 @@ class Airdrop extends SmartContract {
     this.eligibleLength.requireEquals(eligibleMap.length);
 
     // process claims by reducing actions
-    await batchReducer.processNextBatch(proof, (address, isDummy) => {
+    await batchReducer.processBatch({ batch, proof }, (address, isDummy) => {
       // check whether the claim is valid = exactly contained in the map
       let addressKey = key(address);
       let isValidField = eligibleMap.getOption(addressKey).orElse(0n);
@@ -111,14 +134,14 @@ function key(address: PublicKey) {
 const eligible = new MerkleMap();
 
 await testLocal(
-  Airdrop,
+  UnsafeAirdrop,
   { proofsEnabled: 'both', batchReducer },
   ({
     contract,
     accounts: { sender },
     newAccounts: { alice, bob, charlie, danny, eve },
     Local,
-  }) => {
+  }): TestInstruction[] => {
     // create a new map of accounts that are eligible for the airdrop
     eligible.overwrite(new MerkleMap());
 
@@ -157,42 +180,80 @@ await testLocal(
 
       // settle claims, 1
       async () => {
-        console.time('batch proof 1');
-        let proof = await batchReducer.proveNextBatch();
-        console.timeEnd('batch proof 1');
+        let batches = await batchReducer.prepareBatches();
 
-        return transaction('settle claims 1', async () => {
-          newEligible = await contract.settleClaims(proof);
-        });
+        // should cause 2 batches because we have 4 claims and batchSize is 3
+        assert(batches.length === 2, 'two batches');
+
+        // should not cause a recursive proof because onchain action processing was set to handle 4 actions
+        assert(
+          batches[0].batch.isRecursive.toBoolean() === false,
+          'not recursive'
+        );
+
+        return batches.flatMap(({ batch, proof }, i) => [
+          // we create one transaction for each batch
+          transaction(`settle claims 1-${i}`, async () => {
+            newEligible = await contract.settleClaims(batch, proof);
+          }),
+          // after each transaction, we update our local merkle map
+          () => eligible.overwrite(newEligible),
+        ]);
       },
-      () => eligible.overwrite(newEligible), // update the eligible map
 
       expectBalance(alice, AMOUNT),
       expectBalance(bob, AMOUNT),
       expectBalance(eve, 0n), // eve was not eligible
-      expectBalance(charlie, 0n), // we only processed 3 claims, charlie was the 4th
+      expectBalance(charlie, AMOUNT),
       expectBalance(danny, 0n), // danny didn't claim yet
 
-      // another claim + final settling
-      transaction.from(danny)('danny claims', () => contract.claim()),
+      // more claims + final settling
+      // we submit the same claim 9 times to cause 2 recursive proofs
+      // and to check that double claims are rejected
+      () => Local.setProofsEnabled(false),
+      ...Array.from({ length: 9 }, () =>
+        transaction.from(danny)('danny claims 9x', () => contract.claim())
+      ),
+      () => Local.resetProofsEnabled(),
 
       // settle claims, 2
       async () => {
-        console.time('batch proof 2');
-        let proof = await batchReducer.proveNextBatch();
-        console.timeEnd('batch proof 2');
+        console.time('recursive batch proof 2x');
+        let batches = await batchReducer.prepareBatches();
+        console.timeEnd('recursive batch proof 2x');
 
-        return transaction('settle claims 2', async () => {
-          newEligible = await contract.settleClaims(proof);
-        });
+        // should cause 9/3 === 3 batches
+        assert(batches.length === 3, 'three batches');
+
+        // should have caused a recursive proof (2 actually) because ceil(9/4) = 3 proofs are needed (one of them done as part of the zkApp)
+        assert(
+          batches[0].batch.isRecursive.toBoolean() === true,
+          'is recursive'
+        );
+
+        return batches.flatMap(({ batch, proof }, i) => [
+          // we create one transaction for each batch
+          transaction(`settle claims 2-${i}`, async () => {
+            newEligible = await contract.settleClaims(batch, proof);
+          }),
+          // after each transaction, we update our local merkle map
+          () => eligible.overwrite(newEligible),
+        ]);
       },
-      () => eligible.overwrite(newEligible),
 
       expectBalance(alice, AMOUNT),
       expectBalance(bob, AMOUNT),
       expectBalance(eve, 0n),
       expectBalance(charlie, AMOUNT),
-      expectBalance(danny, AMOUNT),
+      expectBalance(danny, AMOUNT), // only danny's first claim was fulfilled
+
+      // no more claims to settle
+      async () => {
+        let batches = await batchReducer.prepareBatches();
+
+        // sanity check that batchReducer doesn't create transactions if there is nothing to reduce
+        assert(batches.length === 0, 'no more claims to settle');
+      },
     ];
   }
 );
