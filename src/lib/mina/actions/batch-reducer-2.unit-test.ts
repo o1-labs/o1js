@@ -14,7 +14,6 @@ import {
   State,
   state,
   UInt64,
-  Permissions,
   assert,
 } from '../../../index.js';
 import {
@@ -34,9 +33,15 @@ class MerkleMap extends IndexedMerkleMap(10) {}
 // set up reducer
 let batchReducer = new BatchReducer({
   actionType: PublicKey,
+
+  // artificially low batch size to test batch splitting more easily
   batchSize: 3,
-  maxUpdatesFinalProof: 6,
-  maxUpdatesPerProof: 6,
+
+  // artificially low max pending action lists we process per proof, to test recursive proofs
+  // the default is 100 in the final (zkApp) proof, and 300 per recursive proof
+  // these could be set even higher (at the cost of larger proof times in the case of few actions)
+  maxUpdatesFinalProof: 4,
+  maxUpdatesPerProof: 4,
 });
 class ActionStackProof extends batchReducer.StackProof {}
 class Hints extends ActionStackHints(PublicKey) {}
@@ -169,9 +174,16 @@ await testLocal(
 
       // settle claims, 1
       async () => {
-        console.time('batch proof 1');
         let batches = await batchReducer.prepareBatches();
-        console.timeEnd('batch proof 1');
+
+        // should cause 2 batches because we have 4 claims and batchSize is 3
+        assert(batches.length === 2, 'two batches');
+
+        // should not cause a recursive proof because onchain action processing was set to handle 4 actions
+        assert(
+          batches[0].hints.isRecursive.toBoolean() === false,
+          'not recursive'
+        );
 
         return batches.flatMap(({ proof, hints }, i) => [
           // we create one transaction for each batch
@@ -190,20 +202,28 @@ await testLocal(
       expectBalance(danny, 0n), // danny didn't claim yet
 
       // more claims + final settling
-      // we submit the same claim 15 times to cause 2 recursive proofs
+      // we submit the same claim 9 times to cause 2 recursive proofs
       // and to check that double claims are rejected
       () => Local.setProofsEnabled(false),
-      () =>
-        Array.from({ length: 15 }, () =>
-          transaction.from(danny)('danny claims 15x', () => contract.claim())
-        ),
+      ...Array.from({ length: 9 }, () =>
+        transaction.from(danny)('danny claims 9x', () => contract.claim())
+      ),
       () => Local.resetProofsEnabled(),
 
       // settle claims, 2
       async () => {
-        console.time('batch proof 2');
+        console.time('recursive batch proof 2x');
         let batches = await batchReducer.prepareBatches();
-        console.timeEnd('batch proof 2');
+        console.timeEnd('recursive batch proof 2x');
+
+        // should cause 9/3 === 3 batches
+        assert(batches.length === 3, 'three batches');
+
+        // should have caused a recursive proof (2 actually) because ceil(9/4) = 3 proofs are needed (one of them done as part of the zkApp)
+        assert(
+          batches[0].hints.isRecursive.toBoolean() === true,
+          'is recursive'
+        );
 
         return batches.flatMap(({ proof, hints }, i) => [
           // we create one transaction for each batch
@@ -223,9 +243,9 @@ await testLocal(
 
       // no more claims to settle
       async () => {
-        console.time('batch proof 3');
         let batches = await batchReducer.prepareBatches();
-        console.timeEnd('batch proof 3');
+
+        // sanity check that batchReducer doesn't create transactions if there is nothing to reduce
         assert(batches.length === 0, 'no more claims to settle');
       },
     ];
