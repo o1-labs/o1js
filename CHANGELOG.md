@@ -15,13 +15,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/40c597775...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/ed198f305...HEAD)
 
 ### Added
 
-- **SHA256 low-level API** exposed via `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1689 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
-- Added the option to specify custom feature flags for sided loaded proofs in the `DynamicProof` class.
-  - Feature flags are requires to tell Pickles what proof structure it should expect when side loading dynamic proofs and verification keys. https://github.com/o1-labs/o1js/pull/1688
 - `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
   - Avoids the account update limit
   - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
@@ -33,6 +30,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Internally upgrade o1js to TypeScript 5.4 https://github.com/o1-labs/o1js/pull/1676
 - Start developing an internal framework for local zkapp testing https://github.com/o1-labs/o1js/pull/1676
 - Improve error message when o1js global state is accessed in an invalid way https://github.com/o1-labs/o1js/pull/1676
+
+## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
+
+### Added
+
+- **SHA256 low-level API** exposed via `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1689 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
+- Added the option to specify custom feature flags for sided loaded proofs in the `DynamicProof` class. https://github.com/o1-labs/o1js/pull/1688
+  - Feature flags are required to tell Pickles what proof structure it should expect when side loading dynamic proofs and verification keys.
+  - `FeatureFlags` is now exported and provides a set of helper functions to compute feature flags correctly.
+
+### Deprecated
+
+- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
