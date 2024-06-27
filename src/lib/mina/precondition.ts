@@ -15,6 +15,7 @@ import {
 } from '../provable/crypto/poseidon.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
+  ActionState,
   Actions,
   ZkappUri,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
@@ -265,8 +266,17 @@ let unimplementedPreconditions: LongKey[] = [
   'network.nextEpochData.seed',
 ];
 
-type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool' | 'PublicKey';
-let baseMap = { UInt64, UInt32, Field, Bool, PublicKey };
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState };
+
+function getProvableType(layout: { type: string; checkedTypeName?: string }) {
+  let typeName = layout.checkedTypeName ?? layout.type;
+  let type = baseMap[typeName as keyof typeof baseMap];
+  assertInternal(
+    type !== undefined,
+    `Unknown precondition base type ${typeName}`
+  );
+  return type;
+}
 
 function preconditionClass(
   layout: Layout,
@@ -277,24 +287,18 @@ function preconditionClass(
   if (layout.type === 'option') {
     // range condition
     if (layout.optionType === 'closedInterval') {
-      let lower = layout.inner.entries.lower.type as BaseType;
-      let baseType = baseMap[lower];
+      let baseType = getProvableType(layout.inner.entries.lower);
       return preconditionSubClassWithRange(
         accountUpdate,
         baseKey,
-        baseType as any,
+        baseType,
         context
       );
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
-      let baseType = baseMap[layout.inner.type as BaseType];
-      return preconditionSubclass(
-        accountUpdate,
-        baseKey,
-        baseType as any,
-        context
-      );
+      let baseType = getProvableType(layout.inner);
+      return preconditionSubclass(accountUpdate, baseKey, baseType, context);
     }
   } else if (layout.type === 'array') {
     return {}; // not applicable yet, TODO if we implement state
