@@ -177,13 +177,12 @@ await testLocal(
         let i = 0;
         for (let { proof, hints } of batches) {
           console.time(`settle claims 1-${i}`);
-          let tx = await Mina.transaction(sender, async () => {
+          await Mina.transaction(sender, async () => {
             newEligible = await contract.settleClaims(proof, hints);
           })
             .sign([sender.key])
-            .prove();
-          console.log(tx.toPretty());
-          await tx.send();
+            .prove()
+            .send();
           console.timeEnd(`settle claims 1-${i}`);
           i++;
           eligible.overwrite(newEligible);
