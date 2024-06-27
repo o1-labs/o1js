@@ -11,9 +11,15 @@ import { Field3 } from '../gadgets/foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
+import { multiRangeCheck } from '../gadgets/range-check.js';
 
 // external API
-export { createForeignCurve, ForeignCurve };
+export {
+  createForeignCurve,
+  createForeignCurveV2,
+  ForeignCurve,
+  ForeignCurveV2,
+};
 
 // internal API
 export { toPoint, FlexiblePoint };
@@ -26,6 +32,9 @@ function toPoint({ x, y }: ForeignCurve): Point {
   return { x: x.value, y: y.value };
 }
 
+/**
+ * @deprecated `ForeignCurve` is now deprecated and will be removed in a future release. Please use {@link ForeignCurveV2} instead.
+ */
 class ForeignCurve {
   x: AlmostForeignField;
   y: AlmostForeignField;
@@ -276,20 +285,26 @@ class ForeignCurve {
   }
 }
 
+class ForeignCurveV2 extends ForeignCurve {
+  constructor(g: {
+    x: AlmostForeignField | Field3 | bigint | number;
+    y: AlmostForeignField | Field3 | bigint | number;
+  }) {
+    super(g);
+  }
+
+  static check(g: ForeignCurveV2) {
+    multiRangeCheck(g.x.value);
+    multiRangeCheck(g.y.value);
+    // more efficient than the automatic check, which would do this for each field separately
+    this.Field.assertAlmostReduced(g.x, g.y);
+    this.assertOnCurve(g);
+    this.assertInSubgroup(g);
+  }
+}
+
 /**
- * Create a class representing an elliptic curve group, which is different from the native {@link Group}.
- *
- * ```ts
- * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
- * ```
- *
- * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
- * We support `modulus` and `order` to be prime numbers up to 259 bits.
- *
- * The returned {@link ForeignCurve} class represents a _non-zero curve point_ and supports standard
- * elliptic curve operations like point addition and scalar multiplication.
- *
- * {@link ForeignCurve} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
+ * @deprecated `createForeignCurve` is now deprecated and will be removed in a future release. Please use {@link createForeignCurveV2} instead.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   const FieldUnreduced = createForeignField(params.modulus);
@@ -300,6 +315,42 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   const BigintCurve = createCurveAffine(params);
 
   class Curve extends ForeignCurve {
+    static _Bigint = BigintCurve;
+    static _Field = Field;
+    static _Scalar = Scalar;
+    static _provable = provableFromClass(Curve, {
+      x: Field.provable,
+      y: Field.provable,
+    });
+  }
+
+  return Curve;
+}
+
+/**
+ * Create a class representing an elliptic curve group, which is different from the native {@link Group}.
+ *
+ * ```ts
+ * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
+ * ```
+ *
+ * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
+ * We support `modulus` and `order` to be prime numbers up to 259 bits.
+ *
+ * The returned {@link ForeignCurveV2} class represents a _non-zero curve point_ and supports standard
+ * elliptic curve operations like point addition and scalar multiplication.
+ *
+ * {@link ForeignCurveV2} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignFieldV2}.
+ */
+function createForeignCurveV2(params: CurveParams): typeof ForeignCurveV2 {
+  const FieldUnreduced = createForeignField(params.modulus);
+  const ScalarUnreduced = createForeignField(params.order);
+  class Field extends FieldUnreduced.AlmostReduced {}
+  class Scalar extends ScalarUnreduced.AlmostReduced {}
+
+  const BigintCurve = createCurveAffine(params);
+
+  class Curve extends ForeignCurveV2 {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;

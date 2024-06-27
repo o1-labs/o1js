@@ -4,20 +4,23 @@ import { ProvablePureExtended } from '../types/struct.js';
 import {
   FlexiblePoint,
   ForeignCurve,
+  ForeignCurveV2,
   createForeignCurve,
+  createForeignCurveV2,
   toPoint,
 } from './foreign-curve.js';
 import { AlmostForeignField } from '../foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Field3 } from '../gadgets/foreign-field.js';
 import { Ecdsa } from '../gadgets/elliptic-curve.js';
-import { l } from '../gadgets/range-check.js';
+import { l, multiRangeCheck } from '../gadgets/range-check.js';
 import { Keccak } from './keccak.js';
 import { Bytes } from '../wrapped-classes.js';
 import { UInt8 } from '../int.js';
+import type { Bool } from '../bool.js';
 
 // external API
-export { createEcdsa, EcdsaSignature };
+export { createEcdsa, createEcdsaV2, EcdsaSignature, EcdsaSignatureV2 };
 
 type FlexibleSignature =
   | EcdsaSignature
@@ -26,6 +29,9 @@ type FlexibleSignature =
       s: AlmostForeignField | Field3 | bigint | number;
     };
 
+/**
+ * @deprecated `EcdsaSignature` is now deprecated and will be removed in a future release. Please use {@link EcdsaSignatureV2} instead.
+ */
 class EcdsaSignature {
   r: AlmostForeignField;
   s: AlmostForeignField;
@@ -69,7 +75,7 @@ class EcdsaSignature {
   /**
    * @deprecated There is a security vulnerability in this method. Use {@link verifyV2} instead.
    */
-  verify(message: Bytes, publicKey: FlexiblePoint) {
+  verify(message: Bytes, publicKey: FlexiblePoint): Bool {
     let msgHashBytes = Keccak.ethereum(message);
     let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
     return this.verifySignedHash(msgHash, publicKey);
@@ -109,7 +115,7 @@ class EcdsaSignature {
    * isValid.assertTrue('signature verifies');
    * ```
    */
-  verifyV2(message: Bytes, publicKey: FlexiblePoint) {
+  verifyV2(message: Bytes, publicKey: FlexiblePoint): Bool {
     let msgHashBytes = Keccak.ethereum(message);
     let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
     return this.verifySignedHashV2(msgHash, publicKey);
@@ -121,7 +127,7 @@ class EcdsaSignature {
   verifySignedHash(
     msgHash: AlmostForeignField | bigint,
     publicKey: FlexiblePoint
-  ) {
+  ): Bool {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
     return Ecdsa.verify(
@@ -142,7 +148,7 @@ class EcdsaSignature {
   verifySignedHashV2(
     msgHash: AlmostForeignField | bigint,
     publicKey: FlexiblePoint
-  ) {
+  ): Bool {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
     return Ecdsa.verifyV2(
@@ -210,8 +216,24 @@ class EcdsaSignature {
   }
 }
 
+class EcdsaSignatureV2 extends EcdsaSignature {
+  constructor(signature: {
+    r: AlmostForeignField | Field3 | bigint | number;
+    s: AlmostForeignField | Field3 | bigint | number;
+  }) {
+    super(signature);
+  }
+
+  static check(signature: EcdsaSignatureV2) {
+    multiRangeCheck(signature.r.value);
+    multiRangeCheck(signature.s.value);
+    // more efficient than the automatic check, which would do this for each scalar separately
+    this.Curve.Scalar.assertAlmostReduced(signature.r, signature.s);
+  }
+}
+
 /**
- * Create a class {@link EcdsaSignature} for verifying ECDSA signatures on the given curve.
+ * @deprecated `EcdsaSignature` is now deprecated and will be removed in a future release. Please use {@link EcdsaSignatureV2} instead.
  */
 function createEcdsa(
   curve: CurveParams | typeof ForeignCurve
@@ -221,6 +243,27 @@ function createEcdsa(
   class Curve extends Curve0 {}
 
   class Signature extends EcdsaSignature {
+    static _Curve = Curve;
+    static _provable = provableFromClass(Signature, {
+      r: Curve.Scalar.provable,
+      s: Curve.Scalar.provable,
+    });
+  }
+
+  return Signature;
+}
+
+/**
+ * Create a class {@link EcdsaSignatureV2} for verifying ECDSA signatures on the given curve.
+ */
+function createEcdsaV2(
+  curve: CurveParams | typeof ForeignCurveV2
+): typeof EcdsaSignatureV2 {
+  let Curve0: typeof ForeignCurveV2 =
+    'b' in curve ? createForeignCurveV2(curve) : curve;
+  class Curve extends Curve0 {}
+
+  class Signature extends EcdsaSignatureV2 {
     static _Curve = Curve;
     static _provable = provableFromClass(Signature, {
       r: Curve.Scalar.provable,
