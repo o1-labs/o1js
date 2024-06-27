@@ -18,10 +18,10 @@ const emptyActionState = Actions.emptyActionState();
  */
 type MerkleActions<T> = MerkleList<MerkleList<Hashed<T>>>;
 
-function MerkleActions<
-  A extends Actionable<any>,
-  T extends InferProvable<A> = InferProvable<A>
->(actionType: A, fromActionState?: Field) {
+function MerkleActions<A extends Actionable<any>>(
+  actionType: A,
+  fromActionState?: Field
+) {
   return MerkleList.create(
     MerkleActionList(actionType).provable,
     (hash, actions) =>
@@ -33,10 +33,7 @@ MerkleActions.fromFields = actionFieldsToMerkleList;
 
 type MerkleActionList<T> = MerkleList<Hashed<T>>;
 
-function MerkleActionList<
-  A extends Actionable<any>,
-  T extends InferProvable<A> = InferProvable<A>
->(actionType: A) {
+function MerkleActionList<A extends Actionable<any>>(actionType: A) {
   return MerkleList.create(
     HashedAction(actionType).provable,
     (hash, action) =>
@@ -47,11 +44,8 @@ function MerkleActionList<
 
 type HashedAction<T> = Hashed<T>;
 
-function HashedAction<
-  A extends Actionable<any>,
-  T extends InferProvable<A> = InferProvable<A>
->(actionType: A) {
-  return Hashed.create(actionType as Actionable<T>, (action) =>
+function HashedAction<A extends Actionable<any>>(actionType: A) {
+  return Hashed.create(actionType as Actionable<InferProvable<A>>, (action) =>
     hashWithPrefix(prefixes.event, actionType.toFields(action))
   );
 }
@@ -76,9 +70,9 @@ function actionFieldsToMerkleList<T>(
 
 /**
  * Simplified representation of actions where we don't use inner action lists but
- * only their hashesm, which are plain Field elements.
+ * only their hashes, which are plain Field elements.
  */
-type MerkleActionHashes<T> = MerkleList<Field>;
+type MerkleActionHashes = MerkleList<Field>;
 
 function MerkleActionHashes(fromActionState?: Field) {
   return MerkleList.create(
@@ -97,12 +91,10 @@ function MerkleActionHashes(fromActionState?: Field) {
  */
 type FlatActions<T> = MerkleList<Hashed<T>>;
 
-function FlatActions<
-  A extends Actionable<any>,
-  T extends InferProvable<A> = InferProvable<A>
->(actionType: A) {
-  const HashedAction = Hashed.create(actionType as Actionable<T>, (action) =>
-    hashWithPrefix(prefixes.event, actionType.toFields(action))
+function FlatActions<A extends Actionable<any>>(actionType: A) {
+  const HashedAction = Hashed.create(
+    actionType as Actionable<InferProvable<A>>,
+    (action) => hashWithPrefix(prefixes.event, actionType.toFields(action))
   );
   return MerkleList.create(HashedAction.provable);
 }
