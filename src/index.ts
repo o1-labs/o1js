@@ -172,6 +172,23 @@ namespace Experimental {
 
   /**
    * A reducer to process actions in fixed-size batches.
+   *
+   * ```ts
+   * let batchReducer = new BatchReducer({ actionType: Action, batchSize: 5 });
+   *
+   * // in contract: concurrent dispatching of actions
+   * batchReducer.dispatch(action);
+   *
+   * // reducer logic
+   * // outside contract: prepare a list of { batch, proof } objects which cover all pending actions
+   * let batches = await batchReducer.prepareBatches();
+   *
+   * // in contract: process a single batch
+   * // create one transaction that does this for each batch!
+   * batchReducer.processBatch({ batch, proof }, (action, isDummy) => {
+   *   // ...
+   * });
+   * ```
    */
   export class BatchReducer<
     ActionType extends Actionable<any>,

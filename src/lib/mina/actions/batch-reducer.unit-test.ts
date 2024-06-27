@@ -55,17 +55,17 @@ class BatchProof extends batchReducer.BatchProof {}
  * THIS IS JUST FOR TESTING. BE CAREFUL ABOUT REDUCER DEADLOCKS IN PRODUCTION CODE!
  */
 class UnsafeAirdrop extends SmartContract {
-  @state(Field)
-  eligibleRoot = State(eligible.root);
-
-  @state(Field)
-  eligibleLength = State(eligible.length);
-
+  // Batch reducer related
   @state(Field)
   actionState = State(BatchReducer.initialActionState);
-
   @state(Field)
   actionStack = State(BatchReducer.initialActionStack);
+
+  // Merkle map related
+  @state(Field)
+  eligibleRoot = State(eligible.root);
+  @state(Field)
+  eligibleLength = State(eligible.length);
 
   /**
    * Claim an airdrop.
