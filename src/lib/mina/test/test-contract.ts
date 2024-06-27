@@ -13,7 +13,14 @@ import { Option } from '../../provable/option.js';
 import { BatchReducer } from '../actions/batch-reducer.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 
-export { testLocal, transaction, deploy, expectState, expectBalance };
+export {
+  testLocal,
+  transaction,
+  deploy,
+  expectState,
+  expectBalance,
+  TestInstruction,
+};
 
 type LocalBlockchain = Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
 
@@ -155,7 +162,8 @@ async function runInstruction(
   if (typeof instruction === 'function') {
     let maybe = await instruction();
     if (maybe !== undefined) {
-      await runInstruction(spec, maybe);
+      if (!Array.isArray(maybe)) maybe = [maybe];
+      for (let instruction of maybe) await runInstruction(spec, instruction);
     }
   } else if (instruction.type === 'transaction') {
     console.time(instruction.label);
@@ -217,7 +225,7 @@ type MaybePromise<T> = T | Promise<T>;
 type BaseInstruction = { type: string; trace?: string; label?: string };
 
 type TestInstruction =
-  | ((...args: any) => MaybePromise<TestInstruction | void>)
+  | ((...args: any) => MaybePromise<TestInstruction | TestInstruction[] | void>)
   | (BaseInstruction &
       (
         | {

@@ -15,10 +15,10 @@ import {
   state,
   UInt64,
   Permissions,
-  Mina,
   assert,
 } from '../../../index.js';
 import {
+  TestInstruction,
   expectBalance,
   testLocal,
   transaction,
@@ -130,7 +130,7 @@ await testLocal(
     accounts: { sender },
     newAccounts: { alice, bob, charlie, danny, eve },
     Local,
-  }) => {
+  }): TestInstruction[] => {
     // create a new map of accounts that are eligible for the airdrop
     eligible.overwrite(new MerkleMap());
 
@@ -172,21 +172,15 @@ await testLocal(
         console.time('batch proof 1');
         let batches = await batchReducer.prepareBatches();
         console.timeEnd('batch proof 1');
-        // console.dir({ batches: batches.map((b) => b.hints) }, { depth: 8 });
 
-        let i = 0;
-        for (let { proof, hints } of batches) {
-          console.time(`settle claims 1-${i}`);
-          await Mina.transaction(sender, async () => {
+        return batches.flatMap(({ proof, hints }, i) => [
+          // we create one transaction for each batch
+          transaction(`settle claims 1-${i}`, async () => {
             newEligible = await contract.settleClaims(proof, hints);
-          })
-            .sign([sender.key])
-            .prove()
-            .send();
-          console.timeEnd(`settle claims 1-${i}`);
-          i++;
-          eligible.overwrite(newEligible);
-        }
+          }),
+          // after each transaction, we update our local merkle map
+          () => eligible.overwrite(newEligible),
+        ]);
       },
 
       expectBalance(alice, AMOUNT),
@@ -195,8 +189,10 @@ await testLocal(
       expectBalance(charlie, AMOUNT),
       expectBalance(danny, 0n), // danny didn't claim yet
 
-      // another claim + final settling
+      // more claims + final settling
+      () => Local.setProofsEnabled(false),
       transaction.from(danny)('danny claims', () => contract.claim()),
+      () => Local.resetProofsEnabled(),
 
       // settle claims, 2
       async () => {
@@ -204,19 +200,14 @@ await testLocal(
         let batches = await batchReducer.prepareBatches();
         console.timeEnd('batch proof 2');
 
-        let i = 0;
-        for (let { proof, hints } of batches) {
-          console.time(`settle claims 2-${i}`);
-          await Mina.transaction(sender, async () => {
+        return batches.flatMap(({ proof, hints }, i) => [
+          // we create one transaction for each batch
+          transaction(`settle claims 2-${i}`, async () => {
             newEligible = await contract.settleClaims(proof, hints);
-          })
-            .sign([sender.key])
-            .prove()
-            .send();
-          console.timeEnd(`settle claims 2-${i}`);
-          i++;
-          eligible.overwrite(newEligible);
-        }
+          }),
+          // after each transaction, we update our local merkle map
+          () => eligible.overwrite(newEligible),
+        ]);
       },
 
       expectBalance(alice, AMOUNT),
@@ -225,7 +216,7 @@ await testLocal(
       expectBalance(charlie, AMOUNT),
       expectBalance(danny, AMOUNT),
 
-      // settle claims, 3
+      // no more claims to settle
       async () => {
         console.time('batch proof 3');
         let batches = await batchReducer.prepareBatches();
