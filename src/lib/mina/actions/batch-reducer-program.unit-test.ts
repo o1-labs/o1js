@@ -9,7 +9,7 @@ import { describe, it } from 'node:test';
 import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
 
 // analyze program with different number of actions
-for (let actionsPerProof of [1, 3, 10, 30, 100, 300, 1000, 3000]) {
+for (let actionsPerProof of [10, 30, 100, 300, 1000]) {
   let program = actionStackProgram(actionsPerProof);
   console.log({
     actionsPerProof,
