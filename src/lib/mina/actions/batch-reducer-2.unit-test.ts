@@ -67,10 +67,10 @@ class Airdrop extends SmartContract {
 
     // TODO we can only allow claiming to accounts that are disabling permissions updates
     // otherwise we risk contract deadlock if an account needs receive/access authorization
-    au.account.permissions.set({
-      ...Permissions.initial(),
-      setPermissions: Permissions.impossible(),
-    });
+    // au.account.permissions.set({
+    //   ...Permissions.initial(),
+    //   setPermissions: Permissions.impossible(),
+    // });
 
     batchReducer.dispatch(address);
   }
@@ -190,8 +190,13 @@ await testLocal(
       expectBalance(danny, 0n), // danny didn't claim yet
 
       // more claims + final settling
+      // we submit the same claim 15 times to cause 2 recursive proofs
+      // and to check that double claims are rejected
       () => Local.setProofsEnabled(false),
-      transaction.from(danny)('danny claims', () => contract.claim()),
+      () =>
+        Array.from({ length: 15 }, () =>
+          transaction.from(danny)('danny claims 15x', () => contract.claim())
+        ),
       () => Local.resetProofsEnabled(),
 
       // settle claims, 2
