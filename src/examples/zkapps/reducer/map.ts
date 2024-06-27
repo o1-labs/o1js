@@ -22,6 +22,7 @@ In this example, the keys are public keys, and the values are arbitrary field el
 
 This utilizes the `Reducer` as an append online list of actions, which are then looked at to find the value corresponding to a specific key.
 
+Warning: Actions and Reducers are still in development and currently are not safe to use in production applications.
 
 ```ts 
 // js
