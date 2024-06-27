@@ -48,8 +48,14 @@ class Hints extends ActionStackHints(PublicKey) {}
 
 /**
  * Contract that manages airdrop claims.
+ *
+ * WARNING: This airdrop design is UNSAFE against attacks by users that set their permissions such that sending them MINA is impossible.
+ * A single such user which claims the airdrop will cause the reducer to be deadlocked forever.
+ * Workarounds exist but they require too much code which this example is not about.
+ *
+ * THIS IS JUST FOR TESTING. BE CAREFUL ABOUT REDUCER DEADLOCKS IN PRODUCTION CODE!
  */
-class Airdrop extends SmartContract {
+class UnsafeAirdrop extends SmartContract {
   @state(Field)
   eligibleRoot = State(eligible.root);
 
@@ -62,6 +68,9 @@ class Airdrop extends SmartContract {
   @state(Field)
   actionStack = State(BatchReducer.initialActionStack);
 
+  /**
+   * Claim an airdrop.
+   */
   @method
   async claim() {
     let address = this.sender.getUnconstrained();
@@ -70,16 +79,14 @@ class Airdrop extends SmartContract {
     let au = AccountUpdate.createSigned(address);
     au.body.useFullCommitment = Bool(true); // ensures the signature attests to the entire transaction
 
-    // TODO we can only allow claiming to accounts that are disabling permissions updates
-    // otherwise we risk contract deadlock if an account needs receive/access authorization
-    // au.account.permissions.set({
-    //   ...Permissions.initial(),
-    //   setPermissions: Permissions.impossible(),
-    // });
-
     batchReducer.dispatch(address);
   }
 
+  /**
+   * Go through pending claims and pay them out.
+   *
+   * Note: This two-step process is necessary so that multiple users can claim concurrently.
+   */
   @method.returns(MerkleMap.provable)
   async settleClaims(proof: ActionStackProof, hints: Hints) {
     // witness merkle map and require that it matches the onchain root
@@ -128,7 +135,7 @@ function key(address: PublicKey) {
 const eligible = new MerkleMap();
 
 await testLocal(
-  Airdrop,
+  UnsafeAirdrop,
   { proofsEnabled: 'both', batchReducer },
   ({
     contract,
@@ -239,7 +246,7 @@ await testLocal(
       expectBalance(bob, AMOUNT),
       expectBalance(eve, 0n),
       expectBalance(charlie, AMOUNT),
-      expectBalance(danny, AMOUNT),
+      expectBalance(danny, AMOUNT), // only danny's first claim was fulfilled
 
       // no more claims to settle
       async () => {
