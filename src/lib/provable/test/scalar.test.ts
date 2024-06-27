@@ -33,6 +33,18 @@ describe('scalar', () => {
         });
       });
 
+      describe.only("toScalarField / fromScalarField", () => {
+        it("should return the same", async () => {
+          const s = Scalar.random();
+          await Provable.runAndCheck(() => {
+            const scalar = Provable.witness(Scalar, () => s);
+            const scalarField = scalar.toScalarField();
+            const scalar2 = Scalar.fromScalarField(scalarField);
+            Provable.assertEqual(scalar, scalar2);
+          })
+        })
+      })
+
       describe('random', () => {
         it('two different calls should be different', async () => {
           await Provable.runAndCheck(() => {
