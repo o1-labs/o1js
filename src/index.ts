@@ -181,18 +181,9 @@ namespace Experimental {
 
   /**
    * Provable type that represents a batch of actions.
-   *
-   * This comes with the built-in guarantee that the given `batch` exactly contains the same actions
-   * as `batchActions` with the initial state `initialActionState`.
-   *
-   * The `prove()` and `verify()` methods are intended to prove the missing part: namely, that the batch
-   * is connected to a given final action state (typically stored onchain) by the `remainingActions`.
    */
   export let ActionBatch = BatchReducer_.ActionBatch;
-  export type ActionBatch<
-    Action,
-    BatchSize extends number = number
-  > = BatchReducer_.ActionBatch<Action, BatchSize>;
+  export type ActionBatch<Action> = BatchReducer_.ActionBatch<Action>;
 }
 
 Error.stackTraceLimit = 100000;

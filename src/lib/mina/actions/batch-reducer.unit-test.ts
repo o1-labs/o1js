@@ -96,7 +96,7 @@ class UnsafeAirdrop extends SmartContract {
     this.eligibleLength.requireEquals(eligibleMap.length);
 
     // process claims by reducing actions
-    await batchReducer.processBatch({ batch, proof }, (address, isDummy) => {
+    batchReducer.processBatch({ batch, proof }, (address, isDummy) => {
       // check whether the claim is valid = exactly contained in the map
       let addressKey = key(address);
       let isValidField = eligibleMap.getOption(addressKey).orElse(0n);
