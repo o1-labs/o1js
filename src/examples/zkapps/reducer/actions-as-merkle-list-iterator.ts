@@ -4,6 +4,8 @@
  *
  * This is mainly intended as an example for using `Iterator` and `MerkleList`, but it might also be useful as
  * a blueprint for processing actions in a custom and more explicit way.
+ * 
+ * Warning: actions and reducers are still in development and currently are not safe to use in production applications.
  */
 import {
   Field,
