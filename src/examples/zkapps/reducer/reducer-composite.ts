@@ -1,3 +1,8 @@
+/**
+ * This example demonstrates a pattern to use actions for concurrent state updates. 
+ * Warning: Actions and Reducers are still in development and currently are not safe to use in production applications.
+ */
+
 import {
   Field,
   state,
