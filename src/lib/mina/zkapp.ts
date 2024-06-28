@@ -20,6 +20,7 @@ import {
   cloneCircuitValue,
   FlexibleProvablePure,
   InferProvable,
+  Struct,
 } from '../provable/types/struct.js';
 import {
   Provable,
@@ -50,6 +51,7 @@ import {
   MethodInterface,
   Proof,
   sortMethodArguments,
+  ZkProgram,
 } from '../proof-system/zkprogram.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
@@ -157,7 +159,20 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass._maxProofsVerified,
     methodEntry.proofArgs.length
   ) as 0 | 1 | 2;
-  let func = descriptor.value as AsyncFunction;
+  let func = function (this: SmartContract, ...args) {
+    const callsCount = Field(
+      args
+        .filter(
+          (v: unknown): v is ZkProgram<any, any> => v instanceof ZkProgram
+        )
+        .reduce(
+          (acc: number, cur: ZkProgram<any, any>) => acc + cur.callsCount,
+          0
+        )
+    );
+    this.emitEvent(MetadataEvent.key, MetadataEvent.fromValue({ callsCount }));
+    return descriptor.value(...args);
+  } as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
 
@@ -565,6 +580,10 @@ function computeCallData(
   ];
 }
 
+export class MetadataEvent extends Struct({ callsCount: Field }) {
+  static key = 'unsafe-metadata-event';
+}
+
 /**
  * The main zkapp class. To write a zkapp, extend this class as such:
  *
@@ -623,6 +642,7 @@ class SmartContract extends SmartContractBase {
         return getReducer(this);
       },
     });
+    this.events[MetadataEvent.key] = MetadataEvent;
   }
 
   /**
@@ -971,6 +991,7 @@ super.init();
    * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
    */
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    console.log({ type, event: event.toJSON() });
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
