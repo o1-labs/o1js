@@ -365,6 +365,7 @@ function preconditionSubclass<
         longKey
       ) as AnyCondition<U>;
       if ('isSome' in property) {
+        assertPreconditionNotSet(property);
         property.isSome = Bool(true);
         if ('lower' in property.value && 'upper' in property.value) {
           property.value.lower = value;
