@@ -19,6 +19,7 @@ import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src
 import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
 import {
   FlatActions,
+  HashedAction,
   MerkleActionHashes,
   MerkleActions,
   emptyActionState,
@@ -144,6 +145,8 @@ class BatchReducer<
     update.body.actions = Actions.pushEvent(update.body.actions, fields);
   }
 
+  // TODO: `dispatchIf()` would be nice
+
   /**
    * Process a batch of actions which was created by `prepareBatches()`.
    *
@@ -169,7 +172,7 @@ class BatchReducer<
     let { actionType, batchSize } = this;
     let contract = this.contract();
 
-    // step 0: validate onchain states
+    // step 0. validate onchain states
 
     let {
       useOnchainStack,
@@ -191,7 +194,7 @@ class BatchReducer<
       onchainActionState
     );
 
-    // step 1: continue the proof that pops pending onchain actions to build up the final stack
+    // step 1. continue the proof that pops pending onchain actions to build up the final stack
 
     let { isRecursive } = batch;
     proof.verifyIf(isRecursive);
@@ -299,16 +302,20 @@ class BatchReducer<
 
     // step 4. run user logic on the actions
 
-    // note: only here we do the work of unhashing the actions
-    // we also make it easier to write the reducer code by making sure dummy actions have dummy values
-    flatActions.forEach(batchSize, (action, isDummy, i) => {
-      let actionValue = Provable.if(
+    const HashedActionT = HashedAction(actionType);
+    const emptyHashedAction = HashedActionT.empty();
+
+    flatActions.forEach(batchSize, (hashedAction, isDummy, i) => {
+      // we make it easier to write the reducer code by making sure dummy actions have dummy values
+      hashedAction = Provable.if(
         isDummy,
-        actionType,
-        actionType.empty(),
-        action.unhash()
+        HashedActionT.provable,
+        emptyHashedAction,
+        hashedAction
       );
-      callback(actionValue, isDummy, i);
+
+      // note: only here, we do the work of unhashing the action
+      callback(hashedAction.unhash(), isDummy, i);
     });
 
     // step 5. update the onchain processed action state and stack

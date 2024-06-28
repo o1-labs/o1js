@@ -183,6 +183,7 @@ class Hashed<T> {
     hash?: (t: T) => Field
   ): typeof Hashed<T> & {
     provable: ProvableHashable<Hashed<T>>;
+    empty(): Hashed<T>;
   } {
     let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
 

@@ -7,7 +7,7 @@ import { Hashed } from '../../provable/packed.js';
 import { hashWithPrefix } from '../../provable/crypto/poseidon.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
 
-export { MerkleActions, MerkleActionHashes, FlatActions };
+export { MerkleActions, MerkleActionHashes, HashedAction, FlatActions };
 export { emptyActionState, emptyActionsHash };
 
 const emptyActionsHash = Actions.empty().hash;
