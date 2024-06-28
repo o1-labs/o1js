@@ -28,7 +28,7 @@ jobs:
           npm ci
           npm run build
       - name: Publish o1js on pkg-pr-new
-        run: npx pkg-pr-new publish --compact
+        run: npx pkg-pr-new publish # Enable `--compact` once published to NPM with `repository` in package.json
   pkg-pr-new-mina-signer:
     strategy:
       matrix:
@@ -49,4 +49,4 @@ jobs:
           npm ci
           npm run prepublishOnly
       - name: Publish mina-signer on pkg-pr-new
-        run: npx pkg-pr-new publish --compact
+        run: npx pkg-pr-new publish # Enable `--compact` once published to NPM with `repository` in package.json
