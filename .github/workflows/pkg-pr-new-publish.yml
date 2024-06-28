@@ -1,0 +1,52 @@
+#
+# https://github.com/stackblitz-labs/pkg.pr.new
+#
+
+name: Continuous releases on pkg-pr-new
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  pkg-pr-new-o1js:
+    strategy:
+      matrix:
+        node: [20]
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Build o1js
+        run: |
+          git submodule update --init --recursive
+          npm ci
+          npm run build
+      - name: Publish o1js on pkg-pr-new
+        run: npx pkg-pr-new publish --compact
+  pkg-pr-new-mina-signer:
+    strategy:
+      matrix:
+        node: [20]
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Build mina-signer
+        run: |
+          git submodule update --init --recursive
+          npm ci
+          cd src/mina-signer
+          npm ci
+          npm run prepublishOnly
+      - name: Publish mina-signer on pkg-pr-new
+        run: npx pkg-pr-new publish --compact
