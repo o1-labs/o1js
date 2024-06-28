@@ -145,6 +145,21 @@ class BatchReducer<
     update.body.actions = Actions.pushEvent(update.body.actions, fields);
   }
 
+  /**
+   * Conditionally submit an action.
+   */
+  dispatchIf(condition: Bool, action: From<ActionType>) {
+    let update = this.contract().self;
+    let fields = this.actionType.toFields(this.actionType.fromValue(action));
+    let newActions = Actions.pushEvent(update.body.actions, fields);
+    update.body.actions = Provable.if(
+      condition,
+      Actions,
+      newActions,
+      update.body.actions
+    );
+  }
+
   // TODO: `dispatchIf()` would be nice
 
   /**
