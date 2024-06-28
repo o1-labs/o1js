@@ -29,6 +29,7 @@ export {
   CurrentSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
+  assertPreconditionNotSet,
   AccountValue,
   NetworkValue,
   getAccountPreconditions,
@@ -551,6 +552,27 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
   let c = preconditionContexts.get(accountUpdate);
   if (c === undefined) throw Error('bug: precondition context not found');
   return c;
+}
+
+function assertPreconditionNotSet(property: any) {
+  if ('isSome' in property && property.isSome.equals(true).toBoolean()) {
+    throw Error(
+      `Precondition Error: Attempting to set precondition on '${JSON.stringify(
+        property
+      )}' that is already set. ` +
+        `Preconditions must be set only once to avoid overwriting previous assertions. ` +
+        `For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.\n\n` +
+        `Recommendation:\n` +
+        `Ensure that preconditions are set in a single place and are not overwritten. If you need to update a precondition, ` +
+        `consider refactoring your code to consolidate all assertions for the same field before setting the precondition.\n\n` +
+        `Example of Correct Usage:\n` +
+        `// Incorrect Usage:\n` +
+        `timestamp.requireBetween(newUInt32(0n), newUInt32(2n));\n` +
+        `timestamp.requireBetween(newUInt32(1n), newUInt32(3n));\n\n` +
+        `// Correct Usage:\n` +
+        `timestamp.requireBetween(newUInt32(0n), newUInt32(3n));`
+    );
+  }
 }
 
 const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
