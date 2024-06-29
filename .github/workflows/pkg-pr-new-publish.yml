@@ -30,7 +30,7 @@ jobs:
           npm ci
           npm run prepublishOnly
       - name: Publish mina-signer on pkg-pr-new
-        run: npx pkg-pr-new publish # Enable `--compact` once published to NPM with `repository` in package.json
+        run: npx pkg-pr-new publish ./src/mina-signer # Enable `--compact` once published to NPM with `repository` in package.json
   pkg-pr-new-o1js:
     needs: [pkg-pr-new-mina-signer]
     strategy:
