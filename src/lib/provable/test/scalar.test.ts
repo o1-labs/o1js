@@ -1,4 +1,4 @@
-import { Field, Provable, Scalar } from 'o1js';
+import { Field, Provable, Scalar, ScalarField } from 'o1js';
 
 describe('scalar', () => {
   describe('scalar', () => {
@@ -33,17 +33,17 @@ describe('scalar', () => {
         });
       });
 
-      describe.only("toScalarField / fromScalarField", () => {
-        it("should return the same", async () => {
+      describe('toScalarField / fromScalarField', () => {
+        it('should return the same', async () => {
           const s = Scalar.random();
           await Provable.runAndCheck(() => {
             const scalar = Provable.witness(Scalar, () => s);
-            const scalarField = scalar.toScalarField();
-            const scalar2 = Scalar.fromScalarField(scalarField);
+            const scalarField = ScalarField.fromScalar(scalar);
+            const scalar2 = scalarField.toScalar();
             Provable.assertEqual(scalar, scalar2);
-          })
-        })
-      })
+          });
+        });
+      });
 
       describe('random', () => {
         it('two different calls should be different', async () => {

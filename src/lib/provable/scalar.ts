@@ -13,18 +13,10 @@ import { Provable } from './provable.js';
 import { assert } from '../util/assert.js';
 import type { HashInput } from './types/provable-derivers.js';
 import { field3FromBits } from './gadgets/foreign-field.js';
-import { createForeignField } from './foreign-field.js';
 
-export { Scalar, ScalarConst, ScalarField };
+export { Scalar, ScalarConst };
 
 type ScalarConst = [0, bigint];
-
-/**
- * ForeignField representing the scalar field of Pallas and the base field of Vesta
- */
-class ScalarField extends createForeignField(
-  28948022309329048855892746252171976963363056481941647379679742748393362948097n
-) {}
 
 /**
  * Represents a {@link Scalar}.
@@ -59,23 +51,19 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
+   * Provable method to convert a {@link ShiftedScalar} to a {@link Scalar}.
+   */
+  static fromShiftedScalar(s: ShiftedScalar) {
+    return new Scalar(s.lowBit, s.high254);
+  }
+
+  /**
    * Provable method to convert a {@link Field} into a {@link Scalar}.
    *
    * This is always possible and unambiguous, since the scalar field is larger than the base field.
    */
   static fromField(s: Field): Scalar {
     let { lowBit, high254 } = fieldToShiftedScalar(s);
-    return new Scalar(lowBit, high254);
-  }
-
-  /**
-   * Provable method to conver a {@link ScalarField} into a {@link Scalar}
-   *
-   * This is always possible and unambiguous, since the scalar field is larger than the base field.
-   */
-  static fromScalarField(s: ScalarField): Scalar {
-    const field3 = s.value;
-    const { lowBit, high254 } = field3ToShiftedScalar(field3);
     return new Scalar(lowBit, high254);
   }
 
@@ -107,13 +95,6 @@ class Scalar implements ShiftedScalar {
     let { lowBit, high254 } = this.toConstant();
     let t = lowBit.toField().toBigInt() + 2n * high254.toBigInt();
     return Fq.mod(t + (1n << 255n));
-  }
-
-  /**
-   * Converts this {@link Scalar} into a {@link ScalarField}
-   */
-  toScalarField(): ScalarField {
-    return ScalarField.fromBits([this.lowBit, ...this.high254.toBits(254)]);
   }
 
   /**
