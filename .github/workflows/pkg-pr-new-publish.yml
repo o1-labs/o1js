@@ -30,6 +30,7 @@ jobs:
       - name: Publish o1js on pkg-pr-new
         run: npx pkg-pr-new publish # Enable `--compact` once published to NPM with `repository` in package.json
   pkg-pr-new-mina-signer:
+    needs: [pkg-pr-new-o1js]
     strategy:
       matrix:
         node: [20]
