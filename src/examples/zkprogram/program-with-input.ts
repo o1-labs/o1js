@@ -35,7 +35,7 @@ MyProgram.publicOutputType satisfies Provable<void>;
 
 let MyProof = ZkProgram.Proof(MyProgram);
 
-console.log('program digest', MyProgram.digest());
+console.log('program digest', await MyProgram.digest());
 
 console.log('compiling MyProgram...');
 let { verificationKey } = await MyProgram.compile();

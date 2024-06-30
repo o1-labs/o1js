@@ -1,15 +1,12 @@
 import {
   SmartContract,
   method,
-  Mina,
   state,
   PublicKey,
   UInt64,
   Experimental,
 } from '../../../index.js';
-import assert from 'assert';
-
-const proofsEnabled = true;
+import { expectState, testLocal, transaction } from '../test/test-contract.js';
 
 const { OffchainState } = Experimental;
 
@@ -86,135 +83,73 @@ class ExampleContract extends SmartContract {
   }
 }
 
+// connect contract to offchain state
+offchainState.setContractClass(ExampleContract);
+
 // test code below
 
-// setup
+await testLocal(
+  ExampleContract,
+  { proofsEnabled: true, offchainState },
+  ({ accounts: { sender, receiver, other }, contract, Local }) => [
+    // create first account
+    transaction('create account', async () => {
+      // first call (should succeed)
+      await contract.createAccount(sender, UInt64.from(1000));
 
-const Local = await Mina.LocalBlockchain({ proofsEnabled });
-Mina.setActiveInstance(Local);
+      // second call (should fail)
+      await contract.createAccount(sender, UInt64.from(2000));
+    }),
 
-let [sender, receiver, contractAccount, other] = Local.testAccounts;
-let contract = new ExampleContract(contractAccount);
-offchainState.setContractInstance(contract);
+    // settle
+    async () => {
+      console.time('settlement proof 1');
+      let proof = await offchainState.createSettlementProof();
+      console.timeEnd('settlement proof 1');
 
-if (proofsEnabled) {
-  console.time('compile program');
-  await offchainState.compile();
-  console.timeEnd('compile program');
-  console.time('compile contract');
-  await ExampleContract.compile();
-  console.timeEnd('compile contract');
-}
+      return transaction('settle 1', () => contract.settle(proof));
+    },
 
-// deploy and create first account
+    // check balance and supply
+    expectState(offchainState.fields.totalSupply, 1000n),
+    expectState(offchainState.fields.accounts, [sender, 1000n]),
+    expectState(offchainState.fields.accounts, [receiver, undefined]),
 
-console.time('deploy');
-await Mina.transaction(sender, async () => {
-  await contract.deploy();
-})
-  .sign([sender.key, contractAccount.key])
-  .prove()
-  .send();
-console.timeEnd('deploy');
+    // transfer (should succeed)
+    transaction('transfer', () =>
+      contract.transfer(sender, receiver, UInt64.from(100))
+    ),
 
-// create first account
+    // we run some calls without proofs to save time
+    () => Local.setProofsEnabled(false),
 
-console.time('create account');
-await Mina.transaction(sender, async () => {
-  // first call (should succeed)
-  await contract.createAccount(sender, UInt64.from(1000));
+    // more transfers that should fail
+    transaction('more transfers', async () => {
+      // (these are enough to need two proof steps during settlement)
+      await contract.transfer(sender, receiver, UInt64.from(200));
+      await contract.transfer(sender, receiver, UInt64.from(300));
+      await contract.transfer(sender, receiver, UInt64.from(400));
 
-  // second call (should fail)
-  await contract.createAccount(sender, UInt64.from(2000));
-})
-  .sign([sender.key])
-  .prove()
-  .send();
-console.timeEnd('create account');
+      // create another account (should succeed)
+      await contract.createAccount(other, UInt64.from(555));
 
-// settle
+      // create existing account again (should fail)
+      await contract.createAccount(receiver, UInt64.from(333));
+    }),
 
-console.time('settlement proof 1');
-let proof = await offchainState.createSettlementProof();
-console.timeEnd('settlement proof 1');
+    // settle
+    async () => {
+      Local.resetProofsEnabled();
+      console.time('settlement proof 2');
+      let proof = await offchainState.createSettlementProof();
+      console.timeEnd('settlement proof 2');
 
-console.time('settle 1');
-await Mina.transaction(sender, () => contract.settle(proof))
-  .sign([sender.key])
-  .prove()
-  .send();
-console.timeEnd('settle 1');
+      return transaction('settle 2', () => contract.settle(proof));
+    },
 
-// check balance and supply
-await check({ expectedSupply: 1000n, expectedSenderBalance: 1000n });
-
-// transfer (should succeed)
-
-console.time('transfer');
-await Mina.transaction(sender, async () => {
-  await contract.transfer(sender, receiver, UInt64.from(100));
-})
-  .sign([sender.key])
-  .prove()
-  .send();
-console.timeEnd('transfer');
-
-console.time('more transfers');
-Local.setProofsEnabled(false); // we run these without proofs to save time
-
-await Mina.transaction(sender, async () => {
-  // more transfers that should fail
-  // (these are enough to need two proof steps during settlement)
-  await contract.transfer(sender, receiver, UInt64.from(200));
-  await contract.transfer(sender, receiver, UInt64.from(300));
-  await contract.transfer(sender, receiver, UInt64.from(400));
-
-  // create another account (should succeed)
-  await contract.createAccount(other, UInt64.from(555));
-
-  // create existing account again (should fail)
-  await contract.createAccount(receiver, UInt64.from(333));
-})
-  .sign([sender.key])
-  .prove()
-  .send();
-console.timeEnd('more transfers');
-
-// settle
-Local.setProofsEnabled(proofsEnabled);
-
-console.time('settlement proof 2');
-proof = await offchainState.createSettlementProof();
-console.timeEnd('settlement proof 2');
-
-console.time('settle 2');
-await Mina.transaction(sender, () => contract.settle(proof))
-  .sign([sender.key])
-  .prove()
-  .send();
-console.timeEnd('settle 2');
-
-// check balance and supply
-await check({ expectedSupply: 1555n, expectedSenderBalance: 900n });
-
-// test helper
-
-async function check({
-  expectedSupply,
-  expectedSenderBalance,
-}: {
-  expectedSupply: bigint;
-  expectedSenderBalance: bigint;
-}) {
-  let supply = (await contract.getSupply()).toBigInt();
-  assert.strictEqual(supply, expectedSupply);
-
-  let balanceSender = (await contract.getBalance(sender)).toBigInt();
-  let balanceReceiver = (await contract.getBalance(receiver)).toBigInt();
-  let balanceOther = (await contract.getBalance(other)).toBigInt();
-
-  console.log('balance (sender)', balanceSender);
-  console.log('balance (recv)', balanceReceiver);
-  assert.strictEqual(balanceSender + balanceReceiver + balanceOther, supply);
-  assert.strictEqual(balanceSender, expectedSenderBalance);
-}
+    // check balance and supply
+    expectState(offchainState.fields.totalSupply, 1555n),
+    expectState(offchainState.fields.accounts, [sender, 900n]),
+    expectState(offchainState.fields.accounts, [receiver, 100n]),
+  ]
+);
