@@ -7,9 +7,13 @@ import {
   InferJson,
   InferredProvable as GenericInferredProvable,
   IsPure as GenericIsPure,
+  NestedProvable as GenericNestedProvable,
   createHashInput,
   Constructor,
   InferValue,
+  InferJsonNested,
+  InferValueNested,
+  InferProvableNested,
 } from '../../../bindings/lib/provable-generic.js';
 import { Tuple } from '../../util/types.js';
 import { GenericHashInput } from '../../../bindings/lib/generic.js';
@@ -31,6 +35,7 @@ export {
   InferJson,
   InferredProvable,
   IsPure,
+  NestedProvable,
 };
 
 type ProvableExtension<T, TJson = any> = {
@@ -54,6 +59,8 @@ type IsPure<T> = GenericIsPure<T, Field>;
 type HashInput = GenericHashInput<Field>;
 const HashInput = createHashInput<Field>();
 
+type NestedProvable = GenericNestedProvable<Field>;
+
 const { provable } = createDerivers<Field>();
 
 function provablePure<A>(
@@ -66,13 +73,18 @@ function provableTuple<T extends Tuple<any>>(types: T): InferredProvable<T> {
   return provable(types) as any;
 }
 
-function provableFromClass<A, T extends InferProvable<A>>(
+function provableFromClass<
+  A extends NestedProvable,
+  T extends InferProvableNested<Field, A>,
+  V extends InferValueNested<Field, A>,
+  J extends InferJsonNested<Field, A>
+>(
   Class: Constructor<T> & { check?: (x: T) => void; empty?: () => T },
   typeObj: A
 ): IsPure<A> extends true
-  ? ProvablePureExtended<T, InferValue<A>, InferJson<A>>
-  : ProvableExtended<T, InferValue<A>, InferJson<A>> {
-  let raw = provable(typeObj);
+  ? ProvablePureExtended<T, V, J>
+  : ProvableExtended<T, V, J> {
+  let raw: ProvableExtended<T, V, J> = provable(typeObj) as any;
   return {
     sizeInFields: raw.sizeInFields,
     toFields: raw.toFields,
@@ -101,7 +113,7 @@ function provableFromClass<A, T extends InferProvable<A>>(
         ? Class.empty()
         : construct(Class, raw.empty());
     },
-  } satisfies ProvableExtended<T, InferValue<A>, InferJson<A>> as any;
+  } satisfies ProvableExtended<T, V, J> as any;
 }
 
 function construct<Raw, T extends Raw>(Class: Constructor<T>, value: Raw): T {
