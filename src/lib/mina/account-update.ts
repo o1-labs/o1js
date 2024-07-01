@@ -28,6 +28,7 @@ import {
   OrIgnore,
   ClosedInterval,
   getAccountPreconditions,
+  assertPreconditionNotSet,
 } from './precondition.js';
 import {
   dummyBase64Proof,
@@ -843,6 +844,7 @@ class AccountUpdate implements Types.AccountUpdate {
     property: OrIgnore<ClosedInterval<T> | T>,
     value: T
   ) {
+    assertPreconditionNotSet(property);
     property.isSome = Bool(true);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower = value;
