@@ -25,6 +25,7 @@ export {
   provablePure,
   provableTuple,
   provableFromClass,
+  provableMap,
 };
 
 // internal API
@@ -119,4 +120,34 @@ function provableFromClass<
 function construct<Raw, T extends Raw>(Class: Constructor<T>, value: Raw): T {
   let instance = Object.create(Class.prototype);
   return Object.assign(instance, value);
+}
+
+function provableMap<
+  A extends Provable<any>,
+  S,
+  T extends InferProvable<A> = InferProvable<A>
+>(base: A, there: (t: T) => S, back: (s: S) => T): Provable<S, InferValue<A>> {
+  return {
+    sizeInFields() {
+      return base.sizeInFields();
+    },
+    toFields(value) {
+      return base.toFields(back(value));
+    },
+    toAuxiliary(value) {
+      return base.toAuxiliary(value === undefined ? undefined : back(value));
+    },
+    fromFields(fields, aux) {
+      return there(base.fromFields(fields, aux));
+    },
+    check(value) {
+      base.check(back(value));
+    },
+    toValue(value) {
+      return base.toValue(back(value));
+    },
+    fromValue(value) {
+      return there(base.fromValue(value));
+    },
+  };
 }
