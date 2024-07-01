@@ -551,6 +551,8 @@ function ZkProgram<
   }
 ): {
   name: string;
+  getCallsCount: () => number;
+  resetCallsCount: () => void;
   compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -587,7 +589,25 @@ function ZkProgram<
     Types[I]
   >;
 } {
-  let methods = config.methods;
+  const callsCountContainer: { count: number } = { count: 1 };
+  const resetCallsCount = () => {
+    callsCountContainer.count = 1;
+  };
+  let methods = Object.fromEntries(
+    Object.entries(config.methods).map(([k, v]) => [
+      k,
+      {
+        ...v,
+        method: (...inputs: any[]) => {
+          let hasSelfProof = inputs.filter(
+            (input) => input instanceof SelfProof
+          ).length;
+          if (hasSelfProof) callsCountContainer.count++;
+          return v.method(...inputs);
+        },
+      },
+    ])
+  );
   let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
   let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
 
@@ -656,6 +676,7 @@ function ZkProgram<
       forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
     });
+    resetCallsCount();
     compileOutput = { provers, verify };
     return { verificationKey };
   }
@@ -744,6 +765,8 @@ function ZkProgram<
       compile,
       verify,
       digest,
+      getCallsCount: () => callsCountContainer.count,
+      resetCallsCount,
       analyzeMethods,
       publicInputType: publicInputType as ProvableOrUndefined<
         Get<StatementType, 'publicInput'>

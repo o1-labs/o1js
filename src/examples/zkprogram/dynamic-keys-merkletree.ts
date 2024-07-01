@@ -174,3 +174,6 @@ const proof3 = await mainProgram.validateUsingTree(
 
 const validProof3 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);
+
+console.log('main count:', mainProgram.getCallsCount());
+console.log('sideloaded count:', sideloadedProgram.getCallsCount());
