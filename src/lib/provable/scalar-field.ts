@@ -1,3 +1,4 @@
+import { Fq } from '../../bindings/crypto/finite-field.js';
 import { createField } from './core/field-constructor.js';
 import { createForeignField } from './foreign-field.js';
 import { field3ToShiftedScalar } from './gadgets/native-curve.js';
@@ -10,12 +11,10 @@ export { ScalarField };
  * ForeignField representing the scalar field of Pallas and the base field of Vesta
  */
 class ScalarField extends createForeignField(
-  28948022309329048855892746252171976963363056481941647379679742748393362948097n
+  Fq.modulus
 ) {
   /**
-   * Provable method to conver a {@link ScalarField} into a {@link Scalar}
-   *
-   * This is always possible and unambiguous, since the scalar field is larger than the base field.
+   * Provable method to convert a {@link ScalarField} into a {@link Scalar}
    */
   public toScalar(): Scalar {
     const field3 = this.value;
@@ -29,11 +28,11 @@ class ScalarField extends createForeignField(
   static fromScalar(s: Scalar): ScalarField {
     if (s.lowBit.isConstant() && s.high254.isConstant()) {
       return new ScalarField(
-        ScalarField.fromBits(createField(s.toBigInt()).toBits())
+        ScalarField.from(s.toBigInt())
       );
     }
     const field = Provable.witness(ScalarField.provable, () => {
-      return ScalarField.fromBits(createField(s.toBigInt()).toBits())
+      return s.toBigInt()
     });
     const foreignField = new ScalarField(field);
     const scalar = foreignField.toScalar();
