@@ -1,23 +1,19 @@
-import { Field, ZkProgram, SelfProof, Void } from 'o1js';
+import { Field, ZkProgram, SelfProof } from 'o1js';
 
 export const Addition = ZkProgram({
   name: 'addition',
   publicOutput: Field,
-
   methods: {
     baseCase: {
       privateInputs: [],
-
       async method() {
         return new Field(0);
       },
     },
-
     step: {
       privateInputs: [SelfProof],
       async method(earlierProof: SelfProof<void, Field>) {
         earlierProof.verify();
-
         return earlierProof.publicOutput.add(1);
       },
     },

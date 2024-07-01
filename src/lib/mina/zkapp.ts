@@ -581,7 +581,6 @@ function computeCallData(
 }
 
 export class MetadataEvent extends Struct({ callsCount: Field }) {
-  static index = Field.ORDER - 1n;
   static key = 'unsafe-metadata-event';
 }
 
