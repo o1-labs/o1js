@@ -1,4 +1,4 @@
-import { Field, Provable, Scalar } from 'o1js';
+import { Field, Provable, Scalar, ScalarField } from 'o1js';
 
 describe('scalar', () => {
   describe('scalar', () => {
@@ -29,6 +29,18 @@ describe('scalar', () => {
             Provable.witness(Scalar, () =>
               Scalar.fromBits(Field.random().toBits())
             );
+          });
+        });
+      });
+
+      describe('toScalarField / fromScalarField', () => {
+        it('should return the same', async () => {
+          const s = Scalar.random();
+          await Provable.runAndCheck(() => {
+            const scalar = Provable.witness(Scalar, () => s);
+            const scalarField = ScalarField.fromScalar(scalar);
+            const scalar2 = scalarField.toScalar();
+            Provable.assertEqual(scalar, scalar2);
           });
         });
       });
