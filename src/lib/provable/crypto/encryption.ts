@@ -3,7 +3,7 @@ import { Poseidon } from './poseidon.js';
 import { Provable } from '../provable.js';
 import { PrivateKey, PublicKey } from './signature.js';
 
-export { encrypt, decrypt };
+export { encrypt, decrypt, encryptV2, decryptV2 };
 
 type CipherText = {
   publicKey: Group;
@@ -13,7 +13,40 @@ type CipherText = {
 /**
  * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
  */
+function encryptV2(message: Field[], otherPublicKey: PublicKey) {
+  return encryptInternal(message, otherPublicKey);
+}
+
+/**
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.
+ */
+function decryptV2(cipherText: CipherText, privateKey: PrivateKey) {
+  return decryptInternal(cipherText, privateKey);
+}
+
+/**
+ * @deprecated Use {@link encryptV2} instead. The private key used with this method should _never_ be reused again!
+ *
+ * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
+ */
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
+  return encryptInternal(message, otherPublicKey, false);
+}
+
+/**
+ * @deprecated Use {@link decryptV2} instead.
+ *
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.
+ */
+function decrypt(cipherText: CipherText, privateKey: PrivateKey) {
+  return decryptInternal(cipherText, privateKey, false);
+}
+
+function encryptInternal(
+  message: Field[],
+  otherPublicKey: PublicKey,
+  frameBit = true
+) {
   // key exchange
   let privateKey = Provable.witness(Scalar, () => Scalar.random());
   let publicKey = Group.generator.scale(privateKey);
@@ -27,6 +60,8 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
   for (let i = 0; i < message.length; i++) {
     let keyStream = sponge.squeeze();
     let encryptedChunk = message[i].add(keyStream);
+    if (message.length - 1 === i && frameBit)
+      encryptedChunk = encryptedChunk.add(1);
     cipherText.push(encryptedChunk);
     // absorb for the auth tag (two at a time for saving permutations)
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
@@ -39,12 +74,10 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
   return { publicKey, cipherText };
 }
 
-/**
- * Decrypts a {@link CipherText} using a {@link PrivateKey}.^
- */
-function decrypt(
+function decryptInternal(
   { publicKey, cipherText }: CipherText,
-  privateKey: PrivateKey
+  privateKey: PrivateKey,
+  frameBit = true
 ) {
   // key exchange
   let sharedSecret = publicKey.scale(privateKey.s);
@@ -58,6 +91,8 @@ function decrypt(
   for (let i = 0; i < cipherText.length; i++) {
     let keyStream = sponge.squeeze();
     let messageChunk = cipherText[i].sub(keyStream);
+    if (cipherText.length - 1 === i && frameBit)
+      messageChunk = messageChunk.sub(1);
     message.push(messageChunk);
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
     if (i % 2 === 1 || i === cipherText.length - 1)
