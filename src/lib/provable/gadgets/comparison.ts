@@ -235,7 +235,7 @@ function isOddAndHigh(x: Field) {
 function fieldToField3(x: Field) {
   if (x.isConstant()) return Field3.from(x.toBigInt());
 
-  let xBig = witness(Field3.provable, () => Field3.from(x.toBigInt()));
+  let xBig = witness(Field3, () => x.toBigInt());
   multiRangeCheck(xBig);
   let [x0, x1, x2] = xBig;
 

@@ -106,9 +106,9 @@ class EcdsaSignature {
    *
    * // ...
    * // in provable code: create input witnesses (or use method inputs, or constants)
-   * let pk = Provable.witness(Secp256k1.provable, () => publicKey);
+   * let pk = Provable.witness(Secp256k1, () => publicKey);
    * let msg = Provable.witness(Provable.Array(Field, 9), () => messageBytes.map(Field));
-   * let sig = Provable.witness(Ecdsa.provable, () => signature);
+   * let sig = Provable.witness(Ecdsa, () => signature);
    *
    * // verify signature
    * let isValid = sig.verify(msg, pk);

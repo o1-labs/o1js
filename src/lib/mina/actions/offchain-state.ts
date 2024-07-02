@@ -237,7 +237,7 @@ function OffchainState<
 
     // witness the merkle map & anchor against the onchain root
     let map = await Provable.witnessAsync(
-      IndexedMerkleMapN.provable,
+      IndexedMerkleMapN,
       async () => (await merkleMaps()).merkleMap
     );
     map.root.assertEquals(stateRoot, 'root mismatch');

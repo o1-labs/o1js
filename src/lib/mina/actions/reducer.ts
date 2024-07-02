@@ -268,7 +268,7 @@ class ${contract.constructor.name} extends SmartContract {
         config?.fromActionState ?? Actions.emptyActionState()
       ) {}
 
-      let actions = Provable.witness(MerkleActions.provable, () => {
+      let actions = Provable.witness(MerkleActions, () => {
         let actionFields = Mina.getActions(
           contract.address,
           config,

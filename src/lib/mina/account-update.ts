@@ -1579,9 +1579,7 @@ class UnfinishedForest {
   }
 
   witnessHash(): UnfinishedForestFinal {
-    let final = Provable.witness(AccountUpdateForest.provable, () =>
-      this.finalize()
-    );
+    let final = Provable.witness(AccountUpdateForest, () => this.finalize());
     return this.setFinal(final);
   }
 
