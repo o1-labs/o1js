@@ -283,6 +283,9 @@ class MerkleList<T> implements MerkleListBase<T> {
         assert(this._provable !== undefined, 'MerkleList not initialized');
         return this._provable;
       }
+      static set provable(_provable: ProvableHashable<MerkleList<T>>) {
+        this._provable = _provable;
+      }
     }
     // override `instanceof` for subclasses
     return class MerkleListT extends MerkleListTBase {
