@@ -17,6 +17,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/ed198f305...HEAD)
 
+### Fixed
+
+- Address potential incorrect token inheritance handling with `MayUseToken` in AccountUpdates https://github.com/o1-labs/o1js/pull/1716
+  - Modified isParentsOwnToken() to return false when inheritFromParent is true, preventing potential misuse of token inheritance.
+  - Added check() method to ensure parentsOwnToken and inheritFromParent flags are not both set to true simultaneously.
+
 ## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
 
 ### Added
