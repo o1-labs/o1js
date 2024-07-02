@@ -320,6 +320,7 @@ function preconditionSubClassWithRange<
         accountUpdate.body.preconditions,
         longKey
       );
+      assertPreconditionNotSet(property);
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
