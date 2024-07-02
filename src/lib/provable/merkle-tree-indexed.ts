@@ -677,11 +677,7 @@ class Leaf extends Struct({
   }
 
   static fromStored(leaf: StoredLeaf, sortedIndex: number) {
-    return {
-      ...leaf,
-      index: Unconstrained.from(leaf.index),
-      sortedIndex: Unconstrained.from(sortedIndex),
-    };
+    return { ...leaf, sortedIndex: sortedIndex };
   }
 }
 

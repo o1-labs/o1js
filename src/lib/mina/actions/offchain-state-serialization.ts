@@ -314,7 +314,7 @@ function updateMerkleMap(
 
       // update the intermediate tree, save updates for final tree
       intermediateTree.set(key, value);
-      updates.push({ key, fullValue: prefix.get() });
+      updates.push({ key, fullValue: prefix });
     }
 
     if (isValidUpdate) {
