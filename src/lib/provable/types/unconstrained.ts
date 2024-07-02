@@ -95,10 +95,7 @@ and Provable.asProver() blocks, which execute outside the proof.
    * Create an `Unconstrained` from a witness computation.
    */
   static witness<T>(compute: () => T): Unconstrained<T> {
-    return witness(
-      Unconstrained.provable,
-      () => new Unconstrained(true, compute())
-    );
+    return witness(Unconstrained.provable, compute);
   }
 
   /**
@@ -124,7 +121,7 @@ and Provable.asProver() blocks, which execute outside the proof.
     fromFields: (_, [t]) => t,
     check: () => {},
     toValue: (t) => t.get(),
-    fromValue: (t) => (t instanceof Unconstrained ? t : Unconstrained.from(t)),
+    fromValue: (t) => Unconstrained.from(t),
     toInput: () => ({}),
     empty: (): any => {
       throw Error('There is no default empty value for Unconstrained.');
