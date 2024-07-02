@@ -12,8 +12,11 @@ import { MerkleListIterator, MerkleList } from '../../provable/merkle-list.js';
 
 export { TokenAccountUpdateIterator };
 
-const AccountUpdateIterator =
-  MerkleListIterator.createFromList(AccountUpdateForest);
+const AccountUpdateIterator = MerkleListIterator.create(
+  AccountUpdateForest.prototype.innerProvable,
+  AccountUpdateForest._nextHash,
+  AccountUpdateForest.emptyHash
+);
 
 class Layer extends Struct({
   forest: AccountUpdateIterator.provable,
