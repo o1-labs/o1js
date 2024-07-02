@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/ed198f305...HEAD)
 
+### Fixed
+
+- Fixed the static `check()` method in Struct classes to properly handle inheritance, preventing issues with under-constrained circuits. Added error handling to avoid using Struct directly as a field type. https://github.com/o1-labs/o1js/pull/1707
+
 ## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
 
 ### Added
