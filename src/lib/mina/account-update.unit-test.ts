@@ -6,6 +6,7 @@ import {
   Mina,
   Int64,
   Types,
+  Bool,
 } from '../../index.js';
 import { Test } from '../../snarky.js';
 import { expect } from 'expect';
@@ -17,6 +18,14 @@ let address = PrivateKey.random().toPublicKey();
 function createAccountUpdate() {
   let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
   accountUpdate.body.balanceChange = Int64.from(1e9).neg();
+  return accountUpdate;
+}
+
+function createAccountUpdateWithMayUseToken(
+  mayUseToken: AccountUpdate['body']['mayUseToken']
+) {
+  let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+  accountUpdate.body.mayUseToken = mayUseToken;
   return accountUpdate;
 }
 
@@ -120,5 +129,56 @@ function createAccountUpdate() {
   tx.sign([]);
   await expect(tx.send()).rejects.toThrow(
     'Check signature: Invalid signature on fee payer for key'
+  );
+}
+
+// correctly identifies parentsOwnToken and not inheritFromParent
+{
+  let accountUpdate = createAccountUpdateWithMayUseToken({
+    parentsOwnToken: Bool(true),
+    inheritFromParent: Bool(false),
+  });
+  expect(
+    AccountUpdate.MayUseToken.isParentsOwnToken(accountUpdate).toBoolean()
+  ).toEqual(true);
+  expect(
+    AccountUpdate.MayUseToken.isInheritFromParent(accountUpdate).toBoolean()
+  ).toEqual(false);
+}
+
+// correctly identifies inheritFromParent and not parentsOwnToken
+{
+  let accountUpdate = createAccountUpdateWithMayUseToken({
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(true),
+  });
+  expect(
+    AccountUpdate.MayUseToken.isParentsOwnToken(accountUpdate).toBoolean()
+  ).toEqual(false);
+  expect(
+    AccountUpdate.MayUseToken.isInheritFromParent(accountUpdate).toBoolean()
+  ).toEqual(true);
+}
+
+// throws an error when both flags are true in check method
+{
+  expect(() => {
+    AccountUpdate.MayUseToken.check({
+      parentsOwnToken: Bool(true),
+      inheritFromParent: Bool(true),
+    });
+  }).toThrowError(
+    'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
+  );
+}
+
+// correctly identifies when neither flag is set
+{
+  let accountUpdate = createAccountUpdateWithMayUseToken({
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(false),
+  });
+  expect(AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()).toEqual(
+    true
   );
 }
