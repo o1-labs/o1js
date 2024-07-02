@@ -1,4 +1,4 @@
-import { Provable, ProvablePure } from './provable-intf.js';
+import { Provable, ProvableHashable, ProvablePure } from './provable-intf.js';
 import type { Field } from '../wrapped.js';
 import {
   createDerivers,
@@ -26,6 +26,7 @@ export {
   provableTuple,
   provableFromClass,
   provableMap,
+  provableExtends,
 };
 
 // internal API
@@ -123,10 +124,14 @@ function construct<Raw, T extends Raw>(Class: Constructor<T>, value: Raw): T {
 }
 
 function provableMap<
-  A extends Provable<any>,
+  A extends ProvableHashable<any>,
   S,
   T extends InferProvable<A> = InferProvable<A>
->(base: A, there: (t: T) => S, back: (s: S) => T): Provable<S, InferValue<A>> {
+>(
+  base: A,
+  there: (t: T) => S,
+  back: (s: S) => T
+): ProvableHashable<S, InferValue<A>> {
   return {
     sizeInFields() {
       return base.sizeInFields();
@@ -149,5 +154,47 @@ function provableMap<
     fromValue(value) {
       return there(base.fromValue(value));
     },
+    empty() {
+      return there(base.empty());
+    },
+    toInput(value) {
+      return base.toInput(back(value));
+    },
   };
+}
+
+function provableExtends<
+  A extends ProvableHashable<any>,
+  T extends InferProvable<A>,
+  S extends T
+>(S: new (t: T) => S, base: A) {
+  return {
+    sizeInFields() {
+      return base.sizeInFields();
+    },
+    toFields(value: S | T) {
+      return base.toFields(value);
+    },
+    toAuxiliary(value?: S | T) {
+      return base.toAuxiliary(value);
+    },
+    fromFields(fields, aux) {
+      return new S(base.fromFields(fields, aux));
+    },
+    check(value: S | T) {
+      base.check(value);
+    },
+    toValue(value: S | T) {
+      return base.toValue(value);
+    },
+    fromValue(value) {
+      return new S(base.fromValue(value));
+    },
+    empty() {
+      return new S(base.empty());
+    },
+    toInput(value: S | T) {
+      return base.toInput(value);
+    },
+  } satisfies ProvableHashable<S, InferValue<A>>;
 }

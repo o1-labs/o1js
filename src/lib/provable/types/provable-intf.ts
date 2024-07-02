@@ -1,6 +1,6 @@
 import type { Field } from '../field.js';
 
-export { Provable, ProvablePure };
+export { Provable, ProvablePure, ProvableWithEmpty, ProvableHashable };
 
 /**
  * `Provable<T>` is the general interface for provable types in o1js.
@@ -85,4 +85,14 @@ type Provable<T, TValue = any> = {
  */
 type ProvablePure<T, TValue = any> = Omit<Provable<T, TValue>, 'fromFields'> & {
   fromFields: (fields: Field[]) => T;
+};
+
+type ProvableWithEmpty<T, TValue = any> = Provable<T, TValue> & {
+  empty: () => T;
+};
+
+type HashInput = { fields?: Field[]; packed?: [Field, number][] };
+
+type ProvableHashable<T, TValue = any> = ProvableWithEmpty<T, TValue> & {
+  toInput: (x: T) => HashInput;
 };
