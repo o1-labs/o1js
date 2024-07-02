@@ -1193,10 +1193,21 @@ class AccountUpdate implements Types.AccountUpdate {
         return parentsOwnToken.or(inheritFromParent).not();
       },
       isParentsOwnToken(a: AccountUpdate) {
-        return a.body.mayUseToken.parentsOwnToken;
+        // Check that inheritFromParent is not true when validating if an account update is for a parent's own token
+        return a.body.mayUseToken.parentsOwnToken.and(
+          a.body.mayUseToken.inheritFromParent.not()
+        );
       },
       isInheritFromParent(a: AccountUpdate) {
         return a.body.mayUseToken.inheritFromParent;
+      },
+      check(mayUseToken: { parentsOwnToken: Bool; inheritFromParent: Bool }) {
+        // Ensure the flags are not both set to true
+        mayUseToken.parentsOwnToken
+          .and(mayUseToken.inheritFromParent)
+          .assertFalse(
+            'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
+          );
       },
     };
   }
