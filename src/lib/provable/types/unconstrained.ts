@@ -95,7 +95,7 @@ and Provable.asProver() blocks, which execute outside the proof.
    * Create an `Unconstrained` from a witness computation.
    */
   static witness<T>(compute: () => T): Unconstrained<T> {
-    return witness(Unconstrained.provable, compute);
+    return witness(Unconstrained, compute);
   }
 
   /**

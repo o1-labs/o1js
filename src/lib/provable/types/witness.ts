@@ -1,36 +1,38 @@
 import type { Field } from '../field.js';
 import type { FlexibleProvable, InferProvable } from './struct.js';
-import type { Provable } from './provable-intf.js';
+import { Provable, ProvableType, ToProvable } from './provable-intf.js';
 import {
   inCheckedComputation,
   snarkContext,
 } from '../core/provable-context.js';
 import { exists, existsAsync } from '../core/exists.js';
-import { From } from '../../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 import { TupleN } from '../../util/types.js';
 import { createField } from '../core/field-constructor.js';
 
 export { witness, witnessAsync, witnessFields };
 
-function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
-  type: A,
-  compute: () => T
-): InferProvable<A> {
-  type S = InferProvable<A>;
+function witness<
+  A extends ProvableType<any, any>,
+  T extends From<ToProvable<A>> = From<ToProvable<A>>
+>(type: A, compute: () => T): InferProvable<ToProvable<A>> {
+  type S = InferProvable<ToProvable<A>>;
+  const provable: Provable<S> = ProvableType.get(type);
   let ctx = snarkContext.get();
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
-    return clone(type, type.fromValue(compute()));
+    return clone(provable, provable.fromValue(compute()));
   }
   let proverValue: S | undefined = undefined;
   let fields: Field[];
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    fields = exists(type.sizeInFields(), () => {
-      proverValue = type.fromValue(compute());
-      let fields = type.toFields(proverValue);
+    fields = exists(provable.sizeInFields(), () => {
+      let value = provable.fromValue(compute());
+      proverValue = value;
+      let fields = provable.toFields(value);
       return fields.map((x) => x.toBigInt());
     });
   } finally {
@@ -38,11 +40,11 @@ function witness<A extends Provable<any, any>, T extends From<A> = From<A>>(
   }
 
   // rebuild the value from its fields (which are now variables) and aux data
-  let aux = type.toAuxiliary(proverValue);
-  let value = (type as Provable<S>).fromFields(fields, aux);
+  let aux = provable.toAuxiliary(proverValue);
+  let value = provable.fromFields(fields, aux);
 
   // add type-specific constraints
-  type.check(value);
+  provable.check(value);
 
   return value;
 }
