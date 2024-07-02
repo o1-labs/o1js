@@ -50,25 +50,29 @@ function witness<
 }
 
 async function witnessAsync<
-  T,
-  S extends FlexibleProvable<T> = FlexibleProvable<T>
->(type: S, compute: () => Promise<T>): Promise<T> {
+  A extends ProvableType<any, any>,
+  T extends From<ToProvable<A>> = From<ToProvable<A>>
+>(type: A, compute: () => Promise<T>): Promise<T> {
+  type S = InferProvable<ToProvable<A>>;
+  const provable: Provable<S> = ProvableType.get(type);
+
   let ctx = snarkContext.get();
 
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || ctx.inWitnessBlock) {
     let value: T = await compute();
-    return clone(type, value);
+    return clone(provable, provable.fromValue(value));
   }
-  let proverValue: T | undefined = undefined;
+  let proverValue: S | undefined = undefined;
   let fields: Field[];
 
   // call into `existsAsync` to witness the raw field elements
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    fields = await existsAsync(type.sizeInFields(), async () => {
-      proverValue = await compute();
-      let fields = type.toFields(proverValue);
+    fields = await existsAsync(provable.sizeInFields(), async () => {
+      let value: S = provable.fromValue(await compute());
+      proverValue = value;
+      let fields = provable.toFields(value);
       return fields.map((x) => x.toBigInt());
     });
   } finally {
@@ -76,11 +80,11 @@ async function witnessAsync<
   }
 
   // rebuild the value from its fields (which are now variables) and aux data
-  let aux = type.toAuxiliary(proverValue);
-  let value = (type as Provable<T>).fromFields(fields, aux);
+  let aux = provable.toAuxiliary(proverValue);
+  let value = provable.fromFields(fields, aux);
 
   // add type-specific constraints
-  type.check(value);
+  provable.check(value);
 
   return value;
 }
