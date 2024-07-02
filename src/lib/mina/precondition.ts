@@ -555,11 +555,8 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
   return c;
 }
 
-function assertPreconditionNotSet(property: any) {
-  if (
-    ('isSome' in property && !property.isSome.isConstant()) ||
-    property.isSome.toBoolean()
-  ) {
+function assertPreconditionNotSet(property: { isSome: Bool }) {
+  if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
     throw Error(
       `Precondition Error: Attempting to set precondition on '${JSON.stringify(
         property
