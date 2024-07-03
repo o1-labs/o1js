@@ -82,24 +82,31 @@ o1js uses these types to ensure that the constants used in the protocol are cons
 
 ## Development
 
-### Branch Compatibility
+### Branching Policy
 
-If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work-in-progress as a draft PR to raise visibility! When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
+| o1js base branches | Is default? |
+| ------------------ | ----------- |
+| main               | **Yes**     |
+| develop            | No          |
 
-#### How to Use the Branches
+When you start your work on o1js, please create the feature branch off of one of the above base branches.  
+It's encouraged to submit your work-in-progress as a draft PR to raise visibility!  
+When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
 
-**Default to `main` as the base branch**.
+Other base branches (currently `develop` only) are used only in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `develop` afterwards. Only changes in `main` will ever be released, so anything in other branches has to be backported and reconciled with the `main` branch eventually.
 
-The other base branches (`develop`) are used only in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
+#### Relationship Between the Branches
 
-| Repository | o1js -> | o1js-bindings -> | mina       |
-| ---------- | ------- | ---------------- | ---------- |
-| Branches   | main    | main             | compatible |
-|            | develop | develop          | develop    |
+| Repository | o1js &rarr; | o1js-bindings &rarr; | mina       |
+| ---------- | ----------- | -------------------- | ---------- |
+| Branches   | main        | main                 | compatible |
+|            | develop     | develop              | develop    |
 
-- `compatible`: The `compatible` branch in the Mina repository corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
+Where:
 
-- `develop`: The `develop` branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
+- `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
+
+- `develop`: This branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
 
 ### Running Tests
 
