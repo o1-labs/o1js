@@ -123,6 +123,7 @@ function state<A>(stateType: FlexibleProvablePure<A>) {
           class: ZkappClass,
           wasConstrained: false,
           wasRead: false,
+          wasSet: true,
           cachedVariable: undefined,
         };
         (this._ ??= {})[key] = v;
@@ -182,6 +183,7 @@ type StateAttachedContract<A> = {
   instance: SmartContract;
   class: typeof SmartContract;
   wasRead: boolean;
+  wasSet: boolean;
   wasConstrained: boolean;
   cachedVariable?: A;
 };
@@ -209,6 +211,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
           accountUpdate.body.update.appState[layout.offset + i];
         AccountUpdate.setValue(appStateSlot, x);
       });
+      this._contract.wasSet = true;
     },
 
     requireEquals(state: T) {
@@ -241,6 +244,34 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
         );
+
+      if (this._contract.wasSet && Provable.inCheckedComputation()) {
+        throw Error(`State Consistency Error: Attempting to get a state value after it has been set.
+
+          In the current execution context, get() operations return cached values and do not reflect changes made by set() operations. This can lead to unexpected behavior and potential vulnerabilities.
+
+          For example:
+          let value = state.get();     // Reads and caches the current value
+          state.set(newValue);         // Sets a new value
+          let updatedValue = state.get(); // Still returns the old, cached value
+
+          Recommendation:
+          1. Avoid mixing get() and set() operations on the same state variable within a single method execution.
+          2. If you need to update a value and then read it, consider restructuring your code to perform all set() operations before any get() operations.
+          3. Be aware that the state changes made by set() will only be reflected in subsequent transactions or method calls.
+
+          Example of Correct Usage:
+          // Incorrect Usage:
+          let initialBalance = this.balance.get();
+          this.balance.set(initialBalance.add(amount));
+          let updatedBalance = this.balance.get(); // This will not reflect the new balance
+
+          // Correct Usage:
+          let initialBalance = this.balance.get();
+          let newBalance = initialBalance.add(amount);
+          this.balance.set(newBalance);
+          // Use 'newBalance' for further operations instead of calling get() again.`);
+      }
       // inside the circuit, we have to cache variables, so there's only one unique variable per on-chain state.
       // if we'd return a fresh variable everytime, developers could easily end up linking just *one* of them to the precondition,
       // while using an unconstrained variable elsewhere, which would create a loophole in the proof.
@@ -418,6 +449,7 @@ function cleanStatePrecondition(sc: SmartContract) {
   for (let [, context] of getStateContexts(sc)) {
     if (context === undefined) continue;
     context.wasRead = false;
+    context.wasSet = false;
     context.wasConstrained = false;
     context.cachedVariable = undefined;
   }
