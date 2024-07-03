@@ -39,6 +39,8 @@ export type {
 export {
   provable,
   provablePure,
+  provableMap,
+  provableExtends,
 } from './lib/provable/types/provable-derivers.js';
 export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';

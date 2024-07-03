@@ -7,7 +7,7 @@ import {
   Provable,
   Struct,
   Unconstrained,
-  provable,
+  provableExtends,
 } from 'o1js';
 
 export { Bigint2048, rsaVerify65537 };
@@ -19,10 +19,40 @@ const mask = (1n << 116n) - 1n;
  */
 const Field18 = Provable.Array(Field, 18);
 
-class Bigint2048 extends Struct({
-  fields: Field18,
-  value: Unconstrained.provable as Provable<Unconstrained<bigint>>,
-}) {
+class Bigint2048 {
+  fields: Field[];
+  value: Unconstrained<bigint>;
+
+  // TODO this could be simplified with a Struct-like base class
+  // TODO map the value type to `bigint`
+  static provable = provableExtends(
+    Bigint2048,
+    // TODO this wrapping Struct should be unnecessary
+    class extends Struct({
+      fields: Field18,
+      value: Unconstrained.provableWithEmpty(0n),
+    }) {
+      // TODO where to add the custom check()?
+      static check({ fields }: { fields: Field[] }) {
+        for (let x of fields) {
+          rangeCheck116(x);
+        }
+      }
+    }
+  );
+
+  // TODO constructor could be removed with a Struct-like base class
+  constructor({
+    fields,
+    value,
+  }: {
+    fields: Field[];
+    value: Unconstrained<bigint>;
+  }) {
+    this.fields = fields;
+    this.value = value;
+  }
+
   modMul(x: Bigint2048, y: Bigint2048) {
     return multiply(x, y, this);
   }
@@ -36,19 +66,13 @@ class Bigint2048 extends Struct({
   }
 
   static from(x: bigint) {
-    let fields = [];
+    let fields: bigint[] = [];
     let value = x;
     for (let i = 0; i < 18; i++) {
-      fields.push(Field(x & mask));
+      fields.push(x & mask);
       x >>= 116n;
     }
-    return new Bigint2048({ fields, value: Unconstrained.from(value) });
-  }
-
-  static check(x: { fields: Field[] }) {
-    for (let i = 0; i < 18; i++) {
-      rangeCheck116(x.fields[i]);
-    }
+    return Bigint2048.provable.fromValue({ fields, value });
   }
 }
 
@@ -66,12 +90,15 @@ function multiply(
   // witness q, r so that x*y = q*p + r
   // this also adds the range checks in `check()`
   let { q, r } = Provable.witness(
-    provable({ q: Bigint2048, r: Bigint2048 }),
+    // TODO Struct() should be unnecessary
+    // TODO .provable should be unnecessary
+    Struct({ q: Bigint2048.provable, r: Bigint2048.provable }),
     () => {
       let xy = x.toBigint() * y.toBigint();
       let p0 = p.toBigint();
       let q = xy / p0;
       let r = xy - q * p0;
+      // TODO Bigint2048.from() should be unnecessary
       return { q: Bigint2048.from(q), r: Bigint2048.from(r) };
     }
   );
@@ -143,7 +170,7 @@ function rsaVerify65537(
   x = modulus.modMul(x, signature);
 
   // check that x == message
-  Provable.assertEqual(Bigint2048, message, x);
+  Provable.assertEqual(Bigint2048.provable, message, x);
 }
 
 /**

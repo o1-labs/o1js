@@ -622,7 +622,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * ```
  *
  * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced, "canonical" field elements.
- * To convert to a canonical field element, use {@link ForeignField.assertCanonical}:
+ * To convert to a canonical field element, use `ForeignField.assertCanonical()`:
  *
  * ```ts
  * x.assertCanonical(); // asserts x < p; returns `CanonicalForeignField`
