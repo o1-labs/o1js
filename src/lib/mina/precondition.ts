@@ -29,7 +29,7 @@ export {
   CurrentSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
-  assertPreconditionNotSet,
+  ensureConsistentPrecondition,
   AccountValue,
   NetworkValue,
   getAccountPreconditions,
@@ -320,10 +320,10 @@ function preconditionSubClassWithRange<
         accountUpdate.body.preconditions,
         longKey
       );
-      assertPreconditionNotSet(property);
+      let newValue = { lower, upper };
+      ensureConsistentPrecondition(property, newValue);
       property.isSome = Bool(true);
-      property.value.lower = lower;
-      property.value.upper = upper;
+      property.value = newValue;
     },
   };
 }
@@ -366,14 +366,16 @@ function preconditionSubclass<
         longKey
       ) as AnyCondition<U>;
       if ('isSome' in property) {
-        assertPreconditionNotSet(property);
-        property.isSome = Bool(true);
-        if ('lower' in property.value && 'upper' in property.value) {
-          property.value.lower = value;
-          property.value.upper = value;
+        let isInterval = 'lower' in property.value && 'upper' in property.value;
+        let newValue = isInterval ? { lower: value, upper: value } : value;
+        ensureConsistentPrecondition(property, newValue);
+        if (isInterval) {
+          (property.value as { lower: U; upper: U }).lower = value;
+          (property.value as { lower: U; upper: U }).upper = value;
         } else {
           property.value = value;
         }
+        property.isSome = Bool(true);
       } else {
         setPath(accountUpdate.body.preconditions, longKey, value);
       }
@@ -556,9 +558,22 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
   return c;
 }
 
-function assertPreconditionNotSet(property: { isSome: Bool }) {
-  if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
-    throw new Error(`
+/**
+ * Asserts that a precondition is not already set or that it matches the new values.
+ *
+ * This function checks if a precondition is already set for a given property and compares it
+ * with new values. If the precondition is not set, it allows the new values. If it's already set,
+ * it ensures consistency with the existing precondition.
+ *
+ * @param property - The property object containing the precondition information.
+ * @param newIsSome - A boolean or CircuitValue indicating whether the new precondition should exist.
+ * @param value - The new value for the precondition. Can be a simple value or an object with 'lower' and 'upper' properties for range preconditions.
+ *
+ * @throws {Error} Throws an error with a detailed message if attempting to set an inconsistent precondition.
+ * @todo It would be nice to have the input parameter types more specific, but it's hard to do with the current implementation.
+ */
+function ensureConsistentPrecondition(property: any, value: any) {
+  let errorMessage = `
       Precondition Error: Attempting to set a precondition that is already set.
       Preconditions must be set only once to avoid overwriting previous assertions. 
       For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
@@ -574,7 +589,15 @@ function assertPreconditionNotSet(property: { isSome: Bool }) {
 
       // Correct Usage:
       timestamp.requireBetween(newUInt32(0n), newUInt32(3n));
-    `);
+    `;
+  if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
+    property.isSome.assertEquals(Bool(true), errorMessage);
+    if ('lower' in property.value && 'upper' in property.value) {
+      property.value.lower.assertEquals(value.lower, errorMessage);
+      property.value.upper.assertEquals(value.upper, errorMessage);
+    } else {
+      property.value.assertEquals(value, errorMessage);
+    }
   }
 }
 

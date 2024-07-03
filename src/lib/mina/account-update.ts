@@ -28,7 +28,7 @@ import {
   OrIgnore,
   ClosedInterval,
   getAccountPreconditions,
-  assertPreconditionNotSet,
+  ensureConsistentPrecondition,
 } from './precondition.js';
 import {
   dummyBase64Proof,
@@ -844,13 +844,15 @@ class AccountUpdate implements Types.AccountUpdate {
     property: OrIgnore<ClosedInterval<T> | T>,
     value: T
   ) {
-    assertPreconditionNotSet(property);
+    let isInterval = 'lower' in property.value && 'upper' in property.value;
+    let newValue = isInterval ? { lower: value, upper: value } : value;
+    ensureConsistentPrecondition(property, newValue);
     property.isSome = Bool(true);
-    if ('lower' in property.value && 'upper' in property.value) {
-      property.value.lower = value;
-      property.value.upper = value;
+    if (isInterval) {
+      (property.value as ClosedInterval<T>).lower = value;
+      (property.value as ClosedInterval<T>).upper = value;
     } else {
-      property.value = value;
+      property.value = value as T;
     }
   }
 
