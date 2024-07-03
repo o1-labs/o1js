@@ -90,21 +90,16 @@ If you work on o1js, create a feature branch off of one of these base branches. 
 
 **Default to `main` as the base branch**.
 
-The other base branches (`berkeley` and `develop`) are used only in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `berkeley` and `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
+The other base branches (`develop`) are used only in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
 
-| Repository | mina -> o1js -> o1js-bindings    |
-| ---------- | -------------------------------- |
-| Branches   | o1js-main -> main -> main        |
-|            | berkeley -> berkeley -> berkeley |
-|            | develop -> develop -> develop    |
+| Repository | o1js -> | o1js-bindings -> | mina       |
+| ---------- | ------- | ---------------- | ---------- |
+| Branches   | main    | main             | compatible |
+|            | develop | develop          | develop    |
 
-- `o1js-main`: The `o1js-main` branch in the Mina repository corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and ramp-up features are maintained. The `o1js-main` branch runs in parallel to the Mina `berkeley` branch and does not have a subset or superset relationship with it. The branching structure is as follows (<- means direction to merge):
+- `compatible`: The `compatible` branch in the Mina repository corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
 
-  - `develop` <- `o1js-main` <- `current testnet` - Typically, the current Testnet often corresponds to the rampup branch.
-
-- `berkeley`: The `berkeley` branch is maintained across all three repositories. This branch is used for features and updates specific to the Berkeley release of the project.
-
-- `develop`: The `develop` branch is also maintained across all three repositories. It is used for ongoing development, testing new features, and integration work.
+- `develop`: The `develop` branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
 
 ### Running Tests
 
@@ -193,7 +188,7 @@ docker run --rm --pull=missing -it \
   -p 8080:8080 \
   -p 8181:8181 \
   -p 8282:8282 \
-  o1labs/mina-local-network:o1js-main-latest-lightnet
+  o1labs/mina-local-network:compatible-latest-lightnet
 ```
 
 See the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-network) for more information.
