@@ -93,6 +93,8 @@ When you start your work on o1js, please create the feature branch off of one of
 It's encouraged to submit your work-in-progress as a draft PR to raise visibility!  
 When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
 
+**Default to `main` as the base branch**.
+
 Other base branches (currently `develop` only) are used in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `develop` afterwards. Only changes in `main` will ever be released, so anything in other branches has to be backported and reconciled with the `main` branch eventually.
 
 #### Relationship Between Repositories and Branches
