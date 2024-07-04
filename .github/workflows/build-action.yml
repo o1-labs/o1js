@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - berkeley
       - develop
   pull_request:
   workflow_dispatch: {}
@@ -68,7 +67,7 @@ jobs:
       - name: Execute E2E tests
         run: npm run test:e2e
       - name: Upload E2E test artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         continue-on-error: true
         if: always()
         with:
@@ -95,9 +94,10 @@ jobs:
           npm ci
           npm run build
       - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v1
+        uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
+          strategy: upgrade
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -121,9 +121,10 @@ jobs:
           npm ci
           npm run prepublishOnly
       - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v1
+        uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
           package: './src/mina-signer/package.json'
+          strategy: upgrade
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
