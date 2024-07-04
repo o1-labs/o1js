@@ -26,6 +26,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
 
+### Fixed
+
+- Fix reversed order of account updates when using `TokenContract.approveAccountUpdates()` https://github.com/o1-labs/o1js/pull/1722
+
 ## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
 
 ### Added

@@ -185,5 +185,5 @@ function toForest(
   let trees = updates.map((a) =>
     a instanceof AccountUpdate ? a.extractTree() : a
   );
-  return AccountUpdateForest.from(trees);
+  return AccountUpdateForest.fromReverse(trees);
 }
