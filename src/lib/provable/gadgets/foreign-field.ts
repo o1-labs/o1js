@@ -739,7 +739,7 @@ class Sum {
 function assertLessThan(x: Field3, y: bigint | Field3) {
   let y_ = Field3.from(y);
 
-  // constant case
+  // constant case, y = constant, x = constant
 
   if (Field3.isConstant(x) && Field3.isConstant(y_)) {
     assert(
@@ -749,7 +749,7 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
     return;
   }
 
-  // case of one variable, one constant
+  // case of y = constant, x = variable
 
   if (Field3.isConstant(y_)) {
     y = typeof y === 'bigint' ? y : Field3.toBigint(y);
@@ -764,7 +764,7 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
     return;
   }
 
-  // case of two variables
+  // case of two variables or x = constant and y = variable
   // we compute z = y - x - 1 and check that z \in [0, 2^3l), which implies x < y as above
 
   // we use modulo 0 here, which means we're proving:
