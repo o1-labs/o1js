@@ -5,8 +5,10 @@
  * This is mainly intended as an example for using `Iterator` and `MerkleList`, but it might also be useful as
  * a blueprint for processing actions in a custom and more explicit way.
  * 
- * Warning: actions and reducers are still in development and currently are not safe to use in production applications.
- */
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The reduce() 
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ * in progress to mitigate this limitation.
+ */ 
 import {
   Field,
   Mina,
