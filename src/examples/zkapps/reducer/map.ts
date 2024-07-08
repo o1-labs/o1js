@@ -22,7 +22,10 @@ In this example, the keys are public keys, and the values are arbitrary field el
 
 This utilizes the `Reducer` as an append online list of actions, which are then looked at to find the value corresponding to a specific key.
 
-Warning: actions and reducers are still in development and currently are not safe to use in production applications.
+Warning: The reducer API in o1js is currently not safe to use in production applications. The reduce() 
+method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+in progress to mitigate this limitation.
+  
 
 ```ts 
 // js
