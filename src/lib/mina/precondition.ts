@@ -576,22 +576,23 @@ function ensureConsistentPrecondition(
 ) {
   if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
     let errorMessage = `
-      Precondition Error: Attempting to set a precondition that is already set: '${name}'.
-      Preconditions must be set only once to avoid overwriting previous assertions. 
-      For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
+Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
+'${name}' represents the field or value you're trying to set a precondition for.
+Preconditions must be set only once to avoid overwriting previous assertions. 
+For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
 
-      Recommendation:
-      Ensure that preconditions are set in a single place and are not overwritten. If you need to update a precondition, 
-      consider refactoring your code to consolidate all assertions for the same field before setting the precondition.
+Recommendation:
+Ensure that preconditions for '${name}' are set in a single place and are not overwritten. If you need to update a precondition,
+consider refactoring your code to consolidate all assertions for '${name}' before setting the precondition.
 
-      Example of Correct Usage:
-      // Incorrect Usage:
-      timestamp.requireBetween(newUInt32(0n), newUInt32(2n));
-      timestamp.requireBetween(newUInt32(1n), newUInt32(3n));
+Example of Correct Usage:
+// Incorrect Usage:
+timestamp.requireBetween(newUInt32(0n), newUInt32(2n));
+timestamp.requireBetween(newUInt32(1n), newUInt32(3n));
 
-      // Correct Usage:
-      timestamp.requireBetween(newUInt32(0n), newUInt32(3n));
-    `;
+// Correct Usage:
+timestamp.requireBetween(newUInt32(0n), newUInt32(3n));
+`;
     property.isSome.equals(newIsSome).assertTrue(errorMessage);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower.equals(value.lower).assertTrue(errorMessage);
