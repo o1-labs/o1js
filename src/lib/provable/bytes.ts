@@ -1,7 +1,7 @@
 import { provableFromClass } from './types/provable-derivers.js';
 import type { ProvablePureExtended } from './types/struct.js';
 import { assert } from './gadgets/common.js';
-import { chunkString } from '../util/arrays.js';
+import { chunk, chunkString } from '../util/arrays.js';
 import { Provable } from './provable.js';
 import { UInt8 } from './int.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
@@ -192,6 +192,15 @@ class Bytes {
     }
 
     return Bytes.from(decodedB64Bytes);
+  }
+
+  /**
+   * Returns chunk of size `size` of this bytes array.
+   * @param size size of each chunk
+   * @returns an array of {@link UInt8} chunks
+   */
+  chunk(size: number) {
+    return chunk(this.bytes, size);
   }
 
   // dynamic subclassing infra
