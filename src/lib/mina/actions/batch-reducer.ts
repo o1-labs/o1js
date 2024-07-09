@@ -24,6 +24,7 @@ import {
   MerkleActions,
   emptyActionState,
 } from './action-types.js';
+import { AnyTuple } from '../../util/types.js';
 
 // external API
 export { BatchReducer, ActionBatch };
@@ -245,11 +246,9 @@ class BatchReducer<
     },
     callback: (action: Action, isDummy: Bool, i: number) => void
   ): void {
-    let { actionType, batchSize } = this;
     let contract = this.contract();
 
     // step 0. validate onchain states
-
     let {
       useOnchainStack,
       processedActionState,
@@ -271,34 +270,7 @@ class BatchReducer<
     );
 
     // step 1. continue the proof that pops pending onchain actions to build up the final stack
-
-    let { isRecursive } = batch;
-    proof.verifyIf(isRecursive);
-
-    // if the proof is valid, it has to start from onchain action state
-    Provable.assertEqualIf(
-      isRecursive,
-      Field,
-      proof.publicInput,
-      onchainActionState
-    );
-
-    // the final piece of the proof either starts from the onchain action state + an empty stack,
-    // or from the previous proof output
-    let initialState = { actions: onchainActionState, stack: emptyActionState };
-    let startState = Provable.if(
-      isRecursive,
-      ActionStackState,
-      proof.publicOutput,
-      initialState
-    );
-
-    // finish creating the new stack
-    let stackingResult = actionStackChunk(
-      this.maxUpdatesFinalProof,
-      startState,
-      batch.witnesses
-    );
+    let stackingResult = this._finishStackProof({ batch, proof });
 
     // step 2. pick the correct stack of actions to process
 
@@ -324,7 +296,71 @@ class BatchReducer<
 
     // invariant: from this point on, the stack contains actual pending action lists in their correct (reversed) order
 
-    // step 3. pop off the actions we want to process from the stack
+    // step 3. pop off the actions we want to process from the stack, running the user code on each
+    [stack, processedActionState] = this._processStack(
+      stack,
+      processedActionState,
+      callback
+    );
+
+    // step 4. update the onchain processed action state and stack
+    contract.actionState.set(processedActionState);
+    contract.actionStack.set(stack.hash);
+  }
+
+  _finishStackProof({
+    batch,
+    proof,
+  }: {
+    batch: Pick<
+      ActionBatch<Action>,
+      'isRecursive' | 'onchainActionState' | 'witnesses'
+    >;
+    proof: ActionStackProof;
+  }) {
+    let { isRecursive, onchainActionState } = batch;
+    proof.verifyIf(isRecursive);
+
+    // if the proof is valid, it has to start from onchain action state
+    Provable.assertEqualIf(
+      isRecursive,
+      Field,
+      proof.publicInput,
+      onchainActionState
+    );
+
+    // the final piece of the proof either starts from the onchain action state + an empty stack,
+    // or from the previous proof output
+    let initialState = { actions: onchainActionState, stack: emptyActionState };
+    let startState = Provable.if(
+      isRecursive,
+      ActionStackState,
+      proof.publicOutput,
+      initialState
+    );
+
+    // finish creating the new stack
+    return this._buildStack(
+      this.maxUpdatesFinalProof,
+      startState,
+      batch.witnesses
+    );
+  }
+
+  _buildStack(
+    maxUpdatesInStack: number,
+    stackState: ActionStackState,
+    witnesses: Unconstrained<ActionWitnesses>
+  ) {
+    return actionStackChunk(maxUpdatesInStack, stackState, witnesses);
+  }
+
+  _processStack(
+    stack: MerkleActions<Action>,
+    actionState: Field,
+    callback: (action: Action, isDummy: Bool, i: number) => void
+  ) {
+    let { actionType, batchSize } = this;
 
     // we should take as many actions as possible, within the constraints that:
     // - we process entire lists (= account updates) at once
@@ -366,14 +402,10 @@ class BatchReducer<
 
       // if we pop, we also update the processed action state
       let nextActionState = Actions.updateSequenceState(
-        processedActionState,
+        actionState,
         actionList.hash
       );
-      processedActionState = Provable.if(
-        shouldPop,
-        nextActionState,
-        processedActionState
-      );
+      actionState = Provable.if(shouldPop, nextActionState, actionState);
     }
 
     // step 4. run user logic on the actions
@@ -394,10 +426,77 @@ class BatchReducer<
       callback(hashedAction.unhash(), isDummy, i);
     });
 
-    // step 5. update the onchain processed action state and stack
+    return [stack, actionState] satisfies AnyTuple;
+  }
 
-    contract.actionState.set(processedActionState);
-    contract.actionStack.set(stack.hash);
+  async getActions() {
+    let contract = this._contract ?? this.contract();
+
+    let fromActionState = await Provable.witnessAsync(Field, async () => {
+      return assertDefined(
+        await contract.actionState.fetch(),
+        'Could not fetch action state'
+      );
+    });
+    const MerkleActionsT = MerkleActions(this.actionType, fromActionState);
+
+    let { actions, witnesses } = await Provable.witnessAsync(
+      Struct({
+        actions: MerkleActionsT.provable,
+        witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+      }),
+      async () => {
+        let { witnesses, actions } = await fetchActionWitnesses(
+          contract,
+          fromActionState.toBigInt(),
+          this.actionType
+        );
+        return { actions, witnesses: Unconstrained.from(witnesses) };
+      }
+    );
+    contract.actionState.requireEquals(fromActionState);
+    contract.account.actionState.requireEquals(actions.hash);
+
+    return { processedActionState: fromActionState, actions, witnesses };
+  }
+
+  async unsafeProcessNextBatch(
+    maxUpdates = this.maxUpdatesFinalProof,
+    callback: (action: Action, isDummy: Bool, i: number) => void
+  ) {
+    // get actions, and witnesses needed to build a stack (TODO the witnesses are already on the actions!!! remove them)
+    let { processedActionState, actions, witnesses } = await this.getActions();
+
+    // move actions over to reverse stack
+    let stackState = this._buildStack(
+      maxUpdates,
+      { actions: actions.hash, stack: BatchReducer.initialActionStack },
+      witnesses
+    );
+
+    // assert that stack goes back to the processed action state
+    stackState.actions.assertEquals(
+      processedActionState,
+      `${maxUpdates} updates were not enough to push all pending actions on a reverse stack.\n` +
+        `To ensure an arbitrary number of actions can be processed, use \`BatchReducer.prepareBatches()\` together with \`BatchReducer.processBatches()\`.`
+    );
+
+    // witness stack with actions inside
+    const StackT = MerkleActions(this.actionType);
+    let stack = Provable.witness(StackT.provable, () =>
+      StackT.fromReverse(actions.toArrayUnconstrained().get())
+    );
+    stack.hash.assertEquals(stackState.stack);
+
+    // process the stack
+    [stack, processedActionState] = this._processStack(
+      stack,
+      processedActionState,
+      callback
+    );
+
+    // update processed action state
+    this.contract().actionState.set(processedActionState);
   }
 
   /**
@@ -427,7 +526,7 @@ class BatchReducer<
     let { endActionState, witnesses, actions } = await fetchActionWitnesses(
       contract,
       fromActionState,
-      this.actionType
+      actionType
     );
 
     // if there are no pending actions, there is no need to call the reducer
@@ -588,6 +687,9 @@ async function fetchActionWitnesses<T>(
     witnesses.push({ hash: actionsHash, stateBefore: actionState });
     actionState = ActionsBigint.updateSequenceState(actionState, actionsHash);
   }
+  // sanity check
+  actions.hash.assertEquals(actionState, 'inconsistent action state hash');
+
   return { endActionState: actionState, witnesses, actions };
 }
 
