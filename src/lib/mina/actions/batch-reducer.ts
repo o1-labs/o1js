@@ -341,8 +341,9 @@ class BatchReducer<
   ) {
     if (!(actions instanceof Unconstrained)) {
       // convert MerkleActions to ActionWitnesses
-      actions = Unconstrained.from(
-        actions.data.get().map(({ element, previousHash }) => ({
+      let data = actions.data;
+      actions = Unconstrained.witness(() =>
+        data.get().map(({ element, previousHash }) => ({
           hash: element.hash.toBigInt(),
           stateBefore: previousHash.toBigInt(),
         }))
