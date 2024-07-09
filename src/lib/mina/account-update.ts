@@ -846,14 +846,9 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     let isInterval = 'lower' in property.value && 'upper' in property.value;
     let newValue = isInterval ? { lower: value, upper: value } : value;
-    ensureConsistentPrecondition(property, newValue);
+    ensureConsistentPrecondition(property, Bool(true), newValue);
     property.isSome = Bool(true);
-    if (isInterval) {
-      (property.value as ClosedInterval<T>).lower = value;
-      (property.value as ClosedInterval<T>).upper = value;
-    } else {
-      property.value = value as T;
-    }
+    property.value = value as T;
   }
 
   get publicKey(): PublicKey {

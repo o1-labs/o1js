@@ -321,7 +321,7 @@ function preconditionSubClassWithRange<
         longKey
       );
       let newValue = { lower, upper };
-      ensureConsistentPrecondition(property, newValue);
+      ensureConsistentPrecondition(property, Bool(true), newValue);
       property.isSome = Bool(true);
       property.value = newValue;
     },
@@ -368,13 +368,8 @@ function preconditionSubclass<
       if ('isSome' in property) {
         let isInterval = 'lower' in property.value && 'upper' in property.value;
         let newValue = isInterval ? { lower: value, upper: value } : value;
-        ensureConsistentPrecondition(property, newValue);
-        if (isInterval) {
-          (property.value as { lower: U; upper: U }).lower = value;
-          (property.value as { lower: U; upper: U }).upper = value;
-        } else {
-          property.value = value;
-        }
+        ensureConsistentPrecondition(property, Bool(true), newValue);
+        property.value = value;
         property.isSome = Bool(true);
       } else {
         setPath(accountUpdate.body.preconditions, longKey, value);
@@ -572,8 +567,9 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
  * @throws {Error} Throws an error with a detailed message if attempting to set an inconsistent precondition.
  * @todo It would be nice to have the input parameter types more specific, but it's hard to do with the current implementation.
  */
-function ensureConsistentPrecondition(property: any, value: any) {
-  let errorMessage = `
+function ensureConsistentPrecondition(property: any, newIsSome, value: any) {
+  if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
+    let errorMessage = `
       Precondition Error: Attempting to set a precondition that is already set.
       Preconditions must be set only once to avoid overwriting previous assertions. 
       For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
@@ -590,8 +586,8 @@ function ensureConsistentPrecondition(property: any, value: any) {
       // Correct Usage:
       timestamp.requireBetween(newUInt32(0n), newUInt32(3n));
     `;
-  if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
-    property.isSome.assertEquals(Bool(true), errorMessage);
+
+    property.isSome.assertEquals(newIsSome, errorMessage);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower.assertEquals(value.lower, errorMessage);
       property.value.upper.assertEquals(value.upper, errorMessage);
