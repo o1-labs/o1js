@@ -337,9 +337,18 @@ class BatchReducer<
   _buildStack(
     maxUpdatesInStack: number,
     stackState: ActionStackState,
-    witnesses: Unconstrained<ActionWitnesses>
+    actions: Unconstrained<ActionWitnesses> | MerkleActions<Action>
   ) {
-    return actionStackChunk(maxUpdatesInStack, stackState, witnesses);
+    if (!(actions instanceof Unconstrained)) {
+      // convert MerkleActions to ActionWitnesses
+      actions = Unconstrained.from(
+        actions.data.get().map(({ element, previousHash }) => ({
+          hash: element.hash.toBigInt(),
+          stateBefore: previousHash.toBigInt(),
+        }))
+      );
+    }
+    return actionStackChunk(maxUpdatesInStack, stackState, actions);
   }
 
   _processStack(
@@ -427,38 +436,35 @@ class BatchReducer<
     });
     const MerkleActionsT = MerkleActions(this.actionType, fromActionState);
 
-    let { actions, witnesses } = await Provable.witnessAsync(
-      Struct({
-        actions: MerkleActionsT.provable,
-        witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
-      }),
+    let actions = await Provable.witnessAsync(
+      MerkleActionsT.provable,
       async () => {
-        let { witnesses, actions } = await fetchActionWitnesses(
+        let { actions } = await fetchActionWitnesses(
           contract,
           fromActionState.toBigInt(),
           this.actionType
         );
-        return { actions, witnesses: Unconstrained.from(witnesses) };
+        return actions;
       }
     );
     contract.actionState.requireEquals(fromActionState);
     contract.account.actionState.requireEquals(actions.hash);
 
-    return { processedActionState: fromActionState, actions, witnesses };
+    return { processedActionState: fromActionState, actions };
   }
 
   async unsafeProcessNextBatch(
     maxUpdates = this.maxUpdatesFinalProof,
     callback: (action: Action, isDummy: Bool, i: number) => void
   ) {
-    // get actions, and witnesses needed to build a stack (TODO the witnesses are already on the actions!!! remove them)
-    let { processedActionState, actions, witnesses } = await this.getActions();
+    // get actions to build a stack
+    let { processedActionState, actions } = await this.getActions();
 
     // move actions over to reverse stack
     let stackState = this._buildStack(
       maxUpdates,
       { actions: actions.hash, stack: BatchReducer.initialActionStack },
-      witnesses
+      actions
     );
 
     // assert that stack goes back to the processed action state
