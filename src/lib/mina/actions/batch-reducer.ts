@@ -71,12 +71,65 @@ class BatchReducer<
     batchSize,
     maxUpdatesPerProof = 300,
     maxUpdatesFinalProof = 100,
-    maxActionsPerUpdate = batchSize,
+    maxActionsPerUpdate = Math.min(batchSize, 5),
   }: {
+    /**
+     * The provable type of actions submitted by this reducer.
+     */
     actionType: ActionType;
+
+    /**
+     * The number of actions in a batch. The idea is to process one batch per transaction, by calling `processBatch()`.
+     *
+     * The motivation for processing actions in small batches is to work around the protocol limit on the number of account updates.
+     * If every action should result in an account update, then you have to set the batch size low enough to not exceed the limit.
+     *
+     * If transaction limits are no concern, the `batchSize` could be set based on amount of logic you do per action.
+     * A smaller batch size will make proofs faster, but you might need more individual transactions as more batches are needed to process all pending actions.
+     */
     batchSize: BatchSize;
+
+    /**
+     * The maximum number of action lists (= all actions on an account update) to process in a single recursive proof, in `prepareBatches()`.
+     *
+     * Default: 300, which will take up about 9000 constraints.
+     *
+     * The current default should be sensible for most applications, but here are some trade-offs to consider when changing it:
+     *
+     * - Using a smaller number means a smaller circuit, so recursive proofs will be faster.
+     * - Using a bigger number means you'll need fewer recursive proofs in the case a lot of actions are pending.
+     *
+     * So, go lower if you expect very few actions, and higher if you expect a lot of actions.
+     * (Note: A larger circuit causes longer compilation and proof times for your zkApp even if you _never_ need a recursive proof)
+     */
     maxUpdatesPerProof?: number;
+
+    /**
+     * The maximum number of action lists (= all actions on an account update) to process inside `processBatch()`,
+     * i.e. in your zkApp method.
+     *
+     * Default: 100, which will take up about 3000 constraints.
+     *
+     * The current default should be sensible for most applications, but here are some trade-offs to consider when changing it:
+     *
+     * - Using a smaller number means a smaller circuit, so proofs of your method will be faster.
+     * - Using a bigger number means it's more likely that you can prove _all_ actions in the method call and won't need a recursive proof.
+     *
+     * So, go lower if you expect very few actions, and higher if you expect a lot of actions.
+     */
     maxUpdatesFinalProof?: number;
+
+    /**
+     * The maximum number of actions dispatched in any of the zkApp methods on the contract.
+     *
+     * Note: This number just has to be an upper bound of the actual maximum, but if it's the precise number,
+     * fewer constraints will be used. (The overhead of a higher number is fairly small though.)
+     *
+     * A restriction is that the number has to be less or equal than the `batchSize`.
+     * The reason is that actions in one account update are always processed together, so if you'd have more actions in one than the batch size, we couldn't process them at all.
+     *
+     * By default, this is set to `Math.min(batchSize, 5)` which should be sensible for most applications.
+     */
     maxActionsPerUpdate?: number;
   }) {
     this.batchSize = batchSize;
@@ -160,15 +213,23 @@ class BatchReducer<
     );
   }
 
-  // TODO: `dispatchIf()` would be nice
-
   /**
    * Process a batch of actions which was created by `prepareBatches()`.
    *
    * **Important**: The callback exposes the action's value along with an `isDummy` flag.
    * This is necessary because we process a dynamically-sized list in a fixed number of steps.
    * Dummies will be passed to your callback once the actual actions are exhausted.
-   * Make sure to write your code to account for dummies.
+   *
+   * Make sure to write your code to account for dummies. For example, when sending MINA from your contract for every action,
+   * you probably want to zero out the balance decrease in the `isDummy` case:
+   * ```ts
+   * processBatch({ batch, proof }, (action, isDummy) => {
+   *   // ... other logic ...
+   *
+   *   let amountToSend = Provable.if(isDummy, UInt64.zero, action.amount);
+   *   this.balance.subInPlace(amountToSend);
+   * });
+   * ```
    *
    * **Warning**: Don't call `processBatch()` on two _different_ batches within the same method. The second call
    * would override the preconditions set by the first call, which would leave the method insecure.
