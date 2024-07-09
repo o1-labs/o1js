@@ -270,7 +270,33 @@ class BatchReducer<
     );
 
     // step 1. continue the proof that pops pending onchain actions to build up the final stack
-    let stackingResult = this._finishStackProof({ batch, proof });
+    let { isRecursive } = batch;
+    proof.verifyIf(isRecursive);
+
+    // if the proof is valid, it has to start from onchain action state
+    Provable.assertEqualIf(
+      isRecursive,
+      Field,
+      proof.publicInput,
+      onchainActionState
+    );
+
+    // the final piece of the proof either starts from the onchain action state + an empty stack,
+    // or from the previous proof output
+    let initialState = { actions: onchainActionState, stack: emptyActionState };
+    let startState = Provable.if(
+      isRecursive,
+      ActionStackState,
+      proof.publicOutput,
+      initialState
+    );
+
+    // finish creating the new stack
+    let stackingResult = this._buildStack(
+      this.maxUpdatesFinalProof,
+      startState,
+      batch.witnesses
+    );
 
     // step 2. pick the correct stack of actions to process
 
@@ -306,45 +332,6 @@ class BatchReducer<
     // step 4. update the onchain processed action state and stack
     contract.actionState.set(processedActionState);
     contract.actionStack.set(stack.hash);
-  }
-
-  _finishStackProof({
-    batch,
-    proof,
-  }: {
-    batch: Pick<
-      ActionBatch<Action>,
-      'isRecursive' | 'onchainActionState' | 'witnesses'
-    >;
-    proof: ActionStackProof;
-  }) {
-    let { isRecursive, onchainActionState } = batch;
-    proof.verifyIf(isRecursive);
-
-    // if the proof is valid, it has to start from onchain action state
-    Provable.assertEqualIf(
-      isRecursive,
-      Field,
-      proof.publicInput,
-      onchainActionState
-    );
-
-    // the final piece of the proof either starts from the onchain action state + an empty stack,
-    // or from the previous proof output
-    let initialState = { actions: onchainActionState, stack: emptyActionState };
-    let startState = Provable.if(
-      isRecursive,
-      ActionStackState,
-      proof.publicOutput,
-      initialState
-    );
-
-    // finish creating the new stack
-    return this._buildStack(
-      this.maxUpdatesFinalProof,
-      startState,
-      batch.witnesses
-    );
   }
 
   _buildStack(
