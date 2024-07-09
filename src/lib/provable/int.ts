@@ -1155,9 +1155,22 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Negates the value.
+   * Negates the current Int64 value.
    *
-   * `Int64.from(5).neg()` will turn into `Int64.from(-5)`
+   * This method returns a new Int64 instance with the opposite sign of the current value.
+   * If the current value is zero, it returns zero.
+   *
+   * @returns A new Int64 instance with the negated value.
+   *
+   * @example
+   * ```ts
+   * Int64.from(5).negV2();
+   * ```
+   *
+   * @see {@link Int64#from} for creating Int64 instances
+   * @see {@link Int64#zero} for the zero constant
+   *
+   * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */
   negV2() {
     return Provable.if(
@@ -1215,10 +1228,25 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Integer remainder.
+   * Calculates the integer remainder of this Int64 divided by the given value.
    *
-   * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisible by `y`.
+   * The result `z` satisfies the following conditions:
+   * 1. 0 <= z < |y|
+   * 2. x - z is divisible by y
+   *
+   * Note: This method follows the "truncate toward zero" convention for negative numbers.
+   *
+   * @param y - The divisor. Will be converted to UInt64 if not already.
+   * @returns A new Int64 instance representing the remainder.
+   *
+   * @example
+   * ```ts
+   * const x1 = Int64.from(17);
+   * const y1 = UInt64.from(5);
+   * console.log(x1.modV2(y1).toString()); // Output: 2
+   * ```
+   *
+   * @throws {Error} Implicitly, if y is zero or negative.
    */
   modV2(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
