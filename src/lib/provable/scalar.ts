@@ -51,6 +51,13 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
+   * Provable method to convert a {@link ShiftedScalar} to a {@link Scalar}.
+   */
+  static fromShiftedScalar(s: ShiftedScalar) {
+    return new Scalar(s.lowBit, s.high254);
+  }
+
+  /**
    * Provable method to convert a {@link Field} into a {@link Scalar}.
    *
    * This is always possible and unambiguous, since the scalar field is larger than the base field.

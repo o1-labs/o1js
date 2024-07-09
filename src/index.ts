@@ -19,6 +19,7 @@ export {
   EcdsaSignature,
   EcdsaSignatureV2,
 } from './lib/provable/crypto/foreign-ecdsa.js';
+export { ScalarField } from './lib/provable/scalar-field.js';
 export {
   Poseidon,
   TokenSymbol,

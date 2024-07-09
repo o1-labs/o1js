@@ -129,6 +129,8 @@ type AnyConstructor = Constructor<any>;
  * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
  * From the circuit point of view, it simply doesn't exist!
  *
+ * @note Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
+ *
  * @param type Object specifying the layout of the `Struct`
  * @param options Advanced option which allows you to force a certain order of object keys
  * @returns Class which you can extend

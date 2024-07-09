@@ -17,6 +17,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/ed198f305...HEAD)
 
+### Added
+
+- `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
+- Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
+
+### Deprecated
+
+- Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
+- `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
+
+### Fixed
+
+- Fix reversed order of account updates when using `TokenContract.approveAccountUpdates()` https://github.com/o1-labs/o1js/pull/1722
+- Fixed the static `check()` method in Struct classes to properly handle inheritance, preventing issues with under-constrained circuits. Added error handling to avoid using Struct directly as a field type. https://github.com/o1-labs/o1js/pull/1707
+
 ## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
 
 ### Added
@@ -29,7 +44,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Deprecated
 
 - `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
-- `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
