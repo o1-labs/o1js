@@ -1,8 +1,8 @@
 import {
   ZkProgram,
   Crypto,
-  createEcdsa,
-  createForeignCurve,
+  createEcdsaV2,
+  createForeignCurveV2,
   Bytes,
   assert,
   Provable,
@@ -18,9 +18,9 @@ import {
 
 export { diverse, Bytes128 };
 
-class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
+class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
 class Secp256k1Scalar extends Secp256k1.Scalar {}
-class Secp256k1Signature extends createEcdsa(Secp256k1) {}
+class Secp256k1Signature extends createEcdsaV2(Secp256k1) {}
 
 class Bytes128 extends Bytes(128) {}
 
