@@ -28,7 +28,6 @@ import {
   OrIgnore,
   ClosedInterval,
   getAccountPreconditions,
-  ensureConsistentPrecondition,
 } from './precondition.js';
 import {
   dummyBase64Proof,
@@ -845,7 +844,12 @@ class AccountUpdate implements Types.AccountUpdate {
     value: T
   ) {
     property.isSome = Bool(true);
-    property.value = value;
+    if ('lower' in property.value && 'upper' in property.value) {
+      property.value.lower = value;
+      property.value.upper = value;
+    } else {
+      property.value = value;
+    }
   }
 
   get publicKey(): PublicKey {

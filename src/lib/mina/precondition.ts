@@ -369,8 +369,8 @@ function preconditionSubclass<
         let isInterval = 'lower' in property.value && 'upper' in property.value;
         let newValue = isInterval ? { lower: value, upper: value } : value;
         ensureConsistentPrecondition(property, Bool(true), newValue, longKey);
-        property.value = value;
         property.isSome = Bool(true);
+        property.value = newValue;
       } else {
         setPath(accountUpdate.body.preconditions, longKey, value);
       }
