@@ -8,6 +8,8 @@ import { Account } from './account.js';
 import { Provable } from '../provable/provable.js';
 import { Field } from '../provable/wrapped.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ensureConsistentPrecondition } from './precondition.js';
+import { Bool } from '../provable/wrapped.js';
 
 // external API
 export { State, state, declareState };
@@ -220,10 +222,15 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        AccountUpdate.assertEquals(
-          accountUpdate.body.preconditions.account.state[layout.offset + i],
-          x
+        let precondition =
+          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        ensureConsistentPrecondition(
+          precondition,
+          Bool(true),
+          x,
+          this._contract?.key
         );
+        AccountUpdate.assertEquals(precondition, x);
       });
       this._contract.wasConstrained = true;
     },

@@ -321,7 +321,7 @@ function preconditionSubClassWithRange<
         longKey
       );
       let newValue = { lower, upper };
-      ensureConsistentPrecondition(property, Bool(true), newValue);
+      ensureConsistentPrecondition(property, Bool(true), newValue, longKey);
       property.isSome = Bool(true);
       property.value = newValue;
     },
@@ -368,7 +368,7 @@ function preconditionSubclass<
       if ('isSome' in property) {
         let isInterval = 'lower' in property.value && 'upper' in property.value;
         let newValue = isInterval ? { lower: value, upper: value } : value;
-        ensureConsistentPrecondition(property, Bool(true), newValue);
+        ensureConsistentPrecondition(property, Bool(true), newValue, longKey);
         property.value = value;
         property.isSome = Bool(true);
       } else {
@@ -563,14 +563,20 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
  * @param property - The property object containing the precondition information.
  * @param newIsSome - A boolean or CircuitValue indicating whether the new precondition should exist.
  * @param value - The new value for the precondition. Can be a simple value or an object with 'lower' and 'upper' properties for range preconditions.
+ * @param name - The name of the precondition for error messages.
  *
  * @throws {Error} Throws an error with a detailed message if attempting to set an inconsistent precondition.
  * @todo It would be nice to have the input parameter types more specific, but it's hard to do with the current implementation.
  */
-function ensureConsistentPrecondition(property: any, newIsSome, value: any) {
+function ensureConsistentPrecondition(
+  property: any,
+  newIsSome: any,
+  value: any,
+  name: any
+) {
   if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
     let errorMessage = `
-      Precondition Error: Attempting to set a precondition that is already set.
+      Precondition Error: Attempting to set a precondition that is already set: '${name}'.
       Preconditions must be set only once to avoid overwriting previous assertions. 
       For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
 
@@ -586,13 +592,12 @@ function ensureConsistentPrecondition(property: any, newIsSome, value: any) {
       // Correct Usage:
       timestamp.requireBetween(newUInt32(0n), newUInt32(3n));
     `;
-
-    property.isSome.assertEquals(newIsSome, errorMessage);
+    property.isSome.equals(newIsSome).assertTrue(errorMessage);
     if ('lower' in property.value && 'upper' in property.value) {
-      property.value.lower.assertEquals(value.lower, errorMessage);
-      property.value.upper.assertEquals(value.upper, errorMessage);
+      property.value.lower.equals(value.lower).assertTrue(errorMessage);
+      property.value.upper.equals(value.lower).assertTrue(errorMessage);
     } else {
-      property.value.assertEquals(value, errorMessage);
+      property.value.equals(value).assertTrue(errorMessage);
     }
   }
 }
