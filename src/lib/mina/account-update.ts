@@ -818,6 +818,7 @@ class AccountUpdate implements Types.AccountUpdate {
     lower: T,
     upper: T
   ) {
+    ensureConsistentPrecondition(property, Bool(true), { lower, upper });
     property.isSome = Bool(true);
     property.value.lower = lower;
     property.value.upper = upper;
