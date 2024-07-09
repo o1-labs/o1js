@@ -15,10 +15,6 @@ import { tokenMethods } from './token-methods.js';
 
 export { TokenContract };
 
-// it's fine to have this restriction, because the protocol also has a limit of ~20
-// TODO find out precise protocol limit
-const MAX_ACCOUNT_UPDATES = 20;
-
 /**
  * Base token contract which
  * - implements the `Approvable` API, with the `approveBase()` method left to be defined by subclasses
@@ -26,6 +22,10 @@ const MAX_ACCOUNT_UPDATES = 20;
  */
 abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
+
+  // it's fine to have this restriction, because the protocol also has a limit of ~20
+  // TODO find out precise protocol limit
+  static MAX_ACCOUNT_UPDATES = 20;
 
   /**
    * Deploys a {@link TokenContract}.
@@ -97,7 +97,7 @@ abstract class TokenContract extends SmartContract {
     );
 
     // iterate through the forest and apply user-defined logc
-    for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
+    for (let i = 0; i < TokenContract.MAX_ACCOUNT_UPDATES; i++) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -105,7 +105,7 @@ abstract class TokenContract extends SmartContract {
     // prove that we checked all updates
     iterator.assertFinished(
       `Number of account updates to approve exceed ` +
-        `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
+        `the supported limit of ${TokenContract.MAX_ACCOUNT_UPDATES}.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
