@@ -2,7 +2,7 @@ import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { emptyValue } from '../proof-system/zkprogram.js';
 import { Provable } from './provable.js';
 import { InferProvable, Struct } from './types/struct.js';
-import { provable } from './types/provable-derivers.js';
+import { provable, ProvableInferPureFrom } from './types/provable-derivers.js';
 import { Bool } from './wrapped.js';
 
 export { Option, OptionOrValue };
@@ -36,7 +36,8 @@ type OptionOrValue<T, V> =
  */
 function Option<A extends Provable<any, any>>(
   type: A
-): Provable<
+): ProvableInferPureFrom<
+  A,
   Option<InferProvable<A>, InferValue<A>>,
   InferValue<A> | undefined
 > &

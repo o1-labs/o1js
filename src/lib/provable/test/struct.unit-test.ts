@@ -265,4 +265,16 @@ await tx.prove();
 // assert that prover got the target string
 expect(gotTargetString).toEqual(true);
 
+// Having `Struct` as a property is not allowed
+class InvalidStruct extends Struct({
+  inner: Struct,
+}) {}
+
+expect(() => {
+  let invalidStruct = new InvalidStruct({
+    inner: MyStruct.empty(),
+  });
+  InvalidStruct.check(invalidStruct);
+}).toThrow();
+
 console.log('provable types work as expected! 🎉');

@@ -118,6 +118,12 @@ const Provable = {
    */
   assertEqual,
   /**
+   * Asserts that two values are equal, if an enabling condition is true.
+   *
+   * If the condition is false, the assertion is skipped.
+   */
+  assertEqualIf,
+  /**
    * Checks if two elements are equal.
    * @example
    * ```ts
@@ -385,6 +391,15 @@ function switch_<T, A extends FlexibleProvable<T>>(
     return values[i];
   });
   return (type as Provable<T>).fromFields(fields, aux);
+}
+
+function assertEqualIf<
+  A extends Provable<any>,
+  T extends InferProvable<A> = InferProvable<A>
+>(enabled: Bool, type: A, x: T, y: T) {
+  // if the condition is disabled, we check the trivial identity x === x instead
+  let xOrY = ifExplicit<T>(enabled, type, y, x);
+  assertEqual(type, x, xOrY);
 }
 
 function isConstant<T>(type: Provable<T>, x: T): boolean {
