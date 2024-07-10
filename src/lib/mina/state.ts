@@ -251,10 +251,17 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((stateField, i) => {
+        let value = Provable.if(condition, stateField, Field(0));
+        ensureConsistentPrecondition(
+          accountUpdate.body.preconditions.account.state[layout.offset + i],
+          condition,
+          value,
+          this._contract?.key
+        );
         let state =
           accountUpdate.body.preconditions.account.state[layout.offset + i];
         state.isSome = condition;
-        state.value = Provable.if(condition, stateField, Field(0));
+        state.value = value;
       });
       this._contract.wasConstrained = true;
     },

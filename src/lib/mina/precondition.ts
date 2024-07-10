@@ -408,25 +408,30 @@ function preconditionSubclass<
       assertInternal('isSome' in property);
       property.isSome = condition;
       if ('lower' in property.value && 'upper' in property.value) {
-        property.value.lower = Provable.if(
+        let lower = Provable.if(
           condition,
           fieldType,
           value,
           defaultLower(fieldType) as U
         );
-        property.value.upper = Provable.if(
+        let upper = Provable.if(
           condition,
           fieldType,
           value,
           defaultUpper(fieldType) as U
         );
+        ensureConsistentPrecondition(property, condition, value, longKey);
+        property.value.lower = lower;
+        property.value.upper = upper;
       } else {
-        property.value = Provable.if(
+        ensureConsistentPrecondition(property, condition, value, longKey);
+        let newValue = Provable.if(
           condition,
           fieldType,
           value,
           fieldType.empty()
         );
+        property.value = newValue;
       }
     },
     requireNothing() {
