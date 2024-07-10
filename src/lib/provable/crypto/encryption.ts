@@ -85,16 +85,16 @@ function decryptV2(
   privateKey: PrivateKey
 ) {
   // key exchange
-  let sharedSecret = publicKey.scale(privateKey.s);
-  let sponge = new Poseidon.Sponge();
+  const sharedSecret = publicKey.scale(privateKey.s);
+  const sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x);
-  let authenticationTag = cipherText.pop();
+  const authenticationTag = cipherText.pop();
 
   // decryption
-  let message = [];
+  const message = [];
   for (let i = 0; i < cipherText.length; i++) {
-    let keyStream = sponge.squeeze();
-    let messageChunk = cipherText[i].sub(keyStream);
+    const keyStream = sponge.squeeze();
+    const messageChunk = cipherText[i].sub(keyStream);
 
     // convert to bytes
     const byteMessage = wordToBytes(messageChunk, 32);
@@ -119,7 +119,7 @@ function decryptV2(
 
   // calculate padding
   const multipleOf = 31;
-  let n = Math.ceil(messageLength / multipleOf) * multipleOf;
+  const n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
   // return the message as a flat array of bytes, slice the padding off of the final message
   return Bytes.from(message.flat().slice(0, messageLength - n));
@@ -133,38 +133,38 @@ function encryptV2(
 } {
   const bytes = message.bytes;
   const messageLength = bytes.length;
-  // pad message to a multiple of 31 so that we can then later append a frame bit to the message
+
+  // pad message to a multiple of 31 so that we can append a frame bit to the message
   const multipleOf = 31;
-  let n = Math.ceil(messageLength / multipleOf) * multipleOf;
+  const n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
   // create the padding
-  let padding = Array.from({ length: n - messageLength }, () => UInt8.from(0));
+  const padding = Array.from({ length: n - messageLength }, () =>
+    UInt8.from(0)
+  );
   message.bytes = bytes.concat(padding);
 
   // convert message into chunks of 31 bytes
   const chunks = message.chunk(31);
 
   // key exchange
-  let privateKey = Provable.witness(Scalar, () => Scalar.random());
-  let publicKey = Group.generator.scale(privateKey);
-  let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
+  const privateKey = Provable.witness(Scalar, () => Scalar.random());
+  const publicKey = Group.generator.scale(privateKey);
+  const sharedSecret = otherPublicKey.toGroup().scale(privateKey);
 
-  let sponge = new Poseidon.Sponge();
+  const sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x);
 
   // encryption
-  let cipherText = [];
+  const cipherText = [];
   for (let [n, chunk] of chunks.entries()) {
-    if (n === chunks.length - 1) {
-      // attach the one frame bit if its the last chunk
-      chunk = chunk.concat(UInt8.from(1));
-    } else {
-      // pad with zero frame bit
-      chunk = chunk.concat(UInt8.from(0));
-    }
+    // attach frame bit if its the last chunk
+    // pad with zero frame bit if its any other chunk
+    if (n === chunks.length - 1) chunk = chunk.concat(UInt8.from(1));
+    else chunk = chunk.concat(UInt8.from(0));
 
-    let keyStream = sponge.squeeze();
-    let encryptedChunk = bytesToWord(chunk).add(keyStream);
+    const keyStream = sponge.squeeze();
+    const encryptedChunk = bytesToWord(chunk).add(keyStream);
     cipherText.push(encryptedChunk);
 
     // absorb for the auth tag (two at a time for saving permutations)
@@ -173,7 +173,7 @@ function encryptV2(
   }
 
   // authentication tag
-  let authenticationTag = sponge.squeeze();
+  const authenticationTag = sponge.squeeze();
   cipherText.push(authenticationTag);
 
   return { publicKey, cipherText, messageLength };
