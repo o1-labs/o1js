@@ -1053,6 +1053,16 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
+   * Creates a new Int64 instance without checks. Use with caution.
+   * @param magnitude - The magnitude of the integer.
+   * @param [sgn=Sign.one] - The sign of the integer.
+   * @returns A new Int64 instance.
+   */
+  unsafe(magnitude: UInt64, sgn = Sign.one) {
+    return new Int64(magnitude, sgn);
+  }
+
+  /**
    * Creates a new {@link Int64} from a {@link Field}.
    *
    * Does check if the {@link Field} is within range.
@@ -1092,6 +1102,19 @@ class Int64 extends CircuitValue implements BalanceChange {
     }
     return Int64.fromFieldUnchecked(Field(x));
   }
+
+  static Unsafe = {
+    /**
+     * Creates a new Int64 instance from an object without checks. Use with caution.
+     * This is the original fromObject method from CircuitValue.
+     * @deprecated Use {@link Int64.fromObjectV2} instead.
+     */
+    fromObject: CircuitValue.fromObject as (obj: {
+      magnitude: UInt64 | number | string | bigint;
+      sgn: Sign | number | boolean;
+    }) => Int64,
+  };
+
   /**
    * Turns the {@link Int64} into a string.
    */
