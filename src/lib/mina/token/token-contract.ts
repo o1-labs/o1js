@@ -13,7 +13,7 @@ import { DeployArgs, SmartContract } from '../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import { tokenMethods } from './token-methods.js';
 
-export { TokenContract };
+export { TokenContract, TokenContractV2 };
 
 /**
  * Base token contract which
@@ -23,7 +23,6 @@ export { TokenContract };
 abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
 
-  // TODO find out precise protocol limit
   /** The maximum number of account updates using the token in a single
    * transaction that this contract supports. */
   static MAX_ACCOUNT_UPDATES = 20;
@@ -97,8 +96,8 @@ abstract class TokenContract extends SmartContract {
       this.deriveTokenId()
     );
 
-    // iterate through the forest and apply user-defined logc
-    for (let i = 0; i < TokenContract.MAX_ACCOUNT_UPDATES; i++) {
+    // iterate through the forest and apply user-defined logic
+    for (let i = 0; i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES; i++) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -106,7 +105,7 @@ abstract class TokenContract extends SmartContract {
     // prove that we checked all updates
     iterator.assertFinished(
       `Number of account updates to approve exceed ` +
-        `the supported limit of ${TokenContract.MAX_ACCOUNT_UPDATES}.\n`
+        `the supported limit of ${(this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES}.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
@@ -178,6 +177,15 @@ abstract class TokenContract extends SmartContract {
     let forest = toForest([from, to]);
     await this.approveBase(forest);
   }
+}
+
+/** Version of `TokenContract` with the precise number of `MAX_ACCOUNT_UPDATES`
+ * 
+ * The value of 20 in `TokenContract` was a rough upper limit, the precise upper
+ * bound is 9.
+ */
+abstract class TokenContractV2 extends TokenContract {
+  static MAX_ACCOUNT_UPDATES = 9;
 }
 
 function toForest(
