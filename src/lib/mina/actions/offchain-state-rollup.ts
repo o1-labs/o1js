@@ -40,14 +40,16 @@ class ActionIterator extends MerkleListIterator.create(
 class OffchainStateCommitments extends Struct({
   // this should just be a MerkleTree type that carries the full tree as aux data
   root: Field,
+  length: Field,
   // TODO: make zkprogram support auxiliary data in public inputs
   // actionState: ActionIterator.provable,
   actionState: Field,
 }) {
   static emptyFromHeight(height: number) {
-    let emptyMerkleRoot = new (IndexedMerkleMap(height))().root;
+    let emptyMerkleTree = new (IndexedMerkleMap(height))();
     return new OffchainStateCommitments({
-      root: emptyMerkleRoot,
+      root: emptyMerkleTree.root,
+      length: emptyMerkleTree.length,
       actionState: Actions.emptyActionState(),
     });
   }
@@ -97,9 +99,10 @@ function merkleUpdateBatch(
   }
   actions.assertAtEnd();
 
-  // tree must match the public Merkle root; the method operates on the tree internally
+  // tree must match the public Merkle root and length; the method operates on the tree internally
   // TODO: this would be simpler if the tree was the public input directly
   stateA.root.assertEquals(tree.root);
+  stateA.length.assertEquals(tree.length);
 
   let intermediateTree = tree.clone();
   let isValidUpdate = Bool(true);
@@ -108,13 +111,8 @@ function merkleUpdateBatch(
     let { action, isCheckPoint } = element;
     let { key, value, usesPreviousValue, previousValue } = action;
 
-    // make sure that if this is a dummy action, we use the canonical dummy (key, value) pair
-    key = Provable.if(isDummy, Field(0n), key);
-    value = Provable.if(isDummy, Field(0n), value);
-
-    // set (key, value) in the intermediate tree
-    // note: this just works if (key, value) is a (0,0) dummy, because the value at the 0 key will always be 0
-    let actualPreviousValue = intermediateTree.set(key, value);
+    // set (key, value) in the intermediate tree - if the action is not a dummy
+    let actualPreviousValue = intermediateTree.setIf(isDummy.not(), key, value);
 
     // if an expected previous value was provided, check whether it matches the actual previous value
     // otherwise, the entire update in invalidated
@@ -132,7 +130,11 @@ function merkleUpdateBatch(
     intermediateTree.overwriteIf(isCheckPoint, tree);
   });
 
-  return { root: tree.root, actionState: actions.currentHash };
+  return {
+    root: tree.root,
+    length: tree.length,
+    actionState: actions.currentHash,
+  };
 }
 
 /**
@@ -253,6 +255,7 @@ function OffchainStateRollup({
       let iterator = actions.startIterating();
       let inputState = new OffchainStateCommitments({
         root: tree.root,
+        length: tree.length,
         actionState: iterator.currentHash,
       });
 
@@ -276,6 +279,7 @@ function OffchainStateRollup({
 
         let finalState = new OffchainStateCommitments({
           root: tree.root,
+          length: tree.length,
           actionState: iterator.hash,
         });
         let proof = await RollupProof.dummy(inputState, finalState, 2, 15);
@@ -289,7 +293,7 @@ function OffchainStateRollup({
       // update tree root/length again, they aren't mutated :(
       // TODO: this shows why the full tree should be the public output
       tree.root = proof.publicOutput.root;
-      tree.length = Field(tree.data.get().sortedLeaves.length);
+      tree.length = proof.publicOutput.length;
 
       // recursive proofs
       let nProofs = 1;
@@ -307,7 +311,7 @@ function OffchainStateRollup({
 
         // update tree root/length again, they aren't mutated :(
         tree.root = proof.publicOutput.root;
-        tree.length = Field(tree.data.get().sortedLeaves.length);
+        tree.length = proof.publicOutput.length;
       }
 
       return { proof, tree, nProofs };
