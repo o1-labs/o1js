@@ -254,6 +254,12 @@ function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
       context.constrained.add('validWhile');
       let property: RangeCondition<UInt32> =
         accountUpdate.body.preconditions.validWhile;
+      ensureConsistentPrecondition(
+        property,
+        Bool(true),
+        { lower, upper },
+        'validWhile'
+      );
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
