@@ -77,7 +77,11 @@ function decrypt(
 // v2
 
 function decryptV2(
-  { publicKey, cipherText }: CipherText,
+  {
+    publicKey,
+    cipherText,
+    messageLength,
+  }: CipherText & { messageLength: number },
   privateKey: PrivateKey
 ) {
   // key exchange
@@ -113,19 +117,28 @@ function decryptV2(
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);
 
-  // return the message as a flat array of bytes
-  return message.flat();
+  // calculate padding
+  const multipleOf = 31;
+  let n = Math.ceil(messageLength / multipleOf) * multipleOf;
+
+  // return the message as a flat array of bytes, slice the padding off of the final message
+  return message.flat().slice(0, messageLength - n);
 }
 
-function encryptV2(message: Bytes, otherPublicKey: PublicKey): CipherText {
+function encryptV2(
+  message: Bytes,
+  otherPublicKey: PublicKey
+): CipherText & {
+  messageLength: number;
+} {
   const bytes = message.bytes;
-
+  const messageLength = bytes.length;
   // pad message to a multiple of 31 so that we can then later append a frame bit to the message
   const multipleOf = 31;
-  let n = Math.ceil(bytes.length / multipleOf) * multipleOf;
+  let n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
   // create the padding
-  let padding = Array.from({ length: n - bytes.length }, () => UInt8.from(0));
+  let padding = Array.from({ length: n - messageLength }, () => UInt8.from(0));
   message.bytes = bytes.concat(padding);
 
   // convert message into chunks of 31 bytes
@@ -163,5 +176,5 @@ function encryptV2(message: Bytes, otherPublicKey: PublicKey): CipherText {
   let authenticationTag = sponge.squeeze();
   cipherText.push(authenticationTag);
 
-  return { publicKey, cipherText };
+  return { publicKey, cipherText, messageLength };
 }
