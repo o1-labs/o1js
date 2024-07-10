@@ -1048,14 +1048,56 @@ class Int64 extends CircuitValue implements BalanceChange {
   // The second point is one of the main things an Int64 is used for, and was the original motivation to use 2 fields.
   // Overall, I think the existing implementation is the optimal one.
 
+  /**
+   * @deprecated Use {@link Int64.create} for safe creation.
+   *
+   * WARNING: This constructor allows for ambiguous representation of zero (both +0 and -0).
+   * This can lead to unexpected behavior in operations like {@link isPositive()} and {@link mod()}.
+   *
+   * Security Implications:
+   * 1. A malicious prover could choose either positive or negative zero.
+   * 2. Arithmetic operations that result in 0 may allow an attacker to arbitrarily choose the sign.
+   * 3. This ambiguity could be exploited in protocols using Int64s for calculations like PNL tracking.
+   *
+   * Recommended Fix:
+   * Use Int64.create() which enforces a canonical representation of zero, or
+   * explicitly handle the zero case in operations like mod().
+   *
+   * @param magnitude - The magnitude of the integer as a UInt64.
+   * @param [sgn=Sign.one] - The sign of the integer. Default is positive (Sign.one).
+   */
   constructor(magnitude: UInt64, sgn = Sign.one) {
     super(magnitude, sgn);
   }
 
   /**
+   * Safely creates a new Int64 instance, enforcing canonical representation of zero.
+   * This is the recommended way to create Int64 instances.
+   *
+   * @param magnitude - The magnitude of the integer as a UInt64
+   * @param sgn - The sign of the integer.
+   * @returns A new Int64 instance with a canonical representation.
+   *
+   * @example
+   * ```ts
+   * const x = Int64.create(0); // canonical representation of zero
+   * ```
+   */
+  static create(magnitude: UInt64, sign: Sign = Sign.one): Int64 {
+    const mag = UInt64.from(magnitude);
+    const isZero = mag.equals(UInt64.zero);
+    const canonicalSign = Provable.if(isZero, Sign.one, sign);
+    return new Int64(mag, canonicalSign);
+  }
+
+  /**
    * Creates a new Int64 instance without checks. Use with caution.
-   * @param magnitude - The magnitude of the integer.
-   * @param [sgn=Sign.one] - The sign of the integer.
+   *
+   * WARNING: This method allows creation of Int64 instances with ambiguous zero representation.
+   * It should only be used in contexts where this ambiguity is explicitly handled or irrelevant.
+   *
+   * @param magnitude - The magnitude of the integer as a UInt64.
+   * @param [sgn=Sign.one] - The sign of the integer. Default is positive (Sign.one).
    * @returns A new Int64 instance.
    */
   unsafe(magnitude: UInt64, sgn = Sign.one) {
