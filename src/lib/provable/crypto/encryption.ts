@@ -122,7 +122,7 @@ function decryptV2(
   let n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
   // return the message as a flat array of bytes, slice the padding off of the final message
-  return message.flat().slice(0, messageLength - n);
+  return Bytes.from(message.flat().slice(0, messageLength - n));
 }
 
 function encryptV2(
