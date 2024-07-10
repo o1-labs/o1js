@@ -1167,7 +1167,10 @@ class AccountUpdate implements Types.AccountUpdate {
   static empty() {
     return AccountUpdate.dummy();
   }
-  static check = Types.AccountUpdate.check;
+  static check = (au: AccountUpdate) => {
+    Types.AccountUpdate.check(au);
+    Types.MayUseToken.check(au.body.mayUseToken);
+  };
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
     let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);
     return Object.assign(
