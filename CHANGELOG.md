@@ -20,14 +20,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - A warning about the current reducer API limitations, as well as a mention of active work to mitigate them was added to doc comments and examples https://github.com/o1-labs/o1js/pull/1728
-
 - `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
 - Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
+- `Int64.create()` method for safe instance creation with canonical zero representation https://github.com/o1-labs/o1js/pull/1735
+- New V2 methods for `Int64` operations: `fromFieldV2()`, `fromFieldUncheckedV2()`, `divV2()`, `isPositiveV2()` https://github.com/o1-labs/o1js/pull/1735
 
 ### Deprecated
 
 - Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
 - `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
+- `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
+- Original `fromField()`, `fromFieldUnchecked()`, `div()`, and `isPositive()` methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
 
 ### Fixed
 
