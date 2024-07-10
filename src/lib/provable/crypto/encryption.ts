@@ -14,6 +14,7 @@ type CipherText = {
 };
 
 /**
+ * @deprecated Use {@link encryptV2} instead.
  * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
  */
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
@@ -43,6 +44,7 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
 }
 
 /**
+ * @deprecated Use {@link decryptV2} instead.
  * Decrypts a {@link CipherText} using a {@link PrivateKey}.^
  */
 function decrypt(
@@ -90,31 +92,40 @@ function decryptV2(
     let keyStream = sponge.squeeze();
     let messageChunk = cipherText[i].sub(keyStream);
 
-    const withFrameBit = wordToBytes(messageChunk, 32);
-    const frameBit = withFrameBit.pop()!;
+    // convert to bytes
+    const byteMessage = wordToBytes(messageChunk, 32);
 
+    // pop frame bit
+    const frameBit = byteMessage.pop()!;
+
+    // check frame bit - if last element of the cipher text, frame bit must equal 1
+    // otherwise 0
     if (i === cipherText.length - 1) frameBit.assertEquals(1);
     else frameBit.assertEquals(0);
-
-    message.push(bytesToWord(withFrameBit));
+    // push the message to our final message array
+    message.push(byteMessage);
 
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
     if (i % 2 === 1 || i === cipherText.length - 1)
       sponge.absorb(cipherText[i]);
   }
+
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);
 
-  return message;
+  // return the message as a flat array of bytes
+  return message.flat();
 }
 
 function encryptV2(message: Bytes, otherPublicKey: PublicKey): CipherText {
-  // pad message to a multiple of 31 so that we can then later append a frame bit to the message
   const bytes = message.bytes;
+
+  // pad message to a multiple of 31 so that we can then later append a frame bit to the message
   const multipleOf = 31;
   let n = Math.ceil(bytes.length / multipleOf) * multipleOf;
-  let padding = Array.from({ length: n - bytes.length }, () => UInt8.from(0));
 
+  // create the padding
+  let padding = Array.from({ length: n - bytes.length }, () => UInt8.from(0));
   message.bytes = bytes.concat(padding);
 
   // convert message into chunks of 31 bytes
@@ -128,21 +139,16 @@ function encryptV2(message: Bytes, otherPublicKey: PublicKey): CipherText {
   let sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x);
 
-  // frame bits
-  const zeroBit = [UInt8.from(0)];
-  const oneBit = [UInt8.from(1)];
-
   // encryption
   let cipherText = [];
   for (let [n, chunk] of chunks.entries()) {
     if (n === chunks.length - 1) {
       // attach the one frame bit if its the last chunk
-      chunk = chunk.concat(oneBit);
+      chunk = chunk.concat(UInt8.from(1));
     } else {
       // pad with zero frame bit
-      chunk = chunk.concat(zeroBit);
+      chunk = chunk.concat(UInt8.from(0));
     }
-    console.log('with bit', bytesToWord(chunk).toString());
 
     let keyStream = sponge.squeeze();
     let encryptedChunk = bytesToWord(chunk).add(keyStream);

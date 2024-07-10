@@ -1,4 +1,3 @@
-import { zero } from 'dist/node/lib/provable/gates.js';
 import {
   SelfProof,
   Field,
@@ -8,139 +7,88 @@ import {
   JsonProof,
   Provable,
   Empty,
-  Bytes,
-  PublicKey,
-  Group,
-  Poseidon,
-  Scalar,
-  UInt8,
-  PrivateKey,
-  initializeBindings,
 } from 'o1js';
 
-class Bytes31 extends Bytes(31) {}
-const priv = PrivateKey.random();
-const pub = priv.toPublicKey();
+let MyProgram = ZkProgram({
+  name: 'example-with-output',
+  publicOutput: Field,
 
-const arr = Array.from<number>({ length: 31 }).fill(255);
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      async method() {
+        return Field(0);
+      },
+    },
 
-const message = Bytes31.from(arr);
-
-function bytesToWord(wordBytes: UInt8[]): Field {
-  return wordBytes.reduce((acc, byte, idx) => {
-    const shift = 1n << BigInt(8 * idx);
-    return acc.add(byte.value.mul(shift));
-  }, Field.from(0));
-}
-
-function wordToBytes(word: Field, bytesPerWord = 8): UInt8[] {
-  let bytes = Provable.witness(Provable.Array(UInt8, bytesPerWord), () => {
-    let w = word.toBigInt();
-    return Array.from({ length: bytesPerWord }, (_, k) =>
-      UInt8.from((w >> BigInt(8 * k)) & 0xffn)
-    );
-  });
-  Provable.log(bytes);
-  // check decomposition
-  // bytesToWord(bytes).assertEquals(word);
-
-  return bytes;
-}
-
-const { cipherText, publicKey } = await encrypt(message, pub);
-let res = await decrypt(
-  {
-    publicKey,
-    cipherText,
+    inductiveCase: {
+      privateInputs: [SelfProof],
+      async method(earlierProof: SelfProof<Empty, Field>) {
+        earlierProof.verify();
+        return earlierProof.publicOutput.add(1);
+      },
+    },
   },
-  priv
-);
-bytesToWord(message.bytes).assertEquals(res[0]);
+});
+// type sanity checks
+MyProgram.publicInputType satisfies Provable<Empty>;
+MyProgram.publicOutputType satisfies typeof Field;
 
-async function encrypt(message: Bytes, otherPublicKey: PublicKey) {
-  // pad message to a multiple of 31 so that we can then later append a frame bit to the message
-  const bytes = message.bytes;
-  const multipleOf = 31;
-  let n = Math.ceil(bytes.length / multipleOf) * multipleOf;
-  let padding = Array.from({ length: n - bytes.length }, () => UInt8.from(0));
+let MyProof = ZkProgram.Proof(MyProgram);
 
-  message.bytes = bytes.concat(padding);
+console.log('program digest', MyProgram.digest());
 
-  // convert message into chunks of 31 bytes
-  const chunks = message.chunk(31);
+console.log('compiling MyProgram...');
+let { verificationKey } = await MyProgram.compile();
+console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
-  // key exchange
-  let privateKey = Provable.witness(Scalar, () => Scalar.random());
-  let publicKey = Group.generator.scale(privateKey);
-  let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
+console.log('proving base case...');
+let proof = await MyProgram.baseCase();
+proof = await testJsonRoundtrip(MyProof, proof);
 
-  await initializeBindings();
-  let sponge = new Poseidon.Sponge();
-  sponge.absorb(sharedSecret.x);
+// type sanity check
+proof satisfies Proof<undefined, Field>;
 
-  // frame bits
-  const zeroBit = [UInt8.from(0)];
-  const oneBit = [UInt8.from(1)];
+console.log('verify...');
+let ok = await verify(proof.toJSON(), verificationKey);
+console.log('ok?', ok);
 
-  // encryption
-  let cipherText = [];
-  for (let [n, chunk] of chunks.entries()) {
-    if (n === chunks.length - 1) {
-      // attach the one frame bit if its the last chunk
-      chunk = chunk.concat(oneBit);
-    } else {
-      // pad with zero frame bit
-      chunk = chunk.concat(zeroBit);
-    }
-    console.log('with bit', bytesToWord(chunk).toString());
+console.log('verify alternative...');
+ok = await MyProgram.verify(proof);
+console.log('ok (alternative)?', ok);
 
-    let keyStream = sponge.squeeze();
-    let encryptedChunk = bytesToWord(chunk).add(keyStream);
-    cipherText.push(encryptedChunk);
+console.log('proving step 1...');
+proof = await MyProgram.inductiveCase(proof);
+proof = await testJsonRoundtrip(MyProof, proof);
 
-    // absorb for the auth tag (two at a time for saving permutations)
-    if (n % 2 === 1) sponge.absorb(cipherText[n - 1]);
-    if (n % 2 === 1 || n === chunks.length - 1) sponge.absorb(cipherText[n]);
-  }
+console.log('verify...');
+ok = await verify(proof, verificationKey);
+console.log('ok?', ok);
 
-  // authentication tag
-  let authenticationTag = sponge.squeeze();
-  cipherText.push(authenticationTag);
+console.log('verify alternative...');
+ok = await MyProgram.verify(proof);
+console.log('ok (alternative)?', ok);
 
-  return { publicKey, cipherText };
-}
+console.log('proving step 2...');
+proof = await MyProgram.inductiveCase(proof);
+proof = await testJsonRoundtrip(MyProof, proof);
 
-async function decrypt(
-  { publicKey, cipherText }: { publicKey: Group; cipherText: Field[] },
-  privateKey: PrivateKey
-) {
-  // key exchange
-  let sharedSecret = publicKey.scale(privateKey.s);
-  await initializeBindings();
-  let sponge = new Poseidon.Sponge();
-  sponge.absorb(sharedSecret.x);
-  let authenticationTag = cipherText.pop();
+console.log('verify...');
+ok = await verify(proof.toJSON(), verificationKey);
 
-  // decryption
-  let message = [];
-  for (let i = 0; i < cipherText.length; i++) {
-    let keyStream = sponge.squeeze();
-    let messageChunk = cipherText[i].sub(keyStream);
+console.log('ok?', ok && proof.publicOutput.toString() === '2');
 
-    const withFrameBit = wordToBytes(messageChunk, 32);
-    const frameBit = withFrameBit.pop()!;
-
-    if (i === cipherText.length - 1) frameBit.assertEquals(1);
-    else frameBit.assertEquals(0);
-
-    message.push(bytesToWord(withFrameBit));
-
-    if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
-    if (i % 2 === 1 || i === cipherText.length - 1)
-      sponge.absorb(cipherText[i]);
-  }
-  // authentication tag
-  sponge.squeeze().assertEquals(authenticationTag!);
-
-  return message;
+function testJsonRoundtrip<
+  P extends Proof<any, any>,
+  MyProof extends { fromJSON(jsonProof: JsonProof): Promise<P> }
+>(MyProof: MyProof, proof: P) {
+  let jsonProof = proof.toJSON();
+  console.log(
+    'json proof',
+    JSON.stringify({
+      ...jsonProof,
+      proof: jsonProof.proof.slice(0, 10) + '..',
+    })
+  );
+  return MyProof.fromJSON(jsonProof);
 }
