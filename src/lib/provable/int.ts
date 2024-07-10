@@ -1176,10 +1176,9 @@ class Int64 extends CircuitValue implements BalanceChange {
      * This is the original fromObject method from CircuitValue.
      * @deprecated Use {@link Int64.fromObjectV2} instead.
      */
-    fromObject: CircuitValue.fromObject as (obj: {
-      magnitude: UInt64 | number | string | bigint;
-      sgn: Sign | bigint;
-    }) => Int64,
+    fromObject(obj: { magnitude: UInt64; sgn: Sign }): Int64 {
+      return CircuitValue.fromObject.call(Int64, obj);
+    },
   };
 
   fromObjectV2(obj: {
