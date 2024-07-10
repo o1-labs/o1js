@@ -1121,6 +1121,31 @@ class Int64 extends CircuitValue implements BalanceChange {
     return new Int64(UInt64.Unsafe.fromField(magnitude), sign);
   }
 
+  /**
+   * Creates a new {@link Int64} from a {@link Field} using the safe creation method.
+   *
+   * @param x - The Field value to convert to Int64.
+   * @returns A new Int64 instance with canonical zero representation.
+   * @throws Error if the Field value is outside the range (-2^64, 2^64).
+   *
+   * @remarks
+   * This method checks if the {@link Field} is within the valid range for Int64.
+   * Unlike {@link fromFieldUnchecked}, this method uses {@link Int64.create},
+   * which enforces a canonical representation of zero.
+   * This ensures that all Int64 instances, including zero, have a consistent representation.
+   */
+  private static fromFieldUncheckedV2(x: Field) {
+    let TWO64 = 1n << 64n;
+    let xBigInt = x.toBigInt();
+    let isValidPositive = xBigInt < TWO64; // covers {0,...,2^64 - 1}
+    let isValidNegative = Field.ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
+    if (!isValidPositive && !isValidNegative)
+      throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
+    let magnitude = (isValidPositive ? x : x.neg()).toConstant();
+    let sign = isValidPositive ? Sign.one : Sign.minusOne;
+    return Int64.create(UInt64.Unsafe.fromField(magnitude), sign);
+  }
+
   // this doesn't check ranges because we assume they're already checked on UInts
   /**
    * Creates a new {@link Int64} from a {@link Field}.
@@ -1211,6 +1236,29 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
+   * Static method to create a {@link Int64} from a {@link Field} with canonical zero representation.
+   *
+   * @param x - The Field value to convert to Int64.
+   * @returns A new Int64 instance with canonical zero representation.
+   *
+   * @remarks
+   * This method is an improved version of {@link fromField} that ensures canonical zero representation:
+   * - For constant inputs, it uses {@link fromFieldUncheckedV2} which enforces canonical representation.
+   * - For variable inputs, it creates a witness using {@link fromFieldUncheckedV2} and proves consistency.
+   *
+   * This method guarantees that all Int64 instances, including zero, have a consistent representation,
+   * eliminating potential ambiguities in zero handling.
+   */
+  static fromFieldV2(x: Field): Int64 {
+    // constant case - just return unchecked value
+    if (x.isConstant()) return Int64.fromFieldUncheckedV2(x);
+    // variable case - create a new checked witness and prove consistency with original field
+    let xInt = Provable.witness(Int64, () => Int64.fromFieldUncheckedV2(x));
+    xInt.toField().assertEquals(x); // sign(x) * |x| === x
+    return xInt;
+  }
+
+  /**
    * @deprecated Use {@link negV2()} instead.
    * The current implementation will not be backwards-compatible with v2.
    */
@@ -1278,6 +1326,31 @@ class Int64 extends CircuitValue implements BalanceChange {
     let { quotient } = this.magnitude.divMod(y_.magnitude);
     let sign = this.sgn.mul(y_.sgn);
     return new Int64(quotient, sign);
+  }
+
+  /**
+   * Integer division with canonical zero representation.
+   *
+   * @param y - The divisor. Can be an Int64, number, string, bigint, UInt64, or UInt32.
+   * @returns A new Int64 representing the quotient, with canonical zero representation.
+   *
+   * @remarks
+   * This method performs the same division operation as {@link div},
+   * but ensures that the result always has a canonical representation,
+   * particularly for zero results.
+   *
+   * `x.divV2(y)` returns the floor of `x / y`, that is, the greatest
+   * *`z`* such that *`z * y <= x`.
+   * On negative numbers, this rounds towards zero.
+   *
+   * This method guarantees that all results, including zero, have a consistent
+   * representation, eliminating potential ambiguities in zero handling.
+   */
+  divV2(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    let { quotient } = this.magnitude.divMod(y_.magnitude);
+    let sign = this.sgn.mul(y_.sgn);
+    return Int64.create(quotient, sign);
   }
 
   /**
