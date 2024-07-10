@@ -2,7 +2,11 @@
  * This DEX implementation differs from ./dex.ts in two ways:
  * - More minimal & realistic; stuff designed only for testing protocol features was removed
  * - Uses an async pattern with actions that lets users claim funds later and reduces account updates
- */
+ * 
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ * in progress to mitigate this limitation.
+ */ 
 import {
   Account,
   AccountUpdate,

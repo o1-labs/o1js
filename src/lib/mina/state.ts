@@ -62,6 +62,13 @@ type State<A> = {
    */
   requireEquals(a: A): void;
   /**
+   * Require that the on-chain state has to equal the given state if the provided condition is true.
+   *
+   * If the condition is false, this is a no-op.
+   * If the condition is true, this adds a precondition that the verifying Mina node will check before accepting this transaction.
+   */
+  requireEqualsIf(condition: Bool, a: A): void;
+  /**
    * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
    */
   requireNothing(): void;
@@ -235,11 +242,30 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       this._contract.wasConstrained = true;
     },
 
+    requireEqualsIf(condition: Bool, state: T) {
+      if (this._contract === undefined)
+        throw Error(
+          'requireEqualsIf can only be called when the State is assigned to a SmartContract @state.'
+        );
+      let layout = getLayoutPosition(this._contract);
+      let stateAsFields = this._contract.stateType.toFields(state);
+      let accountUpdate = this._contract.instance.self;
+      stateAsFields.forEach((stateField, i) => {
+        let state =
+          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        state.isSome = condition;
+        state.value = Provable.if(condition, stateField, Field(0));
+      });
+      this._contract.wasConstrained = true;
+    },
+
     requireNothing() {
       if (this._contract === undefined)
         throw Error(
           'requireNothing can only be called when the State is assigned to a SmartContract @state.'
         );
+      // TODO: this should ideally reset any previous precondition,
+      // by setting each relevant state field to { isSome: false, value: Field(0) }
       this._contract.wasConstrained = true;
     },
 

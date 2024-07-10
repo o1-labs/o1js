@@ -17,6 +17,46 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/ed198f305...HEAD)
 
+### Breaking changes
+
+- Fixed a vulnerability in `OffchainState` where it didn't store the `IndexedMerkleTree` length onchain and left it unconstrained https://github.com/o1-labs/o1js/pull/1676
+
+### Added
+
+- A warning about the current reducer API limitations, as well as a mention of active work to mitigate them was added to doc comments and examples https://github.com/o1-labs/o1js/pull/1728
+
+- `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
+- Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
+- `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
+  - Avoids the account update limit
+  - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
+- Add conditional versions of all preconditions: `.requireEqualsIf()` https://github.com/o1-labs/o1js/pull/1676
+- `AccountUpdate.createIf()` to conditionally add an account update to the current transaction https://github.com/o1-labs/o1js/pull/1676
+- `IndexedMerkleMap.setIf()` to set a key-value pair conditionally https://github.com/o1-labs/o1js/pull/1676
+- `Provable.assertEqualIf()` to conditionally assert that two values are equal https://github.com/o1-labs/o1js/pull/1676
+- Add `offchainState.setContractClass()` which enables us to declare the connected contract at the top level, without creating a contract instance https://github.com/o1-labs/o1js/pull/1676
+  - This is enough to call `offchainState.compile()`
+- More low-level methods to interact with `MerkleList` https://github.com/o1-labs/o1js/pull/1676
+  - `popIfUnsafe()`, `toArrayUnconstrained()` and `lengthUnconstrained()`
+
+### Changed
+
+- Improve error message when o1js global state is accessed in an invalid way https://github.com/o1-labs/o1js/pull/1676
+- Start developing an internal framework for local zkapp testing https://github.com/o1-labs/o1js/pull/1676
+- Internally upgrade o1js to TypeScript 5.4 https://github.com/o1-labs/o1js/pull/1676
+
+### Deprecated
+
+- Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
+- `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
+- Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
+
+### Fixed
+
+- Fix reversed order of account updates when using `TokenContract.approveAccountUpdates()` https://github.com/o1-labs/o1js/pull/1722
+- Fixed the static `check()` method in Struct classes to properly handle inheritance, preventing issues with under-constrained circuits. Added error handling to avoid using Struct directly as a field type. https://github.com/o1-labs/o1js/pull/1707
+- Fixed that `Option` could not be used as `@state` or event https://github.com/o1-labs/o1js/pull/1736
+
 ## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
 
 ### Added
@@ -29,7 +69,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Deprecated
 
 - `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
-- `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
