@@ -23,8 +23,9 @@ export { TokenContract };
 abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
 
-  // it's fine to have this restriction, because the protocol also has a limit of ~20
   // TODO find out precise protocol limit
+  /** The maximum number of account updates using the token in a single
+   * transaction that this contract supports. */
   static MAX_ACCOUNT_UPDATES = 20;
 
   /**
