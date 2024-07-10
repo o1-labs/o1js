@@ -195,7 +195,7 @@ class Bytes {
   }
 
   /**
-   * Returns chunk of size `size` of this bytes array.
+   * Returns an array of chunks, each of size `size`.
    * @param size size of each chunk
    * @returns an array of {@link UInt8} chunks
    */
