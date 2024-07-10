@@ -1422,7 +1422,14 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Checks if the value is positive (x > 0).
+   * Checks if the value is strictly positive (x > 0).
+   *
+   * @returns True if the value is greater than zero, false otherwise.
+   *
+   * @remarks
+   * This method considers zero as non-positive. It ensures consistency
+   * with the mathematical definition of "positive" as strictly greater than zero.
+   * This differs from some other methods which may treat zero as non-negative.
    */
   isPositiveV2() {
     return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
