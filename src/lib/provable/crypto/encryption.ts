@@ -45,7 +45,7 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
 
 /**
  * @deprecated Use {@link decryptV2} instead.
- * Decrypts a {@link CipherText} using a {@link PrivateKey}.^
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.
  */
 function decrypt(
   { publicKey, cipherText }: CipherText,
@@ -74,8 +74,9 @@ function decrypt(
   return message;
 }
 
-// v2
-
+/**
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.
+ */
 function decryptV2(
   {
     publicKey,
@@ -125,6 +126,9 @@ function decryptV2(
   return Bytes.from(message.flat().slice(0, messageLength - n));
 }
 
+/**
+ * Public Key Encryption, encrypts Bytes using a {@link PublicKey}.
+ */
 function encryptV2(
   message: Bytes,
   otherPublicKey: PublicKey
