@@ -651,7 +651,7 @@ timestamp.requireBetween(newUInt32(0n), newUInt32(2n));
 timestamp.requireBetween(newUInt32(1n), newUInt32(3n));
 
 // Correct Usage:
-timestamp.requireBetween(newUInt32(0n), newUInt32(3n));
+timestamp.requireBetween(new UInt32(1n), new UInt32(2n));
 `;
     property.isSome.equals(newIsSome).assertTrue(errorMessage);
     if ('lower' in property.value && 'upper' in property.value) {
