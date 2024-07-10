@@ -159,8 +159,7 @@ const Actions = {
 
 type MayUseToken = BaseMayUseToken;
 const MayUseToken = {
-  ...BaseMayUseToken,
-  type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
+  type: BaseMayUseToken,
   No: {
     parentsOwnToken: Bool(false),
     inheritFromParent: Bool(false),

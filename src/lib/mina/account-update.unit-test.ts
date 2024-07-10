@@ -163,7 +163,7 @@ function createAccountUpdateWithMayUseToken(
 // throws an error when both flags are true in check method
 {
   expect(() => {
-    AccountUpdate.MayUseToken.check({
+    AccountUpdate.MayUseToken.type.check({
       parentsOwnToken: Bool(true),
       inheritFromParent: Bool(true),
     });
