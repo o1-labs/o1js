@@ -19,5 +19,5 @@ function assertDefined<T>(
   message = 'Input value is undefined.'
 ): T {
   if (value === undefined) throw Error(message);
-  return value as T;
+  return value;
 }
