@@ -236,7 +236,8 @@ function verifyEcdsaGeneric(
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
-  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
+  } = { G: { windowSize: 4 }, P: { windowSize: 4 } },
+  checkSCanonical = false
 ): Bool {
   // constant case
   if (
@@ -280,6 +281,10 @@ function verifyEcdsaGeneric(
   // we have to prove that Rx is canonical, because we check signature validity based on whether Rx _exactly_ equals the input r.
   // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
   ForeignField.assertLessThan(Rx, Curve.order);
+
+  // assert s to be canonical
+  // we skip of explicitly checking r to be canonical because we check if Rx is canonical and assert Rx == r
+  if (checkSCanonical) ForeignField.assertLessThan(s, Curve.order);
 
   return Provable.equal(Field3.provable, Rx, r);
 }
@@ -343,7 +348,8 @@ function verifyEcdsaV2(
     publicKey,
     (scalars, points, Curve, configs, mode, ia) =>
       multiScalarMul(scalars, points, Curve, configs, mode, ia, false),
-    config
+    config,
+    true
   );
 }
 
