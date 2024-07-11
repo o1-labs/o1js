@@ -19,14 +19,7 @@ export {
 };
 
 function not(a: Field, length: number, checked: boolean = false) {
-  // check that input length is positive
-  assert(length > 0, `Input length needs to be positive values.`);
-
-  // Check that length does not exceed maximum field size in bits
-  assert(
-    length < Field.sizeInBits,
-    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
-  );
+  validateBitLength(length, Field.sizeInBits, 'not');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
@@ -52,11 +45,8 @@ function not(a: Field, length: number, checked: boolean = false) {
 }
 
 function xor(a: Field, b: Field, length: number) {
-  // check that both input lengths are positive
-  assert(length > 0, `Input lengths need to be positive values.`);
-
-  // check that length does not exceed maximum 254 size in bits
-  assert(length <= 254, `Length ${length} exceeds maximum of 254 bits.`);
+  // Use 240 as max length to ensure padded length (next multiple of 16) doesn't exceed 254 bits
+  validateBitLength(length, 240, 'xor');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
@@ -150,14 +140,7 @@ function buildXor(a: Field, b: Field, out: Field, padLength: number) {
 }
 
 function and(a: Field, b: Field, length: number) {
-  // check that both input lengths are positive
-  assert(length > 0, `Input lengths need to be positive values.`);
-
-  // check that length does not exceed maximum field size in bits
-  assert(
-    length <= Field.sizeInBits,
-    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
-  );
+  validateBitLength(length, Field.sizeInBits, 'and');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
@@ -342,4 +325,18 @@ function leftShift64(field: Field, bits: number) {
 function leftShift32(field: Field, bits: number) {
   let { remainder: shifted } = divMod32(field.mul(1n << BigInt(bits)));
   return shifted;
+}
+
+function validateBitLength(
+  length: number,
+  maxLength: number,
+  functionName: string
+) {
+  // check that both input lengths are positive
+  assert(length > 0, `${functionName}: Input length must be a positive value.`);
+  // check that length does not exceed maximum `maxLength` size in bits
+  assert(
+    length <= maxLength,
+    `${functionName}: Length ${length} exceeds maximum of ${maxLength} bits.`
+  );
 }
