@@ -31,6 +31,7 @@ export {
   CurrentSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
+  ensureConsistentPrecondition,
   AccountValue,
   NetworkValue,
   getAccountPreconditions,
@@ -253,6 +254,12 @@ function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
       context.constrained.add('validWhile');
       let property: RangeCondition<UInt32> =
         accountUpdate.body.preconditions.validWhile;
+      ensureConsistentPrecondition(
+        property,
+        Bool(true),
+        { lower, upper },
+        'validWhile'
+      );
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
@@ -333,9 +340,10 @@ function preconditionSubClassWithRange<
         accountUpdate.body.preconditions,
         longKey
       );
+      let newValue = { lower, upper };
+      ensureConsistentPrecondition(property, Bool(true), newValue, longKey);
       property.isSome = Bool(true);
-      property.value.lower = lower;
-      property.value.upper = upper;
+      property.value = newValue;
     },
   };
 }
@@ -388,13 +396,11 @@ function preconditionSubclass<
         longKey
       ) as AnyCondition<U>;
       if ('isSome' in property) {
+        let isInterval = 'lower' in property.value && 'upper' in property.value;
+        let newValue = isInterval ? { lower: value, upper: value } : value;
+        ensureConsistentPrecondition(property, Bool(true), newValue, longKey);
         property.isSome = Bool(true);
-        if ('lower' in property.value && 'upper' in property.value) {
-          property.value.lower = value;
-          property.value.upper = value;
-        } else {
-          property.value = value;
-        }
+        property.value = newValue;
       } else {
         setPath(accountUpdate.body.preconditions, longKey, value);
       }
@@ -406,27 +412,38 @@ function preconditionSubclass<
         longKey
       ) as AnyCondition<U>;
       assertInternal('isSome' in property);
-      property.isSome = condition;
       if ('lower' in property.value && 'upper' in property.value) {
-        property.value.lower = Provable.if(
+        let lower = Provable.if(
           condition,
           fieldType,
           value,
           defaultLower(fieldType) as U
         );
-        property.value.upper = Provable.if(
+        let upper = Provable.if(
           condition,
           fieldType,
           value,
           defaultUpper(fieldType) as U
         );
+        ensureConsistentPrecondition(
+          property,
+          condition,
+          { lower, upper },
+          longKey
+        );
+        property.isSome = condition;
+        property.value.lower = lower;
+        property.value.upper = upper;
       } else {
-        property.value = Provable.if(
+        let newValue = Provable.if(
           condition,
           fieldType,
           value,
           fieldType.empty()
         );
+        ensureConsistentPrecondition(property, condition, newValue, longKey);
+        property.isSome = condition;
+        property.value = newValue;
       }
     },
     requireNothing() {
@@ -600,6 +617,56 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
   let c = preconditionContexts.get(accountUpdate);
   if (c === undefined) throw Error('bug: precondition context not found');
   return c;
+}
+
+/**
+ * Asserts that a precondition is not already set or that it matches the new values.
+ *
+ * This function checks if a precondition is already set for a given property and compares it
+ * with new values. If the precondition is not set, it allows the new values. If it's already set,
+ * it ensures consistency with the existing precondition.
+ *
+ * @param property - The property object containing the precondition information.
+ * @param newIsSome - A boolean or CircuitValue indicating whether the new precondition should exist.
+ * @param value - The new value for the precondition. Can be a simple value or an object with 'lower' and 'upper' properties for range preconditions.
+ * @param name - The name of the precondition for error messages.
+ *
+ * @throws {Error} Throws an error with a detailed message if attempting to set an inconsistent precondition.
+ * @todo It would be nice to have the input parameter types more specific, but it's hard to do with the current implementation.
+ */
+function ensureConsistentPrecondition(
+  property: any,
+  newIsSome: any,
+  value: any,
+  name: any
+) {
+  if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
+    let errorMessage = `
+Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
+'${name}' represents the field or value you're trying to set a precondition for.
+Preconditions must be set only once to avoid overwriting previous assertions. 
+For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
+
+Recommendation:
+Ensure that preconditions for '${name}' are set in a single place and are not overwritten. If you need to update a precondition,
+consider refactoring your code to consolidate all assertions for '${name}' before setting the precondition.
+
+Example of Correct Usage:
+// Incorrect Usage:
+timestamp.requireBetween(newUInt32(0n), newUInt32(2n));
+timestamp.requireBetween(newUInt32(1n), newUInt32(3n));
+
+// Correct Usage:
+timestamp.requireBetween(new UInt32(1n), new UInt32(2n));
+`;
+    property.isSome.assertEquals(newIsSome, errorMessage);
+    if ('lower' in property.value && 'upper' in property.value) {
+      property.value.lower.assertEquals(value.lower, errorMessage);
+      property.value.upper.assertEquals(value.lower, errorMessage);
+    } else {
+      property.value.assertEquals(value, errorMessage);
+    }
+  }
 }
 
 const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
