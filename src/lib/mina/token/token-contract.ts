@@ -97,11 +97,7 @@ abstract class TokenContract extends SmartContract {
     );
 
     // iterate through the forest and apply user-defined logic
-    for (
-      let i = 0;
-      i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES;
-      i++
-    ) {
+    for (let i = 0; i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES; i++) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -109,9 +105,7 @@ abstract class TokenContract extends SmartContract {
     // prove that we checked all updates
     iterator.assertFinished(
       `Number of account updates to approve exceed ` +
-        `the supported limit of ${
-          (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES
-        }.\n`
+        `the supported limit of ${(this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES}.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
