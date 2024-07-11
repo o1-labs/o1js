@@ -166,7 +166,9 @@ function assertOnCurve(
 ) {
   let { x, y } = p;
   let x2 = ForeignField.mul(x, x, f);
+  ForeignField.assertAlmostReduced([x2], f);
   let y2 = ForeignField.mul(y, y, f);
+  ForeignField.assertAlmostReduced([y2], f);
   let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
 
   // (x^2 + a) * x = y^2 - b
