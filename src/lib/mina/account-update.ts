@@ -39,6 +39,7 @@ import { Memo } from '../../mina-signer/src/memo.js';
 import {
   Events as BaseEvents,
   Actions as BaseActions,
+  MayUseToken as BaseMayUseToken,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import {
@@ -131,7 +132,30 @@ type AuthRequired = Types.Json.AuthRequired;
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
-type MayUseToken = AccountUpdateBody['mayUseToken'];
+type MayUseToken = BaseMayUseToken;
+const MayUseToken = {
+  type: BaseMayUseToken,
+  No: {
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(false),
+  },
+  ParentsOwnToken: {
+    parentsOwnToken: Bool(true),
+    inheritFromParent: Bool(false),
+  },
+  InheritFromParent: {
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(true),
+  },
+  isNo: ({
+    body: {
+      mayUseToken: { parentsOwnToken, inheritFromParent },
+    },
+  }: AccountUpdate) => parentsOwnToken.or(inheritFromParent).not(),
+  isParentsOwnToken: (a: AccountUpdate) => a.body.mayUseToken.parentsOwnToken,
+  isInheritFromParent: (a: AccountUpdate) =>
+    a.body.mayUseToken.inheritFromParent,
+};
 
 type Events = BaseEvents;
 const Events = {
@@ -1204,33 +1228,7 @@ class AccountUpdate implements Types.AccountUpdate {
     return Provable.witnessAsync(combinedType, compute);
   }
 
-  static get MayUseToken() {
-    return {
-      type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
-      No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
-      ParentsOwnToken: {
-        parentsOwnToken: Bool(true),
-        inheritFromParent: Bool(false),
-      },
-      InheritFromParent: {
-        parentsOwnToken: Bool(false),
-        inheritFromParent: Bool(true),
-      },
-      isNo({
-        body: {
-          mayUseToken: { parentsOwnToken, inheritFromParent },
-        },
-      }: AccountUpdate) {
-        return parentsOwnToken.or(inheritFromParent).not();
-      },
-      isParentsOwnToken(a: AccountUpdate) {
-        return a.body.mayUseToken.parentsOwnToken;
-      },
-      isInheritFromParent(a: AccountUpdate) {
-        return a.body.mayUseToken.inheritFromParent;
-      },
-    };
-  }
+  static MayUseToken = MayUseToken;
 
   /**
    * Returns a JSON representation of only the fields that differ from the
