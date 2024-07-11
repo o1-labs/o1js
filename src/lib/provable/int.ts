@@ -1259,11 +1259,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     return Int64.fromField(this.toField().mul(y_.toField()));
   }
   /**
-   * Integer division.
-   *
-   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
-   * `z` such that `z * y <= x`.
-   * On negative numbers, this rounds towards zero.
+   * @deprecated Do not use this method. It is vulnerable to zero ambiguity. Please use {@link divV2} instead.
    */
   div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
