@@ -426,17 +426,22 @@ function preconditionSubclass<
           value,
           defaultUpper(fieldType) as U
         );
-        ensureConsistentPrecondition(property, condition, value, longKey);
+        ensureConsistentPrecondition(
+          property,
+          condition,
+          { lower, upper },
+          longKey
+        );
         property.value.lower = lower;
         property.value.upper = upper;
       } else {
-        ensureConsistentPrecondition(property, condition, value, longKey);
         let newValue = Provable.if(
           condition,
           fieldType,
           value,
           fieldType.empty()
         );
+        ensureConsistentPrecondition(property, condition, newValue, longKey);
         property.value = newValue;
       }
     },
