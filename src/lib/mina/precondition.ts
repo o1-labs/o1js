@@ -658,12 +658,12 @@ timestamp.requireBetween(newUInt32(1n), newUInt32(3n));
 // Correct Usage:
 timestamp.requireBetween(new UInt32(1n), new UInt32(2n));
 `;
-    property.isSome.equals(newIsSome).assertTrue(errorMessage);
+    property.isSome.assertEquals(newIsSome, errorMessage);
     if ('lower' in property.value && 'upper' in property.value) {
-      property.value.lower.equals(value.lower).assertTrue(errorMessage);
-      property.value.upper.equals(value.lower).assertTrue(errorMessage);
+      property.value.lower.assertEquals(value.lower, errorMessage);
+      property.value.upper.assertEquals(value.lower, errorMessage);
     } else {
-      property.value.equals(value).assertTrue(errorMessage);
+      property.value.assertEquals(value, errorMessage);
     }
   }
 }
