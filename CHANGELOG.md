@@ -27,7 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
 - Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
 - `Int64.create()` method for safe instance creation with canonical zero representation https://github.com/o1-labs/o1js/pull/1735
-- New V2 methods for `Int64` operations: `divV2()` https://github.com/o1-labs/o1js/pull/1735
+- New V2 methods for `Int64` operations: `fromObjectV2`, `divV2()` https://github.com/o1-labs/o1js/pull/1735
 - `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
   - Avoids the account update limit
   - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
@@ -51,7 +51,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
 - `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
 - `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
-- Original `div()`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
+- Original `div()` and `fromObject`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
 - Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
 
 ### Fixed
