@@ -283,7 +283,6 @@ function verifyEcdsaGeneric(
   ForeignField.assertLessThan(Rx, Curve.order);
 
   // assert s to be canonical
-  // we skip of explicitly checking r to be canonical because we check if Rx is canonical and assert Rx == r
   if (checkSCanonical) ForeignField.assertLessThan(s, Curve.order);
 
   return Provable.equal(Field3.provable, Rx, r);
@@ -329,6 +328,10 @@ function verifyEcdsa(
  *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
  *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
  * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
+ *
+ *
+ * _Note_: If `signature.r` is a non-canonical element, an error will be thrown.
+ * If `signature.r` is non-canonical, however, `false` will be returned.
  */
 function verifyEcdsaV2(
   Curve: CurveAffine,
