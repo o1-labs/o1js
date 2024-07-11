@@ -1133,8 +1133,6 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   static Unsafe = {
     /**
-     * Creates a new Int64 instance from an object without checks. Use with caution.
-     * This is the original fromObject method from CircuitValue.
      * @deprecated Use {@link Int64.fromObjectV2} instead.
      */
     fromObject(obj: { magnitude: UInt64; sgn: Sign }): Int64 {
