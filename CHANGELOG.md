@@ -27,7 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
 - Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
 - `Int64.create()` method for safe instance creation with canonical zero representation https://github.com/o1-labs/o1js/pull/1735
-- New V2 methods for `Int64` operations: `fromFieldV2()`, `fromFieldUncheckedV2()`, `divV2()`, `isPositiveV2()` https://github.com/o1-labs/o1js/pull/1735
+- New V2 methods for `Int64` operations: `fromFieldV2()`, `fromFieldUncheckedV2()`, `divV2()` https://github.com/o1-labs/o1js/pull/1735
 - `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
   - Avoids the account update limit
   - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
