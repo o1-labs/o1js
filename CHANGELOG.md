@@ -51,7 +51,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
 - `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
 - `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
-- Original `fromField()`, `fromFieldUnchecked()`, `div()`, and `isPositive()` methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
+- Original `fromField()`, `fromFieldUnchecked()`, and `div()`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
 - Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
 
 ### Fixed
@@ -90,9 +90,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Deprecated
 
-- `Int64.isPositive()` and `Int64.mod()` deprecated because they behave incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
+- `Int64.mod()` deprecated because it behaves incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
   - This can pose an attack surface, since it is easy to maliciously pick either the `+0` or the `-0` representation
-  - Use `Int64.isPositiveV2()` and `Int64.modV2()` instead
+  - Use `Int64.modV2()` instead
   - Also deprecated `Int64.neg()` in favor of `Int64.negV2()`, for compatibility with v2 version of `Int64` that will use `Int64.checkV2()`
 - `Ecdsa.verify()` and `Ecdsa.verifySignedHash()` deprecated in favor of `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2()` due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1669
 
