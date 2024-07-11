@@ -1066,7 +1066,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * @param magnitude - The magnitude of the integer as a UInt64.
    * @param [sgn=Sign.one] - The sign of the integer. Default is positive (Sign.one).
    */
-  constructor(magnitude: UInt64, sgn = Sign.one) {
+  private constructor(magnitude: UInt64, sgn = Sign.one) {
     super(magnitude, sgn);
   }
 
@@ -1104,7 +1104,7 @@ class Int64 extends CircuitValue implements BalanceChange {
       throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
     let magnitude = (isValidPositive ? x : x.neg()).toConstant();
     let sign = isValidPositive ? Sign.one : Sign.minusOne;
-    return new Int64(UInt64.Unsafe.fromField(magnitude), sign);
+    return Int64.create(UInt64.Unsafe.fromField(magnitude), sign);
   }
 
   // this doesn't check ranges because we assume they're already checked on UInts
@@ -1114,7 +1114,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * **Does not** check if the {@link Field} is within range.
    */
   static fromUnsigned(x: UInt64 | UInt32) {
-    return new Int64(x instanceof UInt32 ? x.toUInt64() : x);
+    return Int64.create(x instanceof UInt32 ? x.toUInt64() : x);
   }
 
   // this checks the range if the argument is a constant
@@ -1167,19 +1167,19 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Static method to create a {@link Int64} with value `0`.
    */
   static get zero() {
-    return new Int64(UInt64.zero);
+    return Int64.create(UInt64.zero);
   }
   /**
    * Static method to create a {@link Int64} with value `1`.
    */
   static get one() {
-    return new Int64(UInt64.one);
+    return Int64.create(UInt64.one);
   }
   /**
    * Static method to create a {@link Int64} with value `-1`.
    */
   static get minusOne() {
-    return new Int64(UInt64.one).neg();
+    return Int64.create(UInt64.one).neg();
   }
 
   /**
