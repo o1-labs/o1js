@@ -97,7 +97,11 @@ abstract class TokenContract extends SmartContract {
     );
 
     // iterate through the forest and apply user-defined logic
-    for (let i = 0; i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES; i++) {
+    for (
+      let i = 0;
+      i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES;
+      i++
+    ) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -105,7 +109,9 @@ abstract class TokenContract extends SmartContract {
     // prove that we checked all updates
     iterator.assertFinished(
       `Number of account updates to approve exceed ` +
-        `the supported limit of ${(this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES}.\n`
+        `the supported limit of ${
+          (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES
+        }.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
@@ -162,16 +168,16 @@ abstract class TokenContract extends SmartContract {
     // coerce the inputs to AccountUpdate and pass to `approveBase()`
     let tokenId = this.deriveTokenId();
     if (from instanceof PublicKey) {
-      from = AccountUpdate.defaultAccountUpdate(from, tokenId);
+      from = AccountUpdate.default(from, tokenId);
       from.requireSignature();
       from.label = `${this.constructor.name}.transfer() (from)`;
     }
     if (to instanceof PublicKey) {
-      to = AccountUpdate.defaultAccountUpdate(to, tokenId);
+      to = AccountUpdate.default(to, tokenId);
       to.label = `${this.constructor.name}.transfer() (to)`;
     }
 
-    from.balanceChange = Int64.from(amount).neg();
+    from.balanceChange = Int64.from(amount).negV2();
     to.balanceChange = Int64.from(amount);
 
     let forest = toForest([from, to]);
@@ -180,7 +186,7 @@ abstract class TokenContract extends SmartContract {
 }
 
 /** Version of `TokenContract` with the precise number of `MAX_ACCOUNT_UPDATES`
- * 
+ *
  * The value of 20 in `TokenContract` was a rough upper limit, the precise upper
  * bound is 9.
  */
