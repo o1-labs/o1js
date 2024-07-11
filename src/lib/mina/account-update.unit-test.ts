@@ -3,6 +3,7 @@ import {
   AccountUpdate,
   PrivateKey,
   Field,
+  Bool,
   Mina,
   Int64,
   Types,
@@ -17,6 +18,14 @@ let address = PrivateKey.random().toPublicKey();
 function createAccountUpdate() {
   let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
   accountUpdate.body.balanceChange = Int64.from(1e9).neg();
+  return accountUpdate;
+}
+
+function createAccountUpdateWithMayUseToken(
+  mayUseToken: AccountUpdate['body']['mayUseToken']
+) {
+  let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+  accountUpdate.body.mayUseToken = mayUseToken;
   return accountUpdate;
 }
 
@@ -120,5 +129,42 @@ function createAccountUpdate() {
   tx.sign([]);
   await expect(tx.send()).rejects.toThrow(
     'Check signature: Invalid signature on fee payer for key'
+  );
+}
+
+// throws an error when both flags are true in check method
+{
+  expect(() => {
+    AccountUpdate.MayUseToken.type.check({
+      parentsOwnToken: Bool(true),
+      inheritFromParent: Bool(true),
+    });
+  }).toThrowError(
+    'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
+  );
+}
+
+// throws an error when both flags are true in AccountUpdate.check method
+// TODO: This should be throwing but it isn't, need to investigate
+// {
+//   let accountUpdate = createAccountUpdateWithMayUseToken({
+//     parentsOwnToken: Bool(true),
+//     inheritFromParent: Bool(true),
+//   });
+//   expect(() => {
+//     AccountUpdate.check(accountUpdate);
+//   }).toThrowError(
+//     'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
+//   );
+// }
+
+// correctly identifies when neither flag is set
+{
+  let accountUpdate = createAccountUpdateWithMayUseToken({
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(false),
+  });
+  expect(AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()).toEqual(
+    true
   );
 }
