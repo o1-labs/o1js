@@ -1091,20 +1091,6 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Creates a new Int64 instance without checks. Use with caution.
-   *
-   * WARNING: This method allows creation of Int64 instances with ambiguous zero representation.
-   * It should only be used in contexts where this ambiguity is explicitly handled or irrelevant.
-   *
-   * @param magnitude - The magnitude of the integer as a UInt64.
-   * @param [sgn=Sign.one] - The sign of the integer. Default is positive (Sign.one).
-   * @returns A new Int64 instance.
-   */
-  unsafe(magnitude: UInt64, sgn = Sign.one) {
-    return new Int64(magnitude, sgn);
-  }
-
-  /**
    * Creates a new {@link Int64} from a {@link Field}.
    *
    * Does check if the {@link Field} is within range.
