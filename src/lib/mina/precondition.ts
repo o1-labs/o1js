@@ -412,7 +412,6 @@ function preconditionSubclass<
         longKey
       ) as AnyCondition<U>;
       assertInternal('isSome' in property);
-      property.isSome = condition;
       if ('lower' in property.value && 'upper' in property.value) {
         let lower = Provable.if(
           condition,
@@ -432,6 +431,7 @@ function preconditionSubclass<
           { lower, upper },
           longKey
         );
+        property.isSome = condition;
         property.value.lower = lower;
         property.value.upper = upper;
       } else {
@@ -442,6 +442,7 @@ function preconditionSubclass<
           fieldType.empty()
         );
         ensureConsistentPrecondition(property, condition, newValue, longKey);
+        property.isSome = condition;
         property.value = newValue;
       }
     },
