@@ -1254,11 +1254,6 @@ class Int64 extends CircuitValue implements BalanceChange {
    * @param y - The divisor. Can be an Int64, number, string, bigint, UInt64, or UInt32.
    * @returns A new Int64 representing the quotient, with canonical zero representation.
    *
-   * @remarks
-   * This method performs the same division operation as {@link div},
-   * but ensures that the result always has a canonical representation,
-   * particularly for zero results.
-   *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
    * *`z`* such that *`z * y <= x`.
    * On negative numbers, this rounds towards zero.
