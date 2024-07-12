@@ -1201,15 +1201,6 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * @deprecated Use {@link negV2()} instead.
-   * The current implementation will not be backwards-compatible with v2.
-   */
-  neg() {
-    // doesn't need further check if `this` is valid
-    return new Int64(this.magnitude, this.sgn.neg());
-  }
-
-  /**
    * Negates the current Int64 value.
    *
    * This method returns a new Int64 instance with the opposite sign of the current value.
@@ -1219,7 +1210,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * @example
    * ```ts
-   * Int64.from(5).negV2();
+   * Int64.from(5).neg();
    * ```
    *
    * @see {@link Int64#from} for creating Int64 instances
@@ -1227,7 +1218,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */
-  negV2() {
+  neg() {
     return Provable.if(
       this.magnitude.value.equals(0),
       Int64.zero,
@@ -1268,7 +1259,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * but ensures that the result always has a canonical representation,
    * particularly for zero results.
    *
-   * `x.divV2(y)` returns the floor of `x / y`, that is, the greatest
+   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
    * *`z`* such that *`z * y <= x`.
    * On negative numbers, this rounds towards zero.
    *
@@ -1298,7 +1289,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * ```ts
    * const x1 = Int64.from(17);
    * const y1 = UInt64.from(5);
-   * console.log(x1.modV2(y1).toString()); // Output: 2
+   * console.log(x1.mod(y1).toString()); // Output: 2
    * ```
    *
    * @throws {Error} Implicitly, if y is zero or negative.
@@ -1352,7 +1343,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     return this.sgn.isPositive();
   }
 
-  // TODO add this when `checkV2` is enabled
   // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is negative (x < 0).
