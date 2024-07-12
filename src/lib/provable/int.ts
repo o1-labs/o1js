@@ -1066,7 +1066,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * @param magnitude - The magnitude of the integer as a UInt64.
    * @param [sgn=Sign.one] - The sign of the integer. Default is positive (Sign.one).
    */
-  private constructor(magnitude: UInt64, sgn = Sign.one) {
+  constructor(magnitude: UInt64, sgn = Sign.one) {
     super(magnitude, sgn);
   }
 
@@ -1133,14 +1133,14 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   static Unsafe = {
     /**
-     * @deprecated Use {@link Int64.fromObjectV2} instead.
+     * @deprecated Use {@link Int64.fromObject} instead.
      */
     fromObject(obj: { magnitude: UInt64; sgn: Sign }): Int64 {
       return CircuitValue.fromObject.call(Int64, obj);
     },
   };
 
-  fromObjectV2(obj: {
+  fromObject(obj: {
     magnitude: UInt64 | number | string | bigint;
     sgn: Sign | bigint;
   }) {
@@ -1256,19 +1256,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     return Int64.fromField(this.toField().mul(y_.toField()));
   }
-  /**
-   * Integer division.
-   *
-   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
-   * `z` such that `z * y <= x`.
-   * On negative numbers, this rounds towards zero.
-   */
-  div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
-    let y_ = Int64.from(y);
-    let { quotient } = this.magnitude.divMod(y_.magnitude);
-    let sign = this.sgn.mul(y_.sgn);
-    return new Int64(quotient, sign);
-  }
 
   /**
    * Integer division with canonical zero representation.
@@ -1288,23 +1275,11 @@ class Int64 extends CircuitValue implements BalanceChange {
    * This method guarantees that all results, including zero, have a consistent
    * representation, eliminating potential ambiguities in zero handling.
    */
-  divV2(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+  div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     let { quotient } = this.magnitude.divMod(y_.magnitude);
     let sign = this.sgn.mul(y_.sgn);
     return Int64.create(quotient, sign);
-  }
-
-  /**
-   * @deprecated Use {@link modV2()} instead.
-   * This implementation is vulnerable whenever `this` is zero.
-   * It allows the prover to return `y` instead of 0 as the result.
-   */
-  mod(y: UInt64 | number | string | bigint | UInt32) {
-    let y_ = UInt64.from(y);
-    let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
-    return new Int64(new UInt64(rest.value));
   }
 
   /**
@@ -1328,7 +1303,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * @throws {Error} Implicitly, if y is zero or negative.
    */
-  modV2(y: UInt64 | number | string | bigint | UInt32) {
+  mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
     let isNonNegative = this.magnitude
@@ -1355,13 +1330,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     this.toField().assertEquals(y_.toField(), message);
   }
-  /**
-   * @deprecated Use {@link isPositiveV2} instead.
-   * The current implementation actually tests for non-negativity, but is wrong for the negative representation of 0.
-   */
-  isPositive() {
-    return this.sgn.isPositive();
-  }
 
   /**
    * Checks if the value is strictly positive (x > 0).
@@ -1373,30 +1341,27 @@ class Int64 extends CircuitValue implements BalanceChange {
    * with the mathematical definition of "positive" as strictly greater than zero.
    * This differs from some other methods which may treat zero as non-negative.
    */
-  isPositiveV2() {
+  isPositive() {
     return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
   }
 
-  // TODO add this when `checkV2` is enabled
-  // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is non-negative (x >= 0).
    */
-  // isNonNegativeV2() {
-  //   return this.sgn.isPositive();
-  // }
+  isNonNegative() {
+    return this.sgn.isPositive();
+  }
 
   // TODO add this when `checkV2` is enabled
   // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is negative (x < 0).
    */
-  // isNegative() {
-  //   return this.sgn.isNegative();
-  // }
+  isNegative() {
+    return this.sgn.isNegative();
+  }
 
-  // TODO enable this check method in v2, to force a unique representation of 0
-  static checkV2({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
+  static check({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
     // check that the magnitude is in range
     UInt64.check(magnitude);
     // check that the sign is valid

@@ -768,11 +768,11 @@ class AccountUpdate implements Types.AccountUpdate {
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(x);
+        accountUpdate.body.balanceChange = Int64.create(magnitude, sgn).add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
+        accountUpdate.body.balanceChange = Int64.create(magnitude, sgn).sub(x);
       },
     };
   }
