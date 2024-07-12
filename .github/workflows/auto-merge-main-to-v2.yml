@@ -42,7 +42,7 @@ jobs:
         if: failure()
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: auto-merge-main-to-v2
-          title: 'Auto-merge main to v2'
+          branch: auto-merge-main-to-v2-${{ github.sha }}
+          title: 'Auto-merge main to v2 (commit ${{ github.sha }})'
           body: 'This PR was automatically created to merge changes from main into v2. Please resolve conflicts and merge manually.'
           base: v2
