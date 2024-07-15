@@ -730,11 +730,11 @@ class AccountUpdate implements Types.AccountUpdate {
     }
 
     // Sub the amount from the sender's account
-    this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
-      amount
-    );
+    this.body.balanceChange = Int64.Unsafe.fromObject(
+      this.body.balanceChange
+    ).sub(amount);
     // Add the amount to the receiver's account
-    receiver.body.balanceChange = Int64.fromObject(
+    receiver.body.balanceChange = Int64.Unsafe.fromObject(
       receiver.body.balanceChange
     ).add(amount);
     return receiver;
@@ -768,17 +768,17 @@ class AccountUpdate implements Types.AccountUpdate {
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(x);
+        accountUpdate.body.balanceChange = Int64.create(magnitude, sgn).add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
+        accountUpdate.body.balanceChange = Int64.create(magnitude, sgn).sub(x);
       },
     };
   }
 
   get balanceChange() {
-    return Int64.fromObject(this.body.balanceChange);
+    return Int64.Unsafe.fromObject(this.body.balanceChange);
   }
   set balanceChange(x: Int64) {
     this.body.balanceChange = x;
