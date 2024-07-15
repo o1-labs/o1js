@@ -166,6 +166,12 @@ function assertOnCurve(
 ) {
   let { x, y } = p;
   let x2 = ForeignField.mul(x, x, f);
+
+  // Ensure x2, x, and y are almost reduced to prevent potential exploitation
+  // by a malicious prover adding large multiples of f, which could violate
+  // the precondition of ForeignField.assertMul
+  ForeignField.assertAlmostReduced([x2, x, y], f);
+
   let y2 = ForeignField.mul(y, y, f);
   let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
 

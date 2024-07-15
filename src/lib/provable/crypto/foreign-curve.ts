@@ -296,8 +296,6 @@ class ForeignCurveV2 extends ForeignCurve {
   static check(g: ForeignCurveV2) {
     multiRangeCheck(g.x.value);
     multiRangeCheck(g.y.value);
-    // more efficient than the automatic check, which would do this for each field separately
-    this.Field.assertAlmostReduced(g.x, g.y);
     this.assertOnCurve(g);
     this.assertInSubgroup(g);
   }
