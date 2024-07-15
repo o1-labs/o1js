@@ -20,6 +20,24 @@ let builtinLeafTypes = new Set([
 ]);
 let indent = '';
 
+function leafTypes(typeData) {
+  let leaves = new Set();
+  if (typeData.checkedType) {
+    mergeSet(leaves, leafTypes(typeData.checkedType));
+  }
+  let { type, inner, entries, keys } = typeData;
+  if (type === 'array' || type === 'option') {
+    mergeSet(leaves, leafTypes(inner));
+  } else if (type === 'object') {
+    for (let key of keys) {
+      mergeSet(leaves, leafTypes(entries[key]));
+    }
+  } else if (!builtinLeafTypes.has(type)) {
+    leaves.add(type);
+  }
+  return leaves;
+}
+
 function writeType(typeData, isValue, isJson, withTypeMap) {
   let converters = {};
   if (!(isJson || isValue) && typeData.checkedType) {
@@ -142,12 +160,17 @@ function writeTsContent({
     }
   }
 
+  let typeMapKeys = new Set();
+  for (let [, value] of Object.entries(types)) {
+    mergeSet(typeMapKeys, leafTypes(value));
+  }
+
   let customTypes = Object.values(converters);
   let customTypeNames = Object.values(converters).map((c) => c.typeName);
   let imports = new Set();
+  mergeSet(imports, typeMapKeys);
   mergeSet(imports, dependencies);
   mergeSet(imports, new Set(customTypeNames));
-  let typeMapKeys = diffSets(dependencies, new Set(customTypeNames));
 
   let importPath = leavesRelPath;
   return `// @generated this file is auto-generated - don't edit it directly

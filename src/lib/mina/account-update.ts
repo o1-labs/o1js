@@ -521,7 +521,7 @@ interface Body extends AccountUpdateBody {
    * By what {@link Int64} should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
    */
-  balanceChange: { magnitude: UInt64; sgn: Sign };
+  balanceChange: Int64;
 
   /**
    * Recent events that have been emitted from this account.
