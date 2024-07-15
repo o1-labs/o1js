@@ -1048,8 +1048,46 @@ class Int64 extends CircuitValue implements BalanceChange {
   // The second point is one of the main things an Int64 is used for, and was the original motivation to use 2 fields.
   // Overall, I think the existing implementation is the optimal one.
 
+  /**
+   * @deprecated Use {@link Int64.create} for safe creation.
+   *
+   * WARNING: This constructor allows for ambiguous representation of zero (both +0 and -0).
+   * This can lead to unexpected behavior in operations like {@link isPositive()} and {@link mod()}.
+   *
+   * Security Implications:
+   * 1. A malicious prover could choose either positive or negative zero.
+   * 2. Arithmetic operations that result in 0 may allow an attacker to arbitrarily choose the sign.
+   * 3. This ambiguity could be exploited in protocols using Int64s for calculations like PNL tracking.
+   *
+   * Recommended Fix:
+   * Use Int64.create() which enforces a canonical representation of zero, or
+   * explicitly handle the zero case in operations like mod().
+   *
+   * @param magnitude - The magnitude of the integer as a UInt64.
+   * @param [sgn=Sign.one] - The sign of the integer. Default is positive (Sign.one).
+   */
   constructor(magnitude: UInt64, sgn = Sign.one) {
     super(magnitude, sgn);
+  }
+
+  /**
+   * Safely creates a new Int64 instance, enforcing canonical representation of zero.
+   * This is the recommended way to create Int64 instances.
+   *
+   * @param magnitude - The magnitude of the integer as a UInt64
+   * @param sgn - The sign of the integer.
+   * @returns A new Int64 instance with a canonical representation.
+   *
+   * @example
+   * ```ts
+   * const x = Int64.create(0); // canonical representation of zero
+   * ```
+   */
+  static create(magnitude: UInt64, sign: Sign = Sign.one): Int64 {
+    const mag = UInt64.from(magnitude);
+    const isZero = mag.equals(UInt64.zero);
+    const canonicalSign = Provable.if(isZero, Sign.one, sign);
+    return new Int64(mag, canonicalSign);
   }
 
   /**
@@ -1092,6 +1130,23 @@ class Int64 extends CircuitValue implements BalanceChange {
     }
     return Int64.fromFieldUnchecked(Field(x));
   }
+
+  static Unsafe = {
+    /**
+     * @deprecated Use {@link Int64.fromObjectV2} instead.
+     */
+    fromObject(obj: { magnitude: UInt64; sgn: Sign }): Int64 {
+      return CircuitValue.fromObject.call(Int64, obj);
+    },
+  };
+
+  fromObjectV2(obj: {
+    magnitude: UInt64 | number | string | bigint;
+    sgn: Sign | bigint;
+  }) {
+    return Int64.create(UInt64.from(obj.magnitude), Sign.fromValue(obj.sgn));
+  }
+
   /**
    * Turns the {@link Int64} into a string.
    */
@@ -1155,9 +1210,22 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Negates the value.
+   * Negates the current Int64 value.
    *
-   * `Int64.from(5).neg()` will turn into `Int64.from(-5)`
+   * This method returns a new Int64 instance with the opposite sign of the current value.
+   * If the current value is zero, it returns zero.
+   *
+   * @returns A new Int64 instance with the negated value.
+   *
+   * @example
+   * ```ts
+   * Int64.from(5).negV2();
+   * ```
+   *
+   * @see {@link Int64#from} for creating Int64 instances
+   * @see {@link Int64#zero} for the zero constant
+   *
+   * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */
   negV2() {
     return Provable.if(
@@ -1203,6 +1271,31 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
+   * Integer division with canonical zero representation.
+   *
+   * @param y - The divisor. Can be an Int64, number, string, bigint, UInt64, or UInt32.
+   * @returns A new Int64 representing the quotient, with canonical zero representation.
+   *
+   * @remarks
+   * This method performs the same division operation as {@link div},
+   * but ensures that the result always has a canonical representation,
+   * particularly for zero results.
+   *
+   * `x.divV2(y)` returns the floor of `x / y`, that is, the greatest
+   * *`z`* such that *`z * y <= x`.
+   * On negative numbers, this rounds towards zero.
+   *
+   * This method guarantees that all results, including zero, have a consistent
+   * representation, eliminating potential ambiguities in zero handling.
+   */
+  divV2(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    let { quotient } = this.magnitude.divMod(y_.magnitude);
+    let sign = this.sgn.mul(y_.sgn);
+    return Int64.create(quotient, sign);
+  }
+
+  /**
    * @deprecated Use {@link modV2()} instead.
    * This implementation is vulnerable whenever `this` is zero.
    * It allows the prover to return `y` instead of 0 as the result.
@@ -1215,10 +1308,25 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Integer remainder.
+   * Calculates the integer remainder of this Int64 divided by the given value.
    *
-   * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
-   * `x - z` is divisible by `y`.
+   * The result `z` satisfies the following conditions:
+   * 1. 0 <= z < |y|
+   * 2. x - z is divisible by y
+   *
+   * Note: This method follows the "truncate toward zero" convention for negative numbers.
+   *
+   * @param y - The divisor. Will be converted to UInt64 if not already.
+   * @returns A new Int64 instance representing the remainder.
+   *
+   * @example
+   * ```ts
+   * const x1 = Int64.from(17);
+   * const y1 = UInt64.from(5);
+   * console.log(x1.modV2(y1).toString()); // Output: 2
+   * ```
+   *
+   * @throws {Error} Implicitly, if y is zero or negative.
    */
   modV2(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
@@ -1256,7 +1364,14 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Checks if the value is positive (x > 0).
+   * Checks if the value is strictly positive (x > 0).
+   *
+   * @returns True if the value is greater than zero, false otherwise.
+   *
+   * @remarks
+   * This method considers zero as non-positive. It ensures consistency
+   * with the mathematical definition of "positive" as strictly greater than zero.
+   * This differs from some other methods which may treat zero as non-negative.
    */
   isPositiveV2() {
     return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
