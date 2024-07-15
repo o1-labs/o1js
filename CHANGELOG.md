@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1c736add...HEAD)
 
+### Added
+
+- `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+
 ## [1.5.0](https://github.com/o1-labs/o1js/compare/ed198f305...1c736add) - 2024-07-09
 
 ### Breaking changes
