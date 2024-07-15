@@ -22,6 +22,7 @@ import {
   ZkappUri,
   PublicKey,
   StateHash,
+  MayUseToken,
 } from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
@@ -98,6 +99,23 @@ const authRequired = map(
   ),
   AuthRequired.fromJSON
 );
+const mayUseToken = map(
+  oneOf<Json.MayUseToken[]>(
+    {
+      parentsOwnToken: true,
+      inheritFromParent: false,
+    },
+    {
+      parentsOwnToken: false,
+      inheritFromParent: true,
+    },
+    {
+      parentsOwnToken: false,
+      inheritFromParent: false,
+    }
+  ),
+  MayUseToken.fromJSON
+);
 const tokenSymbolString = reject(
   string(nat(tokenSymbolLength)),
   (s) => stringLengthInBytes(s) > 6
@@ -143,6 +161,7 @@ const Generators: Generators = {
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
   TransactionVersion: uint32,
+  MayUseToken: mayUseToken,
 };
 let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -251,6 +270,7 @@ const JsonGenerators: JsonGenerators = {
   string: base58(nat(50)),
   number: nat(3),
   TransactionVersion: json_.uint32,
+  MayUseToken: mapWithInvalid(mayUseToken, MayUseToken.toJSON),
 };
 let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]

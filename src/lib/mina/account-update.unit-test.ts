@@ -145,18 +145,17 @@ function createAccountUpdateWithMayUseToken(
 }
 
 // throws an error when both flags are true in AccountUpdate.check method
-// TODO: This should be throwing but it isn't, need to investigate
-// {
-//   let accountUpdate = createAccountUpdateWithMayUseToken({
-//     parentsOwnToken: Bool(true),
-//     inheritFromParent: Bool(true),
-//   });
-//   expect(() => {
-//     AccountUpdate.check(accountUpdate);
-//   }).toThrowError(
-//     'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
-//   );
-// }
+{
+  let accountUpdate = createAccountUpdateWithMayUseToken({
+    parentsOwnToken: Bool(true),
+    inheritFromParent: Bool(true),
+  });
+  expect(() => {
+    AccountUpdate.check(accountUpdate);
+  }).toThrowError(
+    'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
+  );
+}
 
 // correctly identifies when neither flag is set
 {
