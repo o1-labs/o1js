@@ -10,14 +10,14 @@ import {
   Provable,
 } from '../provable/provable.js';
 import { Field, Bool } from '../provable/wrapped.js';
-import { Pickles, Test } from '../../snarky.js';
+import { Pickles } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
-import { UInt64, UInt32, Int64, Sign } from '../provable/int.js';
+import { UInt64, UInt32, Int64 } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
 import {
   Preconditions,
@@ -730,13 +730,9 @@ class AccountUpdate implements Types.AccountUpdate {
     }
 
     // Sub the amount from the sender's account
-    this.body.balanceChange = Int64.Unsafe.fromObject(
-      this.body.balanceChange
-    ).sub(amount);
+    this.body.balanceChange = this.body.balanceChange.sub(amount);
     // Add the amount to the receiver's account
-    receiver.body.balanceChange = Int64.Unsafe.fromObject(
-      receiver.body.balanceChange
-    ).add(amount);
+    receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
     return receiver;
   }
 
@@ -767,18 +763,18 @@ class AccountUpdate implements Types.AccountUpdate {
 
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(x);
+        accountUpdate.body.balanceChange =
+          accountUpdate.body.balanceChange.add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
+        accountUpdate.body.balanceChange =
+          accountUpdate.body.balanceChange.sub(x);
       },
     };
   }
 
   get balanceChange() {
-    return Int64.Unsafe.fromObject(this.body.balanceChange);
+    return this.body.balanceChange;
   }
   set balanceChange(x: Int64) {
     this.body.balanceChange = x;
