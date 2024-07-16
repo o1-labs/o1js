@@ -275,9 +275,7 @@ function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
     return equalExplicit(typeOrX, xOrY, yOrUndefined);
   }
 }
-// TODO: constraints can be reduced by up to 2x for large structures by using a variant
-// of the `equals` argument where we return 1 - z(x0 - y0)(x1 - y1)...(xn - yn)
-// current version will do (1 - z0(x0 - y0))(1 - z1(x1 - y1))... + constrain each factor
+
 function equalImplicit<T extends ToFieldable>(x: T, y: T) {
   let xs = x.toFields();
   let ys = y.toFields();
@@ -285,6 +283,10 @@ function equalImplicit<T extends ToFieldable>(x: T, y: T) {
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
 function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
+  // when comparing two values of the same type, we use the type's canonical form
+  // otherwise, the case where `equal()` returns false is misleading (two values can differ as field elements but be "equal")
+  x = type.toCanonical?.(x) ?? x;
+  y = type.toCanonical?.(y) ?? y;
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
