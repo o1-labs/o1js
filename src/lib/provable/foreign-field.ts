@@ -728,7 +728,8 @@ function provable<
       Class.check(x);
     },
     toCanonical(x) {
-      return new Class(x.type === 'FullyReduced' ? x : x.assertCanonical());
+      if (x.type === 'FullyReduced') return x;
+      return new Class(FF.toCanonical(x.value, x.modulus));
     },
     toValue(x) {
       return x.toBigInt();
