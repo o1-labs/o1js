@@ -41,6 +41,10 @@ export { Packed, Hashed };
  * **Warning**: Packing only makes sense where packing actually reduces the number of field elements.
  * For example, it doesn't make sense to pack a _single_ Bool, because it will be 1 field element before
  * and after packing. On the other hand, it does makes sense to pack a type that holds 10 or 20 Bools.
+ *
+ * **Warning**: When wrapping a type with `Packed`, make sure that that type is safe to automatically _pack_
+ * and _unpack_ in provable code. In particular, do not use `Packed` with types that define a custom `toInput()`
+ * (specifying a certain bit packing) but no corresponding `check()` method (that constrains the bit lengths of the packed parts).
  */
 class Packed<T> {
   packed: Field[];
@@ -170,6 +174,10 @@ function countFields(input: HashInput) {
  * // unhash to get the original value
  * let value = hashed.unhash();
  * ```
+ *
+ * **Warning**: When wrapping a type with `Hashed`, make sure that that type is safe to automatically _pack_
+ * and _unpack_ in provable code. In particular, do not use `Hashed` with types that define a custom `toInput()`
+ * (specifying a certain bit packing) but no corresponding `check()` method  (that constrains the bit lengths of the packed parts).
  */
 class Hashed<T> {
   hash: Field;
