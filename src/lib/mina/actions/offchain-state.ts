@@ -27,6 +27,7 @@ import { Poseidon } from '../../provable/crypto/poseidon.js';
 import { contract } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 import { assertDefined } from '../../util/assert.js';
+import { ProvableType } from '../../provable/types/provable-intf.js';
 
 // external API
 export { OffchainState, OffchainStateCommitments };
@@ -291,6 +292,7 @@ function OffchainState<
     index: number,
     type: Actionable<T, TValue>
   ): OffchainField<T, TValue> {
+    type = ProvableType.get(type);
     const prefix = Field(index);
     let optionType = Option(type);
 
@@ -340,6 +342,8 @@ function OffchainState<
     keyType: Actionable<K>,
     valueType: Actionable<V, VValue>
   ): OffchainMap<K, V, VValue> {
+    keyType = ProvableType.get(keyType);
+    valueType = ProvableType.get(valueType);
     const prefix = Field(index);
     let optionType = Option(valueType);
 

@@ -6,7 +6,11 @@
  * if we only need to prove that (key, value) are part of it.
  */
 
-import { ProvablePure } from '../../provable/types/provable-intf.js';
+import {
+  ProvablePure,
+  ProvableType,
+  WithProvable,
+} from '../../provable/types/provable-intf.js';
 import {
   Poseidon,
   ProvableHashable,
@@ -45,7 +49,9 @@ export {
 };
 
 type Action = [...Field[], Field, Field];
-type Actionable<T, V = any> = ProvableHashable<T, V> & ProvablePure<T, V>;
+type Actionable<T, V = any> = WithProvable<
+  ProvableHashable<T, V> & ProvablePure<T, V>
+>;
 
 function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
   prefix: Field,
@@ -70,6 +76,7 @@ function toAction<K, V, KeyType extends Actionable<K> | undefined>({
   value: V;
   previousValue?: Option<V>;
 }): Action {
+  valueType = ProvableType.get(valueType);
   let valueSize = valueType.sizeInFields();
   let padding = valueSize % 2 === 0 ? [] : [Field(0)];
 
@@ -100,6 +107,7 @@ function fromActionWithoutHashes<V>(
   valueType: Actionable<V>,
   action: Field[]
 ): V {
+  valueType = ProvableType.get(valueType);
   let valueSize = valueType.sizeInFields();
   let paddingSize = valueSize % 2 === 0 ? 0 : 1;
   assert(action.length === valueSize + paddingSize, 'invalid action size');
@@ -121,7 +129,7 @@ function hashPackedWithPrefix<T, Type extends Actionable<T> | undefined>(
 
   // hash value if a type was passed in
   if (type !== undefined) {
-    let input = type.toInput(value as T);
+    let input = ProvableType.get(type).toInput(value as T);
     let packed = packToFields(input);
     state = Poseidon.update(state, packed);
   }

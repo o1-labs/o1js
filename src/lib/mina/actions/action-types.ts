@@ -6,6 +6,7 @@ import { Actions } from '../account-update.js';
 import { Hashed } from '../../provable/packed.js';
 import { hashWithPrefix } from '../../provable/crypto/poseidon.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
+import { ProvableType } from '../../provable/types/provable-intf.js';
 
 export { MerkleActions, MerkleActionHashes, HashedAction, FlatActions };
 export { emptyActionState, emptyActionsHash };
@@ -45,8 +46,9 @@ function MerkleActionList<A extends Actionable<any>>(actionType: A) {
 type HashedAction<T> = Hashed<T>;
 
 function HashedAction<A extends Actionable<any>>(actionType: A) {
-  return Hashed.create(actionType as Actionable<InferProvable<A>>, (action) =>
-    hashWithPrefix(prefixes.event, actionType.toFields(action))
+  let type = ProvableType.get(actionType as Actionable<InferProvable<A>>);
+  return Hashed.create(type, (action) =>
+    hashWithPrefix(prefixes.event, type.toFields(action))
   );
 }
 
@@ -55,14 +57,15 @@ function actionFieldsToMerkleList<T>(
   fields: bigint[][][],
   fromActionState?: bigint
 ) {
-  const HashedActionT = HashedAction(actionType);
-  const MerkleActionListT = MerkleActionList(actionType);
+  let type = ProvableType.get(actionType);
+  const HashedActionT = HashedAction(type);
+  const MerkleActionListT = MerkleActionList(type);
   const MerkleActionsT = MerkleActions(
-    actionType,
+    type,
     fromActionState ? Field(fromActionState) : undefined
   );
   let actions = fields.map((event) =>
-    event.map((action) => actionType.fromFields(action.map(Field)))
+    event.map((action) => type.fromFields(action.map(Field)))
   );
   let hashes = actions.map((as) => as.map((a) => HashedActionT.hash(a)));
   return MerkleActionsT.from(hashes.map((h) => MerkleActionListT.from(h)));
