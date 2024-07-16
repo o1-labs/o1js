@@ -107,22 +107,22 @@ const bytes32 = Bytes32.from([]);
 
 const HashCS = constraintSystem('Hashes', {
   SHA256() {
-    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    let xs = Provable.witness(Bytes32, () => bytes32);
     Hash.SHA3_256.hash(xs);
   },
 
   SHA384() {
-    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    let xs = Provable.witness(Bytes32, () => bytes32);
     Hash.SHA3_384.hash(xs);
   },
 
   SHA512() {
-    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    let xs = Provable.witness(Bytes32, () => bytes32);
     Hash.SHA3_512.hash(xs);
   },
 
   Keccak256() {
-    let xs = Provable.witness(Bytes32.provable, () => bytes32);
+    let xs = Provable.witness(Bytes32, () => bytes32);
     Hash.Keccak256.hash(xs);
   },
 

@@ -306,8 +306,8 @@ await equivalentAsync({ from: [f, f], to: unit }, { runs })(
 
 function assertMulExample(x: Field3, y: Field3, f: bigint) {
   // witness x^2, y^2
-  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
-  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+  let x2 = Provable.witness(Field3, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3, () => ForeignField.mul(y, y, f));
 
   // assert (x - y) * (x + y) = x^2 - y^2
   let xMinusY = ForeignField.Sum(x).sub(y);
@@ -318,8 +318,8 @@ function assertMulExample(x: Field3, y: Field3, f: bigint) {
 
 function assertMulExampleNaive(x: Field3, y: Field3, f: bigint) {
   // witness x^2, y^2
-  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
-  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+  let x2 = Provable.witness(Field3, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3, () => ForeignField.mul(y, y, f));
 
   // assert (x - y) * (x + y) = x^2 - y^2
   let lhs = ForeignField.mul(

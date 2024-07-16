@@ -6,7 +6,7 @@ import {
   snarkContext,
 } from '../core/provable-context.js';
 import { exists, existsAsync } from '../core/exists.js';
-import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
+import { From } from '../../../bindings/lib/provable-generic.js';
 import { TupleN } from '../../util/types.js';
 import { createField } from '../core/field-constructor.js';
 

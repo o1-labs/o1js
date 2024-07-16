@@ -614,7 +614,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * If you want to do multiplication, you have two options:
  * - create your field elements using the {@link ForeignField.AlmostReduced} constructor, or using the `.provable` type on that class.
  * ```ts
- * let x = Provable.witness(ForeignField.AlmostReduced.provable, () => ForeignField.from(5));
+ * let x = Provable.witness(ForeignField.AlmostReduced, () => 5n);
  * ```
  * - create your field elements normally and convert them using `x.assertAlmostReduced()`.
  * ```ts

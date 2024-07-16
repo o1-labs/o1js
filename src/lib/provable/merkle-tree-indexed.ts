@@ -693,7 +693,7 @@ class Leaf extends Struct({
   }
 
   static fromStored(leaf: StoredLeaf, sortedIndex: number) {
-    return { ...leaf, sortedIndex: sortedIndex };
+    return { ...leaf, sortedIndex };
   }
 }
 

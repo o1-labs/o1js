@@ -14,15 +14,15 @@ let scalar = Field.random().toBigInt();
 let p = V.toAffine(V.scale(V.fromAffine(h), scalar));
 
 function main() {
-  let g0 = Provable.witness(Vesta.provable, () => new Vesta(g));
-  let one = Provable.witness(Vesta.provable, () => Vesta.generator);
+  let g0 = Provable.witness(Vesta, () => g);
+  let one = Provable.witness(Vesta, () => Vesta.generator);
   let h0 = g0.add(one).double().negate();
   Provable.assertEqual(Vesta.provable, h0, new Vesta(h));
 
   h0.assertOnCurve();
   h0.assertInSubgroup();
 
-  let scalar0 = Provable.witness(Fp.provable, () => new Fp(scalar));
+  let scalar0 = Provable.witness(Fp, () => scalar);
   let p0 = h0.scale(scalar0);
   Provable.assertEqual(Vesta.provable, p0, new Vesta(p));
 }
