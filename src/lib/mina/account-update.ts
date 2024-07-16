@@ -1184,19 +1184,34 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 
+  /**
+   * This function acts as the `check()` method on an `AccountUpdate` that is sent to the Mina node as part of a transaction.
+   *
+   * Background: the Mina node performs most necessary validity checks on account updates, both in- and outside of circuits.
+   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account udpates
+   * will be part of a transaction.
+   *
+   * However, there are a few checks skipped by the Mina node, that could cause vulnerabilities in zkApps if
+   * not checked in the zkApp proof itself. Adding these extra checks is the purpose of this function.
+   */
+  private static clientSideOnlyChecks(au: AccountUpdate) {
+    // canonical int64 representation of the balance change
+    Int64.check(au.body.balanceChange);
+  }
+
   static witness<T>(
-    type: FlexibleProvable<T>,
+    resultType: FlexibleProvable<T>,
     compute: () => Promise<{ accountUpdate: AccountUpdate; result: T }>,
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = skipCheck
-      ? { ...provable(AccountUpdate), check() {} }
+    let accountUpdate = skipCheck
+      ? {
+          ...provable(AccountUpdate),
+          check: AccountUpdate.clientSideOnlyChecks,
+        }
       : AccountUpdate;
-    let combinedType = provable({
-      accountUpdate: accountUpdateType,
-      result: type as any,
-    });
+    let combinedType = provable({ accountUpdate, result: resultType });
     return Provable.witnessAsync(combinedType, compute);
   }
 
