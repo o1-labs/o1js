@@ -432,11 +432,7 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
-const provableLimb = modifiedField({
-  toInput(x) {
-    return { packed: [[x, Number(l)]] };
-  },
-});
+const provableLimb = modifiedField({});
 
 const Field3 = {
   /**
