@@ -44,7 +44,7 @@ type MerkleListBase<T> = {
 };
 
 function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
-  return class extends Struct({ hash: Field, data: Unconstrained.provable }) {
+  return class extends Struct({ hash: Field, data: Unconstrained }) {
     static empty(): MerkleListBase<T> {
       return { hash: emptyHash, data: Unconstrained.from([]) };
     }

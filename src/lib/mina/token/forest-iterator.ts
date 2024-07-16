@@ -19,7 +19,7 @@ const AccountUpdateIterator = MerkleListIterator.create(
 );
 
 class Layer extends Struct({
-  forest: AccountUpdateIterator.provable,
+  forest: AccountUpdateIterator,
   mayUseToken: AccountUpdate.MayUseToken.type,
 }) {}
 const ParentLayers = MerkleList.create<Layer>(Layer);

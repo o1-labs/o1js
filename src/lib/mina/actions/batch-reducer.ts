@@ -549,7 +549,7 @@ function ActionBatch<A extends Actionable<any>>(actionType: A) {
     processedActionState: Field,
     onchainActionState: Field,
     onchainStack: Field,
-    stack: MerkleActions(actionType).provable,
+    stack: MerkleActions(actionType),
     isRecursive: Bool,
     witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
   });

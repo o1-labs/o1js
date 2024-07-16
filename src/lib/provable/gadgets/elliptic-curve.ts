@@ -775,7 +775,7 @@ const Point = {
     return Point.from(random(Curve));
   },
 
-  provable: provable({ x: Field3.provable, y: Field3.provable }),
+  provable: provable({ x: Field3, y: Field3 }),
 };
 
 const EcdsaSignature = {
@@ -804,7 +804,7 @@ const EcdsaSignature = {
     return EcdsaSignature.from({ r, s });
   },
 
-  provable: provable({ r: Field3.provable, s: Field3.provable }),
+  provable: provable({ r: Field3, s: Field3 }),
 };
 
 const Ecdsa = {

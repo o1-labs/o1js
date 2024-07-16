@@ -128,6 +128,7 @@ and Provable.asProver() blocks, which execute outside the proof.
     },
   };
 
+  // TODO rename
   static provableWithEmpty<T>(empty: T): Provable<Unconstrained<T>, T> & {
     toInput: (x: Unconstrained<T>) => {
       fields?: Field[];

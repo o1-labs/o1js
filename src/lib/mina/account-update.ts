@@ -1357,7 +1357,7 @@ type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
 
 const AccountUpdateTreeBase = StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
+  accountUpdate: HashedAccountUpdate,
   children: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
@@ -1467,8 +1467,8 @@ class AccountUpdateForest extends MerkleList.create(
  */
 class AccountUpdateTree extends StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
-  children: AccountUpdateForest.provable,
+  accountUpdate: HashedAccountUpdate,
+  children: AccountUpdateForest,
 }) {
   /**
    * Create a tree of account updates which only consists of a root.

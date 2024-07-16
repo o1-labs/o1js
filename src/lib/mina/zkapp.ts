@@ -462,7 +462,7 @@ function wrapMethod(
       }>(
         provable({
           result: methodIntf.returnType ?? provable(null),
-          children: AccountUpdateForest.provable,
+          children: AccountUpdateForest,
         }),
         runCalledContract,
         { skipCheck: true }

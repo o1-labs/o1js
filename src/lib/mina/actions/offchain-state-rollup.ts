@@ -42,7 +42,7 @@ class OffchainStateCommitments extends Struct({
   root: Field,
   length: Field,
   // TODO: make zkprogram support auxiliary data in public inputs
-  // actionState: ActionIterator.provable,
+  // actionState: ActionIterator,
   actionState: Field,
 }) {
   static emptyFromHeight(height: number) {
