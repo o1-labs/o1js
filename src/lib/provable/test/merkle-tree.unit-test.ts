@@ -249,7 +249,7 @@ test(
 
       // move the map back to constants
       Provable.asProver(() => {
-        map = Provable.toConstant(MerkleMap.provable, map);
+        map = Provable.toConstant(MerkleMap, map);
       });
     });
 

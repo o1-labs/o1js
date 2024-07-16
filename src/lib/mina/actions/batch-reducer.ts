@@ -385,7 +385,7 @@ class BatchReducer<
       // we make it easier to write the reducer code by making sure dummy actions have dummy values
       hashedAction = Provable.if(
         isDummy,
-        HashedActionT.provable,
+        HashedActionT,
         emptyHashedAction,
         hashedAction
       );

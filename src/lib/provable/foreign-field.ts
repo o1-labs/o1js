@@ -303,11 +303,7 @@ class ForeignField {
         }
         return new this.Constructor.Canonical(this.value);
       }
-      Provable.assertEqual(
-        this.Constructor.provable,
-        this,
-        new this.Constructor(y)
-      );
+      Provable.assertEqual(this.Constructor, this, new this.Constructor(y));
       if (isConstant(y) || y instanceof this.Constructor.Canonical) {
         return new this.Constructor.Canonical(this.value);
       } else if (y instanceof this.Constructor.AlmostReduced) {
@@ -612,7 +608,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  *
  * This function returns the `Unreduced` class, which will cause the minimum amount of range checks to be created by default.
  * If you want to do multiplication, you have two options:
- * - create your field elements using the {@link ForeignField.AlmostReduced} constructor, or using the `.provable` type on that class.
+ * - create your field elements using the {@link ForeignField.AlmostReduced} constructor.
  * ```ts
  * let x = Provable.witness(ForeignField.AlmostReduced, () => 5n);
  * ```

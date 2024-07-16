@@ -176,7 +176,7 @@ let ffProgram = ZkProgram({
   publicOutput: Field3,
   methods: {
     sumchain: {
-      privateInputs: [Provable.Array(Field3.provable, chainLength)],
+      privateInputs: [Provable.Array(Field3, chainLength)],
       async method(xs) {
         return ForeignField.sum(xs, signs, F.modulus);
       },
@@ -328,7 +328,7 @@ function assertMulExampleNaive(x: Field3, y: Field3, f: bigint) {
     f
   );
   let rhs = ForeignField.sub(x2, y2, f);
-  Provable.assertEqual(Field3.provable, lhs, rhs);
+  Provable.assertEqual(Field3, lhs, rhs);
 }
 
 let from2 = { from: [f, f] satisfies AnyTuple };

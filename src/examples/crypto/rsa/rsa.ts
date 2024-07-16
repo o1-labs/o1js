@@ -170,7 +170,7 @@ function rsaVerify65537(
   x = modulus.modMul(x, signature);
 
   // check that x == message
-  Provable.assertEqual(Bigint2048.provable, message, x);
+  Provable.assertEqual(Bigint2048, message, x);
 }
 
 /**

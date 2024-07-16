@@ -169,7 +169,7 @@ function OffchainStateRollup({
        */
       firstBatch: {
         // [actions, tree]
-        privateInputs: [ActionIterator.provable, IndexedMerkleMapN.provable],
+        privateInputs: [ActionIterator, IndexedMerkleMapN],
 
         async method(
           stateA: OffchainStateCommitments,
@@ -189,11 +189,7 @@ function OffchainStateRollup({
        */
       nextBatch: {
         // [actions, tree, proof]
-        privateInputs: [
-          ActionIterator.provable,
-          IndexedMerkleMapN.provable,
-          SelfProof,
-        ],
+        privateInputs: [ActionIterator, IndexedMerkleMapN, SelfProof],
 
         async method(
           stateA: OffchainStateCommitments,

@@ -17,14 +17,14 @@ function main() {
   let g0 = Provable.witness(Vesta, () => g);
   let one = Provable.witness(Vesta, () => Vesta.generator);
   let h0 = g0.add(one).double().negate();
-  Provable.assertEqual(Vesta.provable, h0, new Vesta(h));
+  Provable.assertEqual(Vesta, h0, new Vesta(h));
 
   h0.assertOnCurve();
   h0.assertInSubgroup();
 
   let scalar0 = Provable.witness(Fp, () => scalar);
   let p0 = h0.scale(scalar0);
-  Provable.assertEqual(Vesta.provable, p0, new Vesta(p));
+  Provable.assertEqual(Vesta, p0, new Vesta(p));
 }
 
 console.time('running constant version');

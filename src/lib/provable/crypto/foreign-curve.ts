@@ -97,7 +97,7 @@ class ForeignCurve {
    * See {@link FieldVar} to understand constants vs variables.
    */
   isConstant() {
-    return Provable.isConstant(this.Constructor.provable, this);
+    return Provable.isConstant(this.Constructor, this);
   }
 
   /**
