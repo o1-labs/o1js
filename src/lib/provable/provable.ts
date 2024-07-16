@@ -5,13 +5,17 @@
  */
 import { Bool } from './bool.js';
 import { Field } from './field.js';
-import type { Provable as Provable_ } from './types/provable-intf.js';
-import type { FlexibleProvable, ProvableExtended } from './types/struct.js';
+import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
+import type {
+  FlexibleProvable,
+  FlexibleProvableType,
+  ProvableExtended,
+} from './types/struct.js';
 import { Context } from '../util/global-context.js';
 import {
   HashInput,
   InferJson,
-  InferProvable,
+  InferProvableType,
   InferredProvable,
 } from './types/provable-derivers.js';
 import {
@@ -23,6 +27,7 @@ import {
 } from './core/provable-context.js';
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 
 // external API
 export { Provable };
@@ -229,7 +234,8 @@ const Provable = {
   /**
    * Returns a constant version of a provable type.
    */
-  toConstant<T>(type: Provable<T>, value: T) {
+  toConstant<T>(type: ProvableType<T>, value: T) {
+    type = ProvableType.get(type);
     return type.fromFields(
       type.toFields(value).map((x) => x.toConstant()),
       type.toAuxiliary(value)
@@ -241,7 +247,7 @@ type ToFieldable = { toFields(): Field[] };
 
 // general provable methods
 
-function assertEqual<T>(type: FlexibleProvable<T>, x: T, y: T): void;
+function assertEqual<T>(type: FlexibleProvableType<T>, x: T, y: T): void;
 function assertEqual<T extends ToFieldable>(x: T, y: T): void;
 function assertEqual(typeOrX: any, xOrY: any, yOrUndefined?: any) {
   if (yOrUndefined === undefined) {
@@ -258,7 +264,8 @@ function assertEqualImplicit<T extends ToFieldable>(x: T, y: T) {
     xs[i].assertEquals(ys[i]);
   }
 }
-function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
+function assertEqualExplicit<T>(type: ProvableType<T>, x: T, y: T) {
+  type = ProvableType.get(type);
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   for (let i = 0; i < xs.length; i++) {
@@ -266,7 +273,7 @@ function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
   }
 }
 
-function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
+function equal<T>(type: FlexibleProvableType<T>, x: T, y: T): Bool;
 function equal<T extends ToFieldable>(x: T, y: T): Bool;
 function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
   if (yOrUndefined === undefined) {
@@ -284,13 +291,14 @@ function equalImplicit<T extends ToFieldable>(x: T, y: T) {
   checkLength('Provable.equal', xs, ys);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
-function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
+function equalExplicit<T>(type: ProvableType<T>, x: T, y: T) {
+  type = ProvableType.get(type);
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
 
-function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;
+function if_<T>(condition: Bool, type: FlexibleProvableType<T>, x: T, y: T): T;
 function if_<T extends ToFieldable>(condition: Bool, x: T, y: T): T;
 function if_(condition: Bool, typeOrX: any, xOrY: any, yOrUndefined?: any) {
   if (yOrUndefined === undefined) {
@@ -312,7 +320,8 @@ function ifField(b: Field, x: Field, y: Field) {
   return b.mul(x.sub(y)).add(y).seal();
 }
 
-function ifExplicit<T>(condition: Bool, type: Provable<T>, x: T, y: T): T {
+function ifExplicit<T>(condition: Bool, type: ProvableType<T>, x: T, y: T): T {
+  type = ProvableType.get(type);
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   let b = condition.toField();
@@ -352,12 +361,13 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
   return ifExplicit(condition, type as any as Provable<T>, x, y);
 }
 
-function switch_<T, A extends FlexibleProvable<T>>(
+function switch_<T, A extends FlexibleProvableType<T>>(
   mask: Bool[],
   type: A,
   values: T[],
   { allowNonExclusive = false } = {}
 ): T {
+  let type_ = ProvableType.get(type as ProvableType<T>);
   // picks the value at the index where mask is true
   let nValues = values.length;
   if (mask.length !== nValues)
@@ -375,35 +385,37 @@ function switch_<T, A extends FlexibleProvable<T>>(
   };
   if (mask.every((b) => b.toField().isConstant())) checkMask();
   else Provable.asProver(checkMask);
-  let size = type.sizeInFields();
+  let size = type_.sizeInFields();
   let fields = Array(size).fill(new Field(0));
   for (let i = 0; i < nValues; i++) {
-    let valueFields = type.toFields(values[i]);
+    let valueFields = type_.toFields(values[i]);
     let maskField = mask[i].toField();
     for (let j = 0; j < size; j++) {
       let maybeField = valueFields[j].mul(maskField);
       fields[j] = fields[j].add(maybeField);
     }
   }
-  let aux = auxiliary(type as Provable<T>, () => {
+  let aux = auxiliary(type_, () => {
     let i = mask.findIndex((b) => b.toBoolean());
     if (i === -1) return undefined;
     return values[i];
   });
-  return (type as Provable<T>).fromFields(fields, aux);
+  return type_.fromFields(fields, aux);
 }
 
 function assertEqualIf<
-  A extends Provable<any>,
-  T extends InferProvable<A> = InferProvable<A>
+  A extends ProvableType<any>,
+  T extends InferProvableType<A> = InferProvableType<A>
 >(enabled: Bool, type: A, x: T, y: T) {
   // if the condition is disabled, we check the trivial identity x === x instead
   let xOrY = ifExplicit<T>(enabled, type, y, x);
   assertEqual(type, x, xOrY);
 }
 
-function isConstant<T>(type: Provable<T>, x: T): boolean {
-  return type.toFields(x).every((x) => x.isConstant());
+function isConstant<T>(type: ProvableType<T>, x: T): boolean {
+  return ProvableType.get(type)
+    .toFields(x)
+    .every((x) => x.isConstant());
 }
 
 // logging in provable code
@@ -498,14 +510,16 @@ function getBlindingValue() {
 }
 
 // TODO this should return a class, like Struct, so you can just use `class Array3 extends Provable.Array(Field, 3) {}`
-function provableArray<A extends FlexibleProvable<any>>(
+function provableArray<A extends FlexibleProvableType<any>>(
   elementType: A,
   length: number
-): InferredProvable<A[]> {
-  type T = InferProvable<A>;
-  type TValue = InferValue<A>;
-  type TJson = InferJson<A>;
-  let type = elementType as ProvableExtended<T, TValue, TJson>;
+): InferredProvable<ToProvable<A>[]> {
+  type T = InferProvableType<A>;
+  type TValue = InferValue<ToProvable<A>>;
+  type TJson = InferJson<ToProvable<A>>;
+  let type = ProvableType.get(
+    elementType as ProvableType<T>
+  ) as ProvableExtended<T, TValue, TJson>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
