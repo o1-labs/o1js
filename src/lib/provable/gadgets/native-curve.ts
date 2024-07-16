@@ -10,7 +10,7 @@ import {
   l,
   multiRangeCheck,
   rangeCheck64,
-  rangeCheckLessThan16,
+  rangeCheckLessThan64,
 } from './range-check.js';
 import {
   createBool,
@@ -283,7 +283,7 @@ function shiftedScalarToField3(t: ShiftedScalar): Field3 {
   });
   // check t0 < 2^88 in pieces and reassemble
   rangeCheck64(t0Hi0);
-  rangeCheckLessThan16(23, t0Hi1);
+  rangeCheckLessThan64(23, t0Hi1);
   let t0Hi = t0Hi0.add(t0Hi1.mul(1n << 64n)).seal(); // < 2^87
   let t0 = t.lowBit.toField().add(t0Hi.mul(2n)).seal(); // < 2^88
 

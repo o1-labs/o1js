@@ -18,6 +18,7 @@ export {
   rangeCheck8,
   rangeCheck16,
   rangeCheckLessThan16,
+  rangeCheckLessThan64,
 };
 export { l, l2, l3, lMask, l2Mask };
 
@@ -371,4 +372,22 @@ function rangeCheckLessThan16(bits: number, x: Field) {
   // check that 2^(16 - bits)*x < 2^16, i.e. x < 2^bits
   let xM = x.mul(1 << (16 - bits)).seal();
   rangeCheckHelper(16, xM).assertEquals(xM);
+}
+
+function rangeCheckLessThan64(bits: number, x: Field) {
+  assert(bits < 64, `bits must be less than 64, got ${bits}`);
+
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << BigInt(bits),
+      `rangeCheckLessThan16: expected field to fit in ${bits} bits, got ${x}`
+    );
+    return;
+  }
+
+  // check that x fits in 64 bits
+  rangeCheck64(x);
+  // check that 2^(64 - bits)*x < 2^64, i.e. x < 2^bits
+  let xM = x.mul(1 << (64 - bits)).seal();
+  rangeCheck64(xM);
 }
