@@ -5,8 +5,13 @@ import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
 import { synchronousRunners } from '../core/provable-context.js';
 import { Scalar } from '../scalar.js';
 import { Field } from '../field.js';
+import { equivalentProvable, spec, unit } from '../../testing/equivalent.js';
+import { Bool } from '../bool.js';
+import assert from 'assert';
 
 let { runAndCheckSync } = await synchronousRunners();
+
+const q = Scalar.ORDER;
 
 console.log('group consistency tests');
 
@@ -52,6 +57,67 @@ test(Random.field, Random.field, (a, b, assert) => {
   run(zero.neg(), zero, (x, y) => x.sub(y), assert);
   run(zero.neg(), zero.neg(), (x, y) => x.sub(y), assert);
 });
+
+// tests for toCanonical
+
+const scalar = spec({
+  rng: Random.scalar,
+  there: Scalar.from,
+  back: (s) => s.toBigInt(),
+  provable: Scalar,
+});
+
+const nonCanonicalScalar = spec({
+  // number between 0 and 2^256 - 3q < q, so that q < x + 3q - 2^255 < 2^255 is a valid but non-canonical shifted scalar
+  rng: Random.bignat((1n << 256n) - 3n * q),
+  there(s: bigint) {
+    let t = s + 3n * q - (1n << 255n);
+    return Scalar.fromShiftedScalar({
+      lowBit: new Bool((t & 1n) === 1n),
+      high254: Field.from(t >> 1n),
+    });
+  },
+  back: (s: Scalar) => s.toBigInt(),
+  provable: Scalar,
+});
+
+equivalentProvable({ from: [nonCanonicalScalar], to: unit, verbose: true })(
+  () => true,
+  (s) => {
+    let sCanonical = Scalar.toCanonical(s);
+
+    // different from input
+    sCanonical.high254
+      .equals(s.high254)
+      .and(sCanonical.lowBit.equals(s.lowBit))
+      .assertFalse();
+
+    // but equivalent to the input according to Provable.equal()
+    return Provable.equal(Scalar, s, sCanonical);
+  },
+  'toCanonical'
+);
+
+const g = Group.generator;
+
+runAndCheckSync(() => {
+  let badZero = Provable.witness(Scalar, () => nonCanonicalScalar.there(0n));
+  let badMinusOne = Provable.witness(Scalar, () =>
+    nonCanonicalScalar.there(-1n)
+  );
+
+  // incomplete scalar multiplication
+  assert.throws(() => g.scale(badZero), /Field.inv: zero/);
+  assert.throws(() => g.scale(badMinusOne), /Field.inv: zero/);
+
+  // becomes complete with toCanonical()
+  let goodZero = Scalar.toCanonical(badZero);
+  let goodMinusOne = Scalar.toCanonical(badMinusOne);
+  g.scale(goodZero).assertEquals(Group.zero);
+  g.scale(goodMinusOne).assertEquals(g.neg());
+});
+
+// helpers
 
 function run(
   g1: Group,
