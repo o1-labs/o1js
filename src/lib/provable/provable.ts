@@ -235,6 +235,14 @@ const Provable = {
       type.toAuxiliary(value)
     );
   },
+
+  /**
+   * Return a canonical version of a value, where
+   * canonical is defined by the `type`.
+   */
+  toCanonical<T>(type: Provable<T>, value: T) {
+    return type.toCanonical?.(value) ?? value;
+  },
 };
 
 type ToFieldable = { toFields(): Field[] };
