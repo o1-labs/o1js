@@ -23,7 +23,7 @@ function MerkleActions<A extends Actionable<any>>(
   fromActionState?: Field
 ) {
   return MerkleList.create(
-    MerkleActionList(actionType).provable,
+    MerkleActionList(actionType),
     (hash, actions) =>
       hashWithPrefix(prefixes.sequenceEvents, [hash, actions.hash]),
     fromActionState ?? emptyActionState
@@ -35,7 +35,7 @@ type MerkleActionList<T> = MerkleList<Hashed<T>>;
 
 function MerkleActionList<A extends Actionable<any>>(actionType: A) {
   return MerkleList.create(
-    HashedAction(actionType).provable,
+    HashedAction(actionType),
     (hash, action) =>
       hashWithPrefix(prefixes.sequenceEvents, [hash, action.hash]),
     emptyActionsHash
@@ -92,9 +92,5 @@ function MerkleActionHashes(fromActionState?: Field) {
 type FlatActions<T> = MerkleList<Hashed<T>>;
 
 function FlatActions<A extends Actionable<any>>(actionType: A) {
-  const HashedAction = Hashed.create(
-    actionType as Actionable<InferProvable<A>>,
-    (action) => hashWithPrefix(prefixes.event, actionType.toFields(action))
-  );
-  return MerkleList.create(HashedAction.provable);
+  return MerkleList.create(HashedAction(actionType));
 }

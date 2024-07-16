@@ -22,7 +22,7 @@ import { getProofsEnabled } from '../mina.js';
 export { OffchainStateRollup, OffchainStateCommitments };
 
 class ActionIterator extends MerkleListIterator.create(
-  ActionList.provable,
+  ActionList,
   (hash: Field, actions: ActionList) =>
     Actions.updateSequenceState(hash, actions.hash),
   // we don't have to care about the initial hash here because we will just step forward
@@ -319,7 +319,7 @@ function OffchainStateRollup({
 // also moves the original iterator forward to start after the slice
 function sliceActions(actions: ActionIterator, batchSize: number) {
   class ActionListsList extends MerkleList.create(
-    ActionList.provable,
+    ActionList,
     (hash: Field, actions: ActionList) =>
       Actions.updateSequenceState(hash, actions.hash),
     actions.currentHash

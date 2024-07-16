@@ -65,8 +65,8 @@ type ReducerReturn<Action> = {
    * );
    * ```
    *
-   * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
-   * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+   * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()`
+   * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
    * in progress to mitigate this limitation.
    */
   reduce<State>(
@@ -262,7 +262,7 @@ class ${contract.constructor.name} extends SmartContract {
       ) {}
 
       class MerkleActions extends MerkleList.create(
-        ActionList.provable,
+        ActionList,
         (hash: Field, actions: ActionList) =>
           Actions.updateSequenceState(hash, actions.hash),
         // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
