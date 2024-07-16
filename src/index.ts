@@ -15,9 +15,7 @@ export {
 } from './lib/provable/crypto/foreign-curve.js';
 export {
   createEcdsa,
-  createEcdsaV2,
   EcdsaSignature,
-  EcdsaSignatureV2,
 } from './lib/provable/crypto/foreign-ecdsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
 export {
@@ -104,7 +102,10 @@ export {
 } from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export { TokenContract, TokenContractV2 } from './lib/mina/token/token-contract.js';
+export {
+  TokenContract,
+  TokenContractV2,
+} from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {

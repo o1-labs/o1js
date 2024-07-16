@@ -75,7 +75,7 @@ for (let Curve of curves) {
     let hasGlv = Curve.hasEndomorphism;
     if (noGlv) Curve.hasEndomorphism = false; // hack to force non-GLV version
     try {
-      return Ecdsa.verifyV2(Curve, sig.signature, sig.msg, sig.publicKey);
+      return Ecdsa.verify(Curve, sig.signature, sig.msg, sig.publicKey);
     } finally {
       Curve.hasEndomorphism = hasGlv;
     }
@@ -180,7 +180,7 @@ let program = ZkProgram({
         let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
         let publicKey_ = Provable.witness(Point.provable, () => publicKey);
 
-        return Ecdsa.verifyV2(
+        return Ecdsa.verify(
           Secp256k1,
           signature_,
           msgHash_,
