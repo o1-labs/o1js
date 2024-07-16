@@ -7,6 +7,7 @@ import {
   ShiftedScalar,
   field3ToShiftedScalar,
   fieldToShiftedScalar,
+  shiftedScalarToField3,
 } from './gadgets/native-curve.js';
 import { isConstant } from './gadgets/common.js';
 import { Provable } from './provable.js';
@@ -291,30 +292,12 @@ class Scalar implements ShiftedScalar {
     return Bool.check(s.lowBit);
   }
 
-  static toCanonical(x: Scalar): Scalar {
-    // witness a new scalar which is both canonical and represents the same scalar as x
-    let y = Provable.witness(Scalar, () => x.toBigInt());
-
-    // 1. check that y is canonical
-
-    // if high <= (q-1)/2, low + 2*high is at most q
-    // in that case, the split is unique except for the 0 = 1 + 2*(q-1)/2 case
-    // which happens iff low + high = 1 + (q-1)/2 = (q+1)/2
-    y.high254.assertLessThan((Fq.modulus + 1n) / 2n);
-
-    // prevent overflow case where high = (q-1)/2 and low = 1, which happens iff low + high = (q+1)/2
-    y.high254.add(x.lowBit.toField()).assertNotEquals((Fq.modulus + 1n) / 2n);
-
-    // 2. check that y represents the same scalar as x
-
-    // check that x == y in the _base_ field
-    let xField = x.high254.mul(2n).add(x.lowBit.toField());
-    let yField = y.high254.mul(2n).add(y.lowBit.toField());
-    xField.assertEquals(yField);
-
-    // TODO finish this, but how?
-
-    return y;
+  static toCanonical(s: Scalar): Scalar {
+    // we convert to a field3, which always works
+    // and then back, which proves the result is canonical
+    let sBig = shiftedScalarToField3(s);
+    let sCanonical = field3ToShiftedScalar(sBig);
+    return Scalar.fromShiftedScalar(sCanonical);
   }
 
   static toValue(x: Scalar) {

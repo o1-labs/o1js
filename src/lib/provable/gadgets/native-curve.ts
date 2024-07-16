@@ -208,6 +208,8 @@ function fieldToShiftedScalar(s: Field): ShiftedScalar {
 /**
  * Converts a 3-limb bigint to a shifted representation t = s - 2^255 mod q,
  * where t is represented as a low bit and a 254-bit high part.
+ *
+ * Note: The output is proven to be a canonical scalar, t < q.
  */
 function field3ToShiftedScalar(s: Field3): ShiftedScalar {
   // constant case
