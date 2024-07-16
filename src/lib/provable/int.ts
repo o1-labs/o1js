@@ -1132,9 +1132,6 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   static Unsafe = {
-    /**
-     * @deprecated Use {@link Int64.fromObject} instead.
-     */
     fromObject(obj: { magnitude: UInt64; sgn: Sign }): Int64 {
       return CircuitValue.fromObject.call(Int64, obj);
     },
