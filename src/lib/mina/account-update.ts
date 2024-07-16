@@ -10,14 +10,14 @@ import {
   Provable,
 } from '../provable/provable.js';
 import { Field, Bool } from '../provable/wrapped.js';
-import { Pickles, Test } from '../../snarky.js';
+import { Pickles } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
-import { UInt64, UInt32, Int64, Sign } from '../provable/int.js';
+import { UInt64, UInt32, Int64 } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
 import {
   Preconditions,
@@ -545,7 +545,7 @@ interface Body extends AccountUpdateBody {
    * By what {@link Int64} should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
    */
-  balanceChange: { magnitude: UInt64; sgn: Sign };
+  balanceChange: Int64;
 
   /**
    * Recent events that have been emitted from this account.
@@ -754,13 +754,9 @@ class AccountUpdate implements Types.AccountUpdate {
     }
 
     // Sub the amount from the sender's account
-    this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
-      amount
-    );
+    this.body.balanceChange = this.body.balanceChange.sub(amount);
     // Add the amount to the receiver's account
-    receiver.body.balanceChange = Int64.fromObject(
-      receiver.body.balanceChange
-    ).add(amount);
+    receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
     return receiver;
   }
 
@@ -791,18 +787,18 @@ class AccountUpdate implements Types.AccountUpdate {
 
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(x);
+        accountUpdate.body.balanceChange =
+          accountUpdate.body.balanceChange.add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
+        accountUpdate.body.balanceChange =
+          accountUpdate.body.balanceChange.sub(x);
       },
     };
   }
 
   get balanceChange() {
-    return Int64.fromObject(this.body.balanceChange);
+    return this.body.balanceChange;
   }
   set balanceChange(x: Int64) {
     this.body.balanceChange = x;
@@ -1212,19 +1208,34 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 
+  /**
+   * This function acts as the `check()` method on an `AccountUpdate` that is sent to the Mina node as part of a transaction.
+   *
+   * Background: the Mina node performs most necessary validity checks on account updates, both in- and outside of circuits.
+   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account udpates
+   * will be part of a transaction.
+   *
+   * However, there are a few checks skipped by the Mina node, that could cause vulnerabilities in zkApps if
+   * not checked in the zkApp proof itself. Adding these extra checks is the purpose of this function.
+   */
+  private static clientSideOnlyChecks(au: AccountUpdate) {
+    // canonical int64 representation of the balance change
+    Int64.check(au.body.balanceChange);
+  }
+
   static witness<T>(
-    type: FlexibleProvable<T>,
+    resultType: FlexibleProvable<T>,
     compute: () => Promise<{ accountUpdate: AccountUpdate; result: T }>,
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = skipCheck
-      ? { ...provable(AccountUpdate), check() {} }
+    let accountUpdate = skipCheck
+      ? {
+          ...provable(AccountUpdate),
+          check: AccountUpdate.clientSideOnlyChecks,
+        }
       : AccountUpdate;
-    let combinedType = provable({
-      accountUpdate: accountUpdateType,
-      result: type as any,
-    });
+    let combinedType = provable({ accountUpdate, result: resultType });
     return Provable.witnessAsync(combinedType, compute);
   }
 

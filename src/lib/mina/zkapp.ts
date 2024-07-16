@@ -968,9 +968,15 @@ super.init();
 
   // TODO: not able to type event such that it is inferred correctly so far
   /**
-   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   * Conditionally emits an event.
+   *
+   * Events will be emitted as a part of the transaction and can be collected by archive nodes.
    */
-  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+  emitEventIf<K extends keyof this['events']>(
+    condition: Bool,
+    type: K,
+    event: any
+  ) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
@@ -997,10 +1003,20 @@ super.init();
       // if there is more than one event type, also store its index, like in an enum, to identify the type later
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
-    accountUpdate.body.events = Events.pushEvent(
-      accountUpdate.body.events,
-      eventFields
+    let newEvents = Events.pushEvent(accountUpdate.body.events, eventFields);
+    accountUpdate.body.events = Provable.if(
+      condition,
+      Events,
+      newEvents,
+      accountUpdate.body.events
     );
+  }
+
+  /**
+   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   */
+  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    this.emitEventIf(Bool(true), type, event);
   }
 
   /**
