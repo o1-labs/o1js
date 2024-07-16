@@ -245,8 +245,8 @@ function createEcdsa(
   class Signature extends EcdsaSignature {
     static _Curve = Curve;
     static _provable = provableFromClass(Signature, {
-      r: Curve.Scalar.provable,
-      s: Curve.Scalar.provable,
+      r: Curve.Scalar,
+      s: Curve.Scalar,
     });
   }
 
@@ -266,8 +266,8 @@ function createEcdsaV2(
   class Signature extends EcdsaSignatureV2 {
     static _Curve = Curve;
     static _provable = provableFromClass(Signature, {
-      r: Curve.Scalar.provable,
-      s: Curve.Scalar.provable,
+      r: Curve.Scalar,
+      s: Curve.Scalar,
     });
   }
 

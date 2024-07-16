@@ -300,8 +300,10 @@ class MerkleList<T> implements MerkleListBase<T> {
 
       static _provable = provableFromClass(MerkleListTBase, {
         hash: Field,
-        data: Unconstrained.provable,
-      }) as ProvableHashable<MerkleList<T>>;
+        data: Unconstrained,
+      }) satisfies ProvableHashable<MerkleList<T>> as ProvableHashable<
+        MerkleList<T>
+      >;
 
       static _nextHash = nextHash;
       static _emptyHash = emptyHash_;
@@ -641,9 +643,9 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
 
       static _provable = provableFromClass(Iterator, {
         hash: Field,
-        data: Unconstrained.provable,
+        data: Unconstrained,
         currentHash: Field,
-        currentIndex: Unconstrained.provable,
+        currentIndex: Unconstrained,
       }) satisfies ProvableHashable<MerkleListIterator<T>> as ProvableHashable<
         MerkleListIterator<T>
       >;

@@ -64,8 +64,8 @@ class Packed<T> {
       static _innerProvable = provable;
       static _provable = provableFromClass(Packed_, {
         packed: fields(packedSize),
-        value: Unconstrained.provable,
-      }) as ProvableHashable<Packed<T>>;
+        value: Unconstrained,
+      }) satisfies ProvableHashable<Packed<T>> as ProvableHashable<Packed<T>>;
 
       static empty(): Packed<T> {
         return Packed_.pack(provable.empty());
@@ -196,8 +196,8 @@ class Hashed<T> {
       static _innerProvable = provable;
       static _provable = provableFromClass(Hashed_, {
         hash: modifiedField({ empty: () => _hash(provable.empty()) }),
-        value: Unconstrained.provable,
-      }) as ProvableHashable<Hashed<T>>;
+        value: Unconstrained,
+      }) satisfies ProvableHashable<Hashed<T>> as ProvableHashable<Hashed<T>>;
 
       static _hash = _hash satisfies (t: T) => Field;
 

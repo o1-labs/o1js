@@ -318,10 +318,7 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, {
-      x: Field.provable,
-      y: Field.provable,
-    });
+    static _provable = provableFromClass(Curve, { x: Field, y: Field });
   }
 
   return Curve;
@@ -354,10 +351,7 @@ function createForeignCurveV2(params: CurveParams): typeof ForeignCurveV2 {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, {
-      x: Field.provable,
-      y: Field.provable,
-    });
+    static _provable = provableFromClass(Curve, { x: Field, y: Field });
   }
 
   return Curve;
