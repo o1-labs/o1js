@@ -9,7 +9,11 @@ import {
   ProvablePureExtended,
   Struct,
 } from '../provable/types/struct.js';
-import { provable, provablePure } from '../provable/types/provable-derivers.js';
+import {
+  InferProvableType,
+  provable,
+  provablePure,
+} from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { snarkContext } from '../provable/core/provable-context.js';
@@ -34,7 +38,12 @@ import {
   setSrsCache,
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import {
+  ProvablePure,
+  ProvableType,
+  ProvableTypePure,
+  ToProvable,
+} from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 
@@ -530,8 +539,8 @@ let SideloadedTag = {
 
 function ZkProgram<
   StatementType extends {
-    publicInput?: FlexibleProvablePure<any>;
-    publicOutput?: FlexibleProvablePure<any>;
+    publicInput?: ProvableTypePure;
+    publicOutput?: ProvableTypePure;
   },
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
@@ -588,8 +597,12 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
-  let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
+  let publicInputType: ProvablePure<any> = ProvableType.getPure(
+    config.publicInput ?? Undefined
+  );
+  let publicOutputType: ProvablePure<any> = ProvableType.getPure(
+    config.publicOutput ?? Void
+  );
 
   let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
@@ -1470,13 +1483,18 @@ type Prover<
       ...args: TupleToInstances<Args>
     ) => Promise<Proof<PublicInput, PublicOutput>>;
 
-type ProvableOrUndefined<A> = A extends undefined ? typeof Undefined : A;
-type ProvableOrVoid<A> = A extends undefined ? typeof Void : A;
+type ProvableOrUndefined<A extends ProvableType | undefined> =
+  A extends ProvableType ? ToProvable<A> : typeof Undefined;
+type ProvableOrVoid<A extends ProvableType | undefined> = A extends ProvableType
+  ? ToProvable<A>
+  : typeof Void;
 
-type InferProvableOrUndefined<A> = A extends undefined
-  ? undefined
-  : InferProvable<A>;
-type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
+type InferProvableOrUndefined<A extends ProvableType | undefined> =
+  A extends ProvableType ? InferProvableType<A> : undefined;
+
+type InferProvableOrVoid<A> = A extends ProvableType
+  ? InferProvableType<A>
+  : void;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 

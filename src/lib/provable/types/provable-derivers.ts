@@ -1,4 +1,10 @@
-import { Provable, ProvableHashable, ProvablePure } from './provable-intf.js';
+import {
+  Provable,
+  ProvableHashable,
+  ProvablePure,
+  ProvableType,
+  ToProvable,
+} from './provable-intf.js';
 import type { Field } from '../wrapped.js';
 import {
   createDerivers,
@@ -35,6 +41,7 @@ export {
   NonMethods,
   HashInput,
   InferProvable,
+  InferProvableType,
   InferJson,
   InferredProvable,
   IsPure,
@@ -56,6 +63,7 @@ type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
   ProvableExtension<T, TJson>;
 
 type InferProvable<T> = GenericInferProvable<T, Field>;
+type InferProvableType<T extends ProvableType> = InferProvable<ToProvable<T>>;
 type InferredProvable<T> = GenericInferredProvable<T, Field>;
 type IsPure<T> = GenericIsPure<T, Field>;
 type ProvableInferPureFrom<A, T, V> = IsPure<A> extends true
