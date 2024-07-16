@@ -124,7 +124,7 @@ abstract class CircuitValue {
   }
 
   equals(x: this) {
-    return Provable.equal(this, x);
+    return Provable.equal(this.constructor as any, this, x);
   }
 
   assertEquals(x: this) {

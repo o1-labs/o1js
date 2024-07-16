@@ -266,23 +266,7 @@ function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
   }
 }
 
-function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
-function equal<T extends ToFieldable>(x: T, y: T): Bool;
-function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
-  if (yOrUndefined === undefined) {
-    return equalImplicit(typeOrX, xOrY);
-  } else {
-    return equalExplicit(typeOrX, xOrY, yOrUndefined);
-  }
-}
-
-function equalImplicit<T extends ToFieldable>(x: T, y: T) {
-  let xs = x.toFields();
-  let ys = y.toFields();
-  checkLength('Provable.equal', xs, ys);
-  return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
-}
-function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
+function equal<T>(type: Provable<T>, x: T, y: T) {
   // when comparing two values of the same type, we use the type's canonical form
   // otherwise, the case where `equal()` returns false is misleading (two values can differ as field elements but be "equal")
   x = type.toCanonical?.(x) ?? x;
