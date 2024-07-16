@@ -16,7 +16,7 @@ class Bytes32 extends Bytes(32) {}
 
 const keccakAndEcdsa = ZkProgram({
   name: 'ecdsa',
-  publicInput: Bytes32.provable,
+  publicInput: Bytes32,
   publicOutput: Bool,
 
   methods: {
@@ -31,7 +31,7 @@ const keccakAndEcdsa = ZkProgram({
 
 const ecdsa = ZkProgram({
   name: 'ecdsa-only',
-  publicInput: Scalar.provable,
+  publicInput: Scalar,
   publicOutput: Bool,
 
   methods: {

@@ -173,7 +173,7 @@ let signs = [1n, -1n, -1n, 1n] satisfies (-1n | 1n)[];
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
-  publicOutput: Field3.provable,
+  publicOutput: Field3,
   methods: {
     sumchain: {
       privateInputs: [Provable.Array(Field3.provable, chainLength)],

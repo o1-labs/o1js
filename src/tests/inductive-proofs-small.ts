@@ -9,7 +9,7 @@ let MaxProofsVerifiedOne = ZkProgram({
     baseCase: {
       privateInputs: [],
 
-      method(publicInput: Field) {
+      async method(publicInput: Field) {
         publicInput.assertEquals(Field(0));
       },
     },
@@ -17,7 +17,10 @@ let MaxProofsVerifiedOne = ZkProgram({
     mergeOne: {
       privateInputs: [SelfProof],
 
-      method(publicInput: Field, earlierProof: SelfProof<Field, undefined>) {
+      async method(
+        publicInput: Field,
+        earlierProof: SelfProof<Field, undefined>
+      ) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },

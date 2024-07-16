@@ -23,7 +23,7 @@ sample(Random.nat(400), 5).forEach((preimageLength) => {
 
 const Sha256Program = ZkProgram({
   name: `sha256`,
-  publicOutput: Bytes(32).provable,
+  publicOutput: Bytes(32),
   methods: {
     sha256: {
       privateInputs: [Bytes(192).provable],
