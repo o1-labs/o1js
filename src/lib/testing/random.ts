@@ -80,6 +80,7 @@ const field = fieldWithInvalid(Field);
 const scalar = fieldWithInvalid(Scalar);
 
 const sign = map(boolean, (b) => Sign(b ? 1 : -1));
+const int64 = record({ magnitude: uint64, sgn: sign });
 const privateKey = Random_(PrivateKey.random);
 const publicKey = publicKeyWithInvalid();
 const keypair = map(privateKey, (privatekey) => ({
@@ -146,6 +147,7 @@ const Generators: Generators = {
   UInt32: uint32,
   UInt64: uint64,
   Sign: sign,
+  BalanceChange: int64,
   PublicKey: publicKey,
   TokenId: tokenId,
   StateHash: stateHash,
@@ -227,6 +229,7 @@ const invalidUint64Json = toString(
 let json_ = {
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
   uint64: { ...toString(uint64), invalid: invalidUint64Json },
+  sign: withInvalidRandomString(map(sign, Sign.toJSON)),
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -252,7 +255,8 @@ const JsonGenerators: JsonGenerators = {
   Bool: boolean,
   UInt32: json_.uint32,
   UInt64: json_.uint64,
-  Sign: withInvalidRandomString(map(sign, Sign.toJSON)),
+  Sign: json_.sign,
+  BalanceChange: record({ magnitude: json_.uint64, sgn: json_.sign }),
   PublicKey: json_.publicKey,
   TokenId: withInvalidBase58(map(tokenId, TokenId.toJSON)),
   StateHash: withInvalidBase58(map(stateHash, StateHash.toJSON)),
