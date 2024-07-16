@@ -1486,18 +1486,15 @@ type Prover<
       ...args: TupleToInstances<Args>
     ) => Promise<Proof<PublicInput, PublicOutput>>;
 
-type ProvableOrUndefined<A extends ProvableType | undefined> =
-  A extends ProvableType ? ToProvable<A> : typeof Undefined;
-type ProvableOrVoid<A extends ProvableType | undefined> = A extends ProvableType
-  ? ToProvable<A>
-  : typeof Void;
+type ProvableOrUndefined<A> = A extends undefined
+  ? typeof Undefined
+  : ToProvable<A>;
+type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 
-type InferProvableOrUndefined<A extends ProvableType | undefined> =
-  A extends ProvableType ? InferProvableType<A> : undefined;
-
-type InferProvableOrVoid<A> = A extends ProvableType
-  ? InferProvableType<A>
-  : void;
+type InferProvableOrUndefined<A> = A extends undefined
+  ? undefined
+  : InferProvable<A>;
+type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 
