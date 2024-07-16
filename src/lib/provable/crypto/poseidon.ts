@@ -160,6 +160,11 @@ function prefixToField(prefix: string) {
       // convert char to 8 bits
       let bits = [];
       for (let j = 0, c = char.charCodeAt(0); j < 8; j++, c >>= 1) {
+        if (j === 7)
+          assert(
+            c === 0,
+            `Invalid character ${char}, only ASCII characters are supported.`
+          );
         bits.push(!!(c & 1));
       }
       return bits;

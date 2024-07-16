@@ -16,6 +16,8 @@ import { tokenMethods } from './token-methods.js';
 export { TokenContract, TokenContractV2 };
 
 /**
+ * @deprecated Use {@link TokenContractV2} instead, which has the right max account update limit.
+ * 
  * Base token contract which
  * - implements the `Approvable` API, with the `approveBase()` method left to be defined by subclasses
  * - implements the `Transferable` API as a wrapper around the `Approvable` API
