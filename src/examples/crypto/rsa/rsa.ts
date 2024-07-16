@@ -30,7 +30,7 @@ class Bigint2048 {
     // TODO this wrapping Struct should be unnecessary
     class extends Struct({
       fields: Field18,
-      value: Unconstrained.provableWithEmpty(0n),
+      value: Unconstrained.withEmpty(0n),
     }) {
       // TODO where to add the custom check()?
       static check({ fields }: { fields: Field[] }) {
@@ -91,8 +91,7 @@ function multiply(
   // this also adds the range checks in `check()`
   let { q, r } = Provable.witness(
     // TODO Struct() should be unnecessary
-    // TODO .provable should be unnecessary
-    Struct({ q: Bigint2048.provable, r: Bigint2048.provable }),
+    Struct({ q: Bigint2048, r: Bigint2048 }),
     () => {
       let xy = x.toBigint() * y.toBigint();
       let p0 = p.toBigint();

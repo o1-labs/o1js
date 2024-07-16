@@ -128,8 +128,7 @@ and Provable.asProver() blocks, which execute outside the proof.
     },
   };
 
-  // TODO rename
-  static provableWithEmpty<T>(empty: T): Provable<Unconstrained<T>, T> & {
+  static withEmpty<T>(empty: T): Provable<Unconstrained<T>, T> & {
     toInput: (x: Unconstrained<T>) => {
       fields?: Field[];
       packed?: [Field, number][];
@@ -140,6 +139,13 @@ and Provable.asProver() blocks, which execute outside the proof.
       ...Unconstrained.provable,
       empty: () => Unconstrained.from(empty),
     };
+  }
+
+  /**
+   * @deprecated
+   */
+  static provableWithEmpty<T>(empty: T) {
+    return Unconstrained.withEmpty(empty);
   }
 }
 

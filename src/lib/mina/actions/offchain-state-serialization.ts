@@ -137,7 +137,7 @@ class MerkleLeaf extends Struct({
   value: Field,
   usesPreviousValue: Bool,
   previousValue: Field,
-  prefix: Unconstrained.provableWithEmpty<Field[]>([]),
+  prefix: Unconstrained.withEmpty<Field[]>([]),
 }) {
   static fromAction(action: Field[]) {
     assert(action.length >= 4, 'invalid action size');

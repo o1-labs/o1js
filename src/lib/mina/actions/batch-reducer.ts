@@ -551,7 +551,7 @@ function ActionBatch<A extends Actionable<any>>(actionType: A) {
     onchainStack: Field,
     stack: MerkleActions(actionType),
     isRecursive: Bool,
-    witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+    witnesses: Unconstrained.withEmpty<ActionWitnesses>([]),
   });
 }
 
@@ -769,7 +769,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
         privateInputs: [
           SelfProof,
           Bool,
-          Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+          Unconstrained.withEmpty<ActionWitnesses>([]),
         ],
 
         async method(
