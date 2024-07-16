@@ -21,6 +21,7 @@ import { arrayGet, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { Hashed } from '../packed.js';
 import { exists } from '../core/exists.js';
+import { ProvableType } from '../types/provable-intf.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };
@@ -502,7 +503,7 @@ function multiScalarMul(
 
   // hash points to make array access more efficient
   // a Point is 6 field elements, the hash is just 1 field element
-  const HashedPoint = Hashed.create(Point.provable);
+  const HashedPoint = Hashed.create(Point);
 
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
@@ -529,16 +530,12 @@ function multiScalarMul(
           sjP =
             windowSize === 1
               ? points[j]
-              : arrayGetGeneric(
-                  HashedPoint.provable,
-                  hashedTables[j],
-                  sj
-                ).unhash();
+              : arrayGetGeneric(HashedPoint, hashedTables[j], sj).unhash();
         } else {
           sjP =
             windowSize === 1
               ? points[j]
-              : arrayGetGeneric(Point.provable, tables[j], sj);
+              : arrayGetGeneric(Point, tables[j], sj);
         }
 
         // ec addition
@@ -743,7 +740,8 @@ function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
  *
  * Assumes that index is in [0, n), returns an unconstrained result otherwise.
  */
-function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
+function arrayGetGeneric<T>(type: ProvableType<T>, array: T[], index: Field) {
+  type = ProvableType.get(type);
   // witness result
   let a = Provable.witness(type, () => array[Number(index)]);
   let aFields = type.toFields(a);

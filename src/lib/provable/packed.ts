@@ -6,6 +6,7 @@ import { assert } from './gadgets/common.js';
 import { Poseidon, ProvableHashable, packToFields } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import { fields, modifiedField } from './types/fields.js';
+import { ProvableType, WithProvable } from './types/provable-intf.js';
 
 export { Packed, Hashed };
 
@@ -49,22 +50,25 @@ class Packed<T> {
   /**
    * Create a packed representation of `type`. You can then use `PackedType.pack(x)` to pack a value.
    */
-  static create<T>(type: ProvableExtended<T>): typeof Packed<T> & {
+  static create<T>(
+    type: WithProvable<ProvableExtended<T>>
+  ): typeof Packed<T> & {
     provable: ProvableHashable<Packed<T>>;
   } {
+    let provable = ProvableType.get(type);
     // compute size of packed representation
-    let input = type.toInput(type.empty());
+    let input = provable.toInput(provable.empty());
     let packedSize = countFields(input);
 
     return class Packed_ extends Packed<T> {
-      static _innerProvable = type;
+      static _innerProvable = provable;
       static _provable = provableFromClass(Packed_, {
         packed: fields(packedSize),
         value: Unconstrained.provable,
       }) as ProvableHashable<Packed<T>>;
 
       static empty(): Packed<T> {
-        return Packed_.pack(type.empty());
+        return Packed_.pack(provable.empty());
       }
 
       static get provable() {
@@ -179,25 +183,26 @@ class Hashed<T> {
    * Create a hashed representation of `type`. You can then use `HashedType.hash(x)` to wrap a value in a `Hashed`.
    */
   static create<T>(
-    type: ProvableHashable<T>,
+    type: WithProvable<ProvableHashable<T>>,
     hash?: (t: T) => Field
   ): typeof Hashed<T> & {
     provable: ProvableHashable<Hashed<T>>;
     empty(): Hashed<T>;
   } {
-    let _hash = hash ?? ((t: T) => Poseidon.hashPacked(type, t));
+    let provable = ProvableType.get(type);
+    let _hash = hash ?? ((t: T) => Poseidon.hashPacked(provable, t));
 
     return class Hashed_ extends Hashed<T> {
-      static _innerProvable = type;
+      static _innerProvable = provable;
       static _provable = provableFromClass(Hashed_, {
-        hash: modifiedField({ empty: () => _hash(type.empty()) }),
+        hash: modifiedField({ empty: () => _hash(provable.empty()) }),
         value: Unconstrained.provable,
       }) as ProvableHashable<Hashed<T>>;
 
       static _hash = _hash satisfies (t: T) => Field;
 
       static empty(): Hashed<T> {
-        let empty = type.empty();
+        let empty = provable.empty();
         return new this(_hash(empty), Unconstrained.from(empty));
       }
 

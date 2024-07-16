@@ -8,6 +8,7 @@ export {
   ProvableType,
   ProvableTypePure,
   ToProvable,
+  WithProvable,
 };
 
 /**
@@ -107,20 +108,25 @@ type ProvableHashable<T, TValue = any> = ProvableWithEmpty<T, TValue> & {
 
 // helpers to accept { provable: Type } instead of Type
 
-type SelfOrOnProperty<A> = { provable: A } | A;
+type WithProvable<A> = { provable: A } | A;
 
-type ProvableType<T = any, V = any> = SelfOrOnProperty<Provable<T, V>>;
-type ProvableTypePure<T = any, V = any> = SelfOrOnProperty<ProvablePure<T, V>>;
+type ProvableType<T = any, V = any> = WithProvable<Provable<T, V>>;
+type ProvableTypePure<T = any, V = any> = WithProvable<ProvablePure<T, V>>;
 
-type ToProvable<A extends ProvableType<any>> = A extends { provable: infer P }
+type ToProvable<A extends WithProvable<any>> = A extends {
+  provable: infer P;
+}
   ? P
   : A;
 
 const ProvableType = {
-  get<T, V>(type: ProvableType<T, V>): Provable<T, V> {
-    return 'provable' in type ? type.provable : type;
-  },
-  getPure<T, V>(type: ProvableTypePure<T, V>): ProvablePure<T, V> {
-    return 'provable' in type ? type.provable : type;
+  get<A extends WithProvable<any>>(type: A): ToProvable<A> {
+    return (
+      (typeof type === 'object' || typeof type === 'function') &&
+      type !== null &&
+      'provable' in type
+        ? type.provable
+        : type
+    ) as ToProvable<A>;
   },
 };

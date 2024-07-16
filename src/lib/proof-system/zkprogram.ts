@@ -598,10 +598,10 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = ProvableType.getPure(
+  let publicInputType: ProvablePure<any> = ProvableType.get(
     config.publicInput ?? Undefined
   );
-  let publicOutputType: ProvablePure<any> = ProvableType.getPure(
+  let publicOutputType: ProvablePure<any> = ProvableType.get(
     config.publicOutput ?? Void
   );
 
