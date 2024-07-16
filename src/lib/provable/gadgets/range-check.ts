@@ -17,6 +17,7 @@ export {
   isDefinitelyInRangeN,
   rangeCheck8,
   rangeCheck16,
+  rangeCheckLessThan16,
 };
 export { l, l2, l3, lMask, l2Mask };
 
@@ -352,4 +353,22 @@ function rangeCheck8(x: Field) {
   // check that 2^8 x fits in 16 bits
   let x256 = x.mul(1 << 8).seal();
   rangeCheckHelper(16, x256).assertEquals(x256);
+}
+
+function rangeCheckLessThan16(bits: number, x: Field) {
+  assert(bits < 16, `bits must be less than 16, got ${bits}`);
+
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << BigInt(bits),
+      `rangeCheckLessThan16: expected field to fit in ${bits} bits, got ${x}`
+    );
+    return;
+  }
+
+  // check that x fits in 16 bits
+  rangeCheckHelper(16, x).assertEquals(x);
+  // check that 2^(16 - bits)*x < 2^16, i.e. x < 2^bits
+  let xM = x.mul(1 << (16 - bits)).seal();
+  rangeCheckHelper(16, xM).assertEquals(xM);
 }

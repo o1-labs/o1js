@@ -6,7 +6,12 @@ import { isOddAndHigh } from './comparison.js';
 import { Field3, ForeignField } from './foreign-field.js';
 import { exists } from '../core/exists.js';
 import { assert, bit, bitSlice, isConstant } from './common.js';
-import { l, rangeCheck64 } from './range-check.js';
+import {
+  l,
+  multiRangeCheck,
+  rangeCheck64,
+  rangeCheckLessThan16,
+} from './range-check.js';
 import {
   createBool,
   createBoolUnsafe,
@@ -20,9 +25,10 @@ import { provable } from '../types/provable-derivers.js';
 
 export {
   scaleField,
+  scaleShifted,
   fieldToShiftedScalar,
   field3ToShiftedScalar,
-  scaleShifted,
+  shiftedScalarToField3,
   add,
   ShiftedScalar,
 };
@@ -248,6 +254,58 @@ function field3ToShiftedScalar(s: Field3): ShiftedScalar {
     .seal();
 
   return { lowBit: tLoBool, high254: tHi };
+}
+
+/**
+ * Converts a shifted representation t = s - 2^255 mod q to s as a Field3 bigint.
+ *
+ * Note: This method is complete for all t such that tLo < 2 and tHi < 2^254.
+ * The output is can always be made a canonical scalar element by an honest prover.
+ */
+function shiftedScalarToField3(t: ShiftedScalar): Field3 {
+  // constant case
+  if (t.high254.isConstant() && t.lowBit.isConstant()) {
+    let s = t.lowBit.toField().toBigInt() + 2n * t.high254.toBigInt();
+    return Field3.from(Fq.mod(s + (1n << 255n)));
+  }
+
+  // split sHi into 64, 23, 88, 79 bit limbs (254 in total)
+  let [t0Hi0, t0Hi1, t1, t2] = exists(4, () => {
+    let tHi = t.high254.toBigInt();
+    return [
+      bitSlice(tHi, 0, 64),
+      bitSlice(tHi, 64, 23),
+      bitSlice(tHi, 87, 88),
+      bitSlice(tHi, 175, 79),
+    ];
+  });
+  // check t0 < 2^88 in pieces and reassemble
+  rangeCheck64(t0Hi0);
+  rangeCheckLessThan16(23, t0Hi1);
+  let t0Hi = t0Hi0.add(t0Hi1.mul(1n << 64n)).seal(); // < 2^87
+  let t0 = t.lowBit.toField().add(t0Hi.mul(2n)).seal(); // < 2^88
+
+  // check t1 < 2^88 and t2 < 2^79 with MRC
+  multiRangeCheck([t1, t2, t2.mul(1n << 9n)]); // 2^9 t2 < 2^88 => t2 < 2^79
+
+  // prove tHi split (unique because <= 254 bits)
+  let tHi = t0Hi
+    .add(t1.mul(1n << 87n))
+    .add(t2.mul(1n << 175n))
+    .seal();
+  tHi.assertEquals(t.high254);
+
+  // we converted t to a bigint, now add 2^255 mod q
+  let tBig: Field3 = [t0, t1, t2];
+  let shift = Fq.mod(1n << 255n);
+  // we add an extra 0 so that the prover has the opportunity to subtract q twice.
+  // for the maximum input t = 2^255 this is enough to get a reduced result:
+  // 2^255 + (2^255 - q) - 2q = 2^254 - 3*(q - 2^254) < q
+  return ForeignField.sum(
+    [tBig, Field3.from(shift), Field3.from(0n)],
+    [1n, 1n],
+    Fq.modulus
+  );
 }
 
 /**
