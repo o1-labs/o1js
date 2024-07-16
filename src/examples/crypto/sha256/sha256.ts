@@ -9,7 +9,7 @@ let SHA256Program = ZkProgram({
   publicOutput: Bytes(32),
   methods: {
     sha256: {
-      privateInputs: [Bytes12.provable],
+      privateInputs: [Bytes12],
       async method(xs: Bytes12) {
         return Gadgets.SHA256.hash(xs);
       },

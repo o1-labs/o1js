@@ -26,7 +26,7 @@ const Sha256Program = ZkProgram({
   publicOutput: Bytes(32),
   methods: {
     sha256: {
-      privateInputs: [Bytes(192).provable],
+      privateInputs: [Bytes(192)],
       async method(preImage: Bytes) {
         return Gadgets.SHA256.hash(preImage);
       },

@@ -32,11 +32,7 @@ const diverse = ZkProgram({
   methods: {
     // foreign field / curve ops, multi-range checks
     ecdsa: {
-      privateInputs: [
-        Secp256k1Scalar.provable,
-        Secp256k1Signature.provable,
-        Secp256k1.provable,
-      ],
+      privateInputs: [Secp256k1Scalar, Secp256k1Signature, Secp256k1],
       async method(
         message: Secp256k1Scalar,
         signature: Secp256k1Signature,
@@ -48,7 +44,7 @@ const diverse = ZkProgram({
 
     // bitwise gadgets
     sha3: {
-      privateInputs: [Bytes128.provable],
+      privateInputs: [Bytes128],
       async method(xs: Bytes128) {
         Hash.SHA3_256.hash(xs);
       },

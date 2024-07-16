@@ -36,7 +36,7 @@ export { Leaf };
  * ZkProgram({
  *   methods: {
  *     test: {
- *       privateInputs: [MerkleMap.provable, Field],
+ *       privateInputs: [MerkleMap, Field],
  *
  *       method(map: MerkleMap, key: Field) {
  *         // get the value associated with `key`

@@ -7,11 +7,7 @@ let rsaZkProgram = ZkProgram({
 
   methods: {
     verifyRsa65537: {
-      privateInputs: [
-        Bigint2048.provable,
-        Bigint2048.provable,
-        Bigint2048.provable,
-      ],
+      privateInputs: [Bigint2048, Bigint2048, Bigint2048],
 
       async method(
         message: Bigint2048,

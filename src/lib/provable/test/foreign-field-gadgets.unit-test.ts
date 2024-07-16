@@ -182,32 +182,32 @@ let ffProgram = ZkProgram({
       },
     },
     mulWithBoundsCheck: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertAlmostReduced([x, y], F.modulus);
         return ForeignField.mul(x, y, F.modulus);
       },
     },
     mul: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         return ForeignField.mul(x, y, F.modulus);
       },
     },
     inv: {
-      privateInputs: [Field3.provable],
+      privateInputs: [Field3],
       async method(x) {
         return ForeignField.inv(x, F.modulus);
       },
     },
     div: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         return ForeignField.div(x, y, F.modulus);
       },
     },
     assertLessThan: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertLessThan(x, y);
         return x;
