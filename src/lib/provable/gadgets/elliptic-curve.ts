@@ -330,7 +330,7 @@ function verifyEcdsa(
  * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
  *
  *
- * _Note_: If `signature.r` is a non-canonical element, an error will be thrown.
+ * _Note_: If `signature.s` is a non-canonical element, an error will be thrown.
  * If `signature.r` is non-canonical, however, `false` will be returned.
  */
 function verifyEcdsaV2(
