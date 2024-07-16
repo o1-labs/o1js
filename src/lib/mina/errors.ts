@@ -15,7 +15,9 @@ const ErrorHandlers = {
 
     let balances = accountUpdates.map(({ body }) => {
       if (body.tokenId.equals(TokenId.default).toBoolean()) {
-        return Number(Int64.fromObject(body.balanceChange).toString()) * 1e-9;
+        return (
+          Number(Int64.Unsafe.fromObject(body.balanceChange).toString()) * 1e-9
+        );
       }
     });
     let sum = balances.reduce((a = 0, b = 0) => a + b) ?? 0;

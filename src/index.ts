@@ -19,6 +19,7 @@ export {
   EcdsaSignature,
   EcdsaSignatureV2,
 } from './lib/provable/crypto/foreign-ecdsa.js';
+export { ScalarField } from './lib/provable/scalar-field.js';
 export {
   Poseidon,
   TokenSymbol,
@@ -105,7 +106,7 @@ export {
 } from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export { TokenContract } from './lib/mina/token/token-contract.js';
+export { TokenContract, TokenContractV2 } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
@@ -140,6 +141,9 @@ export { setNumberOfWorkers } from './lib/proof-system/workers.js';
 // experimental APIs
 import { memoizeWitness } from './lib/provable/provable.js';
 import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
+import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
+import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
+import { InferProvable } from './lib/provable/types/struct.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -170,6 +174,40 @@ namespace Experimental {
    * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
    */
   export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments {}
+
+  // batch reducer
+
+  /**
+   * A reducer to process actions in fixed-size batches.
+   *
+   * ```ts
+   * let batchReducer = new BatchReducer({ actionType: Action, batchSize: 5 });
+   *
+   * // in contract: concurrent dispatching of actions
+   * batchReducer.dispatch(action);
+   *
+   * // reducer logic
+   * // outside contract: prepare a list of { batch, proof } objects which cover all pending actions
+   * let batches = await batchReducer.prepareBatches();
+   *
+   * // in contract: process a single batch
+   * // create one transaction that does this for each batch!
+   * batchReducer.processBatch({ batch, proof }, (action, isDummy) => {
+   *   // ...
+   * });
+   * ```
+   */
+  export class BatchReducer<
+    ActionType extends Actionable<any>,
+    BatchSize extends number = number,
+    Action = InferProvable<ActionType>
+  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
+
+  /**
+   * Provable type that represents a batch of actions.
+   */
+  export let ActionBatch = BatchReducer_.ActionBatch;
+  export type ActionBatch<Action> = BatchReducer_.ActionBatch<Action>;
 }
 
 Error.stackTraceLimit = 100000;

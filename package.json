@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -96,7 +96,7 @@
     "typedoc": "^0.25.8",
     "typedoc-plugin-markdown": "^4.0.0-next.53",
     "typedoc-plugin-merge-modules": "^5.1.0",
-    "typescript": "5.1"
+    "typescript": "^5.4.5"
   },
   "dependencies": {
     "blakejs": "1.2.1",

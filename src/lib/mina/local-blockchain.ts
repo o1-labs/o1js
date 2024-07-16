@@ -60,6 +60,10 @@ namespace TestPublicKey {
       TestPublicKey(PrivateKey.random())
     ) as never;
   }
+
+  export function fromBase58(base58: string): TestPublicKey {
+    return TestPublicKey(PrivateKey.fromBase58(base58));
+  }
 }
 
 /**
@@ -99,6 +103,7 @@ async function LocalBlockchain({
     string,
     Record<string, { actions: string[][]; hash: string }[]>
   > = {};
+  const originalProofsEnabled = proofsEnabled;
 
   return {
     getNetworkId: () => 'testnet' as NetworkId,
@@ -418,6 +423,9 @@ async function LocalBlockchain({
     },
     setProofsEnabled(newProofsEnabled: boolean) {
       this.proofsEnabled = newProofsEnabled;
+    },
+    resetProofsEnabled() {
+      this.proofsEnabled = originalProofsEnabled;
     },
   };
 }

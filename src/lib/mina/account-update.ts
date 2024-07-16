@@ -734,11 +734,11 @@ class AccountUpdate implements Types.AccountUpdate {
     }
 
     // Sub the amount from the sender's account
-    this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
-      amount
-    );
+    this.body.balanceChange = Int64.Unsafe.fromObject(
+      this.body.balanceChange
+    ).sub(amount);
     // Add the amount to the receiver's account
-    receiver.body.balanceChange = Int64.fromObject(
+    receiver.body.balanceChange = Int64.Unsafe.fromObject(
       receiver.body.balanceChange
     ).add(amount);
     return receiver;
@@ -782,7 +782,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   get balanceChange() {
-    return Int64.fromObject(this.body.balanceChange);
+    return Int64.Unsafe.fromObject(this.body.balanceChange);
   }
   set balanceChange(x: Int64) {
     this.body.balanceChange = x;
@@ -1012,9 +1012,24 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdateTree({ accountUpdate, id, children });
   }
 
+  /**
+   * @deprecated Use {@link AccountUpdate.default} instead.
+   */
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
+    return AccountUpdate.default(address, tokenId);
+  }
+
+  /**
+   * Create an account update from a public key and an optional token id.
+   *
+   * **Important**: This method is different from `AccountUpdate.create()`, in that it really just creates the account update object.
+   * It does not attach the update to the current transaction or smart contract.
+   * Use this method for lower-level operations with account updates.
+   */
+  static default(address: PublicKey, tokenId?: Field) {
     return new AccountUpdate(Body.keepAll(address, tokenId));
   }
+
   static dummy() {
     let dummy = new AccountUpdate(Body.dummy());
     dummy.label = 'Dummy';
@@ -1060,6 +1075,22 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+
+  /**
+   * Create an account update that is added to the transaction only if a condition is met.
+   *
+   * See {@link AccountUpdate.create} for more information. In this method, you can pass in
+   * a condition that determines whether the account update should be added to the transaction.
+   */
+  static createIf(condition: Bool, publicKey: PublicKey, tokenId?: Field) {
+    return AccountUpdate.create(
+      // if the condition is false, we use an empty public key, which causes the account update to be ignored
+      // as a dummy when building the transaction
+      Provable.if(condition, publicKey, PublicKey.empty()),
+      tokenId
+    );
+  }
+
   /**
    * Attach account update to the current transaction
    * -- if in a smart contract, to its children
