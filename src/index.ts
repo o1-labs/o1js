@@ -9,9 +9,7 @@ export {
 } from './lib/provable/foreign-field.js';
 export {
   createForeignCurve,
-  createForeignCurveV2,
   ForeignCurve,
-  ForeignCurveV2,
 } from './lib/provable/crypto/foreign-curve.js';
 export {
   createEcdsa,

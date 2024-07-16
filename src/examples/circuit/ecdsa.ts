@@ -3,7 +3,7 @@ import {
   circuitMain,
   public_,
   Crypto,
-  createForeignCurveV2,
+  createForeignCurve,
   Bytes,
   assert,
   createEcdsa,
@@ -11,7 +11,7 @@ import {
 
 export { Secp256k1, Ecdsa, Bytes32, Reserves };
 
-class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class Ecdsa extends createEcdsa(Secp256k1) {}
 class Bytes32 extends Bytes(32) {}
 

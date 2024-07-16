@@ -3,8 +3,8 @@ import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import {
   FlexiblePoint,
-  ForeignCurveV2,
-  createForeignCurveV2,
+  ForeignCurve,
+  createForeignCurve,
   toPoint,
 } from './foreign-curve.js';
 import { AlmostForeignField } from '../foreign-field.js';
@@ -164,7 +164,7 @@ class EcdsaSignature {
   get Constructor() {
     return this.constructor as typeof EcdsaSignature;
   }
-  static _Curve?: typeof ForeignCurveV2;
+  static _Curve?: typeof ForeignCurve;
   static _provable?: ProvablePureExtended<
     EcdsaSignature,
     { r: bigint; s: bigint },
@@ -172,7 +172,7 @@ class EcdsaSignature {
   >;
 
   /**
-   * The {@link ForeignCurveV2} on which the ECDSA signature is defined.
+   * The {@link ForeignCurve} on which the ECDSA signature is defined.
    */
   static get Curve() {
     assert(this._Curve !== undefined, 'EcdsaSignature not initialized');
@@ -191,10 +191,10 @@ class EcdsaSignature {
  * Create a class {@link EcdsaSignature} for verifying ECDSA signatures on the given curve.
  */
 function createEcdsa(
-  curve: CurveParams | typeof ForeignCurveV2
+  curve: CurveParams | typeof ForeignCurve
 ): typeof EcdsaSignature {
-  let Curve0: typeof ForeignCurveV2 =
-    'b' in curve ? createForeignCurveV2(curve) : curve;
+  let Curve0: typeof ForeignCurve =
+    'b' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
 
   class Signature extends EcdsaSignature {
@@ -232,7 +232,7 @@ function toObject(signature: EcdsaSignature) {
  * - takes a 32 bytes hash
  * - converts them to 3 limbs which collectively have L_n <= 256 bits
  */
-function keccakOutputToScalar(hash: Bytes, Curve: typeof ForeignCurveV2) {
+function keccakOutputToScalar(hash: Bytes, Curve: typeof ForeignCurve) {
   const L_n = Curve.Scalar.sizeInBits;
   // keep it simple for now, avoid dealing with dropping bits
   // TODO: what does "leftmost bits" mean? big-endian or little-endian?
