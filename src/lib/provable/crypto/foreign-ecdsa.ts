@@ -3,9 +3,7 @@ import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import {
   FlexiblePoint,
-  ForeignCurve,
   ForeignCurveV2,
-  createForeignCurve,
   createForeignCurveV2,
   toPoint,
 } from './foreign-curve.js';
@@ -20,7 +18,7 @@ import { UInt8 } from '../int.js';
 import type { Bool } from '../bool.js';
 
 // external API
-export { createEcdsa, createEcdsaV2, EcdsaSignature, EcdsaSignatureV2 };
+export { createEcdsa, EcdsaSignature };
 
 type FlexibleSignature =
   | EcdsaSignature
@@ -29,9 +27,6 @@ type FlexibleSignature =
       s: AlmostForeignField | Field3 | bigint | number;
     };
 
-/**
- * @deprecated `EcdsaSignature` is now deprecated and will be removed in a future release. Please use {@link EcdsaSignatureV2} instead.
- */
 class EcdsaSignature {
   r: AlmostForeignField;
   s: AlmostForeignField;
@@ -73,15 +68,6 @@ class EcdsaSignature {
   }
 
   /**
-   * @deprecated There is a security vulnerability in this method. Use {@link verifyV2} instead.
-   */
-  verify(message: Bytes, publicKey: FlexiblePoint): Bool {
-    let msgHashBytes = Keccak.ethereum(message);
-    let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
-    return this.verifySignedHash(msgHash, publicKey);
-  }
-
-  /**
    * Verify the ECDSA signature given the message (an array of bytes) and public key (a {@link Curve} point).
    *
    * **Important:** This method returns a {@link Bool} which indicates whether the signature is valid.
@@ -115,27 +101,10 @@ class EcdsaSignature {
    * isValid.assertTrue('signature verifies');
    * ```
    */
-  verifyV2(message: Bytes, publicKey: FlexiblePoint): Bool {
+  verify(message: Bytes, publicKey: FlexiblePoint): Bool {
     let msgHashBytes = Keccak.ethereum(message);
     let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
-    return this.verifySignedHashV2(msgHash, publicKey);
-  }
-
-  /**
-   * @deprecated There is a security vulnerability in this method. Use {@link verifySignedHashV2} instead.
-   */
-  verifySignedHash(
-    msgHash: AlmostForeignField | bigint,
-    publicKey: FlexiblePoint
-  ): Bool {
-    let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
-    let publicKey_ = this.Constructor.Curve.from(publicKey);
-    return Ecdsa.verify(
-      this.Constructor.Curve.Bigint,
-      toObject(this),
-      msgHash_.value,
-      toPoint(publicKey_)
-    );
+    return this.verifySignedHash(msgHash, publicKey);
   }
 
   /**
@@ -145,13 +114,13 @@ class EcdsaSignature {
    * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
    * choosing the hashing algorithm.
    */
-  verifySignedHashV2(
+  verifySignedHash(
     msgHash: AlmostForeignField | bigint,
     publicKey: FlexiblePoint
   ): Bool {
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
-    return Ecdsa.verifyV2(
+    return Ecdsa.verify(
       this.Constructor.Curve.Bigint,
       toObject(this),
       msgHash_.value,
@@ -185,6 +154,8 @@ class EcdsaSignature {
   }
 
   static check(signature: EcdsaSignature) {
+    multiRangeCheck(signature.r.value);
+    multiRangeCheck(signature.s.value);
     // more efficient than the automatic check, which would do this for each scalar separately
     this.Curve.Scalar.assertAlmostReduced(signature.r, signature.s);
   }
@@ -193,7 +164,7 @@ class EcdsaSignature {
   get Constructor() {
     return this.constructor as typeof EcdsaSignature;
   }
-  static _Curve?: typeof ForeignCurve;
+  static _Curve?: typeof ForeignCurveV2;
   static _provable?: ProvablePureExtended<
     EcdsaSignature,
     { r: bigint; s: bigint },
@@ -201,7 +172,7 @@ class EcdsaSignature {
   >;
 
   /**
-   * The {@link ForeignCurve} on which the ECDSA signature is defined.
+   * The {@link ForeignCurveV2} on which the ECDSA signature is defined.
    */
   static get Curve() {
     assert(this._Curve !== undefined, 'EcdsaSignature not initialized');
@@ -216,54 +187,17 @@ class EcdsaSignature {
   }
 }
 
-class EcdsaSignatureV2 extends EcdsaSignature {
-  constructor(signature: {
-    r: AlmostForeignField | Field3 | bigint | number;
-    s: AlmostForeignField | Field3 | bigint | number;
-  }) {
-    super(signature);
-  }
-
-  static check(signature: EcdsaSignatureV2) {
-    multiRangeCheck(signature.r.value);
-    multiRangeCheck(signature.s.value);
-    // more efficient than the automatic check, which would do this for each scalar separately
-    this.Curve.Scalar.assertAlmostReduced(signature.r, signature.s);
-  }
-}
-
 /**
- * @deprecated `EcdsaSignature` is now deprecated and will be removed in a future release. Please use {@link EcdsaSignatureV2} instead.
+ * Create a class {@link EcdsaSignature} for verifying ECDSA signatures on the given curve.
  */
 function createEcdsa(
-  curve: CurveParams | typeof ForeignCurve
-): typeof EcdsaSignature {
-  let Curve0: typeof ForeignCurve =
-    'b' in curve ? createForeignCurve(curve) : curve;
-  class Curve extends Curve0 {}
-
-  class Signature extends EcdsaSignature {
-    static _Curve = Curve;
-    static _provable = provableFromClass(Signature, {
-      r: Curve.Scalar.provable,
-      s: Curve.Scalar.provable,
-    });
-  }
-
-  return Signature;
-}
-
-/**
- * Create a class {@link EcdsaSignatureV2} for verifying ECDSA signatures on the given curve.
- */
-function createEcdsaV2(
   curve: CurveParams | typeof ForeignCurveV2
-): typeof EcdsaSignatureV2 {
+): typeof EcdsaSignature {
   let Curve0: typeof ForeignCurveV2 =
     'b' in curve ? createForeignCurveV2(curve) : curve;
   class Curve extends Curve0 {}
 
-  class Signature extends EcdsaSignatureV2 {
+  class Signature extends EcdsaSignature {
     static _Curve = Curve;
     static _provable = provableFromClass(Signature, {
       r: Curve.Scalar.provable,
@@ -298,7 +232,7 @@ function toObject(signature: EcdsaSignature) {
  * - takes a 32 bytes hash
  * - converts them to 3 limbs which collectively have L_n <= 256 bits
  */
-function keccakOutputToScalar(hash: Bytes, Curve: typeof ForeignCurve) {
+function keccakOutputToScalar(hash: Bytes, Curve: typeof ForeignCurveV2) {
   const L_n = Curve.Scalar.sizeInBits;
   // keep it simple for now, avoid dealing with dropping bits
   // TODO: what does "leftmost bits" mean? big-endian or little-endian?
