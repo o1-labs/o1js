@@ -3,7 +3,7 @@ import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l, l2, multiRangeCheck } from './range-check.js';
+import { l, l2, l2Mask, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBytes,
@@ -65,6 +65,11 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
     let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f);
     return Point.from(p3);
   }
+
+  assert(
+    Curve.modulus > l2Mask + 1n,
+    'Base field moduli smaller than 2^176 are not supported'
+  );
 
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
