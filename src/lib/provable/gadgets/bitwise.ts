@@ -19,7 +19,7 @@ export {
 };
 
 function not(a: Field, length: number, checked: boolean = false) {
-  validateBitLength(length, Field.sizeInBits, 'not');
+  validateBitLength(length, 240, 'not');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
@@ -140,7 +140,7 @@ function buildXor(a: Field, b: Field, out: Field, padLength: number) {
 }
 
 function and(a: Field, b: Field, length: number) {
-  validateBitLength(length, Field.sizeInBits, 'and');
+  validateBitLength(length, 240, 'and');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
