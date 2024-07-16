@@ -431,8 +431,13 @@ function equals(x: Field3, c: bigint, f: bigint) {
     return x012.equals(c);
   }
 }
-
-const provableLimb = modifiedField({});
+// TODO: remove this in v2!!!
+// having a `toInput()` method without a corresponding `check()` is begging for a vulnerability (which the current code has)
+const provableLimb = modifiedField({
+  toInput(x) {
+    return { packed: [[x, Number(l)]] };
+  },
+});
 
 const Field3 = {
   /**
