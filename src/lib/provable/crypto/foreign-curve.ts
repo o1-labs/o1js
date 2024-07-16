@@ -11,7 +11,7 @@ import { Field3 } from '../gadgets/foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
-import { multiRangeCheck } from '../gadgets/range-check.js';
+import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
 
 // external API
 export { createForeignCurve, ForeignCurve };
@@ -309,6 +309,11 @@ class ForeignCurveNotNeeded extends ForeignCurve {
  * {@link ForeignCurveNotNeeded} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
+  assert(
+    params.modulus > l2Mask + 1n,
+    'Base field moduli smaller than 2^176 are not supported'
+  );
+
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);
   class Field extends FieldUnreduced.AlmostReduced {}
