@@ -544,6 +544,7 @@ function ZkProgram<
   },
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
+    // TODO: solution: put method calls on a separate namespace! like `await program.prove.myMethod()`
     [I in string]: Tuple<PrivateInput>;
   }
 >(
@@ -777,8 +778,8 @@ function ZkProgram<
 
 type ZkProgram<
   S extends {
-    publicInput?: FlexibleProvablePure<any>;
-    publicOutput?: FlexibleProvablePure<any>;
+    publicInput?: ProvableTypePure;
+    publicOutput?: ProvableTypePure;
   },
   T extends {
     [I in string]: Tuple<PrivateInput>;
@@ -1438,7 +1439,9 @@ function Prover<ProverData>() {
 
 type Infer<T> = T extends Subclass<typeof ProofBase>
   ? InstanceType<T>
-  : InferProvable<T>;
+  : T extends ProvableType
+  ? InferProvableType<T>
+  : never;
 
 type Tuple<T> = [T, ...T[]] | [];
 type TupleToInstances<T> = {
@@ -1451,7 +1454,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
 
-type PrivateInput = Provable<any> | Subclass<typeof ProofBase>;
+type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
 type Method<
   PublicInput,
