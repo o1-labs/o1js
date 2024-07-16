@@ -1,14 +1,7 @@
 /**
  * RSA signature verification with o1js
  */
-import {
-  Field,
-  Gadgets,
-  Provable,
-  Struct,
-  Unconstrained,
-  provableExtends,
-} from 'o1js';
+import { Field, Gadgets, Provable, Struct, Unconstrained } from 'o1js';
 
 export { Bigint2048, rsaVerify65537 };
 
@@ -19,40 +12,10 @@ const mask = (1n << 116n) - 1n;
  */
 const Field18 = Provable.Array(Field, 18);
 
-class Bigint2048 {
-  fields: Field[];
-  value: Unconstrained<bigint>;
-
-  // TODO this could be simplified with a Struct-like base class
-  // TODO map the value type to `bigint`
-  static provable = provableExtends(
-    Bigint2048,
-    // TODO this wrapping Struct should be unnecessary
-    class extends Struct({
-      fields: Field18,
-      value: Unconstrained.withEmpty(0n),
-    }) {
-      // TODO where to add the custom check()?
-      static check({ fields }: { fields: Field[] }) {
-        for (let x of fields) {
-          rangeCheck116(x);
-        }
-      }
-    }
-  );
-
-  // TODO constructor could be removed with a Struct-like base class
-  constructor({
-    fields,
-    value,
-  }: {
-    fields: Field[];
-    value: Unconstrained<bigint>;
-  }) {
-    this.fields = fields;
-    this.value = value;
-  }
-
+class Bigint2048 extends Struct({
+  fields: Field18,
+  value: Unconstrained.withEmpty(0n),
+}) {
   modMul(x: Bigint2048, y: Bigint2048) {
     return multiply(x, y, this);
   }
@@ -66,13 +29,19 @@ class Bigint2048 {
   }
 
   static from(x: bigint) {
-    let fields: bigint[] = [];
+    let fields = [];
     let value = x;
     for (let i = 0; i < 18; i++) {
-      fields.push(x & mask);
+      fields.push(Field(x & mask));
       x >>= 116n;
     }
-    return Bigint2048.provable.fromValue({ fields, value });
+    return new Bigint2048({ fields, value: Unconstrained.from(value) });
+  }
+
+  static check(x: { fields: Field[] }) {
+    for (let i = 0; i < 18; i++) {
+      rangeCheck116(x.fields[i]);
+    }
   }
 }
 
@@ -97,7 +66,6 @@ function multiply(
       let p0 = p.toBigint();
       let q = xy / p0;
       let r = xy - q * p0;
-      // TODO Bigint2048.from() should be unnecessary
       return { q: Bigint2048.from(q), r: Bigint2048.from(r) };
     }
   );
