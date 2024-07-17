@@ -92,7 +92,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           npm ci
-          npm run build
+          npm run prepublishOnly
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v3
         with:
