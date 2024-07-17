@@ -545,6 +545,9 @@ function provableArray<A extends FlexibleProvable<any>>(
         (type as any).check(array[i]);
       }
     },
+    toCanonical(x) {
+      return x.map((v) => Provable.toCanonical(type, v));
+    },
 
     toValue(x) {
       return x.map((v) => type.toValue(v));
