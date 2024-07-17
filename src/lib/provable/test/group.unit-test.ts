@@ -81,21 +81,36 @@ const nonCanonicalScalar = spec({
   provable: Scalar,
 });
 
-equivalentProvable({ from: [nonCanonicalScalar], to: unit, verbose: true })(
+equivalentProvable({ from: [scalar], to: unit, verbose: true })(
   () => true,
   (s) => {
     let sCanonical = Scalar.toCanonical(s);
 
-    // different from input
-    sCanonical.high254
-      .equals(s.high254)
-      .and(sCanonical.lowBit.equals(s.lowBit))
-      .assertFalse();
+    // equivalent to the input according to Provable.equal()
+    Provable.equal(Scalar, s, sCanonical).assertTrue();
 
-    // but equivalent to the input according to Provable.equal()
-    return Provable.equal(Scalar, s, sCanonical);
+    // and also has exactly the same field elements as input
+    return sCanonical.high254
+      .equals(s.high254)
+      .and(sCanonical.lowBit.equals(s.lowBit));
   },
-  'toCanonical'
+  'toCanonical(canonical)'
+);
+
+equivalentProvable({ from: [nonCanonicalScalar], to: unit, verbose: true })(
+  () => false,
+  (s) => {
+    let sCanonical = Scalar.toCanonical(s);
+
+    // equivalent to the input according to Provable.equal()
+    Provable.equal(Scalar, s, sCanonical).assertTrue();
+
+    // but has different field elements as input
+    return sCanonical.high254
+      .equals(s.high254)
+      .and(sCanonical.lowBit.equals(s.lowBit));
+  },
+  'toCanonical(nonCanonical)'
 );
 
 const g = Group.generator;
