@@ -26,7 +26,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           npm ci
-          npm run build
+          npm run prepublishOnly
           cd src/mina-signer
           npm ci
           npm run prepublishOnly
