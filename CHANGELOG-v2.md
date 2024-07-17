@@ -21,3 +21,12 @@ Showing all changes since the last release (v.1.5.0)
 -->
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/1c736add...v2) - 2024-07-12
+
+### Breaking Changes
+
+- `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
+  - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
+
+### Added
+
+- New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
