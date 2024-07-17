@@ -174,6 +174,18 @@ abstract class CircuitValue {
     }
   }
 
+  static toCanonical<T extends AnyConstructor>(
+    this: T,
+    value: InstanceType<T>
+  ): InstanceType<T> {
+    let canonical: any = {};
+    let fields: [string, any][] = (this as any).prototype._fields ?? [];
+    fields.forEach(([key, type]) => {
+      canonical[key] = Provable.toCanonical(type, value[key]);
+    });
+    return canonical;
+  }
+
   static toConstant<T extends AnyConstructor>(
     this: T,
     t: InstanceType<T>
