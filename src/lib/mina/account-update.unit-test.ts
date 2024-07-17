@@ -3,6 +3,7 @@ import {
   AccountUpdate,
   PrivateKey,
   Field,
+  Bool,
   Mina,
   Int64,
   Types,
@@ -17,6 +18,14 @@ let address = PrivateKey.random().toPublicKey();
 function createAccountUpdate() {
   let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
   accountUpdate.body.balanceChange = Int64.from(1e9).neg();
+  return accountUpdate;
+}
+
+function createAccountUpdateWithMayUseToken(
+  mayUseToken: AccountUpdate['body']['mayUseToken']
+) {
+  let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+  accountUpdate.body.mayUseToken = mayUseToken;
   return accountUpdate;
 }
 
@@ -120,5 +129,16 @@ function createAccountUpdate() {
   tx.sign([]);
   await expect(tx.send()).rejects.toThrow(
     'Check signature: Invalid signature on fee payer for key'
+  );
+}
+
+// correctly identifies when neither flag is set
+{
+  let accountUpdate = createAccountUpdateWithMayUseToken({
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(false),
+  });
+  expect(AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()).toEqual(
+    true
   );
 }
