@@ -292,6 +292,9 @@ function verifyEcdsaGeneric(
   // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
   ForeignField.assertLessThan(Rx, Curve.order);
 
+  // assert s to be canonical
+  ForeignField.assertLessThan(s, Curve.order);
+
   return Provable.equal(Field3.provable, Rx, r);
 }
 
@@ -310,6 +313,10 @@ function verifyEcdsaGeneric(
  *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
  *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
  * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
+ *
+ *
+ * _Note_: If `signature.s` is a non-canonical element, an error will be thrown.
+ * If `signature.r` is non-canonical, however, `false` will be returned.
  */
 function verifyEcdsa(
   Curve: CurveAffine,
