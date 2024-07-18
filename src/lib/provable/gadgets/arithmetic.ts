@@ -7,6 +7,8 @@ import { rangeCheck32, rangeCheckN } from './range-check.js';
 export { divMod32, addMod32 };
 
 function divMod32(n: Field, nBits = 64) {
+  assert(nBits >= 0 && nBits <= 255, `nBits must be in the range [0, 255], got ${nBits}`)
+  
   if (n.isConstant()) {
     assert(
       n.toBigInt() < 1n << 64n,
