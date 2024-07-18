@@ -703,7 +703,11 @@ const foreignFieldMax = 1n << foreignFieldMaxBits;
 
 type Constructor<T> = new (...args: any[]) => T;
 
-function provable<F extends ForeignField>(
+function provable<
+  F extends ForeignField & {
+    type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced';
+  }
+>(
   Class: Constructor<F> & { check(x: ForeignField): void }
 ): ProvablePureExtended<F, bigint, string> {
   return {
@@ -722,6 +726,10 @@ function provable<F extends ForeignField>(
     },
     check(x: ForeignField) {
       Class.check(x);
+    },
+    toCanonical(x) {
+      if (x.type === 'FullyReduced') return x;
+      return new Class(FF.toCanonical(x.value, x.modulus));
     },
     toValue(x) {
       return x.toBigInt();

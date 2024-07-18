@@ -235,6 +235,14 @@ const Provable = {
       type.toAuxiliary(value)
     );
   },
+
+  /**
+   * Return a canonical version of a value, where
+   * canonical is defined by the `type`.
+   */
+  toCanonical<T>(type: Provable<T>, value: T) {
+    return type.toCanonical?.(value) ?? value;
+  },
 };
 
 type ToFieldable = { toFields(): Field[] };
@@ -266,25 +274,11 @@ function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
   }
 }
 
-function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
-function equal<T extends ToFieldable>(x: T, y: T): Bool;
-function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
-  if (yOrUndefined === undefined) {
-    return equalImplicit(typeOrX, xOrY);
-  } else {
-    return equalExplicit(typeOrX, xOrY, yOrUndefined);
-  }
-}
-// TODO: constraints can be reduced by up to 2x for large structures by using a variant
-// of the `equals` argument where we return 1 - z(x0 - y0)(x1 - y1)...(xn - yn)
-// current version will do (1 - z0(x0 - y0))(1 - z1(x1 - y1))... + constrain each factor
-function equalImplicit<T extends ToFieldable>(x: T, y: T) {
-  let xs = x.toFields();
-  let ys = y.toFields();
-  checkLength('Provable.equal', xs, ys);
-  return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
-}
-function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
+function equal<T>(type: Provable<T>, x: T, y: T) {
+  // when comparing two values of the same type, we use the type's canonical form
+  // otherwise, the case where `equal()` returns false is misleading (two values can differ as field elements but be "equal")
+  x = type.toCanonical?.(x) ?? x;
+  y = type.toCanonical?.(y) ?? y;
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
@@ -550,6 +544,9 @@ function provableArray<A extends FlexibleProvable<any>>(
       for (let i = 0; i < length; i++) {
         (type as any).check(array[i]);
       }
+    },
+    toCanonical(x) {
+      return x.map((v) => Provable.toCanonical(type, v));
     },
 
     toValue(x) {

@@ -811,6 +811,17 @@ const Gadgets = {
     assertLessThanOrEqual(x: Field3, f: bigint | Field3) {
       ForeignField.assertLessThanOrEqual(x, f);
     },
+
+    /**
+     * Convert x, which may be unreduced, to a canonical representative xR < f
+     * such that x = xR mod f
+     *
+     * Note: This method is complete, it works for all unreduced field elements.
+     * It can therefore be used to protect against incompleteness of field operations in other places.
+     */
+    toCanonical(x: Field3, f: bigint) {
+      return ForeignField.toCanonical(x, f);
+    },
   },
 
   /**

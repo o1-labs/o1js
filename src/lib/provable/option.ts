@@ -59,9 +59,10 @@ function Option<A extends Provable<any, any>>(
   } {
   type T = InferProvable<A>;
   type V = InferValue<A>;
-  let strictType: Provable<T, V> = type;
+  let strictType: Provable<T, V> & { toCanonical: undefined } = type as any;
 
   // construct a provable with a JS type of `T | undefined`
+  type PlainOption = { isSome: Bool; value: T };
   const PlainOption: Provable<
     { isSome: Bool; value: T },
     { isSome: boolean; value: V }
@@ -117,6 +118,9 @@ function Option<A extends Provable<any, any>>(
     }
     static fromValue(value: OptionOrValue<T, V>) {
       return new Option_(Super.fromValue(value));
+    }
+    static toCanonical(value: PlainOption) {
+      return new Option_(Super.toCanonical?.(value) ?? value);
     }
   };
 }
