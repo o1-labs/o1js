@@ -267,13 +267,13 @@ function sha256Compression(H: UInt32[], W: UInt32[]) {
     g = f;
     f = e;
     e = UInt32.Unsafe.fromField(
-      divMod32(d.value.add(unreducedT1), 34).remainder
+      divMod32(d.value.add(unreducedT1), 48).remainder
     ); // mod 32bit the unreduced field element
     d = c;
     c = b;
     b = a;
     a = UInt32.Unsafe.fromField(
-      divMod32(unreducedT2.add(unreducedT1), 34).remainder
+      divMod32(unreducedT2.add(unreducedT1), 48).remainder
     ); // mod 32bit
   }
 
@@ -309,7 +309,7 @@ function createMessageSchedule(M: UInt32[]) {
       .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
     // mod 32bit the unreduced field element
-    W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 34).remainder);
+    W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 48).remainder);
   }
 
   return W;
