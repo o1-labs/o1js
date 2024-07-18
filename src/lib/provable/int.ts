@@ -6,7 +6,7 @@ import { HashInput } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
-import { addMod32 } from './gadgets/arithmetic.js';
+import { addMod32, addMod64 } from './gadgets/arithmetic.js';
 import type { Gadgets } from './gadgets/gadgets.js';
 import { withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
@@ -153,6 +153,13 @@ class UInt64 extends CircuitValue {
    */
   static MAXINT() {
     return new UInt64((1n << 64n) - 1n);
+  }
+
+  /**
+   * Addition modulo 2^64. Check {@link Gadgets.addMod64} for a detailed description.
+   */
+  addMod64(y: UInt64) {
+    return new UInt64(addMod64(this.value, y.value).value);
   }
 
   /**
@@ -401,6 +408,14 @@ class UInt64 extends CircuitValue {
    */
   and(x: UInt64) {
     return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS).value);
+  }
+
+  /**
+   *
+   */
+  or(x: UInt64) {
+    //return this.xor(x).xor(this.and(x));
+    return new UInt64(Bitwise.or(this.value, x.value, UInt64.NUM_BITS).value);
   }
 
   /**
@@ -1441,6 +1456,19 @@ class UInt8 extends Struct({
       return new UInt8(x.value);
     },
   };
+
+  /**
+   * Static method to create a {@link UInt8} with value `0`.
+   */
+  static get zero() {
+    return new UInt8(0);
+  }
+  /**
+   * Static method to create a {@link UInt8} with value `1`.
+   */
+  static get one() {
+    return new UInt8(1);
+  }
 
   /**
    * Add a {@link UInt8} to another {@link UInt8} without allowing overflow.

@@ -27,8 +27,9 @@ import {
   Field3,
   Sum as ForeignFieldSum,
 } from './foreign-field.js';
-import { divMod32, addMod32 } from './arithmetic.js';
+import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
+import { BLAKE2B } from './blake2b.js';
 import { rangeCheck3x12 } from './lookup.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
@@ -837,8 +838,14 @@ const Gadgets = {
    */
   divMod32,
 
-  /**
-   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
+
+  addMod32,
+
+
+  divMod64,
+
+    /**
+   * Addition modulo 2^64. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
    *
    * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
@@ -854,8 +861,7 @@ const Gadgets = {
    * Gadgets.addMod32(a, b).assertEquals(Field(8n));
    * ```
    *    */
-  addMod32,
-
+  addMod64,
   /**
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
    *
@@ -875,4 +881,5 @@ const Gadgets = {
    *
    */
   SHA256: SHA256,
+  BLAKE2B: BLAKE2B
 };

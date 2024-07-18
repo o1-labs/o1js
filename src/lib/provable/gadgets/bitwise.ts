@@ -13,6 +13,7 @@ export {
   rotate64,
   rotate32,
   and,
+  or,
   rightShift64,
   leftShift64,
   leftShift32,
@@ -183,6 +184,38 @@ function and(a: Field, b: Field, length: number) {
 
   // return the result of the and operation
   return outputAnd;
+}
+
+function or(a: Field, b: Field, length: number) {
+  // check that both input lengths are positive
+  assert(length > 0, `Input lengths need to be positive values.`);
+
+  // check that length does not exceed maximum field size in bits
+  assert(
+    length <= Field.sizeInBits,
+    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
+  );
+
+  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
+  let padLength = Math.ceil(length / 16) * 16;
+
+  // handle constant case
+  if (a.isConstant() && b.isConstant()) {
+    let max = 1n << BigInt(padLength);
+
+    assert(a.toBigInt() < max, `${a} does not fit into ${padLength} bits`);
+    assert(b.toBigInt() < max, `${b} does not fit into ${padLength} bits`);
+
+    return new Field(a.toBigInt() | b.toBigInt());
+  }
+
+  // calculate expect and output
+  let outputOr = Provable.witness(Field, () => a.toBigInt() | b.toBigInt());
+
+  outputOr.assertEquals(
+    not(and(not(a, length), not(b, length), length), length)
+  );
+  return outputOr;
 }
 
 function rotate64(
