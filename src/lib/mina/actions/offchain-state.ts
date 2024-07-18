@@ -14,17 +14,25 @@ import {
   OffchainStateRollup,
 } from './offchain-state-rollup.js';
 import { Option, OptionOrValue } from '../../provable/option.js';
-import { InferValue } from '../../../bindings/lib/provable-generic.js';
+import {
+  Constructor,
+  InferValue,
+} from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { State } from '../state.js';
 import { Actions } from '../account-update.js';
 import { Provable } from '../../provable/provable.js';
 import { Poseidon } from '../../provable/crypto/poseidon.js';
-import { smartContractContext } from '../smart-contract-context.js';
+import { contract } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
+import { assertDefined } from '../../util/assert.js';
 
+// external API
 export { OffchainState, OffchainStateCommitments };
+
+// internal API
+export { OffchainField, OffchainMap };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   /**
@@ -33,7 +41,7 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    * ```ts
    * const state = OffchainState({ totalSupply: OffchainState.Field(UInt64) });
    *
-   * state.fields.totalSupply.set(UInt64.from(100));
+   * state.fields.totalSupply.overwrite(UInt64.from(100));
    *
    * let supply = await state.fields.totalSupply.get();
    * ```
@@ -47,9 +55,15 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    *
    * This tells the offchain state about the account to fetch data from and modify, and lets it handle actions and onchain state.
    */
-  setContractInstance(
-    contract: SmartContract & { offchainState: State<OffchainStateCommitments> }
-  ): void;
+  setContractInstance(contract: OffchainStateContract): void;
+
+  /**
+   * Set the smart contract class that this offchain state is connected with.
+   *
+   * This is an alternative for `setContractInstance()` which lets you compile offchain state without having a contract instance.
+   * However, you must call `setContractInstance()` before calling `createSettlementProof()`.
+   */
+  setContractClass(contract: OffchainStateContractClass): void;
 
   /**
    * Compile the offchain state ZkProgram.
@@ -102,6 +116,8 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 type OffchainStateContract = SmartContract & {
   offchainState: State<OffchainStateCommitments>;
 };
+type OffchainStateContractClass = typeof SmartContract &
+  Constructor<OffchainStateContract>;
 
 /**
  * Offchain state for a `SmartContract`.
@@ -176,15 +192,15 @@ function OffchainState<
   // setup internal state of this "class"
   let internal = {
     _contract: undefined as OffchainStateContract | undefined,
+    _contractClass: undefined as OffchainStateContractClass | undefined,
     _merkleMap: undefined as IndexedMerkleMapN | undefined,
     _valueMap: undefined as Map<bigint, Field[]> | undefined,
 
     get contract() {
-      assert(
-        internal._contract !== undefined,
+      return assertDefined(
+        internal._contract,
         'Must call `setContractInstance()` first'
       );
-      return internal._contract;
     },
   };
   const onchainActionState = async () => {
@@ -215,17 +231,20 @@ function OffchainState<
     maxActionsPerUpdate,
   });
 
-  function contract() {
-    let ctx = smartContractContext.get();
-    assert(
-      ctx !== null,
-      'Offchain state methods must be called within a contract method'
+  function getContract(): OffchainStateContract {
+    let Contract = assertDefined(
+      internal._contractClass,
+      'Must call `setContractInstance()` or `setContractClass()` first'
     );
-    assert(
-      ctx.this.constructor === internal.contract.constructor,
-      'Offchain state methods can only be called on the same contract that you called setContractInstance() on'
-    );
-    return ctx.this as OffchainStateContract;
+    return contract(Contract);
+  }
+
+  function maybeContract() {
+    try {
+      return getContract();
+    } catch {
+      return internal.contract;
+    }
   }
 
   /**
@@ -233,14 +252,15 @@ function OffchainState<
    */
   async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
     // get onchain merkle root
-    let stateRoot = contract().offchainState.getAndRequireEquals().root;
+    let state = maybeContract().offchainState.getAndRequireEquals();
 
     // witness the merkle map & anchor against the onchain root
     let map = await Provable.witnessAsync(
       IndexedMerkleMapN.provable,
       async () => (await merkleMaps()).merkleMap
     );
-    map.root.assertEquals(stateRoot, 'root mismatch');
+    map.root.assertEquals(state.root, 'root mismatch');
+    map.length.assertEquals(state.length, 'length mismatch');
 
     // get the value hash
     let valueHash = map.getOption(key);
@@ -275,6 +295,8 @@ function OffchainState<
     let optionType = Option(type);
 
     return {
+      _type: type,
+
       overwrite(value) {
         // serialize into action
         let action = toAction({
@@ -286,7 +308,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -302,7 +324,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -322,6 +344,9 @@ function OffchainState<
     let optionType = Option(valueType);
 
     return {
+      _keyType: keyType,
+      _valueType: valueType,
+
       overwrite(key, value) {
         // serialize into action
         let action = toAction({
@@ -333,7 +358,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -349,7 +374,7 @@ function OffchainState<
         });
 
         // push action on account update
-        let update = contract().self;
+        let update = getContract().self;
         update.body.actions = Actions.pushEvent(update.body.actions, action);
       },
 
@@ -363,6 +388,11 @@ function OffchainState<
   return {
     setContractInstance(contract) {
       internal._contract = contract;
+      internal._contractClass =
+        contract.constructor as OffchainStateContractClass;
+    },
+    setContractClass(contractClass) {
+      internal._contractClass = contractClass;
     },
 
     async compile() {
@@ -399,16 +429,16 @@ function OffchainState<
       proof.verify();
 
       // check that proof moves state forward from the one currently stored
-      let state = contract().offchainState.getAndRequireEquals();
+      let state = getContract().offchainState.getAndRequireEquals();
       Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
 
       // require that proof uses the correct pending actions
-      contract().account.actionState.requireEquals(
+      getContract().account.actionState.requireEquals(
         proof.publicOutput.actionState
       );
 
       // update the state
-      contract().offchainState.set(proof.publicOutput);
+      getContract().offchainState.set(proof.publicOutput);
     },
 
     fields: Object.fromEntries(
@@ -438,6 +468,8 @@ function OffchainField<T extends Any>(type: T) {
   return { kind: 'offchain-field' as const, type };
 }
 type OffchainField<T, TValue> = {
+  _type: Provable<T, TValue>;
+
   /**
    * Get the value of the field, or none if it doesn't exist yet.
    */
@@ -467,6 +499,9 @@ function OffchainMap<K extends Any, V extends Any>(key: K, value: V) {
   return { kind: 'offchain-map' as const, keyType: key, valueType: value };
 }
 type OffchainMap<K, V, VValue> = {
+  _keyType: Provable<K>;
+  _valueType: Provable<V, VValue>;
+
   /**
    * Get the value for this key, or none if it doesn't exist.
    */

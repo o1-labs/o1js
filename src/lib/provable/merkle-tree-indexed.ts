@@ -309,6 +309,22 @@ class IndexedMerkleMapBase {
   }
 
   /**
+   * Perform an insertion or update, if the enabling condition is true.
+   *
+   * If the condition is false, we instead set the 0 key to the value 0.
+   * This is the initial value and for typical uses of `IndexedMerkleMap`, it is guaranteed to be a no-op because the 0 key is never used.
+   *
+   * **Warning**: Only use this method if you are sure that the 0 key is not used in your application.
+   * Otherwise, you might accidentally overwrite a valid key-value pair.
+   */
+  setIf(condition: Bool | boolean, key: Field | bigint, value: Field | bigint) {
+    return this.set(
+      Provable.if(Bool(condition), Field(key), Field(0n)),
+      Provable.if(Bool(condition), Field(value), Field(0n))
+    );
+  }
+
+  /**
    * Get a value from a key.
    *
    * Proves that the key already exists in the map yet and fails otherwise.

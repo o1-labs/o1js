@@ -17,6 +17,7 @@ import { GenericHashInput } from '../../../bindings/lib/generic.js';
 // external API
 export {
   ProvableExtended,
+  ProvableInferPureFrom,
   provable,
   provablePure,
   provableTuple,
@@ -50,6 +51,9 @@ type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
 type InferProvable<T> = GenericInferProvable<T, Field>;
 type InferredProvable<T> = GenericInferredProvable<T, Field>;
 type IsPure<T> = GenericIsPure<T, Field>;
+type ProvableInferPureFrom<A, T, V> = IsPure<A> extends true
+  ? ProvablePure<T, V>
+  : Provable<T, V>;
 
 type HashInput = GenericHashInput<Field>;
 const HashInput = createHashInput<Field>();

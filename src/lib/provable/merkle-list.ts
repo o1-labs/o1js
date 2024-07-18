@@ -186,6 +186,39 @@ class MerkleList<T> implements MerkleListBase<T> {
     return element;
   }
 
+  /**
+   * Low-level, minimal version of `pop()` which lets the _caller_ decide whether there is an element to pop.
+   *
+   * I.e. this proves:
+   * - If the input condition is true, this returns the last element and removes it from the list.
+   * - If the input condition is false, the list is unchanged and the return value is garbage.
+   *
+   * Note that if the caller passes `true` but the list is empty, this will fail.
+   * If the caller passes `false` but the list is non-empty, this succeeds and just doesn't pop off an element.
+   */
+  popIfUnsafe(shouldPop: Bool) {
+    let { previousHash, element } = Provable.witness(
+      WithHash(this.innerProvable),
+      () => {
+        let dummy = {
+          previousHash: this.hash,
+          element: this.innerProvable.empty(),
+        };
+        if (!shouldPop.toBoolean()) return dummy;
+        let [value, ...data] = this.data.get();
+        this.data.set(data);
+        return value ?? dummy;
+      }
+    );
+
+    let nextHash = this.nextHash(previousHash, element);
+    let currentHash = Provable.if(shouldPop, nextHash, this.hash);
+    this.hash.assertEquals(currentHash);
+    this.hash = Provable.if(shouldPop, previousHash, this.hash);
+
+    return element;
+  }
+
   clone(): MerkleList<T> {
     let data = Unconstrained.witness(() => [...this.data.get()]);
     return new this.Constructor({ hash: this.hash, data });
@@ -222,6 +255,16 @@ class MerkleList<T> implements MerkleListBase<T> {
   startIteratingFromLast(): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
     return merkleArray.startIteratingFromLast(this);
+  }
+
+  toArrayUnconstrained(): Unconstrained<T[]> {
+    return Unconstrained.witness(() =>
+      [...this.data.get()].reverse().map((x) => x.element)
+    );
+  }
+
+  lengthUnconstrained(): Unconstrained<number> {
+    return Unconstrained.witness(() => this.data.get().length);
   }
 
   /**

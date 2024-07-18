@@ -5,7 +5,7 @@ import { test, Random } from '../testing/property.js';
 import { Provable } from '../provable/provable.js';
 import { deepEqual } from 'node:assert/strict';
 import { Bool, Field } from '../provable/wrapped.js';
-import { AnyFunction, Tuple } from '../util/types.js';
+import { AnyTuple, Tuple } from '../util/types.js';
 import { provable } from '../provable/types/provable-derivers.js';
 import { assert } from '../provable/gadgets/common.js';
 import { synchronousRunners } from '../provable/core/provable-context.js';
@@ -84,9 +84,11 @@ type FuncSpec<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2> = {
   to: ToSpec<Out1, Out2>;
 };
 
+type AnyTupleFunction = (...args: AnyTuple) => any;
+
 type SpecFromFunctions<
-  F1 extends AnyFunction,
-  F2 extends AnyFunction
+  F1 extends AnyTupleFunction,
+  F2 extends AnyTupleFunction
 > = FuncSpec<Parameters<F1>, ReturnType<F1>, Parameters<F2>, ReturnType<F2>>;
 
 function id<T>(x: T) {

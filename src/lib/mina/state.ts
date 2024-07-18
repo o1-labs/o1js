@@ -8,6 +8,8 @@ import { Account } from './account.js';
 import { Provable } from '../provable/provable.js';
 import { Field } from '../provable/wrapped.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ensureConsistentPrecondition } from './precondition.js';
+import { Bool } from '../provable/wrapped.js';
 
 // external API
 export { State, state, declareState };
@@ -59,6 +61,13 @@ type State<A> = {
    * by adding a precondition which the verifying Mina node will check before accepting this transaction.
    */
   requireEquals(a: A): void;
+  /**
+   * Require that the on-chain state has to equal the given state if the provided condition is true.
+   *
+   * If the condition is false, this is a no-op.
+   * If the condition is true, this adds a precondition that the verifying Mina node will check before accepting this transaction.
+   */
+  requireEqualsIf(condition: Bool, a: A): void;
   /**
    * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
    */
@@ -220,10 +229,39 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        AccountUpdate.assertEquals(
-          accountUpdate.body.preconditions.account.state[layout.offset + i],
-          x
+        let precondition =
+          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        ensureConsistentPrecondition(
+          precondition,
+          Bool(true),
+          x,
+          this._contract?.key
         );
+        AccountUpdate.assertEquals(precondition, x);
+      });
+      this._contract.wasConstrained = true;
+    },
+
+    requireEqualsIf(condition: Bool, state: T) {
+      if (this._contract === undefined)
+        throw Error(
+          'requireEqualsIf can only be called when the State is assigned to a SmartContract @state.'
+        );
+      let layout = getLayoutPosition(this._contract);
+      let stateAsFields = this._contract.stateType.toFields(state);
+      let accountUpdate = this._contract.instance.self;
+      stateAsFields.forEach((stateField, i) => {
+        let value = Provable.if(condition, stateField, Field(0));
+        ensureConsistentPrecondition(
+          accountUpdate.body.preconditions.account.state[layout.offset + i],
+          condition,
+          value,
+          this._contract?.key
+        );
+        let state =
+          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        state.isSome = condition;
+        state.value = value;
       });
       this._contract.wasConstrained = true;
     },
@@ -233,6 +271,8 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
         throw Error(
           'requireNothing can only be called when the State is assigned to a SmartContract @state.'
         );
+      // TODO: this should ideally reset any previous precondition,
+      // by setting each relevant state field to { isSome: false, value: Field(0) }
       this._contract.wasConstrained = true;
     },
 
