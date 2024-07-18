@@ -180,6 +180,13 @@ jobs:
           echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
+  Build-And-Test-Server-Unit-Tests:
+    name: Build-And-Test-Server (Unit tests)
+    needs: [Run-Unit-Tests]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All unit tests completed successfully"
+
   Build-And-Test-Web:
     needs: Prepare
     timeout-minutes: 90
