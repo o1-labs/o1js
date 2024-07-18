@@ -236,8 +236,7 @@ function verifyEcdsaGeneric(
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
-  } = { G: { windowSize: 4 }, P: { windowSize: 4 } },
-  checkSCanonical = false
+  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
 ): Bool {
   // constant case
   if (
@@ -283,7 +282,7 @@ function verifyEcdsaGeneric(
   ForeignField.assertLessThan(Rx, Curve.order);
 
   // assert s to be canonical
-  if (checkSCanonical) ForeignField.assertLessThan(s, Curve.order);
+  ForeignField.assertLessThan(s, Curve.order);
 
   return Provable.equal(Field3.provable, Rx, r);
 }
@@ -351,8 +350,7 @@ function verifyEcdsaV2(
     publicKey,
     (scalars, points, Curve, configs, mode, ia) =>
       multiScalarMul(scalars, points, Curve, configs, mode, ia, false),
-    config,
-    true
+    config
   );
 }
 
