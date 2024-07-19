@@ -36,19 +36,19 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       async method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 254);
+        return Gadgets.xor(a, b, 240);
       },
     },
     notUnchecked: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.not(a, 254, false);
+        return Gadgets.not(a, 240, false);
       },
     },
     notChecked: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.not(a, 254, true);
+        return Gadgets.not(a, 240, true);
       },
     },
     and: {
@@ -153,7 +153,7 @@ await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs })(
 
 await equivalentAsync({ from: [maybeField], to: field }, { runs })(
   (x) => {
-    return Fp.not(x, 254);
+    return Fp.not(x, 240);
   },
   async (x) => {
     let proof = await Bitwise.notUnchecked(x);
@@ -162,8 +162,8 @@ await equivalentAsync({ from: [maybeField], to: field }, { runs })(
 );
 await equivalentAsync({ from: [maybeField], to: field }, { runs })(
   (x) => {
-    if (x > 2n ** 254n) throw Error('Does not fit into 254 bit');
-    return Fp.not(x, 254);
+    if (x > 2n ** 240n) throw Error('Does not fit into 240 bit');
+    return Fp.not(x, 240);
   },
   async (x) => {
     let proof = await Bitwise.notChecked(x);
@@ -246,13 +246,13 @@ function xorChain(bits: number) {
 constraintSystem.fromZkProgram(
   Bitwise,
   'xor',
-  ifNotAllConstant(contains(xorChain(254)))
+  ifNotAllConstant(contains(xorChain(240)))
 );
 
 constraintSystem.fromZkProgram(
   Bitwise,
   'notChecked',
-  ifNotAllConstant(contains(xorChain(254)))
+  ifNotAllConstant(contains(xorChain(240)))
 );
 
 constraintSystem.fromZkProgram(
