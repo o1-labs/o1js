@@ -19,6 +19,8 @@ export {
 };
 
 function not(a: Field, length: number, checked: boolean = false) {
+  // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
+  // preventing potential underconstraint issues in the circuit
   validateBitLength(length, 240, 'not');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
@@ -45,7 +47,8 @@ function not(a: Field, length: number, checked: boolean = false) {
 }
 
 function xor(a: Field, b: Field, length: number) {
-  // Use 240 as max length to ensure padded length (next multiple of 16) doesn't exceed 254 bits
+  // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
+  // preventing potential underconstraint issues in the circuit
   validateBitLength(length, 240, 'xor');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
@@ -140,6 +143,8 @@ function buildXor(a: Field, b: Field, out: Field, padLength: number) {
 }
 
 function and(a: Field, b: Field, length: number) {
+  // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
+  // preventing potential underconstraint issues in the circuit
   validateBitLength(length, 240, 'and');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
@@ -327,6 +332,15 @@ function leftShift32(field: Field, bits: number) {
   return shifted;
 }
 
+/**
+ * Validates the bit length for bitwise operations.
+ *
+ * @param length - The input length to validate.
+ * @param maxLength - The maximum allowed length.
+ * @param functionName - The name of the calling function for error messages.
+ *
+ * @throws {Error} If the input length is not positive or exceeds the maximum length.
+ */
 function validateBitLength(
   length: number,
   maxLength: number,
