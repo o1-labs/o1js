@@ -3,41 +3,44 @@ import { UInt64, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
 
-
 export { BLAKE2B };
 
-const IV: UInt64[] = [
-  UInt64.from(0x6a09e667f3bcc908n),
-  UInt64.from(0xbb67ae8584caa73bn),
-  UInt64.from(0x3c6ef372fe94f82bn),
-  UInt64.from(0xa54ff53a5f1d36f1n),
-  UInt64.from(0x510e527fade682d1n),
-  UInt64.from(0x9b05688c2b3e6c1fn),
-  UInt64.from(0x1f83d9abfb41bd6bn),
-  UInt64.from(0x5be0cd19137e2179n),
-];
+const BLAKE2BConstants = {
+  IV: [
+    0x6a09e667f3bcc908n,
+    0xbb67ae8584caa73bn,
+    0x3c6ef372fe94f82bn,
+    0xa54ff53a5f1d36f1n,
+    0x510e527fade682d1n,
+    0x9b05688c2b3e6c1fn,
+    0x1f83d9abfb41bd6bn,
+    0x5be0cd19137e2179n,
+  ],
 
-const SIGMA: number[][] = [
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-  [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
-  [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
-  [7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8],
-  [9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13],
-  [2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9],
-  [12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11],
-  [13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10],
-  [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
-  [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
-];
+  SIGMA: [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
+    [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
+    [7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8],
+    [9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13],
+    [2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9],
+    [12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11],
+    [13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10],
+    [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
+    [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
+  ],
+};
 
 const BLAKE2B = {
-  hash(data: FlexibleBytes) {
-    let input = Bytes.from(data).bytes;
-    const state = initialize(64);
-    update(state, input);
-    let out = final(state);
+  hash(data: FlexibleBytes, digest_length = 64) {
+    const state = initialize(digest_length);
+    update(state, Bytes.from(data).bytes);
+    const out = final(state);
     return Bytes.from(out);
-  }
+  },
+  get IV() {
+    return BLAKE2BConstants.IV.map((x) => UInt64.from(x));
+  },
 };
 
 function initialize(outlen: number): {
@@ -48,7 +51,7 @@ function initialize(outlen: number): {
   buflen: number;
   outlen: number;
 } {
-  const h = IV.slice(); // shallow copy IV to h
+  const h = BLAKE2B.IV.slice(); // shallow copy IV to h
   h[0] = UInt64.from(0x01010000).xor(UInt64.from(outlen)).xor(h[0]);
   return {
     h,
@@ -60,7 +63,7 @@ function initialize(outlen: number): {
   };
 }
 
-function Mix(
+function G(
   v: UInt64[],
   a: number,
   b: number,
@@ -77,7 +80,7 @@ function Mix(
 
   v[a] = v[a].addMod64(v[b].addMod64(y));
   v[d] = v[d].xor(v[a]).rotate(16, 'right');
-         
+
   v[c] = v[c].addMod64(v[d]);
   v[b] = v[b].xor(v[c]).rotate(63, 'right');
 }
@@ -91,7 +94,7 @@ function compress(state: {
   outlen: number;
 }): void {
   const { h, t, f, buf } = state;
-  const v = h.concat(IV); // initalize local work vector. First half from state and second half from IV.
+  const v = h.concat(BLAKE2B.IV); // initalize local work vector. First half from state and second half from IV.
 
   v[12] = v[12].xor(t[0]); // low word of the offset
   v[13] = v[13].xor(t[1]); // high word of the offset
@@ -112,20 +115,20 @@ function compress(state: {
           .or(buf[i * 8 + 6].toUInt64().leftShift(48))
           .or(buf[i * 8 + 7].toUInt64().leftShift(56))
       )
-    );   
-}
+    );
+  }
 
   for (let i = 0; i < 12; i++) {
-    const s = SIGMA[i % 10];
-    Mix(v, 0, 4, 8, 12, m[s[0]], m[s[1]]);
-    Mix(v, 1, 5, 9, 13, m[s[2]], m[s[3]]);
-    Mix(v, 2, 6, 10, 14, m[s[4]], m[s[5]]);
-    Mix(v, 3, 7, 11, 15, m[s[6]], m[s[7]]);
+    const s = BLAKE2BConstants.SIGMA[i % 10];
+    G(v, 0, 4, 8, 12, m[s[0]], m[s[1]]);
+    G(v, 1, 5, 9, 13, m[s[2]], m[s[3]]);
+    G(v, 2, 6, 10, 14, m[s[4]], m[s[5]]);
+    G(v, 3, 7, 11, 15, m[s[6]], m[s[7]]);
 
-    Mix(v, 0, 5, 10, 15, m[s[8]], m[s[9]]);
-    Mix(v, 1, 6, 11, 12, m[s[10]], m[s[11]]);
-    Mix(v, 2, 7, 8, 13, m[s[12]], m[s[13]]);
-    Mix(v, 3, 4, 9, 14, m[s[14]], m[s[15]]);
+    G(v, 0, 5, 10, 15, m[s[8]], m[s[9]]);
+    G(v, 1, 6, 11, 12, m[s[10]], m[s[11]]);
+    G(v, 2, 7, 8, 13, m[s[12]], m[s[13]]);
+    G(v, 3, 4, 9, 14, m[s[14]], m[s[15]]);
   }
 
   for (let i = 0; i < 8; i++) {
@@ -168,7 +171,7 @@ function final(state: {
   state.t[0] = state.t[0].add(state.buflen); // ?
   if (state.t[0].equals(UInt64.zero)) {
     state.t[1] = state.t[1].add(UInt64.zero);
-}
+  }
   state.f[0] = UInt64.from('0xFFFFFFFFFFFFFFFF');
 
   while (state.buflen < 128) {

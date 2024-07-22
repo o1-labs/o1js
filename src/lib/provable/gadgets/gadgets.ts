@@ -17,6 +17,7 @@ import {
   rotate64,
   xor,
   and,
+  or,
   leftShift64,
   rightShift64,
   leftShift32,
@@ -450,6 +451,11 @@ const Gadgets = {
     return and(a, b, length);
   },
 
+
+  or(a: Field, b: Field, length: number) {
+    return or(a, b, length);
+  },
+  
   /**
    * Multi-range check.
    *

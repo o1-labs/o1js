@@ -1,17 +1,17 @@
-import { Bytes12, Blake2bProgram } from './blake2b.js';
+import { Bytes12, BLAKE2BProgram } from './blake2b.js';
 
 console.time('compile');
-await Blake2bProgram.compile();
+await BLAKE2BProgram.compile();
 console.timeEnd('compile');
 
 let preimage = Bytes12.fromString('hello world!');
 
-console.log('blake2b rows:', (await Blake2bProgram.analyzeMethods()).blake2b.rows);
+console.log('blake2b rows:', (await BLAKE2BProgram.analyzeMethods()).blake2b.rows);
 
 console.time('prove');
-let proof = await Blake2bProgram.blake2b(preimage);
+let proof = await BLAKE2BProgram.blake2b(preimage);
 console.timeEnd('prove');
-let isValid = await Blake2bProgram.verify(proof);
+let isValid = await BLAKE2BProgram.verify(proof);
 
 console.log('digest:', proof.publicOutput.toHex());
 

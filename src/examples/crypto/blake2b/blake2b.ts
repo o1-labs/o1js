@@ -1,10 +1,10 @@
 import { Bytes, Gadgets, ZkProgram } from 'o1js';
 
-export { Blake2bProgram, Bytes12 };
+export { BLAKE2BProgram, Bytes12 };
 
 class Bytes12 extends Bytes(12) {}
 
-let Blake2bProgram = ZkProgram({
+let BLAKE2BProgram = ZkProgram({
   name: 'blake2b',
   publicOutput: Bytes(64).provable,
   methods: {
