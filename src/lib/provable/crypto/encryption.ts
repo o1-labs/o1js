@@ -159,7 +159,7 @@ function encryptV2(
   // encryption
   const cipherText = [];
   for (let [n, chunk] of chunks.entries()) {
-    // absorb frame tag
+    // absorb frame bit
     if (n === chunks.length - 1) sponge.absorb(Field(1));
     else sponge.absorb(Field(0));
 
