@@ -57,6 +57,12 @@ let Bitwise = ZkProgram({
         return Gadgets.and(a, b, 64);
       },
     },
+    or: {
+      privateInputs: [Field, Field],
+      async method(a: Field, b: Field) {
+        return Gadgets.or(a, b, 64);
+      },
+    },
     rot32: {
       privateInputs: [Field],
       async method(a: Field) {
@@ -100,6 +106,10 @@ await Bitwise.compile();
   equivalent({ from: [uint(length), uint(length)], to: field })(
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
+  );
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    (x, y) => x & y,
+    (x, y) => Gadgets.or(x, y, length)
   );
   // NOT unchecked
   equivalent({ from: [uint(length)], to: field })(
@@ -179,6 +189,18 @@ await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
   },
   async (x, y) => {
     let proof = await Bitwise.and(x, y);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
+  (x, y) => {
+    if (x >= 2n ** 64n || y >= 2n ** 64n)
+      throw Error('Does not fit into 64 bits');
+    return x & y;
+  },
+  async (x, y) => {
+    let proof = await Bitwise.or(x, y);
     return proof.publicOutput;
   }
 );
@@ -264,6 +286,12 @@ constraintSystem.fromZkProgram(
 constraintSystem.fromZkProgram(
   Bitwise,
   'and',
+  ifNotAllConstant(contains(xorChain(64)))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'or',
   ifNotAllConstant(contains(xorChain(64)))
 );
 

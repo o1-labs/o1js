@@ -175,14 +175,9 @@ function and(a: Field, b: Field, length: number) {
 }
 
 function or(a: Field, b: Field, length: number) {
-  // check that both input lengths are positive
-  assert(length > 0, `Input lengths need to be positive values.`);
-
-  // check that length does not exceed maximum field size in bits
-  assert(
-    length <= Field.sizeInBits,
-    `Length ${length} exceeds maximum of ${Field.sizeInBits} bits.`
-  );
+  // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
+  // preventing potential underconstraint issues in the circuit
+  validateBitLength(length, 240, 'not');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
@@ -203,6 +198,8 @@ function or(a: Field, b: Field, length: number) {
   outputOr.assertEquals(
     not(and(not(a, length), not(b, length), length), length)
   );
+
+  // return the result of the or operation
   return outputOr;
 }
 

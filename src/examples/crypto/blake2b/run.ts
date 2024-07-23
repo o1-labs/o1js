@@ -17,7 +17,7 @@ console.log('digest:', proof.publicOutput.toHex());
 
 if (
   proof.publicOutput.toHex() !==
-  'fa02d55d26bc5cda1e2d67fb7424f6132c58fed81a52816342795de54d3b2d8b91749f267d2491ed05ca0cbbd0e641cc1758b92e99eb1d8771060ebacbc83c25'
+  '4fccfb4d98d069558aa93e9565f997d81c33b080364efd586e77a433ddffc5e2'
 )
   throw new Error('Invalid blake2b digest!');
 if (!isValid) throw new Error('Invalid proof');

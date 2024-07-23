@@ -452,6 +452,27 @@ const Gadgets = {
   },
 
 
+/**
+   * Bitwise OR gadget on {@link Field} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * 
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated.
+   * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
+   *
+   * @example
+   * ```typescript
+   * let a = Field.from(3);    // ... 000011
+   * let b = Field.from(5);    // ... 000101
+   *
+   * let c = Gadgets.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
   or(a: Field, b: Field, length: number) {
     return or(a, b, length);
   },

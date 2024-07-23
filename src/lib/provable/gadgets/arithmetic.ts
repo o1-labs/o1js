@@ -55,12 +55,6 @@ function addMod32(x: Field, y: Field) {
 
 function divMod64(n: Field, quotientBits = 64) {
   if (n.isConstant()) {
-    /*
-    assert(
-      n.toBigInt() < 1n << 64n,
-      `n needs to fit into 64 bit, but got ${n.toBigInt()}`
-    ); */
-
     let nBigInt = n.toBigInt();
     let q = nBigInt >> 64n;
     let r = nBigInt - (q << 64n);
@@ -76,7 +70,6 @@ function divMod64(n: Field, quotientBits = 64) {
       let nBigInt = n.toBigInt();
       let q = nBigInt >> 64n;
       let r = nBigInt - (q << 64n);
-      // why do we have to do this?
       return [q, r] satisfies [bigint, bigint];
     }
   );

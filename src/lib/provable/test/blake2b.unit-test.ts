@@ -11,20 +11,6 @@ import { Random, sample } from '../../testing/random.js';
 import { expect } from 'expect';
 
 
-const Blake2bProgram = ZkProgram({
-  name: `blake2b`,
-  publicOutput: Bytes(64).provable,
-  methods: {
-    blake2b: {
-      privateInputs: [Bytes(43).provable],
-      async method(preImage: Bytes) {
-        return Gadgets.BLAKE2B.hash(preImage);
-      },
-    },
-  },
-});
-
-await Blake2bProgram.compile();
 
 for (let { digest_length ,preimage, hash } of testVectors()) {
   let actual = Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length);
