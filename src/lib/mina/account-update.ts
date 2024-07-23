@@ -3,7 +3,11 @@ import {
   FlexibleProvable,
   StructNoJson,
 } from '../provable/types/struct.js';
-import { provable, provablePure } from '../provable/types/provable-derivers.js';
+import {
+  provable,
+  provableExtends,
+  provablePure,
+} from '../provable/types/provable-derivers.js';
 import {
   memoizationContext,
   memoizeWitness,
@@ -1347,7 +1351,7 @@ type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
 
 const AccountUpdateTreeBase = StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
+  accountUpdate: HashedAccountUpdate,
   children: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
@@ -1368,10 +1372,29 @@ class AccountUpdateForest extends MerkleList.create(
   AccountUpdateTreeBase,
   merkleListHash
 ) {
+  static provable = provableExtends(AccountUpdateForest, super.provable);
+
+  push(update: AccountUpdate | AccountUpdateTreeBase) {
+    return super.push(
+      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
+    );
+  }
+  pushIf(condition: Bool, update: AccountUpdate | AccountUpdateTreeBase) {
+    return super.pushIf(
+      condition,
+      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
+    );
+  }
+
   static fromFlatArray(updates: AccountUpdate[]): AccountUpdateForest {
     let simpleForest = accountUpdatesToCallForest(updates);
     return this.fromSimpleForest(simpleForest);
   }
+
+  toFlatArray(mutate = true, depth = 0) {
+    return AccountUpdateForest.toFlatArray(this, mutate, depth);
+  }
+
   static toFlatArray(
     forest: AccountUpdateForestBase,
     mutate = true,
@@ -1410,6 +1433,17 @@ class AccountUpdateForest extends MerkleList.create(
       });
     });
   }
+
+  // fix static methods
+  static empty() {
+    return AccountUpdateForest.provable.empty();
+  }
+  static from(array: AccountUpdateTreeBase[]) {
+    return new AccountUpdateForest(super.from(array));
+  }
+  static fromReverse(array: AccountUpdateTreeBase[]) {
+    return new AccountUpdateForest(super.fromReverse(array));
+  }
 }
 
 /**
@@ -1427,8 +1461,8 @@ class AccountUpdateForest extends MerkleList.create(
  */
 class AccountUpdateTree extends StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
-  children: AccountUpdateForest.provable,
+  accountUpdate: HashedAccountUpdate,
+  children: AccountUpdateForest,
 }) {
   /**
    * Create a tree of account updates which only consists of a root.
@@ -1570,9 +1604,7 @@ class UnfinishedForest {
   }
 
   witnessHash(): UnfinishedForestFinal {
-    let final = Provable.witness(AccountUpdateForest.provable, () =>
-      this.finalize()
-    );
+    let final = Provable.witness(AccountUpdateForest, () => this.finalize());
     return this.setFinal(final);
   }
 
@@ -1615,8 +1647,7 @@ class UnfinishedForest {
   }
 
   toFlatArray(mutate = true, depth = 0): AccountUpdate[] {
-    if (this.isFinal())
-      return AccountUpdateForest.toFlatArray(this.final, mutate, depth);
+    if (this.isFinal()) return this.final.toFlatArray(mutate, depth);
     assert(this.isMutable(), 'final or mutable');
     let flatUpdates: AccountUpdate[] = [];
     for (let node of this.mutable) {

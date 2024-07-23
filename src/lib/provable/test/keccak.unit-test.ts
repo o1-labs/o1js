@@ -121,8 +121,8 @@ const preImageLength = 32;
 // No need to test Ethereum because it's just a special case of preNist
 const KeccakProgram = ZkProgram({
   name: `keccak-test-${digestLength}`,
-  publicInput: Bytes(preImageLength).provable,
-  publicOutput: Bytes(digestLengthBytes).provable,
+  publicInput: Bytes(preImageLength),
+  publicOutput: Bytes(digestLengthBytes),
   methods: {
     nistSha3: {
       privateInputs: [],

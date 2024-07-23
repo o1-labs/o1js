@@ -13,7 +13,7 @@ import type {
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { DynamicProof, Proof } from '../../proof-system/zkprogram.js';
-import { ProvablePure } from './provable-intf.js';
+import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 
 // external API
@@ -23,6 +23,7 @@ export {
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
+  FlexibleProvableType,
 };
 
 // internal API
@@ -59,6 +60,7 @@ type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
 type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
+type FlexibleProvableType<T> = ProvableType<T> | Struct<T>;
 
 type Constructor<T> = new (...args: any) => T;
 type AnyConstructor = Constructor<any>;
