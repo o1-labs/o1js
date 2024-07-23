@@ -135,7 +135,7 @@ function encryptV2(
   const bytes = message.bytes;
   const messageLength = bytes.length;
 
-  // pad message to a multiple of 31 so that we can append a frame bit to the message
+  // pad message to a multiple of 31 so they still fit into one field element
   const multipleOf = 31;
   const n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
