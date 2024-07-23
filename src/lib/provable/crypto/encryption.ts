@@ -94,7 +94,7 @@ function decryptV2(
   // decryption
   const message = [];
   for (let i = 0; i < cipherText.length; i++) {
-    // frame bit
+    // absorb frame tag
     if (i === cipherText.length - 1) sponge.absorb(Field(1));
     else sponge.absorb(Field(0));
 
@@ -159,8 +159,7 @@ function encryptV2(
   // encryption
   const cipherText = [];
   for (let [n, chunk] of chunks.entries()) {
-    // attach frame bit if its the last chunk
-    // pad with zero frame bit if its any other chunk
+    // absorb frame tag
     if (n === chunks.length - 1) sponge.absorb(Field(1));
     else sponge.absorb(Field(0));
 
