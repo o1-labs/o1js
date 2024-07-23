@@ -94,19 +94,16 @@ function decryptV2(
   // decryption
   const message = [];
   for (let i = 0; i < cipherText.length; i++) {
+    // frame bit
+    if (i === cipherText.length - 1) sponge.absorb(Field(1));
+    else sponge.absorb(Field(0));
+
     const keyStream = sponge.squeeze();
     const messageChunk = cipherText[i].sub(keyStream);
 
     // convert to bytes
     const byteMessage = wordToBytes(messageChunk, 32);
 
-    // pop frame bit
-    const frameBit = byteMessage.pop()!;
-
-    // check frame bit - if last element of the cipher text, frame bit must equal 1
-    // otherwise 0
-    if (i === cipherText.length - 1) frameBit.assertEquals(1);
-    else frameBit.assertEquals(0);
     // push the message to our final message array
     message.push(byteMessage);
 
@@ -164,8 +161,8 @@ function encryptV2(
   for (let [n, chunk] of chunks.entries()) {
     // attach frame bit if its the last chunk
     // pad with zero frame bit if its any other chunk
-    if (n === chunks.length - 1) chunk = chunk.concat(UInt8.from(1));
-    else chunk = chunk.concat(UInt8.from(0));
+    if (n === chunks.length - 1) sponge.absorb(Field(1));
+    else sponge.absorb(Field(0));
 
     const keyStream = sponge.squeeze();
     const encryptedChunk = bytesToWord(chunk).add(keyStream);
