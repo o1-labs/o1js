@@ -21,6 +21,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
 
+### Changed
+
+- Reduced maximum bit length for `xor`, `not`, and `and`, operations from 254 to 240 bits to improve performance and simplify implementation. https://github.com/o1-labs/o1js/pull/1745
+
 ## [1.5.0](https://github.com/o1-labs/o1js/compare/ed198f305...1c736add) - 2024-07-09
 
 ### Breaking changes
