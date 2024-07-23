@@ -27,9 +27,9 @@ const EcdsaBenchmarks = benchmark(
 
     tic('witness generation');
     await Provable.runAndCheck(async () => {
-      let message_ = Provable.witness(Bytes32.provable, () => message);
-      let signature_ = Provable.witness(Ecdsa.provable, () => signature);
-      let publicKey_ = Provable.witness(Secp256k1.provable, () => publicKey);
+      let message_ = Provable.witness(Bytes32, () => message);
+      let signature_ = Provable.witness(Ecdsa, () => signature);
+      let publicKey_ = Provable.witness(Secp256k1, () => publicKey);
       await keccakAndEcdsa.rawMethods.verifyEcdsa(
         message_,
         signature_,

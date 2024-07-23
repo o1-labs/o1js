@@ -16,12 +16,12 @@ class Bytes32 extends Bytes(32) {}
 
 const keccakAndEcdsa = ZkProgram({
   name: 'ecdsa',
-  publicInput: Bytes32.provable,
+  publicInput: Bytes32,
   publicOutput: Bool,
 
   methods: {
     verifyEcdsa: {
-      privateInputs: [Ecdsa.provable, Secp256k1.provable],
+      privateInputs: [Ecdsa, Secp256k1],
       async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
         return signature.verifyV2(message, publicKey);
       },
@@ -31,12 +31,12 @@ const keccakAndEcdsa = ZkProgram({
 
 const ecdsa = ZkProgram({
   name: 'ecdsa-only',
-  publicInput: Scalar.provable,
+  publicInput: Scalar,
   publicOutput: Bool,
 
   methods: {
     verifySignedHash: {
-      privateInputs: [Ecdsa.provable, Secp256k1.provable],
+      privateInputs: [Ecdsa, Secp256k1],
       async method(message: Scalar, signature: Ecdsa, publicKey: Secp256k1) {
         return signature.verifySignedHashV2(message, publicKey);
       },

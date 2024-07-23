@@ -21,6 +21,7 @@ import { arrayGet, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { Hashed } from '../packed.js';
 import { exists } from '../core/exists.js';
+import { ProvableType } from '../types/provable-intf.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };
@@ -286,7 +287,7 @@ function verifyEcdsaGeneric(
   // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
   ForeignField.assertLessThan(Rx, Curve.order);
 
-  return Provable.equal(Field3.provable, Rx, r);
+  return Provable.equal(Field3, Rx, r);
 }
 
 /**
@@ -507,7 +508,7 @@ function multiScalarMul(
 
   // hash points to make array access more efficient
   // a Point is 6 field elements, the hash is just 1 field element
-  const HashedPoint = Hashed.create(Point.provable);
+  const HashedPoint = Hashed.create(Point);
 
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
@@ -534,23 +535,19 @@ function multiScalarMul(
           sjP =
             windowSize === 1
               ? points[j]
-              : arrayGetGeneric(
-                  HashedPoint.provable,
-                  hashedTables[j],
-                  sj
-                ).unhash();
+              : arrayGetGeneric(HashedPoint, hashedTables[j], sj).unhash();
         } else {
           sjP =
             windowSize === 1
               ? points[j]
-              : arrayGetGeneric(Point.provable, tables[j], sj);
+              : arrayGetGeneric(Point, tables[j], sj);
         }
 
         // ec addition
         let added = add(sum, sjP, Curve);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), Point.provable, sum, added);
+        sum = Provable.if(sj.equals(0), Point, sum, added);
       }
     }
 
@@ -581,7 +578,7 @@ function multiScalarMul(
 function negateIf(condition: Field, P: Point, f: bigint) {
   let y = Provable.if(
     Bool.Unsafe.fromField(condition),
-    Field3.provable,
+    Field3,
     ForeignField.negate(P.y, f),
     P.y
   );
@@ -626,13 +623,13 @@ function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
   // prove that s1*lambda = s - s0
   let lambda = Provable.if(
     Bool.Unsafe.fromField(s1Negative),
-    Field3.provable,
+    Field3,
     Field3.from(Curve.Scalar.negate(Curve.Endo.scalar)),
     Field3.from(Curve.Endo.scalar)
   );
   let rhs = Provable.if(
     Bool.Unsafe.fromField(s0Negative),
-    Field3.provable,
+    Field3,
     ForeignField.Sum(s).add(s0).finish(Curve.order),
     ForeignField.Sum(s).sub(s0).finish(Curve.order)
   );
@@ -748,7 +745,8 @@ function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
  *
  * Assumes that index is in [0, n), returns an unconstrained result otherwise.
  */
-function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
+function arrayGetGeneric<T>(type: ProvableType<T>, array: T[], index: Field) {
+  type = ProvableType.get(type);
   // witness result
   let a = Provable.witness(type, () => array[Number(index)]);
   let aFields = type.toFields(a);
@@ -773,7 +771,7 @@ const Point = {
   toBigint({ x, y }: Point) {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
-  isConstant: (P: Point) => Provable.isConstant(Point.provable, P),
+  isConstant: (P: Point) => Provable.isConstant(Point, P),
 
   /**
    * Random point on the curve.
@@ -782,7 +780,7 @@ const Point = {
     return Point.from(random(Curve));
   },
 
-  provable: provable({ x: Field3.provable, y: Field3.provable }),
+  provable: provable({ x: Field3, y: Field3 }),
 };
 
 const EcdsaSignature = {
@@ -792,8 +790,7 @@ const EcdsaSignature = {
   toBigint({ r, s }: Ecdsa.Signature): Ecdsa.signature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
-  isConstant: (S: Ecdsa.Signature) =>
-    Provable.isConstant(EcdsaSignature.provable, S),
+  isConstant: (S: Ecdsa.Signature) => Provable.isConstant(EcdsaSignature, S),
 
   /**
    * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
@@ -812,7 +809,7 @@ const EcdsaSignature = {
     return EcdsaSignature.from({ r, s });
   },
 
-  provable: provable({ r: Field3.provable, s: Field3.provable }),
+  provable: provable({ r: Field3, s: Field3 }),
 };
 
 const Ecdsa = {
