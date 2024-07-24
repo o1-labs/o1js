@@ -44,6 +44,13 @@ ${(-Number(accountCreationFee) * 1e-9).toFixed(
 )} times the number of newly created accounts.`;
   },
 };
+const defaultErrorReplacementRules: ErrorReplacementRule[] = [
+  {
+    pattern: /\(invalid \(Invalid_proof \\"In progress\\"\)\)/g,
+    replacement:
+      'Stale verification key detected. Please make sure that deployed verification key reflects latest zkApp changes.',
+  },
+];
 
 type ErrorHandlerArgs = {
   transaction: Types.ZkappCommand;
@@ -110,7 +117,7 @@ function invalidTransactionError(
 
 function humanizeErrors(
   errors: string[],
-  replacements: ErrorReplacementRule[]
+  replacements: ErrorReplacementRule[] = defaultErrorReplacementRules
 ): string[] {
   return errors.map((error) => {
     let modifiedError = error;

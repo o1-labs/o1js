@@ -260,13 +260,7 @@ function Network(
         } else if (response && response.errors && response.errors.length > 0) {
           response?.errors.forEach((e: any) => errors.push(JSON.stringify(e)));
         }
-        const updatedErrors = humanizeErrors(errors, [
-          {
-            pattern: /\(invalid \(Invalid_proof \\"In progress\\"\)\)/g,
-            replacement:
-              'Stale verification key detected. Please make sure that deployed verification key reflects latest zkApp changes.',
-          },
-        ]);
+        const updatedErrors = humanizeErrors(errors);
 
         const status: PendingTransactionStatus =
           errors.length === 0 ? 'pending' : 'rejected';
