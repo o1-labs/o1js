@@ -108,7 +108,7 @@ await Bitwise.compile();
     (x, y) => Gadgets.and(x, y, length)
   );
   equivalent({ from: [uint(length), uint(length)], to: field })(
-    (x, y) => x & y,
+    (x, y) => x | y,
     (x, y) => Gadgets.or(x, y, length)
   );
   // NOT unchecked
