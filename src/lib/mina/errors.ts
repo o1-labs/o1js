@@ -1,7 +1,7 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { TokenId } from './account-update.js';
 
-export { invalidTransactionError };
+export { humanizeErrors, invalidTransactionError };
 
 const ErrorHandlers = {
   Invalid_fee_excess({
@@ -50,6 +50,11 @@ type ErrorHandlerArgs = {
   accountUpdateIndex: number;
   isFeePayer: boolean;
   accountCreationFee: string | number;
+};
+
+type ErrorReplacementRule = {
+  pattern: RegExp;
+  replacement: string;
 };
 
 function invalidTransactionError(
@@ -101,4 +106,17 @@ function invalidTransactionError(
   }
   // fallback if we don't have a good error message yet
   return rawErrors;
+}
+
+function humanizeErrors(
+  errors: string[],
+  replacements: ErrorReplacementRule[]
+): string[] {
+  return errors.map((error) => {
+    let modifiedError = error;
+    replacements.forEach(({ pattern, replacement }) => {
+      modifiedError = modifiedError.replace(pattern, replacement);
+    });
+    return modifiedError;
+  });
 }
