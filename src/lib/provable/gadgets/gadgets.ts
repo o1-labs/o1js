@@ -4,12 +4,12 @@
 import {
   compactMultiRangeCheck,
   multiRangeCheck,
+  rangeCheck8,
   rangeCheck16,
-  rangeCheck64,
   rangeCheck32,
+  rangeCheck64,
   rangeCheckN,
   isDefinitelyInRangeN,
-  rangeCheck8,
 } from './range-check.js';
 import {
   not,
@@ -865,14 +865,8 @@ const Gadgets = {
    */
   divMod32,
 
-
-  addMod32,
-
-
-  divMod64,
-
-    /**
-   * Addition modulo 2^64. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
+  /**
+   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
    *
    * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
@@ -888,7 +882,14 @@ const Gadgets = {
    * Gadgets.addMod32(a, b).assertEquals(Field(8n));
    * ```
    *    */
+  addMod32,
+
+
+  divMod64,
+
+
   addMod64,
+
   /**
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
    *
@@ -908,5 +909,24 @@ const Gadgets = {
    *
    */
   SHA256: SHA256,
+
+  /**
+   * Implementation of the [BLAKE2b hash function.](https://en.wikipedia.org/wiki/BLAKE_(hash_function)#BLAKE2) Hash function with arbitrary length output.
+   *
+   * Applies the BLAKE2b hash function to a list of byte-sized elements.
+   *
+   * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]`, `bigint[]` or `Uint8Array` to perform a hash outside provable code.
+   *
+   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   *
+   * @param data - {@link Bytes} representing the message to hash.
+   *
+   * ```ts
+   * let preimage = Bytes.fromString("hello world");
+   * let digest = Gadgets.BLAKE2b.hash(preimage);
+   * ```
+   *
+   */
   BLAKE2B: BLAKE2B
 };
