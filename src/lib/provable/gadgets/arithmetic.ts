@@ -54,5 +54,5 @@ function divMod32(n: Field, nBits = 64) {
 }
 
 function addMod32(x: Field, y: Field) {
-  return divMod32(x.add(y), 1).remainder;
+  return divMod32(x.add(y), 32).remainder;
 }
