@@ -164,12 +164,12 @@ abstract class TokenContract extends SmartContract {
     // coerce the inputs to AccountUpdate and pass to `approveBase()`
     let tokenId = this.deriveTokenId();
     if (from instanceof PublicKey) {
-      from = AccountUpdate.defaultAccountUpdate(from, tokenId);
+      from = AccountUpdate.default(from, tokenId);
       from.requireSignature();
       from.label = `${this.constructor.name}.transfer() (from)`;
     }
     if (to instanceof PublicKey) {
-      to = AccountUpdate.defaultAccountUpdate(to, tokenId);
+      to = AccountUpdate.default(to, tokenId);
       to.label = `${this.constructor.name}.transfer() (to)`;
     }
 
