@@ -86,12 +86,10 @@ class UnsafeAirdrop extends SmartContract {
    *
    * Note: This two-step process is necessary so that multiple users can claim concurrently.
    */
-  @method.returns(MerkleMap.provable)
+  @method.returns(MerkleMap)
   async settleClaims(batch: Batch, proof: BatchProof) {
     // witness merkle map and require that it matches the onchain root
-    let eligibleMap = Provable.witness(MerkleMap.provable, () =>
-      eligible.clone()
-    );
+    let eligibleMap = Provable.witness(MerkleMap, () => eligible.clone());
     this.eligibleRoot.requireEquals(eligibleMap.root);
     this.eligibleLength.requireEquals(eligibleMap.length);
 

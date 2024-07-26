@@ -35,9 +35,7 @@ class ScalarField extends createForeignField(Fq.modulus) {
     if (s.lowBit.isConstant() && s.high254.isConstant()) {
       return new ScalarField(s.toBigInt());
     }
-    const field = Provable.witness(ScalarField.provable, () => {
-      return s.toBigInt();
-    });
+    const field = Provable.witness(ScalarField, () => s.toBigInt());
     const foreignField = new ScalarField(field);
     const scalar = foreignField.toScalar();
     Provable.assertEqual(Scalar, s, scalar);
