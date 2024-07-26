@@ -6,7 +6,12 @@ import { rangeCheck32, rangeCheck64, rangeCheckN } from './range-check.js';
 
 export { divMod32, addMod32, divMod64, addMod64 };
 
-function divMod32(n: Field, quotientBits = 32) {
+function divMod32(n: Field, nBits = 64) {
+  assert(nBits >= 0 && nBits <= 255, `nBits must be in the range [0, 255], got ${nBits}`)
+
+  // calculate the number of bits allowed for the quotient to avoid overflow
+  const quotientBits = Math.max(0, nBits - 32);
+
   if (n.isConstant()) {
     assert(
       n.toBigInt() < 1n << 64n,
@@ -49,12 +54,21 @@ function divMod32(n: Field, quotientBits = 32) {
 }
 
 function addMod32(x: Field, y: Field) {
-  return divMod32(x.add(y), 1).remainder;
+  return divMod32(x.add(y), 64).remainder;
 }
 
 
-function divMod64(n: Field, quotientBits = 64) {
+function divMod64(n: Field, nBits = 128) {
+  assert(nBits >= 0 && nBits <= 255, `nBits must be in the range [0, 255], got ${nBits}`)
+
+  // calculate the number of bits allowed for the quotient to avoid overflow
+  const quotientBits = Math.max(0, nBits - 64);
+
   if (n.isConstant()) {
+    assert(
+      n.toBigInt() < 1n << 128n,
+      `n needs to fit into 128 bit, but got ${n.toBigInt()}`
+    );
     let nBigInt = n.toBigInt();
     let q = nBigInt >> 64n;
     let r = nBigInt - (q << 64n);
@@ -90,5 +104,5 @@ function divMod64(n: Field, quotientBits = 64) {
 }
 
 function addMod64(x: Field, y: Field) {
-  return divMod64(x.add(y), 1).remainder;
+  return divMod64(x.add(y), 128).remainder;
 }
