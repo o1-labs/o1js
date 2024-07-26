@@ -173,7 +173,7 @@ abstract class TokenContract extends SmartContract {
       to.label = `${this.constructor.name}.transfer() (to)`;
     }
 
-    from.balanceChange = Int64.from(amount).neg();
+    from.balanceChange = Int64.from(amount).negV2();
     to.balanceChange = Int64.from(amount);
 
     let forest = toForest([from, to]);
