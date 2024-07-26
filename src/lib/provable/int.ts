@@ -410,7 +410,7 @@ class UInt64 extends CircuitValue {
     return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS).value);
   }
 
-   /**
+  /**
    * Bitwise OR gadget on {@link UInt64} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
    * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
    *
@@ -885,6 +885,23 @@ class UInt32 extends CircuitValue {
    */
   and(x: UInt32) {
     return new UInt32(Bitwise.and(this.value, x.value, UInt32.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise OR gadget on {@link UInt32} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt32.from(3);    // ... 000011
+   * let b = UInt32.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt32) {
+    return new UInt32(Bitwise.or(this.value, x.value, UInt32.NUM_BITS).value);
   }
 
   /**
