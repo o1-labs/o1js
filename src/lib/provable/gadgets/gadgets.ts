@@ -450,13 +450,10 @@ const Gadgets = {
   and(a: Field, b: Field, length: number) {
     return and(a, b, length);
   },
-
-
-/**
+  /**
    * Bitwise OR gadget on {@link Field} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
    * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
    *
-   * 
    * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -476,7 +473,7 @@ const Gadgets = {
   or(a: Field, b: Field, length: number) {
     return or(a, b, length);
   },
-  
+
   /**
    * Multi-range check.
    *
@@ -884,10 +881,41 @@ const Gadgets = {
    *    */
   addMod32,
 
-
+  /**
+   * Division modulo 2^64. The operation decomposes a {@link Field} element in the range [0, 2^128) into two 64-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^64 + remainder`.
+   *
+   * **Note:** The gadget acts as a proof that the input is in the range [0, 2^128). If the input exceeds 128 bits, the gadget fails.
+   *
+   * Asserts that both `remainder` and `quotient` are in the range [0, 2^64) using {@link Gadgets.rangeCheck64}.
+   *
+   * @example
+   * ```ts
+   * let n = Field((1n << 64n) + 8n)
+   * let { remainder, quotient } = Gadgets.divMod64(n);
+   * // remainder = 8, quotient = 1
+   *
+   * n.assertEquals(quotient.mul(1n << 64n).add(remainder));
+   * ```
+   */
   divMod64,
 
-
+  /**
+   * Addition modulo 2^64. The operation adds two {@link Field} elements in the range [0, 2^128] and returns the result modulo 2^64.
+   *
+   * Asserts that the result is in the range [0, 2^64) using {@link Gadgets.rangeCheck64}.
+   *
+   * It uses {@link Gadgets.divMod64} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
+   *
+   * **Note:** The gadget assumes both inputs to be in the range [0, 2^64). When called with non-range-checked inputs, be aware that the sum `a + b` can overflow the native field and the gadget can succeed but return an invalid result.
+   *
+   * @example
+   * ```ts
+   * let a = Field(8n);
+   * let b = Field(1n << 64n);
+   *
+   * Gadgets.addMod64(a, b).assertEquals(Field(8n));
+   * ```
+   */
   addMod64,
 
   /**
@@ -928,5 +956,5 @@ const Gadgets = {
    * ```
    *
    */
-  BLAKE2B: BLAKE2B
+  BLAKE2B: BLAKE2B,
 };

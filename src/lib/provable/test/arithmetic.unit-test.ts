@@ -20,6 +20,12 @@ let Arithmetic = ZkProgram({
         return Gadgets.divMod32(a);
       },
     },
+    divMod64: {
+      privateInputs: [Field],
+      async method(a: Field) {
+        return Gadgets.divMod64(a);
+      },
+    },
   },
 });
 
@@ -30,11 +36,20 @@ const divMod32Helper = (x: bigint) => {
   let remainder = x - (quotient << 32n);
   return { remainder, quotient };
 };
-const divMod32Output = record({ remainder: field, quotient: field });
+
+const divMod64Helper = (x: bigint) => {
+  let quotient = x >> 64n;
+  let remainder = x - (quotient << 64n);
+  return { remainder, quotient };
+};
+
+const divModOutput = record({ remainder: field, quotient: field });
+
+
 
 equivalent({
   from: [field],
-  to: divMod32Output,
+  to: divModOutput,
 })(
   (x) => {
     assert(x < 1n << 64n, `x needs to fit in 64bit, but got ${x}`);
@@ -45,12 +60,35 @@ equivalent({
   }
 );
 
-await equivalentAsync({ from: [field], to: divMod32Output }, { runs: 3 })(
+equivalent({
+  from: [field],
+  to: divModOutput,
+})(
+  (x) => {
+    assert(x < 1n << 128n, `x needs to fit in 128bit, but got ${x}`);
+    return divMod64Helper(x);
+  },
+  (x) => {
+    return Gadgets.divMod64(x);
+  }
+);
+
+await equivalentAsync({ from: [field], to: divModOutput }, { runs: 3 })(
   (x) => {
     assert(x < 1n << 64n, `x needs to fit in 64bit, but got ${x}`);
     return divMod32Helper(x);
   },
   async (x) => {
     return (await Arithmetic.divMod32(x)).publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [field], to: divModOutput }, { runs: 3 })(
+  (x) => {
+    assert(x < 1n << 128n, `x needs to fit in 128bit, but got ${x}`);
+    return divMod64Helper(x);
+  },
+  async (x) => {
+    return (await Arithmetic.divMod64(x)).publicOutput;
   }
 );
