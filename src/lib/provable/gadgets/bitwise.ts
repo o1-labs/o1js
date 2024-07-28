@@ -177,7 +177,7 @@ function and(a: Field, b: Field, length: number) {
 function or(a: Field, b: Field, length: number) {
   // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
   // preventing potential underconstraint issues in the circuit
-  validateBitLength(length, 240, 'not');
+  validateBitLength(length, 240, 'or');
 
   // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
   let padLength = Math.ceil(length / 16) * 16;
