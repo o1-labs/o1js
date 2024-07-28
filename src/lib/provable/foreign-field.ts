@@ -14,6 +14,7 @@ import { ForeignField as FF } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
+import { isField } from './core/field-constructor.js';
 
 // external API
 export { createForeignField };
@@ -96,12 +97,28 @@ class ForeignField {
   constructor(x: ForeignField | Field3 | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignField) {
-      this.value = x.value;
+      if (x.modulus !== p) {
+        throw new Error(
+          `ForeignField constructor: modulus mismatch. Expected ${p}, got ${x.modulus}. Please use ForeignField.reduce() or provide a value with the correct modulus.`
+        );
+      }
+      if (x.isConstant()) {
+        this.value = Field3.from(mod(x.toBigInt(), p));
+      } else {
+        this.value = x.value;
+        this.assertCanonical();
+      }
       return;
     }
     // Field3
     if (Array.isArray(x)) {
+      if (x.some((limb) => !isField(limb))) {
+        throw new Error(
+          `ForeignField constructor: invalid Field3 element. Please provide valid Field elements.`
+        );
+      }
       this.value = x;
+      this.assertCanonical();
       return;
     }
     // constant
