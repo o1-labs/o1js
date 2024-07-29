@@ -3,7 +3,11 @@ import {
   FlexibleProvable,
   StructNoJson,
 } from '../provable/types/struct.js';
-import { provable, provablePure } from '../provable/types/provable-derivers.js';
+import {
+  provable,
+  provableExtends,
+  provablePure,
+} from '../provable/types/provable-derivers.js';
 import {
   memoizationContext,
   memoizeWitness,
@@ -39,6 +43,7 @@ import { Memo } from '../../mina-signer/src/memo.js';
 import {
   Events as BaseEvents,
   Actions as BaseActions,
+  MayUseToken as BaseMayUseToken,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import {
@@ -131,7 +136,30 @@ type AuthRequired = Types.Json.AuthRequired;
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
-type MayUseToken = AccountUpdateBody['mayUseToken'];
+type MayUseToken = BaseMayUseToken;
+const MayUseToken = {
+  type: BaseMayUseToken,
+  No: {
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(false),
+  },
+  ParentsOwnToken: {
+    parentsOwnToken: Bool(true),
+    inheritFromParent: Bool(false),
+  },
+  InheritFromParent: {
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(true),
+  },
+  isNo: ({
+    body: {
+      mayUseToken: { parentsOwnToken, inheritFromParent },
+    },
+  }: AccountUpdate) => parentsOwnToken.or(inheritFromParent).not(),
+  isParentsOwnToken: (a: AccountUpdate) => a.body.mayUseToken.parentsOwnToken,
+  isInheritFromParent: (a: AccountUpdate) =>
+    a.body.mayUseToken.inheritFromParent,
+};
 
 type Events = BaseEvents;
 const Events = {
@@ -1200,33 +1228,7 @@ class AccountUpdate implements Types.AccountUpdate {
     return Provable.witnessAsync(combinedType, compute);
   }
 
-  static get MayUseToken() {
-    return {
-      type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
-      No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
-      ParentsOwnToken: {
-        parentsOwnToken: Bool(true),
-        inheritFromParent: Bool(false),
-      },
-      InheritFromParent: {
-        parentsOwnToken: Bool(false),
-        inheritFromParent: Bool(true),
-      },
-      isNo({
-        body: {
-          mayUseToken: { parentsOwnToken, inheritFromParent },
-        },
-      }: AccountUpdate) {
-        return parentsOwnToken.or(inheritFromParent).not();
-      },
-      isParentsOwnToken(a: AccountUpdate) {
-        return a.body.mayUseToken.parentsOwnToken;
-      },
-      isInheritFromParent(a: AccountUpdate) {
-        return a.body.mayUseToken.inheritFromParent;
-      },
-    };
-  }
+  static MayUseToken = MayUseToken;
 
   /**
    * Returns a JSON representation of only the fields that differ from the
@@ -1349,7 +1351,7 @@ type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
 
 const AccountUpdateTreeBase = StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
+  accountUpdate: HashedAccountUpdate,
   children: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
@@ -1370,10 +1372,29 @@ class AccountUpdateForest extends MerkleList.create(
   AccountUpdateTreeBase,
   merkleListHash
 ) {
+  static provable = provableExtends(AccountUpdateForest, super.provable);
+
+  push(update: AccountUpdate | AccountUpdateTreeBase) {
+    return super.push(
+      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
+    );
+  }
+  pushIf(condition: Bool, update: AccountUpdate | AccountUpdateTreeBase) {
+    return super.pushIf(
+      condition,
+      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
+    );
+  }
+
   static fromFlatArray(updates: AccountUpdate[]): AccountUpdateForest {
     let simpleForest = accountUpdatesToCallForest(updates);
     return this.fromSimpleForest(simpleForest);
   }
+
+  toFlatArray(mutate = true, depth = 0) {
+    return AccountUpdateForest.toFlatArray(this, mutate, depth);
+  }
+
   static toFlatArray(
     forest: AccountUpdateForestBase,
     mutate = true,
@@ -1412,6 +1433,17 @@ class AccountUpdateForest extends MerkleList.create(
       });
     });
   }
+
+  // fix static methods
+  static empty() {
+    return AccountUpdateForest.provable.empty();
+  }
+  static from(array: AccountUpdateTreeBase[]) {
+    return new AccountUpdateForest(super.from(array));
+  }
+  static fromReverse(array: AccountUpdateTreeBase[]) {
+    return new AccountUpdateForest(super.fromReverse(array));
+  }
 }
 
 /**
@@ -1429,8 +1461,8 @@ class AccountUpdateForest extends MerkleList.create(
  */
 class AccountUpdateTree extends StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
-  children: AccountUpdateForest.provable,
+  accountUpdate: HashedAccountUpdate,
+  children: AccountUpdateForest,
 }) {
   /**
    * Create a tree of account updates which only consists of a root.
@@ -1572,9 +1604,7 @@ class UnfinishedForest {
   }
 
   witnessHash(): UnfinishedForestFinal {
-    let final = Provable.witness(AccountUpdateForest.provable, () =>
-      this.finalize()
-    );
+    let final = Provable.witness(AccountUpdateForest, () => this.finalize());
     return this.setFinal(final);
   }
 
@@ -1617,8 +1647,7 @@ class UnfinishedForest {
   }
 
   toFlatArray(mutate = true, depth = 0): AccountUpdate[] {
-    if (this.isFinal())
-      return AccountUpdateForest.toFlatArray(this.final, mutate, depth);
+    if (this.isFinal()) return this.final.toFlatArray(mutate, depth);
     assert(this.isMutable(), 'final or mutable');
     let flatUpdates: AccountUpdate[] = [];
     for (let node of this.mutable) {

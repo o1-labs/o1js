@@ -97,7 +97,7 @@ class ForeignCurve {
    * See {@link FieldVar} to understand constants vs variables.
    */
   isConstant() {
-    return Provable.isConstant(this.Constructor.provable, this);
+    return Provable.isConstant(this.Constructor, this);
   }
 
   /**
@@ -323,10 +323,7 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, {
-      x: Field.provable,
-      y: Field.provable,
-    });
+    static _provable = provableFromClass(Curve, { x: Field, y: Field });
   }
 
   return Curve;
@@ -364,10 +361,7 @@ function createForeignCurveV2(params: CurveParams): typeof ForeignCurveV2 {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, {
-      x: Field.provable,
-      y: Field.provable,
-    });
+    static _provable = provableFromClass(Curve, { x: Field, y: Field });
   }
 
   return Curve;

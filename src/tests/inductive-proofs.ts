@@ -9,7 +9,7 @@ let MaxProofsVerifiedZero = ZkProgram({
     baseCase: {
       privateInputs: [],
 
-      method(publicInput: Field) {
+      async method(publicInput: Field) {
         publicInput.assertEquals(Field(0));
       },
     },
@@ -24,7 +24,7 @@ let MaxProofsVerifiedOne = ZkProgram({
     baseCase: {
       privateInputs: [],
 
-      method(publicInput: Field) {
+      async method(publicInput: Field) {
         publicInput.assertEquals(Field(0));
       },
     },
@@ -32,7 +32,10 @@ let MaxProofsVerifiedOne = ZkProgram({
     mergeOne: {
       privateInputs: [SelfProof],
 
-      method(publicInput: Field, earlierProof: SelfProof<Field, undefined>) {
+      async method(
+        publicInput: Field,
+        earlierProof: SelfProof<Field, undefined>
+      ) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },
@@ -48,7 +51,7 @@ let MaxProofsVerifiedTwo = ZkProgram({
     baseCase: {
       privateInputs: [],
 
-      method(publicInput: Field) {
+      async method(publicInput: Field) {
         publicInput.assertEquals(Field(0));
       },
     },
@@ -56,7 +59,10 @@ let MaxProofsVerifiedTwo = ZkProgram({
     mergeOne: {
       privateInputs: [SelfProof],
 
-      method(publicInput: Field, earlierProof: SelfProof<Field, undefined>) {
+      async method(
+        publicInput: Field,
+        earlierProof: SelfProof<Field, undefined>
+      ) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },
@@ -65,7 +71,7 @@ let MaxProofsVerifiedTwo = ZkProgram({
     mergeTwo: {
       privateInputs: [SelfProof, SelfProof],
 
-      method(
+      async method(
         publicInput: Field,
         p1: SelfProof<Field, undefined>,
         p2: SelfProof<Field, undefined>

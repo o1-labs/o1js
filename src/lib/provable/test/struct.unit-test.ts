@@ -24,8 +24,8 @@ import { modifiedField } from '../types/fields.js';
 let type = provable({
   nested: { a: Number, b: Boolean },
   other: String,
-  pk: PublicKey,
-  bool: Bool,
+  pk: { provable: PublicKey },
+  bool: { provable: Bool },
   uint: [UInt32, UInt32],
 });
 
@@ -132,14 +132,14 @@ class MyStruct extends Struct({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
-  uint: [UInt32, UInt32],
+  uint: [UInt32, { provable: UInt32 }],
 }) {}
 
 class MyStructPure extends Struct({
   nested: { a: Field, b: UInt32 },
   other: Field,
   pk: PublicKey,
-  uint: [UInt32, UInt32],
+  uint: [UInt32, { provable: UInt32 }],
 }) {}
 
 // Struct.fromValue() works on both js and provable inputs

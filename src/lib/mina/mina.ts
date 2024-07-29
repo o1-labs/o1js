@@ -4,7 +4,7 @@ import { UInt64 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
-import { invalidTransactionError } from './errors.js';
+import { humanizeErrors, invalidTransactionError } from './errors.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { Account } from './account.js';
 import { NetworkId } from '../../mina-signer/src/types.js';
@@ -260,6 +260,7 @@ function Network(
         } else if (response && response.errors && response.errors.length > 0) {
           response?.errors.forEach((e: any) => errors.push(JSON.stringify(e)));
         }
+        const updatedErrors = humanizeErrors(errors);
 
         const status: PendingTransactionStatus =
           errors.length === 0 ? 'pending' : 'rejected';
@@ -271,7 +272,7 @@ function Network(
         > = {
           status,
           data: response?.data,
-          errors,
+          errors: updatedErrors,
           transaction: txn.transaction,
           hash,
           toJSON: txn.toJSON,

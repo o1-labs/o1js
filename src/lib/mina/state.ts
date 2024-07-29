@@ -7,7 +7,11 @@ import { SmartContract } from './zkapp.js';
 import { Account } from './account.js';
 import { Provable } from '../provable/provable.js';
 import { Field } from '../provable/wrapped.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import {
+  ProvablePure,
+  ProvableType,
+  ProvableTypePure,
+} from '../provable/types/provable-intf.js';
 import { ensureConsistentPrecondition } from './precondition.js';
 import { Bool } from '../provable/wrapped.js';
 
@@ -98,7 +102,9 @@ function State<A>(defaultValue?: A): State<A> {
  * ```
  *
  */
-function state<A>(stateType: FlexibleProvablePure<A>) {
+function state<A>(type: ProvableTypePure<A> | FlexibleProvablePure<A>) {
+  let stateType = ProvableType.get(type);
+
   return function (
     target: SmartContract & { constructor: any },
     key: string,

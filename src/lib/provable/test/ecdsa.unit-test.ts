@@ -147,12 +147,9 @@ let deprecatedVerify = ZkProgram({
     ecdsa: {
       privateInputs: [],
       async method() {
-        let signature_ = Provable.witness(
-          Ecdsa.Signature.provable,
-          () => signature
-        );
-        let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
-        let publicKey_ = Provable.witness(Point.provable, () => publicKey);
+        let signature_ = Provable.witness(Ecdsa.Signature, () => signature);
+        let msgHash_ = Provable.witness(Field3, () => msgHash);
+        let publicKey_ = Provable.witness(Point, () => publicKey);
 
         return Ecdsa.verify(
           Secp256k1,
@@ -173,12 +170,9 @@ let program = ZkProgram({
     ecdsa: {
       privateInputs: [],
       async method() {
-        let signature_ = Provable.witness(
-          Ecdsa.Signature.provable,
-          () => signature
-        );
-        let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
-        let publicKey_ = Provable.witness(Point.provable, () => publicKey);
+        let signature_ = Provable.witness(Ecdsa.Signature, () => signature);
+        let msgHash_ = Provable.witness(Field3, () => msgHash);
+        let publicKey_ = Provable.witness(Point, () => publicKey);
 
         return Ecdsa.verifyV2(
           Secp256k1,
