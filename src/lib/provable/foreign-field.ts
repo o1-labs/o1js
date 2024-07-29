@@ -14,7 +14,6 @@ import { ForeignField as FF } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
-import { isField } from './core/field-constructor.js';
 
 // external API
 export { createForeignField };
@@ -93,32 +92,37 @@ class ForeignField {
    * ```ts
    * let x = new ForeignField(5);
    * ```
+   * _Note:_ Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
+   * 
+   * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, reduce the value first.
+   *   @example
+   *   ```ts
+   *   let smallField = new SmallField(0);
+   *   let largerField = new LargerField(17);
+   *   let reducedField = SmallField.reduce(largerField);
+   *   let x = new SmallField(reducedField);
+   *   ```
+   * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
+   *   @example
+   *   ```ts
+   *   let field3Array = [Field(15), Field(0), Field(0)];
+   *   let x = new ForeignField(field3Array);
+   *   ```
+   * - Ensure constants are correctly reduced to the modulus of the field.
+   *   @example
+   *   ```ts
+   *   let x = new ForeignField(20); // Automatically reduced to the field's modulus
+   *   ```
    */
   constructor(x: ForeignField | Field3 | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignField) {
-      if (x.modulus !== p) {
-        throw new Error(
-          `ForeignField constructor: modulus mismatch. Expected ${p}, got ${x.modulus}. Please use ForeignField.reduce() or provide a value with the correct modulus.`
-        );
-      }
-      if (x.isConstant()) {
-        this.value = Field3.from(mod(x.toBigInt(), p));
-      } else {
-        this.value = x.value;
-        this.assertCanonical();
-      }
+      this.value = x.value;
       return;
     }
     // Field3
     if (Array.isArray(x)) {
-      if (x.some((limb) => !isField(limb))) {
-        throw new Error(
-          `ForeignField constructor: invalid Field3 element. Please provide valid Field elements.`
-        );
-      }
       this.value = x;
-      this.assertLessThan(this.modulus);
       return;
     }
     // constant
