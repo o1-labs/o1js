@@ -24,7 +24,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Build o1js and mina-signer
         run: |
-          git submodule update --init --recursive
+          GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
           npm run build
           cd src/mina-signer
