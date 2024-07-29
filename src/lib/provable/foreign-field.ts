@@ -118,7 +118,7 @@ class ForeignField {
         );
       }
       this.value = x;
-      this.assertCanonical();
+      this.assertLessThan(this.modulus);
       return;
     }
     // constant
