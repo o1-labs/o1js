@@ -466,7 +466,7 @@ const Gadgets = {
    * let a = Field.from(3);    // ... 000011
    * let b = Field.from(5);    // ... 000101
    *
-   * let c = Gadgets.or(b);    // ... 000111
+   * let c = Gadgets.or(a, b, 16);    // ... 000111
    * c.assertEquals(7);
    * ```
    */

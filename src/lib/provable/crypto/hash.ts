@@ -2,7 +2,6 @@ import { Gadgets } from '../gadgets/gadgets.js';
 import { Poseidon } from './poseidon.js';
 import { Keccak } from './keccak.js';
 import { Bytes } from '../wrapped-classes.js';
-import { BLAKE2 } from 'node_modules/@noble/hashes/_blake2.js';
 
 export { Hash };
 
@@ -144,5 +143,5 @@ const Hash = {
     hash(bytes: Bytes) {
       return Gadgets.BLAKE2B.hash(bytes);
     },
-  }
+  },
 };

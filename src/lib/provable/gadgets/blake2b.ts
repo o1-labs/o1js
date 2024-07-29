@@ -32,8 +32,8 @@ const BLAKE2BConstants = {
 };
 
 const BLAKE2B = {
-  hash(data: FlexibleBytes, digest_length = 64) {
-    const state = initialize(digest_length);
+  hash(data: FlexibleBytes, digestLength = 64) {
+    const state = initialize(digestLength);
     update(state, Bytes.from(data).bytes);
     const out = final(state);
     return Bytes.from(out);

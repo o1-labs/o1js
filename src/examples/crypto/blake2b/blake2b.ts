@@ -11,7 +11,7 @@ let BLAKE2BProgram = ZkProgram({
     blake2b: {
       privateInputs: [Bytes12],
       async method(xs: Bytes12) {
-        return Gadgets.BLAKE2B.hash(xs,32);
+        return Gadgets.BLAKE2B.hash(xs, 32);
       },
     },
   },
