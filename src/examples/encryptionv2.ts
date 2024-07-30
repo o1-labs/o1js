@@ -5,7 +5,6 @@ import {
   initializeBindings,
   Encryption,
   Encoding,
-  Provable,
 } from 'o1js';
 
 await initializeBindings();
@@ -14,7 +13,7 @@ class Bytes256 extends Bytes(256) {}
 const priv = PrivateKey.random();
 const pub = priv.toPublicKey();
 
-const plainMsg = 'Hello world';
+const plainMsg = 'The quick brown fox jumped over the angry dog.';
 
 console.log('en/decryption of field elements');
 const cipher2 = Encryption.encryptV2(Encoding.stringToFields(plainMsg), pub);
