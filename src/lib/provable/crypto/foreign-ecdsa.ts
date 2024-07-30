@@ -40,7 +40,7 @@ class EcdsaSignature {
   /**
    * Create a new {@link EcdsaSignature} from an object containing the scalars r and s.
    * 
-   * _Note:_ Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Refer to {@link ForeignField} constructor comments for more details.
+   *Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Refer to {@link ForeignField} constructor comments for more details.
    */
   constructor(signature: {
     r: AlmostForeignField | Field3 | bigint | number;
