@@ -7,12 +7,22 @@ import { Bytes } from '../bytes.js';
 import { UInt8 } from '../int.js';
 import { chunk } from '../../util/arrays.js';
 
-export { encrypt, decrypt, encryptV2, decryptV2 };
+export {
+  encrypt,
+  decrypt,
+  encryptV2,
+  decryptV2,
+  encryptBytes,
+  decryptBytes,
+  CipherTextBytes,
+  CipherText,
+};
 
 type CipherText = {
   publicKey: Group;
   cipherText: Field[];
 };
+type CipherTextBytes = CipherText & { messageLength: number };
 
 /**
  * @deprecated Use {@link encryptV2} instead.
@@ -79,11 +89,7 @@ function decrypt(
  * Decrypts a {@link CipherText} using a {@link PrivateKey}.
  */
 function decryptV2(
-  {
-    publicKey,
-    cipherText,
-    messageLength,
-  }: CipherText & { messageLength: number },
+  { publicKey, cipherText }: CipherText,
   privateKey: PrivateKey
 ) {
   // key exchange
@@ -102,35 +108,59 @@ function decryptV2(
     const keyStream = sponge.squeeze();
     const messageChunk = cipherText[i].sub(keyStream);
 
-    // convert to bytes
-    const byteMessage = wordToBytes(messageChunk, 31);
+    // push the message to our final messages
+    message.push(messageChunk);
 
-    // push the message to our final message array
-    message.push(byteMessage);
-
+    // absorb the cipher text chunk
     sponge.absorb(cipherText[i]);
   }
 
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);
 
-  // calculate padding
-  const multipleOf = 31;
-  const n = Math.ceil(messageLength / multipleOf) * multipleOf;
+  return message;
+}
 
-  // return the message as a flat array of bytes, slice the padding off of the final message
-  return Bytes.from(message.flat().slice(0, messageLength - n));
+/**
+ * Public Key Encryption, encrypts Field elements using a {@link PublicKey}.
+ */
+function encryptV2(message: Field[], otherPublicKey: PublicKey): CipherText {
+  // key exchange
+  const privateKey = Provable.witness(Scalar, () => Scalar.random());
+  const publicKey = Group.generator.scale(privateKey);
+  const sharedSecret = otherPublicKey.toGroup().scale(privateKey);
+
+  const sponge = new Poseidon.Sponge();
+  sponge.absorb(sharedSecret.x);
+
+  // encryption
+  const cipherText = [];
+  for (let [n, chunk] of message.entries()) {
+    // absorb frame bit
+    if (n === message.length - 1) sponge.absorb(Field(1));
+    else sponge.absorb(Field(0));
+
+    const keyStream = sponge.squeeze();
+    const encryptedChunk = chunk.add(keyStream);
+    cipherText.push(encryptedChunk);
+
+    sponge.absorb(encryptedChunk);
+  }
+
+  // authentication tag
+  const authenticationTag = sponge.squeeze();
+  cipherText.push(authenticationTag);
+
+  return { publicKey, cipherText };
 }
 
 /**
  * Public Key Encryption, encrypts Bytes using a {@link PublicKey}.
  */
-function encryptV2(
+function encryptBytes(
   message: Bytes,
   otherPublicKey: PublicKey
-): CipherText & {
-  messageLength: number;
-} {
+): CipherTextBytes {
   const bytes = message.bytes;
   const messageLength = bytes.length;
 
@@ -146,31 +176,27 @@ function encryptV2(
   // convert message into chunks of 31 bytes
   const chunks = chunk(bytes.concat(padding), 31);
 
-  // key exchange
-  const privateKey = Provable.witness(Scalar, () => Scalar.random());
-  const publicKey = Group.generator.scale(privateKey);
-  const sharedSecret = otherPublicKey.toGroup().scale(privateKey);
+  // call into encryption() and convert chunk to field elements
+  return {
+    ...encryptV2(
+      chunks.map((chunk) => bytesToWord(chunk)),
+      otherPublicKey
+    ),
+    messageLength,
+  };
+}
 
-  const sponge = new Poseidon.Sponge();
-  sponge.absorb(sharedSecret.x);
+/**
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.
+ */
+function decryptBytes(cipherText: CipherTextBytes, privateKey: PrivateKey) {
+  // calculate padding
+  const messageLength = cipherText.messageLength;
+  const multipleOf = 31;
+  const n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
-  // encryption
-  const cipherText = [];
-  for (let [n, chunk] of chunks.entries()) {
-    // absorb frame bit
-    if (n === chunks.length - 1) sponge.absorb(Field(1));
-    else sponge.absorb(Field(0));
-
-    const keyStream = sponge.squeeze();
-    const encryptedChunk = bytesToWord(chunk).add(keyStream);
-    cipherText.push(encryptedChunk);
-
-    sponge.absorb(encryptedChunk);
-  }
-
-  // authentication tag
-  const authenticationTag = sponge.squeeze();
-  cipherText.push(authenticationTag);
-
-  return { publicKey, cipherText, messageLength };
+  // decrypt plain field elements and convert them into bytes
+  const message = decryptV2(cipherText, privateKey);
+  const bytes = message.map((m) => wordToBytes(m, 31));
+  return Bytes.from(bytes.flat().slice(0, messageLength - n));
 }

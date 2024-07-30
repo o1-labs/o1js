@@ -1,3 +1,4 @@
+import assert from 'assert';
 import {
   Bytes,
   PrivateKey,
@@ -14,8 +15,19 @@ const priv = PrivateKey.random();
 const pub = priv.toPublicKey();
 
 const plainMsg = 'Hello world';
+
+console.log('en/decryption of field elements');
+const cipher2 = Encryption.encryptV2(Encoding.stringToFields(plainMsg), pub);
+const plainText2 = Encryption.decryptV2(cipher2, priv);
+
+assert(
+  Encoding.stringFromFields(plainText2) === plainMsg,
+  'Plain message and decrypted message are the same'
+);
+
+console.log('en/decryption of bytes');
 const message = Bytes256.fromString(plainMsg);
 console.log('plain message', plainMsg);
-const cipher = Encryption.encryptV2(message, pub);
-const plainText = Encryption.decryptV2(cipher, priv);
+const cipher = Encryption.encryptBytes(message, pub);
+const plainText = Encryption.decryptBytes(cipher, priv);
 console.log('decrypted message', Buffer.from(plainText.toBytes()).toString());
