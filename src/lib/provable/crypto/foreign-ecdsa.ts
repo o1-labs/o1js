@@ -18,6 +18,7 @@ import { Keccak } from './keccak.js';
 import { Bytes } from '../wrapped-classes.js';
 import { UInt8 } from '../int.js';
 import type { Bool } from '../bool.js';
+import type { ForeignField } from '../foreign-field.js';
 
 // external API
 export { createEcdsa, createEcdsaV2, EcdsaSignature, EcdsaSignatureV2 };
@@ -38,7 +39,8 @@ class EcdsaSignature {
 
   /**
    * Create a new {@link EcdsaSignature} from an object containing the scalars r and s.
-   * @param signature
+   * 
+   * _Note:_ Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Refer to {@link ForeignField} constructor comments for more details.
    */
   constructor(signature: {
     r: AlmostForeignField | Field3 | bigint | number;

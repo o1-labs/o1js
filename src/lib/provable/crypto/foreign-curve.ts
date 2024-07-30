@@ -12,6 +12,7 @@ import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
 import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
+import type { ForeignField } from '../foreign-field.js';
 
 // external API
 export {
@@ -42,6 +43,8 @@ class ForeignCurve {
   /**
    * Create a new {@link ForeignCurve} from an object representing the (affine) x and y coordinates.
    *
+   * _Note:_ Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Refer to {@link ForeignField} constructor comments for more details.
+   * 
    * @example
    * ```ts
    * let x = new ForeignCurve({ x: 1n, y: 1n });
