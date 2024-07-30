@@ -18,7 +18,6 @@ import { Keccak } from './keccak.js';
 import { Bytes } from '../wrapped-classes.js';
 import { UInt8 } from '../int.js';
 import type { Bool } from '../bool.js';
-import type { ForeignField } from '../foreign-field.js';
 
 // external API
 export { createEcdsa, createEcdsaV2, EcdsaSignature, EcdsaSignatureV2 };

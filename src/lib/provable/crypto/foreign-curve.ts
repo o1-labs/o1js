@@ -12,7 +12,6 @@ import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
 import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
-import type { ForeignField } from '../foreign-field.js';
 
 // external API
 export {
