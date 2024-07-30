@@ -67,12 +67,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
 - `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
-  <<<<<<< HEAD
-- # `Encryption.encrypt()` and `Encryption.decrypt()` in favor of `Encryption.encryptV2()` and `Encryption.decryptV2()`
 - `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
 - Original `div()` and `fromObject`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
 - Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
-  > > > > > > > main
 
 ### Fixed
 
