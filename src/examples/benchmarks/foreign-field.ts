@@ -5,14 +5,8 @@ class ForeignScalar extends createForeignField(
 ) {}
 
 function main() {
-  let s = Provable.witness(
-    ForeignScalar.Canonical.provable,
-    ForeignScalar.random
-  );
-  let t = Provable.witness(
-    ForeignScalar.Canonical.provable,
-    ForeignScalar.random
-  );
+  let s = Provable.witness(ForeignScalar.Canonical, ForeignScalar.random);
+  let t = Provable.witness(ForeignScalar.Canonical, ForeignScalar.random);
   s.mul(t);
 }
 

@@ -9,6 +9,7 @@ import { assert } from '../../util/errors.js';
 import { rangeCheckN } from '../gadgets/range-check.js';
 import { TupleN } from '../../util/types.js';
 import { Group } from '../group.js';
+import { ProvableType, WithProvable } from '../types/provable-intf.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -136,8 +137,8 @@ const Poseidon = {
    * field elements as possible. This saves constraints because packing has a much
    * lower per-field element cost than hashing.
    */
-  hashPacked<T>(type: Hashable<T>, value: T) {
-    let input = type.toInput(value);
+  hashPacked<T>(type: WithProvable<Hashable<T>>, value: T) {
+    let input = ProvableType.get(type).toInput(value);
     let packed = packToFields(input);
     return Poseidon.hash(packed);
   },

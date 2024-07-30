@@ -5,6 +5,7 @@ import { assert } from './gadgets/common.js';
 import { provableFromClass } from './types/provable-derivers.js';
 import { Poseidon, packToFields, ProvableHashable } from './crypto/poseidon.js';
 import { Unconstrained } from './types/unconstrained.js';
+import { ProvableType, WithProvable } from './types/provable-intf.js';
 
 export {
   MerkleListBase,
@@ -43,7 +44,7 @@ type MerkleListBase<T> = {
 };
 
 function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
-  return class extends Struct({ hash: Field, data: Unconstrained.provable }) {
+  return class extends Struct({ hash: Field, data: Unconstrained }) {
     static empty(): MerkleListBase<T> {
       return { hash: emptyHash, data: Unconstrained.from([]) };
     }
@@ -280,8 +281,10 @@ class MerkleList<T> implements MerkleListBase<T> {
    * ```
    */
   static create<T>(
-    type: ProvableHashable<T>,
-    nextHash: (hash: Field, value: T) => Field = merkleListHash(type),
+    type: WithProvable<ProvableHashable<T>>,
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(
+      ProvableType.get(type)
+    ),
     emptyHash_ = emptyHash
   ): typeof MerkleList<T> & {
     // override static methods with strict types
@@ -290,13 +293,17 @@ class MerkleList<T> implements MerkleListBase<T> {
     fromReverse: (array: T[]) => MerkleList<T>;
     provable: ProvableHashable<MerkleList<T>>;
   } {
+    let provable = ProvableType.get(type);
+
     class MerkleListTBase extends MerkleList<T> {
-      static _innerProvable = type;
+      static _innerProvable = provable;
 
       static _provable = provableFromClass(MerkleListTBase, {
         hash: Field,
-        data: Unconstrained.provable,
-      }) as ProvableHashable<MerkleList<T>>;
+        data: Unconstrained,
+      }) satisfies ProvableHashable<MerkleList<T>> as ProvableHashable<
+        MerkleList<T>
+      >;
 
       static _nextHash = nextHash;
       static _emptyHash = emptyHash_;
@@ -309,7 +316,7 @@ class MerkleList<T> implements MerkleListBase<T> {
         array = [...array].reverse();
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return new this({ data: unconstrained, hash });
       }
@@ -317,7 +324,7 @@ class MerkleList<T> implements MerkleListBase<T> {
       static fromReverse(array: T[]): MerkleList<T> {
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return new this({ data: unconstrained, hash });
       }
@@ -325,6 +332,9 @@ class MerkleList<T> implements MerkleListBase<T> {
       static get provable(): ProvableHashable<MerkleList<T>> {
         assert(this._provable !== undefined, 'MerkleList not initialized');
         return this._provable;
+      }
+      static set provable(_provable: ProvableHashable<MerkleList<T>>) {
+        this._provable = _provable;
       }
     }
     // override `instanceof` for subclasses
@@ -615,8 +625,10 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
    * Create a Merkle array type
    */
   static create<T>(
-    type: ProvableHashable<T>,
-    nextHash: (hash: Field, value: T) => Field = merkleListHash(type),
+    type: WithProvable<ProvableHashable<T>>,
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(
+      ProvableType.get(type)
+    ),
     emptyHash_ = emptyHash
   ): typeof MerkleListIterator<T> & {
     from: (array: T[]) => MerkleListIterator<T>;
@@ -625,14 +637,15 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     empty: () => MerkleListIterator<T>;
     provable: ProvableHashable<MerkleListIterator<T>>;
   } {
+    let provable = ProvableType.get(type);
     return class Iterator extends MerkleListIterator<T> {
-      static _innerProvable = type;
+      static _innerProvable = ProvableType.get(provable);
 
       static _provable = provableFromClass(Iterator, {
         hash: Field,
-        data: Unconstrained.provable,
+        data: Unconstrained,
         currentHash: Field,
-        currentIndex: Unconstrained.provable,
+        currentIndex: Unconstrained,
       }) satisfies ProvableHashable<MerkleListIterator<T>> as ProvableHashable<
         MerkleListIterator<T>
       >;
@@ -643,7 +656,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       static from(array: T[]): MerkleListIterator<T> {
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return this.startIterating({ data: unconstrained, hash });
       }
@@ -652,7 +665,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         array = [...array].reverse();
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return this.startIteratingFromLast({ data: unconstrained, hash });
       }

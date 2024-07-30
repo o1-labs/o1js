@@ -1,14 +1,7 @@
 /**
  * RSA signature verification with o1js
  */
-import {
-  Field,
-  Gadgets,
-  Provable,
-  Struct,
-  Unconstrained,
-  provable,
-} from 'o1js';
+import { Field, Gadgets, Provable, Struct, Unconstrained } from 'o1js';
 
 export { Bigint2048, rsaVerify65537 };
 
@@ -21,7 +14,7 @@ const Field18 = Provable.Array(Field, 18);
 
 class Bigint2048 extends Struct({
   fields: Field18,
-  value: Unconstrained.provable as Provable<Unconstrained<bigint>>,
+  value: Unconstrained.withEmpty(0n),
 }) {
   modMul(x: Bigint2048, y: Bigint2048) {
     return multiply(x, y, this);
@@ -66,7 +59,8 @@ function multiply(
   // witness q, r so that x*y = q*p + r
   // this also adds the range checks in `check()`
   let { q, r } = Provable.witness(
-    provable({ q: Bigint2048, r: Bigint2048 }),
+    // TODO Struct() should be unnecessary
+    Struct({ q: Bigint2048, r: Bigint2048 }),
     () => {
       let xy = x.toBigint() * y.toBigint();
       let p0 = p.toBigint();

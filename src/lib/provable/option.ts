@@ -4,6 +4,7 @@ import { Provable } from './provable.js';
 import { InferProvable, Struct } from './types/struct.js';
 import { provable, ProvableInferPureFrom } from './types/provable-derivers.js';
 import { Bool } from './wrapped.js';
+import { ProvableType } from './types/provable-intf.js';
 
 export { Option, OptionOrValue };
 
@@ -34,7 +35,7 @@ type OptionOrValue<T, V> =
  * let zero: UInt64 = none.orElse(0n); // specify a default value
  * ```
  */
-function Option<A extends Provable<any, any>>(
+function Option<A extends ProvableType>(
   type: A
 ): ProvableInferPureFrom<
   A,
@@ -59,7 +60,7 @@ function Option<A extends Provable<any, any>>(
   } {
   type T = InferProvable<A>;
   type V = InferValue<A>;
-  let strictType: Provable<T, V> = type;
+  let strictType: Provable<T, V> = ProvableType.get(type);
 
   // construct a provable with a JS type of `T | undefined`
   const PlainOption: Provable<
