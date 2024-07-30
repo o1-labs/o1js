@@ -5,6 +5,7 @@ import { PrivateKey, PublicKey } from './signature.js';
 import { bytesToWord, wordToBytes } from '../gadgets/bit-slices.js';
 import { Bytes } from '../bytes.js';
 import { UInt8 } from '../int.js';
+import { chunk } from '../../util/arrays.js';
 
 export { encrypt, decrypt, encryptV2, decryptV2 };
 
@@ -102,7 +103,7 @@ function decryptV2(
     const messageChunk = cipherText[i].sub(keyStream);
 
     // convert to bytes
-    const byteMessage = wordToBytes(messageChunk, 32);
+    const byteMessage = wordToBytes(messageChunk, 31);
 
     // push the message to our final message array
     message.push(byteMessage);
@@ -143,10 +144,9 @@ function encryptV2(
   const padding = Array.from({ length: n - messageLength }, () =>
     UInt8.from(0)
   );
-  message.bytes = bytes.concat(padding);
 
   // convert message into chunks of 31 bytes
-  const chunks = message.chunk(31);
+  const chunks = chunk(bytes.concat(padding), 31);
 
   // key exchange
   const privateKey = Provable.witness(Scalar, () => Scalar.random());
