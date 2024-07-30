@@ -181,11 +181,16 @@ class Group {
     let scalar = Scalar.from(s);
 
     if (isConstant(this) && scalar.isConstant()) {
-      let g_proj = Pallas.scale(toProjective(this), scalar.toBigInt());
-      return fromProjective(g_proj);
+      // edge case there this is zero/at infinity
+      if (this.isZero().toBoolean()) return this;
+
+      let gProj = Pallas.scale(toProjective(this), scalar.toBigInt());
+      return fromProjective(gProj);
     } else {
-      let result = scaleShifted(this, scalar);
-      return new Group(result);
+      // edge case where this is zero/point at infinity
+      let point = Provable.if(this.isZero(), Group, Group.generator, this);
+      let result = scaleShifted(point, scalar);
+      return Provable.if(this.isZero(), Group.zero, new Group(result));
     }
   }
 
@@ -364,6 +369,9 @@ function isConstant(g: Group) {
   return g.x.isConstant() && g.y.isConstant();
 }
 
+/**
+ * Assumes that `g` is _not_ a point at infinity.
+ */
 function toProjective(g: Group) {
   return Pallas.fromAffine({
     x: g.x.toBigInt(),
