@@ -108,9 +108,7 @@ function decryptV2(
     // push the message to our final message array
     message.push(byteMessage);
 
-    if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
-    if (i % 2 === 1 || i === cipherText.length - 1)
-      sponge.absorb(cipherText[i]);
+    sponge.absorb(cipherText[i]);
   }
 
   // authentication tag
@@ -167,9 +165,7 @@ function encryptV2(
     const encryptedChunk = bytesToWord(chunk).add(keyStream);
     cipherText.push(encryptedChunk);
 
-    // absorb for the auth tag (two at a time for saving permutations)
-    if (n % 2 === 1) sponge.absorb(cipherText[n - 1]);
-    if (n % 2 === 1 || n === chunks.length - 1) sponge.absorb(cipherText[n]);
+    sponge.absorb(encryptedChunk);
   }
 
   // authentication tag
