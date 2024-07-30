@@ -9,12 +9,12 @@ import {
 
 await initializeBindings();
 
-class Bytes32 extends Bytes(32) {}
+class Bytes256 extends Bytes(256) {}
 const priv = PrivateKey.random();
 const pub = priv.toPublicKey();
 
 const plainMsg = 'Hello world';
-const message = Bytes32.fromString(plainMsg);
+const message = Bytes256.fromString(plainMsg);
 console.log('plain message', plainMsg);
 const cipher = Encryption.encryptV2(message, pub);
 const plainText = Encryption.decryptV2(cipher, priv);
