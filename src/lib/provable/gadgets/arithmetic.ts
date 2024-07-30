@@ -8,7 +8,7 @@ export { divMod32, addMod32 };
 
 function divMod32(n: Field, nBits = 64) {
   assert(
-    nBits >= 0 && nBits <= 255,
+    nBits >= 0 && nBits < 255,
     `nBits must be in the range [0, 255], got ${nBits}`
   );
   const quotientBits = Math.max(0, nBits - 32);
