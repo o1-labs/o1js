@@ -11,7 +11,7 @@ import { Field3 } from '../gadgets/foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
-import { multiRangeCheck } from '../gadgets/range-check.js';
+import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
 
 // external API
 export {
@@ -97,7 +97,7 @@ class ForeignCurve {
    * See {@link FieldVar} to understand constants vs variables.
    */
   isConstant() {
-    return Provable.isConstant(this.Constructor.provable, this);
+    return Provable.isConstant(this.Constructor, this);
   }
 
   /**
@@ -307,6 +307,11 @@ class ForeignCurveV2 extends ForeignCurve {
  * @deprecated `createForeignCurve` is now deprecated and will be removed in a future release. Please use {@link createForeignCurveV2} instead.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
+  assert(
+    params.modulus > l2Mask + 1n,
+    'Base field moduli smaller than 2^176 are not supported'
+  );
+
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);
   class Field extends FieldUnreduced.AlmostReduced {}
@@ -318,10 +323,7 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, {
-      x: Field.provable,
-      y: Field.provable,
-    });
+    static _provable = provableFromClass(Curve, { x: Field, y: Field });
   }
 
   return Curve;
@@ -343,6 +345,11 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
  * {@link ForeignCurveV2} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignFieldV2}.
  */
 function createForeignCurveV2(params: CurveParams): typeof ForeignCurveV2 {
+  assert(
+    params.modulus > l2Mask + 1n,
+    'Base field moduli smaller than 2^176 are not supported'
+  );
+
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);
   class Field extends FieldUnreduced.AlmostReduced {}
@@ -354,10 +361,7 @@ function createForeignCurveV2(params: CurveParams): typeof ForeignCurveV2 {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, {
-      x: Field.provable,
-      y: Field.provable,
-    });
+    static _provable = provableFromClass(Curve, { x: Field, y: Field });
   }
 
   return Curve;

@@ -36,7 +36,7 @@ export { Leaf };
  * ZkProgram({
  *   methods: {
  *     test: {
- *       privateInputs: [MerkleMap.provable, Field],
+ *       privateInputs: [MerkleMap, Field],
  *
  *       method(map: MerkleMap, key: Field) {
  *         // get the value associated with `key`
@@ -73,7 +73,7 @@ function IndexedMerkleMap(height: number): typeof IndexedMerkleMapBase {
 const provableBase = {
   root: Field,
   length: Field,
-  data: Unconstrained.provableWithEmpty({
+  data: Unconstrained.withEmpty({
     nodes: [] as (bigint | undefined)[][],
     sortedLeaves: [] as StoredLeaf[],
   }),
@@ -306,6 +306,22 @@ class IndexedMerkleMapBase {
 
     // return the previous value
     return new OptionField({ isSome: keyExists, value: self.value });
+  }
+
+  /**
+   * Perform an insertion or update, if the enabling condition is true.
+   *
+   * If the condition is false, we instead set the 0 key to the value 0.
+   * This is the initial value and for typical uses of `IndexedMerkleMap`, it is guaranteed to be a no-op because the 0 key is never used.
+   *
+   * **Warning**: Only use this method if you are sure that the 0 key is not used in your application.
+   * Otherwise, you might accidentally overwrite a valid key-value pair.
+   */
+  setIf(condition: Bool | boolean, key: Field | bigint, value: Field | bigint) {
+    return this.set(
+      Provable.if(Bool(condition), Field(key), Field(0n)),
+      Provable.if(Bool(condition), Field(value), Field(0n))
+    );
   }
 
   /**
@@ -640,8 +656,8 @@ class Leaf extends Struct({
   nextKey: Field,
 
   // auxiliary data that tells us where the leaf is stored
-  index: Unconstrained.provableWithEmpty(0),
-  sortedIndex: Unconstrained.provableWithEmpty(0),
+  index: Unconstrained.withEmpty(0),
+  sortedIndex: Unconstrained.withEmpty(0),
 }) {
   /**
    * Compute a leaf node: the hash of a leaf that becomes part of the Merkle tree.
@@ -677,11 +693,7 @@ class Leaf extends Struct({
   }
 
   static fromStored(leaf: StoredLeaf, sortedIndex: number) {
-    return {
-      ...leaf,
-      index: Unconstrained.from(leaf.index),
-      sortedIndex: Unconstrained.from(sortedIndex),
-    };
+    return { ...leaf, sortedIndex };
   }
 }
 

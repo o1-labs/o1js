@@ -74,7 +74,7 @@ import {
   smartContractContext,
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
 import { getReducer, Reducer } from './actions/reducer.js';
 import { provable } from '../provable/types/provable-derivers.js';
 
@@ -174,7 +174,7 @@ function method<K extends string, T extends SmartContract>(
 method.returns = function <
   K extends string,
   T extends SmartContract,
-  R extends Provable<any>
+  R extends ProvableType
 >(returnType: R) {
   return function decorateMethod(
     target: T & {
@@ -183,7 +183,12 @@ method.returns = function <
     methodName: K & string & keyof T,
     descriptor: PropertyDescriptor
   ) {
-    return method(target as any, methodName, descriptor, returnType);
+    return method(
+      target as any,
+      methodName,
+      descriptor,
+      ProvableType.get(returnType)
+    );
   };
 };
 
@@ -462,7 +467,7 @@ function wrapMethod(
       }>(
         provable({
           result: methodIntf.returnType ?? provable(null),
-          children: AccountUpdateForest.provable,
+          children: AccountUpdateForest,
         }),
         runCalledContract,
         { skipCheck: true }
@@ -968,9 +973,15 @@ super.init();
 
   // TODO: not able to type event such that it is inferred correctly so far
   /**
-   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   * Conditionally emits an event.
+   *
+   * Events will be emitted as a part of the transaction and can be collected by archive nodes.
    */
-  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+  emitEventIf<K extends keyof this['events']>(
+    condition: Bool,
+    type: K,
+    event: any
+  ) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
@@ -997,10 +1008,20 @@ super.init();
       // if there is more than one event type, also store its index, like in an enum, to identify the type later
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
-    accountUpdate.body.events = Events.pushEvent(
-      accountUpdate.body.events,
-      eventFields
+    let newEvents = Events.pushEvent(accountUpdate.body.events, eventFields);
+    accountUpdate.body.events = Provable.if(
+      condition,
+      Events,
+      newEvents,
+      accountUpdate.body.events
     );
+  }
+
+  /**
+   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   */
+  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    this.emitEventIf(Bool(true), type, event);
   }
 
   /**

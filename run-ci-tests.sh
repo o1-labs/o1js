@@ -34,15 +34,6 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
   ;;
 
-"Unit tests")
-  echo "Running unit tests"
-  cd src/mina-signer
-  npm run build
-  cd ../..
-  npm run test:unit
-  npm run test
-  ;;
-
 "Verification Key Regression Check")
   echo "Running Regression checks"
   ./run ./tests/vk-regression/vk-regression.ts --bundle

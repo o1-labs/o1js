@@ -95,10 +95,7 @@ and Provable.asProver() blocks, which execute outside the proof.
    * Create an `Unconstrained` from a witness computation.
    */
   static witness<T>(compute: () => T): Unconstrained<T> {
-    return witness(
-      Unconstrained.provable,
-      () => new Unconstrained(true, compute())
-    );
+    return witness(Unconstrained, compute);
   }
 
   /**
@@ -111,7 +108,7 @@ and Provable.asProver() blocks, which execute outside the proof.
     });
   }
 
-  static provable: Provable<Unconstrained<any>, Unconstrained<any>> & {
+  static provable: UnconstrainedProvable<any> & {
     toInput: (x: Unconstrained<any>) => {
       fields?: Field[];
       packed?: [Field, number][];
@@ -123,18 +120,15 @@ and Provable.asProver() blocks, which execute outside the proof.
     toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
     fromFields: (_, [t]) => t,
     check: () => {},
-    toValue: (t) => t,
-    fromValue: (t) => t,
+    toValue: (t) => t.get(),
+    fromValue: (t) => Unconstrained.from(t),
     toInput: () => ({}),
     empty: (): any => {
       throw Error('There is no default empty value for Unconstrained.');
     },
   };
 
-  static provableWithEmpty<T>(empty: T): Provable<
-    Unconstrained<T>,
-    Unconstrained<T>
-  > & {
+  static withEmpty<T>(empty: T): Provable<Unconstrained<T>, T> & {
     toInput: (x: Unconstrained<T>) => {
       fields?: Field[];
       packed?: [Field, number][];
@@ -146,4 +140,13 @@ and Provable.asProver() blocks, which execute outside the proof.
       empty: () => Unconstrained.from(empty),
     };
   }
+
+  /**
+   * @deprecated
+   */
+  static provableWithEmpty<T>(empty: T) {
+    return Unconstrained.withEmpty(empty);
+  }
 }
+
+type UnconstrainedProvable<T> = Provable<Unconstrained<T>, T>;
