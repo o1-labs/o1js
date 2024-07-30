@@ -97,7 +97,10 @@ class ForeignField {
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
    *   @example
    *   ```ts
-   *   let smallField = new SmallField(0);
+   *   class SmallField extends createForeignField(17n) {}
+   *   class LargerField extends createForeignField(19n) {}
+   * 
+   *   let smallField = new SmallField(10);
    *   let largerField = new LargerField(17);
    *   Gadgets.ForeignField.assertLessThan(largerField.value, SmallField.modulus);
    *   let x = new SmallField(largerField);
