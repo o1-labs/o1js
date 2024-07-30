@@ -181,7 +181,7 @@ class Group {
     let scalar = Scalar.from(s);
 
     if (isConstant(this) && scalar.isConstant()) {
-      // edge case there this is zero/at infinity
+      // edge case where this is zero/at infinity
       if (this.isZero().toBoolean()) return this;
 
       let gProj = Pallas.scale(toProjective(this), scalar.toBigInt());
