@@ -149,7 +149,7 @@ function update(
 ): void {
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
-      state.t[0] = state.t[0].add(128); // ?
+      state.t[0] = state.t[0].add(128);
       if (state.t[0].equals(UInt64.zero)) {
         state.t[1] = state.t[1].addMod64(UInt64.one);
       }
@@ -168,7 +168,7 @@ function final(state: {
   buflen: number;
   outlen: number;
 }): UInt8[] {
-  state.t[0] = state.t[0].add(state.buflen); // ?
+  state.t[0] = state.t[0].add(state.buflen);
   if (state.t[0].equals(UInt64.zero)) {
     state.t[1] = state.t[1].add(UInt64.zero);
   }
