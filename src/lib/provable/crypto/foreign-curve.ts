@@ -43,7 +43,7 @@ class ForeignCurve {
   /**
    * Create a new {@link ForeignCurve} from an object representing the (affine) x and y coordinates.
    *
-   * _Note:_ Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Refer to {@link ForeignField} constructor comments for more details.
+   * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Refer to {@link ForeignField} constructor comments for more details.
    * 
    * @example
    * ```ts
