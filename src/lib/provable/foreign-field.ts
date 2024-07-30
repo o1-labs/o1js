@@ -94,13 +94,13 @@ class ForeignField {
    * ```
    * _Note:_ Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
    * 
-   * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, reduce the value first.
+   * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
    *   @example
    *   ```ts
    *   let smallField = new SmallField(0);
    *   let largerField = new LargerField(17);
-   *   let reducedField = SmallField.reduce(largerField);
-   *   let x = new SmallField(reducedField);
+   *   Gadgets.ForeignField.assertLessThan(largerField.value, SmallField.modulus);
+   *   let x = new SmallField(largerField);
    *   ```
    * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
    *   @example
