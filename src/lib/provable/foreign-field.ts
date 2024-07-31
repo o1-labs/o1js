@@ -8,9 +8,8 @@ import { Field, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { Tuple, TupleMap, TupleN } from '../util/types.js';
-import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
-import { ForeignField as FF } from './gadgets/foreign-field.js';
+import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
@@ -101,26 +100,33 @@ class ForeignField {
    *   class SmallField extends createForeignField(17n) {}
    *   class LargerField extends createForeignField(19n) {}
    * 
-   *   let smallField = new SmallField(10);
-   *   let largerField = new LargerField(17);
+   *   let smallField: SmallField = ...;
+   *   let largerField: LargerField = ...;
    *   Gadgets.ForeignField.assertLessThan(largerField.value, SmallField.modulus);
    *   let x = new SmallField(largerField);
    *   ```
    * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
    *   @example
    *   ```ts
+   *   class MyField extends createForeignField(20n) {}
    *   let field3Array = [Field(15), Field(0), Field(0)];
-   *   let x = new ForeignField(field3Array);
+   *   let x = new MyField(field3Array);
    *   ```
    * - Ensure constants are correctly reduced to the modulus of the field.
    *   @example
    *   ```ts
-   *   let x = new ForeignField(20); // Automatically reduced to the field's modulus
+   *   class MyField extends createForeignField(10n) {}
+   *   let x = new MyField(10); // Automatically reduced to the field's modulus
    *   ```
    */
   constructor(x: ForeignField | Field3 | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignField) {
+      if (x.modulus !== p) {
+        throw new Error(
+          `ForeignField constructor: modulus mismatch. Expected ${p}, got ${x.modulus}. Please provide a value with the correct modulus. You can use 'Gadgets.ForeignField.assertLessThan()' to check it.`
+        );
+      }
       this.value = x.value;
       return;
     }
