@@ -718,7 +718,13 @@ async function fetchActions(
     tokenId = TokenId.toBase58(TokenId.default),
   } = accountInfo;
 
-  let fetchedActions = await makeFetchActionsGraphqlRequest(accountInfo, graphqlEndpoint);
+  let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
+    getActionsQuery(publicKey, actionStates, tokenId),
+    graphqlEndpoint,
+    networkConfig.archiveFallbackEndpoints
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedActions = response?.data.actions;
   if (fetchedActions === undefined) {
     return {
       error: {
@@ -734,29 +740,13 @@ async function fetchActions(
   return actionsList;
 }
 
-async function makeFetchActionsGraphqlRequest(accountInfo: ActionsQueryInputs, graphqlEndpoint: string) {
-  const {
-    publicKey,
-    actionStates,
-    tokenId = TokenId.toBase58(TokenId.default),
-  } = accountInfo;
-
-  let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
-    getActionsQuery(publicKey, actionStates, tokenId),
-    graphqlEndpoint,
-    networkConfig.archiveFallbackEndpoints
-  );
-  if (error) throw Error(error.statusText);
-  let fetchedActions = response?.data.actions;
-
-  return fetchedActions;
-}
-
+/**
+ * Given a graphQL response from #getActionsQuery, process the actions into a canonical actions list
+ */
 export function createActionsList(accountInfo: ActionsQueryInputs, fetchedActions: FetchedAction[]) {
   const {
     publicKey,
     actionStates,
-    tokenId = TokenId.toBase58(TokenId.default),
   } = accountInfo;
 
   let actionsList: { actions: string[][]; hash: string }[] = [];
