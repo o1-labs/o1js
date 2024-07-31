@@ -369,7 +369,7 @@ async function fetchMissingData(
           await fetchLastBlock(graphqlEndpoint);
           await fetchGenesisConstants(graphqlEndpoint);
           delete networksToFetch[network[0]];
-        } catch {}
+        } catch { }
       })()
     );
   }
@@ -721,7 +721,7 @@ async function fetchActions(
   if (
     fetchedActions.length !== 0 &&
     fetchedActions[0].actionState.actionStateOne ===
-      actionStates.fromActionState
+    actionStates.fromActionState
   ) {
     fetchedActions = fetchedActions.slice(1);
   }
@@ -736,16 +736,23 @@ async function fetchActions(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
+    // Reverse order of multiple actions from a single block
+    if (actionData.length > 1) {
+      actionData = actionData.reverse();
+    }
+
     // split actions by account update
     let actionsByAccountUpdate: string[][][] = [];
     let currentAccountUpdateId = 'none';
     let currentActions: string[][];
     actionData.forEach(({ accountUpdateId, data }) => {
       if (accountUpdateId === currentAccountUpdateId) {
-        currentActions.push(data);
+        console.log(data)
+        currentActions.push(data.reverse());
       } else {
+        console.log(data)
         currentAccountUpdateId = accountUpdateId;
-        currentActions = [data];
+        currentActions = [data.reverse()];
         actionsByAccountUpdate.push(currentActions);
       }
     });
