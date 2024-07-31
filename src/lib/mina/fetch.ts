@@ -64,6 +64,7 @@ export {
   sendZkapp,
   fetchEvents,
   fetchActions,
+  makeGraphqlRequest,
   Lightnet,
   type GenesisConstants,
   type ActionStatesStringified,
@@ -76,6 +77,26 @@ type NetworkConfig = {
   archiveFallbackEndpoints: string[];
   lightnetAccountManagerEndpoint: string;
 };
+
+type ActionsQueryInputs = {
+  publicKey: string;
+  actionStates: ActionStatesStringified;
+  tokenId?: string;
+}
+
+type FetchedAction = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+  };
+  actionState: {
+    actionStateOne: string;
+    actionStateTwo: string;
+  };
+  actionData: {
+    accountUpdateId: string;
+    data: string[];
+  }[];
+}
 
 let networkConfig = {
   minaEndpoint: '',
@@ -684,11 +705,7 @@ async function fetchEvents(
 }
 
 async function fetchActions(
-  accountInfo: {
-    publicKey: string;
-    actionStates: ActionStatesStringified;
-    tokenId?: string;
-  },
+  accountInfo: ActionsQueryInputs,
   graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
   if (!graphqlEndpoint)
@@ -700,13 +717,8 @@ async function fetchActions(
     actionStates,
     tokenId = TokenId.toBase58(TokenId.default),
   } = accountInfo;
-  let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
-    getActionsQuery(publicKey, actionStates, tokenId),
-    graphqlEndpoint,
-    networkConfig.archiveFallbackEndpoints
-  );
-  if (error) throw Error(error.statusText);
-  let fetchedActions = response?.data.actions;
+
+  let fetchedActions = await makeFetchActionsGraphqlRequest(accountInfo, graphqlEndpoint);
   if (fetchedActions === undefined) {
     return {
       error: {
@@ -715,6 +727,37 @@ async function fetchActions(
       },
     };
   }
+
+  const actionsList = createActionsList(accountInfo, fetchedActions);
+  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
+
+  return actionsList;
+}
+
+async function makeFetchActionsGraphqlRequest(accountInfo: ActionsQueryInputs, graphqlEndpoint: string) {
+  const {
+    publicKey,
+    actionStates,
+    tokenId = TokenId.toBase58(TokenId.default),
+  } = accountInfo;
+
+  let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
+    getActionsQuery(publicKey, actionStates, tokenId),
+    graphqlEndpoint,
+    networkConfig.archiveFallbackEndpoints
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedActions = response?.data.actions;
+
+  return fetchedActions;
+}
+
+export function createActionsList(accountInfo: ActionsQueryInputs, fetchedActions: FetchedAction[]) {
+  const {
+    publicKey,
+    actionStates,
+    tokenId = TokenId.toBase58(TokenId.default),
+  } = accountInfo;
 
   let actionsList: { actions: string[][]; hash: string }[] = [];
   // correct for archive node sending one block too many
@@ -736,10 +779,8 @@ async function fetchActions(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
-    // Reverse order of multiple actions from a single block
-    if (actionData.length > 1) {
-      actionData = actionData.reverse();
-    }
+    // Reverse order so that multiple actions in the same block get replayed in reverse
+    actionData = actionData.reverse();
 
     // split actions by account update
     let actionsByAccountUpdate: string[][][] = [];
@@ -774,7 +815,6 @@ async function fetchActions(
       );
     }
   });
-  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
 }
 
