@@ -747,12 +747,10 @@ async function fetchActions(
     let currentActions: string[][];
     actionData.forEach(({ accountUpdateId, data }) => {
       if (accountUpdateId === currentAccountUpdateId) {
-        console.log(data)
-        currentActions.push(data.reverse());
+        currentActions.push(data);
       } else {
-        console.log(data)
         currentAccountUpdateId = accountUpdateId;
-        currentActions = [data.reverse()];
+        currentActions = [data];
         actionsByAccountUpdate.push(currentActions);
       }
     });
