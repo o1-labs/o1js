@@ -3,7 +3,7 @@ import { Provable } from './provable.js';
 import { Poseidon } from './crypto/poseidon.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { Struct } from './types/struct.js';
-import { provable } from './types/provable-derivers.js';
+import { provable, HashInput } from './types/provable-derivers.js';
 
 export { Character, CircuitString };
 
@@ -35,6 +35,10 @@ class Character extends Struct({ value: Field }) {
   // right now it's 16 bits because 8 not supported :/
   static check(c: { value: Field }) {
     Gadgets.rangeCheckN(16, c.value);
+  }
+
+  static toInput(c: { value: Field }): HashInput {
+    return { packed: [[c.value, 16]] };
   }
 }
 
