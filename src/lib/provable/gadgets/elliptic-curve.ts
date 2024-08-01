@@ -297,7 +297,7 @@ function verifyEcdsaGeneric(
   // assert s to be canonical
   ForeignField.assertLessThan(s, Curve.order);
 
-  return Provable.equal(Field3.provable, Rx, r);
+  return Provable.equal(Field3, Rx, r);
 }
 
 /**

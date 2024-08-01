@@ -281,13 +281,14 @@ function assertEqualExplicit<T>(type: ProvableType<T>, x: T, y: T) {
   }
 }
 
-function equal<T>(type: Provable<T>, x: T, y: T) {
+function equal<T>(type: FlexibleProvableType<T>, x: T, y: T) {
+  let provable = ProvableType.get(type) as Provable<T>;
   // when comparing two values of the same type, we use the type's canonical form
   // otherwise, the case where `equal()` returns false is misleading (two values can differ as field elements but be "equal")
-  x = type.toCanonical?.(x) ?? x;
-  y = type.toCanonical?.(y) ?? y;
-  let xs = type.toFields(x);
-  let ys = type.toFields(y);
+  x = provable.toCanonical?.(x) ?? x;
+  y = provable.toCanonical?.(y) ?? y;
+  let xs = provable.toFields(x);
+  let ys = provable.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
 
