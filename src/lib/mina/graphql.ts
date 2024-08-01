@@ -250,20 +250,22 @@ type EventQueryResponse = {
   }[];
 };
 
-type ActionQueryResponse = {
-  actions: {
-    blockInfo: {
-      distanceFromMaxBlockHeight: number;
-    };
-    actionState: {
-      actionStateOne: string;
-      actionStateTwo: string;
-    };
-    actionData: {
-      accountUpdateId: string;
-      data: string[];
-    }[];
+export type FetchedAction = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+  };
+  actionState: {
+    actionStateOne: string;
+    actionStateTwo: string;
+  };
+  actionData: {
+    accountUpdateId: string;
+    data: string[];
   }[];
+};
+
+type ActionQueryResponse = {
+  actions: FetchedAction[];
 };
 
 type EventActionFilterOptions = {

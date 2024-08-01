@@ -17,6 +17,7 @@ import {
   type LastBlockQueryResponse,
   type GenesisConstantsResponse,
   type LastBlockQueryFailureCheckResponse,
+  type FetchedAction,
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
@@ -82,21 +83,7 @@ type ActionsQueryInputs = {
   publicKey: string;
   actionStates: ActionStatesStringified;
   tokenId?: string;
-}
-
-type FetchedAction = {
-  blockInfo: {
-    distanceFromMaxBlockHeight: number;
-  };
-  actionState: {
-    actionStateOne: string;
-    actionStateTwo: string;
-  };
-  actionData: {
-    accountUpdateId: string;
-    data: string[];
-  }[];
-}
+};
 
 let networkConfig = {
   minaEndpoint: '',
@@ -390,7 +377,7 @@ async function fetchMissingData(
           await fetchLastBlock(graphqlEndpoint);
           await fetchGenesisConstants(graphqlEndpoint);
           delete networksToFetch[network[0]];
-        } catch { }
+        } catch {}
       })()
     );
   }
@@ -743,18 +730,18 @@ async function fetchActions(
 /**
  * Given a graphQL response from #getActionsQuery, process the actions into a canonical actions list
  */
-export function createActionsList(accountInfo: ActionsQueryInputs, fetchedActions: FetchedAction[]) {
-  const {
-    publicKey,
-    actionStates,
-  } = accountInfo;
+export function createActionsList(
+  accountInfo: ActionsQueryInputs,
+  fetchedActions: FetchedAction[]
+) {
+  const { publicKey, actionStates } = accountInfo;
 
   let actionsList: { actions: string[][]; hash: string }[] = [];
   // correct for archive node sending one block too many
   if (
     fetchedActions.length !== 0 &&
     fetchedActions[0].actionState.actionStateOne ===
-    actionStates.fromActionState
+      actionStates.fromActionState
   ) {
     fetchedActions = fetchedActions.slice(1);
   }
