@@ -83,6 +83,24 @@ type Provable<T, TValue = any> = {
    * Convert provable type from a normal JS type.
    */
   fromValue: (x: TValue | T) => T;
+
+  /**
+   * Optional method which transforms a provable type into its canonical representation.
+   *
+   * This is needed for types that have multiple representations of the same underlying value,
+   * and might even not have perfect completeness for some of those representations.
+   *
+   * An example is the `ForeignField` class, which allows non-native field elements to exist in unreduced form.
+   * The unreduced form is not perfectly complete, for example, addition of two unreduced field elements can cause a prover error.
+   *
+   * Specific protocols need to be able to protect themselves against incomplete operations at all costs.
+   * For example, when using actions and reducer, the reducer must be able to produce a proof regardless of the input action.
+   * `toCanonical()` converts any input into a safe form and enables us to handle cases like this generically.
+   *
+   * Note: For most types, this method is the identity function.
+   * The identity function will also be used when the `toCanonical()` is not present on a type.
+   */
+  toCanonical?: (x: T) => T;
 };
 
 /**

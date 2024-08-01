@@ -1104,7 +1104,7 @@ class Int64 extends CircuitValue implements BalanceChange {
       throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
     let magnitude = (isValidPositive ? x : x.neg()).toConstant();
     let sign = isValidPositive ? Sign.one : Sign.minusOne;
-    return new Int64(UInt64.Unsafe.fromField(magnitude), sign);
+    return Int64.create(UInt64.Unsafe.fromField(magnitude), sign);
   }
 
   // this doesn't check ranges because we assume they're already checked on UInts
@@ -1114,7 +1114,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * **Does not** check if the {@link Field} is within range.
    */
   static fromUnsigned(x: UInt64 | UInt32) {
-    return new Int64(x instanceof UInt32 ? x.toUInt64() : x);
+    return Int64.create(x instanceof UInt32 ? x.toUInt64() : x);
   }
 
   // this checks the range if the argument is a constant
@@ -1132,15 +1132,12 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   static Unsafe = {
-    /**
-     * @deprecated Use {@link Int64.fromObjectV2} instead.
-     */
     fromObject(obj: { magnitude: UInt64; sgn: Sign }): Int64 {
       return CircuitValue.fromObject.call(Int64, obj);
     },
   };
 
-  fromObjectV2(obj: {
+  fromObject(obj: {
     magnitude: UInt64 | number | string | bigint;
     sgn: Sign | bigint;
   }) {
@@ -1167,19 +1164,19 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Static method to create a {@link Int64} with value `0`.
    */
   static get zero() {
-    return new Int64(UInt64.zero);
+    return Int64.create(UInt64.zero);
   }
   /**
    * Static method to create a {@link Int64} with value `1`.
    */
   static get one() {
-    return new Int64(UInt64.one);
+    return Int64.create(UInt64.one);
   }
   /**
    * Static method to create a {@link Int64} with value `-1`.
    */
   static get minusOne() {
-    return new Int64(UInt64.one).neg();
+    return Int64.create(UInt64.one).neg();
   }
 
   /**
@@ -1201,15 +1198,6 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * @deprecated Use {@link negV2()} instead.
-   * The current implementation will not be backwards-compatible with v2.
-   */
-  neg() {
-    // doesn't need further check if `this` is valid
-    return new Int64(this.magnitude, this.sgn.neg());
-  }
-
-  /**
    * Negates the current Int64 value.
    *
    * This method returns a new Int64 instance with the opposite sign of the current value.
@@ -1219,7 +1207,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * @example
    * ```ts
-   * Int64.from(5).negV2();
+   * Int64.from(5).neg();
    * ```
    *
    * @see {@link Int64#from} for creating Int64 instances
@@ -1227,7 +1215,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */
-  negV2() {
+  neg() {
     return Provable.if(
       this.magnitude.value.equals(0),
       Int64.zero,
@@ -1256,19 +1244,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     return Int64.fromField(this.toField().mul(y_.toField()));
   }
-  /**
-   * Integer division.
-   *
-   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
-   * `z` such that `z * y <= x`.
-   * On negative numbers, this rounds towards zero.
-   */
-  div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
-    let y_ = Int64.from(y);
-    let { quotient } = this.magnitude.divMod(y_.magnitude);
-    let sign = this.sgn.mul(y_.sgn);
-    return new Int64(quotient, sign);
-  }
 
   /**
    * Integer division with canonical zero representation.
@@ -1276,35 +1251,18 @@ class Int64 extends CircuitValue implements BalanceChange {
    * @param y - The divisor. Can be an Int64, number, string, bigint, UInt64, or UInt32.
    * @returns A new Int64 representing the quotient, with canonical zero representation.
    *
-   * @remarks
-   * This method performs the same division operation as {@link div},
-   * but ensures that the result always has a canonical representation,
-   * particularly for zero results.
-   *
-   * `x.divV2(y)` returns the floor of `x / y`, that is, the greatest
+   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
    * *`z`* such that *`z * y <= x`.
    * On negative numbers, this rounds towards zero.
    *
    * This method guarantees that all results, including zero, have a consistent
    * representation, eliminating potential ambiguities in zero handling.
    */
-  divV2(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+  div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     let { quotient } = this.magnitude.divMod(y_.magnitude);
     let sign = this.sgn.mul(y_.sgn);
     return Int64.create(quotient, sign);
-  }
-
-  /**
-   * @deprecated Use {@link modV2()} instead.
-   * This implementation is vulnerable whenever `this` is zero.
-   * It allows the prover to return `y` instead of 0 as the result.
-   */
-  mod(y: UInt64 | number | string | bigint | UInt32) {
-    let y_ = UInt64.from(y);
-    let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
-    return new Int64(new UInt64(rest.value));
   }
 
   /**
@@ -1323,17 +1281,15 @@ class Int64 extends CircuitValue implements BalanceChange {
    * ```ts
    * const x1 = Int64.from(17);
    * const y1 = UInt64.from(5);
-   * console.log(x1.modV2(y1).toString()); // Output: 2
+   * console.log(x1.mod(y1).toString()); // Output: 2
    * ```
    *
    * @throws {Error} Implicitly, if y is zero or negative.
    */
-  modV2(y: UInt64 | number | string | bigint | UInt32) {
+  mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    let isNonNegative = this.magnitude
-      .equals(UInt64.zero)
-      .or(this.sgn.isPositive());
+    let isNonNegative = this.isNonNegative();
     rest = Provable.if(isNonNegative, rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest.value));
   }
@@ -1355,13 +1311,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     this.toField().assertEquals(y_.toField(), message);
   }
-  /**
-   * @deprecated Use {@link isPositiveV2} instead.
-   * The current implementation actually tests for non-negativity, but is wrong for the negative representation of 0.
-   */
-  isPositive() {
-    return this.sgn.isPositive();
-  }
 
   /**
    * Checks if the value is strictly positive (x > 0).
@@ -1373,30 +1322,26 @@ class Int64 extends CircuitValue implements BalanceChange {
    * with the mathematical definition of "positive" as strictly greater than zero.
    * This differs from some other methods which may treat zero as non-negative.
    */
-  isPositiveV2() {
+  isPositive() {
     return this.magnitude.equals(UInt64.zero).not().and(this.sgn.isPositive());
   }
 
-  // TODO add this when `checkV2` is enabled
-  // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is non-negative (x >= 0).
    */
-  // isNonNegativeV2() {
-  //   return this.sgn.isPositive();
-  // }
+  isNonNegative() {
+    return this.sgn.isPositive();
+  }
 
-  // TODO add this when `checkV2` is enabled
   // then it will be the correct logic; right now it would be misleading
   /**
    * Checks if the value is negative (x < 0).
    */
-  // isNegative() {
-  //   return this.sgn.isNegative();
-  // }
+  isNegative() {
+    return this.sgn.isNegative();
+  }
 
-  // TODO enable this check method in v2, to force a unique representation of 0
-  static checkV2({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
+  static check({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
     // check that the magnitude is in range
     UInt64.check(magnitude);
     // check that the sign is valid
