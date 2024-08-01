@@ -13,7 +13,6 @@ import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
-import { isField } from './core/field-constructor.js';
 
 // external API
 export { createForeignField };
@@ -112,11 +111,6 @@ class ForeignField {
     }
     // Field3
     if (Array.isArray(x)) {
-      if (x.some((limb) => !isField(limb))) {
-        throw new Error(
-          `ForeignField constructor: invalid 'Field3' element. Please provide valid Field elements.`
-        );
-      }
       this.value = x;
       return;
     }
