@@ -24,6 +24,11 @@ import {
   MerkleActions,
   emptyActionState,
 } from './action-types.js';
+import {
+  ProvableHashable,
+  ProvablePure,
+  ProvableType,
+} from '../../provable/types/provable-intf.js';
 
 // external API
 export { BatchReducer, ActionBatch };
@@ -57,7 +62,7 @@ class BatchReducer<
   Action = InferProvable<ActionType>
 > {
   batchSize: BatchSize;
-  actionType: Actionable<Action>;
+  actionType: ProvableHashable<Action> & ProvablePure<Action>;
   Batch: ReturnType<typeof ActionBatch>;
 
   program: ActionStackProgram;
@@ -133,7 +138,8 @@ class BatchReducer<
     maxActionsPerUpdate?: number;
   }) {
     this.batchSize = batchSize;
-    this.actionType = actionType as Actionable<Action>;
+    this.actionType = ProvableType.get(actionType) as ProvableHashable<Action> &
+      ProvablePure<Action>;
     this.Batch = ActionBatch(this.actionType);
 
     this.maxUpdatesFinalProof = maxUpdatesFinalProof;
@@ -393,7 +399,7 @@ class BatchReducer<
       // we make it easier to write the reducer code by making sure dummy actions have dummy values
       hashedAction = Provable.if(
         isDummy,
-        HashedActionT.provable,
+        HashedActionT,
         emptyHashedAction,
         hashedAction
       );
@@ -557,9 +563,9 @@ function ActionBatch<A extends Actionable<any>>(actionType: A) {
     processedActionState: Field,
     onchainActionState: Field,
     onchainStack: Field,
-    stack: MerkleActions(actionType).provable,
+    stack: MerkleActions(actionType),
     isRecursive: Bool,
-    witnesses: Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+    witnesses: Unconstrained.withEmpty<ActionWitnesses>([]),
   });
 }
 
@@ -777,7 +783,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
         privateInputs: [
           SelfProof,
           Bool,
-          Unconstrained.provableWithEmpty<ActionWitnesses>([]),
+          Unconstrained.withEmpty<ActionWitnesses>([]),
         ],
 
         async method(

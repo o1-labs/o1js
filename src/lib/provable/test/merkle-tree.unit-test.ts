@@ -209,7 +209,7 @@ test(
 
     // pass the map to a circuit
     runAndCheckSync(() => {
-      map = Provable.witness(MerkleMap.provable, () => map);
+      map = Provable.witness(MerkleMap, () => map);
       let initialKeysF = initialKeys.map(witness);
       let keysF = keys.map(witness);
       let valuesF = values.map(witness);
@@ -249,7 +249,7 @@ test(
 
       // move the map back to constants
       Provable.asProver(() => {
-        map = Provable.toConstant(MerkleMap.provable, map);
+        map = Provable.toConstant(MerkleMap, map);
       });
     });
 

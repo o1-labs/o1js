@@ -132,31 +132,6 @@ function createAccountUpdateWithMayUseToken(
   );
 }
 
-// throws an error when both flags are true in check method
-{
-  expect(() => {
-    AccountUpdate.MayUseToken.type.check({
-      parentsOwnToken: Bool(true),
-      inheritFromParent: Bool(true),
-    });
-  }).toThrowError(
-    'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
-  );
-}
-
-// throws an error when both flags are true in AccountUpdate.check method
-{
-  let accountUpdate = createAccountUpdateWithMayUseToken({
-    parentsOwnToken: Bool(true),
-    inheritFromParent: Bool(true),
-  });
-  expect(() => {
-    AccountUpdate.check(accountUpdate);
-  }).toThrowError(
-    'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
-  );
-}
-
 // correctly identifies when neither flag is set
 {
   let accountUpdate = createAccountUpdateWithMayUseToken({

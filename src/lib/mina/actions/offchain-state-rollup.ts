@@ -22,7 +22,7 @@ import { getProofsEnabled } from '../mina.js';
 export { OffchainStateRollup, OffchainStateCommitments };
 
 class ActionIterator extends MerkleListIterator.create(
-  ActionList.provable,
+  ActionList,
   (hash: Field, actions: ActionList) =>
     Actions.updateSequenceState(hash, actions.hash),
   // we don't have to care about the initial hash here because we will just step forward
@@ -42,7 +42,7 @@ class OffchainStateCommitments extends Struct({
   root: Field,
   length: Field,
   // TODO: make zkprogram support auxiliary data in public inputs
-  // actionState: ActionIterator.provable,
+  // actionState: ActionIterator,
   actionState: Field,
 }) {
   static emptyFromHeight(height: number) {
@@ -169,7 +169,7 @@ function OffchainStateRollup({
        */
       firstBatch: {
         // [actions, tree]
-        privateInputs: [ActionIterator.provable, IndexedMerkleMapN.provable],
+        privateInputs: [ActionIterator, IndexedMerkleMapN],
 
         async method(
           stateA: OffchainStateCommitments,
@@ -189,11 +189,7 @@ function OffchainStateRollup({
        */
       nextBatch: {
         // [actions, tree, proof]
-        privateInputs: [
-          ActionIterator.provable,
-          IndexedMerkleMapN.provable,
-          SelfProof,
-        ],
+        privateInputs: [ActionIterator, IndexedMerkleMapN, SelfProof],
 
         async method(
           stateA: OffchainStateCommitments,
@@ -323,7 +319,7 @@ function OffchainStateRollup({
 // also moves the original iterator forward to start after the slice
 function sliceActions(actions: ActionIterator, batchSize: number) {
   class ActionListsList extends MerkleList.create(
-    ActionList.provable,
+    ActionList,
     (hash: Field, actions: ActionList) =>
       Actions.updateSequenceState(hash, actions.hash),
     actions.currentHash
