@@ -13,6 +13,7 @@ import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
+import { isField } from './core/field-constructor.js';
 
 // external API
 export { createForeignField };
@@ -95,29 +96,8 @@ class ForeignField {
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
    * 
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
-   *   @example
-   *   ```ts
-   *   class SmallField extends createForeignField(17n) {}
-   *   class LargerField extends createForeignField(19n) {}
-   * 
-   *   let smallField: SmallField = ...;
-   *   let largerField: LargerField = ...;
-   *   Gadgets.ForeignField.assertLessThan(largerField.value, SmallField.modulus);
-   *   let x = new SmallField(largerField);
-   *   ```
    * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
-   *   @example
-   *   ```ts
-   *   class MyField extends createForeignField(20n) {}
-   *   let field3Array = [Field(15), Field(0), Field(0)];
-   *   let x = new MyField(field3Array);
-   *   ```
    * - Ensure constants are correctly reduced to the modulus of the field.
-   *   @example
-   *   ```ts
-   *   class MyField extends createForeignField(10n) {}
-   *   let x = new MyField(10); // Automatically reduced to the field's modulus
-   *   ```
    */
   constructor(x: ForeignField | Field3 | bigint | number | string) {
     const p = this.modulus;
@@ -132,6 +112,11 @@ class ForeignField {
     }
     // Field3
     if (Array.isArray(x)) {
+      if (x.some((limb) => !isField(limb))) {
+        throw new Error(
+          `ForeignField constructor: invalid 'Field3' element. Please provide valid Field elements.`
+        );
+      }
       this.value = x;
       return;
     }
