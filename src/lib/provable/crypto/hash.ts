@@ -138,4 +138,10 @@ const Hash = {
       return Keccak.preNist(512, bytes);
     },
   },
+
+  BLAKE2B: {
+    hash(bytes: Bytes) {
+      return Gadgets.BLAKE2B.hash(bytes);
+    },
+  },
 };
