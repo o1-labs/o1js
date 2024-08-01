@@ -60,7 +60,7 @@ function Option<A extends ProvableType>(
   } {
   type T = InferProvable<A>;
   type V = InferValue<A>;
-  let strictType: Provable<T, V> & { toCanonical: undefined } = type as any;
+  let strictType: Provable<T, V> = ProvableType.get(type);
 
   // construct a provable with a JS type of `T | undefined`
   type PlainOption = { isSome: Bool; value: T };
