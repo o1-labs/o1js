@@ -12,10 +12,7 @@ import { assert } from '../gadgets/common.js';
 
 let Arithmetic = ZkProgram({
   name: 'arithmetic',
-  publicOutput: provable({
-    remainder: Field,
-    quotient: Field,
-  }),
+  publicOutput: provable({ remainder: Field, quotient: Field }),
   methods: {
     divMod32: {
       privateInputs: [Field],

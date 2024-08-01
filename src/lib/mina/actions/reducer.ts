@@ -266,7 +266,7 @@ class ${contract.constructor.name} extends SmartContract {
       ) {}
 
       class MerkleActions extends MerkleList.create(
-        ActionList.provable,
+        ActionList,
         (hash: Field, actions: ActionList) =>
           Actions.updateSequenceState(hash, actions.hash),
         // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
@@ -275,7 +275,7 @@ class ${contract.constructor.name} extends SmartContract {
         config?.fromActionState ?? Actions.emptyActionState()
       ) {}
 
-      let actions = Provable.witness(MerkleActions.provable, () => {
+      let actions = Provable.witness(MerkleActions, () => {
         let actionFields = Mina.getActions(
           contract.address,
           config,

@@ -9,7 +9,11 @@ import {
   ProvablePureExtended,
   Struct,
 } from '../provable/types/struct.js';
-import { provable, provablePure } from '../provable/types/provable-derivers.js';
+import {
+  InferProvableType,
+  provable,
+  provablePure,
+} from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { snarkContext } from '../provable/core/provable-context.js';
@@ -34,7 +38,12 @@ import {
   setSrsCache,
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import {
+  ProvablePure,
+  ProvableType,
+  ProvableTypePure,
+  ToProvable,
+} from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 
@@ -530,11 +539,12 @@ let SideloadedTag = {
 
 function ZkProgram<
   StatementType extends {
-    publicInput?: FlexibleProvablePure<any>;
-    publicOutput?: FlexibleProvablePure<any>;
+    publicInput?: ProvableTypePure;
+    publicOutput?: ProvableTypePure;
   },
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
+    // TODO: solution: put method calls on a separate namespace! like `await program.prove.myMethod()`
     [I in string]: Tuple<PrivateInput>;
   }
 >(
@@ -588,8 +598,12 @@ function ZkProgram<
   >;
 } {
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = config.publicInput ?? Undefined;
-  let publicOutputType: ProvablePure<any> = config.publicOutput ?? Void;
+  let publicInputType: ProvablePure<any> = ProvableType.get(
+    config.publicInput ?? Undefined
+  );
+  let publicOutputType: ProvablePure<any> = ProvableType.get(
+    config.publicOutput ?? Void
+  );
 
   let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<
@@ -764,8 +778,8 @@ function ZkProgram<
 
 type ZkProgram<
   S extends {
-    publicInput?: FlexibleProvablePure<any>;
-    publicOutput?: FlexibleProvablePure<any>;
+    publicInput?: ProvableTypePure;
+    publicOutput?: ProvableTypePure;
   },
   T extends {
     [I in string]: Tuple<PrivateInput>;
@@ -1425,7 +1439,9 @@ function Prover<ProverData>() {
 
 type Infer<T> = T extends Subclass<typeof ProofBase>
   ? InstanceType<T>
-  : InferProvable<T>;
+  : T extends ProvableType
+  ? InferProvableType<T>
+  : never;
 
 type Tuple<T> = [T, ...T[]] | [];
 type TupleToInstances<T> = {
@@ -1438,7 +1454,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
 
-type PrivateInput = Provable<any> | Subclass<typeof ProofBase>;
+type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
 type Method<
   PublicInput,
@@ -1470,8 +1486,10 @@ type Prover<
       ...args: TupleToInstances<Args>
     ) => Promise<Proof<PublicInput, PublicOutput>>;
 
-type ProvableOrUndefined<A> = A extends undefined ? typeof Undefined : A;
-type ProvableOrVoid<A> = A extends undefined ? typeof Void : A;
+type ProvableOrUndefined<A> = A extends undefined
+  ? typeof Undefined
+  : ToProvable<A>;
+type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined

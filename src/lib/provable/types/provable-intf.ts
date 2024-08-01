@@ -1,6 +1,15 @@
 import type { Field } from '../field.js';
 
-export { Provable, ProvablePure };
+export {
+  Provable,
+  ProvablePure,
+  ProvableWithEmpty,
+  ProvableHashable,
+  ProvableType,
+  ProvableTypePure,
+  ToProvable,
+  WithProvable,
+};
 
 /**
  * `Provable<T>` is the general interface for provable types in o1js.
@@ -103,4 +112,39 @@ type Provable<T, TValue = any> = {
  */
 type ProvablePure<T, TValue = any> = Omit<Provable<T, TValue>, 'fromFields'> & {
   fromFields: (fields: Field[]) => T;
+};
+
+type ProvableWithEmpty<T, TValue = any> = Provable<T, TValue> & {
+  empty: () => T;
+};
+
+type HashInput = { fields?: Field[]; packed?: [Field, number][] };
+
+type ProvableHashable<T, TValue = any> = ProvableWithEmpty<T, TValue> & {
+  toInput: (x: T) => HashInput;
+};
+
+// helpers to accept { provable: Type } instead of Type
+
+type WithProvable<A> = { provable: A } | A;
+
+type ProvableType<T = any, V = any> = WithProvable<Provable<T, V>>;
+type ProvableTypePure<T = any, V = any> = WithProvable<ProvablePure<T, V>>;
+
+type ToProvable<A extends WithProvable<any>> = A extends {
+  provable: infer P;
+}
+  ? P
+  : A;
+
+const ProvableType = {
+  get<A extends WithProvable<any>>(type: A): ToProvable<A> {
+    return (
+      (typeof type === 'object' || typeof type === 'function') &&
+      type !== null &&
+      'provable' in type
+        ? type.provable
+        : type
+    ) as ToProvable<A>;
+  },
 };

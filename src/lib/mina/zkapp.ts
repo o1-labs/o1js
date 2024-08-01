@@ -74,7 +74,7 @@ import {
   smartContractContext,
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
 import { getReducer, Reducer } from './actions/reducer.js';
 import { provable } from '../provable/types/provable-derivers.js';
 
@@ -174,7 +174,7 @@ function method<K extends string, T extends SmartContract>(
 method.returns = function <
   K extends string,
   T extends SmartContract,
-  R extends Provable<any>
+  R extends ProvableType
 >(returnType: R) {
   return function decorateMethod(
     target: T & {
@@ -183,7 +183,12 @@ method.returns = function <
     methodName: K & string & keyof T,
     descriptor: PropertyDescriptor
   ) {
-    return method(target as any, methodName, descriptor, returnType);
+    return method(
+      target as any,
+      methodName,
+      descriptor,
+      ProvableType.get(returnType)
+    );
   };
 };
 
@@ -462,7 +467,7 @@ function wrapMethod(
       }>(
         provable({
           result: methodIntf.returnType ?? provable(null),
-          children: AccountUpdateForest.provable,
+          children: AccountUpdateForest,
         }),
         runCalledContract,
         { skipCheck: true }

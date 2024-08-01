@@ -88,7 +88,7 @@ assert(uCanonical instanceof SmallField.Canonical);
 class AlmostSmallField extends SmallField.AlmostReduced {}
 
 class MyContract extends SmartContract {
-  @state(AlmostSmallField.provable) x = State<AlmostSmallField>();
+  @state(AlmostSmallField) x = State<AlmostSmallField>();
 
   @method async myMethod(y: AlmostSmallField) {
     let x = y.mul(2);

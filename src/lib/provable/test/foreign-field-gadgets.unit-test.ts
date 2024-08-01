@@ -180,41 +180,41 @@ let signs = [1n, -1n, -1n, 1n] satisfies (-1n | 1n)[];
 
 let ffProgram = ZkProgram({
   name: 'foreign-field',
-  publicOutput: Field3.provable,
+  publicOutput: Field3,
   methods: {
     sumchain: {
-      privateInputs: [Provable.Array(Field3.provable, chainLength)],
+      privateInputs: [Provable.Array(Field3, chainLength)],
       async method(xs) {
         return ForeignField.sum(xs, signs, F.modulus);
       },
     },
     mulWithBoundsCheck: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertAlmostReduced([x, y], F.modulus);
         return ForeignField.mul(x, y, F.modulus);
       },
     },
     mul: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         return ForeignField.mul(x, y, F.modulus);
       },
     },
     inv: {
-      privateInputs: [Field3.provable],
+      privateInputs: [Field3],
       async method(x) {
         return ForeignField.inv(x, F.modulus);
       },
     },
     div: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         return ForeignField.div(x, y, F.modulus);
       },
     },
     assertLessThan: {
-      privateInputs: [Field3.provable, Field3.provable],
+      privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertLessThan(x, y);
         return x;
@@ -313,8 +313,8 @@ await equivalentAsync({ from: [f, f], to: unit }, { runs })(
 
 function assertMulExample(x: Field3, y: Field3, f: bigint) {
   // witness x^2, y^2
-  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
-  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+  let x2 = Provable.witness(Field3, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3, () => ForeignField.mul(y, y, f));
 
   // assert (x - y) * (x + y) = x^2 - y^2
   let xMinusY = ForeignField.Sum(x).sub(y);
@@ -325,8 +325,8 @@ function assertMulExample(x: Field3, y: Field3, f: bigint) {
 
 function assertMulExampleNaive(x: Field3, y: Field3, f: bigint) {
   // witness x^2, y^2
-  let x2 = Provable.witness(Field3.provable, () => ForeignField.mul(x, x, f));
-  let y2 = Provable.witness(Field3.provable, () => ForeignField.mul(y, y, f));
+  let x2 = Provable.witness(Field3, () => ForeignField.mul(x, x, f));
+  let y2 = Provable.witness(Field3, () => ForeignField.mul(y, y, f));
 
   // assert (x - y) * (x + y) = x^2 - y^2
   let lhs = ForeignField.mul(
@@ -335,7 +335,7 @@ function assertMulExampleNaive(x: Field3, y: Field3, f: bigint) {
     f
   );
   let rhs = ForeignField.sub(x2, y2, f);
-  Provable.assertEqual(Field3.provable, lhs, rhs);
+  Provable.assertEqual(Field3, lhs, rhs);
 }
 
 let from2 = { from: [f, f] satisfies AnyTuple };
