@@ -47,8 +47,8 @@ await MerkleListReducing.compile();
 toc();
 const merkleListReducerContract = new MerkleListReducing(addresses.contract);
 
-let senderSpec = { sender, fee: 1000000000n };
-let sender2Spec = { sender: sender2, fee: 1000000000n };
+let senderSpec = { sender, fee: 1000000000 };
+let sender2Spec = { sender: sender2, fee: 1000000000 };
 
 tic('deploy contracts');
 let deployTx = await Mina.transaction(senderSpec, async () => {
