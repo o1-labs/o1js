@@ -15,14 +15,14 @@ echo ""
 
 ./run src/examples/zkapps/hello-world/run-live.ts --bundle | add_prefix "HELLO_WORLD" &
 HELLO_WORLD_PROC=$!
+./run src/examples/zkapps/reducer/run-live.ts --bundle | add_prefix "REDUCER" &
+REDUCER_FLOW_PROC=$!
 ./run src/examples/zkapps/dex/run-live.ts --bundle | add_prefix "DEX" &
 DEX_PROC=$!
 ./run src/examples/fetch-live.ts --bundle | add_prefix "FETCH" &
 FETCH_PROC=$!
 ./run src/tests/transaction-flow.ts --bundle | add_prefix "TRANSACTION_FLOW" &
 TRANSACTION_FLOW_PROC=$!
-./run src/examples/reducer/run-live.ts --bundle | add_prefix "REDUCER" &
-REDUCER_FLOW_PROC=$!
 
 # Wait for each process and capture their exit statuses
 FAILURE=0
