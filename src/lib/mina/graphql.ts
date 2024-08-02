@@ -9,6 +9,7 @@ export {
   type GenesisConstantsResponse,
   type FailureReasonResponse,
   type LastBlockQueryFailureCheckResponse,
+  type FetchedAction,
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
@@ -250,7 +251,7 @@ type EventQueryResponse = {
   }[];
 };
 
-export type FetchedAction = {
+type FetchedAction = {
   blockInfo: {
     distanceFromMaxBlockHeight: number;
   };

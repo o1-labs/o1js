@@ -734,6 +734,7 @@ export function createActionsList(
   accountInfo: ActionsQueryInputs,
   fetchedActions: FetchedAction[]
 ) {
+  const _fetchedActions = fetchedActions;
   const { publicKey, actionStates } = accountInfo;
 
   let actionsList: { actions: string[][]; hash: string }[] = [];
@@ -756,8 +757,9 @@ export function createActionsList(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
-    // Reverse order so that multiple actions in the same block get replayed in reverse
-    actionData = actionData.reverse();
+    actionData = actionData.sort((a1, a2) => {
+      return Number(a1.accountUpdateId) < Number(a2.accountUpdateId) ? -1 : 1;
+    });
 
     // split actions by account update
     let actionsByAccountUpdate: string[][][] = [];

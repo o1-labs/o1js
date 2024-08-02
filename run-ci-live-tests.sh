@@ -21,6 +21,8 @@ DEX_PROC=$!
 FETCH_PROC=$!
 ./run src/tests/transaction-flow.ts --bundle | add_prefix "TRANSACTION_FLOW" &
 TRANSACTION_FLOW_PROC=$!
+./run src/examples/reducer/run-live.ts --bundle | add_prefix "REDUCER" &
+REDUCER_FLOW_PROC=$!
 
 # Wait for each process and capture their exit statuses
 FAILURE=0
@@ -49,6 +51,13 @@ wait $TRANSACTION_FLOW_PROC
 if [ $? -ne 0 ]; then
   echo ""
   echo "TRANSACTION_FLOW test failed."
+  echo ""
+  FAILURE=1
+fi
+wait $REDUCER_FLOW_PROC
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "REDUCER_FLOW test failed."
   echo ""
   FAILURE=1
 fi
