@@ -14,8 +14,7 @@ case $TEST_TYPE in
 
 "Reducer integration tests")
   echo "Running reducer integration tests"
-  ./run src/examples/zkapps/reducer/actions-as-merkle-list.ts --bundle
-  ./run src/examples/zkapps/reducer/actions-as-merkle-list-iterator.ts --bundle
+  ./run src/examples/zkapps/reducer/run.ts --bundle
   ;;
 
 "Voting integration tests")

@@ -448,7 +448,7 @@ function Network(
         if (actions !== undefined) return actions;
       }
       throw Error(
-        `getActions: Could not find actions for the public key ${publicKey}`
+        `getActions: Could not find actions for the public key ${publicKey.toBase58()}`
       );
     },
     proofsEnabled: true,

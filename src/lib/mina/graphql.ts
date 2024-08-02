@@ -9,6 +9,7 @@ export {
   type GenesisConstantsResponse,
   type FailureReasonResponse,
   type LastBlockQueryFailureCheckResponse,
+  type FetchedAction,
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
@@ -250,20 +251,22 @@ type EventQueryResponse = {
   }[];
 };
 
-type ActionQueryResponse = {
-  actions: {
-    blockInfo: {
-      distanceFromMaxBlockHeight: number;
-    };
-    actionState: {
-      actionStateOne: string;
-      actionStateTwo: string;
-    };
-    actionData: {
-      accountUpdateId: string;
-      data: string[];
-    }[];
+type FetchedAction = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+  };
+  actionState: {
+    actionStateOne: string;
+    actionStateTwo: string;
+  };
+  actionData: {
+    accountUpdateId: string;
+    data: string[];
   }[];
+};
+
+type ActionQueryResponse = {
+  actions: FetchedAction[];
 };
 
 type EventActionFilterOptions = {

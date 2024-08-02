@@ -15,6 +15,8 @@ echo ""
 
 ./run src/examples/zkapps/hello-world/run-live.ts --bundle | add_prefix "HELLO_WORLD" &
 HELLO_WORLD_PROC=$!
+./run src/examples/zkapps/reducer/run-live.ts --bundle | add_prefix "REDUCER" &
+REDUCER_FLOW_PROC=$!
 ./run src/examples/zkapps/dex/run-live.ts --bundle | add_prefix "DEX" &
 DEX_PROC=$!
 ./run src/examples/fetch-live.ts --bundle | add_prefix "FETCH" &
@@ -49,6 +51,13 @@ wait $TRANSACTION_FLOW_PROC
 if [ $? -ne 0 ]; then
   echo ""
   echo "TRANSACTION_FLOW test failed."
+  echo ""
+  FAILURE=1
+fi
+wait $REDUCER_FLOW_PROC
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "REDUCER_FLOW test failed."
   echo ""
   FAILURE=1
 fi
