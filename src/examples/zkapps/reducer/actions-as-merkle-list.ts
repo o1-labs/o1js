@@ -116,7 +116,4 @@ async function testLocal() {
   );
   await containsTx.prove();
   await containsTx.sign([sender.key]).send();
-
-  await new Promise((_r) => setTimeout(_r, 5000));
-  Mina.setActiveInstance(Mina.default);
 }

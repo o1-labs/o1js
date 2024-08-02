@@ -125,7 +125,4 @@ async function testLocal() {
   await accTx.sign([sender.key]).send();
 
   assert(contract.counter.get().toBigInt() === 55n);
-
-  await new Promise((_r) => setTimeout(_r, 5000));
-  Mina.setActiveInstance(Mina.default);
 }

@@ -60,7 +60,7 @@ let deployTx = await Mina.transaction(senderSpec, async () => {
 pendingTx = await deployTx.sign([senderKey, keys.contract]).send();
 
 await pendingTx.wait();
-toc('deploy contracts');
+toc();
 console.log('working so far');
 // push some actions
 
@@ -78,7 +78,7 @@ let dispatchTx = await Mina.transaction(senderSpec, async () => {
 await dispatchTx.prove();
 pendingTx = await dispatchTx.sign([senderKey]).send();
 await pendingTx.wait();
-toc('dispatch transactions');
+toc();
 
 tic('proving inclusion');
 // check if the actions contain the `sender` address
@@ -91,7 +91,7 @@ let containsTx = await Mina.transaction(senderSpec, async () => {
 await containsTx.prove();
 pendingTx = await containsTx.sign([senderKey]).send();
 await pendingTx.wait();
-toc('proving inclusion');
+toc();
 
 tic('dispatch transactions (multi-transaction)');
 
@@ -111,7 +111,7 @@ let dispatchTx2 = await Mina.transaction(sender2Spec, async () => {
 });
 await dispatchTx2.prove();
 txs.push({ tx: dispatchTx2, privateKey: sender2Key });
-toc('building');
+toc();
 
 tic('sending');
 const txPromises = [];
@@ -119,13 +119,13 @@ for (let i = 0; i < txs.length; i++) {
   txPromises.push(txs[i].tx.sign([txs[i].privateKey]).send());
 }
 await Promise.all(txPromises);
-toc('sending');
+toc();
 
 tic('waiting');
 await new Promise((_r) => setTimeout(_r, 20_000));
-toc('waiting');
+toc();
 
-toc('dispatch transactions (multi-transaction)');
+toc();
 
 tic('proving inclusion (multi-transaction)');
 // check if the actions contain the `sender` address
@@ -137,7 +137,7 @@ let containsTx2 = await Mina.transaction(senderSpec, async () => {
 await containsTx2.prove();
 pendingTx = await containsTx2.sign([senderKey]).send();
 await pendingTx.wait();
-toc('proving inclusion (multi-transaction)');
+toc();
 
 // ----
 toc();
