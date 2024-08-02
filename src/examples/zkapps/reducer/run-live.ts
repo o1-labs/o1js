@@ -29,7 +29,7 @@ Mina.setActiveInstance(network);
 
 let { keys, addresses } = randomAccounts('contract', 'user1', 'user2');
 
-let tx, pendingTx: Mina.PendingTransaction, balances, oldBalances;
+let pendingTx: Mina.PendingTransaction;
 
 // compile contracts & wait for fee payer to be funded
 const senderKey = useCustomLocalNetwork
@@ -61,7 +61,6 @@ pendingTx = await deployTx.sign([senderKey, keys.contract]).send();
 
 await pendingTx.wait();
 toc();
-console.log('working so far');
 // push some actions
 
 tic('dispatch transactions');
@@ -141,3 +140,16 @@ toc();
 
 // ----
 toc();
+
+console.log('Success!');
+
+// Tear down
+const keyPairReleaseMessage = await Lightnet.releaseKeyPair({
+  publicKey: sender.toBase58(),
+});
+if (keyPairReleaseMessage) console.info(keyPairReleaseMessage);
+
+const keyPairReleaseMessage2 = await Lightnet.releaseKeyPair({
+  publicKey: sender2.toBase58(),
+});
+if (keyPairReleaseMessage2) console.info(keyPairReleaseMessage2);
