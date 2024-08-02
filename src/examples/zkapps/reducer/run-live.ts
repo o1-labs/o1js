@@ -117,11 +117,12 @@ const txPromises = [];
 for (let i = 0; i < txs.length; i++) {
   txPromises.push(txs[i].tx.sign([txs[i].privateKey]).send());
 }
-await Promise.all(txPromises);
+await txPromises[0].wait();
+await txPromises[1].wait();
 toc();
 
 tic('waiting');
-await new Promise((_r) => setTimeout(_r, 20_000));
+await new Promise((_r) => setTimeout(_r, 60_000));
 toc();
 
 toc();
