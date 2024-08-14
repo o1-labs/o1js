@@ -24,7 +24,7 @@ Showing all changes since the last release (v.1.5.0)
 
 ### Breaking Changes
 
-- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits` and assert it is in the range [0, 2**255) to address an issue previoulsy where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
+- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits`, and assert it is in the range [0, 2**255) to address an issue previoulsy where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
 
 - `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
   - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
