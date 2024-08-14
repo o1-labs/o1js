@@ -3,28 +3,15 @@ import {
   Lightnet,
   Mina,
   PrivateKey,
-} from '../../../../dist/node/index.js';
-import { randomAccounts } from '../../utils/randomAccounts.js';
+} from 'o1js';
+import { DEFAULT_LIGHTNET_CONFIG } from '../../utils/network-configuration.js';
+import { randomAccounts } from '../../utils/random-accounts.js';
 import { tic, toc } from '../../utils/tic-toc.node.js';
 import { MerkleListReducing } from './actions-as-merkle-list.js';
 
-const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
-
-if (!useCustomLocalNetwork) {
-  throw 'Only Lightnet is currently supported';
-}
-
 tic('Run reducer examples against real network.');
 console.log();
-const network = Mina.Network({
-  mina: useCustomLocalNetwork
-    ? 'http://localhost:8080/graphql'
-    : 'https://berkeley.minascan.io/graphql',
-  archive: useCustomLocalNetwork
-    ? 'http://localhost:8282'
-    : 'https://api.minascan.io/archive/berkeley/v1/graphql',
-  lightnetAccountManager: 'http://localhost:8181',
-});
+const network = Mina.Network(DEFAULT_LIGHTNET_CONFIG);
 Mina.setActiveInstance(network);
 
 let { keys, addresses } = randomAccounts('contract', 'user1', 'user2');
@@ -32,14 +19,10 @@ let { keys, addresses } = randomAccounts('contract', 'user1', 'user2');
 let pendingTx: Mina.PendingTransaction;
 
 // compile contracts & wait for fee payer to be funded
-const senderKey = useCustomLocalNetwork
-  ? (await Lightnet.acquireKeyPair()).privateKey
-  : PrivateKey.random();
+const senderKey = (await Lightnet.acquireKeyPair()).privateKey
 const sender = senderKey.toPublicKey();
 
-const sender2Key = useCustomLocalNetwork
-  ? (await Lightnet.acquireKeyPair()).privateKey
-  : PrivateKey.random();
+const sender2Key = (await Lightnet.acquireKeyPair()).privateKey
 const sender2 = sender2Key.toPublicKey();
 
 tic('Compiling Merkle List Reducer Smart Contract');

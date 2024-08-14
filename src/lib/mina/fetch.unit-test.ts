@@ -1,6 +1,6 @@
 import { PrivateKey, TokenId } from 'o1js';
 import { createActionsList } from './fetch.js';
-import { mockFetchActionsResponse } from './fixtures/fetchActionsResponse.js';
+import { mockFetchActionsResponse } from './fixtures/fetch-actions-response.js';
 import { test, describe } from 'node:test';
 import { removeJsonQuotes } from './graphql.js';
 import { expect } from 'expect';

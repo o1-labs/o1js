@@ -1,9 +1,13 @@
-import { PrivateKey, PublicKey } from '../../../dist/node/index.js';
+import { PrivateKey, PublicKey } from 'o1js';
+
+export {
+  randomAccounts
+}
 
 /**
  * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.
  */
-export function randomAccounts<K extends string>(
+function randomAccounts<K extends string>(
   ...names: [K, ...K[]]
 ): { keys: Record<K, PrivateKey>; addresses: Record<K, PublicKey> } {
   let base58Keys = Array(names.length)

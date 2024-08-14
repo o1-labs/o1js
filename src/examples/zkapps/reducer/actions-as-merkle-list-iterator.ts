@@ -18,7 +18,7 @@ import {
   SmartContract,
   method,
   assert,
-} from '../../../../dist/node/index.js';
+} from 'o1js';
 
 export { ActionsContract, testLocal };
 

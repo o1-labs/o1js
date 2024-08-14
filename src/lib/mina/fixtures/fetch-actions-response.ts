@@ -1,4 +1,8 @@
-export const mockFetchActionsResponse =
+export {
+    mockFetchActionsResponse
+}
+
+const mockFetchActionsResponse =
 {
     "data": {
         "actions": [
