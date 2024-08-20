@@ -289,7 +289,7 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      return [dx, dy];
+      return { values: [dx, dy] };
     }
 
     // this works for both directions (in our case where both tokens use the same contract)
