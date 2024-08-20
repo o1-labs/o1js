@@ -264,7 +264,7 @@ function createDex({
       this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       // return l, dy so callers don't have to walk their child account updates to get it
-      return [l, dy];
+      return { values: [l, dy] };
     }
 
     // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
