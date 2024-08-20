@@ -20,7 +20,7 @@ import {
 
 export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
 
-class UInt64x2 extends Struct([UInt64, UInt64]) {}
+class UInt64x2 extends Struct({ values: [UInt64, UInt64] }) {}
 
 function createDex({
   lockedLiquiditySlots,
