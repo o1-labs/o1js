@@ -16,6 +16,7 @@ import {
   AccountUpdateLayout,
   AccountUpdateTree,
 } from './account-update.js';
+import type { EventActionFilterOptions } from './graphql.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
@@ -1058,21 +1059,18 @@ super.init();
       chainStatus: string;
     }[]
   > {
+    const queryFilterOptions: EventActionFilterOptions = {};
+    if(start.greaterThan(UInt32.from(0)).toBoolean()) {
+      queryFilterOptions.from = start;
+    }
+    if(end) {
+      queryFilterOptions.to = end;
+    }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
-      await Mina.fetchEvents(this.address, this.self.body.tokenId, {
-        from: start,
-        to: end,
-      })
+      await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions)
     )
-      .filter((eventData) => {
-        let height = UInt32.from(eventData.blockHeight);
-        return end === undefined
-          ? start.lessThanOrEqual(height).toBoolean()
-          : start.lessThanOrEqual(height).toBoolean() &&
-              height.lessThanOrEqual(end).toBoolean();
-      })
       .map((event) => {
         return event.events.map((eventData) => {
           let { events, ...rest } = event;
@@ -1088,8 +1086,23 @@ super.init();
     let sortedEventTypes = Object.keys(this.events).sort();
 
     return events.map((eventData) => {
+      // If we don't know what types of events this zkapp may emit, then return the raw data
+      if (sortedEventTypes.length === 0) {
+        return {
+          ...eventData,
+          type: "Object",
+          event: {
+            data: eventData.event.data,
+            transactionInfo: {
+              transactionHash: eventData.event.transactionInfo.hash,
+              transactionStatus: eventData.event.transactionInfo.status,
+              transactionMemo: eventData.event.transactionInfo.memo,
+            },
+          },
+        };
+      }
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
-      if (sortedEventTypes.length === 1) {
+      else if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
         let event = this.events[type].fromFields(
           eventData.event.data.map((f: string) => Field(f))
