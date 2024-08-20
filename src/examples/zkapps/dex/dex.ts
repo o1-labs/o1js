@@ -158,7 +158,11 @@ function createDex({
       let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
+      let { values: dxdy } = await dexX.redeemLiquidity(
+        sender,
+        dl,
+        this.tokenY
+      );
       let dx = dxdy[0];
       await tokenX.transfer(dexX.self, sender, dx);
       return dxdy;
