@@ -277,9 +277,9 @@ function createDex({
       // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
       let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-      let result = await dexY.redeemLiquidityPartial(user, dl);
-      let l = result[0];
-      let dy = result[1];
+      let { values } = await dexY.redeemLiquidityPartial(user, dl);
+      let l = values[0];
+      let dy = values[1];
       await tokenY.transfer(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
