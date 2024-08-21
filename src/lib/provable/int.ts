@@ -1148,13 +1148,21 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
+   * Turns the {@link Int64} into a {@link BigInt}.
+   */
+  toBigint() {
+    let abs = this.magnitude.toBigInt();
+    let sgn = this.sgn.isPositive().toBoolean() ? 1n : -1n;
+    return sgn * abs;
+  }
+
+  /**
    * Turns the {@link Int64} into a string.
    */
   toString() {
-    let abs = this.magnitude.toString();
-    let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
-    return sgn + abs;
+    return this.toBigint().toString();
   }
+
   isConstant() {
     return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
