@@ -596,7 +596,7 @@ function ZkProgram<
     >['method'];
   };
 } & {
-  [I in keyof Types]: ProverWithAuxiliaryOutput<
+  [I in keyof Types]: Prover<
     InferProvableOrVoid<Get<StatementType, 'auxiliaryOutput'>>,
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
     InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
@@ -688,7 +688,7 @@ function ZkProgram<
   function toProver<K extends keyof Types & string>(
     key: K,
     i: number
-  ): [K, Prover<PublicInput, PublicOutput, Types[K]>] {
+  ): [K, Prover<AuxiliaryOutput, PublicInput, PublicOutput, Types[K]>] {
     async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
@@ -726,20 +726,20 @@ function ZkProgram<
         maxProofsVerified,
       });
     }
-    let prove: Prover<PublicInput, PublicOutput, Types[K]>;
+    let prove: Prover<AuxiliaryOutput, PublicInput, PublicOutput, Types[K]>;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
       prove = ((...args: TupleToInstances<Types[typeof key]>) =>
-        (prove_ as any)(undefined, ...args)) as any;
+        (prove_ as any)(undefined, ...(args as any))) as any;
     } else {
       prove = prove_ as any;
     }
     return [key, prove];
   }
   let provers = Object.fromEntries(methodKeys.map(toProver)) as {
-    [I in keyof Types]: ProverWithAuxiliaryOutput<
+    [I in keyof Types]: Prover<
       AuxiliaryOutput,
       PublicInput,
       PublicOutput,
@@ -1525,7 +1525,7 @@ type WithAuxiliaryOutput<AuxiliaryOutputType, ReturnType> =
     ? ReturnType
     : { proof: ReturnType; auxiliaryOutput: AuxiliaryOutputType };
 
-type ProverWithAuxiliaryOutput<
+type Prover<
   AuxiliaryOutputType,
   PublicInput,
   PublicOutput,
@@ -1542,7 +1542,7 @@ type ProverWithAuxiliaryOutput<
     ) => Promise<
       WithAuxiliaryOutput<AuxiliaryOutputType, Proof<PublicInput, PublicOutput>>
     >;
-
+/* 
 type Prover<
   PublicInput,
   PublicOutput,
@@ -1555,7 +1555,7 @@ type Prover<
       publicInput: PublicInput,
       ...args: TupleToInstances<Args>
     ) => Promise<Proof<PublicInput, PublicOutput>>;
-
+ */
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
   : ToProvable<A>;
