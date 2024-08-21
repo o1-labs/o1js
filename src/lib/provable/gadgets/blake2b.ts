@@ -8,14 +8,14 @@ export { BLAKE2B };
 
 const BLAKE2BConstants = {
   IV: [
-    0x6a09e667f3bcc908n,
-    0xbb67ae8584caa73bn,
-    0x3c6ef372fe94f82bn,
-    0xa54ff53a5f1d36f1n,
-    0x510e527fade682d1n,
-    0x9b05688c2b3e6c1fn,
-    0x1f83d9abfb41bd6bn,
-    0x5be0cd19137e2179n,
+    UInt64.from(0x6a09e667f3bcc908n),
+    UInt64.from(0xbb67ae8584caa73bn),
+    UInt64.from(0x3c6ef372fe94f82bn),
+    UInt64.from(0xa54ff53a5f1d36f1n),
+    UInt64.from(0x510e527fade682d1n),
+    UInt64.from(0x9b05688c2b3e6c1fn),
+    UInt64.from(0x1f83d9abfb41bd6bn),
+    UInt64.from(0x5be0cd19137e2179n),
   ],
 
   SIGMA: [
@@ -40,7 +40,7 @@ const BLAKE2B = {
     return Bytes.from(out);
   },
   get IV() {
-    return BLAKE2BConstants.IV.map((x) => UInt64.from(x));
+    return BLAKE2BConstants.IV;
   },
 };
 
