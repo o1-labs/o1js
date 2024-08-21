@@ -11,16 +11,17 @@ import {
 
 let MyProgram = ZkProgram({
   name: 'example-with-aux-output',
-  publicOutput: Field,
+  //publicOutput: Field,
   auxiliaryOutput: Field,
   methods: {
     baseCase: {
       privateInputs: [],
       async method() {
-        return {
-          publicOutput: Field(1),
-          aux: Field(1),
-        };
+        return Field(1);
+        //return {
+        //  publicOutput: Field(1),
+        //  aux: Field(1),
+        //};
       },
     },
   },

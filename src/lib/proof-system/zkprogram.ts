@@ -556,7 +556,7 @@ function ZkProgram<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
         InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
         Types[I],
-        InferProvableOrUndefined<Get<StatementType, 'auxiliaryOutput'>>
+        InferProvableOrVoid<Get<StatementType, 'auxiliaryOutput'>>
       >;
     };
     overrideWrapDomain?: 0 | 1 | 2;
@@ -584,7 +584,7 @@ function ZkProgram<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
       Types[I],
-      InferProvableOrUndefined<Get<StatementType, 'auxiliaryOutput'>>
+      InferProvableOrVoid<Get<StatementType, 'auxiliaryOutput'>>
     >['privateInputs'];
   };
   rawMethods: {
@@ -592,12 +592,12 @@ function ZkProgram<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
       Types[I],
-      InferProvableOrUndefined<Get<StatementType, 'auxiliaryOutput'>>
+      InferProvableOrVoid<Get<StatementType, 'auxiliaryOutput'>>
     >['method'];
   };
 } & {
   [I in keyof Types]: ProverWithAuxiliaryOutput<
-    InferProvableOrUndefined<Get<StatementType, 'auxiliaryOutput'>>,
+    InferProvableOrVoid<Get<StatementType, 'auxiliaryOutput'>>,
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
     InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
     Types[I]
@@ -619,7 +619,7 @@ function ZkProgram<
     Get<StatementType, 'publicInput'>
   >;
   type PublicOutput = InferProvableOrVoid<Get<StatementType, 'publicOutput'>>;
-  type AuxiliaryOutput = InferProvableOrUndefined<
+  type AuxiliaryOutput = InferProvableOrVoid<
     Get<StatementType, 'auxiliaryOutput'>
   >;
   class SelfProof extends Proof<PublicInput, PublicOutput> {
@@ -1475,9 +1475,26 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
-type ReturnTypeWithAuxiliaryOutput<PublicOutput, AuxiliaryOutput> =
-  AuxiliaryOutput extends undefined
+/**
+ * A method can have three different return types, depending on the permutation of `AuxiliaryOutput` and `PublicOutput`
+ *
+ * `AuxiliaryOutput != undefined && PublicOutput != undefined`:
+ * return {
+ *  publicOut: ..,
+ *  aux: ..
+ * }
+ *
+ * `AuxiliaryOutput == undefined && PublicOutput != undefined` OR ``AuxiliaryOutput != undefined && PublicOutput == undefined``:
+ * return ..;
+ *
+ * `AuxiliaryOutput == undefined && PublicOutput == undefined`:
+ * return void;
+ */
+type MethodReturnSignature<PublicOutput, AuxiliaryOutput> =
+  AuxiliaryOutput extends void
     ? PublicOutput
+    : PublicOutput extends void
+    ? AuxiliaryOutput
     : {
         publicOutput: PublicOutput;
         aux: AuxiliaryOutput;
@@ -1493,18 +1510,18 @@ type Method<
       privateInputs: Args;
       method(
         ...args: TupleToInstances<Args>
-      ): Promise<ReturnTypeWithAuxiliaryOutput<PublicOutput, AuxiliaryOutput>>;
+      ): Promise<MethodReturnSignature<PublicOutput, AuxiliaryOutput>>;
     }
   : {
       privateInputs: Args;
       method(
         publicInput: PublicInput,
         ...args: TupleToInstances<Args>
-      ): Promise<ReturnTypeWithAuxiliaryOutput<PublicOutput, AuxiliaryOutput>>;
+      ): Promise<MethodReturnSignature<PublicOutput, AuxiliaryOutput>>;
     };
 
 type WithAuxiliaryOutput<AuxiliaryOutputType, ReturnType> =
-  AuxiliaryOutputType extends undefined
+  AuxiliaryOutputType extends void
     ? ReturnType
     : { proof: ReturnType; auxiliaryOutput: AuxiliaryOutputType };
 
