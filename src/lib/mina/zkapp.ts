@@ -666,6 +666,7 @@ class SmartContract extends SmartContractBase {
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
       publicOutputType: Empty,
+      auxiliaryOutputType: Empty,
       methodIntfs,
       methods,
       gates,

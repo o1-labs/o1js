@@ -673,6 +673,7 @@ function ZkProgram<
     let { provers, verify, verificationKey } = await compileProgram({
       publicInputType,
       publicOutputType,
+      auxiliaryOutputType,
       methodIntfs,
       methods: methodFunctions,
       gates,
@@ -799,13 +800,12 @@ type ZkProgram<
   S extends {
     publicInput?: ProvableTypePure;
     publicOutput?: ProvableTypePure;
+    auxiliaryOutput?: ProvableTypePure;
   },
   T extends {
     [I in string]: Tuple<PrivateInput>;
   }
 > = ReturnType<typeof ZkProgram<S, T>>;
-
-let i = 0;
 
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
@@ -927,6 +927,7 @@ const maxProofsToWrapDomain = { 0: 0, 1: 1, 2: 1 } as const;
 async function compileProgram({
   publicInputType,
   publicOutputType,
+  auxiliaryOutputType,
   methodIntfs,
   methods,
   gates,
@@ -937,6 +938,7 @@ async function compileProgram({
 }: {
   publicInputType: ProvablePure<any>;
   publicOutputType: ProvablePure<any>;
+  auxiliaryOutputType: ProvablePure<any>;
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
   gates: Gate[][];
@@ -955,6 +957,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
     picklesRuleFromFunction(
       publicInputType,
       publicOutputType,
+      auxiliaryOutputType,
       methods[i],
       proofSystemTag,
       methodEntry,
@@ -1076,6 +1079,7 @@ function inCircuitVkHash(inCircuitVk: unknown): Field {
 function picklesRuleFromFunction(
   publicInputType: ProvablePure<unknown>,
   publicOutputType: ProvablePure<unknown>,
+  auxiliaryOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
@@ -1163,9 +1167,17 @@ function picklesRuleFromFunction(
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
+
+    let hasAuxiliaryOutput = auxiliaryOutputType.sizeInFields() !== 0;
+    // TODO fix me
+    let auxiliaryOutput = hasAuxiliaryOutput
+      ? auxiliaryOutputType.toFields(result)
+      : [];
+
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
+      auxiliaryOutput: MlFieldArray.to(auxiliaryOutput),
       shouldVerify: MlArray.to(
         proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
       ),

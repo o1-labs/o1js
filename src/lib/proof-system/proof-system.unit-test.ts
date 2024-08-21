@@ -59,6 +59,7 @@ it('pickles rule creation', async () => {
   let rule: Pickles.Rule = picklesRuleFromFunction(
     Empty as ProvablePure<any>,
     Field as ProvablePure<any>,
+    Empty as ProvablePure<any>,
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
