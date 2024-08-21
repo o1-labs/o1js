@@ -20,7 +20,7 @@ import {
 
 export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
 
-class UInt64x2 extends Struct([UInt64, UInt64]) {}
+class UInt64x2 extends Struct({ values: [UInt64, UInt64] }) {}
 
 function createDex({
   lockedLiquiditySlots,
@@ -158,7 +158,11 @@ function createDex({
       let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let dxdy = await dexX.redeemLiquidity(sender, dl, this.tokenY);
+      let { values: dxdy } = await dexX.redeemLiquidity(
+        sender,
+        dl,
+        this.tokenY
+      );
       let dx = dxdy[0];
       await tokenX.transfer(dexX.self, sender, dx);
       return dxdy;
@@ -264,7 +268,7 @@ function createDex({
       this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       // return l, dy so callers don't have to walk their child account updates to get it
-      return [l, dy];
+      return { values: [l, dy] };
     }
 
     // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
@@ -277,9 +281,9 @@ function createDex({
       // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
       let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
-      let result = await dexY.redeemLiquidityPartial(user, dl);
-      let l = result[0];
-      let dy = result[1];
+      let { values } = await dexY.redeemLiquidityPartial(user, dl);
+      let l = values[0];
+      let dy = values[1];
       await tokenY.transfer(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
@@ -289,7 +293,7 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      return [dx, dy];
+      return { values: [dx, dy] };
     }
 
     // this works for both directions (in our case where both tokens use the same contract)
