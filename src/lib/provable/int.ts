@@ -1334,7 +1334,11 @@ class Int64 extends CircuitValue implements BalanceChange {
     let isNonNegative = this.magnitude
       .equals(UInt64.zero)
       .or(this.sgn.isPositive());
-    rest = Provable.if(isNonNegative, rest, y_.value.sub(rest));
+    rest = Provable.if(
+      isNonNegative.or(rest.equals(0)),
+      rest,
+      y_.value.sub(rest)
+    );
     return new Int64(new UInt64(rest.value));
   }
 
