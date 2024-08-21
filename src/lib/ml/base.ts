@@ -15,11 +15,13 @@ export {
   MlString,
   MlTuple,
   MlArrayOptionalElements,
+  MlTuple3,
 };
 
 // ocaml types
 
 type MlPair<X, Y> = [0, X, Y];
+type MlTuple3<X, Y, Z> = [0, X, Y, Z];
 type MlArray<T> = [0, ...T[]];
 type MlList<T> = [0, T, 0 | MlList<T>];
 type MlOption<T> = 0 | [0, T];
@@ -56,6 +58,17 @@ const MlArray = {
     return arr.map(map);
   },
 };
+
+const MlTuple3 = Object.assign(
+  function MlTuple3<X, Y, Z>(x: X, y: Y, z: Z): MlTuple3<X, Y, Z> {
+    return [0, x, y, z];
+  },
+  {
+    from<X, Y, Z>([, x, y, z]: MlTuple3<X, Y, Z>): [X, Y, Z] {
+      return [x, y, z];
+    },
+  }
+);
 
 const MlPair = Object.assign(
   function MlTuple<X, Y>(x: X, y: Y): MlPair<X, Y> {

@@ -25,6 +25,7 @@ import {
   MlPair,
   MlOption,
   MlArrayOptionalElements,
+  MlTuple3,
 } from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
@@ -713,7 +714,11 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let [publicOutputFields, proof] = MlPair.from(result);
+      let [publicOutputFields, proof, auxiliaryOutput] = MlTuple3.from(result);
+      console.log('pub', publicOutputFields);
+      console.log('aux', auxiliaryOutput);
+      console.log('proof', proof);
+
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
@@ -1000,6 +1005,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           result = Pickles.compile(MlArray.to(rules), {
             publicInputSize: publicInputType.sizeInFields(),
             publicOutputSize: publicOutputType.sizeInFields(),
+            auxiliaryOutputSize: auxiliaryOutputType.sizeInFields(),
             storable: picklesCache,
             overrideWrapDomain,
           });
@@ -1134,7 +1140,7 @@ function picklesRuleFromFunction(
       let input = fromFieldVars(publicInputType, publicInput);
       result = await func(input, ...finalArgs);
     }
-
+    console.log('result', result);
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
         return;
@@ -1166,12 +1172,25 @@ function picklesRuleFromFunction(
 
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
-    let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
-
     let hasAuxiliaryOutput = auxiliaryOutputType.sizeInFields() !== 0;
-    // TODO fix me
+
+    // dissect result in case we return both aux and public output
+    let publicOutputResult;
+    let auxiliaryOutputResult;
+    if (hasPublicOutput && hasAuxiliaryOutput) {
+      publicOutputResult = result.publicOutput;
+      auxiliaryOutputResult = result.aux;
+    } else {
+      publicOutputResult = result;
+      auxiliaryOutputResult = result;
+    }
+
+    let publicOutput = hasPublicOutput
+      ? publicOutputType.toFields(publicOutputResult)
+      : [];
+
     let auxiliaryOutput = hasAuxiliaryOutput
-      ? auxiliaryOutputType.toFields(result)
+      ? auxiliaryOutputType.toFields(auxiliaryOutputResult)
       : [];
 
     return {

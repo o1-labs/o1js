@@ -655,7 +655,14 @@ declare namespace Pickles {
   type Prover = (
     publicInput: MlArray<FieldConst>,
     previousProofs: MlArray<Proof>
-  ) => Promise<[_: 0, publicOutput: MlArray<FieldConst>, proof: Proof]>;
+  ) => Promise<
+    [
+      _: 0,
+      publicOutput: MlArray<FieldConst>,
+      proof: Proof,
+      auxiliaryOutput: MlArray<FieldConst>
+    ]
+  >;
 }
 
 declare const Pickles: {
@@ -685,6 +692,7 @@ declare const Pickles: {
     config: {
       publicInputSize: number;
       publicOutputSize: number;
+      auxiliaryOutputSize: number;
       storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
     }
