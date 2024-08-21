@@ -2,6 +2,7 @@
 import { UInt64, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
+import { Gadgets } from './gadgets.js';
 
 export { BLAKE2B };
 
@@ -72,16 +73,16 @@ function G(
   x: UInt64,
   y: UInt64
 ) {
-  v[a] = v[a].addMod64(v[b].addMod64(x));
+  v[a] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[a].value.add(v[b].value.add(x.value)), 128).remainder);
   v[d] = v[d].xor(v[a]).rotate(32, 'right');
-
-  v[c] = v[c].addMod64(v[d]);
+  
+  v[c] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder);
   v[b] = v[b].xor(v[c]).rotate(24, 'right');
 
-  v[a] = v[a].addMod64(v[b].addMod64(y));
+  v[a] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[a].value.add(v[b].value.add(y.value)), 128).remainder);
   v[d] = v[d].xor(v[a]).rotate(16, 'right');
 
-  v[c] = v[c].addMod64(v[d]);
+  v[c] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder);
   v[b] = v[b].xor(v[c]).rotate(63, 'right');
 }
 
