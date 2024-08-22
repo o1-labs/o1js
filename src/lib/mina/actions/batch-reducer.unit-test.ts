@@ -72,7 +72,7 @@ class UnsafeAirdrop extends SmartContract {
    */
   @method
   async claim() {
-    let address = this.sender.getUnconstrained();
+    let address = this.sender.getUnconstrainedV2();
 
     // ensure that the MINA account already exists and that the sender knows its private key
     let au = AccountUpdate.createSigned(address);
