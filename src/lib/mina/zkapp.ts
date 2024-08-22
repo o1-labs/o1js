@@ -881,6 +881,8 @@ super.init();
      *
      * **Warning**: The fact that this public key equals the current sender is not part of the proof.
      * A malicious prover could use any other public key without affecting the validity of the proof.
+     *
+     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
      */
     getUnconstrained(): PublicKey {
       // TODO this logic now has some overlap with this.self, we should combine them somehow
@@ -900,8 +902,28 @@ super.init();
       }
     },
 
+    /**
+     * @deprecated
+     * Deprecated in favor of `this.sender.getAndRequireSignatureV2()`.
+     * This method is vulnerable because it allows the prover to return a dummy (empty) public key.
+     */
     getAndRequireSignature(): PublicKey {
       let sender = this.getUnconstrained();
+      AccountUpdate.createSigned(sender);
+      return sender;
+    },
+
+    /**
+     * Return a public key that is forced to sign this transaction.
+     *
+     * Note: This doesn't prove that the return value is the transaction sender, but it does prove that whoever created
+     * the transaction controls the private key associated with the returned public key.
+     */
+    getAndRequireSignatureV2(): PublicKey {
+      let sender = this.getUnconstrained();
+      // we prove that the returned public key is not the empty key, in which case `createSigned()` would
+      // skip adding the account update
+      sender.x.assertNotEquals(0);
       AccountUpdate.createSigned(sender);
       return sender;
     },
