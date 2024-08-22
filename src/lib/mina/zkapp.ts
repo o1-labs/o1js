@@ -875,14 +875,10 @@ super.init();
   sender = {
     self: this as SmartContract,
     /**
-     * The public key of the current transaction's sender account.
-     *
-     * Throws an error if not inside a transaction, or the sender wasn't passed in.
-     *
-     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-     * A malicious prover could use any other public key without affecting the validity of the proof.
-     *
-     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
+     * @deprecated
+     * Deprecated in favor of `this.sender.getUnconstrainedV2()`.
+     * This method is vulnerable because it allows the prover to return a dummy (empty) public key,
+     * which would cause an account update with that public key to not be included.
      */
     getUnconstrained(): PublicKey {
       // TODO this logic now has some overlap with this.self, we should combine them somehow
@@ -903,6 +899,24 @@ super.init();
     },
 
     /**
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     *
+     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
+     */
+    getUnconstrainedV2(): PublicKey {
+      let sender = this.getUnconstrained();
+      // we prove that the returned public key is not the empty key, in which case
+      // `createSigned()` would skip adding the account update, and nothing is proved
+      sender.x.assertNotEquals(0);
+      return sender;
+    },
+
+    /**
      * @deprecated
      * Deprecated in favor of `this.sender.getAndRequireSignatureV2()`.
      * This method is vulnerable because it allows the prover to return a dummy (empty) public key.
@@ -916,14 +930,11 @@ super.init();
     /**
      * Return a public key that is forced to sign this transaction.
      *
-     * Note: This doesn't prove that the return value is the transaction sender, but it does prove that whoever created
+     * Note: This doesn't prove that the return value is the transaction sender, but it proves that whoever created
      * the transaction controls the private key associated with the returned public key.
      */
     getAndRequireSignatureV2(): PublicKey {
-      let sender = this.getUnconstrained();
-      // we prove that the returned public key is not the empty key, in which case `createSigned()` would
-      // skip adding the account update
-      sender.x.assertNotEquals(0);
+      let sender = this.getUnconstrainedV2();
       AccountUpdate.createSigned(sender);
       return sender;
     },

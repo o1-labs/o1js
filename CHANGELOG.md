@@ -19,7 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Deprecated
 
-- `this.sender.getAndRequireSignature()` deprecated in favor of `getAndRequireSignatureV2()` due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
 
 ### Fixes
 
