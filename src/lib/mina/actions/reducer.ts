@@ -147,7 +147,11 @@ class ${contract.constructor.name} extends SmartContract {
   return {
     dispatch(action: A) {
       let accountUpdate = contract.self;
-      let eventFields = reducer.actionType.toFields(action);
+      let canonical = Provable.toCanonical(
+        reducer.actionType as Provable<A>,
+        action
+      );
+      let eventFields = reducer.actionType.toFields(canonical);
       accountUpdate.body.actions = Actions.pushEvent(
         accountUpdate.body.actions,
         eventFields
