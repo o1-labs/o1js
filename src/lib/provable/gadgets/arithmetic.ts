@@ -57,9 +57,11 @@ function addMod32(x: Field, y: Field) {
   return divMod32(x.add(y), 33).remainder;
 }
 
-
 function divMod64(n: Field, nBits = 128) {
-  assert(nBits >= 0 && nBits <= 255, `nBits must be in the range [0, 255], got ${nBits}`)
+  assert(
+    nBits >= 0 && nBits <= 255,
+    `nBits must be in the range [0, 255], got ${nBits}`
+  );
 
   // calculate the number of bits allowed for the quotient to avoid overflow
   const quotientBits = Math.max(0, nBits - 64);
