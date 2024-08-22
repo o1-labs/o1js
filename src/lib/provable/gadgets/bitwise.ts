@@ -175,32 +175,7 @@ function and(a: Field, b: Field, length: number) {
 }
 
 function or(a: Field, b: Field, length: number) {
-  // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
-  // preventing potential underconstraint issues in the circuit
-  validateBitLength(length, 240, 'or');
-
-  // obtain pad length until the length is a multiple of 16 for n-bit length lookup table
-  let padLength = Math.ceil(length / 16) * 16;
-
-  // handle constant case
-  if (a.isConstant() && b.isConstant()) {
-    let max = 1n << BigInt(padLength);
-
-    assert(a.toBigInt() < max, `${a} does not fit into ${padLength} bits`);
-    assert(b.toBigInt() < max, `${b} does not fit into ${padLength} bits`);
-
-    return new Field(a.toBigInt() | b.toBigInt());
-  }
-
-  // calculate expect and output
-  let outputOr = Provable.witness(Field, () => a.toBigInt() | b.toBigInt());
-
-  outputOr.assertEquals(
-    not(and(not(a, length), not(b, length), length), length)
-  );
-
-  // return the result of the or operation
-  return outputOr;
+  return not(and(not(a, length), not(b, length), length), length);
 }
 
 function rotate64(
