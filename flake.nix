@@ -103,8 +103,14 @@
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
           inherit dune-description;
-          default = prj.pkgs.o1js_bindings;
-          js = prj.pkgs.__ocaml-js__;
+          bindings = prj.pkgs.o1js_bindings;
+          ocaml-js = prj.pkgs.__ocaml-js__;
+          default = pkgs.buildNpmPackage
+            { name = "o1js";
+              src = ./.;
+              npmDepsHash = "sha256-++MTGDUVBccYN8LA2Xb0FkbrZ14ZyVCrDPESXa52AwQ=";
+              # TODO ideally re-build bindings here
+            };
         };
       });
 }
