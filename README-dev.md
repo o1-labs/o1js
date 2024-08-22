@@ -39,7 +39,7 @@ This command compiles the TypeScript source files, making them ready for use. Th
 
 Much like the mina repo, we use the nix registry to conveniently handle git submodules.
 You can enter the devshell with `./pin.sh` and `nix develop o1js#default` or by using
-direnv with the `.envrc` provided.
+direnv with the `.envrc` provided. This devshell provides all the dependencies required for npm scripts including `npm run:update-bindings`.
 
 ## Building Bindings
 
