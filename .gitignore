@@ -10,3 +10,4 @@ o1js-reference
 _build/
 src/config/
 src/config.mlh
+.direnv
