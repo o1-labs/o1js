@@ -39,7 +39,7 @@ This command compiles the TypeScript source files, making them ready for use. Th
 
 Much like the mina repo, we use the nix registry to conveniently handle git submodules.
 You can enter the devshell with `./pin.sh` and `nix develop o1js#default` or by using
-the direnv with the `.envrc` provided.
+direnv with the `.envrc` provided.
 
 ## Building Bindings
 
@@ -95,8 +95,8 @@ o1js uses these types to ensure that the constants used in the protocol are cons
 | main               | **Yes**     |
 | develop            | No          |
 
-When you start your work on o1js, please create the feature branch off of one of the above base branches.  
-It's encouraged to submit your work-in-progress as a draft PR to raise visibility!  
+When you start your work on o1js, please create the feature branch off of one of the above base branches.
+It's encouraged to submit your work-in-progress as a draft PR to raise visibility!
 When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
 
 **Default to `main` as the base branch**.
@@ -208,8 +208,8 @@ docker run --rm --pull=missing -it \
 
 See the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-network) for more information.
 
-Next up, get the Mina blockchain accounts information to be used in your zkApp.  
-After the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.  
+Next up, get the Mina blockchain accounts information to be used in your zkApp.
+After the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.
 See the corresponding example in [src/examples/zkapps/hello-world/run-live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello-world/run-live.ts).
 
 ### Profiling o1js
