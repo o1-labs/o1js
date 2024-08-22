@@ -35,6 +35,12 @@ npm run build
 
 This command compiles the TypeScript source files, making them ready for use. The compiled OCaml and WebAssembly artifacts are version-controlled to simplify the build process for end users. These artifacts are stored under `src/bindings/compiled` and contain the artifacts needed for both node and web builds. These files only have to be regenerated if there are changes to the OCaml or Rust source files.
 
+## Building with nix
+
+Much like the mina repo, we use the nix registry to conveniently handle git submodules.
+You can enter the devshell with `./pin.sh` and `nix develop o1js#default` or by using
+the direnv with the `.envrc` provided.
+
 ## Building Bindings
 
 To regenerate the OCaml and WebAssembly artifacts, you can do so within the o1js repo. The [bindings](https://github.com/o1-labs/o1js-bindings) and [Mina](https://github.com/MinaProtocol/mina) repos are both submodules of o1js so you can build them from within the o1js repo.
