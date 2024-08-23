@@ -1145,13 +1145,21 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
+   * Turns the {@link Int64} into a {@link BigInt}.
+   */
+  toBigint() {
+    let abs = this.magnitude.toBigInt();
+    let sgn = this.sgn.isPositive().toBoolean() ? 1n : -1n;
+    return sgn * abs;
+  }
+
+  /**
    * Turns the {@link Int64} into a string.
    */
   toString() {
-    let abs = this.magnitude.toString();
-    let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
-    return sgn + abs;
+    return this.toBigint().toString();
   }
+
   isConstant() {
     return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
@@ -1289,8 +1297,14 @@ class Int64 extends CircuitValue implements BalanceChange {
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    let isNonNegative = this.isNonNegative();
-    rest = Provable.if(isNonNegative, rest, y_.value.sub(rest));
+    let isNonNegative = this.magnitude
+      .equals(UInt64.zero)
+      .or(this.sgn.isPositive());
+    rest = Provable.if(
+      isNonNegative.or(rest.equals(0)),
+      rest,
+      y_.value.sub(rest)
+    );
     return new Int64(new UInt64(rest.value));
   }
 
