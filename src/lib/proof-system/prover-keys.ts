@@ -211,7 +211,6 @@ type MlSnarkKeysHeader = [
   headerVersion: number,
   kind: [_: 0, type: MlString, identifier: MlString],
   constraintConstants: unknown,
-  commit: MlString,
   length: number,
   constraintSystemHash: MlString,
   identifyingHash: MlString
