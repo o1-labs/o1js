@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/d6abf1d97...HEAD)
 
+### Deprecated
+
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+
 ### Fixes
 
 - Fix behavior of `Int64.modV2()` when the input is negative and the remainder should be 0 https://github.com/o1-labs/o1js/pull/1797
