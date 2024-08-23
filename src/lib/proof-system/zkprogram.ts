@@ -694,7 +694,14 @@ function ZkProgram<
     async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<Proof<PublicInput, PublicOutput>> {
+    ): Promise<
+      AuxiliaryOutput extends void
+        ? Proof<PublicInput, PublicOutput>
+        : {
+            proof: Proof<PublicInput, PublicOutput>;
+            auxiliaryOutput: AuxiliaryOutput;
+          }
+    > {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -714,10 +721,8 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let [publicOutputFields, proof, auxiliaryOutput] = MlTuple3.from(result);
-      console.log('pub', publicOutputFields);
-      console.log('aux', auxiliaryOutput);
-      console.log('proof', proof);
+      let [publicOutputFields, auxiliaryOutputFields, proof] =
+        MlTuple3.from(result);
 
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
@@ -725,12 +730,25 @@ function ZkProgram<
         static publicOutputType = publicOutputType;
         static tag = () => selfTag;
       }
-      return new ProgramProof({
+
+      const programProof = new ProgramProof({
         publicInput,
         publicOutput,
         proof,
         maxProofsVerified,
       });
+
+      if (auxiliaryOutputType.sizeInFields() !== 0) {
+        return {
+          auxiliaryOutput: fromFieldConsts(
+            auxiliaryOutputType,
+            auxiliaryOutputFields
+          ) as AuxiliaryOutput,
+          proof: programProof as ProgramProof,
+        } as any;
+      } else {
+        return programProof as any;
+      }
     }
     let prove: Prover<AuxiliaryOutput, PublicInput, PublicOutput, Types[K]>;
     if (
@@ -969,6 +987,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       gates[i]
     )
   );
+
   let maxProofs = getMaxProofsVerified(methodIntfs);
   overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
@@ -995,36 +1014,36 @@ If you are using a SmartContract, make sure you are using the @method decorator.
     MlBool(cache.canWrite),
   ];
 
-  let { verificationKey, provers, verify, tag } =
-    await prettifyStacktracePromise(
-      withThreadPool(async () => {
-        let result: ReturnType<typeof Pickles.compile>;
-        let id = snarkContext.enter({ inCompile: true });
-        setSrsCache(cache);
-        try {
-          result = Pickles.compile(MlArray.to(rules), {
-            publicInputSize: publicInputType.sizeInFields(),
-            publicOutputSize: publicOutputType.sizeInFields(),
-            auxiliaryOutputSize: auxiliaryOutputType.sizeInFields(),
-            storable: picklesCache,
-            overrideWrapDomain,
-          });
-          let { getVerificationKey, provers, verify, tag } = result;
-          CompiledTag.store(proofSystemTag, tag);
-          let [, data, hash] = await getVerificationKey();
-          let verificationKey = { data, hash: Field(hash) };
-          return {
-            verificationKey,
-            provers: MlArray.from(provers),
-            verify,
-            tag,
-          };
-        } finally {
-          snarkContext.leave(id);
-          unsetSrsCache();
-        }
-      })
-    );
+  let { verificationKey, provers, verify, tag } = await withThreadPool(
+    async () => {
+      let result: ReturnType<typeof Pickles.compile>;
+      let id = snarkContext.enter({ inCompile: true });
+      setSrsCache(cache);
+      try {
+        result = Pickles.compile(MlArray.to(rules), {
+          publicInputSize: publicInputType.sizeInFields(),
+          publicOutputSize: publicOutputType.sizeInFields(),
+          auxiliaryOutputSize: auxiliaryOutputType.sizeInFields(),
+          storable: picklesCache,
+          overrideWrapDomain,
+        });
+        let { getVerificationKey, provers, verify, tag } = result;
+        CompiledTag.store(proofSystemTag, tag);
+        let [, data, hash] = await getVerificationKey();
+        let verificationKey = { data, hash: Field(hash) };
+        return {
+          verificationKey,
+          provers: MlArray.from(provers),
+          verify,
+          tag,
+        };
+      } finally {
+        snarkContext.leave(id);
+        unsetSrsCache();
+      }
+    }
+  );
+
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
@@ -1140,7 +1159,6 @@ function picklesRuleFromFunction(
       let input = fromFieldVars(publicInputType, publicInput);
       result = await func(input, ...finalArgs);
     }
-    console.log('result', result);
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
         return;
