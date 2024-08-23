@@ -1014,35 +1014,36 @@ If you are using a SmartContract, make sure you are using the @method decorator.
     MlBool(cache.canWrite),
   ];
 
-  let { verificationKey, provers, verify, tag } = await withThreadPool(
-    async () => {
-      let result: ReturnType<typeof Pickles.compile>;
-      let id = snarkContext.enter({ inCompile: true });
-      setSrsCache(cache);
-      try {
-        result = Pickles.compile(MlArray.to(rules), {
-          publicInputSize: publicInputType.sizeInFields(),
-          publicOutputSize: publicOutputType.sizeInFields(),
-          auxiliaryOutputSize: auxiliaryOutputType.sizeInFields(),
-          storable: picklesCache,
-          overrideWrapDomain,
-        });
-        let { getVerificationKey, provers, verify, tag } = result;
-        CompiledTag.store(proofSystemTag, tag);
-        let [, data, hash] = await getVerificationKey();
-        let verificationKey = { data, hash: Field(hash) };
-        return {
-          verificationKey,
-          provers: MlArray.from(provers),
-          verify,
-          tag,
-        };
-      } finally {
-        snarkContext.leave(id);
-        unsetSrsCache();
-      }
-    }
-  );
+  let { verificationKey, provers, verify, tag } =
+    await prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let result: ReturnType<typeof Pickles.compile>;
+        let id = snarkContext.enter({ inCompile: true });
+        setSrsCache(cache);
+        try {
+          result = Pickles.compile(MlArray.to(rules), {
+            publicInputSize: publicInputType.sizeInFields(),
+            publicOutputSize: publicOutputType.sizeInFields(),
+            auxiliaryOutputSize: auxiliaryOutputType.sizeInFields(),
+            storable: picklesCache,
+            overrideWrapDomain,
+          });
+          let { getVerificationKey, provers, verify, tag } = result;
+          CompiledTag.store(proofSystemTag, tag);
+          let [, data, hash] = await getVerificationKey();
+          let verificationKey = { data, hash: Field(hash) };
+          return {
+            verificationKey,
+            provers: MlArray.from(provers),
+            verify,
+            tag,
+          };
+        } finally {
+          snarkContext.leave(id);
+          unsetSrsCache();
+        }
+      })
+    );
 
   // wrap provers
   let wrappedProvers = provers.map(
@@ -1577,20 +1578,7 @@ type Prover<
     ) => Promise<
       WithAuxiliaryOutput<AuxiliaryOutputType, Proof<PublicInput, PublicOutput>>
     >;
-/* 
-type Prover<
-  PublicInput,
-  PublicOutput,
-  Args extends Tuple<PrivateInput>
-> = PublicInput extends undefined
-  ? (
-      ...args: TupleToInstances<Args>
-    ) => Promise<Proof<PublicInput, PublicOutput>>
-  : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
-    ) => Promise<Proof<PublicInput, PublicOutput>>;
- */
+
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
   : ToProvable<A>;
