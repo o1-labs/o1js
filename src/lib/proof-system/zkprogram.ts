@@ -743,8 +743,8 @@ function ZkProgram<
           auxiliaryOutput: fromFieldConsts(
             auxiliaryOutputType,
             auxiliaryOutputFields
-          ) as AuxiliaryOutput,
-          proof: programProof as ProgramProof,
+          ),
+          proof: programProof,
         } as any;
       } else {
         return programProof as any;
@@ -1524,21 +1524,6 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
-/**
- * A method can have three different return types, depending on the permutation of `AuxiliaryOutput` and `PublicOutput`
- *
- * `AuxiliaryOutput != undefined && PublicOutput != undefined`:
- * return {
- *  publicOut: ..,
- *  aux: ..
- * }
- *
- * `AuxiliaryOutput == undefined && PublicOutput != undefined` OR ``AuxiliaryOutput != undefined && PublicOutput == undefined``:
- * return ..;
- *
- * `AuxiliaryOutput == undefined && PublicOutput == undefined`:
- * return void;
- */
 type MethodReturnSignature<PublicOutput, AuxiliaryOutput> =
   AuxiliaryOutput extends void
     ? PublicOutput
@@ -1546,7 +1531,7 @@ type MethodReturnSignature<PublicOutput, AuxiliaryOutput> =
     ? AuxiliaryOutput
     : {
         publicOutput: PublicOutput;
-        aux: AuxiliaryOutput;
+        auxiliaryOutput: AuxiliaryOutput;
       };
 
 type Method<
