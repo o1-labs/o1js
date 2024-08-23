@@ -11,6 +11,7 @@ import {
 } from '../../../bindings/crypto/bigint-helpers.js';
 import {
   CurveAffine,
+  GroupAffine,
   affineAdd,
   affineDouble,
 } from '../../../bindings/crypto/elliptic-curve.js';
@@ -381,7 +382,7 @@ function multiScalarMulConstant(
   // TODO dedicated MSM
   let s = scalars.map(Field3.toBigint);
   let P = points.map(Point.toBigint);
-  let sum = Curve.zero;
+  let sum: GroupAffine = Curve.zero;
   for (let i = 0; i < n; i++) {
     if (useGlv) {
       sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
