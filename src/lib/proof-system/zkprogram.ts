@@ -1192,13 +1192,14 @@ function picklesRuleFromFunction(
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let hasAuxiliaryOutput = auxiliaryOutputType.sizeInFields() !== 0;
 
-    // dissect result in case we return both aux and public output
+    // dissect result to match our methods return type, depending on what needs to be returned
     let publicOutputResult;
     let auxiliaryOutputResult;
     if (hasPublicOutput && hasAuxiliaryOutput) {
       publicOutputResult = result.publicOutput;
       auxiliaryOutputResult = result.auxiliaryOutput;
     } else {
+      // they will have the same value, but that's fine since we select them based on if the type exists or not
       publicOutputResult = result;
       auxiliaryOutputResult = result;
     }
