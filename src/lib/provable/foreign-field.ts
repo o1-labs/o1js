@@ -8,9 +8,8 @@ import { Field, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { Tuple, TupleMap, TupleN } from '../util/types.js';
-import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
-import { ForeignField as FF } from './gadgets/foreign-field.js';
+import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
@@ -92,10 +91,21 @@ class ForeignField {
    * ```ts
    * let x = new ForeignField(5);
    * ```
+   * 
+   * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
+   * 
+   * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
+   * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
+   * - Ensure constants are correctly reduced to the modulus of the field.
    */
   constructor(x: ForeignField | Field3 | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignField) {
+      if (x.modulus !== p) {
+        throw new Error(
+          `ForeignField constructor: modulus mismatch. Expected ${p}, got ${x.modulus}. Please provide a value with the correct modulus. You can use 'Gadgets.ForeignField.assertLessThan()' to check it.`
+        );
+      }
       this.value = x.value;
       return;
     }

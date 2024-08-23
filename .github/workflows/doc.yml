@@ -16,7 +16,7 @@ jobs:
           node-version: '18'
       - name: Run typedoc
         run: |
-          git submodule update --init --recursive
+          GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
           npx typedoc --tsconfig tsconfig.node.json src/index.ts
       - name: Deploy

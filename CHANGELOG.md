@@ -15,11 +15,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/1c736add...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/d6abf1d97...HEAD)
+
+### Deprecated
+
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+
+### Fixes
+
+- Fix behavior of `Int64.modV2()` when the input is negative and the remainder should be 0 https://github.com/o1-labs/o1js/pull/1797
+
+## [1.6.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...d6abf1d97) - 2024-07-23
 
 ### Added
 
 - `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
 
 ### Changed
 
