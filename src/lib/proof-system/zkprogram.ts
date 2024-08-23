@@ -1197,7 +1197,7 @@ function picklesRuleFromFunction(
     let auxiliaryOutputResult;
     if (hasPublicOutput && hasAuxiliaryOutput) {
       publicOutputResult = result.publicOutput;
-      auxiliaryOutputResult = result.aux;
+      auxiliaryOutputResult = result.auxiliaryOutput;
     } else {
       publicOutputResult = result;
       auxiliaryOutputResult = result;
