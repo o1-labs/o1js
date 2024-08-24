@@ -17,6 +17,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/d6abf1d97...HEAD)
 
+### Added
+
+- Added new optional return value `auxiliaryOutput` to `zkProgram`. https://github.com/o1-labs/o1js/pull/1795
+  - `auxiliaryOutput` can now be returned alongside `publicOutput` and may be utilized by the prover for additional computations.
+
 ### Deprecated
 
 - `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
