@@ -721,7 +721,7 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      let [publicOutputFields, auxiliaryOutputFields, proof] =
+      let [publicOutputFields, proof, auxiliaryOutputFields] =
         MlTuple3.from(result);
 
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);

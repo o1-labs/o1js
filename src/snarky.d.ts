@@ -659,8 +659,8 @@ declare namespace Pickles {
     [
       _: 0,
       publicOutput: MlArray<FieldConst>,
-      auxiliaryOutput: MlArray<FieldConst>,
-      proof: Proof
+      proof: Proof,
+      auxiliaryOutput: MlArray<FieldConst>
     ]
   >;
 }
