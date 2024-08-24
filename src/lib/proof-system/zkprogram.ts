@@ -691,17 +691,17 @@ function ZkProgram<
     key: K,
     i: number
   ): [K, Prover<AuxiliaryOutput, PublicInput, PublicOutput, Types[K]>] {
-    async function prove_(
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<
-      AuxiliaryOutput extends void
+    async function prove_<
+      Return = AuxiliaryOutput extends void
         ? Proof<PublicInput, PublicOutput>
         : {
             proof: Proof<PublicInput, PublicOutput>;
             auxiliaryOutput: AuxiliaryOutput;
           }
-    > {
+    >(
+      publicInput: PublicInput,
+      ...args: TupleToInstances<Types[typeof key]>
+    ): Promise<Return> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -745,9 +745,9 @@ function ZkProgram<
             auxiliaryOutputFields
           ),
           proof: programProof,
-        } as any;
+        } as Return;
       } else {
-        return programProof as any;
+        return programProof as Return;
       }
     }
     let prove: Prover<AuxiliaryOutput, PublicInput, PublicOutput, Types[K]>;
