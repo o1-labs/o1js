@@ -561,7 +561,11 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+  compile: (options?: {
+    cache?: Cache;
+    forceRecompile?: boolean;
+    proofsEnabled?: boolean;
+  }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
   verify: (
@@ -597,6 +601,8 @@ function ZkProgram<
     Types[I]
   >;
 } {
+  let proofsEnabled_ = true;
+
   let methods = config.methods;
   let publicInputType: ProvablePure<any> = ProvableType.get(
     config.publicInput ?? Undefined
@@ -656,22 +662,32 @@ function ZkProgram<
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
+    proofsEnabled = true,
   } = {}) {
+    proofsEnabled_ = proofsEnabled;
     let methodsMeta = await analyzeMethods();
     let gates = methodKeys.map((k) => methodsMeta[k].gates);
-    let { provers, verify, verificationKey } = await compileProgram({
-      publicInputType,
-      publicOutputType,
-      methodIntfs,
-      methods: methodFunctions,
-      gates,
-      proofSystemTag: selfTag,
-      cache,
-      forceRecompile,
-      overrideWrapDomain: config.overrideWrapDomain,
-    });
-    compileOutput = { provers, verify };
-    return { verificationKey };
+
+    if (proofsEnabled_) {
+      let { provers, verify, verificationKey } = await compileProgram({
+        publicInputType,
+        publicOutputType,
+        methodIntfs,
+        methods: methodFunctions,
+        gates,
+        proofSystemTag: selfTag,
+        cache,
+        forceRecompile,
+        overrideWrapDomain: config.overrideWrapDomain,
+      });
+
+      compileOutput = { provers, verify };
+      return { verificationKey };
+    } else {
+      return {
+        verificationKey: VerificationKey.empty(),
+      };
+    }
   }
 
   function toProver<K extends keyof Types & string>(
@@ -682,6 +698,12 @@ function ZkProgram<
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
     ): Promise<Proof<PublicInput, PublicOutput>> {
+      class ProgramProof extends Proof<PublicInput, PublicOutput> {
+        static publicInputType = publicInputType;
+        static publicOutputType = publicOutputType;
+        static tag = () => selfTag;
+      }
+
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -703,11 +725,7 @@ function ZkProgram<
       }
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
-      class ProgramProof extends Proof<PublicInput, PublicOutput> {
-        static publicInputType = publicInputType;
-        static publicOutputType = publicOutputType;
-        static tag = () => selfTag;
-      }
+
       return new ProgramProof({
         publicInput,
         publicOutput,
@@ -715,18 +733,46 @@ function ZkProgram<
         maxProofsVerified,
       });
     }
+
+    async function dummyProve_(
+      publicInput: PublicInput,
+      ...args: TupleToInstances<Types[typeof key]>
+    ): Promise<Proof<PublicInput, PublicOutput>> {
+      class ProgramProof extends Proof<PublicInput, PublicOutput> {
+        static publicInputType = publicInputType;
+        static publicOutputType = publicOutputType;
+        static tag = () => selfTag;
+      }
+
+      let publicInputFields = toFieldConsts(publicInputType, publicInput);
+      let previousProofs = MlArray.to(
+        getPreviousProofsForProver(args, methodIntfs[i])
+      );
+
+      let publicOutput = await (methods[key].method as any)(
+        publicInputFields,
+        previousProofs
+      );
+
+      return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
+    }
+
     let prove: Prover<PublicInput, PublicOutput, Types[K]>;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
       prove = ((...args: TupleToInstances<Types[typeof key]>) =>
-        (prove_ as any)(undefined, ...args)) as any;
+        (proofsEnabled_ ? prove_ : (dummyProve_ as any))(
+          undefined,
+          ...(args as any)
+        )) as any;
     } else {
-      prove = prove_ as any;
+      prove = (proofsEnabled_ ? prove_ : dummyProve_) as any;
     }
     return [key, prove];
   }
+
   let provers = Object.fromEntries(methodKeys.map(toProver)) as {
     [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
   };
