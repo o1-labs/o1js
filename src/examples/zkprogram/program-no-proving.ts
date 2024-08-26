@@ -25,10 +25,12 @@ let MyProgram = ZkProgram({
 });
 
 console.log('program digest', await MyProgram.digest());
-let cs = await MyProgram.analyzeMethods();
-console.log(cs);
+
+// disable proving for iterating quicker
+const proofsEnabled = false;
+
 let { verificationKey } = await MyProgram.compile({
-  proofsEnabled: false,
+  proofsEnabled,
 });
 
 console.log('proving base case...');
