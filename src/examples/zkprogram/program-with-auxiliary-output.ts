@@ -31,7 +31,7 @@ let MyProgram = ZkProgram({
 MyProgram.publicOutputType satisfies typeof Field;
 MyProgram.auxiliaryOutputType satisfies typeof Field;
 
-await MyProgram.compile({ cache: Cache.None, forceRecompile: true });
+await MyProgram.compile();
 
 let { proof, auxiliaryOutput } = await MyProgram.baseCase();
 assert(auxiliaryOutput.equals(5).toBoolean());
