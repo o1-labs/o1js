@@ -601,7 +601,7 @@ function ZkProgram<
     Types[I]
   >;
 } {
-  let proofsEnabled_ = true;
+  let doProving = true;
 
   let methods = config.methods;
   let publicInputType: ProvablePure<any> = ProvableType.get(
@@ -664,11 +664,11 @@ function ZkProgram<
     forceRecompile = false,
     proofsEnabled = true,
   } = {}) {
-    proofsEnabled_ = proofsEnabled;
+    doProving = proofsEnabled;
     let methodsMeta = await analyzeMethods();
     let gates = methodKeys.map((k) => methodsMeta[k].gates);
 
-    if (proofsEnabled_) {
+    if (doProving) {
       let { provers, verify, verificationKey } = await compileProgram({
         publicInputType,
         publicOutputType,
@@ -704,7 +704,7 @@ function ZkProgram<
         static tag = () => selfTag;
       }
 
-      if (!proofsEnabled_) {
+      if (!doProving) {
         let previousProofs = MlArray.to(
           getPreviousProofsForProver(args, methodIntfs[i])
         );
@@ -765,6 +765,9 @@ function ZkProgram<
   };
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
+    if (!doProving) {
+      return Promise.resolve(true);
+    }
     if (compileOutput?.verify === undefined) {
       throw Error(
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
