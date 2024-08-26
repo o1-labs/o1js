@@ -704,6 +704,19 @@ function ZkProgram<
         static tag = () => selfTag;
       }
 
+      if (!proofsEnabled_) {
+        let previousProofs = MlArray.to(
+          getPreviousProofsForProver(args, methodIntfs[i])
+        );
+
+        let publicOutput = await (methods[key].method as any)(
+          publicInput,
+          previousProofs
+        );
+
+        return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
+      }
+
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -734,41 +747,15 @@ function ZkProgram<
       });
     }
 
-    async function dummyProve_(
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<Proof<PublicInput, PublicOutput>> {
-      class ProgramProof extends Proof<PublicInput, PublicOutput> {
-        static publicInputType = publicInputType;
-        static publicOutputType = publicOutputType;
-        static tag = () => selfTag;
-      }
-
-      let publicInputFields = toFieldConsts(publicInputType, publicInput);
-      let previousProofs = MlArray.to(
-        getPreviousProofsForProver(args, methodIntfs[i])
-      );
-
-      let publicOutput = await (methods[key].method as any)(
-        publicInputFields,
-        previousProofs
-      );
-
-      return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
-    }
-
     let prove: Prover<PublicInput, PublicOutput, Types[K]>;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
       prove = ((...args: TupleToInstances<Types[typeof key]>) =>
-        (proofsEnabled_ ? prove_ : (dummyProve_ as any))(
-          undefined,
-          ...(args as any)
-        )) as any;
+        (prove_ as any)(undefined, ...(args as any))) as any;
     } else {
-      prove = (proofsEnabled_ ? prove_ : dummyProve_) as any;
+      prove = prove_ as any;
     }
     return [key, prove];
   }
