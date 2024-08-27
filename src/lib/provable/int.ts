@@ -898,8 +898,8 @@ class UInt32 extends CircuitValue {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() < y.value.toBigInt());
     }
-    return lessThanGeneric(this.value, y.value, 1n << 64n, (v) =>
-      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
+    return lessThanGeneric(this.value, y.value, 1n << 32n, (v) =>
+      RangeCheck.rangeCheckN(UInt32.NUM_BITS, v)
     );
   }
 
