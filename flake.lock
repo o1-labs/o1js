@@ -214,7 +214,9 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "nixpkgs-mozilla": "nixpkgs-mozilla",
+        "nixpkgs-mozilla": [
+          "nixpkgs-mozilla"
+        ],
         "o1-opam-repository": "o1-opam-repository",
         "opam-nix": "opam-nix",
         "opam-repository": "opam-repository",
@@ -485,7 +487,8 @@
         "dune-nix": "dune-nix",
         "flake-utils": "flake-utils",
         "mina": "mina",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs_2",
+        "nixpkgs-mozilla": "nixpkgs-mozilla"
       }
     },
     "systems": {
