@@ -15,10 +15,8 @@ let MyProgram = ZkProgram({
   methods: {
     baseCase: {
       privateInputs: [],
-      auxiliaryOutput: Field,
       async method() {
         return {
-          auxiliaryOutput: Field(1),
           publicOutput: Field(1),
         };
       },
