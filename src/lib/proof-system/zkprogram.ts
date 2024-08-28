@@ -545,12 +545,8 @@ function ZkProgram<
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     // TODO: solution: put method calls on a separate namespace! like `await program.prove.myMethod()`
-    [I in string]: {
-      privateInput: Tuple<PrivateInput>;
-      auxiliaryOutput?: AuxiliaryOutput;
-    };
-  },
-  AuxiliaryOutput extends ProvableType
+    [I in string]: Tuple<PrivateInput>;
+  }
 >(
   config: StatementType & {
     name: string;
@@ -558,8 +554,7 @@ function ZkProgram<
       [I in keyof Types]: Method<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
         InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-        Types[I]['privateInput'],
-        Types[I]['auxiliaryOutput']
+        Types[I]
       >;
     };
     overrideWrapDomain?: 0 | 1 | 2;
@@ -585,23 +580,21 @@ function ZkProgram<
     [I in keyof Types]: Method<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-      Types[I]['privateInput'],
-      AuxiliaryOutput
+      Types[I]
     >['privateInputs'];
   };
   rawMethods: {
     [I in keyof Types]: Method<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-      Types[I]['privateInput'],
-      AuxiliaryOutput
+      Types[I]
     >['method'];
   };
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
     InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-    Types[I]['privateInput']
+    Types[I]
   >;
 } {
   let methods = config.methods;
@@ -684,7 +677,7 @@ function ZkProgram<
   function toProver<K extends keyof Types & string>(
     key: K,
     i: number
-  ): [K, Prover<PublicInput, PublicOutput, Types[K]['privateInput']>] {
+  ): [K, Prover<PublicInput, PublicOutput, Types[K]>] {
     async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
@@ -722,7 +715,7 @@ function ZkProgram<
         maxProofsVerified,
       });
     }
-    let prove: Prover<PublicInput, PublicOutput, Types[K]['privateInput']>;
+    let prove: Prover<PublicInput, PublicOutput, Types[K]>;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
@@ -735,11 +728,7 @@ function ZkProgram<
     return [key, prove];
   }
   let provers = Object.fromEntries(methodKeys.map(toProver)) as {
-    [I in keyof Types]: Prover<
-      PublicInput,
-      PublicOutput,
-      Types[I]['privateInput']
-    >;
+    [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
   };
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
@@ -778,10 +767,10 @@ function ZkProgram<
       >,
       privateInputTypes: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].privateInputs])
-      ),
+      ) as any,
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
-      ),
+      ) as any,
     },
     provers
   );
@@ -793,13 +782,11 @@ type ZkProgram<
     publicOutput?: ProvableTypePure;
   },
   T extends {
-    [I in string]: {
-      privateInput: Tuple<PrivateInput>;
-      auxiliaryOutput: AuxiliaryOutput;
-    };
-  },
-  AuxiliaryOutput extends ProvableType
-> = ReturnType<typeof ZkProgram<S, T, AuxiliaryOutput>>;
+    [I in string]: Tuple<PrivateInput>;
+  }
+> = ReturnType<typeof ZkProgram<S, T>>;
+
+let i = 0;
 
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
@@ -1469,41 +1456,21 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
-type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
-  ? AuxiliaryOutput extends undefined
-    ? void
-    : {
-        auxiliaryOutput: AuxiliaryOutput;
-      }
-  : AuxiliaryOutput extends undefined
-  ? {
-      publicOutput: PublicOutput;
-    }
-  : {
-      publicOutput: PublicOutput;
-      auxiliaryOutput: AuxiliaryOutput;
-    };
-
 type Method<
   PublicInput,
   PublicOutput,
-  Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput
+  Args extends Tuple<PrivateInput>
 > = PublicInput extends undefined
   ? {
-      auxiliaryOutput?: AuxiliaryOutput;
       privateInputs: Args;
-      method(
-        ...args: TupleToInstances<Args>
-      ): Promise<MethodReturnType<PublicOutput, AuxiliaryOutput>>;
+      method(...args: TupleToInstances<Args>): Promise<PublicOutput>;
     }
   : {
-      auxiliaryOutput?: AuxiliaryOutput;
       privateInputs: Args;
       method(
         publicInput: PublicInput,
         ...args: TupleToInstances<Args>
-      ): Promise<MethodReturnType<PublicOutput, AuxiliaryOutput>>;
+      ): Promise<PublicOutput>;
     };
 
 type Prover<
