@@ -175,13 +175,16 @@ function OffchainStateRollup({
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
           tree: IndexedMerkleMapN
-        ): Promise<OffchainStateCommitments> {
-          return merkleUpdateBatch(
+        ) {
+          let commitment = merkleUpdateBatch(
             { maxActionsPerProof, maxActionsPerUpdate },
             stateA,
             actions,
             tree
           );
+          return {
+            publicOutput: commitment,
+          };
         },
       },
       /**
@@ -199,7 +202,7 @@ function OffchainStateRollup({
             OffchainStateCommitments,
             OffchainStateCommitments
           >
-        ): Promise<OffchainStateCommitments> {
+        ) {
           recursiveProof.verify();
 
           // in the recursive case, the recursive proof's initial state has to match this proof's initial state
@@ -212,12 +215,14 @@ function OffchainStateRollup({
           // the state we start with
           let stateB = recursiveProof.publicOutput;
 
-          return merkleUpdateBatch(
-            { maxActionsPerProof, maxActionsPerUpdate },
-            stateB,
-            actions,
-            tree
-          );
+          return {
+            publicOutput: merkleUpdateBatch(
+              { maxActionsPerProof, maxActionsPerUpdate },
+              stateB,
+              actions,
+              tree
+            ),
+          };
         },
       },
     },

@@ -178,39 +178,41 @@ let ffProgram = ZkProgram({
     sumchain: {
       privateInputs: [Provable.Array(Field3, chainLength)],
       async method(xs) {
-        return ForeignField.sum(xs, signs, F.modulus);
+        return {
+          publicOutput: ForeignField.sum(xs, signs, F.modulus),
+        };
       },
     },
     mulWithBoundsCheck: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertAlmostReduced([x, y], F.modulus);
-        return ForeignField.mul(x, y, F.modulus);
+        return { publicOutput: ForeignField.mul(x, y, F.modulus) };
       },
     },
     mul: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
-        return ForeignField.mul(x, y, F.modulus);
+        return { publicOutput: ForeignField.mul(x, y, F.modulus) };
       },
     },
     inv: {
       privateInputs: [Field3],
       async method(x) {
-        return ForeignField.inv(x, F.modulus);
+        return { publicOutput: ForeignField.inv(x, F.modulus) };
       },
     },
     div: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
-        return ForeignField.div(x, y, F.modulus);
+        return { publicOutput: ForeignField.div(x, y, F.modulus) };
       },
     },
     assertLessThan: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertLessThan(x, y);
-        return x;
+        return { publicOutput: x };
       },
     },
   },

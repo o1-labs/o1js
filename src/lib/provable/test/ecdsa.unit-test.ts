@@ -151,13 +151,15 @@ let deprecatedVerify = ZkProgram({
         let msgHash_ = Provable.witness(Field3, () => msgHash);
         let publicKey_ = Provable.witness(Point, () => publicKey);
 
-        return Ecdsa.verify(
-          Secp256k1,
-          signature_,
-          msgHash_,
-          publicKey_,
-          config
-        );
+        return {
+          publicOutput: Ecdsa.verify(
+            Secp256k1,
+            signature_,
+            msgHash_,
+            publicKey_,
+            config
+          ),
+        };
       },
     },
   },
@@ -174,13 +176,15 @@ let program = ZkProgram({
         let msgHash_ = Provable.witness(Field3, () => msgHash);
         let publicKey_ = Provable.witness(Point, () => publicKey);
 
-        return Ecdsa.verifyV2(
-          Secp256k1,
-          signature_,
-          msgHash_,
-          publicKey_,
-          config
-        );
+        return {
+          publicOutput: Ecdsa.verifyV2(
+            Secp256k1,
+            signature_,
+            msgHash_,
+            publicKey_,
+            config
+          ),
+        };
       },
     },
   },

@@ -143,7 +143,7 @@ class BatchReducer<
     this.Batch = ActionBatch(this.actionType);
 
     this.maxUpdatesFinalProof = maxUpdatesFinalProof;
-    this.program = actionStackProgram(maxUpdatesPerProof);
+    this.program = actionStackProgram(maxUpdatesPerProof) as any;
     this.BatchProof = ZkProgram.Proof(this.program);
 
     assert(
@@ -783,7 +783,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
           proofSoFar: ActionStackProof,
           isRecursive: Bool,
           witnesses: Unconstrained<ActionWitnesses>
-        ): Promise<ActionStackState> {
+        ) {
           // make this proof extend proofSoFar
           proofSoFar.verifyIf(isRecursive);
           Provable.assertEqualIf(
@@ -800,7 +800,13 @@ function actionStackProgram(maxUpdatesPerProof: number) {
             initialState
           );
 
-          return actionStackChunk(maxUpdatesPerProof, startState, witnesses);
+          return {
+            publicOutput: actionStackChunk(
+              maxUpdatesPerProof,
+              startState,
+              witnesses
+            ),
+          };
         },
       },
     },

@@ -36,56 +36,56 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       async method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 240);
+        return { publicOutput: Gadgets.xor(a, b, 240) };
       },
     },
     notUnchecked: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.not(a, 240, false);
+        return { publicOutput: Gadgets.not(a, 240, false) };
       },
     },
     notChecked: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.not(a, 240, true);
+        return { publicOutput: Gadgets.not(a, 240, true) };
       },
     },
     and: {
       privateInputs: [Field, Field],
       async method(a: Field, b: Field) {
-        return Gadgets.and(a, b, 64);
+        return { publicOutput: Gadgets.and(a, b, 64) };
       },
     },
     rot32: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.rotate32(a, 12, 'left');
+        return { publicOutput: Gadgets.rotate32(a, 12, 'left') };
       },
     },
     rot64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.rotate64(a, 12, 'left');
+        return { publicOutput: Gadgets.rotate64(a, 12, 'left') };
       },
     },
     leftShift64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.leftShift64(a, 12);
+        return { publicOutput: Gadgets.leftShift64(a, 12) };
       },
     },
     leftShift32: {
       privateInputs: [Field],
       async method(a: Field) {
         Gadgets.rangeCheck32(a);
-        return Gadgets.leftShift32(a, 12);
+        return { publicOutput: Gadgets.leftShift32(a, 12) };
       },
     },
     rightShift64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.rightShift64(a, 12);
+        return { publicOutput: Gadgets.rightShift64(a, 12) };
       },
     },
   },

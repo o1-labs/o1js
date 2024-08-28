@@ -35,7 +35,9 @@ const program2 = ZkProgram({
     foo: {
       privateInputs: [Field],
       async method(publicInput: Program2Struct, field: Field) {
-        return publicInput.field1.add(publicInput.field2).add(field);
+        return {
+          publicOutput: publicInput.field1.add(publicInput.field2).add(field),
+        };
       },
     },
   },

@@ -25,3 +25,7 @@ let MyProgram = ZkProgram({
     },
   },
 });
+
+await MyProgram.compile();
+
+let result = await MyProgram.baseCase();

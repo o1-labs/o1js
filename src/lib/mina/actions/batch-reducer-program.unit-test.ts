@@ -52,7 +52,7 @@ await describe('action stack prover', async () => {
     let { isEmpty, proof } = await proveActionStack(
       endActionState,
       witnesses,
-      stackProgram
+      stackProgram as any
     );
     console.timeEnd('prove');
 
@@ -63,12 +63,11 @@ await describe('action stack prover', async () => {
 
   await it('does 250 actions', async () => {
     let { witnesses, endActionState } = randomActionWitnesses(250);
-
     console.time('prove');
     let { isEmpty, proof } = await proveActionStack(
       endActionState,
       witnesses,
-      stackProgram
+      stackProgram as any
     );
     console.timeEnd('prove');
 

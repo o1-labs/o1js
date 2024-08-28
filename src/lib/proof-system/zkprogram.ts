@@ -542,7 +542,6 @@ function ZkProgram<
     publicInput?: ProvableTypePure;
     publicOutput?: ProvableTypePure;
   },
-  AuxiliaryOutput extends ProvableType,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     // TODO: solution: put method calls on a separate namespace! like `await program.prove.myMethod()`
@@ -550,7 +549,8 @@ function ZkProgram<
       privateInput: Tuple<PrivateInput>;
       auxiliaryOutput?: AuxiliaryOutput;
     };
-  }
+  },
+  AuxiliaryOutput extends ProvableType
 >(
   config: StatementType & {
     name: string;
@@ -586,7 +586,7 @@ function ZkProgram<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
       Types[I]['privateInput'],
-      any
+      AuxiliaryOutput
     >['privateInputs'];
   };
   rawMethods: {
@@ -594,7 +594,7 @@ function ZkProgram<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
       Types[I]['privateInput'],
-      any
+      AuxiliaryOutput
     >['method'];
   };
 } & {
@@ -778,10 +778,10 @@ function ZkProgram<
       >,
       privateInputTypes: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].privateInputs])
-      ) as any,
+      ),
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
-      ) as any,
+      ),
     },
     provers
   );
@@ -792,14 +792,14 @@ type ZkProgram<
     publicInput?: ProvableTypePure;
     publicOutput?: ProvableTypePure;
   },
-  AuxiliaryOutput extends ProvableType,
   T extends {
     [I in string]: {
       privateInput: Tuple<PrivateInput>;
       auxiliaryOutput: AuxiliaryOutput;
     };
-  }
-> = ReturnType<typeof ZkProgram<S, AuxiliaryOutput, T>>;
+  },
+  AuxiliaryOutput extends ProvableType
+> = ReturnType<typeof ZkProgram<S, T, AuxiliaryOutput>>;
 
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
