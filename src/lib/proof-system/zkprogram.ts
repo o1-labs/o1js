@@ -542,19 +542,23 @@ function ZkProgram<
     publicInput?: ProvableTypePure;
     publicOutput?: ProvableTypePure;
   },
-  Types extends {
+  MethodTypes extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     // TODO: solution: put method calls on a separate namespace! like `await program.prove.myMethod()`
-    [I in string]: Tuple<PrivateInput>;
+    [I in string]: {
+      privateInputs: Tuple<PrivateInput>;
+      auxiliaryOutput: ProvableType;
+    };
   }
 >(
   config: StatementType & {
     name: string;
     methods: {
-      [I in keyof Types]: Method<
+      [I in keyof MethodTypes]: Method<
         InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
         InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-        Types[I]
+        MethodTypes[I]['privateInputs']
+        // TODO: MethodTypes[I]['auxiliaryOutput']
       >;
     };
     overrideWrapDomain?: 0 | 1 | 2;
@@ -572,29 +576,29 @@ function ZkProgram<
   ) => Promise<boolean>;
   digest: () => Promise<string>;
   analyzeMethods: () => Promise<{
-    [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    [I in keyof MethodTypes]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
   }>;
   publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
   privateInputTypes: {
-    [I in keyof Types]: Method<
+    [I in keyof MethodTypes]: Method<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-      Types[I]
+      MethodTypes[I]['privateInputs']
     >['privateInputs'];
   };
   rawMethods: {
-    [I in keyof Types]: Method<
+    [I in keyof MethodTypes]: Method<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
       InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-      Types[I]
+      MethodTypes[I]['privateInputs']
     >['method'];
   };
 } & {
-  [I in keyof Types]: Prover<
+  [I in keyof MethodTypes]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
     InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-    Types[I]
+    MethodTypes[I]['privateInputs']
   >;
 } {
   let methods = config.methods;
@@ -618,7 +622,7 @@ function ZkProgram<
   }
 
   // TODO remove sort()! Object.keys() has a deterministic order
-  let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodKeys: (keyof MethodTypes & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
   );
@@ -639,7 +643,7 @@ function ZkProgram<
       );
     }
     return methodsMeta as {
-      [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+      [I in keyof MethodTypes]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
     };
   }
 
@@ -674,13 +678,13 @@ function ZkProgram<
     return { verificationKey };
   }
 
-  function toProver<K extends keyof Types & string>(
+  function toProver<K extends keyof MethodTypes & string>(
     key: K,
     i: number
-  ): [K, Prover<PublicInput, PublicOutput, Types[K]>] {
+  ): [K, Prover<PublicInput, PublicOutput, MethodTypes[K]['privateInputs']>] {
     async function prove_(
       publicInput: PublicInput,
-      ...args: TupleToInstances<Types[typeof key]>
+      ...args: TupleToInstances<MethodTypes[typeof key]['privateInputs']>
     ): Promise<Proof<PublicInput, PublicOutput>> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
@@ -715,20 +719,29 @@ function ZkProgram<
         maxProofsVerified,
       });
     }
-    let prove: Prover<PublicInput, PublicOutput, Types[K]>;
+    let prove: Prover<
+      PublicInput,
+      PublicOutput,
+      MethodTypes[K]['privateInputs']
+    >;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
-      prove = ((...args: TupleToInstances<Types[typeof key]>) =>
-        (prove_ as any)(undefined, ...args)) as any;
+      prove = ((
+        ...args: TupleToInstances<MethodTypes[typeof key]['privateInputs']>
+      ) => (prove_ as any)(undefined, ...args)) as any;
     } else {
       prove = prove_ as any;
     }
     return [key, prove];
   }
   let provers = Object.fromEntries(methodKeys.map(toProver)) as {
-    [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
+    [I in keyof MethodTypes]: Prover<
+      PublicInput,
+      PublicOutput,
+      MethodTypes[I]['privateInputs']
+    >;
   };
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
@@ -782,7 +795,10 @@ type ZkProgram<
     publicOutput?: ProvableTypePure;
   },
   T extends {
-    [I in string]: Tuple<PrivateInput>;
+    [I in string]: {
+      privateInputs: Tuple<PrivateInput>;
+      auxiliaryOutput: ProvableType;
+    };
   }
 > = ReturnType<typeof ZkProgram<S, T>>;
 
@@ -1456,28 +1472,24 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
-type MethodReturnType<PublicOutput> = PublicOutput extends void
-  ? void
-  : {
-      publicOutput: PublicOutput;
-    };
 type Method<
   PublicInput,
   PublicOutput,
   Args extends Tuple<PrivateInput>
+  // AuxiliaryOutput // TODO
 > = PublicInput extends undefined
   ? {
       privateInputs: Args;
-      method(
-        ...args: TupleToInstances<Args>
-      ): Promise<MethodReturnType<PublicOutput>>;
+      // auxiliaryOutput?: AuxiliaryOutput;
+      method(...args: TupleToInstances<Args>): Promise<PublicOutput>;
     }
   : {
       privateInputs: Args;
+      // auxiliaryOutput?: AuxiliaryOutput;
       method(
         publicInput: PublicInput,
         ...args: TupleToInstances<Args>
-      ): Promise<MethodReturnType<PublicOutput>>;
+      ): Promise<PublicOutput>;
     };
 
 type Prover<

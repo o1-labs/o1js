@@ -16,9 +16,7 @@ let MyProgram = ZkProgram({
     baseCase: {
       privateInputs: [],
       async method() {
-        return {
-          publicOutput: Field(1),
-        };
+        return Field(1);
       },
     },
   },
@@ -26,4 +24,5 @@ let MyProgram = ZkProgram({
 
 await MyProgram.compile();
 
-let result = await MyProgram.baseCase();
+await MyProgram.baseCase(); // empty types
+MyProgram.rawMethods; // empty types
