@@ -1092,6 +1092,20 @@ super.init();
       chainStatus: string;
     }[]
   > {
+    // used to match field values back to their original type
+    const sortedEventTypes = Object.keys(this.events).sort();
+    if (sortedEventTypes.length === 0) {
+      throw Error(
+        'fetchEvents: You are trying to fetch events without having declared the types of your events.\n' +
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}\n` +
+          `Or, if you want to access the events from the zkapp account ${this.address.toBase58()} without casting their types\n` +
+          `then try Mina.fetchEvents('${this.address.toBase58()}') instead.`
+      );
+    }
+
     const queryFilterOptions: EventActionFilterOptions = {};
     if(start.greaterThan(UInt32.from(0)).toBoolean()) {
       queryFilterOptions.from = start;
@@ -1115,27 +1129,9 @@ super.init();
       })
       .flat();
 
-    // used to match field values back to their original type
-    let sortedEventTypes = Object.keys(this.events).sort();
-
     return events.map((eventData) => {
-      // If we don't know what types of events this zkapp may emit, then return the raw data
-      if (sortedEventTypes.length === 0) {
-        return {
-          ...eventData,
-          type: "Object",
-          event: {
-            data: eventData.event.data,
-            transactionInfo: {
-              transactionHash: eventData.event.transactionInfo.hash,
-              transactionStatus: eventData.event.transactionInfo.status,
-              transactionMemo: eventData.event.transactionInfo.memo,
-            },
-          },
-        };
-      }
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
-      else if (sortedEventTypes.length === 1) {
+      if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
         let event = this.events[type].fromFields(
           eventData.event.data.map((f: string) => Field(f))
