@@ -12,3 +12,4 @@ src/config/
 src/config.mlh
 .direnv
 .rustup
+result

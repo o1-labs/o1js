@@ -92,14 +92,13 @@
         inherit mina;
         devShells = {
           default = pkgs.mkShell {
-            shellHook = ''
-              export RUSTUP_HOME=$(pwd)/.rustup
-              rustup toolchain link nix ${rust-channel}
+            inputsFrom = [ prj.pkgs.o1js_bindings prj.pkgs.__ocaml-js__ ];
+            shellHook =
+            ''
+            RUSTUP_HOME=$(pwd)/.rustup
+            export RUSTUP_HOME
+            rustup toolchain link nix ${rust-channel}
             '';
-            inputsFrom =
-              [ prj.pkgs.o1js_bindings
-                prj.pkgs.__ocaml-js__
-              ];
             packages = with pkgs;
               [ nodejs
                 nodePackages.npm
@@ -109,24 +108,22 @@
                 #Rustup doesn't allow local toolchains to contain 'nightly' in the name
                 #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
                 #which calls the nix toolchain instead of the nightly one
-                (pkgs.writeShellApplication
+                (writeShellApplication
                   { name = "rustup";
                     text =
                     ''
-                    if [ $1 = run ] && [ $2 = nightly-2023-09-01 ]
+                    if [ "$1" = run ] && [ "$2" = nightly-2023-09-01 ]
                     then
-                      ${pkgs.rustup}/bin/rustup run nix ''${@:2}
+                      ${rustup}/bin/rustup run nix "''${@:3}"
                     else
-                      ${pkgs.rustup}/bin/rustup "$@"
+                      ${rustup}/bin/rustup "$@"
                     fi
                     '';
                   }
                 )
+                rustup
                 wasm-pack
                 binaryen # provides wasm-opt
-                rustc
-                cargo
-                #rust-channel.rust
 
                 dune_3
                 ocamlPackages.js_of_ocaml-ppx
@@ -136,8 +133,8 @@
         };
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
-          inherit dune-description pkgs rust-channel;
           kim = pkgs.kimchi-rust-wasm;
+          inherit dune-description;
           bindings = prj.pkgs.o1js_bindings;
           ocaml-js = prj.pkgs.__ocaml-js__;
           default = pkgs.buildNpmPackage
