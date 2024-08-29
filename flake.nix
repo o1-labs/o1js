@@ -2,8 +2,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
     mina.url = "path:src/mina";
-    mina.inputs.nixpkgs.follows = "nixpkgs";
-    mina.inputs.nixpkgs-mozilla.follows = "nixpkgs-mozilla";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
@@ -12,8 +10,6 @@
     dune-nix.url = "github:o1-labs/dune-nix";
     dune-nix.inputs.nixpkgs.follows = "nixpkgs";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
-    mina.inputs.dune-nix.follows = "dune-nix";
-    mina.inputs.describe-dune.follows = "describe-dune";
     flake-utils.url = "github:numtide/flake-utils";
   };
   outputs = { self, nixpkgs, flake-utils, ... }@inputs:

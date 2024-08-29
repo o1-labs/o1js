@@ -7,3 +7,4 @@ ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 pushd "$ROOT" && git submodule sync && git submodule update --init --recursive && popd
 # Add the flake registry entry
 nix registry add o1js "git+file://$ROOT?submodules=1"
+nix flake lock '.?submodules=1' --update-input mina

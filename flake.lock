@@ -10,11 +10,36 @@
         ]
       },
       "locked": {
-        "lastModified": 1722457451,
-        "narHash": "sha256-0liAC5hWgbyR1+0UCgE/qOQkQ62LDvvXmCcz6EnTMzw=",
+        "lastModified": 1724407960,
+        "narHash": "sha256-pUKTVMYEtsD1AGlHFTdPourowt+tJ3htKhRu7VALFzc=",
         "owner": "o1-labs",
         "repo": "describe-dune",
-        "rev": "2bf2a178809b7707b1d898e4a804b1a9b521ff8e",
+        "rev": "be828239c05671209e979f9d5c2e3094e3be7a46",
+        "type": "github"
+      },
+      "original": {
+        "owner": "o1-labs",
+        "repo": "describe-dune",
+        "type": "github"
+      }
+    },
+    "describe-dune_2": {
+      "inputs": {
+        "flake-utils": [
+          "mina",
+          "utils"
+        ],
+        "nixpkgs": [
+          "mina",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1724407960,
+        "narHash": "sha256-pUKTVMYEtsD1AGlHFTdPourowt+tJ3htKhRu7VALFzc=",
+        "owner": "o1-labs",
+        "repo": "describe-dune",
+        "rev": "be828239c05671209e979f9d5c2e3094e3be7a46",
         "type": "github"
       },
       "original": {
@@ -38,6 +63,31 @@
         "owner": "o1-labs",
         "repo": "dune-nix",
         "rev": "303e4cea2e035c84d4067754a9275a053dac1564",
+        "type": "github"
+      },
+      "original": {
+        "owner": "o1-labs",
+        "repo": "dune-nix",
+        "type": "github"
+      }
+    },
+    "dune-nix_2": {
+      "inputs": {
+        "flake-utils": [
+          "mina",
+          "utils"
+        ],
+        "nixpkgs": [
+          "mina",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1724418497,
+        "narHash": "sha256-HjTh7o02QhGXmbxmpE5HRWei3H/pyh/NKCMCnucDaYs=",
+        "owner": "o1-labs",
+        "repo": "dune-nix",
+        "rev": "26dc164a4c3976888e13eabd73a210b78505820f",
         "type": "github"
       },
       "original": {
@@ -197,12 +247,8 @@
     },
     "mina": {
       "inputs": {
-        "describe-dune": [
-          "describe-dune"
-        ],
-        "dune-nix": [
-          "dune-nix"
-        ],
+        "describe-dune": "describe-dune_2",
+        "dune-nix": "dune-nix_2",
         "flake-buildkite-pipeline": "flake-buildkite-pipeline",
         "flake-compat": "flake-compat",
         "flockenzeit": "flockenzeit",
@@ -211,9 +257,7 @@
         "nix-filter": "nix-filter",
         "nix-npm-buildPackage": "nix-npm-buildPackage",
         "nix-utils": "nix-utils",
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs_2",
         "nixpkgs-mozilla": "nixpkgs-mozilla",
         "o1-opam-repository": "o1-opam-repository",
         "opam-nix": "opam-nix",
@@ -222,7 +266,7 @@
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-9mtY3wevSrAimyB9inP1CwIQPAKuU51ImjRbFoCLM00=",
+        "narHash": "sha256-So/hGZ1uqgIGYKRlRcVhxHqi26tg2ogMO55SrvARb1g=",
         "path": "src/mina",
         "type": "path"
       },
@@ -381,6 +425,22 @@
     },
     "nixpkgs_2": {
       "locked": {
+        "lastModified": 1713180868,
+        "narHash": "sha256-5CSnPSCEWeUmrFiLuYIQIPQzPrpCB8x3VhE+oXLRO3k=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "140546acf30a8212a03a88ded8506413fa3b5d21",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-23.11-small",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
         "lastModified": 1720535198,
         "narHash": "sha256-zwVvxrdIzralnSbcpghA92tWu2DV2lwv89xZc8MTrbg=",
         "owner": "nixos",
@@ -501,7 +561,7 @@
         "dune-nix": "dune-nix",
         "flake-utils": "flake-utils",
         "mina": "mina",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs_3",
         "nixpkgs-mozilla": "nixpkgs-mozilla_2"
       }
     },
