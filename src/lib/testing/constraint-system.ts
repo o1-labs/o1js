@@ -114,7 +114,7 @@ constraintSystem.fromZkProgram = function fromZkProgram<
   methodName: K,
   test: ConstraintSystemTest
 ) {
-  let program_: ZkProgram<any, any> = program as any;
+  let program_: ZkProgram<any, any, any> = program as any;
   let from: any = [...program_.privateInputTypes[methodName]];
   if (program_.publicInputType !== Undefined) {
     from.unshift(program_.publicInputType);
