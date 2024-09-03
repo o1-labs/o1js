@@ -1,4 +1,5 @@
 {
+  description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
     mina.url = "path:src/mina";
