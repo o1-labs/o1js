@@ -87,8 +87,9 @@
         formatter = pkgs.nixfmt;
         inherit mina;
         devShells = {
+          # This seems to work better for macos
+          mina-shell = inputs.mina.devShells."${system}".with-lsp;
           default = pkgs.mkShell {
-            inputsFrom = [ prj.pkgs.o1js_bindings prj.pkgs.__ocaml-js__ ];
             shellHook =
             ''
             RUSTUP_HOME=$(pwd)/.rustup
