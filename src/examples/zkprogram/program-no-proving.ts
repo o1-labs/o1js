@@ -26,10 +26,10 @@ let MyProgram = ZkProgram({
 
 console.log('program digest', await MyProgram.digest());
 
-// disable proving for iterating quicker
+// disable proofs to accelerate iteration during development
 const proofsEnabled = false;
 
-let { verificationKey } = await MyProgram.compile({
+await MyProgram.compile({
   proofsEnabled,
 });
 
