@@ -763,8 +763,7 @@ function ZkProgram<
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
-      prove = ((...args: TupleToInstances<Types[typeof key]>) =>
-        (prove_ as any)(undefined, ...(args as any))) as any;
+      prove = ((...args: any) => prove_(undefined as any, ...args)) as any;
     } else {
       prove = prove_ as any;
     }
