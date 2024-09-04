@@ -676,10 +676,10 @@ function ZkProgram<
   } = {}) {
     doProving = proofsEnabled;
 
-    let methodsMeta = await analyzeMethods();
-    let gates = methodKeys.map((k) => methodsMeta[k].gates);
-
     if (doProving) {
+      let methodsMeta = await analyzeMethods();
+      let gates = methodKeys.map((k) => methodsMeta[k].gates);
+
       let { provers, verify, verificationKey } = await compileProgram({
         publicInputType,
         publicOutputType,
