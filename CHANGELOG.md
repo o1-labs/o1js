@@ -15,9 +15,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/5e88c220f...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/5006e4f...HEAD)
 
-## [1.6.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...5e88c220f) - 2024-09-03
+## [1.6.1](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
+
+### Added
+
+- `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+- New option `proofsEnabled` for `zkProgram` (default value: `true`), to quickly test circuit logic with proofs disabled https://github.com/o1-labs/o1js/pull/1805
+  - Additionally added `MyProgram.proofsEnabled` to get the internal value of `proofsEnabled` and `MyProgram.setProofsEnabled(proofsEnabled)` to set the value dynamically.
 
 ### Deprecated
 
@@ -34,8 +42,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
 - Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
   - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
-- New option `proofsEnabled` for `zkProgram` (default value: `true`), to quickly test circuit logic with proofs disabled https://github.com/o1-labs/o1js/pull/1805
-  - Additionally added `MyProgram.proofsEnabled` to get the internal value of `proofsEnabled` and `MyProgram.setProofsEnabled(proofsEnabled)` to set the value dynamically.
 
 ### Changed
 
