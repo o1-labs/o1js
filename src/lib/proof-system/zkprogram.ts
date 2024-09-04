@@ -594,6 +594,8 @@ function ZkProgram<
       Types[I]
     >['method'];
   };
+  proofsEnabled: boolean;
+  setProofsEnabled(proofsEnabled: boolean): void;
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -665,6 +667,7 @@ function ZkProgram<
     proofsEnabled = true,
   } = {}) {
     doProving = proofsEnabled;
+
     let methodsMeta = await analyzeMethods();
     let gates = methodKeys.map((k) => methodsMeta[k].gates);
 
@@ -721,7 +724,7 @@ function ZkProgram<
       if (picklesProver === undefined) {
         throw Error(
           `Cannot prove execution of program.${key}(), no prover found. ` +
-            `Try calling \`await program.compile()\` first, this will cache provers in the background.`
+            `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
@@ -789,7 +792,15 @@ function ZkProgram<
   }
 
   return Object.assign(
-    selfTag,
+    {
+      ...selfTag,
+      get proofsEnabled() {
+        return doProving;
+      },
+      setProofsEnabled(proofsEnabled: boolean) {
+        doProving = proofsEnabled;
+      },
+    },
     {
       compile,
       verify,

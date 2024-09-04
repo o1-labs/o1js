@@ -26,13 +26,25 @@ let MyProgram = ZkProgram({
 
 console.log('program digest', await MyProgram.digest());
 
-// disable proofs to accelerate iteration during development
-const proofsEnabled = false;
+// enable proofs to compile the program
+const proofsEnabled = true;
 
 await MyProgram.compile({
   proofsEnabled,
 });
 
-console.log('proving base case...');
+console.log('proofs enabled?', MyProgram.proofsEnabled);
+
+console.log('proving base case... (proofs enabled)');
+console.time('proving');
 let proof = await MyProgram.baseCase(Field(2));
+console.timeEnd('proving');
+proof.publicOutput.assertEquals(Field(2).add(4));
+
+console.log('disable proofs, generate dummy proof');
+MyProgram.setProofsEnabled(false);
+console.log('proofs enabled?', MyProgram.proofsEnabled);
+console.time('noProving');
+proof = await MyProgram.baseCase(Field(2));
+console.timeEnd('noProving');
 proof.publicOutput.assertEquals(Field(2).add(4));
