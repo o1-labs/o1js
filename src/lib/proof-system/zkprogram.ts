@@ -613,7 +613,15 @@ function ZkProgram<
     config.publicOutput ?? Void
   );
 
-  let selfTag = { name: config.name };
+  let selfTag = {
+    name: config.name,
+    get proofsEnabled() {
+      return doProving;
+    },
+    setProofsEnabled(proofsEnabled: boolean) {
+      doProving = proofsEnabled;
+    },
+  };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
   >;
@@ -792,15 +800,8 @@ function ZkProgram<
   }
 
   return Object.assign(
-    {
-      ...selfTag,
-      get proofsEnabled() {
-        return doProving;
-      },
-      setProofsEnabled(proofsEnabled: boolean) {
-        doProving = proofsEnabled;
-      },
-    },
+    selfTag,
+
     {
       compile,
       verify,
