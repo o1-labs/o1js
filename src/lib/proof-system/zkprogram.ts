@@ -615,12 +615,6 @@ function ZkProgram<
 
   let selfTag = {
     name: config.name,
-    get proofsEnabled() {
-      return doProving;
-    },
-    setProofsEnabled(proofsEnabled: boolean) {
-      doProving = proofsEnabled;
-    },
   };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
@@ -798,9 +792,8 @@ function ZkProgram<
     return hashConstant(digests).toBigInt().toString(16);
   }
 
-  return Object.assign(
+  const program = Object.assign(
     selfTag,
-
     {
       compile,
       verify,
@@ -818,9 +811,19 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      setProofsEnabled(proofsEnabled: boolean) {
+        doProving = proofsEnabled;
+      },
     },
     provers
   );
+
+  // Object.assign only shallow-copies, hence we cant use this getter and have to define it explicitly
+  Object.defineProperty(program, 'proofsEnabled', {
+    get: () => doProving,
+  });
+
+  return program as ZkProgram<StatementType, Types>;
 }
 
 type ZkProgram<
