@@ -40,8 +40,6 @@ function divMod32(n: Field, nBits = 64) {
 
   if (quotientBits === 1) {
     quotient.assertBool();
-  } else if (quotientBits === 32) {
-    rangeCheck32(quotient);
   } else {
     rangeCheckN(quotientBits, quotient);
   }
