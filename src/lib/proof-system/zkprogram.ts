@@ -586,6 +586,14 @@ function ZkProgram<
       AuxiliaryOutputs[I]
     >['privateInputs'];
   };
+  auxiliaryOutputTypes: {
+    [I in keyof PrivateInputs]: Method<
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
+      PrivateInputs[I],
+      AuxiliaryOutputs[I]
+    >['auxiliaryOutput'];
+  };
   rawMethods: {
     [I in keyof PrivateInputs]: Method<
       InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -778,6 +786,9 @@ function ZkProgram<
       >,
       privateInputTypes: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].privateInputs])
+      ) as any,
+      auxiliaryOutputTypes: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].auxiliaryOutput])
       ) as any,
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
@@ -1469,13 +1480,20 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
 type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
+  ? AuxiliaryOutput extends undefined
+    ? void
+    : {
+        auxiliaryOutput: AuxiliaryOutput;
+      }
+  : AuxiliaryOutput extends undefined
   ? {
-      auxiliaryOutput: AuxiliaryOutput;
+      publicOutput: PublicOutput;
     }
   : {
       publicOutput: PublicOutput;
       auxiliaryOutput: AuxiliaryOutput;
     };
+
 type Method<
   PublicInput,
   PublicOutput,
@@ -1484,7 +1502,7 @@ type Method<
 > = PublicInput extends undefined
   ? {
       privateInputs: Args;
-      auxiliaryOutput: AuxiliaryOutputs;
+      auxiliaryOutput?: AuxiliaryOutputs;
       method(
         ...args: TupleToInstances<Args>
       ): Promise<
@@ -1493,7 +1511,7 @@ type Method<
     }
   : {
       privateInputs: Args;
-      auxiliaryOutput: AuxiliaryOutputs;
+      auxiliaryOutput?: AuxiliaryOutputs;
       method(
         publicInput: PublicInput,
         ...args: TupleToInstances<Args>
