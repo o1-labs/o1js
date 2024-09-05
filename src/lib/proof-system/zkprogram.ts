@@ -1468,10 +1468,13 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
-type MethodReturnType<PublicOutput> = PublicOutput extends void
-  ? void
+type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
+  ? {
+      auxiliaryOutput: AuxiliaryOutput;
+    }
   : {
       publicOutput: PublicOutput;
+      auxiliaryOutput: AuxiliaryOutput;
     };
 type Method<
   PublicInput,
@@ -1481,16 +1484,22 @@ type Method<
 > = PublicInput extends undefined
   ? {
       privateInputs: Args;
+      auxiliaryOutput: AuxiliaryOutputs;
       method(
         ...args: TupleToInstances<Args>
-      ): Promise<MethodReturnType<PublicOutput>>;
+      ): Promise<
+        MethodReturnType<PublicOutput, InferProvable<AuxiliaryOutputs>>
+      >;
     }
   : {
       privateInputs: Args;
+      auxiliaryOutput: AuxiliaryOutputs;
       method(
         publicInput: PublicInput,
         ...args: TupleToInstances<Args>
-      ): Promise<MethodReturnType<PublicOutput>>;
+      ): Promise<
+        MethodReturnType<PublicOutput, InferProvable<AuxiliaryOutputs>>
+      >;
     };
 
 type Prover<
