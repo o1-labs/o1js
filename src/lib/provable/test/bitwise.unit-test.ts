@@ -197,7 +197,7 @@ await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
   (x, y) => {
     if (x >= 2n ** 64n || y >= 2n ** 64n)
       throw Error('Does not fit into 64 bits');
-    return x & y;
+    return x | y;
   },
   async (x, y) => {
     let proof = await Bitwise.or(x, y);
