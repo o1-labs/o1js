@@ -561,7 +561,11 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+  compile: (options?: {
+    cache?: Cache;
+    forceRecompile?: boolean;
+    proofsEnabled?: boolean;
+  }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
   verify: (
@@ -590,6 +594,8 @@ function ZkProgram<
       Types[I]
     >['method'];
   };
+  proofsEnabled: boolean;
+  setProofsEnabled(proofsEnabled: boolean): void;
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
@@ -597,6 +603,8 @@ function ZkProgram<
     Types[I]
   >;
 } {
+  let doProving = true;
+
   let methods = config.methods;
   let publicInputType: ProvablePure<any> = ProvableType.get(
     config.publicInput ?? Undefined
@@ -605,7 +613,9 @@ function ZkProgram<
     config.publicOutput ?? Void
   );
 
-  let selfTag = { name: config.name };
+  let selfTag = {
+    name: config.name,
+  };
   type PublicInput = InferProvableOrUndefined<
     Get<StatementType, 'publicInput'>
   >;
@@ -656,22 +666,33 @@ function ZkProgram<
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
+    proofsEnabled = true,
   } = {}) {
-    let methodsMeta = await analyzeMethods();
-    let gates = methodKeys.map((k) => methodsMeta[k].gates);
-    let { provers, verify, verificationKey } = await compileProgram({
-      publicInputType,
-      publicOutputType,
-      methodIntfs,
-      methods: methodFunctions,
-      gates,
-      proofSystemTag: selfTag,
-      cache,
-      forceRecompile,
-      overrideWrapDomain: config.overrideWrapDomain,
-    });
-    compileOutput = { provers, verify };
-    return { verificationKey };
+    doProving = proofsEnabled;
+
+    if (doProving) {
+      let methodsMeta = await analyzeMethods();
+      let gates = methodKeys.map((k) => methodsMeta[k].gates);
+
+      let { provers, verify, verificationKey } = await compileProgram({
+        publicInputType,
+        publicOutputType,
+        methodIntfs,
+        methods: methodFunctions,
+        gates,
+        proofSystemTag: selfTag,
+        cache,
+        forceRecompile,
+        overrideWrapDomain: config.overrideWrapDomain,
+      });
+
+      compileOutput = { provers, verify };
+      return { verificationKey };
+    } else {
+      return {
+        verificationKey: VerificationKey.empty(),
+      };
+    }
   }
 
   function toProver<K extends keyof Types & string>(
@@ -682,11 +703,30 @@ function ZkProgram<
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
     ): Promise<Proof<PublicInput, PublicOutput>> {
+      class ProgramProof extends Proof<PublicInput, PublicOutput> {
+        static publicInputType = publicInputType;
+        static publicOutputType = publicOutputType;
+        static tag = () => selfTag;
+      }
+
+      if (!doProving) {
+        let previousProofs = MlArray.to(
+          getPreviousProofsForProver(args, methodIntfs[i])
+        );
+
+        let publicOutput = await (methods[key].method as any)(
+          publicInput,
+          previousProofs
+        );
+
+        return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
+      }
+
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
           `Cannot prove execution of program.${key}(), no prover found. ` +
-            `Try calling \`await program.compile()\` first, this will cache provers in the background.`
+            `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
@@ -703,11 +743,7 @@ function ZkProgram<
       }
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
-      class ProgramProof extends Proof<PublicInput, PublicOutput> {
-        static publicInputType = publicInputType;
-        static publicOutputType = publicOutputType;
-        static tag = () => selfTag;
-      }
+
       return new ProgramProof({
         publicInput,
         publicOutput,
@@ -715,23 +751,27 @@ function ZkProgram<
         maxProofsVerified,
       });
     }
+
     let prove: Prover<PublicInput, PublicOutput, Types[K]>;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
-      prove = ((...args: TupleToInstances<Types[typeof key]>) =>
-        (prove_ as any)(undefined, ...args)) as any;
+      prove = ((...args: any) => prove_(undefined as any, ...args)) as any;
     } else {
       prove = prove_ as any;
     }
     return [key, prove];
   }
+
   let provers = Object.fromEntries(methodKeys.map(toProver)) as {
     [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
   };
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
+    if (!doProving) {
+      return Promise.resolve(true);
+    }
     if (compileOutput?.verify === undefined) {
       throw Error(
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
@@ -752,7 +792,7 @@ function ZkProgram<
     return hashConstant(digests).toBigInt().toString(16);
   }
 
-  return Object.assign(
+  const program = Object.assign(
     selfTag,
     {
       compile,
@@ -771,9 +811,19 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      setProofsEnabled(proofsEnabled: boolean) {
+        doProving = proofsEnabled;
+      },
     },
     provers
   );
+
+  // Object.assign only shallow-copies, hence we cant use this getter and have to define it explicitly
+  Object.defineProperty(program, 'proofsEnabled', {
+    get: () => doProving,
+  });
+
+  return program as ZkProgram<StatementType, Types>;
 }
 
 type ZkProgram<

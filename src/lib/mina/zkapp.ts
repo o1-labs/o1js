@@ -16,6 +16,7 @@ import {
   AccountUpdateLayout,
   AccountUpdateTree,
 } from './account-update.js';
+import type { EventActionFilterOptions } from './graphql.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
@@ -1091,21 +1092,32 @@ super.init();
       chainStatus: string;
     }[]
   > {
+    // used to match field values back to their original type
+    const sortedEventTypes = Object.keys(this.events).sort();
+    if (sortedEventTypes.length === 0) {
+      throw Error(
+        'fetchEvents: You are trying to fetch events without having declared the types of your events.\n' +
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}\n` +
+          `Or, if you want to access the events from the zkapp account ${this.address.toBase58()} without casting their types\n` +
+          `then try Mina.fetchEvents('${this.address.toBase58()}') instead.`
+      );
+    }
+
+    const queryFilterOptions: EventActionFilterOptions = {};
+    if(start.greaterThan(UInt32.from(0)).toBoolean()) {
+      queryFilterOptions.from = start;
+    }
+    if(end) {
+      queryFilterOptions.to = end;
+    }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
-      await Mina.fetchEvents(this.address, this.self.body.tokenId, {
-        from: start,
-        to: end,
-      })
+      await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions)
     )
-      .filter((eventData) => {
-        let height = UInt32.from(eventData.blockHeight);
-        return end === undefined
-          ? start.lessThanOrEqual(height).toBoolean()
-          : start.lessThanOrEqual(height).toBoolean() &&
-              height.lessThanOrEqual(end).toBoolean();
-      })
       .map((event) => {
         return event.events.map((eventData) => {
           let { events, ...rest } = event;
@@ -1116,9 +1128,6 @@ super.init();
         });
       })
       .flat();
-
-    // used to match field values back to their original type
-    let sortedEventTypes = Object.keys(this.events).sort();
 
     return events.map((eventData) => {
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
