@@ -68,8 +68,8 @@ function divMod64(n: Field, nBits = 128) {
 
   if (n.isConstant()) {
     assert(
-      n.toBigInt() < 1n << 128n,
-      `n needs to fit into 128 bit, but got ${n.toBigInt()}`
+      n.toBigInt() < 1n << BigInt(nBits),
+      `n needs to fit into ${nBits} bits, but got ${n.toBigInt()}`
     );
     let nBigInt = n.toBigInt();
     let q = nBigInt >> 64n;
@@ -108,5 +108,5 @@ function divMod64(n: Field, nBits = 128) {
 }
 
 function addMod64(x: Field, y: Field) {
-  return divMod64(x.add(y), 128).remainder;
+  return divMod64(x.add(y), 65).remainder;
 }
