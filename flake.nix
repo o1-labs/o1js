@@ -124,8 +124,6 @@
                 binaryen # provides wasm-opt
 
                 dune_3
-                ocamlPackages.js_of_ocaml-ppx
-                ocamlPackages.base
               ] ++ commonOverrides.buildInputs ;
           };
         };
