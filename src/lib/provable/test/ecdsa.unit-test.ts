@@ -210,8 +210,8 @@ await deprecatedVerify.compile();
 console.timeEnd('ecdsa verify (compile)');
 
 console.time('ecdsa verify (prove)');
-let proof = await program.ecdsa();
-let proof2 = await deprecatedVerify.ecdsa();
+let { proof } = await program.ecdsa();
+let { proof: proof2 } = await deprecatedVerify.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');

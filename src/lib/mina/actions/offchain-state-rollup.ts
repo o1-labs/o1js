@@ -289,10 +289,16 @@ function OffchainStateRollup({
 
       // base proof
       let slice = sliceActions(iterator, maxActionsPerProof);
-      let proof = await offchainStateRollup.firstBatch(inputState, slice, tree);
+      let result = await offchainStateRollup.firstBatch(
+        inputState,
+        slice,
+        tree
+      );
 
       // update tree root/length again, they aren't mutated :(
       // TODO: this shows why the full tree should be the public output
+
+      let proof = result.proof;
       tree.root = proof.publicOutput.root;
       tree.length = proof.publicOutput.length;
 
@@ -303,12 +309,9 @@ function OffchainStateRollup({
         nProofs++;
 
         let slice = sliceActions(iterator, maxActionsPerProof);
-        proof = await offchainStateRollup.nextBatch(
-          inputState,
-          slice,
-          tree,
-          proof
-        );
+        proof = (
+          await offchainStateRollup.nextBatch(inputState, slice, tree, proof)
+        ).proof;
 
         // update tree root/length again, they aren't mutated :(
         tree.root = proof.publicOutput.root;

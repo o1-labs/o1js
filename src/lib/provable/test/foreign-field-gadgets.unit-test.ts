@@ -263,7 +263,7 @@ await ffProgram.compile();
 await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs })(
   (xs) => sum(xs, signs, F),
   async (xs) => {
-    let proof = await ffProgram.sumchain(xs);
+    let { proof } = await ffProgram.sumchain(xs);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -277,7 +277,7 @@ await equivalentAsync({ from: [big264, big264], to: f }, { runs })(
     return F.mul(x, y);
   },
   async (x, y) => {
-    let proof = await ffProgram.mulWithBoundsCheck(x, y);
+    let { proof } = await ffProgram.mulWithBoundsCheck(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -287,7 +287,7 @@ await equivalentAsync({ from: [big264, big264], to: f }, { runs })(
 await equivalentAsync({ from: [f, f], to: f }, { runs })(
   (x, y) => F.div(x, y) ?? throwError('no inverse'),
   async (x, y) => {
-    let proof = await ffProgram.div(x, y);
+    let { proof } = await ffProgram.div(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -297,7 +297,7 @@ await equivalentAsync({ from: [f, f], to: f }, { runs })(
 await equivalentAsync({ from: [f, f], to: unit }, { runs })(
   (x, y) => assert(x < y, 'not less than'),
   async (x, y) => {
-    let proof = await ffProgram.assertLessThan(x, y);
+    let { proof } = await ffProgram.assertLessThan(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
   },
   'prove less than'

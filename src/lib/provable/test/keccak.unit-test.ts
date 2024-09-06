@@ -153,7 +153,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(testImplementations.sha3[digestLength], async (x) => {
-  const proof = await KeccakProgram.nistSha3(x);
+  const { proof } = await KeccakProgram.nistSha3(x);
   await KeccakProgram.verify(proof);
   return proof.publicOutput;
 });
@@ -166,7 +166,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(testImplementations.preNist[digestLength], async (x) => {
-  const proof = await KeccakProgram.preNist(x);
+  const { proof } = await KeccakProgram.preNist(x);
   await KeccakProgram.verify(proof);
   return proof.publicOutput;
 });

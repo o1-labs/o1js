@@ -47,7 +47,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(nobleSha256, async (x) => {
-  const proof = await Sha256Program.sha256(x);
+  const { proof } = await Sha256Program.sha256(x);
   await Sha256Program.verify(proof);
   return proof.publicOutput;
 });

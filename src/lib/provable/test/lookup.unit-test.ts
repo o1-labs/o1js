@@ -55,7 +55,7 @@ await equivalentAsync(
     return true;
   },
   async (x, y, z) => {
-    let proof = await Lookup.three12Bit(x, y, z);
+    let { proof } = await Lookup.three12Bit(x, y, z);
     return await Lookup.verify(proof);
   }
 );

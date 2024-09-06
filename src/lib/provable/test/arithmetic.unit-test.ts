@@ -51,6 +51,6 @@ await equivalentAsync({ from: [field], to: divMod32Output }, { runs: 3 })(
     return divMod32Helper(x);
   },
   async (x) => {
-    return (await Arithmetic.divMod32(x)).publicOutput;
+    return (await Arithmetic.divMod32(x)).proof.publicOutput;
   }
 );

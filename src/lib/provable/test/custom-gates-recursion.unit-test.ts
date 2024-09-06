@@ -62,8 +62,8 @@ await program.compile();
 console.timeEnd('ecdsa verify (compile)');
 
 console.time('ecdsa verify (prove)');
-let emptyProof = await emptyProgram.run();
-let proof = await program.ecdsa(emptyProof);
+let { proof: emptyProof } = await emptyProgram.run();
+let { proof } = await program.ecdsa(emptyProof);
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');

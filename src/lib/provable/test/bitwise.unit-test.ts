@@ -146,7 +146,7 @@ await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs })(
     return x ^ y;
   },
   async (x, y) => {
-    let proof = await Bitwise.xor(x, y);
+    let { proof } = await Bitwise.xor(x, y);
     return proof.publicOutput;
   }
 );
@@ -156,7 +156,7 @@ await equivalentAsync({ from: [maybeField], to: field }, { runs })(
     return Fp.not(x, 240);
   },
   async (x) => {
-    let proof = await Bitwise.notUnchecked(x);
+    let { proof } = await Bitwise.notUnchecked(x);
     return proof.publicOutput;
   }
 );
@@ -166,7 +166,7 @@ await equivalentAsync({ from: [maybeField], to: field }, { runs })(
     return Fp.not(x, 240);
   },
   async (x) => {
-    let proof = await Bitwise.notChecked(x);
+    let { proof } = await Bitwise.notChecked(x);
     return proof.publicOutput;
   }
 );
@@ -178,7 +178,7 @@ await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
     return x & y;
   },
   async (x, y) => {
-    let proof = await Bitwise.and(x, y);
+    let { proof } = await Bitwise.and(x, y);
     return proof.publicOutput;
   }
 );
@@ -189,7 +189,7 @@ await equivalentAsync({ from: [field], to: field }, { runs })(
     return Fp.rot(x, 12n, 'left');
   },
   async (x) => {
-    let proof = await Bitwise.rot64(x);
+    let { proof } = await Bitwise.rot64(x);
     return proof.publicOutput;
   }
 );
@@ -199,7 +199,7 @@ await equivalentAsync({ from: [uint(32)], to: uint(32) }, { runs })(
     return Fp.rot(x, 12n, 'left', 32n);
   },
   async (x) => {
-    let proof = await Bitwise.rot32(x);
+    let { proof } = await Bitwise.rot32(x);
     return proof.publicOutput;
   }
 );
@@ -210,7 +210,7 @@ await equivalentAsync({ from: [field], to: field }, { runs })(
     return Fp.leftShift(x, 12);
   },
   async (x) => {
-    let proof = await Bitwise.leftShift64(x);
+    let { proof } = await Bitwise.leftShift64(x);
     return proof.publicOutput;
   }
 );
@@ -221,7 +221,7 @@ await equivalentAsync({ from: [field], to: field }, { runs })(
     return Fp.leftShift(x, 12, 32);
   },
   async (x) => {
-    let proof = await Bitwise.leftShift32(x);
+    let { proof } = await Bitwise.leftShift32(x);
     return proof.publicOutput;
   }
 );
@@ -232,7 +232,7 @@ await equivalentAsync({ from: [field], to: field }, { runs })(
     return Fp.rightShift(x, 12);
   },
   async (x) => {
-    let proof = await Bitwise.rightShift64(x);
+    let { proof } = await Bitwise.rightShift64(x);
     return proof.publicOutput;
   }
 );

@@ -606,7 +606,8 @@ function ZkProgram<
   [I in keyof PrivateInputs]: Prover<
     InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
     InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-    PrivateInputs[I]
+    PrivateInputs[I],
+    AuxiliaryOutputs[I]
   >;
 } {
   let methods = config.methods;
@@ -692,7 +693,10 @@ function ZkProgram<
   function toProver<K extends keyof PrivateInputs & string>(
     key: K,
     i: number
-  ): [K, Prover<PublicInput, PublicOutput, PrivateInputs[K]>] {
+  ): [
+    K,
+    Prover<PublicInput, PublicOutput, PrivateInputs[K], AuxiliaryOutputs[K]>
+  ] {
     async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[typeof key]>
@@ -730,7 +734,12 @@ function ZkProgram<
         maxProofsVerified,
       });
     }
-    let prove: Prover<PublicInput, PublicOutput, PrivateInputs[K]>;
+    let prove: Prover<
+      PublicInput,
+      PublicOutput,
+      PrivateInputs[K],
+      AuxiliaryOutputs[K]
+    >;
     if (
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
@@ -746,7 +755,8 @@ function ZkProgram<
     [I in keyof PrivateInputs]: Prover<
       PublicInput,
       PublicOutput,
-      PrivateInputs[I]
+      PrivateInputs[I],
+      AuxiliaryOutputs[I]
     >;
   };
 
@@ -1520,18 +1530,28 @@ type Method<
       >;
     };
 
+type ProverMethodReturnSignature<PublicOutput, PublicInput, AuxiliaryOutput> = {
+  proof: Proof<PublicInput, PublicOutput>;
+  auxiliaryOutput: AuxiliaryOutput;
+};
+
 type Prover<
   PublicInput,
   PublicOutput,
-  Args extends Tuple<PrivateInput>
+  Args extends Tuple<PrivateInput>,
+  AuxiliaryOutput extends ProvableType
 > = PublicInput extends undefined
   ? (
       ...args: TupleToInstances<Args>
-    ) => Promise<Proof<PublicInput, PublicOutput>>
+    ) => Promise<
+      ProverMethodReturnSignature<PublicOutput, PublicInput, AuxiliaryOutput>
+    >
   : (
       publicInput: PublicInput,
       ...args: TupleToInstances<Args>
-    ) => Promise<Proof<PublicInput, PublicOutput>>;
+    ) => Promise<
+      ProverMethodReturnSignature<PublicOutput, PublicInput, AuxiliaryOutput>
+    >;
 
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
