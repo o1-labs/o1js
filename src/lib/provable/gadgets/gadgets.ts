@@ -962,7 +962,7 @@ const Gadgets = {
    * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
    * Alternatively, you can pass plain `number[]`, `bigint[]` or `Uint8Array` to perform a hash outside provable code.
    *
-   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   * Produces an output of {@link Bytes} that conforms to the chosen digest length.
    *
    * @param data - {@link Bytes} representing the message to hash.
    *
