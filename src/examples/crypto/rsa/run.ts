@@ -38,7 +38,7 @@ const modulus = Bigint2048.from(params.n);
 console.timeEnd('generate RSA parameters and inputs (2048 bits)');
 
 console.time('prove');
-let proof = await rsaZkProgram.verifyRsa65537(message, signature, modulus);
+let { proof } = await rsaZkProgram.verifyRsa65537(message, signature, modulus);
 console.timeEnd('prove');
 
 console.time('verify');

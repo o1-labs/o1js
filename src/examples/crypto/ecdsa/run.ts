@@ -29,7 +29,7 @@ await keccakAndEcdsa.compile();
 console.timeEnd('keccak + ecdsa verify (compile)');
 
 console.time('keccak + ecdsa verify (prove)');
-let proof = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
+let { proof } = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
 console.timeEnd('keccak + ecdsa verify (prove)');
 
 proof.publicOutput.assertTrue('signature verifies');
