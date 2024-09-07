@@ -39,6 +39,10 @@ const BLAKE2B = {
       digestLength >= 1 && digestLength <= 64,
       `digestLength must be in the range [1, 64], got ${digestLength}`
     );
+    assert(
+      data.length >= 0 && data.length < 2 ** 128,
+      `data byte length must be in the range [0, 2**128), got ${data.length}`
+    );
     const state = initialize(digestLength);
     update(state, Bytes.from(data).bytes);
     const out = final(state);
