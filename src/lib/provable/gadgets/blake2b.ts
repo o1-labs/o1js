@@ -3,6 +3,7 @@ import { UInt64, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
 import { Gadgets } from './gadgets.js';
+import { assert } from '../../util/errors.js';
 
 export { BLAKE2B };
 
@@ -34,6 +35,10 @@ const BLAKE2BConstants = {
 
 const BLAKE2B = {
   hash(data: FlexibleBytes, digestLength = 64) {
+    assert(
+      digestLength >= 1 && digestLength <= 64,
+      `digestLength must be in the range [1, 64], got ${digestLength}`
+    );
     const state = initialize(digestLength);
     update(state, Bytes.from(data).bytes);
     const out = final(state);
