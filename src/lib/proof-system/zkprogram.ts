@@ -938,6 +938,22 @@ type MethodInterface = {
 // reasonable default choice for `overrideWrapDomain`
 const maxProofsToWrapDomain = { 0: 0, 1: 1, 2: 1 } as const;
 
+function programState<AuxiliaryOutput>() {
+  let aux: AuxiliaryOutput | undefined;
+
+  return {
+    setAuxiliaryOutput: (val: AuxiliaryOutput) => {
+      console.log('setting');
+      aux = val;
+      console.log(aux);
+    },
+    get: (): AuxiliaryOutput => {
+      if (aux === undefined) throw Error('State not defined');
+      return aux;
+    },
+  };
+}
+
 async function compileProgram({
   publicInputType,
   publicOutputType,
@@ -948,6 +964,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  state,
 }: {
   publicInputType: ProvablePure<any>;
   publicOutputType: ProvablePure<any>;
@@ -958,6 +975,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  state?: ReturnType<typeof programState<any>>;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -972,7 +990,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       methods[i],
       proofSystemTag,
       methodEntry,
-      gates[i]
+      gates[i],
+      state
     )
   );
   let maxProofs = getMaxProofsVerified(methodIntfs);
@@ -1093,7 +1112,8 @@ function picklesRuleFromFunction(
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
-  gates: Gate[]
+  gates: Gate[],
+  state?: ReturnType<typeof programState<any>>
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -1177,6 +1197,9 @@ function picklesRuleFromFunction(
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
+
+    // TODO: make work
+    //state?.setAuxiliaryOutput(result.auxiliaryOutput)
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
