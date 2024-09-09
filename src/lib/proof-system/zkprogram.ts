@@ -160,6 +160,22 @@ const FeatureFlags = {
   fromZkProgramList,
 };
 
+function createProgramState<AuxiliaryOutput>() {
+  let aux: AuxiliaryOutput | undefined;
+
+  return {
+    setAuxiliaryOutput: (val: AuxiliaryOutput) => {
+      console.log('setting');
+      aux = val;
+      console.log(aux);
+    },
+    get: (): AuxiliaryOutput => {
+      if (aux === undefined) throw Error('State not defined');
+      return aux;
+    },
+  };
+}
+
 async function fromZkProgramList(programs: Array<AnalysableProgram>) {
   let flatMethodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>> =
     [];
@@ -669,6 +685,8 @@ function ZkProgram<
       }
     | undefined;
 
+  const programState = createProgramState<any>();
+
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
@@ -685,6 +703,7 @@ function ZkProgram<
       cache,
       forceRecompile,
       overrideWrapDomain: config.overrideWrapDomain,
+      state: programState,
     });
     compileOutput = { provers, verify };
     return { verificationKey };
@@ -720,6 +739,8 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
+      Provable.log('state', programState.get());
+
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
@@ -938,22 +959,6 @@ type MethodInterface = {
 // reasonable default choice for `overrideWrapDomain`
 const maxProofsToWrapDomain = { 0: 0, 1: 1, 2: 1 } as const;
 
-function programState<AuxiliaryOutput>() {
-  let aux: AuxiliaryOutput | undefined;
-
-  return {
-    setAuxiliaryOutput: (val: AuxiliaryOutput) => {
-      console.log('setting');
-      aux = val;
-      console.log(aux);
-    },
-    get: (): AuxiliaryOutput => {
-      if (aux === undefined) throw Error('State not defined');
-      return aux;
-    },
-  };
-}
-
 async function compileProgram({
   publicInputType,
   publicOutputType,
@@ -975,7 +980,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
-  state?: ReturnType<typeof programState<any>>;
+  state?: ReturnType<typeof createProgramState<any>>;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -1113,7 +1118,7 @@ function picklesRuleFromFunction(
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
   gates: Gate[],
-  state?: ReturnType<typeof programState<any>>
+  state?: ReturnType<typeof createProgramState<any>>
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -1157,14 +1162,17 @@ function picklesRuleFromFunction(
         previousStatements.push(MlPair(input, output));
       }
     }
-    let result: any;
+    let result: {
+      publicOutput?: any;
+      auxiliaryOutput?: any;
+    };
     if (publicInputType === Undefined || publicInputType === Void) {
-      result = await func(...finalArgs);
+      result = (await func(...finalArgs)) as any;
     } else {
       let input = fromFieldVars(publicInputType, publicInput);
-      result = await func(input, ...finalArgs);
+      result = (await func(input, ...finalArgs)) as any;
     }
-
+    console.log(result);
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
         return;
@@ -1196,10 +1204,15 @@ function picklesRuleFromFunction(
 
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
-    let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
+    let publicOutput = hasPublicOutput
+      ? publicOutputType.toFields(result.publicOutput)
+      : [];
 
-    // TODO: make work
-    //state?.setAuxiliaryOutput(result.auxiliaryOutput)
+    Provable.asProver(() => {
+      state?.setAuxiliaryOutput(
+        Provable.toConstant(Field, result.auxiliaryOutput)
+      );
+    });
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
