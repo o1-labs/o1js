@@ -1,4 +1,4 @@
-// https://www.blake2.net/blake2.pdf
+// https://datatracker.ietf.org/doc/html/rfc7693.html
 import { UInt64, UInt8 } from '../int.js';
 import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
