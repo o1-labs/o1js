@@ -527,7 +527,30 @@ async function verify(
     withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
 }
+/* let MyProgram = ZkProgram({
+  name: 'example-with-aux-output',
+  publicOutput: Field,
+  methods: {
+    baseCase: {
+      privateInputs: [Field],
+      async method(a: Field) {
+        return {
+          auxiliaryOutput: a,
+          publicOutput: a,
+        };
+      },
+    },
+  },
+});
 
+await MyProgram.compile();
+console.log('compile done');
+let result = await MyProgram.baseCase(Field(21));
+Provable.log('final result', result.auxiliaryOutput, result.proof.publicOutput);
+result = await MyProgram.baseCase(Field(11));
+Provable.log('final result', result.auxiliaryOutput, result.proof.publicOutput);
+MyProgram.auxiliaryOutputTypes.baseCase;
+ */
 type JsonProof = {
   publicInput: string[];
   publicOutput: string[];
@@ -752,10 +775,14 @@ function ZkProgram<
         snarkContext.leave(id);
       }
 
-      Provable.log('state', programState.get(methodIntfs[i].methodName));
-
-      let auxiliaryValue = programState.get(methodIntfs[i].methodName);
-      programState.reset(methodIntfs[i].methodName);
+      let auxiliaryType = methodIntfs[i].auxiliaryType;
+      let auxiliaryOutput = undefined;
+      if (auxiliaryType && auxiliaryType.sizeInFields() !== 0) {
+        console.log('type', auxiliaryType);
+        Provable.log('state', programState.get(methodIntfs[i].methodName));
+        auxiliaryOutput = programState.get(methodIntfs[i].methodName);
+        programState.reset(methodIntfs[i].methodName);
+      }
 
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
@@ -771,7 +798,7 @@ function ZkProgram<
           proof,
           maxProofsVerified,
         }),
-        auxiliaryOutput: auxiliaryValue,
+        auxiliaryOutput,
       };
     }
     let prove: Prover<
@@ -1581,7 +1608,7 @@ type Method<
   PublicInput,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutputs extends ProvableType
+  AuxiliaryOutputs
 > = PublicInput extends undefined
   ? {
       privateInputs: Args;
