@@ -31,7 +31,7 @@
                 ./src/bindings/ocaml/dune
                 ./src/bindings/ocaml/lib/dune
                 ./src/bindings/ocaml/dune-project
-                ./src/bindings/ocaml/js/dune
+                ./src/bindings/ocaml/jsoo_exports/dune
               ];
             });
           phases = [ "unpackPhase" "buildPhase" ];
