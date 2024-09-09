@@ -527,30 +527,7 @@ async function verify(
     withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
 }
-/* let MyProgram = ZkProgram({
-  name: 'example-with-aux-output',
-  publicOutput: Field,
-  methods: {
-    baseCase: {
-      privateInputs: [Field],
-      async method(a: Field) {
-        return {
-          auxiliaryOutput: a,
-          publicOutput: a,
-        };
-      },
-    },
-  },
-});
 
-await MyProgram.compile();
-console.log('compile done');
-let result = await MyProgram.baseCase(Field(21));
-Provable.log('final result', result.auxiliaryOutput, result.proof.publicOutput);
-result = await MyProgram.baseCase(Field(11));
-Provable.log('final result', result.auxiliaryOutput, result.proof.publicOutput);
-MyProgram.auxiliaryOutputTypes.baseCase;
- */
 type JsonProof = {
   publicInput: string[];
   publicOutput: string[];
