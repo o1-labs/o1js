@@ -160,18 +160,21 @@ const FeatureFlags = {
   fromZkProgramList,
 };
 
-function createProgramState<AuxiliaryOutput>() {
-  let aux: AuxiliaryOutput | undefined;
-
+function createProgramState() {
+  let auxiliaryValues: Map<string, Provable<any>> = new Map();
   return {
-    setAuxiliaryOutput: (val: AuxiliaryOutput) => {
-      console.log('setting');
-      aux = val;
-      console.log(aux);
+    setAuxiliaryOutput: (val: Provable<any>, methodName: string) => {
+      auxiliaryValues.set(methodName, val);
+      Provable.log('setting', val, methodName);
     },
-    get: (): AuxiliaryOutput => {
-      if (aux === undefined) throw Error('State not defined');
-      return aux;
+    get: (methodName: string): Provable<any> => {
+      let value = auxiliaryValues.get(methodName);
+      if (value === undefined)
+        throw Error(`Auxiliary value for method ${methodName} not defined`);
+      return value;
+    },
+    reset(methodName: string) {
+      auxiliaryValues.delete(methodName);
     },
   };
 }
@@ -650,7 +653,13 @@ function ZkProgram<
   let methodKeys: (keyof PrivateInputs & string)[] =
     Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = methodKeys.map((key) =>
-    sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
+    sortMethodArguments(
+      'program',
+      key,
+      methods[key].privateInputs,
+      Field, // TODO: actually fix
+      SelfProof
+    )
   );
   let methodFunctions = methodKeys.map((key) => methods[key].method);
   let maxProofsVerified = getMaxProofsVerified(methodIntfs);
@@ -685,7 +694,7 @@ function ZkProgram<
       }
     | undefined;
 
-  const programState = createProgramState<any>();
+  const programState = createProgramState();
 
   async function compile({
     cache = Cache.FileSystemDefault,
@@ -719,7 +728,10 @@ function ZkProgram<
     async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[typeof key]>
-    ): Promise<Proof<PublicInput, PublicOutput>> {
+    ): Promise<{
+      proof: Proof<PublicInput, PublicOutput>;
+      auxiliaryOutput?: Provable<any>;
+    }> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -739,7 +751,11 @@ function ZkProgram<
       } finally {
         snarkContext.leave(id);
       }
-      Provable.log('state', programState.get());
+
+      Provable.log('state', programState.get(methodIntfs[i].methodName));
+
+      let auxiliaryValue = programState.get(methodIntfs[i].methodName);
+      programState.reset(methodIntfs[i].methodName);
 
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
@@ -748,12 +764,15 @@ function ZkProgram<
         static publicOutputType = publicOutputType;
         static tag = () => selfTag;
       }
-      return new ProgramProof({
-        publicInput,
-        publicOutput,
-        proof,
-        maxProofsVerified,
-      });
+      return {
+        proof: new ProgramProof({
+          publicInput,
+          publicOutput,
+          proof,
+          maxProofsVerified,
+        }),
+        auxiliaryOutput: auxiliaryValue,
+      };
     }
     let prove: Prover<
       PublicInput,
@@ -858,6 +877,7 @@ function sortMethodArguments(
   programName: string,
   methodName: string,
   privateInputs: unknown[],
+  auxiliaryType: Provable<any> | undefined,
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
   let witnessArgs: Provable<unknown>[] = [];
@@ -903,7 +923,13 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, witnessArgs, proofArgs, allArgs };
+  return {
+    methodName,
+    witnessArgs,
+    proofArgs,
+    allArgs,
+    auxiliaryType,
+  };
 }
 
 function isAsFields(
@@ -954,6 +980,7 @@ type MethodInterface = {
   proofArgs: Subclass<typeof ProofBase>[];
   allArgs: { type: 'witness' | 'proof'; index: number }[];
   returnType?: Provable<any>;
+  auxiliaryType?: Provable<any>;
 };
 
 // reasonable default choice for `overrideWrapDomain`
@@ -980,7 +1007,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
-  state?: ReturnType<typeof createProgramState<any>>;
+  state?: ReturnType<typeof createProgramState>;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -1116,9 +1143,15 @@ function picklesRuleFromFunction(
   publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
+  {
+    methodName,
+    witnessArgs,
+    proofArgs,
+    allArgs,
+    auxiliaryType,
+  }: MethodInterface,
   gates: Gate[],
-  state?: ReturnType<typeof createProgramState<any>>
+  state?: ReturnType<typeof createProgramState>
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -1172,7 +1205,7 @@ function picklesRuleFromFunction(
       let input = fromFieldVars(publicInputType, publicInput);
       result = (await func(input, ...finalArgs)) as any;
     }
-    console.log(result);
+    Provable.log('raw return restult', result);
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
         return;
@@ -1208,11 +1241,15 @@ function picklesRuleFromFunction(
       ? publicOutputType.toFields(result.publicOutput)
       : [];
 
-    Provable.asProver(() => {
-      state?.setAuxiliaryOutput(
-        Provable.toConstant(Field, result.auxiliaryOutput)
-      );
-    });
+    if (auxiliaryType && result.auxiliaryOutput) {
+      Provable.asProver(() => {
+        state?.setAuxiliaryOutput(
+          Provable.toConstant(auxiliaryType!, result.auxiliaryOutput),
+          methodName
+        );
+      });
+    }
+
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
@@ -1566,28 +1603,23 @@ type Method<
       >;
     };
 
-type ProverMethodReturnSignature<PublicOutput, PublicInput, AuxiliaryOutput> = {
-  proof: Proof<PublicInput, PublicOutput>;
-  auxiliaryOutput: AuxiliaryOutput;
-};
-
 type Prover<
   PublicInput,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
   AuxiliaryOutput extends ProvableType
 > = PublicInput extends undefined
-  ? (
-      ...args: TupleToInstances<Args>
-    ) => Promise<
-      ProverMethodReturnSignature<PublicOutput, PublicInput, AuxiliaryOutput>
-    >
+  ? (...args: TupleToInstances<Args>) => Promise<{
+      proof: Proof<PublicInput, PublicOutput>;
+      auxiliaryOutput: AuxiliaryOutput;
+    }>
   : (
       publicInput: PublicInput,
       ...args: TupleToInstances<Args>
-    ) => Promise<
-      ProverMethodReturnSignature<PublicOutput, PublicInput, AuxiliaryOutput>
-    >;
+    ) => Promise<{
+      proof: Proof<PublicInput, PublicOutput>;
+      auxiliaryOutput: AuxiliaryOutput;
+    }>;
 
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined

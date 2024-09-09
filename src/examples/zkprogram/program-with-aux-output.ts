@@ -16,5 +16,6 @@ let MyProgram = ZkProgram({
 });
 
 await MyProgram.compile();
-
-let result = await MyProgram.baseCase(Field(1));
+console.log('compile done');
+let result = await MyProgram.baseCase(Field(21));
+Provable.log('final result', result.auxiliaryOutput);

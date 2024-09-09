@@ -134,6 +134,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     paramTypes,
+    undefined,
     SelfProof
   );
   // add witness arguments for the publicKey (address) and tokenId
@@ -141,6 +142,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     [PublicKey, Field, ...paramTypes],
+    undefined,
     SelfProof
   );
 

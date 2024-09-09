@@ -40,7 +40,13 @@ it('pickles rule creation', async () => {
   let privateInputs = [EmptyProof, Bool];
 
   // collect method interface
-  let methodIntf = sortMethodArguments('mock', 'main', privateInputs, Proof);
+  let methodIntf = sortMethodArguments(
+    'mock',
+    'main',
+    privateInputs,
+    undefined,
+    Proof
+  );
 
   expect(methodIntf).toEqual({
     methodName: 'main',
