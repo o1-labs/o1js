@@ -7,7 +7,7 @@ import {
   Bytes,
 } from 'o1js';
 
-export { keccakAndEcdsa, ecdsa, Secp256k1, Ecdsa, Bytes32 };
+export { keccakAndEcdsa, ecdsa, Secp256k1, Ecdsa, Bytes32, ethers };
 
 class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
 class Scalar extends Secp256k1.Scalar {}
@@ -39,6 +39,21 @@ const ecdsa = ZkProgram({
       privateInputs: [Ecdsa, Secp256k1],
       async method(message: Scalar, signature: Ecdsa, publicKey: Secp256k1) {
         return signature.verifySignedHashV2(message, publicKey);
+      },
+    },
+  },
+});
+
+const ethers = ZkProgram({
+  name: 'ecdsa-ethers',
+  publicInput: Bytes32,
+  publicOutput: Bool,
+
+  methods: {
+    verifyEthers: {
+      privateInputs: [Ecdsa, Secp256k1],
+      async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
+        return signature.verifyEthers(message, publicKey);
       },
     },
   },
