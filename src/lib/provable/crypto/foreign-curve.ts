@@ -98,6 +98,11 @@ class ForeignCurve {
    * **Important:** This method is only designed to handle uncompressed elliptic curve points in hex format.
    */
   static fromHex(hex: string) {
+    // trim the '0x' prefix if present
+    if (hex.startsWith('0x')) {
+      hex = hex.slice(2);
+    }
+
     const bytes = Bytes.fromHex(hex).toBytes();
     const sizeInBytes = Math.ceil(this.Bigint.Field.sizeInBits / 8);
 
@@ -126,8 +131,6 @@ class ForeignCurve {
    * The input should represent the affine x and y coordinates of the point, in hexadecimal format.
    * Compressed keys are 33 bytes long and begin with 0x02 or 0x03, while uncompressed keys are 65 bytes long and begin with 0x04.
    *
-   * **Note**: Ensure the inputs are range-checked if they originate from a field with a different modulus, or if they are not constants.
-   *
    * **Warning:** This method is specifically designed for use with the Secp256k1 curve. Using it with other curves may result in incorrect behavior or errors.
    * Ensure that the curve setup matches Secp256k1, as shown in the example, to avoid unintended issues.
    *
@@ -146,6 +149,11 @@ class ForeignCurve {
    * @returns A new instance of the curve representing the given public key.
    */
   static fromEthers(hex: string) {
+    // trim the '0x' prefix if present
+    if (hex.startsWith('0x')) {
+      hex = hex.slice(2);
+    }
+
     const bytes = Bytes.fromHex(hex).toBytes(); // convert hex string to Uint8Array
     const len = bytes.length;
     const head = bytes[0]; // first byte is the prefix (compression identifier)

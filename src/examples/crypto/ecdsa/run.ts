@@ -59,7 +59,7 @@ const compressedPublicKey =
 const rawSignature =
   '0x6fada464c3bc2ae127f8c907c0c4bccbd05ba83a584156edb808b7400346b4c9558598d9c7869f5fd75d81128711f6621e4cb5ba2f52a2a51c46c859f49a833a1b';
 
-const publicKeyE = Secp256k1.fromEthers(compressedPublicKey.slice(2));
+const publicKeyE = Secp256k1.fromEthers(compressedPublicKey);
 const signatureE = Ecdsa.fromHex(rawSignature);
 const msgBytes = Bytes32.fromString(msg);
 
