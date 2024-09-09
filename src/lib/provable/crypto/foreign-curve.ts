@@ -76,7 +76,51 @@ class ForeignCurve {
   }
 
   /**
-   * Create a new {@link ForeignCurve} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
+   * Parses a hexadecimal string representing an uncompressed elliptic curve point and coerces it into a {@link ForeignCurveV2} point.
+   *
+   * The method extracts the x and y coordinates from the provided hex string and verifies that the resulting point lies on the curve.
+   *
+   * **Note:** This method only supports uncompressed elliptic curve points, which are 65 bytes in total (1-byte prefix + 32 bytes for x + 32 bytes for y).
+   *
+   * @param hex - The hexadecimal string representing the uncompressed elliptic curve point.
+   * @returns - A point on the foreign curve, parsed from the given hexadecimal string.
+   *
+   * @throws - Throws an error if the input is not a valid public key.
+   *
+   * @example
+   * ```ts
+   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+   *
+   * const publicKeyHex = '04f8b8db25c619d0c66b2dc9e97ecbafafae...'; // Example hex string for uncompressed point
+   * const point = Secp256k1.fromHex(publicKeyHex);
+   * ```
+   *
+   * **Important:** This method is only designed to handle uncompressed elliptic curve points in hex format.
+   */
+  static fromHex(hex: string) {
+    const bytes = Bytes.fromHex(hex).toBytes();
+    const sizeInBytes = Math.ceil(this.Bigint.Field.sizeInBits / 8);
+
+    // extract x and y coordinates from the byte array
+    const tail = bytes.subarray(1); // skip the first byte (prefix)
+    const xBytes = tail.subarray(0, sizeInBytes); // first `sizeInBytes` bytes for x-coordinate
+    const yBytes = tail.subarray(sizeInBytes, 2 * sizeInBytes); // next `sizeInBytes` bytes for y-coordinate
+
+    // convert byte arrays to bigint
+    const x = BigInt('0x' + Bytes.from(xBytes).toHex());
+    const y = BigInt('0x' + Bytes.from(yBytes).toHex());
+
+    // construct the point on the curve using the x and y coordinates
+    let P = this.from({ x, y });
+
+    // ensure that the point is on the curve
+    P.assertOnCurve();
+
+    return P;
+  }
+
+  /**
+   * Create a new {@link ForeignCurveV2} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
    * This method is designed to handle the parsing of public keys as used by the ethers.js library.
    *
    * The input should represent the affine x and y coordinates of the point, in hexadecimal format.
