@@ -62,26 +62,17 @@ const BLAKE2B = {
   },
 };
 
-function initialize(outlen: number): {
-  h: UInt64[];
-  t: UInt64[];
-  f: UInt64[];
-  buf: UInt8[];
-  buflen: number;
-  outlen: number;
-} {
-  const h = BLAKE2B.IV.slice(); // shallow copy IV to h
-  h[0] = UInt64.from(0x01010000).xor(UInt64.from(outlen)).xor(h[0]);
-  return {
-    h,
-    t: [UInt64.zero, UInt64.zero],
-    f: [UInt64.zero, UInt64.zero],
-    buf: [],
-    buflen: 0,
-    outlen,
-  };
-}
-
+/**
+ * G function
+ *
+ * @param {UInt64[]} v
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @param {number} d
+ * @param {UInt64} x
+ * @param {UInt64} y
+ */
 function G(
   v: UInt64[],
   a: number,
@@ -104,10 +95,11 @@ function G(
   v[b] = v[b].xor(v[c]).rotate(63, 'right');
 }
 
-function compress(state: {
-  h: UInt64[];
-  t: UInt64[];
-  f: UInt64[];
+/**
+ * Compression function. "last" flag indicates last block.
+ * @param {State} state
+ * @param {boolean} last
+ */
 function compress(
   state: {
     h: UInt64[];
@@ -123,12 +115,15 @@ function compress(
 
   v[12] = v[12].xor(t[0]); // low word of the offset
   v[13] = v[13].xor(t[1]); // high word of the offset
+
   if (last) {
+    // last block flag set ?
     v[14] = v[14].not();
   }
 
   const m: UInt64[] = [];
   for (let i = 0; i < 16; i++) {
+    // get little-endian words
     m.push(
       UInt64.from(
         buf[i * 8]
@@ -145,6 +140,7 @@ function compress(
   }
 
   for (let i = 0; i < 12; i++) {
+    // twelve rounds
     const s = BLAKE2BConstants.SIGMA[i % 10];
     G(v, 0, 4, 8, 12, m[s[0]], m[s[1]]);
     G(v, 1, 5, 9, 13, m[s[2]], m[s[3]]);
@@ -164,11 +160,40 @@ function compress(
   return state;
 }
 
+/**
+* Initializes the state with the given digest length.
+* 
+* @param {number} outlen - Digest length in bits
+* @returns {State}
+*/
+function initialize(outlen: number): {
+  h: UInt64[];
+  t: UInt64[];
+  buf: UInt8[];
+  buflen: number;
+  outlen: number;
+} {
+  const h = BLAKE2B.IV.slice(); // shallow copy IV to h
+  h[0] = UInt64.from(0x01010000).xor(UInt64.from(outlen)).xor(h[0]); // state "param block"
+
+  return {
+    h,
+    t: [UInt64.zero, UInt64.zero],
+    buf: [],
+    buflen: 0,
+    outlen,
+  };
+}
+/**
+ * Updates hash state
+ * @param {State} state
+ * @param {UInt8[]} input
+ * @returns {State} updated state
+ */
 function update(
   state: {
     h: UInt64[];
     t: UInt64[];
-    f: UInt64[];
     buf: UInt8[];
     buflen: number;
     outlen: number;
@@ -177,29 +202,36 @@ function update(
 ): State {
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
-      state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen));
+      // buffer full ?
+      state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen)); // add counters
       if (state.t[0].toBigInt() < state.buflen) {
-        state.t[1] = state.t[1].addMod64(UInt64.one);
+        // carry overflow ?
+        state.t[1] = state.t[1].addMod64(UInt64.one); // high word
       }
-      state = compress(state, false);
-      state.buflen = 0;
+      state = compress(state, false); // compress (not last)
+      state.buflen = 0; // counter to zero
     }
     state.buf[state.buflen++] = input[i];
   }
   return state;
 }
 
+/**
+ * Finalizes the hash state and returns digest
+ * @param {State} state
+ * @returns {UInt8[]} digest
+ */
 function final(state: {
   h: UInt64[];
   t: UInt64[];
-  f: UInt64[];
   buf: UInt8[];
   buflen: number;
   outlen: number;
 }): UInt8[] {
-  state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen));
+  state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen)); // mark last block offset
   if (state.t[0].toBigInt() < state.buflen) {
-    state.t[1] = state.t[1].addMod64(UInt64.one);
+    // carry overflow ?
+    state.t[1] = state.t[1].addMod64(UInt64.one); // high word
   }
   /*
   state.t[1] = state.t[1].add(
@@ -211,10 +243,11 @@ function final(state: {
   );
 */
   while (state.buflen < 128) {
-    state.buf[state.buflen++] = UInt8.from(0);
+    state.buf[state.buflen++] = UInt8.from(0); // fill up with zeroes
   }
   compress(state, true);
 
+  // little endian convert and store
   const out: UInt8[] = [];
   for (let i = 0; i < state.outlen; i++) {
     out[i] = UInt8.from(
