@@ -12,6 +12,7 @@ import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
 import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
+import { Bytes } from '../bytes.js';
 
 // external API
 export {
@@ -43,7 +44,7 @@ class ForeignCurve {
    * Create a new {@link ForeignCurve} from an object representing the (affine) x and y coordinates.
    *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Please refer to the {@link ForeignField} constructor comments for more details.
-   * 
+   *
    * @example
    * ```ts
    * let x = new ForeignCurve({ x: 1n, y: 1n });
@@ -72,6 +73,72 @@ class ForeignCurve {
   static from(g: ForeignCurve | FlexiblePoint) {
     if (g instanceof this) return g;
     return new this(g);
+  }
+
+  /**
+   * Create a new {@link ForeignCurve} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
+   * This method is designed to handle the parsing of public keys as used by the ethers.js library.
+   *
+   * The input should represent the affine x and y coordinates of the point, in hexadecimal format.
+   * Compressed keys are 33 bytes long and begin with 0x02 or 0x03, while uncompressed keys are 65 bytes long and begin with 0x04.
+   *
+   * **Note**: Ensure the inputs are range-checked if they originate from a field with a different modulus, or if they are not constants.
+   *
+   * **Warning:** This method is specifically designed for use with the Secp256k1 curve. Using it with other curves may result in incorrect behavior or errors.
+   * Ensure that the curve setup matches Secp256k1, as shown in the example, to avoid unintended issues.
+   *
+   * @example
+   * ```ts
+   * import { Wallet, Signature, getBytes } from 'ethers';
+   *
+   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+   *
+   * const wallet = Wallet.createRandom();
+   *
+   * const publicKey = Secp256k1.fromEthers(wallet.publicKey.slice(2));
+   * ```
+   *
+   * @param hex - The public key as a hexadecimal string (without the "0x" prefix).
+   * @returns A new instance of the curve representing the given public key.
+   */
+  static fromEthers(hex: string) {
+    const bytes = Bytes.fromHex(hex).toBytes(); // convert hex string to Uint8Array
+    const len = bytes.length;
+    const head = bytes[0]; // first byte is the prefix (compression identifier)
+    const tail = bytes.slice(1); // remaining bytes contain the coordinates
+
+    const xBytes = tail.slice(0, 32); // extract the x-coordinate (first 32 bytes)
+    const x = BigInt('0x' + Bytes.from(xBytes).toHex()); // convert Uint8Array to bigint
+
+    let p: { x: bigint; y: bigint } | undefined = undefined;
+
+    // handle compressed points (33 bytes, prefix 0x02 or 0x03)
+    if (len === 33 && [0x02, 0x03].includes(head)) {
+      // ensure x is within the valid field range
+      assert(0n < x && x < this.Bigint.Field.modulus);
+
+      // compute the right-hand side of the curve equation: x³ + ax + b
+      const crvX = this.Bigint.Field.mod(
+        this.Bigint.Field.mod(x * x) * x + this.Bigint.b
+      );
+      // compute the square root (y-coordinate)
+      let y = this.Bigint.Field.sqrt(crvX)!;
+      const isYOdd = (y & 1n) === 1n; // determine whether y is odd
+      const headOdd = (head & 1) === 1; // determine whether the prefix indicates an odd y
+      if (headOdd !== isYOdd) y = this.Bigint.Field.mod(-y); // adjust y if necessary
+      p = { x, y };
+    }
+
+    // handle uncompressed points (65 bytes, prefix 0x04)
+    if (len === 65 && head === 0x04) {
+      const yBytes = tail.slice(32, 64); // extract the y-coordinate (next 32 bytes)
+      p = { x, y: BigInt('0x' + Bytes.from(yBytes).toHex()) };
+    }
+
+    const P = this.from(p!); // create the curve point from the parsed coordinates
+    P.assertOnCurve(); // verify the point lies on the curve
+
+    return P;
   }
 
   /**
