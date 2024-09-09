@@ -7,6 +7,14 @@ import { assert } from '../../util/errors.js';
 
 export { BLAKE2B };
 
+type State = {
+  h: UInt64[];
+  t: UInt64[];
+  buf: UInt8[];
+  buflen: number;
+  outlen: number;
+};
+
 const BLAKE2BConstants = {
   IV: [
     UInt64.from(0x6a09e667f3bcc908n),
@@ -44,8 +52,8 @@ const BLAKE2B = {
       `data byte length must be in the range [0, 2**128), got ${data.length}`
     );
     const state = initialize(digestLength);
-    update(state, Bytes.from(data).bytes);
-    const out = final(state);
+    const updated_state = update(state, Bytes.from(data).bytes);
+    const out = final(updated_state);
     return Bytes.from(out);
   },
   get IV() {
@@ -99,17 +107,24 @@ function compress(state: {
   h: UInt64[];
   t: UInt64[];
   f: UInt64[];
-  buf: UInt8[];
-  buflen: number;
-  outlen: number;
-}): void {
-  const { h, t, f, buf } = state;
+function compress(
+  state: {
+    h: UInt64[];
+    t: UInt64[];
+    buf: UInt8[];
+    buflen: number;
+    outlen: number;
+  },
+  last: boolean
+): State {
+  const { h, t, buf } = state;
   const v = h.concat(BLAKE2B.IV); // initalize local work vector. First half from state and second half from IV.
 
   v[12] = v[12].xor(t[0]); // low word of the offset
   v[13] = v[13].xor(t[1]); // high word of the offset
-  v[14] = v[14].xor(f[0]);
-  v[15] = v[15].xor(f[1]);
+  if (last) {
+    v[14] = v[14].not();
+  }
 
   const m: UInt64[] = [];
   for (let i = 0; i < 16; i++) {
@@ -142,8 +157,10 @@ function compress(state: {
   }
 
   for (let i = 0; i < 8; i++) {
+    // XOR the two halves
     h[i] = v[i].xor(v[i + 8]).xor(h[i]);
   }
+  return state;
 }
 
 function update(
@@ -156,18 +173,19 @@ function update(
     outlen: number;
   },
   input: UInt8[]
-): void {
+): State {
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
       state.t[0] = state.t[0].add(128);
       if (state.t[0].equals(UInt64.zero)) {
         state.t[1] = state.t[1].addMod64(UInt64.one);
       }
-      compress(state);
+      state = compress(state, false);
       state.buflen = 0;
     }
     state.buf[state.buflen++] = input[i];
   }
+  return state;
 }
 
 function final(state: {
@@ -187,7 +205,7 @@ function final(state: {
   while (state.buflen < 128) {
     state.buf[state.buflen++] = UInt8.from(0);
   }
-  compress(state);
+  compress(state, true);
 
   const out: UInt8[] = [];
   for (let i = 0; i < state.outlen; i++) {
