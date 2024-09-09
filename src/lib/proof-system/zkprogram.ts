@@ -657,7 +657,7 @@ function ZkProgram<
       'program',
       key,
       methods[key].privateInputs,
-      Field, // TODO: actually fix
+      ProvableType.get(methods[key].auxiliaryOutput) ?? Undefined,
       SelfProof
     )
   );
@@ -1241,7 +1241,7 @@ function picklesRuleFromFunction(
       ? publicOutputType.toFields(result.publicOutput)
       : [];
 
-    if (auxiliaryType && result.auxiliaryOutput) {
+    if (auxiliaryType?.sizeInFields() !== 0) {
       Provable.asProver(() => {
         state?.setAuxiliaryOutput(
           Provable.toConstant(auxiliaryType!, result.auxiliaryOutput),
