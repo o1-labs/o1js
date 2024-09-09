@@ -2,7 +2,7 @@
 set -e
 shopt -s globstar # to expand '**' into nested directories
 
-if ! [ -f /mina-signer/dist ]
+if ! [ -f ./mina-signer/dist ]
 then
   pushd src/mina-signer
     npm run build
