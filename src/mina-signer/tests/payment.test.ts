@@ -1,5 +1,5 @@
-import Client from '../../../dist/node/mina-signer/mina-signer.js';
-import type { Keypair } from '../../../dist/node/mina-signer/src/types.js';
+import Client from '../dist/node/mina-signer/mina-signer.js';
+import type { Keypair } from '../dist/node/mina-signer/src/types.js';
 
 describe('Payment', () => {
   describe('Mainnet network', () => {
