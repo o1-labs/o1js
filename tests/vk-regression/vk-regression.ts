@@ -6,6 +6,7 @@ import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
 import {
   ecdsa,
   keccakAndEcdsa,
+  ecdsaEthers,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import {
@@ -60,6 +61,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   CryptoCS,
   ecdsa,
   keccakAndEcdsa,
+  ecdsaEthers,
   SHA256Program,
   diverse,
 ];
