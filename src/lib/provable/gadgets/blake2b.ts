@@ -4,6 +4,7 @@ import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
 import { Gadgets } from './gadgets.js';
 import { assert } from '../../util/errors.js';
+import { Provable } from '../provable.js';
 
 export { BLAKE2B };
 
@@ -176,8 +177,8 @@ function update(
 ): State {
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
-      state.t[0] = state.t[0].add(128);
-      if (state.t[0].equals(UInt64.zero)) {
+      state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen));
+      if (state.t[0].toBigInt() < state.buflen) {
         state.t[1] = state.t[1].addMod64(UInt64.one);
       }
       state = compress(state, false);
@@ -196,12 +197,19 @@ function final(state: {
   buflen: number;
   outlen: number;
 }): UInt8[] {
-  state.t[0] = state.t[0].add(state.buflen);
-  if (state.t[0].equals(UInt64.zero)) {
-    state.t[1] = state.t[1].add(UInt64.zero);
+  state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen));
+  if (state.t[0].toBigInt() < state.buflen) {
+    state.t[1] = state.t[1].addMod64(UInt64.one);
   }
-  state.f[0] = UInt64.from('0xFFFFFFFFFFFFFFFF');
-
+  /*
+  state.t[1] = state.t[1].add(
+    Provable.if(
+      state.t[0].lessThan(UInt64.from(state.buflen)),
+      UInt64.one,
+      UInt64.zero
+    )
+  );
+*/
   while (state.buflen < 128) {
     state.buf[state.buflen++] = UInt8.from(0);
   }
