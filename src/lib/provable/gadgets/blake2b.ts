@@ -8,6 +8,22 @@ import { Provable } from '../provable.js';
 
 export { BLAKE2B };
 
+/**
+ * IV[0..7]  Initialization Vector (constant).
+ * SIGMA[0..9]  Message word permutations (constant).
+ * p[0..7]  Parameter block (defines hash and key sizes).
+ * m[0..15]  Sixteen words of a single message block.
+ * h[0..7]  Internal state of the hash.
+ * d[0..dd-1]  Padded input blocks.  Each has "bb" bytes.
+ * t  Message byte offset at the end of the current block.
+ * f  Flag indicating the last block.
+ *
+ * All mathematical operations are on 64-bit words in BLAKE2b.
+ *
+ * Byte (octet) streams are interpreted as words in little-endian order,
+ * with the least-significant byte first.
+ */
+
 type State = {
   h: UInt64[];
   t: UInt64[];
@@ -82,16 +98,24 @@ function G(
   x: UInt64,
   y: UInt64
 ) {
-  v[a] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[a].value.add(v[b].value.add(x.value)), 128).remainder);
+  v[a] = UInt64.Unsafe.fromField(
+    Gadgets.divMod64(v[a].value.add(v[b].value.add(x.value)), 128).remainder
+  );
   v[d] = v[d].xor(v[a]).rotate(32, 'right');
-  
-  v[c] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder);
+
+  v[c] = UInt64.Unsafe.fromField(
+    Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder
+  );
   v[b] = v[b].xor(v[c]).rotate(24, 'right');
 
-  v[a] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[a].value.add(v[b].value.add(y.value)), 128).remainder);
+  v[a] = UInt64.Unsafe.fromField(
+    Gadgets.divMod64(v[a].value.add(v[b].value.add(y.value)), 128).remainder
+  );
   v[d] = v[d].xor(v[a]).rotate(16, 'right');
 
-  v[c] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder);
+  v[c] = UInt64.Unsafe.fromField(
+    Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder
+  );
   v[b] = v[b].xor(v[c]).rotate(63, 'right');
 }
 
@@ -161,11 +185,11 @@ function compress(
 }
 
 /**
-* Initializes the state with the given digest length.
-* 
-* @param {number} outlen - Digest length in bits
-* @returns {State}
-*/
+ * Initializes the state with the given digest length.
+ *
+ * @param {number} outlen - Digest length in bits
+ * @returns {State}
+ */
 function initialize(outlen: number): {
   h: UInt64[];
   t: UInt64[];
@@ -184,6 +208,7 @@ function initialize(outlen: number): {
     outlen,
   };
 }
+
 /**
  * Updates hash state
  * @param {State} state
