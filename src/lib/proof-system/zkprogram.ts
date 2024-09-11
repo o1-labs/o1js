@@ -160,6 +160,10 @@ const FeatureFlags = {
   fromZkProgramList,
 };
 
+function createProgramState() {
+
+}
+
 async function fromZkProgramList(programs: Array<AnalysableProgram>) {
   let flatMethodIntfs: Array<UnwrapPromise<ReturnType<typeof analyzeMethod>>> =
     [];
