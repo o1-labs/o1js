@@ -1209,7 +1209,7 @@ function picklesRuleFromFunction(
       let input = fromFieldVars(publicInputType, publicInput);
       result = (await func(input, ...finalArgs)) as any;
     }
-    Provable.log('raw return restult', result);
+
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
         return;
