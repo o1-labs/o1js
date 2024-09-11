@@ -161,20 +161,20 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let auxiliaryValues: Map<string, Provable<any>> = new Map();
+  let methodCache: Map<string, Provable<any>> = new Map();
+
   return {
-    setAuxiliaryOutput: (val: Provable<any>, methodName: string) => {
-      auxiliaryValues.set(methodName, val);
-      Provable.log('setting', val, methodName);
+    setAuxiliaryOutput(value: Provable<any>, methodName: string) {
+      methodCache.set(methodName, value);
     },
-    get: (methodName: string): Provable<any> => {
-      let value = auxiliaryValues.get(methodName);
-      if (value === undefined)
+    getAuxiliaryOutput(methodName: string): Provable<any> {
+      let entry = methodCache.get(methodName);
+      if (entry === undefined)
         throw Error(`Auxiliary value for method ${methodName} not defined`);
-      return value;
+      return entry;
     },
     reset(methodName: string) {
-      auxiliaryValues.delete(methodName);
+      methodCache.delete(methodName);
     },
   };
 }
@@ -753,11 +753,11 @@ function ZkProgram<
       }
 
       let auxiliaryType = methodIntfs[i].auxiliaryType;
-      let auxiliaryOutput = undefined;
+      let auxiliaryOutput;
       if (auxiliaryType && auxiliaryType.sizeInFields() !== 0) {
-        console.log('type', auxiliaryType);
-        Provable.log('state', programState.get(methodIntfs[i].methodName));
-        auxiliaryOutput = programState.get(methodIntfs[i].methodName);
+        auxiliaryOutput = programState.getAuxiliaryOutput(
+          methodIntfs[i].methodName
+        );
         programState.reset(methodIntfs[i].methodName);
       }
 
@@ -775,7 +775,7 @@ function ZkProgram<
           proof,
           maxProofsVerified,
         }),
-        auxiliaryOutput,
+        auxiliaryOutput: auxiliaryOutput as Provable<any>,
       };
     }
     let prove: Prover<
