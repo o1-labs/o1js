@@ -753,11 +753,16 @@ function ZkProgram<
       }
 
       let auxiliaryType = methodIntfs[i].auxiliaryType;
+      let auxiliaryOutputExists =
+        auxiliaryType && auxiliaryType.sizeInFields() !== 0;
+
       let auxiliaryOutput;
-      if (auxiliaryType && auxiliaryType.sizeInFields() !== 0) {
-        auxiliaryOutput = programState.getAuxiliaryOutput(
+      if (auxiliaryOutputExists) {
+        let cachedAuxiliaryValue = programState.getAuxiliaryOutput(
           methodIntfs[i].methodName
         );
+        auxiliaryOutput = auxiliaryType?.fromValue(cachedAuxiliaryValue);
+
         programState.reset(methodIntfs[i].methodName);
       }
 
@@ -775,7 +780,7 @@ function ZkProgram<
           proof,
           maxProofsVerified,
         }),
-        auxiliaryOutput: auxiliaryOutput as Provable<any>,
+        auxiliaryOutput,
       };
     }
     let prove: Prover<
