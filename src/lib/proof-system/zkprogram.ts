@@ -162,6 +162,10 @@ const FeatureFlags = {
 
 function createProgramState() {
 
+function createProgramState() {
+  let auxiliaryValues: Map<string, Provable<any>> = new Map();
+
+}
 }
 
 async function fromZkProgramList(programs: Array<AnalysableProgram>) {
