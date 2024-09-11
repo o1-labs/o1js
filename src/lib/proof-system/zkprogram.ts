@@ -967,7 +967,7 @@ async function compileProgram({
   overrideWrapDomain,
 }: {
   publicInputType: Provable<any>;
-  publicOutputType: ProvablePure<any>;
+  publicOutputType: Provable<any>; 
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
   gates: Gate[][];
