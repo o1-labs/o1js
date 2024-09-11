@@ -966,7 +966,7 @@ async function compileProgram({
   forceRecompile,
   overrideWrapDomain,
 }: {
-  publicInputType: ProvablePure<any>;
+  publicInputType: Provable<any>;
   publicOutputType: ProvablePure<any>;
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
