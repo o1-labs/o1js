@@ -163,7 +163,7 @@ const FeatureFlags = {
 function createProgramState() {
   let auxiliaryValues: Map<string, Provable<any>> = new Map();
   return {
- get: (methodName: string) => {
+ getAuxiliaryOutput: (methodName: string) => {
 
     }
 }
