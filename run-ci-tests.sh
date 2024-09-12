@@ -35,7 +35,8 @@ case $TEST_TYPE in
 
 "Verification Key Regression Check")
   echo "Running Regression checks"
-  ./run ./tests/vk-regression/vk-regression.ts --bundle
+  VK_TEST=1 ./run ./tests/vk-regression/vk-regression.ts --bundle
+  VK_TEST=2 ./run ./tests/vk-regression/vk-regression.ts --bundle
   ;;
 
 "CommonJS test")
