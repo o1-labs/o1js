@@ -614,6 +614,10 @@ const Body = {
   ): Body {
     let { body } = Types.AccountUpdate.empty();
     body.publicKey = publicKey;
+
+    // useFullCommitment = true by default, prevents replay attacks and similar issues
+    // the developer can still modify this to false if needed later on
+    body.useFullCommitment = Bool(true);
     if (tokenId) {
       body.tokenId = tokenId;
       body.mayUseToken = Provable.if(
@@ -897,8 +901,6 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   requireSignature() {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
-    // if this account is the same as the fee payer, we use the "full commitment" for replay protection
-    this.body.useFullCommitment = isSameAsFeePayer;
     this.body.implicitAccountCreationFee = Bool(false);
     // otherwise, we increment the nonce
     let doIncrementNonce = isSameAsFeePayer.not();
