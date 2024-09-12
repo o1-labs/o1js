@@ -558,6 +558,7 @@ function ZkProgram<
       >;
     };
     overrideWrapDomain?: 0 | 1 | 2;
+    chunks?: number;
   }
 ): {
   name: string;
@@ -684,6 +685,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        chunks: config.chunks,
       });
 
       compileOutput = { provers, verify };
@@ -965,6 +967,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  chunks,
 }: {
   publicInputType: ProvablePure<any>;
   publicOutputType: ProvablePure<any>;
@@ -975,6 +978,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  chunks?: number;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -1030,6 +1034,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
             publicOutputSize: publicOutputType.sizeInFields(),
             storable: picklesCache,
             overrideWrapDomain,
+            chunks: chunks ?? 1,
           });
           let { getVerificationKey, provers, verify, tag } = result;
           CompiledTag.store(proofSystemTag, tag);
