@@ -27,6 +27,7 @@ const forceRecompile = false;
 // usage ./run ./tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
+let vkTest = process.env.VK_TEST;
 
 type MinimumConstraintSystem = {
   analyzeMethods(): Promise<
@@ -65,6 +66,18 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   SHA256Program,
   diverse,
 ];
+
+let selectedConstraintSystems: MinimumConstraintSystem[] = [];
+
+if (vkTest === '1') {
+  selectedConstraintSystems = ConstraintSystems.slice(0, 10);
+  console.log('Running regression checks - Part 1');
+} else if (vkTest === '2') {
+  selectedConstraintSystems = ConstraintSystems.slice(10);
+  console.log('Running regression checks - Part 2');
+} else if (!dump) {
+  throw new Error('Invalid VK_TEST value. Please set VK_TEST to 1 or 2!');
+}
 
 let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';
 let RegressionJson: {
@@ -173,4 +186,4 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
 }
 
 if (dump) await dumpVk(ConstraintSystems);
-else await checkVk(ConstraintSystems);
+else await checkVk(selectedConstraintSystems);
