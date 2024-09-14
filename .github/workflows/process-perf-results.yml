@@ -1,0 +1,66 @@
+name: process perf results
+on:
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: 'Commit to read results from'
+        required: true
+        default: '5b13c202bbf6a196104ebb440678dd22037b6746'
+  #push:
+  #  branches:
+  #    - test-perf
+permissions:
+  id-token: write
+  pages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: meta-introspector/checkout@v4
+        #with:
+        #  submodules: recursive
+      - name: Login to GHCR
+        uses: meta-introspector/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: pull the image
+        run: docker pull ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest
+      - name: Download a Build Artifact
+        uses: meta-introspector/action-download-artifact@v6
+        with:
+          workflow_search: true
+          commit: ${{ inputs.commit_id }} 
+          skip_unpack: true
+          path: data
+      - name: run the report
+        run: docker compose up --build reporting-github
+        env:
+          WORKSPACE_DIR2: $GITHUB_WORKSPACE
+          WORKSPACE_DIR: $GITHUB_WORKSPACE
+      - name: run the report
+        run: docker compose up --build reporting-github
+        env:
+          WORKSPACE_DIR2: $GITHUB_WORKSPACE
+          WORKSPACE_DIR: $GITHUB_WORKSPACE
+
+      - name: Archive results
+        uses: meta-introspector/upload-artifact@v4
+        with:
+           name: results.tgz
+           path: perf-reporting/output/results.tgz
+
+        # reporting-github-1  | + ls -latr /app/perf-reporting/output/
+
+      - name: Setup Pages
+        uses: meta-introspector/configure-pages@v5
+      - name: Upload Artifact
+        uses: meta-introspector/upload-pages-artifact@v5
+        with:
+          # upload entire directory
+          path: 'perf-reporting/output'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: meta-introspector/deploy-pages@v3
+

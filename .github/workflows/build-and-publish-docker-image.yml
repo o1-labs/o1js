@@ -1,0 +1,40 @@
+name: Build and Publish Docker image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "build-image" ]
+  pull_request:
+    branches: [ "build-image" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: meta-introspector/checkout@v4
+      with: 
+        submodules: recursive
+    
+    #- name: Build the Docker image
+    #  run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    #- name: Build the Docker image via docker compose
+    #  run: docker compose build 
+
+    #- name: Docker-Compose Publish  
+    #  uses: meta-introspector/publish_docker-compose@v0.1.1
+    #  with:
+    #    docker_compose: docker-compose.yml
+    - name: Build and Publish Docker image
+      uses: meta-introspector/docker-bpgpr@1.0.0
+      with:
+        gh_token: ${{ secrets.GITHUB_TOKEN }}
+        image_name: o1js-perf-recording
+        tag_with_ref: true
+        tag_with_sha: true
+        #tags: main
+        tags: latest
+        #path: ./test
+        dockerfile: Dockerfile

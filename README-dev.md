@@ -1,3 +1,14 @@
+# Perf report
+
+The results of the job 
+https://github.com/meta-introspector/o1js/actions/workflows/publish-results.yml which takes a git commit of the source data as a parameter
+will be written to here as an index 
+https://meta-introspector.github.io/o1js/
+
+you can then pass those in as parameters to the firefox profiler for reading.
+https://profiler.firefox.com/from-url/https%3A%2F%2Fmeta-introspector.github.io%2Fo1js%2Fmerkle-tree.test.ts.perf.data.script.txt/calltree/?globalTrackOrder=0&hiddenLocalTracksByPid=67-5w8&thread=0&timelineType=category&v=10
+
+
 # o1js README-dev
 
 o1js is a TypeScript framework designed for zk-SNARKs and zkApps on the Mina blockchain.
@@ -21,6 +32,7 @@ Before starting, ensure you have the following tools installed:
 After cloning the repository, you need to fetch the submodules:
 
 ```sh
+export GIT_LFS_SKIP_SMUDGE=1
 git submodule update --init --recursive
 ```
 
@@ -227,3 +239,195 @@ To facilitate this process, use the provided script named `run-debug`. To use th
 This script initializes a Node.js process with the `--inspect-brk` flag that starts the Node.js inspector and breaks before the user script starts (i.e., it pauses execution until a debugger is attached). The `--enable-source-maps` flag ensures that source maps are used to allow easy debugging of o1js code directly.
 
 After the Node.js process is running, open the Chrome browser and navigate to `chrome://inspect` to attach the Chrome Debugger to the Node.js process. You can set breakpoints, inspect variables, and profile the performance of your zkApp or o1js. For more information on using the Chrome Debugger, see the [DevTools documentation](https://developer.chrome.com/docs/devtools/).
+
+
+# building
+
+`docker build . --progress=plain`
+
+`docker image history o1labs/mina-local-network:compatible-latest-lightnet > history.txt`
+
+`docker compose build`
+`docker compose run mina-local-network`
+`docker compose run -it mina-local-network /bin/bash`
+
+to update the pnpm lock
+`pnpm install --no-frozen-lockfile`
+
+# running test
+
+`make` will run `docker build .` that will trigger creating of the image.
+
+## Committing test
+
+`~/2024/08/02/mina/o1js$ docker commit a4fcb9ec4901 mina-test1`
+
+`sha256:9b707295a1fa7ac2541b946bc9cc68a90823a10f52b32268848c17dff3799f4a`
+
+## docker images
+| REPOSITORY| TAG| IMAGE| ID| CREATED| SIZE|
+| mina-test1| latest| 9b707295a1fa| 54| seconds| ago| 12.9GB|
+| o1js-build| latest| a8e0a0173b63| 4| hours| ago| 2.18GB|
+
+This shows a huge 10 gb of data collected, the newer image is mina1-test1
+
+## Create docker hub repo to hold data
+
+Using docker hub create a repo to hold the data.
+
+### Tag Image
+
+`docker tag mina-test1 h4ckermike/o1js-clinicjs-data:sept-17-2024`
+
+### Push Image
+
+`docker push h4ckermike/o1js-clinicjs-data:sept-17-2024`
+
+## 
+`docker run -v /mnt/data1/:/mnt/data1 -it h4ckermike/o1js-clinicjs-data:sept-17-2024 bash`
+`cp -r .clinic /mnt/data1/nix/time/2024/09/17/o1js/_clinic`
+`sudo chown -R mdupont: _clinic `
+
+## update modules
+
+pnpm install "https://github.com/meta-introspector/jest.git"
+pnpm install "https://github.com/meta-introspector/ts-jest.git"
+pnpm install "https://github.com/meta-introspector/node-clinic-doctor"
+
+
+```
+strace -s999 -o strace.txt -f -e execve npx jest ./src/lib/mina/token.test.ts
+/home/mdupont/.config/nvm/versions/node/v18.17.0/bin/node /home/mdupont/.npm/_npx/b8d86e6551a4f492/node_modules/.bin/jest ./src/lib/mina/token.test.ts
+```
+strace -s999 -o strace.txt -f -e execve npx jest src/lib/provable/test/int.test.ts
+  * 
+/home/mdupont/.config/nvm/versions/node/v18.17.0/bin/node /mnt/data1/nix/time/2024/08/02/mina/o1js/node_modules/.bin/../jest/bin/jest.js src/lib/provable/test/int.test.ts
+oops the wrong one
+/home/mdupont/.config/nvm/versions/node/v20.13.1/bin/node /mnt/data1/nix/time/2024/08/02/mina/o1js/node_modules/.bin/../jest/bin/jest.js src/lib/provable/test/int.test.ts
+
+# run perf and save the data
+This is working
+
+```
+perf record  node --perf-basic-prof ./node_modules/.bin/../jest/bin/jest.js 
+perf script > report_perf1.txt
+```
+
+
+
+# run with custom jest
+This is not working
+```
+pnpm remove jest-circus
+pnpm remove jest
+pnpm remove ts-jest
+pnpm install "https://github.com/meta-introspector/jest.git"
+pnpm install "https://github.com/meta-introspector/ts-jest.git"
+pnpm install
+pnpm build
+
+perf record  node --perf-basic-prof ./node_modules/.pnpm/@jest+monorepo@https+++codeload.github.com+meta-introspector+jest+tar.gz+4a58402556ecd05ca9cc01873db6fbc5596ccc67/node_modules/@jest/monorepo/packages/jest/bin/jest.js src/lib/provable/test/int.test.ts
+```
+# test lengths
+PASS src/lib/mina/precondition.test.ts (11.013 s)
+PASS src/lib/mina/token.test.ts (46.054 s)
+
+
+perf report> report.txt
+
+# Architecture
+
+We have docker compose that is runnable locally and in github or gitlab.
+This allows for reproducible builds. 
+We name our local images the same as would be used in github so we have the same 
+references. We can test our code locally, faster.
+## Running test
+`docker compose up reporting-github`
+
+this uses the service reporting-github, 
+to run in the container /app/perf-reporting/perf-report.sh
+that copies perf-reporting/perf-report.sh into a temp new docker image.
+If you update that you need to run `docker compose build reporting-github`
+
+To test the run locally, you could use once it works, and been setup:
+
+in the file named ".secrets" put
+`GITHUB_TOKEN=github_pat_abcd`
+with your personal token from github. see https://github.com/nektos/act/issues/233
+
+checkout the git repo not in a submodule because act does not like them.
+
+`act --secret-file .secrets   -W .github/workflows/process-perf-results.yml --verbose`
+
+set-output:: artifacts=[{"id":1950791984,"node_id":"MDg6QXJ0aWZhY3QxOTUwNzkxOTg0","name":"perf.data","size_in_bytes":119031823,"url":"https://api.github.com/repos/meta-introspector/o1js/actions/artifacts/1950791984","archive_download_url":"","expired":false,"created_at":"2024-09-19T00:56:29Z","updated_at":"2024-09-19T00:56:29Z","expires_at":"2024-12-18T00:46:42Z","workflow_run":{"id":10932397620,"repository_id":857372173,"head_repository_id":857372173,"head_branch":"main","head_sha":"584fd53a9f50126360ab764537f4ae10bd5e3666"}}]
+
+That means we can download the data like this 
+`gh api https://api.github.com/repos/meta-introspector/o1js/actions/artifacts/1950791984/zip > data/perf.data.zip`
+
+Now we added a way to edit a script in the data directory.
+`o1js/perf-reporting/scripts/perf-report.sh` if we put the script in there it will be run when we run
+`docker compose up reporting-github;` This allows for iterative changes.
+
+you can also say 
+`docker compose up --build reporting-github;` This allows for iterative changes.
+
+
+`perf report --header-only > header.txt`
+`perf report --verbose --stats`
+
+Example
+```
+Aggregated stats:
+           TOTAL events:    5528837
+            MMAP events:         61  ( 0.0%)
+            COMM events:          8  ( 0.0%)
+            EXIT events:        134  ( 0.0%)
+            FORK events:        133  ( 0.0%)
+          SAMPLE events:    5506199  (99.6%)
+           MMAP2 events:       3148  ( 0.1%)
+         KSYMBOL events:         25  ( 0.0%)
+       BPF_EVENT events:         24  ( 0.0%)
+: 
+  FINISHED_ROUND events:      19100  ( 0.3%)
+        ID_INDEX events:          1  ( 0.0%)
+      THREAD_MAP events:          1  ( 0.0%)
+         CPU_MAP events:          1  ( 0.0%)
+       TIME_CONV events:          1  ( 0.0%)
+   FINISHED_INIT events:          1  ( 0.0%)
+cpu-clock:ppp stats:
+          SAMPLE events:    5506199
+
+```
+
+# Summary
+
+This set of tools is for batch collecting and processing performance and coverage data customized for o1js mina.
+
+We have different github actions to create docker images.
+
+The long term goal is to be able to collect this performance information in the browser later, but for new we can run them locally, in github actions or on other platforms, planning on gitlab and any other cloud resources that are available. We will try other build platform first via docker images and then later on actual different hardware.
+
+To run a local test via docker just type in `make` to use the [Makefile](./Makefile) to run tests via docker. 
+
+### Creating docker images
+
+[Build and publish](.github/workflows/build-and-publish-docker-image.yml)
+
+### Using docker images to run jobs
+
+Then we take the resulting url of the docker image produces and pass it into
+the job defined here ["run Perf Test and collect data" .github/workflows/run-docker-tests.yml](.github/workflows/run-docker-tests.yml)
+to use the docker image
+
+### Useful Commands to download archives locally
+
+We can download an artifact from github using gh ai to basically authenticate a curl for us.
+
+This is an example of downloading an artifact directly, you can find examples in the github build logs for the jobs
+`gh api https://api.github.com/repos/meta-introspector/o1js/actions/artifacts/1961929543/zip  > data/perf.data.zip`
+
+In This version it contains perf.data.tar.gz, we have evolved the artifact contents so it will change to slightly different names in future versions. This documentation needs to be edited again to reflect that. 
+
+# next step
+
+See run-all-tests.sh for how we record and report on tests using clinic and perf and other tools as we add them.

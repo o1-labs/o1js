@@ -1,0 +1,73 @@
+name: run Perf Test and collect data
+env:
+  default_image: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest"
+  container_name: "mixed-source"
+on:
+  workflow_dispatch:
+    inputs:
+      image_url:
+        description: 'Docker url to execute'
+        #default: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:5ce0221662cecbca9a3de05601af94a15b154a3bcf8bafcb0cfa1f5b9f407bdc"
+        default: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest"
+  push:
+    branches: [ "feature/just_test" ]
+  pull_request:
+    branches: [ "collect-perf" ]
+jobs:
+  build:
+    strategy:
+      matrix:
+        tests:
+          - "/app/src/lib/provable/test/merkle-list.test.ts"
+          - "/app/src/lib/provable/test/merkle-tree.test.ts"
+          - "/app/src/lib/provable/test/scalar.test.ts"
+          - "/app/src/lib/provable/test/merkle-map.test.ts"
+          - "/app/src/lib/provable/test/provable.test.ts"
+          - "/app/src/lib/provable/test/primitives.test.ts"
+          - "/app/src/lib/provable/test/group.test.ts"
+          - "/app/src/lib/provable/test/int.test.ts"
+          - "/app/src/lib/mina/precondition.test.ts"
+          - "/app/src/lib/mina/token.test.ts"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Sets NAME
+      env:
+        name: "${{matrix.tests}}"
+      run: |
+        TEST_NAME1=`echo $name | sed -e 's!/!-!g' `
+        echo "TEST_NAME=test${TEST_NAME1}" >> $GITHUB_ENV
+
+    - uses: meta-introspector/checkout@v4
+      #with:
+      #  submodules: recursive
+
+    - name: Login to GHCR
+      uses: meta-introspector/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: pull the image
+      run: docker pull ${{ inputs.image_url || env.default_image }}
+
+    - name: run the Docker tests
+      run: TESTS=${{matrix.tests}} docker compose up ${{ env.container_name }}
+      env:
+        DOCKER_IMAGE_URL: ${{ inputs.image_url || env.default_image}}
+
+    - name: docker cp results
+      run: docker compose cp ${{ env.container_name }}:/tmp/perf.data.tar.gz perf.data.tar.gz
+
+    - name: Archive results
+      uses: meta-introspector/upload-artifact@v4
+      with:
+        name: ${{ env.TEST_NAME }}.perf.data.tar.gz
+        path: perf.data.tar.gz
+
+    - name: delete the results
+      run: rm -rf /tmp/perf*
+
+    - name: delete the container
+      run: |
+        docker compose down

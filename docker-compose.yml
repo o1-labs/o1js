@@ -1,0 +1,78 @@
+version: '3'
+
+services:
+  mina-local-network:
+    restart: no
+    #image: o1js-build
+    image: ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest
+    build: .
+    privileged: true
+    environment:
+      - PROOF_LEVEL=full
+      - LOG_LEVEL=Debug
+    working_dir: /app
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    command: "bash -x /app/run-all-tests.sh"
+
+  mixed-source:
+    restart: no
+    image: ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest
+    privileged: true
+    environment:
+      - PROOF_LEVEL=full
+      - LOG_LEVEL=Debug
+      - TESTS=${TESTS}
+    working_dir: /app    
+    # mount the source
+    volumes:
+      - type: bind
+        source: "/home/runner/work/o1js/o1js/"
+        target: "/opt/introspector/test/"
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    # run the test from the mounted source
+    command: "bash -x /opt/introspector/test/run-all-tests.sh"
+
+
+  reporting:
+    restart: no
+    image: ghcr.io/meta-introspector/o1js/o1js-perf-reporting:latest
+    build:
+      dockerfile: perf-reporting/Dockerfile.simple
+      #dockerfile: perf-reporting/Dockerfile
+    volumes:
+      - type: bind
+        source: "data"
+        target: "/app/perf-reporting/data2/"
+    environment:
+      - PROOF_LEVEL=full
+      - LOG_LEVEL=Debug
+      - WORKSPACE_DIR=$WORKSPACE_DIR
+    working_dir: /app
+    command: "bash -x /app/perf-reporting/perf-report.sh"
+
+  reporting-github:
+    restart: no
+    image: ghcr.io/meta-introspector/o1js/o1js-perf-reporting:latest
+    build:
+      dockerfile: perf-reporting/Dockerfile.simple
+
+    volumes:
+      - type: bind
+        source: "data"
+        target: "/app/perf-reporting/input_data/"
+      - type: bind
+        source: "perf-reporting/output"
+        target: "/app/perf-reporting/output/"
+      - type: bind
+        source: "perf-reporting/scripts"
+        target: "/app/perf-reporting/scripts/"
+    environment:
+      - PROOF_LEVEL=full
+      - LOG_LEVEL=Debug
+      - WORKSPACE_DIR=$WORKSPACE_DIR
+    working_dir: /app
+    command: "bash -x /app/perf-reporting/perf-report.sh"

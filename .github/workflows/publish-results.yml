@@ -1,0 +1,50 @@
+name: process perf results no docker
+on:
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: 'Commit to read results from'
+        required: true
+        default: '5b13c202bbf6a196104ebb440678dd22037b6746'
+  #push:
+  #  branches:
+  #    - test-perf
+permissions:
+  id-token: write
+  pages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Login to GHCR
+        uses: meta-introspector/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}      
+      - name: Download a Build Artifact
+        uses: meta-introspector/action-download-artifact@v6
+        with:
+          workflow_search: true
+          commit: ${{ inputs.commit_id }} 
+          skip_unpack: true
+          path: data
+      - name: list
+        run: |          
+          unzip data/results.tgz.zip        
+          tar -xzf ./results.tgz          
+          pushd app/perf-reporting/output/results/ 
+          tree -H . -o index.html
+          # cp index.txt app/perf-reporting/output/results/index.html 
+      
+      - name: Setup Pages
+        uses: meta-introspector/configure-pages@v5
+      - name: Upload Artifact
+        uses: meta-introspector/upload-pages-artifact@v5
+        with:          
+          path: 'app/perf-reporting/output/results'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: meta-introspector/deploy-pages@v4.1
+        

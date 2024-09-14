@@ -1,0 +1,2 @@
+add filter=lfs diff=lfs merge=lfs -text
+_clinic/perf/v3/report2.txt filter=lfs diff=lfs merge=lfs -text

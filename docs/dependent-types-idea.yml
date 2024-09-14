@@ -1,0 +1,69 @@
+for all projects p:
+	for all version v:
+		for all modules and submodules m:
+			for all tests t:
+				for all functions f:
+					for all basic blocks b:
+						for all loops l:
+							we find ourself in a loop right now. ooda:
+								we find ourselves on an instruction I:
+									we have registers R:
+										we have pointers to memory addresses M:
+										we have input files IF:
+										The registers values could be part of cryptographic algorithm:
+										we have zkp about the:
+											meaning of the values:
+												distribution of values:
+												distribution of types:
+												value -> type:
+												value prototype:
+												examples:
+												cases:
+												use cases:
+												uml modeling:
+												plantuml diagrams:
+												referencing this system right now:
+													self reference:
+													lexical introspection:
+														choose your own adventure:
+														heros journey:
+														epic stories:
+														meta-meme:
+														introspector:
+														self observation:
+														self confidence:
+														fitness function:
+															logical gymnastics:
+															demonstration of concept:
+																dungeons of thought:
+																laybyrith:
+																under-ground:
+																archtypes:
+																elixer:
+																heros journey:
+																	stream of conciousness:
+																	unity of mind:
+																	unimath:
+																		coq:
+																			meta-coq:
+																				haskell:
+																					template haskell:
+																						graphql -server:
+																		paths of proof:
+																			homotopy type levels:
+																				propositions of length of path of proof:
+																	uu:
+																	END.:
+												mathematical modelling:
+												neural network modelling:
+												model checkers:
+												rdf ontologies:
+												algebras of types:
+													enumerations of disjoint unions:
+														fields of probability:
+														or operation:
+														+ operator:
+													products of two events:
+														joint probability:
+														and operation:
+														* operator:

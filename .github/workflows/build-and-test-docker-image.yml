@@ -1,0 +1,42 @@
+name: Build Docker Image and run Perf Test and collect data
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "collect-perf" ]
+  pull_request:
+    branches: [ "collect-perf" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: meta-introspector/checkout@v4
+      with: 
+        submodules: recursive
+    
+    #- name: Build the Docker image
+    #  run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    - name: Build the Docker image via docker compose
+      run: docker compose build mina-local-network
+      
+    - name: run the Docker tests
+      run: docker compose up mina-local-network
+      
+    - name: docker cp results
+      run: docker compose cp mina-local-network:/tmp/perf.data.tar.gz perf.data.tar.gz
+    #- name: list files docker
+    #  run: docker compose run mina-local-network /bin/find /app/.clinic/
+    #- name: docker cp strace.txt
+    #  run: docker compose cp mina-local-network:/app/.clinic clinic
+    #- name: list files
+    #  run: find clinic
+
+    - name: Archive results
+      uses: meta-introspector/upload-artifact@v4
+      with:
+           name: perf.data.tar.gz
+           path: perf.data.tar.gz

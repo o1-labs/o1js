@@ -1,0 +1,81 @@
+name: Clinic Performance Analysis
+
+inputs:
+  gh-token:
+    description: "value for GITHUB_TOKEN"
+    required: true
+  javascript-file:
+    description: "Javascript file to execute in the performance tests"
+    required: false
+    default: "dist/server.js"
+  artifact-suffix:
+    description: "Artifact suffix, it will be complemented with a short sha"
+    required: true
+  clinic-tool:
+    description: "ClinicJS tool to use in this action. Must be one of this values: doctor, flame, bubbleprof, heapprofiler."
+    required: true
+  autocannon-endpoint:
+    description: "Endpoint to call using autocannon"
+    required: false
+    default: null
+  autocannon-connections:
+    description: "[autocannon] The number of concurrent connections to use. default: 10."
+    required: false
+    default: 10
+  autocannon-amount:
+    description: "[autocannon] The number of requests to make before exiting the benchmark."
+    required: false
+    default: 10
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: meta-introspector/checkout@v4
+
+    - name: Setup Node.js
+      uses: meta-introspector/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install dependencies
+      shell: bash
+      run: npm install
+
+    - name: Build server
+      shell: bash
+      run: npm run build
+      env:
+        NODE_ENV: production
+
+    - name: Get short SHA
+      id: get_sha
+      shell: bash
+      run: echo "short_sha=${GITHUB_SHA::6}" >> $GITHUB_ENV
+
+    - name: Run Clinic with autocannon
+      if: inputs.autocannon-endpoint != null
+      shell: bash
+      run: |
+        npx clinic ${{ inputs.clinic-tool }} --autocannon [ ${{ inputs.autocannon-endpoint }} -a ${{ inputs.autocannon-amount}} -c ${{ inputs.autocannon-connections }}] -- node ${{ inputs.javascript-file }}
+
+    - name: Run Clinic
+      if: inputs.autocannon-endpoint == null
+      shell: bash
+      run: |
+        npx clinic ${{ inputs.clinic-tool }} -- node ${{ inputs.javascript-file }}
+
+    - name: Generate HTML report
+      shell: bash
+      run: |
+        FILENAME=$(find .clinic/* -type d -maxdepth 1 |sed "s/.clinic\//""/")
+
+        mkdir -p artifacts/performance-tests/${{ inputs.artifact-suffix }}
+        mv .clinic/* artifacts/performance-tests/${{ inputs.artifact-suffix }}
+        mv artifacts/performance-tests/${{ inputs.artifact-suffix }}/$FILENAME.html artifacts/performance-tests/${{ inputs.artifact-suffix }}/${{ inputs.artifact-suffix }}.html
+
+    - name: Upload Clinic Report as Artifact
+      uses: meta-introspector/upload-artifact@v4
+      with:
+        name: ${{ env.short_sha }}-${{ inputs.artifact-suffix }}
+        path: artifacts/performance-tests

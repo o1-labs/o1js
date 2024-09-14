@@ -1,0 +1,112 @@
+name: process perf results no docker custom
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+      #  description: 'Commit to read results from'
+      #  required: true
+         default: 'main'
+      #commit_id:
+      #  description: 'Commit to read results from'
+      #  required: true
+      #  default: '5b13c202bbf6a196104ebb440678dd22037b6746'
+  #push:
+  #  branches:
+  #    - test-perf
+permissions:
+  id-token: write
+  pages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Login to GHCR
+        uses: meta-introspector/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}      
+      - name: Download a Build Artifact
+        uses: meta-introspector/action-download-artifact@v6
+        with:
+          workflow_search: true
+          #commit: ${{ inputs.commit_id }} 
+          skip_unpack: true
+          path: data
+          #workflow: ${{ inputs.workflow }} 
+          # If no workflow is set and workflow_search set to true, then the most recent workflow matching
+          # all other criteria will be looked up instead of using the current workflow
+          #workflow_search: false
+          # Optional, the status or conclusion of a completed workflow to search for
+          # Can be one of a workflow conclusion:
+          #   "failure", "success", "neutral", "cancelled", "skipped", "timed_out", "action_required"
+          # Or a workflow status:
+          #   "completed", "in_progress", "queued"
+          # Use the empty string ("") to ignore status or conclusion in the search
+          #workflow_conclusion: success
+          # Optional, will get head commit SHA
+          #pr: ${{github.event.pull_request.number}}
+          # Optional, no need to specify if PR is
+          #commit: ${{github.event.pull_request.head.sha}}
+          # Optional, will use the specified branch. Defaults to all branches
+          branch: ${{ inputs.branch }} 
+          # Optional, defaults to all types
+          #event: push
+          # Optional, will use specified workflow run
+          # use ${{ github.event.workflow_run.id }} when your action runs in a workflow_run event
+          # and wants to download from the triggering workflow run
+          #run_id: 1122334455
+          # Optional, run number from the workflow
+          #run_number: 34
+          # Optional, uploaded artifact name,
+          # will download all artifacts if not specified
+          # and extract them into respective subdirectories
+          # https://github.com/actions/download-artifact#download-all-artifacts
+          # is treated as a regular expression if input name_is_regexp is true
+          # will download only those artifacts with a name that matches this regular expression
+          # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions
+          #name: artifact_name
+          # Optional, name is treated as a regular expression if set true
+          #name_is_regexp: true
+          # Optional, a directory where to extract artifact(s), defaults to the current directory
+          #path: extract_here
+          # Optional, defaults to current repo
+          #repo: ${{ github.repository }}
+          # Optional, check the workflow run to whether it has an artifact
+          # then will get the last available artifact from the previous workflow
+          # default false, just try to download from the last one
+          #check_artifacts: false
+          # Optional, search for the last workflow run whose stored an artifact named as in `name` input
+          # default false
+          #search_artifacts: false
+          # Optional, choose to skip unpacking the downloaded artifact(s)
+          # default false
+          #skip_unpack: false
+    
+      - name: list
+        run: |          
+          find data
+          for x in data/*.zip; 
+            do unzip $x;
+          done
+          #unzip data/results.tgz.zip        
+          #for x in *.tar.gz;       do
+          tar -xvzf  perf.data.tar.gz 
+          #done
+          #for x in *.tgz;         do
+          #  tar -xzf $x
+          #done
+          find .
+          pushd tmp/perf
+          tree -H . -o index.html          
+      - name: Setup Pages
+        uses: meta-introspector/configure-pages@v5
+      - name: Upload Artifact
+        uses: meta-introspector/upload-pages-artifact@v5
+        with:          
+          path: 'tmp/perf'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: meta-introspector/deploy-pages@v4.1
+        

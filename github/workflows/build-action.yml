@@ -1,9 +1,9 @@
 name: Build o1js
 on:
-  push:
-    branches:
-      - main
-      - develop
+  #push:
+  #  branches:
+  #    - main
+  #    - develop
   pull_request:
   workflow_dispatch: {}
 
@@ -15,17 +15,17 @@ jobs:
       chunk_count: 8 # This is hardcoded to 8, but it can be changed to any number.
     steps:
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: meta-introspector/checkout@v4
         with:
           submodules: recursive
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: meta-introspector/setup-node@v4
         with:
           node-version: '18'
 
       - name: Cache dependencies and build
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         id: cache
         with:
           path: |
@@ -48,7 +48,7 @@ jobs:
           echo "Total test count: ${TEST_COUNT}"
 
       - name: Cache repository
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: .
           key: repo-${{ github.sha }}
@@ -73,18 +73,18 @@ jobs:
           ]
     steps:
       - name: Restore repository
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: .
           key: repo-${{ github.sha }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: meta-introspector/setup-node@v4
         with:
           node-version: '18'
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: |
             ~/.npm
@@ -117,18 +117,18 @@ jobs:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - name: Restore repository
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: .
           key: repo-${{ github.sha }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: meta-introspector/setup-node@v4
         with:
           node-version: '18'
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: |
             ~/.npm
@@ -172,7 +172,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: meta-introspector/upload-artifact@v4
         with:
           name: test-results-${{ matrix.chunk }}
           path: profiling.md
@@ -196,24 +196,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Restore repository
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: .
           key: repo-${{ github.sha }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: meta-introspector/setup-node@v4
         with:
           node-version: '18'
 
       - name: Restore npm cache
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -232,7 +232,7 @@ jobs:
         run: npm run test:e2e
 
       - name: Upload E2E test artifacts
-        uses: actions/upload-artifact@v4
+        uses: meta-introspector/upload-artifact@v4
         continue-on-error: true
         if: always()
         with:
@@ -248,13 +248,13 @@ jobs:
     needs: [Build-And-Test-Server, Run-Unit-Tests, Build-And-Test-Web]
     steps:
       - name: Restore repository
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: .
           key: repo-${{ github.sha }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: meta-introspector/setup-node@v4
         with:
           node-version: '18'
 
@@ -263,13 +263,13 @@ jobs:
           npm ci
           npm run prepublishOnly
 
-      - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          strategy: upgrade
-        env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # - name: Publish to NPM if version has changed
+      #   uses: JS-DevTools/npm-publish@v3
+      #   with:
+      #     token: ${{ secrets.NPM_TOKEN }}
+      #     strategy: upgrade
+      #   env:
+      #     INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   Release-mina-signer-on-NPM:
     if: github.ref == 'refs/heads/main'
@@ -278,13 +278,13 @@ jobs:
     needs: [Build-And-Test-Server, Run-Unit-Tests, Build-And-Test-Web]
     steps:
       - name: Restore repository
-        uses: actions/cache@v4
+        uses: meta-introspector/cache@v4
         with:
           path: .
           key: repo-${{ github.sha }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: meta-introspector/setup-node@v4
         with:
           node-version: '18'
 
@@ -295,11 +295,11 @@ jobs:
           npm ci
           npm run prepublishOnly
 
-      - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          package: './src/mina-signer/package.json'
-          strategy: upgrade
-        env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # - name: Publish to NPM if version has changed
+      #   uses: JS-DevTools/npm-publish@v3
+      #   with:
+      #     token: ${{ secrets.NPM_TOKEN }}
+      #     package: './src/mina-signer/package.json'
+      #     strategy: upgrade
+      #   env:
+      #     INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}

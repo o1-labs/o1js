@@ -1,0 +1,96 @@
+prelude: {}
+universe_of_universes:
+  empty_set:
+  one:  { 1:1 }
+  two:  { 1:1, 2:2 }
+  three:  { 1:1, 2:2, 3:3 }
+  universe:
+    world:
+      projects:
+      - project:
+          name: "o1js"
+          types:
+            - nodejs-rust-ocaml-wasm-mixed-language-web3-library:
+                nodejs:
+                json:
+                  yaml:
+                ocaml :
+                  introspection:
+                    ppx :
+                      ppx2json:
+                        output: json
+                rust :
+                  introspection:
+                    syn :
+                      syn-to-ast:
+                        output: json
+                    wasm-compile :
+                      output: wasm
+              web3 :
+              wasm :
+        instances:
+          - o1js :
+              version:
+                build:
+                  docker image:
+                    git submodules:
+                     recursive hashs:
+                    npm packages:
+                    opam packages:
+                    yarn:
+                    pnpm:
+                    jest:
+                  introspection:
+                    clinicjs:
+                    linux perf:
+                    strace:
+                    other tools:
+                      todo: look for more js and ts observability tools
+                      divide: break down into parts
+                      conquer: solve each part individually
+                      integrate:
+                        idea: unite type systems
+                        element:
+                          water:
+                          unity:
+                          singular:
+                        
+                      rule:
+                        idea: command and control
+                        repl:
+                          - read
+                          - eval
+                          - print
+                          - loop
+                        ooda:
+                          - observe
+                          - orient
+                          - decide
+                          - act
+                      quine: emit own source code
+                      heideggerian-terms: long-names-that-create-neologisms
+                      memes: self replicating patterns
+                      algebras:
+                        what: formal combinations of objects
+                        terms:
+                          multiplication:
+                            symbol: "*"
+                            idea:
+                              - product
+                              - and
+                              - multiply
+                              - record type
+                              - push on stack
+                            inverse:
+                              division: "%"                              
+                          addition:
+                            symbol: "+"
+                            idea:
+                              - sum
+                              - or
+                              - disjoint union
+                              - enum
+                            inverse:
+                              subtraction: "-"
+                      
+observation:

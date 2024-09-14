@@ -1,0 +1,68 @@
+name: Clinic Performance Analysis
+
+inputs:
+  gh-token:
+   description: GitHub token
+   required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Checkout code
+    uses: meta-introspector/checkout@v4
+
+  - name: Get short SHA
+    id: get_sha
+    shell: bash
+    run: echo "short_sha=${GITHUB_SHA::6}" >> $GITHUB_ENV
+
+  - name: Download artifact
+    uses: meta-introspector/download-artifact@v4
+    with:
+      name: "${{ env.short_sha }}-flame-artifact"
+      path: artifacts/performance-tests/${{ env.short_sha }}
+
+  - name: Download artifact
+    uses: meta-introspector/download-artifact@v4
+    with:
+      name: "${{ env.short_sha }}-doctor-artifact"
+      path: artifacts/performance-tests/${{ env.short_sha }}
+
+  - name: Deploy to GitHub Pages
+    uses: meta-introspector/actions-gh-pages@v4
+    with:
+      github_token: ${{ inputs.gh-token }}
+      publish_dir: artifacts
+      keep_files: true
+      allow_empty_commit: true
+
+  - name: Get Pull Request Number
+    id: get_pr_number
+    shell: bash
+    run: |
+      PR_NUMBER=$(curl -s -H "Authorization: token ${{ inputs.gh-token }}" \
+      "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" | \
+      jq '.[0].number')
+      echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
+  - name: Comment on Pull Request
+    if: env.PR_NUMBER != 'null'
+    uses: meta-introspector/github-script@v7
+    with:
+      github-token: ${{ inputs.gh-token }}
+      script: |
+        const doctorReportUrl = `https://${{ github.repository_owner }}.github.io/${context.repo.repo}/performance-tests/${{ env.short_sha }}/doctor-artifact/doctor-artifact.html`;
+        const flameReportUrl = `https://${{ github.repository_owner }}.github.io/${context.repo.repo}/performance-tests/${{ env.short_sha }}/flame-artifact/flame-artifact.html`;
+
+        github.rest.issues.createComment({
+          issue_number: process.env.PR_NUMBER,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          body: `
+        ### :bar_chart: Clinic JS Reports
+
+        | Name       | Description                                                                 | Script/Endpoint     | Link                                                            |
+        |------------|-----------------------------------------------------------------------------|---------------------|-----------------------------------------------------------------|
+        | Doctor JS  | Clinic Doctor analyzes Node.js applications to find performance bottlenecks | \`/process-simulator\`          | [View Report](${doctorReportUrl})                               |
+        | Flame JS   | Clinic Flame visualizes CPU utilization to identify performance issues      | \`/process-simulator\`          | [View Report](${flameReportUrl})                                |
+          `});
