@@ -21,6 +21,7 @@ Before starting, ensure you have the following tools installed:
 After cloning the repository, you need to fetch the submodules:
 
 ```sh
+export GIT_LFS_SKIP_SMUDGE=1
 git submodule update --init --recursive
 ```
 
