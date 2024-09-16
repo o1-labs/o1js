@@ -982,6 +982,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  state
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>; 
@@ -992,6 +993,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  state?: any
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
