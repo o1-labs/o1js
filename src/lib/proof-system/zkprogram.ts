@@ -1002,11 +1002,11 @@ Try adding a method to your ZkProgram or SmartContract.
 If you are using a SmartContract, make sure you are using the @method decorator.`);
 
   // decompose auxilary data type
-  let pureValues = publicInputType.toFields(publicInputType);
-  
+  let pureValues: Field[] = publicInputType.toFields(publicInputType);
+
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
-      publicInputType,
+      pureValues,
       publicOutputType,
       methods[i],
       proofSystemTag,
