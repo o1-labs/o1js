@@ -243,6 +243,24 @@ class Bool {
   }
 
   /**
+   * Boolean AND operation across a list of booleans.
+   */
+  static allTrue(list: (Bool | boolean)[]): Bool {
+    if(list.length === 0) {
+      return new Bool(true);
+    } else {
+      const cast = (x: Bool | boolean) => x instanceof Bool ? x : new Bool(x);
+      let b = cast(list[0]);
+
+      for(let i = 1; i < list.length; i++) {
+        b = b.and(cast(list[i]));
+      }
+
+      return b;
+    }
+  }
+
+  /**
    * Asserts if both {@link Bool} are equal.
    */
   static assertEqual(x: Bool, y: Bool | boolean): void {
