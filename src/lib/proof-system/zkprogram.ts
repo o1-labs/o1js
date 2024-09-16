@@ -1004,6 +1004,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   // decompose auxilary data type
   let pureValues: Field[] = publicInputType.toFields(publicInputType);
 
+  let auxilaryPublicInput = publicInputType.toAuxiliary()
+
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       pureValues,
