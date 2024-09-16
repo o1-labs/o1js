@@ -168,7 +168,9 @@ function createProgramState() {
  getAuxiliaryOutput: (methodName: string) => {
   let entry = methodCache.get(methodName);
   return entry;
-    }
+    } 
+      
+
 }
 }
 
@@ -675,6 +677,8 @@ function ZkProgram<
       }
     | undefined;
 
+ const programState = createProgramState();
+  
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
