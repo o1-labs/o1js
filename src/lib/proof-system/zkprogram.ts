@@ -678,7 +678,7 @@ function ZkProgram<
     | undefined;
 
  const programState = createProgramState();
-  
+
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
@@ -700,6 +700,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        state: programState
       });
 
       compileOutput = { provers, verify };
