@@ -165,15 +165,15 @@ function createProgramState() {
   return {
     setAuxiliaryOutput(value: Provable<any>, methodName: string) {
     },
-    setAuxilaryInput(value: Provable<any>, methodName: string){},
-  
- getAuxiliaryOutput: (methodName: string) => {
-  let entry = methodCache.get(methodName);
-  return entry;
+    setAuxilaryInput(value: Provable<any>, methodName: string){
+      methodCache.set(methodName, value);
+    },
+    getAuxiliaryOutput: (methodName: string) => {
+     let entry = methodCache.get(methodName);
+     return entry;
     } 
-      
-
-}
+   
+ }
 }
 
 async function fromZkProgramList(programs: Array<AnalysableProgram>) {
