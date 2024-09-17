@@ -88,7 +88,7 @@ class CircuitString extends Struct(RawCircuitString) {
       let isNull = this.values[i].isNull();
       mask[i] = isNull.and(wasntNullAlready);
       wasntNullAlready = isNull.not().and(wasntNullAlready);
-      length.add(wasntNullAlready.toField());
+      length = length.add(wasntNullAlready.toField());
     }
     // mask has length n+1, the last element is true when `this` has no null char
     mask[n] = wasntNullAlready;
