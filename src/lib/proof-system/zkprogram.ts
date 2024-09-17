@@ -978,7 +978,7 @@ async function compileProgram({
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
-    throw Error(`The Program you are trying to compile has no methods. 
+    throw Error(`The Program you are trying to compile has no methods.
 Try adding a method to your ZkProgram or SmartContract.
 If you are using a SmartContract, make sure you are using the @method decorator.`);
 
