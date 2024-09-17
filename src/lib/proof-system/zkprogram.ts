@@ -168,7 +168,7 @@ function createProgramState() {
     setAuxilaryInput(value: Provable<any>, methodName: string){
       methodCache.set(methodName, value);
     },
-    getAuxiliaryOutput: (methodName: string) => {
+    getAuxilaryInput: (methodName: string) => {
      let entry = methodCache.get(methodName);
      return entry;
     } 
