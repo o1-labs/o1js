@@ -19,9 +19,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Added `verifyEthers` method, introduced in `foreign-ecdsa.ts`, to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
-  - Added `fromEthers` method, introduced in `foreign-curve.ts`, for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
-  - Added `fromHex` method, introduced in `foreign-curve.ts`, for converting hexadecimal strings into `ForeignCurve` points.
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+  - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
+  - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
 
 ## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
 
