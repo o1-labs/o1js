@@ -163,18 +163,17 @@ const FeatureFlags = {
 function createProgramState() {
   let auxInputCache: Map<string, Provable<any>> = new Map();
   return {
-    setAuxilaryInput(value: Provable<any>){
+    setAuxilaryInput(value: Provable<any>) {
       auxInputCache.set('auxinput', value);
     },
     getAuxilaryInput: () => {
-     let entry = auxInputCache.get('auxinput');
-     return entry;
+      let entry = auxInputCache.get('auxinput');
+      return entry;
     },
     resetAuxCache() {
       auxInputCache.delete('auxinput');
-    }, 
-   
- }
+    },
+  };
 }
 
 async function fromZkProgramList(programs: Array<AnalysableProgram>) {
@@ -680,7 +679,7 @@ function ZkProgram<
       }
     | undefined;
 
- const programState = createProgramState();
+  const programState = createProgramState();
 
   async function compile({
     cache = Cache.FileSystemDefault,
@@ -703,7 +702,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
-        state: programState
+        state: programState,
       });
 
       compileOutput = { provers, verify };
@@ -764,16 +763,16 @@ function ZkProgram<
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
-      let publicInputAuxilirary = programState.getAuxilaryInput() 
+      let publicInputAuxilirary = programState.getAuxilaryInput();
+
+      // recompose auxiliary data
+      let nonPureInput = publicInputType.fromFields({
+        publicInput,
+        publicInputAuxilirary,
+      });
 
       // reset auxiliary data
-      programState.resetAuxCache()
-      // recompose auxiliary data 
-      
-      let nonPureInput = publicInputType.fromFields({
-        publicInput, 
-        publicInputAuxilirary
-     } )
+      programState.resetAuxCache();
 
       return new ProgramProof({
         nonPureInput,
@@ -996,10 +995,10 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
-  state
+  state,
 }: {
   publicInputType: Provable<any>;
-  publicOutputType: Provable<any>; 
+  publicOutputType: Provable<any>;
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
   gates: Gate[][];
@@ -1007,7 +1006,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
-  state?: any
+  state?: any;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -1018,11 +1017,11 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   // decompose auxiliary data type
   let purePublicInput = publicInputType.toFields(publicInputType);
 
-  let auxilaryPublicInput = publicInputType.toAuxiliary()
+  let auxilaryPublicInput = publicInputType.toAuxiliary();
 
-   // store auxiliary data in cache
+  // store auxiliary data in cache
   state.setAuxilaryInput(auxilaryPublicInput);
-  
+
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       purePublicInput,
