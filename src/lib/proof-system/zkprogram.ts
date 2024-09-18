@@ -765,7 +765,7 @@ function ZkProgram<
 
       let publicInputAuxilirary = programState.getAuxilaryInput('auxinput') 
       // recompose auxiliary data 
-      let nonPureInput = publicInputType.fromValue({
+      let nonPureInput = publicInputType.fromFields({
         publicInput, 
         publicInputAuxilirary
      } )
