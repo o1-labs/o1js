@@ -67,7 +67,8 @@ jobs:
             'DEX integration tests',
             'DEX integration test with proofs',
             'Voting integration tests',
-            'Verification Key Regression Check',
+            'Verification Key Regression Check 1',
+            'Verification Key Regression Check 2',
             'CommonJS test',
           ]
     steps:
