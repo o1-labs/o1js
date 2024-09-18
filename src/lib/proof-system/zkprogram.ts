@@ -764,9 +764,13 @@ function ZkProgram<
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
       let publicInputAuxilirary = programState.getAuxilaryInput('auxinput') 
-  
+      // recompose auxiliary data 
+      let nonPureInput = publicInputType.fromValue({
+        publicInput, 
+        publicInputAuxilirary
+     } )
       return new ProgramProof({
-        publicInput,
+        nonPureInput,
         publicOutput,
         proof,
         maxProofsVerified,
