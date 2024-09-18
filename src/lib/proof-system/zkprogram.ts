@@ -161,15 +161,13 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let methodCache: Map<string, Provable<any>> = new Map();
+  let auxInputCache: Map<string, Provable<any>> = new Map();
   return {
-    setAuxiliaryOutput(value: Provable<any>, methodName: string) {
+    setAuxilaryInput(value: Provable<any>){
+      auxInputCache.set('auxinput', value);
     },
-    setAuxilaryInput(value: Provable<any>, methodName: string){
-      methodCache.set(methodName, value);
-    },
-    getAuxilaryInput: (methodName: string) => {
-     let entry = methodCache.get(methodName);
+    getAuxilaryInput: () => {
+     let entry = auxInputCache.get('auxinput');
      return entry;
     } 
    
