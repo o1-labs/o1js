@@ -50,6 +50,8 @@ type MinimumConstraintSystem = {
 };
 
 const ConstraintSystems: MinimumConstraintSystem[] = [
+  ecdsa,
+  keccakAndEcdsa,
   Voting_,
   Membership_,
   HelloWorld,
@@ -60,8 +62,6 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   HashCS,
   BasicCS,
   CryptoCS,
-  ecdsa,
-  keccakAndEcdsa,
   ecdsaEthers,
   SHA256Program,
   diverse,
