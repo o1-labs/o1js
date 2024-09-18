@@ -169,7 +169,10 @@ function createProgramState() {
     getAuxilaryInput: () => {
      let entry = auxInputCache.get('auxinput');
      return entry;
-    } 
+    },
+    resetAuxCache() {
+      auxInputCache.delete('auxinput');
+    }, 
    
  }
 }
@@ -761,12 +764,17 @@ function ZkProgram<
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
-      let publicInputAuxilirary = programState.getAuxilaryInput('auxinput') 
+      let publicInputAuxilirary = programState.getAuxilaryInput() 
+
+      // reset auxiliary data
+      programState.resetAuxCache()
       // recompose auxiliary data 
+      
       let nonPureInput = publicInputType.fromFields({
         publicInput, 
         publicInputAuxilirary
      } )
+
       return new ProgramProof({
         nonPureInput,
         publicOutput,
@@ -1013,7 +1021,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   let auxilaryPublicInput = publicInputType.toAuxiliary()
 
    // store auxiliary data in cache
-  state.setAuxilaryInput(auxilaryPublicInput,'auxinput');
+  state.setAuxilaryInput(auxilaryPublicInput);
   
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
