@@ -137,6 +137,7 @@ const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
+      test: AccountPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
       validWhile: GlobalSlotPrecondition.ignoreAll(),
     };
@@ -147,6 +148,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
   return {
     account: Account(accountUpdate),
+    test: Account(accountUpdate),
     network: Network(accountUpdate),
     currentSlot: CurrentSlot(accountUpdate),
   };
@@ -644,7 +646,7 @@ function ensureConsistentPrecondition(
     let errorMessage = `
 Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
 '${name}' represents the field or value you're trying to set a precondition for.
-Preconditions must be set only once to avoid overwriting previous assertions. 
+Preconditions must be set only once to avoid overwriting previous assertions.
 For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
 
 Recommendation:
