@@ -763,6 +763,8 @@ function ZkProgram<
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
+      let publicInputAuxilirary = programState.getAuxilaryInput('auxinput') 
+  
       return new ProgramProof({
         publicInput,
         publicOutput,
@@ -1007,7 +1009,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   let purePublicInput = publicInputType.toFields(publicInputType);
 
   let auxilaryPublicInput = publicInputType.toAuxiliary()
-  
+
    // store auxiliary data in cache
   state.setAuxilaryInput(auxilaryPublicInput,'auxinput');
   
