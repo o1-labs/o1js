@@ -1007,7 +1007,10 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   let purePublicInput = publicInputType.toFields(publicInputType);
 
   let auxilaryPublicInput = publicInputType.toAuxiliary()
- 
+  
+   // store auxiliary data in cache
+  state.setAuxilaryInput(auxilaryPublicInput,'auxinput');
+  
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       purePublicInput,
