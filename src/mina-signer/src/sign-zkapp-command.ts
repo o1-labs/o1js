@@ -231,10 +231,7 @@ function accountUpdateFromFeePayer({
     isSome: Bool(true),
     value: { lower: nonce, upper: nonce },
   };
-  body.preconditions.test.nonce = {
-    isSome: Bool(true),
-    value: { lower: nonce, upper: nonce },
-  };
+  // TODO set permisions here?
   body.useFullCommitment = Bool(true);
   body.implicitAccountCreationFee = Bool(true);
   body.authorizationKind = {

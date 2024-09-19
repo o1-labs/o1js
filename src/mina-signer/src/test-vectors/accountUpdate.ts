@@ -84,15 +84,8 @@ let accountUpdateExample: Json.AccountUpdate = {
         provedState: null,
         isNew: true,
       },
-      test: {
-        balance: { lower: '1000000000', upper: '1000000000' },
-        nonce: null,
-        receiptChainHash: null,
-        delegate: 'B62qrja1a2wu3ciKygrqNiNoDZUsHCcE1VfF4LZQtQkzszWhogpWN9i',
-        state: ['9', null, null, null, null, null, null, null],
-        actionState: null,
-        provedState: null,
-        isNew: true,
+      permissions: {
+        dummyBool: true,
       },
       validWhile: null,
     },

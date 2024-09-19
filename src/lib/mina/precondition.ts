@@ -126,6 +126,19 @@ const AccountPrecondition = {
   },
 };
 
+type PermissionsPrecondition = Preconditions['permissions'];
+const PermissionsPrecondition = {
+  ignoreAll(): PermissionsPrecondition {
+    let appState: Array<OrIgnore<Field>> = [];
+    for (let i = 0; i < ZkappStateLength; ++i) {
+      appState.push(ignore(Field(0)));
+    }
+    return {
+      dummyBool: ignore(Bool(true)),
+    };
+  },
+};
+
 type GlobalSlotPrecondition = Preconditions['validWhile'];
 const GlobalSlotPrecondition = {
   ignoreAll(): GlobalSlotPrecondition {
@@ -137,7 +150,7 @@ const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
-      test: AccountPrecondition.ignoreAll(),
+      permissions: PermissionsPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
       validWhile: GlobalSlotPrecondition.ignoreAll(),
     };
