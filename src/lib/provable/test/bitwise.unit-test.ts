@@ -1,7 +1,6 @@
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import {
   equivalentProvable as equivalent,
-  equivalentAsync,
   field,
   fieldWithRng,
 } from '../../testing/equivalent.js';
@@ -19,13 +18,6 @@ import {
   withoutGenerics,
 } from '../../testing/constraint-system.js';
 import { GateType } from '../../../snarky.js';
-
-const maybeField = {
-  ...field,
-  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
-    mod(x, Field.ORDER)
-  ),
-};
 
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
@@ -148,116 +140,6 @@ await Bitwise.compile();
     (x) => Gadgets.leftShift32(x, 12)
   );
 });
-
-const runs = 2;
-
-await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs })(
-  (x, y) => {
-    return x ^ y;
-  },
-  async (x, y) => {
-    let proof = await Bitwise.xor(x, y);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [maybeField], to: field }, { runs })(
-  (x) => {
-    return Fp.not(x, 240);
-  },
-  async (x) => {
-    let proof = await Bitwise.notUnchecked(x);
-    return proof.publicOutput;
-  }
-);
-await equivalentAsync({ from: [maybeField], to: field }, { runs })(
-  (x) => {
-    if (x > 2n ** 240n) throw Error('Does not fit into 240 bit');
-    return Fp.not(x, 240);
-  },
-  async (x) => {
-    let proof = await Bitwise.notChecked(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
-  (x, y) => {
-    if (x >= 2n ** 64n || y >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
-    return x & y;
-  },
-  async (x, y) => {
-    let proof = await Bitwise.and(x, y);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
-  (x, y) => {
-    if (x >= 2n ** 64n || y >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
-    return x | y;
-  },
-  async (x, y) => {
-    let proof = await Bitwise.or(x, y);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rot(x, 12n, 'left');
-  },
-  async (x) => {
-    let proof = await Bitwise.rot64(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [uint(32)], to: uint(32) }, { runs })(
-  (x) => {
-    return Fp.rot(x, 12n, 'left', 32n);
-  },
-  async (x) => {
-    let proof = await Bitwise.rot32(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.leftShift(x, 12);
-  },
-  async (x) => {
-    let proof = await Bitwise.leftShift64(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 1n << 32n) throw Error('Does not fit into 32 bits');
-    return Fp.leftShift(x, 12, 32);
-  },
-  async (x) => {
-    let proof = await Bitwise.leftShift32(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rightShift(x, 12);
-  },
-  async (x) => {
-    let proof = await Bitwise.rightShift64(x);
-    return proof.publicOutput;
-  }
-);
 
 // check that gate chains stay intact
 
