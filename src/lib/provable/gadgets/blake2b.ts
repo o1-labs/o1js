@@ -149,7 +149,7 @@ function compress(
   for (let i = 0; i < 16; i++) {
     // get little-endian words
     m.push(
-      UInt64.fromFields(
+      UInt64.Unsafe.fromField(
         buf[i * 8].value
           .add(buf[i * 8 + 1].value.mul(1n << 8n))
           .add(buf[i * 8 + 2].value.mul(1n << 16n))
@@ -157,7 +157,7 @@ function compress(
           .add(buf[i * 8 + 4].value.mul(1n << 32n))
           .add(buf[i * 8 + 5].value.mul(1n << 40n))
           .add(buf[i * 8 + 6].value.mul(1n << 48n))
-          .add(buf[i * 8 + 7].value.mul(1n << 56n)).toFields()
+          .add(buf[i * 8 + 7].value.mul(1n << 56n)).seal()
       )
     );
   }
