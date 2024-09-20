@@ -149,16 +149,15 @@ function compress(
   for (let i = 0; i < 16; i++) {
     // get little-endian words
     m.push(
-      UInt64.from(
-        buf[i * 8]
-          .toUInt64()
-          .or(buf[i * 8 + 1].toUInt64().leftShift(8))
-          .or(buf[i * 8 + 2].toUInt64().leftShift(16))
-          .or(buf[i * 8 + 3].toUInt64().leftShift(24))
-          .or(buf[i * 8 + 4].toUInt64().leftShift(32))
-          .or(buf[i * 8 + 5].toUInt64().leftShift(40))
-          .or(buf[i * 8 + 6].toUInt64().leftShift(48))
-          .or(buf[i * 8 + 7].toUInt64().leftShift(56))
+      UInt64.fromFields(
+        buf[i * 8].value
+          .add(buf[i * 8 + 1].value.mul(1n << 8n))
+          .add(buf[i * 8 + 2].value.mul(1n << 16n))
+          .add(buf[i * 8 + 3].value.mul(1n << 24n))
+          .add(buf[i * 8 + 4].value.mul(1n << 32n))
+          .add(buf[i * 8 + 5].value.mul(1n << 40n))
+          .add(buf[i * 8 + 6].value.mul(1n << 48n))
+          .add(buf[i * 8 + 7].value.mul(1n << 56n)).toFields()
       )
     );
   }
