@@ -37,6 +37,8 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+export { From } from './bindings/lib/provable-generic.js';
+export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
   provablePure,
@@ -104,7 +106,10 @@ export {
 } from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export { TokenContract, TokenContractV2 } from './lib/mina/token/token-contract.js';
+export {
+  TokenContract,
+  TokenContractV2,
+} from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
