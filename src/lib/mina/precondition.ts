@@ -134,7 +134,7 @@ const PermissionsPrecondition = {
       appState.push(ignore(Field(0)));
     }
     return {
-      dummyBool: ignore(Bool(true)),
+      receive: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
     };
   },
 };

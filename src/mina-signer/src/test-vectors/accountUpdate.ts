@@ -85,7 +85,7 @@ let accountUpdateExample: Json.AccountUpdate = {
         isNew: true,
       },
       permissions: {
-        dummyBool: true,
+        receive: null,
       },
       validWhile: null,
     },
