@@ -59,7 +59,7 @@ let { verificationKey: contractVk } = await RecursiveContract.compile();
 let { verificationKey: programVk } = await RecursiveProgram.compile();
 
 // proof that should be rejected
-const fakeProof = await FakeProgram.make(UInt64.from(99999));
+const { proof: fakeProof } = await FakeProgram.make(UInt64.from(99999));
 const dummyProof = await RealProof.dummy(undefined, undefined, 0);
 
 for (let proof of [fakeProof, dummyProof]) {
@@ -76,10 +76,10 @@ for (let proof of [fakeProof, dummyProof]) {
 }
 
 // proof that should be accepted
-const realProof = await RealProgram.make(UInt64.from(34));
+const { proof: realProof } = await RealProgram.make(UInt64.from(34));
 
 // zkprogram accepts proof
-const brokenProof = await RecursiveProgram.verifyReal(realProof);
+const { proof: brokenProof } = await RecursiveProgram.verifyReal(realProof);
 assert(
   await verify(brokenProof, programVk.data),
   'recursive program accepts real proof'
